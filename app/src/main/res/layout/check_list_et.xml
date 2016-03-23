@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <FrameLayout
+        android:id="@+id/fl_check_list_separator"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginLeft="12dp"
+        android:layout_marginRight="12dp">
+
+        <View
+            android:id="@+id/view_check_list_separator"
+            android:layout_width="match_parent"
+            android:layout_height="2dp"
+            android:layout_gravity="center_vertical"
+            android:background="@drawable/dashed_line_check_list_separator"
+            android:layerType="software"/>
+
+    </FrameLayout>
+
+    <ImageView
+        android:id="@+id/iv_check_list_state"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:contentDescription="@string/description_check_info"
+        android:scaleType="center"
+        style="@style/SelectableItemBackground.Light"/>
+
+    <ImageView
+        android:id="@+id/iv_check_list_delete"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentRight="true"
+        android:src="@mipmap/delete_image_checklist"
+        android:scaleType="center"
+        style="@style/SelectableItemBackground.Light"
+        android:contentDescription="@string/description_delete_item"
+        android:visibility="invisible"
+        android:clickable="false"/>
+
+    <EditText
+        android:id="@+id/et_check_list"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_toEndOf="@id/iv_check_list_state"
+        android:layout_toRightOf="@id/iv_check_list_state"
+        android:layout_toStartOf="@id/iv_check_list_delete"
+        android:layout_toLeftOf="@id/iv_check_list_delete"
+        android:layout_marginTop="3dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginLeft="8dp"
+        android:textColorHint="#5CFFFFFF"
+        android:textColor="@color/white_76p"
+        android:background="@null"
+        android:textSize="20sp"
+        android:autoLink="all"
+        android:textCursorDrawable="@drawable/cursor_et_content"
+        android:theme="@style/EverythingDoneTheme.Detail.EditText"/>
+
+</RelativeLayout>

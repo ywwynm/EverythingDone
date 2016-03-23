@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:focusable="true"
+    android:focusableInTouchMode="true">
+
+    <FrameLayout
+        android:id="@+id/fl_year_at"
+        android:layout_width="wrap_content"
+        android:layout_height="64dp">
+
+        <EditText
+            android:id="@+id/et_year_at"
+            android:layout_width="60dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:textSize="16sp"
+            android:textCursorDrawable="@null"
+            android:imeOptions="actionNext"
+            android:inputType="number"/>
+
+        <TextView
+            android:id="@+id/tv_year_at"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:layout_marginLeft="4dp"
+            android:layout_marginBottom="12dp"
+            android:layout_gravity="bottom|start"
+            android:text="@string/year"
+            android:textSize="16sp"/>
+
+    </FrameLayout>
+
+    <FrameLayout
+        android:id="@+id/fl_month_at"
+        android:layout_width="wrap_content"
+        android:layout_height="64dp"
+        android:layout_toEndOf="@id/fl_year_at"
+        android:layout_toRightOf="@id/fl_year_at">
+
+        <EditText
+            android:id="@+id/et_month_at"
+            android:layout_width="80dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:maxLength="2"
+            android:textSize="16sp"
+            android:textCursorDrawable="@null"
+            android:imeOptions="actionNext"
+            android:inputType="number"/>
+
+        <TextView
+            android:id="@+id/tv_month_at"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:layout_marginLeft="4dp"
+            android:layout_marginBottom="12dp"
+            android:layout_gravity="bottom|start"
+            android:text="@string/month"
+            android:textSize="16sp"/>
+
+    </FrameLayout>
+
+    <FrameLayout
+        android:id="@+id/fl_day_at"
+        android:layout_width="wrap_content"
+        android:layout_height="64dp"
+        android:layout_toEndOf="@id/fl_month_at"
+        android:layout_toRightOf="@id/fl_month_at">
+
+        <EditText
+            android:id="@+id/et_day_at"
+            android:layout_width="40dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:maxLength="2"
+            android:textSize="16sp"
+            android:textCursorDrawable="@null"
+            android:imeOptions="actionNext"
+            android:inputType="number"/>
+
+        <TextView
+            android:id="@+id/tv_day_at"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:layout_marginLeft="4dp"
+            android:layout_marginBottom="12dp"
+            android:layout_gravity="bottom|start"
+            android:text="@string/day"
+            android:textSize="16sp"/>
+
+    </FrameLayout>
+
+    <FrameLayout
+        android:id="@+id/fl_hour_at"
+        android:layout_width="wrap_content"
+        android:layout_height="64dp"
+        android:layout_marginTop="8dp"
+        android:layout_below="@id/fl_year_at">
+
+        <EditText
+            android:id="@+id/et_hour_at"
+            android:layout_width="60dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:maxLength="2"
+            android:textSize="16sp"
+            android:textCursorDrawable="@null"
+            android:imeOptions="actionNext"
+            android:inputType="number"/>
+
+        <TextView
+            android:id="@+id/tv_hour_at"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:layout_marginLeft="4dp"
+            android:layout_marginBottom="12dp"
+            android:layout_gravity="bottom|start"
+            android:text="@string/hour"
+            android:textSize="16sp"/>
+
+    </FrameLayout>
+
+    <FrameLayout
+        android:id="@+id/fl_minute_at"
+        android:layout_width="wrap_content"
+        android:layout_height="64dp"
+        android:layout_marginTop="8dp"
+        android:layout_toEndOf="@id/fl_hour_at"
+        android:layout_toRightOf="@id/fl_hour_at"
+        android:layout_below="@id/fl_month_at">
+
+        <EditText
+            android:id="@+id/et_minute_at"
+            android:layout_width="80dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:maxLength="2"
+            android:textSize="16sp"
+            android:textCursorDrawable="@null"
+            android:imeOptions="actionDone"
+            android:inputType="number"/>
+
+        <TextView
+            android:id="@+id/tv_minute_at"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:layout_marginLeft="4dp"
+            android:layout_marginBottom="12dp"
+            android:layout_gravity="bottom|start"
+            android:text="@string/minute"
+            android:textSize="16sp"/>
+
+    </FrameLayout>
+
+    <TextView
+        android:id="@+id/tv_summary_at"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="16sp"
+        android:textColor="@color/black_54p"
+        android:layout_alignParentBottom="true"/>
+
+</RelativeLayout>

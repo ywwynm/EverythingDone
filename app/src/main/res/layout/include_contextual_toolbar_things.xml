@@ -1,0 +1,26 @@
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/rl_contextual_toolbar"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:visibility="invisible">
+
+    <android.support.v7.widget.Toolbar
+        android:id="@+id/contextual_toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@color/app_accent"
+        android:theme="@style/Theme.AppCompat.Light.NoActionBar"
+        app:titleTextAppearance="@style/ContextualToolbarText"
+        app:contentInsetStart="72dp"/>
+
+    <View
+        android:id="@+id/contextual_toolbar_shadow"
+        android:layout_width="match_parent"
+        android:layout_height="5dp"
+        android:layout_below="@id/contextual_toolbar"
+        android:background="@drawable/actionbar_shadow"
+        android:alpha="0.6"/>
+
+</RelativeLayout>

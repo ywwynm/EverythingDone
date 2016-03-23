@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/ll_quick_remind"
+    android:layout_width="match_parent"
+    android:layout_height="56dp"
+    android:gravity="center_vertical"
+    android:layout_gravity="bottom"
+    android:orientation="horizontal">
+
+    <CheckBox
+        android:id="@+id/cb_quick_remind"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_marginStart="16dp"
+        android:layout_marginLeft="16dp"
+        android:theme="@style/EverythingDoneTheme.Detail.CheckBox"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:gravity="center_vertical"
+        android:textSize="14sp"
+        android:textColor="@android:color/white"
+        android:text="@string/remind_me"/>
+
+    <FrameLayout
+        android:id="@+id/fl_quick_remind_as_bt"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:paddingLeft="4dp"
+        android:paddingRight="4dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginRight="16dp"
+        style="@style/SelectableItemBackground.Light">
+
+        <TextView
+            android:id="@+id/tv_quick_remind"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:textStyle="normal"
+            android:textAllCaps="false"
+            android:textColor="@android:color/white"
+            android:textSize="14sp"
+            android:singleLine="true"
+            android:background="@drawable/underline"/>
+
+    </FrameLayout>
+
+</LinearLayout>

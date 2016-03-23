@@ -1,0 +1,116 @@
+<resources>
+
+    <style name="EverythingDoneTheme.Things" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:colorPrimaryDark">#FFFFFF</item>
+        <item name="android:windowBackground">@color/bg_activity_things</item>
+        <item name="android:dialogTheme">@style/Theme.AppCompat.Light.Dialog</item>
+    </style>
+    
+    <style name="EverythingDoneTheme.Things.Toolbar" parent="Theme.AppCompat.Light">
+        <item name="drawerArrowStyle">@style/DrawerArrowStyle</item>
+    </style>
+
+    <style name="EverythingDoneTheme.Things.Drawer" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="colorPrimary">#000000</item>
+        <item name="android:textSize">16sp</item>
+    </style>
+
+    <style name="EverythingDoneTheme.Things.Search" parent="Theme.AppCompat.Light">
+        <item name="colorAccent">@color/black_54</item>
+        <item name="android:textColorHighlight">@color/black_26p</item>
+    </style>
+
+    <style name="EverythingDoneTheme.Detail" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="windowActionModeOverlay">true</item>
+        <!--<item name="actionOverflowButtonStyle">@style/EverythingDoneTheme.Detail.Overflow</item>-->
+    </style>
+
+    <style name="EverythingDoneTheme.Detail.Actionbar">
+        <item name="android:background">@drawable/selectable_item_background</item>
+        <item name="colorControlNormal">#FFFFFF</item>
+    </style>
+
+    <!--<style name="EverythingDoneTheme.Detail.Overflow" parent="Widget.AppCompat.ActionButton.Overflow">-->
+        <!--<item name="android:src">@mipmap/ic_overflow</item>-->
+    <!--</style>-->
+
+    <style name="EverythingDoneTheme.Detail.EditText" parent="Theme.AppCompat">
+        <item name="colorAccent">@color/app_accent</item>
+        <item name="android:textColorHighlight">#66FFEB3B</item>
+    </style>
+
+    <style name="EverythingDoneTheme.Detail.CheckBox" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="colorAccent">@color/app_accent</item>
+        <item name="android:textColorSecondary">@android:color/white</item>
+    </style>
+
+    <style name="EverythingDoneTheme.ImageViewer" parent="Theme.AppCompat.Light.NoActionBar">
+
+    </style>
+
+    <style name="EverythingDoneTheme.Settings" parent="Theme.AppCompat.Light.NoActionBar">
+
+    </style>
+
+    <style name="EverythingDoneTheme.About" parent="Theme.AppCompat.Light.NoActionBar">
+
+    </style>
+
+    <style name="DrawerArrowStyle" parent="Widget.AppCompat.DrawerArrowToggle">
+        <item name="spinBars">true</item>
+    </style>
+
+    <style name="SnackbarAnimationOnlyExit">
+        <item name="@android:windowExitAnimation">@anim/snackbar_hide</item>
+    </style>
+
+    <style name="SnackbarAnimation" parent="@style/SnackbarAnimationOnlyExit">
+        <item name="@android:windowEnterAnimation">@anim/snackbar_show</item>
+    </style>
+
+
+    <style name="ContextualToolbarText" parent="@style/TextAppearance.Widget.AppCompat.Toolbar.Title">
+        <item name="android:textColor">@color/black_54p</item>
+        <item name="android:textSize">@dimen/contextual_toolbar_text_size</item>
+    </style>
+
+    <style name="ColorPickerAnimation">
+        <item name="@android:windowEnterAnimation">@anim/color_picker_show</item>
+        <item name="@android:windowExitAnimation">@anim/color_picker_hide</item>
+    </style>
+
+    <style name="QuickRemindPickerAnimation">
+        <item name="@android:windowEnterAnimation">@anim/quick_remind_picker_show</item>
+        <item name="@android:windowExitAnimation">@anim/quick_remind_picker_hide</item>
+    </style>
+
+    <style name="TimeTypePickerAnimation">
+        <item name="@android:windowEnterAnimation">@anim/time_type_picker_show</item>
+        <item name="@android:windowExitAnimation">@anim/time_type_picker_hide</item>
+    </style>
+
+    <style name="SelectableItemForeground">
+        <item name="android:foreground">@drawable/selectable_item_background</item>
+    </style>
+
+    <style name="SelectableItemForeground.Light">
+        <item name="android:foreground">@drawable/selectable_item_background_light</item>
+    </style>
+
+    <style name="SelectableItemBackground">
+        <item name="android:background">@drawable/selectable_item_background</item>
+    </style>
+
+    <style name="SelectableItemBackground.Light">
+        <item name="android:background">@drawable/selectable_item_background_light</item>
+    </style>
+
+    <style name="SelectableItemBackground.Borderless">
+        <item name="android:background">@drawable/selectable_item_background_light</item>
+    </style>
+
+    <style name="ChooserFragmentRadioButton">
+        <item name="colorControlActivated">@color/blue_deep</item>
+    </style>
+
+</resources>

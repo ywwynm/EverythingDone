@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <array name="thing">
+        <item>@color/blue_grey_500</item>
+        <item>@color/my_cyan</item>
+        <item>@color/blue_grey_deep_blue</item>
+        <item>@color/blue_grey_deep_grey</item>
+        <item>@color/brown</item>
+        <item>@color/blue_deep</item>
+    </array>
+
+    <color name="blue_grey_500">#607D8B</color>
+    <color name="my_cyan">#00B1C6</color>
+    <color name="blue_grey_deep_blue">#366686</color>
+    <color name="blue_grey_deep_grey">#364656</color>
+    <color name="brown">#96766B</color>
+    <color name="blue_deep">#166096</color>
+
+    <array name="thing_dark">
+        <item>#3A4B53</item> <!-- blue_grey_500 -->
+        <item>#006A77</item> <!-- my_cyan -->
+        <item>#203D50</item> <!-- blue_grey_deep_blue -->
+        <item>#202A34</item> <!-- blue_grey_deep_grey -->
+        <item>#5A4740</item> <!-- brown -->
+        <item>#123D5C</item> <!-- blue_deep -->
+    </array>
+
+    <array name="thing_light">
+        <item>#CAD2D5</item> <!-- blue_grey_500 -->
+        <item>#B2DFE4</item> <!-- my_cyan -->
+        <item>#C0CCD4</item> <!-- blue_grey_deep_blue -->
+        <item>#C0C4C8</item> <!-- blue_grey_deep_grey -->
+        <item>#D8D0CD</item> <!-- brown -->
+        <item>#B8CAD8</item> <!-- blue_deep -->
+    </array>
+
+    <color name="bg_activity_things">#EEEEEE</color>
+
+    <color name="primary_activity_things">#EEEEEE</color>
+
+    <color name="app_accent">#FFEB3B</color>
+
+    <color name="black_69p">#B0000000</color> <!-- 69% 黑色 -->
+    <color name="black_54">#6D6D6D</color>
+    <color name="black_54p">#8A000000</color>
+    <color name="black_26p">#42000000</color>
+    <color name="black_10p">#1A000000</color>
+
+    <color name="white_86p">#DBFFFFFF</color>
+    <color name="white_76p">#C4FFFFFF</color>
+    <color name="white_66p">#A8FFFFFF</color>
+    <color name="white_54p">#89FFFFFF</color>
+    <color name="white_16p">#28FFFFFF</color>
+
+    <color name="bg_snackbar">#323232</color>
+
+    <color name="error">#DD2C00</color>
+
+    <color name="bg_unpicked">#E6E6E6</color>
+
+    <color name="about_support">#E91E63</color>
+
+</resources>

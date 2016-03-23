@@ -1,0 +1,187 @@
+package com.ywwynm.everythingdone.fragments;
+
+import android.content.DialogInterface;
+import android.os.Bundle;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+
+import com.ywwynm.everythingdone.R;
+import com.ywwynm.everythingdone.activities.SettingsActivity;
+import com.ywwynm.everythingdone.adapters.ChooserFragmentAdapter;
+import com.ywwynm.everythingdone.utils.DisplayUtil;
+
+import java.util.List;
+
+/**
+ * Created by ywwynm on 2016/3/11.
+ * chooser dialog fragment
+ */
+public class ChooserDialogFragment extends NoTitleDialogFragment {
+
+    public static final String TAG = "ChooserDialogFragment";
+
+    private SettingsActivity mActivity;
+
+    private int mAccentColor;
+    private String mTitle;
+    private List<String> mItems;
+    private int mInitialIndex;
+
+    private View.OnClickListener mConfirmListener;
+
+    private TextView mTvTitle;
+    private RecyclerView mRecyclerView;
+    private LinearLayoutManager mLlm;
+    private ChooserFragmentAdapter mAdapter;
+    private TextView mTvConfirmAsBt;
+    private TextView mTvCancelAsBt;
+
+    private View mSeparator1;
+    private View mSeparator2;
+
+    private View.OnClickListener mOnItemClickListener;
+
+    public interface OnDismissListener {
+        void onDismiss();
+    }
+    private OnDismissListener mOnDismissListener;
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        mActivity = (SettingsActivity) getActivity();
+
+        View contentView = inflater.inflate(R.layout.fragment_chooser, container, false);
+        mTvTitle = (TextView) contentView.findViewById(R.id.tv_title_fragment_chooser);
+        mRecyclerView = (RecyclerView) contentView.findViewById(R.id.rv_fragment_chooser);
+        mTvConfirmAsBt = (TextView) contentView.findViewById(R.id.tv_confirm_as_bt_fragment_chooser);
+        mTvCancelAsBt = (TextView) contentView.findViewById(R.id.tv_cancel_as_bt_fragment_chooser);
+
+        mSeparator1 = contentView.findViewById(R.id.view_separator_1);
+        mSeparator2 = contentView.findViewById(R.id.view_separator_2);
+
+        mLlm = new LinearLayoutManager(mActivity);
+
+        initUI();
+        setEvents();
+
+        return contentView;
+    }
+
+    @Override
+    public void onDismiss(DialogInterface dialog) {
+        if (mOnDismissListener != null) {
+            mOnDismissListener.onDismiss();
+        }
+        super.onDismiss(dialog);
+    }
+
+    private void initUI() {
+        mTvTitle.setTextColor(mAccentColor);
+        mTvTitle.setText(mTitle.toUpperCase());
+
+        mTvConfirmAsBt.setTextColor(mAccentColor);
+
+        if (mItems.size() > 9) {
+            LinearLayout.LayoutParams params = (LinearLayout.LayoutParams)
+                    mRecyclerView.getLayoutParams();
+            params.height = (int) (40 * 8.5 * DisplayUtil.getScreenDensity(mActivity));
+            mRecyclerView.requestLayout();
+        } else {
+            mSeparator1.setVisibility(View.INVISIBLE);
+            mSeparator2.setVisibility(View.INVISIBLE);
+        }
+
+        mAdapter = new ChooserFragmentAdapter(mActivity, mItems);
+        mAdapter.setOnItemClickListener(mOnItemClickListener);
+        mRecyclerView.setAdapter(mAdapter);
+        mRecyclerView.setLayoutManager(mLlm);
+        mAdapter.pick(mInitialIndex);
+
+        if (mItems.size() > 9) {
+            mRecyclerView.post(new Runnable() {
+                @Override
+                public void run() {
+                    mRecyclerView.scrollToPosition(mInitialIndex);
+                    updateSeparators();
+                }
+            });
+        }
+    }
+
+    private void setEvents() {
+        if (mItems.size() > 9) {
+            mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+                @Override
+                public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                    super.onScrolled(recyclerView, dx, dy);
+                    updateSeparators();
+                }
+            });
+        }
+        mTvCancelAsBt.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dismiss();
+            }
+        });
+        mTvConfirmAsBt.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (mConfirmListener != null) {
+                    mConfirmListener.onClick(v);
+                }
+                dismiss();
+            }
+        });
+    }
+
+    public int getPickedIndex() {
+        return mAdapter.getPickedPosition();
+    }
+
+    public void setAccentColor(int accentColor) {
+        mAccentColor = accentColor;
+    }
+
+    public void setTitle(String title) {
+        mTitle = title;
+    }
+
+    public void setItems(List<String> items) {
+        mItems = items;
+    }
+
+    public void setInitialIndex(int initialIndex) {
+        mInitialIndex = initialIndex;
+    }
+
+    public void setConfirmListener(View.OnClickListener confirmListener) {
+        mConfirmListener = confirmListener;
+    }
+
+    public void setOnItemClickListener(View.OnClickListener onItemClickListener) {
+        mOnItemClickListener = onItemClickListener;
+    }
+
+    public void setOnDismissListener(OnDismissListener onDismissListener) {
+        mOnDismissListener = onDismissListener;
+    }
+
+    private void updateSeparators() {
+        if (mLlm.findFirstCompletelyVisibleItemPosition() == 0) {
+            mSeparator1.setVisibility(View.INVISIBLE);
+            mSeparator2.setVisibility(View.VISIBLE);
+        } else if (mLlm.findLastCompletelyVisibleItemPosition() == mItems.size() - 1) {
+            mSeparator1.setVisibility(View.VISIBLE);
+            mSeparator2.setVisibility(View.INVISIBLE);
+        } else {
+            mSeparator1.setVisibility(View.VISIBLE);
+            mSeparator2.setVisibility(View.VISIBLE);
+        }
+    }
+}

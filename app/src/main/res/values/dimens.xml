@@ -1,0 +1,30 @@
+<resources>
+
+    <dimen name="rv_things_padding">4dp</dimen>
+
+    <dimen name="fab_margin">0dp</dimen>
+
+    <!--Snackbar-->
+    <dimen name="sb_height">48dp</dimen>
+
+    <!--Contextual Toolbar-->
+    <dimen name="contextual_toolbar_text_size">20sp</dimen>
+
+    <dimen name="iv_fab_audio_margin">4dp</dimen>
+
+    <dimen name="card_audio_attachment_margin">0dp</dimen>
+    <!-- Default screen margins, per the Android Design guidelines. -->
+    <dimen name="activity_horizontal_margin">16dp</dimen>
+    <dimen name="activity_vertical_margin">16dp</dimen>
+
+    <dimen name="il_et_day_width_rec">56dp</dimen>
+
+    <dimen name="layout_end_of_month_rec_width">132dp</dimen>
+
+    <dimen name="tv_end_of_month_rec_text_size">14sp</dimen>
+
+    <dimen name="tv_as_bt_datetime_tab_after_margin_top">6dp</dimen>
+
+    <dimen name="tv_auto_notify_text_size">18sp</dimen>
+
+</resources>

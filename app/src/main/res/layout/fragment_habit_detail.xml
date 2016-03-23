@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="280dp"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="280dp"
+        android:layout_height="wrap_content"
+        android:paddingTop="24dp"
+        android:paddingLeft="24dp"
+        android:paddingRight="24dp"
+        android:paddingBottom="12dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tv_habit_detail_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/habit_detail_title"
+            android:textSize="20sp"
+            android:textStyle="bold"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:textColor="@color/black_26p"
+            android:text="@string/habit_detail_completion_rate"/>
+
+        <TextView
+            android:id="@+id/tv_habit_detail_completion_rate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/black_54p"
+            android:textSize="16sp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:textColor="@color/black_26p"
+            android:text="@string/habit_detail_persist_in"/>
+
+        <TextView
+            android:id="@+id/tv_habit_detail_persist_in"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/black_54p"
+            android:textSize="16sp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:textColor="@color/black_26p"
+            android:text="@string/habit_detail_times"/>
+
+        <TextView
+            android:id="@+id/tv_habit_detail_times"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/black_54p"
+            android:textSize="16sp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:textColor="@color/black_26p"
+            android:text="@string/habit_detail_record"/>
+
+        <android.support.v7.widget.RecyclerView
+            android:id="@+id/rv_habit_detail_record"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:overScrollMode="never"/>
+
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tv_get_it_as_bt"
+        android:layout_width="wrap_content"
+        android:layout_height="36dp"
+        android:layout_gravity="end"
+        android:paddingLeft="12dp"
+        android:paddingTop="8dp"
+        android:paddingRight="12dp"
+        android:paddingBottom="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginRight="8dp"
+        android:layout_marginBottom="8dp"
+        style="@style/SelectableItemBackground"
+        android:textStyle="bold"
+        android:text="@string/act_get_it"/>
+
+</LinearLayout>

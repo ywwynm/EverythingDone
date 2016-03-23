@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/rl_rec_wmy"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/rv_rec_wmy"
+        android:layout_width="match_parent"
+        android:layout_height="120dp"
+        android:overScrollMode="never"/>
+
+    <RelativeLayout
+        android:layout_width="wrap_content"
+        android:layout_height="64dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginLeft="8dp"
+        android:layout_marginTop="16dp"
+        android:layout_below="@id/rv_rec_wmy">
+
+        <FrameLayout
+            android:id="@+id/fl_day_rec_wmy"
+            android:layout_width="wrap_content"
+            android:layout_height="64dp">
+
+            <EditText
+                android:id="@+id/et_day_rec_wmy"
+                android:layout_width="@dimen/il_et_day_width_rec"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom"
+                android:maxLength="2"
+                android:textSize="16sp"
+                android:textCursorDrawable="@null"
+                android:textColor="@color/black_54p"
+                android:imeOptions="actionNext"
+                android:inputType="number"/>
+
+            <TextView
+                android:id="@+id/tv_day_rec_wmy"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:layout_marginLeft="4dp"
+                android:layout_marginBottom="12dp"
+                android:layout_gravity="bottom|start"
+                android:textColor="@color/black_54p"
+                android:text="@string/day"
+                android:textSize="16sp"/>
+
+        </FrameLayout>
+
+        <FrameLayout
+            android:id="@+id/fl_hour_rec_wmy"
+            android:layout_width="wrap_content"
+            android:layout_height="64dp"
+            android:layout_toEndOf="@id/fl_day_rec_wmy"
+            android:layout_toRightOf="@id/fl_day_rec_wmy">
+
+            <EditText
+                android:id="@+id/et_hour_rec_wmy"
+                android:layout_width="60dp"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom"
+                android:maxLength="2"
+                android:textSize="16sp"
+                android:textCursorDrawable="@null"
+                android:textColor="@color/black_54p"
+                android:imeOptions="actionNext"
+                android:inputType="number"/>
+
+            <TextView
+                android:id="@+id/tv_hour_rec_wmy"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:layout_marginLeft="4dp"
+                android:layout_marginBottom="12dp"
+                android:layout_gravity="bottom|start"
+                android:textColor="@color/black_54p"
+                android:text="@string/hour"
+                android:textSize="16sp"/>
+
+        </FrameLayout>
+
+        <FrameLayout
+            android:id="@+id/fl_minute_rec_wmy"
+            android:layout_width="wrap_content"
+            android:layout_height="64dp"
+            android:layout_toEndOf="@id/fl_hour_rec_wmy"
+            android:layout_toRightOf="@id/fl_hour_rec_wmy">
+
+            <EditText
+                android:id="@+id/et_minute_rec_wmy"
+                android:layout_width="80dp"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom"
+                android:maxLength="2"
+                android:textSize="16sp"
+                android:textCursorDrawable="@null"
+                android:textColor="@color/black_54p"
+                android:imeOptions="actionDone"
+                android:inputType="number"/>
+
+            <TextView
+                android:id="@+id/tv_minute_rec_wmy"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:layout_marginLeft="4dp"
+                android:layout_marginBottom="12dp"
+                android:layout_gravity="bottom|start"
+                android:textColor="@color/black_54p"
+                android:text="@string/minute"
+                android:textSize="16sp"/>
+
+        </FrameLayout>
+
+    </RelativeLayout>
+
+</RelativeLayout>

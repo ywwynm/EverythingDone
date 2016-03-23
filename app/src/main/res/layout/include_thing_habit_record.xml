@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingTop="4dp"
+    android:paddingBottom="4dp"
+    android:gravity="center_vertical"
+    android:orientation="horizontal">
+
+    <ImageView
+        android:id="@+id/iv_thing_habit_record_1"
+        android:layout_width="0dp"
+        android:layout_weight="1"
+        android:layout_height="wrap_content"
+        android:contentDescription="@string/description_habit_record"/>
+
+    <ImageView
+        android:id="@+id/iv_thing_habit_record_2"
+        android:layout_width="0dp"
+        android:layout_weight="1"
+        android:layout_height="wrap_content"
+        android:contentDescription="@string/description_habit_record"/>
+
+    <ImageView
+        android:id="@+id/iv_thing_habit_record_3"
+        android:layout_width="0dp"
+        android:layout_weight="1"
+        android:layout_height="wrap_content"
+        android:contentDescription="@string/description_habit_record"/>
+
+    <ImageView
+        android:id="@+id/iv_thing_habit_record_4"
+        android:layout_width="0dp"
+        android:layout_weight="1"
+        android:layout_height="wrap_content"
+        android:contentDescription="@string/description_habit_record"/>
+
+    <ImageView
+        android:id="@+id/iv_thing_habit_record_5"
+        android:layout_width="0dp"
+        android:layout_weight="1"
+        android:layout_height="wrap_content"
+        android:contentDescription="@string/description_habit_record"/>
+
+</LinearLayout>

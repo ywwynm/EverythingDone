@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="280dp"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/tv_title_fragment_chooser"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="20dp"
+        android:layout_marginTop="20dp"
+        android:layout_marginRight="20dp"
+        android:textSize="20sp"
+        android:textStyle="bold"/>
+
+    <View
+        android:id="@+id/view_separator_1"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="16dp"
+        android:background="@color/black_10p"/>
+
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/rv_fragment_chooser"
+        android:layout_width="280dp"
+        android:layout_height="wrap_content"/>
+
+    <View
+        android:id="@+id/view_separator_2"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/black_10p"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="8dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginRight="8dp"
+        android:layout_marginBottom="8dp"
+        android:gravity="end"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/tv_cancel_as_bt_fragment_chooser"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:paddingLeft="12dp"
+            android:paddingTop="8dp"
+            android:paddingRight="12dp"
+            android:paddingBottom="8dp"
+            style="@style/SelectableItemBackground"
+            android:textColor="@color/black_26p"
+            android:text="@string/cancel"/>
+
+        <TextView
+            android:id="@+id/tv_confirm_as_bt_fragment_chooser"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:paddingLeft="12dp"
+            android:paddingTop="8dp"
+            android:paddingRight="12dp"
+            android:paddingBottom="8dp"
+            android:textStyle="bold"
+            android:text="@string/confirm"
+            style="@style/SelectableItemBackground"/>
+
+    </LinearLayout>
+
+</LinearLayout>

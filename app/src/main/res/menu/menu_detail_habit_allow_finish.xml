@@ -1,0 +1,49 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+      xmlns:app="http://schemas.android.com/apk/res-auto"
+      xmlns:tools="http://schemas.android.com/tools"
+      tools:context="com.ywwynm.everythingdone.activities.DetailActivity">
+
+    <item
+        android:id="@+id/act_add_attachment"
+        android:icon="@mipmap/act_add_attachment"
+        android:title="@string/act_add_attachment"
+        app:showAsAction="always"/>
+
+    <item
+        android:id="@+id/act_check_list"
+        android:icon="@mipmap/act_enable_check_list"
+        android:title="@string/act_enable_check_list"
+        app:showAsAction="always"/>
+
+    <item
+        android:id="@+id/act_change_color"
+        android:icon="@mipmap/act_change_color"
+        android:title="@string/act_change_color"
+        app:showAsAction="always"/>
+
+    <item
+        android:id="@+id/act_check_habit_detail"
+        android:title="@string/act_check_habit_info"
+        app:showAsAction="never"/>
+
+    <item
+        android:id="@+id/act_share"
+        android:title="@string/act_share"
+        app:showAsAction="never"/>
+
+    <item
+        android:id="@+id/act_finish_this_time_habit"
+        android:title="@string/act_finish_this_time_habit"
+        app:showAsAction="never"/>
+
+    <item
+        android:id="@+id/act_finish"
+        android:title="@string/act_habit_developed"
+        app:showAsAction="never"/>
+
+    <item
+        android:id="@+id/act_delete"
+        android:title="@string/act_delete"
+        app:showAsAction="never"/>
+
+</menu>

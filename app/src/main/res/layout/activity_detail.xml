@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<FrameLayout
+    android:id="@+id/fl_background"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:focusable="true"
+    android:focusableInTouchMode="true"
+    tools:context="com.ywwynm.everythingdone.activities.DetailActivity">
+
+    <ScrollView
+        android:id="@+id/sv_detail"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="56dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingBottom="20dp">
+
+            <android.support.v7.widget.RecyclerView
+                android:id="@+id/rv_image_attachment"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:overScrollMode="never"
+                android:visibility="gone"/>
+
+            <EditText
+                android:id="@+id/et_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@null"
+                android:hint="@string/hint_title"
+                android:imeOptions="actionNext"
+                android:paddingLeft="20dp"
+                android:paddingRight="20dp"
+                android:paddingTop="12dp"
+                android:singleLine="true"
+                android:textColor="@color/white_86p"
+                android:textColorHint="@color/white_86p"
+                android:textCursorDrawable="@drawable/cursor_et_title"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:theme="@style/EverythingDoneTheme.Detail.EditText"/>
+
+            <EditText
+                android:id="@+id/et_content"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:autoLink="all"
+                android:background="@null"
+                android:hint="@string/hint_content"
+                android:paddingLeft="20dp"
+                android:paddingRight="20dp"
+                android:textColor="@color/white_76p"
+                android:textColorHint="@color/white_76p"
+                android:textCursorDrawable="@drawable/cursor_et_content"
+                android:textSize="20sp"
+                android:theme="@style/EverythingDoneTheme.Detail.EditText"/>
+
+            <android.support.v7.widget.RecyclerView
+                android:id="@+id/rv_check_list"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:overScrollMode="never"
+                android:paddingLeft="8dp"
+                android:paddingRight="8dp"
+                android:visibility="gone"/>
+
+            <android.support.v7.widget.RecyclerView
+                android:id="@+id/rv_audio_attachment"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="32dp"
+                android:overScrollMode="never"
+                android:paddingLeft="12dp"
+                android:paddingRight="12dp"
+                android:visibility="gone"/>
+
+            <TextView
+                android:id="@+id/tv_update_time"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="40dp"
+                android:paddingLeft="20dp"
+                android:paddingRight="20dp"
+                android:textColor="@color/white_66p"
+                android:textSize="14sp"/>
+
+        </LinearLayout>
+
+    </ScrollView>
+
+    <include layout="@layout/include_actionbar_detail"/>
+
+    <View
+        android:id="@+id/quick_remind_shadow"
+        android:layout_width="match_parent"
+        android:layout_height="6dp"
+        android:layout_gravity="bottom"
+        android:layout_marginBottom="56dp"
+        android:alpha="0.0"
+        android:background="@drawable/quick_remind_shadow"/>
+
+    <include layout="@layout/include_quick_remind_detail"/>
+
+</FrameLayout>

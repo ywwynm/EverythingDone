@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:focusable="true"
+    android:focusableInTouchMode="true">
+
+    <include
+        android:id="@+id/include_recurrence_detail"
+        layout="@layout/include_recurrence_detail"/>
+
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/rv_time_of_day"
+        android:layout_width="match_parent"
+        android:layout_height="96dp"
+        android:layout_below="@id/include_recurrence_detail"
+        android:layout_marginTop="8dp"
+        android:layout_marginLeft="8dp"
+        android:layout_marginRight="8dp"
+        android:overScrollMode="never"
+        android:visibility="gone"/>
+
+    <include
+        layout="@layout/include_recurrence_wmy"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/include_recurrence_detail"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/tv_summary_rec"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_marginStart="10dp"
+        android:layout_marginLeft="10dp"
+        android:textSize="16sp"
+        android:textColor="@color/error"/>
+
+</RelativeLayout>

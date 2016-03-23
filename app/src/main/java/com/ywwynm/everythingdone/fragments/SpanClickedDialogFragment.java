@@ -1,0 +1,82 @@
+package com.ywwynm.everythingdone.fragments;
+
+import android.content.DialogInterface;
+import android.os.Bundle;
+import android.support.annotation.DrawableRes;
+import android.support.annotation.StringRes;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.TextView;
+
+import com.ywwynm.everythingdone.R;
+import com.ywwynm.everythingdone.utils.KeyboardUtil;
+
+/**
+ * Created by ywwynm on 2015/9/20.
+ * Shown when user clicks {@link android.text.style.URLSpan}s in
+ * {@link com.ywwynm.everythingdone.activities.DetailActivity}.
+ */
+public class SpanClickedDialogFragment extends NoTitleDialogFragment {
+
+    public static final String TAG = "SpanClickedDialogFragment";
+
+    private boolean mShouldShowKeyboardAfterDismiss = false;
+    private View mViewToFocusAfterDismiss;
+
+    private int mIconResStart, mIconResEnd;
+    private int mActionResStart, mActionResEnd;
+    private View.OnClickListener mListenerStart, mListenerEnd;
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        View contentView = inflater.inflate(R.layout.fragment_two_action_picker, container);
+        TextView tvStart = (TextView) contentView.findViewById(R.id.tv_action_start);
+        TextView tvEnd   = (TextView) contentView.findViewById(R.id.tv_action_end);
+
+        tvStart.setCompoundDrawablesWithIntrinsicBounds(0, mIconResStart, 0, 0);
+        tvStart.setText(mActionResStart);
+        tvStart.setOnClickListener(mListenerStart);
+
+        tvEnd.setCompoundDrawablesWithIntrinsicBounds(0, mIconResEnd, 0, 0);
+        tvEnd.setText(mActionResEnd);
+        tvEnd.setOnClickListener(mListenerEnd);
+
+        return contentView;
+    }
+
+    public void setStartAction(@DrawableRes int iconRes, @StringRes int actionRes,
+                               View.OnClickListener listener) {
+        mIconResStart   = iconRes;
+        mActionResStart = actionRes;
+        mListenerStart  = listener;
+    }
+
+    public void setEndAction(@DrawableRes int iconRes, @StringRes int actionRes,
+                             View.OnClickListener listener) {
+        mIconResEnd   = iconRes;
+        mActionResEnd = actionRes;
+        mListenerEnd  = listener;
+    }
+
+    public void setShouldShowKeyboardAfterDismiss(boolean shouldShowKeyboardAfterDismiss) {
+        mShouldShowKeyboardAfterDismiss = shouldShowKeyboardAfterDismiss;
+    }
+
+    public void setViewToFocusAfterDismiss(View viewToFocusAfterDismiss) {
+        mViewToFocusAfterDismiss = viewToFocusAfterDismiss;
+    }
+
+    @Override
+    public void onDismiss(DialogInterface dialog) {
+        if (mShouldShowKeyboardAfterDismiss && mViewToFocusAfterDismiss != null) {
+            mViewToFocusAfterDismiss.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    KeyboardUtil.showKeyboard(mViewToFocusAfterDismiss);
+                }
+            }, 60);
+        }
+        super.onDismiss(dialog);
+    }
+}

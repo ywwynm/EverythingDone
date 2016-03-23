@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="280dp"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/tv_add_attachment_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="24dp"
+        android:layout_marginTop="24dp"
+        android:layout_marginRight="24dp"
+        android:text="@string/act_add_attachment"
+        android:textSize="20sp"
+        android:textStyle="bold"/>
+
+    <TextView
+        android:id="@+id/tv_take_photo_as_bt"
+        android:layout_width="280dp"
+        android:layout_height="48dp"
+        android:layout_marginTop="16dp"
+        android:paddingStart="24dp"
+        android:paddingLeft="24dp"
+        android:paddingEnd="24dp"
+        android:paddingRight="24dp"
+        android:drawablePadding="16dp"
+        android:gravity="center_vertical"
+        android:text="@string/act_take_photo"
+        android:textSize="16sp"
+        android:drawableStart="@mipmap/act_take_photo"
+        android:drawableLeft="@mipmap/act_take_photo"
+        style="@style/SelectableItemBackground"/>
+
+    <TextView
+        android:id="@+id/tv_shoot_video_as_bt"
+        android:layout_width="280dp"
+        android:layout_height="48dp"
+        android:layout_marginTop="4dp"
+        android:paddingStart="24dp"
+        android:paddingLeft="24dp"
+        android:paddingEnd="24dp"
+        android:paddingRight="24dp"
+        android:drawablePadding="16dp"
+        android:gravity="center_vertical"
+        android:text="@string/act_shoot_video"
+        android:textSize="16sp"
+        android:drawableStart="@mipmap/act_shoot_video"
+        android:drawableLeft="@mipmap/act_shoot_video"
+        style="@style/SelectableItemBackground"/>
+
+    <TextView
+        android:id="@+id/tv_record_audio_as_bt"
+        android:layout_width="280dp"
+        android:layout_height="48dp"
+        android:layout_marginTop="4dp"
+        android:paddingStart="24dp"
+        android:paddingLeft="24dp"
+        android:paddingEnd="24dp"
+        android:paddingRight="24dp"
+        android:drawablePadding="16dp"
+        android:gravity="center_vertical"
+        android:text="@string/act_record_audio"
+        android:textSize="16sp"
+        android:drawableStart="@mipmap/act_record_audio"
+        android:drawableLeft="@mipmap/act_record_audio"
+        style="@style/SelectableItemBackground"/>
+
+    <TextView
+        android:id="@+id/tv_choose_media_files_as_bt"
+        android:layout_width="280dp"
+        android:layout_height="48dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="8dp"
+        android:paddingStart="24dp"
+        android:paddingLeft="24dp"
+        android:paddingEnd="24dp"
+        android:paddingRight="24dp"
+        android:drawablePadding="16dp"
+        android:gravity="center_vertical"
+        android:text="@string/act_choose_media_files"
+        android:textSize="16sp"
+        android:drawableStart="@mipmap/act_choose_media_files"
+        android:drawableLeft="@mipmap/act_choose_media_files"
+        style="@style/SelectableItemBackground"/>
+
+</LinearLayout>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/rl_snackbar"
+    android:layout_width="match_parent"
+    android:layout_height="@dimen/sb_height"
+    android:background="@color/bg_snackbar">
+
+    <TextView
+        android:id="@+id/tv_message"
+        android:layout_width="wrap_content"
+        android:layout_height="@dimen/sb_height"
+        android:gravity="center_vertical"
+        android:layout_marginStart="24dp"
+        android:layout_marginLeft="24dp"
+        android:textSize="14sp"
+        android:textColor="#FFFFFF"/>
+
+    <Button
+        android:id="@+id/bt_undo"
+        android:layout_width="88dp"
+        android:layout_height="@dimen/sb_height"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentRight="true"
+        android:textSize="14sp"
+        android:textColor="@color/app_accent"
+        style="@style/SelectableItemBackground.Light"/>
+
+</RelativeLayout>

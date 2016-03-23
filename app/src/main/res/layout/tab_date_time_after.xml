@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:focusable="true"
+    android:focusableInTouchMode="true">
+
+    <EditText
+        android:id="@+id/et_time_after"
+        android:layout_width="60dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginLeft="8dp"
+        android:inputType="number"
+        android:imeOptions="actionNext"
+        android:selectAllOnFocus="true"
+        android:textSize="16sp"
+        android:textCursorDrawable="@null"
+        android:text="45"/>
+
+    <TextView
+        android:id="@+id/tv_time_as_bt_after"
+        android:layout_width="wrap_content"
+        android:layout_height="48dp"
+        android:layout_marginTop="@dimen/tv_as_bt_datetime_tab_after_margin_top"
+        android:layout_toEndOf="@id/et_time_after"
+        android:layout_toRightOf="@id/et_time_after"
+        android:paddingStart="4dp"
+        android:paddingLeft="4dp"
+        android:gravity="center_vertical"
+        android:drawableEnd="@mipmap/ic_dropdown"
+        android:drawableRight="@mipmap/ic_dropdown"
+        style="@style/SelectableItemBackground"/>
+
+    <TextView
+        android:id="@+id/tv_error_after"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginLeft="8dp"
+        android:textSize="16sp"
+        android:textColor="@color/error"
+        android:layout_alignParentBottom="true"/>
+
+</RelativeLayout>

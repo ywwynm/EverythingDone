@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="40dp"
+    android:orientation="horizontal">
+
+    <TextView
+        android:id="@+id/tv_new_reminder_as_bt_rec_day"
+        android:layout_width="wrap_content"
+        android:layout_height="40dp"
+        android:layout_gravity="bottom"
+        android:gravity="center"
+        android:drawableStart="@mipmap/act_new_time_rec"
+        android:drawableLeft="@mipmap/act_new_time_rec"
+        android:drawablePadding="12dp"
+        android:textSize="16sp"
+        android:text="@string/new_reminder_time_rec"
+        style="@style/SelectableItemBackground"/>
+
+</LinearLayout>

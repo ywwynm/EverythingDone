@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="280dp"
+    android:layout_height="300dp"
+    android:orientation="vertical">
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="204dp">
+
+        <com.ywwynm.everythingdone.views.recording.VoiceVisualizer
+            android:id="@+id/voice_visualizer"
+            android:layout_width="280dp"
+            android:layout_height="132dp"
+            android:layout_gravity="bottom"
+            android:background="@android:color/transparent"
+            android:alpha="0.16"
+            app:renderRange="top"
+            app:numColumns="36"/>
+
+        <LinearLayout
+            android:id="@+id/ll_audio_file_name"
+            android:layout_width="232dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:translationY="-72dp"
+            android:focusable="true"
+            android:focusableInTouchMode="true">
+
+            <EditText
+                android:id="@+id/et_audio_file_name"
+                android:layout_width="192dp"
+                android:layout_height="wrap_content"
+                android:textSize="16sp"
+                android:singleLine="true"
+                android:textCursorDrawable="@null"
+                android:imeOptions="actionDone"
+                android:selectAllOnFocus="true"
+                android:hint="@string/input_file_name"/>
+
+            <TextView
+                android:layout_width="40dp"
+                android:layout_height="wrap_content"
+                android:text=".wav"
+                android:textSize="16sp"
+                tools:ignore="HardcodedText"/>
+
+        </LinearLayout>
+
+        <Chronometer
+            android:id="@+id/chronometer_record_audio"
+            android:layout_width="280dp"
+            android:layout_height="40dp"
+            android:layout_marginTop="20dp"
+            android:layout_marginBottom="12dp"
+            android:gravity="center"
+            android:textSize="36dp"
+            android:textColor="#000000"
+            android:alpha="0.26"
+            tools:ignore="SpUsage"/>
+
+    </FrameLayout>
+
+    <FrameLayout
+        android:layout_width="280dp"
+        android:layout_height="96dp"
+        android:layout_gravity="bottom">
+
+        <View
+            android:id="@+id/view_voice_visualizer_base"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:alpha="0.16"/>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="96dp"
+            android:layout_gravity="center">
+
+            <ImageView
+                android:id="@+id/iv_re_recording_audio"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:layout_marginEnd="@dimen/iv_fab_audio_margin"
+                android:layout_marginRight="@dimen/iv_fab_audio_margin"
+                android:src="@mipmap/act_re_recording_audio"
+                android:contentDescription="@string/description_re_recording_audio"
+                style="@style/SelectableItemBackground"
+                android:alpha="0"/>
+
+            <android.support.design.widget.FloatingActionButton
+                android:id="@+id/fab_record_main"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:layout_gravity="center_vertical"
+                android:src="@mipmap/act_start_recording_audio"
+                app:elevation="4dp"
+                app:pressedTranslationZ="8dp"
+                app:backgroundTint="#FFFFFF"
+                app:borderWidth="0dp"/>
+
+            <ImageView
+                android:id="@+id/iv_cancel_recording_audio"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:layout_marginStart="@dimen/iv_fab_audio_margin"
+                android:layout_marginLeft="@dimen/iv_fab_audio_margin"
+                android:src="@mipmap/act_cancel_recording_audio"
+                android:contentDescription="@string/description_cancel_recording_audio"
+                style="@style/SelectableItemBackground"
+                android:alpha="0"/>
+
+        </LinearLayout>
+
+    </FrameLayout>
+
+</LinearLayout>

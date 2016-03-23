@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <ImageView
+        android:id="@+id/iv_image_attachment"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:contentDescription="@string/description_image_attachment"
+        android:background="#000000"/>
+
+    <ImageView
+        android:id="@+id/iv_video_signal"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:layout_gravity="center"
+        android:src="@drawable/video_signal"
+        android:contentDescription="@string/description_video_attachment"
+        android:visibility="gone"/>
+
+    <ProgressBar
+        android:id="@+id/pb_image_attachment"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:layout_gravity="center"/>
+
+</FrameLayout>

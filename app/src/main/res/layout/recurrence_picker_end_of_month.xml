@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="36dp"
+    android:layout_marginTop="12dp">
+
+    <android.support.v7.widget.CardView
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        android:id="@+id/cv_end_of_month_rec"
+        android:layout_width="@dimen/layout_end_of_month_rec_width"
+        android:layout_height="36dp"
+        android:layout_gravity="center"
+        app:cardBackgroundColor="@color/black_54p"
+        app:cardCornerRadius="18dp"
+        app:cardElevation="0dp"
+        style="@style/SelectableItemForeground"/>
+
+    <TextView
+        android:id="@+id/tv_end_of_month_rec"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:text="@string/end_of_month"
+        android:textSize="@dimen/tv_end_of_month_rec_text_size"/>
+
+</FrameLayout>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+      xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/act_share"
+        android:title="@string/act_share"
+        android:icon="@mipmap/act_share"
+        app:showAsAction="always"/>
+
+    <item
+        android:id="@+id/act_select_all"
+        android:title="@string/act_select_all"
+        android:icon="@mipmap/act_select_all"
+        app:showAsAction="always"/>
+
+    <item
+        android:id="@+id/act_restore_selected"
+        android:title="@string/act_restore_selected"
+        android:icon="@mipmap/act_restore_all"
+        app:showAsAction="always"/>
+
+    <item
+        android:id="@+id/act_delete_selected"
+        android:title="@string/act_delete_selected"
+        android:icon="@mipmap/act_delete_all"
+        app:showAsAction="always"/>
+
+</menu>

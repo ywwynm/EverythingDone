@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <View
+        android:id="@+id/view_status_bar"
+        android:layout_width="match_parent"
+        android:layout_height="0dp" />
+
+    <android.support.v7.widget.Toolbar
+        android:id="@+id/actionbar"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:theme="@style/EverythingDoneTheme.Detail.Actionbar"
+        android:background="#00000000"
+        app:contentInsetStart="0dp"
+        app:popupTheme="@style/Theme.AppCompat.Light">
+
+        <ImageButton
+            android:id="@+id/ib_back"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:paddingLeft="18dp"
+            android:paddingRight="18dp"
+            android:contentDescription="@string/description_back"
+            style="@style/SelectableItemBackground.Borderless"/>
+
+    </android.support.v7.widget.Toolbar>
+
+    <View
+        android:id="@+id/actionbar_shadow"
+        android:layout_width="match_parent"
+        android:layout_height="4dp"
+        android:alpha="0.0"
+        android:background="@drawable/actionbar_shadow"/>
+
+</LinearLayout>

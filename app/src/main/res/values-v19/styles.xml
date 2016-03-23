@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="EverythingDoneTheme.Things" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:colorPrimaryDark">#FFFFFF</item>
+        <item name="android:windowBackground">@color/bg_activity_things</item>
+        <item name="android:windowTranslucentStatus">true</item>
+        <item name="android:dialogTheme">@style/Theme.AppCompat.Light.Dialog</item>
+    </style>
+
+    <style name="EverythingDoneTheme.Detail" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="windowActionModeOverlay">true</item>
+        <item name="android:windowTranslucentStatus">true</item>
+    </style>
+
+    <style name="EverythingDoneTheme.ImageViewer" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:windowTranslucentStatus">true</item>
+        <item name="android:windowTranslucentNavigation">true</item>
+    </style>
+
+    <style name="EverythingDoneTheme.Settings" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:windowTranslucentStatus">true</item>
+    </style>
+
+    <style name="EverythingDoneTheme.About" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:windowTranslucentStatus">true</item>
+        <item name="android:windowTranslucentNavigation">true</item>
+    </style>
+
+</resources>

@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.ywwynm.everythingdone.activities.SettingsActivity">
+
+    <View
+        android:id="@+id/view_status_bar"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:background="@color/app_accent"/>
+
+    <android.support.v7.widget.Toolbar
+        android:id="@+id/actionbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:layout_below="@id/view_status_bar"
+        android:background="@color/app_accent"
+        app:contentInsetStart="72dp"
+        app:titleTextColor="@color/black_54p"/>
+
+    <View
+        android:id="@+id/actionbar_shadow"
+        android:layout_width="match_parent"
+        android:layout_height="4dp"
+        android:layout_below="@id/actionbar"
+        android:background="@drawable/actionbar_shadow"/>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/actionbar">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:layout_marginBottom="4dp"
+                android:layout_marginLeft="18dp"
+                android:layout_marginRight="18dp"
+                android:textColor="@color/blue_deep"
+                android:textSize="14sp"
+                android:text="@string/settings_group_ringtone"/>
+
+            <LinearLayout
+                android:id="@+id/ll_ringtone_reminder_as_bt"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:paddingLeft="16dp"
+                android:paddingRight="16dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                style="@style/SelectableItemBackground">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="18sp"
+                    android:text="@string/reminder"/>
+
+                <TextView
+                    android:id="@+id/tv_ringtone_reminder"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="end"
+                    android:textColor="@color/black_26p"/>
+
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="@color/black_10p"/>
+
+            <LinearLayout
+                android:id="@+id/ll_ringtone_habit_as_bt"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:paddingLeft="16dp"
+                android:paddingRight="16dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                style="@style/SelectableItemBackground">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/habit"
+                    android:textSize="18sp"/>
+
+                <TextView
+                    android:id="@+id/tv_ringtone_habit"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="end"
+                    android:textColor="@color/black_26p"/>
+
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="@color/black_10p"/>
+
+            <LinearLayout
+                android:id="@+id/ll_ringtone_goal_as_bt"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:paddingLeft="16dp"
+                android:paddingRight="16dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                style="@style/SelectableItemBackground">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/goal"
+                    android:textSize="18sp"/>
+
+                <TextView
+                    android:id="@+id/tv_ringtone_goal"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="end"
+                    android:textColor="@color/black_26p"/>
+
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="4dp"
+                android:layout_marginLeft="18dp"
+                android:layout_marginRight="18dp"
+                android:textColor="@color/blue_deep"
+                android:textSize="14sp"
+                android:text="@string/settings_group_data"/>
+
+            <TextView
+                android:id="@+id/tv_backup_as_bt"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:paddingLeft="16dp"
+                android:paddingRight="16dp"
+                android:gravity="center_vertical"
+                android:text="@string/backup"
+                android:textSize="18sp"
+                style="@style/SelectableItemBackground"/>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="@color/black_10p"/>
+
+            <TextView
+                android:id="@+id/tv_restore_as_bt"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:paddingLeft="16dp"
+                android:paddingRight="16dp"
+                android:gravity="center_vertical"
+                android:text="@string/restore"
+                android:textSize="18sp"
+                style="@style/SelectableItemBackground"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="4dp"
+                android:layout_marginLeft="18dp"
+                android:layout_marginRight="18dp"
+                android:textColor="@color/blue_deep"
+                android:textSize="14sp"
+                android:text="@string/settings_group_advanced"/>
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="72dp">
+
+                <LinearLayout
+                    android:id="@+id/ll_advanced_auto_notify_as_bt"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:paddingLeft="16dp"
+                    android:paddingRight="16dp"
+                    android:orientation="vertical"
+                    android:gravity="center_vertical"
+                    style="@style/SelectableItemBackground">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/auto_notify"
+                        android:textSize="18sp"/>
+
+                    <TextView
+                        android:id="@+id/tv_advanced_auto_notify_time"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="2dp"
+                        android:layout_marginLeft="2dp"
+                        android:textColor="@color/black_26p"
+                        android:textSize="16sp"/>
+
+                </LinearLayout>
+
+                <ImageView
+                    android:id="@+id/iv_auto_notify_help_as_bt"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginEnd="8dp"
+                    android:layout_marginRight="8dp"
+                    android:layout_gravity="end|center_vertical"
+                    android:scaleType="center"
+                    android:contentDescription="@string/help"
+                    android:src="@mipmap/act_show_help_info"
+                    style="@style/SelectableItemBackground"/>
+
+            </FrameLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="@color/black_10p"/>
+
+            <LinearLayout
+                android:id="@+id/ll_ringtone_auto_notify_as_bt"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:paddingLeft="16dp"
+                android:paddingRight="16dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                style="@style/SelectableItemBackground">
+
+                <TextView
+                    android:id="@+id/tv_ringtone_auto_notify_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/auto_notify_ringtone"
+                    android:textSize="@dimen/tv_auto_notify_text_size"/>
+
+                <TextView
+                    android:id="@+id/tv_ringtone_auto_notify"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="end"
+                    android:textColor="@color/black_26p"/>
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </ScrollView>
+
+</RelativeLayout>

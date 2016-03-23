@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <dimen name="rv_things_padding">6dp</dimen>
+
+    <dimen name="fab_margin">16dp</dimen>
+
+    <dimen name="iv_fab_audio_margin">8dp</dimen>
+
+    <dimen name="card_audio_attachment_margin">4dp</dimen>
+
+    <dimen name="layout_end_of_month_rec_width">128dp</dimen>
+
+</resources>

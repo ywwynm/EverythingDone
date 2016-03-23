@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<merge
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context="com.ywwynm.everythingdone.activities.ThingsActivity">
+
+    <android.support.v4.widget.DrawerLayout
+        android:id="@+id/drawer_layout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fitsSystemWindows="true">
+
+        <FrameLayout
+            android:id="@+id/fl_things"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <android.support.v7.widget.RecyclerView
+                android:id="@+id/rv_things"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:paddingLeft="@dimen/rv_things_padding"
+                android:layout_marginTop="?attr/actionBarSize"
+                android:paddingRight="@dimen/rv_things_padding"
+                android:scrollbars="vertical"
+                android:scrollbarStyle="outsideOverlay"
+                android:theme="@style/Theme.AppCompat.Light"/>
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <android.support.v7.widget.Toolbar
+                    android:id="@+id/actionbar"
+                    android:layout_width="match_parent"
+                    android:layout_height="?attr/actionBarSize"
+                    android:theme="@style/EverythingDoneTheme.Things.Toolbar"
+                    app:contentInsetStart="72dp">
+
+                    <View
+                        android:id="@+id/view_inside_actionbar"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"/>
+
+                    <EditText
+                        android:id="@+id/et_search"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center_vertical"
+                        android:imeOptions="actionSearch"
+                        android:hint="@string/act_search"
+                        android:alpha="0"
+                        android:enabled="false"
+                        android:background="@null"
+                        android:singleLine="true"
+                        android:textColor="@color/black_54p"
+                        android:textCursorDrawable="@null"
+                        android:theme="@style/EverythingDoneTheme.Things.Search"/>
+
+                </android.support.v7.widget.Toolbar>
+
+                <View
+                    android:id="@+id/actionbar_shadow"
+                    android:layout_width="match_parent"
+                    android:layout_height="4dp"
+                    android:layout_below="@id/actionbar"
+                    android:alpha="0.0"
+                    android:background="@drawable/actionbar_shadow"/>
+
+            </RelativeLayout>
+
+            <include layout="@layout/include_activity_header_things" />
+
+            <com.ywwynm.everythingdone.views.FloatingActionButton
+                android:id="@+id/fab_create"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom|end"
+                android:layout_margin="@dimen/fab_margin"
+                android:scaleType="center"
+                android:src="@mipmap/act_create"
+                app:elevation="6dp"
+                app:borderWidth="0dp"
+                app:pressedTranslationZ="12dp"
+                app:backgroundTint="@color/app_accent"/>
+
+        </FrameLayout>
+
+        <android.support.design.widget.NavigationView
+            android:id="@+id/drawer"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_gravity="start"
+            android:theme="@style/EverythingDoneTheme.Things.Drawer"
+            app:headerLayout="@layout/drawer_header"
+            app:menu="@menu/menu_drawer"
+            app:itemIconTint="#000000"/>
+
+    </android.support.v4.widget.DrawerLayout>
+
+    <include layout="@layout/include_contextual_toolbar_things" />
+
+    <com.ywwynm.everythingdone.views.RevealLayout.RevealLayout
+        android:id="@+id/reveal_layout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="invisible">
+
+        <TextView
+            android:id="@+id/tv_no_result"
+            android:layout_width="160dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="32dp"
+            android:layout_gravity="center"
+            android:drawablePadding="16dp"
+            android:gravity="center_horizontal"
+            android:textSize="28sp"
+            android:textColor="@color/black_26p"
+            android:text="@string/no_result"
+            android:drawableTop="@mipmap/img_no_result"
+            android:visibility="invisible"
+            android:alpha="0"/>
+
+        <View
+            android:id="@+id/view_to_reveal"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="invisible"/>
+
+    </com.ywwynm.everythingdone.views.RevealLayout.RevealLayout>
+
+</merge>
+
