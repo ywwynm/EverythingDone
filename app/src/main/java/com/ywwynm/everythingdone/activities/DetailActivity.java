@@ -6,6 +6,7 @@ import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.graphics.Rect;
 import android.graphics.drawable.ColorDrawable;
 import android.media.MediaPlayer;
@@ -47,10 +48,10 @@ import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.adapters.AudioAttachmentAdapter;
 import com.ywwynm.everythingdone.adapters.CheckListAdapter;
 import com.ywwynm.everythingdone.adapters.ImageAttachmentAdapter;
-import com.ywwynm.everythingdone.bean.Habit;
-import com.ywwynm.everythingdone.bean.Reminder;
-import com.ywwynm.everythingdone.bean.Thing;
-import com.ywwynm.everythingdone.bean.ThingsCounts;
+import com.ywwynm.everythingdone.model.Habit;
+import com.ywwynm.everythingdone.model.Reminder;
+import com.ywwynm.everythingdone.model.Thing;
+import com.ywwynm.everythingdone.model.ThingsCounts;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
@@ -960,6 +961,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
                             int color = getAccentColor();
                             color = DisplayUtil.getTransparentColor(color, actionBarAlpha);
+                            mStatusBar.setBackgroundColor(color);
                             mActionbar.setBackgroundColor(color);
                         }
                     }
@@ -1006,12 +1008,22 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             @Override
             public void onClick(View v) {
                 changingColor = true;
+
                 int colorFrom = ((ColorDrawable) mFlBackground.getBackground()).getColor();
-                final int colorTo = mColorPicker.getPickedColor();
+                int colorTo = mColorPicker.getPickedColor();
                 quickRemindPicker.setAccentColor(colorTo);
                 quickRemindPicker.pickForUI(quickRemindPicker.getPickedIndex());
                 ObjectAnimator.ofObject(mFlBackground, "backgroundColor",
                         new ArgbEvaluator(), colorFrom, colorTo).setDuration(600).start();
+
+                colorFrom = ((ColorDrawable) mActionbar.getBackground()).getColor();
+                int alpha = Color.alpha(colorFrom);
+                colorTo = DisplayUtil.getTransparentColor(colorTo, alpha);
+                ObjectAnimator.ofObject(mActionbar, "backgroundColor",
+                        new ArgbEvaluator(), colorFrom, colorTo).setDuration(600).start();
+                ObjectAnimator.ofObject(mStatusBar, "backgroundColor",
+                        new ArgbEvaluator(), colorFrom, colorTo).setDuration(600).start();
+
                 mExecutor.execute(new Runnable() {
                     @Override
                     public void run() {

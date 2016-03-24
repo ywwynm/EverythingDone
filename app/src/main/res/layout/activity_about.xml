@@ -95,6 +95,11 @@
 
             </LinearLayout>
 
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="12dp"
+                android:background="@drawable/actionbar_shadow"/>
+
         </FrameLayout>
 
     </LinearLayout>

@@ -11,7 +11,7 @@ import android.widget.TextView;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.DetailActivity;
 import com.ywwynm.everythingdone.adapters.HabitRecordAdapter;
-import com.ywwynm.everythingdone.bean.Habit;
+import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.LocaleUtil;
 

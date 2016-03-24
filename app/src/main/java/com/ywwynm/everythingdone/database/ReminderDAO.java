@@ -9,7 +9,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 
 import com.ywwynm.everythingdone.Definitions;
-import com.ywwynm.everythingdone.bean.Reminder;
+import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.receivers.ReminderReceiver;
 
 /**

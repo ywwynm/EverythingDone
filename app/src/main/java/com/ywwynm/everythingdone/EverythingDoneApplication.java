@@ -7,7 +7,7 @@ import android.os.Environment;
 import android.util.LruCache;
 
 import com.ywwynm.everythingdone.activities.SettingsActivity;
-import com.ywwynm.everythingdone.bean.Thing;
+import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
 import com.ywwynm.everythingdone.managers.ModeManager;

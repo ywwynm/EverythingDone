@@ -87,9 +87,9 @@ public class DateTimeUtil {
     }
 
     /**
-     * Used to display {@link com.ywwynm.everythingdone.bean.Reminder.notifyTime}
-     * of a Reminder which belongs to a {@link com.ywwynm.everythingdone.bean.Thing}
-     * object with type {@link com.ywwynm.everythingdone.bean.Thing.GOAL}.
+     * Used to display {@link com.ywwynm.everythingdone.model.Reminder.notifyTime}
+     * of a Reminder which belongs to a {@link com.ywwynm.everythingdone.model.Thing}
+     * object with type {@link com.ywwynm.everythingdone.model.Thing.GOAL}.
      *
      * Using countdown to stress importance of a GOAL.
      *
@@ -101,9 +101,9 @@ public class DateTimeUtil {
     }
 
     /**
-     * Used to display {@link com.ywwynm.everythingdone.bean.Reminder.notifyTime}
-     * of a Reminder which belongs to a {@link com.ywwynm.everythingdone.bean.Thing}
-     * object with type {@link com.ywwynm.everythingdone.bean.Thing.REMINDER}.
+     * Used to display {@link com.ywwynm.everythingdone.model.Reminder.notifyTime}
+     * of a Reminder which belongs to a {@link com.ywwynm.everythingdone.model.Thing}
+     * object with type {@link com.ywwynm.everythingdone.model.Thing.REMINDER}.
      *
      * @return A string with type of "after some time" according to {@param time}.
      *         For example, "after 15 minutes" or "after 1 day".
@@ -127,14 +127,14 @@ public class DateTimeUtil {
     }
 
     /**
-     * Used to display {@link com.ywwynm.everythingdone.bean.Reminder.notifyTime}
-     * of a Reminder which belongs to a {@link com.ywwynm.everythingdone.bean.Thing}
-     * object with type {@link com.ywwynm.everythingdone.bean.Thing.REMINDER} in detailed way.
+     * Used to display {@link com.ywwynm.everythingdone.model.Reminder.notifyTime}
+     * of a Reminder which belongs to a {@link com.ywwynm.everythingdone.model.Thing}
+     * object with type {@link com.ywwynm.everythingdone.model.Thing.REMINDER} in detailed way.
      *
      * @param dt A {@link DateTime} object which has called
      *                 {@code DateTime#withMillis(long)}
      *                 to set the correct time of
-     *                 {@link com.ywwynm.everythingdone.bean.Reminder.notifyTime}.
+     *                 {@link com.ywwynm.everythingdone.model.Reminder.notifyTime}.
      *
      * @param timePeriod Whether the returned string should contain time period
      *                   information such as "in the morning", "at night" and so on.
@@ -457,6 +457,11 @@ public class DateTimeUtil {
     }
 
     public static long getHabitReminderTime(int type, long curHrTime, int vary) {
+        if (type == Calendar.DATE) {
+            return curHrTime + vary * 86400000;
+        } else if (type == Calendar.WEEK_OF_YEAR) {
+            return curHrTime + vary * 604800000;
+        }
         DateTime dt = new DateTime(curHrTime);
         int year = dt.getYear();
         int month = dt.getMonthOfYear();

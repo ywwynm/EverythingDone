@@ -10,7 +10,7 @@ import android.support.v4.app.NotificationManagerCompat;
 import com.ywwynm.everythingdone.Definitions;
 import com.ywwynm.everythingdone.EverythingDoneApplication;
 import com.ywwynm.everythingdone.R;
-import com.ywwynm.everythingdone.bean.Thing;
+import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.database.ThingDAO;
 import com.ywwynm.everythingdone.managers.ThingManager;
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil;

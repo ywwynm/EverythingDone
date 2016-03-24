@@ -6,7 +6,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 
 import com.ywwynm.everythingdone.Definitions;
 import com.ywwynm.everythingdone.R;
-import com.ywwynm.everythingdone.bean.Thing;
+import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 
 /**

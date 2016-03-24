@@ -5,7 +5,7 @@ import android.widget.TextView;
 import com.ywwynm.everythingdone.Definitions;
 import com.ywwynm.everythingdone.EverythingDoneApplication;
 import com.ywwynm.everythingdone.R;
-import com.ywwynm.everythingdone.bean.ThingsCounts;
+import com.ywwynm.everythingdone.model.ThingsCounts;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.LocaleUtil;
 

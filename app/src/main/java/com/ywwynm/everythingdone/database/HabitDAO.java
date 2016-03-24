@@ -9,10 +9,10 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 
 import com.ywwynm.everythingdone.Definitions;
-import com.ywwynm.everythingdone.bean.Habit;
-import com.ywwynm.everythingdone.bean.HabitRecord;
-import com.ywwynm.everythingdone.bean.HabitReminder;
-import com.ywwynm.everythingdone.bean.ThingsCounts;
+import com.ywwynm.everythingdone.model.Habit;
+import com.ywwynm.everythingdone.model.HabitRecord;
+import com.ywwynm.everythingdone.model.HabitReminder;
+import com.ywwynm.everythingdone.model.ThingsCounts;
 import com.ywwynm.everythingdone.receivers.HabitReceiver;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 
@@ -183,7 +183,9 @@ public class HabitDAO {
         String record = habit.getRecord();
         int recordedTimes = record.length();
         int remindedTimes = habit.getRemindedTimes();
-        long habitReminderId;
+        long habitId = habit.getId(), habitReminderId;
+        int newRecordCount = 1;
+
         if (recordedTimes >= remindedTimes) {
             // finish this habit once before notification
             HabitReminder closest = habit.getClosestHabitReminder();
@@ -191,11 +193,29 @@ public class HabitDAO {
             habitReminderId = closest.getId();
         } else {
             HabitReminder finalOne = habit.getFinalHabitReminder();
-            habitReminderId = finalOne.getId();
+            long finalTime = finalOne.getNotifyTime();
+            int type = habit.getType();
+            long finalLastTime = DateTimeUtil.getHabitReminderTime(type, finalTime, -1);
+            int gap = DateTimeUtil.calculateTimeGap(
+                    finalLastTime, System.currentTimeMillis(), type);
+            if (gap == 0) {
+                // Reminded this T
+                habitReminderId = finalOne.getId();
+            } else {
+                // Haven't reminded this T yet.
+                // User want to finish this habit once before notification.
+                HabitReminder closest = habit.getClosestHabitReminder();
+                updateHabitReminderToNext(closest.getId());
+                habitReminderId = closest.getId();
+
+                // At the same time, this means that user didn't finish enough times last T.
+                // More clearly, user didn't finish last time last T.
+                record += "0";
+                newRecordCount++;
+            }
         }
-        long habitId = habit.getId();
         updateHabit(habitId, record + "1");
-        ThingsCounts.getInstance(mContext).handleHabitRecorded(1, 1);
+        ThingsCounts.getInstance(mContext).handleHabitRecorded(1, newRecordCount);
         return createHabitRecord(new HabitRecord(0, habitId, habitReminderId));
     }
 
@@ -380,28 +400,15 @@ public class HabitDAO {
         Habit habit = getHabitById(habitReminder.getHabitId());
         int type = habit.getType();
         long time = habitReminder.getNotifyTime();
-        if (type == Calendar.DATE) {
-            time += 86400000;
-        } else if (type == Calendar.WEEK_OF_YEAR) {
-            time += 604800000;
-        } else {
-            time = DateTimeUtil.getHabitReminderTime(type, time, 1);
-        }
-        updateHabitReminder(hrId, time);
+        updateHabitReminder(hrId, DateTimeUtil.getHabitReminderTime(type, time, 1));
     }
 
     public void updateHabitReminderToLast(HabitReminder habitReminder) {
         Habit habit = getHabitById(habitReminder.getHabitId());
         int type = habit.getType();
         long time = habitReminder.getNotifyTime();
-        if (type == Calendar.DATE) {
-            time -= 86400000;
-        } else if (type == Calendar.WEEK_OF_YEAR) {
-            time -= 604800000;
-        } else {
-            time = DateTimeUtil.getHabitReminderTime(type, time, -1);
-        }
-        updateHabitReminder(habitReminder.getId(), time);
+        updateHabitReminder(habitReminder.getId(),
+                DateTimeUtil.getHabitReminderTime(type, time, -1));
     }
 
     public void deleteHabit(long id) {

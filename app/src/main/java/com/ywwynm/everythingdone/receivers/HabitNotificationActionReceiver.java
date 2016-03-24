@@ -7,9 +7,9 @@ import android.content.Intent;
 
 import com.ywwynm.everythingdone.Definitions;
 import com.ywwynm.everythingdone.EverythingDoneApplication;
-import com.ywwynm.everythingdone.bean.Habit;
-import com.ywwynm.everythingdone.bean.HabitReminder;
-import com.ywwynm.everythingdone.bean.Thing;
+import com.ywwynm.everythingdone.model.Habit;
+import com.ywwynm.everythingdone.model.HabitReminder;
+import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
 import com.ywwynm.everythingdone.managers.ThingManager;

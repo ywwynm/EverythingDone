@@ -6,8 +6,8 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 
 import com.ywwynm.everythingdone.Definitions;
-import com.ywwynm.everythingdone.bean.Thing;
-import com.ywwynm.everythingdone.bean.ThingsCounts;
+import com.ywwynm.everythingdone.model.Thing;
+import com.ywwynm.everythingdone.model.ThingsCounts;
 
 import java.util.ArrayList;
 import java.util.List;
