@@ -1,16 +1,19 @@
 package com.ywwynm.everythingdone.activities;
 
+import android.Manifest;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.provider.Settings;
+import android.support.annotation.NonNull;
 import android.support.annotation.StringRes;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.ActionBar;
@@ -20,11 +23,10 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.ywwynm.everythingdone.Definitions;
 import com.ywwynm.everythingdone.R;
-import com.ywwynm.everythingdone.model.HabitReminder;
-import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
 import com.ywwynm.everythingdone.fragments.AlertDialogFragment;
@@ -33,9 +35,12 @@ import com.ywwynm.everythingdone.fragments.LoadingDialogFragment;
 import com.ywwynm.everythingdone.helpers.AlarmHelper;
 import com.ywwynm.everythingdone.helpers.AutoNotifyHelper;
 import com.ywwynm.everythingdone.helpers.BackupHelper;
+import com.ywwynm.everythingdone.model.HabitReminder;
+import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.FileUtil;
+import com.ywwynm.everythingdone.utils.PermissionUtil;
 import com.ywwynm.everythingdone.utils.VersionUtil;
 
 import java.io.File;
@@ -103,6 +108,27 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                 }
             }
         }.start();
+    }
+
+    @Override
+    public void onRequestPermissionsResult(
+            int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        final int G = PackageManager.PERMISSION_GRANTED;
+        if (requestCode == Definitions.Communication.REQUEST_PERMISSION_BACKUP) {
+            if (grantResults[0] == G) {
+                showBackupLoadingDialog();
+                new BackupTask().execute();
+            } else {
+                Toast.makeText(this, R.string.error_permission_denied, Toast.LENGTH_LONG).show();
+            }
+        } else if (requestCode == Definitions.Communication.REQUEST_PERMISSION_RESTORE) {
+            if (grantResults[0] == G) {
+                showRestoreLoadingDialog();
+                new RestoreTask().execute();
+            } else {
+                Toast.makeText(this, R.string.error_permission_denied, Toast.LENGTH_LONG).show();
+            }
+        }
     }
 
     @Override
@@ -188,6 +214,8 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
     @Override
     protected void initUI() {
+        DisplayUtil.darkStatusBarForMIUI(this);
+
         if (VersionUtil.hasKitKatApi()) {
             RelativeLayout.LayoutParams params = (RelativeLayout.LayoutParams)
                     mStatusBar.getLayoutParams();
@@ -299,8 +327,16 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         adf.setConfirmListener(new AlertDialogFragment.ConfirmListener() {
             @Override
             public void onConfirm() {
-                showBackupLoadingDialog();
-                new BackupTask().execute();
+                PermissionUtil.Callback callback = new PermissionUtil.Callback() {
+                    @Override
+                    public void onGranted() {
+                        showBackupLoadingDialog();
+                        new BackupTask().execute();
+                    }
+                };
+                PermissionUtil.doWithPermissionChecked(callback, SettingsActivity.this,
+                        Definitions.Communication.REQUEST_PERMISSION_BACKUP,
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE);
             }
         });
         adf.show(getFragmentManager(), AlertDialogFragment.TAG);
@@ -321,8 +357,16 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         adf.setConfirmListener(new AlertDialogFragment.ConfirmListener() {
             @Override
             public void onConfirm() {
-                showRestoreLoadingDialog();
-                new RestoreTask().execute();
+                PermissionUtil.Callback callback = new PermissionUtil.Callback() {
+                    @Override
+                    public void onGranted() {
+                        showRestoreLoadingDialog();
+                        new RestoreTask().execute();
+                    }
+                };
+                PermissionUtil.doWithPermissionChecked(callback, SettingsActivity.this,
+                        Definitions.Communication.REQUEST_PERMISSION_RESTORE,
+                        Manifest.permission.READ_EXTERNAL_STORAGE);
             }
         });
         adf.show(getFragmentManager(), AlertDialogFragment.TAG);

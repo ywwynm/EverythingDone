@@ -7,6 +7,10 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.LayerDrawable;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+
 /**
  * Created by ywwynm on 2015/9/23.
  * Utils for Bitmap
@@ -122,5 +126,25 @@ public class BitmapUtil {
             bm = BitmapFactory.decodeFile(pathName);
         }
         return createScaledBitmap(bm, fWidth, fHeight, true);
+    }
+
+    public static File saveBitmapToStorage(String parentPath, String name, Bitmap bitmap) {
+        File file = FileUtil.createFile(parentPath, name);
+        FileOutputStream fos = null;
+        try {
+            fos = new FileOutputStream(file);
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (fos != null) {
+                try {
+                    fos.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return file;
     }
 }

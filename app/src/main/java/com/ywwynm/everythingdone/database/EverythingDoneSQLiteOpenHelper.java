@@ -51,7 +51,7 @@ public class EverythingDoneSQLiteOpenHelper extends SQLiteOpenHelper {
             + " int, "
             + Definitions.Database.COLUMN_STATE_REMINDERS
             + " int, "
-            + Definitions.Database.COLUMN_GOAL_DAYS_REMINDERS
+            + Definitions.Database.COLUMN_NOTIFY_MILLIS_REMINDERS
             + " int, "
             + Definitions.Database.COLUMN_CREATE_TIME_REMINDERS
             + " int, "

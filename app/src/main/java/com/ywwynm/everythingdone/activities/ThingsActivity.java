@@ -1,5 +1,6 @@
 package com.ywwynm.everythingdone.activities;
 
+import android.app.ActivityManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -7,7 +8,6 @@ import android.content.IntentFilter;
 import android.content.res.Configuration;
 import android.graphics.Canvas;
 import android.graphics.Color;
-import android.os.Build;
 import android.os.Bundle;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.ActivityCompat;
@@ -38,22 +38,22 @@ import com.ywwynm.everythingdone.Definitions;
 import com.ywwynm.everythingdone.EverythingDoneApplication;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.adapters.ThingsAdapter;
-import com.ywwynm.everythingdone.model.Habit;
-import com.ywwynm.everythingdone.model.HabitRecord;
-import com.ywwynm.everythingdone.model.Reminder;
-import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.fragments.AlertDialogFragment;
 import com.ywwynm.everythingdone.fragments.ThreeActionsAlertDialogFragment;
+import com.ywwynm.everythingdone.helpers.CheckListHelper;
+import com.ywwynm.everythingdone.helpers.SendInfoHelper;
 import com.ywwynm.everythingdone.managers.ModeManager;
 import com.ywwynm.everythingdone.managers.ThingManager;
-import com.ywwynm.everythingdone.helpers.CheckListHelper;
+import com.ywwynm.everythingdone.model.Habit;
+import com.ywwynm.everythingdone.model.HabitRecord;
+import com.ywwynm.everythingdone.model.Reminder;
+import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil;
 import com.ywwynm.everythingdone.utils.KeyboardUtil;
 import com.ywwynm.everythingdone.utils.LocaleUtil;
-import com.ywwynm.everythingdone.helpers.SendInfoHelper;
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil;
 import com.ywwynm.everythingdone.utils.VersionUtil;
 import com.ywwynm.everythingdone.views.ActivityHeader;
@@ -63,6 +63,7 @@ import com.ywwynm.everythingdone.views.RevealLayout.RevealLayout;
 import com.ywwynm.everythingdone.views.Snackbar;
 import com.ywwynm.everythingdone.views.pickers.ColorPicker;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -173,11 +174,12 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
     @Override
     protected void beforeInit() {
-        if (!EverythingDoneApplication.thingsActivityCreated) {
-            EverythingDoneApplication.setSomethingUpdatedSpecially(false);
-            EverythingDoneApplication.setShouldJustNotifyDataSetChanged(false);
-            EverythingDoneApplication.thingsActivityCreated = true;
-        }
+        // this will be only called in onCreate(), which means this Activity has unregistered
+        // receiver. So these two boolean values are useless now.
+        EverythingDoneApplication.setSomethingUpdatedSpecially(false);
+        EverythingDoneApplication.setShouldJustNotifyDataSetChanged(false);
+
+        EverythingDoneApplication.thingsActivityWR = new WeakReference<>(this);
     }
 
     @Override
@@ -188,7 +190,16 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             justNotifyDataSetChanged();
         }
 
-        mFabRippleColor = DisplayUtil.getRandomColor(this);
+        if (VersionUtil.hasLollipopApi()) {
+            setTaskDescription(new ActivityManager.TaskDescription(
+                    getString(R.string.app_name)));
+        }
+
+        int color = DisplayUtil.getRandomColor(mApplication);
+        while (color == mFabRippleColor) {
+            color = DisplayUtil.getRandomColor(mApplication);
+        }
+        mFabRippleColor = color;
         mFab.setRippleColor(mFabRippleColor);
         mActivityHeader.updateText();
     }
@@ -197,12 +208,6 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     protected void onPause() {
         super.onPause();
         dismissSnackbars();
-        mApplication.getAppExecutor().execute(new Runnable() {
-            @Override
-            public void run() {
-                mThingManager.getThingsCounts().writeToFile();
-            }
-        });
     }
 
     @Override
@@ -215,6 +220,9 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     protected void onDestroy() {
         super.onDestroy();
         unregisterReceiver(mUpdateUiReceiver);
+        mApplication.setDetailActivityRun(false);
+
+        EverythingDoneApplication.thingsActivityWR.clear();
     }
 
     @Override
@@ -294,6 +302,16 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         mUpdateMainUiInOnResume = false;
         dismissSnackbars();
         switch (resultCode) {
+            case Definitions.Communication.RESULT_JUST_NOTIFY_DATASET_CHANGED:
+                mDrawerLayout.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        justNotifyDataSetChanged();
+                        mUpdateMainUiInOnResume = true;
+                        mBroadCastIntent = null;
+                    }
+                }, 560);
+                break;
             case Definitions.Communication.RESULT_CREATE_THING_DONE:
                 updateMainUiForCreateDone(data);
                 break;
@@ -331,9 +349,13 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     }
 
     private void updateMainUiForCreateDone(Intent data) {
-        mApplication.setLimit(Definitions.LimitForGettingThings.ALL_UNDERWAY, true);
-        mThingsAdapter.setShouldThingsAnimWhenAppearing(false);
-        mThingsAdapter.notifyDataSetChanged();
+        if (EverythingDoneApplication.isSearching) {
+            toggleSearching();
+        } else {
+            mApplication.setLimit(Definitions.LimitForGettingThings.ALL_UNDERWAY, true);
+            mThingsAdapter.setShouldThingsAnimWhenAppearing(false);
+            mThingsAdapter.notifyDataSetChanged();
+        }
 
         MenuItem underway = mDrawer.getMenu().getItem(0);
         mPreviousItem.setChecked(false);
@@ -356,9 +378,12 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                         mThingsAdapter.notifyItemInserted(1);
                     }
                 }
+                if (mModeManager.getCurrentMode() == ModeManager.SELECTING) {
+                    updateSelectingUi(false);
+                }
                 mActivityHeader.updateText();
                 mDrawerHeader.updateAll();
-                mUpdateMainUiInOnResume = false;
+                mUpdateMainUiInOnResume = true;// TODO: 2016/3/28 mUpdateMainUiOnResume = false?
                 EverythingDoneApplication.setSomethingUpdatedSpecially(false);
                 mBroadCastIntent = null;
             }
@@ -613,14 +638,25 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
     @Override
     protected void initUI() {
-        if (Build.VERSION.SDK_INT == Build.VERSION_CODES.KITKAT) {
+        DisplayUtil.darkStatusBarForMIUI(this);
+
+        if (VersionUtil.hasKitKatApi()) {
+            View statusbar = findViewById(R.id.view_status_bar);
+            DrawerLayout.LayoutParams dlp1 = (DrawerLayout.LayoutParams)
+                    statusbar.getLayoutParams();
+            dlp1.height = DisplayUtil.getStatusbarHeight(this);
+            statusbar.requestLayout();
+
             FrameLayout fl = (FrameLayout) findViewById(R.id.fl_things);
-            DrawerLayout.LayoutParams params = (DrawerLayout.LayoutParams) fl.getLayoutParams();
-            params.setMargins(0, DisplayUtil.getStatusbarHeight(this), 0, 0);
+            DrawerLayout.LayoutParams dlp2 = (DrawerLayout.LayoutParams) fl.getLayoutParams();
+            dlp2.setMargins(0, dlp1.height, 0, 0);
             fl.requestLayout();
+
             mDrawerLayout.setFitsSystemWindows(false);
             mDrawer.setFitsSystemWindows(false);
         }
+
+        mDrawerLayout.setScrimColor(Color.parseColor("#60000000"));
 
         mSpan = DisplayUtil.isTablet(this) ? 3 : 2;
         if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
@@ -630,6 +666,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         mStaggeredGridLayoutManager = new StaggeredGridLayoutManager(
                 mSpan, StaggeredGridLayoutManager.VERTICAL);
         mRecyclerView.setLayoutManager(mStaggeredGridLayoutManager);
+        // post here to make sure that animation plays well and completely
         mRecyclerView.postDelayed(initRecyclerViewRunnable, 240);
 
         MenuItem itemAll = mDrawer.getMenu().findItem(R.id.drawer_underway);
@@ -674,8 +711,9 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         mDrawer.getHeaderView(0).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // TODO: 2016/3/22 statistics
-                System.out.println("hello");
+                Intent intent = new Intent(ThingsActivity.this, StatisticActivity.class);
+                startActivity(intent);
+                mDrawerLayout.closeDrawer(GravityCompat.START);
             }
         });
 
@@ -720,13 +758,12 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     @Override
                     public void run() {
                         startActivityForResult(intent, Definitions.Communication.REQUEST_ACTIVITY_DETAIL);
-                        /**
-                         * Without using R.anim.hold, the screen will flash because of transition
-                         * of Activities.
-                         */
-                        overridePendingTransition(0, R.anim.hold);
+                        overridePendingTransition(0, 0);
                     }
                 }, 600);
+
+                // change this value to prevent from flashing.
+                final int delay = mApplication.hasDetailActivityRun() ? 960 : 1600;
                 mFab.postDelayed(new Runnable() {
                     @Override
                     public void run() {
@@ -740,7 +777,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                         mRevealLayout.setVisibility(View.INVISIBLE);
                         mViewToReveal.setVisibility(View.INVISIBLE);
                     }
-                }, 960);
+                }, delay);
             }
         });
     }
@@ -1376,7 +1413,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 intent.putExtra(Definitions.Communication.KEY_POSITION, position);
 
                 ActivityOptionsCompat transition = ActivityOptionsCompat.makeScaleUpAnimation(
-                        v, v.getWidth() >> 1, v.getHeight() >> 1, 0, 0);
+                        v, v.getWidth() / 2, v.getHeight() / 2, 0, 0);
                 ActivityCompat.startActivityForResult(
                         ThingsActivity.this, intent, Definitions.Communication.REQUEST_ACTIVITY_DETAIL,
                         transition.toBundle());
@@ -1508,7 +1545,11 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                             showHabitSnackbar();
                         } else {
                             dismissSnackbars();
-                            mNormalSnackbar.setMessage(R.string.sb_cannot_finish_habit_more_times);
+                            if (habit.getRecord().isEmpty() && habit.getRemindedTimes() == 0) {
+                                mNormalSnackbar.setMessage(R.string.sb_cannot_finish_habit_first_time);
+                            } else {
+                                mNormalSnackbar.setMessage(R.string.sb_cannot_finish_habit_more_times);
+                            }
                             mNormalSnackbar.show();
                         }
                     }
@@ -1593,13 +1634,8 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         public boolean onMenuItemClick(MenuItem item) {
             switch (item.getItemId()) {
                 case R.id.act_share:
-                    String result = SendInfoHelper.shareThing(
+                    SendInfoHelper.shareThing(
                             ThingsActivity.this, mThingManager.getSelectedThing());
-                    if (!SendInfoHelper.NO_PROBLEM.equals(result)) {
-                        dismissSnackbars();
-                        mNormalSnackbar.setMessage(result);
-                        mNormalSnackbar.show();
-                    }
                     break;
                 case R.id.act_select_all:
                     mThingManager.setSelectedTo(true);

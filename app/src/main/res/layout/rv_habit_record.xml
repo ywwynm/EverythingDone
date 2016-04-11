@@ -9,6 +9,7 @@
         android:id="@+id/iv_habit_record"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center_vertical"/>
+        android:layout_gravity="center_vertical"
+        android:contentDescription="@string/habit_detail_record"/>
 
 </FrameLayout>

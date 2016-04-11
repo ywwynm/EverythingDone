@@ -1,18 +1,17 @@
 package com.ywwynm.everythingdone.receivers;
 
-import android.app.NotificationManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.support.v4.app.NotificationManagerCompat;
 
 import com.ywwynm.everythingdone.Definitions;
 import com.ywwynm.everythingdone.EverythingDoneApplication;
-import com.ywwynm.everythingdone.model.Reminder;
-import com.ywwynm.everythingdone.model.Thing;
-import com.ywwynm.everythingdone.model.ThingsCounts;
 import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
 import com.ywwynm.everythingdone.managers.ThingManager;
+import com.ywwynm.everythingdone.model.Reminder;
+import com.ywwynm.everythingdone.model.Thing;
 
 import java.util.List;
 
@@ -32,9 +31,13 @@ public class ReminderNotificationActionReceiver extends BroadcastReceiver {
                 ThingDAO thingDAO = ThingDAO.getInstance(context);
                 thing = thingDAO.getThingById(id);
                 thing = Thing.getSameCheckStateThing(thing, Thing.UNDERWAY, Thing.FINISHED);
+                boolean handleNotifyEmpty = true;
+                boolean handleCurrentLimit = true;
+                boolean toUndo = false;
+                boolean shouldUpdateHeader = true;
                 thingDAO.updateState(thing, thing.getLocation(), Thing.UNDERWAY, Thing.FINISHED,
-                        true, true, false, thingDAO.getHeaderId(), true);
-                ThingsCounts.getInstance(context).writeToFile();
+                        handleNotifyEmpty, handleCurrentLimit, toUndo, thingDAO.getHeaderId(),
+                        shouldUpdateHeader);
             } else {
                 ThingManager thingManager = ThingManager.getInstance(context);
                 List<Thing> things = thingManager.getThings();
@@ -62,7 +65,6 @@ public class ReminderNotificationActionReceiver extends BroadcastReceiver {
                 thing = thingDAO.getThingById(id);
                 thing.setUpdateTime(System.currentTimeMillis());
                 thingDAO.update(thing.getType(), thing, false, false);
-                ThingsCounts.getInstance(context).writeToFile();
             } else {
                 ThingManager thingManager = ThingManager.getInstance(context);
                 List<Thing> things = thingManager.getThings();
@@ -85,7 +87,9 @@ public class ReminderNotificationActionReceiver extends BroadcastReceiver {
             ReminderDAO dao = ReminderDAO.getInstance(context);
             Reminder reminder = dao.getReminderById(id);
             reminder.setNotifyTime(System.currentTimeMillis() + 10 * 60 * 1000);
+            reminder.setNotifyMillis(reminder.getNotifyMillis() + 10 * 60 * 1000);
             reminder.setState(Reminder.UNDERWAY);
+            reminder.setUpdateTime(System.currentTimeMillis());
             dao.update(reminder);
 
             EverythingDoneApplication.setSomethingUpdatedSpecially(true);
@@ -93,7 +97,8 @@ public class ReminderNotificationActionReceiver extends BroadcastReceiver {
                     Definitions.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME);
         }
 
-        ((NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE)).cancel((int) id);
+        NotificationManagerCompat nmc = NotificationManagerCompat.from(context);
+        nmc.cancel((int) id);
     }
 
     private void sendBroadCastToUpdateMainUI(Context context, Thing thing, int position, int resultCode) {

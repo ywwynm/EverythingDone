@@ -1,16 +1,13 @@
 package com.ywwynm.everythingdone.database;
 
-import android.app.AlarmManager;
-import android.app.PendingIntent;
 import android.content.ContentValues;
 import android.content.Context;
-import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 
 import com.ywwynm.everythingdone.Definitions;
+import com.ywwynm.everythingdone.helpers.AlarmHelper;
 import com.ywwynm.everythingdone.model.Reminder;
-import com.ywwynm.everythingdone.receivers.ReminderReceiver;
 
 /**
  * Created by ywwynm on 2015/5/22.
@@ -25,15 +22,12 @@ public class ReminderDAO {
 
     private SQLiteDatabase db;
 
-    private AlarmManager mAlarmManager;
-
     private static ReminderDAO sReminderDAO;
 
     private ReminderDAO(Context context) {
         mContext = context;
         EverythingDoneSQLiteOpenHelper helper = new EverythingDoneSQLiteOpenHelper(context);
         db = helper.getWritableDatabase();
-        mAlarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
     }
 
     public static ReminderDAO getInstance(Context context) {
@@ -67,16 +61,12 @@ public class ReminderDAO {
             values.put(Definitions.Database.COLUMN_ID_REMINDERS, id);
             values.put(Definitions.Database.COLUMN_NOTIFY_TIME_REMINDERS, notifyTime);
             values.put(Definitions.Database.COLUMN_STATE_REMINDERS, reminder.getState());
-            values.put(Definitions.Database.COLUMN_GOAL_DAYS_REMINDERS, reminder.getGoalDays());
+            values.put(Definitions.Database.COLUMN_NOTIFY_MILLIS_REMINDERS, reminder.getNotifyMillis());
             values.put(Definitions.Database.COLUMN_CREATE_TIME_REMINDERS, System.currentTimeMillis());
             values.put(Definitions.Database.COLUMN_UPDATE_TIME_REMINDERS, System.currentTimeMillis());
             db.insert(Definitions.Database.TABLE_REMINDERS, null, values);
 
-            Intent intent = new Intent(mContext, ReminderReceiver.class);
-            intent.putExtra(Definitions.Communication.KEY_ID, id);
-            PendingIntent pendingIntent = PendingIntent.getBroadcast(
-                    mContext, (int) id, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-            mAlarmManager.set(AlarmManager.RTC_WAKEUP, notifyTime, pendingIntent);
+            AlarmHelper.setReminderAlarm(mContext, id, notifyTime);
         }
     }
 
@@ -88,24 +78,21 @@ public class ReminderDAO {
             ContentValues values = new ContentValues();
             values.put(Definitions.Database.COLUMN_NOTIFY_TIME_REMINDERS, notifyTime);
             values.put(Definitions.Database.COLUMN_STATE_REMINDERS, updatedReminder.getState());
-            values.put(Definitions.Database.COLUMN_GOAL_DAYS_REMINDERS, updatedReminder.getGoalDays());
+            values.put(Definitions.Database.COLUMN_NOTIFY_MILLIS_REMINDERS, updatedReminder.getNotifyMillis());
             values.put(Definitions.Database.COLUMN_UPDATE_TIME_REMINDERS, updatedReminder.getUpdateTime());
             db.update(Definitions.Database.TABLE_REMINDERS, values, "id=" + id, null);
 
             if (updatedReminder.getState() == Reminder.UNDERWAY) {
-                Intent intent = new Intent(mContext, ReminderReceiver.class);
-                intent.putExtra(Definitions.Communication.KEY_ID, id);
-                PendingIntent pendingIntent = PendingIntent.getBroadcast(mContext, (int) id, intent,
-                        PendingIntent.FLAG_UPDATE_CURRENT);
-                mAlarmManager.set(AlarmManager.RTC_WAKEUP, notifyTime, pendingIntent);
+                AlarmHelper.setReminderAlarm(mContext, id, notifyTime);
             }
         }
     }
 
     public void resetGoal(Reminder goal) {
-        long goalDays = goal.getGoalDays();
-        if (goal != null && goalDays >= 4 * 30) {
-            long notifyTime = System.currentTimeMillis() + goalDays * 24 * 60 * 60 * 1000;
+        if (goal == null) return;
+        long millis = goal.getNotifyMillis();
+        if (millis >= 4 * 30 * 24 * 60 * 60 * 1000L) {
+            long notifyTime = System.currentTimeMillis() + millis;
             goal.setNotifyTime(notifyTime);
             goal.setState(Reminder.UNDERWAY);
             goal.setUpdateTime(System.currentTimeMillis());
@@ -115,10 +102,6 @@ public class ReminderDAO {
 
     public void delete(long id) {
         db.delete(Definitions.Database.TABLE_REMINDERS, "id=" + id, null);
-        Intent intent = new Intent(mContext, ReminderReceiver.class);
-        intent.putExtra(Definitions.Communication.KEY_ID, id);
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(mContext, (int) id, intent,
-                PendingIntent.FLAG_UPDATE_CURRENT);
-        mAlarmManager.cancel(pendingIntent);
+        AlarmHelper.deleteReminderAlarm(mContext, id);
     }
 }

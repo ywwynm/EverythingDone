@@ -2,8 +2,10 @@ package com.ywwynm.everythingdone.activities;
 
 import android.animation.ArgbEvaluator;
 import android.animation.ObjectAnimator;
+import android.app.ActivityManager;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.Color;
@@ -11,6 +13,7 @@ import android.graphics.Rect;
 import android.graphics.drawable.ColorDrawable;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.support.annotation.NonNull;
 import android.support.annotation.StringRes;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.ActivityOptionsCompat;
@@ -41,6 +44,7 @@ import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.ywwynm.everythingdone.Definitions;
 import com.ywwynm.everythingdone.EverythingDoneApplication;
@@ -48,10 +52,6 @@ import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.adapters.AudioAttachmentAdapter;
 import com.ywwynm.everythingdone.adapters.CheckListAdapter;
 import com.ywwynm.everythingdone.adapters.ImageAttachmentAdapter;
-import com.ywwynm.everythingdone.model.Habit;
-import com.ywwynm.everythingdone.model.Reminder;
-import com.ywwynm.everythingdone.model.Thing;
-import com.ywwynm.everythingdone.model.ThingsCounts;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
@@ -59,11 +59,15 @@ import com.ywwynm.everythingdone.fragments.AddAttachmentDialogFragment;
 import com.ywwynm.everythingdone.fragments.AlertDialogFragment;
 import com.ywwynm.everythingdone.fragments.DateTimeDialogFragment;
 import com.ywwynm.everythingdone.fragments.HabitDetailDialogFragment;
-import com.ywwynm.everythingdone.fragments.SpanClickedDialogFragment;
+import com.ywwynm.everythingdone.fragments.TwoOptionsDialogFragment;
 import com.ywwynm.everythingdone.helpers.AttachmentHelper;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
 import com.ywwynm.everythingdone.helpers.SendInfoHelper;
 import com.ywwynm.everythingdone.managers.ThingManager;
+import com.ywwynm.everythingdone.model.Habit;
+import com.ywwynm.everythingdone.model.Reminder;
+import com.ywwynm.everythingdone.model.Thing;
+import com.ywwynm.everythingdone.model.ThingsCounts;
 import com.ywwynm.everythingdone.receivers.AutoNotifyReceiver;
 import com.ywwynm.everythingdone.receivers.HabitReceiver;
 import com.ywwynm.everythingdone.receivers.ReminderReceiver;
@@ -80,6 +84,7 @@ import com.ywwynm.everythingdone.views.pickers.ColorPicker;
 import com.ywwynm.everythingdone.views.pickers.DateTimePicker;
 
 import java.io.File;
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -173,105 +178,6 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     private Runnable mShowNormalSnackbar;
     private Runnable mShowUndoSnackbar;
 
-    /**
-     * This {@link android.view.View.OnTouchListener} will listen to click events that should
-     * be handled by link/phoneNum/email/maps in {@link mEtContent} and other {@link EditText}s
-     * so that we can handle them with different intents and not lose ability to edit them.
-     */
-    private View.OnTouchListener mSpannableTouchListener = new View.OnTouchListener() {
-
-        @Override
-        public boolean onTouch(View v, MotionEvent event) {
-            if (mUndoSnackbar != null) {
-                mUndoSnackbar.dismiss();
-            }
-
-            int action = event.getAction();
-            if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_DOWN){
-                final EditText et = (EditText) v;
-                final Spannable sContent = Spannable.Factory.getInstance()
-                        .newSpannable(et.getText());
-
-                int x = (int) event.getX();
-                int y = (int) event.getY();
-                x -= et.getTotalPaddingLeft();
-                y -= et.getTotalPaddingTop();
-                x += et.getScrollX();
-                y += et.getScrollY();
-
-                Layout layout = et.getLayout();
-                int line      = layout.getLineForVertical(y);
-                int offset    = layout.getOffsetForHorizontal(line, x);
-
-                // place cursor of EditText to correct position.
-                if (action == MotionEvent.ACTION_UP) {
-                    et.requestFocus();
-                    if (offset > 0) {
-                        if (x > layout.getLineMax(line)) {
-                            et.setSelection(offset);
-                        } else et.setSelection(offset - 1);
-                    }
-                }
-
-                ClickableSpan[] link = sContent.getSpans(offset, offset, ClickableSpan.class);
-                if (link.length != 0){
-                    if (action == MotionEvent.ACTION_UP) {
-                        final URLSpan urlSpan = (URLSpan) link[0];
-
-                        if (!mEditable) {
-                            urlSpan.onClick(et);
-                            return true;
-                        }
-
-                        String url = urlSpan.getURL();
-                        final SpanClickedDialogFragment df = new SpanClickedDialogFragment();
-                        df.setViewToFocusAfterDismiss(et);
-
-                        View.OnClickListener startListener = new View.OnClickListener() {
-                            @Override
-                            public void onClick(View v) {
-                                df.dismiss();
-                                KeyboardUtil.hideKeyboard(getWindow());
-                                try {
-                                    urlSpan.onClick(et);
-                                } catch (ActivityNotFoundException e) {
-                                    mNormalSnackbar.setMessage(R.string.error_activity_not_found);
-                                    mFlBackground.postDelayed(mShowNormalSnackbar,
-                                            KeyboardUtil.HIDE_DELAY);
-                                }
-                            }
-                        };
-                        View.OnClickListener endListener = new View.OnClickListener() {
-                            @Override
-                            public void onClick(View v) {
-                                df.setShouldShowKeyboardAfterDismiss(true);
-                                df.dismiss();
-                            }
-                        };
-
-                        if (url.startsWith("tel")) {
-                            df.setStartAction(R.mipmap.act_dial, R.string.act_dial,
-                                    startListener);
-                        } else if (url.startsWith("mailto")) {
-                            df.setStartAction(R.mipmap.act_send_email,
-                                    R.string.act_send_email, startListener);
-                        } else if (url.startsWith("http") || url.startsWith("https")) {
-                            df.setStartAction(R.mipmap.act_open_in_browser,
-                                    R.string.act_open_in_browser, startListener);
-                        } else if (url.startsWith("map")) {
-                            df.setStartAction(R.mipmap.act_open_in_map,
-                                    R.string.act_open_in_map, startListener);
-                        }
-                        df.setEndAction(R.mipmap.act_edit, R.string.act_edit, endListener);
-                        df.show(getFragmentManager(), SpanClickedDialogFragment.TAG);
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
-    };
-
     private boolean mRemoveDetailActivityInstance = false;
 
     @Override
@@ -347,11 +253,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 mHabitDetailDialogFragment.show(getFragmentManager(), HabitDetailDialogFragment.TAG);
                 break;
             case R.id.act_share:
-                String result = SendInfoHelper.shareThing(this, mThing);
-                if (!SendInfoHelper.NO_PROBLEM.equals(result)) {
-                    mNormalSnackbar.setMessage(result);
-                    mNormalSnackbar.show();
-                }
+                SendInfoHelper.shareThing(this, mThing);
                 break;
             case R.id.act_finish_this_time_habit:
                 HabitDAO.getInstance(mApplication).finishOneTime(mHabit);
@@ -478,30 +380,15 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                     mNormalSnackbar.setMessage(R.string.error_cannot_add_from_network);
                     mFlBackground.postDelayed(mShowNormalSnackbar, KeyboardUtil.HIDE_DELAY);
                     return;
-                } else {
-                    String postfix = FileUtil.getPostfix(pathName);
-                    if (AttachmentHelper.isImageFile(postfix)) {
-                        attachmentTypePathName = AttachmentHelper.IMAGE + pathName;
-                    } else if (AttachmentHelper.isVideoFile(postfix)) {
-                        File file = new File(pathName);
-                        MediaPlayer player = MediaPlayer.create(this, Uri.fromFile(file));
-                        if (player.getVideoHeight() != 0) {
-                            attachmentTypePathName = AttachmentHelper.VIDEO + pathName;
-                        } else if (AttachmentHelper.isAudioFile(postfix)) {
-                            attachmentTypePathName = AttachmentHelper.AUDIO + pathName;
-                        }
-                        player.reset();
-                        player.release();
-                    } else if (AttachmentHelper.isAudioFile(postfix)) {
-                        attachmentTypePathName = AttachmentHelper.AUDIO + pathName;
-                    } else {
-                        mNormalSnackbar.setMessage(R.string.error_unsupported_file_type);
-                        mFlBackground.postDelayed(mShowNormalSnackbar, KeyboardUtil.HIDE_DELAY);
-                        return;
-                    }
                 }
+                attachmentTypePathName = getTypePathName(pathName);
+                if (attachmentTypePathName == null) {
+                    mNormalSnackbar.setMessage(R.string.error_unsupported_file_type);
+                    mFlBackground.postDelayed(mShowNormalSnackbar, KeyboardUtil.HIDE_DELAY);
+                    return;
+                }
+                addAttachment(0);
             }
-            addAttachment(0);
         } else if (resultCode == Definitions.Communication.RESULT_UPDATE_IMAGE_DONE) {
             List<String> items = data.getStringArrayListExtra(
                     Definitions.Communication.KEY_TYPE_PATH_NAME);
@@ -520,15 +407,66 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         }
     }
 
+    private String getTypePathName(String pathName) {
+        String postfix = FileUtil.getPostfix(pathName);
+        if (AttachmentHelper.isImageFile(postfix)) {
+            return AttachmentHelper.IMAGE + pathName;
+        } else if (AttachmentHelper.isVideoFile(postfix)) {
+            File file = new File(pathName);
+            MediaPlayer player = MediaPlayer.create(this, Uri.fromFile(file));
+            String ret = null;
+            if (player.getVideoHeight() != 0) {
+                ret = AttachmentHelper.VIDEO + pathName;
+            } else if (AttachmentHelper.isAudioFile(postfix)) {
+                ret = AttachmentHelper.AUDIO + pathName;
+            }
+            player.reset();
+            player.release();
+            return ret;
+        } else if (AttachmentHelper.isAudioFile(postfix)) {
+            return AttachmentHelper.AUDIO + pathName;
+        }
+        return null;
+    }
+
+    @Override
+    public void onRequestPermissionsResult(
+            int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        final int G = PackageManager.PERMISSION_GRANTED;
+        for (int grantResult : grantResults) {
+            if (grantResult != G) {
+                Toast.makeText(this, R.string.error_permission_denied, Toast.LENGTH_LONG).show();
+                return;
+            }
+        }
+        if (requestCode == Definitions.Communication.REQUEST_PERMISSION_TAKE_PHOTO) {
+            mAddAttachmentDialogFragment.startTakePhoto();
+        } else if (requestCode == Definitions.Communication.REQUEST_PERMISSION_SHOOT_VIDEO) {
+            mAddAttachmentDialogFragment.startShootVideo();
+        } else if (requestCode == Definitions.Communication.REQUEST_PERMISSION_RECORD_AUDIO) {
+            mAddAttachmentDialogFragment.showRecordAudioDialog();
+        } else if (requestCode == Definitions.Communication.REQUEST_PERMISSION_CHOOSE_MEDIA_FILE) {
+            mAddAttachmentDialogFragment.startChooseMediaFile();
+        }
+    }
+
     @Override
     protected void initMembers() {
         mApplication = (EverythingDoneApplication) getApplication();
+        mApplication.setDetailActivityRun(true);
+
         screenDensity = DisplayUtil.getScreenDensity(this);
         mThingsCounts = ThingsCounts.getInstance(mApplication);
 
         Intent intent = getIntent();
-        mSenderName = intent.getStringExtra(Definitions.Communication.KEY_SENDER_NAME);
-        mType = intent.getIntExtra(Definitions.Communication.KEY_DETAIL_ACTIVITY_TYPE, UPDATE);
+        String action = intent.getAction();
+        if (Intent.ACTION_SEND.equals(action) || Intent.ACTION_SEND_MULTIPLE.equals(action)) {
+            mSenderName = "intent";
+            mType = CREATE;
+        } else {
+            mSenderName = intent.getStringExtra(Definitions.Communication.KEY_SENDER_NAME);
+            mType = intent.getIntExtra(Definitions.Communication.KEY_DETAIL_ACTIVITY_TYPE, UPDATE);
+        }
 
         long id = intent.getLongExtra(Definitions.Communication.KEY_ID, -1);
 
@@ -539,7 +477,11 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             long newId = thingManager.getHeaderId();
             EverythingDoneApplication.getRunningDetailActivities().add(newId);
             mThing = new Thing(newId, Thing.NOTE,
-                    intent.getIntExtra(Definitions.Communication.KEY_COLOR, 0), newId);
+                    intent.getIntExtra(Definitions.Communication.KEY_COLOR,
+                            DisplayUtil.getRandomColor(this)), newId);
+            if ("intent".equals(mSenderName)) {
+                setupThingFromIntent();
+            }
         } else {
             EverythingDoneApplication.getRunningDetailActivities().add(id);
             if (mPosition == -1) {
@@ -597,6 +539,43 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
             mMaxSpanImage += 2;
             mSpanAudio++;
+        }
+    }
+
+    private void setupThingFromIntent() {
+        Intent intent = getIntent();
+        String action = intent.getAction();
+        String type = intent.getType();
+        if (Intent.ACTION_SEND.equals(action)) {
+            if (type.contains("image/") || type.contains("video/")
+                    || type.contains("audio/")) {
+                Uri data = intent.getParcelableExtra(Intent.EXTRA_STREAM);
+                String pathName = UriPathConverter.getLocalPathName(this, data);
+                if (pathName != null) {
+                    mThing.setAttachment(AttachmentHelper.SIGNAL + getTypePathName(pathName));
+                }
+            }
+        } else if (Intent.ACTION_SEND_MULTIPLE.equals(action)) {
+            ArrayList<Uri> datas = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM);
+            StringBuilder sb = new StringBuilder();
+            for (Uri data : datas) {
+                String pathName = UriPathConverter.getLocalPathName(this, data);
+                if (pathName != null) {
+                    String typePathName = getTypePathName(pathName);
+                    if (typePathName != null) {
+                        sb.append(AttachmentHelper.SIGNAL).append(typePathName);
+                    }
+                }
+            }
+            mThing.setAttachment(sb.toString());
+        }
+        String title = intent.getStringExtra(Intent.EXTRA_SUBJECT);
+        if (title != null) {
+            mThing.setTitle(title);
+        }
+        String content = intent.getStringExtra(Intent.EXTRA_TEXT);
+        if (content != null) {
+            mThing.setContent(content);
         }
     }
 
@@ -696,7 +675,16 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         if (mType == CREATE) {
             mEtContent.requestFocus();
             setScrollViewMarginTop(true);
+            mEtContent.setText(mThing.getContent());
+            setTaskDescription(getString(R.string.title_create_thing));
         } else {
+            String td = getString(R.string.title_edit_thing);
+            if (!LocaleUtil.isChinese(mApplication)) {
+                td += " ";
+            }
+            td += Thing.getTypeStr(thingType, mApplication);
+            setTaskDescription(td);
+
             String content = mThing.getContent();
             if (CheckListHelper.isCheckListStr(content)) {
                 mEtContent.setVisibility(View.GONE);
@@ -730,22 +718,22 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 mEtContent.setVisibility(View.VISIBLE);
                 mEtContent.setText(content);
             }
+        }
 
-            String attachment = mThing.getAttachment();
-            if (!attachment.isEmpty()) {
-                Pair<List<String>, List<String>> items = AttachmentHelper.toAttachmentItems(attachment);
-                if (!items.first.isEmpty()) {
-                    initImageAttachmentUI(items.first);
-                } else {
-                    setScrollViewMarginTop(true);
-                }
-
-                if (!items.second.isEmpty()) {
-                    initAudioAttachmentUI(items.second);
-                }
+        String attachment = mThing.getAttachment();
+        if (!attachment.isEmpty()) {
+            Pair<List<String>, List<String>> items = AttachmentHelper.toAttachmentItems(attachment);
+            if (!items.first.isEmpty()) {
+                initImageAttachmentUI(items.first);
             } else {
                 setScrollViewMarginTop(true);
             }
+
+            if (!items.second.isEmpty()) {
+                initAudioAttachmentUI(items.second);
+            }
+        } else {
+            setScrollViewMarginTop(true);
         }
 
         mTvUpdateTime.getPaint().setTextSkewX(-0.25f);
@@ -797,6 +785,15 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                             mScrollView.getLayoutParams();
                     params.setMargins(0, params.topMargin, 0, 0);
                 }
+            }
+        }
+    }
+
+    private void setTaskDescription(String title) {
+        if (VersionUtil.hasLollipopApi()) {
+            try {
+                setTaskDescription(new ActivityManager.TaskDescription(title));
+            } catch (Exception ignored) {
             }
         }
     }
@@ -918,7 +915,8 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             statusBarOffset = statusBarHeight;
         }
 
-        mScrollView.getViewTreeObserver().addOnScrollChangedListener(
+        ViewTreeObserver observer = mScrollView.getViewTreeObserver();
+        observer.addOnScrollChangedListener(
                 new ViewTreeObserver.OnScrollChangedListener() {
                     @Override
                     public void onScrollChanged() {
@@ -929,38 +927,41 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                             imageHeight = mRvImageAttachment.getHeight();
                         }
 
-                        // the scrollY that action bar shadow should appear
-                        int actionBarShadowAppearY;
-                        final int actionBarTitleInterval;
+                        // the scrollY that action bar shadow should begin to appear
+                        float shadowAY;
+                        // the scrollY that action bar shadow should totally appear
+                        float shadowTY;
                         if (imageHeight == 0) {
-                            actionBarTitleInterval = (int) (screenDensity * 8);
-                            actionBarShadowAppearY = actionBarTitleInterval;
+                            shadowAY = screenDensity * 14;
                         } else {
-                            actionBarTitleInterval = (int) (screenDensity * 20);
-                            actionBarShadowAppearY = imageHeight -
-                                    barsHeight - statusBarOffset + actionBarTitleInterval;
+                            shadowAY = imageHeight -
+                                    barsHeight - statusBarOffset + screenDensity * 20;
                         }
-                        if (scrollY >= actionBarShadowAppearY) {
+                        shadowTY = shadowAY + screenDensity * 20;
+                        if (scrollY >= shadowTY) {
                             mActionBarShadow.setAlpha(1.0f);
-                        } else {
+                        } else if (scrollY <= shadowAY) {
                             mActionBarShadow.setAlpha(0);
+                        } else {
+                            float progress = scrollY - shadowAY;
+                            mActionBarShadow.setAlpha(progress / (shadowTY - shadowAY));
                         }
 
                         if (imageHeight != 0) {
-                            int actionBarAlpha;
-                            if (scrollY <= imageHeight - barsHeight - statusBarOffset) {
-                                actionBarAlpha = 0;
-                            } else if (scrollY >= actionBarShadowAppearY) {
-                                actionBarAlpha = 255;
+                            float abAY = shadowAY - screenDensity * 12;
+                            float abTY = abAY + screenDensity * 16;
+                            int abAlpha;
+                            if (scrollY <= abAY) {
+                                abAlpha = 0;
+                            } else if (scrollY >= abTY) {
+                                abAlpha = 255;
                             } else {
-                                float appBarHeight = barsHeight + statusBarOffset;
-                                float progress = (appBarHeight - (imageHeight - scrollY))
-                                        / actionBarTitleInterval;
-                                actionBarAlpha = (int) (progress * 255);
+                                float progress = (scrollY - abAY) / (abTY - abAY);
+                                abAlpha = (int) (progress * 255);
                             }
 
                             int color = getAccentColor();
-                            color = DisplayUtil.getTransparentColor(color, actionBarAlpha);
+                            color = DisplayUtil.getTransparentColor(color, abAlpha);
                             mStatusBar.setBackgroundColor(color);
                             mActionbar.setBackgroundColor(color);
                         }
@@ -968,7 +969,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 });
 
         if (findViewById(R.id.ll_quick_remind).getVisibility() == View.VISIBLE) {
-            mScrollView.getViewTreeObserver().addOnScrollChangedListener(
+            observer.addOnScrollChangedListener(
                     new ViewTreeObserver.OnScrollChangedListener() {
                         @Override
                         public void onScrollChanged() {
@@ -985,7 +986,6 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         final View quickRemindShadow = findViewById(R.id.quick_remind_shadow);
         final int quickRemindHeight = (int) (screenDensity * 56);
         final int statusBarHeight = DisplayUtil.getStatusbarHeight(this);
-        final int timeQuickRemindInterval = (int) (screenDensity * 16);
 
         int scrollY = mScrollView.getScrollY();
         int childHeight = mScrollView.getChildAt(0).getHeight();
@@ -995,11 +995,17 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         } else if (VersionUtil.hasKitKatApi()) {
             marginTop -= statusBarHeight;
         }
-        if (childHeight - scrollY - timeQuickRemindInterval
-                >= windowRect.bottom - quickRemindHeight - marginTop) {
+
+        float aY = childHeight - windowRect.bottom
+                + quickRemindHeight + marginTop - screenDensity * 40;
+        float tY = aY + screenDensity * 24;
+        if (scrollY <= aY) {
             quickRemindShadow.setAlpha(1.0f);
-        } else {
+        } else if (scrollY >= tY) {
             quickRemindShadow.setAlpha(0);
+        } else {
+            float progress = tY - scrollY;
+            quickRemindShadow.setAlpha(progress / (tY - aY));
         }
     }
 
@@ -1403,8 +1409,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                     && resultCode != Definitions.Communication.RESULT_NO_UPDATE) {
                 EverythingDoneApplication.setShouldJustNotifyDataSetChanged(true);
             }
-            if (mSenderName.equals(ReminderReceiver.TAG) || mSenderName.equals(HabitReceiver.TAG)
-                    || mSenderName.equals(AutoNotifyReceiver.TAG)) {
+            if (shouldSendBroadCast()) {
                 sendBroadCastToUpdateMainUI(intent, resultCode);
             }
             finish();
@@ -1431,7 +1436,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 }
                 mReminder.setNotifyTime(reminderTime);
                 mReminder.setState(Reminder.UNDERWAY);
-                mReminder.initGoalDays();
+                mReminder.initNotifyMinutes();
                 mReminder.setUpdateTime(System.currentTimeMillis());
                 rDao.update(mReminder);
             }
@@ -1476,6 +1481,15 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             mThing.setCreateTime(currentTime);
             mThing.setUpdateTime(currentTime);
 
+            // Create thing here directly to database. Solve the problem that if ThingsActivity
+            // is destroyed while user share something from other apps to EverythingDone. In that
+            // case, ThingsActivity won't receive broadcast to handle creation and that thing
+            // will be missed.
+            WeakReference<ThingsActivity> wr = EverythingDoneApplication.thingsActivityWR;
+            if (wr == null || wr.get() == null) {
+                ThingManager.getInstance(mApplication).create(mThing, true);
+            }
+
             intent.putExtra(Definitions.Communication.KEY_THING, mThing);
             resultCode = Definitions.Communication.RESULT_CREATE_THING_DONE;
             setResult(resultCode, intent);
@@ -1516,7 +1530,6 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                         }
                     } else {
                         ThingDAO.getInstance(mApplication).update(typeBefore, mThing, true, true);
-                        mThingsCounts.writeToFile();
                     }
 
                     setResult(resultCode, intent);
@@ -1529,8 +1542,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             EverythingDoneApplication.setShouldJustNotifyDataSetChanged(true);
         }
 
-        if (mSenderName.equals(ReminderReceiver.TAG) || mSenderName.equals(HabitReceiver.TAG)
-                || mSenderName.equals(AutoNotifyReceiver.TAG)) {
+        if (shouldSendBroadCast()) {
             sendBroadCastToUpdateMainUI(intent, resultCode);
         }
         finish();
@@ -1560,7 +1572,6 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             ThingDAO dao = ThingDAO.getInstance(mApplication);
             dao.updateState(mThing, mThing.getLocation(), stateBefore, stateAfter, true, true,
                     false, dao.getHeaderId(), true);
-            mThingsCounts.writeToFile();
 
             long id = mThing.getId();
             int type = mThing.getType();
@@ -1588,13 +1599,17 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         }
 
         int resultCode = Definitions.Communication.RESULT_UPDATE_THING_STATE_DIFFERENT;
-        if (mSenderName.equals(ReminderReceiver.TAG) || mSenderName.equals(HabitReceiver.TAG)
-                || mSenderName.equals(AutoNotifyReceiver.TAG)) {
+        if (shouldSendBroadCast()) {
             sendBroadCastToUpdateMainUI(intent, resultCode);
         } else {
             setResult(resultCode, intent);
         }
         finish();
+    }
+
+    private boolean shouldSendBroadCast() {
+        return mSenderName.equals(ReminderReceiver.TAG) || mSenderName.equals(HabitReceiver.TAG)
+                || mSenderName.equals(AutoNotifyReceiver.TAG) || "intent".equals(mSenderName);
     }
 
     @Override
@@ -1664,6 +1679,110 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             }
         }
     }
+
+    public void showNormalSnackbar(int stringRes) {
+        mNormalSnackbar.setMessage(stringRes);
+        mNormalSnackbar.show();
+    }
+
+    /**
+     * This {@link android.view.View.OnTouchListener} will listen to click events that should
+     * be handled by link/phoneNum/email/maps in {@link mEtContent} and other {@link EditText}s
+     * so that we can handle them with different intents and not lose ability to edit them.
+     */
+    private View.OnTouchListener mSpannableTouchListener = new View.OnTouchListener() {
+
+        @Override
+        public boolean onTouch(View v, MotionEvent event) {
+            if (mUndoSnackbar != null) {
+                mUndoSnackbar.dismiss();
+            }
+
+            int action = event.getAction();
+            if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_DOWN){
+                final EditText et = (EditText) v;
+                final Spannable sContent = Spannable.Factory.getInstance()
+                        .newSpannable(et.getText());
+
+                int x = (int) event.getX();
+                int y = (int) event.getY();
+                x -= et.getTotalPaddingLeft();
+                y -= et.getTotalPaddingTop();
+                x += et.getScrollX();
+                y += et.getScrollY();
+
+                Layout layout = et.getLayout();
+                int line      = layout.getLineForVertical(y);
+                int offset    = layout.getOffsetForHorizontal(line, x);
+
+                // place cursor of EditText to correct position.
+                if (action == MotionEvent.ACTION_UP) {
+                    et.requestFocus();
+                    if (offset > 0) {
+                        if (x > layout.getLineMax(line)) {
+                            et.setSelection(offset);
+                        } else et.setSelection(offset - 1);
+                    }
+                }
+
+                ClickableSpan[] link = sContent.getSpans(offset, offset, ClickableSpan.class);
+                if (link.length != 0){
+                    if (action == MotionEvent.ACTION_UP) {
+                        final URLSpan urlSpan = (URLSpan) link[0];
+
+                        if (!mEditable) {
+                            urlSpan.onClick(et);
+                            return true;
+                        }
+
+                        String url = urlSpan.getURL();
+                        final TwoOptionsDialogFragment df = new TwoOptionsDialogFragment();
+                        df.setViewToFocusAfterDismiss(et);
+
+                        View.OnClickListener startListener = new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                df.dismiss();
+                                KeyboardUtil.hideKeyboard(getWindow());
+                                try {
+                                    urlSpan.onClick(et);
+                                } catch (ActivityNotFoundException e) {
+                                    mNormalSnackbar.setMessage(R.string.error_activity_not_found);
+                                    mFlBackground.postDelayed(mShowNormalSnackbar,
+                                            KeyboardUtil.HIDE_DELAY);
+                                }
+                            }
+                        };
+                        View.OnClickListener endListener = new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                df.setShouldShowKeyboardAfterDismiss(true);
+                                df.dismiss();
+                            }
+                        };
+
+                        if (url.startsWith("tel")) {
+                            df.setStartAction(R.mipmap.act_dial, R.string.act_dial,
+                                    startListener);
+                        } else if (url.startsWith("mailto")) {
+                            df.setStartAction(R.mipmap.act_send_email,
+                                    R.string.act_send_email, startListener);
+                        } else if (url.startsWith("http") || url.startsWith("https")) {
+                            df.setStartAction(R.mipmap.act_open_in_browser,
+                                    R.string.act_open_in_browser, startListener);
+                        } else if (url.startsWith("map")) {
+                            df.setStartAction(R.mipmap.act_open_in_map,
+                                    R.string.act_open_in_map, startListener);
+                        }
+                        df.setEndAction(R.mipmap.act_edit, R.string.act_edit, endListener);
+                        df.show(getFragmentManager(), TwoOptionsDialogFragment.TAG);
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+    };
 
     class CheckListItemsChangeCallback implements CheckListAdapter.ItemsChangeCallback {
 

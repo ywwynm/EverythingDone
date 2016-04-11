@@ -10,7 +10,6 @@ import com.ywwynm.everythingdone.R;
  */
 public class HabitRecordPresenter {
 
-    private String mRecord;
     private ImageView[] mImageViews;
 
     public HabitRecordPresenter(ImageView[] imageViews) {
@@ -18,9 +17,8 @@ public class HabitRecordPresenter {
     }
 
     public void setRecord(String record) {
-        mRecord = record;
         for (int i = 0; i < 5; i++) {
-            char state = mRecord.charAt(i);
+            char state = record.charAt(i);
             if (state == '0') {
                 mImageViews[i].setImageResource(R.mipmap.card_habit_unfinished);
             } else if (state == '1') {

@@ -1,18 +1,18 @@
 package com.ywwynm.everythingdone.receivers;
 
-import android.app.NotificationManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.support.v4.app.NotificationManagerCompat;
 
 import com.ywwynm.everythingdone.Definitions;
 import com.ywwynm.everythingdone.EverythingDoneApplication;
-import com.ywwynm.everythingdone.model.Habit;
-import com.ywwynm.everythingdone.model.HabitReminder;
-import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
 import com.ywwynm.everythingdone.managers.ThingManager;
+import com.ywwynm.everythingdone.model.Habit;
+import com.ywwynm.everythingdone.model.HabitReminder;
+import com.ywwynm.everythingdone.model.Thing;
 
 import java.util.List;
 
@@ -37,7 +37,8 @@ public class HabitNotificationActionReceiver extends BroadcastReceiver {
                 sendBroadCastToUpdateMainUI(context, id, position);
             }
         }
-        ((NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE)).cancel((int) hrId);
+        NotificationManagerCompat nmc = NotificationManagerCompat.from(context);
+        nmc.cancel((int) hrId);
     }
 
     private void sendBroadCastToUpdateMainUI(Context context, long id, int position) {

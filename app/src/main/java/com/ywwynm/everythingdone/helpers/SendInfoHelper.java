@@ -3,19 +3,26 @@ package com.ywwynm.everythingdone.helpers;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
+import android.support.v4.content.ContextCompat;
 import android.widget.Toast;
 
 import com.ywwynm.everythingdone.Definitions;
 import com.ywwynm.everythingdone.R;
+import com.ywwynm.everythingdone.database.HabitDAO;
+import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.Thing;
-import com.ywwynm.everythingdone.database.HabitDAO;
-import com.ywwynm.everythingdone.database.ReminderDAO;
+import com.ywwynm.everythingdone.utils.BitmapUtil;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
+import com.ywwynm.everythingdone.utils.FileUtil;
 import com.ywwynm.everythingdone.utils.LocaleUtil;
 
+import java.io.File;
+import java.util.ArrayList;
 import java.util.Calendar;
 
 /**
@@ -26,33 +33,42 @@ public class SendInfoHelper {
 
     public static final String TAG = "EverythingDone$SendInfoHelper";
 
-    public static final String NO_PROBLEM = "no problem";
+    public static final String EXTRA_WX_SHARE = "Kdescription";
 
     public static void shareApp(Context context) {
-        String shareStr = context.getString(R.string.act_share_everythingdone);
+        String title = context.getString(R.string.act_share_everythingdone);
         String content = context.getString(R.string.app_share_info);
-        startShare(context, shareStr, content);
+
+        File file = new File(FileUtil.TEMP_PATH, "app.png");
+        if (!file.exists()) {
+            Bitmap bm = ((BitmapDrawable) ContextCompat.getDrawable(
+                    context, R.drawable.ic_launcher_ori)).getBitmap();
+            file = BitmapUtil.saveBitmapToStorage(FileUtil.TEMP_PATH, "app.png", bm);
+        }
+
+        Uri uri = Uri.fromFile(file);
+        ArrayList<Uri> list = new ArrayList<>();
+        list.add(uri);
+
+        startShare(context, title, content, list, true);
     }
 
-    public static String shareThing(Context context, Thing thing) {
-        String description = getThingShareInfo(context, thing);
-        if (description == null) {
-            return context.getString(R.string.error_share_empty_title_content);
-        }
-
+    public static void shareThing(Context context, Thing thing) {
         boolean isChinese = LocaleUtil.isChinese(context);
-        String shareStr = context.getString(R.string.act_share);
+        String title = context.getString(R.string.act_share);
         String thisStr = context.getString(R.string.this_gai);
         if (!isChinese) {
-            shareStr = shareStr + " " + thisStr + " ";
+            title = title + " " + thisStr + " ";
         } else {
-            shareStr += thisStr;
+            title += thisStr;
         }
-        shareStr = shareStr + Thing.getTypeStr(thing.getType(), context);
+        title = title + Thing.getTypeStr(thing.getType(), context);
 
-        startShare(context, shareStr, description);
+        String content = getThingShareInfo(context, thing);
+        String attachment = thing.getAttachment();
 
-        return NO_PROBLEM;
+        startShare(context, title, content,
+                AttachmentHelper.toUriList(attachment), AttachmentHelper.isAllImage(attachment));
     }
 
     public static void sendFeedback(Context context) {
@@ -100,24 +116,22 @@ public class SendInfoHelper {
                 sb.append(content);
             }
             sb.append("\n\n");
-        } else {
-            sb.append("\n");
         }
 
         long id = thing.getId();
         int state = thing.getState();
         int type = thing.getType();
         if (Thing.isReminderType(type)) {
-            sb.append(getReminderShareInfo(context, id, state, type == Thing.GOAL));
+            sb.append(getReminderShareInfo(context, id, state, type == Thing.GOAL)).append("\n\n");
         } else if (type == Thing.HABIT) {
-            sb.append(getHabitShareInfo(context, id, state));
+            sb.append(getHabitShareInfo(context, id, state)).append("\n\n");
         }
 
         if (state == Thing.FINISHED && type != Thing.HABIT) {
-            sb.append("\n").append(getFinishedThingInfo(context, thing));
+            sb.append(getFinishedThingInfo(context, thing)).append("\n\n");
         }
 
-        sb.append("\n\n").append(context.getString(R.string.from_everything_done));
+        sb.append(context.getString(R.string.from_everything_done));
         return sb.toString();
     }
 
@@ -228,10 +242,26 @@ public class SendInfoHelper {
         return sb.toString();
     }
 
-    private static void startShare(Context context, String title, String content) {
-        Intent intent = new Intent(Intent.ACTION_SEND);
-        intent.putExtra(Intent.EXTRA_TEXT, content);
-        intent.setType("text/plain");
+    private static void startShare(
+            Context context, String title, String content, ArrayList<Uri> attachments, boolean allImage) {
+        Intent intent = new Intent();
+        if (attachments == null) {
+            intent.setAction(Intent.ACTION_SEND);
+            intent.setType("text/plain");
+            intent.putExtra(Intent.EXTRA_TEXT, content);
+        } else {
+            intent.setAction(Intent.ACTION_SEND_MULTIPLE);
+            if (allImage) {
+                intent.setType("image/*");
+                intent.putExtra(EXTRA_WX_SHARE, content);
+            } else {
+                intent.setType("*/*");
+            }
+            if (content != null) {
+                intent.putExtra(Intent.EXTRA_TEXT, content);
+            }
+            intent.putParcelableArrayListExtra(Intent.EXTRA_STREAM, attachments);
+        }
         context.startActivity(Intent.createChooser(intent, title));
     }
 

@@ -74,7 +74,7 @@ public class AudioAttachmentAdapter extends RecyclerView.Adapter<AudioAttachment
         holder.tvName.setText(file.getName());
 
         MediaPlayer mp = MediaPlayer.create(mContext, Uri.fromFile(file));
-        holder.tvSize.setText(DateTimeUtil.getTimeLengthStr(mp.getDuration()));
+        holder.tvSize.setText(DateTimeUtil.getTimeLengthBriefStr(mp.getDuration()));
         mp.reset();
         mp.release();
 

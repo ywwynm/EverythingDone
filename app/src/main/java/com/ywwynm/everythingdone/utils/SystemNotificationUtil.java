@@ -1,7 +1,6 @@
 package com.ywwynm.everythingdone.utils;
 
 import android.app.Notification;
-import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
@@ -12,18 +11,19 @@ import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
 import android.provider.Settings;
 import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.content.ContextCompat;
 
 import com.ywwynm.everythingdone.Definitions;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.DetailActivity;
 import com.ywwynm.everythingdone.activities.SettingsActivity;
-import com.ywwynm.everythingdone.model.Habit;
-import com.ywwynm.everythingdone.model.HabitReminder;
-import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.helpers.AttachmentHelper;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
+import com.ywwynm.everythingdone.model.Habit;
+import com.ywwynm.everythingdone.model.HabitReminder;
+import com.ywwynm.everythingdone.model.Thing;
 
 import java.io.File;
 import java.util.List;
@@ -118,15 +118,14 @@ public class SystemNotificationUtil {
     }
 
     public static void cancelNotification(long thingId, int type, Context context) {
-        NotificationManager notificationManager = (NotificationManager) context.getSystemService(
-                Context.NOTIFICATION_SERVICE);
+        NotificationManagerCompat nmc = NotificationManagerCompat.from(context);
         if (Thing.isReminderType(type)) {
-            notificationManager.cancel((int) thingId);
+            nmc.cancel((int) thingId);
         } else if (type == Thing.HABIT) {
             Habit habit = HabitDAO.getInstance(context).getHabitById(thingId);
             List<HabitReminder> habitReminders = habit.getHabitReminders();
             for (HabitReminder habitReminder : habitReminders) {
-                notificationManager.cancel((int) habitReminder.getId());
+                nmc.cancel((int) habitReminder.getId());
             }
         }
     }

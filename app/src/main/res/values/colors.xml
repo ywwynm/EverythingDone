@@ -37,8 +37,6 @@
 
     <color name="bg_activity_things">#EEEEEE</color>
 
-    <color name="primary_activity_things">#EEEEEE</color>
-
     <color name="app_accent">#FFEB3B</color>
 
     <color name="black_69p">#B0000000</color> <!-- 69% 黑色 -->
@@ -59,6 +57,6 @@
 
     <color name="bg_unpicked">#E6E6E6</color>
 
-    <color name="about_support">#E91E63</color>
+    <color name="app_pink">#E91E63</color>
 
 </resources>

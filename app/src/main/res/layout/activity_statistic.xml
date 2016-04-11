@@ -1,9 +1,93 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout
+<merge
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context="com.ywwynm.everythingdone.activities.StatisticActivity">
 
-</RelativeLayout>
+    <ScrollView
+        android:id="@+id/sv_statistic"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/bg_activity_things">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:id="@+id/iv_header_statistic"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:contentDescription="@string/content_description_header"
+                    android:src="@drawable/drawer_header_large"
+                    android:scaleType="centerCrop"
+                    android:adjustViewBounds="true"/>
+
+                <include layout="@layout/include_info_statistic" />
+
+            </LinearLayout>
+
+            <com.ywwynm.everythingdone.views.FloatingActionButton
+                android:id="@+id/fab_share"
+                android:layout_height="56dp"
+                android:layout_width="56dp"
+                android:src="@mipmap/act_share_white"
+                android:layout_gravity="end"
+                android:layout_marginEnd="@dimen/fab_margin"
+                android:layout_marginRight="@dimen/fab_margin"
+                app:rippleColor="@color/white_54p"
+                app:backgroundTint="@color/app_pink"
+                app:elevation="6dp"
+                app:pressedTranslationZ="12dp"
+                app:borderWidth="0dp"/>
+
+        </FrameLayout>
+
+    </ScrollView>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <View
+            android:id="@+id/view_status_bar"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"/>
+
+        <android.support.v7.widget.Toolbar
+            android:id="@+id/actionbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:theme="@style/EverythingDoneTheme.Statistic.Actionbar"
+            app:contentInsetStart="72dp">
+
+            <TextView
+                android:id="@+id/tv_title_statistic"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#FFFFFF"
+                android:text="@string/title_activity_statistic"
+                android:textSize="20sp"
+                android:alpha="0.0"/>
+
+        </android.support.v7.widget.Toolbar>
+
+        <View
+            android:id="@+id/actionbar_shadow"
+            android:layout_width="match_parent"
+            android:layout_height="4dp"
+            android:background="@drawable/actionbar_shadow"
+            android:alpha="0.0"/>
+
+    </LinearLayout>
+
+</merge>

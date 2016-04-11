@@ -447,7 +447,7 @@ public class DateTimeUtil {
         } else return Integer.MAX_VALUE;
     }
 
-    public static String getTimeLengthStr(long time) {
+    public static String getTimeLengthBriefStr(long time) {
         float second = time / 1000f;
         if (second < 1) {
             return "< 1s";
@@ -456,11 +456,84 @@ public class DateTimeUtil {
         } else return new SimpleDateFormat("HH:mm:ss").format(new Date(time));
     }
 
+    public static String getTimeLengthStr(long time, Context context) {
+        boolean isChinese = LocaleUtil.isChinese(context);
+        final String BLK = isChinese ? " " : "";
+
+        long second = time / 1000;
+        String secStr = context.getString(R.string.statistic_second);
+        String minStr = context.getString(R.string.statistic_minute);
+        String hourStr = context.getString(R.string.statistic_hour);
+        String dayStr = context.getString(R.string.statistic_day);
+        String yearStr = context.getString(R.string.statistic_year);
+        if (second < 1) {
+            return "< 1" + BLK + secStr;
+        } else if (second < 60) {
+            return second + BLK + secStr;
+        } else if (second < 3600) {
+            long min = second / 60;
+            long sec = second % 60;
+            if (sec == 0) {
+                return min + BLK + minStr;
+            } else {
+                if (isChinese) {
+                    minStr = minStr.substring(0, minStr.length() - 1);
+                }
+                return min + BLK + minStr + " " + sec + BLK + secStr;
+            }
+        } else if (second < 86400) {
+            long hour = second / 3600;
+            long min = (second % 3600) / 60;
+            if (min == 0) {
+                return hour + BLK + hourStr;
+            } else {
+                return hour + BLK + hourStr + " " + min + BLK + minStr;
+            }
+        } else if (second < 86400 * 365) {
+            long day  =  second / 86400;
+            long hour = (second % 86400) / 3600;
+            long min  = ((second % 86400) % 3600) / 60;
+            if (hour == 0) {
+                return day + BLK + dayStr;
+            } else if (min == 0) {
+                return day + BLK + dayStr + " " + hour + BLK + hourStr;
+            } else {
+                return day + BLK + dayStr + " "
+                        + hour + BLK + hourStr + " "
+                        + min + BLK + minStr;
+            }
+        } else {
+            long year =   second / 31536000;
+            long day  =  (second % 31536000) / 86400;
+            long hour = ((second % 31536000) % 86400) / 3600;
+            if (hour > 12) day++;
+            if (day == 0) {
+                return year + BLK + yearStr;
+            } else {
+                return year + BLK + year + " " + day + BLK + dayStr;
+            }
+        }
+    }
+
+    public static String getTimeLengthStrOnlyDay(long time, Context context) {
+        long day = time / 86400000L;
+        long hour = (time % 86400000) / 3600;
+        if (hour > 12) day++;
+        String dayStr = context.getString(R.string.days);
+        if (day == 0) {
+            return "< 1 " + dayStr;
+        } else if (day == 1) {
+            return day + " " + dayStr;
+        } else {
+            return day + " " + dayStr + (LocaleUtil.isChinese(context) ? "" : "s");
+        }
+    }
+
     public static long getHabitReminderTime(int type, long curHrTime, int vary) {
         if (type == Calendar.DATE) {
-            return curHrTime + vary * 86400000;
+            return curHrTime + vary * 86400000L;
         } else if (type == Calendar.WEEK_OF_YEAR) {
-            return curHrTime + vary * 604800000;
+            return curHrTime + vary * 604800000L;
         }
         DateTime dt = new DateTime(curHrTime);
         int year = dt.getYear();
@@ -508,10 +581,8 @@ public class DateTimeUtil {
     }
 
     public static int calculateTimeGap(long start, long end, int type) {
-        DateTime sDt = new DateTime(start);
-        DateTime eDt = new DateTime(end);
-        sDt = clearHMSM(sDt);
-        eDt = clearHMSM(eDt);
+        DateTime sDt = new DateTime(start).withTime(0, 0, 0, 0);
+        DateTime eDt = new DateTime(end).withTime(0, 0, 0, 0);
 
         if (type == Calendar.DATE) {
             return Days.daysBetween(sDt, eDt).getDays();
@@ -527,11 +598,6 @@ public class DateTimeUtil {
             return eDt.getYear() - sDt.getYear();
         }
         return 0;
-    }
-
-    public static DateTime clearHMSM(DateTime dateTime) {
-        return dateTime.withHourOfDay(0).withMinuteOfHour(0)
-                .withSecondOfMinute(0).withMillisOfSecond(0);
     }
 
 }

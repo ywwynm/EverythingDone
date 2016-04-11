@@ -1,5 +1,7 @@
 package com.ywwynm.everythingdone.utils;
 
+import android.os.Environment;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -7,6 +9,8 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -17,6 +21,22 @@ import java.util.zip.ZipOutputStream;
  * utils for operating {@link File}s
  */
 public class FileUtil {
+
+    public static final String TEMP_PATH = Environment.getExternalStorageDirectory().getAbsolutePath()
+            + "/EverythingDone/temp";
+
+    public static File createTempFile(String postfix) {
+        File dir = new File(TEMP_PATH);
+        if (!dir.exists()) {
+            boolean parentCreated = dir.mkdirs();
+            if (!parentCreated) {
+                return null;
+            }
+        }
+
+        String timeStamp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
+        return new File(dir, timeStamp + postfix);
+    }
 
     public static File createFile(String parentPath, String name) {
         File parent = new File(parentPath);

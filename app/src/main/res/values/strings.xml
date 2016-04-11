@@ -7,6 +7,10 @@
     <string name="title_activity_image_viewer">附件</string>
     <string name="title_activity_settings">设置</string>
     <string name="title_activity_about">关于</string>
+    <string name="title_activity_statistic">统计</string>
+
+    <string name="title_create_thing">创建记事</string>
+    <string name="title_edit_thing">编辑</string>
 
     <!--entrances to different activities in drawer-->
     <string name="underway">正在进行</string>
@@ -99,6 +103,7 @@
 
     <!--messages and components in Snackbars-->
     <string name="sb_cannot_be_blank">空白记事已被舍弃</string>
+    <string name="sb_cannot_finish_habit_first_time">请等待第一个周期的到来</string>
     <string name="sb_cannot_finish_habit_more_times">直到下个周期前无法继续完成</string>
     <string name="sb_underway">还原了</string>
     <string name="sb_finish">完成了</string>
@@ -207,13 +212,19 @@
         <item>深夜</item>
     </array>
 
+    <string name="statistic_second">秒</string>
+    <string name="statistic_minute">分钟</string>
+    <string name="statistic_hour">小时</string>
+    <string name="statistic_day">天</string>
+    <string name="statistic_year">年</string>
+
     <string name="error_later">请设置为将来的某一时刻</string>
     <string name="error_complete_time">请完善时刻信息</string>
     <string name="error_different">请设置不一样的时间</string>
     <string name="error_activity_not_found">未找到相关应用</string>
     <string name="error_cannot_add_from_network">无法添加网络文件</string>
     <string name="error_unsupported_file_type">不支持的文件类型</string>
-    <string name="error_share_empty_title_content">无法分享不含文字内容的记事</string>
+    <string name="error_permission_denied">未授予相关权限，无法继续操作</string>
 
     <string name="at">于</string>
     <string name="every">每</string>
@@ -292,7 +303,7 @@
     <string name="habit_detail_record">最近 30 次完成情况</string>
 
     <string name="celebration_goal_part_1">您花了</string>
-    <string name="celebration_goal_part_2">天实现该目标，现在是时候庆祝了！</string>
+    <string name="celebration_goal_part_2">实现该目标，现在是时候庆祝了！</string>
     <string name="celebration_goal_part_3">能伴随您在成长、成功的道路上前行是完事儿的荣幸，祝您再接再厉。</string>
 
     <string name="celebration_habit_part_1">您坚持了</string>
@@ -340,7 +351,7 @@
 
     <string name="act_support">支持开发者</string>
 
-    <string name="app_share_info">记住事情，完成事情，这对你来说算一个挑战吗？完事儿能够提醒你的日程活动、帮你养成习惯、督促你完成目标，你也可以在完事儿里记下身边的故事与风景。遵循 Material Design 的界面设计让你领略 Android 应用的美。前往豌豆荚、小米应用商店、Google Play等搜索“完事儿”即可下载。</string>
+    <string name="app_share_info">记住事情，完成事情，这对你来说算一个挑战吗？完事儿能够为你提醒日程活动、帮你养成习惯、督促你完成目标，你也可以在完事儿里记下身边的故事与风景，留下美好的回忆。\n\n遵循 Material Design 的界面设计让你领略 Android 应用的美，在精致的细节中享受流畅的操作。\n\n前往 Google Play、酷安网、豌豆荚、小米应用商店等搜索“完事儿”即可下载。</string>
 
     <string name="support_star">去应用商店评分</string>
     <string name="support_select_market">选择应用商店</string>
@@ -352,5 +363,38 @@
     <string name="support_donate_clip_title">支付宝账号</string>
     <string name="support_donate_clip_content">532061865@qq.com</string>
     <string name="success_clipboard">已成功复制账号到剪贴板</string>
+
+    <string name="content_description_header">头部</string>
+
+    <string name="statistic_start_from_part_1">我从</string>
+    <string name="statistic_start_from_part_2">开始使用完事儿。在这</string>
+    <string name="statistic_start_from_part_3">天里，我完成、创建了：</string>
+
+    <string name="statistic_note_record">在「记录」里，我记下了这些：</string>
+    <string name="statistic_note_char_count">文字</string>
+    <string name="statistic_note_image_count">图片</string>
+    <string name="statistic_note_video_count">视频</string>
+    <string name="statistic_note_audio_count">音频</string>
+
+    <string name="statistic_reminder_record">这儿是一些关于「提醒」的数据：</string>
+    <string name="statistic_reminder_completion_rate">提醒完成率</string>
+    <string name="statistic_reminder_notify_time">平均提醒时长</string>
+    <string name="statistic_reminder_finish_time">平均完成时间</string>
+    <string name="statistic_reminder_in_advance">提前完成的比例</string>
+
+    <string name="statistic_habit_record">我打算养成一些「习惯」，下面是相关的统计信息：</string>
+    <string name="statistic_habit_developed_rate">习惯养成率</string>
+    <string name="statistic_habit_finished_all">完成次数\n/ 总次数</string>
+    <string name="statistic_habit_completion_rate">完成率</string>
+    <string name="statistic_habit_longest_finish_times">最长连续完成次数</string>
+    <string name="statistic_habit_longest_pit">最长坚持周期数</string>
+
+    <string name="statistic_goal_record">我定下了一些「目标」，来看看我的完成情况吧：</string>
+    <string name="statistic_goal_completion_rate">目标完成率</string>
+    <string name="statistic_goal_notify_time">平均期限</string>
+
+    <string name="please_wait">请稍等</string>
+    <string name="generating_screen_shot">正在对统计界面截图...</string>
+    <string name="share_statistic">分享我的使用情况</string>
 
 </resources>

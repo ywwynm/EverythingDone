@@ -4,6 +4,7 @@ import android.content.Context;
 
 import com.ywwynm.everythingdone.R;
 
+import java.text.NumberFormat;
 import java.util.Locale;
 
 /**
@@ -47,6 +48,17 @@ public class LocaleUtil {
             } else {
                 return times + " " + timesStr + "s";
             }
+        }
+    }
+
+    public static String getPercentStr(int num1, int num2) {
+        if (num2 == 0) {
+            return "0 %";
+        } else {
+            NumberFormat nf = NumberFormat.getPercentInstance();
+            nf.setMaximumFractionDigits(2);
+            String str = nf.format((float) num1 / num2);
+            return str.substring(0, str.length() - 1) + " %";
         }
     }
 

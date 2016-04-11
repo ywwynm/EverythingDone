@@ -1,6 +1,7 @@
 package com.ywwynm.everythingdone.utils;
 
 import android.animation.ValueAnimator;
+import android.app.Activity;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.content.res.Configuration;
@@ -24,6 +25,7 @@ import android.view.KeyCharacterMap;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
+import android.view.Window;
 import android.view.WindowManager;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.EditText;
@@ -191,6 +193,17 @@ public class DisplayUtil {
         // view.setBackground(wrappedDrawable);
 
         // ViewCompat.setBackgroundTintList(view, ColorStateList.valueOf(color));
+    }
+
+    public static void darkStatusBarForMIUI(Activity activity) {
+        Class<? extends Window> clazz = activity.getWindow().getClass();
+        try {
+            Class<?> layoutParams = Class.forName("android.view.MiuiWindowManager$LayoutParams");
+            Field field = layoutParams.getField("EXTRA_FLAG_STATUS_BAR_DARK_MODE");
+            int darkModeFlag = field.getInt(layoutParams);
+            Method extraFlagField = clazz.getMethod("setExtraFlags", int.class, int.class);
+            extraFlagField.invoke(activity.getWindow(), darkModeFlag, darkModeFlag);
+        } catch (Exception ignored) { }
     }
 
     /**

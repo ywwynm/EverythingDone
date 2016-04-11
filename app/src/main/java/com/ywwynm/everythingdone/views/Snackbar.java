@@ -131,16 +131,20 @@ public class Snackbar {
     }
 
     public void dismiss() {
-        mPopupWindow.dismiss();
-        if (mType == NORMAL && mHideThread != null) {
-            mHideThread.interrupt();
-        }
-        if (mBindingFab != null &&
-                mApplication.getLimit() <= Definitions.LimitForGettingThings.GOAL_UNDERWAY) {
-            mBindingFab.fall();
-        }
-        if (mDismissCallback != null) {
-            mDismissCallback.onDismiss();
+        try {
+            mPopupWindow.dismiss();
+            if (mType == NORMAL && mHideThread != null) {
+                mHideThread.interrupt();
+            }
+            if (mBindingFab != null &&
+                    mApplication.getLimit() <= Definitions.LimitForGettingThings.GOAL_UNDERWAY) {
+                mBindingFab.fall();
+            }
+            if (mDismissCallback != null) {
+                mDismissCallback.onDismiss();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 

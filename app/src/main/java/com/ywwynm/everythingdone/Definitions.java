@@ -14,15 +14,15 @@ public final class Definitions {
 
         public static final String META_DATA_NAME          = "EverythingDone_metadata";
         public static final String PREFERENCES_NAME        = "EverythingDone_preferences";
-        public static final String THINGS_COUNTS_FILE_NAME = "things_counts.dat";
+        public static final String THINGS_COUNTS_NAME      = "EverythingDone_things_counts";
         public static final String CREATE_ALARMS_FILE_NAME = "create_alarms.dat";
 
         public static final String APP_VERSION = "1.0";
         public static final int DATABASE_VERSION = 1;
 
-        public static final String FEEDBACK_EMAIL = "everythingdone@gmail.com";
+        public static final String FEEDBACK_EMAIL = "everythingdonefeedback@gmail.com";
 
-        public static final String KEY_FIRST_TIME_USED      = "first_time_used";
+        public static final String KEY_START_USING_TIME     = "start_using_time";
         public static final String KEY_RINGTONE_REMINDER    = "ringtone_reminder";
         public static final String KEY_RINGTONE_HABIT       = "ringtone_habit";
         public static final String KEY_RINGTONE_GOAL        = "ringtone_goal";
@@ -58,13 +58,13 @@ public final class Definitions {
         public static final String COLUMN_UPDATE_TIME_THINGS = "update_time";
         public static final String COLUMN_FINISH_TIME_THINGS = "finish_time";
 
-        public static final String TABLE_REMINDERS              = "reminders";
-        public static final String COLUMN_ID_REMINDERS          = "id";
-        public static final String COLUMN_NOTIFY_TIME_REMINDERS = "notify_time";
-        public static final String COLUMN_STATE_REMINDERS       = "state";
-        public static final String COLUMN_GOAL_DAYS_REMINDERS   = "goal_days";
-        public static final String COLUMN_CREATE_TIME_REMINDERS = "create_time";
-        public static final String COLUMN_UPDATE_TIME_REMINDERS = "update_time";
+        public static final String TABLE_REMINDERS                 = "reminders";
+        public static final String COLUMN_ID_REMINDERS             = "id";
+        public static final String COLUMN_NOTIFY_TIME_REMINDERS    = "notify_time";
+        public static final String COLUMN_STATE_REMINDERS          = "state";
+        public static final String COLUMN_NOTIFY_MILLIS_REMINDERS  = "notify_millis";
+        public static final String COLUMN_CREATE_TIME_REMINDERS    = "create_time";
+        public static final String COLUMN_UPDATE_TIME_REMINDERS    = "update_time";
 
         public static final String TABLE_HABITS                 = "habits";
         public static final String COLUMN_ID_HABITS             = "id";
@@ -95,32 +95,41 @@ public final class Definitions {
 
     public abstract static class Communication {
 
-        public static final int REQUEST_ACTIVITY_THINGS             = 0;
-        public static final int REQUEST_ACTIVITY_DETAIL             = 1;
-        public static final int REQUEST_ACTIVITY_IMAGE_VIEWER       = 2;
-        public static final int REQUEST_TAKE_PHOTO                  = 3;
-        public static final int REQUEST_CAPTURE_VIDEO               = 4;
-        public static final int REQUEST_CHOOSE_MEDIA_FILE           = 5;
-        public static final int REQUEST_BROADCAST_RECEIVER_REMINDER = 6;
+        private static final String PREFIX = "com.ywwynm.everythingdone.";
 
-        public static final String KEY_SENDER_NAME          = "sender_name";
-        public static final String KEY_DETAIL_ACTIVITY_TYPE = "detail_activity_type";
+        public static final int REQUEST_ACTIVITY_THINGS              = 0;
+        public static final int REQUEST_ACTIVITY_DETAIL              = 1;
+        public static final int REQUEST_ACTIVITY_IMAGE_VIEWER        = 2;
+        public static final int REQUEST_TAKE_PHOTO                   = 3;
+        public static final int REQUEST_CAPTURE_VIDEO                = 4;
+        public static final int REQUEST_CHOOSE_MEDIA_FILE            = 5;
+        public static final int REQUEST_BROADCAST_RECEIVER_REMINDER  = 6;
+        public static final int REQUEST_PERMISSION_TAKE_PHOTO        = 7;
+        public static final int REQUEST_PERMISSION_SHOOT_VIDEO       = 8;
+        public static final int REQUEST_PERMISSION_RECORD_AUDIO      = 9;
+        public static final int REQUEST_PERMISSION_CHOOSE_MEDIA_FILE = 10;
 
-        public static final String KEY_THING       = "thing";
-        public static final String KEY_ID          = "id";
-        public static final String KEY_COLOR       = "color";
-        public static final String KEY_POSITION    = "position";
-        public static final String KEY_TYPE_BEFORE = "type_before";
-        public static final String KEY_STATE_AFTER = "state_after";
+        public static final int REQUEST_PERMISSION_BACKUP  = 0;
+        public static final int REQUEST_PERMISSION_RESTORE = 1;
 
-        public static final String KEY_RESULT_CODE = "result_code";
+        public static final String KEY_SENDER_NAME          = PREFIX + "key.sender_name";
+        public static final String KEY_DETAIL_ACTIVITY_TYPE = PREFIX + "key.detail_activity_type";
 
-        public static final String KEY_CALL_CHANGE = "call_change";
+        public static final String KEY_THING       = PREFIX + "key.thing";
+        public static final String KEY_ID          = PREFIX + "key.id";
+        public static final String KEY_COLOR       = PREFIX + "key.color";
+        public static final String KEY_POSITION    = PREFIX + "key.position";
+        public static final String KEY_TYPE_BEFORE = PREFIX + "key.type_before";
+        public static final String KEY_STATE_AFTER = PREFIX + "key.state_after";
 
-        public static final String KEY_EDITABLE       = "editable";
-        public static final String KEY_TYPE_PATH_NAME = "type_path_name";
+        public static final String KEY_RESULT_CODE = PREFIX + "key.result_code";
 
-        public static final String KEY_TIME = "time";
+        public static final String KEY_CALL_CHANGE = PREFIX + "key.call_change";
+
+        public static final String KEY_EDITABLE       = PREFIX + "key.editable";
+        public static final String KEY_TYPE_PATH_NAME = PREFIX + "key.type_path_name";
+
+        public static final String KEY_TIME = PREFIX + "key.time";
 
         public static final int RESULT_NO_UPDATE                        = 0;
         public static final int RESULT_CREATE_THING_DONE                = 1;
@@ -128,18 +137,19 @@ public final class Definitions {
         public static final int RESULT_UPDATE_THING_DONE_TYPE_SAME      = 3;
         public static final int RESULT_UPDATE_THING_DONE_TYPE_DIFFERENT = 4;
         public static final int RESULT_UPDATE_THING_STATE_DIFFERENT     = 5;
+        public static final int RESULT_JUST_NOTIFY_DATASET_CHANGED      = 6;
 
         public static final int RESULT_UPDATE_IMAGE_DONE = 1;
 
         public static final String NOTIFICATION_ACTION_FINISH =
-                "com.ywwynm.everythingdone.notification_action_finish";
+                PREFIX + "action.notification.finish";
         public static final String NOTIFICATION_ACTION_DELAY  =
-                "com.ywwynm.everythingdone.notification_action_delay";
+                PREFIX + "action.notification.delay";
         public static final String NOTIFICATION_ACTION_GET_IT =
-                "com.ywwynm.everythingdone.notification_action_get_it";
+                PREFIX + "action.notification.get_it";
 
         public static final String BROADCAST_ACTION_UPDATE_MAIN_UI =
-                "com.ywwynm.everythingdone.broadcast_action_update_main_ui";
+                PREFIX + "action.broadcast.update_main_ui";
 
     }
 

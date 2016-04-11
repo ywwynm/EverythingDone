@@ -11,4 +11,6 @@
 
     <dimen name="layout_end_of_month_rec_width">128dp</dimen>
 
+    <dimen name="card_note_reminder_statistic_margin">16dp</dimen>
+
 </resources>

@@ -41,6 +41,8 @@ public class LoadingDialogFragment extends NoTitleDialogFragment {
 
         pbLoading.getIndeterminateDrawable().setColorFilter(mAccentColor, PorterDuff.Mode.SRC_IN);
 
+        getDialog().setCanceledOnTouchOutside(false);
+
         return contentView;
     }
 

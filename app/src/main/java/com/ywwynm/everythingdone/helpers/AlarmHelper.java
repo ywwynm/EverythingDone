@@ -7,14 +7,17 @@ import android.content.Intent;
 import android.database.Cursor;
 
 import com.ywwynm.everythingdone.Definitions;
-import com.ywwynm.everythingdone.model.Reminder;
-import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
+import com.ywwynm.everythingdone.model.Reminder;
+import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.receivers.AutoNotifyReceiver;
+import com.ywwynm.everythingdone.receivers.DailyUpdateHabitReceiver;
 import com.ywwynm.everythingdone.receivers.HabitReceiver;
 import com.ywwynm.everythingdone.receivers.ReminderReceiver;
+
+import org.joda.time.DateTime;
 
 import java.util.List;
 
@@ -23,6 +26,42 @@ import java.util.List;
  * utils for creating/canceling alarms.
  */
 public class AlarmHelper {
+
+    public static void setReminderAlarm(Context context, long id, long notifyTime) {
+        AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        Intent intent = new Intent(context, ReminderReceiver.class);
+        intent.putExtra(Definitions.Communication.KEY_ID, id);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                context, (int) id, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        am.set(AlarmManager.RTC_WAKEUP, notifyTime, pendingIntent);
+    }
+
+    public static void deleteReminderAlarm(Context context, long id) {
+        AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        Intent intent = new Intent(context, ReminderReceiver.class);
+        intent.putExtra(Definitions.Communication.KEY_ID, id);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(context, (int) id, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT);
+        am.cancel(pendingIntent);
+    }
+
+    public static void setHabitReminderAlarm(Context context, long id, long notifyTime) {
+        AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        Intent intent = new Intent(context, HabitReceiver.class);
+        intent.putExtra(Definitions.Communication.KEY_ID, id);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(context, (int) id, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT);
+        am.set(AlarmManager.RTC_WAKEUP, notifyTime, pendingIntent);
+    }
+
+    public static void deleteHabitReminderAlarm(Context context, long id) {
+        AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        Intent intent = new Intent(context, HabitReceiver.class);
+        intent.putExtra(Definitions.Communication.KEY_ID, id);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(context, (int) id, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT);
+        am.cancel(pendingIntent);
+    }
 
     public static void cancelAlarms(Context context, List<Long> thingIds, List<Long> reminderIds,
                               List<Long> habitReminderIds) {
@@ -86,6 +125,15 @@ public class AlarmHelper {
             }
         }
         cursor.close();
+    }
+
+    public static void createDailyUpdateHabitAlarm(Context context) {
+        Intent intent = new Intent(context, DailyUpdateHabitReceiver.class);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        DateTime dt = new DateTime().plusDays(1).withTime(0, 0, 0, 0);
+        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, dt.getMillis(), 86400000, pendingIntent);
     }
 
 }

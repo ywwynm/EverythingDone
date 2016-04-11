@@ -1,19 +1,15 @@
 package com.ywwynm.everythingdone.database;
 
-import android.app.AlarmManager;
-import android.app.PendingIntent;
 import android.content.ContentValues;
 import android.content.Context;
-import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 
 import com.ywwynm.everythingdone.Definitions;
+import com.ywwynm.everythingdone.helpers.AlarmHelper;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.HabitRecord;
 import com.ywwynm.everythingdone.model.HabitReminder;
-import com.ywwynm.everythingdone.model.ThingsCounts;
-import com.ywwynm.everythingdone.receivers.HabitReceiver;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 
 import org.joda.time.DateTime;
@@ -36,15 +32,12 @@ public class HabitDAO {
 
     private SQLiteDatabase db;
 
-    private AlarmManager mAlarmManager;
-
     private static HabitDAO sHabitDAO;
 
     private HabitDAO(Context context) {
         mContext = context;
         EverythingDoneSQLiteOpenHelper helper = new EverythingDoneSQLiteOpenHelper(context);
         db = helper.getWritableDatabase();
-        mAlarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         updateMaxHabitReminderRecordId();
     }
 
@@ -155,12 +148,7 @@ public class HabitDAO {
         values.put(Definitions.Database.COLUMN_HABIT_ID_HABIT_REMINDERS, habitReminder.getHabitId());
         values.put(Definitions.Database.COLUMN_NOTIFY_TIME_HABIT_REMINDERS, notifyTime);
         db.insert(Definitions.Database.TABLE_HABIT_REMINDERS, null, values);
-
-        Intent intent = new Intent(mContext, HabitReceiver.class);
-        intent.putExtra(Definitions.Communication.KEY_ID, mHabitReminderId);
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(mContext, (int) mHabitReminderId, intent,
-                PendingIntent.FLAG_UPDATE_CURRENT);
-        mAlarmManager.set(AlarmManager.RTC_WAKEUP, notifyTime, pendingIntent);
+        AlarmHelper.setHabitReminderAlarm(mContext, mHabitReminderId, notifyTime);
     }
 
     public HabitRecord createHabitRecord(HabitRecord habitRecord) {
@@ -177,6 +165,24 @@ public class HabitDAO {
         db.insert(Definitions.Database.TABLE_HABIT_RECORDS, null, values);
         habitRecord.setId(mHabitRecordId);
         return habitRecord;
+    }
+
+    public void dailyUpdate(long habitId) {
+        Habit habit = getHabitById(habitId);
+        String record = habit.getRecord();
+        int recordedTimes = record.length();
+        int remindedTimes = habit.getRemindedTimes();
+        if (recordedTimes < remindedTimes) {
+            int type = habit.getType();
+            long start = System.currentTimeMillis() - 86400000;
+            int gap = DateTimeUtil.calculateTimeGap(start, System.currentTimeMillis(), type);
+            if (gap != 0) {
+                for (int i = recordedTimes; i < remindedTimes; i++) {
+                    record += "0";
+                }
+                updateRecordOfHabit(habitId, record);
+            }
+        }
     }
 
     public HabitRecord finishOneTime(Habit habit) {
@@ -214,8 +220,7 @@ public class HabitDAO {
                 newRecordCount++;
             }
         }
-        updateHabit(habitId, record + "1");
-        ThingsCounts.getInstance(mContext).handleHabitRecorded(1, newRecordCount);
+        updateRecordOfHabit(habitId, record + "1");
         return createHabitRecord(new HabitRecord(0, habitId, habitReminderId));
     }
 
@@ -228,9 +233,8 @@ public class HabitDAO {
             updateHabitReminderToLast(habit.getFinalHabitReminder());
         }
 
-        updateHabit(habitId, record.substring(0, len - 1));
+        updateRecordOfHabit(habitId, record.substring(0, len - 1));
         deleteHabitRecord(hrId);
-        ThingsCounts.getInstance(mContext).handleHabitRecorded(-1, -1);
     }
 
     public int getFinishedTimesThisT(Habit habit) {
@@ -330,18 +334,33 @@ public class HabitDAO {
 
     public void updateHabitToLatest(long id) {
         Habit habit = getHabitById(id);
+        int remindedTimes = habit.getRemindedTimes();
         int recordTimes = habit.getRecord().length();
-        updateHabit(id, recordTimes);
+        updateHabitRemindedTimes(id, recordTimes);
+
         List<HabitReminder> habitReminders = habit.getHabitReminders();
         List<Long> hrIds = new ArrayList<>();
         for (HabitReminder habitReminder : habitReminders) {
             hrIds.add(habitReminder.getId());
         }
+
         habit.initHabitReminders(); // habitReminders have become latest.
         habitReminders = habit.getHabitReminders();
+        long min = Long.MAX_VALUE;
         for (int i = 0; i < hrIds.size(); i++) {
             long newTime = habitReminders.get(i).getNotifyTime();
             updateHabitReminder(hrIds.get(i), newTime);
+            if (newTime < min) {
+                min = newTime;
+            }
+        }
+
+        if (remindedTimes == 0 && recordTimes == 0) {
+            // User may backup before first notification and restore it next year.
+            // We should update firstTime of habit to correct time of next year.
+            // Otherwise, we may see that persist-in-T is 1 year but actually user
+            // did not finish it even once.
+            updateHabitFirstTime(id, min);
         }
 
         // 将已经提前完成的habitReminder更新至新的周期里
@@ -355,15 +374,21 @@ public class HabitDAO {
         }
     }
 
-    public void updateHabit(long id, String record) {
+    public void updateRecordOfHabit(long id, String record) {
         ContentValues values = new ContentValues();
         values.put(Definitions.Database.COLUMN_RECORD_HABITS, record);
         db.update(Definitions.Database.TABLE_HABITS, values, "id=" + id, null);
     }
 
-    public void updateHabit(long id, long remindedTimes) {
+    public void updateHabitRemindedTimes(long id, long remindedTimes) {
         ContentValues values = new ContentValues();
         values.put(Definitions.Database.COLUMN_REMINDED_TIMES_HABITS, remindedTimes);
+        db.update(Definitions.Database.TABLE_HABITS, values, "id=" + id, null);
+    }
+
+    public void updateHabitFirstTime(long id, long firstTime) {
+        ContentValues values = new ContentValues();
+        values.put(Definitions.Database.COLUMN_FIRST_TIME_HABITS, firstTime);
         db.update(Definitions.Database.TABLE_HABITS, values, "id=" + id, null);
     }
 
@@ -387,12 +412,7 @@ public class HabitDAO {
         ContentValues values = new ContentValues();
         values.put(Definitions.Database.COLUMN_NOTIFY_TIME_HABIT_REMINDERS, notifyTime);
         db.update(Definitions.Database.TABLE_HABIT_REMINDERS, values, "id=" + hrId, null);
-
-        Intent intent = new Intent(mContext, HabitReceiver.class);
-        intent.putExtra(Definitions.Communication.KEY_ID, hrId);
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(mContext, (int) hrId, intent,
-                PendingIntent.FLAG_UPDATE_CURRENT);
-        mAlarmManager.set(AlarmManager.RTC_WAKEUP, notifyTime, pendingIntent);
+        AlarmHelper.setHabitReminderAlarm(mContext, hrId, notifyTime);
     }
 
     public void updateHabitReminderToNext(long hrId) {
@@ -429,12 +449,7 @@ public class HabitDAO {
     public void deleteHabitReminders(long habitId) {
         List<HabitReminder> habitReminders = getHabitRemindersByHabitId(habitId);
         for (HabitReminder habitReminder : habitReminders) {
-            long id = habitReminder.getId();
-            Intent intent = new Intent(mContext, HabitReceiver.class);
-            intent.putExtra(Definitions.Communication.KEY_ID, id);
-            PendingIntent pendingIntent = PendingIntent.getBroadcast(mContext, (int) id, intent,
-                    PendingIntent.FLAG_UPDATE_CURRENT);
-            mAlarmManager.cancel(pendingIntent);
+            AlarmHelper.deleteHabitReminderAlarm(mContext, habitReminder.getId());
         }
         db.delete(Definitions.Database.TABLE_HABIT_REMINDERS, "habit_id=" + habitId, null);
     }

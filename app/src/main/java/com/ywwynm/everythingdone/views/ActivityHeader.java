@@ -12,6 +12,7 @@ import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.managers.ModeManager;
 import com.ywwynm.everythingdone.managers.ThingManager;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
+import com.ywwynm.everythingdone.utils.LocaleUtil;
 
 /**
  * Created by ywwynm on 2015/7/5.
@@ -149,6 +150,9 @@ public class ActivityHeader {
                 .getThingsCountForActivityHeader(mApplication.getLimit());
         String subtitle = thingsCount == 0 ? mApplication.getString(R.string.empty) :
                 "" + thingsCount + " " + mApplication.getString(R.string.a_thing);
+        if (thingsCount > 1 && !LocaleUtil.isChinese(mApplication)) {
+            subtitle += "s";
+        }
         mSubtitle.setText(subtitle);
     }
 

@@ -1,12 +1,14 @@
 package com.ywwynm.everythingdone;
 
 import android.app.Application;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.os.Environment;
 import android.util.LruCache;
 
 import com.ywwynm.everythingdone.activities.SettingsActivity;
+import com.ywwynm.everythingdone.activities.ThingsActivity;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
@@ -17,6 +19,7 @@ import com.ywwynm.everythingdone.helpers.AttachmentHelper;
 import com.ywwynm.everythingdone.utils.FileUtil;
 
 import java.io.File;
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -51,7 +54,6 @@ public class EverythingDoneApplication extends Application {
 
     private ModeManager mModeManager;
     public static boolean isSearching = false;
-    public static boolean thingsActivityCreated = false;
 
     private LruCache<String, Bitmap> mBitmapLruCache =
             new LruCache<String, Bitmap>(((int) Runtime.getRuntime().maxMemory() / 512) / 6) {
@@ -63,13 +65,20 @@ public class EverythingDoneApplication extends Application {
 
     private ExecutorService mExecutor;
 
+    // Used to judge if there is a ThingsActivity instance.
+    public static WeakReference<ThingsActivity> thingsActivityWR;
+
     private static List<Long> runningDetailActivities = new ArrayList<>();
+    private boolean detailActivityRun = false;
+
     private static boolean somethingUpdatedSpecially = false;
     private static boolean justNotifyDataSetChanged = false;
 
     @Override
     public void onCreate() {
         super.onCreate();
+
+        firstLaunch();
 
         File file = new File(getApplicationInfo().dataDir + "/files/" +
                 Definitions.MetaData.CREATE_ALARMS_FILE_NAME);
@@ -87,6 +96,17 @@ public class EverythingDoneApplication extends Application {
         mLimit = Definitions.LimitForGettingThings.ALL_UNDERWAY;
 
         mExecutor = Executors.newSingleThreadExecutor();
+
+        AlarmHelper.createDailyUpdateHabitAlarm(this);
+    }
+
+    private void firstLaunch() {
+        SharedPreferences metaData = getSharedPreferences(
+                Definitions.MetaData.META_DATA_NAME, MODE_PRIVATE);
+        if (metaData.getLong(Definitions.MetaData.KEY_START_USING_TIME, 0) == 0) {
+            metaData.edit().putLong(Definitions.MetaData.KEY_START_USING_TIME,
+                    System.currentTimeMillis()).apply();
+        }
     }
 
     public List<Thing> getThingsToDeleteForever() {
@@ -138,20 +158,26 @@ public class EverythingDoneApplication extends Application {
         EverythingDoneApplication.justNotifyDataSetChanged = justNotifyDataSetChanged;
     }
 
+    public void setDetailActivityRun(boolean detailActivityRun) {
+        this.detailActivityRun = detailActivityRun;
+    }
+
+    public boolean hasDetailActivityRun() {
+        return detailActivityRun;
+    }
+
     public void releaseResourcesAfterDeleteForever() {
         if (!mThingsToDeleteForever.isEmpty()) {
-            mExecutor.execute(new Runnable() {
+            Runnable r = new Runnable() {
                 @Override
                 public void run() {
                     ReminderDAO dao = ReminderDAO.getInstance(EverythingDoneApplication.this);
-                    String attachment, pathName;
-                    String[] attachments;
                     for (Thing thing : mThingsToDeleteForever) {
-                        attachment = thing.getAttachment();
+                        String attachment = thing.getAttachment();
                         if (!attachment.isEmpty() && !attachment.equals("to QQ")) {
-                            attachments = attachment.split(AttachmentHelper.SIGNAL);
+                            String[] attachments = attachment.split(AttachmentHelper.SIGNAL);
                             for (int i = 1; i < attachments.length; i++) {
-                                pathName = attachments[i].substring(1, attachments[i].length());
+                                String pathName = attachments[i].substring(1, attachments[i].length());
                                 if (pathName.startsWith(APP_FILE_FOLDER)
                                         && !mAttachmentsToDeleteFile.contains(pathName)) {
                                     mAttachmentsToDeleteFile.add(pathName);
@@ -162,7 +188,8 @@ public class EverythingDoneApplication extends Application {
                     }
                     mThingsToDeleteForever.clear();
                 }
-            });
+            };
+            mExecutor.execute(r);
         }
     }
 
@@ -176,21 +203,20 @@ public class EverythingDoneApplication extends Application {
 
     public void deleteAttachmentFiles() {
         if (!mAttachmentsToDeleteFile.isEmpty()) {
-            mExecutor.execute(new Runnable() {
+            Runnable r = new Runnable() {
                 @Override
                 public void run() {
                     List<String> usedAttachments = new ArrayList<>();
-                    String attachment, pathName;
-                    String[] attachments;
                     ThingDAO dao = ThingDAO.getInstance(EverythingDoneApplication.this);
                     Cursor cursor = dao.getAllThingsCursor();
                     while (cursor.moveToNext()) {
-                        attachment = cursor.getString(cursor.getColumnIndex(
+                        String attachment = cursor.getString(cursor.getColumnIndex(
                                 Definitions.Database.COLUMN_ATTACHMENT_THINGS));
                         if (!attachment.isEmpty() && !attachment.equals("to QQ")) {
-                            attachments = attachment.split(AttachmentHelper.SIGNAL);
+                            String[] attachments = attachment.split(AttachmentHelper.SIGNAL);
                             for (int i = 1; i < attachments.length; i++) {
-                                pathName = attachments[i].substring(1, attachments[i].length());
+                                String pathName = attachments[i].substring(
+                                        1, attachments[i].length());
                                 if (pathName.startsWith(APP_FILE_FOLDER)
                                         && !usedAttachments.contains(pathName)) {
                                     usedAttachments.add(pathName);
@@ -206,7 +232,8 @@ public class EverythingDoneApplication extends Application {
                     }
                     mAttachmentsToDeleteFile.clear();
                 }
-            });
+            };
+            mExecutor.execute(r);
         }
     }
 }

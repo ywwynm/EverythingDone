@@ -10,14 +10,13 @@ import android.support.v4.app.NotificationManagerCompat;
 import com.ywwynm.everythingdone.Definitions;
 import com.ywwynm.everythingdone.EverythingDoneApplication;
 import com.ywwynm.everythingdone.R;
+import com.ywwynm.everythingdone.database.HabitDAO;
+import com.ywwynm.everythingdone.database.ThingDAO;
+import com.ywwynm.everythingdone.helpers.CheckListHelper;
+import com.ywwynm.everythingdone.managers.ThingManager;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.HabitReminder;
 import com.ywwynm.everythingdone.model.Thing;
-import com.ywwynm.everythingdone.model.ThingsCounts;
-import com.ywwynm.everythingdone.database.HabitDAO;
-import com.ywwynm.everythingdone.database.ThingDAO;
-import com.ywwynm.everythingdone.managers.ThingManager;
-import com.ywwynm.everythingdone.helpers.CheckListHelper;
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil;
 
 import java.util.List;
@@ -129,15 +128,14 @@ public class HabitReceiver extends BroadcastReceiver {
                     s += "0";
                     recordTimes++;
                 }
-                habitDAO.updateHabit(habitId, habit.getRecord() + s);
-                ThingsCounts.getInstance(context).handleHabitRecorded(0, s.length());
+                habitDAO.updateRecordOfHabit(habitId, habit.getRecord() + s);
             }
-            habitDAO.updateHabit(habitId, remindedTimes + 1);
+            habitDAO.updateHabitRemindedTimes(habitId, remindedTimes + 1);
         } else {
             // recordTimes > remindedTimes means that user finish a habit in advance of notification.
             // Add 1: it is real a notification this time, user doesn't finish this time in advance.
             // At the same time, we can see previous finishes as finishes after notifications.
-            habitDAO.updateHabit(habitId, recordTimes + 1);
+            habitDAO.updateHabitRemindedTimes(habitId, recordTimes + 1);
         }
     }
 

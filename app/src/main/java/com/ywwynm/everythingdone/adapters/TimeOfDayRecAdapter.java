@@ -97,8 +97,8 @@ public class TimeOfDayRecAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         items.clear();
         for (String str : strs) {
             String[] times = str.split(":");
-            int hour = Integer.valueOf(times[0]);
-            int minute = Integer.valueOf(times[1]);
+            int hour = Integer.parseInt(times[0]);
+            int minute = Integer.parseInt(times[1]);
             items.add(hour);
             items.add(minute);
         }

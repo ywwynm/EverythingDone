@@ -219,7 +219,6 @@
     <string name="month_day">號</string>
     <string name="i_work_hard_for">我努力了</string>
     <string name="finished_goal">最終實現了這個目標</string>
-    <string name="error_share_empty_title_content">無法分享不含文字內容的記事</string>
     <string name="this_gai">該</string>
     <string name="thing">記事</string>
     <string name="sb_finish_habit">完成了該習慣</string>
@@ -230,7 +229,7 @@
     <string name="habit_detail_times">完成次數</string>
     <string name="habit_detail_title">習慣詳情</string>
     <string name="celebration_goal_part_1">您花了</string>
-    <string name="celebration_goal_part_2">天實現該目標，現在是時候慶祝了！</string>
+    <string name="celebration_goal_part_2">實現該目標，現在是時候慶祝了！</string>
     <string name="celebration_goal_part_3">能伴隨您在成長、成功的道路上前行是完事兒的榮幸，祝您再接再厲。</string>
     <string name="celebration_habit_part_1">您堅持了</string>
     <string name="celebration_habit_part_2">，完成了</string>
@@ -275,7 +274,7 @@
     <string name="about_motto">記住事情，完成事情</string>
     <string name="about_version">版本：</string>
     <string name="act_feedback">建議迴響</string>
-    <string name="app_share_info">記住事情，完成事情，這對你來說算一個挑戰嗎？完事兒能够提醒你的日程活動、幫你養成習慣、督促你完成目標，你也可以在完事兒裏記下身邊的故事與風景。遵循 Material Design 的介面設計讓你領略 Android 應用的美。前往 Google Play 蒐索“完事兒”即可下載。</string>
+    <string name="app_share_info">記住事情，完成事情，這對你來說算一個挑戰嗎？完事兒能够為你提醒日程活動、幫你養成習慣、督促你完成目標，你也可以在完事兒裏記下身邊的故事與風景，留下美好的回憶。\n\n遵循 Material Design 的介面設計讓你領略 Android 應用的美，在精緻的細節中享受流暢的操作。\n\n前往 Google Play、酷安網、豌豆莢、小米應用商店等蒐索“完事兒”即可下載。</string>
     <string name="act_share_everythingdone">分享完事兒</string>
     <string name="send_feedback_to_developer">發送建議、迴響給開發者</string>
     <string name="act_support">支持開發者</string>
@@ -309,5 +308,41 @@
     <string name="restore_success_content">請等待應用重啟。為確保數據安全，請不要進行其它操作</string>
     <string name="restore_success_title">恢復成功</string>
     <string name="settings_group_data">數據</string>
+    <string name="content_description_header">頭部</string>
+    <string name="statistic_start_from_part_1">我從</string>
+    <string name="statistic_start_from_part_2">開始使用完事兒，在這</string>
+    <string name="statistic_start_from_part_3">天裏，我創建、完成了：</string>
+    <string name="title_activity_statistic">統計</string>
+    <string name="statistic_note_audio_count">音訊</string>
+    <string name="statistic_note_char_count">文字</string>
+    <string name="statistic_note_image_count">圖片</string>
+    <string name="statistic_note_video_count">視頻</string>
+    <string name="statistic_note_record">在記錄裏，我記下了這些：</string>
+    <string name="statistic_reminder_completion_rate">提醒完成率</string>
+    <string name="statistic_reminder_finish_time">平均完成時間</string>
+    <string name="statistic_reminder_in_advance">提前完成的比例</string>
+    <string name="statistic_reminder_notify_time">平均提醒時長</string>
+    <string name="statistic_reminder_record">這兒是一些關於「提醒」的數據：</string>
+    <string name="statistic_second">秒</string>
+    <string name="statistic_year">年</string>
+    <string name="statistic_hour">小時</string>
+    <string name="statistic_minute">分鐘</string>
+    <string name="statistic_day">天</string>
+    <string name="statistic_habit_record">我打算養成一些「習慣」，下面是相關的統計信息：</string>
+    <string name="statistic_habit_longest_pit">最長堅持週期數</string>
+    <string name="statistic_habit_completion_rate">完成率</string>
+    <string name="statistic_habit_developed_rate">習慣養成率</string>
+    <string name="statistic_habit_longest_finish_times">最長連續完成次數</string>
+    <string name="statistic_habit_finished_all">完成次數\n/ 總次數</string>
+    <string name="error_permission_denied">未授予相關權限，無法繼續操作</string>
+    <string name="statistic_goal_record">我定下了一些「目標」，來看看我的完成情況吧：</string>
+    <string name="statistic_goal_completion_rate">目標完成率</string>
+    <string name="statistic_goal_notify_time">平均期限</string>
+    <string name="generating_screen_shot">正在對統計介面截圖…</string>
+    <string name="please_wait">請稍等</string>
+    <string name="share_statistic">分享我的使用情况</string>
+    <string name="title_create_thing">創建記事</string>
+    <string name="title_edit_thing">編輯</string>
+    <string name="sb_cannot_finish_habit_first_time">請等待第一個週期的到來</string>
 
 </resources>

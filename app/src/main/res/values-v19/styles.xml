@@ -22,6 +22,12 @@
         <item name="android:windowTranslucentStatus">true</item>
     </style>
 
+    <style name="EverythingDoneTheme.Statistic" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowTranslucentStatus">true</item>
+        <item name="android:dialogTheme">@style/Theme.AppCompat.Light.Dialog</item>
+        <item name="android:windowBackground">@color/bg_activity_things</item>
+    </style>
+
     <style name="EverythingDoneTheme.About" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="android:windowTranslucentStatus">true</item>
         <item name="android:windowTranslucentNavigation">true</item>

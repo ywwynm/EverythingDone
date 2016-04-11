@@ -18,7 +18,7 @@
     <string name="act_share">Share</string>
     <string name="act_restore_selected">Restore selected</string>
 
-    <string name="all">after all things</string>
+    <string name="all">All things</string>
     <string name="congratulations">Congratulations</string>
     <string name="deleted">Deleted</string>
     <string name="empty">empty</string>
@@ -205,7 +205,6 @@
     <string name="habit_developed">finally developed this habit</string>
     <string name="i_work_hard_for">I work hard for</string>
     <string name="finished_goal">and finally achieved the goal</string>
-    <string name="error_share_empty_title_content">Cannot share a non-text thing</string>
     <string name="this_gai">this</string>
     <string name="thing">thing</string>
     <string name="sb_finish_habit">finished this habit </string>
@@ -217,7 +216,7 @@
     <string name="habit_detail_title">Habit detail</string>
     <string name="empty_deleted">Do you enjoy cleaning recycle bin? Me too!</string>
     <string name="celebration_goal_part_1">You spent</string>
-    <string name="celebration_goal_part_2">days achieving the goal. Now it\'s time to celebrate!</string>
+    <string name="celebration_goal_part_2">achieving the goal. Now it\'s time to celebrate!</string>
     <string name="celebration_goal_part_3">It\'s my honor to stay with you when you\'re walking on the way to success and help you. I truly hope that you can be even better.</string>
     <string name="celebration_habit_part_1">You\'ve persisted in this habit for</string>
     <string name="celebration_habit_part_2">, finished</string>
@@ -292,4 +291,40 @@
     <string name="restore_start">Start Restore</string>
     <string name="restore_success_content">Please wait for app restarting. Do not do anything until app is completely restarted to keep your data safe.</string>
     <string name="restore_success_title">Restore successfully</string>
+    <string name="content_description_header">header</string>
+    <string name="statistic_start_from_part_1">I have used EverythingDone since</string>
+    <string name="statistic_start_from_part_2">. During</string>
+    <string name="statistic_start_from_part_3"><![CDATA[, I finished & created:]]></string>
+    <string name="title_activity_statistic">Statistic</string>
+    <string name="statistic_note_audio_count">Audio</string>
+    <string name="statistic_note_char_count">Character</string>
+    <string name="statistic_note_image_count">Image</string>
+    <string name="statistic_note_video_count">Video</string>
+    <string name="statistic_note_record">I recorded these things in Note:</string>
+    <string name="statistic_reminder_completion_rate">Reminder\'s \nCompletion Rate</string>
+    <string name="statistic_reminder_finish_time">Average \nFinish Time</string>
+    <string name="statistic_reminder_in_advance">Finished \nIn Advance</string>
+    <string name="statistic_reminder_notify_time">Average \nReminder Time</string>
+    <string name="statistic_reminder_record">Here is some data about Reminder:</string>
+    <string name="statistic_second">s</string>
+    <string name="statistic_year">y</string>
+    <string name="statistic_hour">h</string>
+    <string name="statistic_minute">m</string>
+    <string name="statistic_day">d</string>
+    <string name="statistic_habit_completion_rate">Completion Rate</string>
+    <string name="statistic_habit_longest_pit">Longest\nPersistent Cycle</string>
+    <string name="statistic_habit_record">I decided to develop some habits. My works are as bellow:</string>
+    <string name="statistic_habit_longest_finish_times">Longest Continuous\nFinish times</string>
+    <string name="statistic_habit_developed_rate">Habit\'s\nNurturance Rate</string>
+    <string name="statistic_habit_finished_all">Finished times\n/ Total Times</string>
+    <string name="error_permission_denied">Permission not granted. Cannot continue.</string>
+    <string name="statistic_goal_record">I have set some goals. Let\'s see my performance:</string>
+    <string name="statistic_goal_completion_rate">Goal\'s\nCompletion Rate</string>
+    <string name="statistic_goal_notify_time">Average Term</string>
+    <string name="generating_screen_shot">Taking screenshot...</string>
+    <string name="please_wait">Please Wait</string>
+    <string name="share_statistic">Share my use story</string>
+    <string name="title_create_thing">Create New Thing</string>
+    <string name="title_edit_thing">Edit</string>
+    <string name="sb_cannot_finish_habit_first_time">Please wait for the first cycle</string>
 </resources>

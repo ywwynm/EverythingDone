@@ -10,12 +10,6 @@
         app:showAsAction="always"/>
 
     <item
-        android:id="@+id/act_help"
-        android:icon="@mipmap/act_show_help_info"
-        android:title="@string/help"
-        app:showAsAction="always"/>
-
-    <item
         android:id="@+id/act_feedback"
         android:icon="@mipmap/act_feedback"
         android:title="@string/act_feedback"

@@ -116,6 +116,6 @@
         app:elevation="6dp"
         app:borderWidth="0dp"
         app:pressedTranslationZ="12dp"
-        app:backgroundTint="@color/about_support"/>
+        app:backgroundTint="@color/app_pink"/>
 
 </merge>

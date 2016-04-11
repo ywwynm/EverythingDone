@@ -16,6 +16,7 @@ import com.ywwynm.everythingdone.helpers.CheckListHelper;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -65,8 +66,6 @@ public class ThingManager {
 
     private static ThingManager sThingManager;
 
-    private Runnable mUpdateThingsCountsRunnable;
-
     private boolean mIsHandlingUndo = false;
     private List<Long> mUndoHabits;
     private List<Reminder> mUndoGoals;
@@ -82,13 +81,6 @@ public class ThingManager {
         mHeaderId = mThings.get(0).getId();
 
         mExecutor = Executors.newSingleThreadExecutor();
-
-        mUpdateThingsCountsRunnable = new Runnable() {
-            @Override
-            public void run() {
-                mExecutor.execute(mUpdateThingsCountsRunnable);
-            }
-        };
 
         mUndoHabits = new ArrayList<>();
         mUndoGoals  = new ArrayList<>();
@@ -111,10 +103,6 @@ public class ThingManager {
         if (loadThingsNow) {
             loadThings();
         }
-    }
-
-    public List<Long> getUndoHabits() {
-        return mUndoHabits;
     }
 
     public List<Reminder> getUndoGoals() {
@@ -203,7 +191,7 @@ public class ThingManager {
         // see if we can delete a NOTIFY_EMPTY
         boolean deletedNEnow = false;
         int type = thingToCreate.getType();
-        if (handleNotifyEmpty) {
+        if (handleNotifyEmpty && !EverythingDoneApplication.isSearching) {
             deletedNEnow = deleteNEnow(type, Thing.UNDERWAY);
         }
 
@@ -214,7 +202,7 @@ public class ThingManager {
         }
 
         mThingsCounts.handleCreation(type);
-        mExecutor.execute(mUpdateThingsCountsRunnable);
+
         return deletedNEnow;
     }
 
@@ -247,8 +235,7 @@ public class ThingManager {
 
         int state = updatedThing.getState();
         int typeAfter = updatedThing.getType();
-        mThingsCounts.handleUpdate(typeBefore, state, typeAfter, state);
-        mExecutor.execute(mUpdateThingsCountsRunnable);
+        mThingsCounts.handleUpdate(typeBefore, state, typeAfter, state, 1);
 
         if (handleNotifyEmpty && !EverythingDoneApplication.isSearching) {
             deleteNEnow(typeAfter, state);
@@ -306,8 +293,8 @@ public class ThingManager {
         mExecutor.execute(new Runnable() {
             @Override
             public void run() {
-                mDao.updateState(thingToUpdate, location, stateBefore, stateAfter, handleNotifyEmpty, false,
-                        toUndo, headerId, true);
+                mDao.updateState(thingToUpdate, location, stateBefore, stateAfter,
+                        handleNotifyEmpty, false, toUndo, headerId, true);
             }
         });
 
@@ -320,7 +307,10 @@ public class ThingManager {
         if (toUndo) {
             mThings.add(position, thing);
         } else {
-            updateHeader(1);
+            // used to make sure that updated thing is at first location except header
+            if (stateAfter != Thing.DELETED_FOREVER) {
+                updateHeader(1);
+            }
             if (mThings.indexOf(thing) == position && position != -1) {
                 mThings.remove(position);
             }
@@ -354,8 +344,7 @@ public class ThingManager {
             }
         }
 
-        mThingsCounts.handleUpdate(type, stateBefore, type, stateAfter);
-        mExecutor.execute(mUpdateThingsCountsRunnable);
+        mThingsCounts.handleUpdate(type, stateBefore, type, stateAfter, 1);
 
         boolean createdNEnow = false;
         if (handleNotifyEmpty && !EverythingDoneApplication.isSearching) {
@@ -406,6 +395,7 @@ public class ThingManager {
 
         final ReminderDAO rDao = ReminderDAO.getInstance(mContext);
         List<Integer> positions = new ArrayList<>(size);
+        HashMap<Integer, Integer> updateCounts = new HashMap<>();
         for (Thing thing : things) {
             int pos = mThings.indexOf(thing);
             positions.add(pos);
@@ -420,9 +410,13 @@ public class ThingManager {
                 mUndoGoals.add(rDao.getReminderById(id));
             }
 
-            mThingsCounts.handleUpdate(type, stateBefore, type, stateAfter);
+            Integer count = updateCounts.get(type);
+            updateCounts.put(type, count == null ? 1 : count + 1);
         }
-        mExecutor.execute(mUpdateThingsCountsRunnable);
+
+        for (Integer t : updateCounts.keySet()) {
+            mThingsCounts.handleUpdate(t, stateBefore, t, stateAfter, updateCounts.get(t));
+        }
 
         mExecutor.execute(new Runnable() {
             @Override
@@ -495,15 +489,20 @@ public class ThingManager {
         }
 
         int size = things.size();
+        HashMap<Integer, Integer> updateCounts = new HashMap<>();
         Thing thing;
         for (int i = size - 1; i >= 0; i--) {
             thing = things.get(i);
             type = thing.getType();
             mThings.add(positions.get(i), thing);
-            mThingsCounts.handleUpdate(type, stateBefore, type, stateAfter);
+
+            Integer count = updateCounts.get(type);
+            updateCounts.put(type, count == null ? 1 : count + 1);
         }
 
-        mExecutor.execute(mUpdateThingsCountsRunnable);
+        for (Integer t : updateCounts.keySet()) {
+            mThingsCounts.handleUpdate(t, stateBefore, t, stateAfter, updateCounts.get(t));
+        }
 
         mExecutor.execute(new Runnable() {
             @Override
@@ -591,11 +590,10 @@ public class ThingManager {
      */
     public boolean createNEnow(int type, int state) {
         int[] limits = Thing.getLimits(type, state);
-        Thing notifyEmpty;
         for (int limit : limits) {
             if (mLimit == limit) {
                 if (mThings.size() == 1) {
-                    notifyEmpty = Thing.generateNotifyEmpty(limit, mHeaderId, mContext);
+                    Thing notifyEmpty = Thing.generateNotifyEmpty(limit, mHeaderId, mContext);
                     create(notifyEmpty, false);
                     return true;
                 }
@@ -617,11 +615,9 @@ public class ThingManager {
      */
     public boolean deleteNEnow(int type, int state) {
         int[] limits = Thing.getLimits(type, state);
-        Thing thing;
-        int NEtype;
         for (int limit : limits) {
-            thing = mThings.get(1);
-            NEtype = thing.getType();
+            Thing thing = mThings.get(1);
+            int NEtype = thing.getType();
             if (mLimit == limit && NEtype >= Thing.NOTIFY_EMPTY_UNDERWAY) {
                 updateState(thing, 1, -1, Thing.UNDERWAY, Thing.DELETED_FOREVER, false, false);
                 return true;

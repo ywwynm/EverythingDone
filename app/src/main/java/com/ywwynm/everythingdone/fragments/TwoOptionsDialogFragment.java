@@ -17,9 +17,9 @@ import com.ywwynm.everythingdone.utils.KeyboardUtil;
  * Shown when user clicks {@link android.text.style.URLSpan}s in
  * {@link com.ywwynm.everythingdone.activities.DetailActivity}.
  */
-public class SpanClickedDialogFragment extends NoTitleDialogFragment {
+public class TwoOptionsDialogFragment extends NoTitleDialogFragment {
 
-    public static final String TAG = "SpanClickedDialogFragment";
+    public static final String TAG = "TwoOptionsDialogFragment";
 
     private boolean mShouldShowKeyboardAfterDismiss = false;
     private View mViewToFocusAfterDismiss;

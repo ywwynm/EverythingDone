@@ -21,6 +21,9 @@ public class UriPathConverter {
 
     public static String getLocalPathName(Context context, Uri uri) {
         String pathName = getPathName(context, uri);
+        if (pathName == null) {
+            return null;
+        }
         if (!pathName.startsWith(Environment.getExternalStorageDirectory().getAbsolutePath())) {
             return null;
         } else return pathName;

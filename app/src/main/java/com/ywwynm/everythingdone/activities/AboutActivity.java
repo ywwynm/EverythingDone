@@ -61,8 +61,6 @@ public class AboutActivity extends EverythingDoneBaseActivity {
             case R.id.act_share:
                 SendInfoHelper.shareApp(this);
                 break;
-            case R.id.act_help:
-                break;
             case R.id.act_feedback:
                 SendInfoHelper.sendFeedback(this);
                 break;
@@ -92,18 +90,21 @@ public class AboutActivity extends EverythingDoneBaseActivity {
 
     @Override
     protected void initUI() {
+        DisplayUtil.darkStatusBarForMIUI(this);
+
         if (VersionUtil.hasKitKatApi()) {
             LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams)
                     mStatusBar.getLayoutParams();
             lp.height = DisplayUtil.getStatusbarHeight(this);
             mStatusBar.requestLayout();
 
-            int navHeight = DisplayUtil.getNavigationBarHeight(this);
-            FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) mFab.getLayoutParams();
-            params.bottomMargin += navHeight;
-            mFab.requestLayout();
-
-            mFlBottom.setPadding(0, 0, 0, navHeight);
+            if (DisplayUtil.hasNavigationBar(this)) {
+                int navHeight = DisplayUtil.getNavigationBarHeight(this);
+                FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) mFab.getLayoutParams();
+                params.bottomMargin += navHeight;
+                mFab.requestLayout();
+                mFlBottom.setPadding(0, 0, 0, navHeight);
+            }
         }
 
         Typeface tf = FontCache.get("roboto-mono.ttf", this);
@@ -163,7 +164,7 @@ public class AboutActivity extends EverythingDoneBaseActivity {
 
     private void initSupportDialog() {
         mSupportDf = new ThreeActionsAlertDialogFragment();
-        int color = ContextCompat.getColor(this, R.color.about_support);
+        int color = ContextCompat.getColor(this, R.color.app_pink);
         mSupportDf.setTitleColor(color);
         mSupportDf.setContinueColor(color);
         mSupportDf.setTitle(getString(R.string.act_support));
@@ -191,7 +192,7 @@ public class AboutActivity extends EverythingDoneBaseActivity {
 
     private void initDonateDialog() {
         mDonateDf = new AlertDialogFragment();
-        int color = ContextCompat.getColor(this, R.color.about_support);
+        int color = ContextCompat.getColor(this, R.color.app_pink);
         mDonateDf.setTitleColor(color);
         mDonateDf.setConfirmColor(color);
         mDonateDf.setTitle(getString(R.string.support_donate));

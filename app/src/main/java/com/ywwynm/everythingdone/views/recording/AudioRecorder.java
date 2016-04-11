@@ -34,7 +34,6 @@ public class AudioRecorder {
     private int mSamplingInterval = 100;
 
     private boolean mFosClosed;
-    private Thread mRecordingThread;
 
     private List<VoiceVisualizer> mVoiceVisualizers = new ArrayList<>();
 
@@ -96,15 +95,14 @@ public class AudioRecorder {
      * start AudioRecord.read
      */
     public void startListening() {
-        mRawFile = AttachmentHelper.createTempFile(".raw");
+        mRawFile = FileUtil.createTempFile(".raw");
         if (mRawFile == null) {
             return;
         }
 
-        mRecordingThread = new RecordingThread();
         mIsListening = true;
         mAudioRecord.startRecording();
-        mRecordingThread.start();
+        new RecordingThread().start();
     }
 
     /**

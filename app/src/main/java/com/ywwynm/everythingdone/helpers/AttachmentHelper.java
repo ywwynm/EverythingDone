@@ -5,6 +5,7 @@ import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.media.MediaMetadataRetriever;
+import android.net.Uri;
 import android.os.Environment;
 import android.support.v7.widget.RecyclerView;
 import android.util.Pair;
@@ -157,20 +158,6 @@ public class AttachmentHelper {
 
     public static String generateKeyForCache(String pathName, int width, int height) {
         return width + "*" + height + SIZE_SEPARATOR + pathName;
-    }
-
-    public static File createTempFile(String postfix) {
-        File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath()
-                + "/EverythingDone/temp");
-        if (!dir.exists()) {
-            boolean parentCreated = dir.mkdirs();
-            if (!parentCreated) {
-                return null;
-            }
-        }
-
-        String timeStamp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
-        return new File(dir, timeStamp + postfix);
     }
 
     public static File createAttachmentFile(int type) {
@@ -332,6 +319,28 @@ public class AttachmentHelper {
         String[] postfixes = new String[] { "wav", "mp3", "3gp", "mp4", "aac", "flac", "mid", "xmf",
                 "mxmf", "rtttl", "rtx", "ota", "imy", "ogg", "mkv" };
         return isInsideArray(postfixes, postfix);
+    }
+
+    public static ArrayList<Uri> toUriList(String attachment) {
+        if (attachment == null || attachment.isEmpty()) {
+            return null;
+        }
+        String[] typePathNames = attachment.split(SIGNAL);
+        ArrayList<Uri> ret = new ArrayList<>();
+        for (String typePathName : typePathNames) {
+            if (typePathName.isEmpty()) continue;
+            String pathName = typePathName.substring(1, typePathName.length());
+            Uri uri = Uri.fromFile(new File(pathName));
+            ret.add(uri);
+        }
+        return ret;
+    }
+
+    public static boolean isAllImage(String attachment) {
+        if (attachment == null || attachment.isEmpty()) {
+            return false;
+        }
+        return !attachment.contains(SIGNAL + VIDEO) && !attachment.contains(SIGNAL + AUDIO);
     }
 
     private static boolean isInsideArray(String[] array, String value) {

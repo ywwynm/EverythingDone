@@ -17,4 +17,8 @@ public class VersionUtil {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP;
     }
 
+    public static boolean hasMarshmallowApi() {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.M;
+    }
+
 }
