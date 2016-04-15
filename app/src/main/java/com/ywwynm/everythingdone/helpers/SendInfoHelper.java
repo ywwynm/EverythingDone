@@ -39,11 +39,11 @@ public class SendInfoHelper {
         String title = context.getString(R.string.act_share_everythingdone);
         String content = context.getString(R.string.app_share_info);
 
-        File file = new File(FileUtil.TEMP_PATH, "app.png");
+        File file = new File(FileUtil.TEMP_PATH, "app.jpeg");
         if (!file.exists()) {
             Bitmap bm = ((BitmapDrawable) ContextCompat.getDrawable(
                     context, R.drawable.ic_launcher_ori)).getBitmap();
-            file = BitmapUtil.saveBitmapToStorage(FileUtil.TEMP_PATH, "app.png", bm);
+            file = BitmapUtil.saveBitmapToStorage(FileUtil.TEMP_PATH, "app.jpeg", bm);
         }
 
         Uri uri = Uri.fromFile(file);
@@ -54,6 +54,8 @@ public class SendInfoHelper {
     }
 
     public static void shareThing(Context context, Thing thing) {
+        if (thing == null) return;
+
         boolean isChinese = LocaleUtil.isChinese(context);
         String title = context.getString(R.string.act_share);
         String thisStr = context.getString(R.string.this_gai);

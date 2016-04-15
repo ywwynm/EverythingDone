@@ -157,6 +157,15 @@ public class Habit {
         return times;
     }
 
+    public long getFirstFinishTime() {
+        long min = Long.MAX_VALUE;
+        for (HabitRecord habitRecord : mHabitRecords) {
+            long time = habitRecord.getRecordTime();
+            if (time < min) min = time;
+        }
+        return min;
+    }
+
     public long getLastFinishTime() {
         long max = Long.MIN_VALUE;
         for (HabitRecord habitRecord : mHabitRecords) {
@@ -234,12 +243,15 @@ public class Habit {
     }
 
     public int getPersistInT() {
+        long firstFinishTime = getFirstFinishTime();
         long lastFinishTime = getLastFinishTime();
         int piT;
-        if (firstTime >= lastFinishTime) {
+        if (firstFinishTime > lastFinishTime) {
             piT = 0;
+        } else if (firstFinishTime == lastFinishTime) {
+            piT = 1;
         } else {
-            piT = DateTimeUtil.calculateTimeGap(firstTime, lastFinishTime, type);
+            piT = DateTimeUtil.calculateTimeGap(firstFinishTime, lastFinishTime, type);
             piT++;
         }
         piT -= getTotalIntervalT();

@@ -500,6 +500,7 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
         mScrollView.draw(canvas);
 
         String name = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
+        name += ".jpeg";
         return BitmapUtil.saveBitmapToStorage(FileUtil.TEMP_PATH, name, bitmap);
     }
 
@@ -532,10 +533,20 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
 
         @Override
         protected void onPostExecute(String[] strings) {
-            int[] iconRes = { R.mipmap.drawer_note, R.mipmap.drawer_reminder,
-                    R.mipmap.drawer_habit, R.mipmap.drawer_goal, R.mipmap.drawer_all };
-            int[] firstRes = { R.string.note, R.string.reminder, R.string.habit,
-                    R.string.goal, R.string.all };
+            int[] iconRes = {
+                    R.mipmap.drawer_note,
+                    R.mipmap.drawer_reminder,
+                    R.mipmap.drawer_habit,
+                    R.mipmap.drawer_goal,
+                    R.mipmap.drawer_all
+            };
+            int[] firstRes = {
+                    R.string.note,
+                    R.string.reminder,
+                    R.string.habit,
+                    R.string.goal,
+                    R.string.all
+            };
             RecyclerView rv = (RecyclerView) findViewById(R.id.rv_finished_created_statistic);
             rv.setAdapter(new StatisticAdapter(
                     StatisticActivity.this, iconRes, firstRes, null, strings));
@@ -552,8 +563,12 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
 
         @Override
         protected void onPostExecute(String[] strings) {
-            int[] iconRes = { R.mipmap.ic_char_count, R.mipmap.ic_image_count,
-                    R.mipmap.ic_video_count, R.mipmap.ic_audio_count };
+            int[] iconRes = {
+                    R.mipmap.ic_char_count,
+                    R.mipmap.ic_image_count,
+                    R.mipmap.ic_video_count,
+                    R.mipmap.ic_audio_count
+            };
             int[] firstRes = {
                     R.string.statistic_note_char_count,
                     R.string.statistic_note_image_count,
@@ -576,8 +591,12 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
 
         @Override
         protected void onPostExecute(String[] strings) {
-            int[] iconRes = { R.mipmap.drawer_finished, R.mipmap.ic_average_notify_time,
-                    R.mipmap.ic_average_finish_time, R.mipmap.ic_finish_in_advance };
+            int[] iconRes = {
+                    R.mipmap.drawer_finished,
+                    R.mipmap.ic_average_notify_time,
+                    R.mipmap.ic_average_finish_time,
+                    R.mipmap.ic_finish_in_advance
+            };
             int[] firstRes = {
                     R.string.statistic_reminder_completion_rate,
                     R.string.statistic_reminder_notify_time,
@@ -642,8 +661,12 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
 
         @Override
         protected void onPostExecute(String[] strings) {
-            int[] iconRes = { R.mipmap.drawer_finished, R.mipmap.ic_average_notify_time_goal,
-                    R.mipmap.ic_average_finish_time_goal, R.mipmap.ic_finish_in_advance };
+            int[] iconRes = {
+                    R.mipmap.drawer_finished,
+                    R.mipmap.ic_average_notify_time_goal,
+                    R.mipmap.ic_average_finish_time_goal,
+                    R.mipmap.ic_finish_in_advance
+            };
             int[] firstRes = {
                     R.string.statistic_goal_completion_rate,
                     R.string.statistic_goal_notify_time,
@@ -683,7 +706,7 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
             mLdf.dismiss();
             mSharedFiles.add(file);
             Intent intent = new Intent(Intent.ACTION_SEND);
-            intent.setType("image/jpg");
+            intent.setType("image/jpeg");
             intent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(file));
             startActivity(Intent.createChooser(
                     intent, getString(R.string.share_statistic)));

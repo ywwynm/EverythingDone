@@ -177,10 +177,11 @@ public class HabitDAO {
             long start = System.currentTimeMillis() - 86400000;
             int gap = DateTimeUtil.calculateTimeGap(start, System.currentTimeMillis(), type);
             if (gap != 0) {
+                StringBuilder sb = new StringBuilder(record);
                 for (int i = recordedTimes; i < remindedTimes; i++) {
-                    record += "0";
+                    sb.append("0");
                 }
-                updateRecordOfHabit(habitId, record);
+                updateRecordOfHabit(habitId, sb.toString());
             }
         }
     }
@@ -190,7 +191,6 @@ public class HabitDAO {
         int recordedTimes = record.length();
         int remindedTimes = habit.getRemindedTimes();
         long habitId = habit.getId(), habitReminderId;
-        int newRecordCount = 1;
 
         if (recordedTimes >= remindedTimes) {
             // finish this habit once before notification
@@ -217,7 +217,6 @@ public class HabitDAO {
                 // At the same time, this means that user didn't finish enough times last T.
                 // More clearly, user didn't finish last time last T.
                 record += "0";
-                newRecordCount++;
             }
         }
         updateRecordOfHabit(habitId, record + "1");

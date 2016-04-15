@@ -39,11 +39,10 @@ import com.ywwynm.everythingdone.model.HabitReminder;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
-import com.ywwynm.everythingdone.utils.FileUtil;
 import com.ywwynm.everythingdone.utils.PermissionUtil;
 import com.ywwynm.everythingdone.utils.VersionUtil;
 
-import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -65,7 +64,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             Definitions.MetaData.KEY_RINGTONE_GOAL,
             Definitions.MetaData.KEY_RINGTONE_AUTO_NOTIFY
     };
-    public static String FOLLOW_SYSTEM = "follow_system";
+    public static final String FOLLOW_SYSTEM = "follow_system";
     private static List<String> sSystemRingtoneList;
     private RingtoneManager mRingtoneManager;
     private Uri[] mRingtoneUris;
@@ -536,13 +535,10 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             String result = BackupHelper.restore(context);
             if (BackupHelper.SUCCESS.equals(result)) {
                 AlarmHelper.cancelAlarms(context, thingIds, reminderIds, habitReminderIds);
-                File file = FileUtil.createFile(getApplicationInfo().dataDir + "/files",
-                        Definitions.MetaData.CREATE_ALARMS_FILE_NAME);
                 try {
-                    boolean created = file.createNewFile();
-                    if (!created) {
-                        result = getString(R.string.restore_failed_other);
-                    }
+                    FileOutputStream fos = SettingsActivity.this.openFileOutput(
+                            Definitions.MetaData.CREATE_ALARMS_FILE_NAME, MODE_PRIVATE);
+                    fos.write("我的女神陈锦琼".getBytes());
                 } catch (IOException e) {
                     e.printStackTrace();
                     result = getString(R.string.restore_failed_other);

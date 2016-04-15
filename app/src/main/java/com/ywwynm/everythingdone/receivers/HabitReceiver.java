@@ -123,12 +123,12 @@ public class HabitReceiver extends BroadcastReceiver {
         if (recordTimes <= remindedTimes) {
             // user doesn't finish this time in advance.
             if (recordTimes < remindedTimes) {
-                String s = "";
+                StringBuilder sb = new StringBuilder(habit.getRecord());
                 while (recordTimes < remindedTimes) {
-                    s += "0";
+                    sb.append("0");
                     recordTimes++;
                 }
-                habitDAO.updateRecordOfHabit(habitId, habit.getRecord() + s);
+                habitDAO.updateRecordOfHabit(habitId, sb.toString());
             }
             habitDAO.updateHabitRemindedTimes(habitId, remindedTimes + 1);
         } else {

@@ -67,7 +67,6 @@ import com.ywwynm.everythingdone.managers.ThingManager;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.Thing;
-import com.ywwynm.everythingdone.model.ThingsCounts;
 import com.ywwynm.everythingdone.receivers.AutoNotifyReceiver;
 import com.ywwynm.everythingdone.receivers.HabitReceiver;
 import com.ywwynm.everythingdone.receivers.ReminderReceiver;
@@ -103,7 +102,6 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
     private EverythingDoneApplication mApplication;
     public float screenDensity;
-    private ThingsCounts mThingsCounts;
 
     private boolean mEditable;
 
@@ -456,7 +454,6 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         mApplication.setDetailActivityRun(true);
 
         screenDensity = DisplayUtil.getScreenDensity(this);
-        mThingsCounts = ThingsCounts.getInstance(mApplication);
 
         Intent intent = getIntent();
         String action = intent.getAction();

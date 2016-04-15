@@ -18,6 +18,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -414,8 +415,10 @@ public class ThingManager {
             updateCounts.put(type, count == null ? 1 : count + 1);
         }
 
-        for (Integer t : updateCounts.keySet()) {
-            mThingsCounts.handleUpdate(t, stateBefore, t, stateAfter, updateCounts.get(t));
+        for (Map.Entry<Integer, Integer> entry : updateCounts.entrySet()) {
+            int t = entry.getKey();
+            int v = entry.getValue();
+            mThingsCounts.handleUpdate(t, stateBefore, t, stateAfter, v);
         }
 
         mExecutor.execute(new Runnable() {
@@ -500,8 +503,10 @@ public class ThingManager {
             updateCounts.put(type, count == null ? 1 : count + 1);
         }
 
-        for (Integer t : updateCounts.keySet()) {
-            mThingsCounts.handleUpdate(t, stateBefore, t, stateAfter, updateCounts.get(t));
+        for (Map.Entry<Integer, Integer> entry : updateCounts.entrySet()) {
+            int t = entry.getKey();
+            int v = entry.getValue();
+            mThingsCounts.handleUpdate(t, stateBefore, t, stateAfter, v);
         }
 
         mExecutor.execute(new Runnable() {

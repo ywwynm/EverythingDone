@@ -592,7 +592,10 @@ public class DateTimeDialogFragment extends NoTitleDialogFragment {
 
                 String[] dayTimes = Habit.getTimeFromDetailYear(habitDetail);
                 if (dayTimes[0].equals("28")) {
-                    mIlDayYear.setTextForEditText(getString(R.string.end_of_month));
+                    EditText et = mIlDayYear.getEditText();
+                    et.setInputType(EditorInfo.TYPE_CLASS_TEXT);
+                    et.setFilters(new InputFilter[] { new InputFilter.LengthFilter(12) });
+                    mIlDayYear.setTextForEditText(mActivity.getString(R.string.end_of_month));
                 } else {
                     mIlDayYear.setTextForEditText(dayTimes[0]);
                 }
@@ -605,7 +608,10 @@ public class DateTimeDialogFragment extends NoTitleDialogFragment {
             mAdapterMonthOfYear.togglePick(month);
             int day = dt.getDayOfMonth();
             if (day >= 28) {
-                mIlDayYear.setTextForEditText(getString(R.string.end_of_month));
+                EditText et = mIlDayYear.getEditText();
+                et.setInputType(EditorInfo.TYPE_CLASS_TEXT);
+                et.setFilters(new InputFilter[] { new InputFilter.LengthFilter(12) });
+                mIlDayYear.setTextForEditText(mActivity.getString(R.string.end_of_month));
             } else {
                 mIlDayYear.setTextForEditText("" + day);
             }

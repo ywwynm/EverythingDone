@@ -43,6 +43,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="?attr/actionBarSize"
                     android:theme="@style/EverythingDoneTheme.Things.Toolbar"
+                    android:background="@android:color/transparent"
                     app:contentInsetStart="72dp">
 
                     <View

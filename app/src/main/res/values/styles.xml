@@ -6,7 +6,7 @@
         <item name="android:dialogTheme">@style/Theme.AppCompat.Light.Dialog</item>
     </style>
     
-    <style name="EverythingDoneTheme.Things.Toolbar" parent="Theme.AppCompat.Light">
+    <style name="EverythingDoneTheme.Things.Toolbar" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="drawerArrowStyle">@style/DrawerArrowStyle</item>
     </style>
 

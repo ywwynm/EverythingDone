@@ -278,12 +278,14 @@ public class AudioRecorder {
                 }
             }
 
-            try {
-                fos.close();
-            } catch (IOException e) {
-                e.printStackTrace();
+            if (fos != null) {
+                try {
+                    fos.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                mFosClosed = true;
             }
-            mFosClosed = true;
         }
     }
 }

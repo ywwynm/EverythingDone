@@ -61,12 +61,11 @@ public class SystemNotificationUtil {
         String title = thing.getTitle();
         String content = thing.getContent();
 
-        String contentTitle = title, contentText = content, bigText = content;
+        String contentTitle = title, contentText = content;
         int style = 0;
 
         if (CheckListHelper.isCheckListStr(content)) {
-            contentText = CheckListHelper.toContentStr(content, "", "");
-            bigText = CheckListHelper.toContentStr(content, "X  ", "√  ");
+            contentText = CheckListHelper.toContentStr(content, "X  ", "√  ");
         }
 
         if (title.isEmpty() && content.isEmpty()) {
@@ -86,7 +85,7 @@ public class SystemNotificationUtil {
 
         builder.setContentTitle(contentTitle).setContentText(contentText);
         if (style == 1) {
-            builder.setStyle(new NotificationCompat.BigTextStyle().bigText(bigText));
+            builder.setStyle(new NotificationCompat.BigTextStyle().bigText(contentText));
         }
 
         String firstImageUri = AttachmentHelper.getFirstImageTypePathName(thing.getAttachment());

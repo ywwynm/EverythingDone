@@ -288,17 +288,17 @@ public class ThingsAdapter extends RecyclerView.Adapter<ThingsAdapter.ThingViewH
                         next + " " + habit.getNextReminderDescription(mApplication));
 
                 String record = habit.getRecord();
-                String lastFive;
+                StringBuilder lastFive;
                 int len = record.length();
                 if (len >= 5) {
-                    lastFive = record.substring(len - 5, len);
+                    lastFive = new StringBuilder(record.substring(len - 5, len));
                 } else {
-                    lastFive = record;
+                    lastFive = new StringBuilder(record);
                     for (int i = 0; i < 5 - len; i++) {
-                        lastFive += "?";
+                        lastFive.append("?");
                     }
                 }
-                holder.habitRecordPresenter.setRecord(lastFive);
+                holder.habitRecordPresenter.setRecord(lastFive.toString());
 
                 holder.tvHabitFinishedThisT.setText(habit.getFinishedTimesThisTStr(mApplication));
             } else {

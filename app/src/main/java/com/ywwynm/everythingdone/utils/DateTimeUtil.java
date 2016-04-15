@@ -332,7 +332,7 @@ public class DateTimeUtil {
         String day = dateTimes[1];
         String[] times = dateTimes[2].split(":");
         String every = context.getString(R.string.every);
-        String yearStr = context.getString(R.string.year);
+        String yearStr = context.getString(R.string.year).toLowerCase();
         String[] monthOfYear = context.getResources().getStringArray(R.array.month_of_year);
         boolean isChinese = LocaleUtil.isChinese(context);
         if (isChinese) { // 每年六月, 十二月月末傍晚 18:00
@@ -363,7 +363,7 @@ public class DateTimeUtil {
             }
             sb.deleteCharAt(sb.length() - 1);
             sb.deleteCharAt(sb.length() - 1);
-            sb.append(" in").append(every).append(yearStr);
+            sb.append(" in").append(every).append(" ").append(yearStr);
         }
         return sb.toString();
     }
@@ -590,7 +590,7 @@ public class DateTimeUtil {
             sDt = sDt.withDayOfWeek(1);
             eDt = eDt.withDayOfWeek(1);
             return Weeks.weeksBetween(sDt, eDt).getWeeks();
-        } else if (type == Calendar.MONDAY) {
+        } else if (type == Calendar.MONTH) {
             sDt = sDt.withDayOfMonth(1);
             eDt = eDt.withDayOfMonth(1);
             return Months.monthsBetween(sDt, eDt).getMonths();

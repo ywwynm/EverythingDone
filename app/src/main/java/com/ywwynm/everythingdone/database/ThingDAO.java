@@ -361,6 +361,7 @@ public class ThingDAO {
             limitSb.append(" and color=").append(color);
         }
         if (keyword != null) {
+            keyword = keyword.replaceAll("'", "''");
             limitSb.append(" and (title like '%").append(keyword)
                     .append("%' or content like '%").append(keyword).append("%')");
         }

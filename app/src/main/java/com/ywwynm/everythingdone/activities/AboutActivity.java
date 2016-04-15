@@ -69,9 +69,7 @@ public class AboutActivity extends EverythingDoneBaseActivity {
     }
 
     @Override
-    protected void initMembers() {
-
-    }
+    protected void initMembers() { }
 
     @Override
     protected void findViews() {

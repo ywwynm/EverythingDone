@@ -108,15 +108,15 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
     private int mSpan;
 
-    private Snackbar             mNormalSnackbar;
-    private Snackbar             mUndoSnackbar;
-    private Snackbar             mHabitSnackbar;
-    private List<Thing>          mUndoThings;
-    private List<Integer>        mUndoPositions;
-    private List<Long>           mUndoLocations;
-    private List<HabitRecord>    mUndoHabitRecords;
-    private boolean              mUndoAll;
-    private int                  mStateToUndoFrom;
+    private Snackbar          mNormalSnackbar;
+    private Snackbar          mUndoSnackbar;
+    private Snackbar          mHabitSnackbar;
+    private List<Thing>       mUndoThings;
+    private List<Integer>     mUndoPositions;
+    private List<Long>        mUndoLocations;
+    private List<HabitRecord> mUndoHabitRecords;
+    private boolean           mUndoAll;
+    private int               mStateToUndoFrom;
 
     /**
      * Used to know whether scrolling of {@link ThingsActivity.mRecyclerView}
@@ -407,16 +407,18 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                         mThingsAdapter.notifyItemChanged(pos);
                     } else {
                         List<Thing> things = mThingManager.getThings();
-                        Thing thing = things.get(pos);
-                        if (thing.matchSearchRequirement(
-                                mEtSearch.getText().toString(),
-                                mColorPicker.getPickedColor())) {
-                            mThingsAdapter.notifyItemChanged(pos);
-                        } else {
-                            things.remove(pos);
-                            mThingsAdapter.notifyItemRemoved(pos);
+                        if (pos > 0 && pos < things.size()) {
+                            Thing thing = things.get(pos);
+                            if (thing.matchSearchRequirement(
+                                    mEtSearch.getText().toString(),
+                                    mColorPicker.getPickedColor())) {
+                                mThingsAdapter.notifyItemChanged(pos);
+                            } else {
+                                things.remove(pos);
+                                mThingsAdapter.notifyItemRemoved(pos);
+                            }
+                            handleSearchResults();
                         }
-                        handleSearchResults();
                     }
                     if (mModeManager.getCurrentMode() == ModeManager.SELECTING) {
                         updateSelectingUi(false);
@@ -1398,6 +1400,12 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 return;
             }
             dismissSnackbars();
+
+            List<Thing> things = mThingManager.getThings();
+            if (position >= things.size()) {
+                return;
+            }
+
             if (mModeManager.getCurrentMode() != ModeManager.SELECTING) {
                 if (mRecyclerView.getItemAnimator().isRunning()) {
                     return;
@@ -1409,7 +1417,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 intent.putExtra(Definitions.Communication.KEY_DETAIL_ACTIVITY_TYPE,
                         DetailActivity.UPDATE);
                 intent.putExtra(Definitions.Communication.KEY_ID,
-                        mThingManager.getThings().get(position).getId());
+                        things.get(position).getId());
                 intent.putExtra(Definitions.Communication.KEY_POSITION, position);
 
                 ActivityOptionsCompat transition = ActivityOptionsCompat.makeScaleUpAnimation(
@@ -1418,7 +1426,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                         ThingsActivity.this, intent, Definitions.Communication.REQUEST_ACTIVITY_DETAIL,
                         transition.toBundle());
             } else {
-                Thing thing = mThingManager.getThings().get(position);
+                Thing thing = things.get(position);
                 thing.setSelected(!thing.isSelected());
                 mThingsAdapter.notifyItemChanged(position);
                 mModeManager.updateSelectedCount();
@@ -1431,8 +1439,14 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 return false;
             }
             dismissSnackbars();
+
+            List<Thing> things = mThingManager.getThings();
+            if (position >= things.size()) {
+                return false;
+            }
+
             if (mModeManager.getCurrentMode() == ModeManager.NORMAL &&
-                    mThingManager.getThings().get(position).getType() <= Thing.NOTIFICATION_GOAL) {
+                    things.get(position).getType() <= Thing.NOTIFICATION_GOAL) {
                 mDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
                 if (mApplication.getLimit() <= Definitions.LimitForGettingThings.GOAL_UNDERWAY) {
                     mModeManager.toMovingMode(position);
@@ -1444,7 +1458,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                         }
                     });
                 } else {
-                    mThingManager.getThings().get(position).setSelected(true);
+                    things.get(position).setSelected(true);
                     mModeManager.toSelectingMode(position);
                 }
             } else {
@@ -1503,90 +1517,97 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         @Override
         public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
             int position = viewHolder.getAdapterPosition();
-            if (position >= 0) {
-                Thing thingToSwipe = mThingManager.getThings().get(position);
-                int thingType = thingToSwipe.getType();
-                if (thingType > Thing.NOTIFICATION_GOAL) {
-                    return;
-                }
-
-                if (mUndoSnackbar.isShowing()) {
-                    if (mStateToUndoFrom != Thing.FINISHED || thingType == Thing.HABIT) {
-                        dismissSnackbars();
-                    }
-                }
-
-                long id = thingToSwipe.getId();
-                SystemNotificationUtil.cancelNotification(id, thingType, mApplication);
-
-                if (thingType == Thing.HABIT) {
-                    HabitDAO habitDAO = HabitDAO.getInstance(mApplication);
-                    Habit habit = habitDAO.getHabitById(id);
-                    if (habit != null) {
-                        if (habit.allowFinish()) {
-                            if (!mUndoHabitRecords.isEmpty()) {
-                                HabitRecord hr = mUndoHabitRecords.get(mUndoHabitRecords.size() - 1);
-                                if (hr.getHabitId() != id) {
-                                    dismissSnackbars();
-                                }
-                            }
-                            String thingContent = thingToSwipe.getContent();
-                            if (CheckListHelper.isCheckListStr(thingContent)) {
-                                mUndoThings.add(thingToSwipe);
-                                Thing thing = new Thing(thingToSwipe);
-                                thing.setContent(thingContent.replaceAll(
-                                        CheckListHelper.SIGNAL + "1",
-                                        CheckListHelper.SIGNAL + "0"));
-                                mThingManager.update(thingType, thing, position, false);
-                                mThingManager.getThings().set(position, thing);
-                            }
-                            mUndoHabitRecords.add(habitDAO.finishOneTime(habit));
-                            mUndoPositions.add(position);
-                            showHabitSnackbar();
-                        } else {
-                            dismissSnackbars();
-                            if (habit.getRecord().isEmpty() && habit.getRemindedTimes() == 0) {
-                                mNormalSnackbar.setMessage(R.string.sb_cannot_finish_habit_first_time);
-                            } else {
-                                mNormalSnackbar.setMessage(R.string.sb_cannot_finish_habit_more_times);
-                            }
-                            mNormalSnackbar.show();
-                        }
-                    }
-                    mThingsAdapter.notifyItemChanged(position);
-                    mDrawerHeader.updateCompletionRate();
-                    return;
-                }
-
-                int state = thingToSwipe.getState();
-                long location = thingToSwipe.getLocation();
-                mUndoThings.add(thingToSwipe);
-                mUndoPositions.add(position);
-                mUndoLocations.add(location);
-                mStateToUndoFrom = Thing.FINISHED;
-
-                boolean changed = mThingManager.updateState(thingToSwipe, position, location,
-                        state, Thing.FINISHED, false, true);
-                mScrollNotCausedByFinger = true;
-
-                if (EverythingDoneApplication.isSearching) {
-                    if (mThingManager.getThings().size() == 1) {
-                        handleSearchResults();
-                    }
-                }
-
-                celebrateHabitGoalFinish(thingToSwipe, state, Thing.FINISHED);
-                if (changed) {
-                    mThingsAdapter.notifyItemChanged(position);
-                    updateUIAfterStateUpdated(Thing.FINISHED,
-                            mRecyclerView.getItemAnimator().getChangeDuration(), true);
-                } else {
-                    mThingsAdapter.notifyItemRemoved(position);
-                    updateUIAfterStateUpdated(Thing.FINISHED,
-                            mRecyclerView.getItemAnimator().getRemoveDuration(), true);
-                }
-                swiped = true;
+            if (position < 0) {
+                return;
             }
+
+            List<Thing> things = mThingManager.getThings();
+            if (position >= things.size()) {
+                return;
+            }
+
+            Thing thingToSwipe = things.get(position);
+            int thingType = thingToSwipe.getType();
+            if (thingType > Thing.NOTIFICATION_GOAL) {
+                return;
+            }
+
+            if (mUndoSnackbar.isShowing()) {
+                if (mStateToUndoFrom != Thing.FINISHED || thingType == Thing.HABIT) {
+                    dismissSnackbars();
+                }
+            }
+
+            long id = thingToSwipe.getId();
+            SystemNotificationUtil.cancelNotification(id, thingType, mApplication);
+
+            if (thingType == Thing.HABIT) {
+                HabitDAO habitDAO = HabitDAO.getInstance(mApplication);
+                Habit habit = habitDAO.getHabitById(id);
+                if (habit != null) {
+                    if (habit.allowFinish()) {
+                        if (!mUndoHabitRecords.isEmpty()) {
+                            HabitRecord hr = mUndoHabitRecords.get(mUndoHabitRecords.size() - 1);
+                            if (hr.getHabitId() != id) {
+                                dismissSnackbars();
+                            }
+                        }
+                        String thingContent = thingToSwipe.getContent();
+                        if (CheckListHelper.isCheckListStr(thingContent)) {
+                            mUndoThings.add(thingToSwipe);
+                            Thing thing = new Thing(thingToSwipe);
+                            thing.setContent(thingContent.replaceAll(
+                                    CheckListHelper.SIGNAL + "1",
+                                    CheckListHelper.SIGNAL + "0"));
+                            mThingManager.update(thingType, thing, position, false);
+                            things.set(position, thing);
+                        }
+                        mUndoHabitRecords.add(habitDAO.finishOneTime(habit));
+                        mUndoPositions.add(position);
+                        showHabitSnackbar();
+                    } else {
+                        dismissSnackbars();
+                        if (habit.getRecord().isEmpty() && habit.getRemindedTimes() == 0) {
+                            mNormalSnackbar.setMessage(R.string.sb_cannot_finish_habit_first_time);
+                        } else {
+                            mNormalSnackbar.setMessage(R.string.sb_cannot_finish_habit_more_times);
+                        }
+                        mNormalSnackbar.show();
+                    }
+                }
+                mThingsAdapter.notifyItemChanged(position);
+                mDrawerHeader.updateCompletionRate();
+                return;
+            }
+
+            int state = thingToSwipe.getState();
+            long location = thingToSwipe.getLocation();
+            mUndoThings.add(thingToSwipe);
+            mUndoPositions.add(position);
+            mUndoLocations.add(location);
+            mStateToUndoFrom = Thing.FINISHED;
+
+            boolean changed = mThingManager.updateState(thingToSwipe, position, location,
+                    state, Thing.FINISHED, false, true);
+            mScrollNotCausedByFinger = true;
+
+            if (EverythingDoneApplication.isSearching) {
+                if (things.size() == 1) {
+                    handleSearchResults();
+                }
+            }
+
+            celebrateHabitGoalFinish(thingToSwipe, state, Thing.FINISHED);
+            if (changed) {
+                mThingsAdapter.notifyItemChanged(position);
+                updateUIAfterStateUpdated(Thing.FINISHED,
+                        mRecyclerView.getItemAnimator().getChangeDuration(), true);
+            } else {
+                mThingsAdapter.notifyItemRemoved(position);
+                updateUIAfterStateUpdated(Thing.FINISHED,
+                        mRecyclerView.getItemAnimator().getRemoveDuration(), true);
+            }
+            swiped = true;
         }
 
         @Override

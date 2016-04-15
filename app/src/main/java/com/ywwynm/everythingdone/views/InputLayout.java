@@ -78,6 +78,10 @@ public class InputLayout {
         raiseLabel(false);
     }
 
+    public EditText getEditText() {
+        return mEditText;
+    }
+
     public void raiseLabel(boolean anim) {
         if (raised) {
             return;
