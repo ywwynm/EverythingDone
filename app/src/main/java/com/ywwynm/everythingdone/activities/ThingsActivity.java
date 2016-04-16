@@ -6,8 +6,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.Configuration;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.drawable.BitmapDrawable;
 import android.os.Bundle;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.ActivityCompat;
@@ -185,14 +187,10 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        updateTaskDescription();
 
         if (mUpdateMainUiInOnResume && EverythingDoneApplication.justNotifyDataSetChanged()) {
             justNotifyDataSetChanged();
-        }
-
-        if (VersionUtil.hasLollipopApi()) {
-            setTaskDescription(new ActivityManager.TaskDescription(
-                    getString(R.string.app_name)));
         }
 
         int color = DisplayUtil.getRandomColor(mApplication);
@@ -221,8 +219,18 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         super.onDestroy();
         unregisterReceiver(mUpdateUiReceiver);
         mApplication.setDetailActivityRun(false);
-
+        updateTaskDescription();
         EverythingDoneApplication.thingsActivityWR.clear();
+    }
+
+    private void updateTaskDescription() {
+        if (VersionUtil.hasLollipopApi()) {
+            BitmapDrawable bmd = (BitmapDrawable) getDrawable(R.mipmap.ic_launcher);
+            Bitmap bm = bmd.getBitmap();
+            setTaskDescription(new ActivityManager.TaskDescription(
+                    getString(R.string.app_name), bm,
+                    ContextCompat.getColor(this, R.color.bg_activity_things)));
+        }
     }
 
     @Override

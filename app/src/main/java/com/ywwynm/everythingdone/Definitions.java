@@ -108,6 +108,8 @@ public final class Definitions {
         public static final int REQUEST_PERMISSION_SHOOT_VIDEO       = 8;
         public static final int REQUEST_PERMISSION_RECORD_AUDIO      = 9;
         public static final int REQUEST_PERMISSION_CHOOSE_MEDIA_FILE = 10;
+        public static final int REQUEST_PERMISSION_SCREENSHOT        = 11;
+        public static final int REQUEST_PERMISSION_SHARE_APP         = 12;
 
         public static final int REQUEST_PERMISSION_BACKUP  = 0;
         public static final int REQUEST_PERMISSION_RESTORE = 1;

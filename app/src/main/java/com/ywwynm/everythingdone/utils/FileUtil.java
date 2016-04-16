@@ -40,6 +40,12 @@ public class FileUtil {
 
     public static File createFile(String parentPath, String name) {
         File parent = new File(parentPath);
+        if (!parent.exists()) {
+            boolean parentCreated = parent.mkdirs();
+            if (!parentCreated) {
+                return null;
+            }
+        }
         return new File(parent, name);
     }
 

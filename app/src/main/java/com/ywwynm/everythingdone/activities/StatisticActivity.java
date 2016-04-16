@@ -1,12 +1,15 @@
 package com.ywwynm.everythingdone.activities;
 
+import android.Manifest;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.support.annotation.NonNull;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.ActionBar;
 import android.support.v7.widget.LinearLayoutManager;
@@ -19,6 +22,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.ywwynm.everythingdone.Definitions;
 import com.ywwynm.everythingdone.EverythingDoneApplication;
@@ -39,6 +43,7 @@ import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.FileUtil;
 import com.ywwynm.everythingdone.utils.LocaleUtil;
+import com.ywwynm.everythingdone.utils.PermissionUtil;
 import com.ywwynm.everythingdone.utils.VersionUtil;
 import com.ywwynm.everythingdone.views.FloatingActionButton;
 
@@ -82,6 +87,21 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
         super.onDestroy();
         for (File sharedFile : mSharedFiles) {
             FileUtil.deleteFile(sharedFile);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(
+            int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        if (requestCode == Definitions.Communication.REQUEST_PERMISSION_SCREENSHOT) {
+            final int G = PackageManager.PERMISSION_GRANTED;
+            for (int grantResult : grantResults) {
+                if (grantResult != G) {
+                    Toast.makeText(this, R.string.error_permission_denied, Toast.LENGTH_LONG).show();
+                    return;
+                }
+            }
+            startScreenshot();
         }
     }
 
@@ -259,22 +279,33 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
 
         mFab.setOnClickListener(new View.OnClickListener() {
 
-            final int color = ContextCompat.getColor(mApplication, R.color.blue_grey_deep_grey);
-
             @Override
             public void onClick(View v) {
-                if (mLdf == null) {
-                    mLdf = new LoadingDialogFragment();
-                    mLdf.setAccentColor(color);
-                    mLdf.setTitle(getString(R.string.please_wait));
-                    mLdf.setContent(getString(R.string.generating_screen_shot));
-                }
-                mLdf.show(getFragmentManager(), LoadingDialogFragment.TAG);
 
-                new ScreenshotTask().execute();
+                PermissionUtil.Callback callback = new PermissionUtil.Callback() {
+                    @Override
+                    public void onGranted() {
+                        startScreenshot();
+                    }
+                };
 
+                PermissionUtil.doWithPermissionChecked(callback, StatisticActivity.this,
+                        Definitions.Communication.REQUEST_PERMISSION_SCREENSHOT,
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE);
             }
         });
+    }
+
+    private void startScreenshot() {
+        if (mLdf == null) {
+            mLdf = new LoadingDialogFragment();
+            mLdf.setAccentColor(ContextCompat.getColor(mApplication, R.color.blue_grey_deep_grey));
+            mLdf.setTitle(getString(R.string.please_wait));
+            mLdf.setContent(getString(R.string.generating_screen_shot));
+        }
+        mLdf.show(getFragmentManager(), LoadingDialogFragment.TAG);
+
+        new ScreenshotTask().execute();
     }
 
     private void updateFabState() {

@@ -394,6 +394,21 @@ public class Thing implements Parcelable {
         return type == REMINDER || type == GOAL;
     }
 
+    public static boolean isTypeReminder(int type) {
+        return type == REMINDER || type == WELCOME_REMINDER
+                || type == NOTIFICATION_REMINDER || type == NOTIFY_EMPTY_REMINDER;
+    }
+
+    public static boolean isTypeHabit(int type) {
+        return type == HABIT || type == WELCOME_HABIT
+                || type == NOTIFICATION_HABIT || type == NOTIFY_EMPTY_HABIT;
+    }
+
+    public static boolean isTypeGoal(int type) {
+        return type == GOAL || type == WELCOME_GOAL
+                || type == NOTIFICATION_GOAL || type == NOTIFY_EMPTY_GOAL;
+    }
+
     public static boolean sameType(int type1, int type2) {
         if (type1 == type2) return true;
         if (type1 == WELCOME_UNDERWAY) return true;

@@ -1011,7 +1011,7 @@ public class DateTimeDialogFragment extends NoTitleDialogFragment {
                 mActivity.habitDetail = null;
                 mActivity.reminderInMillis = dt.getMillis();
                 mActivity.reminderAfterTime = null;
-                updateActivityCheckBoxAndBackButton();
+                updateActivityCbAndBackAndTd();
                 mActivity.tvQuickRemind.setText(
                         DateTimeUtil.getDateTimeStrAt(dt, mActivity, false));
                 confirmed = true;
@@ -1037,7 +1037,7 @@ public class DateTimeDialogFragment extends NoTitleDialogFragment {
                 mActivity.reminderInMillis = 0;
                 mActivity.habitType = -1;
                 mActivity.habitDetail = null;
-                updateActivityCheckBoxAndBackButton();
+                updateActivityCbAndBackAndTd();
                 mActivity.tvQuickRemind.setText(DateTimeUtil.getDateTimeStrAfter(type, time, mActivity));
                 confirmed = true;
                 dismiss();
@@ -1076,7 +1076,7 @@ public class DateTimeDialogFragment extends NoTitleDialogFragment {
             mActivity.reminderInMillis = 0;
             mActivity.habitType = type;
             mActivity.habitDetail = detail;
-            updateActivityCheckBoxAndBackButton();
+            updateActivityCbAndBackAndTd();
             mActivity.tvQuickRemind.setText(DateTimeUtil.getDateTimeStrRec(mActivity, type, detail));
             confirmed = true;
             dismiss();
@@ -1116,8 +1116,9 @@ public class DateTimeDialogFragment extends NoTitleDialogFragment {
         mTvSummaryAt.setText(sb.toString());
     }
 
-    private void updateActivityCheckBoxAndBackButton() {
+    private void updateActivityCbAndBackAndTd() {
         if (mActivity.cbQuickRemind.isChecked()) {
+            mActivity.updateTaskDescription(mAccentColor);
             mActivity.updateBackImage();
         } else {
             mActivity.cbQuickRemind.setChecked(true);
