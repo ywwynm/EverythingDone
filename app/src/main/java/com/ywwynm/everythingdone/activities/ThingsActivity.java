@@ -370,20 +370,27 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         underway.setChecked(true);
         mPreviousItem = underway;
 
-        final boolean justNotifyDataSetChanged = EverythingDoneApplication.justNotifyDataSetChanged();
+        final boolean createdDone = data.getBooleanExtra(
+                Definitions.Communication.KEY_CREATED_DONE, false);
+        final boolean justNotifyDataSetChanged =
+                EverythingDoneApplication.justNotifyDataSetChanged();
         final Thing thingToCreate = data.getParcelableExtra(
                 Definitions.Communication.KEY_THING);
         mRecyclerView.postDelayed(new Runnable() {
             @Override
             public void run() {
-                boolean change = mThingManager.create(thingToCreate, true);
-                if (justNotifyDataSetChanged) {
+                if (createdDone) {
                     justNotifyDataSetChanged();
                 } else {
-                    if (change) {
-                        mThingsAdapter.notifyItemChanged(1);
+                    boolean change = mThingManager.create(thingToCreate, true);
+                    if (justNotifyDataSetChanged) {
+                        justNotifyDataSetChanged();
                     } else {
-                        mThingsAdapter.notifyItemInserted(1);
+                        if (change) {
+                            mThingsAdapter.notifyItemChanged(1);
+                        } else {
+                            mThingsAdapter.notifyItemInserted(1);
+                        }
                     }
                 }
                 if (mModeManager.getCurrentMode() == ModeManager.SELECTING) {
@@ -1540,6 +1547,10 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 return;
             }
 
+            if (mNormalSnackbar.isShowing()) {
+                mNormalSnackbar.dismiss();
+            }
+
             if (mUndoSnackbar.isShowing()) {
                 if (mStateToUndoFrom != Thing.FINISHED || thingType == Thing.HABIT) {
                     dismissSnackbars();
@@ -1586,6 +1597,10 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 mThingsAdapter.notifyItemChanged(position);
                 mDrawerHeader.updateCompletionRate();
                 return;
+            }
+
+            if (mHabitSnackbar.isShowing()) {
+                dismissSnackbars();
             }
 
             int state = thingToSwipe.getState();

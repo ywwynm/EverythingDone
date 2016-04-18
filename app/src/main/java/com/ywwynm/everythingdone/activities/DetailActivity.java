@@ -386,8 +386,8 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                     mFlBackground.postDelayed(mShowNormalSnackbar, KeyboardUtil.HIDE_DELAY);
                     return;
                 }
-                addAttachment(0);
             }
+            addAttachment(0);
         } else if (resultCode == Definitions.Communication.RESULT_UPDATE_IMAGE_DONE) {
             List<String> items = data.getStringArrayListExtra(
                     Definitions.Communication.KEY_TYPE_PATH_NAME);
@@ -1405,7 +1405,9 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
         ReminderDAO rDao = ReminderDAO.getInstance(mApplication);
         if (!isReminderBefore && isReminderAfter) {
-            rDao.create(new Reminder(mThing.getId(), reminderTime));
+            if (!isHabitBefore || !alertForCancelling) {
+                rDao.create(new Reminder(mThing.getId(), reminderTime));
+            }
         } else if (isReminderBefore && !isReminderAfter) {
             if (typeBefore == Thing.GOAL && alertForCancelling) {
                 alertForCancellingGoal();
@@ -1468,6 +1470,9 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             mThing.setCreateTime(currentTime);
             mThing.setUpdateTime(currentTime);
 
+            intent.putExtra(Definitions.Communication.KEY_THING, mThing);
+            resultCode = Definitions.Communication.RESULT_CREATE_THING_DONE;
+
             // Create thing here directly to database. Solve the problem that if ThingsActivity
             // is destroyed while user share something from other apps to EverythingDone. In that
             // case, ThingsActivity won't receive broadcast to handle creation and that thing
@@ -1475,11 +1480,10 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             WeakReference<ThingsActivity> wr = EverythingDoneApplication.thingsActivityWR;
             if (wr == null || wr.get() == null) {
                 ThingManager.getInstance(mApplication).create(mThing, true);
+                intent.putExtra(Definitions.Communication.KEY_CREATED_DONE, true);
+            } else if (!shouldSendBroadCast()) {
+                setResult(resultCode, intent);
             }
-
-            intent.putExtra(Definitions.Communication.KEY_THING, mThing);
-            resultCode = Definitions.Communication.RESULT_CREATE_THING_DONE;
-            setResult(resultCode, intent);
         } else {
             boolean noUpdate = Thing.noUpdate(mThing, title, content, attachment, typeAfter, color)
                     && !reminderUpdated && !habitUpdated && !mHabitFinishedThisTime;
@@ -1519,7 +1523,9 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                         ThingDAO.getInstance(mApplication).update(typeBefore, mThing, true, true);
                     }
 
-                    setResult(resultCode, intent);
+                    if (!shouldSendBroadCast()) {
+                        setResult(resultCode, intent);
+                    }
                 }
             }
         }
@@ -1572,7 +1578,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 HabitDAO habitDAO = HabitDAO.getInstance(mApplication);
                 long curTime = System.currentTimeMillis();
                 if (stateAfter == Thing.UNDERWAY) {
-                    habitDAO.updateHabitToLatest(id);
+                    habitDAO.updateHabitToLatest(id, true);
                     habitDAO.addHabitIntervalInfo(id, curTime + ";");
                 } else {
                     habitDAO.addHabitIntervalInfo(id, curTime + ",");

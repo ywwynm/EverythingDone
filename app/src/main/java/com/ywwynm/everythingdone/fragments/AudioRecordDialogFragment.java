@@ -120,6 +120,8 @@ public class AudioRecordDialogFragment extends NoTitleDialogFragment {
         }
         mRecorder.release();
 
+        FileUtil.deleteDirectory(FileUtil.TEMP_PATH + "/audio_raw");
+
         super.onDismiss(dialog);
     }
 

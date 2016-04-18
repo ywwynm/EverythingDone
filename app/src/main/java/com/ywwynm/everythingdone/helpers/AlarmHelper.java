@@ -89,12 +89,12 @@ public class AlarmHelper {
         }
     }
 
-    public static void createAllAlarms(Context context) {
+    public static void createAllAlarms(Context context, boolean updateHabitRemindedTimes) {
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         ThingDAO thingDAO = ThingDAO.getInstance(context);
         ReminderDAO reminderDAO = ReminderDAO.getInstance(context);
         HabitDAO habitDAO = HabitDAO.getInstance(context);
-        Cursor cursor = thingDAO.getAllThingsCursor();
+        Cursor cursor = thingDAO.getThingsCursor("state=" + Thing.UNDERWAY);
         while (cursor.moveToNext()) {
             long id = cursor.getLong(
                     cursor.getColumnIndex(Definitions.Database.COLUMN_ID_THINGS));
@@ -121,10 +121,12 @@ public class AlarmHelper {
             } else if (type == Thing.HABIT) {
                 // 直接将习惯的提醒时间更新到最新时刻
                 // 当用户收到提醒但未完成一次，备份应用，并在下一个周期恢复时，该习惯将不会为这一次添加记录"0"
-                habitDAO.updateHabitToLatest(id);
+                habitDAO.updateHabitToLatest(id, updateHabitRemindedTimes);
             }
         }
         cursor.close();
+
+        createDailyUpdateHabitAlarm(context);
     }
 
     public static void createDailyUpdateHabitAlarm(Context context) {

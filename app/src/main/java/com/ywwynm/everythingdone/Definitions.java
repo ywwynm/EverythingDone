@@ -17,7 +17,7 @@ public final class Definitions {
         public static final String THINGS_COUNTS_NAME      = "EverythingDone_things_counts";
         public static final String CREATE_ALARMS_FILE_NAME = "create_alarms.dat";
 
-        public static final String APP_VERSION = "1.0";
+        public static final String APP_VERSION = "1.0.3";
         public static final int DATABASE_VERSION = 1;
 
         public static final String FEEDBACK_EMAIL = "everythingdonefeedback@gmail.com";
@@ -117,12 +117,13 @@ public final class Definitions {
         public static final String KEY_SENDER_NAME          = PREFIX + "key.sender_name";
         public static final String KEY_DETAIL_ACTIVITY_TYPE = PREFIX + "key.detail_activity_type";
 
-        public static final String KEY_THING       = PREFIX + "key.thing";
-        public static final String KEY_ID          = PREFIX + "key.id";
-        public static final String KEY_COLOR       = PREFIX + "key.color";
-        public static final String KEY_POSITION    = PREFIX + "key.position";
-        public static final String KEY_TYPE_BEFORE = PREFIX + "key.type_before";
-        public static final String KEY_STATE_AFTER = PREFIX + "key.state_after";
+        public static final String KEY_THING        = PREFIX + "key.thing";
+        public static final String KEY_ID           = PREFIX + "key.id";
+        public static final String KEY_COLOR        = PREFIX + "key.color";
+        public static final String KEY_POSITION     = PREFIX + "key.position";
+        public static final String KEY_TYPE_BEFORE  = PREFIX + "key.type_before";
+        public static final String KEY_STATE_AFTER  = PREFIX + "key.state_after";
+        public static final String KEY_CREATED_DONE = PREFIX + "key.created_done";
 
         public static final String KEY_RESULT_CODE = PREFIX + "key.result_code";
 

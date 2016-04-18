@@ -335,7 +335,7 @@ public class ThingManager {
             if (!toUndo) {
                 long curTime = System.currentTimeMillis();
                 if (stateAfter == Thing.UNDERWAY) {
-                    habitDAO.updateHabitToLatest(id);
+                    habitDAO.updateHabitToLatest(id, true);
                     habitDAO.addHabitIntervalInfo(id, curTime + ";");
                 } else {
                     habitDAO.addHabitIntervalInfo(id, curTime + ",");
@@ -432,7 +432,7 @@ public class ThingManager {
                 long curTime = System.currentTimeMillis();
                 if (stateAfter == Thing.UNDERWAY) {
                     for (Long habitId : mUndoHabits) {
-                        habitDAO.updateHabitToLatest(habitId);
+                        habitDAO.updateHabitToLatest(habitId, true);
                         habitDAO.addHabitIntervalInfo(habitId, curTime + ";");
                     }
                 } else {

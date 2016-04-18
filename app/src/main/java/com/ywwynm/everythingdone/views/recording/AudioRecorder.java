@@ -33,8 +33,6 @@ public class AudioRecorder {
 
     private int mSamplingInterval = 100;
 
-    private boolean mFosClosed;
-
     private List<VoiceVisualizer> mVoiceVisualizers = new ArrayList<>();
 
     private File mRawFile;
@@ -95,7 +93,7 @@ public class AudioRecorder {
      * start AudioRecord.read
      */
     public void startListening() {
-        mRawFile = FileUtil.createTempFile(".raw");
+        mRawFile = FileUtil.createTempAudioFile(".raw");
         if (mRawFile == null) {
             return;
         }
@@ -114,14 +112,6 @@ public class AudioRecorder {
 
         if (saveFile) {
             saveToWaveFile();
-        }
-
-        for (;;) {
-            if (mFosClosed) {
-                FileUtil.deleteFile(mRawFile.getAbsolutePath());
-                mFosClosed = false;
-                break;
-            }
         }
 
         if (mVoiceVisualizers != null && !mVoiceVisualizers.isEmpty()) {
@@ -284,7 +274,6 @@ public class AudioRecorder {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                mFosClosed = true;
             }
         }
     }

@@ -16,7 +16,6 @@
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true">
-
         <activity
             android:name=".activities.ThingsActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
@@ -24,14 +23,12 @@
             android:screenOrientation="user"
             android:theme="@style/EverythingDoneTheme.Things"
             android:windowSoftInputMode="adjustNothing">
-
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
+
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-
         </activity>
-
         <activity
             android:name=".activities.DetailActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
@@ -39,26 +36,26 @@
             android:screenOrientation="user"
             android:theme="@style/EverythingDoneTheme.Detail"
             android:windowSoftInputMode="adjustResize">
-
             <intent-filter android:label="@string/title_create_thing">
-                <action android:name="android.intent.action.SEND" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="text/plain" />
-                <data android:mimeType="image/*" />
-                <data android:mimeType="video/*" />
-                <data android:mimeType="audio/*" />
-            </intent-filter>
+                <action android:name="android.intent.action.SEND"/>
 
+                <category android:name="android.intent.category.DEFAULT"/>
+
+                <data android:mimeType="text/plain"/>
+                <data android:mimeType="image/*"/>
+                <data android:mimeType="video/*"/>
+                <data android:mimeType="audio/*"/>
+            </intent-filter>
             <intent-filter android:label="@string/title_create_thing">
-                <action android:name="android.intent.action.SEND_MULTIPLE" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="image/*" />
-                <data android:mimeType="video/*" />
-                <data android:mimeType="audio/*" />
-            </intent-filter>
+                <action android:name="android.intent.action.SEND_MULTIPLE"/>
 
+                <category android:name="android.intent.category.DEFAULT"/>
+
+                <data android:mimeType="image/*"/>
+                <data android:mimeType="video/*"/>
+                <data android:mimeType="audio/*"/>
+            </intent-filter>
         </activity>
-
         <activity
             android:name=".activities.ImageViewerActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
@@ -70,25 +67,21 @@
             android:enabled="true"
             android:exported="true">
         </receiver>
-
         <receiver
             android:name=".receivers.ReminderNotificationActionReceiver"
             android:enabled="true"
             android:exported="true">
         </receiver>
-
         <receiver
             android:name=".receivers.HabitReceiver"
             android:enabled="true"
             android:exported="true">
         </receiver>
-
         <receiver
             android:name=".receivers.HabitNotificationActionReceiver"
             android:enabled="true"
             android:exported="true">
         </receiver>
-
         <receiver
             android:name=".receivers.BootReceiver"
             android:enabled="true"
@@ -103,7 +96,6 @@
             android:label="@string/title_activity_settings"
             android:theme="@style/EverythingDoneTheme.Settings">
         </activity>
-
         <activity
             android:name=".activities.AboutActivity"
             android:label="@string/title_activity_about"
@@ -128,7 +120,14 @@
             android:enabled="true"
             android:exported="true">
         </receiver>
-
+        <receiver
+            android:name=".receivers.AppUpdateReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

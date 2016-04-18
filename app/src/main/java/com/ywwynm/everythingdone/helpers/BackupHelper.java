@@ -59,6 +59,7 @@ public class BackupHelper {
         String base = context.getApplicationInfo().dataDir;
         List<String> list = new ArrayList<>();
         list.add(base + "/cache");
+        list.add(base + "/code_cache");
         list.add(base + "/app_webview");
         list.add(base + "/files/instant-run");
         list.add(base + "/shared_prefs/WebViewChromiumPrefs.xml");

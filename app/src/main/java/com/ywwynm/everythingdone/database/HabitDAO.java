@@ -331,11 +331,15 @@ public class HabitDAO {
         return times;
     }
 
-    public void updateHabitToLatest(long id) {
+    public void updateHabitToLatest(long id, boolean updateRemindedTimes) {
         Habit habit = getHabitById(id);
-        int remindedTimes = habit.getRemindedTimes();
-        int recordTimes = habit.getRecord().length();
-        updateHabitRemindedTimes(id, recordTimes);
+
+        if (updateRemindedTimes) {
+            // This will prevent this habit from finishing in this T if it was notified but
+            // user didn't finish it at once.
+            int recordTimes = habit.getRecord().length();
+            updateHabitRemindedTimes(id, recordTimes);
+        }
 
         List<HabitReminder> habitReminders = habit.getHabitReminders();
         List<Long> hrIds = new ArrayList<>();
@@ -345,22 +349,22 @@ public class HabitDAO {
 
         habit.initHabitReminders(); // habitReminders have become latest.
         habitReminders = habit.getHabitReminders();
-        long min = Long.MAX_VALUE;
+        //long min = Long.MAX_VALUE;
         for (int i = 0; i < hrIds.size(); i++) {
             long newTime = habitReminders.get(i).getNotifyTime();
             updateHabitReminder(hrIds.get(i), newTime);
-            if (newTime < min) {
-                min = newTime;
-            }
+//            if (newTime < min) {
+//                min = newTime;
+//            }
         }
 
-        if (remindedTimes == 0 && recordTimes == 0) {
-            // User may backup before first notification and restore it next year.
-            // We should update firstTime of habit to correct time of next year.
-            // Otherwise, we may see that persist-in-T is 1 year but actually user
-            // did not finish it even once.
-            updateHabitFirstTime(id, min);
-        }
+//        if (remindedTimes == 0 && recordTimes == 0) {
+//            // User may backup before first notification and restore it next year.
+//            // We should update firstTime of habit to correct time of next year.
+//            // Otherwise, we may see that persist-in-T is 1 year but actually user
+//            // did not finish it even once.
+//            updateHabitFirstTime(id, min);
+//        }
 
         // 将已经提前完成的habitReminder更新至新的周期里
         List<HabitRecord> habitRecordsThisT = habit.getHabitRecordsThisT();

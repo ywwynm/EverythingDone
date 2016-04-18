@@ -25,8 +25,8 @@ public class FileUtil {
     public static final String TEMP_PATH = Environment.getExternalStorageDirectory().getAbsolutePath()
             + "/EverythingDone/temp";
 
-    public static File createTempFile(String postfix) {
-        File dir = new File(TEMP_PATH);
+    public static File createTempAudioFile(String postfix) {
+        File dir = new File(TEMP_PATH + "/audio_raw");
         if (!dir.exists()) {
             boolean parentCreated = dir.mkdirs();
             if (!parentCreated) {

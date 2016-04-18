@@ -83,7 +83,7 @@ public class EverythingDoneApplication extends Application {
         File file = new File(getApplicationInfo().dataDir + "/files/" +
                 Definitions.MetaData.CREATE_ALARMS_FILE_NAME);
         if (file.exists()) {
-            AlarmHelper.createAllAlarms(this);
+            AlarmHelper.createAllAlarms(this, false);
             FileUtil.deleteFile(file);
         }
 

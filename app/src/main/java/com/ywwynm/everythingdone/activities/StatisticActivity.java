@@ -607,8 +607,9 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
                     R.string.statistic_note_audio_count
             };
             RecyclerView rv = (RecyclerView) findViewById(R.id.rv_note_record_statistic);
-            rv.setAdapter(new StatisticAdapter(
-                    StatisticActivity.this, iconRes, firstRes, null, strings));
+            final StatisticAdapter adapter = new StatisticAdapter(
+                    StatisticActivity.this, iconRes, firstRes, null, strings);
+            rv.setAdapter(adapter);
             rv.setLayoutManager(new LinearLayoutManager(StatisticActivity.this));
         }
     }
@@ -642,7 +643,7 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
                 textSizes = new float[] { 14, 14, 14, 14 };
             }
             rv.setAdapter(new StatisticAdapter(StatisticActivity.this, iconRes, firstRes,
-                    textSizes, getStrsForReminderGoalRecord(true)));
+                    textSizes, strings));
             rv.setLayoutManager(new LinearLayoutManager(StatisticActivity.this));
         }
     }
