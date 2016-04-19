@@ -9,6 +9,7 @@ import android.util.LruCache;
 
 import com.ywwynm.everythingdone.activities.SettingsActivity;
 import com.ywwynm.everythingdone.activities.ThingsActivity;
+import com.ywwynm.everythingdone.helpers.AppUpdateHelper;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
@@ -68,6 +69,15 @@ public class EverythingDoneApplication extends Application {
     // Used to judge if there is a ThingsActivity instance.
     public static WeakReference<ThingsActivity> thingsActivityWR;
 
+    public static void putThingsActivityInstance(ThingsActivity thingsActivity) {
+        if (thingsActivityWR == null) {
+            thingsActivityWR = new WeakReference<>(thingsActivity);
+        } else {
+            thingsActivityWR.clear();
+            thingsActivityWR = new WeakReference<>(thingsActivity);
+        }
+    }
+
     private static List<Long> runningDetailActivities = new ArrayList<>();
     private boolean detailActivityRun = false;
 
@@ -79,6 +89,8 @@ public class EverythingDoneApplication extends Application {
         super.onCreate();
 
         firstLaunch();
+
+        AppUpdateHelper.getInstance(this).handleAppUpdate();
 
         File file = new File(getApplicationInfo().dataDir + "/files/" +
                 Definitions.MetaData.CREATE_ALARMS_FILE_NAME);

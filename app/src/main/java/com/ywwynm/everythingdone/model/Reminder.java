@@ -26,6 +26,9 @@ public class Reminder {
     public static final int REMINDED = 2;
     public static final int EXPIRED  = 3;
 
+    public static final int  GOAL_DAYS = 28;
+    public static final long GOAL_MILLIS = GOAL_DAYS * 24 * 60 * 60 * 1000L;
+
     private long id;
     private long notifyTime;
     private int state;
@@ -129,7 +132,7 @@ public class Reminder {
     }
 
     public static int getType(long notifyTime, long createTime) {
-        if (DateTimeUtil.calculateTimeGap(createTime, notifyTime, Calendar.DATE) > 120) {
+        if (DateTimeUtil.calculateTimeGap(createTime, notifyTime, Calendar.DATE) > GOAL_DAYS) {
             return Thing.GOAL;
         } else return Thing.REMINDER;
     }

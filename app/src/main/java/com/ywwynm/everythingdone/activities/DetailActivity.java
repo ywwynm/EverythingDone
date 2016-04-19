@@ -101,6 +101,10 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     public static final int CREATE = 0;
     public static final int UPDATE = 1;
 
+    public int getType() {
+        return mType;
+    }
+
     private EverythingDoneApplication mApplication;
     public float screenDensity;
 
@@ -137,6 +141,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     private Toolbar mActionbar;
     private ImageButton mIbBack;
     private View mActionBarShadow;
+    private View mImageCover;
 
     private RecyclerView mRvImageAttachment;
     private ImageAttachmentAdapter mImageAttachmentAdapter;
@@ -589,6 +594,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         mActionbar = (Toolbar) findViewById(R.id.actionbar);
         mIbBack    = (ImageButton) findViewById(R.id.ib_back);
         mActionBarShadow = findViewById(R.id.actionbar_shadow);
+        mImageCover = findViewById(R.id.view_image_cover);
 
         mRvImageAttachment = (RecyclerView) findViewById(R.id.rv_image_attachment);
         mRvImageAttachment.setNestedScrollingEnabled(false);
@@ -798,6 +804,8 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     }
 
     private void initImageAttachmentUI(List<String> items) {
+        setImageCover();
+
         int size = items.size();
         mRvImageAttachment.setVisibility(View.VISIBLE);
         AttachmentHelper.setImageRecyclerViewHeight(mRvImageAttachment, size, mMaxSpanImage);
@@ -833,6 +841,15 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 returnToThingsActivity(true);
             }
         });
+    }
+
+    private void setImageCover() {
+        FrameLayout.LayoutParams fl = (FrameLayout.LayoutParams) mImageCover.getLayoutParams();
+        fl.height = (int) (56 * screenDensity);
+        if (VersionUtil.hasKitKatApi()) {
+            fl.height += DisplayUtil.getStatusbarHeight(this);
+        }
+        mImageCover.setVisibility(View.VISIBLE);
     }
 
     @Override
@@ -1154,6 +1171,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
         if (add) {
             if (mRvImageAttachment.getVisibility() != View.VISIBLE) {
+                setImageCover();
                 mRvImageAttachment.setVisibility(View.VISIBLE);
                 setScrollViewMarginTop(false);
             }
@@ -1172,6 +1190,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         } else {
             items.remove(position);
             if (sizeAfter == 0) {
+                mImageCover.setVisibility(View.GONE);
                 mRvImageAttachment.setVisibility(View.GONE);
                 setScrollViewMarginTop(true);
                 return;

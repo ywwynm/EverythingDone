@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-
 <FrameLayout
     android:id="@+id/fl_background"
     xmlns:android="http://schemas.android.com/apk/res/android"
@@ -97,6 +96,13 @@
         </LinearLayout>
 
     </ScrollView>
+
+    <View
+        android:id="@+id/view_image_cover"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:visibility="gone"
+        android:background="@drawable/image_cover"/>
 
     <include layout="@layout/include_actionbar_detail"/>
 

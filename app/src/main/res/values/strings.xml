@@ -219,7 +219,9 @@
     <string name="statistic_year">年</string>
 
     <string name="error_later">请设置为将来的某一时刻</string>
+    <string name="error_too_late">那是我难以触及的永恒</string>
     <string name="error_complete_time">请完善时刻信息</string>
+    <string name="error_number_too_big">过大的输入，你一定是在逗我</string>
     <string name="error_different">请设置不一样的时间</string>
     <string name="error_activity_not_found">未找到相关应用</string>
     <string name="error_cannot_add_from_network">无法添加网络文件</string>

@@ -81,19 +81,20 @@ public class ReminderReceiver extends BroadcastReceiver {
                 finishIntent.setAction(Definitions.Communication.NOTIFICATION_ACTION_FINISH);
                 finishIntent.putExtra(Definitions.Communication.KEY_ID, id);
                 finishIntent.putExtra(Definitions.Communication.KEY_POSITION, position);
-
-                Intent delayIntent = new Intent(context, ReminderNotificationActionReceiver.class);
-                delayIntent.setAction(Definitions.Communication.NOTIFICATION_ACTION_DELAY);
-                delayIntent.putExtra(Definitions.Communication.KEY_ID, id);
-                delayIntent.putExtra(Definitions.Communication.KEY_POSITION, position);
-
                 builder.addAction(R.mipmap.act_finish, context.getString(R.string.act_finish),
-                                PendingIntent.getBroadcast(context,
-                                        (int) id, finishIntent, PendingIntent.FLAG_UPDATE_CURRENT))
-                       .addAction(R.mipmap.act_delay_10_minutes,
-                               context.getString(R.string.act_delay_10_minutes),
-                               PendingIntent.getBroadcast(context,
-                                       (int) id, delayIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+                        PendingIntent.getBroadcast(context,
+                                (int) id, finishIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+
+                if (thing.getType() == Thing.REMINDER) {
+                    Intent delayIntent = new Intent(context, ReminderNotificationActionReceiver.class);
+                    delayIntent.setAction(Definitions.Communication.NOTIFICATION_ACTION_DELAY);
+                    delayIntent.putExtra(Definitions.Communication.KEY_ID, id);
+                    delayIntent.putExtra(Definitions.Communication.KEY_POSITION, position);
+                    builder.addAction(R.mipmap.act_delay_10_minutes,
+                            context.getString(R.string.act_delay_10_minutes),
+                            PendingIntent.getBroadcast(context,
+                                    (int) id, delayIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+                }
 
                 NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
                 notificationManager.notify((int) id, builder.build());

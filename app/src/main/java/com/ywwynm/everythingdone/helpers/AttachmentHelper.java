@@ -14,6 +14,7 @@ import android.widget.LinearLayout;
 import com.ywwynm.everythingdone.EverythingDoneApplication;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
+import com.ywwynm.everythingdone.utils.FileUtil;
 import com.ywwynm.everythingdone.utils.LocaleUtil;
 import com.ywwynm.everythingdone.utils.VersionUtil;
 
@@ -173,17 +174,9 @@ public class AttachmentHelper {
             fileType = ".wav";
         }
 
-        File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath()
-                + "/EverythingDone/" + folderName);
-        if (!dir.exists()) {
-            boolean parentCreated = dir.mkdirs();
-            if (!parentCreated) {
-                return null;
-            }
-        }
-
-        String timeStamp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
-        return new File(dir, timeStamp + fileType);
+        String fileName = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()) + fileType;
+        return FileUtil.createFile(Environment.getExternalStorageDirectory().getAbsolutePath()
+                + "/EverythingDone/" + folderName, fileName);
     }
 
     public static int[] calculateImageSize(Context context, int itemSize) {

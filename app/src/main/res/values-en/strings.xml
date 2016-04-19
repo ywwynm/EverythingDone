@@ -327,4 +327,6 @@
     <string name="title_create_thing">Create New Thing</string>
     <string name="title_edit_thing">Edit</string>
     <string name="sb_cannot_finish_habit_first_time">Please wait for the first cycle</string>
+    <string name="error_number_too_big">Number is too big!</string>
+    <string name="error_too_late">Cannot wait for that day</string>
 </resources>

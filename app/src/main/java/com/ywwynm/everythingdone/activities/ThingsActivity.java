@@ -65,7 +65,6 @@ import com.ywwynm.everythingdone.views.RevealLayout.RevealLayout;
 import com.ywwynm.everythingdone.views.Snackbar;
 import com.ywwynm.everythingdone.views.pickers.ColorPicker;
 
-import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -181,12 +180,13 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         EverythingDoneApplication.setSomethingUpdatedSpecially(false);
         EverythingDoneApplication.setShouldJustNotifyDataSetChanged(false);
 
-        EverythingDoneApplication.thingsActivityWR = new WeakReference<>(this);
+        EverythingDoneApplication.putThingsActivityInstance(this);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+
         updateTaskDescription();
 
         if (mUpdateMainUiInOnResume && EverythingDoneApplication.justNotifyDataSetChanged()) {
@@ -205,6 +205,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     @Override
     protected void onPause() {
         super.onPause();
+        EverythingDoneApplication.putThingsActivityInstance(this);
         dismissSnackbars();
     }
 
@@ -984,7 +985,6 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
             @Override
             public boolean onNavigationItemSelected(MenuItem menuItem) {
-                mDrawerLayout.closeDrawer(GravityCompat.START);
                 if (!mPreviousItem.equals(menuItem)) {
                     int newLimit;
                     int id = menuItem.getItemId();
@@ -1010,8 +1010,16 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                             intent = new Intent(ThingsActivity.this, AboutActivity.class);
                         }
                         startActivity(intent);
+                        mRecyclerView.postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                mDrawerLayout.closeDrawer(GravityCompat.START);
+                            }
+                        }, 600);
                         return true;
                     }
+
+                    mDrawerLayout.closeDrawer(GravityCompat.START);
                     menuItem.setCheckable(true);
                     menuItem.setChecked(true);
                     mPreviousItem.setChecked(false);

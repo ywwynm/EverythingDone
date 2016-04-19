@@ -17,7 +17,7 @@ public final class Definitions {
         public static final String THINGS_COUNTS_NAME      = "EverythingDone_things_counts";
         public static final String CREATE_ALARMS_FILE_NAME = "create_alarms.dat";
 
-        public static final String APP_VERSION = "1.0.3";
+        public static final String APP_VERSION = "1.0.4";
         public static final int DATABASE_VERSION = 1;
 
         public static final String FEEDBACK_EMAIL = "everythingdonefeedback@gmail.com";
@@ -28,6 +28,8 @@ public final class Definitions {
         public static final String KEY_RINGTONE_GOAL        = "ringtone_goal";
         public static final String KEY_RINGTONE_AUTO_NOTIFY = "ringtone_auto_notify";
         public static final String KEY_AUTO_NOTIFY          = "auto_notify";
+
+        public static final String kEY_1_0_3_TO_1_0_4       = "1.0.3_to_1.0.4";
 
     }
 

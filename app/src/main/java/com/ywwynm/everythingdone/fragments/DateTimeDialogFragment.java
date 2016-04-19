@@ -2,6 +2,7 @@ package com.ywwynm.everythingdone.fragments;
 
 import android.content.DialogInterface;
 import android.os.Bundle;
+import android.support.annotation.StringRes;
 import android.support.design.widget.TabLayout;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.view.ViewPager;
@@ -23,16 +24,17 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.ywwynm.everythingdone.Definitions;
+import com.ywwynm.everythingdone.EverythingDoneApplication;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.DetailActivity;
 import com.ywwynm.everythingdone.adapters.DateTimePagerAdapter;
 import com.ywwynm.everythingdone.adapters.RecurrencePickerAdapter;
 import com.ywwynm.everythingdone.adapters.TimeOfDayRecAdapter;
+import com.ywwynm.everythingdone.database.HabitDAO;
+import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.Thing;
-import com.ywwynm.everythingdone.database.HabitDAO;
-import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil;
@@ -194,12 +196,22 @@ public class DateTimeDialogFragment extends NoTitleDialogFragment {
 
         Bundle args = getArguments();
         mThing = args.getParcelable(Definitions.Communication.KEY_THING);
-        if (mActivity.habitDetail == null) {
-            mVpDateTime.post(new InitiallyShowPageRunnable(0));
-            initAll(0);
-        } else {
+
+        EverythingDoneApplication application = (EverythingDoneApplication)
+                mActivity.getApplication();
+        int limit = application.getLimit();
+        if (mActivity.habitDetail != null ||
+                limit == Definitions.LimitForGettingThings.HABIT_UNDERWAY) {
             mVpDateTime.post(new InitiallyShowPageRunnable(2));
             initAll(2);
+        } else {
+            int to = 0;
+            if (limit == Definitions.LimitForGettingThings.GOAL_UNDERWAY
+                    && mActivity.getType() == DetailActivity.CREATE) {
+                to = 1;
+            }
+            mVpDateTime.post(new InitiallyShowPageRunnable(to));
+            initAll(to);
         }
 
         return mContentView;
@@ -689,7 +701,16 @@ public class DateTimeDialogFragment extends NoTitleDialogFragment {
                     String temp;
                     for (int i = 0; i < times.length; i++) {
                         temp = mEtsAt[i].getText().toString();
-                        times[i] = temp.isEmpty() ? -1 : Integer.parseInt(temp);
+                        if (temp.isEmpty()) {
+                            times[i] = -1;
+                        } else {
+                            try {
+                                times[i] = Integer.parseInt(temp);
+                            } catch (NumberFormatException e) {
+                                e.printStackTrace();
+                                return;
+                            }
+                        }
                         if (times[i] == 0 && i != 0 && i != 3 && i != 4) {
                             mEtsAt[i].setText("1");
                             times[i] = 1;
@@ -950,7 +971,13 @@ public class DateTimeDialogFragment extends NoTitleDialogFragment {
             if (timeStr.isEmpty()) return;
 
             String[] strs = mTvTimeAsBtAfter.getText().toString().split(" ");
-            int time = Integer.parseInt(timeStr);
+            int time;
+            try {
+                time = Integer.parseInt(timeStr);
+            } catch (NumberFormatException e) {
+                e.printStackTrace();
+                return;
+            }
             int length = strs[0].length();
             if (time > 1 && strs[0].charAt(length - 1) != 's') {
                 mTvTimeAsBtAfter.setText(strs[0] + "s " + strs[1]);
@@ -987,6 +1014,19 @@ public class DateTimeDialogFragment extends NoTitleDialogFragment {
     }
 
     private void endSettingTimeAt() {
+        String yearStr = mEtsAt[0].getText().toString();
+        try {
+            int year = Integer.parseInt(yearStr);
+            if (year > 4600000) {
+                setErrorAt(R.string.error_too_late);
+                return;
+            }
+        } catch (NumberFormatException e) {
+            e.printStackTrace();
+            setErrorAt(R.string.error_too_late);
+            return;
+        }
+
         int[] times = new int[5];
         String temp;
         boolean mayCanConfirm = true;
@@ -1004,8 +1044,7 @@ public class DateTimeDialogFragment extends NoTitleDialogFragment {
             DateTime dt  = new DateTime(times[0], times[1], times[2], times[3], times[4]);
             DateTime cur = new DateTime();
             if (dt.compareTo(cur) <= 0) {
-                mTvSummaryAt.setTextColor(ContextCompat.getColor(mActivity, R.color.error));
-                mTvSummaryAt.setText(mActivity.getString(R.string.error_later));
+                setErrorAt(R.string.error_later);
             } else {
                 mActivity.habitType = -1;
                 mActivity.habitDetail = null;
@@ -1018,21 +1057,40 @@ public class DateTimeDialogFragment extends NoTitleDialogFragment {
                 dismiss();
             }
         } else {
-            mTvSummaryAt.setTextColor(ContextCompat.getColor(mActivity, R.color.error));
-            mTvSummaryAt.setText(mActivity.getString(R.string.error_complete_time));
+            setErrorAt(R.string.error_complete_time);
         }
+    }
+
+    private void setErrorAt(@StringRes int textRes) {
+        mTvSummaryAt.setTextColor(ContextCompat.getColor(mActivity, R.color.error));
+        mTvSummaryAt.setText(mActivity.getString(textRes));
     }
 
     private void endSettingTimeAfter() {
         String timeStr = mEtTimeAfter.getText().toString();
         if (timeStr.isEmpty()) {
-            mTvErrorAfter.setText(mActivity.getString(R.string.error_complete_time));
+            mTvErrorAfter.setText(R.string.error_complete_time);
         } else {
-            int time = Integer.parseInt(timeStr);
+            int time;
+            try {
+                time = Integer.parseInt(timeStr);
+            } catch (NumberFormatException e) {
+                e.printStackTrace();
+                mTvErrorAfter.setText(R.string.error_number_too_big);
+                return;
+            }
             if (time == 0) {
-                mTvErrorAfter.setText(mActivity.getString(R.string.error_later));
+                mTvErrorAfter.setText(R.string.error_later);
             } else {
                 int type = mDtpAfter.getPickedTimeType();
+                if ((time > 4600000 && type == Calendar.YEAR) ||
+                    (time > 4600000 * 12 && type == Calendar.MONTH) ||
+                    (time > 4600000 * 53 && type == Calendar.WEEK_OF_YEAR) ||
+                    (time > 4600000 * 365 && type == Calendar.DATE)) {
+                    mTvErrorAfter.setText(R.string.error_too_late);
+                    return;
+                }
+
                 mActivity.reminderAfterTime = new int[] { type, time };
                 mActivity.reminderInMillis = 0;
                 mActivity.habitType = -1;
@@ -1094,6 +1152,10 @@ public class DateTimeDialogFragment extends NoTitleDialogFragment {
     }
 
     private void updateSummaryAt(int year, int month, int day, int hour) {
+        if (year > 4600000) {
+            setErrorAt(R.string.error_too_late);
+            return;
+        }
         mTvSummaryAt.setTextColor(black_54p);
         StringBuilder sb = new StringBuilder();
         if (year != -1 && month != -1 && day != -1) {

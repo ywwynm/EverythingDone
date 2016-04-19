@@ -344,5 +344,7 @@
     <string name="title_create_thing">創建記事</string>
     <string name="title_edit_thing">編輯</string>
     <string name="sb_cannot_finish_habit_first_time">請等待第一個週期的到來</string>
+    <string name="error_number_too_big">過大的輸入，你一定是在逗我</string>
+    <string name="error_too_late">那是我難以觸及的永恒</string>
 
 </resources>

@@ -25,7 +25,6 @@ import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.HabitReminder;
 import com.ywwynm.everythingdone.model.Thing;
 
-import java.io.File;
 import java.util.List;
 
 /**
@@ -91,24 +90,19 @@ public class SystemNotificationUtil {
         String firstImageUri = AttachmentHelper.getFirstImageTypePathName(thing.getAttachment());
         if (firstImageUri != null) {
             String pathName = firstImageUri.substring(1, firstImageUri.length());
-            if (new File(pathName).exists()) {
-                Bitmap bigPicture;
-                Point display = DisplayUtil.getDisplaySize(context);
-                int width = Math.min(display.x, display.y);
-                int height = width / 2;
-                char tc = firstImageUri.charAt(0);
-                if (tc == '0') {
-                    bigPicture = BitmapUtil.decodeFileWithRequiredSize(pathName, width, height);
-                } else {
-                    bigPicture = BitmapUtil.createCroppedBitmap(
-                            AttachmentHelper.getImageFromVideo(pathName), width, height);
-                }
-                builder.setStyle(new NotificationCompat.BigPictureStyle()
-                        .bigPicture(bigPicture)
-                        .setSummaryText(contentText));
+            Bitmap bigPicture;
+            Point display = DisplayUtil.getDisplaySize(context);
+            int width = Math.min(display.x, display.y);
+            int height = width / 2;
+            if (firstImageUri.charAt(0) == '0') {
+                bigPicture = BitmapUtil.decodeFileWithRequiredSize(pathName, width, height);
             } else {
-                extendWearable(builder, type, color, autoNotify, context);
+                bigPicture = BitmapUtil.createCroppedBitmap(
+                        AttachmentHelper.getImageFromVideo(pathName), width, height);
             }
+            builder.setStyle(new NotificationCompat.BigPictureStyle()
+                    .bigPicture(bigPicture)
+                    .setSummaryText(contentText));
         } else {
             extendWearable(builder, type, color, autoNotify, context);
         }

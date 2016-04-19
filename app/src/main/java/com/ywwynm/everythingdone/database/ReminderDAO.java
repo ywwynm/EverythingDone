@@ -91,7 +91,7 @@ public class ReminderDAO {
     public void resetGoal(Reminder goal) {
         if (goal == null) return;
         long millis = goal.getNotifyMillis();
-        if (millis >= 4 * 30 * 24 * 60 * 60 * 1000L) {
+        if (millis >= Reminder.GOAL_MILLIS) {
             long notifyTime = System.currentTimeMillis() + millis;
             goal.setNotifyTime(notifyTime);
             goal.setState(Reminder.UNDERWAY);
