@@ -100,7 +100,6 @@
             android:name=".activities.AboutActivity"
             android:label="@string/title_activity_about"
             android:theme="@style/EverythingDoneTheme.About">
-            >
         </activity>
 
         <receiver
@@ -112,7 +111,8 @@
         <activity
             android:name=".activities.StatisticActivity"
             android:label="@string/title_activity_statistic"
-            android:theme="@style/EverythingDoneTheme.Statistic">
+            android:theme="@style/EverythingDoneTheme.Statistic"
+            android:screenOrientation="portrait">
         </activity>
 
         <receiver

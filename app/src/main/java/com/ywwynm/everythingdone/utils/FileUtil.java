@@ -1,5 +1,6 @@
 package com.ywwynm.everythingdone.utils;
 
+import android.annotation.SuppressLint;
 import android.os.Environment;
 
 import java.io.BufferedInputStream;
@@ -10,8 +11,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Enumeration;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Scanner;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
@@ -90,7 +95,7 @@ public class FileUtil {
     }
 
     public static void copyFile(File src, File dst) throws IOException {
-        BufferedInputStream bis  = new BufferedInputStream(new FileInputStream(src));
+        BufferedInputStream bis = new BufferedInputStream(new FileInputStream(src));
         BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(dst));
 
         byte[] b = new byte[4096];
@@ -114,7 +119,7 @@ public class FileUtil {
                 }
                 File targetFile = new File(parent.getAbsolutePath(), file.getName());
                 copyFile(file, targetFile);
-            } else  {
+            } else {
                 String dir1 = sourceDir + "/" + file.getName();
                 String dir2 = targetDir + "/" + file.getName();
                 copyDirectory(dir1, dir2);
@@ -267,6 +272,105 @@ public class FileUtil {
                 }
             }
         }
+    }
+
+    /**
+     * @return A map of all storage locations available
+     * @see http://stackoverflow.com/a/15612964/3952691
+     */
+    @SuppressLint("SdCardPath")
+    public static List<String> getAllStorageLocations() {
+        List<String> ret = new ArrayList<>();
+
+        List<String> mounts = new ArrayList<>();
+        List<String> volds  = new ArrayList<>();
+        mounts.add("/mnt/sdcard");
+        volds.add("/mnt/sdcard");
+
+        try {
+            File mountFile = new File("/proc/mounts");
+            if (mountFile.exists()) {
+                Scanner scanner = new Scanner(mountFile);
+                while (scanner.hasNext()) {
+                    String line = scanner.nextLine();
+                    if (line.startsWith("/dev/block/vold/")) {
+                        String[] lineElements = line.split(" ");
+                        String element = lineElements[1];
+
+                        // don't add the default mount path
+                        // it's already in the list.
+                        if (!element.equals("/mnt/sdcard")) {
+                            mounts.add(element);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        try {
+            File voldFile = new File("/system/etc/vold.fstab");
+            if (voldFile.exists()) {
+                Scanner scanner = new Scanner(voldFile);
+                while (scanner.hasNext()) {
+                    String line = scanner.nextLine();
+                    if (line.startsWith("dev_mount")) {
+                        String[] lineElements = line.split(" ");
+                        String element = lineElements[2];
+
+                        if (element.contains(":"))
+                            element = element.substring(0, element.indexOf(":"));
+                        if (!element.equals("/mnt/sdcard"))
+                            volds.add(element);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        Iterator<String> itr = mounts.iterator();
+        while (itr.hasNext()) {
+            String mount = itr.next();
+            if (!volds.contains(mount)) {
+                itr.remove();
+            }
+        }
+        volds.clear();
+
+        List<String> mountHash = new ArrayList<>(10);
+
+        for (String mount : mounts) {
+            File root = new File(mount);
+            if (root.exists() && root.isDirectory() && root.canWrite()) {
+                File[] list = root.listFiles();
+                String hash = "[";
+                if (list != null) {
+                    for (File f : list) {
+                        hash += f.getName().hashCode() + ":" + f.length() + ", ";
+                    }
+                }
+                hash += "]";
+                if (!mountHash.contains(hash)) {
+                    mountHash.add(hash);
+                    ret.add(mount);
+                }
+            }
+        }
+
+        mounts.clear();
+
+        if (ret.isEmpty()) {
+            ret.add(Environment.getExternalStorageDirectory().getAbsolutePath());
+        } else {
+            ret.add("/sdcard2/");
+            ret.add("/sdcard3/");
+            ret.add("/sdcard4/");
+            ret.add("/sdcard5/");
+            ret.add("/sdcard6/");
+        }
+        return ret;
     }
 
     private static boolean isInArray(String str, String... arr) {

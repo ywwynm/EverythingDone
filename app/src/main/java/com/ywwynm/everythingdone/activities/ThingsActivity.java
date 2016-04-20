@@ -157,6 +157,13 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         }
     };
 
+    private Runnable mCloseDrawerRunnable = new Runnable() {
+        @Override
+        public void run() {
+            mDrawerLayout.closeDrawer(GravityCompat.START);
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -731,7 +738,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             public void onClick(View v) {
                 Intent intent = new Intent(ThingsActivity.this, StatisticActivity.class);
                 startActivity(intent);
-                mDrawerLayout.closeDrawer(GravityCompat.START);
+                mRecyclerView.postDelayed(mCloseDrawerRunnable, 600);
             }
         });
 
@@ -1010,12 +1017,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                             intent = new Intent(ThingsActivity.this, AboutActivity.class);
                         }
                         startActivity(intent);
-                        mRecyclerView.postDelayed(new Runnable() {
-                            @Override
-                            public void run() {
-                                mDrawerLayout.closeDrawer(GravityCompat.START);
-                            }
-                        }, 600);
+                        mRecyclerView.postDelayed(mCloseDrawerRunnable, 600);
                         return true;
                     }
 

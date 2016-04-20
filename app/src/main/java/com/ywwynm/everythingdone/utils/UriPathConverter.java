@@ -9,6 +9,8 @@ import android.os.Environment;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 
+import java.util.List;
+
 /**
  * Created by paulburke.
  * See http://stackoverflow.com/a/27271131/3952691 for more details.
@@ -25,8 +27,16 @@ public class UriPathConverter {
             return null;
         }
         if (!pathName.startsWith(Environment.getExternalStorageDirectory().getAbsolutePath())) {
+            List<String> locations = FileUtil.getAllStorageLocations();
+            for (String location : locations) {
+                if (pathName.startsWith(location)) {
+                    return pathName;
+                }
+            }
             return null;
-        } else return pathName;
+        } else {
+            return pathName;
+        }
     }
 
     /**

@@ -845,7 +845,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
     private void setImageCover() {
         FrameLayout.LayoutParams fl = (FrameLayout.LayoutParams) mImageCover.getLayoutParams();
-        fl.height = (int) (56 * screenDensity);
+        fl.height = (int) (66 * screenDensity);
         if (VersionUtil.hasKitKatApi()) {
             fl.height += DisplayUtil.getStatusbarHeight(this);
         }

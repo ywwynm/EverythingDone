@@ -58,7 +58,7 @@ public class AppUpdateHelper {
             long id = thing.getId();
             Reminder reminder = reminderDAO.getReminderById(id);
             long millis = reminder.getNotifyMillis();
-            if (millis <= Reminder.GOAL_MILLIS) continue;
+            if (millis < Reminder.GOAL_MILLIS) continue;
 
             thing.setType(Thing.GOAL);
             thingDAO.update(Thing.REMINDER, thing, true, true);
