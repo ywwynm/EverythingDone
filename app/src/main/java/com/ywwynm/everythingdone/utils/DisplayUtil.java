@@ -54,7 +54,7 @@ public class DisplayUtil {
         Point screen = new Point();
         Display display = ((WindowManager) context.getSystemService(Context.WINDOW_SERVICE))
                 .getDefaultDisplay();
-        if (!VersionUtil.hasLollipopApi()) {
+        if (!DeviceUtil.hasLollipopApi()) {
             display.getSize(screen);
         } else {
             // Content can overlay Navigation Bar above Lollipop.
@@ -264,7 +264,7 @@ public class DisplayUtil {
         }
 
         int basePadding;
-        if (!VersionUtil.hasLollipopApi()) {
+        if (!DeviceUtil.hasLollipopApi()) {
             basePadding = (int) (density * 4);
         } else {
             basePadding = (int) (density * 6);
@@ -276,7 +276,7 @@ public class DisplayUtil {
     private static HashMap<Integer, StateListDrawable> sSldMap;
 
     public static void setRippleColorForCardView(CardView cardView, int color) {
-        if (VersionUtil.hasLollipopApi()) {
+        if (DeviceUtil.hasLollipopApi()) {
             RippleDrawable rp = (RippleDrawable) cardView.getForeground();
             rp.setColor(ColorStateList.valueOf(color));
         } else {

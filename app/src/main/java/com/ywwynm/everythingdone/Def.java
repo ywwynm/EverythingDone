@@ -1,35 +1,42 @@
 package com.ywwynm.everythingdone;
 
+import android.os.Environment;
+
 /**
  * Created by ywwynm on 2015/5/21.
- * Definitions for EverythingDone
+ * Def for EverythingDone
  */
-public final class Definitions {
+public final class Def {
 
-    public Definitions() {
+    public Def() {
         // Create an empty constructor to prevent instantiation of the class.
     }
 
-    public abstract static class MetaData {
+    public abstract static class Meta {
 
-        public static final String META_DATA_NAME          = "EverythingDone_metadata";
-        public static final String PREFERENCES_NAME        = "EverythingDone_preferences";
-        public static final String THINGS_COUNTS_NAME      = "EverythingDone_things_counts";
-        public static final String CREATE_ALARMS_FILE_NAME = "create_alarms.dat";
+        public static final String META_DATA_NAME           = "EverythingDone_metadata";
+        public static final String PREFERENCES_NAME         = "EverythingDone_preferences";
+        public static final String THINGS_COUNTS_NAME       = "EverythingDone_things_counts";
+        public static final String CREATE_ALARMS_FILE_NAME  = "create_alarms.dat";
+        public static final String FEEDBACK_ERROR_FILE_NAME = "feedback_error.dat";
 
-        public static final String APP_VERSION = "1.0.4";
         public static final int DATABASE_VERSION = 1;
+
+        public static final String APP_FILE_DIR =
+                Environment.getExternalStorageDirectory().getAbsolutePath() + "/EverythingDone";
 
         public static final String FEEDBACK_EMAIL = "everythingdonefeedback@gmail.com";
 
         public static final String KEY_START_USING_TIME     = "start_using_time";
+        public static final String KEY_DRAWER_HEADER        = "drawer_header";
         public static final String KEY_RINGTONE_REMINDER    = "ringtone_reminder";
         public static final String KEY_RINGTONE_HABIT       = "ringtone_habit";
         public static final String KEY_RINGTONE_GOAL        = "ringtone_goal";
         public static final String KEY_RINGTONE_AUTO_NOTIFY = "ringtone_auto_notify";
         public static final String KEY_AUTO_NOTIFY          = "auto_notify";
 
-        public static final String kEY_1_0_3_TO_1_0_4       = "1.0.3_to_1.0.4";
+        public static final String KEY_1_0_3_TO_1_0_4       = "1.0.3_to_1.0.4";
+        public static final String KEY_1_0_4_TO_1_0_5       = "1.0.4_to_1.0.5";
 
     }
 
@@ -99,22 +106,26 @@ public final class Definitions {
 
         private static final String PREFIX = "com.ywwynm.everythingdone.";
 
-        public static final int REQUEST_ACTIVITY_THINGS              = 0;
-        public static final int REQUEST_ACTIVITY_DETAIL              = 1;
-        public static final int REQUEST_ACTIVITY_IMAGE_VIEWER        = 2;
-        public static final int REQUEST_TAKE_PHOTO                   = 3;
-        public static final int REQUEST_CAPTURE_VIDEO                = 4;
-        public static final int REQUEST_CHOOSE_MEDIA_FILE            = 5;
-        public static final int REQUEST_BROADCAST_RECEIVER_REMINDER  = 6;
-        public static final int REQUEST_PERMISSION_TAKE_PHOTO        = 7;
-        public static final int REQUEST_PERMISSION_SHOOT_VIDEO       = 8;
-        public static final int REQUEST_PERMISSION_RECORD_AUDIO      = 9;
-        public static final int REQUEST_PERMISSION_CHOOSE_MEDIA_FILE = 10;
-        public static final int REQUEST_PERMISSION_SCREENSHOT        = 11;
-        public static final int REQUEST_PERMISSION_SHARE_APP         = 12;
+        public static final int REQUEST_ACTIVITY_THINGS       = 0;
+        public static final int REQUEST_ACTIVITY_DETAIL       = 1;
+        public static final int REQUEST_ACTIVITY_IMAGE_VIEWER = 2;
+        public static final int REQUEST_ACTIVITY_SETTINGS     = 3;
+        public static final int REQUEST_TAKE_PHOTO            = 4;
+        public static final int REQUEST_CAPTURE_VIDEO         = 5;
+        public static final int REQUEST_CHOOSE_MEDIA_FILE     = 6;
+        public static final int REQUEST_CHOOSE_IMAGE_FILE     = 7;
+        public static final int REQUEST_CHOOSE_AUDIO_FILE     = 8;
 
-        public static final int REQUEST_PERMISSION_BACKUP  = 0;
-        public static final int REQUEST_PERMISSION_RESTORE = 1;
+        public static final int REQUEST_PERMISSION_TAKE_PHOTO        = 0;
+        public static final int REQUEST_PERMISSION_SHOOT_VIDEO       = 1;
+        public static final int REQUEST_PERMISSION_RECORD_AUDIO      = 2;
+        public static final int REQUEST_PERMISSION_CHOOSE_MEDIA_FILE = 3;
+        public static final int REQUEST_PERMISSION_SCREENSHOT        = 4;
+        public static final int REQUEST_PERMISSION_SHARE_APP         = 5;
+        public static final int REQUEST_PERMISSION_CHOOSE_IMAGE_FILE = 6;
+        public static final int REQUEST_PERMISSION_CHOOSE_AUDIO_FILE = 7;
+        public static final int REQUEST_PERMISSION_BACKUP            = 8;
+        public static final int REQUEST_PERMISSION_RESTORE           = 9;
 
         public static final String KEY_SENDER_NAME          = PREFIX + "key.sender_name";
         public static final String KEY_DETAIL_ACTIVITY_TYPE = PREFIX + "key.detail_activity_type";
@@ -145,6 +156,8 @@ public final class Definitions {
         public static final int RESULT_JUST_NOTIFY_DATASET_CHANGED      = 6;
 
         public static final int RESULT_UPDATE_IMAGE_DONE = 1;
+
+        public static final int RESULT_UPDATE_DRAWER_HEADER_DONE = 1;
 
         public static final String NOTIFICATION_ACTION_FINISH =
                 PREFIX + "action.notification.finish";

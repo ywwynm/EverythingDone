@@ -50,7 +50,7 @@ public class UriPathConverter {
     @SuppressLint("NewApi")
     public static String getPathName(Context context, Uri uri) {
 
-        boolean isKitKat = VersionUtil.hasKitKatApi();
+        boolean isKitKat = DeviceUtil.hasKitKatApi();
 
         // DocumentProvider
         if (isKitKat && DocumentsContract.isDocumentUri(context, uri)) {
@@ -122,6 +122,9 @@ public class UriPathConverter {
                 final int column_index = cursor.getColumnIndexOrThrow(column);
                 return cursor.getString(column_index);
             }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
         } finally {
             if (cursor != null)
                 cursor.close();

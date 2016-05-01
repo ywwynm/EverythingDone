@@ -63,20 +63,20 @@ public class AudioRecordDialogFragment extends NoTitleDialogFragment {
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        super.onCreateView(inflater, container, savedInstanceState);
+
         mActivity = (DetailActivity) getActivity();
         mRecorder = new AudioRecorder();
 
-        View contentView = inflater.inflate(R.layout.fragment_record_audio, container, false);
+        mLlFileName  = f(R.id.ll_audio_file_name);
+        mEtFileName  = f(R.id.et_audio_file_name);
+        mChronometer = f(R.id.chronometer_record_audio);
+        mVisualizer  = f(R.id.voice_visualizer);
+        mBase        = f(R.id.view_voice_visualizer_base);
 
-        mLlFileName  = (LinearLayout) contentView.findViewById(R.id.ll_audio_file_name);
-        mEtFileName  = (EditText) contentView.findViewById(R.id.et_audio_file_name);
-        mChronometer = (Chronometer) contentView.findViewById(R.id.chronometer_record_audio);
-        mVisualizer  = (VoiceVisualizer) contentView.findViewById(R.id.voice_visualizer);
-        mBase        = contentView.findViewById(R.id.view_voice_visualizer_base);
-
-        mFabMain = (FloatingActionButton) contentView.findViewById(R.id.fab_record_main);
-        mIvReRecording = (ImageView) contentView.findViewById(R.id.iv_re_recording_audio);
-        mIvCancelRecording = (ImageView) contentView.findViewById(R.id.iv_cancel_recording_audio);
+        mFabMain           = f(R.id.fab_record_main);
+        mIvReRecording     = f(R.id.iv_re_recording_audio);
+        mIvCancelRecording = f(R.id.iv_cancel_recording_audio);
 
         int accentColor = mActivity.getAccentColor();
         mVisualizer.setRenderColor(accentColor);
@@ -91,7 +91,12 @@ public class AudioRecordDialogFragment extends NoTitleDialogFragment {
 
         setEvents();
 
-        return contentView;
+        return mContentView;
+    }
+
+    @Override
+    protected int getLayoutResource() {
+        return R.layout.fragment_record_audio;
     }
 
     @Override

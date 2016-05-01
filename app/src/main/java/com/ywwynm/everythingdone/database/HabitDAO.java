@@ -5,7 +5,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 
-import com.ywwynm.everythingdone.Definitions;
+import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.helpers.AlarmHelper;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.HabitRecord;
@@ -43,13 +43,13 @@ public class HabitDAO {
 
     private void updateMaxHabitReminderRecordId() {
         mHabitReminderId = -1;
-        Cursor c = db.query(Definitions.Database.TABLE_HABIT_REMINDERS,
+        Cursor c = db.query(Def.Database.TABLE_HABIT_REMINDERS,
                 null, null, null, null, null, "id desc");
         if (c.moveToFirst()) {
             mHabitReminderId = c.getLong(0);
         }
         c.close();
-        Cursor c2 = db.query(Definitions.Database.TABLE_HABIT_RECORDS,
+        Cursor c2 = db.query(Def.Database.TABLE_HABIT_RECORDS,
                 null, null, null, null, null, "id desc");
         if (c2.moveToFirst()) {
             mHabitRecordId = c2.getLong(0);
@@ -69,7 +69,7 @@ public class HabitDAO {
     }
 
     public Habit getHabitById(long id) {
-        Cursor c = db.query(Definitions.Database.TABLE_HABITS, null,
+        Cursor c = db.query(Def.Database.TABLE_HABITS, null,
                 "id=" + id, null, null, null, null);
         Habit habit = null;
         if (c.moveToFirst()) {
@@ -83,7 +83,7 @@ public class HabitDAO {
 
     public HabitReminder getHabitReminderById(long id) {
         HabitReminder habitReminder = null;
-        Cursor c = db.query(Definitions.Database.TABLE_HABIT_REMINDERS, null,
+        Cursor c = db.query(Def.Database.TABLE_HABIT_REMINDERS, null,
                 "id=" + id, null, null, null, null);
         if (c.moveToFirst()) {
             habitReminder = new HabitReminder(c);
@@ -94,7 +94,7 @@ public class HabitDAO {
 
     public List<HabitReminder> getHabitRemindersByHabitId(long habitId) {
         List<HabitReminder> habitReminders = new ArrayList<>();
-        Cursor c = db.query(Definitions.Database.TABLE_HABIT_REMINDERS, null,
+        Cursor c = db.query(Def.Database.TABLE_HABIT_REMINDERS, null,
                 "habit_id=" + habitId, null, null, null, null);
         while (c.moveToNext()) {
             habitReminders.add(new HabitReminder(c));
@@ -105,7 +105,7 @@ public class HabitDAO {
 
     public List<HabitRecord> getHabitRecordsByHabitId(long habitId) {
         List<HabitRecord> habitRecords = new ArrayList<>();
-        Cursor c = db.query(Definitions.Database.TABLE_HABIT_RECORDS, null,
+        Cursor c = db.query(Def.Database.TABLE_HABIT_RECORDS, null,
                 "habit_id=" + habitId, null, null, null, null);
         while (c.moveToNext()) {
             habitRecords.add(new HabitRecord(c));
@@ -119,15 +119,15 @@ public class HabitDAO {
         try {
             long id = habit.getId();
             ContentValues values = new ContentValues();
-            values.put(Definitions.Database.COLUMN_ID_HABITS, id);
-            values.put(Definitions.Database.COLUMN_TYPE_HABITS, habit.getType());
-            values.put(Definitions.Database.COLUMN_REMINDED_TIMES_HABITS, habit.getRemindedTimes());
-            values.put(Definitions.Database.COLUMN_DETAIL_HABITS, habit.getDetail());
-            values.put(Definitions.Database.COLUMN_RECORD_HABITS, habit.getRecord());
-            values.put(Definitions.Database.COLUMN_INTERVAL_INFO_HABITS, habit.getIntervalInfo());
-            values.put(Definitions.Database.COLUMN_CREATE_TIME_HABITS, habit.getCreateTime());
-            values.put(Definitions.Database.COLUMN_FIRST_TIME_HABITS, habit.getFirstTime());
-            db.insert(Definitions.Database.TABLE_HABITS, null, values);
+            values.put(Def.Database.COLUMN_ID_HABITS, id);
+            values.put(Def.Database.COLUMN_TYPE_HABITS, habit.getType());
+            values.put(Def.Database.COLUMN_REMINDED_TIMES_HABITS, habit.getRemindedTimes());
+            values.put(Def.Database.COLUMN_DETAIL_HABITS, habit.getDetail());
+            values.put(Def.Database.COLUMN_RECORD_HABITS, habit.getRecord());
+            values.put(Def.Database.COLUMN_INTERVAL_INFO_HABITS, habit.getIntervalInfo());
+            values.put(Def.Database.COLUMN_CREATE_TIME_HABITS, habit.getCreateTime());
+            values.put(Def.Database.COLUMN_FIRST_TIME_HABITS, habit.getFirstTime());
+            db.insert(Def.Database.TABLE_HABITS, null, values);
 
             for (HabitReminder habitReminder : habit.getHabitReminders()) {
                 createHabitReminder(habitReminder);
@@ -144,25 +144,25 @@ public class HabitDAO {
         mHabitReminderId++;
         long notifyTime = habitReminder.getNotifyTime();
         ContentValues values = new ContentValues();
-        values.put(Definitions.Database.COLUMN_ID_HABIT_REMINDERS, mHabitReminderId);
-        values.put(Definitions.Database.COLUMN_HABIT_ID_HABIT_REMINDERS, habitReminder.getHabitId());
-        values.put(Definitions.Database.COLUMN_NOTIFY_TIME_HABIT_REMINDERS, notifyTime);
-        db.insert(Definitions.Database.TABLE_HABIT_REMINDERS, null, values);
+        values.put(Def.Database.COLUMN_ID_HABIT_REMINDERS, mHabitReminderId);
+        values.put(Def.Database.COLUMN_HABIT_ID_HABIT_REMINDERS, habitReminder.getHabitId());
+        values.put(Def.Database.COLUMN_NOTIFY_TIME_HABIT_REMINDERS, notifyTime);
+        db.insert(Def.Database.TABLE_HABIT_REMINDERS, null, values);
         AlarmHelper.setHabitReminderAlarm(mContext, mHabitReminderId, notifyTime);
     }
 
     public HabitRecord createHabitRecord(HabitRecord habitRecord) {
         mHabitRecordId++;
         ContentValues values = new ContentValues();
-        values.put(Definitions.Database.COLUMN_ID_HABIT_RECORDS, mHabitRecordId);
-        values.put(Definitions.Database.COLUMN_HABIT_ID_HABIT_RECORDS, habitRecord.getHabitId());
-        values.put(Definitions.Database.COLUMN_HR_ID_HABIT_RECORDS, habitRecord.getHabitReminderId());
-        values.put(Definitions.Database.COLUMN_RECORD_TIME_HABIT_RECORDS, habitRecord.getRecordTime());
-        values.put(Definitions.Database.COLUMN_RECORD_YEAR_HABIT_RECORDS, habitRecord.getRecordYear());
-        values.put(Definitions.Database.COLUMN_RECORD_MONTH_HABIT_RECORDS, habitRecord.getRecordMonth());
-        values.put(Definitions.Database.COLUMN_RECORD_WEEK_HABIT_RECORDS, habitRecord.getRecordWeek());
-        values.put(Definitions.Database.COLUMN_RECORD_DAY_HABIT_RECORDS, habitRecord.getRecordDay());
-        db.insert(Definitions.Database.TABLE_HABIT_RECORDS, null, values);
+        values.put(Def.Database.COLUMN_ID_HABIT_RECORDS, mHabitRecordId);
+        values.put(Def.Database.COLUMN_HABIT_ID_HABIT_RECORDS, habitRecord.getHabitId());
+        values.put(Def.Database.COLUMN_HR_ID_HABIT_RECORDS, habitRecord.getHabitReminderId());
+        values.put(Def.Database.COLUMN_RECORD_TIME_HABIT_RECORDS, habitRecord.getRecordTime());
+        values.put(Def.Database.COLUMN_RECORD_YEAR_HABIT_RECORDS, habitRecord.getRecordYear());
+        values.put(Def.Database.COLUMN_RECORD_MONTH_HABIT_RECORDS, habitRecord.getRecordMonth());
+        values.put(Def.Database.COLUMN_RECORD_WEEK_HABIT_RECORDS, habitRecord.getRecordWeek());
+        values.put(Def.Database.COLUMN_RECORD_DAY_HABIT_RECORDS, habitRecord.getRecordDay());
+        db.insert(Def.Database.TABLE_HABIT_RECORDS, null, values);
         habitRecord.setId(mHabitRecordId);
         return habitRecord;
     }
@@ -257,15 +257,15 @@ public class HabitDAO {
         int curMonth = dt.getMonthOfYear();
         int curDay   = dt.getDayOfMonth();
         int times    = 0;
-        Cursor c = db.query(Definitions.Database.TABLE_HABIT_RECORDS, null,
+        Cursor c = db.query(Def.Database.TABLE_HABIT_RECORDS, null,
                 "habit_id=" + habitId, null, null, null, "id desc");
         while (c.moveToNext()) {
             int year = c.getInt(c.getColumnIndex(
-                    Definitions.Database.COLUMN_RECORD_YEAR_HABIT_RECORDS));
+                    Def.Database.COLUMN_RECORD_YEAR_HABIT_RECORDS));
             int month = c.getInt(c.getColumnIndex(
-                    Definitions.Database.COLUMN_RECORD_MONTH_HABIT_RECORDS));
+                    Def.Database.COLUMN_RECORD_MONTH_HABIT_RECORDS));
             int day = c.getInt(c.getColumnIndex(
-                    Definitions.Database.COLUMN_RECORD_DAY_HABIT_RECORDS));
+                    Def.Database.COLUMN_RECORD_DAY_HABIT_RECORDS));
             if (year == curYear && month == curMonth && day == curDay) {
                 times++;
             } else break;
@@ -279,13 +279,13 @@ public class HabitDAO {
         int curYear = dt.getYear();
         int curWeek = dt.getWeekOfWeekyear();
         int times   = 0;
-        Cursor c = db.query(Definitions.Database.TABLE_HABIT_RECORDS, null,
+        Cursor c = db.query(Def.Database.TABLE_HABIT_RECORDS, null,
                 "habit_id=" + habitId, null, null, null, "id desc");
         while (c.moveToNext()) {
             int year = c.getInt(c.getColumnIndex(
-                    Definitions.Database.COLUMN_RECORD_YEAR_HABIT_RECORDS));
+                    Def.Database.COLUMN_RECORD_YEAR_HABIT_RECORDS));
             int week = c.getInt(c.getColumnIndex(
-                    Definitions.Database.COLUMN_RECORD_WEEK_HABIT_RECORDS));
+                    Def.Database.COLUMN_RECORD_WEEK_HABIT_RECORDS));
             if (year == curYear && week == curWeek) {
                 times++;
             } else break;
@@ -299,13 +299,13 @@ public class HabitDAO {
         int curYear  = dt.getYear();
         int curMonth = dt.getMonthOfYear();
         int times    = 0;
-        Cursor c = db.query(Definitions.Database.TABLE_HABIT_RECORDS, null,
+        Cursor c = db.query(Def.Database.TABLE_HABIT_RECORDS, null,
                 "habit_id=" + habitId, null, null, null, "id desc");
         while (c.moveToNext()) {
             int year = c.getInt(c.getColumnIndex(
-                    Definitions.Database.COLUMN_RECORD_YEAR_HABIT_RECORDS));
+                    Def.Database.COLUMN_RECORD_YEAR_HABIT_RECORDS));
             int month = c.getInt(c.getColumnIndex(
-                    Definitions.Database.COLUMN_RECORD_MONTH_HABIT_RECORDS));
+                    Def.Database.COLUMN_RECORD_MONTH_HABIT_RECORDS));
             if (year == curYear && month == curMonth) {
                 times++;
             } else break;
@@ -318,11 +318,11 @@ public class HabitDAO {
         DateTime dt = new DateTime();
         int curYear = dt.getYear();
         int times   = 0;
-        Cursor c = db.query(Definitions.Database.TABLE_HABIT_RECORDS, null,
+        Cursor c = db.query(Def.Database.TABLE_HABIT_RECORDS, null,
                 "habit_id=" + habitId, null, null, null, "id desc");
         while (c.moveToNext()) {
             int year = c.getInt(c.getColumnIndex(
-                    Definitions.Database.COLUMN_RECORD_YEAR_HABIT_RECORDS));
+                    Def.Database.COLUMN_RECORD_YEAR_HABIT_RECORDS));
             if (year == curYear) {
                 times++;
             } else break;
@@ -331,13 +331,14 @@ public class HabitDAO {
         return times;
     }
 
-    public void updateHabitToLatest(long id, boolean updateRemindedTimes) {
+    public void updateHabitToLatest(
+            long id, boolean updateRemindedTimes, boolean forceToUpdateRemindedTimes) {
         Habit habit = getHabitById(id);
+        int recordTimes = habit.getRecord().length();
 
-        if (updateRemindedTimes) {
+        if (updateRemindedTimes && forceToUpdateRemindedTimes) {
             // This will prevent this habit from finishing in this T if it was notified but
             // user didn't finish it at once.
-            int recordTimes = habit.getRecord().length();
             updateHabitRemindedTimes(id, recordTimes);
         }
 
@@ -349,22 +350,10 @@ public class HabitDAO {
 
         habit.initHabitReminders(); // habitReminders have become latest.
         habitReminders = habit.getHabitReminders();
-        //long min = Long.MAX_VALUE;
         for (int i = 0; i < hrIds.size(); i++) {
             long newTime = habitReminders.get(i).getNotifyTime();
             updateHabitReminder(hrIds.get(i), newTime);
-//            if (newTime < min) {
-//                min = newTime;
-//            }
         }
-
-//        if (remindedTimes == 0 && recordTimes == 0) {
-//            // User may backup before first notification and restore it next year.
-//            // We should update firstTime of habit to correct time of next year.
-//            // Otherwise, we may see that persist-in-T is 1 year but actually user
-//            // did not finish it even once.
-//            updateHabitFirstTime(id, min);
-//        }
 
         // 将已经提前完成的habitReminder更新至新的周期里
         List<HabitRecord> habitRecordsThisT = habit.getHabitRecordsThisT();
@@ -375,31 +364,52 @@ public class HabitDAO {
                 updateHabitReminderToNext(hr.getId());
             }
         }
+
+        if (updateRemindedTimes && !forceToUpdateRemindedTimes) {
+            int remindedTimes = habit.getRemindedTimes();
+            if (recordTimes < remindedTimes) {
+                int habitType = habit.getType();
+                long minTime = habit.getMinHabitReminderTime();
+                long maxTime = habit.getFinalHabitReminder().getNotifyTime();
+                long maxLastTime = DateTimeUtil.getHabitReminderTime(habitType, maxTime, -1);
+                long curTime = System.currentTimeMillis();
+                if (maxLastTime < curTime && curTime < minTime) {
+                    if (DateTimeUtil.calculateTimeGap(maxLastTime, curTime, habitType) != 0) {
+                        updateHabitRemindedTimes(id, recordTimes);
+                    }
+                    // else 用户还能“补”掉这一次未完成的情况，因此不更新remindedTimes
+                } else {
+                    updateHabitRemindedTimes(id, recordTimes);
+                }
+            } else if (recordTimes > remindedTimes) {
+                updateHabitRemindedTimes(id, recordTimes);
+            }
+        }
     }
 
     public void updateRecordOfHabit(long id, String record) {
         ContentValues values = new ContentValues();
-        values.put(Definitions.Database.COLUMN_RECORD_HABITS, record);
-        db.update(Definitions.Database.TABLE_HABITS, values, "id=" + id, null);
+        values.put(Def.Database.COLUMN_RECORD_HABITS, record);
+        db.update(Def.Database.TABLE_HABITS, values, "id=" + id, null);
     }
 
     public void updateHabitRemindedTimes(long id, long remindedTimes) {
         ContentValues values = new ContentValues();
-        values.put(Definitions.Database.COLUMN_REMINDED_TIMES_HABITS, remindedTimes);
-        db.update(Definitions.Database.TABLE_HABITS, values, "id=" + id, null);
+        values.put(Def.Database.COLUMN_REMINDED_TIMES_HABITS, remindedTimes);
+        db.update(Def.Database.TABLE_HABITS, values, "id=" + id, null);
     }
 
     public void updateHabitFirstTime(long id, long firstTime) {
         ContentValues values = new ContentValues();
-        values.put(Definitions.Database.COLUMN_FIRST_TIME_HABITS, firstTime);
-        db.update(Definitions.Database.TABLE_HABITS, values, "id=" + id, null);
+        values.put(Def.Database.COLUMN_FIRST_TIME_HABITS, firstTime);
+        db.update(Def.Database.TABLE_HABITS, values, "id=" + id, null);
     }
 
     public void addHabitIntervalInfo(long id, String intervalInfoToAdd) {
         ContentValues values = new ContentValues();
-        values.put(Definitions.Database.COLUMN_INTERVAL_INFO_HABITS,
+        values.put(Def.Database.COLUMN_INTERVAL_INFO_HABITS,
                 getHabitById(id).getIntervalInfo() + intervalInfoToAdd);
-        db.update(Definitions.Database.TABLE_HABITS, values, "id=" + id, null);
+        db.update(Def.Database.TABLE_HABITS, values, "id=" + id, null);
     }
 
     public void removeLastHabitIntervalInfo(long id) {
@@ -407,14 +417,14 @@ public class HabitDAO {
         interval = interval.substring(0,
                 interval.lastIndexOf(interval.endsWith(";") ? "," : ";") + 1);
         ContentValues values = new ContentValues();
-        values.put(Definitions.Database.COLUMN_INTERVAL_INFO_HABITS, interval);
-        db.update(Definitions.Database.TABLE_HABITS, values, "id=" + id, null);
+        values.put(Def.Database.COLUMN_INTERVAL_INFO_HABITS, interval);
+        db.update(Def.Database.TABLE_HABITS, values, "id=" + id, null);
     }
 
     public void updateHabitReminder(long hrId, long notifyTime) {
         ContentValues values = new ContentValues();
-        values.put(Definitions.Database.COLUMN_NOTIFY_TIME_HABIT_REMINDERS, notifyTime);
-        db.update(Definitions.Database.TABLE_HABIT_REMINDERS, values, "id=" + hrId, null);
+        values.put(Def.Database.COLUMN_NOTIFY_TIME_HABIT_REMINDERS, notifyTime);
+        db.update(Def.Database.TABLE_HABIT_REMINDERS, values, "id=" + hrId, null);
         AlarmHelper.setHabitReminderAlarm(mContext, hrId, notifyTime);
     }
 
@@ -437,7 +447,7 @@ public class HabitDAO {
     public void deleteHabit(long id) {
         db.beginTransaction();
         try {
-            db.delete(Definitions.Database.TABLE_HABITS, "id=" + id, null);
+            db.delete(Def.Database.TABLE_HABITS, "id=" + id, null);
             deleteHabitReminders(id);
             deleteHabitRecords(id);
             updateMaxHabitReminderRecordId();
@@ -454,15 +464,15 @@ public class HabitDAO {
         for (HabitReminder habitReminder : habitReminders) {
             AlarmHelper.deleteHabitReminderAlarm(mContext, habitReminder.getId());
         }
-        db.delete(Definitions.Database.TABLE_HABIT_REMINDERS, "habit_id=" + habitId, null);
+        db.delete(Def.Database.TABLE_HABIT_REMINDERS, "habit_id=" + habitId, null);
     }
 
     public void deleteHabitRecords(long habitId) {
-        db.delete(Definitions.Database.TABLE_HABIT_RECORDS, "habit_id=" + habitId, null);
+        db.delete(Def.Database.TABLE_HABIT_RECORDS, "habit_id=" + habitId, null);
     }
 
     public void deleteHabitRecord(long hrId) {
-        db.delete(Definitions.Database.TABLE_HABIT_RECORDS, "id=" + hrId, null);
+        db.delete(Def.Database.TABLE_HABIT_RECORDS, "id=" + hrId, null);
     }
 
 }

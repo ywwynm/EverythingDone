@@ -7,7 +7,7 @@ import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.AccelerateInterpolator;
 import android.view.animation.OvershootInterpolator;
 
-import com.ywwynm.everythingdone.utils.VersionUtil;
+import com.ywwynm.everythingdone.utils.DeviceUtil;
 
 /**
  * Created by ywwynm on 2015/8/16.
@@ -50,7 +50,7 @@ public class FloatingActionButton extends android.support.design.widget.Floating
     }
 
     private int getMarginBottom() {
-        if (!VersionUtil.hasLollipopApi()) {
+        if (!DeviceUtil.hasLollipopApi()) {
             return 0;
         } else return (int) (16 * getResources().getDisplayMetrics().density);
     }

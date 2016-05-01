@@ -23,8 +23,8 @@ import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-import com.ywwynm.everythingdone.Definitions;
-import com.ywwynm.everythingdone.EverythingDoneApplication;
+import com.ywwynm.everythingdone.Def;
+import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.DetailActivity;
 import com.ywwynm.everythingdone.adapters.DateTimePagerAdapter;
@@ -61,7 +61,6 @@ public class DateTimeDialogFragment extends NoTitleDialogFragment {
     private static final String NO_PROBLEM = "no problem";
 
     private DetailActivity mActivity;
-    private View           mContentView;
 
     private Thing mThing;
     private boolean[] mTabInitiated = new boolean[3];
@@ -166,7 +165,7 @@ public class DateTimeDialogFragment extends NoTitleDialogFragment {
     public static DateTimeDialogFragment newInstance(Thing thing) {
         DateTimeDialogFragment fragment = new DateTimeDialogFragment();
         Bundle args = new Bundle();
-        args.putParcelable(Definitions.Communication.KEY_THING, thing);
+        args.putParcelable(Def.Communication.KEY_THING, thing);
         fragment.setArguments(args);
         return fragment;
     }
@@ -188,25 +187,26 @@ public class DateTimeDialogFragment extends NoTitleDialogFragment {
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        super.onCreateView(inflater, container, savedInstanceState);
+
         initMembers();
-        mContentView = inflater.inflate(R.layout.fragment_date_time, container);
         findViews();
         initUI();
         setEvents();
 
         Bundle args = getArguments();
-        mThing = args.getParcelable(Definitions.Communication.KEY_THING);
+        mThing = args.getParcelable(Def.Communication.KEY_THING);
 
-        EverythingDoneApplication application = (EverythingDoneApplication)
+        App application = (App)
                 mActivity.getApplication();
         int limit = application.getLimit();
         if (mActivity.habitDetail != null ||
-                limit == Definitions.LimitForGettingThings.HABIT_UNDERWAY) {
+                limit == Def.LimitForGettingThings.HABIT_UNDERWAY) {
             mVpDateTime.post(new InitiallyShowPageRunnable(2));
             initAll(2);
         } else {
             int to = 0;
-            if (limit == Definitions.LimitForGettingThings.GOAL_UNDERWAY
+            if (limit == Def.LimitForGettingThings.GOAL_UNDERWAY
                     && mActivity.getType() == DetailActivity.CREATE) {
                 to = 1;
             }
@@ -215,6 +215,11 @@ public class DateTimeDialogFragment extends NoTitleDialogFragment {
         }
 
         return mContentView;
+    }
+
+    @Override
+    protected int getLayoutResource() {
+        return R.layout.fragment_date_time;
     }
 
     private void updateViewPagerHeight() {
@@ -315,27 +320,27 @@ public class DateTimeDialogFragment extends NoTitleDialogFragment {
     }
 
     private void findViews() {
-        mTabLayout     = (TabLayout) mContentView.findViewById(R.id.tab_layout);
-        mVpDateTime    = (ViewPager) mContentView.findViewById(R.id.vp_date_time);
-        mTvConfirmAsBt = (TextView)  mContentView.findViewById(R.id.tv_confirm_as_bt);
-        mTvCancelAsBt  = (TextView)  mContentView.findViewById(R.id.tv_cancel_as_bt);
+        mTabLayout     = f(R.id.tab_layout);
+        mVpDateTime    = f(R.id.vp_date_time);
+        mTvConfirmAsBt = f(R.id.tv_confirm_as_bt);
+        mTvCancelAsBt  = f(R.id.tv_cancel_as_bt);
     }
 
     private void findViewsAt() {
         View tab0 = mTabs.get(0);
-        mTvsAt[0] = (TextView) tab0.findViewById(R.id.tv_year_at);
-        mTvsAt[1] = (TextView) tab0.findViewById(R.id.tv_month_at);
-        mTvsAt[2] = (TextView) tab0.findViewById(R.id.tv_day_at);
-        mTvsAt[3] = (TextView) tab0.findViewById(R.id.tv_hour_at);
-        mTvsAt[4] = (TextView) tab0.findViewById(R.id.tv_minute_at);
+        mTvsAt[0] = f(tab0, R.id.tv_year_at);
+        mTvsAt[1] = f(tab0, R.id.tv_month_at);
+        mTvsAt[2] = f(tab0, R.id.tv_day_at);
+        mTvsAt[3] = f(tab0, R.id.tv_hour_at);
+        mTvsAt[4] = f(tab0, R.id.tv_minute_at);
 
-        mEtsAt[0] = (EditText) tab0.findViewById(R.id.et_year_at);
-        mEtsAt[1] = (EditText) tab0.findViewById(R.id.et_month_at);
-        mEtsAt[2] = (EditText) tab0.findViewById(R.id.et_day_at);
-        mEtsAt[3] = (EditText) tab0.findViewById(R.id.et_hour_at);
-        mEtsAt[4] = (EditText) tab0.findViewById(R.id.et_minute_at);
+        mEtsAt[0] = f(tab0, R.id.et_year_at);
+        mEtsAt[1] = f(tab0, R.id.et_month_at);
+        mEtsAt[2] = f(tab0, R.id.et_day_at);
+        mEtsAt[3] = f(tab0, R.id.et_hour_at);
+        mEtsAt[4] = f(tab0, R.id.et_minute_at);
 
-        mTvSummaryAt = (TextView) tab0.findViewById(R.id.tv_summary_at);
+        mTvSummaryAt = f(tab0, R.id.tv_summary_at);
 
         for (int i = 0; i < mIlsAt.length; i++) {
             mIlsAt[i] = new InputLayout(mActivity, mTvsAt[i], mEtsAt[i], mAccentColor);
@@ -344,25 +349,25 @@ public class DateTimeDialogFragment extends NoTitleDialogFragment {
 
     private void findViewsAfter() {
         View tab1        = mTabs.get(1);
-        mEtTimeAfter     = (EditText) tab1.findViewById(R.id.et_time_after);
-        mTvTimeAsBtAfter = (TextView) tab1.findViewById(R.id.tv_time_as_bt_after);
+        mEtTimeAfter     = f(tab1, R.id.et_time_after);
+        mTvTimeAsBtAfter = f(tab1, R.id.tv_time_as_bt_after);
         mDtpAfter        = new DateTimePicker(mActivity, mContentView,
-                Definitions.PickerType.TIME_TYPE_HAVE_HOUR_MINUTE, mAccentColor);
-        mTvErrorAfter = (TextView) tab1.findViewById(R.id.tv_error_after);
+                Def.PickerType.TIME_TYPE_HAVE_HOUR_MINUTE, mAccentColor);
+        mTvErrorAfter = f(tab1, R.id.tv_error_after);
     }
 
     private void findViewsRec() {
-        View tab2           = mTabs.get(2);
-        mTvTimesLRec        = (TextView) tab2.findViewById(R.id.tv_times_l_recurrence);
-        mTvTimesRRec        = (TextView) tab2.findViewById(R.id.tv_times_r_recurrence);
-        mTvTimeAsBtRec      = (TextView) tab2.findViewById(R.id.tv_time_as_bt_recurrence);
-        mDtpRec             = new DateTimePicker(mActivity, mContentView,
-                                  Definitions.PickerType.TIME_TYPE_NO_HOUR_MINUTE, mAccentColor);
-        mIvPickAllAsBtRec   = (ImageView) tab2.findViewById(R.id.iv_pick_all_as_bt_rec);
-        mTvSummaryRec       = (TextView) tab2.findViewById(R.id.tv_summary_rec);
+        View tab2         = mTabs.get(2);
+        mTvTimesLRec      = f(tab2, R.id.tv_times_l_recurrence);
+        mTvTimesRRec      = f(tab2, R.id.tv_times_r_recurrence);
+        mTvTimeAsBtRec    = f(tab2, R.id.tv_time_as_bt_recurrence);
+        mDtpRec           = new DateTimePicker(mActivity, mContentView,
+                                Def.PickerType.TIME_TYPE_NO_HOUR_MINUTE, mAccentColor);
+        mIvPickAllAsBtRec = f(tab2, R.id.iv_pick_all_as_bt_rec);
+        mTvSummaryRec     = f(tab2, R.id.tv_summary_rec);
 
         // day
-        mRvTimeOfDay      = (RecyclerView) tab2.findViewById(R.id.rv_time_of_day);
+        mRvTimeOfDay      = f(tab2, R.id.rv_time_of_day);
         mAdapterTimeOfDay = new TimeOfDayRecAdapter(mActivity, mAccentColor);
         ArrayList<Integer> items = new ArrayList<>();
         items.add(-1);
@@ -371,25 +376,25 @@ public class DateTimeDialogFragment extends NoTitleDialogFragment {
         mLlmTimeOfDay = new LinearLayoutManager(mActivity);
 
         // wmy
-        mRlWmy    = (RelativeLayout) tab2.findViewById(R.id.rl_rec_wmy);
-        mRvWmy    = (RecyclerView) tab2.findViewById(R.id.rv_rec_wmy);
+        mRlWmy = f(tab2,R.id.rl_rec_wmy);
+        mRvWmy = f(tab2, R.id.rv_rec_wmy);
 
-        mFlDayYear = (FrameLayout) tab2.findViewById(R.id.fl_day_rec_wmy);
+        mFlDayYear = f(tab2, R.id.fl_day_rec_wmy);
 
         mIlDayYear   = new InputLayout(mActivity,
-                (TextView) tab2.findViewById(R.id.tv_day_rec_wmy),
-                (EditText) tab2.findViewById(R.id.et_day_rec_wmy), mAccentColor);
+                (TextView) f(tab2, R.id.tv_day_rec_wmy),
+                (EditText) f(tab2, R.id.et_day_rec_wmy), mAccentColor);
         mIlHourWmy   = new InputLayout(mActivity,
-                (TextView) tab2.findViewById(R.id.tv_hour_rec_wmy),
-                (EditText) tab2.findViewById(R.id.et_hour_rec_wmy), mAccentColor);
+                (TextView) f(tab2, R.id.tv_hour_rec_wmy),
+                (EditText) f(tab2, R.id.et_hour_rec_wmy), mAccentColor);
         mIlMinuteWmy = new InputLayout(mActivity,
-                (TextView) tab2.findViewById(R.id.tv_minute_rec_wmy),
-                (EditText) tab2.findViewById(R.id.et_minute_rec_wmy), mAccentColor);
+                (TextView) f(tab2, R.id.tv_minute_rec_wmy),
+                (EditText) f(tab2, R.id.et_minute_rec_wmy), mAccentColor);
 
         // week
         mGlmDayOfWeek     = new GridLayoutManager(mActivity, 4);
         mAdapterDayOfWeek = new RecurrencePickerAdapter(mActivity,
-                Definitions.PickerType.DAY_OF_WEEK, mAccentColor);
+                Def.PickerType.DAY_OF_WEEK, mAccentColor);
 
         // month
         mGlmDayOfMonth     = new GridLayoutManager(mActivity, 6);
@@ -400,12 +405,12 @@ public class DateTimeDialogFragment extends NoTitleDialogFragment {
             }
         });
         mAdapterDayOfMonth = new RecurrencePickerAdapter(mActivity,
-                Definitions.PickerType.DAY_OF_MONTH, mAccentColor);
+                Def.PickerType.DAY_OF_MONTH, mAccentColor);
 
         // year
         mGlmMonthOfYear = new GridLayoutManager(mActivity, 4);
         mAdapterMonthOfYear = new RecurrencePickerAdapter(mActivity,
-                Definitions.PickerType.MONTH_OF_YEAR, mAccentColor);
+                Def.PickerType.MONTH_OF_YEAR, mAccentColor);
     }
 
     private void initUI() {

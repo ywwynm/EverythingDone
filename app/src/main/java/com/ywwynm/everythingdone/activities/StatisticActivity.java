@@ -22,10 +22,9 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import com.ywwynm.everythingdone.Definitions;
-import com.ywwynm.everythingdone.EverythingDoneApplication;
+import com.ywwynm.everythingdone.Def;
+import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.adapters.StatisticAdapter;
 import com.ywwynm.everythingdone.database.HabitDAO;
@@ -40,11 +39,11 @@ import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.model.ThingsCounts;
 import com.ywwynm.everythingdone.utils.BitmapUtil;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
+import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.FileUtil;
 import com.ywwynm.everythingdone.utils.LocaleUtil;
 import com.ywwynm.everythingdone.utils.PermissionUtil;
-import com.ywwynm.everythingdone.utils.VersionUtil;
 import com.ywwynm.everythingdone.views.FloatingActionButton;
 
 import org.joda.time.DateTime;
@@ -60,7 +59,9 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
 
     public static final String TAG = "StatisticActivity";
 
-    private EverythingDoneApplication mApplication;
+    private App mApplication;
+
+    private SharedPreferences mPreferences;
 
     private ThingsCounts mThingsCounts;
     private ThingDAO mThingDAO;
@@ -93,11 +94,11 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
     @Override
     public void onRequestPermissionsResult(
             int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        if (requestCode == Definitions.Communication.REQUEST_PERMISSION_SCREENSHOT) {
+        if (requestCode == Def.Communication.REQUEST_PERMISSION_SCREENSHOT) {
             final int G = PackageManager.PERMISSION_GRANTED;
             for (int grantResult : grantResults) {
                 if (grantResult != G) {
-                    Toast.makeText(this, R.string.error_permission_denied, Toast.LENGTH_LONG).show();
+                    PermissionUtil.notifyFailed(mScrollView);
                     return;
                 }
             }
@@ -112,7 +113,8 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
 
     @Override
     protected void initMembers() {
-        mApplication = (EverythingDoneApplication) getApplication();
+        mApplication = (App) getApplication();
+        mPreferences = getSharedPreferences(Def.Meta.PREFERENCES_NAME, MODE_PRIVATE);
 
         mThingsCounts = ThingsCounts.getInstance(mApplication);
         mThingDAO = ThingDAO.getInstance(mApplication);
@@ -127,15 +129,15 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
 
     @Override
     protected void findViews() {
-        mStatusbar = findViewById(R.id.view_status_bar);
-        mActionbar = (Toolbar) findViewById(R.id.actionbar);
-        mTitle = (TextView) findViewById(R.id.tv_title_statistic);
-        mActionbarShadow = findViewById(R.id.actionbar_shadow);
+        mStatusbar = f(R.id.view_status_bar);
+        mActionbar = f(R.id.actionbar);
+        mTitle = f(R.id.tv_title_statistic);
+        mActionbarShadow = f(R.id.actionbar_shadow);
 
-        mIvHeader = (ImageView) findViewById(R.id.iv_header_statistic);
-        mScrollView = (ScrollView) findViewById(R.id.sv_statistic);
+        mIvHeader = f(R.id.iv_header_statistic);
+        mScrollView = f(R.id.sv_statistic);
 
-        mFab = (FloatingActionButton) findViewById(R.id.fab_share);
+        mFab = f(R.id.fab_share);
     }
 
     @Override
@@ -150,11 +152,26 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
     }
 
     private void initHeaderUI() {
-        if (VersionUtil.hasKitKatApi()) {
+        if (DeviceUtil.hasKitKatApi()) {
             LinearLayout.LayoutParams params = (LinearLayout.LayoutParams)
                     mStatusbar.getLayoutParams();
             params.height = DisplayUtil.getStatusbarHeight(this);
             mStatusbar.requestLayout();
+        }
+
+        final String D = SettingsActivity.DEFAULT_DRAWER_HEADER;
+        String header = mPreferences.getString(Def.Meta.KEY_DRAWER_HEADER, D);
+        if (D.equals(header)) {
+            mIvHeader.setImageResource(R.drawable.drawer_header_large);
+        } else {
+            if (!new File(header).exists()) {
+                mIvHeader.setImageResource(R.drawable.drawer_header_large);
+                mPreferences.edit().putString(Def.Meta.KEY_DRAWER_HEADER, D).apply();
+            } else {
+                Bitmap bm = BitmapUtil.decodeFileWithRequiredSize(header,
+                        (int) (mHeaderHeight * 16 / 9), (int) mHeaderHeight);
+                mIvHeader.setImageBitmap(bm);
+            }
         }
 
         LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) mIvHeader.getLayoutParams();
@@ -162,7 +179,7 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
         mIvHeader.requestLayout();
 
         float mt = mHeaderHeight - mScreenDensity * 28;
-        if (!VersionUtil.hasLollipopApi()) {
+        if (!DeviceUtil.hasLollipopApi()) {
             mt -= mScreenDensity * 28;
         }
         FrameLayout.LayoutParams flp = (FrameLayout.LayoutParams) mFab.getLayoutParams();
@@ -172,8 +189,8 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
 
     private void initStartFromUI() {
         SharedPreferences metaData = getSharedPreferences(
-                Definitions.MetaData.META_DATA_NAME, MODE_PRIVATE);
-        long time = metaData.getLong(Definitions.MetaData.KEY_START_USING_TIME, 0);
+                Def.Meta.META_DATA_NAME, MODE_PRIVATE);
+        long time = metaData.getLong(Def.Meta.KEY_START_USING_TIME, 0);
         DateTime dt = new DateTime(time);
         int gap = DateTimeUtil.calculateTimeGap(
                 time, System.currentTimeMillis(), Calendar.DATE) + 1;
@@ -194,7 +211,7 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
         }
         sb.append(getString(R.string.statistic_start_from_part_3));
 
-        TextView tv = (TextView) findViewById(R.id.tv_start_from_statistic);
+        TextView tv = f(R.id.tv_start_from_statistic);
         tv.setText(sb.toString());
     }
 
@@ -209,8 +226,8 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
         if (u != 0 || f != 0 || d != 0) {
             new NoteTask().execute();
         } else {
-            findViewById(R.id.tv_note_record_statistic).setVisibility(View.GONE);
-            findViewById(R.id.cv_note_record_statistic).setVisibility(View.GONE);
+            f(R.id.tv_note_record_statistic).setVisibility(View.GONE);
+            f(R.id.cv_note_record_statistic).setVisibility(View.GONE);
         }
     }
 
@@ -221,8 +238,8 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
         if (u != 0 || f != 0 || d != 0) {
             new ReminderTask().execute();
         } else {
-            findViewById(R.id.tv_reminder_record_statistic).setVisibility(View.GONE);
-            findViewById(R.id.cv_reminder_record_statistic).setVisibility(View.GONE);
+            f(R.id.tv_reminder_record_statistic).setVisibility(View.GONE);
+            f(R.id.cv_reminder_record_statistic).setVisibility(View.GONE);
         }
     }
 
@@ -233,8 +250,8 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
         if (u != 0 || f != 0 || d != 0) {
             new HabitTask().execute();
         } else {
-            findViewById(R.id.tv_habit_record_statistic).setVisibility(View.GONE);
-            findViewById(R.id.cv_habit_record_statistic).setVisibility(View.GONE);
+            f(R.id.tv_habit_record_statistic).setVisibility(View.GONE);
+            f(R.id.cv_habit_record_statistic).setVisibility(View.GONE);
         }
     }
 
@@ -246,8 +263,8 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
         if (u != 0 || f != 0 || d != 0) {
             new GoalTask().execute();
         } else {
-            findViewById(R.id.tv_goal_record_statistic).setVisibility(View.GONE);
-            findViewById(R.id.cv_goal_record_statistic).setVisibility(View.GONE);
+            f(R.id.tv_goal_record_statistic).setVisibility(View.GONE);
+            f(R.id.cv_goal_record_statistic).setVisibility(View.GONE);
         }
     }
 
@@ -290,7 +307,7 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
                 };
 
                 PermissionUtil.doWithPermissionChecked(callback, StatisticActivity.this,
-                        Definitions.Communication.REQUEST_PERMISSION_SCREENSHOT,
+                        Def.Communication.REQUEST_PERMISSION_SCREENSHOT,
                         Manifest.permission.WRITE_EXTERNAL_STORAGE);
             }
         });
@@ -309,7 +326,7 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
     }
 
     private void updateFabState() {
-        int statusbarSize = VersionUtil.hasKitKatApi() ?
+        int statusbarSize = DeviceUtil.hasKitKatApi() ?
             DisplayUtil.getStatusbarHeight(StatisticActivity.this) : 0;
         int scrollY = mScrollView.getScrollY();
         int actionbarSize = mActionbar.getHeight();
@@ -322,7 +339,7 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
     }
 
     private void updateActionbarState() {
-        int statusbarSize = VersionUtil.hasKitKatApi() ?
+        int statusbarSize = DeviceUtil.hasKitKatApi() ?
                 DisplayUtil.getStatusbarHeight(mApplication) : 0;
         int scrollY = mScrollView.getScrollY();
         int color = ContextCompat.getColor(mApplication, R.color.blue_grey_deep_grey);
@@ -350,9 +367,9 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
     }
 
     private String[] getStrsForNoteRecord() {
-        final String TITLE   = Definitions.Database.COLUMN_TITLE_THINGS;
-        final String CONTENT = Definitions.Database.COLUMN_CONTENT_THINGS;
-        final String ATTACH  = Definitions.Database.COLUMN_ATTACHMENT_THINGS;
+        final String TITLE   = Def.Database.COLUMN_TITLE_THINGS;
+        final String CONTENT = Def.Database.COLUMN_CONTENT_THINGS;
+        final String ATTACH  = Def.Database.COLUMN_ATTACHMENT_THINGS;
 
         String[] strs = new String[4];
         int[] counts = new int[4];
@@ -387,7 +404,7 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
         // 最长连续完成次数
         // 最长坚持周期数
         String[] strs = new String[5];
-        strs[0] = mThingsCounts.getCompletionRate(Definitions.LimitForGettingThings.HABIT_UNDERWAY);
+        strs[0] = mThingsCounts.getCompletionRate(Def.LimitForGettingThings.HABIT_UNDERWAY);
 
         int fCount = 0; // finished times
         int tCount = 0; // total record times
@@ -398,7 +415,7 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
         Cursor cursor = mThingDAO.getThingsCursor("type=" + Thing.HABIT);
         while (cursor.moveToNext()) {
             long id = cursor.getLong(
-                    cursor.getColumnIndex(Definitions.Database.COLUMN_ID_THINGS));
+                    cursor.getColumnIndex(Def.Database.COLUMN_ID_THINGS));
             Habit habit = hDao.getHabitById(id);
             String record = habit.getRecord();
             fCount += countOfKey(record, "1");
@@ -431,10 +448,10 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
         String[] strs = new String[4];
         if (isReminder) {
             strs[0] = mThingsCounts.getCompletionRate(
-                    Definitions.LimitForGettingThings.REMINDER_UNDERWAY);
+                    Def.LimitForGettingThings.REMINDER_UNDERWAY);
         } else {
             strs[0] = mThingsCounts.getCompletionRate(
-                    Definitions.LimitForGettingThings.GOAL_UNDERWAY);
+                    Def.LimitForGettingThings.GOAL_UNDERWAY);
         }
 
         long tNtfMillis = 0; // total notify time length in milliseconds
@@ -447,17 +464,17 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
                 (isReminder ? Thing.REMINDER : Thing.GOAL));
         while (cursor.moveToNext()) {
             long id = cursor.getLong(
-                    cursor.getColumnIndex(Definitions.Database.COLUMN_ID_THINGS));
+                    cursor.getColumnIndex(Def.Database.COLUMN_ID_THINGS));
             Reminder reminder = rDao.getReminderById(id);
             tNtfMillis += reminder.getNotifyMillis();
 
             int state = cursor.getInt(
-                    cursor.getColumnIndex(Definitions.Database.COLUMN_STATE_THINGS));
+                    cursor.getColumnIndex(Def.Database.COLUMN_STATE_THINGS));
             if (state == Thing.FINISHED) {
                 fCount++;
                 long updateTime = reminder.getUpdateTime();
                 long finishTime = cursor.getLong(
-                        cursor.getColumnIndex(Definitions.Database.COLUMN_FINISH_TIME_THINGS));
+                        cursor.getColumnIndex(Def.Database.COLUMN_FINISH_TIME_THINGS));
                 tFinTime += (finishTime - updateTime);
 
                 if (finishTime < reminder.getNotifyTime()
@@ -578,7 +595,7 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
                     R.string.goal,
                     R.string.all
             };
-            RecyclerView rv = (RecyclerView) findViewById(R.id.rv_finished_created_statistic);
+            RecyclerView rv = f(R.id.rv_finished_created_statistic);
             rv.setAdapter(new StatisticAdapter(
                     StatisticActivity.this, iconRes, firstRes, null, strings));
             rv.setLayoutManager(new LinearLayoutManager(StatisticActivity.this));
@@ -606,7 +623,7 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
                     R.string.statistic_note_video_count,
                     R.string.statistic_note_audio_count
             };
-            RecyclerView rv = (RecyclerView) findViewById(R.id.rv_note_record_statistic);
+            RecyclerView rv = f(R.id.rv_note_record_statistic);
             final StatisticAdapter adapter = new StatisticAdapter(
                     StatisticActivity.this, iconRes, firstRes, null, strings);
             rv.setAdapter(adapter);
@@ -635,7 +652,7 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
                     R.string.statistic_reminder_finish_time,
                     R.string.statistic_reminder_in_advance
             };
-            RecyclerView rv = (RecyclerView) findViewById(R.id.rv_reminder_record_statistic);
+            RecyclerView rv = f(R.id.rv_reminder_record_statistic);
             float[] textSizes;
             if (LocaleUtil.isChinese(mApplication)) {
                 textSizes = null;
@@ -671,7 +688,7 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
                     R.string.statistic_habit_longest_finish_times,
                     R.string.statistic_habit_longest_pit
             };
-            RecyclerView rv = (RecyclerView) findViewById(R.id.rv_habit_record_statistic);
+            RecyclerView rv = f(R.id.rv_habit_record_statistic);
             float[] textSizes;
             if (LocaleUtil.isChinese(mApplication)) {
                 textSizes = new float[] { 16, 14, 16, 16, 16 };
@@ -705,7 +722,7 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
                     R.string.statistic_reminder_finish_time,
                     R.string.statistic_reminder_in_advance
             };
-            RecyclerView rv = (RecyclerView) findViewById(R.id.rv_goal_record_statistic);
+            RecyclerView rv = f(R.id.rv_goal_record_statistic);
             float[] textSizes;
             if (LocaleUtil.isChinese(mApplication)) {
                 textSizes = null;
@@ -722,11 +739,11 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
 
         @Override
         protected File doInBackground(Object... params) {
-            // sleep this thread for 1s to make sure that scrollbar have been drawn completely.
+            // sleep this thread for 1.6s to make sure that scrollbar have been drawn completely.
             // As a result, we can get screenshot of mScrollView by view.draw(Canvas).
             // Otherwise, we may get Exception and crash because we draw something in worker thread.
             try {
-                Thread.sleep(1000);
+                Thread.sleep(1600);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }

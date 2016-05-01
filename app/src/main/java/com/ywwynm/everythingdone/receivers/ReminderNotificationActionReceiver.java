@@ -5,8 +5,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.support.v4.app.NotificationManagerCompat;
 
-import com.ywwynm.everythingdone.Definitions;
-import com.ywwynm.everythingdone.EverythingDoneApplication;
+import com.ywwynm.everythingdone.App;
+import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
 import com.ywwynm.everythingdone.managers.ThingManager;
@@ -22,11 +22,11 @@ public class ReminderNotificationActionReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         String action = intent.getAction();
-        long id = intent.getLongExtra(Definitions.Communication.KEY_ID, 0);
-        int position = intent.getIntExtra(Definitions.Communication.KEY_POSITION, -1);
+        long id = intent.getLongExtra(Def.Communication.KEY_ID, 0);
+        int position = intent.getIntExtra(Def.Communication.KEY_POSITION, -1);
 
         Thing thing;
-        if (action.equals(Definitions.Communication.NOTIFICATION_ACTION_FINISH)) {
+        if (action.equals(Def.Communication.NOTIFICATION_ACTION_FINISH)) {
             if (position == -1) {
                 ThingDAO thingDAO = ThingDAO.getInstance(context);
                 thing = thingDAO.getThingById(id);
@@ -56,10 +56,10 @@ public class ReminderNotificationActionReceiver extends BroadcastReceiver {
                 }
             }
 
-            EverythingDoneApplication.setSomethingUpdatedSpecially(true);
+            App.setSomethingUpdatedSpecially(true);
             sendBroadCastToUpdateMainUI(context, thing, position,
-                    Definitions.Communication.RESULT_UPDATE_THING_STATE_DIFFERENT);
-        } else if (action.equals(Definitions.Communication.NOTIFICATION_ACTION_DELAY)) {
+                    Def.Communication.RESULT_UPDATE_THING_STATE_DIFFERENT);
+        } else if (action.equals(Def.Communication.NOTIFICATION_ACTION_DELAY)) {
             if (position == -1) {
                 ThingDAO thingDAO = ThingDAO.getInstance(context);
                 thing = thingDAO.getThingById(id);
@@ -92,9 +92,9 @@ public class ReminderNotificationActionReceiver extends BroadcastReceiver {
             reminder.setUpdateTime(System.currentTimeMillis());
             dao.update(reminder);
 
-            EverythingDoneApplication.setSomethingUpdatedSpecially(true);
+            App.setSomethingUpdatedSpecially(true);
             sendBroadCastToUpdateMainUI(context, thing, position,
-                    Definitions.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME);
+                    Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME);
         }
 
         NotificationManagerCompat nmc = NotificationManagerCompat.from(context);
@@ -103,20 +103,20 @@ public class ReminderNotificationActionReceiver extends BroadcastReceiver {
 
     private void sendBroadCastToUpdateMainUI(Context context, Thing thing, int position, int resultCode) {
         Intent broadcastIntent = new Intent(
-                Definitions.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI);
-        broadcastIntent.putExtra(Definitions.Communication.KEY_RESULT_CODE, resultCode);
-        broadcastIntent.putExtra(Definitions.Communication.KEY_THING, thing);
-        broadcastIntent.putExtra(Definitions.Communication.KEY_POSITION, position);
-        if (resultCode == Definitions.Communication.RESULT_UPDATE_THING_STATE_DIFFERENT) {
-            broadcastIntent.putExtra(Definitions.Communication.KEY_STATE_AFTER, Thing.FINISHED);
+                Def.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI);
+        broadcastIntent.putExtra(Def.Communication.KEY_RESULT_CODE, resultCode);
+        broadcastIntent.putExtra(Def.Communication.KEY_THING, thing);
+        broadcastIntent.putExtra(Def.Communication.KEY_POSITION, position);
+        if (resultCode == Def.Communication.RESULT_UPDATE_THING_STATE_DIFFERENT) {
+            broadcastIntent.putExtra(Def.Communication.KEY_STATE_AFTER, Thing.FINISHED);
             if (position != -1) {
                 ThingManager thingManager = ThingManager.getInstance(context);
-                broadcastIntent.putExtra(Definitions.Communication.KEY_CALL_CHANGE,
+                broadcastIntent.putExtra(Def.Communication.KEY_CALL_CHANGE,
                         thingManager.updateState(thing, position, thing.getLocation(), Thing.UNDERWAY,
                                 Thing.FINISHED, false, true));
             }
         } else {
-            broadcastIntent.putExtra(Definitions.Communication.KEY_TYPE_BEFORE, thing.getType());
+            broadcastIntent.putExtra(Def.Communication.KEY_TYPE_BEFORE, thing.getType());
         }
         context.sendBroadcast(broadcastIntent);
     }

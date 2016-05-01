@@ -1,11 +1,14 @@
 package com.ywwynm.everythingdone.adapters;
 
 import android.content.Context;
-import android.support.v7.widget.AppCompatRadioButton;
+import android.graphics.PorterDuff;
+import android.graphics.drawable.Drawable;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 
 import com.ywwynm.everythingdone.R;
 
@@ -21,12 +24,14 @@ public class ChooserFragmentAdapter extends SingleChoiceAdapter {
 
     private LayoutInflater mInflater;
     private List<String> mItems;
+    private int mAccentColor;
 
     private View.OnClickListener mOnItemClickListener;
 
-    public ChooserFragmentAdapter(Context context, List<String> items) {
+    public ChooserFragmentAdapter(Context context, List<String> items, int accentColor) {
         mInflater = LayoutInflater.from(context);
         mItems = items;
+        mAccentColor = accentColor;
     }
 
     public void setOnItemClickListener(View.OnClickListener onItemClickListener) {
@@ -47,8 +52,18 @@ public class ChooserFragmentAdapter extends SingleChoiceAdapter {
     @Override
     public void onBindViewHolder(RecyclerView.ViewHolder viewHolder, int position) {
         ChoiceHolder holder = (ChoiceHolder) viewHolder;
-        holder.rb.setText(mItems.get(position));
-        holder.rb.setChecked(mPickedPosition == position);
+        holder.tv.setText(mItems.get(position));
+        Context context = holder.tv.getContext();
+        int uncheckedColor = ContextCompat.getColor(context, R.color.black_54);
+        Drawable d;
+        if (mPickedPosition == position) {
+            d = ContextCompat.getDrawable(context, R.mipmap.ic_radiobutton_checked);
+            d.mutate().setColorFilter(mAccentColor, PorterDuff.Mode.SRC_ATOP);
+        } else {
+            d = ContextCompat.getDrawable(context, R.mipmap.ic_radiobutton_unchecked);
+            d.mutate().setColorFilter(uncheckedColor, PorterDuff.Mode.SRC_ATOP);
+        }
+        holder.tv.setCompoundDrawablesWithIntrinsicBounds(d, null, null, null);
     }
 
     @Override
@@ -58,16 +73,18 @@ public class ChooserFragmentAdapter extends SingleChoiceAdapter {
 
     class ChoiceHolder extends RecyclerView.ViewHolder {
 
-        final AppCompatRadioButton rb;
+        final TextView tv;
 
         public ChoiceHolder(View itemView) {
             super(itemView);
 
-            rb = (AppCompatRadioButton) itemView.findViewById(R.id.rb_rv_chooser_fragment);
-            rb.setOnClickListener(new View.OnClickListener() {
+            tv = (TextView) itemView.findViewById(R.id.tv_rv_chooser_fragment);
+
+            tv.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     pick(getAdapterPosition());
+                    notifyItemChanged(mPickedPosition);
                     if (mOnItemClickListener != null) {
                         mOnItemClickListener.onClick(v);
                     }

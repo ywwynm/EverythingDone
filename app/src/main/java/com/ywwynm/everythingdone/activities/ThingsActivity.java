@@ -33,17 +33,19 @@ import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-import com.ywwynm.everythingdone.Definitions;
-import com.ywwynm.everythingdone.EverythingDoneApplication;
+import com.ywwynm.everythingdone.App;
+import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.adapters.ThingsAdapter;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.fragments.AlertDialogFragment;
 import com.ywwynm.everythingdone.fragments.ThreeActionsAlertDialogFragment;
+import com.ywwynm.everythingdone.helpers.AppUpdateHelper;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
 import com.ywwynm.everythingdone.helpers.SendInfoHelper;
 import com.ywwynm.everythingdone.managers.ModeManager;
@@ -52,12 +54,13 @@ import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.HabitRecord;
 import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.Thing;
+import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil;
+import com.ywwynm.everythingdone.utils.FileUtil;
 import com.ywwynm.everythingdone.utils.KeyboardUtil;
 import com.ywwynm.everythingdone.utils.LocaleUtil;
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil;
-import com.ywwynm.everythingdone.utils.VersionUtil;
 import com.ywwynm.everythingdone.views.ActivityHeader;
 import com.ywwynm.everythingdone.views.DrawerHeader;
 import com.ywwynm.everythingdone.views.FloatingActionButton;
@@ -65,6 +68,7 @@ import com.ywwynm.everythingdone.views.RevealLayout.RevealLayout;
 import com.ywwynm.everythingdone.views.Snackbar;
 import com.ywwynm.everythingdone.views.pickers.ColorPicker;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -73,7 +77,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
     public static final String TAG = "ThingsActivity";
 
-    private EverythingDoneApplication mApplication;
+    private App mApplication;
 
     private ThingManager mThingManager;
 
@@ -147,12 +151,12 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     private BroadcastReceiver mUpdateUiReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (EverythingDoneApplication.getRunningDetailActivities().size() > 0) {
+            if (App.getRunningDetailActivities().size() > 0) {
                 mBroadCastIntent = intent;
                 return;
             }
-            int resultCode = intent.getIntExtra(Definitions.Communication.KEY_RESULT_CODE,
-                    Definitions.Communication.RESULT_NO_UPDATE);
+            int resultCode = intent.getIntExtra(Def.Communication.KEY_RESULT_CODE,
+                    Def.Communication.RESULT_NO_UPDATE);
             updateMainUi(intent, resultCode);
         }
     };
@@ -171,7 +175,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         setDrawer();
 
         IntentFilter filter = new IntentFilter(
-                Definitions.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI);
+                Def.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI);
         registerReceiver(mUpdateUiReceiver, filter);
     }
 
@@ -184,10 +188,37 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     protected void beforeInit() {
         // this will be only called in onCreate(), which means this Activity has unregistered
         // receiver. So these two boolean values are useless now.
-        EverythingDoneApplication.setSomethingUpdatedSpecially(false);
-        EverythingDoneApplication.setShouldJustNotifyDataSetChanged(false);
+        App.setSomethingUpdatedSpecially(false);
+        App.setShouldJustNotifyDataSetChanged(false);
 
-        EverythingDoneApplication.putThingsActivityInstance(this);
+        App.putThingsActivityInstance(this);
+
+        AppUpdateHelper.getInstance(this).showInfo(this);
+
+        tryToShowFeedbackErrorDialog();
+    }
+
+    private void tryToShowFeedbackErrorDialog() {
+        File file = new File(getApplicationInfo().dataDir + "/files/" +
+                Def.Meta.FEEDBACK_ERROR_FILE_NAME);
+        if (file.exists()) {
+            AlertDialogFragment adf = new AlertDialogFragment();
+            int color = DisplayUtil.getRandomColor(this);
+            adf.setTitleColor(color);
+            adf.setConfirmColor(color);
+            adf.setTitle(getString(R.string.app_crash_title));
+            adf.setContent(getString(R.string.app_crash_content));
+            adf.setConfirmText(getString(R.string.app_crash_send_now));
+            adf.setConfirmListener(new AlertDialogFragment.ConfirmListener() {
+                @Override
+                public void onConfirm() {
+                    SendInfoHelper.sendFeedback(ThingsActivity.this, true);
+                }
+            });
+            adf.show(getFragmentManager(), AlertDialogFragment.TAG);
+
+            FileUtil.deleteFile(file);
+        }
     }
 
     @Override
@@ -196,7 +227,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
         updateTaskDescription();
 
-        if (mUpdateMainUiInOnResume && EverythingDoneApplication.justNotifyDataSetChanged()) {
+        if (mUpdateMainUiInOnResume && App.justNotifyDataSetChanged()) {
             justNotifyDataSetChanged();
         }
 
@@ -212,7 +243,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        EverythingDoneApplication.putThingsActivityInstance(this);
+        App.putThingsActivityInstance(this);
         dismissSnackbars();
     }
 
@@ -228,11 +259,11 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         unregisterReceiver(mUpdateUiReceiver);
         mApplication.setDetailActivityRun(false);
         updateTaskDescription();
-        EverythingDoneApplication.thingsActivityWR.clear();
+        App.thingsActivityWR.clear();
     }
 
     private void updateTaskDescription() {
-        if (VersionUtil.hasLollipopApi()) {
+        if (DeviceUtil.hasLollipopApi()) {
             BitmapDrawable bmd = (BitmapDrawable) getDrawable(R.mipmap.ic_launcher);
             Bitmap bm = bmd.getBitmap();
             setTaskDescription(new ActivityManager.TaskDescription(
@@ -243,16 +274,16 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        if (EverythingDoneApplication.isSearching) {
+        if (App.isSearching) {
             getMenuInflater().inflate(R.menu.menu_search, menu);
             mColorPicker.setAnchor(menu.findItem(R.id.act_select_color).getIcon());
             mColorPicker.updateAnchor();
             return true;
         }
 
-        if (mApplication.getLimit() <= Definitions.LimitForGettingThings.GOAL_UNDERWAY) {
+        if (mApplication.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
             getMenuInflater().inflate(R.menu.menu_things_underway, menu);
-        } else if (mApplication.getLimit() == Definitions.LimitForGettingThings.ALL_FINISHED) {
+        } else if (mApplication.getLimit() == Def.LimitForGettingThings.ALL_FINISHED) {
             getMenuInflater().inflate(R.menu.menu_things_finished, menu);
         } else {
             getMenuInflater().inflate(R.menu.menu_things_deleted, menu);
@@ -298,19 +329,23 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             if (mModeManager.getCurrentMode() == ModeManager.SELECTING) {
                 mModeManager.backNormalMode(0);
                 return;
-            } else if (EverythingDoneApplication.isSearching) {
+            } else if (App.isSearching) {
                 toggleSearching();
                 return;
             }
-            mApplication.setLimit(Definitions.LimitForGettingThings.ALL_UNDERWAY, true);
+            mApplication.setLimit(Def.LimitForGettingThings.ALL_UNDERWAY, true);
             super.onBackPressed();
         }
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, final Intent data) {
-        if (requestCode == Definitions.Communication.REQUEST_ACTIVITY_DETAIL) {
+        if (requestCode == Def.Communication.REQUEST_ACTIVITY_DETAIL) {
             updateMainUi(data, resultCode);
+        } else if (requestCode == Def.Communication.REQUEST_ACTIVITY_SETTINGS) {
+            if (resultCode == Def.Communication.RESULT_UPDATE_DRAWER_HEADER_DONE) {
+                mDrawerHeader.updateDrawerHeader();
+            }
         }
     }
 
@@ -318,7 +353,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         mUpdateMainUiInOnResume = false;
         dismissSnackbars();
         switch (resultCode) {
-            case Definitions.Communication.RESULT_JUST_NOTIFY_DATASET_CHANGED:
+            case Def.Communication.RESULT_JUST_NOTIFY_DATASET_CHANGED:
                 mDrawerLayout.postDelayed(new Runnable() {
                     @Override
                     public void run() {
@@ -328,47 +363,47 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     }
                 }, 560);
                 break;
-            case Definitions.Communication.RESULT_CREATE_THING_DONE:
+            case Def.Communication.RESULT_CREATE_THING_DONE:
                 updateMainUiForCreateDone(data);
                 break;
-            case Definitions.Communication.RESULT_CREATE_BLANK_THING:
+            case Def.Communication.RESULT_CREATE_BLANK_THING:
                 mDrawerLayout.postDelayed(new Runnable() {
                     @Override
                     public void run() {
                         mNormalSnackbar.setMessage(R.string.sb_cannot_be_blank);
                         mNormalSnackbar.show();
                         mUpdateMainUiInOnResume = true;
-                        EverythingDoneApplication.setSomethingUpdatedSpecially(false);
+                        App.setSomethingUpdatedSpecially(false);
                         mBroadCastIntent = null;
                     }
                 }, 560);
                 break;
-            case Definitions.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME:
+            case Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME:
                 updateMainUiForUpdateSameType(data);
                 break;
-            case Definitions.Communication.RESULT_UPDATE_THING_DONE_TYPE_DIFFERENT:
+            case Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_DIFFERENT:
                 updateMainUiForUpdateDifferentType(data);
                 break;
-            case Definitions.Communication.RESULT_UPDATE_THING_STATE_DIFFERENT:
+            case Def.Communication.RESULT_UPDATE_THING_STATE_DIFFERENT:
                 updateMainUiForUpdateDifferentState(data);
                 break;
             default:
                 if (mBroadCastIntent == null) {
                     mUpdateMainUiInOnResume = true;
-                    EverythingDoneApplication.setSomethingUpdatedSpecially(false);
+                    App.setSomethingUpdatedSpecially(false);
                 } else {
                     updateMainUi(mBroadCastIntent, mBroadCastIntent.getIntExtra(
-                            Definitions.Communication.KEY_RESULT_CODE, 0));
+                            Def.Communication.KEY_RESULT_CODE, 0));
                 }
                 break;
         }
     }
 
     private void updateMainUiForCreateDone(Intent data) {
-        if (EverythingDoneApplication.isSearching) {
+        if (App.isSearching) {
             toggleSearching();
         } else {
-            mApplication.setLimit(Definitions.LimitForGettingThings.ALL_UNDERWAY, true);
+            mApplication.setLimit(Def.LimitForGettingThings.ALL_UNDERWAY, true);
             mThingsAdapter.setShouldThingsAnimWhenAppearing(false);
             mThingsAdapter.notifyDataSetChanged();
         }
@@ -379,11 +414,11 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         mPreviousItem = underway;
 
         final boolean createdDone = data.getBooleanExtra(
-                Definitions.Communication.KEY_CREATED_DONE, false);
+                Def.Communication.KEY_CREATED_DONE, false);
         final boolean justNotifyDataSetChanged =
-                EverythingDoneApplication.justNotifyDataSetChanged();
+                App.justNotifyDataSetChanged();
         final Thing thingToCreate = data.getParcelableExtra(
-                Definitions.Communication.KEY_THING);
+                Def.Communication.KEY_THING);
         mRecyclerView.postDelayed(new Runnable() {
             @Override
             public void run() {
@@ -405,9 +440,9 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     updateSelectingUi(false);
                 }
                 mActivityHeader.updateText();
-                mDrawerHeader.updateAll();
+                mDrawerHeader.updateTexts();
                 mUpdateMainUiInOnResume = true;// TODO: 2016/3/28 mUpdateMainUiOnResume = false?
-                EverythingDoneApplication.setSomethingUpdatedSpecially(false);
+                App.setSomethingUpdatedSpecially(false);
                 mBroadCastIntent = null;
             }
         }, 560);
@@ -415,8 +450,8 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
     private void updateMainUiForUpdateSameType(final Intent data) {
         final int typeBefore = data.getIntExtra(
-                Definitions.Communication.KEY_TYPE_BEFORE, Thing.NOTE);
-        final boolean justNotifyDataSetChanged = EverythingDoneApplication.justNotifyDataSetChanged();
+                Def.Communication.KEY_TYPE_BEFORE, Thing.NOTE);
+        final boolean justNotifyDataSetChanged = App.justNotifyDataSetChanged();
         mRecyclerView.postDelayed(new Runnable() {
             @Override
             public void run() {
@@ -425,8 +460,8 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 } else if (Thing.isTypeStateMatchLimit(typeBefore,
                         Thing.UNDERWAY, mApplication.getLimit())) {
                     int pos = data.getIntExtra(
-                            Definitions.Communication.KEY_POSITION, 1);
-                    if (!EverythingDoneApplication.isSearching) {
+                            Def.Communication.KEY_POSITION, 1);
+                    if (!App.isSearching) {
                         mThingsAdapter.notifyItemChanged(pos);
                     } else {
                         List<Thing> things = mThingManager.getThings();
@@ -449,7 +484,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 }
                 mDrawerHeader.updateCompletionRate();
                 mUpdateMainUiInOnResume = true;
-                EverythingDoneApplication.setSomethingUpdatedSpecially(false);
+                App.setSomethingUpdatedSpecially(false);
                 mBroadCastIntent = null;
             }
         }, 560);
@@ -457,11 +492,11 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
     private void updateMainUiForUpdateDifferentType(final Intent data) {
         final Thing thing = data.getParcelableExtra(
-                Definitions.Communication.KEY_THING);
+                Def.Communication.KEY_THING);
         final int typeBefore = data.getIntExtra(
-                Definitions.Communication.KEY_TYPE_BEFORE, Thing.NOTE);
+                Def.Communication.KEY_TYPE_BEFORE, Thing.NOTE);
 
-        final boolean justNotifyDataSetChanged = EverythingDoneApplication.justNotifyDataSetChanged();
+        final boolean justNotifyDataSetChanged = App.justNotifyDataSetChanged();
         mRecyclerView.postDelayed(new Runnable() {
             @Override
             public void run() {
@@ -472,18 +507,18 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 if (justNotifyDataSetChanged || limitMatched) {
                     justNotifyDataSetChanged();
                 } else if (Thing.isTypeStateMatchLimit(typeBefore, Thing.UNDERWAY, curLimit)) {
-                    if (EverythingDoneApplication.isSearching) {
+                    if (App.isSearching) {
                         mThingsAdapter.notifyItemRemoved(data.getIntExtra(
-                                Definitions.Communication.KEY_POSITION, 1));
+                                Def.Communication.KEY_POSITION, 1));
                         handleSearchResults();
                     } else {
                         final boolean change = data.getBooleanExtra(
-                                Definitions.Communication.KEY_CALL_CHANGE, false);
+                                Def.Communication.KEY_CALL_CHANGE, false);
                         if (change) {
                             mThingsAdapter.notifyItemChanged(1);
                         } else {
                             mThingsAdapter.notifyItemRemoved(data.getIntExtra(
-                                    Definitions.Communication.KEY_POSITION, 1));
+                                    Def.Communication.KEY_POSITION, 1));
                         }
                     }
                     if (mModeManager.getCurrentMode() == ModeManager.SELECTING) {
@@ -493,7 +528,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
                 mDrawerHeader.updateCompletionRate();
                 mUpdateMainUiInOnResume = true;
-                EverythingDoneApplication.setSomethingUpdatedSpecially(false);
+                App.setSomethingUpdatedSpecially(false);
                 mBroadCastIntent = null;
             }
         }, 560);
@@ -501,13 +536,13 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
     private void updateMainUiForUpdateDifferentState(Intent data) {
         final Thing thing = data.getParcelableExtra(
-                Definitions.Communication.KEY_THING);
+                Def.Communication.KEY_THING);
         final int stateAfter = data.getIntExtra(
-                Definitions.Communication.KEY_STATE_AFTER, Thing.UNDERWAY);
+                Def.Communication.KEY_STATE_AFTER, Thing.UNDERWAY);
         final int position = data.getIntExtra(
-                Definitions.Communication.KEY_POSITION, 1);
+                Def.Communication.KEY_POSITION, 1);
         final boolean changed = data.getBooleanExtra(
-                Definitions.Communication.KEY_CALL_CHANGE, false);
+                Def.Communication.KEY_CALL_CHANGE, false);
 
         if (mStateToUndoFrom != stateAfter) {
             dismissSnackbars();
@@ -515,7 +550,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
         celebrateHabitGoalFinish(thing, thing.getState(), stateAfter);
 
-        final boolean justNotifyDataSetChanged = EverythingDoneApplication.justNotifyDataSetChanged();
+        final boolean justNotifyDataSetChanged = App.justNotifyDataSetChanged();
         mRecyclerView.postDelayed(new Runnable() {
             @Override
             public void run() {
@@ -542,14 +577,14 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
                 mDrawerHeader.updateCompletionRate();
                 mUpdateMainUiInOnResume = true;
-                EverythingDoneApplication.setSomethingUpdatedSpecially(false);
+                App.setSomethingUpdatedSpecially(false);
                 mBroadCastIntent = null;
             }
         }, 560);
     }
 
     private void justNotifyDataSetChanged() {
-        if (EverythingDoneApplication.isSearching) {
+        if (App.isSearching) {
             mThingManager.searchThings(mEtSearch.getText().toString(), mColorPicker.getPickedColor());
             handleSearchResults();
         } else {
@@ -566,8 +601,8 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         mThingsAdapter.setShouldThingsAnimWhenAppearing(true);
         mThingsAdapter.notifyDataSetChanged();
 
-        EverythingDoneApplication.setSomethingUpdatedSpecially(false);
-        EverythingDoneApplication.setShouldJustNotifyDataSetChanged(false);
+        App.setSomethingUpdatedSpecially(false);
+        App.setShouldJustNotifyDataSetChanged(false);
     }
 
     /**
@@ -588,15 +623,15 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             mRecyclerView.scrollToPosition(0);
         }
 
-        if (!EverythingDoneApplication.isSearching) {
+        if (!App.isSearching) {
             mActivityHeader.reset(false);
         }
 
         mThingsAdapter.notifyDataSetChanged();
 
         mModeManager.updateTitleTextSize();
-        if (mModeManager.getCurrentMode() != ModeManager.SELECTING && !EverythingDoneApplication.isSearching
-                && mApplication.getLimit() <= Definitions.LimitForGettingThings.GOAL_UNDERWAY &&
+        if (mModeManager.getCurrentMode() != ModeManager.SELECTING && !App.isSearching
+                && mApplication.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY &&
                 !mFab.isOnScreen()) {
             mFab.showFromBottom();
         }
@@ -604,7 +639,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
     @Override
     protected void initMembers() {
-        mApplication  = (EverythingDoneApplication) getApplication();
+        mApplication  = (App) getApplication();
         mThingManager = ThingManager.getInstance(mApplication);
 
         mNavigationIconClickedListener   = new OnNavigationIconClickedListener();
@@ -618,37 +653,38 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
     @Override
     protected void findViews() {
-        mRevealLayout = (RevealLayout) findViewById(R.id.reveal_layout);
-        mViewToReveal = findViewById(R.id.view_to_reveal);
-        mTvNoResult   = (TextView) findViewById(R.id.tv_no_result);
+        mRevealLayout = f(R.id.reveal_layout);
+        mViewToReveal = f(R.id.view_to_reveal);
+        mTvNoResult   = f(R.id.tv_no_result);
 
-        mActionbar = (Toolbar) findViewById(R.id.actionbar);
-        mViewInsideActionbar = findViewById(R.id.view_inside_actionbar);
-        mEtSearch = (EditText) findViewById(R.id.et_search);
-        Toolbar contextualToolbar = (Toolbar) findViewById(R.id.contextual_toolbar);
+        mActionbar = f(R.id.actionbar);
+        mViewInsideActionbar = f(R.id.view_inside_actionbar);
+        mEtSearch = f(R.id.et_search);
+        Toolbar contextualToolbar = f(R.id.contextual_toolbar);
         contextualToolbar.setTitleTextColor(ContextCompat.getColor(this, R.color.black_54p));
-        RelativeLayout rlContextualToolbar = (RelativeLayout) findViewById(R.id.rl_contextual_toolbar);
+        RelativeLayout rlContextualToolbar = f(R.id.rl_contextual_toolbar);
         mColorPicker = new ColorPicker(this, getWindow().getDecorView(),
-                Definitions.PickerType.COLOR_HAVE_ALL);
+                Def.PickerType.COLOR_HAVE_ALL);
 
-        mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
-        mDrawer       = (NavigationView) findViewById(R.id.drawer);
+        mDrawerLayout = f(R.id.drawer_layout);
+        mDrawer       = f(R.id.drawer);
 
-        View drawerHeaderView = mDrawer.getHeaderView(0);
+        View dhView = mDrawer.getHeaderView(0);
         mDrawerHeader = new DrawerHeader(mApplication,
-                (TextView) drawerHeaderView.findViewById(R.id.tv_dh_location),
-                (TextView) drawerHeaderView.findViewById(R.id.tv_dh_completion_rate));
+                (ImageView) f(dhView, R.id.iv_drawer_header),
+                (TextView)  f(dhView, R.id.tv_dh_location),
+                (TextView)  f(dhView, R.id.tv_dh_completion_rate));
 
-        mFab = (FloatingActionButton) findViewById(R.id.fab_create);
+        mFab = f(R.id.fab_create);
 
-        mRecyclerView  = (RecyclerView) findViewById(R.id.rv_things);
+        mRecyclerView  = f(R.id.rv_things);
         mThingsAdapter = new ThingsAdapter(mApplication, new OnThingTouchedListener());
 
         mActivityHeader = new ActivityHeader(mApplication, mRecyclerView,
-                findViewById(R.id.actionbar_shadow),
-                (RelativeLayout) findViewById(R.id.rl_header),
-                (TextView) findViewById(R.id.tv_header_title),
-                (TextView) findViewById(R.id.tv_header_subtitle));
+                f(R.id.actionbar_shadow),
+                (RelativeLayout) f(R.id.rl_header),
+                (TextView) f(R.id.tv_header_title),
+                (TextView) f(R.id.tv_header_subtitle));
 
         View decor = getWindow().getDecorView();
         mNormalSnackbar = new Snackbar(mApplication, Snackbar.NORMAL, decor, mFab);
@@ -665,14 +701,14 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     protected void initUI() {
         DisplayUtil.darkStatusBarForMIUI(this);
 
-        if (VersionUtil.hasKitKatApi()) {
-            View statusbar = findViewById(R.id.view_status_bar);
+        if (DeviceUtil.hasKitKatApi()) {
+            View statusbar = f(R.id.view_status_bar);
             DrawerLayout.LayoutParams dlp1 = (DrawerLayout.LayoutParams)
                     statusbar.getLayoutParams();
             dlp1.height = DisplayUtil.getStatusbarHeight(this);
             statusbar.requestLayout();
 
-            FrameLayout fl = (FrameLayout) findViewById(R.id.fl_things);
+            FrameLayout fl = f(R.id.fl_things);
             DrawerLayout.LayoutParams dlp2 = (DrawerLayout.LayoutParams) fl.getLayoutParams();
             dlp2.setMargins(0, dlp1.height, 0, 0);
             fl.requestLayout();
@@ -705,7 +741,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             mFab.shrinkWithoutAnim();
         }
 
-        if (!VersionUtil.hasLollipopApi()) {
+        if (!DeviceUtil.hasLollipopApi()) {
             DisplayUtil.setSelectionHandlersColor(mEtSearch, -1979711488);
         }
     }
@@ -762,17 +798,16 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 mFab.getLocationOnScreen(location);
                 location[0] += mFab.getWidth() / 2;
                 location[1] += mFab.getHeight() / 2;
-                if (!VersionUtil.hasKitKatApi()) {
-                    location[1] -= statusBarHeight; // I don't know why but 25 is good.
+                if (!DeviceUtil.hasKitKatApi()) {
+                    location[1] -= statusBarHeight;
                 }
 
                 final Intent intent = new Intent(ThingsActivity.this, DetailActivity.class);
-                intent.putExtra(Definitions.Communication.KEY_SENDER_NAME,
-                        ThingsActivity.class.getName());
-                intent.putExtra(Definitions.Communication.KEY_DETAIL_ACTIVITY_TYPE,
+                intent.putExtra(Def.Communication.KEY_SENDER_NAME, TAG);
+                intent.putExtra(Def.Communication.KEY_DETAIL_ACTIVITY_TYPE,
                         DetailActivity.CREATE);
-                intent.putExtra(Definitions.Communication.KEY_ID, -1L);
-                intent.putExtra(Definitions.Communication.KEY_COLOR, mFabRippleColor);
+                intent.putExtra(Def.Communication.KEY_ID, -1L);
+                intent.putExtra(Def.Communication.KEY_COLOR, mFabRippleColor);
 
                 mViewToReveal.setBackgroundColor(mFabRippleColor);
                 mViewToReveal.setVisibility(View.VISIBLE);
@@ -782,7 +817,8 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 mFab.postDelayed(new Runnable() {
                     @Override
                     public void run() {
-                        startActivityForResult(intent, Definitions.Communication.REQUEST_ACTIVITY_DETAIL);
+                        startActivityForResult(
+                                intent, Def.Communication.REQUEST_ACTIVITY_DETAIL);
                         overridePendingTransition(0, 0);
                     }
                 }, 600);
@@ -796,7 +832,8 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                          * When user creates a new thing and returns ThingsActivity, he can see
                          * the result at once.
                          */
-                        mRecyclerView.smoothScrollToPosition(0);
+                        mRecyclerView.scrollToPosition(0);
+                        mActivityHeader.reset(false);
                         mIsRevealAnimPlaying = false;
                         mFab.setClickable(true);
                         mRevealLayout.setVisibility(View.INVISIBLE);
@@ -825,6 +862,8 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         });
         mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
 
+            final int edgeColor = ContextCompat.getColor(mApplication, R.color.edge_color_dark);
+
             @Override
             public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
                 if (!mScrollNotCausedByFinger) {
@@ -838,7 +877,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             @Override
             public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
                 super.onScrollStateChanged(recyclerView, newState);
-                EdgeEffectUtil.forRecyclerView(recyclerView, Color.parseColor("#56000000"));
+                EdgeEffectUtil.forRecyclerView(recyclerView, edgeColor);
             }
         });
 
@@ -894,7 +933,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                                 mRecyclerView.getItemAnimator().getAddDuration(), true);
                     }
                 }
-                if (EverythingDoneApplication.isSearching) {
+                if (App.isSearching) {
                     handleSearchResults();
                 }
                 if (mUndoThings.isEmpty()) {
@@ -975,7 +1014,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     }
 
     private void setDrawer() {
-        mDrawerHeader.updateAll();
+        mDrawerHeader.updateTexts();
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this, mDrawerLayout,
                 R.string.app_name, R.string.app_name) {
             @Override
@@ -996,27 +1035,27 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     int newLimit;
                     int id = menuItem.getItemId();
                     if (id == R.id.drawer_underway) {
-                        newLimit = Definitions.LimitForGettingThings.ALL_UNDERWAY;
+                        newLimit = Def.LimitForGettingThings.ALL_UNDERWAY;
                     } else if (id == R.id.drawer_note) {
-                        newLimit = Definitions.LimitForGettingThings.NOTE_UNDERWAY;
+                        newLimit = Def.LimitForGettingThings.NOTE_UNDERWAY;
                     } else if (id == R.id.drawer_reminder) {
-                        newLimit = Definitions.LimitForGettingThings.REMINDER_UNDERWAY;
+                        newLimit = Def.LimitForGettingThings.REMINDER_UNDERWAY;
                     } else if (id == R.id.drawer_habit) {
-                        newLimit = Definitions.LimitForGettingThings.HABIT_UNDERWAY;
+                        newLimit = Def.LimitForGettingThings.HABIT_UNDERWAY;
                     } else if (id == R.id.drawer_goal) {
-                        newLimit = Definitions.LimitForGettingThings.GOAL_UNDERWAY;
+                        newLimit = Def.LimitForGettingThings.GOAL_UNDERWAY;
                     } else if (id == R.id.drawer_finished) {
-                        newLimit = Definitions.LimitForGettingThings.ALL_FINISHED;
+                        newLimit = Def.LimitForGettingThings.ALL_FINISHED;
                     } else if (id == R.id.drawer_deleted) {
-                        newLimit = Definitions.LimitForGettingThings.ALL_DELETED;
+                        newLimit = Def.LimitForGettingThings.ALL_DELETED;
                     } else {
-                        Intent intent = null;
                         if (id == R.id.drawer_settings) {
-                            intent = new Intent(ThingsActivity.this, SettingsActivity.class);
+                            Intent intent = new Intent(ThingsActivity.this, SettingsActivity.class);
+                            startActivityForResult(intent,
+                                    Def.Communication.REQUEST_ACTIVITY_SETTINGS);
                         } else if (id == R.id.drawer_about) {
-                            intent = new Intent(ThingsActivity.this, AboutActivity.class);
+                            startActivity(new Intent(ThingsActivity.this, AboutActivity.class));
                         }
-                        startActivity(intent);
                         mRecyclerView.postDelayed(mCloseDrawerRunnable, 600);
                         return true;
                     }
@@ -1043,8 +1082,8 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     }, 360);
 
                     mActivityHeader.updateText();
-                    mDrawerHeader.updateAll();
-                    if (mApplication.getLimit() <= Definitions.LimitForGettingThings.GOAL_UNDERWAY) {
+                    mDrawerHeader.updateTexts();
+                    if (mApplication.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
                         mFab.spread();
                     } else {
                         mFab.shrink();
@@ -1165,7 +1204,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             updateUIAfterStateUpdated(stateAfter,
                     mRecyclerView.getItemAnimator().getRemoveDuration(), true);
         }
-        if (EverythingDoneApplication.isSearching) {
+        if (App.isSearching) {
             handleSearchResults();
         }
     }
@@ -1201,7 +1240,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         } else {
             List<Thing> things = mThingManager.getThings();
             if (things.size() == 1) {
-                if (EverythingDoneApplication.isSearching) {
+                if (App.isSearching) {
                     mModeManager.backNormalMode(0);
                 }
             } else {
@@ -1236,10 +1275,10 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         switch (stateAfter) {
             case Thing.UNDERWAY:
                 updateStr = getString(R.string.sb_underway);
-                if (limit <= Definitions.LimitForGettingThings.GOAL_UNDERWAY) {
+                if (limit <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
                     updateStr = getString(R.string.sb_finish);
                     undoStr = getString(R.string.sb_undo_finish);
-                } else if (limit == Definitions.LimitForGettingThings.ALL_FINISHED) {
+                } else if (limit == Def.LimitForGettingThings.ALL_FINISHED) {
                     undoStr = getString(R.string.sb_undo_underway);
                 } else {
                     undoStr = getString(R.string.sb_undo);
@@ -1247,7 +1286,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 break;
             case Thing.FINISHED:
                 updateStr = getString(R.string.sb_finish);
-                if (limit <= Definitions.LimitForGettingThings.GOAL_UNDERWAY) {
+                if (limit <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
                     undoStr = getString(R.string.sb_undo_finish);
                 } else {
                     undoStr = getString(R.string.sb_undo);
@@ -1298,7 +1337,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
     private void toggleSearching() {
         dismissSnackbars();
-        final boolean toNormal = EverythingDoneApplication.isSearching;
+        final boolean toNormal = App.isSearching;
         if (toNormal) {
             mDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
             mViewInsideActionbar.setVisibility(View.VISIBLE);
@@ -1317,7 +1356,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     mActivityHeader.setShouldListenToScroll(true);
                 }
             }, 160);
-            if (mApplication.getLimit() <= Definitions.LimitForGettingThings.NOTE_UNDERWAY) {
+            if (mApplication.getLimit() <= Def.LimitForGettingThings.NOTE_UNDERWAY) {
                 mFab.spread();
             }
             mApplication.setLimit(mApplication.getLimit(), true);
@@ -1344,7 +1383,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             mThingManager.getThings().clear();
         }
         mThingsAdapter.notifyDataSetChanged();
-        EverythingDoneApplication.isSearching = !toNormal;
+        App.isSearching = !toNormal;
         DisplayUtil.playDrawerToggleAnim((DrawerArrowDrawable) mActionbar.getNavigationIcon());
         invalidateOptionsMenu();
     }
@@ -1396,7 +1435,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
         @Override
         public void onClick(View v) {
-            if (EverythingDoneApplication.isSearching) {
+            if (App.isSearching) {
                 toggleSearching();
             } else {
                 mDrawerLayout.openDrawer(GravityCompat.START);
@@ -1437,18 +1476,18 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 }
 
                 final Intent intent = new Intent(ThingsActivity.this, DetailActivity.class);
-                intent.putExtra(Definitions.Communication.KEY_SENDER_NAME,
+                intent.putExtra(Def.Communication.KEY_SENDER_NAME,
                         ThingsActivity.class.getName());
-                intent.putExtra(Definitions.Communication.KEY_DETAIL_ACTIVITY_TYPE,
+                intent.putExtra(Def.Communication.KEY_DETAIL_ACTIVITY_TYPE,
                         DetailActivity.UPDATE);
-                intent.putExtra(Definitions.Communication.KEY_ID,
+                intent.putExtra(Def.Communication.KEY_ID,
                         things.get(position).getId());
-                intent.putExtra(Definitions.Communication.KEY_POSITION, position);
+                intent.putExtra(Def.Communication.KEY_POSITION, position);
 
                 ActivityOptionsCompat transition = ActivityOptionsCompat.makeScaleUpAnimation(
                         v, v.getWidth() / 2, v.getHeight() / 2, 0, 0);
                 ActivityCompat.startActivityForResult(
-                        ThingsActivity.this, intent, Definitions.Communication.REQUEST_ACTIVITY_DETAIL,
+                        ThingsActivity.this, intent, Def.Communication.REQUEST_ACTIVITY_DETAIL,
                         transition.toBundle());
             } else {
                 Thing thing = things.get(position);
@@ -1473,7 +1512,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             if (mModeManager.getCurrentMode() == ModeManager.NORMAL &&
                     things.get(position).getType() <= Thing.NOTIFICATION_GOAL) {
                 mDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
-                if (mApplication.getLimit() <= Definitions.LimitForGettingThings.GOAL_UNDERWAY) {
+                if (mApplication.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
                     mModeManager.toMovingMode(position);
                     mRecyclerView.post(new Runnable() {
                         @Override
@@ -1534,7 +1573,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
         @Override
         public boolean isItemViewSwipeEnabled() {
-            return mApplication.getLimit() <= Definitions.LimitForGettingThings.GOAL_UNDERWAY
+            return mApplication.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY
                     && mModeManager.getCurrentMode() != ModeManager.SELECTING
                     && !mThingManager.isThingsEmpty();
         }
@@ -1624,7 +1663,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     state, Thing.FINISHED, false, true);
             mScrollNotCausedByFinger = true;
 
-            if (EverythingDoneApplication.isSearching) {
+            if (App.isSearching) {
                 if (things.size() == 1) {
                     handleSearchResults();
                 }

@@ -19,15 +19,16 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.ywwynm.everythingdone.Definitions;
+import com.ywwynm.everythingdone.BuildConfig;
+import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.fragments.AlertDialogFragment;
 import com.ywwynm.everythingdone.fragments.ThreeActionsAlertDialogFragment;
 import com.ywwynm.everythingdone.helpers.SendInfoHelper;
+import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.FontCache;
 import com.ywwynm.everythingdone.utils.PermissionUtil;
-import com.ywwynm.everythingdone.utils.VersionUtil;
 
 public class AboutActivity extends EverythingDoneBaseActivity {
 
@@ -56,7 +57,7 @@ public class AboutActivity extends EverythingDoneBaseActivity {
     @Override
     public void onRequestPermissionsResult(
             int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        if (requestCode == Definitions.Communication.REQUEST_PERMISSION_SHARE_APP) {
+        if (requestCode == Def.Communication.REQUEST_PERMISSION_SHARE_APP) {
             final int G = PackageManager.PERMISSION_GRANTED;
             for (int grantResult : grantResults) {
                 if (grantResult != G) {
@@ -85,11 +86,11 @@ public class AboutActivity extends EverythingDoneBaseActivity {
                     }
                 };
                 PermissionUtil.doWithPermissionChecked(callback, this,
-                        Definitions.Communication.REQUEST_PERMISSION_SHARE_APP,
+                        Def.Communication.REQUEST_PERMISSION_SHARE_APP,
                         Manifest.permission.WRITE_EXTERNAL_STORAGE);
                 break;
             case R.id.act_feedback:
-                SendInfoHelper.sendFeedback(this);
+                SendInfoHelper.sendFeedback(this, false);
                 break;
         }
         return true;
@@ -100,24 +101,24 @@ public class AboutActivity extends EverythingDoneBaseActivity {
 
     @Override
     protected void findViews() {
-        mStatusBar = findViewById(R.id.view_status_bar);
-        mActionbar = (Toolbar) findViewById(R.id.actionbar);
+        mStatusBar = f(R.id.view_status_bar);
+        mActionbar = f(R.id.actionbar);
 
-        mFabHead          = (FloatingActionButton) findViewById(R.id.fab_about_head);
-        mTvYwwynm         = (TextView) findViewById(R.id.tv_ywwynm);
-        mTvEverythingDone = (TextView) findViewById(R.id.tv_everything_done);
-        mTvVersion        = (TextView) findViewById(R.id.tv_version);
+        mFabHead          = f(R.id.fab_about_head);
+        mTvYwwynm         = f(R.id.tv_ywwynm);
+        mTvEverythingDone = f(R.id.tv_everything_done);
+        mTvVersion        = f(R.id.tv_version);
 
-        mFab = (FloatingActionButton) findViewById(R.id.fab_support);
+        mFab = f(R.id.fab_support);
 
-        mFlBottom = (FrameLayout) findViewById(R.id.fl_bottom_about);
+        mFlBottom = f(R.id.fl_bottom_about);
     }
 
     @Override
     protected void initUI() {
         DisplayUtil.darkStatusBarForMIUI(this);
 
-        if (VersionUtil.hasKitKatApi()) {
+        if (DeviceUtil.hasKitKatApi()) {
             LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams)
                     mStatusBar.getLayoutParams();
             lp.height = DisplayUtil.getStatusbarHeight(this);
@@ -136,7 +137,7 @@ public class AboutActivity extends EverythingDoneBaseActivity {
         mTvYwwynm.setTypeface(tf);
         mTvEverythingDone.setTypeface(tf);
 
-        mTvVersion.append(Definitions.MetaData.APP_VERSION);
+        mTvVersion.append(" " + BuildConfig.VERSION_NAME);
     }
 
     @Override

@@ -1,22 +1,26 @@
 package com.ywwynm.everythingdone.helpers;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.media.MediaMetadataRetriever;
 import android.net.Uri;
-import android.os.Environment;
+import android.support.v4.util.Pair;
 import android.support.v7.widget.RecyclerView;
-import android.util.Pair;
 import android.widget.LinearLayout;
 
-import com.ywwynm.everythingdone.EverythingDoneApplication;
+import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
+import com.ywwynm.everythingdone.fragments.AttachmentInfoDialogFragment;
+import com.ywwynm.everythingdone.utils.DateTimeUtil;
+import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.FileUtil;
 import com.ywwynm.everythingdone.utils.LocaleUtil;
-import com.ywwynm.everythingdone.utils.VersionUtil;
+
+import org.joda.time.DateTime;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
@@ -175,8 +179,7 @@ public class AttachmentHelper {
         }
 
         String fileName = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()) + fileType;
-        return FileUtil.createFile(Environment.getExternalStorageDirectory().getAbsolutePath()
-                + "/EverythingDone/" + folderName, fileName);
+        return FileUtil.createFile(Def.Meta.APP_FILE_DIR + "/" + folderName, fileName);
     }
 
     public static int[] calculateImageSize(Context context, int itemSize) {
@@ -238,11 +241,7 @@ public class AttachmentHelper {
         } catch(Exception e) {
             e.printStackTrace();
         } finally {
-            try {
-                retriever.release();
-            } catch (RuntimeException e) {
-                e.printStackTrace();
-            }
+            retriever.release();
         }
         return bitmap;
     }
@@ -272,7 +271,7 @@ public class AttachmentHelper {
             rows++;
         }
         int itemHeight = (int) (density * 56);
-        if (VersionUtil.hasLollipopApi()) {
+        if (DeviceUtil.hasLollipopApi()) {
             itemHeight += density * 8;
         }
 
@@ -281,17 +280,125 @@ public class AttachmentHelper {
         recyclerView.requestLayout();
     }
 
+    public static void showAttachmentInfoDialog(Activity activity, int accentColor, String typePathName) {
+        AttachmentInfoDialogFragment aidf = new AttachmentInfoDialogFragment();
+        aidf.setAccentColor(accentColor);
+        aidf.setItems(getAttachmentInfo(activity, typePathName));
+        aidf.show(activity.getFragmentManager(), AttachmentInfoDialogFragment.TAG);
+    }
+
+    public static List<Pair<String, String>> getAttachmentInfo(Context context, String typePathName) {
+        char type = typePathName.charAt(0);
+        String pathName = typePathName.substring(1, typePathName.length());
+
+        List<Pair<String, String>> list = new ArrayList<>();
+        File file = new File(pathName);
+        String fst = context.getString(R.string.file_path);
+        if (!file.exists()) {
+            String sec = context.getString(R.string.file_path_not_existed);
+            list.add(new Pair<>(fst, sec));
+            return list;
+        }
+
+        String sec = file.getAbsolutePath();
+        list.add(new Pair<>(fst, sec));
+
+        fst = context.getString(R.string.file_size);
+        sec = FileUtil.getFileSizeStr(file);
+        list.add(new Pair<>(fst, sec));
+
+        if (type == '0') {
+            return getAttachmentInfoImage(list, context, pathName);
+        } else if (type == '1') {
+            return getAttachmentInfoVideo(list, context, pathName);
+        } else {
+            return getAttachmentInfoAudio(list, context, pathName);
+        }
+    }
+
+    private static List<Pair<String, String>> getAttachmentInfoImage(
+            List<Pair<String, String>> list, Context context, String pathName) {
+        String fst = context.getString(R.string.image_size);
+        int[] size = FileUtil.getImageSize(pathName);
+        String sec = size[0] + " * " + size[1];
+        list.add(new Pair<>(fst, sec));
+
+        DateTime dateTime = FileUtil.getImageCreateTime(pathName);
+        if (dateTime == null) {
+            fst = context.getString(R.string.file_last_modify_time);
+            File file = new File(pathName);
+            sec = DateTimeUtil.getGeneralDateTimeStr(context, file.lastModified());
+        } else {
+            fst = context.getString(R.string.image_create_time);
+            sec = dateTime.toString(DateTimeUtil.getGeneralDateTimeFormatPattern(context));
+        }
+        list.add(new Pair<>(fst, sec));
+
+        return list;
+    }
+
+    private static List<Pair<String, String>> getAttachmentInfoVideo(
+            List<Pair<String, String>> list, Context context, String pathName) {
+        String fst = context.getString(R.string.video_size);
+        int[] size = FileUtil.getVideoSize(pathName);
+        String sec = size[0] + " * " + size[1];
+        list.add(new Pair<>(fst, sec));
+
+        fst = context.getString(R.string.video_duration);
+        long duration = FileUtil.getMediaDuration(pathName);
+        sec = DateTimeUtil.getDurationBriefStr(duration);
+        list.add(new Pair<>(fst, sec));
+
+        fst = context.getString(R.string.video_create_time);
+        DateTime dateTime = FileUtil.getVideoCreateTime(pathName);
+        if (dateTime == null || dateTime.compareTo(new DateTime(1970, 1, 1, 0, 0)) < 0) {
+            fst = context.getString(R.string.file_last_modify_time);
+            File file = new File(pathName);
+            sec = DateTimeUtil.getGeneralDateTimeStr(context, file.lastModified());
+        } else {
+            sec = dateTime.toString(DateTimeUtil.getGeneralDateTimeFormatPattern(context));
+        }
+        list.add(new Pair<>(fst, sec));
+
+        return list;
+    }
+
+    private static List<Pair<String, String>> getAttachmentInfoAudio(
+            List<Pair<String, String>> list, Context context, String pathName) {
+        String fst = context.getString(R.string.file_last_modify_time);
+        File file = new File(pathName);
+        String sec = DateTimeUtil.getGeneralDateTimeStr(context, file.lastModified());
+        list.add(new Pair<>(fst, sec));
+
+        fst = context.getString(R.string.audio_duration);
+        long duration = FileUtil.getMediaDuration(pathName);
+        sec = DateTimeUtil.getDurationBriefStr(duration);
+        list.add(new Pair<>(fst, sec));
+
+        fst = context.getString(R.string.audio_bitrate);
+        int bitrate = FileUtil.getAudioBitrate(pathName);
+        sec = bitrate + " Kbps";
+        list.add(new Pair<>(fst, sec));
+
+        fst = context.getString(R.string.audio_sample_rate);
+        int sampleRate = FileUtil.getAudioSampleRate(pathName);
+        sec = sampleRate + " Hz";
+        list.add(new Pair<>(fst, sec));
+
+        return list;
+    }
+
     public static List<String> getAttachmentsToDelete(String attachmentBefore, String attachmentAfter) {
         if (attachmentBefore.equals(attachmentAfter)) {
             return null;
         }
         List<String> attachmentsToDelete = new ArrayList<>();
-        String myPath = EverythingDoneApplication.APP_FILE_FOLDER;
+        String appDir = Def.Meta.APP_FILE_DIR;
         String pathName;
         String[] attachmentsBefore = attachmentBefore.split(SIGNAL);
         for (int i = 1; i < attachmentsBefore.length; i++) {
             pathName = attachmentsBefore[i].substring(1, attachmentsBefore[i].length());
-            if (pathName.startsWith(myPath) && !attachmentAfter.contains(attachmentsBefore[i])) {
+            if (pathName.startsWith(appDir) && !attachmentAfter.contains(attachmentsBefore[i])) {
                 attachmentsToDelete.add(pathName);
             }
         }

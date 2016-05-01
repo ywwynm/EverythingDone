@@ -32,44 +32,28 @@ public class AlertDialogFragment extends NoTitleDialogFragment {
     private String mConfirmText;
 
     private boolean mShowCancel = true;
-
-    public interface ConfirmListener {
-        void onConfirm();
-    }
-    public interface CancelListener {
-        void onCancel();
-    }
     private ConfirmListener mConfirmListener;
-    private CancelListener  mCancelListener;
-
+    private CancelListener mCancelListener;
     private boolean mConfirmed = false;
 
     @Override
-    public void onResume() {
-        super.onResume();
-        float screenDensity = DisplayUtil.getScreenDensity(getActivity());
-        Window window = getDialog().getWindow();
-        window.setLayout((int) (screenDensity * 320), WindowManager.LayoutParams.WRAP_CONTENT);
-    }
-
-    @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        super.onCreateView(inflater, container, savedInstanceState);
+
         Activity activity = getActivity();
         if (mColors[1] == 0) {
             int contentColor = ContextCompat.getColor(activity, R.color.black_54p);
             mColors[1] = contentColor;
         }
 
-        View contentView = inflater.inflate(R.layout.fragment_alert, container);
-
-        TextView tvTitle       = (TextView) contentView.findViewById(R.id.tv_title_alert);
-        TextView tvContent     = (TextView) contentView.findViewById(R.id.tv_content_alert);
-        TextView tvConfirmAsBt = (TextView) contentView.findViewById(R.id.tv_confirm_as_bt_alert);
-        TextView tvCancelAsBt  = (TextView) contentView.findViewById(R.id.tv_cancel_as_bt_alert);
+        TextView tvTitle       = f(R.id.tv_title_alert);
+        TextView tvContent     = f(R.id.tv_content_alert);
+        TextView tvConfirmAsBt = f(R.id.tv_confirm_as_bt_alert);
+        TextView tvCancelAsBt  = f(R.id.tv_cancel_as_bt_alert);
 
         if (mTitle != null) {
             tvTitle.setTextColor(mColors[0]);
-            tvTitle.setText(mTitle.toUpperCase());
+            tvTitle.setText(mTitle);
         } else {
             tvTitle.setVisibility(View.GONE);
         }
@@ -85,7 +69,7 @@ public class AlertDialogFragment extends NoTitleDialogFragment {
         if (mConfirmText == null) {
             mConfirmText = activity.getString(R.string.confirm);
         }
-        tvConfirmAsBt.setText(mConfirmText.toUpperCase());
+        tvConfirmAsBt.setText(mConfirmText);
         tvConfirmAsBt.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -111,7 +95,20 @@ public class AlertDialogFragment extends NoTitleDialogFragment {
             tvCancelAsBt.setVisibility(View.GONE);
         }
 
-        return contentView;
+        return mContentView;
+    }
+
+    @Override
+    protected int getLayoutResource() {
+        return R.layout.fragment_alert;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        float screenDensity = DisplayUtil.getScreenDensity(getActivity());
+        Window window = getDialog().getWindow();
+        window.setLayout((int) (screenDensity * 320), WindowManager.LayoutParams.WRAP_CONTENT);
     }
 
     @Override
@@ -157,5 +154,13 @@ public class AlertDialogFragment extends NoTitleDialogFragment {
 
     public void setShowCancel(boolean showCancel) {
         mShowCancel = showCancel;
+    }
+
+    public interface ConfirmListener {
+        void onConfirm();
+    }
+
+    public interface CancelListener {
+        void onCancel();
     }
 }

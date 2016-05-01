@@ -5,8 +5,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 
-import com.ywwynm.everythingdone.Definitions;
-import com.ywwynm.everythingdone.EverythingDoneApplication;
+import com.ywwynm.everythingdone.Def;
+import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
 import com.ywwynm.everythingdone.model.Thing;
@@ -37,11 +37,11 @@ public class DailyUpdateHabitReceiver extends BroadcastReceiver {
     }
 
     private void sendBroadcastToMainUI(Context context) {
-        EverythingDoneApplication.setShouldJustNotifyDataSetChanged(true);
+        App.setShouldJustNotifyDataSetChanged(true);
         Intent broadcastIntent = new Intent(
-                Definitions.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI);
-        broadcastIntent.putExtra(Definitions.Communication.KEY_RESULT_CODE,
-                Definitions.Communication.RESULT_JUST_NOTIFY_DATASET_CHANGED);
+                Def.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI);
+        broadcastIntent.putExtra(Def.Communication.KEY_RESULT_CODE,
+                Def.Communication.RESULT_JUST_NOTIFY_DATASET_CHANGED);
         context.sendBroadcast(broadcastIntent);
     }
 }

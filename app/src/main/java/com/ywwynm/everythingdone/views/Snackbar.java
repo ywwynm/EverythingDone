@@ -13,11 +13,11 @@ import android.widget.PopupWindow;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-import com.ywwynm.everythingdone.Definitions;
-import com.ywwynm.everythingdone.EverythingDoneApplication;
+import com.ywwynm.everythingdone.App;
+import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
-import com.ywwynm.everythingdone.utils.VersionUtil;
+import com.ywwynm.everythingdone.utils.DeviceUtil;
 
 /**
  * Created by ywwynm on 2015/7/4.
@@ -30,7 +30,7 @@ public class Snackbar {
     public static final int NORMAL = 0;
     public static final int UNDO  = 1;
 
-    private EverythingDoneApplication mApplication;
+    private App mApplication;
     private int mType;
     private float mHeight;
 
@@ -54,7 +54,7 @@ public class Snackbar {
         mDismissCallback = dismissCallback;
     }
 
-    public Snackbar(EverythingDoneApplication application, int type, View decorView,
+    public Snackbar(App application, int type, View decorView,
                     FloatingActionButton bindingFab) {
         mApplication = application;
         mType = type;
@@ -81,7 +81,7 @@ public class Snackbar {
         mDecorView = decorView;
         mPopupWindow = new PopupWindow(inflater,
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        if (!VersionUtil.hasLollipopApi()) {
+        if (!DeviceUtil.hasLollipopApi()) {
             mPopupWindow.setAnimationStyle(R.style.SnackbarAnimation);
         } else {
             mContentLayout = (RelativeLayout) inflater.findViewById(R.id.rl_snackbar);
@@ -108,7 +108,7 @@ public class Snackbar {
         }
 
         if (mBindingFab != null &&
-                mApplication.getLimit() <= Definitions.LimitForGettingThings.GOAL_UNDERWAY) {
+                mApplication.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
             mBindingFab.showFromBottom();
             mBindingFab.raise(mHeight);
         }
@@ -120,7 +120,7 @@ public class Snackbar {
             return;
         }
 
-        if (VersionUtil.hasLollipopApi()) {
+        if (DeviceUtil.hasLollipopApi()) {
             mContentLayout.setTranslationY(mHeight);
             mContentLayout.animate().translationY(0).setDuration(200);
         }
@@ -137,7 +137,7 @@ public class Snackbar {
                 mHideThread.interrupt();
             }
             if (mBindingFab != null &&
-                    mApplication.getLimit() <= Definitions.LimitForGettingThings.GOAL_UNDERWAY) {
+                    mApplication.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
                 mBindingFab.fall();
             }
             if (mDismissCallback != null) {

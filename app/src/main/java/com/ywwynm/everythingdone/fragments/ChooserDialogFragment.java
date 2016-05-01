@@ -14,6 +14,7 @@ import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.SettingsActivity;
 import com.ywwynm.everythingdone.adapters.ChooserFragmentAdapter;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
+import com.ywwynm.everythingdone.utils.EdgeEffectUtil;
 
 import java.util.List;
 
@@ -33,6 +34,7 @@ public class ChooserDialogFragment extends NoTitleDialogFragment {
     private int mInitialIndex;
 
     private View.OnClickListener mConfirmListener;
+    private View.OnClickListener mMoreListener;
 
     private TextView mTvTitle;
     private RecyclerView mRecyclerView;
@@ -40,6 +42,9 @@ public class ChooserDialogFragment extends NoTitleDialogFragment {
     private ChooserFragmentAdapter mAdapter;
     private TextView mTvConfirmAsBt;
     private TextView mTvCancelAsBt;
+    private TextView mTvMoreAsBt;
+
+    private boolean mShouldShowMore = true;
 
     private View mSeparator1;
     private View mSeparator2;
@@ -53,23 +58,30 @@ public class ChooserDialogFragment extends NoTitleDialogFragment {
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        super.onCreateView(inflater, container, savedInstanceState);
+
         mActivity = (SettingsActivity) getActivity();
 
-        View contentView = inflater.inflate(R.layout.fragment_chooser, container, false);
-        mTvTitle = (TextView) contentView.findViewById(R.id.tv_title_fragment_chooser);
-        mRecyclerView = (RecyclerView) contentView.findViewById(R.id.rv_fragment_chooser);
-        mTvConfirmAsBt = (TextView) contentView.findViewById(R.id.tv_confirm_as_bt_fragment_chooser);
-        mTvCancelAsBt = (TextView) contentView.findViewById(R.id.tv_cancel_as_bt_fragment_chooser);
+        mTvTitle       = f(R.id.tv_title_fragment_chooser);
+        mRecyclerView  = f(R.id.rv_fragment_chooser);
+        mTvConfirmAsBt = f(R.id.tv_confirm_as_bt_fragment_chooser);
+        mTvCancelAsBt  = f(R.id.tv_cancel_as_bt_fragment_chooser);
+        mTvMoreAsBt    = f(R.id.tv_more_as_bt_fragment_chooser);
 
-        mSeparator1 = contentView.findViewById(R.id.view_separator_1);
-        mSeparator2 = contentView.findViewById(R.id.view_separator_2);
+        mSeparator1 = f(R.id.view_separator_1);
+        mSeparator2 = f(R.id.view_separator_2);
 
         mLlm = new LinearLayoutManager(mActivity);
 
         initUI();
         setEvents();
 
-        return contentView;
+        return mContentView;
+    }
+
+    @Override
+    protected int getLayoutResource() {
+        return R.layout.fragment_chooser;
     }
 
     @Override
@@ -82,9 +94,15 @@ public class ChooserDialogFragment extends NoTitleDialogFragment {
 
     private void initUI() {
         mTvTitle.setTextColor(mAccentColor);
-        mTvTitle.setText(mTitle.toUpperCase());
+        mTvTitle.setText(mTitle);
 
         mTvConfirmAsBt.setTextColor(mAccentColor);
+
+        if (!mShouldShowMore) {
+            mTvMoreAsBt.setVisibility(View.GONE);
+        } else {
+            mTvMoreAsBt.setTextColor(mAccentColor);
+        }
 
         if (mItems.size() > 9) {
             LinearLayout.LayoutParams params = (LinearLayout.LayoutParams)
@@ -96,7 +114,7 @@ public class ChooserDialogFragment extends NoTitleDialogFragment {
             mSeparator2.setVisibility(View.INVISIBLE);
         }
 
-        mAdapter = new ChooserFragmentAdapter(mActivity, mItems);
+        mAdapter = new ChooserFragmentAdapter(mActivity, mItems, mAccentColor);
         mAdapter.setOnItemClickListener(mOnItemClickListener);
         mRecyclerView.setAdapter(mAdapter);
         mRecyclerView.setLayoutManager(mLlm);
@@ -138,6 +156,25 @@ public class ChooserDialogFragment extends NoTitleDialogFragment {
                 dismiss();
             }
         });
+        if (mShouldShowMore) {
+            mTvMoreAsBt.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (mMoreListener != null) {
+                        mMoreListener.onClick(v);
+                    }
+                    dismiss();
+                }
+            });
+        }
+
+        mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
+                super.onScrollStateChanged(recyclerView, newState);
+                EdgeEffectUtil.forRecyclerView(mRecyclerView, mAccentColor);
+            }
+        });
     }
 
     public int getPickedIndex() {
@@ -156,12 +193,20 @@ public class ChooserDialogFragment extends NoTitleDialogFragment {
         mItems = items;
     }
 
+    public void setShouldShowMore(boolean shouldShowMore) {
+        mShouldShowMore = shouldShowMore;
+    }
+
     public void setInitialIndex(int initialIndex) {
         mInitialIndex = initialIndex;
     }
 
     public void setConfirmListener(View.OnClickListener confirmListener) {
         mConfirmListener = confirmListener;
+    }
+
+    public void setMoreListener(View.OnClickListener moreListener) {
+        mMoreListener = moreListener;
     }
 
     public void setOnItemClickListener(View.OnClickListener onItemClickListener) {

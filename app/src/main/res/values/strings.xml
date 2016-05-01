@@ -54,6 +54,7 @@
     <string name="act_delete">删除</string>
     <string name="act_restore">还原</string>
     <string name="act_delete_attachment">删除该附件</string>
+    <string name="act_show_attachment_info">查看附件详情</string>
 
     <string name="act_edit">编辑</string>
     <string name="act_dial">拨打</string>
@@ -154,6 +155,7 @@
 
     <string name="confirm">确定</string>
     <string name="cancel">取消</string>
+    <string name="more">更多</string>
 
     <string name="description_a">个</string>
 
@@ -283,6 +285,20 @@
     <string name="description_play_audio_attachment">播放音频文件</string>
     <string name="description_delete_audio_attachment">删除该音频附件</string>
 
+    <string name="attachment_info_title">附件详情</string>
+    <string name="file_path">文件路径</string>
+    <string name="file_path_not_existed">永恒未知处</string>
+    <string name="file_size">文件大小</string>
+    <string name="image_size">图片宽高</string>
+    <string name="image_create_time">图片创建时间</string>
+    <string name="file_last_modify_time">文件最后修改时间</string>
+    <string name="video_size">视频宽高</string>
+    <string name="video_duration">视频时长</string>
+    <string name="video_create_time">视频创建时间</string>
+    <string name="audio_duration">音频时长</string>
+    <string name="audio_bitrate">比特率</string>
+    <string name="audio_sample_rate">采样率</string>
+
     <string name="input_file_name">请输入文件名</string>
 
     <string name="alert_continue">确定要继续该操作吗？</string>
@@ -315,9 +331,13 @@
 
     <string name="from_everything_done">来自Android应用《完事儿》</string>
 
+    <string name="settings_group_ui">界面</string>
     <string name="settings_group_ringtone">铃声</string>
     <string name="settings_group_advanced">高级</string>
     <string name="settings_group_data">数据</string>
+    <string name="change_drawer_header">抽屉头部图片</string>
+    <string name="default_drawer_header">默认图片</string>
+    <string name="act_choose_image_file">选择图片</string>
     <string name="chooser_ringtone">选择铃声</string>
     <string name="backup">备份</string>
     <string name="backup_content">完事儿将会备份您创建的所有记事以及应用设置，所有的提醒、习惯或目标也都将在恢复后正常执行。但是完事儿将不会备份您在记事中添加的各类附件，若有需要，请您使用其它手段备份，附件所在文件夹为 sdcard/EverythingDone</string>
@@ -350,6 +370,9 @@
 
     <string name="act_share_everythingdone">分享完事儿</string>
     <string name="send_feedback_to_developer">发送建议、反馈给开发者</string>
+    <string name="app_crash_title">完事儿刚刚好像爆炸了QAQ</string>
+    <string name="app_crash_content">现在您就可以向开发者发送错误报告，这样就可以迫使他加班加点修复 bug 了。\n当然，您也可以在其它时刻前往关于界面反馈这个问题，到时只需要在您的邮件中附上 SD卡/EverythingDone/log 目录下相应的 log 文件(您可以根据它们名称中的时间信息，来选择最合适的那个 log 文件作为邮件附件)即可。</string>
+    <string name="app_crash_send_now">现在反馈</string>
 
     <string name="act_support">支持开发者</string>
 
@@ -398,5 +421,8 @@
     <string name="please_wait">请稍等</string>
     <string name="generating_screen_shot">正在对统计界面截图...</string>
     <string name="share_statistic">分享我的使用情况</string>
+
+    <string name="title_important_alert">这是一个很重要的提醒</string>
+    <string name="content_important_reminder_permission">如果您正在使用一些系统优化类的应用(如 360 手机卫士)，或者您的手机自带了这样的应用(如华为的节电助手)，请将完事儿加入它们的白名单中，以确保完事儿能够正常地进行提醒。\n\n此外，请您在系统自带的权限管理中授予完事儿请求的权限，它们是：\n(1) 开机自启动，用于设定闹钟，如果您不授予完事儿该权限，当您重启手机后，完事儿将无法继续提醒您的日程、习惯或目标;\n(2) 读写存储空间，用于插入附件、分享使用情况时保存界面截图等;\n(3) 录音，用于录制音频文件作为记事附件。\n完事儿绝对不会恶意地使用这些权限，请您放心！</string>
 
 </resources>

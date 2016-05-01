@@ -14,7 +14,7 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 
-import com.ywwynm.everythingdone.Definitions;
+import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.adapters.SingleChoiceAdapter;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
@@ -40,15 +40,15 @@ public class DateTimePicker extends PopupPicker {
     private int mPreviousIndex;
 
     public DateTimePicker(Context context, View parent, int type, int accentColor) {
-        super(context, parent, type == Definitions.PickerType.AFTER_TIME ?
+        super(context, parent, type == Def.PickerType.AFTER_TIME ?
                 R.style.QuickRemindPickerAnimation : R.style.TimeTypePickerAnimation);
         mType = type;
         mAccentColor = accentColor;
         ViewGroup.LayoutParams params = mRecyclerView.getLayoutParams();
-        if (mType == Definitions.PickerType.AFTER_TIME) {
+        if (mType == Def.PickerType.AFTER_TIME) {
             params.width = (int) (mScreenDensity * 168);
             mItems = mContext.getResources().getStringArray(R.array.quick_remind);
-        } else if (mType == Definitions.PickerType.TIME_TYPE_HAVE_HOUR_MINUTE) {
+        } else if (mType == Def.PickerType.TIME_TYPE_HAVE_HOUR_MINUTE) {
             params.width = (int) (mScreenDensity * 120);
             mItems = mContext.getResources().getStringArray(R.array.time_type);
             if (LocaleUtil.isChinese(mContext)) {
@@ -88,7 +88,7 @@ public class DateTimePicker extends PopupPicker {
         int index = getPickedIndex();
         TextView anchor = (TextView) mAnchor;
         if (index != 9) {
-            if (mType == Definitions.PickerType.AFTER_TIME) {
+            if (mType == Def.PickerType.AFTER_TIME) {
                 String after = mContext.getString(R.string.after);
                 if (LocaleUtil.isChinese(mContext)) {
                     anchor.setText(mItems[index]);
@@ -98,16 +98,16 @@ public class DateTimePicker extends PopupPicker {
                     anchor.append(mItems[index]);
                 }
             } else {
-                int offset = mType == Definitions.PickerType.TIME_TYPE_HAVE_HOUR_MINUTE ? 0 : 1;
+                int offset = mType == Def.PickerType.TIME_TYPE_HAVE_HOUR_MINUTE ? 0 : 1;
                 if (!LocaleUtil.isChinese(mContext)) {
                     anchor.setText(mItems[index].toLowerCase());
                     if (offset == 0) {
                         anchor.append(" ");
                     }
                 } else {
-                    boolean b1 = mType == Definitions.PickerType.TIME_TYPE_HAVE_HOUR_MINUTE
+                    boolean b1 = mType == Def.PickerType.TIME_TYPE_HAVE_HOUR_MINUTE
                             && (index == 1 || index == 3 || index == 4);
-                    boolean b2 = mType == Definitions.PickerType.TIME_TYPE_NO_HOUR_MINUTE
+                    boolean b2 = mType == Def.PickerType.TIME_TYPE_NO_HOUR_MINUTE
                             && (index == 1 || index == 2);
                     if (b1 || b2) {
                         anchor.setText(mContext.getString(R.string.description_a) + mItems[index]);
@@ -115,7 +115,7 @@ public class DateTimePicker extends PopupPicker {
                         anchor.setText(mItems[index]);
                     }
                 }
-                if (mType == Definitions.PickerType.TIME_TYPE_HAVE_HOUR_MINUTE) {
+                if (mType == Def.PickerType.TIME_TYPE_HAVE_HOUR_MINUTE) {
                     anchor.append(mContext.getString(R.string.later));
                 }
             }
@@ -152,7 +152,7 @@ public class DateTimePicker extends PopupPicker {
         int[] pos = new int[2];
         View anchor = (View) mAnchor;
         anchor.getLocationInWindow(pos);
-        if (mType == Definitions.PickerType.AFTER_TIME) {
+        if (mType == Def.PickerType.AFTER_TIME) {
             mPopupWindow.showAtLocation(mParent, Gravity.BOTTOM | Gravity.START,
                     (int) (pos[0] - mScreenDensity * 16),
                     displayHeight - pos[1] - anchor.getHeight());
@@ -195,15 +195,15 @@ public class DateTimePicker extends PopupPicker {
     }
 
     public int getPickedTimeType() {
-        if (mType == Definitions.PickerType.AFTER_TIME) return -1;
+        if (mType == Def.PickerType.AFTER_TIME) return -1;
         int[] types = new int[] { Calendar.MINUTE, Calendar.HOUR_OF_DAY, Calendar.DATE,
                 Calendar.WEEK_OF_YEAR, Calendar.MONTH, Calendar.YEAR };
-        return mType == Definitions.PickerType.TIME_TYPE_HAVE_HOUR_MINUTE ?
+        return mType == Def.PickerType.TIME_TYPE_HAVE_HOUR_MINUTE ?
                 types[getPickedIndex()] : types[getPickedIndex() + 2];
     }
 
     private int getRecyclerViewHeight() {
-        if (mType == Definitions.PickerType.AFTER_TIME) {
+        if (mType == Def.PickerType.AFTER_TIME) {
             return (int) (mScreenDensity * 228);
         } else {
             return (int) (mScreenDensity * 180);
@@ -249,11 +249,11 @@ public class DateTimePicker extends PopupPicker {
 
         @Override
         public int getItemCount() {
-            if (mType == Definitions.PickerType.AFTER_TIME) {
+            if (mType == Def.PickerType.AFTER_TIME) {
                 return 10;
-            } else if (mType == Definitions.PickerType.TIME_TYPE_NO_HOUR_MINUTE) {
+            } else if (mType == Def.PickerType.TIME_TYPE_NO_HOUR_MINUTE) {
                 return 4;
-            } else if (mType == Definitions.PickerType.TIME_TYPE_HAVE_HOUR_MINUTE) {
+            } else if (mType == Def.PickerType.TIME_TYPE_HAVE_HOUR_MINUTE) {
                 return 6;
             }
             return 0;

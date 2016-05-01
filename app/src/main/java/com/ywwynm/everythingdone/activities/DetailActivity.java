@@ -19,6 +19,7 @@ import android.support.annotation.StringRes;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.ActivityOptionsCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.util.Pair;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -29,7 +30,6 @@ import android.text.Spannable;
 import android.text.style.ClickableSpan;
 import android.text.style.URLSpan;
 import android.util.LruCache;
-import android.util.Pair;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -45,10 +45,9 @@ import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import com.ywwynm.everythingdone.Definitions;
-import com.ywwynm.everythingdone.EverythingDoneApplication;
+import com.ywwynm.everythingdone.App;
+import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.adapters.AudioAttachmentAdapter;
 import com.ywwynm.everythingdone.adapters.CheckListAdapter;
@@ -72,13 +71,13 @@ import com.ywwynm.everythingdone.receivers.AutoNotifyReceiver;
 import com.ywwynm.everythingdone.receivers.HabitReceiver;
 import com.ywwynm.everythingdone.receivers.ReminderReceiver;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
+import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.FileUtil;
 import com.ywwynm.everythingdone.utils.KeyboardUtil;
 import com.ywwynm.everythingdone.utils.LocaleUtil;
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil;
 import com.ywwynm.everythingdone.utils.UriPathConverter;
-import com.ywwynm.everythingdone.utils.VersionUtil;
 import com.ywwynm.everythingdone.views.Snackbar;
 import com.ywwynm.everythingdone.views.pickers.ColorPicker;
 import com.ywwynm.everythingdone.views.pickers.DateTimePicker;
@@ -105,7 +104,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         return mType;
     }
 
-    private EverythingDoneApplication mApplication;
+    private App mApplication;
     public float screenDensity;
 
     private boolean mEditable;
@@ -193,7 +192,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     protected void onDestroy() {
         super.onDestroy();
         if (!mRemoveDetailActivityInstance) {
-            EverythingDoneApplication.getRunningDetailActivities().remove(mThing.getId());
+            App.getRunningDetailActivities().remove(mThing.getId());
         }
     }
 
@@ -378,7 +377,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
-            if (requestCode == Definitions.Communication.REQUEST_CHOOSE_MEDIA_FILE) {
+            if (requestCode == Def.Communication.REQUEST_CHOOSE_MEDIA_FILE) {
                 String pathName = UriPathConverter.getLocalPathName(this, data.getData());
                 if (pathName == null) {
                     mNormalSnackbar.setMessage(R.string.error_cannot_add_from_network);
@@ -393,9 +392,9 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 }
             }
             addAttachment(0);
-        } else if (resultCode == Definitions.Communication.RESULT_UPDATE_IMAGE_DONE) {
+        } else if (resultCode == Def.Communication.RESULT_UPDATE_IMAGE_DONE) {
             List<String> items = data.getStringArrayListExtra(
-                    Definitions.Communication.KEY_TYPE_PATH_NAME);
+                    Def.Communication.KEY_TYPE_PATH_NAME);
             mImageAttachmentAdapter.setItems(items);
             int sizeAfter = items.size();
             if (sizeAfter == 0) {
@@ -439,24 +438,24 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         final int G = PackageManager.PERMISSION_GRANTED;
         for (int grantResult : grantResults) {
             if (grantResult != G) {
-                Toast.makeText(this, R.string.error_permission_denied, Toast.LENGTH_LONG).show();
+                showNormalSnackbar(R.string.error_permission_denied);
                 return;
             }
         }
-        if (requestCode == Definitions.Communication.REQUEST_PERMISSION_TAKE_PHOTO) {
+        if (requestCode == Def.Communication.REQUEST_PERMISSION_TAKE_PHOTO) {
             mAddAttachmentDialogFragment.startTakePhoto();
-        } else if (requestCode == Definitions.Communication.REQUEST_PERMISSION_SHOOT_VIDEO) {
+        } else if (requestCode == Def.Communication.REQUEST_PERMISSION_SHOOT_VIDEO) {
             mAddAttachmentDialogFragment.startShootVideo();
-        } else if (requestCode == Definitions.Communication.REQUEST_PERMISSION_RECORD_AUDIO) {
+        } else if (requestCode == Def.Communication.REQUEST_PERMISSION_RECORD_AUDIO) {
             mAddAttachmentDialogFragment.showRecordAudioDialog();
-        } else if (requestCode == Definitions.Communication.REQUEST_PERMISSION_CHOOSE_MEDIA_FILE) {
+        } else if (requestCode == Def.Communication.REQUEST_PERMISSION_CHOOSE_MEDIA_FILE) {
             mAddAttachmentDialogFragment.startChooseMediaFile();
         }
     }
 
     @Override
     protected void initMembers() {
-        mApplication = (EverythingDoneApplication) getApplication();
+        mApplication = (App) getApplication();
         mApplication.setDetailActivityRun(true);
 
         screenDensity = DisplayUtil.getScreenDensity(this);
@@ -467,26 +466,26 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             mSenderName = "intent";
             mType = CREATE;
         } else {
-            mSenderName = intent.getStringExtra(Definitions.Communication.KEY_SENDER_NAME);
-            mType = intent.getIntExtra(Definitions.Communication.KEY_DETAIL_ACTIVITY_TYPE, UPDATE);
+            mSenderName = intent.getStringExtra(Def.Communication.KEY_SENDER_NAME);
+            mType = intent.getIntExtra(Def.Communication.KEY_DETAIL_ACTIVITY_TYPE, UPDATE);
         }
 
-        long id = intent.getLongExtra(Definitions.Communication.KEY_ID, -1);
+        long id = intent.getLongExtra(Def.Communication.KEY_ID, -1);
 
-        mPosition = intent.getIntExtra(Definitions.Communication.KEY_POSITION, 1);
+        mPosition = intent.getIntExtra(Def.Communication.KEY_POSITION, 1);
 
         ThingManager thingManager = ThingManager.getInstance(mApplication);
         if (mType == CREATE) {
             long newId = thingManager.getHeaderId();
-            EverythingDoneApplication.getRunningDetailActivities().add(newId);
+            App.getRunningDetailActivities().add(newId);
             mThing = new Thing(newId, Thing.NOTE,
-                    intent.getIntExtra(Definitions.Communication.KEY_COLOR,
+                    intent.getIntExtra(Def.Communication.KEY_COLOR,
                             DisplayUtil.getRandomColor(this)), newId);
             if ("intent".equals(mSenderName)) {
                 setupThingFromIntent();
             }
         } else {
-            EverythingDoneApplication.getRunningDetailActivities().add(id);
+            App.getRunningDetailActivities().add(id);
             if (mPosition == -1) {
                 mThing = ThingDAO.getInstance(mApplication).getThingById(id);
             } else {
@@ -588,42 +587,42 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
     @Override
     protected void findViews() {
-        mFlBackground = (FrameLayout) findViewById(R.id.fl_background);
+        mFlBackground = f(R.id.fl_background);
 
-        mStatusBar = findViewById(R.id.view_status_bar);
-        mActionbar = (Toolbar) findViewById(R.id.actionbar);
-        mIbBack    = (ImageButton) findViewById(R.id.ib_back);
-        mActionBarShadow = findViewById(R.id.actionbar_shadow);
-        mImageCover = findViewById(R.id.view_image_cover);
+        mStatusBar = f(R.id.view_status_bar);
+        mActionbar = f(R.id.actionbar);
+        mIbBack    = f(R.id.ib_back);
+        mActionBarShadow = f(R.id.actionbar_shadow);
+        mImageCover = f(R.id.view_image_cover);
 
-        mRvImageAttachment = (RecyclerView) findViewById(R.id.rv_image_attachment);
+        mRvImageAttachment = f(R.id.rv_image_attachment);
         mRvImageAttachment.setNestedScrollingEnabled(false);
 
-        mScrollView   = (ScrollView) findViewById(R.id.sv_detail);
-        mEtTitle      = (EditText) findViewById(R.id.et_title);
-        mEtContent    = (EditText) findViewById(R.id.et_content);
-        mTvUpdateTime = (TextView) findViewById(R.id.tv_update_time);
+        mScrollView   = f(R.id.sv_detail);
+        mEtTitle      = f(R.id.et_title);
+        mEtContent    = f(R.id.et_content);
+        mTvUpdateTime = f(R.id.tv_update_time);
 
-        mRvCheckList = (RecyclerView) findViewById(R.id.rv_check_list);
+        mRvCheckList = f(R.id.rv_check_list);
         mRvCheckList.setItemAnimator(null);
         mRvCheckList.setNestedScrollingEnabled(false);
 
-        mRvAudioAttachment = (RecyclerView) findViewById(R.id.rv_audio_attachment);
+        mRvAudioAttachment = f(R.id.rv_audio_attachment);
         mRvAudioAttachment.setNestedScrollingEnabled(false);
         ((SimpleItemAnimator) mRvAudioAttachment.getItemAnimator())
                 .setSupportsChangeAnimations(false);
 
-        mFlQuickRemindAsBt = (FrameLayout) findViewById(R.id.fl_quick_remind_as_bt);
-        cbQuickRemind = (CheckBox) findViewById(R.id.cb_quick_remind);
-        tvQuickRemind = (TextView) findViewById(R.id.tv_quick_remind);
+        mFlQuickRemindAsBt = f(R.id.fl_quick_remind_as_bt);
+        cbQuickRemind      = f(R.id.cb_quick_remind);
+        tvQuickRemind      = f(R.id.tv_quick_remind);
 
         View decorView = getWindow().getDecorView();
         mNormalSnackbar = new Snackbar(mApplication, Snackbar.NORMAL, decorView, null);
         if (mEditable) {
-            mColorPicker = new ColorPicker(this, decorView, Definitions.PickerType.COLOR_NO_ALL);
+            mColorPicker = new ColorPicker(this, decorView, Def.PickerType.COLOR_NO_ALL);
             mColorPicker.setIsLastIcon(mType == CREATE);
             quickRemindPicker = new DateTimePicker(this, decorView,
-                    Definitions.PickerType.AFTER_TIME, mThing.getColor());
+                    Def.PickerType.AFTER_TIME, mThing.getColor());
             quickRemindPicker.setAnchor(tvQuickRemind);
 
             mUndoSnackbar = new Snackbar(mApplication, Snackbar.UNDO, decorView, null);
@@ -636,7 +635,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
     @Override
     protected void initUI() {
-        if (VersionUtil.hasKitKatApi()) {
+        if (DeviceUtil.hasKitKatApi()) {
             LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) mStatusBar.getLayoutParams();
             params.height = DisplayUtil.getStatusbarHeight(this);
             mStatusBar.requestLayout();
@@ -658,7 +657,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
         mFlBackground.setBackgroundColor(color);
 
-        if (!VersionUtil.hasLollipopApi()) {
+        if (!DeviceUtil.hasLollipopApi()) {
             if (mEditable) {
                 int appAccentColor = ContextCompat.getColor(this, R.color.app_accent);
                 DisplayUtil.setSelectionHandlersColor(mEtTitle, appAccentColor);
@@ -776,7 +775,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                     quickRemindPicker.pickForUI(8);
                     reminderAfterTime = quickRemindPicker.getPickedTimeAfter();
                 } else {
-                    findViewById(R.id.ll_quick_remind).setVisibility(View.GONE);
+                    f(R.id.ll_quick_remind).setVisibility(View.GONE);
                     FrameLayout.LayoutParams params = (FrameLayout.LayoutParams)
                             mScrollView.getLayoutParams();
                     params.setMargins(0, params.topMargin, 0, 0);
@@ -794,7 +793,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) mScrollView.getLayoutParams();
         if (hasMarginTop) {
             float mt = screenDensity * 56;
-            if (VersionUtil.hasKitKatApi()) {
+            if (DeviceUtil.hasKitKatApi()) {
                 mt += DisplayUtil.getStatusbarHeight(this);
             }
             params.setMargins(0, (int) mt, 0, params.bottomMargin);
@@ -822,7 +821,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     private void initAudioAttachmentUI(List<String> items) {
         mRvAudioAttachment.setVisibility(View.VISIBLE);
         AttachmentHelper.setAudioRecyclerViewHeight(mRvAudioAttachment, items.size(), mSpanAudio);
-        mAudioAttachmentAdapter = new AudioAttachmentAdapter(this, mEditable, items,
+        mAudioAttachmentAdapter = new AudioAttachmentAdapter(this, getAccentColor(), mEditable, items,
                 mEditable ? new AudioAttachmentRemoveCallback() : null);
         mAudioLayoutManager = new GridLayoutManager(this, mSpanAudio);
         mRvAudioAttachment.setAdapter(mAudioAttachmentAdapter);
@@ -846,7 +845,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     private void setImageCover() {
         FrameLayout.LayoutParams fl = (FrameLayout.LayoutParams) mImageCover.getLayoutParams();
         fl.height = (int) (66 * screenDensity);
-        if (VersionUtil.hasKitKatApi()) {
+        if (DeviceUtil.hasKitKatApi()) {
             fl.height += DisplayUtil.getStatusbarHeight(this);
         }
         mImageCover.setVisibility(View.VISIBLE);
@@ -873,10 +872,10 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 }
             });
         }
-        if (VersionUtil.hasKitKatApi()) {
+        if (DeviceUtil.hasKitKatApi()) {
             KeyboardUtil.addKeyboardCallback(window, new KeyboardUtil.KeyboardCallback() {
 
-                View contentView = findViewById(R.id.fl_background);
+                View contentView = f(R.id.fl_background);
 
                 @Override
                 public void onKeyboardShow(float keyboardHeight) {
@@ -909,7 +908,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         final int statusBarHeight = DisplayUtil.getStatusbarHeight(this);
 
         final int statusBarOffset; // if is in translucent mode, we should also consider height of status bar.
-        if (!VersionUtil.hasKitKatApi()) {
+        if (!DeviceUtil.hasKitKatApi()) {
             statusBarOffset = 0;
         } else {
             statusBarOffset = statusBarHeight;
@@ -968,7 +967,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                     }
                 });
 
-        if (findViewById(R.id.ll_quick_remind).getVisibility() == View.VISIBLE) {
+        if (f(R.id.ll_quick_remind).getVisibility() == View.VISIBLE) {
             observer.addOnScrollChangedListener(
                     new ViewTreeObserver.OnScrollChangedListener() {
                         @Override
@@ -983,7 +982,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         Rect windowRect = new Rect();
         getWindow().getDecorView().getWindowVisibleDisplayFrame(windowRect);
 
-        final View quickRemindShadow = findViewById(R.id.quick_remind_shadow);
+        final View quickRemindShadow = f(R.id.quick_remind_shadow);
         final int quickRemindHeight = (int) (screenDensity * 56);
         final int statusBarHeight = DisplayUtil.getStatusbarHeight(this);
 
@@ -992,7 +991,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         int marginTop = statusBarHeight;
         if (mRvImageAttachment.getVisibility() != View.VISIBLE) {
             marginTop += quickRemindHeight;
-        } else if (VersionUtil.hasKitKatApi()) {
+        } else if (DeviceUtil.hasKitKatApi()) {
             marginTop -= statusBarHeight;
         }
 
@@ -1349,7 +1348,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         }
 
         if (!mEditable) {
-            setResult(Definitions.Communication.RESULT_NO_UPDATE);
+            setResult(Def.Communication.RESULT_NO_UPDATE);
             finish();
             return;
         }
@@ -1358,7 +1357,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         mNormalSnackbar.dismiss();
 
         long id = mThing.getId();
-        if (EverythingDoneApplication.isSomethingUpdatedSpecially()) {
+        if (App.isSomethingUpdatedSpecially()) {
             updateThingAndItsPosition(id);
         }
 
@@ -1407,13 +1406,13 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         }
 
         Intent intent = new Intent();
-        int resultCode = Definitions.Communication.RESULT_NO_UPDATE;
+        int resultCode = Def.Communication.RESULT_NO_UPDATE;
         if (mType == CREATE && title.isEmpty() && content.isEmpty() && attachment.isEmpty()) {
-            resultCode = Definitions.Communication.RESULT_CREATE_BLANK_THING;
+            resultCode = Def.Communication.RESULT_CREATE_BLANK_THING;
             setResult(resultCode);
-            if (EverythingDoneApplication.isSomethingUpdatedSpecially()
-                    && resultCode != Definitions.Communication.RESULT_NO_UPDATE) {
-                EverythingDoneApplication.setShouldJustNotifyDataSetChanged(true);
+            if (App.isSomethingUpdatedSpecially()
+                    && resultCode != Def.Communication.RESULT_NO_UPDATE) {
+                App.setShouldJustNotifyDataSetChanged(true);
             }
             if (shouldSendBroadCast()) {
                 sendBroadCastToUpdateMainUI(intent, resultCode);
@@ -1489,17 +1488,17 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             mThing.setCreateTime(currentTime);
             mThing.setUpdateTime(currentTime);
 
-            intent.putExtra(Definitions.Communication.KEY_THING, mThing);
-            resultCode = Definitions.Communication.RESULT_CREATE_THING_DONE;
+            intent.putExtra(Def.Communication.KEY_THING, mThing);
+            resultCode = Def.Communication.RESULT_CREATE_THING_DONE;
 
             // Create thing here directly to database. Solve the problem that if ThingsActivity
             // is destroyed while user share something from other apps to EverythingDone. In that
             // case, ThingsActivity won't receive broadcast to handle creation and that thing
             // will be missed.
-            WeakReference<ThingsActivity> wr = EverythingDoneApplication.thingsActivityWR;
+            WeakReference<ThingsActivity> wr = App.thingsActivityWR;
             if (wr == null || wr.get() == null) {
                 ThingManager.getInstance(mApplication).create(mThing, true);
-                intent.putExtra(Definitions.Communication.KEY_CREATED_DONE, true);
+                intent.putExtra(Def.Communication.KEY_CREATED_DONE, true);
             } else if (!shouldSendBroadCast()) {
                 setResult(resultCode, intent);
             }
@@ -1520,23 +1519,23 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                     mThing.setColor(color);
                     mThing.setUpdateTime(System.currentTimeMillis());
 
-                    intent.putExtra(Definitions.Communication.KEY_TYPE_BEFORE, typeBefore);
+                    intent.putExtra(Def.Communication.KEY_TYPE_BEFORE, typeBefore);
                     boolean sameType = mApplication.getLimit() ==
-                            Definitions.LimitForGettingThings.ALL_UNDERWAY
+                            Def.LimitForGettingThings.ALL_UNDERWAY
                             || Thing.sameType(typeBefore, typeAfter);
                     if (sameType) {
-                        resultCode = Definitions.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME;
+                        resultCode = Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME;
                     } else {
-                        intent.putExtra(Definitions.Communication.KEY_THING, mThing);
-                        resultCode = Definitions.Communication.RESULT_UPDATE_THING_DONE_TYPE_DIFFERENT;
+                        intent.putExtra(Def.Communication.KEY_THING, mThing);
+                        resultCode = Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_DIFFERENT;
                     }
 
                     if (mPosition != -1) {
-                        intent.putExtra(Definitions.Communication.KEY_POSITION, mPosition);
+                        intent.putExtra(Def.Communication.KEY_POSITION, mPosition);
                         int updateResult = ThingManager.getInstance(mApplication).update(
                                 typeBefore, mThing, mPosition, true);
                         if (updateResult != 0) {
-                            intent.putExtra(Definitions.Communication.KEY_CALL_CHANGE, updateResult == 1);
+                            intent.putExtra(Def.Communication.KEY_CALL_CHANGE, updateResult == 1);
                         }
                     } else {
                         ThingDAO.getInstance(mApplication).update(typeBefore, mThing, true, true);
@@ -1549,9 +1548,9 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             }
         }
 
-        if (EverythingDoneApplication.isSomethingUpdatedSpecially()
-                && resultCode != Definitions.Communication.RESULT_NO_UPDATE) {
-            EverythingDoneApplication.setShouldJustNotifyDataSetChanged(true);
+        if (App.isSomethingUpdatedSpecially()
+                && resultCode != Def.Communication.RESULT_NO_UPDATE) {
+            App.setShouldJustNotifyDataSetChanged(true);
         }
 
         if (shouldSendBroadCast()) {
@@ -1568,15 +1567,15 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
         ThingManager manager = ThingManager.getInstance(mApplication);
         Intent intent = new Intent();
-        intent.putExtra(Definitions.Communication.KEY_THING, mThing);
+        intent.putExtra(Def.Communication.KEY_THING, mThing);
 
-        if (EverythingDoneApplication.isSomethingUpdatedSpecially()) {
+        if (App.isSomethingUpdatedSpecially()) {
             updateThingAndItsPosition(mThing.getId());
-            EverythingDoneApplication.setShouldJustNotifyDataSetChanged(true);
+            App.setShouldJustNotifyDataSetChanged(true);
         }
 
-        intent.putExtra(Definitions.Communication.KEY_POSITION, mPosition);
-        intent.putExtra(Definitions.Communication.KEY_STATE_AFTER, stateAfter);
+        intent.putExtra(Def.Communication.KEY_POSITION, mPosition);
+        intent.putExtra(Def.Communication.KEY_STATE_AFTER, stateAfter);
 
         if (mPosition == -1) {
             int stateBefore = mThing.getState();
@@ -1597,20 +1596,20 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 HabitDAO habitDAO = HabitDAO.getInstance(mApplication);
                 long curTime = System.currentTimeMillis();
                 if (stateAfter == Thing.UNDERWAY) {
-                    habitDAO.updateHabitToLatest(id, true);
+                    habitDAO.updateHabitToLatest(id, true, true);
                     habitDAO.addHabitIntervalInfo(id, curTime + ";");
                 } else {
                     habitDAO.addHabitIntervalInfo(id, curTime + ",");
                 }
             }
         } else {
-            intent.putExtra(Definitions.Communication.KEY_CALL_CHANGE,
+            intent.putExtra(Def.Communication.KEY_CALL_CHANGE,
                     manager.updateState(
                             mThing, mPosition, mThing.getLocation(),
                             mThing.getState(), stateAfter, false, true));
         }
 
-        int resultCode = Definitions.Communication.RESULT_UPDATE_THING_STATE_DIFFERENT;
+        int resultCode = Def.Communication.RESULT_UPDATE_THING_STATE_DIFFERENT;
         if (shouldSendBroadCast()) {
             sendBroadCastToUpdateMainUI(intent, resultCode);
         } else {
@@ -1626,21 +1625,21 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
     @Override
     public void finish() {
-        List<Long> detailActivities = EverythingDoneApplication.getRunningDetailActivities();
+        List<Long> detailActivities = App.getRunningDetailActivities();
         detailActivities.remove(mThing.getId());
         mRemoveDetailActivityInstance = true;
         super.finish();
     }
 
     private void sendBroadCastToUpdateMainUI(Intent intent, int resultCode) {
-        if (EverythingDoneApplication.getRunningDetailActivities().size() > 1
-                && resultCode != Definitions.Communication.RESULT_NO_UPDATE) {
+        if (App.getRunningDetailActivities().size() > 1
+                && resultCode != Def.Communication.RESULT_NO_UPDATE) {
             // A DetailActivity has been opened before and this is another one opened from notification.
-            EverythingDoneApplication.setSomethingUpdatedSpecially(true);
+            App.setSomethingUpdatedSpecially(true);
         }
 
-        intent.putExtra(Definitions.Communication.KEY_RESULT_CODE, resultCode);
-        intent.setAction(Definitions.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI);
+        intent.putExtra(Def.Communication.KEY_RESULT_CODE, resultCode);
+        intent.setAction(Def.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI);
         sendBroadcast(intent);
     }
 
@@ -1668,7 +1667,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     }
 
     public void updateTaskDescription(int color) {
-        if (VersionUtil.hasLollipopApi()) {
+        if (DeviceUtil.hasLollipopApi()) {
             String title;
             if (mType == CREATE) {
                 title = getString(R.string.title_create_thing);
@@ -1861,15 +1860,24 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         @Override
         public void onClick(View v, int pos) {
             Intent intent = new Intent(DetailActivity.this, ImageViewerActivity.class);
-            intent.putExtra(Definitions.Communication.KEY_COLOR, getAccentColor());
-            intent.putExtra(Definitions.Communication.KEY_EDITABLE, mEditable);
-            intent.putExtra(Definitions.Communication.KEY_TYPE_PATH_NAME,
+            intent.putExtra(Def.Communication.KEY_COLOR, getAccentColor());
+            intent.putExtra(Def.Communication.KEY_EDITABLE, mEditable);
+            intent.putExtra(Def.Communication.KEY_TYPE_PATH_NAME,
                     (ArrayList) mImageAttachmentAdapter.getItems());
-            intent.putExtra(Definitions.Communication.KEY_POSITION, pos);
+            intent.putExtra(Def.Communication.KEY_POSITION, pos);
             ActivityOptionsCompat transition = ActivityOptionsCompat.makeScaleUpAnimation(
                     v, v.getWidth() >> 1, v.getHeight() >> 1, 0, 0);
             ActivityCompat.startActivityForResult(DetailActivity.this, intent,
-                    Definitions.Communication.REQUEST_ACTIVITY_IMAGE_VIEWER, transition.toBundle());
+                    Def.Communication.REQUEST_ACTIVITY_IMAGE_VIEWER, transition.toBundle());
+        }
+
+        @Override
+        public boolean onLongClick(View v, int pos) {
+            List<String> items = mImageAttachmentAdapter.getItems();
+            String typePathName = items.get(pos);
+            AttachmentHelper.showAttachmentInfoDialog(
+                    DetailActivity.this, getAccentColor(), typePathName);
+            return true;
         }
     }
 

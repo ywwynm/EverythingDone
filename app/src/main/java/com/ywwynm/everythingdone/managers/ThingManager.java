@@ -2,8 +2,8 @@ package com.ywwynm.everythingdone.managers;
 
 import android.content.Context;
 
-import com.ywwynm.everythingdone.Definitions;
-import com.ywwynm.everythingdone.EverythingDoneApplication;
+import com.ywwynm.everythingdone.App;
+import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.model.ThingsCounts;
@@ -75,7 +75,7 @@ public class ThingManager {
         mContext = context;
         mDao = ThingDAO.getInstance(context);
 
-        setLimit(Definitions.LimitForGettingThings.ALL_UNDERWAY, true);
+        setLimit(Def.LimitForGettingThings.ALL_UNDERWAY, true);
 
         mThingsCounts = ThingsCounts.getInstance(context);
 
@@ -192,7 +192,7 @@ public class ThingManager {
         // see if we can delete a NOTIFY_EMPTY
         boolean deletedNEnow = false;
         int type = thingToCreate.getType();
-        if (handleNotifyEmpty && !EverythingDoneApplication.isSearching) {
+        if (handleNotifyEmpty && !App.isSearching) {
             deletedNEnow = deleteNEnow(type, Thing.UNDERWAY);
         }
 
@@ -238,11 +238,11 @@ public class ThingManager {
         int typeAfter = updatedThing.getType();
         mThingsCounts.handleUpdate(typeBefore, state, typeAfter, state, 1);
 
-        if (handleNotifyEmpty && !EverythingDoneApplication.isSearching) {
+        if (handleNotifyEmpty && !App.isSearching) {
             deleteNEnow(typeAfter, state);
         }
 
-        if (mLimit == Definitions.LimitForGettingThings.ALL_UNDERWAY ||
+        if (mLimit == Def.LimitForGettingThings.ALL_UNDERWAY ||
                 Thing.sameType(typeBefore, typeAfter)) {
             // will not generate NOTIFY_EMPTY
             return 0;
@@ -250,7 +250,7 @@ public class ThingManager {
             mThings.remove(position);
 
             boolean createdNEnow = false;
-            if (handleNotifyEmpty && !EverythingDoneApplication.isSearching) {
+            if (handleNotifyEmpty && !App.isSearching) {
                 createdNEnow = createNEnow(typeBefore, state);
             }
 
@@ -301,7 +301,7 @@ public class ThingManager {
 
         int type = thing.getType();
         boolean deletedNEnow = false;
-        if (handleNotifyEmpty && !EverythingDoneApplication.isSearching) {
+        if (handleNotifyEmpty && !App.isSearching) {
             deletedNEnow = deleteNEnow(type, stateAfter);
         }
 
@@ -335,7 +335,7 @@ public class ThingManager {
             if (!toUndo) {
                 long curTime = System.currentTimeMillis();
                 if (stateAfter == Thing.UNDERWAY) {
-                    habitDAO.updateHabitToLatest(id, true);
+                    habitDAO.updateHabitToLatest(id, true, true);
                     habitDAO.addHabitIntervalInfo(id, curTime + ";");
                 } else {
                     habitDAO.addHabitIntervalInfo(id, curTime + ",");
@@ -348,7 +348,7 @@ public class ThingManager {
         mThingsCounts.handleUpdate(type, stateBefore, type, stateAfter, 1);
 
         boolean createdNEnow = false;
-        if (handleNotifyEmpty && !EverythingDoneApplication.isSearching) {
+        if (handleNotifyEmpty && !App.isSearching) {
             createdNEnow = createNEnow(type, stateBefore);
         }
         return deletedNEnow || createdNEnow;
@@ -387,7 +387,7 @@ public class ThingManager {
 
         // things.get(0).getType() will lead us to current limit.
         int type = things.get(0).getType();
-        if (handleNotifyEmpty && !EverythingDoneApplication.isSearching) {
+        if (handleNotifyEmpty && !App.isSearching) {
             deleteNEnow(type, stateAfter);
         }
 
@@ -432,7 +432,7 @@ public class ThingManager {
                 long curTime = System.currentTimeMillis();
                 if (stateAfter == Thing.UNDERWAY) {
                     for (Long habitId : mUndoHabits) {
-                        habitDAO.updateHabitToLatest(habitId, true);
+                        habitDAO.updateHabitToLatest(habitId, true, true);
                         habitDAO.addHabitIntervalInfo(habitId, curTime + ";");
                     }
                 } else {
@@ -443,7 +443,7 @@ public class ThingManager {
             }
         });
 
-        if (handleNotifyEmpty && !EverythingDoneApplication.isSearching) {
+        if (handleNotifyEmpty && !App.isSearching) {
             createNEnow(type, stateBefore);
         }
 
@@ -487,7 +487,7 @@ public class ThingManager {
         });
 
         int type = things.get(0).getType();
-        if (handleNotifyEmpty && !EverythingDoneApplication.isSearching) {
+        if (handleNotifyEmpty && !App.isSearching) {
             deleteNEnow(type, stateAfter);
         }
 
@@ -528,7 +528,7 @@ public class ThingManager {
             }
         });
 
-        if (handleNotifyEmpty && !EverythingDoneApplication.isSearching) {
+        if (handleNotifyEmpty && !App.isSearching) {
             createNEnow(type, stateBefore);
         }
     }

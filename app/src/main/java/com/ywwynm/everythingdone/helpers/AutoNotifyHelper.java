@@ -6,7 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 
-import com.ywwynm.everythingdone.Definitions;
+import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.Thing;
@@ -41,7 +41,7 @@ public class AutoNotifyHelper {
         long id = thing.getId();
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         Intent intent = new Intent(context, AutoNotifyReceiver.class);
-        intent.putExtra(Definitions.Communication.KEY_ID, id);
+        intent.putExtra(Def.Communication.KEY_ID, id);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(context, (int) id, intent,
                 PendingIntent.FLAG_UPDATE_CURRENT);
         long time = DateTimeUtil.getActualTimeAfterSomeTime(getAutoNotifyPreferences(context));
@@ -87,8 +87,8 @@ public class AutoNotifyHelper {
 
     private static int getAutoNotifyPreferencesIndex(Context context) {
         SharedPreferences preferences = context.getSharedPreferences(
-                Definitions.MetaData.PREFERENCES_NAME, Context.MODE_PRIVATE);
-        return preferences.getInt(Definitions.MetaData.KEY_AUTO_NOTIFY, 0);
+                Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE);
+        return preferences.getInt(Def.Meta.KEY_AUTO_NOTIFY, 0);
     }
 
 }

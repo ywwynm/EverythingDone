@@ -13,7 +13,8 @@
         android:layout_marginTop="20dp"
         android:layout_marginRight="20dp"
         android:textSize="20sp"
-        android:textStyle="bold"/>
+        android:textStyle="bold"
+        android:textAllCaps="true"/>
 
     <View
         android:id="@+id/view_separator_1"
@@ -33,27 +34,27 @@
         android:layout_height="1dp"
         android:background="@color/black_10p"/>
 
-    <LinearLayout
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginLeft="8dp"
         android:layout_marginTop="12dp"
         android:layout_marginRight="8dp"
-        android:layout_marginBottom="8dp"
-        android:gravity="end"
-        android:orientation="horizontal">
+        android:layout_marginBottom="8dp">
 
         <TextView
-            android:id="@+id/tv_cancel_as_bt_fragment_chooser"
+            android:id="@+id/tv_more_as_bt_fragment_chooser"
             android:layout_width="wrap_content"
             android:layout_height="36dp"
             android:paddingLeft="12dp"
             android:paddingTop="8dp"
             android:paddingRight="12dp"
             android:paddingBottom="8dp"
+            android:layout_alignParentStart="true"
+            android:layout_alignParentLeft="true"
             style="@style/SelectableItemBackground"
-            android:textColor="@color/black_26p"
-            android:text="@string/cancel"/>
+            android:textAllCaps="true"
+            android:text="@string/more"/>
 
         <TextView
             android:id="@+id/tv_confirm_as_bt_fragment_chooser"
@@ -63,10 +64,28 @@
             android:paddingTop="8dp"
             android:paddingRight="12dp"
             android:paddingBottom="8dp"
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentRight="true"
             android:textStyle="bold"
             android:text="@string/confirm"
+            android:textAllCaps="true"
             style="@style/SelectableItemBackground"/>
 
-    </LinearLayout>
+        <TextView
+            android:id="@+id/tv_cancel_as_bt_fragment_chooser"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:layout_toStartOf="@id/tv_confirm_as_bt_fragment_chooser"
+            android:layout_toLeftOf="@id/tv_confirm_as_bt_fragment_chooser"
+            android:paddingLeft="12dp"
+            android:paddingTop="8dp"
+            android:paddingRight="12dp"
+            android:paddingBottom="8dp"
+            style="@style/SelectableItemBackground"
+            android:textColor="@color/black_26p"
+            android:textAllCaps="true"
+            android:text="@string/cancel"/>
+
+    </RelativeLayout>
 
 </LinearLayout>

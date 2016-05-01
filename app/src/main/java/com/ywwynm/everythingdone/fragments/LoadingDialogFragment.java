@@ -24,15 +24,15 @@ public class LoadingDialogFragment extends NoTitleDialogFragment {
     private String mContent;
 
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        View contentView = inflater.inflate(R.layout.fragment_loading, container, false);
+        super.onCreateView(inflater, container, savedInstanceState);
 
-        TextView tvTitle = (TextView) contentView.findViewById(R.id.tv_title_loading);
-        TextView tvContent = (TextView) contentView.findViewById(R.id.tv_content_loading);
-        ProgressBar pbLoading = (ProgressBar) contentView.findViewById(R.id.pb_loading_fragment);
+        TextView tvTitle      = f(R.id.tv_title_loading);
+        TextView tvContent    = f(R.id.tv_content_loading);
+        ProgressBar pbLoading = f(R.id.pb_loading_fragment);
 
         tvTitle.setTextColor(mAccentColor);
         if (mTitle != null) {
-            tvTitle.setText(mTitle.toUpperCase());
+            tvTitle.setText(mTitle);
         }
 
         if (mContent != null) {
@@ -43,7 +43,12 @@ public class LoadingDialogFragment extends NoTitleDialogFragment {
 
         getDialog().setCanceledOnTouchOutside(false);
 
-        return contentView;
+        return mContentView;
+    }
+
+    @Override
+    protected int getLayoutResource() {
+        return R.layout.fragment_loading;
     }
 
     public void setAccentColor(int accentColor) {

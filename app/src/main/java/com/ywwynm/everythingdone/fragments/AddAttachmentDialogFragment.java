@@ -10,7 +10,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import com.ywwynm.everythingdone.Definitions;
+import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.DetailActivity;
 import com.ywwynm.everythingdone.helpers.AttachmentHelper;
@@ -42,21 +42,25 @@ public class AddAttachmentDialogFragment extends NoTitleDialogFragment {
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        super.onCreateView(inflater, container, savedInstanceState);
+
         mActivity = (DetailActivity) getActivity();
 
-        View contentView = inflater.inflate(R.layout.fragment_add_attachment, container);
+        ((TextView) f(R.id.tv_add_attachment_title)).setTextColor(mActivity.getAccentColor());
 
-        ((TextView) contentView.findViewById(R.id.tv_add_attachment_title))
-                .setTextColor(mActivity.getAccentColor());
-
-        mTvTakePhotoAsBt        = (TextView) contentView.findViewById(R.id.tv_take_photo_as_bt);
-        mTvShootVideoAsBt       = (TextView) contentView.findViewById(R.id.tv_shoot_video_as_bt);
-        mTvRecordAudioAsBt      = (TextView) contentView.findViewById(R.id.tv_record_audio_as_bt);
-        mTvChooseMediaFilesAsBt = (TextView) contentView.findViewById(R.id.tv_choose_media_files_as_bt);
+        mTvTakePhotoAsBt        = f(R.id.tv_take_photo_as_bt);
+        mTvShootVideoAsBt       = f(R.id.tv_shoot_video_as_bt);
+        mTvRecordAudioAsBt      = f(R.id.tv_record_audio_as_bt);
+        mTvChooseMediaFilesAsBt = f(R.id.tv_choose_media_files_as_bt);
 
         setEvents();
 
-        return contentView;
+        return mContentView;
+    }
+
+    @Override
+    protected int getLayoutResource() {
+        return R.layout.fragment_add_attachment;
     }
 
     private void setEvents() {
@@ -77,7 +81,7 @@ public class AddAttachmentDialogFragment extends NoTitleDialogFragment {
                     }
                 };
                 PermissionUtil.doWithPermissionChecked(callback, mActivity,
-                        Definitions.Communication.REQUEST_PERMISSION_TAKE_PHOTO,
+                        Def.Communication.REQUEST_PERMISSION_TAKE_PHOTO,
                         Manifest.permission.WRITE_EXTERNAL_STORAGE);
             }
         });
@@ -99,7 +103,7 @@ public class AddAttachmentDialogFragment extends NoTitleDialogFragment {
                     }
                 };
                 PermissionUtil.doWithPermissionChecked(callback, mActivity,
-                        Definitions.Communication.REQUEST_PERMISSION_SHOOT_VIDEO,
+                        Def.Communication.REQUEST_PERMISSION_SHOOT_VIDEO,
                         Manifest.permission.WRITE_EXTERNAL_STORAGE);
             }
         });
@@ -114,7 +118,7 @@ public class AddAttachmentDialogFragment extends NoTitleDialogFragment {
                     }
                 };
                 PermissionUtil.doWithPermissionChecked(callback, mActivity,
-                        Definitions.Communication.REQUEST_PERMISSION_RECORD_AUDIO,
+                        Def.Communication.REQUEST_PERMISSION_RECORD_AUDIO,
                         Manifest.permission.RECORD_AUDIO,
                         Manifest.permission.WRITE_EXTERNAL_STORAGE);
             }
@@ -130,8 +134,8 @@ public class AddAttachmentDialogFragment extends NoTitleDialogFragment {
                     }
                 };
                 PermissionUtil.doWithPermissionChecked(callback, mActivity,
-                        Definitions.Communication.REQUEST_PERMISSION_CHOOSE_MEDIA_FILE,
-                        Manifest.permission.READ_EXTERNAL_STORAGE);
+                        Def.Communication.REQUEST_PERMISSION_CHOOSE_MEDIA_FILE,
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE);
             }
         });
     }
@@ -143,7 +147,7 @@ public class AddAttachmentDialogFragment extends NoTitleDialogFragment {
             mActivity.attachmentTypePathName = AttachmentHelper.IMAGE + file.getAbsolutePath();
             intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(file));
             mActivity.startActivityForResult(intent,
-                    Definitions.Communication.REQUEST_TAKE_PHOTO);
+                    Def.Communication.REQUEST_TAKE_PHOTO);
         }
         dismiss();
     }
@@ -155,7 +159,7 @@ public class AddAttachmentDialogFragment extends NoTitleDialogFragment {
             mActivity.attachmentTypePathName = AttachmentHelper.VIDEO + file.getAbsolutePath();
             intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(file));
             mActivity.startActivityForResult(intent,
-                    Definitions.Communication.REQUEST_CAPTURE_VIDEO);
+                    Def.Communication.REQUEST_CAPTURE_VIDEO);
         }
         dismiss();
     }
@@ -172,7 +176,7 @@ public class AddAttachmentDialogFragment extends NoTitleDialogFragment {
         intent.setType("*/*");
         mActivity.startActivityForResult(
                 Intent.createChooser(intent, mActivity.getString(R.string.act_choose_media_files)),
-                Definitions.Communication.REQUEST_CHOOSE_MEDIA_FILE);
+                Def.Communication.REQUEST_CHOOSE_MEDIA_FILE);
         dismiss();
     }
 }

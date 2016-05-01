@@ -3,6 +3,7 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/rl_settings_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context="com.ywwynm.everythingdone.activities.SettingsActivity">
@@ -38,6 +39,44 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="4dp"
+                android:layout_marginLeft="18dp"
+                android:layout_marginRight="18dp"
+                android:textColor="@color/blue_deep"
+                android:textSize="14sp"
+                android:text="@string/settings_group_ui"/>
+
+            <LinearLayout
+                android:id="@+id/ll_change_drawer_header_as_bt"
+                android:layout_width="match_parent"
+                android:layout_height="72dp"
+                android:paddingLeft="16dp"
+                android:paddingRight="16dp"
+                android:orientation="vertical"
+                android:gravity="center_vertical"
+                style="@style/SelectableItemBackground">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/change_drawer_header"
+                    android:textSize="18sp"/>
+
+                <TextView
+                    android:id="@+id/tv_drawer_header_path"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="1dp"
+                    android:layout_marginLeft="1dp"
+                    android:textColor="@color/black_26p"
+                    android:textSize="16sp"/>
+
+            </LinearLayout>
 
             <TextView
                 android:layout_width="wrap_content"
@@ -208,8 +247,8 @@
                         android:id="@+id/tv_advanced_auto_notify_time"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="2dp"
-                        android:layout_marginLeft="2dp"
+                        android:layout_marginStart="1dp"
+                        android:layout_marginLeft="1dp"
                         android:textColor="@color/black_26p"
                         android:textSize="16sp"/>
 

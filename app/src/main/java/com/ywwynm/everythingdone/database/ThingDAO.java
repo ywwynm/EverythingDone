@@ -5,7 +5,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 
-import com.ywwynm.everythingdone.Definitions;
+import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.model.ThingsCounts;
 
@@ -33,7 +33,7 @@ public class ThingDAO {
 
     private ThingDAO(Context context) {
         mContext = context;
-        mLimit = Definitions.LimitForGettingThings.ALL_UNDERWAY;
+        mLimit = Def.LimitForGettingThings.ALL_UNDERWAY;
         EverythingDoneSQLiteOpenHelper helper = new EverythingDoneSQLiteOpenHelper(context);
         db = helper.getWritableDatabase();
     }
@@ -55,7 +55,7 @@ public class ThingDAO {
     }
 
     public Thing getThingById(long id) {
-        Cursor cursor = db.query(Definitions.Database.TABLE_THINGS, null,
+        Cursor cursor = db.query(Def.Database.TABLE_THINGS, null,
                 "id=" + id, null, null, null, null);
         cursor.moveToFirst();
         Thing thing = new Thing(cursor);
@@ -64,7 +64,7 @@ public class ThingDAO {
     }
 
     public long getHeaderId() {
-        Cursor cursor = db.query(Definitions.Database.TABLE_THINGS, null,
+        Cursor cursor = db.query(Def.Database.TABLE_THINGS, null,
                 "type=" + Thing.HEADER, null, null, null, null);
         cursor.moveToFirst();
         long id = cursor.getLong(0);
@@ -100,19 +100,19 @@ public class ThingDAO {
         }
 
         ContentValues values = new ContentValues();
-        values.put(Definitions.Database.COLUMN_ID_THINGS, thing.getId());
-        values.put(Definitions.Database.COLUMN_TYPE_THINGS, type);
-        values.put(Definitions.Database.COLUMN_STATE_THINGS, state);
-        values.put(Definitions.Database.COLUMN_COLOR_THINGS, thing.getColor());
-        values.put(Definitions.Database.COLUMN_TITLE_THINGS, thing.getTitle());
-        values.put(Definitions.Database.COLUMN_CONTENT_THINGS, thing.getContent());
-        values.put(Definitions.Database.COLUMN_ATTACHMENT_THINGS, thing.getAttachment());
-        values.put(Definitions.Database.COLUMN_LOCATION_THINGS, thing.getLocation());
-        values.put(Definitions.Database.COLUMN_CREATE_TIME_THINGS, thing.getCreateTime());
-        values.put(Definitions.Database.COLUMN_UPDATE_TIME_THINGS, thing.getUpdateTime());
-        values.put(Definitions.Database.COLUMN_FINISH_TIME_THINGS, thing.getFinishTime());
+        values.put(Def.Database.COLUMN_ID_THINGS, thing.getId());
+        values.put(Def.Database.COLUMN_TYPE_THINGS, type);
+        values.put(Def.Database.COLUMN_STATE_THINGS, state);
+        values.put(Def.Database.COLUMN_COLOR_THINGS, thing.getColor());
+        values.put(Def.Database.COLUMN_TITLE_THINGS, thing.getTitle());
+        values.put(Def.Database.COLUMN_CONTENT_THINGS, thing.getContent());
+        values.put(Def.Database.COLUMN_ATTACHMENT_THINGS, thing.getAttachment());
+        values.put(Def.Database.COLUMN_LOCATION_THINGS, thing.getLocation());
+        values.put(Def.Database.COLUMN_CREATE_TIME_THINGS, thing.getCreateTime());
+        values.put(Def.Database.COLUMN_UPDATE_TIME_THINGS, thing.getUpdateTime());
+        values.put(Def.Database.COLUMN_FINISH_TIME_THINGS, thing.getFinishTime());
 
-        db.insert(Definitions.Database.TABLE_THINGS, null, values);
+        db.insert(Def.Database.TABLE_THINGS, null, values);
     }
 
     public void update(int typeBefore, Thing updatedThing, boolean handleNotifyEmpty,
@@ -128,14 +128,14 @@ public class ThingDAO {
         }
 
         ContentValues values = new ContentValues();
-        values.put(Definitions.Database.COLUMN_TYPE_THINGS, typeAfter);
-        values.put(Definitions.Database.COLUMN_COLOR_THINGS, updatedThing.getColor());
-        values.put(Definitions.Database.COLUMN_TITLE_THINGS, updatedThing.getTitle());
-        values.put(Definitions.Database.COLUMN_CONTENT_THINGS, updatedThing.getContent());
-        values.put(Definitions.Database.COLUMN_ATTACHMENT_THINGS, updatedThing.getAttachment());
-        values.put(Definitions.Database.COLUMN_UPDATE_TIME_THINGS, updatedThing.getUpdateTime());
+        values.put(Def.Database.COLUMN_TYPE_THINGS, typeAfter);
+        values.put(Def.Database.COLUMN_COLOR_THINGS, updatedThing.getColor());
+        values.put(Def.Database.COLUMN_TITLE_THINGS, updatedThing.getTitle());
+        values.put(Def.Database.COLUMN_CONTENT_THINGS, updatedThing.getContent());
+        values.put(Def.Database.COLUMN_ATTACHMENT_THINGS, updatedThing.getAttachment());
+        values.put(Def.Database.COLUMN_UPDATE_TIME_THINGS, updatedThing.getUpdateTime());
 
-        db.update(Definitions.Database.TABLE_THINGS, values, "id=" + updatedThing.getId(), null);
+        db.update(Def.Database.TABLE_THINGS, values, "id=" + updatedThing.getId(), null);
 
         // true only this method is called separately without ThingManager#update called.
         // for example, called in receivers.
@@ -160,19 +160,19 @@ public class ThingDAO {
                 deleteNotifyEmpty(type, stateAfter, handleCurrentLimit);
             }
 
-            values.put(Definitions.Database.COLUMN_ID_THINGS, id);
-            values.put(Definitions.Database.COLUMN_TYPE_THINGS, type);
-            values.put(Definitions.Database.COLUMN_STATE_THINGS, stateAfter);
-            values.put(Definitions.Database.COLUMN_COLOR_THINGS, thing.getColor());
-            values.put(Definitions.Database.COLUMN_TITLE_THINGS, thing.getTitle());
-            values.put(Definitions.Database.COLUMN_CONTENT_THINGS, thing.getContent());
-            values.put(Definitions.Database.COLUMN_ATTACHMENT_THINGS, thing.getAttachment());
-            values.put(Definitions.Database.COLUMN_LOCATION_THINGS, thing.getLocation());
-            values.put(Definitions.Database.COLUMN_CREATE_TIME_THINGS, thing.getCreateTime());
-            values.put(Definitions.Database.COLUMN_UPDATE_TIME_THINGS, thing.getUpdateTime());
-            values.put(Definitions.Database.COLUMN_FINISH_TIME_THINGS, thing.getFinishTime());
+            values.put(Def.Database.COLUMN_ID_THINGS, id);
+            values.put(Def.Database.COLUMN_TYPE_THINGS, type);
+            values.put(Def.Database.COLUMN_STATE_THINGS, stateAfter);
+            values.put(Def.Database.COLUMN_COLOR_THINGS, thing.getColor());
+            values.put(Def.Database.COLUMN_TITLE_THINGS, thing.getTitle());
+            values.put(Def.Database.COLUMN_CONTENT_THINGS, thing.getContent());
+            values.put(Def.Database.COLUMN_ATTACHMENT_THINGS, thing.getAttachment());
+            values.put(Def.Database.COLUMN_LOCATION_THINGS, thing.getLocation());
+            values.put(Def.Database.COLUMN_CREATE_TIME_THINGS, thing.getCreateTime());
+            values.put(Def.Database.COLUMN_UPDATE_TIME_THINGS, thing.getUpdateTime());
+            values.put(Def.Database.COLUMN_FINISH_TIME_THINGS, thing.getFinishTime());
 
-            db.insert(Definitions.Database.TABLE_THINGS, null, values);
+            db.insert(Def.Database.TABLE_THINGS, null, values);
         } else {
             if (stateAfter != Thing.DELETED_FOREVER) {
                 if (handleNotifyEmpty) {
@@ -184,18 +184,18 @@ public class ThingDAO {
                     if (shouldUpdateHeader) {
                         updateHeader(1);
                     }
-                    values.put(Definitions.Database.COLUMN_LOCATION_THINGS, headerLocation);
+                    values.put(Def.Database.COLUMN_LOCATION_THINGS, headerLocation);
                     if (stateAfter == Thing.FINISHED) {
-                        values.put(Definitions.Database.COLUMN_FINISH_TIME_THINGS, System.currentTimeMillis());
+                        values.put(Def.Database.COLUMN_FINISH_TIME_THINGS, System.currentTimeMillis());
                     }
                 } else {
-                    values.put(Definitions.Database.COLUMN_LOCATION_THINGS, location);
+                    values.put(Def.Database.COLUMN_LOCATION_THINGS, location);
                 }
-                values.put(Definitions.Database.COLUMN_CONTENT_THINGS, thing.getContent());
-                values.put(Definitions.Database.COLUMN_STATE_THINGS, stateAfter);
-                db.update(Definitions.Database.TABLE_THINGS, values, "id=" + id, null);
+                values.put(Def.Database.COLUMN_CONTENT_THINGS, thing.getContent());
+                values.put(Def.Database.COLUMN_STATE_THINGS, stateAfter);
+                db.update(Def.Database.TABLE_THINGS, values, "id=" + id, null);
             } else {
-                db.delete(Definitions.Database.TABLE_THINGS, "id=" + id, null);
+                db.delete(Def.Database.TABLE_THINGS, "id=" + id, null);
             }
 
             if (handleNotifyEmpty) {
@@ -236,8 +236,8 @@ public class ThingDAO {
                 int count ,NEtype;
                 Thing notifyEmpty;
                 Cursor cursor;
-                for (int limit = Definitions.LimitForGettingThings.ALL_UNDERWAY;
-                     limit <= Definitions.LimitForGettingThings.ALL_DELETED; limit++) {
+                for (int limit = Def.LimitForGettingThings.ALL_UNDERWAY;
+                     limit <= Def.LimitForGettingThings.ALL_DELETED; limit++) {
                     if (currentLimit != limit) {
                         cursor = getThingsCursorForDisplay(limit, null, 0);
                         if (headerId == -1) {
@@ -252,10 +252,10 @@ public class ThingDAO {
                         } else if (count >= 3) {
                             NEtype = Thing.getNotifyEmptyType(limit);
                             cursor.close();
-                            cursor = db.query(Definitions.Database.TABLE_THINGS, null,
+                            cursor = db.query(Def.Database.TABLE_THINGS, null,
                                     "type=" + NEtype, null, null, null, null);
                             if (cursor.getCount() != 0) {
-                                db.delete(Definitions.Database.TABLE_THINGS, "type=" + NEtype, null);
+                                db.delete(Def.Database.TABLE_THINGS, "type=" + NEtype, null);
                                 thingsCounts.handleUpdate(NEtype, Thing.UNDERWAY,
                                         NEtype, Thing.DELETED_FOREVER, 1);
                             }
@@ -278,8 +278,8 @@ public class ThingDAO {
         try {
             ContentValues values = new ContentValues();
             for (int i = 0; i < ids.length; i++) {
-                values.put(Definitions.Database.COLUMN_LOCATION_THINGS, locations[i]);
-                db.update(Definitions.Database.TABLE_THINGS, values, "id=" + ids[i], null);
+                values.put(Def.Database.COLUMN_LOCATION_THINGS, locations[i]);
+                db.update(Def.Database.TABLE_THINGS, values, "id=" + ids[i], null);
                 values.clear();
             }
             db.setTransactionSuccessful();
@@ -302,7 +302,7 @@ public class ThingDAO {
     private Cursor getThingsCursorForDisplay(int limit, String keyword, int color) {
         StringBuilder limitSb = new StringBuilder();
         switch (limit) {
-            case Definitions.LimitForGettingThings.ALL_UNDERWAY:
+            case Def.LimitForGettingThings.ALL_UNDERWAY:
                 limitSb.append("((((type>=").append(Thing.NOTE)
                         .append(" and type<=").append(Thing.WELCOME_UNDERWAY)
                         .append(") or type=").append(Thing.NOTIFICATION_UNDERWAY)
@@ -310,7 +310,7 @@ public class ThingDAO {
                         .append(") or type=").append(Thing.NOTIFY_EMPTY_UNDERWAY)
                         .append(")");
                 break;
-            case Definitions.LimitForGettingThings.NOTE_UNDERWAY:
+            case Def.LimitForGettingThings.NOTE_UNDERWAY:
                 limitSb.append("(((type=").append(Thing.NOTE)
                         .append(" or type=").append(Thing.WELCOME_NOTE)
                         .append(" or type=").append(Thing.NOTIFICATION_NOTE)
@@ -318,7 +318,7 @@ public class ThingDAO {
                         .append(") or type=").append(Thing.NOTIFY_EMPTY_NOTE)
                         .append(")");
                 break;
-            case Definitions.LimitForGettingThings.REMINDER_UNDERWAY:
+            case Def.LimitForGettingThings.REMINDER_UNDERWAY:
                 limitSb.append("(((type=").append(Thing.REMINDER)
                         .append(" or type=").append(Thing.WELCOME_REMINDER)
                         .append(" or type=").append(Thing.NOTIFICATION_REMINDER)
@@ -326,7 +326,7 @@ public class ThingDAO {
                         .append(") or type=").append(Thing.NOTIFY_EMPTY_REMINDER)
                         .append(")");
                 break;
-            case Definitions.LimitForGettingThings.HABIT_UNDERWAY:
+            case Def.LimitForGettingThings.HABIT_UNDERWAY:
                 limitSb.append("(((type=").append(Thing.HABIT)
                         .append(" or type=").append(Thing.WELCOME_HABIT)
                         .append(" or type=").append(Thing.NOTIFICATION_HABIT)
@@ -334,7 +334,7 @@ public class ThingDAO {
                         .append(") or type=").append(Thing.NOTIFY_EMPTY_HABIT)
                         .append(")");
                 break;
-            case Definitions.LimitForGettingThings.GOAL_UNDERWAY:
+            case Def.LimitForGettingThings.GOAL_UNDERWAY:
                 limitSb.append("(((type=").append(Thing.GOAL)
                         .append(" or type=").append(Thing.WELCOME_GOAL)
                         .append(" or type=").append(Thing.NOTIFICATION_GOAL)
@@ -342,14 +342,14 @@ public class ThingDAO {
                         .append(") or type=").append(Thing.NOTIFY_EMPTY_GOAL)
                         .append(")");
                 break;
-            case Definitions.LimitForGettingThings.ALL_FINISHED:
+            case Def.LimitForGettingThings.ALL_FINISHED:
                 limitSb.append("((type>=").append(Thing.NOTE)
                         .append(" and type<=").append(Thing.NOTIFICATION_GOAL)
                         .append(" and state=").append(Thing.FINISHED)
                         .append(") or type=").append(Thing.NOTIFY_EMPTY_FINISHED)
                         .append(")");
                 break;
-            case Definitions.LimitForGettingThings.ALL_DELETED:
+            case Def.LimitForGettingThings.ALL_DELETED:
                 limitSb.append("((type>=").append(Thing.NOTE)
                         .append(" and type<=").append(Thing.NOTIFICATION_GOAL)
                         .append(" and state=").append(Thing.DELETED)
@@ -366,16 +366,16 @@ public class ThingDAO {
                     .append("%' or content like '%").append(keyword).append("%')");
         }
         limitSb.append(" or type=").append(Thing.HEADER);
-        return db.query(Definitions.Database.TABLE_THINGS,
+        return db.query(Def.Database.TABLE_THINGS,
                 null, limitSb.toString(), null, null, null, "location desc");
     }
 
     public Cursor getAllThingsCursor() {
-        return db.query(Definitions.Database.TABLE_THINGS, null, null, null, null, null, null);
+        return db.query(Def.Database.TABLE_THINGS, null, null, null, null, null, null);
     }
 
     public Cursor getThingsCursor(String selection) {
-        return db.query(Definitions.Database.TABLE_THINGS, null, selection, null, null, null, null);
+        return db.query(Def.Database.TABLE_THINGS, null, selection, null, null, null, null);
     }
 
     /**
@@ -385,7 +385,7 @@ public class ThingDAO {
      * or app itself(like a new {@link Thing.NOTIFY_EMPTY_NOTE}).
      */
     private void updateHeader(int addSize) {
-        db.execSQL("update " + Definitions.Database.TABLE_THINGS
+        db.execSQL("update " + Def.Database.TABLE_THINGS
                 + " set id=id+" + addSize + ",location=location+" + addSize
                 + " where type=" + Thing.HEADER);
     }
@@ -399,10 +399,10 @@ public class ThingDAO {
         if (handleCurrentLimit) {
             for (int limit : limits) {
                 NEtype = Thing.getNotifyEmptyType(limit);
-                cursor = db.query(Definitions.Database.TABLE_THINGS, null,
+                cursor = db.query(Def.Database.TABLE_THINGS, null,
                         "type=" + type, null, null, null, null);
                 if (cursor.getCount() != 0) {
-                    db.delete(Definitions.Database.TABLE_THINGS, "type=" + NEtype, null);
+                    db.delete(Def.Database.TABLE_THINGS, "type=" + NEtype, null);
                     thingsCounts.handleUpdate(NEtype, Thing.UNDERWAY, NEtype, Thing.DELETED_FOREVER, 1);
                 }
                 cursor.close();
@@ -411,10 +411,10 @@ public class ThingDAO {
             for (int limit : limits) {
                 if (currentLimit != limit) {
                     NEtype = Thing.getNotifyEmptyType(limit);
-                    cursor = db.query(Definitions.Database.TABLE_THINGS, null,
+                    cursor = db.query(Def.Database.TABLE_THINGS, null,
                             "type=" + NEtype, null, null, null, null);
                     if (cursor.getCount() != 0) {
-                        db.delete(Definitions.Database.TABLE_THINGS, "type=" + NEtype, null);
+                        db.delete(Def.Database.TABLE_THINGS, "type=" + NEtype, null);
                         thingsCounts.handleUpdate(NEtype, Thing.UNDERWAY, NEtype, Thing.DELETED_FOREVER, 1);
                     }
                     cursor.close();

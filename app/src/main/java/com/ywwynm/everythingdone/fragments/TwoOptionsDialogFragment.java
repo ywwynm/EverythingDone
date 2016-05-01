@@ -30,9 +30,10 @@ public class TwoOptionsDialogFragment extends NoTitleDialogFragment {
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        View contentView = inflater.inflate(R.layout.fragment_two_action_picker, container);
-        TextView tvStart = (TextView) contentView.findViewById(R.id.tv_action_start);
-        TextView tvEnd   = (TextView) contentView.findViewById(R.id.tv_action_end);
+        super.onCreateView(inflater, container, savedInstanceState);
+
+        TextView tvStart = f(R.id.tv_action_start);
+        TextView tvEnd   = f(R.id.tv_action_end);
 
         tvStart.setCompoundDrawablesWithIntrinsicBounds(0, mIconResStart, 0, 0);
         tvStart.setText(mActionResStart);
@@ -42,7 +43,12 @@ public class TwoOptionsDialogFragment extends NoTitleDialogFragment {
         tvEnd.setText(mActionResEnd);
         tvEnd.setOnClickListener(mListenerEnd);
 
-        return contentView;
+        return mContentView;
+    }
+
+    @Override
+    protected int getLayoutResource() {
+        return R.layout.fragment_two_action_picker;
     }
 
     public void setStartAction(@DrawableRes int iconRes, @StringRes int actionRes,

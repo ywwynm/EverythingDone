@@ -4,9 +4,15 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <item
+        android:id="@+id/act_show_attachment_info"
+        android:title="@string/act_show_attachment_info"
+        android:icon="@mipmap/act_show_attachment_info"
+        app:showAsAction="ifRoom"/>
+
+    <item
         android:id="@+id/act_delete_attachment"
         android:title="@string/act_delete_attachment"
-        android:icon="@mipmap/delete_image_checklist"
+        android:icon="@mipmap/act_delete_attachment_image_viewer"
         app:showAsAction="ifRoom"/>
 
 </menu>

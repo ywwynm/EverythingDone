@@ -4,7 +4,7 @@ import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
-import com.ywwynm.everythingdone.Definitions;
+import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
@@ -19,94 +19,94 @@ public class EverythingDoneSQLiteOpenHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "EverythingDoneData.db";
     private static final String SQL_CREATE_TABLE_THINGS = "create table if not exists "
-            + Definitions.Database.TABLE_THINGS + " ("
-            + Definitions.Database.COLUMN_ID_THINGS
+            + Def.Database.TABLE_THINGS + " ("
+            + Def.Database.COLUMN_ID_THINGS
             + " int primary key, "
-            + Definitions.Database.COLUMN_TYPE_THINGS
+            + Def.Database.COLUMN_TYPE_THINGS
             + " int not null, "
-            + Definitions.Database.COLUMN_STATE_THINGS
+            + Def.Database.COLUMN_STATE_THINGS
             + " int not null, "
-            + Definitions.Database.COLUMN_COLOR_THINGS
+            + Def.Database.COLUMN_COLOR_THINGS
             + " int, "
-            + Definitions.Database.COLUMN_TITLE_THINGS
+            + Def.Database.COLUMN_TITLE_THINGS
             + " text, "
-            + Definitions.Database.COLUMN_CONTENT_THINGS
+            + Def.Database.COLUMN_CONTENT_THINGS
             + " text, "
-            + Definitions.Database.COLUMN_ATTACHMENT_THINGS
+            + Def.Database.COLUMN_ATTACHMENT_THINGS
             + " text, "
-            + Definitions.Database.COLUMN_LOCATION_THINGS
+            + Def.Database.COLUMN_LOCATION_THINGS
             + " int, "
-            + Definitions.Database.COLUMN_CREATE_TIME_THINGS
+            + Def.Database.COLUMN_CREATE_TIME_THINGS
             + " int, "
-            + Definitions.Database.COLUMN_UPDATE_TIME_THINGS
+            + Def.Database.COLUMN_UPDATE_TIME_THINGS
             + " int, "
-            + Definitions.Database.COLUMN_FINISH_TIME_THINGS
+            + Def.Database.COLUMN_FINISH_TIME_THINGS
             + " int)";
 
     private static final String SQL_CREATE_TABLE_REMINDERS = "create table if not exists "
-            + Definitions.Database.TABLE_REMINDERS + " ("
-            + Definitions.Database.COLUMN_ID_REMINDERS
+            + Def.Database.TABLE_REMINDERS + " ("
+            + Def.Database.COLUMN_ID_REMINDERS
             + " int primary key, "
-            + Definitions.Database.COLUMN_NOTIFY_TIME_REMINDERS
+            + Def.Database.COLUMN_NOTIFY_TIME_REMINDERS
             + " int, "
-            + Definitions.Database.COLUMN_STATE_REMINDERS
+            + Def.Database.COLUMN_STATE_REMINDERS
             + " int, "
-            + Definitions.Database.COLUMN_NOTIFY_MILLIS_REMINDERS
+            + Def.Database.COLUMN_NOTIFY_MILLIS_REMINDERS
             + " int, "
-            + Definitions.Database.COLUMN_CREATE_TIME_REMINDERS
+            + Def.Database.COLUMN_CREATE_TIME_REMINDERS
             + " int, "
-            + Definitions.Database.COLUMN_UPDATE_TIME_REMINDERS
+            + Def.Database.COLUMN_UPDATE_TIME_REMINDERS
             + " int)";
 
     private static final String SQL_CREATE_TABLE_HABITS = "create table if not exists "
-            + Definitions.Database.TABLE_HABITS + " ("
-            + Definitions.Database.COLUMN_ID_HABITS
+            + Def.Database.TABLE_HABITS + " ("
+            + Def.Database.COLUMN_ID_HABITS
             + " int primary key, "
-            + Definitions.Database.COLUMN_TYPE_HABITS
+            + Def.Database.COLUMN_TYPE_HABITS
             + " int, "
-            + Definitions.Database.COLUMN_REMINDED_TIMES_HABITS
+            + Def.Database.COLUMN_REMINDED_TIMES_HABITS
             + " int, "
-            + Definitions.Database.COLUMN_DETAIL_HABITS
+            + Def.Database.COLUMN_DETAIL_HABITS
             + " text, "
-            + Definitions.Database.COLUMN_RECORD_HABITS
+            + Def.Database.COLUMN_RECORD_HABITS
             + " text, "
-            + Definitions.Database.COLUMN_INTERVAL_INFO_HABITS
+            + Def.Database.COLUMN_INTERVAL_INFO_HABITS
             + " text, "
-            + Definitions.Database.COLUMN_CREATE_TIME_HABITS
+            + Def.Database.COLUMN_CREATE_TIME_HABITS
             + " int, "
-            + Definitions.Database.COLUMN_FIRST_TIME_HABITS
+            + Def.Database.COLUMN_FIRST_TIME_HABITS
             + " int)";
 
     private static final String SQL_CREATE_TABLE_HABIT_REMINDERS = "create table if not exists "
-            + Definitions.Database.TABLE_HABIT_REMINDERS + " ("
-            + Definitions.Database.COLUMN_ID_HABIT_REMINDERS
+            + Def.Database.TABLE_HABIT_REMINDERS + " ("
+            + Def.Database.COLUMN_ID_HABIT_REMINDERS
             + " int primary key, "
-            + Definitions.Database.COLUMN_HABIT_ID_HABIT_REMINDERS
+            + Def.Database.COLUMN_HABIT_ID_HABIT_REMINDERS
             + " int, "
-            + Definitions.Database.COLUMN_NOTIFY_TIME_HABIT_REMINDERS
+            + Def.Database.COLUMN_NOTIFY_TIME_HABIT_REMINDERS
             + " int)";
 
     private static final String SQL_CREATE_TABLE_HABIT_RECORDS = "create table if not exists "
-            + Definitions.Database.TABLE_HABIT_RECORDS + " ("
-            + Definitions.Database.COLUMN_ID_HABIT_RECORDS
+            + Def.Database.TABLE_HABIT_RECORDS + " ("
+            + Def.Database.COLUMN_ID_HABIT_RECORDS
             + " int primary key, "
-            + Definitions.Database.COLUMN_HABIT_ID_HABIT_RECORDS
+            + Def.Database.COLUMN_HABIT_ID_HABIT_RECORDS
             + " int, "
-            + Definitions.Database.COLUMN_HR_ID_HABIT_RECORDS
+            + Def.Database.COLUMN_HR_ID_HABIT_RECORDS
             + " int, "
-            + Definitions.Database.COLUMN_RECORD_TIME_HABIT_RECORDS
+            + Def.Database.COLUMN_RECORD_TIME_HABIT_RECORDS
             + " int, "
-            + Definitions.Database.COLUMN_RECORD_YEAR_HABIT_RECORDS
+            + Def.Database.COLUMN_RECORD_YEAR_HABIT_RECORDS
             + " int, "
-            + Definitions.Database.COLUMN_RECORD_MONTH_HABIT_RECORDS
+            + Def.Database.COLUMN_RECORD_MONTH_HABIT_RECORDS
             + " int, "
-            + Definitions.Database.COLUMN_RECORD_WEEK_HABIT_RECORDS
+            + Def.Database.COLUMN_RECORD_WEEK_HABIT_RECORDS
             + " int, "
-            + Definitions.Database.COLUMN_RECORD_DAY_HABIT_RECORDS
+            + Def.Database.COLUMN_RECORD_DAY_HABIT_RECORDS
             + " int)";
 
     private static final String SQL_INSERT_HEADER = "insert into "
-            + Definitions.Database.TABLE_THINGS + " values("
+            + Def.Database.TABLE_THINGS + " values("
             + "'7', '"
             + Thing.HEADER
             + "', '"
@@ -116,24 +116,24 @@ public class EverythingDoneSQLiteOpenHelper extends SQLiteOpenHelper {
             + System.currentTimeMillis() + "', '0')";
 
     private static final String SQL_DROP_TABLE_THINGS = "drop table if exists "
-            + Definitions.Database.TABLE_THINGS;
+            + Def.Database.TABLE_THINGS;
 
     private static final String SQL_DROP_TABLE_REMINDERS = "drop table if exists "
-            + Definitions.Database.TABLE_REMINDERS;
+            + Def.Database.TABLE_REMINDERS;
 
     private static final String SQL_DROP_TABLE_HABITS = "drop table if exists "
-            + Definitions.Database.TABLE_HABITS;
+            + Def.Database.TABLE_HABITS;
 
     private static final String SQL_DROP_TABLE_HABIT_REMINDERS = "drop table if exists "
-            + Definitions.Database.TABLE_HABIT_REMINDERS;
+            + Def.Database.TABLE_HABIT_REMINDERS;
 
     private static final String SQL_DROP_TABLE_HABIT_RECORDS = "drop table if exists "
-            + Definitions.Database.TABLE_HABIT_RECORDS;
+            + Def.Database.TABLE_HABIT_RECORDS;
 
     private Context mContext;
 
     public EverythingDoneSQLiteOpenHelper(Context context) {
-        super(context, DATABASE_NAME, null, Definitions.MetaData.DATABASE_VERSION);
+        super(context, DATABASE_NAME, null, Def.Meta.DATABASE_VERSION);
         mContext = context;
     }
 
@@ -179,7 +179,7 @@ public class EverythingDoneSQLiteOpenHelper extends SQLiteOpenHelper {
     }
 
     private String generateInsertInitialSQL(int id, int type, int titleRes, int contentRes) {
-        return "insert into " + Definitions.Database.TABLE_THINGS + " values(" + "'"
+        return "insert into " + Def.Database.TABLE_THINGS + " values(" + "'"
                 + id + "', '"
                 + type + "', '"
                 + Thing.UNDERWAY + "', '"
@@ -192,7 +192,7 @@ public class EverythingDoneSQLiteOpenHelper extends SQLiteOpenHelper {
     }
 
 //    private String generateTestSQL(int id, String title, String content) {
-//        return "insert into " + Definitions.Database.TABLE_THINGS + " values(" + "'"
+//        return "insert into " + Def.Database.TABLE_THINGS + " values(" + "'"
 //                + id + "', '"
 //                + Thing.NOTE + "', '"
 //                + Thing.UNDERWAY + "', '"

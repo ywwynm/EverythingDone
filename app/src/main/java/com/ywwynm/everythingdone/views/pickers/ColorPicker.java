@@ -15,7 +15,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 
-import com.ywwynm.everythingdone.Definitions;
+import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.adapters.SingleChoiceAdapter;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
@@ -41,9 +41,9 @@ public class ColorPicker extends PopupPicker {
         mType = type;
         ViewGroup.LayoutParams params = mRecyclerView.getLayoutParams();
         params.width = (int) (mScreenDensity * 128);
-        if (mType == Definitions.PickerType.COLOR_HAVE_ALL) {
+        if (mType == Def.PickerType.COLOR_HAVE_ALL) {
             params.height = (int) (mScreenDensity * 208);
-        } else if (mType == Definitions.PickerType.COLOR_NO_ALL) {
+        } else if (mType == Def.PickerType.COLOR_NO_ALL) {
             params.height = (int) (mScreenDensity * 168);
         }
         mRecyclerView.setOverScrollMode(View.OVER_SCROLL_NEVER);
@@ -52,9 +52,9 @@ public class ColorPicker extends PopupPicker {
         layoutManager.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
             @Override
             public int getSpanSize(int position) {
-                if (mType == Definitions.PickerType.COLOR_HAVE_ALL) {
+                if (mType == Def.PickerType.COLOR_HAVE_ALL) {
                     return position == 0 ? 2 : 1;
-                } else if (mType == Definitions.PickerType.COLOR_NO_ALL) {
+                } else if (mType == Def.PickerType.COLOR_NO_ALL) {
                     return 1;
                 }
                 return 0;
@@ -75,7 +75,7 @@ public class ColorPicker extends PopupPicker {
     public void show() {
         int xOffset = 0;
         mParent.getWindowVisibleDisplayFrame(mWindowRect);
-        if (mType == Definitions.PickerType.COLOR_NO_ALL && !mIsLastIcon) {
+        if (mType == Def.PickerType.COLOR_NO_ALL && !mIsLastIcon) {
             xOffset += (int) (mScreenDensity * 36);
             if (DisplayUtil.isTablet(mContext)) {
                 xOffset += (int) (mScreenDensity * 12);
@@ -98,7 +98,7 @@ public class ColorPicker extends PopupPicker {
     }
 
     public int getPickedColor() {
-        if (mType == Definitions.PickerType.COLOR_HAVE_ALL) {
+        if (mType == Def.PickerType.COLOR_HAVE_ALL) {
             if (mAdapter.getPickedPosition() <= 0) {
                 return -1979711488;
             } else {
@@ -115,7 +115,7 @@ public class ColorPicker extends PopupPicker {
 
     @Override
     public void updateAnchor() {
-        if (mType == Definitions.PickerType.COLOR_HAVE_ALL) {
+        if (mType == Def.PickerType.COLOR_HAVE_ALL) {
             ((Drawable) mAnchor).mutate().setColorFilter(getPickedColor(), PorterDuff.Mode.SRC_ATOP);
         }
     }
@@ -144,7 +144,7 @@ public class ColorPicker extends PopupPicker {
 
         @Override
         public void onBindViewHolder(RecyclerView.ViewHolder viewHolder, int position) {
-            if (mType == Definitions.PickerType.COLOR_HAVE_ALL) {
+            if (mType == Def.PickerType.COLOR_HAVE_ALL) {
                 if (position == 0) {
                     AllColorViewHolder holder = (AllColorViewHolder) viewHolder;
                     if (mPickedPosition == 0) {
@@ -158,14 +158,14 @@ public class ColorPicker extends PopupPicker {
                 } else {
                     setFab(viewHolder, position);
                 }
-            } else if (mType == Definitions.PickerType.COLOR_NO_ALL) {
+            } else if (mType == Def.PickerType.COLOR_NO_ALL) {
                 setFab(viewHolder, position);
             }
         }
 
         private void setFab(RecyclerView.ViewHolder viewHolder, int position) {
             FabViewHolder holder = (FabViewHolder) viewHolder;
-            int index = mType == Definitions.PickerType.COLOR_HAVE_ALL ? position - 1 : position;
+            int index = mType == Def.PickerType.COLOR_HAVE_ALL ? position - 1 : position;
             holder.fab.setBackgroundTintList(ColorStateList.valueOf(mContext.getResources()
                     .getIntArray(R.array.thing)[index]));
             setFabMargin(holder.fab, index);
@@ -184,14 +184,14 @@ public class ColorPicker extends PopupPicker {
             GridLayoutManager.LayoutParams params = (GridLayoutManager.LayoutParams) fab.getLayoutParams();
             switch (index) {
                 case 0:
-                    if (mType == Definitions.PickerType.COLOR_HAVE_ALL) {
+                    if (mType == Def.PickerType.COLOR_HAVE_ALL) {
                         params.setMargins(m16, m8, m8, m4);
                     } else {
                         params.setMargins(m16, m16, m8, m4);
                     }
                     break;
                 case 1:
-                    if (mType == Definitions.PickerType.COLOR_HAVE_ALL) {
+                    if (mType == Def.PickerType.COLOR_HAVE_ALL) {
                         params.setMargins(m8, m8, m16, m4);
                     } else {
                         params.setMargins(m8, m16, m16, m4);
@@ -214,9 +214,9 @@ public class ColorPicker extends PopupPicker {
 
         @Override
         public int getItemCount() {
-            if (mType == Definitions.PickerType.COLOR_HAVE_ALL) {
+            if (mType == Def.PickerType.COLOR_HAVE_ALL) {
                 return 7;
-            } else if (mType == Definitions.PickerType.COLOR_NO_ALL) {
+            } else if (mType == Def.PickerType.COLOR_NO_ALL) {
                 return 6;
             }
             return 0;
@@ -224,9 +224,9 @@ public class ColorPicker extends PopupPicker {
 
         @Override
         public int getItemViewType(int position) {
-            if (mType == Definitions.PickerType.COLOR_HAVE_ALL) {
+            if (mType == Def.PickerType.COLOR_HAVE_ALL) {
                 return position == 0 ? ALL_COLOR : NORMAL;
-            } else if (mType == Definitions.PickerType.COLOR_NO_ALL) {
+            } else if (mType == Def.PickerType.COLOR_NO_ALL) {
                 return NORMAL;
             }
             return super.getItemViewType(position);

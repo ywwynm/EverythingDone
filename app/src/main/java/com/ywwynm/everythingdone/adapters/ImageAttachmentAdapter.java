@@ -42,6 +42,7 @@ public class ImageAttachmentAdapter extends RecyclerView.Adapter<ImageAttachment
 
     public interface ClickCallback {
         void onClick(View v, int pos);
+        boolean onLongClick(View v, int pos);
     }
     private ClickCallback mClickCallback;
 
@@ -142,6 +143,15 @@ public class ImageAttachmentAdapter extends RecyclerView.Adapter<ImageAttachment
                     if (mClickCallback != null) {
                         mClickCallback.onClick(v, getAdapterPosition());
                     }
+                }
+            });
+            fl.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View v) {
+                    if (mClickCallback != null) {
+                        return mClickCallback.onLongClick(v, getAdapterPosition());
+                    }
+                    return false;
                 }
             });
 

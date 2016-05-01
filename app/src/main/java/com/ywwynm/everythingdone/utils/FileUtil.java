@@ -1,7 +1,16 @@
 package com.ywwynm.everythingdone.utils;
 
 import android.annotation.SuppressLint;
+import android.graphics.BitmapFactory;
+import android.media.ExifInterface;
+import android.media.MediaExtractor;
+import android.media.MediaFormat;
+import android.media.MediaMetadataRetriever;
 import android.os.Environment;
+
+import com.ywwynm.everythingdone.Def;
+
+import org.joda.time.DateTime;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -10,6 +19,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -27,8 +37,7 @@ import java.util.zip.ZipOutputStream;
  */
 public class FileUtil {
 
-    public static final String TEMP_PATH = Environment.getExternalStorageDirectory().getAbsolutePath()
-            + "/EverythingDone/temp";
+    public static final String TEMP_PATH = Def.Meta.APP_FILE_DIR + "/temp";
 
     public static File createTempAudioFile(String postfix) {
         File dir = new File(TEMP_PATH + "/audio_raw");
@@ -85,12 +94,169 @@ public class FileUtil {
         return dir.delete();
     }
 
+    public static String getNameWithoutPostfix(String pathName) {
+        String name = new File(pathName).getName();
+        int index = name.lastIndexOf(".");
+        if (index == -1) {
+            return name;
+        } else {
+            return name.substring(0, index);
+        }
+    }
+
     public static String getPostfix(String pathName) {
         int index = pathName.lastIndexOf(".");
         if (index == -1) {
             return "";
         } else {
             return pathName.substring(index + 1, pathName.length());
+        }
+    }
+
+    public static String getFileSizeStr(File file) {
+        final double B  = 1;
+        final double KB = 1024 * B;
+        final double MB = 1024 * KB;
+        final double GB = 1024 * MB;
+
+        long len = file.length();
+        double size;
+        String unit;
+        if (len < B) {
+            return "0 byte";
+        } else if (len < KB) {
+            size = len / B;
+            unit = " B";
+        } else if (len < MB) {
+            size = len / KB;
+            unit = " KB";
+        } else if (len < GB) {
+            size = len / MB;
+            unit = " MB";
+        } else {
+            size = len / GB;
+            unit = " GB";
+        }
+
+        String sizeFormat = new DecimalFormat("#.00").format(size);
+        return sizeFormat + unit;
+    }
+
+    public static int[] getImageSize(String pathName) {
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inJustDecodeBounds = true;
+        BitmapFactory.decodeFile(pathName, options);
+        int[] ret = new int[2];
+        ret[0] = options.outWidth;
+        ret[1] = options.outHeight;
+        return ret;
+    }
+
+    public static int[] getVideoSize(String pathName) {
+        MediaMetadataRetriever retriever = new MediaMetadataRetriever();
+        try {
+            retriever.setDataSource(pathName);
+            String widthStr = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH);
+            String heightStr = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT);
+            int[] ret = new int[2];
+            ret[0] = Integer.parseInt(widthStr);
+            ret[1] = Integer.parseInt(heightStr);
+            return ret;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        } finally {
+            retriever.release();
+        }
+    }
+
+    public static long getMediaDuration(String pathName) {
+        MediaMetadataRetriever retriever = new MediaMetadataRetriever();
+        try {
+            retriever.setDataSource(pathName);
+            String durationStr = retriever.extractMetadata(
+                    MediaMetadataRetriever.METADATA_KEY_DURATION);
+            return Long.parseLong(durationStr);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return -1;
+        } finally {
+            retriever.release();
+        }
+    }
+
+    public static DateTime getImageCreateTime(String pathName) {
+        try {
+            ExifInterface exif = new ExifInterface(pathName);
+            String datetimeStr = exif.getAttribute(ExifInterface.TAG_DATETIME);
+
+            String[] datetime = datetimeStr.split(" ");
+            String[] dates = datetime[0].split(":");
+            int year = Integer.parseInt(dates[0]);
+            int month = Integer.parseInt(dates[1]);
+            int day = Integer.parseInt(dates[2]);
+
+            String[] times = datetime[1].split(":");
+            int hour = Integer.parseInt(times[0]);
+            int minute = Integer.parseInt(times[1]);
+            int second = Integer.parseInt(times[2]);
+
+            return new DateTime(year, month, day, hour, minute, second);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public static DateTime getVideoCreateTime(String pathName) {
+        MediaMetadataRetriever retriever = new MediaMetadataRetriever();
+        try {
+            retriever.setDataSource(pathName);
+            String timeStr = retriever.extractMetadata(
+                    MediaMetadataRetriever.METADATA_KEY_DATE);
+            System.out.println(timeStr);
+            // 20160417T112003.000Z
+            int year   = Integer.parseInt(timeStr.substring(0, 4));
+            int month  = Integer.parseInt(timeStr.substring(4, 6));
+            int day    = Integer.parseInt(timeStr.substring(6, 8));
+            int hour   = Integer.parseInt(timeStr.substring(9, 11));
+            int minute = Integer.parseInt(timeStr.substring(11, 13));
+            int second = Integer.parseInt(timeStr.substring(13, 15));
+            return new DateTime(year, month, day, hour, minute, second);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        } finally {
+            retriever.release();
+        }
+    }
+
+    public static int getAudioBitrate(String pathName) {
+        MediaMetadataRetriever retriever = new MediaMetadataRetriever();
+        try {
+            retriever.setDataSource(pathName);
+            int bitrate = Integer.parseInt(retriever.extractMetadata(
+                    MediaMetadataRetriever.METADATA_KEY_BITRATE));
+            return bitrate / 1000;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return -1;
+        } finally {
+            retriever.release();
+        }
+    }
+
+    public static int getAudioSampleRate(String pathName) {
+        MediaExtractor extractor = new MediaExtractor();
+        try {
+            extractor.setDataSource(pathName);
+            MediaFormat mf = extractor.getTrackFormat(0);
+            return mf.getInteger(MediaFormat.KEY_SAMPLE_RATE);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return -1;
+        } finally {
+            extractor.release();
         }
     }
 
@@ -361,15 +527,14 @@ public class FileUtil {
 
         mounts.clear();
 
-        if (ret.isEmpty()) {
-            ret.add(Environment.getExternalStorageDirectory().getAbsolutePath());
-        } else {
-            ret.add("/sdcard2/");
-            ret.add("/sdcard3/");
-            ret.add("/sdcard4/");
-            ret.add("/sdcard5/");
-            ret.add("/sdcard6/");
-        }
+        ret.add(Environment.getExternalStorageDirectory().getAbsolutePath());
+        ret.add("/sdcard2/");
+        ret.add("/sdcard3/");
+        ret.add("/sdcard4/");
+        ret.add("/sdcard5/");
+        ret.add("/sdcard6/");
+        ret.add("/storage/");
+
         return ret;
     }
 

@@ -52,23 +52,23 @@ public class ThreeActionsAlertDialogFragment extends NoTitleDialogFragment {
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        super.onCreateView(inflater, container, savedInstanceState);
+
         if (mColors[1] == 0) {
             Activity activity = getActivity();
             int contentColor = ContextCompat.getColor(activity, R.color.black_54p);
             mColors[1] = contentColor;
         }
 
-        View contentView = inflater.inflate(R.layout.fragment_alert_three_actions, container);
-
-        TextView tvTitle      = (TextView) contentView.findViewById(R.id.tv_title_alert);
-        TextView tvContent    = (TextView) contentView.findViewById(R.id.tv_content_alert);
-        TextView tvFirstAsBt  = (TextView) contentView.findViewById(R.id.tv_first_as_bt_alert);
-        TextView tvSecondAsBt = (TextView) contentView.findViewById(R.id.tv_second_as_bt_alert);
-        TextView tvThirdAsBt  = (TextView) contentView.findViewById(R.id.tv_third_as_bt_alert);
+        TextView tvTitle      = f(R.id.tv_title_alert);
+        TextView tvContent    = f(R.id.tv_content_alert);
+        TextView tvFirstAsBt  = f(R.id.tv_first_as_bt_alert);
+        TextView tvSecondAsBt = f(R.id.tv_second_as_bt_alert);
+        TextView tvThirdAsBt  = f(R.id.tv_third_as_bt_alert);
 
         if (mTitle != null) {
             tvTitle.setTextColor(mColors[0]);
-            tvTitle.setText(mTitle.toUpperCase());
+            tvTitle.setText(mTitle);
         } else {
             tvTitle.setVisibility(View.GONE);
         }
@@ -81,7 +81,7 @@ public class ThreeActionsAlertDialogFragment extends NoTitleDialogFragment {
         }
 
         if (mFirstAction != null) {
-            tvFirstAsBt.setText(mFirstAction.toUpperCase());
+            tvFirstAsBt.setText(mFirstAction);
             tvFirstAsBt.setTextColor(mColors[2]);
             tvFirstAsBt.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -98,7 +98,7 @@ public class ThreeActionsAlertDialogFragment extends NoTitleDialogFragment {
         }
 
         if (mSecondAction != null) {
-            tvSecondAsBt.setText(mSecondAction.toUpperCase());
+            tvSecondAsBt.setText(mSecondAction);
             tvSecondAsBt.setTextColor(mColors[2]);
             tvSecondAsBt.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -124,7 +124,12 @@ public class ThreeActionsAlertDialogFragment extends NoTitleDialogFragment {
             }
         });
 
-        return contentView;
+        return mContentView;
+    }
+
+    @Override
+    protected int getLayoutResource() {
+        return R.layout.fragment_alert_three_actions;
     }
 
     @Override

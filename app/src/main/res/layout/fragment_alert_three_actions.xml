@@ -14,7 +14,8 @@
         android:layout_marginTop="20dp"
         android:layout_marginRight="20dp"
         android:textSize="20sp"
-        android:textStyle="bold"/>
+        android:textStyle="bold"
+        android:textAllCaps="true"/>
 
     <TextView
         android:id="@+id/tv_content_alert"
@@ -34,7 +35,8 @@
         android:paddingLeft="20dp"
         android:paddingRight="20dp"
         android:gravity="center_vertical|end"
-        style="@style/SelectableItemBackground"/>
+        style="@style/SelectableItemBackground"
+        android:textAllCaps="true"/>
 
     <TextView
         android:id="@+id/tv_second_as_bt_alert"
@@ -44,7 +46,8 @@
         android:paddingLeft="20dp"
         android:paddingRight="20dp"
         android:gravity="center_vertical|end"
-        style="@style/SelectableItemBackground"/>
+        style="@style/SelectableItemBackground"
+        android:textAllCaps="true"/>
 
     <TextView
         android:id="@+id/tv_third_as_bt_alert"
@@ -57,6 +60,7 @@
         android:gravity="center_vertical|end"
         android:textColor="@color/black_26p"
         android:text="@string/cancel"
-        style="@style/SelectableItemBackground"/>
+        style="@style/SelectableItemBackground"
+        android:textAllCaps="true"/>
 
 </LinearLayout>

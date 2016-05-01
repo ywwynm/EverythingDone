@@ -13,8 +13,8 @@ import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.RelativeLayout;
 
-import com.ywwynm.everythingdone.Definitions;
-import com.ywwynm.everythingdone.EverythingDoneApplication;
+import com.ywwynm.everythingdone.Def;
+import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.adapters.ThingsAdapter;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
@@ -36,7 +36,7 @@ public class ModeManager {
     private int beforeMode;
     private int currentMode;
 
-    private EverythingDoneApplication mApplication;
+    private App mApplication;
     private ThingManager mThingManager;
     private float screenDensity;
 
@@ -59,7 +59,7 @@ public class ModeManager {
     private View.OnClickListener backNormalModeListener;
     private Runnable hideActionBarShadowRunnable;
 
-    public ModeManager(EverythingDoneApplication application,
+    public ModeManager(App application,
                        DrawerLayout drawerLayout,
                        FloatingActionButton fab, ActivityHeader header,
                        RelativeLayout rlContextualToolbar, Toolbar toolbar,
@@ -142,7 +142,7 @@ public class ModeManager {
     }
 
     public void backNormalMode(final int position) {
-        boolean isSearching = EverythingDoneApplication.isSearching;
+        boolean isSearching = App.isSearching;
         if (!isSearching) {
             bindingDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
         }
@@ -160,7 +160,7 @@ public class ModeManager {
             cv.animate().scaleX(1.0f).setDuration(96);
             cv.animate().scaleY(1.0f).withEndAction(notifyDataSetRunnable).setDuration(96);
         }
-        if (mApplication.getLimit() <= Definitions.LimitForGettingThings.GOAL_UNDERWAY
+        if (mApplication.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY
                 && !isSearching) {
             bindingFab.spread();
         }
@@ -181,9 +181,9 @@ public class ModeManager {
         bindingContextualToolbar.setNavigationOnClickListener(backNormalModeListener);
         bindingContextualToolbar.setOnMenuItemClickListener(mOnContextualMenuClickedListener);
         int limit = mApplication.getLimit();
-        if (limit <= Definitions.LimitForGettingThings.GOAL_UNDERWAY) {
+        if (limit <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
             bindingContextualToolbar.inflateMenu(R.menu.menu_contextual_underway);
-        } else if (limit == Definitions.LimitForGettingThings.ALL_FINISHED) {
+        } else if (limit == Def.LimitForGettingThings.ALL_FINISHED) {
             bindingContextualToolbar.inflateMenu(R.menu.menu_contextual_finished);
         } else {
             bindingContextualToolbar.inflateMenu(R.menu.menu_contextual_deleted);

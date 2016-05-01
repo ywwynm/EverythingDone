@@ -5,6 +5,7 @@ import android.graphics.drawable.Drawable;
 import android.support.v4.view.ViewPager;
 import android.support.v7.widget.RecyclerView;
 import android.widget.EdgeEffect;
+import android.widget.ScrollView;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -17,6 +18,19 @@ import java.lang.reflect.Method;
 public class EdgeEffectUtil {
 
     public static final String TAG = "EverythingDone$EdgeEffectUtil";
+
+    public static void forScrollView(ScrollView sv, int color) {
+        try {
+            final Class<?> clazz = ScrollView.class;
+            final Field fEdgeGlowTop = clazz.getDeclaredField("mEdgeGlowTop");
+            final Field fEdgeGlowBottom = clazz.getDeclaredField("mEdgeGlowBottom");
+            fEdgeGlowTop.setAccessible(true);
+            fEdgeGlowBottom.setAccessible(true);
+            setEdgeEffectColor((EdgeEffect) fEdgeGlowTop.get(sv), color);
+            setEdgeEffectColor((EdgeEffect) fEdgeGlowBottom.get(sv), color);
+        } catch (final Exception ignored) {
+        }
+    }
 
     public static void forRecyclerView(RecyclerView recyclerView, int color) {
         try {
@@ -53,7 +67,7 @@ public class EdgeEffectUtil {
 
     private static void setEdgeEffectColor(EdgeEffect edgeEffect, int color) {
         try {
-            if (VersionUtil.hasLollipopApi()) {
+            if (DeviceUtil.hasLollipopApi()) {
                 edgeEffect.setColor(color);
                 return;
             }

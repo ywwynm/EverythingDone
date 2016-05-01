@@ -48,8 +48,12 @@
 
     </style>
 
-    <style name="EverythingDoneTheme.Settings" parent="Theme.AppCompat.Light.NoActionBar">
+    <style name="EverythingDoneTheme.ImageViewer.Actionbar" parent="Theme.AppCompat.NoActionBar">
+        <item name="colorControlNormal">#FFFFFF</item>
+    </style>
 
+    <style name="EverythingDoneTheme.Settings" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:colorEdgeEffect">@color/edge_color_dark</item>
     </style>
 
     <style name="EverythingDoneTheme.About" parent="Theme.AppCompat.Light.NoActionBar">

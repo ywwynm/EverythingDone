@@ -7,8 +7,8 @@ import android.content.Intent;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
 
-import com.ywwynm.everythingdone.Definitions;
-import com.ywwynm.everythingdone.EverythingDoneApplication;
+import com.ywwynm.everythingdone.App;
+import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.database.ThingDAO;
@@ -25,7 +25,7 @@ public class AutoNotifyReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        long id = intent.getLongExtra(Definitions.Communication.KEY_ID, 0);
+        long id = intent.getLongExtra(Def.Communication.KEY_ID, 0);
 
         ThingManager thingManager = ThingManager.getInstance(context);
         List<Thing> things = thingManager.getThings();
@@ -48,7 +48,7 @@ public class AutoNotifyReceiver extends BroadcastReceiver {
             return;
         }
 
-        for (Long dId : EverythingDoneApplication.getRunningDetailActivities()) {
+        for (Long dId : App.getRunningDetailActivities()) {
             if (dId == id) return;
         }
 

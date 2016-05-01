@@ -20,6 +20,7 @@
 
     <style name="EverythingDoneTheme.Settings" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="android:windowTranslucentStatus">true</item>
+        <item name="android:colorEdgeEffect">@color/edge_color_dark</item>
     </style>
 
     <style name="EverythingDoneTheme.Statistic" parent="Theme.AppCompat.NoActionBar">

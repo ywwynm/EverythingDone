@@ -5,8 +5,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.support.v4.app.NotificationManagerCompat;
 
-import com.ywwynm.everythingdone.Definitions;
-import com.ywwynm.everythingdone.EverythingDoneApplication;
+import com.ywwynm.everythingdone.App;
+import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
 import com.ywwynm.everythingdone.managers.ThingManager;
@@ -23,11 +23,11 @@ public class HabitNotificationActionReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         String action = intent.getAction();
-        long hrId = intent.getLongExtra(Definitions.Communication.KEY_ID, 0);
+        long hrId = intent.getLongExtra(Def.Communication.KEY_ID, 0);
 
-        if (action.equals(Definitions.Communication.NOTIFICATION_ACTION_FINISH)) {
-            int position = intent.getIntExtra(Definitions.Communication.KEY_POSITION, -1);
-            long time = intent.getLongExtra(Definitions.Communication.KEY_TIME, 0);
+        if (action.equals(Def.Communication.NOTIFICATION_ACTION_FINISH)) {
+            int position = intent.getIntExtra(Def.Communication.KEY_POSITION, -1);
+            long time = intent.getLongExtra(Def.Communication.KEY_TIME, 0);
             HabitDAO habitDAO = HabitDAO.getInstance(context);
             HabitReminder habitReminder = habitDAO.getHabitReminderById(hrId);
             long id = habitReminder.getHabitId();
@@ -63,14 +63,14 @@ public class HabitNotificationActionReceiver extends BroadcastReceiver {
             }
         }
 
-        EverythingDoneApplication.setSomethingUpdatedSpecially(true);
+        App.setSomethingUpdatedSpecially(true);
         Intent broadcastIntent = new Intent(
-                Definitions.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI);
-        broadcastIntent.putExtra(Definitions.Communication.KEY_RESULT_CODE,
-                Definitions.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME);
-        broadcastIntent.putExtra(Definitions.Communication.KEY_THING, thing);
-        broadcastIntent.putExtra(Definitions.Communication.KEY_POSITION, position);
-        broadcastIntent.putExtra(Definitions.Communication.KEY_TYPE_BEFORE, thing.getType());
+                Def.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI);
+        broadcastIntent.putExtra(Def.Communication.KEY_RESULT_CODE,
+                Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME);
+        broadcastIntent.putExtra(Def.Communication.KEY_THING, thing);
+        broadcastIntent.putExtra(Def.Communication.KEY_POSITION, position);
+        broadcastIntent.putExtra(Def.Communication.KEY_TYPE_BEFORE, thing.getType());
         context.sendBroadcast(broadcastIntent);
     }
 }

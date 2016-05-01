@@ -4,7 +4,7 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.SharedPreferences;
 
-import com.ywwynm.everythingdone.Definitions;
+import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.utils.LocaleUtil;
 
 import static com.ywwynm.everythingdone.model.Thing.DELETED;
@@ -44,7 +44,7 @@ public class ThingsCounts {
 
     private ThingsCounts(Context context) {
         mCounts = context.getSharedPreferences(
-                Definitions.MetaData.THINGS_COUNTS_NAME, Context.MODE_PRIVATE);
+                Def.Meta.THINGS_COUNTS_NAME, Context.MODE_PRIVATE);
         if (mCounts.getInt("0_0", -1) == -1) {
             init();
         }
@@ -68,38 +68,38 @@ public class ThingsCounts {
     public int getThingsCountForActivityHeader(int limit) {
         int count = 0;
         switch (limit) {
-            case Definitions.LimitForGettingThings.ALL_UNDERWAY:
+            case Def.LimitForGettingThings.ALL_UNDERWAY:
                 for (int i = NOTE; i <= WELCOME_UNDERWAY; i++) {
                     count += getCount(i, UNDERWAY);
                 }
                 count += getCount(NOTIFICATION_UNDERWAY, UNDERWAY);
                 break;
-            case Definitions.LimitForGettingThings.NOTE_UNDERWAY:
+            case Def.LimitForGettingThings.NOTE_UNDERWAY:
                 count = getCount(NOTE, UNDERWAY)
                         + getCount(WELCOME_NOTE, UNDERWAY)
                         + getCount(NOTIFICATION_NOTE, UNDERWAY);
                 break;
-            case Definitions.LimitForGettingThings.REMINDER_UNDERWAY:
+            case Def.LimitForGettingThings.REMINDER_UNDERWAY:
                 count = getCount(REMINDER, UNDERWAY)
                         + getCount(WELCOME_REMINDER, UNDERWAY)
                         + getCount(NOTIFICATION_REMINDER, UNDERWAY);
                 break;
-            case Definitions.LimitForGettingThings.HABIT_UNDERWAY:
+            case Def.LimitForGettingThings.HABIT_UNDERWAY:
                 count = getCount(HABIT, UNDERWAY)
                         + getCount(WELCOME_HABIT, UNDERWAY)
                         + getCount(NOTIFICATION_HABIT, UNDERWAY);
                 break;
-            case Definitions.LimitForGettingThings.GOAL_UNDERWAY:
+            case Def.LimitForGettingThings.GOAL_UNDERWAY:
                 count = getCount(GOAL, UNDERWAY)
                         + getCount(WELCOME_GOAL, UNDERWAY)
                         + getCount(NOTIFICATION_GOAL, UNDERWAY);
                 break;
-            case Definitions.LimitForGettingThings.ALL_FINISHED:
+            case Def.LimitForGettingThings.ALL_FINISHED:
                 for (int i = Thing.NOTE; i <= Thing.NOTIFICATION_GOAL; i++) {
                     count += getCount(i, FINISHED);
                 }
                 break;
-            case Definitions.LimitForGettingThings.ALL_DELETED:
+            case Def.LimitForGettingThings.ALL_DELETED:
                 for (int i = Thing.NOTE; i <= Thing.NOTIFICATION_GOAL; i++) {
                     count += getCount(i, DELETED);
                 }
@@ -111,9 +111,9 @@ public class ThingsCounts {
     public String getCompletionRate(int limit) {
         int[] counts = new int[2];
         switch (limit) {
-            case Definitions.LimitForGettingThings.ALL_UNDERWAY:
-            case Definitions.LimitForGettingThings.ALL_FINISHED:
-            case Definitions.LimitForGettingThings.ALL_DELETED:
+            case Def.LimitForGettingThings.ALL_UNDERWAY:
+            case Def.LimitForGettingThings.ALL_FINISHED:
+            case Def.LimitForGettingThings.ALL_DELETED:
                 for (int i = Thing.NOTE; i <= Thing.GOAL; i++) {
                     counts[0] += getCount(i, FINISHED);
                     counts[1] += getCount(i, ALL);
@@ -123,21 +123,21 @@ public class ThingsCounts {
 //                counts[0] += mHabitFinished;
 //                counts[1] += mHabitRecord;
                 break;
-            case Definitions.LimitForGettingThings.NOTE_UNDERWAY:
+            case Def.LimitForGettingThings.NOTE_UNDERWAY:
                 counts[0] = getCount(NOTE, FINISHED);
                 counts[1] = getCount(NOTE, ALL);
                 break;
-            case Definitions.LimitForGettingThings.REMINDER_UNDERWAY:
+            case Def.LimitForGettingThings.REMINDER_UNDERWAY:
                 counts[0] = getCount(REMINDER, FINISHED);
                 counts[1] = getCount(REMINDER, ALL);
                 break;
-            case Definitions.LimitForGettingThings.HABIT_UNDERWAY:
+            case Def.LimitForGettingThings.HABIT_UNDERWAY:
                 counts[0] = getCount(HABIT, FINISHED);
                 counts[1] = getCount(HABIT, ALL);
 //                counts[0] = mHabitFinished;
 //                counts[1] = mHabitRecord;
                 break;
-            case Definitions.LimitForGettingThings.GOAL_UNDERWAY:
+            case Def.LimitForGettingThings.GOAL_UNDERWAY:
                 counts[0] = getCount(GOAL, FINISHED);
                 counts[1] = getCount(GOAL, ALL);
                 break;

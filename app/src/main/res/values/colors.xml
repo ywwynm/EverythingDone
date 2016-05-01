@@ -59,4 +59,6 @@
 
     <color name="app_pink">#E91E63</color>
 
+    <color name="edge_color_dark">#40000000</color>
+
 </resources>

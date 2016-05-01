@@ -1,15 +1,22 @@
 package com.ywwynm.everythingdone.helpers;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.database.Cursor;
+import android.support.annotation.StringRes;
 
+import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
+import com.ywwynm.everythingdone.fragments.LongTextDialogFragment;
 import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.Thing;
+import com.ywwynm.everythingdone.utils.DisplayUtil;
 
-import static com.ywwynm.everythingdone.Definitions.MetaData.*;
+import static com.ywwynm.everythingdone.Def.Meta.KEY_1_0_3_TO_1_0_4;
+import static com.ywwynm.everythingdone.Def.Meta.KEY_1_0_4_TO_1_0_5;
+import static com.ywwynm.everythingdone.Def.Meta.META_DATA_NAME;
 
 /**
  * Created by ywwynm on 2016/4/19.
@@ -40,11 +47,18 @@ public class AppUpdateHelper {
         SharedPreferences sp = mContext.getSharedPreferences(
                 META_DATA_NAME, Context.MODE_PRIVATE);
 
-        from1_0_3To1_0_4(sp);
+        updateFrom1_0_3To1_0_4(sp);
     }
 
-    private void from1_0_3To1_0_4(SharedPreferences sp) {
-        boolean updated = sp.getBoolean(kEY_1_0_3_TO_1_0_4, false);
+    public void showInfo(Activity activity) {
+        SharedPreferences sp = mContext.getSharedPreferences(
+                META_DATA_NAME, Context.MODE_PRIVATE);
+
+        showFrom1_0_4To1_0_5(sp, activity);
+    }
+
+    private void updateFrom1_0_3To1_0_4(SharedPreferences sp) {
+        boolean updated = sp.getBoolean(KEY_1_0_3_TO_1_0_4, false);
         if (updated) {
             return;
         }
@@ -64,7 +78,29 @@ public class AppUpdateHelper {
             thingDAO.update(Thing.REMINDER, thing, true, true);
         }
 
-        sp.edit().putBoolean(kEY_1_0_3_TO_1_0_4, true).apply();
+        sp.edit().putBoolean(KEY_1_0_3_TO_1_0_4, true).apply();
+    }
+
+    private boolean showFrom1_0_4To1_0_5(SharedPreferences sp, Activity activity) {
+        boolean updated = sp.getBoolean(KEY_1_0_4_TO_1_0_5, false);
+        if (updated) {
+            return false;
+        }
+
+        LongTextDialogFragment ltdf = createLongTextDialog(
+                R.string.title_important_alert, R.string.content_important_reminder_permission);
+        ltdf.show(activity.getFragmentManager(), LongTextDialogFragment.TAG);
+
+        sp.edit().putBoolean(KEY_1_0_4_TO_1_0_5, true).apply();
+        return true;
+    }
+
+    private LongTextDialogFragment createLongTextDialog(@StringRes int titleRes, @StringRes int contentRes) {
+        LongTextDialogFragment ltdf = new LongTextDialogFragment();
+        ltdf.setAccentColor(DisplayUtil.getRandomColor(mContext));
+        ltdf.setTitle(mContext.getString(titleRes));
+        ltdf.setContent(mContext.getString(contentRes));
+        return ltdf;
     }
 
 }

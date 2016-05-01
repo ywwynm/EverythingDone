@@ -23,7 +23,7 @@ import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-import com.ywwynm.everythingdone.EverythingDoneApplication;
+import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Reminder;
@@ -35,9 +35,9 @@ import com.ywwynm.everythingdone.managers.ThingManager;
 import com.ywwynm.everythingdone.helpers.AttachmentHelper;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
+import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.ImageLoader;
-import com.ywwynm.everythingdone.utils.VersionUtil;
 import com.ywwynm.everythingdone.views.HabitRecordPresenter;
 import com.ywwynm.everythingdone.views.InterceptTouchCardView;
 
@@ -52,7 +52,7 @@ public class ThingsAdapter extends RecyclerView.Adapter<ThingsAdapter.ThingViewH
 
     public static final String TAG = "ThingsAdapter";
 
-    private EverythingDoneApplication mApplication;
+    private App mApplication;
 
     private final float mScreenDensity;
 
@@ -73,7 +73,7 @@ public class ThingsAdapter extends RecyclerView.Adapter<ThingsAdapter.ThingViewH
 
     private Handler mAnimHandler;
 
-    public ThingsAdapter(EverythingDoneApplication application, OnItemTouchedListener listener) {
+    public ThingsAdapter(App application, OnItemTouchedListener listener) {
         mApplication = application;
         mScreenDensity = DisplayUtil.getScreenDensity(mApplication);
 
@@ -125,14 +125,14 @@ public class ThingsAdapter extends RecyclerView.Adapter<ThingsAdapter.ThingViewH
 
     private void distinguishHeaderAndOthers(boolean header, CardView cv) {
         int mX = (int) (mScreenDensity * 4);
-        if (VersionUtil.hasLollipopApi()) {
+        if (DeviceUtil.hasLollipopApi()) {
             mX = (int) (mScreenDensity * 6);
         }
         int mY = header ? 0 : mX;
 
         int height;
         if (header) {
-            height = (int) (EverythingDoneApplication.isSearching ? mScreenDensity * 6 : mScreenDensity * 102);
+            height = (int) (App.isSearching ? mScreenDensity * 6 : mScreenDensity * 102);
         } else {
             height = StaggeredGridLayoutManager.LayoutParams.WRAP_CONTENT;
         }
@@ -339,7 +339,7 @@ public class ThingsAdapter extends RecyclerView.Adapter<ThingsAdapter.ThingViewH
             paramsCover.height = imageH;
 
             // before lollipop, set margins to negative number to remove ugly stroke
-            if (!VersionUtil.hasLollipopApi()) {
+            if (!DeviceUtil.hasLollipopApi()) {
                 int m = (int) (mScreenDensity * -8);
                 paramsLayout.setMargins(0, m, 0, 0);
             }

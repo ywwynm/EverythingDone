@@ -44,20 +44,20 @@ public class HabitDetailDialogFragment extends NoTitleDialogFragment {
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        super.onCreateView(inflater, container, savedInstanceState);
+
         mActivity = (DetailActivity) getActivity();
 
-        View contentView = inflater.inflate(R.layout.fragment_habit_detail, container);
-
-        TextView title = (TextView) contentView.findViewById(R.id.tv_habit_detail_title);
+        TextView title = f(R.id.tv_habit_detail_title);
         int accentColor = mActivity.getAccentColor();
         title.setTextColor(accentColor);
 
-        mTvCr     = (TextView)     contentView.findViewById(R.id.tv_habit_detail_completion_rate);
-        mTvTs     = (TextView)     contentView.findViewById(R.id.tv_habit_detail_persist_in);
-        mTvTimes  = (TextView)     contentView.findViewById(R.id.tv_habit_detail_times);
-        mRvRecord = (RecyclerView) contentView.findViewById(R.id.rv_habit_detail_record);
+        mTvCr     = f(R.id.tv_habit_detail_completion_rate);
+        mTvTs     = f(R.id.tv_habit_detail_persist_in);
+        mTvTimes  = f(R.id.tv_habit_detail_times);
+        mRvRecord = f(R.id.rv_habit_detail_record);
 
-        TextView getIt = (TextView) contentView.findViewById(R.id.tv_get_it_as_bt);
+        TextView getIt = f(R.id.tv_get_it_as_bt);
         getIt.setTextColor(accentColor);
         getIt.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -68,7 +68,12 @@ public class HabitDetailDialogFragment extends NoTitleDialogFragment {
 
         initUI();
 
-        return contentView;
+        return mContentView;
+    }
+
+    @Override
+    protected int getLayoutResource() {
+        return R.layout.fragment_habit_detail;
     }
 
     private void initUI() {

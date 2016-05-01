@@ -9,7 +9,8 @@ import android.net.Uri;
 import android.support.v4.content.ContextCompat;
 import android.widget.Toast;
 
-import com.ywwynm.everythingdone.Definitions;
+import com.ywwynm.everythingdone.BuildConfig;
+import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ReminderDAO;
@@ -22,8 +23,10 @@ import com.ywwynm.everythingdone.utils.FileUtil;
 import com.ywwynm.everythingdone.utils.LocaleUtil;
 
 import java.io.File;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 
 /**
  * Created by ywwynm on 2016/2/13.
@@ -73,13 +76,17 @@ public class SendInfoHelper {
                 AttachmentHelper.toUriList(attachment), AttachmentHelper.isAllImage(attachment));
     }
 
-    public static void sendFeedback(Context context) {
+    public static void sendFeedback(Context context, boolean attachLogFile) {
         Intent intent = new Intent(Intent.ACTION_SENDTO);
         intent.setType("message/rfc822");
-        intent.setData(Uri.parse("mailto:" + Definitions.MetaData.FEEDBACK_EMAIL));
+        intent.setData(Uri.parse("mailto:" + Def.Meta.FEEDBACK_EMAIL));
         intent.putExtra(Intent.EXTRA_SUBJECT,
-                context.getString(R.string.act_feedback) + "-" + System.currentTimeMillis()
-                        + "-" + Definitions.MetaData.APP_VERSION);
+                context.getString(R.string.act_feedback) + "-" + new SimpleDateFormat("yyyyMMddHHmmss").format(new Date())
+                        + "-" + BuildConfig.VERSION_NAME + "-" + BuildConfig.VERSION_CODE);
+        if (attachLogFile) {
+            intent.putExtra(Intent.EXTRA_STREAM, getLatestLogUri());
+        }
+
         try {
             context.startActivity(Intent.createChooser(intent,
                     context.getString(R.string.send_feedback_to_developer)));
@@ -87,6 +94,25 @@ public class SendInfoHelper {
             Toast.makeText(context, context.getString(R.string.error_activity_not_found),
                     Toast.LENGTH_SHORT).show();
         }
+    }
+
+    private static Uri getLatestLogUri() {
+        String dirPath = Def.Meta.APP_FILE_DIR + "/log";
+        File dir = new File(dirPath);
+        if (dir.exists()) {
+            File[] files = dir.listFiles();
+            File max = null;
+            String maxName = "";
+            for (File file : files) {
+                String name = file.getName();
+                if (name.compareTo(maxName) > 0) {
+                    maxName = name;
+                    max = file;
+                }
+            }
+            return Uri.fromFile(max);
+        }
+        return null;
     }
 
     public static void rateApp(Context context) {

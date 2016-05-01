@@ -13,7 +13,7 @@ import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.TextView;
 
-import com.ywwynm.everythingdone.Definitions;
+import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.LocaleUtil;
@@ -56,7 +56,7 @@ public class RecurrencePickerAdapter extends MultiChoiceAdapter {
 
         mType = type;
 
-        if (type == Definitions.PickerType.DAY_OF_WEEK) {
+        if (type == Def.PickerType.DAY_OF_WEEK) {
             mItems = context.getResources().getStringArray(R.array.day_of_week);
             if (LocaleUtil.isChinese(context)) {
                 for (int i = 0; i < mItems.length; i++) {
@@ -67,7 +67,7 @@ public class RecurrencePickerAdapter extends MultiChoiceAdapter {
                     mItems[i] = mItems[i].substring(0, 3);
                 }
             }
-        } else if (type == Definitions.PickerType.DAY_OF_MONTH) {
+        } else if (type == Def.PickerType.DAY_OF_MONTH) {
             mItems = new String[28];
             for (int i = 0; i < 27; i++) {
                 mItems[i] = String.valueOf(i + 1);
@@ -115,7 +115,7 @@ public class RecurrencePickerAdapter extends MultiChoiceAdapter {
             }
         } else {
             NormalViewHolder holder = (NormalViewHolder) viewHolder;
-            if (mType == Definitions.PickerType.DAY_OF_MONTH) {
+            if (mType == Def.PickerType.DAY_OF_MONTH) {
                 FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) holder.fab.getLayoutParams();
                 params.width = (int) (mScreenDensity * 36);
                 params.height = params.width;
@@ -140,7 +140,7 @@ public class RecurrencePickerAdapter extends MultiChoiceAdapter {
 
     @Override
     public int getItemViewType(int position) {
-        if (mType == Definitions.PickerType.DAY_OF_MONTH && position == 27) {
+        if (mType == Def.PickerType.DAY_OF_MONTH && position == 27) {
             return END_OF_MONTH;
         } else return NORMAL;
     }

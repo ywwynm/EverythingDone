@@ -8,13 +8,14 @@ import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.Point;
 import android.graphics.drawable.BitmapDrawable;
+import android.media.RingtoneManager;
 import android.net.Uri;
 import android.provider.Settings;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.content.ContextCompat;
 
-import com.ywwynm.everythingdone.Definitions;
+import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.DetailActivity;
 import com.ywwynm.everythingdone.activities.SettingsActivity;
@@ -25,6 +26,7 @@ import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.HabitReminder;
 import com.ywwynm.everythingdone.model.Thing;
 
+import java.io.File;
 import java.util.List;
 
 /**
@@ -38,11 +40,11 @@ public class SystemNotificationUtil {
     public static NotificationCompat.Builder newGeneralNotificationBuilder(
             Context context, String senderName, long id, int position, Thing thing, boolean autoNotify) {
         Intent contentIntent = new Intent(context, DetailActivity.class);
-        contentIntent.putExtra(Definitions.Communication.KEY_SENDER_NAME, senderName);
-        contentIntent.putExtra(Definitions.Communication.KEY_DETAIL_ACTIVITY_TYPE,
+        contentIntent.putExtra(Def.Communication.KEY_SENDER_NAME, senderName);
+        contentIntent.putExtra(Def.Communication.KEY_DETAIL_ACTIVITY_TYPE,
                 DetailActivity.UPDATE);
-        contentIntent.putExtra(Definitions.Communication.KEY_ID, id);
-        contentIntent.putExtra(Definitions.Communication.KEY_POSITION, position);
+        contentIntent.putExtra(Def.Communication.KEY_ID, id);
+        contentIntent.putExtra(Def.Communication.KEY_POSITION, position);
 
         int type = thing.getType();
         int color = thing.getColor();
@@ -142,25 +144,36 @@ public class SystemNotificationUtil {
 
     private static Uri getRingtoneUri(int type, Context context, boolean autoNotify) {
         SharedPreferences preferences = context.getSharedPreferences(
-                Definitions.MetaData.PREFERENCES_NAME, Context.MODE_PRIVATE);
+                Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE);
+        String key;
         String fs = SettingsActivity.FOLLOW_SYSTEM;
-        String uriStr = fs;
         if (autoNotify) {
-            uriStr = preferences.getString(Definitions.MetaData.KEY_RINGTONE_AUTO_NOTIFY, fs);
+            key = Def.Meta.KEY_RINGTONE_AUTO_NOTIFY;
         } else {
             if (type == Thing.REMINDER) {
-                uriStr = preferences.getString(Definitions.MetaData.KEY_RINGTONE_REMINDER, fs);
+                key = Def.Meta.KEY_RINGTONE_REMINDER;
             } else if (type == Thing.HABIT) {
-                uriStr = preferences.getString(Definitions.MetaData.KEY_RINGTONE_HABIT, fs);
-            } else if (type == Thing.GOAL) {
-                uriStr = preferences.getString(Definitions.MetaData.KEY_RINGTONE_GOAL, fs);
+                key = Def.Meta.KEY_RINGTONE_HABIT;
+            } else { // type == Thing.GOAL
+                key = Def.Meta.KEY_RINGTONE_GOAL;
             }
         }
-
+        String uriStr = preferences.getString(key, fs);
         if (uriStr.equals(fs)) {
             return Settings.System.DEFAULT_NOTIFICATION_URI;
         } else {
-            return Uri.parse(uriStr);
+            Uri uri = Uri.parse(uriStr);
+            RingtoneManager rm = new RingtoneManager(context);
+            rm.setType(RingtoneManager.TYPE_NOTIFICATION);
+            if (uri != Settings.System.DEFAULT_NOTIFICATION_URI
+                    && rm.getRingtonePosition(uri) == -1) { // user's ringtone
+                String pathName = UriPathConverter.getLocalPathName(context, uri);
+                if (pathName == null || !new File(pathName).exists()) {
+                    preferences.edit().putString(key, fs).apply();
+                    return Settings.System.DEFAULT_NOTIFICATION_URI;
+                }
+            }
+            return uri;
         }
     }
 

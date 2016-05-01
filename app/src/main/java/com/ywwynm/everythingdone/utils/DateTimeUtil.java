@@ -25,6 +25,18 @@ public class DateTimeUtil {
 
     public static final String TAG = "EverythingDone$DateTimeUtil";
 
+    public static String getGeneralDateTimeStr(Context context, long time) {
+        return new DateTime(time).toString(getGeneralDateTimeFormatPattern(context));
+    }
+
+    public static String getGeneralDateTimeFormatPattern(Context context) {
+        if (LocaleUtil.isChinese(context)) {
+            return "yyyy年M月d日EEEE H:mm:ss";
+        } else {
+            return "H:mm:ss, MMM d, yyyy, EEEEEEEEE";
+        }
+    }
+
     public static String getDateTimeStr(int type, int time, Context context) {
         String typeStr = getTimeTypeStr(type, context);
         if (LocaleUtil.isChinese(context)) {
@@ -447,7 +459,7 @@ public class DateTimeUtil {
         } else return Integer.MAX_VALUE;
     }
 
-    public static String getTimeLengthBriefStr(long time) {
+    public static String getDurationBriefStr(long time) {
         float second = time / 1000f;
         if (second < 1) {
             return "< 1s";

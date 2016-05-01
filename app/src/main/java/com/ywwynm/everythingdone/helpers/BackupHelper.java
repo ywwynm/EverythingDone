@@ -32,7 +32,7 @@ public class BackupHelper {
     }
 
     public static String restore(Context context) {
-        String sdcard = Environment.getExternalStorageDirectory().getPath();
+        String sdcard = Environment.getExternalStorageDirectory().getAbsolutePath();
         File bakFile = new File(sdcard, BACKUP_FILE_NAME);
         if (!bakFile.exists()) {
             return context.getString(R.string.restore_file_not_exist);

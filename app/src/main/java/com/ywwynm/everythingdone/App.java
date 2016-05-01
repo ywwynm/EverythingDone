@@ -4,19 +4,19 @@ import android.app.Application;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Bitmap;
-import android.os.Environment;
 import android.util.LruCache;
 
 import com.ywwynm.everythingdone.activities.SettingsActivity;
 import com.ywwynm.everythingdone.activities.ThingsActivity;
-import com.ywwynm.everythingdone.helpers.AppUpdateHelper;
-import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
+import com.ywwynm.everythingdone.helpers.AlarmHelper;
+import com.ywwynm.everythingdone.helpers.AppUpdateHelper;
+import com.ywwynm.everythingdone.helpers.AttachmentHelper;
+import com.ywwynm.everythingdone.helpers.CrashHelper;
 import com.ywwynm.everythingdone.managers.ModeManager;
 import com.ywwynm.everythingdone.managers.ThingManager;
-import com.ywwynm.everythingdone.helpers.AlarmHelper;
-import com.ywwynm.everythingdone.helpers.AttachmentHelper;
+import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.utils.FileUtil;
 
 import java.io.File;
@@ -32,12 +32,9 @@ import java.util.concurrent.Executors;
  * This class has many Managers to help app control database/UI in any classes
  * having a {@link android.content.Context} member.
  */
-public class EverythingDoneApplication extends Application {
+public class App extends Application {
 
-    public static final String TAG = "EverythingDoneApplication";
-
-    public static final String APP_FILE_FOLDER =
-            Environment.getExternalStorageDirectory().getAbsolutePath() + "/EverythingDone";
+    public static final String TAG = "EverythingDone";
 
     private ThingManager mThingManager;
 
@@ -49,7 +46,7 @@ public class EverythingDoneApplication extends Application {
      * on same UI interface. For example, {@link Thing.NOTE} and {@link Thing.WELCOME_NOTE}
      * should display on "note".
      * Value should be one of those declared in
-     * {@link com.ywwynm.everythingdone.Definitions.LimitForGettingThings}
+     * {@link Def.LimitForGettingThings}
      */
     private int mLimit;
 
@@ -88,12 +85,14 @@ public class EverythingDoneApplication extends Application {
     public void onCreate() {
         super.onCreate();
 
+        CrashHelper.getInstance().init(this);
+
         firstLaunch();
 
         AppUpdateHelper.getInstance(this).handleAppUpdate();
 
         File file = new File(getApplicationInfo().dataDir + "/files/" +
-                Definitions.MetaData.CREATE_ALARMS_FILE_NAME);
+                Def.Meta.CREATE_ALARMS_FILE_NAME);
         if (file.exists()) {
             AlarmHelper.createAllAlarms(this, false);
             FileUtil.deleteFile(file);
@@ -105,7 +104,7 @@ public class EverythingDoneApplication extends Application {
         mThingsToDeleteForever = new ArrayList<>();
         mAttachmentsToDeleteFile = new ArrayList<>();
 
-        mLimit = Definitions.LimitForGettingThings.ALL_UNDERWAY;
+        mLimit = Def.LimitForGettingThings.ALL_UNDERWAY;
 
         mExecutor = Executors.newSingleThreadExecutor();
 
@@ -114,9 +113,9 @@ public class EverythingDoneApplication extends Application {
 
     private void firstLaunch() {
         SharedPreferences metaData = getSharedPreferences(
-                Definitions.MetaData.META_DATA_NAME, MODE_PRIVATE);
-        if (metaData.getLong(Definitions.MetaData.KEY_START_USING_TIME, 0) == 0) {
-            metaData.edit().putLong(Definitions.MetaData.KEY_START_USING_TIME,
+                Def.Meta.META_DATA_NAME, MODE_PRIVATE);
+        if (metaData.getLong(Def.Meta.KEY_START_USING_TIME, 0) == 0) {
+            metaData.edit().putLong(Def.Meta.KEY_START_USING_TIME,
                     System.currentTimeMillis()).apply();
         }
     }
@@ -159,7 +158,7 @@ public class EverythingDoneApplication extends Application {
     }
 
     public static void setSomethingUpdatedSpecially(boolean somethingUpdatedSpecially) {
-        EverythingDoneApplication.somethingUpdatedSpecially = somethingUpdatedSpecially;
+        App.somethingUpdatedSpecially = somethingUpdatedSpecially;
     }
 
     public static boolean justNotifyDataSetChanged() {
@@ -167,7 +166,7 @@ public class EverythingDoneApplication extends Application {
     }
 
     public static void setShouldJustNotifyDataSetChanged(boolean justNotifyDataSetChanged) {
-        EverythingDoneApplication.justNotifyDataSetChanged = justNotifyDataSetChanged;
+        App.justNotifyDataSetChanged = justNotifyDataSetChanged;
     }
 
     public void setDetailActivityRun(boolean detailActivityRun) {
@@ -183,14 +182,15 @@ public class EverythingDoneApplication extends Application {
             Runnable r = new Runnable() {
                 @Override
                 public void run() {
-                    ReminderDAO dao = ReminderDAO.getInstance(EverythingDoneApplication.this);
+                    String appDir = Def.Meta.APP_FILE_DIR;
+                    ReminderDAO dao = ReminderDAO.getInstance(App.this);
                     for (Thing thing : mThingsToDeleteForever) {
                         String attachment = thing.getAttachment();
                         if (!attachment.isEmpty() && !attachment.equals("to QQ")) {
                             String[] attachments = attachment.split(AttachmentHelper.SIGNAL);
                             for (int i = 1; i < attachments.length; i++) {
                                 String pathName = attachments[i].substring(1, attachments[i].length());
-                                if (pathName.startsWith(APP_FILE_FOLDER)
+                                if (pathName.startsWith(appDir)
                                         && !mAttachmentsToDeleteFile.contains(pathName)) {
                                     mAttachmentsToDeleteFile.add(pathName);
                                 }
@@ -218,18 +218,19 @@ public class EverythingDoneApplication extends Application {
             Runnable r = new Runnable() {
                 @Override
                 public void run() {
+                    String appDir = Def.Meta.APP_FILE_DIR;
                     List<String> usedAttachments = new ArrayList<>();
-                    ThingDAO dao = ThingDAO.getInstance(EverythingDoneApplication.this);
+                    ThingDAO dao = ThingDAO.getInstance(App.this);
                     Cursor cursor = dao.getAllThingsCursor();
                     while (cursor.moveToNext()) {
                         String attachment = cursor.getString(cursor.getColumnIndex(
-                                Definitions.Database.COLUMN_ATTACHMENT_THINGS));
+                                Def.Database.COLUMN_ATTACHMENT_THINGS));
                         if (!attachment.isEmpty() && !attachment.equals("to QQ")) {
                             String[] attachments = attachment.split(AttachmentHelper.SIGNAL);
                             for (int i = 1; i < attachments.length; i++) {
                                 String pathName = attachments[i].substring(
                                         1, attachments[i].length());
-                                if (pathName.startsWith(APP_FILE_FOLDER)
+                                if (pathName.startsWith(appDir)
                                         && !usedAttachments.contains(pathName)) {
                                     usedAttachments.add(pathName);
                                 }

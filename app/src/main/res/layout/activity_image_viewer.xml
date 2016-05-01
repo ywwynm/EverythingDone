@@ -17,7 +17,7 @@
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         android:background="#00000000"
-        android:theme="@style/Theme.AppCompat"
+        android:theme="@style/EverythingDoneTheme.ImageViewer.Actionbar"
         app:contentInsetStart="72dp"/>
 
 </merge>

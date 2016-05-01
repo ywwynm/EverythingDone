@@ -19,16 +19,16 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 
-import com.ywwynm.everythingdone.Definitions;
-import com.ywwynm.everythingdone.EverythingDoneApplication;
+import com.ywwynm.everythingdone.Def;
+import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.adapters.ImageViewerPagerAdapter;
 import com.ywwynm.everythingdone.fragments.AlertDialogFragment;
 import com.ywwynm.everythingdone.helpers.AttachmentHelper;
+import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.FileUtil;
 import com.ywwynm.everythingdone.utils.ImageLoader;
-import com.ywwynm.everythingdone.utils.VersionUtil;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -43,11 +43,11 @@ public class ImageViewerActivity extends EverythingDoneBaseActivity {
 
     public static final String TAG = "ImageViewerActivity";
 
-    private EverythingDoneApplication mApplication;
+    private App mApplication;
 
     private boolean mSystemUiVisible = true;
 
-    private int mColor;
+    private int mAccentColor;
     private boolean mEditable;
     private List<String> mTypePathNames;
     private int mPosition;
@@ -75,14 +75,14 @@ public class ImageViewerActivity extends EverythingDoneBaseActivity {
 
     @Override
     protected void initMembers() {
-        mApplication = (EverythingDoneApplication) getApplication();
+        mApplication = (App) getApplication();
 
         Intent intent = getIntent();
-        mColor = intent.getIntExtra(Definitions.Communication.KEY_COLOR, 0);
-        mEditable = intent.getBooleanExtra(Definitions.Communication.KEY_EDITABLE, true);
+        mAccentColor = intent.getIntExtra(Def.Communication.KEY_COLOR, 0);
+        mEditable = intent.getBooleanExtra(Def.Communication.KEY_EDITABLE, true);
         mTypePathNames = intent.getStringArrayListExtra(
-                Definitions.Communication.KEY_TYPE_PATH_NAME);
-        mPosition = intent.getIntExtra(Definitions.Communication.KEY_POSITION, 0);
+                Def.Communication.KEY_TYPE_PATH_NAME);
+        mPosition = intent.getIntExtra(Def.Communication.KEY_POSITION, 0);
 
         int size = mTypePathNames.size();
         mTabs = new ArrayList<>(size);
@@ -93,8 +93,8 @@ public class ImageViewerActivity extends EverythingDoneBaseActivity {
 
     @Override
     protected void findViews() {
-        mActionbar = (Toolbar) findViewById(R.id.actionbar);
-        mVpImage = (ViewPager) findViewById(R.id.vp_image_viewer);
+        mActionbar = f(R.id.actionbar);
+        mVpImage = f(R.id.vp_image_viewer);
     }
 
     @Override
@@ -108,7 +108,7 @@ public class ImageViewerActivity extends EverythingDoneBaseActivity {
         Point screen = DisplayUtil.getScreenSize(this);
         int width  = screen.x;
         int height = screen.y;
-        if (!VersionUtil.hasKitKatApi() && DisplayUtil.hasNavigationBar(this)) {
+        if (!DeviceUtil.hasKitKatApi() && DisplayUtil.hasNavigationBar(this)) {
             int navigationBarHeight = DisplayUtil.getNavigationBarHeight(this);
             if (getResources().getConfiguration().orientation
                     == Configuration.ORIENTATION_LANDSCAPE) {
@@ -155,9 +155,9 @@ public class ImageViewerActivity extends EverythingDoneBaseActivity {
             pathName = typePathName.substring(1, typePathName.length());
             key = AttachmentHelper.generateKeyForCache(pathName, width, height);
 
-            image = (ImageView) tab.findViewById(R.id.iv_image_attachment);
-            videoSignal = (ImageView) tab.findViewById(R.id.iv_video_signal);
-            pb = (ProgressBar) tab.findViewById(R.id.pb_image_attachment);
+            image = f(tab, R.id.iv_image_attachment);
+            videoSignal = f(tab, R.id.iv_video_signal);
+            pb = f(tab, R.id.pb_image_attachment);
 
             pb.getIndeterminateDrawable().setColorFilter(pbColor, PorterDuff.Mode.SRC_IN);
 
@@ -227,10 +227,14 @@ public class ImageViewerActivity extends EverythingDoneBaseActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == R.id.act_delete_attachment) {
+        int id = item.getItemId();
+        if (id == R.id.act_show_attachment_info) {
+            AttachmentHelper.showAttachmentInfoDialog(
+                    this, mAccentColor, mTypePathNames.get(mVpImage.getCurrentItem()));
+        } else if (id == R.id.act_delete_attachment) {
             final AlertDialogFragment adf = new AlertDialogFragment();
             adf.setContentColor(ContextCompat.getColor(this, R.color.black_69p));
-            adf.setConfirmColor(mColor);
+            adf.setConfirmColor(mAccentColor);
             adf.setContent(getString(R.string.alert_delete_attachment));
             adf.setConfirmListener(new AlertDialogFragment.ConfirmListener() {
                 @Override
@@ -272,7 +276,7 @@ public class ImageViewerActivity extends EverythingDoneBaseActivity {
         View decorView = getWindow().getDecorView();
         int visibility = decorView.getSystemUiVisibility();
         if (mSystemUiVisible) {
-            if (VersionUtil.hasKitKatApi()) {
+            if (DeviceUtil.hasKitKatApi()) {
                 decorView.setSystemUiVisibility(visibility
                         | View.SYSTEM_UI_FLAG_FULLSCREEN
                         | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
@@ -284,7 +288,7 @@ public class ImageViewerActivity extends EverythingDoneBaseActivity {
             }
             mActionbar.setVisibility(View.GONE);
         } else {
-            if (VersionUtil.hasKitKatApi()) {
+            if (DeviceUtil.hasKitKatApi()) {
                 decorView.setSystemUiVisibility(visibility
                         & ~View.SYSTEM_UI_FLAG_FULLSCREEN
                         & ~View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
@@ -302,10 +306,10 @@ public class ImageViewerActivity extends EverythingDoneBaseActivity {
     private void returnToDetailActivity() {
         if (mUpdated) {
             Intent intent = new Intent();
-            intent.putExtra(Definitions.Communication.KEY_TYPE_PATH_NAME, (ArrayList) mTypePathNames);
-            setResult(Definitions.Communication.RESULT_UPDATE_IMAGE_DONE, intent);
+            intent.putExtra(Def.Communication.KEY_TYPE_PATH_NAME, (ArrayList) mTypePathNames);
+            setResult(Def.Communication.RESULT_UPDATE_IMAGE_DONE, intent);
         } else {
-            setResult(Definitions.Communication.RESULT_NO_UPDATE);
+            setResult(Def.Communication.RESULT_NO_UPDATE);
         }
         finish();
     }

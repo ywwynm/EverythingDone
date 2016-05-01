@@ -6,9 +6,9 @@
     style="@style/SelectableItemForeground.Light">
 
     <ImageView
+        android:id="@+id/iv_drawer_header"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:src="@mipmap/drawer_header"
         android:adjustViewBounds="true"
         android:scaleType="centerCrop"
         android:contentDescription="@string/app_name"/>

@@ -243,17 +243,21 @@ public class Habit {
     }
 
     public int getPersistInT() {
-        long firstFinishTime = getFirstFinishTime();
-        long lastFinishTime = getLastFinishTime();
-        int piT;
-        if (firstFinishTime > lastFinishTime) {
-            piT = 0;
-        } else if (firstFinishTime == lastFinishTime) {
-            piT = 1;
-        } else {
-            piT = DateTimeUtil.calculateTimeGap(firstFinishTime, lastFinishTime, type);
-            piT++;
+        final int size = mHabitRecords.size();
+        if (size == 0) {
+            return 0;
         }
+
+        long time0 = mHabitRecords.get(0).getRecordTime();
+        int piT = 1;
+        for (int i = 1; i < size; i++) {
+            long time = mHabitRecords.get(i).getRecordTime();
+            if (DateTimeUtil.calculateTimeGap(time0, time, type) != 0) {
+                time0 = time;
+                piT++;
+            }
+        }
+
         piT -= getTotalIntervalT();
         return piT;
     }
@@ -289,16 +293,7 @@ public class Habit {
             }
         }
 
-        DateTime ndt = new DateTime(nextTime);
-        if (type == Calendar.DATE) {
-            ndt = ndt.minusDays(1);
-        } else if (type == Calendar.WEEK_OF_YEAR) {
-            ndt = ndt.minusWeeks(1);
-        } else if (type == Calendar.MONTH) {
-            ndt = ndt.minusMonths(1);
-        } else if (type == Calendar.YEAR) {
-            ndt = ndt.minusYears(1);
-        }
+        DateTime ndt = new DateTime(DateTimeUtil.getHabitReminderTime(type, nextTime, -1));
         t = ndt.get(jodaType);
         // All notifications are set to next T but we are still in this T.
         ct = dt.withMillis(System.currentTimeMillis()).get(jodaType);

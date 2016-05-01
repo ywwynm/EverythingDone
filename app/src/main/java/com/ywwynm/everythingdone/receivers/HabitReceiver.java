@@ -7,8 +7,8 @@ import android.content.Intent;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
 
-import com.ywwynm.everythingdone.Definitions;
-import com.ywwynm.everythingdone.EverythingDoneApplication;
+import com.ywwynm.everythingdone.App;
+import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
@@ -33,7 +33,7 @@ public class HabitReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        long hrId = intent.getLongExtra(Definitions.Communication.KEY_ID, 0);
+        long hrId = intent.getLongExtra(Def.Communication.KEY_ID, 0);
         HabitDAO habitDAO = HabitDAO.getInstance(context);
         HabitReminder habitReminder = habitDAO.getHabitReminderById(hrId);
         long habitId = habitReminder.getHabitId();
@@ -62,7 +62,7 @@ public class HabitReceiver extends BroadcastReceiver {
         }
 
         if (thing.getState() == Thing.UNDERWAY) {
-            List<Long> runningDetailActivities = EverythingDoneApplication.getRunningDetailActivities();
+            List<Long> runningDetailActivities = App.getRunningDetailActivities();
             for (Long rThingId : runningDetailActivities) {
                 if (rThingId == habitId) {
                     updateHabitRecordTimes(context, hrId);
@@ -90,14 +90,14 @@ public class HabitReceiver extends BroadcastReceiver {
                     .newGeneralNotificationBuilder(context, TAG, habitId, position, thing, false);
 
             Intent finishIntent = new Intent(context, HabitNotificationActionReceiver.class);
-            finishIntent.setAction(Definitions.Communication.NOTIFICATION_ACTION_FINISH);
-            finishIntent.putExtra(Definitions.Communication.KEY_ID, hrId);
-            finishIntent.putExtra(Definitions.Communication.KEY_POSITION, position);
-            finishIntent.putExtra(Definitions.Communication.KEY_TIME, habitReminder.getNotifyTime());
+            finishIntent.setAction(Def.Communication.NOTIFICATION_ACTION_FINISH);
+            finishIntent.putExtra(Def.Communication.KEY_ID, hrId);
+            finishIntent.putExtra(Def.Communication.KEY_POSITION, position);
+            finishIntent.putExtra(Def.Communication.KEY_TIME, habitReminder.getNotifyTime());
 
             Intent getItIntent = new Intent(context, HabitNotificationActionReceiver.class);
-            getItIntent.putExtra(Definitions.Communication.KEY_ID, hrId);
-            getItIntent.setAction(Definitions.Communication.NOTIFICATION_ACTION_GET_IT);
+            getItIntent.putExtra(Def.Communication.KEY_ID, hrId);
+            getItIntent.setAction(Def.Communication.NOTIFICATION_ACTION_GET_IT);
 
             builder.addAction(R.mipmap.act_finish, context.getString(R.string.act_finish_this_time_habit),
                             PendingIntent.getBroadcast(context,
@@ -111,7 +111,6 @@ public class HabitReceiver extends BroadcastReceiver {
         }
     }
 
-    // TODO: 2016/3/23 finish habit at any time should alive this
     private void updateHabitRecordTimes(Context context, long hrId) {
         HabitDAO habitDAO = HabitDAO.getInstance(context);
         HabitReminder habitReminder = habitDAO.getHabitReminderById(hrId);
@@ -140,14 +139,14 @@ public class HabitReceiver extends BroadcastReceiver {
     }
 
     private void sendBroadCastToUpdateMainUI(Context context, Thing thing, int position) {
-        EverythingDoneApplication.setSomethingUpdatedSpecially(true);
+        App.setSomethingUpdatedSpecially(true);
         Intent broadcastIntent = new Intent(
-                Definitions.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI);
-        broadcastIntent.putExtra(Definitions.Communication.KEY_RESULT_CODE,
-                Definitions.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME);
-        broadcastIntent.putExtra(Definitions.Communication.KEY_THING, thing);
-        broadcastIntent.putExtra(Definitions.Communication.KEY_POSITION, position);
-        broadcastIntent.putExtra(Definitions.Communication.KEY_TYPE_BEFORE, thing.getType());
+                Def.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI);
+        broadcastIntent.putExtra(Def.Communication.KEY_RESULT_CODE,
+                Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME);
+        broadcastIntent.putExtra(Def.Communication.KEY_THING, thing);
+        broadcastIntent.putExtra(Def.Communication.KEY_POSITION, position);
+        broadcastIntent.putExtra(Def.Communication.KEY_TYPE_BEFORE, thing.getType());
         context.sendBroadcast(broadcastIntent);
     }
 }

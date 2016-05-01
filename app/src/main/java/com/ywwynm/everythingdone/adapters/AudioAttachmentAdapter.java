@@ -1,8 +1,9 @@
 package com.ywwynm.everythingdone.adapters;
 
-import android.content.Context;
+import android.app.Activity;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.support.v7.widget.CardView;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -11,7 +12,9 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.ywwynm.everythingdone.R;
+import com.ywwynm.everythingdone.helpers.AttachmentHelper;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
+import com.ywwynm.everythingdone.utils.FileUtil;
 
 import java.io.File;
 import java.util.List;
@@ -24,7 +27,9 @@ public class AudioAttachmentAdapter extends RecyclerView.Adapter<AudioAttachment
 
     public static final String TAG = "AudioAttachmentAdapter";
 
-    private Context mContext;
+    private Activity mActivity;
+
+    private int mAccentColor;
 
     private boolean mEditable;
 
@@ -40,10 +45,13 @@ public class AudioAttachmentAdapter extends RecyclerView.Adapter<AudioAttachment
     }
     private RemoveCallback mRemoveCallback;
 
-    public AudioAttachmentAdapter(Context context, boolean editable, List<String> items, RemoveCallback callback) {
-        mContext = context;
+    public AudioAttachmentAdapter(
+            Activity activity, int accentColor, boolean editable, List<String> items,
+            RemoveCallback callback) {
+        mActivity = activity;
+        mAccentColor = accentColor;
         mEditable = editable;
-        mInflater = LayoutInflater.from(context);
+        mInflater = LayoutInflater.from(activity);
         mItems = items;
 
         mRemoveCallback = callback;
@@ -69,14 +77,12 @@ public class AudioAttachmentAdapter extends RecyclerView.Adapter<AudioAttachment
     @Override
     public void onBindViewHolder(AudioCardViewHolder holder, int position) {
         String typePathName = mItems.get(position);
-        File file = new File(typePathName.substring(1, typePathName.length()));
+        String pathName = typePathName.substring(1, typePathName.length());
+        File file = new File(pathName);
 
         holder.tvName.setText(file.getName());
-
-        MediaPlayer mp = MediaPlayer.create(mContext, Uri.fromFile(file));
-        holder.tvSize.setText(DateTimeUtil.getTimeLengthBriefStr(mp.getDuration()));
-        mp.reset();
-        mp.release();
+        long duration = FileUtil.getMediaDuration(pathName);
+        holder.tvSize.setText(DateTimeUtil.getDurationBriefStr(duration));
 
         if (mPlayingIndex == position) {
             holder.ivFirst.setVisibility(View.VISIBLE);
@@ -108,7 +114,7 @@ public class AudioAttachmentAdapter extends RecyclerView.Adapter<AudioAttachment
         String typePathName = mItems.get(index);
         File file = new File(typePathName.substring(1, typePathName.length()));
 
-        mPlayer = MediaPlayer.create(mContext, Uri.fromFile(file));
+        mPlayer = MediaPlayer.create(mActivity, Uri.fromFile(file));
         mPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             @Override
             public void onCompletion(MediaPlayer mp) {
@@ -130,6 +136,7 @@ public class AudioAttachmentAdapter extends RecyclerView.Adapter<AudioAttachment
 
     class AudioCardViewHolder extends RecyclerView.ViewHolder {
 
+        final CardView  cv;
         final TextView  tvName;
         final TextView  tvSize;
         final ImageView ivFirst;
@@ -138,10 +145,28 @@ public class AudioAttachmentAdapter extends RecyclerView.Adapter<AudioAttachment
         public AudioCardViewHolder(View itemView) {
             super(itemView);
 
+            cv       = (CardView)  itemView.findViewById(R.id.cv_audio_attachment);
             tvName   = (TextView)  itemView.findViewById(R.id.tv_audio_file_name);
             tvSize   = (TextView)  itemView.findViewById(R.id.tv_audio_size);
             ivFirst  = (ImageView) itemView.findViewById(R.id.iv_card_audio_first);
             ivSecond = (ImageView) itemView.findViewById(R.id.iv_card_audio_second);
+
+            cv.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    togglePlay();
+                }
+            });
+
+            cv.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View v) {
+                    String item = mItems.get(getAdapterPosition());
+                    String pathName = item.substring(1, item.length());
+                    AttachmentHelper.showAttachmentInfoDialog(mActivity, mAccentColor, pathName);
+                    return true;
+                }
+            });
 
             if (mEditable) {
                 setEventsEditable();
@@ -154,22 +179,7 @@ public class AudioAttachmentAdapter extends RecyclerView.Adapter<AudioAttachment
             ivFirst.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    int pos = getAdapterPosition();
-                    if (mPlayingIndex == pos) {
-                        if (mPlayer.isPlaying()) {
-                            mPlayer.pause();
-                        } else {
-                            mPlayer.start();
-                        }
-                    } else {
-                        if (mPlayingIndex != -1) {
-                            final int index = mPlayingIndex;
-                            stopPlaying();
-                            notifyItemChanged(index);
-                        }
-                        startPlaying(pos);
-                    }
-                    notifyItemChanged(pos);
+                    togglePlay();
                 }
             });
 
@@ -187,6 +197,25 @@ public class AudioAttachmentAdapter extends RecyclerView.Adapter<AudioAttachment
                     }
                 }
             });
+        }
+
+        private void togglePlay() {
+            int pos = getAdapterPosition();
+            if (mPlayingIndex == pos) {
+                if (mPlayer.isPlaying()) {
+                    mPlayer.pause();
+                } else {
+                    mPlayer.start();
+                }
+            } else {
+                if (mPlayingIndex != -1) {
+                    final int index = mPlayingIndex;
+                    stopPlaying();
+                    notifyItemChanged(index);
+                }
+                startPlaying(pos);
+            }
+            notifyItemChanged(pos);
         }
 
         private void setEventsUneditable() {

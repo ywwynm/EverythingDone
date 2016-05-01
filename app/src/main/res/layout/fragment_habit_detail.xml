@@ -9,8 +9,6 @@
         android:layout_width="280dp"
         android:layout_height="wrap_content"
         android:paddingTop="24dp"
-        android:paddingLeft="24dp"
-        android:paddingRight="24dp"
         android:paddingBottom="12dp"
         android:orientation="vertical">
 
@@ -18,6 +16,8 @@
             android:id="@+id/tv_habit_detail_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginLeft="24dp"
+            android:layout_marginRight="24dp"
             android:text="@string/habit_detail_title"
             android:textSize="20sp"
             android:textStyle="bold"/>
@@ -26,6 +26,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
+            android:layout_marginLeft="24dp"
+            android:layout_marginRight="24dp"
             android:textColor="@color/black_26p"
             android:text="@string/habit_detail_completion_rate"/>
 
@@ -33,6 +35,8 @@
             android:id="@+id/tv_habit_detail_completion_rate"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginLeft="24dp"
+            android:layout_marginRight="24dp"
             android:textColor="@color/black_54p"
             android:textSize="16sp"/>
 
@@ -40,6 +44,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
+            android:layout_marginLeft="24dp"
+            android:layout_marginRight="24dp"
             android:textColor="@color/black_26p"
             android:text="@string/habit_detail_persist_in"/>
 
@@ -47,6 +53,8 @@
             android:id="@+id/tv_habit_detail_persist_in"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginLeft="24dp"
+            android:layout_marginRight="24dp"
             android:textColor="@color/black_54p"
             android:textSize="16sp"/>
 
@@ -54,6 +62,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
+            android:layout_marginLeft="24dp"
+            android:layout_marginRight="24dp"
             android:textColor="@color/black_26p"
             android:text="@string/habit_detail_times"/>
 
@@ -61,6 +71,8 @@
             android:id="@+id/tv_habit_detail_times"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginLeft="24dp"
+            android:layout_marginRight="24dp"
             android:textColor="@color/black_54p"
             android:textSize="16sp"/>
 
@@ -68,6 +80,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
+            android:layout_marginLeft="24dp"
+            android:layout_marginRight="24dp"
             android:textColor="@color/black_26p"
             android:text="@string/habit_detail_record"/>
 
@@ -75,6 +89,10 @@
             android:id="@+id/rv_habit_detail_record"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_marginLeft="12dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginRight="16dp"
             android:overScrollMode="never"/>
 
     </LinearLayout>

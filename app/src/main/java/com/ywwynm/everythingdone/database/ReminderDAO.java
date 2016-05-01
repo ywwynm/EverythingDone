@@ -5,7 +5,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 
-import com.ywwynm.everythingdone.Definitions;
+import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.helpers.AlarmHelper;
 import com.ywwynm.everythingdone.model.Reminder;
 
@@ -42,7 +42,7 @@ public class ReminderDAO {
     }
 
     public Reminder getReminderById(long id) {
-        Cursor cursor = db.query(Definitions.Database.TABLE_REMINDERS, null,
+        Cursor cursor = db.query(Def.Database.TABLE_REMINDERS, null,
                 "id=" + id, null, null, null, null);
         Reminder reminder = null;
         if (cursor.moveToFirst()) {
@@ -58,13 +58,13 @@ public class ReminderDAO {
             long notifyTime = reminder.getNotifyTime();
 
             ContentValues values = new ContentValues();
-            values.put(Definitions.Database.COLUMN_ID_REMINDERS, id);
-            values.put(Definitions.Database.COLUMN_NOTIFY_TIME_REMINDERS, notifyTime);
-            values.put(Definitions.Database.COLUMN_STATE_REMINDERS, reminder.getState());
-            values.put(Definitions.Database.COLUMN_NOTIFY_MILLIS_REMINDERS, reminder.getNotifyMillis());
-            values.put(Definitions.Database.COLUMN_CREATE_TIME_REMINDERS, System.currentTimeMillis());
-            values.put(Definitions.Database.COLUMN_UPDATE_TIME_REMINDERS, System.currentTimeMillis());
-            db.insert(Definitions.Database.TABLE_REMINDERS, null, values);
+            values.put(Def.Database.COLUMN_ID_REMINDERS, id);
+            values.put(Def.Database.COLUMN_NOTIFY_TIME_REMINDERS, notifyTime);
+            values.put(Def.Database.COLUMN_STATE_REMINDERS, reminder.getState());
+            values.put(Def.Database.COLUMN_NOTIFY_MILLIS_REMINDERS, reminder.getNotifyMillis());
+            values.put(Def.Database.COLUMN_CREATE_TIME_REMINDERS, System.currentTimeMillis());
+            values.put(Def.Database.COLUMN_UPDATE_TIME_REMINDERS, System.currentTimeMillis());
+            db.insert(Def.Database.TABLE_REMINDERS, null, values);
 
             AlarmHelper.setReminderAlarm(mContext, id, notifyTime);
         }
@@ -76,11 +76,11 @@ public class ReminderDAO {
             long notifyTime = updatedReminder.getNotifyTime();
 
             ContentValues values = new ContentValues();
-            values.put(Definitions.Database.COLUMN_NOTIFY_TIME_REMINDERS, notifyTime);
-            values.put(Definitions.Database.COLUMN_STATE_REMINDERS, updatedReminder.getState());
-            values.put(Definitions.Database.COLUMN_NOTIFY_MILLIS_REMINDERS, updatedReminder.getNotifyMillis());
-            values.put(Definitions.Database.COLUMN_UPDATE_TIME_REMINDERS, updatedReminder.getUpdateTime());
-            db.update(Definitions.Database.TABLE_REMINDERS, values, "id=" + id, null);
+            values.put(Def.Database.COLUMN_NOTIFY_TIME_REMINDERS, notifyTime);
+            values.put(Def.Database.COLUMN_STATE_REMINDERS, updatedReminder.getState());
+            values.put(Def.Database.COLUMN_NOTIFY_MILLIS_REMINDERS, updatedReminder.getNotifyMillis());
+            values.put(Def.Database.COLUMN_UPDATE_TIME_REMINDERS, updatedReminder.getUpdateTime());
+            db.update(Def.Database.TABLE_REMINDERS, values, "id=" + id, null);
 
             if (updatedReminder.getState() == Reminder.UNDERWAY) {
                 AlarmHelper.setReminderAlarm(mContext, id, notifyTime);
@@ -101,7 +101,7 @@ public class ReminderDAO {
     }
 
     public void delete(long id) {
-        db.delete(Definitions.Database.TABLE_REMINDERS, "id=" + id, null);
+        db.delete(Def.Database.TABLE_REMINDERS, "id=" + id, null);
         AlarmHelper.deleteReminderAlarm(mContext, id);
     }
 }

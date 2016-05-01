@@ -6,8 +6,8 @@ import android.view.View;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-import com.ywwynm.everythingdone.Definitions;
-import com.ywwynm.everythingdone.EverythingDoneApplication;
+import com.ywwynm.everythingdone.Def;
+import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.managers.ModeManager;
 import com.ywwynm.everythingdone.managers.ThingManager;
@@ -23,7 +23,7 @@ public class ActivityHeader {
 
     public static final String TAG = "ActivityHeader";
 
-    private EverythingDoneApplication mApplication;
+    private App mApplication;
     private float mScreenDensity;
 
     private boolean shouldListenToScroll = true;
@@ -40,7 +40,7 @@ public class ActivityHeader {
 
     private RecyclerView mBindingRecyclerView;
 
-    public ActivityHeader(EverythingDoneApplication application, RecyclerView recyclerView,
+    public ActivityHeader(App application, RecyclerView recyclerView,
                           View actionbarShadow, RelativeLayout relativeLayout, TextView title,
                           TextView subtitle) {
         mApplication = application;
@@ -120,25 +120,25 @@ public class ActivityHeader {
 
     public void updateText() {
         switch (mApplication.getLimit()) {
-            case Definitions.LimitForGettingThings.ALL_UNDERWAY:
+            case Def.LimitForGettingThings.ALL_UNDERWAY:
                 mTitle.setText(R.string.underway);
                 break;
-            case Definitions.LimitForGettingThings.NOTE_UNDERWAY:
+            case Def.LimitForGettingThings.NOTE_UNDERWAY:
                 mTitle.setText(R.string.note);
                 break;
-            case Definitions.LimitForGettingThings.REMINDER_UNDERWAY:
+            case Def.LimitForGettingThings.REMINDER_UNDERWAY:
                 mTitle.setText(R.string.reminder);
                 break;
-            case Definitions.LimitForGettingThings.HABIT_UNDERWAY:
+            case Def.LimitForGettingThings.HABIT_UNDERWAY:
                 mTitle.setText(R.string.habit);
                 break;
-            case Definitions.LimitForGettingThings.GOAL_UNDERWAY:
+            case Def.LimitForGettingThings.GOAL_UNDERWAY:
                 mTitle.setText(R.string.goal);
                 break;
-            case Definitions.LimitForGettingThings.ALL_FINISHED:
+            case Def.LimitForGettingThings.ALL_FINISHED:
                 mTitle.setText(R.string.finished);
                 break;
-            case Definitions.LimitForGettingThings.ALL_DELETED:
+            case Def.LimitForGettingThings.ALL_DELETED:
                 mTitle.setText(R.string.deleted);
                 break;
         }

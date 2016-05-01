@@ -5,18 +5,18 @@ import android.database.Cursor;
 import android.os.Parcel;
 import android.os.Parcelable;
 
-import com.ywwynm.everythingdone.Definitions;
+import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 
-import static com.ywwynm.everythingdone.Definitions.LimitForGettingThings.ALL_DELETED;
-import static com.ywwynm.everythingdone.Definitions.LimitForGettingThings.ALL_FINISHED;
-import static com.ywwynm.everythingdone.Definitions.LimitForGettingThings.ALL_UNDERWAY;
-import static com.ywwynm.everythingdone.Definitions.LimitForGettingThings.GOAL_UNDERWAY;
-import static com.ywwynm.everythingdone.Definitions.LimitForGettingThings.HABIT_UNDERWAY;
-import static com.ywwynm.everythingdone.Definitions.LimitForGettingThings.NOTE_UNDERWAY;
-import static com.ywwynm.everythingdone.Definitions.LimitForGettingThings.REMINDER_UNDERWAY;
+import static com.ywwynm.everythingdone.Def.LimitForGettingThings.ALL_DELETED;
+import static com.ywwynm.everythingdone.Def.LimitForGettingThings.ALL_FINISHED;
+import static com.ywwynm.everythingdone.Def.LimitForGettingThings.ALL_UNDERWAY;
+import static com.ywwynm.everythingdone.Def.LimitForGettingThings.GOAL_UNDERWAY;
+import static com.ywwynm.everythingdone.Def.LimitForGettingThings.HABIT_UNDERWAY;
+import static com.ywwynm.everythingdone.Def.LimitForGettingThings.NOTE_UNDERWAY;
+import static com.ywwynm.everythingdone.Def.LimitForGettingThings.REMINDER_UNDERWAY;
 
 /**
  * Created by ywwynm on 2015/5/21.
@@ -256,36 +256,36 @@ public class Thing implements Parcelable {
     public static int[] getLimits(int type, int state) {
         int[] limits;
         if (state == FINISHED || type == NOTIFY_EMPTY_FINISHED) {
-            limits = new int[] { Definitions.LimitForGettingThings.ALL_FINISHED };
+            limits = new int[] { Def.LimitForGettingThings.ALL_FINISHED };
         } else if (state == DELETED || type == NOTIFY_EMPTY_DELETED) {
-            limits = new int[] { Definitions.LimitForGettingThings.ALL_DELETED };
+            limits = new int[] { Def.LimitForGettingThings.ALL_DELETED };
         } else {
             if (type == WELCOME_UNDERWAY || type == NOTIFICATION_UNDERWAY
                     || type == NOTIFY_EMPTY_UNDERWAY) {
-                return new int[] { Definitions.LimitForGettingThings.ALL_UNDERWAY };
+                return new int[] { Def.LimitForGettingThings.ALL_UNDERWAY };
             } else if (type == WELCOME_NOTE || type == NOTIFICATION_NOTE
                     || type == NOTIFY_EMPTY_NOTE) {
-                return new int[] { Definitions.LimitForGettingThings.NOTE_UNDERWAY };
+                return new int[] { Def.LimitForGettingThings.NOTE_UNDERWAY };
             } else if (type == WELCOME_REMINDER || type == NOTIFICATION_REMINDER
                     || type == NOTIFY_EMPTY_REMINDER) {
-                return new int[] { Definitions.LimitForGettingThings.REMINDER_UNDERWAY };
+                return new int[] { Def.LimitForGettingThings.REMINDER_UNDERWAY };
             } else if (type == WELCOME_HABIT || type == NOTIFICATION_HABIT
                     || type == NOTIFY_EMPTY_HABIT) {
-                return new int[] { Definitions.LimitForGettingThings.HABIT_UNDERWAY };
+                return new int[] { Def.LimitForGettingThings.HABIT_UNDERWAY };
             } else if (type == WELCOME_GOAL || type == NOTIFICATION_GOAL
                     || type == NOTIFY_EMPTY_GOAL) {
-                return new int[] { Definitions.LimitForGettingThings.GOAL_UNDERWAY };
+                return new int[] { Def.LimitForGettingThings.GOAL_UNDERWAY };
             } else {
                 limits = new int[2];
-                limits[0] = Definitions.LimitForGettingThings.ALL_UNDERWAY;
+                limits[0] = Def.LimitForGettingThings.ALL_UNDERWAY;
                 if (type == REMINDER) {
-                    limits[1] = Definitions.LimitForGettingThings.REMINDER_UNDERWAY;
+                    limits[1] = Def.LimitForGettingThings.REMINDER_UNDERWAY;
                 } else if (type == HABIT) {
-                    limits[1] = Definitions.LimitForGettingThings.HABIT_UNDERWAY;
+                    limits[1] = Def.LimitForGettingThings.HABIT_UNDERWAY;
                 } else if (type == GOAL) {
-                    limits[1] = Definitions.LimitForGettingThings.GOAL_UNDERWAY;
+                    limits[1] = Def.LimitForGettingThings.GOAL_UNDERWAY;
                 } else {
-                    limits[1] = Definitions.LimitForGettingThings.NOTE_UNDERWAY;
+                    limits[1] = Def.LimitForGettingThings.NOTE_UNDERWAY;
                 }
             }
         }

@@ -16,7 +16,7 @@ public class KeyboardUtil {
 
     public static final String TAG = "EverythingDone$KeyboardUtil";
 
-    public static final int HIDE_DELAY = 120;
+    public static final int HIDE_DELAY = 200;
 
     public static void showKeyboard(View view) {
         if (view == null) {

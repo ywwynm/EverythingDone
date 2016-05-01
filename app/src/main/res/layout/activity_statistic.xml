@@ -27,7 +27,6 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:contentDescription="@string/content_description_header"
-                    android:src="@drawable/drawer_header_large"
                     android:scaleType="centerCrop"
                     android:adjustViewBounds="true"/>
 
