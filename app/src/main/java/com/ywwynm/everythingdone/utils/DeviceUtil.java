@@ -1,6 +1,11 @@
 package com.ywwynm.everythingdone.utils;
 
 import android.os.Build;
+import android.os.Environment;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.util.Properties;
 
 /**
  * Created by ywwynm on 2016/3/11.
@@ -37,6 +42,23 @@ public class DeviceUtil {
 
     public static String getPhoneModel() {
         return Build.MODEL;
+    }
+
+    public static boolean isEMUI() {
+        // ro.build.version.emui
+        // ro.miui.ui.version.name
+        return getProperty("ro.build.version.emui") != null;
+    }
+
+    private static String getProperty(String key) {
+        try {
+            Properties properties = new Properties();
+            properties.load(new FileInputStream(
+                    new File(Environment.getRootDirectory(), "build.prop")));
+            return properties.getProperty(key, null);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
 }
