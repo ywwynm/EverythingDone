@@ -349,6 +349,7 @@ public class HabitDAO {
         }
 
         habit.initHabitReminders(); // habitReminders have become latest.
+
         habitReminders = habit.getHabitReminders();
         for (int i = 0; i < hrIds.size(); i++) {
             long newTime = habitReminders.get(i).getNotifyTime();

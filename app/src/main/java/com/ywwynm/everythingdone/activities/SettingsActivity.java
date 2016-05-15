@@ -21,9 +21,11 @@ import android.support.v4.content.ContextCompat;
 import android.support.v7.app.ActionBar;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
+import android.widget.CheckBox;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import com.ywwynm.everythingdone.Def;
@@ -42,6 +44,7 @@ import com.ywwynm.everythingdone.model.HabitReminder;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
+import com.ywwynm.everythingdone.utils.EdgeEffectUtil;
 import com.ywwynm.everythingdone.utils.FileUtil;
 import com.ywwynm.everythingdone.utils.PermissionUtil;
 import com.ywwynm.everythingdone.utils.UriPathConverter;
@@ -75,6 +78,9 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     public static final String DEFAULT_DRAWER_HEADER = "default_drawer_header";
     private LinearLayout mLlDrawerHeader;
     private TextView     mTvDrawerHeader;
+
+    private RelativeLayout mRlTwiceBackAsBt;
+    private CheckBox       mCbTwiceBack;
 
     private static String[] sKeysRingtone = {
             Def.Meta.KEY_RINGTONE_REMINDER,
@@ -324,6 +330,9 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         mLlDrawerHeader = f(R.id.ll_change_drawer_header_as_bt);
         mTvDrawerHeader = f(R.id.tv_drawer_header_path);
 
+        mRlTwiceBackAsBt = f(R.id.rl_twice_back_as_bt);
+        mCbTwiceBack     = f(R.id.cb_twice_back);
+
         mLlsRingtone    = new LinearLayout[4];
         mLlsRingtone[0] = f(R.id.ll_ringtone_reminder_as_bt);
         mLlsRingtone[1] = f(R.id.ll_ringtone_habit_as_bt);
@@ -352,6 +361,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     @Override
     protected void initUI() {
         DisplayUtil.darkStatusBarForMIUI(this);
+        DisplayUtil.coverStatusBar(f(R.id.view_status_bar_cover));
 
         if (DeviceUtil.hasKitKatApi()) {
             RelativeLayout.LayoutParams params = (RelativeLayout.LayoutParams)
@@ -359,6 +369,9 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             params.height = DisplayUtil.getStatusbarHeight(this);
             mStatusBar.requestLayout();
         }
+
+        EdgeEffectUtil.forScrollView((ScrollView) f(R.id.sv_settings),
+                ContextCompat.getColor(this, R.color.blue_deep));
 
         initUiUserInterface();
         initUiRingtone();
@@ -375,6 +388,9 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             mTvDrawerHeader.setTextSize(12);
             mTvDrawerHeader.setText(header);
         }
+
+        boolean twiceBack = mPreferences.getBoolean(Def.Meta.KEY_TWICE_BACK, false);
+        mCbTwiceBack.setChecked(twiceBack);
     }
 
     private void initUiRingtone() {
@@ -428,6 +444,13 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             @Override
             public void onClick(View v) {
                 showChangeDrawerHeaderDialog();
+            }
+        });
+
+        mRlTwiceBackAsBt.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mCbTwiceBack.setChecked(!mCbTwiceBack.isChecked());
             }
         });
 
@@ -681,6 +704,8 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         if (!headerBefore.equals(header)) {
             setResult(Def.Communication.RESULT_UPDATE_DRAWER_HEADER_DONE);
         }
+
+        editor.putBoolean(Def.Meta.KEY_TWICE_BACK, mCbTwiceBack.isChecked());
 
         for (int i = 0; i < mChosenRingtoneUris.length; i++) {
             editor.putString(sKeysRingtone[i], mChosenRingtoneUris[i].toString());

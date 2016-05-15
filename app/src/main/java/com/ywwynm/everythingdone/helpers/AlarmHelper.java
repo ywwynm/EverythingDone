@@ -16,6 +16,7 @@ import com.ywwynm.everythingdone.receivers.AutoNotifyReceiver;
 import com.ywwynm.everythingdone.receivers.DailyUpdateHabitReceiver;
 import com.ywwynm.everythingdone.receivers.HabitReceiver;
 import com.ywwynm.everythingdone.receivers.ReminderReceiver;
+import com.ywwynm.everythingdone.utils.DeviceUtil;
 
 import org.joda.time.DateTime;
 
@@ -33,7 +34,16 @@ public class AlarmHelper {
         intent.putExtra(Def.Communication.KEY_ID, id);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
                 context, (int) id, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-        am.setExact(AlarmManager.RTC_WAKEUP, notifyTime, pendingIntent);
+
+        if (DeviceUtil.hasKitKatApi()) {
+            try {
+                am.setExact(AlarmManager.RTC_WAKEUP, notifyTime, pendingIntent);
+            } catch (Throwable throwable) {
+                am.set(AlarmManager.RTC_WAKEUP, notifyTime, pendingIntent);
+            }
+        } else {
+            am.set(AlarmManager.RTC_WAKEUP, notifyTime, pendingIntent);
+        }
     }
 
     public static void deleteReminderAlarm(Context context, long id) {
@@ -51,7 +61,16 @@ public class AlarmHelper {
         intent.putExtra(Def.Communication.KEY_ID, id);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(context, (int) id, intent,
                 PendingIntent.FLAG_UPDATE_CURRENT);
-        am.setExact(AlarmManager.RTC_WAKEUP, notifyTime, pendingIntent);
+
+        if (DeviceUtil.hasKitKatApi()) {
+            try {
+                am.setExact(AlarmManager.RTC_WAKEUP, notifyTime, pendingIntent);
+            } catch (Throwable throwable) {
+                am.set(AlarmManager.RTC_WAKEUP, notifyTime, pendingIntent);
+            }
+        } else {
+            am.set(AlarmManager.RTC_WAKEUP, notifyTime, pendingIntent);
+        }
     }
 
     public static void deleteHabitReminderAlarm(Context context, long id) {

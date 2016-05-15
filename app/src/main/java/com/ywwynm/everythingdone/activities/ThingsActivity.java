@@ -1,16 +1,20 @@
 package com.ywwynm.everythingdone.activities;
 
+import android.Manifest;
 import android.app.ActivityManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.ActivityOptionsCompat;
@@ -24,6 +28,8 @@ import android.support.v7.widget.StaggeredGridLayoutManager;
 import android.support.v7.widget.Toolbar;
 import android.support.v7.widget.Toolbar.OnMenuItemClickListener;
 import android.support.v7.widget.helper.ItemTouchHelper;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -36,6 +42,7 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
@@ -60,6 +67,7 @@ import com.ywwynm.everythingdone.utils.EdgeEffectUtil;
 import com.ywwynm.everythingdone.utils.FileUtil;
 import com.ywwynm.everythingdone.utils.KeyboardUtil;
 import com.ywwynm.everythingdone.utils.LocaleUtil;
+import com.ywwynm.everythingdone.utils.PermissionUtil;
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil;
 import com.ywwynm.everythingdone.views.ActivityHeader;
 import com.ywwynm.everythingdone.views.DrawerHeader;
@@ -212,12 +220,48 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             adf.setConfirmListener(new AlertDialogFragment.ConfirmListener() {
                 @Override
                 public void onConfirm() {
-                    SendInfoHelper.sendFeedback(ThingsActivity.this, true);
+                    tryToFeedbackError();
+                }
+            });
+            adf.setCancelListener(new AlertDialogFragment.CancelListener() {
+                @Override
+                public void onCancel() {
+                    deleteFeedbackFile();
                 }
             });
             adf.show(getFragmentManager(), AlertDialogFragment.TAG);
+        }
+    }
 
-            FileUtil.deleteFile(file);
+    private void tryToFeedbackError() {
+        PermissionUtil.Callback callback = new PermissionUtil.Callback() {
+            @Override
+            public void onGranted() {
+                SendInfoHelper.sendFeedback(ThingsActivity.this, true);
+                deleteFeedbackFile();
+            }
+        };
+        PermissionUtil.doWithPermissionChecked(callback, this,
+                Def.Communication.REQUEST_PERMISSION_SEND_ERROR_FEEDBACK,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE);
+    }
+
+    private void deleteFeedbackFile() {
+        File file = new File(getApplicationInfo().dataDir + "/files/" +
+                Def.Meta.FEEDBACK_ERROR_FILE_NAME);
+        FileUtil.deleteFile(file);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(
+            int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        if (requestCode == Def.Communication.REQUEST_PERMISSION_SEND_ERROR_FEEDBACK) {
+            if (grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+                Toast.makeText(this, R.string.error_permission_denied, Toast.LENGTH_SHORT).show();
+            } else {
+                SendInfoHelper.sendFeedback(this, true);
+                deleteFeedbackFile();
+            }
         }
     }
 
@@ -321,6 +365,8 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         return super.onOptionsItemSelected(item);
     }
 
+    private long lastClickBack = -1;
+
     @Override
     public void onBackPressed() {
         if (mDrawerLayout.isDrawerOpen(GravityCompat.START)) {
@@ -333,8 +379,22 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 toggleSearching();
                 return;
             }
-            mApplication.setLimit(Def.LimitForGettingThings.ALL_UNDERWAY, true);
-            super.onBackPressed();
+
+            SharedPreferences sp = getSharedPreferences(Def.Meta.PREFERENCES_NAME, MODE_PRIVATE);
+            boolean twiceBack = sp.getBoolean(Def.Meta.KEY_TWICE_BACK, false);
+            if (!twiceBack) {
+                mApplication.setLimit(Def.LimitForGettingThings.ALL_UNDERWAY, true);
+                super.onBackPressed();
+            } else {
+                if (lastClickBack == -1 || System.currentTimeMillis() - lastClickBack > 1600) {
+                    lastClickBack = System.currentTimeMillis();
+                    Toast.makeText(this, R.string.press_again_to_exit, Toast.LENGTH_SHORT).show();
+                } else {
+                    lastClickBack = -1;
+                    mApplication.setLimit(Def.LimitForGettingThings.ALL_UNDERWAY, true);
+                    super.onBackPressed();
+                }
+            }
         }
     }
 
@@ -425,7 +485,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 if (createdDone) {
                     justNotifyDataSetChanged();
                 } else {
-                    boolean change = mThingManager.create(thingToCreate, true);
+                    boolean change = mThingManager.create(thingToCreate, true, true);
                     if (justNotifyDataSetChanged) {
                         justNotifyDataSetChanged();
                     } else {
@@ -700,6 +760,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     @Override
     protected void initUI() {
         DisplayUtil.darkStatusBarForMIUI(this);
+        DisplayUtil.coverStatusBar(f(R.id.view_status_bar_cover));
 
         if (DeviceUtil.hasKitKatApi()) {
             View statusbar = f(R.id.view_status_bar);
@@ -758,14 +819,10 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
     @Override
     protected void setEvents() {
-        mViewInsideActionbar.setOnTouchListener(new View.OnTouchListener() {
+        mActionbar.setOnClickListener(new View.OnClickListener() {
             @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                    mRecyclerView.smoothScrollToPosition(0);
-                    return true;
-                }
-                return false;
+            public void onClick(View v) {
+                mRecyclerView.smoothScrollToPosition(0);
             }
         });
 
@@ -862,7 +919,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         });
         mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
 
-            final int edgeColor = ContextCompat.getColor(mApplication, R.color.edge_color_dark);
+            final int edgeColor = EdgeEffectUtil.getEdgeColorDark();
 
             @Override
             public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
@@ -894,7 +951,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
                 if (mUndoAll) {
                     mThingManager.undoUpdateStates(mUndoThings, mUndoPositions, mUndoLocations,
-                            mStateToUndoFrom, stateAfter, true);
+                            mStateToUndoFrom, stateAfter);
                     mUndoThings.clear();
                     mUndoPositions.clear();
                     mUndoLocations.clear();
@@ -979,36 +1036,81 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 dismissSnackbars();
             }
         });
+
+        mEtSearch.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) { }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                beginSearchThings();
+            }
+        });
+
         mEtSearch.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
                 if (actionId == EditorInfo.IME_ACTION_SEARCH) {
-                    if (mColorPicker.getPickedIndex() < 0) {
-                        mColorPicker.pickForUI(0);
-                    }
-                    mRecyclerView.setOverScrollMode(View.OVER_SCROLL_ALWAYS);
                     KeyboardUtil.hideKeyboard(mEtSearch);
-                    searchThings();
+                    beginSearchThings();
                     return true;
                 }
                 return false;
             }
         });
+
+        KeyboardUtil.addKeyboardCallback(getWindow(), new KeyboardUtil.KeyboardCallback() {
+
+            @Override
+            public void onKeyboardShow(int keyboardHeight) {
+                updateSearchNoResult(keyboardHeight);
+            }
+
+            @Override
+            public void onKeyboardHide() {
+                updateSearchNoResult(0);
+            }
+        });
+
         mColorPicker.setPickedListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 mRecyclerView.setOverScrollMode(View.OVER_SCROLL_ALWAYS);
                 getWindow().setSoftInputMode(
                         WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
-                mEtSearch.clearFocus();
+                KeyboardUtil.hideKeyboard(mEtSearch);
                 searchThings();
             }
         });
     }
 
+    private void beginSearchThings() {
+        if (mColorPicker.getPickedIndex() < 0) {
+            mColorPicker.pickForUI(0);
+        }
+        mRecyclerView.setOverScrollMode(View.OVER_SCROLL_ALWAYS);
+        searchThings();
+    }
+
+    private void updateSearchNoResult(int keyboardHeight) {
+        if (DeviceUtil.hasKitKatApi()) {
+            mRevealLayout.setPadding(0, 0, 0, keyboardHeight);
+        }
+        if (keyboardHeight != 0) {
+            mTvNoResult.append("...");
+            mTvNoResult.setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, 0);
+        } else {
+            mTvNoResult.setText(R.string.no_result);
+            mTvNoResult.setCompoundDrawablesWithIntrinsicBounds(0, R.mipmap.img_no_result, 0, 0);
+        }
+    }
+
     private void searchThings() {
         mThingManager.searchThings(mEtSearch.getText().toString(), mColorPicker.getPickedColor());
-        mThingsAdapter.setShouldThingsAnimWhenAppearing(true);
+        mThingsAdapter.setShouldThingsAnimWhenAppearing(false);
         mThingsAdapter.notifyDataSetChanged();
         handleSearchResults();
     }
@@ -1197,7 +1299,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             return;
         }
         mStateToUndoFrom = stateAfter;
-        mUndoPositions = mThingManager.updateStates(mUndoThings, stateBefore, stateAfter, true);
+        mUndoPositions = mThingManager.updateStates(mUndoThings, stateBefore, stateAfter);
         mThingsAdapter.notifyDataSetChanged();
         mUndoAll = true;
         if (!mUndoThings.isEmpty()) {
@@ -1364,6 +1466,18 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             mDrawerHeader.updateCompletionRate();
             mThingsAdapter.setShouldThingsAnimWhenAppearing(true);
             handleSearchResults();
+            if (!DeviceUtil.hasKitKatApi()) {
+                getWindow().setSoftInputMode(
+                        WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING);
+                mDrawerLayout.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        DisplayUtil.playDrawerToggleAnim((DrawerArrowDrawable) mActionbar.getNavigationIcon());
+                    }
+                }, 160);
+            } else {
+                DisplayUtil.playDrawerToggleAnim((DrawerArrowDrawable) mActionbar.getNavigationIcon());
+            }
         } else {
             mDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
             mViewInsideActionbar.setVisibility(View.GONE);
@@ -1381,10 +1495,20 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             mFab.shrink();
 
             mThingManager.getThings().clear();
+
+            if (!DeviceUtil.hasKitKatApi()) {
+                mDrawerLayout.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        getWindow().setSoftInputMode(
+                                WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+                    }
+                }, 300);
+            }
+            DisplayUtil.playDrawerToggleAnim((DrawerArrowDrawable) mActionbar.getNavigationIcon());
         }
         mThingsAdapter.notifyDataSetChanged();
         App.isSearching = !toNormal;
-        DisplayUtil.playDrawerToggleAnim((DrawerArrowDrawable) mActionbar.getNavigationIcon());
         invalidateOptionsMenu();
     }
 

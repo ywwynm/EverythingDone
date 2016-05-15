@@ -30,7 +30,14 @@
         android:layout_below="@id/actionbar"
         android:background="@drawable/actionbar_shadow"/>
 
+    <View
+        android:id="@+id/view_status_bar_cover"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:background="@color/black_26p"/>
+
     <ScrollView
+        android:id="@+id/sv_settings"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_below="@id/actionbar">
@@ -77,6 +84,33 @@
                     android:textSize="16sp"/>
 
             </LinearLayout>
+
+            <RelativeLayout
+                android:id="@+id/rl_twice_back_as_bt"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:paddingLeft="16dp"
+                android:paddingRight="16dp"
+                style="@style/SelectableItemBackground">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/twice_back"
+                    android:textSize="18sp"
+                    tools:ignore="RelativeOverlap"
+                    android:layout_centerVertical="true"/>
+
+                <CheckBox
+                    android:id="@+id/cb_twice_back"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentEnd="true"
+                    android:layout_alignParentRight="true"
+                    android:layout_centerVertical="true"
+                    android:clickable="false"/>
+
+            </RelativeLayout>
 
             <TextView
                 android:layout_width="wrap_content"

@@ -16,10 +16,12 @@ public class AppUpdateReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        Log.v(TAG, "App updated!");
+        if (Intent.ACTION_MY_PACKAGE_REPLACED.equals(intent.getAction())) {
+            Log.v(TAG, "App updated!");
 
-        AlarmHelper.createAllAlarms(context, false);
+            AlarmHelper.createAllAlarms(context, false);
 
-        Log.v(TAG, "Alarms created!");
+            Log.v(TAG, "Alarms created!");
+        }
     }
 }

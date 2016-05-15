@@ -73,6 +73,44 @@
                 android:paddingRight="8dp"
                 android:visibility="gone"/>
 
+            <LinearLayout
+                android:id="@+id/ll_move_checklist"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <View
+                    android:layout_width="@dimen/move_checklist_dashed_line_length"
+                    android:layout_height="2dp"
+                    android:layout_marginLeft="18dp"
+                    android:layout_marginRight="18dp"
+                    android:background="@drawable/dashed_line_check_list_separator"
+                    android:layerType="software"/>
+
+                <TextView
+                    android:id="@+id/tv_move_checklist_as_bt"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:layout_marginLeft="10dp"
+                    android:layout_marginRight="10dp"
+                    android:layout_marginTop="8dp"
+                    android:paddingStart="4dp"
+                    android:paddingLeft="4dp"
+                    android:paddingEnd="10dp"
+                    android:paddingRight="10dp"
+                    android:gravity="center_vertical"
+                    android:drawableStart="@mipmap/act_move_checklist"
+                    android:drawableLeft="@mipmap/act_move_checklist"
+                    android:drawablePadding="14dp"
+                    android:text="@string/act_move_check_list"
+                    android:textSize="16sp"
+                    android:textColor="@color/white_66p"
+                    style="@style/SelectableItemBackground.Light"/>
+
+            </LinearLayout>
+
             <android.support.v7.widget.RecyclerView
                 android:id="@+id/rv_audio_attachment"
                 android:layout_width="match_parent"
@@ -116,5 +154,11 @@
         android:background="@drawable/quick_remind_shadow"/>
 
     <include layout="@layout/include_quick_remind_detail"/>
+
+    <View
+        android:id="@+id/view_status_bar_cover"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:background="@color/black_26p"/>
 
 </FrameLayout>

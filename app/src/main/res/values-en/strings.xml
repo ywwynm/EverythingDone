@@ -259,7 +259,7 @@
     <string name="act_feedback">Send feedback</string>
     <string name="app_share_info">Is it hard for you to remember everything and finish them? EverythingDone can remind you all activities, help you develop habits and achieve goals. You can also write stories and record lives here. Search "EverythingDone" in Google Play to install.</string>
     <string name="act_share_everythingdone">share EverythingDone</string>
-    <string name="send_feedback_to_developer">Send feedback to developer</string>
+    <string name="send_feedback_to_developer">Email to developer to feedback</string>
     <string name="act_support">Support Developer</string>
     <string name="support_donate">DONATE FOR ME</string>
     <string name="support_star">RATE THIS APP IN MARKET</string>
@@ -353,4 +353,9 @@
     <string name="video_duration">Video Duration</string>
     <string name="video_create_time">Video Create Time</string>
     <string name="act_show_attachment_info">Check Attachment Detail</string>
+    <string name="press_again_to_exit">Press one more time to exit</string>
+    <string name="twice_back">Press Back twice to exit</string>
+    <string name="description_audio_attachment_info">Audio detail info</string>
+    <string name="act_back_from_move_checklist"><![CDATA[Finish & Back]]></string>
+    <string name="act_move_check_list">Arrange Items</string>
 </resources>

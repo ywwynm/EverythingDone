@@ -276,7 +276,7 @@
     <string name="act_feedback">建議迴響</string>
     <string name="app_share_info">記住事情，完成事情，這對你來說算一個挑戰嗎？完事兒能够為你提醒日程活動、幫你養成習慣、督促你完成目標，你也可以在完事兒裏記下身邊的故事與風景，留下美好的回憶。\n\n遵循 Material Design 的介面設計讓你領略 Android 應用的美，在精緻的細節中享受流暢的操作。\n\n前往 Google Play、酷安網、豌豆莢、小米應用商店等蒐索“完事兒”即可下載。</string>
     <string name="act_share_everythingdone">分享完事兒</string>
-    <string name="send_feedback_to_developer">發送建議、迴響給開發者</string>
+    <string name="send_feedback_to_developer">通過 Email 發送建議、迴響給開發者</string>
     <string name="act_support">支持開發者</string>
     <string name="support_donate">向我捐贈</string>
     <string name="support_star">去應用商店評分</string>
@@ -370,5 +370,10 @@
     <string name="video_duration">視頻時長</string>
     <string name="video_size">視頻寬高</string>
     <string name="act_show_attachment_info">查看附件詳情</string>
+    <string name="press_again_to_exit">再按一次以退出</string>
+    <string name="twice_back">按兩次返回鍵退出應用</string>
+    <string name="description_audio_attachment_info">查看該音訊附件詳細資訊</string>
+    <string name="act_back_from_move_checklist">完成並返回</string>
+    <string name="act_move_check_list">移動清單項</string>
 
 </resources>

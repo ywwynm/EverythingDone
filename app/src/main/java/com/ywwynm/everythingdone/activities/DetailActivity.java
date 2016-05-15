@@ -25,10 +25,12 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.SimpleItemAnimator;
 import android.support.v7.widget.Toolbar;
+import android.support.v7.widget.helper.ItemTouchHelper;
 import android.text.Layout;
 import android.text.Spannable;
 import android.text.style.ClickableSpan;
 import android.text.style.URLSpan;
+import android.util.Log;
 import android.util.LruCache;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -86,6 +88,7 @@ import java.io.File;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -94,31 +97,14 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
     public static final String TAG = "DetailActivity";
 
-    private String mSenderName;
-
-    private int mType;
     public static final int CREATE = 0;
     public static final int UPDATE = 1;
 
-    public int getType() {
-        return mType;
-    }
+    private static final int UNDO_CHECKLIST = 0;
+    private static final int UNDO_IMAGE = 1;
+    private static final int UNDO_AUDIO = 2;
 
-    private App mApplication;
     public float screenDensity;
-
-    private boolean mEditable;
-
-    private Thing mThing;
-    private int mPosition;
-
-    private Reminder mReminder;
-    private Habit mHabit;
-    private boolean mHabitFinishedThisTime = false;
-
-    private int mMaxSpanImage;
-    private int mSpanAudio;
-
     // type + path + name of attachment to add
     public String attachmentTypePathName;
 
@@ -127,15 +113,33 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     public int habitType;
     public String habitDetail;
 
+    public DateTimePicker quickRemindPicker;
+    public CheckBox cbQuickRemind;
+    public TextView tvQuickRemind;
+
+    private String mSenderName;
+    private int mType;
+
+    private App mApplication;
+
+    private boolean mEditable;
+
+    private Thing mThing;
+    private int mPosition;
+    private Reminder mReminder;
+    private Habit mHabit;
+
+    private boolean mHabitFinishedThisTime = false;
+
+    private int mMaxSpanImage;
+    private int mSpanAudio;
+
     private AddAttachmentDialogFragment mAddAttachmentDialogFragment;
     private DateTimeDialogFragment mDateTimeDialogFragment;
     private HabitDetailDialogFragment mHabitDetailDialogFragment;
 
     private FrameLayout mFlBackground;
-
     private ColorPicker mColorPicker;
-    public  DateTimePicker quickRemindPicker;
-
     private View mStatusBar;
     private Toolbar mActionbar;
     private ImageButton mIbBack;
@@ -154,23 +158,19 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     private RecyclerView mRvCheckList;
     private CheckListAdapter mCheckListAdapter;
     private LinearLayoutManager mLlmCheckList;
+    private LinearLayout mLlMoveChecklist;
+    private TextView mTvMoveChecklistAsBt;
+    private ItemTouchHelper mChecklistTouchHelper;
 
     private RecyclerView mRvAudioAttachment;
     private AudioAttachmentAdapter mAudioAttachmentAdapter;
     private GridLayoutManager mAudioLayoutManager;
 
     private FrameLayout mFlQuickRemindAsBt;
-    public CheckBox cbQuickRemind;
-    public TextView tvQuickRemind;
 
     private Snackbar mNormalSnackbar;
     private Snackbar mUndoSnackbar;
-
     private int mUndoType;
-    private static final int UNDO_CHECKLIST = 0;
-    private static final int UNDO_IMAGE = 1;
-    private static final int UNDO_AUDIO = 2;
-
     private List<String> mUndoItems;
     private List<Integer> mUndoPositions;
 
@@ -183,17 +183,666 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
     private boolean mRemoveDetailActivityInstance = false;
 
+    private HashMap<View, Integer> mTouchMovedCountMap = new HashMap<>();
+    private HashMap<View, Boolean> mOnLongClickedMap   = new HashMap<>();
+
+    /**
+     * This {@link android.view.View.OnTouchListener} will listen to click events that should
+     * be handled by link/phoneNum/email/maps in {@link mEtContent} and other {@link EditText}s
+     * so that we can handle them with different intents and not lose ability to edit them.
+     */
+    private View.OnTouchListener mSpannableTouchListener = new View.OnTouchListener() {
+
+        @Override
+        public boolean onTouch(View v, MotionEvent event) {
+            if (mUndoSnackbar != null) {
+                mUndoSnackbar.dismiss();
+            }
+
+            int action = event.getAction();
+            Boolean onLongClicked = mOnLongClickedMap.get(v);
+            if (onLongClicked != null && onLongClicked) {
+                return false;
+            }
+
+            Log.d(TAG, "action: " + action);
+            if (action == MotionEvent.ACTION_UP) {
+                Integer touchMovedCount = mTouchMovedCountMap.get(v);
+                if (touchMovedCount != null && touchMovedCount >= 3) {
+                    Log.d(TAG, "touchMoved: " + touchMovedCount);
+                    mTouchMovedCountMap.put(v, 0);
+                    return false;
+                }
+
+                final EditText et = (EditText) v;
+                final Spannable sContent = Spannable.Factory.getInstance()
+                        .newSpannable(et.getText());
+
+                int x = (int) event.getX();
+                int y = (int) event.getY();
+
+                x -= et.getTotalPaddingLeft();
+                y -= et.getTotalPaddingTop();
+                x += et.getScrollX();
+                y += et.getScrollY();
+
+                Layout layout = et.getLayout();
+                int line = layout.getLineForVertical(y);
+                int offset = layout.getOffsetForHorizontal(line, x);
+
+                // place cursor of EditText to correct position.
+                et.requestFocus();
+                if (offset > 0) {
+                    if (x > layout.getLineMax(line)) {
+                        et.setSelection(offset);
+                    } else et.setSelection(offset - 1);
+                }
+
+                ClickableSpan[] link = sContent.getSpans(offset, offset, ClickableSpan.class);
+                if (link.length != 0) {
+                    final URLSpan urlSpan = (URLSpan) link[0];
+
+                    if (!mEditable) {
+                        urlSpan.onClick(et);
+                        return true;
+                    }
+
+                    String url = urlSpan.getURL();
+                    final TwoOptionsDialogFragment df = new TwoOptionsDialogFragment();
+                    df.setViewToFocusAfterDismiss(et);
+
+                    View.OnClickListener startListener = new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            df.dismiss();
+                            KeyboardUtil.hideKeyboard(getWindow());
+                            try {
+                                urlSpan.onClick(et);
+                            } catch (ActivityNotFoundException e) {
+                                mNormalSnackbar.setMessage(R.string.error_activity_not_found);
+                                mFlBackground.postDelayed(mShowNormalSnackbar,
+                                        KeyboardUtil.HIDE_DELAY);
+                            }
+                        }
+                    };
+                    View.OnClickListener endListener = new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            df.setShouldShowKeyboardAfterDismiss(true);
+                            df.dismiss();
+                        }
+                    };
+
+                    if (url.startsWith("tel")) {
+                        df.setStartAction(R.mipmap.act_dial, R.string.act_dial,
+                                startListener);
+                    } else if (url.startsWith("mailto")) {
+                        df.setStartAction(R.mipmap.act_send_email,
+                                R.string.act_send_email, startListener);
+                    } else if (url.startsWith("http") || url.startsWith("https")) {
+                        df.setStartAction(R.mipmap.act_open_in_browser,
+                                R.string.act_open_in_browser, startListener);
+                    } else if (url.startsWith("map")) {
+                        df.setStartAction(R.mipmap.act_open_in_map,
+                                R.string.act_open_in_map, startListener);
+                    }
+                    df.setEndAction(R.mipmap.act_edit, R.string.act_edit, endListener);
+                    df.show(getFragmentManager(), TwoOptionsDialogFragment.TAG);
+                    return true;
+                }
+            } else if (action == MotionEvent.ACTION_MOVE) {
+                Integer touchMovedCount = mTouchMovedCountMap.get(v);
+                mTouchMovedCountMap.put(v, touchMovedCount == null ? 1 : touchMovedCount + 1);
+            }
+            return false;
+        }
+    };
+    private View.OnClickListener mEtContentClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            mTouchMovedCountMap.put(v, 0);
+            mOnLongClickedMap.put(v, false);
+        }
+    };
+    private View.OnLongClickListener mEtContentLongClickListener = new View.OnLongClickListener() {
+        @Override
+        public boolean onLongClick(View v) {
+            mTouchMovedCountMap.put(v, 0);
+            mOnLongClickedMap.put(v, true);
+            return false;
+        }
+    };
+
+    public int getType() {
+        return mType;
+    }
+
     @Override
     protected int getLayoutResource() {
         return R.layout.activity_detail;
     }
 
     @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (!mRemoveDetailActivityInstance) {
-            App.getRunningDetailActivities().remove(mThing.getId());
+    protected void initMembers() {
+        mApplication = (App) getApplication();
+        mApplication.setDetailActivityRun(true);
+
+        screenDensity = DisplayUtil.getScreenDensity(this);
+
+        Intent intent = getIntent();
+        String action = intent.getAction();
+        if (Intent.ACTION_SEND.equals(action) || Intent.ACTION_SEND_MULTIPLE.equals(action)) {
+            mSenderName = "intent";
+            mType = CREATE;
+        } else {
+            mSenderName = intent.getStringExtra(Def.Communication.KEY_SENDER_NAME);
+            mType = intent.getIntExtra(Def.Communication.KEY_DETAIL_ACTIVITY_TYPE, UPDATE);
         }
+
+        long id = intent.getLongExtra(Def.Communication.KEY_ID, -1);
+
+        mPosition = intent.getIntExtra(Def.Communication.KEY_POSITION, 1);
+
+        ThingManager thingManager = ThingManager.getInstance(mApplication);
+        if (mType == CREATE) {
+            long newId = thingManager.getHeaderId();
+            App.getRunningDetailActivities().add(newId);
+            mThing = new Thing(newId, Thing.NOTE,
+                    intent.getIntExtra(Def.Communication.KEY_COLOR,
+                            DisplayUtil.getRandomColor(this)), newId);
+            if ("intent".equals(mSenderName)) {
+                setupThingFromIntent();
+            }
+        } else {
+            App.getRunningDetailActivities().add(id);
+            if (mPosition == -1) {
+                mThing = ThingDAO.getInstance(mApplication).getThingById(id);
+            } else {
+                List<Thing> things = thingManager.getThings();
+                if (mPosition >= things.size()) {
+                    updateThingAndItsPosition(id);
+                } else {
+                    mThing = thingManager.getThings().get(mPosition);
+                    if (mThing.getId() != id) { // something was updated specially.
+                        updateThingAndItsPosition(id);
+                    }
+                }
+            }
+            mReminder = ReminderDAO.getInstance(mApplication).getReminderById(id);
+            if (mThing.getType() == Thing.HABIT) {
+                mHabit = HabitDAO.getInstance(mApplication).getHabitById(id);
+                mHabitDetailDialogFragment = HabitDetailDialogFragment.newInstance();
+                mHabitDetailDialogFragment.setHabit(mHabit);
+            }
+            SystemNotificationUtil.cancelNotification(id, mThing.getType(), mApplication);
+        }
+
+        mEditable = mThing.getType() < Thing.NOTIFICATION_UNDERWAY
+                && mThing.getState() == Thing.UNDERWAY;
+        if (mEditable) {
+            mShowNormalSnackbar = new Runnable() {
+                @Override
+                public void run() {
+                    mNormalSnackbar.show();
+                }
+            };
+            mShowUndoSnackbar = new Runnable() {
+                @Override
+                public void run() {
+                    mUndoSnackbar.show();
+                }
+            };
+        }
+
+        setSpans();
+
+        if (mEditable) {
+            mAddAttachmentDialogFragment = AddAttachmentDialogFragment.newInstance();
+            mDateTimeDialogFragment = DateTimeDialogFragment.newInstance(mThing);
+        }
+        mExecutor = Executors.newSingleThreadExecutor();
+    }
+
+    private void setupThingFromIntent() {
+        Intent intent = getIntent();
+        String action = intent.getAction();
+        String type = intent.getType();
+        if (Intent.ACTION_SEND.equals(action)) {
+            if (type.contains("image/") || type.contains("video/")
+                    || type.contains("audio/")) {
+                Uri data = intent.getParcelableExtra(Intent.EXTRA_STREAM);
+                String pathName = UriPathConverter.getLocalPathName(this, data);
+                if (pathName != null) {
+                    mThing.setAttachment(AttachmentHelper.SIGNAL + getTypePathName(pathName));
+                }
+            }
+        } else if (Intent.ACTION_SEND_MULTIPLE.equals(action)) {
+            ArrayList<Uri> datas = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM);
+            StringBuilder sb = new StringBuilder();
+            for (Uri data : datas) {
+                String pathName = UriPathConverter.getLocalPathName(this, data);
+                if (pathName != null) {
+                    String typePathName = getTypePathName(pathName);
+                    if (typePathName != null) {
+                        sb.append(AttachmentHelper.SIGNAL).append(typePathName);
+                    }
+                }
+            }
+            mThing.setAttachment(sb.toString());
+        }
+        String title = intent.getStringExtra(Intent.EXTRA_SUBJECT);
+        if (title != null) {
+            mThing.setTitle(title);
+        }
+        String content = intent.getStringExtra(Intent.EXTRA_TEXT);
+        if (content != null) {
+            mThing.setContent(content);
+        }
+    }
+
+    private void updateThingAndItsPosition(long id) {
+        ThingManager manager = ThingManager.getInstance(mApplication);
+        if (mType == CREATE) {
+            mThing = new Thing(manager.getHeaderId(), Thing.NOTE, 0, id);
+            return;
+        }
+        List<Thing> things = manager.getThings();
+        final int size = things.size();
+        int i;
+        for (i = 0; i < size; i++) {
+            Thing temp = things.get(i);
+            if (temp.getId() == id) {
+                mThing = temp;
+                mPosition = i;
+                break;
+            }
+        }
+        if (i == size) {
+            mThing = ThingDAO.getInstance(mApplication).getThingById(id);
+            mPosition = -1;
+        }
+    }
+
+    @Override
+    protected void findViews() {
+        mFlBackground = f(R.id.fl_background);
+
+        mStatusBar = f(R.id.view_status_bar);
+        mActionbar = f(R.id.actionbar);
+        mIbBack = f(R.id.ib_back);
+        mActionBarShadow = f(R.id.actionbar_shadow);
+        mImageCover = f(R.id.view_image_cover);
+
+        mRvImageAttachment = f(R.id.rv_image_attachment);
+        mRvImageAttachment.setNestedScrollingEnabled(false);
+
+        mScrollView = f(R.id.sv_detail);
+        mEtTitle = f(R.id.et_title);
+        mEtContent = f(R.id.et_content);
+        mTvUpdateTime = f(R.id.tv_update_time);
+
+        mRvCheckList = f(R.id.rv_check_list);
+        mRvCheckList.setItemAnimator(null);
+        mRvCheckList.setNestedScrollingEnabled(false);
+
+        mRvAudioAttachment = f(R.id.rv_audio_attachment);
+        mRvAudioAttachment.setNestedScrollingEnabled(false);
+        ((SimpleItemAnimator) mRvAudioAttachment.getItemAnimator())
+                .setSupportsChangeAnimations(false);
+
+        mFlQuickRemindAsBt = f(R.id.fl_quick_remind_as_bt);
+        cbQuickRemind = f(R.id.cb_quick_remind);
+        tvQuickRemind = f(R.id.tv_quick_remind);
+
+        View decorView = getWindow().getDecorView();
+        mNormalSnackbar = new Snackbar(mApplication, Snackbar.NORMAL, decorView, null);
+        if (mEditable) {
+            mLlMoveChecklist     = f(R.id.ll_move_checklist);
+            mTvMoveChecklistAsBt = f(R.id.tv_move_checklist_as_bt);
+
+            mColorPicker = new ColorPicker(this, decorView, Def.PickerType.COLOR_NO_ALL);
+            mColorPicker.setIsLastIcon(mType == CREATE);
+            quickRemindPicker = new DateTimePicker(this, decorView,
+                    Def.PickerType.AFTER_TIME, mThing.getColor());
+            quickRemindPicker.setAnchor(tvQuickRemind);
+
+            mUndoSnackbar = new Snackbar(mApplication, Snackbar.UNDO, decorView, null);
+            mUndoSnackbar.setUndoText(R.string.sb_undo);
+
+            mUndoItems = new ArrayList<>();
+            mUndoPositions = new ArrayList<>();
+        }
+    }
+
+    @Override
+    protected void initUI() {
+        DisplayUtil.coverStatusBar(f(R.id.view_status_bar_cover));
+
+        if (DeviceUtil.hasKitKatApi()) {
+            LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) mStatusBar.getLayoutParams();
+            params.height = DisplayUtil.getStatusbarHeight(this);
+            mStatusBar.requestLayout();
+        }
+
+        int color = mThing.getColor();
+        int thingType = mThing.getType();
+        int thingState = mThing.getState();
+
+        if (thingType == Thing.REMINDER || thingType == Thing.WELCOME_REMINDER) {
+            mIbBack.setImageResource(R.mipmap.act_back_reminder);
+        } else if (thingType == Thing.HABIT || thingType == Thing.WELCOME_HABIT) {
+            mIbBack.setImageResource(R.mipmap.act_back_habit);
+        } else if (thingType == Thing.GOAL || thingType == Thing.WELCOME_GOAL) {
+            mIbBack.setImageResource(R.mipmap.act_back_goal);
+        } else {
+            mIbBack.setImageResource(R.mipmap.act_back_note);
+        }
+
+        mFlBackground.setBackgroundColor(color);
+
+        if (!DeviceUtil.hasLollipopApi()) {
+            if (mEditable) {
+                int appAccentColor = ContextCompat.getColor(this, R.color.app_accent);
+                DisplayUtil.setSelectionHandlersColor(mEtTitle, appAccentColor);
+                DisplayUtil.setSelectionHandlersColor(mEtContent, appAccentColor);
+            }
+        }
+
+        if (!mEditable) {
+            mEtTitle.setKeyListener(null);
+            mEtContent.setKeyListener(null);
+            cbQuickRemind.setEnabled(thingState == Thing.UNDERWAY);
+        } else {
+            mColorPicker.pickForUI(DisplayUtil.getColorIndex(mThing.getColor(), this));
+        }
+
+        mEtTitle.setText(mThing.getTitle());
+
+        if (mType == CREATE) {
+            mEtContent.requestFocus();
+            setScrollViewMarginTop(true);
+            mEtContent.setText(mThing.getContent());
+        } else {
+            String content = mThing.getContent();
+            if (CheckListHelper.isCheckListStr(content)) {
+                mEtContent.setVisibility(View.GONE);
+                mRvCheckList.setVisibility(View.VISIBLE);
+                if (mEditable) {
+                    mLlMoveChecklist.setVisibility(View.VISIBLE);
+                }
+
+                List<String> items = CheckListHelper.toCheckListItems(content, false);
+                if (!mEditable) {
+                    int state = mThing.getState();
+                    items.remove("2");
+                    if (state == Thing.FINISHED) {
+                        items.remove("3");
+                        items.remove("4");
+                    } else if (items.get(0).equals("2")) {
+                        items.remove("3");
+                        items.remove("4");
+                    }
+                    mCheckListAdapter = new CheckListAdapter(
+                            this, CheckListAdapter.EDITTEXT_UNEDITABLE, items);
+                } else {
+                    mCheckListAdapter = new CheckListAdapter(
+                            this, CheckListAdapter.EDITTEXT_EDITABLE, items);
+                    mCheckListAdapter.setEtTouchListener(mSpannableTouchListener);
+                    mCheckListAdapter.setEtClickListener(mEtContentClickListener);
+                    mCheckListAdapter.setEtLongClickListener(mEtContentLongClickListener);
+                    mCheckListAdapter.setItemsChangeCallback(new CheckListItemsChangeCallback());
+                }
+
+                setMoveChecklistEvent();
+
+                mLlmCheckList = new LinearLayoutManager(this);
+                mRvCheckList.setAdapter(mCheckListAdapter);
+                mRvCheckList.setLayoutManager(mLlmCheckList);
+            } else {
+                mEtContent.setVisibility(View.VISIBLE);
+                mEtContent.setText(content);
+            }
+        }
+
+        String attachment = mThing.getAttachment();
+        if (!attachment.isEmpty()) {
+            Pair<List<String>, List<String>> items = AttachmentHelper.toAttachmentItems(attachment);
+            if (!items.first.isEmpty()) {
+                initImageAttachmentUI(items.first);
+            } else {
+                setScrollViewMarginTop(true);
+            }
+
+            if (!items.second.isEmpty()) {
+                initAudioAttachmentUI(items.second);
+            }
+        } else {
+            setScrollViewMarginTop(true);
+        }
+
+        mTvUpdateTime.getPaint().setTextSkewX(-0.25f);
+
+        if (mType == CREATE) {
+            mTvUpdateTime.setText("");
+            quickRemindPicker.pickForUI(8);
+            reminderAfterTime = quickRemindPicker.getPickedTimeAfter();
+        } else {
+            if (mThing.getCreateTime() == mThing.getUpdateTime()) {
+                mTvUpdateTime.setText(R.string.create_at);
+            } else {
+                mTvUpdateTime.setText(R.string.update_at);
+            }
+            if (!LocaleUtil.isChinese(this)) {
+                mTvUpdateTime.append(" ");
+            }
+            mTvUpdateTime.append(DateTimeUtil.getDateTimeStrAt(mThing.getUpdateTime(), this, true));
+
+            if (mReminder != null) {
+                cbQuickRemind.setChecked(mReminder.getState() == Reminder.UNDERWAY);
+
+                if (mEditable) {
+                    quickRemindPicker.pickForUI(9);
+                }
+
+                reminderInMillis = mReminder.getNotifyTime();
+                tvQuickRemind.setText(DateTimeUtil.getDateTimeStrAt(reminderInMillis, this, false));
+                int state = mReminder.getState();
+                if (state != Reminder.UNDERWAY || thingState != Reminder.UNDERWAY) {
+                    tvQuickRemind.append(", " + Reminder.getStateDescription(thingState, state, this));
+                }
+            } else if (mHabit != null) {
+                cbQuickRemind.setChecked(mEditable);
+                if (mEditable) {
+                    quickRemindPicker.pickForUI(9);
+                }
+                habitType = mHabit.getType();
+                habitDetail = mHabit.getDetail();
+                tvQuickRemind.setText(DateTimeUtil.getDateTimeStrRec(
+                        mApplication, habitType, habitDetail));
+            } else {
+                if (mEditable) {
+                    quickRemindPicker.pickForUI(8);
+                    reminderAfterTime = quickRemindPicker.getPickedTimeAfter();
+                } else {
+                    f(R.id.ll_quick_remind).setVisibility(View.GONE);
+                    FrameLayout.LayoutParams params = (FrameLayout.LayoutParams)
+                            mScrollView.getLayoutParams();
+                    params.setMargins(0, params.topMargin, 0, 0);
+                }
+            }
+        }
+
+        updateTaskDescription(mThing.getColor());
+    }
+
+    @Override
+    protected void setActionbar() {
+        setSupportActionBar(mActionbar);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setTitle(null);
+        }
+        mIbBack.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                returnToThingsActivity(true);
+            }
+        });
+    }
+
+    @Override
+    protected void setEvents() {
+        setScrollEvents();
+
+        final Window window = getWindow();
+
+        // set keyboard events.
+        if (mEditable) {
+            KeyboardUtil.addKeyboardCallback(window, new KeyboardUtil.KeyboardCallback() {
+                @Override
+                public void onKeyboardShow(int keyboardHeight) {
+                    updateQuickRemindShadow();
+                }
+
+                @Override
+                public void onKeyboardHide() {
+                    updateQuickRemindShadow();
+                    quickRemindPicker.dismiss();
+                }
+            });
+        }
+        if (DeviceUtil.hasKitKatApi()) {
+            KeyboardUtil.addKeyboardCallback(window, new KeyboardUtil.KeyboardCallback() {
+
+                View contentView = f(R.id.fl_background);
+
+                @Override
+                public void onKeyboardShow(int keyboardHeight) {
+                    if (contentView.getPaddingBottom() == 0) {
+                        //set the padding of the contentView for the keyboard
+                        contentView.setPadding(0, 0, 0, keyboardHeight);
+                    }
+                }
+
+                @Override
+                public void onKeyboardHide() {
+                    if (contentView.getPaddingBottom() != 0) {
+                        //reset the padding of the contentView
+                        contentView.setPadding(0, 0, 0, 0);
+                    }
+                }
+            });
+        }
+
+        mEtContent.setOnClickListener(mEtContentClickListener);
+        mEtContent.setOnLongClickListener(mEtContentLongClickListener);
+        mEtContent.setOnTouchListener(mSpannableTouchListener);
+
+        if (mEditable) {
+            setColorPickerEvent();
+            setQuickRemindEvents();
+            setSnackbarEvents();
+        }
+    }
+
+    private void setMoveChecklistEvent() {
+        if (!mEditable) return;
+
+        if (mChecklistTouchHelper == null) {
+            mChecklistTouchHelper = new ItemTouchHelper(new CheckListTouchCallback());
+        }
+
+        mTvMoveChecklistAsBt.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                boolean isDragging = mCheckListAdapter.isDragging();
+                if (!isDragging) {
+                    mTvMoveChecklistAsBt.setText(R.string.act_back_from_move_checklist);
+                    mTvMoveChecklistAsBt.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                            R.mipmap.act_back_from_move_checklist, 0, 0, 0);
+                    mCheckListAdapter.setDragging(true);
+                    mChecklistTouchHelper.attachToRecyclerView(mRvCheckList);
+                } else {
+                    mTvMoveChecklistAsBt.setText(R.string.act_move_check_list);
+                    mTvMoveChecklistAsBt.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                            R.mipmap.act_move_checklist, 0, 0, 0);
+                    mCheckListAdapter.setDragging(false);
+                    mChecklistTouchHelper.attachToRecyclerView(null);
+                }
+                mCheckListAdapter.notifyDataSetChanged();
+            }
+        });
+
+        mCheckListAdapter.setIvStateTouchCallback(new CheckListAdapter.IvStateTouchCallback() {
+            @Override
+            public void onTouch(int pos) {
+                mChecklistTouchHelper.startDrag(
+                        mRvCheckList.findViewHolderForAdapterPosition(pos));
+            }
+        });
+    }
+
+    public void updateTaskDescription(int color) {
+        if (DeviceUtil.hasLollipopApi()) {
+            String title;
+            if (mType == CREATE) {
+                title = getString(R.string.title_create_thing);
+            } else {
+                if (mEditable) {
+                    title = getString(R.string.title_edit_thing);
+                } else {
+                    title = "";
+                }
+                if (!LocaleUtil.isChinese(mApplication)) {
+                    title += " ";
+                }
+                title += Thing.getTypeStr(getThingTypeAfter(), mApplication);
+            }
+            BitmapDrawable bmd = (BitmapDrawable) getDrawable(R.mipmap.ic_launcher);
+            Bitmap bm = bmd.getBitmap();
+            try {
+                setTaskDescription(new ActivityManager.TaskDescription(title, bm, color));
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
+    private int getThingTypeAfter() {
+        if (mHabitFinishedThisTime) return Thing.HABIT;
+        long time = getReminderTime();
+        if (cbQuickRemind.isChecked()) {
+            if (mReminder != null && mReminder.getNotifyTime() == time) {
+                return mThing.getType();
+            } else {
+                if (habitDetail != null) {
+                    return Thing.HABIT;
+                } else return Reminder.getType(getReminderTime(), System.currentTimeMillis());
+            }
+        } else {
+            int typeBefore = mThing.getType();
+            if (typeBefore == Thing.REMINDER || typeBefore == Thing.GOAL) {
+                int reminderState = mReminder.getState();
+                if ((reminderState == Reminder.REMINDED || reminderState == Reminder.EXPIRED)
+                        && mReminder.getNotifyTime() == time) {
+                    return typeBefore;
+                } else {
+                    return Thing.NOTE;
+                }
+            } else if (typeBefore == Thing.HABIT) {
+                return Thing.NOTE;
+            } else {
+                return typeBefore;
+            }
+        }
+    }
+
+    private long getReminderTime() {
+        if (reminderInMillis != 0) {
+            return reminderInMillis;
+        }
+        if (reminderAfterTime != null) {
+            return DateTimeUtil.getActualTimeAfterSomeTime(reminderAfterTime);
+        }
+        return -1;
     }
 
     @Override
@@ -278,6 +927,14 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         return super.onOptionsItemSelected(item);
     }
 
+    @Override
+    public void finish() {
+        List<Long> detailActivities = App.getRunningDetailActivities();
+        detailActivities.remove(mThing.getId());
+        mRemoveDetailActivityInstance = true;
+        super.finish();
+    }
+
     private void toggleCheckListActionItem(Menu menu, boolean toDisable) {
         MenuItem item = menu.findItem(R.id.act_check_list);
         if (toDisable) {
@@ -295,6 +952,8 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             toggleCheckListActionItem(mActionbar.getMenu(), false);
             mEtContent.setVisibility(View.VISIBLE);
             mRvCheckList.setVisibility(View.GONE);
+            mLlMoveChecklist.setVisibility(View.GONE);
+            mChecklistTouchHelper.attachToRecyclerView(null);
 
             String contentStr = CheckListHelper.toContentStr(mCheckListAdapter.getItems());
             mEtContent.setText(contentStr);
@@ -308,6 +967,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             toggleCheckListActionItem(mActionbar.getMenu(), true);
             mRvCheckList.setVisibility(View.VISIBLE);
             mEtContent.setVisibility(View.GONE);
+            mLlMoveChecklist.setVisibility(View.VISIBLE);
 
             List<String> items = CheckListHelper.toCheckListItems(content, true);
             boolean focusFirst = false;
@@ -317,7 +977,10 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
             if (mCheckListAdapter == null) {
                 mCheckListAdapter = new CheckListAdapter(
-                        this, CheckListAdapter.EDITTEXT_EDITABLE, items, mSpannableTouchListener);
+                        this, CheckListAdapter.EDITTEXT_EDITABLE, items);
+                mCheckListAdapter.setEtTouchListener(mSpannableTouchListener);
+                mCheckListAdapter.setEtClickListener(mEtContentClickListener);
+                mCheckListAdapter.setEtLongClickListener(mEtContentLongClickListener);
                 mLlmCheckList = new LinearLayoutManager(this);
                 mCheckListAdapter.setItemsChangeCallback(new CheckListItemsChangeCallback());
             } else {
@@ -325,6 +988,8 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             }
             mRvCheckList.setAdapter(mCheckListAdapter);
             mRvCheckList.setLayoutManager(mLlmCheckList);
+
+            setMoveChecklistEvent();
 
             if (focusFirst) {
                 mRvCheckList.post(new Runnable() {
@@ -339,11 +1004,6 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 KeyboardUtil.hideKeyboard(getCurrentFocus());
             }
         }
-    }
-
-    @Override
-    public void onBackPressed() {
-        returnToThingsActivity(true);
     }
 
     @Override
@@ -371,6 +1031,24 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                     mAudioAttachmentAdapter.getItemCount(), mSpanAudio);
             mAudioLayoutManager.setSpanCount(mSpanAudio);
             mAudioAttachmentAdapter.notifyDataSetChanged();
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (!mRemoveDetailActivityInstance) {
+            App.getRunningDetailActivities().remove(mThing.getId());
+        }
+    }
+
+    private void setSpans() {
+        boolean isTablet = DisplayUtil.isTablet(this);
+        mMaxSpanImage = isTablet ? 3 : 2;
+        mSpanAudio = isTablet ? 2 : 1;
+        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            mMaxSpanImage += 2;
+            mSpanAudio++;
         }
     }
 
@@ -410,26 +1088,9 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         }
     }
 
-    private String getTypePathName(String pathName) {
-        String postfix = FileUtil.getPostfix(pathName);
-        if (AttachmentHelper.isImageFile(postfix)) {
-            return AttachmentHelper.IMAGE + pathName;
-        } else if (AttachmentHelper.isVideoFile(postfix)) {
-            File file = new File(pathName);
-            MediaPlayer player = MediaPlayer.create(this, Uri.fromFile(file));
-            String ret = null;
-            if (player.getVideoHeight() != 0) {
-                ret = AttachmentHelper.VIDEO + pathName;
-            } else if (AttachmentHelper.isAudioFile(postfix)) {
-                ret = AttachmentHelper.AUDIO + pathName;
-            }
-            player.reset();
-            player.release();
-            return ret;
-        } else if (AttachmentHelper.isAudioFile(postfix)) {
-            return AttachmentHelper.AUDIO + pathName;
-        }
-        return null;
+    @Override
+    public void onBackPressed() {
+        returnToThingsActivity(true);
     }
 
     @Override
@@ -453,337 +1114,49 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         }
     }
 
-    @Override
-    protected void initMembers() {
-        mApplication = (App) getApplication();
-        mApplication.setDetailActivityRun(true);
-
-        screenDensity = DisplayUtil.getScreenDensity(this);
-
-        Intent intent = getIntent();
-        String action = intent.getAction();
-        if (Intent.ACTION_SEND.equals(action) || Intent.ACTION_SEND_MULTIPLE.equals(action)) {
-            mSenderName = "intent";
-            mType = CREATE;
-        } else {
-            mSenderName = intent.getStringExtra(Def.Communication.KEY_SENDER_NAME);
-            mType = intent.getIntExtra(Def.Communication.KEY_DETAIL_ACTIVITY_TYPE, UPDATE);
-        }
-
-        long id = intent.getLongExtra(Def.Communication.KEY_ID, -1);
-
-        mPosition = intent.getIntExtra(Def.Communication.KEY_POSITION, 1);
-
-        ThingManager thingManager = ThingManager.getInstance(mApplication);
-        if (mType == CREATE) {
-            long newId = thingManager.getHeaderId();
-            App.getRunningDetailActivities().add(newId);
-            mThing = new Thing(newId, Thing.NOTE,
-                    intent.getIntExtra(Def.Communication.KEY_COLOR,
-                            DisplayUtil.getRandomColor(this)), newId);
-            if ("intent".equals(mSenderName)) {
-                setupThingFromIntent();
-            }
-        } else {
-            App.getRunningDetailActivities().add(id);
-            if (mPosition == -1) {
-                mThing = ThingDAO.getInstance(mApplication).getThingById(id);
-            } else {
-                List<Thing> things = thingManager.getThings();
-                if (mPosition >= things.size()) {
-                    updateThingAndItsPosition(id);
-                } else {
-                    mThing = thingManager.getThings().get(mPosition);
-                    if (mThing.getId() != id) { // something was updated specially.
-                        updateThingAndItsPosition(id);
-                    }
-                }
-            }
-            mReminder = ReminderDAO.getInstance(mApplication).getReminderById(id);
-            if (mThing.getType() == Thing.HABIT) {
-                mHabit = HabitDAO.getInstance(mApplication).getHabitById(id);
-                mHabitDetailDialogFragment = HabitDetailDialogFragment.newInstance();
-                mHabitDetailDialogFragment.setHabit(mHabit);
-            }
-            SystemNotificationUtil.cancelNotification(id, mThing.getType(), mApplication);
-        }
-
-        mEditable = mThing.getType() < Thing.NOTIFICATION_UNDERWAY
-                && mThing.getState() == Thing.UNDERWAY;
-        if (mEditable) {
-            mShowNormalSnackbar = new Runnable() {
-                @Override
-                public void run() {
-                    mNormalSnackbar.show();
-                }
-            };
-            mShowUndoSnackbar = new Runnable() {
-                @Override
-                public void run() {
-                    mUndoSnackbar.show();
-                }
-            };
-        }
-
-        setSpans();
-
-        if (mEditable) {
-            mAddAttachmentDialogFragment = AddAttachmentDialogFragment.newInstance();
-            mDateTimeDialogFragment = DateTimeDialogFragment.newInstance(mThing);
-        }
-        mExecutor = Executors.newSingleThreadExecutor();
+    public void showNormalSnackbar(int stringRes) {
+        mNormalSnackbar.setMessage(stringRes);
+        mNormalSnackbar.show();
     }
 
-    private void setSpans() {
-        boolean isTablet = DisplayUtil.isTablet(this);
-        mMaxSpanImage = isTablet ? 3 : 2;
-        mSpanAudio = isTablet ? 2 : 1;
-        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
-            mMaxSpanImage += 2;
-            mSpanAudio++;
+    private String getTypePathName(String pathName) {
+        String postfix = FileUtil.getPostfix(pathName);
+        if (AttachmentHelper.isImageFile(postfix)) {
+            return AttachmentHelper.IMAGE + pathName;
+        } else if (AttachmentHelper.isVideoFile(postfix)) {
+            File file = new File(pathName);
+            MediaPlayer player = MediaPlayer.create(this, Uri.fromFile(file));
+            String ret = null;
+            if (player.getVideoHeight() != 0) {
+                ret = AttachmentHelper.VIDEO + pathName;
+            } else if (AttachmentHelper.isAudioFile(postfix)) {
+                ret = AttachmentHelper.AUDIO + pathName;
+            }
+            player.reset();
+            player.release();
+            return ret;
+        } else if (AttachmentHelper.isAudioFile(postfix)) {
+            return AttachmentHelper.AUDIO + pathName;
         }
+        return null;
     }
 
-    private void setupThingFromIntent() {
-        Intent intent = getIntent();
-        String action = intent.getAction();
-        String type = intent.getType();
-        if (Intent.ACTION_SEND.equals(action)) {
-            if (type.contains("image/") || type.contains("video/")
-                    || type.contains("audio/")) {
-                Uri data = intent.getParcelableExtra(Intent.EXTRA_STREAM);
-                String pathName = UriPathConverter.getLocalPathName(this, data);
-                if (pathName != null) {
-                    mThing.setAttachment(AttachmentHelper.SIGNAL + getTypePathName(pathName));
-                }
-            }
-        } else if (Intent.ACTION_SEND_MULTIPLE.equals(action)) {
-            ArrayList<Uri> datas = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM);
-            StringBuilder sb = new StringBuilder();
-            for (Uri data : datas) {
-                String pathName = UriPathConverter.getLocalPathName(this, data);
-                if (pathName != null) {
-                    String typePathName = getTypePathName(pathName);
-                    if (typePathName != null) {
-                        sb.append(AttachmentHelper.SIGNAL).append(typePathName);
-                    }
-                }
-            }
-            mThing.setAttachment(sb.toString());
-        }
-        String title = intent.getStringExtra(Intent.EXTRA_SUBJECT);
-        if (title != null) {
-            mThing.setTitle(title);
-        }
-        String content = intent.getStringExtra(Intent.EXTRA_TEXT);
-        if (content != null) {
-            mThing.setContent(content);
-        }
-    }
-
-    public LruCache<String, Bitmap> getBitmapLruCache() {
-        return mApplication.getBitmapLruCache();
-    }
-
-    @Override
-    protected void findViews() {
-        mFlBackground = f(R.id.fl_background);
-
-        mStatusBar = f(R.id.view_status_bar);
-        mActionbar = f(R.id.actionbar);
-        mIbBack    = f(R.id.ib_back);
-        mActionBarShadow = f(R.id.actionbar_shadow);
-        mImageCover = f(R.id.view_image_cover);
-
-        mRvImageAttachment = f(R.id.rv_image_attachment);
-        mRvImageAttachment.setNestedScrollingEnabled(false);
-
-        mScrollView   = f(R.id.sv_detail);
-        mEtTitle      = f(R.id.et_title);
-        mEtContent    = f(R.id.et_content);
-        mTvUpdateTime = f(R.id.tv_update_time);
-
-        mRvCheckList = f(R.id.rv_check_list);
-        mRvCheckList.setItemAnimator(null);
-        mRvCheckList.setNestedScrollingEnabled(false);
-
-        mRvAudioAttachment = f(R.id.rv_audio_attachment);
-        mRvAudioAttachment.setNestedScrollingEnabled(false);
-        ((SimpleItemAnimator) mRvAudioAttachment.getItemAnimator())
-                .setSupportsChangeAnimations(false);
-
-        mFlQuickRemindAsBt = f(R.id.fl_quick_remind_as_bt);
-        cbQuickRemind      = f(R.id.cb_quick_remind);
-        tvQuickRemind      = f(R.id.tv_quick_remind);
-
-        View decorView = getWindow().getDecorView();
-        mNormalSnackbar = new Snackbar(mApplication, Snackbar.NORMAL, decorView, null);
-        if (mEditable) {
-            mColorPicker = new ColorPicker(this, decorView, Def.PickerType.COLOR_NO_ALL);
-            mColorPicker.setIsLastIcon(mType == CREATE);
-            quickRemindPicker = new DateTimePicker(this, decorView,
-                    Def.PickerType.AFTER_TIME, mThing.getColor());
-            quickRemindPicker.setAnchor(tvQuickRemind);
-
-            mUndoSnackbar = new Snackbar(mApplication, Snackbar.UNDO, decorView, null);
-            mUndoSnackbar.setUndoText(R.string.sb_undo);
-
-            mUndoItems = new ArrayList<>();
-            mUndoPositions = new ArrayList<>();
-        }
-    }
-
-    @Override
-    protected void initUI() {
-        if (DeviceUtil.hasKitKatApi()) {
-            LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) mStatusBar.getLayoutParams();
-            params.height = DisplayUtil.getStatusbarHeight(this);
-            mStatusBar.requestLayout();
-        }
-
-        int color = mThing.getColor();
-        int thingType = mThing.getType();
-        int thingState = mThing.getState();
-
-        if (thingType == Thing.REMINDER || thingType == Thing.WELCOME_REMINDER) {
-            mIbBack.setImageResource(R.mipmap.act_back_reminder);
-        } else if (thingType == Thing.HABIT || thingType == Thing.WELCOME_HABIT) {
-            mIbBack.setImageResource(R.mipmap.act_back_habit);
-        } else if (thingType == Thing.GOAL || thingType == Thing.WELCOME_GOAL) {
-            mIbBack.setImageResource(R.mipmap.act_back_goal);
-        } else {
-            mIbBack.setImageResource(R.mipmap.act_back_note);
-        }
-
-        mFlBackground.setBackgroundColor(color);
-
-        if (!DeviceUtil.hasLollipopApi()) {
-            if (mEditable) {
-                int appAccentColor = ContextCompat.getColor(this, R.color.app_accent);
-                DisplayUtil.setSelectionHandlersColor(mEtTitle, appAccentColor);
-                DisplayUtil.setSelectionHandlersColor(mEtContent, appAccentColor);
-            }
-        }
-
-        if (!mEditable) {
-            mEtTitle.setKeyListener(null);
-            mEtContent.setKeyListener(null);
-            cbQuickRemind.setEnabled(thingState == Thing.UNDERWAY);
-        } else {
-            mColorPicker.pickForUI(DisplayUtil.getColorIndex(mThing.getColor(), this));
-        }
-
-        mEtTitle.setText(mThing.getTitle());
-
-        if (mType == CREATE) {
-            mEtContent.requestFocus();
-            setScrollViewMarginTop(true);
-            mEtContent.setText(mThing.getContent());
-        } else {
-            String content = mThing.getContent();
-            if (CheckListHelper.isCheckListStr(content)) {
-                mEtContent.setVisibility(View.GONE);
-                mRvCheckList.setVisibility(View.VISIBLE);
-
-                List<String> items = CheckListHelper.toCheckListItems(content, false);
-                if (!mEditable) {
-                    int state = mThing.getState();
-                    items.remove("2");
-                    if (state == Thing.FINISHED) {
-                        items.remove("3");
-                        items.remove("4");
-                    } else if (items.get(0).equals("2")) {
-                        items.remove("3");
-                        items.remove("4");
-                    }
-                    mCheckListAdapter = new CheckListAdapter(
-                            this, CheckListAdapter.EDITTEXT_UNEDITABLE, items);
-                } else {
-                    mCheckListAdapter = new CheckListAdapter(
-                            this, CheckListAdapter.EDITTEXT_EDITABLE,
-                            items, mSpannableTouchListener);
-                    mCheckListAdapter.setItemsChangeCallback(new CheckListItemsChangeCallback());
-                }
-
-                mLlmCheckList = new LinearLayoutManager(this);
-                mRvCheckList.setAdapter(mCheckListAdapter);
-                mRvCheckList.setLayoutManager(mLlmCheckList);
+    public void addAttachment(int position) {
+        if (!attachmentTypePathName.startsWith(String.valueOf(AttachmentHelper.AUDIO))) {
+            if (mImageAttachmentAdapter == null) {
+                initImageAttachmentUI(
+                        new ArrayList<>(Collections.singletonList(attachmentTypePathName)));
             } else {
-                mRvCheckList.setVisibility(View.GONE);
-                mEtContent.setVisibility(View.VISIBLE);
-                mEtContent.setText(content);
-            }
-        }
-
-        String attachment = mThing.getAttachment();
-        if (!attachment.isEmpty()) {
-            Pair<List<String>, List<String>> items = AttachmentHelper.toAttachmentItems(attachment);
-            if (!items.first.isEmpty()) {
-                initImageAttachmentUI(items.first);
-            } else {
-                setScrollViewMarginTop(true);
-            }
-
-            if (!items.second.isEmpty()) {
-                initAudioAttachmentUI(items.second);
+                notifyImageAttachmentsChanged(true, position);
             }
         } else {
-            setScrollViewMarginTop(true);
-        }
-
-        mTvUpdateTime.getPaint().setTextSkewX(-0.25f);
-
-        if (mType == CREATE) {
-            mTvUpdateTime.setText("");
-            quickRemindPicker.pickForUI(8);
-            reminderAfterTime = quickRemindPicker.getPickedTimeAfter();
-        } else {
-            if (mThing.getCreateTime() == mThing.getUpdateTime()) {
-                mTvUpdateTime.setText(R.string.create_at);
+            if (mAudioAttachmentAdapter == null) {
+                initAudioAttachmentUI(
+                        new ArrayList<>(Collections.singletonList(attachmentTypePathName)));
             } else {
-                mTvUpdateTime.setText(R.string.update_at);
-            }
-            if (!LocaleUtil.isChinese(this)) {
-                mTvUpdateTime.append(" ");
-            }
-            mTvUpdateTime.append(DateTimeUtil.getDateTimeStrAt(mThing.getUpdateTime(), this, true));
-
-            if (mReminder != null) {
-                cbQuickRemind.setChecked(mReminder.getState() == Reminder.UNDERWAY);
-
-                if (mEditable) {
-                    quickRemindPicker.pickForUI(9);
-                }
-
-                reminderInMillis = mReminder.getNotifyTime();
-                tvQuickRemind.setText(DateTimeUtil.getDateTimeStrAt(reminderInMillis, this, false));
-                int state = mReminder.getState();
-                if (state != Reminder.UNDERWAY || thingState != Reminder.UNDERWAY) {
-                    tvQuickRemind.append(", " + Reminder.getStateDescription(thingState, state, this));
-                }
-            } else if (mHabit != null) {
-                cbQuickRemind.setChecked(mEditable);
-                if (mEditable) {
-                    quickRemindPicker.pickForUI(9);
-                }
-                habitType = mHabit.getType();
-                habitDetail = mHabit.getDetail();
-                tvQuickRemind.setText(DateTimeUtil.getDateTimeStrRec(
-                        mApplication, habitType, habitDetail));
-            } else {
-                if (mEditable) {
-                    quickRemindPicker.pickForUI(8);
-                    reminderAfterTime = quickRemindPicker.getPickedTimeAfter();
-                } else {
-                    f(R.id.ll_quick_remind).setVisibility(View.GONE);
-                    FrameLayout.LayoutParams params = (FrameLayout.LayoutParams)
-                            mScrollView.getLayoutParams();
-                    params.setMargins(0, params.topMargin, 0, 0);
-                }
+                notifyAudioAttachmentsChanged(true, position);
             }
         }
-
-        updateTaskDescription(mThing.getColor());
     }
 
     /**
@@ -816,6 +1189,59 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         mImageLayoutManager = new GridLayoutManager(this, size < mMaxSpanImage ? size : mMaxSpanImage);
         mRvImageAttachment.setAdapter(mImageAttachmentAdapter);
         mRvImageAttachment.setLayoutManager(mImageLayoutManager);
+
+        if (mEditable) {
+            new ItemTouchHelper(new AttachmentTouchCallback(true))
+                    .attachToRecyclerView(mRvImageAttachment);
+        }
+    }
+
+    private void notifyImageAttachmentsChanged(boolean add, int position) {
+        List<String> items = mImageAttachmentAdapter.getItems();
+
+        int sizeBefore = items.size();
+        int spanBefore = sizeBefore < mMaxSpanImage ? sizeBefore : mMaxSpanImage;
+        int sizeAfter = add ? sizeBefore + 1 : sizeBefore - 1;
+        int spanAfter = sizeAfter < mMaxSpanImage ? sizeAfter : mMaxSpanImage;
+
+        if (add) {
+            if (mRvImageAttachment.getVisibility() != View.VISIBLE) {
+                setImageCover();
+                mRvImageAttachment.setVisibility(View.VISIBLE);
+                setScrollViewMarginTop(false);
+            }
+            items.add(position, attachmentTypePathName);
+            AttachmentHelper.setImageRecyclerViewHeight(mRvImageAttachment, sizeAfter, mMaxSpanImage);
+            if (spanAfter == spanBefore) {
+                if (sizeBefore == mMaxSpanImage) {
+                    mImageAttachmentAdapter.notifyDataSetChanged();
+                } else {
+                    mImageAttachmentAdapter.notifyItemInserted(position);
+                }
+            } else {
+                mImageLayoutManager.setSpanCount(spanAfter);
+                mImageAttachmentAdapter.notifyDataSetChanged();
+            }
+        } else {
+            items.remove(position);
+            if (sizeAfter == 0) {
+                mImageCover.setVisibility(View.GONE);
+                mRvImageAttachment.setVisibility(View.GONE);
+                setScrollViewMarginTop(true);
+                return;
+            }
+            AttachmentHelper.setImageRecyclerViewHeight(mRvImageAttachment, sizeAfter, mMaxSpanImage);
+            if (spanAfter == spanBefore) {
+                if (sizeBefore == mMaxSpanImage + 1) {
+                    mImageAttachmentAdapter.notifyDataSetChanged();
+                } else {
+                    mImageAttachmentAdapter.notifyItemRemoved(position);
+                }
+            } else {
+                mImageLayoutManager.setSpanCount(spanAfter);
+                mImageAttachmentAdapter.notifyDataSetChanged();
+            }
+        }
     }
 
     private void initAudioAttachmentUI(List<String> items) {
@@ -826,20 +1252,44 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         mAudioLayoutManager = new GridLayoutManager(this, mSpanAudio);
         mRvAudioAttachment.setAdapter(mAudioAttachmentAdapter);
         mRvAudioAttachment.setLayoutManager(mAudioLayoutManager);
+
+        if (mEditable) {
+            new ItemTouchHelper(new AttachmentTouchCallback(false))
+                    .attachToRecyclerView(mRvAudioAttachment);
+        }
     }
 
-    @Override
-    protected void setActionbar() {
-        setSupportActionBar(mActionbar);
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setTitle(null);
-        }
-        mIbBack.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                returnToThingsActivity(true);
+    private void notifyAudioAttachmentsChanged(boolean add, int position) {
+        List<String> items = mAudioAttachmentAdapter.getItems();
+        int sizeBefore = items.size();
+        int sizeAfter = add ? sizeBefore + 1 : sizeBefore - 1;
+
+        if (add) {
+            if (mRvAudioAttachment.getVisibility() != View.VISIBLE) {
+                mRvAudioAttachment.setVisibility(View.VISIBLE);
             }
-        });
+
+            int index = mAudioAttachmentAdapter.getPlayingIndex();
+            if (index != -1 && index > position) {
+                mAudioAttachmentAdapter.setPlayingIndex(index + 1);
+            }
+
+            items.add(position, attachmentTypePathName);
+            AttachmentHelper.setAudioRecyclerViewHeight(mRvAudioAttachment, sizeAfter, mSpanAudio);
+            if (sizeAfter == 1) {
+                mAudioAttachmentAdapter.notifyDataSetChanged();
+            } else {
+                mAudioAttachmentAdapter.notifyItemInserted(position);
+            }
+        } else {
+            items.remove(position);
+            if (sizeAfter == 0) {
+                mRvAudioAttachment.setVisibility(View.GONE);
+                return;
+            }
+            AttachmentHelper.setAudioRecyclerViewHeight(mRvAudioAttachment, sizeAfter, mSpanAudio);
+            mAudioAttachmentAdapter.notifyItemRemoved(position);
+        }
     }
 
     private void setImageCover() {
@@ -851,59 +1301,22 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         mImageCover.setVisibility(View.VISIBLE);
     }
 
-    @Override
-    protected void setEvents() {
-        setScrollEvents();
+    public int getAccentColor() {
+        return ((ColorDrawable) mFlBackground.getBackground()).getColor();
+    }
 
-        final Window window = getWindow();
-
-        // set keyboard events.
-        if (mEditable) {
-            KeyboardUtil.addKeyboardCallback(window, new KeyboardUtil.KeyboardCallback() {
-                @Override
-                public void onKeyboardShow(float keyboardHeight) {
-                    updateQuickRemindShadow();
-                }
-
-                @Override
-                public void onKeyboardHide() {
-                    updateQuickRemindShadow();
-                    quickRemindPicker.dismiss();
-                }
-            });
-        }
-        if (DeviceUtil.hasKitKatApi()) {
-            KeyboardUtil.addKeyboardCallback(window, new KeyboardUtil.KeyboardCallback() {
-
-                View contentView = f(R.id.fl_background);
-
-                @Override
-                public void onKeyboardShow(float keyboardHeight) {
-                    if (contentView.getPaddingBottom() == 0) {
-                        //set the padding of the contentView for the keyboard
-                        contentView.setPadding(0, 0, 0, (int) keyboardHeight);
-                    }
-                }
-
-                @Override
-                public void onKeyboardHide() {
-                    if (contentView.getPaddingBottom() != 0) {
-                        //reset the padding of the contentView
-                        contentView.setPadding(0, 0, 0, 0);
-                    }
-                }
-            });
-        }
-        mEtContent.setOnTouchListener(mSpannableTouchListener);
-
-        if (mEditable) {
-            setColorPickerEvent();
-            setQuickRemindEvents();
-            setSnackbarEvents();
-        }
+    public LruCache<String, Bitmap> getBitmapLruCache() {
+        return mApplication.getBitmapLruCache();
     }
 
     private void setScrollEvents() {
+        mActionbar.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mScrollView.smoothScrollTo(0, 0);
+            }
+        });
+
         final int barsHeight = (int) (screenDensity * 56);
         final int statusBarHeight = DisplayUtil.getStatusbarHeight(this);
 
@@ -914,7 +1327,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             statusBarOffset = statusBarHeight;
         }
 
-        ViewTreeObserver observer = mScrollView.getViewTreeObserver();
+        final ViewTreeObserver observer = mScrollView.getViewTreeObserver();
         observer.addOnScrollChangedListener(
                 new ViewTreeObserver.OnScrollChangedListener() {
                     @Override
@@ -975,6 +1388,12 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                             updateQuickRemindShadow();
                         }
                     });
+            observer.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+                @Override
+                public void onGlobalLayout() {
+                    updateQuickRemindShadow();
+                }
+            });
         }
     }
 
@@ -1138,150 +1557,8 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         }
     }
 
-    public int getAccentColor() {
-        return ((ColorDrawable) mFlBackground.getBackground()).getColor();
-    }
-
-    public void addAttachment(int position) {
-        if (!attachmentTypePathName.startsWith(String.valueOf(AttachmentHelper.AUDIO))) {
-            if (mImageAttachmentAdapter == null) {
-                initImageAttachmentUI(
-                        new ArrayList<>(Collections.singletonList(attachmentTypePathName)));
-            } else {
-                notifyImageAttachmentsChanged(true, position);
-            }
-        } else {
-            if (mAudioAttachmentAdapter == null) {
-                initAudioAttachmentUI(
-                        new ArrayList<>(Collections.singletonList(attachmentTypePathName)));
-            } else {
-                notifyAudioAttachmentsChanged(true, position);
-            }
-        }
-    }
-
-    private void notifyImageAttachmentsChanged(boolean add, int position) {
-        List<String> items = mImageAttachmentAdapter.getItems();
-
-        int sizeBefore = items.size();
-        int spanBefore = sizeBefore < mMaxSpanImage ? sizeBefore : mMaxSpanImage;
-        int sizeAfter  = add ? sizeBefore + 1 : sizeBefore - 1;
-        int spanAfter  = sizeAfter < mMaxSpanImage ? sizeAfter : mMaxSpanImage;
-
-        if (add) {
-            if (mRvImageAttachment.getVisibility() != View.VISIBLE) {
-                setImageCover();
-                mRvImageAttachment.setVisibility(View.VISIBLE);
-                setScrollViewMarginTop(false);
-            }
-            items.add(position, attachmentTypePathName);
-            AttachmentHelper.setImageRecyclerViewHeight(mRvImageAttachment, sizeAfter, mMaxSpanImage);
-            if (spanAfter == spanBefore) {
-                if (sizeBefore == mMaxSpanImage) {
-                    mImageAttachmentAdapter.notifyDataSetChanged();
-                } else {
-                    mImageAttachmentAdapter.notifyItemInserted(position);
-                }
-            } else {
-                mImageLayoutManager.setSpanCount(spanAfter);
-                mImageAttachmentAdapter.notifyDataSetChanged();
-            }
-        } else {
-            items.remove(position);
-            if (sizeAfter == 0) {
-                mImageCover.setVisibility(View.GONE);
-                mRvImageAttachment.setVisibility(View.GONE);
-                setScrollViewMarginTop(true);
-                return;
-            }
-            AttachmentHelper.setImageRecyclerViewHeight(mRvImageAttachment, sizeAfter, mMaxSpanImage);
-            if (spanAfter == spanBefore) {
-                if (sizeBefore == mMaxSpanImage + 1) {
-                    mImageAttachmentAdapter.notifyDataSetChanged();
-                } else {
-                    mImageAttachmentAdapter.notifyItemRemoved(position);
-                }
-            } else {
-                mImageLayoutManager.setSpanCount(spanAfter);
-                mImageAttachmentAdapter.notifyDataSetChanged();
-            }
-        }
-    }
-
-    private void notifyAudioAttachmentsChanged(boolean add, int position) {
-        List<String> items = mAudioAttachmentAdapter.getItems();
-        int sizeBefore = items.size();
-        int sizeAfter = add ? sizeBefore + 1 : sizeBefore - 1;
-
-        if (add) {
-            if (mRvAudioAttachment.getVisibility() != View.VISIBLE) {
-                mRvAudioAttachment.setVisibility(View.VISIBLE);
-            }
-
-            int index = mAudioAttachmentAdapter.getPlayingIndex();
-            if (index != -1 && index > position) {
-                mAudioAttachmentAdapter.setPlayingIndex(index + 1);
-            }
-
-            items.add(position, attachmentTypePathName);
-            AttachmentHelper.setAudioRecyclerViewHeight(mRvAudioAttachment, sizeAfter, mSpanAudio);
-            if (sizeAfter == 1) {
-                mAudioAttachmentAdapter.notifyDataSetChanged();
-            } else {
-                mAudioAttachmentAdapter.notifyItemInserted(position);
-            }
-        } else {
-            items.remove(position);
-            if (sizeAfter == 0) {
-                mRvAudioAttachment.setVisibility(View.GONE);
-                return;
-            }
-            AttachmentHelper.setAudioRecyclerViewHeight(mRvAudioAttachment, sizeAfter, mSpanAudio);
-            mAudioAttachmentAdapter.notifyItemRemoved(position);
-        }
-    }
-
-    private int getThingTypeAfter() {
-        if (mHabitFinishedThisTime) return Thing.HABIT;
-        long time = getReminderTime();
-        if (cbQuickRemind.isChecked()) {
-            if (mReminder != null && mReminder.getNotifyTime() == time) {
-                return mThing.getType();
-            } else {
-                if (habitDetail != null) {
-                    return Thing.HABIT;
-                } else return Reminder.getType(getReminderTime(), System.currentTimeMillis());
-            }
-        } else {
-            int typeBefore = mThing.getType();
-            if (typeBefore == Thing.REMINDER || typeBefore == Thing.GOAL) {
-                int reminderState = mReminder.getState();
-                if ((reminderState == Reminder.REMINDED || reminderState == Reminder.EXPIRED)
-                        && mReminder.getNotifyTime() == time) {
-                    return typeBefore;
-                } else {
-                    return Thing.NOTE;
-                }
-            } else if (typeBefore == Thing.HABIT) {
-                return Thing.NOTE;
-            } else {
-                return typeBefore;
-            }
-        }
-    }
-
-    private long getReminderTime() {
-        if (reminderInMillis != 0) {
-            return reminderInMillis;
-        }
-        if (reminderAfterTime != null) {
-            return DateTimeUtil.getActualTimeAfterSomeTime(reminderAfterTime);
-        }
-        return -1;
-    }
-
     private void alertCancel(@StringRes int titleRes, @StringRes int contentRes,
-                                         AlertDialogFragment.CancelListener cancelListener) {
+                             AlertDialogFragment.CancelListener cancelListener) {
         final AlertDialogFragment adf = new AlertDialogFragment();
         int color = getAccentColor();
         adf.setTitleColor(color);
@@ -1365,11 +1642,11 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         long reminderTime = getReminderTime();
 
         int typeBefore = mThing.getType();
-        int typeAfter  = getThingTypeAfter();
+        int typeAfter = getThingTypeAfter();
         boolean isReminderBefore = Thing.isReminderType(typeBefore);
-        boolean isReminderAfter  = Thing.isReminderType(typeAfter);
-        boolean isHabitBefore    = typeBefore == Thing.HABIT;
-        boolean isHabitAfter     = typeAfter  == Thing.HABIT;
+        boolean isReminderAfter = Thing.isReminderType(typeAfter);
+        boolean isHabitBefore = typeBefore == Thing.HABIT;
+        boolean isHabitAfter = typeAfter == Thing.HABIT;
 
         if (cbQuickRemind.isChecked() && habitDetail == null && reminderTime <= System.currentTimeMillis()) {
             mNormalSnackbar.setMessage(R.string.error_later);
@@ -1410,8 +1687,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         if (mType == CREATE && title.isEmpty() && content.isEmpty() && attachment.isEmpty()) {
             resultCode = Def.Communication.RESULT_CREATE_BLANK_THING;
             setResult(resultCode);
-            if (App.isSomethingUpdatedSpecially()
-                    && resultCode != Def.Communication.RESULT_NO_UPDATE) {
+            if (App.isSomethingUpdatedSpecially()) {
                 App.setShouldJustNotifyDataSetChanged(true);
             }
             if (shouldSendBroadCast()) {
@@ -1433,7 +1709,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             } else {
                 rDao.delete(id);
             }
-        } else if (isReminderBefore && isReminderAfter) {
+        } else if (isReminderBefore) {
             if (mReminder.getNotifyTime() == reminderTime && typeBefore == typeAfter) {
                 reminderUpdated = false;
             } else {
@@ -1461,7 +1737,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             } else {
                 hDao.deleteHabit(id);
             }
-        } else if (isHabitBefore && isHabitAfter) {
+        } else if (isHabitBefore) {
             if (Habit.noUpdate(mHabit, habitType, habitDetail)) {
                 habitUpdated = false;
             } else {
@@ -1497,7 +1773,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             // will be missed.
             WeakReference<ThingsActivity> wr = App.thingsActivityWR;
             if (wr == null || wr.get() == null) {
-                ThingManager.getInstance(mApplication).create(mThing, true);
+                ThingManager.getInstance(mApplication).create(mThing, true, true);
                 intent.putExtra(Def.Communication.KEY_CREATED_DONE, true);
             } else if (!shouldSendBroadCast()) {
                 setResult(resultCode, intent);
@@ -1623,14 +1899,6 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 || mSenderName.equals(AutoNotifyReceiver.TAG) || "intent".equals(mSenderName);
     }
 
-    @Override
-    public void finish() {
-        List<Long> detailActivities = App.getRunningDetailActivities();
-        detailActivities.remove(mThing.getId());
-        mRemoveDetailActivityInstance = true;
-        super.finish();
-    }
-
     private void sendBroadCastToUpdateMainUI(Intent intent, int resultCode) {
         if (App.getRunningDetailActivities().size() > 1
                 && resultCode != Def.Communication.RESULT_NO_UPDATE) {
@@ -1641,54 +1909,6 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         intent.putExtra(Def.Communication.KEY_RESULT_CODE, resultCode);
         intent.setAction(Def.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI);
         sendBroadcast(intent);
-    }
-
-    private void updateThingAndItsPosition(long id) {
-        ThingManager manager = ThingManager.getInstance(mApplication);
-        if (mType == CREATE) {
-            mThing = new Thing(manager.getHeaderId(), Thing.NOTE, 0, id);
-            return;
-        }
-        List<Thing> things = manager.getThings();
-        final int size = things.size();
-        int i;
-        for (i = 0; i < size; i++) {
-            Thing temp = things.get(i);
-            if (temp.getId() == id) {
-                mThing = temp;
-                mPosition = i;
-                break;
-            }
-        }
-        if (i == size) {
-            mThing = ThingDAO.getInstance(mApplication).getThingById(id);
-            mPosition = -1;
-        }
-    }
-
-    public void updateTaskDescription(int color) {
-        if (DeviceUtil.hasLollipopApi()) {
-            String title;
-            if (mType == CREATE) {
-                title = getString(R.string.title_create_thing);
-            } else {
-                if (mEditable) {
-                    title = getString(R.string.title_edit_thing);
-                } else {
-                    title = "";
-                }
-                if (!LocaleUtil.isChinese(mApplication)) {
-                    title += " ";
-                }
-                title += Thing.getTypeStr(getThingTypeAfter(), mApplication);
-            }
-            BitmapDrawable bmd = (BitmapDrawable) getDrawable(R.mipmap.ic_launcher);
-            Bitmap bm = bmd.getBitmap();
-            try {
-                setTaskDescription(new ActivityManager.TaskDescription(title, bm, color));
-            } catch (Exception ignored) {
-            }
-        }
     }
 
     public void updateBackImage() {
@@ -1716,117 +1936,15 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         }
     }
 
-    public void showNormalSnackbar(int stringRes) {
-        mNormalSnackbar.setMessage(stringRes);
-        mNormalSnackbar.show();
-    }
-
-    /**
-     * This {@link android.view.View.OnTouchListener} will listen to click events that should
-     * be handled by link/phoneNum/email/maps in {@link mEtContent} and other {@link EditText}s
-     * so that we can handle them with different intents and not lose ability to edit them.
-     */
-    private View.OnTouchListener mSpannableTouchListener = new View.OnTouchListener() {
-
-        @Override
-        public boolean onTouch(View v, MotionEvent event) {
-            if (mUndoSnackbar != null) {
-                mUndoSnackbar.dismiss();
-            }
-
-            int action = event.getAction();
-            if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_DOWN){
-                final EditText et = (EditText) v;
-                final Spannable sContent = Spannable.Factory.getInstance()
-                        .newSpannable(et.getText());
-
-                int x = (int) event.getX();
-                int y = (int) event.getY();
-                x -= et.getTotalPaddingLeft();
-                y -= et.getTotalPaddingTop();
-                x += et.getScrollX();
-                y += et.getScrollY();
-
-                Layout layout = et.getLayout();
-                int line      = layout.getLineForVertical(y);
-                int offset    = layout.getOffsetForHorizontal(line, x);
-
-                // place cursor of EditText to correct position.
-                if (action == MotionEvent.ACTION_UP) {
-                    et.requestFocus();
-                    if (offset > 0) {
-                        if (x > layout.getLineMax(line)) {
-                            et.setSelection(offset);
-                        } else et.setSelection(offset - 1);
-                    }
-                }
-
-                ClickableSpan[] link = sContent.getSpans(offset, offset, ClickableSpan.class);
-                if (link.length != 0){
-                    if (action == MotionEvent.ACTION_UP) {
-                        final URLSpan urlSpan = (URLSpan) link[0];
-
-                        if (!mEditable) {
-                            urlSpan.onClick(et);
-                            return true;
-                        }
-
-                        String url = urlSpan.getURL();
-                        final TwoOptionsDialogFragment df = new TwoOptionsDialogFragment();
-                        df.setViewToFocusAfterDismiss(et);
-
-                        View.OnClickListener startListener = new View.OnClickListener() {
-                            @Override
-                            public void onClick(View v) {
-                                df.dismiss();
-                                KeyboardUtil.hideKeyboard(getWindow());
-                                try {
-                                    urlSpan.onClick(et);
-                                } catch (ActivityNotFoundException e) {
-                                    mNormalSnackbar.setMessage(R.string.error_activity_not_found);
-                                    mFlBackground.postDelayed(mShowNormalSnackbar,
-                                            KeyboardUtil.HIDE_DELAY);
-                                }
-                            }
-                        };
-                        View.OnClickListener endListener = new View.OnClickListener() {
-                            @Override
-                            public void onClick(View v) {
-                                df.setShouldShowKeyboardAfterDismiss(true);
-                                df.dismiss();
-                            }
-                        };
-
-                        if (url.startsWith("tel")) {
-                            df.setStartAction(R.mipmap.act_dial, R.string.act_dial,
-                                    startListener);
-                        } else if (url.startsWith("mailto")) {
-                            df.setStartAction(R.mipmap.act_send_email,
-                                    R.string.act_send_email, startListener);
-                        } else if (url.startsWith("http") || url.startsWith("https")) {
-                            df.setStartAction(R.mipmap.act_open_in_browser,
-                                    R.string.act_open_in_browser, startListener);
-                        } else if (url.startsWith("map")) {
-                            df.setStartAction(R.mipmap.act_open_in_map,
-                                    R.string.act_open_in_map, startListener);
-                        }
-                        df.setEndAction(R.mipmap.act_edit, R.string.act_edit, endListener);
-                        df.show(getFragmentManager(), TwoOptionsDialogFragment.TAG);
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
-    };
-
     class CheckListItemsChangeCallback implements CheckListAdapter.ItemsChangeCallback {
 
         @Override
         public void onInsert(int position) {
             CheckListAdapter.EditTextHolder holder = (CheckListAdapter.EditTextHolder)
                     mRvCheckList.findViewHolderForAdapterPosition(position);
-            KeyboardUtil.showKeyboard(holder.et);
+            if (holder != null) {
+                KeyboardUtil.showKeyboard(holder.et);
+            }
         }
 
         @Override
@@ -1834,6 +1952,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             if (item == null) {
                 CheckListAdapter.EditTextHolder holder = (CheckListAdapter.EditTextHolder)
                         mRvCheckList.findViewHolderForAdapterPosition(position);
+                if (holder == null) return;
                 if (position != -1) {
                     holder.et.requestFocus();
                     holder.et.setSelection(cursorPos);
@@ -1869,15 +1988,6 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                     v, v.getWidth() >> 1, v.getHeight() >> 1, 0, 0);
             ActivityCompat.startActivityForResult(DetailActivity.this, intent,
                     Def.Communication.REQUEST_ACTIVITY_IMAGE_VIEWER, transition.toBundle());
-        }
-
-        @Override
-        public boolean onLongClick(View v, int pos) {
-            List<String> items = mImageAttachmentAdapter.getItems();
-            String typePathName = items.get(pos);
-            AttachmentHelper.showAttachmentInfoDialog(
-                    DetailActivity.this, getAccentColor(), typePathName);
-            return true;
         }
     }
 
@@ -1920,6 +2030,119 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             int index = mAudioAttachmentAdapter.getPlayingIndex();
             if (pos < index) {
                 mAudioAttachmentAdapter.setPlayingIndex(index - 1);
+            }
+        }
+    }
+
+    class CheckListTouchCallback extends ItemTouchHelper.Callback {
+
+        @Override
+        public int getMovementFlags(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder) {
+            int dragFlags = ItemTouchHelper.UP | ItemTouchHelper.DOWN;
+            return makeMovementFlags(dragFlags, 0);
+        }
+
+        @Override
+        public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder,
+                              RecyclerView.ViewHolder target) {
+            final int from = viewHolder.getAdapterPosition();
+            final int to   = target.getAdapterPosition();
+
+            List<String> items = mCheckListAdapter.getItems();
+            int pos2 = items.indexOf("2");
+            int fromPos2 = from - pos2;
+            int toPos2 = to - pos2;
+            if (fromPos2 * toPos2 <= 0) {
+                return false;
+            }
+
+            int pos3 = items.indexOf("3");
+            if (pos3 != -1) { // there are finished items
+                int pos4 = pos3 + 1;
+                if ((from <= pos3 && to >= pos3) || (from >= pos3 && to <= pos3)) {
+                    return false;
+                }
+                if ((from <= pos4 && to >= pos4) || (from >= pos4 && to <= pos4)) {
+                    return false;
+                }
+            }
+
+            String item = items.remove(from);
+            items.add(to, item);
+            mCheckListAdapter.notifyItemMoved(from, to);
+
+            return true;
+        }
+
+        @Override
+        public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) { }
+
+        @Override
+        public boolean isItemViewSwipeEnabled() {
+            return false;
+        }
+
+        @Override
+        public boolean isLongPressDragEnabled() {
+            return false;
+        }
+    }
+
+    class AttachmentTouchCallback extends ItemTouchHelper.Callback {
+
+        boolean isImageAttachmentAdapter;
+
+        AttachmentTouchCallback(boolean isImageAttachmentAdapter) {
+            this.isImageAttachmentAdapter = isImageAttachmentAdapter;
+        }
+
+        @Override
+        public int getMovementFlags(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder) {
+            int dragFlags = ItemTouchHelper.UP | ItemTouchHelper.DOWN |
+                    ItemTouchHelper.START | ItemTouchHelper.END;
+            return makeMovementFlags(dragFlags, 0);
+        }
+
+        @Override
+        public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder,
+                              RecyclerView.ViewHolder target) {
+            final int from = viewHolder.getAdapterPosition();
+            final int to = target.getAdapterPosition();
+
+            List<String> items;
+            if (isImageAttachmentAdapter) {
+                items = mImageAttachmentAdapter.getItems();
+            } else {
+                items = mAudioAttachmentAdapter.getItems();
+            }
+            String typePathName = items.remove(from);
+            items.add(to, typePathName);
+
+            if (isImageAttachmentAdapter) {
+                mImageAttachmentAdapter.notifyItemMoved(from, to);
+            } else {
+                mAudioAttachmentAdapter.notifyItemMoved(from, to);
+                if (mAudioAttachmentAdapter.getPlayingIndex() != -1) {
+                    mAudioAttachmentAdapter.setPlayingIndex(items.indexOf(typePathName));
+                }
+            }
+            return true;
+        }
+
+        @Override
+        public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) { }
+
+        @Override
+        public boolean isItemViewSwipeEnabled() {
+            return false;
+        }
+
+        @Override
+        public boolean isLongPressDragEnabled() {
+            if (isImageAttachmentAdapter) {
+                return mImageAttachmentAdapter.getItemCount() > 1;
+            } else {
+                return mAudioAttachmentAdapter.getItemCount() > 1;
             }
         }
     }

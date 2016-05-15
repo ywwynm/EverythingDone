@@ -23,8 +23,8 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
-import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.App;
+import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.adapters.StatisticAdapter;
 import com.ywwynm.everythingdone.database.HabitDAO;
@@ -41,6 +41,7 @@ import com.ywwynm.everythingdone.utils.BitmapUtil;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
+import com.ywwynm.everythingdone.utils.EdgeEffectUtil;
 import com.ywwynm.everythingdone.utils.FileUtil;
 import com.ywwynm.everythingdone.utils.LocaleUtil;
 import com.ywwynm.everythingdone.utils.PermissionUtil;
@@ -142,6 +143,9 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
 
     @Override
     protected void initUI() {
+        EdgeEffectUtil.forScrollView(mScrollView,
+                ContextCompat.getColor(this, R.color.blue_grey_deep_grey));
+
         initHeaderUI();
         initStartFromUI();
         initFinishedCreatedUI();

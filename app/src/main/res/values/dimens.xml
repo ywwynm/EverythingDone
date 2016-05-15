@@ -26,4 +26,6 @@
 
     <dimen name="card_note_reminder_statistic_margin">14dp</dimen>
 
+    <dimen name="move_checklist_dashed_line_length">120dp</dimen>
+
 </resources>

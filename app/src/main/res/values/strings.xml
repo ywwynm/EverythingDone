@@ -47,6 +47,8 @@
     <string name="act_choose_media_files">选择媒体文件</string>
     <string name="act_enable_check_list">启用清单</string>
     <string name="act_disable_check_list">取消清单</string>
+    <string name="act_move_check_list">移动清单项</string>
+    <string name="act_back_from_move_checklist">完成并返回</string>
     <string name="act_change_color">改变颜色</string>
     <string name="act_finish">完成</string>
     <string name="act_check_habit_info">查看习惯完成情况</string>
@@ -284,6 +286,7 @@
     <string name="description_cancel_recording_audio">取消录音</string>
     <string name="description_play_audio_attachment">播放音频文件</string>
     <string name="description_delete_audio_attachment">删除该音频附件</string>
+    <string name="description_audio_attachment_info">查看该音频附件详细信息</string>
 
     <string name="attachment_info_title">附件详情</string>
     <string name="file_path">文件路径</string>
@@ -331,6 +334,8 @@
 
     <string name="from_everything_done">来自Android应用《完事儿》</string>
 
+    <string name="press_again_to_exit">再按一次以退出</string>
+
     <string name="settings_group_ui">界面</string>
     <string name="settings_group_ringtone">铃声</string>
     <string name="settings_group_advanced">高级</string>
@@ -338,6 +343,7 @@
     <string name="change_drawer_header">抽屉头部图片</string>
     <string name="default_drawer_header">默认图片</string>
     <string name="act_choose_image_file">选择图片</string>
+    <string name="twice_back">按两次返回键退出应用</string>
     <string name="chooser_ringtone">选择铃声</string>
     <string name="backup">备份</string>
     <string name="backup_content">完事儿将会备份您创建的所有记事以及应用设置，所有的提醒、习惯或目标也都将在恢复后正常执行。但是完事儿将不会备份您在记事中添加的各类附件，若有需要，请您使用其它手段备份，附件所在文件夹为 sdcard/EverythingDone</string>
@@ -369,7 +375,7 @@
     <string name="about_version">版本：</string>
 
     <string name="act_share_everythingdone">分享完事儿</string>
-    <string name="send_feedback_to_developer">发送建议、反馈给开发者</string>
+    <string name="send_feedback_to_developer">通过 Email 发送建议、反馈给开发者</string>
     <string name="app_crash_title">完事儿刚刚好像爆炸了QAQ</string>
     <string name="app_crash_content">现在您就可以向开发者发送错误报告，这样就可以迫使他加班加点修复 bug 了。\n当然，您也可以在其它时刻前往关于界面反馈这个问题，到时只需要在您的邮件中附上 SD卡/EverythingDone/log 目录下相应的 log 文件(您可以根据它们名称中的时间信息，来选择最合适的那个 log 文件作为邮件附件)即可。</string>
     <string name="app_crash_send_now">现在反馈</string>

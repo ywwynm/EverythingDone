@@ -22,7 +22,7 @@
             android:label="@string/app_name"
             android:screenOrientation="user"
             android:theme="@style/EverythingDoneTheme.Things"
-            android:windowSoftInputMode="adjustNothing">
+            android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
 

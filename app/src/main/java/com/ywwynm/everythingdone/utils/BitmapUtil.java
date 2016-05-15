@@ -3,9 +3,12 @@ package com.ywwynm.everythingdone.utils;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Matrix;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.LayerDrawable;
+import android.media.ExifInterface;
+import android.util.Log;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -62,9 +65,11 @@ public class BitmapUtil {
                 maintainedSide = fW <= fH ? oWidth : oHeight;
             }
             if (maintainedSide == oWidth) {
-                dst = Bitmap.createScaledBitmap(src, reqWidth, (int) (oHeight / fW), !inside);
+                int height = oHeight * reqWidth / oWidth;
+                dst = Bitmap.createScaledBitmap(src, reqWidth, height, !inside);
             } else {
-                dst = Bitmap.createScaledBitmap(src, (int) (oWidth / fH), reqHeight, !inside);
+                int width = oWidth * reqHeight / oHeight;
+                dst = Bitmap.createScaledBitmap(src, width, reqHeight, !inside);
             }
         }
         if (src != dst) {
@@ -105,6 +110,7 @@ public class BitmapUtil {
         options.inSampleSize = calculateInSampleSize(oWidth, oHeight, reqWidth, reqHeight);
         options.inJustDecodeBounds = false;
         Bitmap src = BitmapFactory.decodeFile(pathName, options);
+        src = tryToGetRotatedBitmap(src, pathName);
 
         return createCroppedBitmap(src, reqWidth, reqHeight);
     }
@@ -114,18 +120,48 @@ public class BitmapUtil {
         options.inJustDecodeBounds = true;
         BitmapFactory.decodeFile(pathName, options);
 
-        Bitmap bm;
+        Bitmap src;
         int oWidth  = options.outWidth;
         int oHeight = options.outHeight;
 
         if (oWidth >= fWidth && oHeight >= fHeight) {
             options.inSampleSize = calculateInSampleSize(oWidth, oHeight, fWidth, fHeight);
             options.inJustDecodeBounds = false;
-            bm = BitmapFactory.decodeFile(pathName, options);
+            src = BitmapFactory.decodeFile(pathName, options);
         } else {
-            bm = BitmapFactory.decodeFile(pathName);
+            src = BitmapFactory.decodeFile(pathName);
         }
-        return createScaledBitmap(bm, fWidth, fHeight, true);
+        src = tryToGetRotatedBitmap(src, pathName);
+
+        return createScaledBitmap(src, fWidth, fHeight, true);
+    }
+
+    public static Bitmap tryToGetRotatedBitmap(Bitmap src, String pathName) {
+        try {
+            ExifInterface exif = new ExifInterface(pathName);
+            int orientation = exif.getAttributeInt(
+                    ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
+            Log.d(TAG, "image orientation: " + orientation);
+            Matrix matrix = new Matrix();
+            if (orientation == ExifInterface.ORIENTATION_ROTATE_90) {
+                matrix.postRotate(90);
+            } else if (orientation == ExifInterface.ORIENTATION_ROTATE_180) {
+                matrix.postRotate(180);
+            } else if (orientation == ExifInterface.ORIENTATION_ROTATE_270) {
+                matrix.postRotate(270);
+            } else {
+                return src;
+            }
+            Bitmap ret = Bitmap.createBitmap(src, 0, 0, src.getWidth(),
+                    src.getHeight(), matrix, true);
+            if (ret != src) {
+                src.recycle();
+            }
+            return ret;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return src;
     }
 
     public static File saveBitmapToStorage(String parentPath, String name, Bitmap bitmap) {

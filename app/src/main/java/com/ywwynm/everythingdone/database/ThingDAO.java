@@ -91,7 +91,10 @@ public class ThingDAO {
             return;
         }
 
+        System.out.println("create: headerId = " + getHeaderId() + " before updateHeader");
         updateHeader(1);
+        System.out.println("create: headerId = " + getHeaderId() + " after updateHeader");
+        System.out.println("create: neId = " + thing.getId());
 
         int type = thing.getType();
         int state = thing.getState();
@@ -191,6 +194,7 @@ public class ThingDAO {
                 } else {
                     values.put(Def.Database.COLUMN_LOCATION_THINGS, location);
                 }
+
                 values.put(Def.Database.COLUMN_CONTENT_THINGS, thing.getContent());
                 values.put(Def.Database.COLUMN_STATE_THINGS, stateAfter);
                 db.update(Def.Database.TABLE_THINGS, values, "id=" + id, null);
@@ -209,61 +213,58 @@ public class ThingDAO {
     }
 
     public void updateStates(List<Thing> things, List<Long> locations, int stateBefore, int stateAfter,
-                             boolean handleNotifyEmpty, boolean toUndo, long headerLocation) {
+                             boolean toUndo, long headerLocation) {
         db.beginTransaction();
         try {
             long newHeaderLocation = headerLocation;
             int size = things.size();
-            updateHeader(size);
             if (!toUndo) {
-                for (int i = size - 1; i >= 0; i--) {
+                updateHeader(size);
+                for (int i = size - 1; i >= 0; i--, newHeaderLocation++) {
                     updateState(things.get(i), -1, stateBefore, stateAfter, false, false,
                             false, newHeaderLocation, false);
-                    newHeaderLocation++;
                 }
             } else {
-                for (int i = size - 1; i >= 0; i--) {
+                for (int i = size - 1; i >= 0; i--, newHeaderLocation++) {
                     updateState(things.get(i), locations.get(i), stateBefore, stateAfter,
                             false, false, true, newHeaderLocation, false);
-                    newHeaderLocation++;
                 }
             }
 
-            if (handleNotifyEmpty) {
-                ThingsCounts thingsCounts = ThingsCounts.getInstance(mContext);
-                final int currentLimit = mLimit;
-                long headerId = -1;
-                int count ,NEtype;
-                Thing notifyEmpty;
-                Cursor cursor;
-                for (int limit = Def.LimitForGettingThings.ALL_UNDERWAY;
-                     limit <= Def.LimitForGettingThings.ALL_DELETED; limit++) {
-                    if (currentLimit != limit) {
-                        cursor = getThingsCursorForDisplay(limit, null, 0);
-                        if (headerId == -1) {
-                            headerId = getHeaderId();
-                        }
+            ThingsCounts thingsCounts = ThingsCounts.getInstance(mContext);
+            final int currentLimit = mLimit;
+            int neCreated = 0;
+            for (int limit = Def.LimitForGettingThings.ALL_UNDERWAY;
+                 limit <= Def.LimitForGettingThings.ALL_DELETED; limit++) {
+                if (currentLimit == limit) continue;
 
-                        count = cursor.getCount();
-                        if (count == 1) {
-                            notifyEmpty = Thing.generateNotifyEmpty(limit, headerId, mContext);
-                            create(notifyEmpty, false, false);
-                            thingsCounts.handleCreation(notifyEmpty.getType());
-                        } else if (count >= 3) {
-                            NEtype = Thing.getNotifyEmptyType(limit);
-                            cursor.close();
-                            cursor = db.query(Def.Database.TABLE_THINGS, null,
-                                    "type=" + NEtype, null, null, null, null);
-                            if (cursor.getCount() != 0) {
-                                db.delete(Def.Database.TABLE_THINGS, "type=" + NEtype, null);
-                                thingsCounts.handleUpdate(NEtype, Thing.UNDERWAY,
-                                        NEtype, Thing.DELETED_FOREVER, 1);
-                            }
-                        }
-                        cursor.close();
+                Cursor cursor = getThingsCursorForDisplay(limit, null, 0);
+                int count = 0;
+                while (cursor.moveToNext()) {
+                    count++;
+                    if (count == 3) break;
+                }
+
+                if (count == 1) {
+                    Thing ne = Thing.generateNotifyEmpty(limit, getHeaderId(), mContext);
+                    create(ne, false, false);
+                    thingsCounts.handleCreation(ne.getType());
+                    neCreated++;
+                } else if (count == 3) {
+                    int NEtype = Thing.getNotifyEmptyType(limit);
+                    cursor.close();
+                    cursor = db.query(Def.Database.TABLE_THINGS, null,
+                            "type=" + NEtype, null, null, null, null);
+                    if (cursor.getCount() != 0) {
+                        db.delete(Def.Database.TABLE_THINGS, "type=" + NEtype, null);
+                        thingsCounts.handleUpdate(NEtype, Thing.UNDERWAY,
+                                NEtype, Thing.DELETED_FOREVER, 1);
                     }
                 }
+                cursor.close();
             }
+
+            updateHeader(6 - neCreated);
 
             db.setTransactionSuccessful();
         } catch (Exception e) {
@@ -299,7 +300,7 @@ public class ThingDAO {
      * code after some decades.
      */
     // Fuck this method! I'm so damn fuck stupid!
-    private Cursor getThingsCursorForDisplay(int limit, String keyword, int color) {
+    public Cursor getThingsCursorForDisplay(int limit, String keyword, int color) {
         StringBuilder limitSb = new StringBuilder();
         switch (limit) {
             case Def.LimitForGettingThings.ALL_UNDERWAY:

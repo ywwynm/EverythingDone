@@ -9,6 +9,7 @@ import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
@@ -38,13 +39,22 @@ public class CheckListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     public static final int EDITTEXT_UNEDITABLE = 2;
 
     private boolean mWatchEditTextChange = true;
+    private boolean mDragging = false;
 
     public interface ItemsChangeCallback {
         void onInsert(int position);
         void onRemove(int position, String item, int cursorPos);
     }
     private ItemsChangeCallback mItemsChangeCallback;
+
+    public interface IvStateTouchCallback {
+        void onTouch(int pos);
+    }
+    private IvStateTouchCallback mIvStateTouchCallback;
+
     private View.OnTouchListener mEtTouchListener;
+    private View.OnClickListener mEtClickListener;
+    private View.OnLongClickListener mEtLongClickListener;
 
     private Context mContext;
 
@@ -63,9 +73,28 @@ public class CheckListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         removeItemsForTextView();
     }
 
-    public CheckListAdapter(Context context, int type, List<String> items, View.OnTouchListener listener) {
-        this(context, type, items);
-        mEtTouchListener = listener;
+    public void setDragging(boolean dragging) {
+        mDragging = dragging;
+    }
+
+    public boolean isDragging() {
+        return mDragging;
+    }
+
+    public void setIvStateTouchCallback(IvStateTouchCallback ivStateTouchCallback) {
+        mIvStateTouchCallback = ivStateTouchCallback;
+    }
+
+    public void setEtTouchListener(View.OnTouchListener etTouchListener) {
+        mEtTouchListener = etTouchListener;
+    }
+
+    public void setEtClickListener(View.OnClickListener etClickListener) {
+        mEtClickListener = etClickListener;
+    }
+
+    public void setEtLongClickListener(View.OnLongClickListener etLongClickListener) {
+        mEtLongClickListener = etLongClickListener;
     }
 
     public void setItems(List<String> items) {
@@ -161,22 +190,30 @@ public class CheckListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
 
             RelativeLayout.LayoutParams params = (RelativeLayout.LayoutParams)
                     holder.et.getLayoutParams();
-            params.setMargins((int) (density * 8), (int) (density * 3), 0 , 0);
+            params.topMargin = (int) (density * 3);
 
             mWatchEditTextChange = false;
             String stateContent = mItems.get(position);
             char state = stateContent.charAt(0);
             if (state == '0') {
-                holder.ivState.setImageResource(R.mipmap.checklist_unchecked_detail);
+                if (!mDragging) {
+                    holder.ivState.setImageResource(R.mipmap.checklist_unchecked_detail);
+                } else {
+                    holder.ivState.setImageResource(R.mipmap.checklist_move_76);
+                }
                 holder.et.setTextColor(white_76);
                 holder.et.setText(stateContent.substring(1, stateContent.length()));
             } else if (state == '1') {
-                holder.ivState.setImageResource(R.mipmap.checklist_checked_detail);
+                if (!mDragging) {
+                    holder.ivState.setImageResource(R.mipmap.checklist_checked_detail);
+                } else {
+                    holder.ivState.setImageResource(R.mipmap.checklist_move_50);
+                }
                 holder.et.setTextColor(white_50);
                 holder.et.setPaintFlags(flags | Paint.STRIKE_THRU_TEXT_FLAG);
                 holder.et.setText(stateContent.substring(1, stateContent.length()));
             } else if (state == '2') {
-                params.setMargins((int) (density * 8), (int) (density * 4), 0 , 0);
+                params.topMargin = (int) (density * 4);
                 holder.ivState.setImageResource(R.mipmap.checklist_add);
                 holder.et.setHint(mContext.getString(R.string.hint_new_item));
                 holder.et.setText("");
@@ -186,7 +223,7 @@ public class CheckListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                 holder.et.setVisibility(View.GONE);
                 holder.flSeparator.setVisibility(View.VISIBLE);
             } else if (state == '4') {
-                params.setMargins((int) (density * 8), (int) (density * 6), 0 , 0);
+                params.topMargin = (int) (density * 6);
                 holder.ivState.setImageResource(R.mipmap.checklist_finished);
                 holder.ivState.setClickable(false);
                 holder.et.setEnabled(false);
@@ -254,6 +291,22 @@ public class CheckListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         }
 
         private void setupIvListeners() {
+            ivState.setOnTouchListener(new View.OnTouchListener() {
+                @Override
+                public boolean onTouch(View v, MotionEvent event) {
+                    final int pos = getAdapterPosition();
+                    String item = mItems.get(pos);
+                    if (event.getAction() == MotionEvent.ACTION_DOWN && mDragging
+                            && !item.equals("2") && !item.equals("3") && !item.equals("4")) {
+                        if (mIvStateTouchCallback != null) {
+                            mIvStateTouchCallback.onTouch(pos);
+                        }
+                        return true;
+                    }
+                    return false;
+                }
+            });
+
             ivState.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -262,6 +315,10 @@ public class CheckListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
 
                     String item = mItems.get(pos);
                     char state = item.charAt(0);
+                    if (mDragging && state != '2') {
+                        return;
+                    }
+
                     if (state == '0') {
                         state = '1';
                         int size = mItems.size();
@@ -314,6 +371,12 @@ public class CheckListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         private void setupEtListeners() {
             if (mEtTouchListener != null) {
                 et.setOnTouchListener(mEtTouchListener);
+            }
+            if (mEtClickListener != null) {
+                et.setOnClickListener(mEtClickListener);
+            }
+            if (mEtLongClickListener != null) {
+                et.setOnLongClickListener(mEtLongClickListener);
             }
 
             et.addTextChangedListener(new TextWatcher() {

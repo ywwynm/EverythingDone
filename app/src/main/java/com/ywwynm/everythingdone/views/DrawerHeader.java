@@ -3,7 +3,6 @@ package com.ywwynm.everythingdone.views;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -73,19 +72,9 @@ public class DrawerHeader {
                 return;
             }
 
-            BitmapFactory.Options options = new BitmapFactory.Options();
-            options.inJustDecodeBounds = true;
-            BitmapFactory.decodeFile(header, options);
-
-            int oWidth  = options.outWidth;
-            int oHeight = options.outHeight;
-            float ratio = (float) oHeight / oWidth;
-            if (ratio < 9 / 16f || ratio > 3 / 4f) {
-                ratio = 9 / 16f;
-            }
             int width = (int) (320 * DisplayUtil.getScreenDensity(mApplication));
             Bitmap bm = BitmapUtil.decodeFileWithRequiredSize(
-                    header, width, (int) (width * ratio));
+                    header, width, width * 9 / 16);
             mIvHeader.setImageBitmap(bm);
         }
     }

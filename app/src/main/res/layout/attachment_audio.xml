@@ -40,21 +40,32 @@
 
     <ImageView
         android:id="@+id/iv_card_audio_first"
-        android:layout_width="42dp"
+        android:layout_width="36dp"
         android:layout_height="match_parent"
         android:layout_gravity="end"
-        android:layout_marginEnd="42dp"
-        android:layout_marginRight="42dp"
+        android:layout_marginEnd="72dp"
+        android:layout_marginRight="72dp"
         android:contentDescription="@string/description_play_audio_attachment"
         android:scaleType="center"
         style="@style/SelectableItemBackground"/>
 
     <ImageView
         android:id="@+id/iv_card_audio_second"
-        android:layout_width="42dp"
+        android:layout_width="36dp"
         android:layout_height="match_parent"
         android:layout_gravity="end"
+        android:layout_marginEnd="36dp"
+        android:layout_marginRight="36dp"
         android:contentDescription="@string/description_delete_audio_attachment"
+        android:scaleType="center"
+        style="@style/SelectableItemBackground"/>
+
+    <ImageView
+        android:id="@+id/iv_card_audio_third"
+        android:layout_width="36dp"
+        android:layout_height="match_parent"
+        android:layout_gravity="end"
+        android:contentDescription="@string/description_audio_attachment_info"
         android:scaleType="center"
         style="@style/SelectableItemBackground"/>
 

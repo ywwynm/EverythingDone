@@ -27,6 +27,7 @@ import com.ywwynm.everythingdone.fragments.AlertDialogFragment;
 import com.ywwynm.everythingdone.helpers.AttachmentHelper;
 import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
+import com.ywwynm.everythingdone.utils.EdgeEffectUtil;
 import com.ywwynm.everythingdone.utils.FileUtil;
 import com.ywwynm.everythingdone.utils.ImageLoader;
 
@@ -117,13 +118,9 @@ public class ImageViewerActivity extends EverythingDoneBaseActivity {
                 height -= navigationBarHeight;
             }
         }
-        int pbColor = ContextCompat.getColor(mApplication, R.color.app_accent);
-        View tab;
-        ImageView image, videoSignal;
-        ProgressBar pb;
-        PhotoViewAttacher attacher;
-        int type;
-        String pathName, key;
+
+        int appAccent = ContextCompat.getColor(mApplication, R.color.app_accent);
+        EdgeEffectUtil.forViewPager(mVpImage, appAccent);
 
         PhotoViewAttacher.OnViewTapListener imageListener = new PhotoViewAttacher.OnViewTapListener() {
             @Override
@@ -149,27 +146,27 @@ public class ImageViewerActivity extends EverythingDoneBaseActivity {
 
         LayoutInflater inflater = LayoutInflater.from(this);
         for (String typePathName : mTypePathNames) {
-            tab = inflater.inflate(R.layout.tab_image_attachment, null);
+            View tab = inflater.inflate(R.layout.tab_image_attachment, null);
 
-            type = typePathName.charAt(0) == '0' ? IMAGE : VIDEO;
-            pathName = typePathName.substring(1, typePathName.length());
-            key = AttachmentHelper.generateKeyForCache(pathName, width, height);
+            int type = typePathName.charAt(0) == '0' ? IMAGE : VIDEO;
+            String pathName = typePathName.substring(1, typePathName.length());
+            String key = AttachmentHelper.generateKeyForCache(pathName, width, height);
 
-            image = f(tab, R.id.iv_image_attachment);
-            videoSignal = f(tab, R.id.iv_video_signal);
-            pb = f(tab, R.id.pb_image_attachment);
+            ProgressBar pb          = f(tab, R.id.pb_image_attachment);
+            ImageView   iv          = f(tab, R.id.iv_image_attachment);
+            ImageView   videoSignal = f(tab, R.id.iv_video_signal);
 
-            pb.getIndeterminateDrawable().setColorFilter(pbColor, PorterDuff.Mode.SRC_IN);
+            pb.getIndeterminateDrawable().setColorFilter(appAccent, PorterDuff.Mode.SRC_IN);
 
-            attacher = new PhotoViewAttacher(image);
+            PhotoViewAttacher attacher = new PhotoViewAttacher(iv);
             attacher.setScaleLevels(1.0f, 3.0f, 6.0f);
 
             Bitmap bm = mBitmapCache.get(key);
             if (bm == null) {
-                new ImageLoader(type, true, mBitmapCache, image, videoSignal, pb, attacher)
+                new ImageLoader(type, true, mBitmapCache, iv, videoSignal, pb, attacher)
                         .execute(key, width, height);
             } else {
-                image.setImageBitmap(bm);
+                iv.setImageBitmap(bm);
                 attacher.update();
                 if (type == 0) {
                     videoSignal.setVisibility(View.GONE);

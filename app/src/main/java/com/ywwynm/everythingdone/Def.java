@@ -29,6 +29,7 @@ public final class Def {
 
         public static final String KEY_START_USING_TIME     = "start_using_time";
         public static final String KEY_DRAWER_HEADER        = "drawer_header";
+        public static final String KEY_TWICE_BACK           = "twice_back";
         public static final String KEY_RINGTONE_REMINDER    = "ringtone_reminder";
         public static final String KEY_RINGTONE_HABIT       = "ringtone_habit";
         public static final String KEY_RINGTONE_GOAL        = "ringtone_goal";
@@ -116,16 +117,17 @@ public final class Def {
         public static final int REQUEST_CHOOSE_IMAGE_FILE     = 7;
         public static final int REQUEST_CHOOSE_AUDIO_FILE     = 8;
 
-        public static final int REQUEST_PERMISSION_TAKE_PHOTO        = 0;
-        public static final int REQUEST_PERMISSION_SHOOT_VIDEO       = 1;
-        public static final int REQUEST_PERMISSION_RECORD_AUDIO      = 2;
-        public static final int REQUEST_PERMISSION_CHOOSE_MEDIA_FILE = 3;
-        public static final int REQUEST_PERMISSION_SCREENSHOT        = 4;
-        public static final int REQUEST_PERMISSION_SHARE_APP         = 5;
-        public static final int REQUEST_PERMISSION_CHOOSE_IMAGE_FILE = 6;
-        public static final int REQUEST_PERMISSION_CHOOSE_AUDIO_FILE = 7;
-        public static final int REQUEST_PERMISSION_BACKUP            = 8;
-        public static final int REQUEST_PERMISSION_RESTORE           = 9;
+        public static final int REQUEST_PERMISSION_TAKE_PHOTO          = 0;
+        public static final int REQUEST_PERMISSION_SHOOT_VIDEO         = 1;
+        public static final int REQUEST_PERMISSION_RECORD_AUDIO        = 2;
+        public static final int REQUEST_PERMISSION_CHOOSE_MEDIA_FILE   = 3;
+        public static final int REQUEST_PERMISSION_SCREENSHOT          = 4;
+        public static final int REQUEST_PERMISSION_SHARE_APP           = 5;
+        public static final int REQUEST_PERMISSION_CHOOSE_IMAGE_FILE   = 6;
+        public static final int REQUEST_PERMISSION_CHOOSE_AUDIO_FILE   = 7;
+        public static final int REQUEST_PERMISSION_BACKUP              = 8;
+        public static final int REQUEST_PERMISSION_RESTORE             = 9;
+        public static final int REQUEST_PERMISSION_SEND_ERROR_FEEDBACK = 10;
 
         public static final String KEY_SENDER_NAME          = PREFIX + "key.sender_name";
         public static final String KEY_DETAIL_ACTIVITY_TYPE = PREFIX + "key.detail_activity_type";

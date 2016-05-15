@@ -117,6 +117,7 @@ public class AboutActivity extends EverythingDoneBaseActivity {
     @Override
     protected void initUI() {
         DisplayUtil.darkStatusBarForMIUI(this);
+        DisplayUtil.coverStatusBar(f(R.id.view_status_bar_cover));
 
         if (DeviceUtil.hasKitKatApi()) {
             LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams)

@@ -1,5 +1,6 @@
 package com.ywwynm.everythingdone.utils;
 
+import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
 import android.support.v4.view.ViewPager;
@@ -18,6 +19,14 @@ import java.lang.reflect.Method;
 public class EdgeEffectUtil {
 
     public static final String TAG = "EverythingDone$EdgeEffectUtil";
+
+    public static int getEdgeColorDark() {
+        if (DeviceUtil.hasLollipopApi()) {
+            return Color.parseColor("#40000000");
+        } else {
+            return Color.parseColor("#80000000");
+        }
+    }
 
     public static void forScrollView(ScrollView sv, int color) {
         try {

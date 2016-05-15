@@ -53,7 +53,7 @@
     </style>
 
     <style name="EverythingDoneTheme.Settings" parent="Theme.AppCompat.Light.NoActionBar">
-        <item name="android:colorEdgeEffect">@color/edge_color_dark</item>
+        <item name="colorAccent">@color/blue_deep</item>
     </style>
 
     <style name="EverythingDoneTheme.About" parent="Theme.AppCompat.Light.NoActionBar">
@@ -120,10 +120,6 @@
 
     <style name="SelectableItemBackground.Borderless">
         <item name="android:background">@drawable/selectable_item_background_light</item>
-    </style>
-
-    <style name="ChooserFragmentRadioButton">
-        <item name="colorControlActivated">@color/blue_deep</item>
     </style>
 
 </resources>

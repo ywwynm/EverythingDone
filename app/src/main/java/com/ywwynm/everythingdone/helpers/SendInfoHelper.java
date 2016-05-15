@@ -19,6 +19,7 @@ import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.utils.BitmapUtil;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
+import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.FileUtil;
 import com.ywwynm.everythingdone.utils.LocaleUtil;
 
@@ -77,13 +78,20 @@ public class SendInfoHelper {
     }
 
     public static void sendFeedback(Context context, boolean attachLogFile) {
-        Intent intent = new Intent(Intent.ACTION_SENDTO);
-        intent.setType("message/rfc822");
-        intent.setData(Uri.parse("mailto:" + Def.Meta.FEEDBACK_EMAIL));
-        intent.putExtra(Intent.EXTRA_SUBJECT,
-                context.getString(R.string.act_feedback) + "-" + new SimpleDateFormat("yyyyMMddHHmmss").format(new Date())
-                        + "-" + BuildConfig.VERSION_NAME + "-" + BuildConfig.VERSION_CODE);
-        if (attachLogFile) {
+        Intent intent = new Intent();
+        intent.putExtra(Intent.EXTRA_SUBJECT, context.getString(R.string.act_feedback) + "-"
+                + new SimpleDateFormat("yyyyMMddHHmmss").format(new Date())
+                + "-" + BuildConfig.VERSION_NAME + "-" + BuildConfig.VERSION_CODE);
+        intent.putExtra(Intent.EXTRA_TEXT, DeviceUtil.getDeviceInfo() + "\n");
+
+        String email = Def.Meta.FEEDBACK_EMAIL;
+        if (!attachLogFile) {
+            intent.setAction(Intent.ACTION_SENDTO);
+            intent.setData(Uri.parse("mailto:" + email));
+        } else {
+            intent.setAction(Intent.ACTION_SEND);
+            intent.setType("message/rfc822");
+            intent.putExtra(Intent.EXTRA_EMAIL, new String[] { email });
             intent.putExtra(Intent.EXTRA_STREAM, getLatestLogUri());
         }
 
@@ -101,6 +109,7 @@ public class SendInfoHelper {
         File dir = new File(dirPath);
         if (dir.exists()) {
             File[] files = dir.listFiles();
+            if (files == null) return null;
             File max = null;
             String maxName = "";
             for (File file : files) {

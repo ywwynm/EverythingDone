@@ -1,8 +1,12 @@
 package com.ywwynm.everythingdone.adapters;
 
 import android.app.Activity;
+import android.graphics.Color;
+import android.graphics.PorterDuff;
+import android.graphics.drawable.Drawable;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
@@ -141,6 +145,7 @@ public class AudioAttachmentAdapter extends RecyclerView.Adapter<AudioAttachment
         final TextView  tvSize;
         final ImageView ivFirst;
         final ImageView ivSecond;
+        final ImageView ivThird;
 
         public AudioCardViewHolder(View itemView) {
             super(itemView);
@@ -150,6 +155,13 @@ public class AudioAttachmentAdapter extends RecyclerView.Adapter<AudioAttachment
             tvSize   = (TextView)  itemView.findViewById(R.id.tv_audio_size);
             ivFirst  = (ImageView) itemView.findViewById(R.id.iv_card_audio_first);
             ivSecond = (ImageView) itemView.findViewById(R.id.iv_card_audio_second);
+            ivThird  = (ImageView) itemView.findViewById(R.id.iv_card_audio_third);
+
+            Drawable d = ContextCompat.getDrawable(
+                    mActivity, R.mipmap.act_show_attachment_info);
+            Drawable d1 = d.mutate();
+            d1.setColorFilter(Color.parseColor("#8A000000"), PorterDuff.Mode.SRC_ATOP);
+            ivThird.setImageDrawable(d1);
 
             cv.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -158,13 +170,12 @@ public class AudioAttachmentAdapter extends RecyclerView.Adapter<AudioAttachment
                 }
             });
 
-            cv.setOnLongClickListener(new View.OnLongClickListener() {
+            ivThird.setOnClickListener(new View.OnClickListener() {
                 @Override
-                public boolean onLongClick(View v) {
+                public void onClick(View v) {
                     String item = mItems.get(getAdapterPosition());
                     String pathName = item.substring(1, item.length());
                     AttachmentHelper.showAttachmentInfoDialog(mActivity, mAccentColor, pathName);
-                    return true;
                 }
             });
 

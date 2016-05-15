@@ -445,7 +445,7 @@ public class Habit {
             int minute = Integer.parseInt(t[1]);
             dt = dt.withHourOfDay(hour).withMinuteOfHour(minute).withSecondOfMinute(0);
             long remMillis = dt.getMillis();
-            if (System.currentTimeMillis() >= remMillis) {
+            while (System.currentTimeMillis() >= remMillis) {
                 remMillis += 86400000;
             }
             mHabitReminders.add(new HabitReminder(0, id, remMillis));
@@ -466,7 +466,7 @@ public class Habit {
             day = day == 0 ? 7 : day;
             dt = dt.withDayOfWeek(day);
             long remMillis = dt.getMillis();
-            if (System.currentTimeMillis() >= remMillis) {
+            while (System.currentTimeMillis() >= remMillis) {
                 remMillis += 604800000;
             }
             mHabitReminders.add(new HabitReminder(0, id, remMillis));
@@ -491,7 +491,7 @@ public class Habit {
                 int month = dt.getMonthOfYear();
                 dt = dt.withDayOfMonth(DateTimeUtil.getDaysOfMonth(year, month));
                 remMillis = dt.getMillis();
-                if (System.currentTimeMillis() >= remMillis) {
+                while (System.currentTimeMillis() >= remMillis) {
                     dt = dt.plusMonths(1);
                     year = dt.getYear();
                     month = dt.getMonthOfYear();
@@ -501,7 +501,7 @@ public class Habit {
             } else {
                 dt = dt.withDayOfMonth(day + 1);
                 remMillis = dt.getMillis();
-                if (System.currentTimeMillis() >= remMillis) {
+                while (System.currentTimeMillis() >= remMillis) {
                     dt = dt.plusMonths(1);
                     remMillis = dt.getMillis();
                 }
@@ -529,7 +529,7 @@ public class Habit {
                 int year = dt.getYear();
                 dt = dt.withDayOfMonth(DateTimeUtil.getDaysOfMonth(year, month));
                 remMillis = dt.getMillis();
-                if (System.currentTimeMillis() >= remMillis) {
+                while (System.currentTimeMillis() >= remMillis) {
                     dt = dt.plusYears(1).withDayOfMonth(
                             DateTimeUtil.getDaysOfMonth(year + 1, month));
                     remMillis = dt.getMillis();
@@ -537,7 +537,7 @@ public class Habit {
             } else {
                 dt = dt.withDayOfMonth(day);
                 remMillis = dt.getMillis();
-                if (System.currentTimeMillis() >= remMillis) {
+                while (System.currentTimeMillis() >= remMillis) {
                     remMillis = dt.plusYears(1).getMillis();
                 }
             }

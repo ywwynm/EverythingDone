@@ -18,13 +18,13 @@ import android.support.v4.content.ContextCompat;
 import android.support.v7.graphics.drawable.DrawerArrowDrawable;
 import android.support.v7.widget.AppCompatDrawableManager;
 import android.support.v7.widget.CardView;
-import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Display;
 import android.view.KeyCharacterMap;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
+import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 import android.view.animation.AccelerateDecelerateInterpolator;
@@ -85,12 +85,8 @@ public class DisplayUtil {
         return realScreen;
     }
 
-    public static boolean isTablet(Context context) {
-        DisplayMetrics dm = context.getResources().getDisplayMetrics();
-        Point screen = getScreenSize(context);
-        double x  = Math.pow(screen.x, 2) / Math.pow(dm.xdpi, 2);
-        double y  = Math.pow(screen.y, 2) / Math.pow(dm.ydpi, 2);
-        return Math.sqrt(x + y) >= 7.0;
+    public static boolean isTablet(Context context) { // improved on 2016/5/11~
+        return context.getResources().getBoolean(R.bool.isTablet);
     }
 
     public static int getStatusbarHeight(Context context) {
@@ -204,6 +200,19 @@ public class DisplayUtil {
             Method extraFlagField = clazz.getMethod("setExtraFlags", int.class, int.class);
             extraFlagField.invoke(activity.getWindow(), darkModeFlag, darkModeFlag);
         } catch (Exception ignored) { }
+    }
+
+    public static void coverStatusBar(View statusBarCover) {
+        if (!shouldCoverStatusBar()) {
+            return;
+        }
+        ViewGroup.LayoutParams vlp = statusBarCover.getLayoutParams();
+        vlp.height = getStatusbarHeight(statusBarCover.getContext());
+        statusBarCover.requestLayout();
+    }
+
+    public static boolean shouldCoverStatusBar() {
+        return DeviceUtil.hasMarshmallowApi() && DeviceUtil.isEMUI();
     }
 
     /**

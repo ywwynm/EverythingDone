@@ -110,7 +110,9 @@ public class ColorPicker extends PopupPicker {
     @Override
     public void pickForUI(int index) {
         mAdapter.pick(index);
-        updateAnchor();
+        if (mAnchor != null) {
+            updateAnchor();
+        }
     }
 
     @Override

@@ -117,7 +117,7 @@
 
         <TextView
             android:id="@+id/tv_no_result"
-            android:layout_width="160dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="32dp"
             android:layout_gravity="center"
@@ -137,6 +137,12 @@
             android:visibility="invisible"/>
 
     </com.ywwynm.everythingdone.views.RevealLayout.RevealLayout>
+
+    <View
+        android:id="@+id/view_status_bar_cover"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:background="@color/black_26p"/>
 
 </merge>
 
