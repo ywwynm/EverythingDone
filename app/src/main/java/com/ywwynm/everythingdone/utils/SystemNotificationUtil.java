@@ -17,6 +17,7 @@ import android.support.v4.content.ContextCompat;
 
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
+import com.ywwynm.everythingdone.activities.AuthenticationActivity;
 import com.ywwynm.everythingdone.activities.DetailActivity;
 import com.ywwynm.everythingdone.activities.SettingsActivity;
 import com.ywwynm.everythingdone.database.HabitDAO;
@@ -39,7 +40,8 @@ public class SystemNotificationUtil {
 
     public static NotificationCompat.Builder newGeneralNotificationBuilder(
             Context context, String senderName, long id, int position, Thing thing, boolean autoNotify) {
-        Intent contentIntent = new Intent(context, DetailActivity.class);
+
+        Intent contentIntent = new Intent(context, AuthenticationActivity.class);
         contentIntent.putExtra(Def.Communication.KEY_SENDER_NAME, senderName);
         contentIntent.putExtra(Def.Communication.KEY_DETAIL_ACTIVITY_TYPE,
                 DetailActivity.UPDATE);
@@ -59,7 +61,7 @@ public class SystemNotificationUtil {
                 .setSmallIcon(getIconRes(type))
                 .setAutoCancel(true);
 
-        String title = thing.getTitle();
+        String title = thing.getTitleToDisplay();
         String content = thing.getContent();
 
         String contentTitle = title, contentText = content;

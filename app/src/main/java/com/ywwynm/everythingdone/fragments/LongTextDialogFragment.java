@@ -18,7 +18,7 @@ import com.ywwynm.everythingdone.utils.EdgeEffectUtil;
  * Created by ywwynm on 2016/4/23.
  * long text dialog fragment
  */
-public class LongTextDialogFragment extends NoTitleDialogFragment {
+public class LongTextDialogFragment extends BaseDialogFragment {
 
     public static final String TAG = "LongTextDialogFragment";
 

@@ -43,7 +43,7 @@ public class App extends Application {
 
     /**
      * limit stands for collection of different types of {@link Thing} that should display
-     * on same UI interface. For example, {@link Thing.NOTE} and {@link Thing.WELCOME_NOTE}
+     * on same UI interface. For example, {@link Thing#NOTE} and {@link Thing#WELCOME_NOTE}
      * should display on "note".
      * Value should be one of those declared in
      * {@link Def.LimitForGettingThings}

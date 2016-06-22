@@ -21,7 +21,7 @@ import com.ywwynm.everythingdone.utils.DisplayUtil;
  * Created by ywwynm on 2016/2/5.
  * A subclass of {@link DialogFragment} to show alert information with three actions.
  */
-public class ThreeActionsAlertDialogFragment extends NoTitleDialogFragment {
+public class ThreeActionsAlertDialogFragment extends BaseDialogFragment {
 
     public static final String TAG = "ThreeActionsAlertDialogFragment";
 

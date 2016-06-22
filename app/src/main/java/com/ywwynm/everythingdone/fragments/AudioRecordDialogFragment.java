@@ -32,7 +32,7 @@ import java.io.File;
  * Created by ywwynm on 2015/9/29.
  * A subclass of {@link android.app.DialogFragment} used to record audio.
  */
-public class AudioRecordDialogFragment extends NoTitleDialogFragment {
+public class AudioRecordDialogFragment extends BaseDialogFragment {
 
     public static final String TAG = "AudioRecordDialogFragment";
 

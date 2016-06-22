@@ -22,6 +22,11 @@
         app:showAsAction="always"/>
 
     <item
+        android:id="@+id/act_set_as_private_thing"
+        android:title="@string/act_set_as_private_thing"
+        app:showAsAction="never"/>
+
+    <item
         android:id="@+id/act_share"
         android:title="@string/act_share"
         app:showAsAction="never"/>

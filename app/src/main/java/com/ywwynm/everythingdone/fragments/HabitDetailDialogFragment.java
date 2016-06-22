@@ -19,7 +19,7 @@ import com.ywwynm.everythingdone.utils.LocaleUtil;
  * Created by ywwynm on 2016/3/3.
  * show habit detail in a DialogFragment
  */
-public class HabitDetailDialogFragment extends NoTitleDialogFragment {
+public class HabitDetailDialogFragment extends BaseDialogFragment {
 
     public static final String TAG = "HabitDetailDialogFragment";
 

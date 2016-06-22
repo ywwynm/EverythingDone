@@ -7,14 +7,12 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.provider.Settings;
-import android.support.annotation.NonNull;
 import android.support.annotation.StringRes;
 import android.support.design.widget.Snackbar;
 import android.support.v4.content.ContextCompat;
@@ -35,20 +33,24 @@ import com.ywwynm.everythingdone.database.ThingDAO;
 import com.ywwynm.everythingdone.fragments.AlertDialogFragment;
 import com.ywwynm.everythingdone.fragments.ChooserDialogFragment;
 import com.ywwynm.everythingdone.fragments.LoadingDialogFragment;
+import com.ywwynm.everythingdone.fragments.PatternLockDialogFragment;
 import com.ywwynm.everythingdone.fragments.TwoOptionsDialogFragment;
 import com.ywwynm.everythingdone.helpers.AlarmHelper;
 import com.ywwynm.everythingdone.helpers.AttachmentHelper;
+import com.ywwynm.everythingdone.helpers.AuthenticationHelper;
+import com.ywwynm.everythingdone.helpers.FingerprintHelper;
 import com.ywwynm.everythingdone.helpers.AutoNotifyHelper;
 import com.ywwynm.everythingdone.helpers.BackupHelper;
 import com.ywwynm.everythingdone.model.HabitReminder;
 import com.ywwynm.everythingdone.model.Thing;
+import com.ywwynm.everythingdone.permission.SimplePermissionCallback;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
+import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil;
 import com.ywwynm.everythingdone.utils.FileUtil;
-import com.ywwynm.everythingdone.utils.PermissionUtil;
+import com.ywwynm.everythingdone.utils.LocaleUtil;
 import com.ywwynm.everythingdone.utils.UriPathConverter;
-import com.ywwynm.everythingdone.utils.DeviceUtil;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -58,10 +60,6 @@ import java.util.List;
 
 import static com.ywwynm.everythingdone.Def.Communication.REQUEST_CHOOSE_AUDIO_FILE;
 import static com.ywwynm.everythingdone.Def.Communication.REQUEST_CHOOSE_IMAGE_FILE;
-import static com.ywwynm.everythingdone.Def.Communication.REQUEST_PERMISSION_BACKUP;
-import static com.ywwynm.everythingdone.Def.Communication.REQUEST_PERMISSION_CHOOSE_AUDIO_FILE;
-import static com.ywwynm.everythingdone.Def.Communication.REQUEST_PERMISSION_CHOOSE_IMAGE_FILE;
-import static com.ywwynm.everythingdone.Def.Communication.REQUEST_PERMISSION_RESTORE;
 
 @SuppressLint("CommitPrefEdits")
 public class SettingsActivity extends EverythingDoneBaseActivity {
@@ -75,6 +73,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     private View    mStatusBar;
     private Toolbar mActionbar;
 
+    // group ui
     public static final String DEFAULT_DRAWER_HEADER = "default_drawer_header";
     private LinearLayout mLlDrawerHeader;
     private TextView     mTvDrawerHeader;
@@ -82,6 +81,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     private RelativeLayout mRlTwiceBackAsBt;
     private CheckBox       mCbTwiceBack;
 
+    // group ringtone
     private static String[] sKeysRingtone = {
             Def.Meta.KEY_RINGTONE_REMINDER,
             Def.Meta.KEY_RINGTONE_HABIT,
@@ -100,11 +100,21 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     private TextView[]              mTvsRingtone;
     private ChooserDialogFragment[] mCdfsRingtone;
 
+    // group data
     private TextView              mTvBackupAsBt;
     private TextView              mTvRestoreAsBt;
     private LoadingDialogFragment mLdgBackup;
     private LoadingDialogFragment mLdgRestore;
 
+    // group privacy
+
+    private TextView       mTvSetPasswordAsBt;
+    private RelativeLayout mRlFgprtAsBt;
+    private TextView       mTvFgprtTitle;
+    private TextView       mTvFgprtDscrpt;
+    private CheckBox       mCbFgprt;
+
+    // group auto notify
     private static List<String>   sANItems;
     private int                   mANPicked;
     private LinearLayout          mLlANAsBt;
@@ -238,30 +248,14 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     }
 
     @Override
-    public void onRequestPermissionsResult(
-            int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        for (int grantResult : grantResults) {
-            if (grantResult != PackageManager.PERMISSION_GRANTED) {
-                PermissionUtil.notifyFailed(f(R.id.rl_settings_root));
-                return;
-            }
-        }
-        if (requestCode == REQUEST_PERMISSION_BACKUP) {
-            showBackupLoadingDialog();
-            new BackupTask().execute();
-        } else if (requestCode == REQUEST_PERMISSION_RESTORE) {
-            showRestoreLoadingDialog();
-            new RestoreTask().execute();
-        } else if (requestCode == REQUEST_PERMISSION_CHOOSE_IMAGE_FILE) {
-            startChooseImageAsDrawerHeader();
-        } else if (requestCode == REQUEST_PERMISSION_CHOOSE_AUDIO_FILE) {
-            startChooseRingtoneFromStorage();
-        }
+    protected int getLayoutResource() {
+        return R.layout.activity_settings;
     }
 
     @Override
-    protected int getLayoutResource() {
-        return R.layout.activity_settings;
+    protected void onResume() {
+        super.onResume();
+        initUiPrivacy();
     }
 
     @Override
@@ -327,12 +321,14 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         mStatusBar = f(R.id.view_status_bar);
         mActionbar = f(R.id.actionbar);
 
+        // ui
         mLlDrawerHeader = f(R.id.ll_change_drawer_header_as_bt);
         mTvDrawerHeader = f(R.id.tv_drawer_header_path);
 
         mRlTwiceBackAsBt = f(R.id.rl_twice_back_as_bt);
         mCbTwiceBack     = f(R.id.cb_twice_back);
 
+        // ringtone
         mLlsRingtone    = new LinearLayout[4];
         mLlsRingtone[0] = f(R.id.ll_ringtone_reminder_as_bt);
         mLlsRingtone[1] = f(R.id.ll_ringtone_habit_as_bt);
@@ -343,9 +339,18 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         mTvsRingtone[1] = f(R.id.tv_ringtone_habit);
         mTvsRingtone[2] = f(R.id.tv_ringtone_goal);
 
+        // data
         mTvBackupAsBt  = f(R.id.tv_backup_as_bt);
         mTvRestoreAsBt = f(R.id.tv_restore_as_bt);
 
+        // privacy
+        mTvSetPasswordAsBt = f(R.id.tv_set_password_as_bt);
+        mRlFgprtAsBt       = f(R.id.rl_use_fingerprint_as_bt);
+        mTvFgprtTitle      = f(R.id.tv_use_fingerprint_title);
+        mTvFgprtDscrpt     = f(R.id.tv_use_fingerprint_description);
+        mCbFgprt           = f(R.id.cb_use_fingerprint);
+
+        // auto notify
         mLlANAsBt = f(R.id.ll_advanced_auto_notify_as_bt);
         mTvAN     = f(R.id.tv_advanced_auto_notify_time);
         mIvANAsBt = f(R.id.iv_auto_notify_help_as_bt);
@@ -382,7 +387,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         String header = mPreferences.getString(
                 Def.Meta.KEY_DRAWER_HEADER, DEFAULT_DRAWER_HEADER);
         if (DEFAULT_DRAWER_HEADER.equals(header)) {
-            mTvDrawerHeader.setTextSize(16);
+            mTvDrawerHeader.setTextSize(14);
             mTvDrawerHeader.setText(R.string.default_drawer_header);
         } else {
             mTvDrawerHeader.setTextSize(12);
@@ -397,6 +402,49 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         for (int i = 0; i < 3; i++) {
             mTvsRingtone[i].setText(mChosenRingtoneTitles[i]);
         }
+    }
+
+    private void initUiPrivacy() {
+        if (!DeviceUtil.hasMarshmallowApi()) {
+            mRlFgprtAsBt.setEnabled(false);
+            mCbFgprt.setEnabled(false);
+            mCbFgprt.setChecked(false);
+            mTvFgprtTitle.setTextColor(ContextCompat.getColor(this, R.color.black_14p));
+            mTvFgprtDscrpt.setTextColor(ContextCompat.getColor(this, R.color.black_10p));
+            mTvFgprtDscrpt.setText(R.string.not_support_fgprt);
+            return;
+        }
+
+        FingerprintHelper fph = FingerprintHelper.getInstance(this);
+        String password = mPreferences.getString(Def.Meta.KEY_PRIVATE_PASSWORD, null);
+        if (password == null || !fph.isFingerprintReady()) {
+            mRlFgprtAsBt.setEnabled(false);
+            mCbFgprt.setEnabled(false);
+            mTvFgprtTitle.setTextColor(ContextCompat.getColor(this, R.color.black_14p));
+            mTvFgprtDscrpt.setTextColor(ContextCompat.getColor(this, R.color.black_10p));
+
+            if (password == null) {
+                mTvFgprtDscrpt.setText(R.string.password_not_set);
+            } else {
+                mTvFgprtDscrpt.setTextSize(LocaleUtil.isChinese(this) ? 14 : 12);
+                if (!fph.supportFingerprint()) {
+                    mTvFgprtDscrpt.setText(R.string.not_support_fgprt);
+                } else if (!fph.hasSystemFingerprintSet()) {
+                    mTvFgprtDscrpt.setText(R.string.system_fgprt_not_set);
+                } else if (!fph.hasFingerprintRegistered()) {
+                    mTvFgprtDscrpt.setText(R.string.fgprt_not_enrolled);
+                }
+            }
+        } else {
+            mRlFgprtAsBt.setEnabled(true);
+            mCbFgprt.setEnabled(true);
+            mTvFgprtTitle.setTextColor(ContextCompat.getColor(this, R.color.black_54p));
+            mTvFgprtDscrpt.setTextColor(ContextCompat.getColor(this, R.color.black_26p));
+            mTvFgprtDscrpt.setText(R.string.use_fingerprint_to_verify);
+        }
+
+        boolean useFingerprint = mPreferences.getBoolean(Def.Meta.KEY_USE_FINGERPRINT, false);
+        mCbFgprt.setChecked(useFingerprint);
     }
 
     private void initUiAutoNotify() {
@@ -420,7 +468,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             mTvANRingtone.setText(mChosenRingtoneTitles[mChosenRingtoneTitles.length - 1]);
         } else {
             mLlANRingtoneAsBt.setEnabled(false);
-            mTvANRingtoneTitle.setTextColor(ContextCompat.getColor(this, R.color.black_10p));
+            mTvANRingtoneTitle.setTextColor(ContextCompat.getColor(this, R.color.black_14p));
             mTvANRingtone.setText("");
         }
     }
@@ -440,6 +488,14 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
     @Override
     protected void setEvents() {
+        setUiEvents();
+        setRingtoneEvents();
+        setDataEvents();
+        setPrivacyEvents();
+        setAutoNotifyEvents();
+    }
+
+    private void setUiEvents() {
         mLlDrawerHeader.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -453,7 +509,9 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                 mCbTwiceBack.setChecked(!mCbTwiceBack.isChecked());
             }
         });
+    }
 
+    private void setRingtoneEvents() {
         for (int i = 0; i < 4; i++) {
             final int j = i;
             mLlsRingtone[j].setOnClickListener(new View.OnClickListener() {
@@ -462,11 +520,14 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                     if (mCdfsRingtone[j] == null) {
                         initRingtoneFragment(j);
                     }
-                    mCdfsRingtone[j].show(getFragmentManager(), ChooserDialogFragment.TAG);
+                    mCdfsRingtone[j].showAllowingStateLoss(
+                            getFragmentManager(), ChooserDialogFragment.TAG);
                 }
             });
         }
+    }
 
+    private void setDataEvents() {
         mTvBackupAsBt.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -479,7 +540,87 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                 showRestoreDialog();
             }
         });
+    }
 
+    private void setPrivacyEvents() {
+        mTvSetPasswordAsBt.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String passwordBefore = mPreferences.getString(
+                        Def.Meta.KEY_PRIVATE_PASSWORD, null);
+                if (passwordBefore == null) {
+                    beginSetPassword();
+                } else {
+                    beginChangePassword(passwordBefore);
+                }
+            }
+        });
+
+        mRlFgprtAsBt.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                final boolean toUseFingerprint = !mCbFgprt.isChecked();
+                if (!toUseFingerprint) {
+                    final PatternLockDialogFragment pldf = new PatternLockDialogFragment();
+                    pldf.setValidateTitle(getString(R.string.use_fingerprint));
+                    pldf.setCorrectPassword(mPreferences.getString(Def.Meta.KEY_PRIVATE_PASSWORD, null));
+                    pldf.setAuthenticationCallback(new AuthenticationHelper.AuthenticationCallback() {
+                        @Override
+                        public void onAuthenticated() {
+                            mCbFgprt.setChecked(false);
+                        }
+
+                        @Override
+                        public void onCancel() {
+
+                        }
+                    });
+                    pldf.setAccentColor(mAccentColor);
+                    pldf.setType(PatternLockDialogFragment.TYPE_VALIDATE);
+                    pldf.show(getFragmentManager(), PatternLockDialogFragment.TAG);
+                } else {
+                    mCbFgprt.setChecked(true);
+                }
+            }
+        });
+    }
+
+    private void beginSetPassword() {
+        final PatternLockDialogFragment pldf = new PatternLockDialogFragment();
+        pldf.setType(PatternLockDialogFragment.TYPE_SET);
+        pldf.setAccentColor(mAccentColor);
+        pldf.setPasswordSetDoneListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mPreferences.edit()
+                        .putString(Def.Meta.KEY_PRIVATE_PASSWORD, pldf.getPassword()).apply();
+                initUiPrivacy();
+            }
+        });
+        pldf.show(getFragmentManager(), PatternLockDialogFragment.TAG);
+    }
+
+    private void beginChangePassword(String passwordBefore) {
+        PatternLockDialogFragment pldf = new PatternLockDialogFragment();
+        pldf.setType(PatternLockDialogFragment.TYPE_VALIDATE);
+        pldf.setAccentColor(mAccentColor);
+        pldf.setCorrectPassword(passwordBefore);
+        pldf.setValidateTitle(getString(R.string.set_private_thing_password));
+        pldf.setAuthenticationCallback(new AuthenticationHelper.AuthenticationCallback() {
+            @Override
+            public void onAuthenticated() {
+                beginSetPassword();
+            }
+
+            @Override
+            public void onCancel() {
+
+            }
+        });
+        pldf.show(getFragmentManager(), PatternLockDialogFragment.TAG);
+    }
+
+    private void setAutoNotifyEvents() {
         mLlANAsBt.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -506,7 +647,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        mTvDrawerHeader.setTextSize(16);
+                        mTvDrawerHeader.setTextSize(14);
                         mTvDrawerHeader.setText(R.string.default_drawer_header);
                         todf.dismiss();
                     }
@@ -516,13 +657,13 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                     @Override
                     public void onClick(View v) {
                         todf.dismiss();
-                        PermissionUtil.Callback callback = new PermissionUtil.Callback() {
-                            @Override
-                            public void onGranted() {
-                                startChooseImageAsDrawerHeader();
-                            }
-                        };
-                        PermissionUtil.doWithPermissionChecked(callback, SettingsActivity.this,
+                        doWithPermissionChecked(
+                                new SimplePermissionCallback(SettingsActivity.this) {
+                                    @Override
+                                    public void onGranted() {
+                                        startChooseImageAsDrawerHeader();
+                                    }
+                                },
                                 Def.Communication.REQUEST_PERMISSION_CHOOSE_IMAGE_FILE,
                                 Manifest.permission.WRITE_EXTERNAL_STORAGE);
                     }
@@ -545,14 +686,14 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         adf.setConfirmListener(new AlertDialogFragment.ConfirmListener() {
             @Override
             public void onConfirm() {
-                PermissionUtil.Callback callback = new PermissionUtil.Callback() {
-                    @Override
-                    public void onGranted() {
-                        showBackupLoadingDialog();
-                        new BackupTask().execute();
-                    }
-                };
-                PermissionUtil.doWithPermissionChecked(callback, SettingsActivity.this,
+                doWithPermissionChecked(
+                        new SimplePermissionCallback(SettingsActivity.this) {
+                            @Override
+                            public void onGranted() {
+                                showBackupLoadingDialog();
+                                new BackupTask().execute();
+                            }
+                        },
                         Def.Communication.REQUEST_PERMISSION_BACKUP,
                         Manifest.permission.WRITE_EXTERNAL_STORAGE);
             }
@@ -575,14 +716,14 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         adf.setConfirmListener(new AlertDialogFragment.ConfirmListener() {
             @Override
             public void onConfirm() {
-                PermissionUtil.Callback callback = new PermissionUtil.Callback() {
-                    @Override
-                    public void onGranted() {
-                        showRestoreLoadingDialog();
-                        new RestoreTask().execute();
-                    }
-                };
-                PermissionUtil.doWithPermissionChecked(callback, SettingsActivity.this,
+                doWithPermissionChecked(
+                        new SimplePermissionCallback(SettingsActivity.this) {
+                            @Override
+                            public void onGranted() {
+                                showRestoreLoadingDialog();
+                                new RestoreTask().execute();
+                            }
+                        },
                         Def.Communication.REQUEST_PERMISSION_RESTORE,
                         Manifest.permission.WRITE_EXTERNAL_STORAGE);
             }
@@ -619,7 +760,15 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             @Override
             public void onClick(View v) {
                 mChoosingIndex = index;
-                chooseRingtoneFromStorage();
+                doWithPermissionChecked(
+                        new SimplePermissionCallback(SettingsActivity.this) {
+                            @Override
+                            public void onGranted() {
+                                startChooseRingtoneFromStorage();
+                            }
+                        },
+                        Def.Communication.REQUEST_PERMISSION_CHOOSE_AUDIO_FILE,
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE);
             }
         });
         cdf.setOnItemClickListener(new View.OnClickListener() {
@@ -634,6 +783,9 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                 Context context = SettingsActivity.this;
                 if (isFileRingtone(mRingtoneManager, uri)) {
                     String pathName = UriPathConverter.getLocalPathName(context, uri);
+                    if (pathName == null) { // TODO: 2016/5/16 strange behavior here
+                        return;
+                    }
                     uri = Uri.fromFile(new File(pathName));
                 }
                 Ringtone ringtone = RingtoneManager.getRingtone(context, uri);
@@ -649,18 +801,6 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                 }
             }
         });
-    }
-
-    private void chooseRingtoneFromStorage() {
-        PermissionUtil.Callback callback = new PermissionUtil.Callback() {
-            @Override
-            public void onGranted() {
-                startChooseRingtoneFromStorage();
-            }
-        };
-        PermissionUtil.doWithPermissionChecked(callback, this,
-                Def.Communication.REQUEST_PERMISSION_CHOOSE_AUDIO_FILE,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE);
     }
 
     private void startChooseRingtoneFromStorage() {
@@ -710,6 +850,13 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         for (int i = 0; i < mChosenRingtoneUris.length; i++) {
             editor.putString(sKeysRingtone[i], mChosenRingtoneUris[i].toString());
         }
+
+        boolean isChecked = mCbFgprt.isChecked();
+        if (isChecked) {
+            FingerprintHelper.getInstance(this).createFingerprintKeyForEverythingDone();
+        }
+        editor.putBoolean(Def.Meta.KEY_USE_FINGERPRINT, isChecked);
+
         editor.putInt(Def.Meta.KEY_AUTO_NOTIFY, mANPicked);
         editor.commit();
     }

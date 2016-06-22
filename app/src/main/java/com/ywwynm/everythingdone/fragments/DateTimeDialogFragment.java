@@ -54,7 +54,7 @@ import java.util.List;
  * Created by ywwynm on 2015/8/14.
  * DialogFragment used to pick date/time/recurrence for a Reminder/Habit/Goal.
  */
-public class DateTimeDialogFragment extends NoTitleDialogFragment {
+public class DateTimeDialogFragment extends BaseDialogFragment {
 
     public static final String TAG = "DateTimeDialogFragment";
 
@@ -996,6 +996,9 @@ public class DateTimeDialogFragment extends NoTitleDialogFragment {
     }
 
     private void improveComplex(int num, TextView tv) {
+        if (tv == null) {
+            return;
+        }
         String str = tv.getText().toString();
         final int length = str.length();
         if (num > 1 && str.charAt(length - 1) != 's') {

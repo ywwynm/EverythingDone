@@ -34,6 +34,8 @@ public final class Def {
         public static final String KEY_RINGTONE_HABIT       = "ringtone_habit";
         public static final String KEY_RINGTONE_GOAL        = "ringtone_goal";
         public static final String KEY_RINGTONE_AUTO_NOTIFY = "ringtone_auto_notify";
+        public static final String KEY_PRIVATE_PASSWORD     = "private_password";
+        public static final String KEY_USE_FINGERPRINT      = "use_fingerprint";
         public static final String KEY_AUTO_NOTIFY          = "auto_notify";
 
         public static final String KEY_1_0_3_TO_1_0_4       = "1.0.3_to_1.0.4";

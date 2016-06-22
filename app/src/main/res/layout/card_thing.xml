@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-
 <com.ywwynm.everythingdone.views.InterceptTouchCardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -67,6 +66,15 @@
             android:textColor="@color/white_86p"
             android:textSize="16sp"
             android:textStyle="bold"/>
+
+        <ImageView
+            android:id="@+id/iv_private_thing"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="16dp"
+            android:layout_gravity="center"
+            android:src="@mipmap/ic_locked_big"
+            tools:ignore="ContentDescription"/>
 
         <TextView
             android:id="@+id/tv_thing_content"

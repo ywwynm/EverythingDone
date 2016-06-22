@@ -18,7 +18,7 @@ import java.util.List;
  * Created by ywwynm on 2016/4/30.
  * attachment info dialog fragment
  */
-public class AttachmentInfoDialogFragment extends NoTitleDialogFragment {
+public class AttachmentInfoDialogFragment extends BaseDialogFragment {
 
     public static final String TAG = "AttachmentInfoDialogFragment";
 

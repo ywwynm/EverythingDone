@@ -20,7 +20,7 @@ import com.ywwynm.everythingdone.utils.DisplayUtil;
  * Created by ywwynm on 2015/10/9.
  * A subclass of {@link DialogFragment} to show alert information.
  */
-public class AlertDialogFragment extends NoTitleDialogFragment {
+public class AlertDialogFragment extends BaseDialogFragment {
 
     public static final String TAG = "AlertDialogFragment";
 

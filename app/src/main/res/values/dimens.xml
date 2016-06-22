@@ -22,10 +22,13 @@
 
     <dimen name="tv_as_bt_datetime_tab_after_margin_top">6dp</dimen>
 
-    <dimen name="tv_auto_notify_text_size">18sp</dimen>
+    <dimen name="tv_auto_notify_text_size">16sp</dimen>
 
     <dimen name="card_note_reminder_statistic_margin">14dp</dimen>
 
     <dimen name="move_checklist_dashed_line_length">120dp</dimen>
+
+    <dimen name="settings_card_margin_top">8dp</dimen>
+    <dimen name="settings_card_margin_side">-2dp</dimen>
 
 </resources>

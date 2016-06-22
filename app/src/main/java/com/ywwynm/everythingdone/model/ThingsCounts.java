@@ -3,8 +3,10 @@ package com.ywwynm.everythingdone.model;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.database.Cursor;
 
 import com.ywwynm.everythingdone.Def;
+import com.ywwynm.everythingdone.database.ThingDAO;
 import com.ywwynm.everythingdone.utils.LocaleUtil;
 
 import static com.ywwynm.everythingdone.model.Thing.DELETED;
@@ -47,6 +49,8 @@ public class ThingsCounts {
                 Def.Meta.THINGS_COUNTS_NAME, Context.MODE_PRIVATE);
         if (mCounts.getInt("0_0", -1) == -1) {
             init();
+        } else {
+            checkSelf(context);
         }
     }
 
@@ -59,6 +63,26 @@ public class ThingsCounts {
             }
         }
         return sThingsCounts;
+    }
+
+    private void checkSelf(Context context) {
+        ThingDAO dao = ThingDAO.getInstance(context);
+        for (int type = Thing.NOTE; type <= Thing.NOTIFY_EMPTY_DELETED; type++) {
+            int totalCount = 0;
+            for (int state = Thing.UNDERWAY; state <= Thing.DELETED; state++) {
+                Cursor cursor = dao.getThingsCursor("type=" + type + " and state=" + state);
+                int cursorCount = cursor.getCount();
+                int prefCount = getCount(type, state);
+                if (cursorCount != prefCount) {
+                    setCounts(type, state, cursorCount);
+                }
+                totalCount += cursorCount;
+                cursor.close();
+            }
+            if (getCount(type, ALL) < totalCount) {
+                setCounts(type, ALL, totalCount);
+            }
+        }
     }
 
     public int getCount(int type, int state) {
@@ -176,6 +200,10 @@ public class ThingsCounts {
     private void updateCounts(int type, int state, int vary) {
         int count = getCount(type, state);
         count += vary;
+        setCounts(type, state, count);
+    }
+
+    private void setCounts(int type, int state, int count) {
         mCounts.edit().putInt(type + "_" + state, count).commit();
     }
 

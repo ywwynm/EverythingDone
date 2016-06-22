@@ -146,7 +146,7 @@ public class ThingsAdapter extends RecyclerView.Adapter<ThingsAdapter.ThingViewH
     }
 
     private void setViewAppearance(ThingViewHolder holder, Thing thing) {
-        String title = thing.getTitle();
+        String title = thing.getTitleToDisplay();
         if (!title.isEmpty()) {
             int p = (int) (mScreenDensity * 16);
             holder.tvTitle.setVisibility(View.VISIBLE);
@@ -154,6 +154,19 @@ public class ThingsAdapter extends RecyclerView.Adapter<ThingsAdapter.ThingViewH
             holder.tvTitle.setText(title);
         } else {
             holder.tvTitle.setVisibility(View.GONE);
+        }
+
+        if (thing.isPrivate()) {
+            holder.ivPrivateThing.setVisibility(View.VISIBLE);
+            holder.flImageAttachment.setVisibility(View.GONE);
+            holder.tvContent.setVisibility(View.GONE);
+            holder.rvChecklist.setVisibility(View.GONE);
+            holder.llAudioAttachment.setVisibility(View.GONE);
+            holder.rlReminder.setVisibility(View.GONE);
+            holder.rlHabit.setVisibility(View.GONE);
+            return;
+        } else {
+            holder.ivPrivateThing.setVisibility(View.GONE);
         }
 
         updateCardForContent(holder, thing);
@@ -483,6 +496,8 @@ public class ThingsAdapter extends RecyclerView.Adapter<ThingsAdapter.ThingViewH
         final View vImageCover;
 
         final TextView tvTitle;
+        final ImageView ivPrivateThing;
+
         final TextView tvContent;
         final RecyclerView rvChecklist;
 
@@ -517,6 +532,8 @@ public class ThingsAdapter extends RecyclerView.Adapter<ThingsAdapter.ThingViewH
             vImageCover       = item.findViewById(R.id.view_thing_image_cover);
 
             tvTitle      = (TextView) item.findViewById(R.id.tv_thing_title);
+            ivPrivateThing = (ImageView) item.findViewById(R.id.iv_private_thing);
+
             tvContent    = (TextView) item.findViewById(R.id.tv_thing_content);
             rvChecklist  = (RecyclerView) item.findViewById(R.id.rv_check_list);
 

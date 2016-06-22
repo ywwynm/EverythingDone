@@ -2,6 +2,7 @@ package com.ywwynm.everythingdone.fragments;
 
 import android.app.Dialog;
 import android.app.DialogFragment;
+import android.app.FragmentManager;
 import android.os.Bundle;
 import android.support.annotation.IdRes;
 import android.support.annotation.LayoutRes;
@@ -15,7 +16,7 @@ import android.view.Window;
  * Created by ywwynm on 2015/9/29.
  * A subclass of {@link DialogFragment} without dialog title
  */
-public abstract class NoTitleDialogFragment extends DialogFragment {
+public abstract class BaseDialogFragment extends DialogFragment {
 
     protected View mContentView;
 
@@ -41,5 +42,9 @@ public abstract class NoTitleDialogFragment extends DialogFragment {
         Dialog dialog = super.onCreateDialog(savedInstanceState);
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
         return dialog;
+    }
+
+    public void showAllowingStateLoss(FragmentManager manager, String tag) {
+        manager.beginTransaction().add(this, tag).commitAllowingStateLoss();
     }
 }

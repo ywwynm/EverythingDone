@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="280dp"
+    android:layout_height="match_parent">
+
+    <TextView
+        android:id="@+id/tv_title_authentication"
+        android:layout_width="240dp"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="20dp"
+        android:layout_marginTop="20dp"
+        android:layout_marginRight="20dp"
+        android:textAllCaps="true"
+        android:textSize="20sp"
+        android:textStyle="bold"/>
+
+    <TextView
+        android:id="@+id/tv_content_authentication"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="20dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginRight="20dp"
+        android:layout_below="@id/tv_title_authentication"
+        android:textSize="16sp"/>
+
+    <com.mattprecious.swirl.SwirlView
+        android:id="@+id/swirlview_fingerprint"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginLeft="20dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginRight="20dp"
+        android:layout_below="@id/tv_content_authentication"/>
+
+    <TextView
+        android:id="@+id/tv_fingerprint_state"
+        android:layout_width="wrap_content"
+        android:layout_height="48dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="20dp"
+        android:layout_marginRight="20dp"
+        android:layout_toEndOf="@id/swirlview_fingerprint"
+        android:layout_toRightOf="@id/swirlview_fingerprint"
+        android:layout_below="@id/tv_content_authentication"
+        android:gravity="center_vertical"
+        android:textColor="@color/black_26p"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="8dp"
+        android:layout_marginTop="20dp"
+        android:layout_marginRight="8dp"
+        android:layout_marginBottom="8dp"
+        android:layout_below="@id/swirlview_fingerprint"
+        android:gravity="end"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/tv_cancel_as_bt_authentication"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:paddingLeft="12dp"
+            android:paddingTop="8dp"
+            android:paddingRight="12dp"
+            android:paddingBottom="8dp"
+            style="@style/SelectableItemBackground"
+            android:textColor="@color/black_26p"
+            android:textAllCaps="true"
+            android:text="@string/cancel"/>
+
+        <TextView
+            android:id="@+id/tv_second_as_bt_authentication"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:paddingLeft="12dp"
+            android:paddingTop="8dp"
+            android:paddingRight="12dp"
+            android:paddingBottom="8dp"
+            android:textStyle="bold"
+            android:text="@string/confirm"
+            android:textAllCaps="true"
+            style="@style/SelectableItemBackground"/>
+
+    </LinearLayout>
+
+</RelativeLayout>

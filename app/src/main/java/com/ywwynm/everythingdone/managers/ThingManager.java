@@ -149,17 +149,29 @@ public class ThingManager {
 
     public void searchThings(String keyword, int color) {
         List<Thing> things = mDao.getThingsForDisplay(mLimit, keyword, color);
-        if (CheckListHelper.isSignalContainsStrIgnoreCase(keyword)) {
+        final String PTP = Thing.PRIVATE_THING_PREFIX;
+        boolean containsPtp = false;
+        for (int i = 0; i < PTP.length() && !containsPtp; i++) {
+            if (keyword.contains(String.valueOf(PTP.charAt(i)))) {
+                containsPtp = true;
+            }
+        }
+
+        if (CheckListHelper.isSignalContainsStrIgnoreCase(keyword) || containsPtp) {
             mThings.clear();
             mThings.add(mDao.getThingById(mDao.getHeaderId()));
             for (Thing thing : things) {
+                if (thing.getType() == Thing.HEADER) continue;
+
                 String regex = "";
                 for (int i = 0; i < CheckListHelper.CHECK_STATE_NUM; i++) {
                     regex += CheckListHelper.SIGNAL + i + "|";
                 }
                 regex = regex.substring(0, regex.length() - 1);
                 String content = thing.getContent().replaceAll(regex, "");
-                if (content.contains(keyword)) {
+                String title   = thing.getTitle().replaceAll(PTP, "");
+
+                if (content.contains(keyword) || title.contains(keyword)) {
                     mThings.add(thing);
                 }
             }

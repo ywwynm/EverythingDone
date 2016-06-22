@@ -4,9 +4,7 @@ import android.Manifest;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
-import android.content.pm.PackageManager;
 import android.graphics.Typeface;
-import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.ActionBar;
@@ -22,13 +20,13 @@ import android.widget.Toast;
 import com.ywwynm.everythingdone.BuildConfig;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
+import com.ywwynm.everythingdone.permission.SimplePermissionCallback;
 import com.ywwynm.everythingdone.fragments.AlertDialogFragment;
 import com.ywwynm.everythingdone.fragments.ThreeActionsAlertDialogFragment;
 import com.ywwynm.everythingdone.helpers.SendInfoHelper;
 import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.FontCache;
-import com.ywwynm.everythingdone.utils.PermissionUtil;
 
 public class AboutActivity extends EverythingDoneBaseActivity {
 
@@ -54,20 +52,20 @@ public class AboutActivity extends EverythingDoneBaseActivity {
         return R.layout.activity_about;
     }
 
-    @Override
-    public void onRequestPermissionsResult(
-            int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        if (requestCode == Def.Communication.REQUEST_PERMISSION_SHARE_APP) {
-            final int G = PackageManager.PERMISSION_GRANTED;
-            for (int grantResult : grantResults) {
-                if (grantResult != G) {
-                    Toast.makeText(this, R.string.error_permission_denied, Toast.LENGTH_LONG).show();
-                    return;
-                }
-            }
-            SendInfoHelper.shareApp(this);
-        }
-    }
+//    @Override
+//    public void onRequestPermissionsResult(
+//            int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+//        if (requestCode == Def.Communication.REQUEST_PERMISSION_SHARE_APP) {
+//            final int G = PackageManager.PERMISSION_GRANTED;
+//            for (int grantResult : grantResults) {
+//                if (grantResult != G) {
+//                    Toast.makeText(this, R.string.error_permission_denied, Toast.LENGTH_LONG).show();
+//                    return;
+//                }
+//            }
+//            SendInfoHelper.shareApp(this);
+//        }
+//    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -79,13 +77,13 @@ public class AboutActivity extends EverythingDoneBaseActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.act_share:
-                PermissionUtil.Callback callback = new PermissionUtil.Callback() {
-                    @Override
-                    public void onGranted() {
-                        SendInfoHelper.shareApp(AboutActivity.this);
-                    }
-                };
-                PermissionUtil.doWithPermissionChecked(callback, this,
+                doWithPermissionChecked(
+                        new SimplePermissionCallback(this) {
+                            @Override
+                            public void onGranted() {
+                                SendInfoHelper.shareApp(AboutActivity.this);
+                            }
+                        },
                         Def.Communication.REQUEST_PERMISSION_SHARE_APP,
                         Manifest.permission.WRITE_EXTERNAL_STORAGE);
                 break;

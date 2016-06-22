@@ -6,6 +6,7 @@
         android:name="android.hardware.camera"
         android:required="true"/>
 
+    <uses-permission android:name="android.permission.USE_FINGERPRINT"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
@@ -93,14 +94,14 @@
 
         <activity
             android:name=".activities.SettingsActivity"
-            android:label="@string/title_activity_settings"
             android:configChanges="orientation|keyboardHidden|screenSize"
+            android:label="@string/title_activity_settings"
             android:theme="@style/EverythingDoneTheme.Settings">
         </activity>
         <activity
             android:name=".activities.AboutActivity"
-            android:label="@string/title_activity_about"
             android:configChanges="orientation|keyboardHidden|screenSize"
+            android:label="@string/title_activity_about"
             android:theme="@style/EverythingDoneTheme.About">
         </activity>
 
@@ -113,8 +114,8 @@
         <activity
             android:name=".activities.StatisticActivity"
             android:label="@string/title_activity_statistic"
-            android:theme="@style/EverythingDoneTheme.Statistic"
-            android:screenOrientation="portrait">
+            android:screenOrientation="portrait"
+            android:theme="@style/EverythingDoneTheme.Statistic">
         </activity>
 
         <receiver
@@ -127,9 +128,14 @@
             android:enabled="true"
             android:exported="true">
             <intent-filter>
-                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
             </intent-filter>
         </receiver>
+
+        <activity
+            android:name=".activities.AuthenticationActivity"
+            android:theme="@style/EverythingDoneTheme.Authentication">
+        </activity>
     </application>
 
 </manifest>

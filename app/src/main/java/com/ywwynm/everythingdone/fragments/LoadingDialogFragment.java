@@ -14,7 +14,7 @@ import com.ywwynm.everythingdone.R;
  * Created by ywwynm on 2016/3/21.
  * dialog for loading
  */
-public class LoadingDialogFragment extends NoTitleDialogFragment {
+public class LoadingDialogFragment extends BaseDialogFragment {
 
     public static final String TAG = "LoadingDialogFragment";
 

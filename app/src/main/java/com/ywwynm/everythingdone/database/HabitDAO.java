@@ -400,12 +400,6 @@ public class HabitDAO {
         db.update(Def.Database.TABLE_HABITS, values, "id=" + id, null);
     }
 
-    public void updateHabitFirstTime(long id, long firstTime) {
-        ContentValues values = new ContentValues();
-        values.put(Def.Database.COLUMN_FIRST_TIME_HABITS, firstTime);
-        db.update(Def.Database.TABLE_HABITS, values, "id=" + id, null);
-    }
-
     public void addHabitIntervalInfo(long id, String intervalInfoToAdd) {
         ContentValues values = new ContentValues();
         values.put(Def.Database.COLUMN_INTERVAL_INFO_HABITS,
@@ -434,7 +428,13 @@ public class HabitDAO {
         Habit habit = getHabitById(habitReminder.getHabitId());
         int type = habit.getType();
         long time = habitReminder.getNotifyTime();
-        updateHabitReminder(hrId, DateTimeUtil.getHabitReminderTime(type, time, 1));
+
+        // do one time before loop if user finish a habit for 1 time in advance
+        time = DateTimeUtil.getHabitReminderTime(type, time, 1);
+        while (time < System.currentTimeMillis()) {
+            time = DateTimeUtil.getHabitReminderTime(type, time, 1);
+        }
+        updateHabitReminder(hrId, time);
     }
 
     public void updateHabitReminderToLast(HabitReminder habitReminder) {

@@ -87,7 +87,8 @@ public class ReminderNotificationActionReceiver extends BroadcastReceiver {
             ReminderDAO dao = ReminderDAO.getInstance(context);
             Reminder reminder = dao.getReminderById(id);
             reminder.setNotifyTime(System.currentTimeMillis() + 10 * 60 * 1000);
-            reminder.setNotifyMillis(reminder.getNotifyMillis() + 10 * 60 * 1000);
+            reminder.setNotifyMillis(System.currentTimeMillis() - reminder.getNotifyTime()
+                    + reminder.getNotifyMillis() + 10 * 60 * 1000);
             reminder.setState(Reminder.UNDERWAY);
             reminder.setUpdateTime(System.currentTimeMillis());
             dao.update(reminder);

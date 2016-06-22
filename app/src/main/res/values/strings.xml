@@ -57,6 +57,8 @@
     <string name="act_restore">还原</string>
     <string name="act_delete_attachment">删除该附件</string>
     <string name="act_show_attachment_info">查看附件详情</string>
+    <string name="act_set_as_private_thing">设为私密记事</string>
+    <string name="act_cancel_private_thing">取消设置私密记事</string>
 
     <string name="act_edit">编辑</string>
     <string name="act_dial">拨打</string>
@@ -338,8 +340,9 @@
 
     <string name="settings_group_ui">界面</string>
     <string name="settings_group_ringtone">铃声</string>
-    <string name="settings_group_advanced">高级</string>
     <string name="settings_group_data">数据</string>
+    <string name="settings_group_privacy">隐私</string>
+    <string name="settings_group_advanced">高级</string>
     <string name="change_drawer_header">抽屉头部图片</string>
     <string name="default_drawer_header">默认图片</string>
     <string name="act_choose_image_file">选择图片</string>
@@ -364,11 +367,39 @@
     <string name="restore_success_content">请等待应用重启。为确保数据安全，请不要进行其它操作</string>
     <string name="restore_file_not_exist">未找到备份文件，请将有效的 EverythingDone.bak 文件放在 sdcard 根目录下</string>
     <string name="restore_failed_other">请确保 EverythingDone.bak 是有效的备份文件</string>
+    <string name="set_private_thing_password">设置私密记事密码</string>
+    <string name="draw_pattern">绘制密码图案</string>
+    <string name="relax_finger_when_finish">完成时松开手指</string>
+    <string name="draw_pattern_finished">图案已记录</string>
+    <string name="draw_pattern_again">再次绘制以确认</string>
+    <string name="pattern_not_same">图案不一致</string>
+    <string name="last">上一步</string>
+    <string name="done">完成</string>
+    <string name="confirm_pattern">绘制图案以验证</string>
+    <string name="wrong_pattern">图案错误</string>
+    <string name="use_fingerprint">使用指纹</string>
+    <string name="use_fingerprint_to_verify">使用您预设的指纹作为验证方式之一</string>
+    <string name="password_not_set">未设置私密记事密码</string>
+    <string name="not_support_fgprt">您的设备不支持标准的 Android 指纹模块</string>
+    <string name="system_fgprt_not_set"><![CDATA[系统指纹模块未启用，请前往系统设置 -> 安全 -> 指纹启用指纹模块]]></string>
+    <string name="fgprt_not_enrolled"><![CDATA[未找到可用的指纹，请前往系统设置 -> 安全 -> 指纹录制一个指纹]]></string>
     <string name="auto_notify">自动提醒</string>
     <string name="auto_notify_set_time">设置自动提醒时间</string>
     <string name="auto_notify_help_info">设置一个时间，完事儿将会在您创建每件记事的相应时间后自动地提醒您。如果您创建的不是记录，完事儿将会根据其提醒时刻，智能地决定是否自动提醒。</string>
     <string name="auto_notify_off">关闭</string>
     <string name="auto_notify_ringtone">自动提醒铃声</string>
+
+    <string name="check_private_thing">查看私密记事</string>
+    <string name="confirm_fingerprint">确认指纹以继续</string>
+    <string name="touch_sensor">触摸指纹传感器</string>
+    <string name="fingerprint_error_part_1">您还可以尝试</string>
+    <string name="fingerprint_cannot_use_to_verify">你暂时无法使用指纹验证身份</string>
+    <string name="fingerprint_verify_success">身份验证成功！</string>
+    <string name="use_pattern">使用图案</string>
+
+    <string name="cannot_set_as_private_thing_title">无法设置为私密记事</string>
+    <string name="warning_should_set_password_first">您还未设置私密记事密码，请前往设置 -> 隐私 -> 设置私密记事密码进行设置</string>
+    <string name="warning_title_should_not_be_empty">如果您要设置该记事为私密记事，请您为它设置标题</string>
 
     <string name="help">帮助</string>
     <string name="about_motto">记住事情，完成事情</string>

@@ -375,5 +375,34 @@
     <string name="description_audio_attachment_info">查看該音訊附件詳細資訊</string>
     <string name="act_back_from_move_checklist">完成並返回</string>
     <string name="act_move_check_list">移動清單項</string>
+    <string name="not_support_fgprt">您的設備不支持標準的 Android 指紋模塊</string>
+    <string name="set_private_thing_password">設定私密記事密碼</string>
+    <string name="settings_group_privacy">隱私</string>
+    <string name="use_fingerprint">使用指紋</string>
+    <string name="password_not_set">未設定私密記事密碼</string>
+    <string name="system_fgprt_not_set"><![CDATA[系統指紋模塊未啟用，請前往系統設置 -> 安全 -> 指紋啟用指紋模塊]]></string>
+    <string name="fgprt_not_enrolled"><![CDATA[未找到可用的指紋，請前往系統設置 -> 安全 -> 指紋錄製一個指紋]]></string>
+    <string name="done">完成</string>
+    <string name="draw_pattern">繪製密碼圖案</string>
+    <string name="draw_pattern_again">再次繪製以確認</string>
+    <string name="draw_pattern_finished">圖案已記錄</string>
+    <string name="last">上一步</string>
+    <string name="pattern_not_same">圖案不一致</string>
+    <string name="relax_finger_when_finish">完成時鬆開手指</string>
+    <string name="confirm_pattern">繪製圖案以驗證</string>
+    <string name="wrong_pattern">圖案錯誤</string>
+    <string name="check_private_thing">查看私密記事</string>
+    <string name="confirm_fingerprint">確認指紋以繼續</string>
+    <string name="touch_sensor">觸摸指紋傳感器</string>
+    <string name="use_fingerprint_to_verify">使用您預設的指紋作為驗證方式之一</string>
+    <string name="use_pattern">使用圖案</string>
+    <string name="act_cancel_private_thing">取消設置私密記事</string>
+    <string name="act_set_as_private_thing">設為私密記事</string>
+    <string name="fingerprint_cannot_use_to_verify">你暫時無法使用指紋驗證身份</string>
+    <string name="fingerprint_error_part_1">您還可以嘗試</string>
+    <string name="fingerprint_verify_success">身份驗證成功！</string>
+    <string name="warning_should_set_password_first"><![CDATA[您還未設置私密記事密碼，請前往設置 -> 隱私 -> 設置私密記事密碼進行設置]]></string>
+    <string name="warning_title_should_not_be_empty">如果您要設置該記事為私密記事，請您為它設置標題</string>
+    <string name="cannot_set_as_private_thing_title">無法設置為私密記事</string>
 
 </resources>

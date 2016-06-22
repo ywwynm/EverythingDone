@@ -53,6 +53,8 @@ public class Thing implements Parcelable {
     public static final int DELETED               = 2;
     public static final int DELETED_FOREVER       = 3;
 
+    public static final String PRIVATE_THING_PREFIX = "`启q琼L";
+
     public static final Parcelable.Creator<Thing> CREATOR = new Parcelable.Creator<Thing>() {
 
         @Override
@@ -179,6 +181,17 @@ public class Thing implements Parcelable {
 
     public String getTitle() {
         return title;
+    }
+
+    public String getTitleToDisplay() {
+        if (isPrivate()) {
+            return title.substring(PRIVATE_THING_PREFIX.length());
+        }
+        return title;
+    }
+
+    public boolean isPrivate() {
+        return title.startsWith(PRIVATE_THING_PREFIX);
     }
 
     public void setTitle(String title) {

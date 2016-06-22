@@ -3,6 +3,7 @@ package com.ywwynm.everythingdone.database;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteConstraintException;
 import android.database.sqlite.SQLiteDatabase;
 
 import com.ywwynm.everythingdone.Def;
@@ -36,6 +37,7 @@ public class ThingDAO {
         mLimit = Def.LimitForGettingThings.ALL_UNDERWAY;
         EverythingDoneSQLiteOpenHelper helper = new EverythingDoneSQLiteOpenHelper(context);
         db = helper.getWritableDatabase();
+        checkSelf();
     }
 
     // Singleton class
@@ -48,6 +50,17 @@ public class ThingDAO {
             }
         }
         return sThingDAO;
+    }
+
+    public void checkSelf() {
+        Cursor cursor = db.query(Def.Database.TABLE_THINGS,
+                null, null, null, null, null, "id desc");
+        cursor.moveToFirst();
+        int type = cursor.getInt(cursor.getColumnIndex(Def.Database.COLUMN_TYPE_THINGS));
+        if (type != Thing.HEADER) {
+            updateHeader(cursor.getLong(0));
+        }
+        cursor.close();
     }
 
     public void setLimit(int limit) {
@@ -86,15 +99,11 @@ public class ThingDAO {
         return things;
     }
 
-    public void create(Thing thing, boolean handleNotifyEmpty, boolean handleCurrentLimit) {
-        if (thing == null) {
-            return;
-        }
-
-        System.out.println("create: headerId = " + getHeaderId() + " before updateHeader");
+    /**
+     * @return {@code true} if there was a SQLiteConstraintException thrown.
+     */
+    public boolean create(Thing thing, boolean handleNotifyEmpty, boolean handleCurrentLimit) {
         updateHeader(1);
-        System.out.println("create: headerId = " + getHeaderId() + " after updateHeader");
-        System.out.println("create: neId = " + thing.getId());
 
         int type = thing.getType();
         int state = thing.getState();
@@ -115,7 +124,14 @@ public class ThingDAO {
         values.put(Def.Database.COLUMN_UPDATE_TIME_THINGS, thing.getUpdateTime());
         values.put(Def.Database.COLUMN_FINISH_TIME_THINGS, thing.getFinishTime());
 
-        db.insert(Def.Database.TABLE_THINGS, null, values);
+        try {
+            db.insert(Def.Database.TABLE_THINGS, null, values);
+            return false;
+        } catch (SQLiteConstraintException e) {
+            e.printStackTrace();
+            create(thing, handleNotifyEmpty, handleCurrentLimit);
+            return true;
+        }
     }
 
     public void update(int typeBefore, Thing updatedThing, boolean handleNotifyEmpty,
@@ -386,21 +402,37 @@ public class ThingDAO {
      * or app itself(like a new {@link Thing.NOTIFY_EMPTY_NOTE}).
      */
     private void updateHeader(int addSize) {
-        db.execSQL("update " + Def.Database.TABLE_THINGS
+        final String SQL = "update " + Def.Database.TABLE_THINGS
                 + " set id=id+" + addSize + ",location=location+" + addSize
-                + " where type=" + Thing.HEADER);
+                + " where type=" + Thing.HEADER;
+        try {
+            db.execSQL(SQL);
+        } catch (SQLiteConstraintException e) {
+            e.printStackTrace();
+            updateHeader(addSize);
+        }
+    }
+
+    private void updateHeader(long newId) {
+        final String SQL = "update " + Def.Database.TABLE_THINGS
+                + " set id=" + newId + ",location=" + newId
+                + " where type=" + Thing.HEADER;
+        try {
+            db.execSQL(SQL);
+        } catch (SQLiteConstraintException e) {
+            e.printStackTrace();
+            updateHeader(newId);
+        }
     }
 
     private void deleteNotifyEmpty(int type, int state, boolean handleCurrentLimit) {
         int[] limits = Thing.getLimits(type, state);
         final int currentLimit = mLimit;
         ThingsCounts thingsCounts = ThingsCounts.getInstance(mContext);
-        Cursor cursor;
-        int NEtype;
         if (handleCurrentLimit) {
             for (int limit : limits) {
-                NEtype = Thing.getNotifyEmptyType(limit);
-                cursor = db.query(Def.Database.TABLE_THINGS, null,
+                int NEtype = Thing.getNotifyEmptyType(limit);
+                Cursor cursor = db.query(Def.Database.TABLE_THINGS, null,
                         "type=" + type, null, null, null, null);
                 if (cursor.getCount() != 0) {
                     db.delete(Def.Database.TABLE_THINGS, "type=" + NEtype, null);
@@ -411,8 +443,8 @@ public class ThingDAO {
         } else {
             for (int limit : limits) {
                 if (currentLimit != limit) {
-                    NEtype = Thing.getNotifyEmptyType(limit);
-                    cursor = db.query(Def.Database.TABLE_THINGS, null,
+                    int NEtype = Thing.getNotifyEmptyType(limit);
+                    Cursor cursor = db.query(Def.Database.TABLE_THINGS, null,
                             "type=" + NEtype, null, null, null, null);
                     if (cursor.getCount() != 0) {
                         db.delete(Def.Database.TABLE_THINGS, "type=" + NEtype, null);

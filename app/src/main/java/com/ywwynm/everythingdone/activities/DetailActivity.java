@@ -2,19 +2,20 @@ package com.ywwynm.everythingdone.activities;
 
 import android.animation.ArgbEvaluator;
 import android.animation.ObjectAnimator;
+import android.annotation.SuppressLint;
 import android.app.ActivityManager;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
-import android.content.pm.PackageManager;
+import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.Rect;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
 import android.media.MediaPlayer;
 import android.net.Uri;
-import android.support.annotation.NonNull;
 import android.support.annotation.StringRes;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.ActivityOptionsCompat;
@@ -63,6 +64,7 @@ import com.ywwynm.everythingdone.fragments.DateTimeDialogFragment;
 import com.ywwynm.everythingdone.fragments.HabitDetailDialogFragment;
 import com.ywwynm.everythingdone.fragments.TwoOptionsDialogFragment;
 import com.ywwynm.everythingdone.helpers.AttachmentHelper;
+import com.ywwynm.everythingdone.helpers.AuthenticationHelper;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
 import com.ywwynm.everythingdone.helpers.SendInfoHelper;
 import com.ywwynm.everythingdone.managers.ThingManager;
@@ -93,6 +95,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+@SuppressLint("NewApi")
 public final class DetailActivity extends EverythingDoneBaseActivity {
 
     public static final String TAG = "DetailActivity";
@@ -556,7 +559,10 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             mColorPicker.pickForUI(DisplayUtil.getColorIndex(mThing.getColor(), this));
         }
 
-        mEtTitle.setText(mThing.getTitle());
+        mEtTitle.setText(mThing.getTitleToDisplay());
+        if (mThing.isPrivate()) {
+            setAsPrivateThingUI();
+        }
 
         if (mType == CREATE) {
             mEtContent.requestFocus();
@@ -684,7 +690,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         mIbBack.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                returnToThingsActivity(true);
+                returnToThingsActivity(true, true);
             }
         });
     }
@@ -798,10 +804,12 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 title += Thing.getTypeStr(getThingTypeAfter(), mApplication);
             }
             BitmapDrawable bmd = (BitmapDrawable) getDrawable(R.mipmap.ic_launcher);
-            Bitmap bm = bmd.getBitmap();
-            try {
-                setTaskDescription(new ActivityManager.TaskDescription(title, bm, color));
-            } catch (Exception ignored) {
+            if (bmd != null) {
+                Bitmap bm = bmd.getBitmap();
+                try {
+                    setTaskDescription(new ActivityManager.TaskDescription(title, bm, color));
+                } catch (Exception ignored) {
+                }
             }
         }
     }
@@ -870,6 +878,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 if (CheckListHelper.isCheckListStr(mThing.getContent())) {
                     toggleCheckListActionItem(menu, true);
                 }
+                togglePrivateThingActionItem(menu, !mThing.isPrivate());
             } else if (state == Thing.FINISHED) {
                 inflater.inflate(R.menu.menu_detail_finished, menu);
                 if (mThing.getType() != Thing.HABIT) {
@@ -901,6 +910,9 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             case R.id.act_change_color:
                 mColorPicker.show();
                 break;
+            case R.id.act_set_as_private_thing:
+                setAsPrivateThingOrCancel();
+                break;
             case R.id.act_check_habit_detail:
                 mHabitDetailDialogFragment.show(getFragmentManager(), HabitDetailDialogFragment.TAG);
                 break;
@@ -912,7 +924,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 mHabitFinishedThisTime = true;
                 habitType = mHabit.getType();
                 habitDetail = mHabit.getDetail();
-                returnToThingsActivity(false);
+                returnToThingsActivity(true, false);
                 break;
             case R.id.act_finish:
                 returnToThingsActivity(Thing.FINISHED);
@@ -943,6 +955,15 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         } else {
             item.setIcon(R.mipmap.act_enable_check_list);
             item.setTitle(getString(R.string.act_enable_check_list));
+        }
+    }
+
+    private void togglePrivateThingActionItem(Menu menu, boolean set) {
+        MenuItem item = menu.findItem(R.id.act_set_as_private_thing);
+        if (set) {
+            item.setTitle(R.string.act_set_as_private_thing);
+        } else {
+            item.setTitle(R.string.act_cancel_private_thing);
         }
     }
 
@@ -1004,6 +1025,91 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 KeyboardUtil.hideKeyboard(getCurrentFocus());
             }
         }
+    }
+
+    private boolean cannotSetAsPrivateThing() {
+        return mEtTitle.getText().toString().isEmpty();
+    }
+
+    private boolean isPrivateThing() {
+        Drawable start = mEtTitle.getCompoundDrawables()[0];
+        return start != null;
+    }
+
+    private void setAsPrivateThingOrCancel() {
+        SharedPreferences sp = getSharedPreferences(Def.Meta.PREFERENCES_NAME, MODE_PRIVATE);
+        String pwd = sp.getString(Def.Meta.KEY_PRIVATE_PASSWORD, null);
+        if (pwd == null) {
+            warnNoPassword();
+        } else {
+            boolean isPrivateThing = isPrivateThing();
+            if (isPrivateThing) {
+                tryToCancelPrivateThing();
+            } else {
+                setAsPrivateThingUI();
+                togglePrivateThingActionItem(mActionbar.getMenu(), false);
+            }
+        }
+    }
+
+    private void warnNoPassword() {
+        final AlertDialogFragment adf = new AlertDialogFragment();
+        adf.setShowCancel(false);
+
+        int color = getAccentColor();
+        adf.setTitleColor(color);
+        adf.setConfirmColor(color);
+
+        adf.setTitle(getString(R.string.cannot_set_as_private_thing_title));
+        adf.setContent(getString(R.string.warning_should_set_password_first));
+        adf.show(getFragmentManager(), AlertDialogFragment.TAG);
+    }
+
+    private void tryToCancelPrivateThing() {
+        String cp = getSharedPreferences(Def.Meta.PREFERENCES_NAME, MODE_PRIVATE)
+                .getString(Def.Meta.KEY_PRIVATE_PASSWORD, null);
+        AuthenticationHelper.authenticate(
+                this, getAccentColor(), getString(R.string.act_cancel_private_thing), cp,
+                new AuthenticationHelper.AuthenticationCallback() {
+                    @Override
+                    public void onAuthenticated() {
+                        cancelPrivateThingUI();
+                    }
+
+                    @Override
+                    public void onCancel() {
+
+                    }
+                });
+    }
+
+    private void cancelPrivateThingUI() {
+        togglePrivateThingActionItem(mActionbar.getMenu(), true);
+
+        mEtTitle.setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, 0);
+
+        int paddingSide = (int) (screenDensity * 20);
+        mEtTitle.setPadding(paddingSide, mEtTitle.getPaddingTop(), paddingSide, 0);
+    }
+
+    private void setAsPrivateThingUI() {
+        mEtTitle.setCompoundDrawablesWithIntrinsicBounds(R.mipmap.ic_locked_small, 0, 0, 0);
+
+        int paddingSide = (int) (screenDensity * 16);
+        mEtTitle.setPadding(paddingSide, mEtTitle.getPaddingTop(), paddingSide, 0);
+    }
+
+    private void AlertNoTitleWhenSetPrivateThing() {
+        AlertDialogFragment adf = new AlertDialogFragment();
+        adf.setShowCancel(false);
+
+        int color = getAccentColor();
+        adf.setTitleColor(color);
+        adf.setConfirmColor(color);
+
+        adf.setTitle(getString(R.string.cannot_set_as_private_thing_title));
+        adf.setContent(getString(R.string.warning_title_should_not_be_empty));
+        adf.show(getFragmentManager(), AlertDialogFragment.TAG);
     }
 
     @Override
@@ -1090,28 +1196,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
     @Override
     public void onBackPressed() {
-        returnToThingsActivity(true);
-    }
-
-    @Override
-    public void onRequestPermissionsResult(
-            int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        final int G = PackageManager.PERMISSION_GRANTED;
-        for (int grantResult : grantResults) {
-            if (grantResult != G) {
-                showNormalSnackbar(R.string.error_permission_denied);
-                return;
-            }
-        }
-        if (requestCode == Def.Communication.REQUEST_PERMISSION_TAKE_PHOTO) {
-            mAddAttachmentDialogFragment.startTakePhoto();
-        } else if (requestCode == Def.Communication.REQUEST_PERMISSION_SHOOT_VIDEO) {
-            mAddAttachmentDialogFragment.startShootVideo();
-        } else if (requestCode == Def.Communication.REQUEST_PERMISSION_RECORD_AUDIO) {
-            mAddAttachmentDialogFragment.showRecordAudioDialog();
-        } else if (requestCode == Def.Communication.REQUEST_PERMISSION_CHOOSE_MEDIA_FILE) {
-            mAddAttachmentDialogFragment.startChooseMediaFile();
-        }
+        returnToThingsActivity(true, true);
     }
 
     public void showNormalSnackbar(int stringRes) {
@@ -1568,7 +1653,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         adf.setConfirmListener(new AlertDialogFragment.ConfirmListener() {
             @Override
             public void onConfirm() {
-                returnToThingsActivity(false);
+                returnToThingsActivity(true, false);
             }
         });
         adf.setCancelListener(cancelListener);
@@ -1617,7 +1702,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         habitDAO.createHabit(habit);
     }
 
-    private void returnToThingsActivity(boolean alertForCancelling) {
+    private void returnToThingsActivity(boolean alertForPrivateThing, boolean alertForCancelling) {
         if (changingColor) return;
 
         if (mAudioAttachmentAdapter != null && mAudioAttachmentAdapter.getPlayingIndex() != -1) {
@@ -1638,6 +1723,11 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             updateThingAndItsPosition(id);
         }
 
+        if (alertForPrivateThing && isPrivateThing() && cannotSetAsPrivateThing()) {
+            AlertNoTitleWhenSetPrivateThing();
+            return;
+        }
+
         boolean reminderUpdated = true, habitUpdated = true;
         long reminderTime = getReminderTime();
 
@@ -1655,6 +1745,10 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         }
 
         String title = mEtTitle.getText().toString();
+        if (isPrivateThing()) {
+            title = Thing.PRIVATE_THING_PREFIX + title;
+        }
+
         String content;
         int color = getAccentColor();
 

@@ -7,14 +7,12 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.ActivityOptionsCompat;
@@ -53,6 +51,7 @@ import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.fragments.AlertDialogFragment;
 import com.ywwynm.everythingdone.fragments.ThreeActionsAlertDialogFragment;
 import com.ywwynm.everythingdone.helpers.AppUpdateHelper;
+import com.ywwynm.everythingdone.helpers.AuthenticationHelper;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
 import com.ywwynm.everythingdone.helpers.SendInfoHelper;
 import com.ywwynm.everythingdone.managers.ModeManager;
@@ -61,13 +60,13 @@ import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.HabitRecord;
 import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.Thing;
+import com.ywwynm.everythingdone.permission.SimplePermissionCallback;
 import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil;
 import com.ywwynm.everythingdone.utils.FileUtil;
 import com.ywwynm.everythingdone.utils.KeyboardUtil;
 import com.ywwynm.everythingdone.utils.LocaleUtil;
-import com.ywwynm.everythingdone.utils.PermissionUtil;
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil;
 import com.ywwynm.everythingdone.views.ActivityHeader;
 import com.ywwynm.everythingdone.views.DrawerHeader;
@@ -234,14 +233,14 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     }
 
     private void tryToFeedbackError() {
-        PermissionUtil.Callback callback = new PermissionUtil.Callback() {
-            @Override
-            public void onGranted() {
-                SendInfoHelper.sendFeedback(ThingsActivity.this, true);
-                deleteFeedbackFile();
-            }
-        };
-        PermissionUtil.doWithPermissionChecked(callback, this,
+        doWithPermissionChecked(
+                new SimplePermissionCallback(this) {
+                    @Override
+                    public void onGranted() {
+                        SendInfoHelper.sendFeedback(ThingsActivity.this, true);
+                        deleteFeedbackFile();
+                    }
+                },
                 Def.Communication.REQUEST_PERMISSION_SEND_ERROR_FEEDBACK,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE);
     }
@@ -250,19 +249,6 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         File file = new File(getApplicationInfo().dataDir + "/files/" +
                 Def.Meta.FEEDBACK_ERROR_FILE_NAME);
         FileUtil.deleteFile(file);
-    }
-
-    @Override
-    public void onRequestPermissionsResult(
-            int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        if (requestCode == Def.Communication.REQUEST_PERMISSION_SEND_ERROR_FEEDBACK) {
-            if (grantResults[0] != PackageManager.PERMISSION_GRANTED) {
-                Toast.makeText(this, R.string.error_permission_denied, Toast.LENGTH_SHORT).show();
-            } else {
-                SendInfoHelper.sendFeedback(this, true);
-                deleteFeedbackFile();
-            }
-        }
     }
 
     @Override
@@ -309,10 +295,12 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     private void updateTaskDescription() {
         if (DeviceUtil.hasLollipopApi()) {
             BitmapDrawable bmd = (BitmapDrawable) getDrawable(R.mipmap.ic_launcher);
-            Bitmap bm = bmd.getBitmap();
-            setTaskDescription(new ActivityManager.TaskDescription(
-                    getString(R.string.app_name), bm,
-                    ContextCompat.getColor(this, R.color.bg_activity_things)));
+            if (bmd != null) {
+                Bitmap bm = bmd.getBitmap();
+                setTaskDescription(new ActivityManager.TaskDescription(
+                        getString(R.string.app_name), bm,
+                        ContextCompat.getColor(this, R.color.bg_activity_things)));
+            }
         }
     }
 
@@ -501,7 +489,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 }
                 mActivityHeader.updateText();
                 mDrawerHeader.updateTexts();
-                mUpdateMainUiInOnResume = true;// TODO: 2016/3/28 mUpdateMainUiOnResume = false?
+                mUpdateMainUiInOnResume = true;
                 App.setSomethingUpdatedSpecially(false);
                 mBroadCastIntent = null;
             }
@@ -1218,7 +1206,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     if (Thing.isImportantType(type)) {
                         containsHabitOrGoal = true;
                     }
-                    thing.setSelected(false);
+                    //thing.setSelected(false);
                     SystemNotificationUtil.cancelNotification(thing.getId(), type, mApplication);
                     mUndoThings.add(thing);
                     mUndoLocations.add(thing.getLocation());
@@ -1248,6 +1236,12 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             // if mUntoThing.size == 1, it means that it is user's decision
             alertForHabitGoal(stateBefore, stateAfter);
         } else {
+            for (Thing undoThing : mUndoThings) {
+                undoThing.setSelected(false);
+            }
+            for (Thing thingToDelete : thingsToDeleteForever) {
+                thingToDelete.setSelected(false);
+            }
             handleUpdateStates(stateBefore, stateAfter);
         }
     }
@@ -1267,6 +1261,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 Iterator<Thing> iterator = mUndoThings.iterator();
                 while (iterator.hasNext()) {
                     Thing thing = iterator.next();
+                    thing.setSelected(false);
                     if (Thing.isImportantType(thing.getType())) {
                         iterator.remove();
                         mUndoLocations.remove(thing.getLocation());
@@ -1278,6 +1273,9 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
             @Override
             public void onSecondClicked() {
+                for (Thing undoThing : mUndoThings) {
+                    undoThing.setSelected(false);
+                }
                 handleUpdateStates(stateBefore, stateAfter);
             }
 
@@ -1583,11 +1581,12 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         }
 
         @Override
-        public void onItemClick(View v, int position) {
+        public void onItemClick(final View v, final int position) {
             if (position <= 0 || mIsRevealAnimPlaying) {
                 return;
             }
             dismissSnackbars();
+            KeyboardUtil.hideKeyboard(getCurrentFocus());
 
             List<Thing> things = mThingManager.getThings();
             if (position >= things.size()) {
@@ -1599,26 +1598,52 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     return;
                 }
 
-                final Intent intent = new Intent(ThingsActivity.this, DetailActivity.class);
-                intent.putExtra(Def.Communication.KEY_SENDER_NAME,
-                        ThingsActivity.class.getName());
-                intent.putExtra(Def.Communication.KEY_DETAIL_ACTIVITY_TYPE,
-                        DetailActivity.UPDATE);
-                intent.putExtra(Def.Communication.KEY_ID,
-                        things.get(position).getId());
-                intent.putExtra(Def.Communication.KEY_POSITION, position);
+                final Thing thing = things.get(position);
+                if (thing.isPrivate()) {
+                    ThingsActivity activity = ThingsActivity.this;
+                    SharedPreferences sp = getSharedPreferences(
+                            Def.Meta.PREFERENCES_NAME, MODE_PRIVATE);
+                    String cp = sp.getString(Def.Meta.KEY_PRIVATE_PASSWORD, null);
 
-                ActivityOptionsCompat transition = ActivityOptionsCompat.makeScaleUpAnimation(
-                        v, v.getWidth() / 2, v.getHeight() / 2, 0, 0);
-                ActivityCompat.startActivityForResult(
-                        ThingsActivity.this, intent, Def.Communication.REQUEST_ACTIVITY_DETAIL,
-                        transition.toBundle());
+                    AuthenticationHelper.authenticate(
+                            activity, thing.getColor(),
+                            getString(R.string.check_private_thing), cp,
+                            new AuthenticationHelper.AuthenticationCallback() {
+                                @Override
+                                public void onAuthenticated() {
+                                    openDetailActivity(thing, position, v);
+                                }
+
+                                @Override
+                                public void onCancel() {
+
+                                }
+                            });
+                } else {
+                    openDetailActivity(thing, position, v);
+                }
             } else {
                 Thing thing = things.get(position);
                 thing.setSelected(!thing.isSelected());
                 mThingsAdapter.notifyItemChanged(position);
                 mModeManager.updateSelectedCount();
             }
+        }
+
+        private void openDetailActivity(Thing thing, int position, View v) {
+            final Intent intent = new Intent(ThingsActivity.this, DetailActivity.class);
+            intent.putExtra(Def.Communication.KEY_SENDER_NAME,
+                    ThingsActivity.class.getName());
+            intent.putExtra(Def.Communication.KEY_DETAIL_ACTIVITY_TYPE,
+                    DetailActivity.UPDATE);
+            intent.putExtra(Def.Communication.KEY_ID, thing.getId());
+            intent.putExtra(Def.Communication.KEY_POSITION, position);
+
+            ActivityOptionsCompat transition = ActivityOptionsCompat.makeScaleUpAnimation(
+                    v, v.getWidth() / 2, v.getHeight() / 2, 0, 0);
+            ActivityCompat.startActivityForResult(
+                    ThingsActivity.this, intent, Def.Communication.REQUEST_ACTIVITY_DETAIL,
+                    transition.toBundle());
         }
 
         @Override

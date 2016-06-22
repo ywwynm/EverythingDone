@@ -35,12 +35,10 @@ public class AlarmHelper {
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
                 context, (int) id, intent, PendingIntent.FLAG_UPDATE_CURRENT);
 
-        if (DeviceUtil.hasKitKatApi()) {
-            try {
-                am.setExact(AlarmManager.RTC_WAKEUP, notifyTime, pendingIntent);
-            } catch (Throwable throwable) {
-                am.set(AlarmManager.RTC_WAKEUP, notifyTime, pendingIntent);
-            }
+        if (DeviceUtil.hasMarshmallowApi()) {
+            am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, notifyTime, pendingIntent);
+        } else if (DeviceUtil.hasKitKatApi()) {
+            am.setExact(AlarmManager.RTC_WAKEUP, notifyTime, pendingIntent);
         } else {
             am.set(AlarmManager.RTC_WAKEUP, notifyTime, pendingIntent);
         }
@@ -62,12 +60,10 @@ public class AlarmHelper {
         PendingIntent pendingIntent = PendingIntent.getBroadcast(context, (int) id, intent,
                 PendingIntent.FLAG_UPDATE_CURRENT);
 
-        if (DeviceUtil.hasKitKatApi()) {
-            try {
-                am.setExact(AlarmManager.RTC_WAKEUP, notifyTime, pendingIntent);
-            } catch (Throwable throwable) {
-                am.set(AlarmManager.RTC_WAKEUP, notifyTime, pendingIntent);
-            }
+        if (DeviceUtil.hasMarshmallowApi()) {
+            am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, notifyTime, pendingIntent);
+        } else if (DeviceUtil.hasKitKatApi()) {
+            am.setExact(AlarmManager.RTC_WAKEUP, notifyTime, pendingIntent);
         } else {
             am.set(AlarmManager.RTC_WAKEUP, notifyTime, pendingIntent);
         }
@@ -110,7 +106,7 @@ public class AlarmHelper {
 
     public static void createAllAlarms(
             Context context, boolean updateHabitRemindedTimes) {
-        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         ThingDAO thingDAO = ThingDAO.getInstance(context);
         ReminderDAO reminderDAO = ReminderDAO.getInstance(context);
         HabitDAO habitDAO = HabitDAO.getInstance(context);
@@ -135,7 +131,14 @@ public class AlarmHelper {
                         intent.putExtra(Def.Communication.KEY_ID, id);
                         PendingIntent pendingIntent = PendingIntent.getBroadcast(
                                 context, (int) id, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-                        alarmManager.set(AlarmManager.RTC_WAKEUP, notifyTime, pendingIntent);
+                        if (DeviceUtil.hasMarshmallowApi()) {
+                            am.setExactAndAllowWhileIdle(
+                                    AlarmManager.RTC_WAKEUP, notifyTime, pendingIntent);
+                        } else if (DeviceUtil.hasKitKatApi()) {
+                            am.setExact(AlarmManager.RTC_WAKEUP, notifyTime, pendingIntent);
+                        } else {
+                            am.set(AlarmManager.RTC_WAKEUP, notifyTime, pendingIntent);
+                        }
                     }
                 }
             } else if (type == Thing.HABIT) {

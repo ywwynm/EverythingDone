@@ -1,9 +1,11 @@
 <resources>
 
     <style name="EverythingDoneTheme.Things" parent="Theme.AppCompat.NoActionBar">
-        <item name="android:colorPrimaryDark">#FFFFFF</item>
+        <item name="colorPrimaryDark">#FFFFFF</item>
         <item name="android:windowBackground">@color/bg_activity_things</item>
         <item name="android:dialogTheme">@style/Theme.AppCompat.Light.Dialog</item>
+        <item name="swirl_ridgeColor">@color/black_54</item>
+        <item name="swirl_errorColor">@color/error</item>
     </style>
     
     <style name="EverythingDoneTheme.Things.Toolbar" parent="Theme.AppCompat.Light.NoActionBar">
@@ -22,6 +24,8 @@
 
     <style name="EverythingDoneTheme.Detail" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="windowActionModeOverlay">true</item>
+        <item name="swirl_ridgeColor">@color/black_54</item>
+        <item name="swirl_errorColor">@color/error</item>
         <!--<item name="actionOverflowButtonStyle">@style/EverythingDoneTheme.Detail.Overflow</item>-->
     </style>
 
@@ -54,6 +58,8 @@
 
     <style name="EverythingDoneTheme.Settings" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="colorAccent">@color/blue_deep</item>
+        <item name="swirl_ridgeColor">@color/blue_deep</item>
+        <item name="swirl_errorColor">@color/error</item>
     </style>
 
     <style name="EverythingDoneTheme.About" parent="Theme.AppCompat.Light.NoActionBar">
@@ -67,6 +73,15 @@
 
     <style name="EverythingDoneTheme.Statistic.Actionbar" parent="Theme.AppCompat.NoActionBar">
         <item name="colorControlNormal">#FFFFFF</item>
+    </style>
+
+    <style name="EverythingDoneTheme.Authentication" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:colorBackgroundCacheHint">@null</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="swirl_ridgeColor">@color/black_54</item>
+        <item name="swirl_errorColor">@color/error</item>
     </style>
 
     <style name="DrawerArrowStyle" parent="Widget.AppCompat.DrawerArrowToggle">

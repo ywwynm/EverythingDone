@@ -14,7 +14,7 @@ import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.DetailActivity;
 import com.ywwynm.everythingdone.helpers.AttachmentHelper;
-import com.ywwynm.everythingdone.utils.PermissionUtil;
+import com.ywwynm.everythingdone.permission.SimplePermissionCallback;
 
 import java.io.File;
 
@@ -22,7 +22,7 @@ import java.io.File;
  * Created by ywwynm on 2015/9/25.
  * DialogFragment used to choose what kind of attachments to add.
  */
-public class AddAttachmentDialogFragment extends NoTitleDialogFragment {
+public class AddAttachmentDialogFragment extends BaseDialogFragment {
 
     public static final String TAG = "AddAttachmentDialogFragment";
 
@@ -74,13 +74,13 @@ public class AddAttachmentDialogFragment extends NoTitleDialogFragment {
                     return;
                 }
 
-                PermissionUtil.Callback callback = new PermissionUtil.Callback() {
-                    @Override
-                    public void onGranted() {
-                        startTakePhoto();
-                    }
-                };
-                PermissionUtil.doWithPermissionChecked(callback, mActivity,
+                mActivity.doWithPermissionChecked(
+                        new SimplePermissionCallback(mActivity) {
+                            @Override
+                            public void onGranted() {
+                                startTakePhoto();
+                            }
+                        },
                         Def.Communication.REQUEST_PERMISSION_TAKE_PHOTO,
                         Manifest.permission.WRITE_EXTERNAL_STORAGE);
             }
@@ -96,13 +96,13 @@ public class AddAttachmentDialogFragment extends NoTitleDialogFragment {
                     return;
                 }
 
-                PermissionUtil.Callback callback = new PermissionUtil.Callback() {
-                    @Override
-                    public void onGranted() {
-                        startShootVideo();
-                    }
-                };
-                PermissionUtil.doWithPermissionChecked(callback, mActivity,
+                mActivity.doWithPermissionChecked(
+                        new SimplePermissionCallback(mActivity) {
+                            @Override
+                            public void onGranted() {
+                                startShootVideo();
+                            }
+                        },
                         Def.Communication.REQUEST_PERMISSION_SHOOT_VIDEO,
                         Manifest.permission.WRITE_EXTERNAL_STORAGE);
             }
@@ -111,13 +111,13 @@ public class AddAttachmentDialogFragment extends NoTitleDialogFragment {
         mTvRecordAudioAsBt.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                PermissionUtil.Callback callback = new PermissionUtil.Callback() {
-                    @Override
-                    public void onGranted() {
-                        showRecordAudioDialog();
-                    }
-                };
-                PermissionUtil.doWithPermissionChecked(callback, mActivity,
+                mActivity.doWithPermissionChecked(
+                        new SimplePermissionCallback(mActivity) {
+                            @Override
+                            public void onGranted() {
+                                showRecordAudioDialog();
+                            }
+                        },
                         Def.Communication.REQUEST_PERMISSION_RECORD_AUDIO,
                         Manifest.permission.RECORD_AUDIO,
                         Manifest.permission.WRITE_EXTERNAL_STORAGE);
@@ -127,13 +127,13 @@ public class AddAttachmentDialogFragment extends NoTitleDialogFragment {
         mTvChooseMediaFilesAsBt.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                PermissionUtil.Callback callback = new PermissionUtil.Callback() {
-                    @Override
-                    public void onGranted() {
-                        startChooseMediaFile();
-                    }
-                };
-                PermissionUtil.doWithPermissionChecked(callback, mActivity,
+                mActivity.doWithPermissionChecked(
+                        new SimplePermissionCallback(mActivity) {
+                            @Override
+                            public void onGranted() {
+                                startChooseMediaFile();
+                            }
+                        },
                         Def.Communication.REQUEST_PERMISSION_CHOOSE_MEDIA_FILE,
                         Manifest.permission.WRITE_EXTERNAL_STORAGE);
             }

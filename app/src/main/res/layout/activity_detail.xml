@@ -39,7 +39,7 @@
                 android:paddingLeft="20dp"
                 android:paddingRight="20dp"
                 android:paddingTop="12dp"
-                android:singleLine="true"
+                android:drawablePadding="16dp"
                 android:textColor="@color/white_86p"
                 android:textColorHint="@color/white_86p"
                 android:textCursorDrawable="@drawable/cursor_et_title"

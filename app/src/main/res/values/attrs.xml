@@ -16,4 +16,10 @@
         </attr>
     </declare-styleable>
 
+    <declare-styleable name="PatternLockView">
+        <attr name="pathColor" format="color"/>
+        <attr name="wrongColor" format="color"/>
+        <attr name="correctColor" format="color"/>
+    </declare-styleable>
+
 </resources>

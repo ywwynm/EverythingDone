@@ -13,4 +13,7 @@
 
     <dimen name="card_note_reminder_statistic_margin">16dp</dimen>
 
+    <dimen name="settings_card_margin_top">12dp</dimen>
+    <dimen name="settings_card_margin_side">0dp</dimen>
+
 </resources>

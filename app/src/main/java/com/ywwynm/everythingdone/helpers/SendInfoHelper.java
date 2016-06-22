@@ -1,5 +1,6 @@
 package com.ywwynm.everythingdone.helpers;
 
+import android.annotation.SuppressLint;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
@@ -77,6 +78,7 @@ public class SendInfoHelper {
                 AttachmentHelper.toUriList(attachment), AttachmentHelper.isAllImage(attachment));
     }
 
+    @SuppressLint("SimpleDateFormat")
     public static void sendFeedback(Context context, boolean attachLogFile) {
         Intent intent = new Intent();
         intent.putExtra(Intent.EXTRA_SUBJECT, context.getString(R.string.act_feedback) + "-"
@@ -137,7 +139,7 @@ public class SendInfoHelper {
     }
 
     public static String getThingShareInfo(Context context, Thing thing) {
-        String title = thing.getTitle();
+        String title = thing.getTitleToDisplay();
         String content = thing.getContent();
         if (title.isEmpty() && content.isEmpty()) {
             return null;

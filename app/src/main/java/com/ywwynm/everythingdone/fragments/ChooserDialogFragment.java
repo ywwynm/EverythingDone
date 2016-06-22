@@ -22,7 +22,7 @@ import java.util.List;
  * Created by ywwynm on 2016/3/11.
  * chooser dialog fragment
  */
-public class ChooserDialogFragment extends NoTitleDialogFragment {
+public class ChooserDialogFragment extends BaseDialogFragment {
 
     public static final String TAG = "ChooserDialogFragment";
 

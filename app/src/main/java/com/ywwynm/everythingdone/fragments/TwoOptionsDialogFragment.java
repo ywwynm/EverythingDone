@@ -17,7 +17,7 @@ import com.ywwynm.everythingdone.utils.KeyboardUtil;
  * Shown when user clicks {@link android.text.style.URLSpan}s in
  * {@link com.ywwynm.everythingdone.activities.DetailActivity}.
  */
-public class TwoOptionsDialogFragment extends NoTitleDialogFragment {
+public class TwoOptionsDialogFragment extends BaseDialogFragment {
 
     public static final String TAG = "TwoOptionsDialogFragment";
 
