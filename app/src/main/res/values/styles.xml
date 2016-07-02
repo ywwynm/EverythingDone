@@ -35,7 +35,7 @@
     </style>
 
     <!--<style name="EverythingDoneTheme.Detail.Overflow" parent="Widget.AppCompat.ActionButton.Overflow">-->
-        <!--<item name="android:src">@mipmap/ic_overflow</item>-->
+        <!--<item name="android:src">@drawable/ic_overflow</item>-->
     <!--</style>-->
 
     <style name="EverythingDoneTheme.Detail.EditText" parent="Theme.AppCompat">
@@ -82,6 +82,10 @@
         <item name="android:windowIsTranslucent">true</item>
         <item name="swirl_ridgeColor">@color/black_54</item>
         <item name="swirl_errorColor">@color/error</item>
+    </style>
+
+    <style name="EverythingDoneTheme.Help" parent="Theme.AppCompat.Light.NoActionBar">
+
     </style>
 
     <style name="DrawerArrowStyle" parent="Widget.AppCompat.DrawerArrowToggle">

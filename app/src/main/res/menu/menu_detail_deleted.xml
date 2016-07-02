@@ -5,7 +5,7 @@
     <item
         android:id="@+id/act_restore"
         android:title="@string/act_restore"
-        android:icon="@mipmap/act_restore"
+        android:icon="@drawable/act_restore"
         app:showAsAction="always"/>
 
     <item

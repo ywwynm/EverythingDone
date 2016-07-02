@@ -116,7 +116,7 @@ public class ImageAttachmentAdapter extends RecyclerView.Adapter<ImageAttachment
         return mItems.size();
     }
 
-    class ImageViewHolder extends RecyclerView.ViewHolder {
+    class ImageViewHolder extends BaseViewHolder {
 
         final FrameLayout fl;
         final ImageView ivImage;
@@ -127,11 +127,11 @@ public class ImageAttachmentAdapter extends RecyclerView.Adapter<ImageAttachment
         public ImageViewHolder(View itemView) {
             super(itemView);
 
-            fl            = (FrameLayout) itemView.findViewById(R.id.fl_image_attachment);
-            ivImage       = (ImageView)   itemView.findViewById(R.id.iv_image_attachment);
-            ivVideoSignal = (ImageView)   itemView.findViewById(R.id.iv_video_signal);
-            ivDelete      = (ImageView)   itemView.findViewById(R.id.iv_delete_image_attachment);
-            pbLoading     = (ProgressBar) itemView.findViewById(R.id.pb_image_attachment);
+            fl            = f(R.id.fl_image_attachment);
+            ivImage       = f(R.id.iv_image_attachment);
+            ivVideoSignal = f(R.id.iv_video_signal);
+            ivDelete      = f(R.id.iv_delete_image_attachment);
+            pbLoading     = f(R.id.pb_image_attachment);
 
             int pbColor = ContextCompat.getColor(mContext, R.color.app_accent);
             pbLoading.getIndeterminateDrawable().setColorFilter(pbColor, PorterDuff.Mode.SRC_IN);

@@ -99,10 +99,10 @@ public class HabitReceiver extends BroadcastReceiver {
             getItIntent.putExtra(Def.Communication.KEY_ID, hrId);
             getItIntent.setAction(Def.Communication.NOTIFICATION_ACTION_GET_IT);
 
-            builder.addAction(R.mipmap.act_finish, context.getString(R.string.act_finish_this_time_habit),
+            builder.addAction(R.drawable.act_finish, context.getString(R.string.act_finish_this_time_habit),
                             PendingIntent.getBroadcast(context,
                                     (int) hrId, finishIntent, PendingIntent.FLAG_UPDATE_CURRENT))
-                   .addAction(R.mipmap.act_get_it, context.getString(R.string.act_get_it),
+                   .addAction(R.drawable.act_get_it, context.getString(R.string.act_get_it),
                             PendingIntent.getBroadcast(context,
                                     (int) hrId, getItIntent, PendingIntent.FLAG_UPDATE_CURRENT));
 

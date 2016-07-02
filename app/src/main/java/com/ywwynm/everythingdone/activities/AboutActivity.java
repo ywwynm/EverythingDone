@@ -13,17 +13,16 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.FrameLayout;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.ywwynm.everythingdone.BuildConfig;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
-import com.ywwynm.everythingdone.permission.SimplePermissionCallback;
 import com.ywwynm.everythingdone.fragments.AlertDialogFragment;
 import com.ywwynm.everythingdone.fragments.ThreeActionsAlertDialogFragment;
 import com.ywwynm.everythingdone.helpers.SendInfoHelper;
+import com.ywwynm.everythingdone.permission.SimplePermissionCallback;
 import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.FontCache;
@@ -114,15 +113,11 @@ public class AboutActivity extends EverythingDoneBaseActivity {
 
     @Override
     protected void initUI() {
+        DisplayUtil.expandStatusBarAboveKitkat(mStatusBar);
         DisplayUtil.darkStatusBarForMIUI(this);
         DisplayUtil.coverStatusBar(f(R.id.view_status_bar_cover));
 
         if (DeviceUtil.hasKitKatApi()) {
-            LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams)
-                    mStatusBar.getLayoutParams();
-            lp.height = DisplayUtil.getStatusbarHeight(this);
-            mStatusBar.requestLayout();
-
             if (DisplayUtil.hasNavigationBar(this)) {
                 int navHeight = DisplayUtil.getNavigationBarHeight(this);
                 FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) mFab.getLayoutParams();
@@ -143,7 +138,9 @@ public class AboutActivity extends EverythingDoneBaseActivity {
     protected void setActionbar() {
         setSupportActionBar(mActionbar);
         ActionBar actionBar = getSupportActionBar();
-        actionBar.setDisplayHomeAsUpEnabled(true);
+        if (actionBar != null) {
+            actionBar.setDisplayHomeAsUpEnabled(true);
+        }
         mActionbar.setNavigationOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {

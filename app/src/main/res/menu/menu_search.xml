@@ -5,7 +5,7 @@
     <item
         android:id="@+id/act_select_color"
         android:title="@string/act_select_color"
-        android:icon="@mipmap/act_change_color"
+        android:icon="@drawable/act_change_color"
         app:showAsAction="always"/>
 
 </menu>

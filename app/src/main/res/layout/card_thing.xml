@@ -73,7 +73,7 @@
             android:layout_height="48dp"
             android:layout_marginTop="16dp"
             android:layout_gravity="center"
-            android:src="@mipmap/ic_locked_big"
+            android:src="@drawable/ic_locked_big"
             tools:ignore="ContentDescription"/>
 
         <TextView
@@ -100,7 +100,7 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_vertical"
                 android:contentDescription="@string/description_audio_attachment"
-                android:src="@mipmap/card_audio_attachment"/>
+                android:src="@drawable/card_audio_attachment"/>
 
             <TextView
                 android:id="@+id/tv_thing_audio_attachment_count"
@@ -167,7 +167,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="5dp"
                 android:layout_below="@id/view_habit_separator_1"
-                android:src="@mipmap/card_habit"
+                android:src="@drawable/card_habit"
                 android:contentDescription="@string/description_time"/>
 
             <TextView

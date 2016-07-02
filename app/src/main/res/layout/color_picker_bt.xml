@@ -11,5 +11,5 @@
     android:textColor="@color/black_54p"
     style="@style/SelectableItemBackground"
     android:theme="@style/Theme.AppCompat.Light"
-    android:drawableStart="@mipmap/ic_checkbox_unchecked"
-    android:drawableLeft="@mipmap/ic_checkbox_unchecked"/>
+    android:drawableStart="@drawable/ic_checkbox_unchecked"
+    android:drawableLeft="@drawable/ic_checkbox_unchecked"/>

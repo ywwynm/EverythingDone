@@ -64,10 +64,10 @@ public class DrawerHeader {
                 Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE);
         String header = sp.getString(Def.Meta.KEY_DRAWER_HEADER, D);
         if (D.equals(header)) {
-            mIvHeader.setImageResource(R.mipmap.drawer_header);
+            mIvHeader.setImageResource(R.drawable.drawer_header);
         } else {
             if (!new File(header).exists()) {
-                mIvHeader.setImageResource(R.mipmap.drawer_header);
+                mIvHeader.setImageResource(R.drawable.drawer_header);
                 sp.edit().putString(Def.Meta.KEY_DRAWER_HEADER, D).apply();
                 return;
             }

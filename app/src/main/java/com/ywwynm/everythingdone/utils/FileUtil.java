@@ -48,8 +48,20 @@ public class FileUtil {
             }
         }
 
+        @SuppressLint("SimpleDateFormat")
         String timeStamp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
         return new File(dir, timeStamp + postfix);
+    }
+
+    public static boolean isAppropriateAsFileName(String str) {
+        String forbid = "\\/:*?\"<>|";
+        final int len = forbid.length();
+        for (int i = 0; i < len; i++) {
+            if (str.contains(String.valueOf(forbid.charAt(i)))) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public static File createFile(String parentPath, String name) {

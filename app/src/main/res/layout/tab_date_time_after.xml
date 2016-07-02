@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:focusable="true"
@@ -18,7 +19,8 @@
         android:selectAllOnFocus="true"
         android:textSize="16sp"
         android:textCursorDrawable="@null"
-        android:text="45"/>
+        android:text="45"
+        tools:ignore="HardcodedText"/>
 
     <TextView
         android:id="@+id/tv_time_as_bt_after"
@@ -30,8 +32,8 @@
         android:paddingStart="4dp"
         android:paddingLeft="4dp"
         android:gravity="center_vertical"
-        android:drawableEnd="@mipmap/ic_dropdown"
-        android:drawableRight="@mipmap/ic_dropdown"
+        android:drawableEnd="@drawable/ic_dropdown"
+        android:drawableRight="@drawable/ic_dropdown"
         style="@style/SelectableItemBackground"/>
 
     <TextView

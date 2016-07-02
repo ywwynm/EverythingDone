@@ -1,6 +1,5 @@
 package com.ywwynm.everythingdone.fragments;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.hardware.fingerprint.FingerprintManager;
@@ -13,6 +12,7 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import com.mattprecious.swirl.SwirlView;
+import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.helpers.AuthenticationHelper;
@@ -23,11 +23,9 @@ import com.ywwynm.everythingdone.utils.LocaleUtil;
  * Created by ywwynm on 2016/6/20.
  * A DialogFragment used to authenticate user's id by pattern or fingerprint.
  */
-public class AuthenticationDialogFragment extends BaseDialogFragment {
+public class FingerprintDialogFragment extends BaseDialogFragment {
 
-    public static final String TAG = "AuthenticationDialogFragment";
-
-    private Activity mActivity;
+    public static final String TAG = "FingerprintDialogFragment";
 
     private int mAccentColor;
 
@@ -46,20 +44,28 @@ public class AuthenticationDialogFragment extends BaseDialogFragment {
 
     private boolean mAuthenticated = false;
 
+    private boolean mShouldUpdateToErrorState = true;
+
     @Override
     protected int getLayoutResource() {
-        return R.layout.dialog_authentication;
+        return R.layout.dialog_fingerprint;
     }
 
     @Override
     public void onResume() {
         super.onResume();
+        if (!mShouldUpdateToErrorState) {
+            mShouldUpdateToErrorState = true;
+        }
         mFingerprintHelper.startListening(mCryptoObject);
     }
 
     @Override
     public void onPause() {
         super.onPause();
+        if (mShouldUpdateToErrorState) {
+            mShouldUpdateToErrorState = false;
+        }
         mFingerprintHelper.stopListening();
     }
 
@@ -76,9 +82,7 @@ public class AuthenticationDialogFragment extends BaseDialogFragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         super.onCreateView(inflater, container, savedInstanceState);
 
-        mActivity = getActivity();
-
-        mFingerprintHelper = FingerprintHelper.getInstance(getActivity());
+        mFingerprintHelper = FingerprintHelper.getInstance();
         mFingerprintHelper.setFingerprintCallback(new FingerprintHelper.FingerprintCallback() {
 
             int tryTimes = 5;
@@ -86,7 +90,7 @@ public class AuthenticationDialogFragment extends BaseDialogFragment {
             @Override
             public void onAuthenticated() {
                 mSwirlView.setState(SwirlView.State.OFF);
-                mTvState.setTextColor(ContextCompat.getColor(mActivity, R.color.black_26p));
+                mTvState.setTextColor(ContextCompat.getColor(App.getApp(), R.color.black_26p));
                 mTvState.setText(R.string.fingerprint_verify_success);
                 mSwirlView.postDelayed(new Runnable() {
                     @Override
@@ -102,24 +106,28 @@ public class AuthenticationDialogFragment extends BaseDialogFragment {
             @Override
             public void onFailed() {
                 mSwirlView.setState(SwirlView.State.ERROR);
-                mTvState.setTextColor(ContextCompat.getColor(mActivity, R.color.error));
+                Context context = App.getApp();
+                mTvState.setTextColor(ContextCompat.getColor(context, R.color.error));
                 if (tryTimes == 1) {
                     mTvState.setText(R.string.fingerprint_cannot_use_to_verify);
                 } else {
                     tryTimes--;
                     String warning = getString(R.string.fingerprint_error_part_1);
-                    if (LocaleUtil.isEnglish(mActivity)) {
+                    if (LocaleUtil.isEnglish(context)) {
                         warning += " ";
                     }
-                    warning += LocaleUtil.getTimesStr(mActivity, tryTimes);
+                    warning += LocaleUtil.getTimesStr(context, tryTimes);
                     mTvState.setText(warning);
                 }
             }
 
             @Override
             public void onError() {
+                if (!mShouldUpdateToErrorState) {
+                    return;
+                }
                 mSwirlView.setState(SwirlView.State.ERROR);
-                mTvState.setTextColor(ContextCompat.getColor(mActivity, R.color.error));
+                mTvState.setTextColor(ContextCompat.getColor(App.getApp(), R.color.error));
                 mTvState.setText(R.string.fingerprint_cannot_use_to_verify);
             }
         });
@@ -132,11 +140,11 @@ public class AuthenticationDialogFragment extends BaseDialogFragment {
     }
 
     private void findViews() {
-        mTvTitle      = f(R.id.tv_title_authentication);
-        mTvContent    = f(R.id.tv_content_authentication);
+        mTvTitle      = f(R.id.tv_title_fingerprint);
+        mTvContent    = f(R.id.tv_content_fingerprint);
         mSwirlView    = f(R.id.swirlview_fingerprint);
         mTvState      = f(R.id.tv_fingerprint_state);
-        mTvSecondAsBt = f(R.id.tv_second_as_bt_authentication);
+        mTvSecondAsBt = f(R.id.tv_second_as_bt_fingerprint);
     }
 
     private void initUI() {
@@ -158,7 +166,7 @@ public class AuthenticationDialogFragment extends BaseDialogFragment {
     }
 
     private void setEvents() {
-        f(R.id.tv_cancel_as_bt_authentication).setOnClickListener(new View.OnClickListener() {
+        f(R.id.tv_cancel_as_bt_fingerprint).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 dismiss();

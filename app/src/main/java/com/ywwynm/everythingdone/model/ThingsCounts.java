@@ -174,7 +174,9 @@ public class ThingsCounts {
         updateCounts(type, ALL, 1);
     }
 
-    public void handleUpdate(int typeBefore, int stateBefore, int typeAfter, int stateAfter, int count) {
+    public void handleUpdate(
+            int typeBefore, int stateBefore,
+            int typeAfter,  int stateAfter, int count) {
         if (stateBefore != Thing.DELETED_FOREVER) {
             updateCounts(typeBefore, stateBefore, -count);
         }

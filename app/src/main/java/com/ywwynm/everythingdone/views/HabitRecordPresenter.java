@@ -20,11 +20,11 @@ public class HabitRecordPresenter {
         for (int i = 0; i < 5; i++) {
             char state = record.charAt(i);
             if (state == '0') {
-                mImageViews[i].setImageResource(R.mipmap.card_habit_unfinished);
+                mImageViews[i].setImageResource(R.drawable.card_habit_unfinished);
             } else if (state == '1') {
-                mImageViews[i].setImageResource(R.mipmap.card_habit_finished);
+                mImageViews[i].setImageResource(R.drawable.card_habit_finished);
             } else {
-                mImageViews[i].setImageResource(R.mipmap.card_habit_unknown);
+                mImageViews[i].setImageResource(R.drawable.card_habit_unknown);
             }
         }
     }

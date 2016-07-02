@@ -181,13 +181,13 @@ public class SystemNotificationUtil {
 
     private static int getIconRes(int type) {
         if (type == Thing.REMINDER) {
-            return R.mipmap.notification_reminder;
+            return R.drawable.notification_reminder;
         } else if (type == Thing.HABIT) {
-            return R.mipmap.notification_habit;
+            return R.drawable.notification_habit;
         } else if (type == Thing.GOAL) {
-            return R.mipmap.notification_goal;
+            return R.drawable.notification_goal;
         } else {
-            return R.mipmap.notification_note;
+            return R.drawable.notification_note;
         }
     }
 

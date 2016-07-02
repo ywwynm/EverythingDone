@@ -81,7 +81,7 @@ public class ReminderReceiver extends BroadcastReceiver {
                 finishIntent.setAction(Def.Communication.NOTIFICATION_ACTION_FINISH);
                 finishIntent.putExtra(Def.Communication.KEY_ID, id);
                 finishIntent.putExtra(Def.Communication.KEY_POSITION, position);
-                builder.addAction(R.mipmap.act_finish, context.getString(R.string.act_finish),
+                builder.addAction(R.drawable.act_finish, context.getString(R.string.act_finish),
                         PendingIntent.getBroadcast(context,
                                 (int) id, finishIntent, PendingIntent.FLAG_UPDATE_CURRENT));
 
@@ -90,7 +90,7 @@ public class ReminderReceiver extends BroadcastReceiver {
                     delayIntent.setAction(Def.Communication.NOTIFICATION_ACTION_DELAY);
                     delayIntent.putExtra(Def.Communication.KEY_ID, id);
                     delayIntent.putExtra(Def.Communication.KEY_POSITION, position);
-                    builder.addAction(R.mipmap.act_delay_10_minutes,
+                    builder.addAction(R.drawable.act_delay_10_minutes,
                             context.getString(R.string.act_delay_10_minutes),
                             PendingIntent.getBroadcast(context,
                                     (int) id, delayIntent, PendingIntent.FLAG_UPDATE_CURRENT));

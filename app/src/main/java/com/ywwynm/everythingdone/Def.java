@@ -40,6 +40,7 @@ public final class Def {
 
         public static final String KEY_1_0_3_TO_1_0_4       = "1.0.3_to_1.0.4";
         public static final String KEY_1_0_4_TO_1_0_5       = "1.0.4_to_1.0.5";
+        public static final String KEY_1_1_4_TO_1_1_5       = "1.1.4_to_1.1.5";
 
     }
 
@@ -150,6 +151,9 @@ public final class Def {
         public static final String KEY_TYPE_PATH_NAME = PREFIX + "key.type_path_name";
 
         public static final String KEY_TIME = PREFIX + "key.time";
+
+        public static final String KEY_HELP_TITLES = PREFIX + "key.help_title";
+        public static final String KEY_HELP_CONTENTS = PREFIX + "key.help_content";
 
         public static final int RESULT_NO_UPDATE                        = 0;
         public static final int RESULT_CREATE_THING_DONE                = 1;

@@ -12,8 +12,9 @@ import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyPermanentlyInvalidatedException;
 import android.security.keystore.KeyProperties;
 
+import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
-import com.ywwynm.everythingdone.fragments.AuthenticationDialogFragment;
+import com.ywwynm.everythingdone.fragments.FingerprintDialogFragment;
 import com.ywwynm.everythingdone.fragments.PatternLockDialogFragment;
 import com.ywwynm.everythingdone.utils.DeviceUtil;
 
@@ -86,11 +87,11 @@ public class FingerprintHelper extends FingerprintManager.AuthenticationCallback
         }
     }
 
-    public static FingerprintHelper getInstance(Context context) {
+    public static FingerprintHelper getInstance() {
         if (sFingerprintHelper == null) {
             synchronized (FingerprintHelper.class) {
                 if (sFingerprintHelper == null) {
-                    sFingerprintHelper = new FingerprintHelper(context);
+                    sFingerprintHelper = new FingerprintHelper(App.getApp());
                 }
             }
         }
@@ -169,14 +170,14 @@ public class FingerprintHelper extends FingerprintManager.AuthenticationCallback
         // Set up the crypto object for later. The object will be authenticated by use
         // of the fingerprint.
         if (isFingerprintReady() && isFingerprintEnabledInEverythingDone() && initFingerprintCipher()) {
-            final AuthenticationDialogFragment adf = new AuthenticationDialogFragment();
+            final FingerprintDialogFragment adf = new FingerprintDialogFragment();
             adf.setAccentColor(accentColor);
             adf.setTitle(title);
             adf.setCryptoObject(new FingerprintManager.CryptoObject(mCipher));
             adf.setAuthenticationCallback(callback);
             // Show the fingerprint dialog. The user has the option to use the fingerprint with
             // crypto, or you can fall back to using a pattern.
-            adf.show(activity.getFragmentManager(), AuthenticationDialogFragment.TAG);
+            adf.show(activity.getFragmentManager(), FingerprintDialogFragment.TAG);
         } else {
             // This happens if the lock screen has been disabled or or a fingerprint got
             // enrolled. Thus show the dialog to authenticate with their pattern.

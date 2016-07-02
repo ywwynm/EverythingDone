@@ -9,17 +9,17 @@ import java.util.List;
  * Created by ywwynm on 2015/9/16.
  * Adapter to offer multi select for items.
  */
-public abstract class MultiChoiceAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+public abstract class MultiChoiceAdapter extends RecyclerView.Adapter<BaseViewHolder> {
 
     public static final String TAG = "MultiChoiceAdapter";
 
     protected boolean[] mPicked;
 
     @Override
-    public abstract RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType);
+    public abstract BaseViewHolder onCreateViewHolder(ViewGroup parent, int viewType);
 
     @Override
-    public abstract void onBindViewHolder(RecyclerView.ViewHolder viewHolder, int position);
+    public abstract void onBindViewHolder(BaseViewHolder viewHolder, int position);
 
     @Override
     public abstract int getItemCount();
@@ -29,9 +29,19 @@ public abstract class MultiChoiceAdapter extends RecyclerView.Adapter<RecyclerVi
         notifyItemChanged(position);
     }
 
+    public void pick(int position) {
+        mPicked[position] = true;
+    }
+
     public void pickAll() {
         for (int i = 0; i < mPicked.length; i++) {
             mPicked[i] = true;
+        }
+    }
+
+    public void unpickAll() {
+        for (int i = 0; i < mPicked.length; i++) {
+            mPicked[i] = false;
         }
     }
 

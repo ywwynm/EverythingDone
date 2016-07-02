@@ -21,14 +21,17 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.ActivityOptionsCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.util.Pair;
+import android.support.v4.widget.NestedScrollView;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.SimpleItemAnimator;
 import android.support.v7.widget.Toolbar;
 import android.support.v7.widget.helper.ItemTouchHelper;
+import android.text.Editable;
 import android.text.Layout;
 import android.text.Spannable;
+import android.text.TextWatcher;
 import android.text.style.ClickableSpan;
 import android.text.style.URLSpan;
 import android.util.Log;
@@ -46,7 +49,6 @@ import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
-import android.widget.ScrollView;
 import android.widget.TextView;
 
 import com.ywwynm.everythingdone.App;
@@ -55,6 +57,7 @@ import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.adapters.AudioAttachmentAdapter;
 import com.ywwynm.everythingdone.adapters.CheckListAdapter;
 import com.ywwynm.everythingdone.adapters.ImageAttachmentAdapter;
+import com.ywwynm.everythingdone.collections.ThingActionsList;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
@@ -63,14 +66,18 @@ import com.ywwynm.everythingdone.fragments.AlertDialogFragment;
 import com.ywwynm.everythingdone.fragments.DateTimeDialogFragment;
 import com.ywwynm.everythingdone.fragments.HabitDetailDialogFragment;
 import com.ywwynm.everythingdone.fragments.TwoOptionsDialogFragment;
+import com.ywwynm.everythingdone.helpers.AppUpdateHelper;
 import com.ywwynm.everythingdone.helpers.AttachmentHelper;
 import com.ywwynm.everythingdone.helpers.AuthenticationHelper;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
 import com.ywwynm.everythingdone.helpers.SendInfoHelper;
+import com.ywwynm.everythingdone.helpers.ThingExporter;
 import com.ywwynm.everythingdone.managers.ThingManager;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Reminder;
+import com.ywwynm.everythingdone.model.ReminderHabitParams;
 import com.ywwynm.everythingdone.model.Thing;
+import com.ywwynm.everythingdone.model.ThingAction;
 import com.ywwynm.everythingdone.receivers.AutoNotifyReceiver;
 import com.ywwynm.everythingdone.receivers.HabitReceiver;
 import com.ywwynm.everythingdone.receivers.ReminderReceiver;
@@ -103,86 +110,72 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     public static final int CREATE = 0;
     public static final int UPDATE = 1;
 
-    private static final int UNDO_CHECKLIST = 0;
-    private static final int UNDO_IMAGE = 1;
-    private static final int UNDO_AUDIO = 2;
-
     public float screenDensity;
     // type + path + name of attachment to add
     public String attachmentTypePathName;
 
-    public long reminderInMillis;
-    public int[] reminderAfterTime;
-    public int habitType;
-    public String habitDetail;
+    public ReminderHabitParams rhParams = new ReminderHabitParams();
 
     public DateTimePicker quickRemindPicker;
-    public CheckBox cbQuickRemind;
-    public TextView tvQuickRemind;
+    public CheckBox       cbQuickRemind;
+    public TextView       tvQuickRemind;
 
     private String mSenderName;
-    private int mType;
+    private int    mType;
 
-    private App mApplication;
+    private App mApp;
 
     private boolean mEditable;
 
-    private Thing mThing;
-    private int mPosition;
+    private Thing    mThing;
+    private int      mPosition;
     private Reminder mReminder;
-    private Habit mHabit;
+    private Habit    mHabit;
 
     private boolean mHabitFinishedThisTime = false;
 
     private int mMaxSpanImage;
     private int mSpanAudio;
 
-    private AddAttachmentDialogFragment mAddAttachmentDialogFragment;
     private DateTimeDialogFragment mDateTimeDialogFragment;
-    private HabitDetailDialogFragment mHabitDetailDialogFragment;
 
     private FrameLayout mFlBackground;
     private ColorPicker mColorPicker;
-    private View mStatusBar;
-    private Toolbar mActionbar;
+    private View        mStatusBar;
+    private Toolbar     mActionbar;
     private ImageButton mIbBack;
-    private View mActionBarShadow;
-    private View mImageCover;
+    private View        mActionBarShadow;
+    private View        mImageCover;
 
-    private RecyclerView mRvImageAttachment;
+    private RecyclerView           mRvImageAttachment;
     private ImageAttachmentAdapter mImageAttachmentAdapter;
-    private GridLayoutManager mImageLayoutManager;
+    private GridLayoutManager      mImageLayoutManager;
 
-    private ScrollView mScrollView;
-    private EditText mEtTitle;
-    private EditText mEtContent;
-    private TextView mTvUpdateTime;
+    private NestedScrollView mScrollView;
+    private EditText         mEtTitle;
+    private EditText         mEtContent;
+    private TextView         mTvUpdateTime;
 
-    private RecyclerView mRvCheckList;
-    private CheckListAdapter mCheckListAdapter;
+    private RecyclerView        mRvCheckList;
+    private CheckListAdapter    mCheckListAdapter;
     private LinearLayoutManager mLlmCheckList;
-    private LinearLayout mLlMoveChecklist;
-    private TextView mTvMoveChecklistAsBt;
-    private ItemTouchHelper mChecklistTouchHelper;
+    private LinearLayout        mLlMoveChecklist;
+    private TextView            mTvMoveChecklistAsBt;
+    private ItemTouchHelper     mChecklistTouchHelper;
 
-    private RecyclerView mRvAudioAttachment;
+    private RecyclerView           mRvAudioAttachment;
     private AudioAttachmentAdapter mAudioAttachmentAdapter;
-    private GridLayoutManager mAudioLayoutManager;
+    private GridLayoutManager      mAudioLayoutManager;
 
     private FrameLayout mFlQuickRemindAsBt;
 
-    private Snackbar mNormalSnackbar;
-    private Snackbar mUndoSnackbar;
-    private int mUndoType;
-    private List<String> mUndoItems;
-    private List<Integer> mUndoPositions;
+    private Snackbar      mNormalSnackbar;
 
     private ExecutorService mExecutor;
 
     private boolean changingColor = false;
 
     private Runnable mShowNormalSnackbar;
-    private Runnable mShowUndoSnackbar;
 
     private boolean mRemoveDetailActivityInstance = false;
 
@@ -198,10 +191,6 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
         @Override
         public boolean onTouch(View v, MotionEvent event) {
-            if (mUndoSnackbar != null) {
-                mUndoSnackbar.dismiss();
-            }
-
             int action = event.getAction();
             Boolean onLongClicked = mOnLongClickedMap.get(v);
             if (onLongClicked != null && onLongClicked) {
@@ -277,19 +266,19 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                     };
 
                     if (url.startsWith("tel")) {
-                        df.setStartAction(R.mipmap.act_dial, R.string.act_dial,
+                        df.setStartAction(R.drawable.act_dial, R.string.act_dial,
                                 startListener);
                     } else if (url.startsWith("mailto")) {
-                        df.setStartAction(R.mipmap.act_send_email,
+                        df.setStartAction(R.drawable.act_send_email,
                                 R.string.act_send_email, startListener);
                     } else if (url.startsWith("http") || url.startsWith("https")) {
-                        df.setStartAction(R.mipmap.act_open_in_browser,
+                        df.setStartAction(R.drawable.act_open_in_browser,
                                 R.string.act_open_in_browser, startListener);
                     } else if (url.startsWith("map")) {
-                        df.setStartAction(R.mipmap.act_open_in_map,
+                        df.setStartAction(R.drawable.act_open_in_map,
                                 R.string.act_open_in_map, startListener);
                     }
-                    df.setEndAction(R.mipmap.act_edit, R.string.act_edit, endListener);
+                    df.setEndAction(R.drawable.act_edit, R.string.act_edit, endListener);
                     df.show(getFragmentManager(), TwoOptionsDialogFragment.TAG);
                     return true;
                 }
@@ -300,6 +289,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             return false;
         }
     };
+
     private View.OnClickListener mEtContentClickListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
@@ -316,6 +306,13 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         }
     };
 
+    private ThingActionsList mActionList;
+    public boolean shouldAddToActionList = false;
+
+    public ThingActionsList getActionList() {
+        return mActionList;
+    }
+
     public int getType() {
         return mType;
     }
@@ -327,8 +324,8 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
     @Override
     protected void initMembers() {
-        mApplication = (App) getApplication();
-        mApplication.setDetailActivityRun(true);
+        mApp = (App) getApplication();
+        mApp.setDetailActivityRun(true);
 
         screenDensity = DisplayUtil.getScreenDensity(this);
 
@@ -346,7 +343,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
         mPosition = intent.getIntExtra(Def.Communication.KEY_POSITION, 1);
 
-        ThingManager thingManager = ThingManager.getInstance(mApplication);
+        ThingManager thingManager = ThingManager.getInstance(mApp);
         if (mType == CREATE) {
             long newId = thingManager.getHeaderId();
             App.getRunningDetailActivities().add(newId);
@@ -359,7 +356,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         } else {
             App.getRunningDetailActivities().add(id);
             if (mPosition == -1) {
-                mThing = ThingDAO.getInstance(mApplication).getThingById(id);
+                mThing = ThingDAO.getInstance(mApp).getThingById(id);
             } else {
                 List<Thing> things = thingManager.getThings();
                 if (mPosition >= things.size()) {
@@ -371,13 +368,11 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                     }
                 }
             }
-            mReminder = ReminderDAO.getInstance(mApplication).getReminderById(id);
+            mReminder = ReminderDAO.getInstance(mApp).getReminderById(id);
             if (mThing.getType() == Thing.HABIT) {
-                mHabit = HabitDAO.getInstance(mApplication).getHabitById(id);
-                mHabitDetailDialogFragment = HabitDetailDialogFragment.newInstance();
-                mHabitDetailDialogFragment.setHabit(mHabit);
+                mHabit = HabitDAO.getInstance(mApp).getHabitById(id);
             }
-            SystemNotificationUtil.cancelNotification(id, mThing.getType(), mApplication);
+            SystemNotificationUtil.cancelNotification(id, mThing.getType(), mApp);
         }
 
         mEditable = mThing.getType() < Thing.NOTIFICATION_UNDERWAY
@@ -389,21 +384,22 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                     mNormalSnackbar.show();
                 }
             };
-            mShowUndoSnackbar = new Runnable() {
-                @Override
-                public void run() {
-                    mUndoSnackbar.show();
-                }
-            };
         }
 
         setSpans();
 
         if (mEditable) {
-            mAddAttachmentDialogFragment = AddAttachmentDialogFragment.newInstance();
             mDateTimeDialogFragment = DateTimeDialogFragment.newInstance(mThing);
         }
         mExecutor = Executors.newSingleThreadExecutor();
+
+        mActionList = new ThingActionsList();
+        mActionList.setAddActionCallback(new ThingActionsList.AddActionCallback() {
+            @Override
+            public void onAddAction() {
+                updateUndoRedoActionButtonState();
+            }
+        });
     }
 
     private void setupThingFromIntent() {
@@ -444,7 +440,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     }
 
     private void updateThingAndItsPosition(long id) {
-        ThingManager manager = ThingManager.getInstance(mApplication);
+        ThingManager manager = ThingManager.getInstance(mApp);
         if (mType == CREATE) {
             mThing = new Thing(manager.getHeaderId(), Thing.NOTE, 0, id);
             return;
@@ -461,7 +457,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             }
         }
         if (i == size) {
-            mThing = ThingDAO.getInstance(mApplication).getThingById(id);
+            mThing = ThingDAO.getInstance(mApp).getThingById(id);
             mPosition = -1;
         }
     }
@@ -470,18 +466,18 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     protected void findViews() {
         mFlBackground = f(R.id.fl_background);
 
-        mStatusBar = f(R.id.view_status_bar);
-        mActionbar = f(R.id.actionbar);
-        mIbBack = f(R.id.ib_back);
+        mStatusBar       = f(R.id.view_status_bar);
+        mActionbar       = f(R.id.actionbar);
+        mIbBack          = f(R.id.ib_back);
         mActionBarShadow = f(R.id.actionbar_shadow);
-        mImageCover = f(R.id.view_image_cover);
+        mImageCover      = f(R.id.view_image_cover);
 
         mRvImageAttachment = f(R.id.rv_image_attachment);
         mRvImageAttachment.setNestedScrollingEnabled(false);
 
-        mScrollView = f(R.id.sv_detail);
-        mEtTitle = f(R.id.et_title);
-        mEtContent = f(R.id.et_content);
+        mScrollView   = f(R.id.sv_detail);
+        mEtTitle      = f(R.id.et_title);
+        mEtContent    = f(R.id.et_content);
         mTvUpdateTime = f(R.id.tv_update_time);
 
         mRvCheckList = f(R.id.rv_check_list);
@@ -494,51 +490,41 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 .setSupportsChangeAnimations(false);
 
         mFlQuickRemindAsBt = f(R.id.fl_quick_remind_as_bt);
-        cbQuickRemind = f(R.id.cb_quick_remind);
-        tvQuickRemind = f(R.id.tv_quick_remind);
+        cbQuickRemind      = f(R.id.cb_quick_remind);
+        tvQuickRemind      = f(R.id.tv_quick_remind);
 
         View decorView = getWindow().getDecorView();
-        mNormalSnackbar = new Snackbar(mApplication, Snackbar.NORMAL, decorView, null);
+        mNormalSnackbar = new Snackbar(mApp, Snackbar.NORMAL, decorView, null);
         if (mEditable) {
             mLlMoveChecklist     = f(R.id.ll_move_checklist);
             mTvMoveChecklistAsBt = f(R.id.tv_move_checklist_as_bt);
 
             mColorPicker = new ColorPicker(this, decorView, Def.PickerType.COLOR_NO_ALL);
-            mColorPicker.setIsLastIcon(mType == CREATE);
             quickRemindPicker = new DateTimePicker(this, decorView,
                     Def.PickerType.AFTER_TIME, mThing.getColor());
             quickRemindPicker.setAnchor(tvQuickRemind);
-
-            mUndoSnackbar = new Snackbar(mApplication, Snackbar.UNDO, decorView, null);
-            mUndoSnackbar.setUndoText(R.string.sb_undo);
-
-            mUndoItems = new ArrayList<>();
-            mUndoPositions = new ArrayList<>();
         }
     }
 
     @Override
     protected void initUI() {
         DisplayUtil.coverStatusBar(f(R.id.view_status_bar_cover));
-
-        if (DeviceUtil.hasKitKatApi()) {
-            LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) mStatusBar.getLayoutParams();
-            params.height = DisplayUtil.getStatusbarHeight(this);
-            mStatusBar.requestLayout();
-        }
+        DisplayUtil.expandStatusBarAboveKitkat(mStatusBar);
 
         int color = mThing.getColor();
+        AppUpdateHelper.updateFrom1_1_4To1_1_5(this, color);
+
         int thingType = mThing.getType();
         int thingState = mThing.getState();
 
         if (thingType == Thing.REMINDER || thingType == Thing.WELCOME_REMINDER) {
-            mIbBack.setImageResource(R.mipmap.act_back_reminder);
+            mIbBack.setImageResource(R.drawable.act_back_reminder);
         } else if (thingType == Thing.HABIT || thingType == Thing.WELCOME_HABIT) {
-            mIbBack.setImageResource(R.mipmap.act_back_habit);
+            mIbBack.setImageResource(R.drawable.act_back_habit);
         } else if (thingType == Thing.GOAL || thingType == Thing.WELCOME_GOAL) {
-            mIbBack.setImageResource(R.mipmap.act_back_goal);
+            mIbBack.setImageResource(R.drawable.act_back_goal);
         } else {
-            mIbBack.setImageResource(R.mipmap.act_back_note);
+            mIbBack.setImageResource(R.drawable.act_back_note);
         }
 
         mFlBackground.setBackgroundColor(color);
@@ -561,7 +547,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
         mEtTitle.setText(mThing.getTitleToDisplay());
         if (mThing.isPrivate()) {
-            setAsPrivateThingUI();
+            setAsPrivateThingUiAndAddAction();
         }
 
         if (mType == CREATE) {
@@ -597,6 +583,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                     mCheckListAdapter.setEtClickListener(mEtContentClickListener);
                     mCheckListAdapter.setEtLongClickListener(mEtContentLongClickListener);
                     mCheckListAdapter.setItemsChangeCallback(new CheckListItemsChangeCallback());
+                    mCheckListAdapter.setActionCallback(new CheckListActionCallback());
                 }
 
                 setMoveChecklistEvent();
@@ -631,7 +618,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         if (mType == CREATE) {
             mTvUpdateTime.setText("");
             quickRemindPicker.pickForUI(8);
-            reminderAfterTime = quickRemindPicker.getPickedTimeAfter();
+            rhParams.setReminderAfterTime(quickRemindPicker.getPickedTimeAfter());
         } else {
             if (mThing.getCreateTime() == mThing.getUpdateTime()) {
                 mTvUpdateTime.setText(R.string.create_at);
@@ -650,8 +637,9 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                     quickRemindPicker.pickForUI(9);
                 }
 
-                reminderInMillis = mReminder.getNotifyTime();
+                long reminderInMillis = mReminder.getNotifyTime();
                 tvQuickRemind.setText(DateTimeUtil.getDateTimeStrAt(reminderInMillis, this, false));
+                rhParams.setReminderInMillis(reminderInMillis);
                 int state = mReminder.getState();
                 if (state != Reminder.UNDERWAY || thingState != Reminder.UNDERWAY) {
                     tvQuickRemind.append(", " + Reminder.getStateDescription(thingState, state, this));
@@ -661,14 +649,16 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 if (mEditable) {
                     quickRemindPicker.pickForUI(9);
                 }
-                habitType = mHabit.getType();
-                habitDetail = mHabit.getDetail();
+                int habitType = mHabit.getType();
+                String habitDetail = mHabit.getDetail();
                 tvQuickRemind.setText(DateTimeUtil.getDateTimeStrRec(
-                        mApplication, habitType, habitDetail));
+                        mApp, habitType, habitDetail));
+                rhParams.setHabitType(habitType);
+                rhParams.setHabitDetail(habitDetail);
             } else {
                 if (mEditable) {
                     quickRemindPicker.pickForUI(8);
-                    reminderAfterTime = quickRemindPicker.getPickedTimeAfter();
+                    rhParams.setReminderAfterTime(quickRemindPicker.getPickedTimeAfter());
                 } else {
                     f(R.id.ll_quick_remind).setVisibility(View.GONE);
                     FrameLayout.LayoutParams params = (FrameLayout.LayoutParams)
@@ -744,10 +734,17 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         mEtContent.setOnTouchListener(mSpannableTouchListener);
 
         if (mEditable) {
+            setEditTextWatchers();
             setColorPickerEvent();
             setQuickRemindEvents();
-            setSnackbarEvents();
         }
+
+        shouldAddToActionList = true;
+    }
+
+    private void setEditTextWatchers() {
+        mEtTitle.addTextChangedListener(new ActionTextWatcher(ThingAction.UPDATE_TITLE));
+        mEtContent.addTextChangedListener(new ActionTextWatcher(ThingAction.UPDATE_CONTENT));
     }
 
     private void setMoveChecklistEvent() {
@@ -764,13 +761,13 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 if (!isDragging) {
                     mTvMoveChecklistAsBt.setText(R.string.act_back_from_move_checklist);
                     mTvMoveChecklistAsBt.setCompoundDrawablesRelativeWithIntrinsicBounds(
-                            R.mipmap.act_back_from_move_checklist, 0, 0, 0);
+                            R.drawable.act_back_from_move_checklist, 0, 0, 0);
                     mCheckListAdapter.setDragging(true);
                     mChecklistTouchHelper.attachToRecyclerView(mRvCheckList);
                 } else {
                     mTvMoveChecklistAsBt.setText(R.string.act_move_check_list);
                     mTvMoveChecklistAsBt.setCompoundDrawablesRelativeWithIntrinsicBounds(
-                            R.mipmap.act_move_checklist, 0, 0, 0);
+                            R.drawable.act_move_checklist, 0, 0, 0);
                     mCheckListAdapter.setDragging(false);
                     mChecklistTouchHelper.attachToRecyclerView(null);
                 }
@@ -798,10 +795,10 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 } else {
                     title = "";
                 }
-                if (!LocaleUtil.isChinese(mApplication)) {
+                if (!LocaleUtil.isChinese(mApp)) {
                     title += " ";
                 }
-                title += Thing.getTypeStr(getThingTypeAfter(), mApplication);
+                title += Thing.getTypeStr(getThingTypeAfter(), mApp);
             }
             BitmapDrawable bmd = (BitmapDrawable) getDrawable(R.mipmap.ic_launcher);
             if (bmd != null) {
@@ -814,16 +811,16 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         }
     }
 
-    private int getThingTypeAfter() {
+    private @Thing.Type int getThingTypeAfter() {
         if (mHabitFinishedThisTime) return Thing.HABIT;
-        long time = getReminderTime();
+        long time = rhParams.getReminderTime();
         if (cbQuickRemind.isChecked()) {
             if (mReminder != null && mReminder.getNotifyTime() == time) {
                 return mThing.getType();
             } else {
-                if (habitDetail != null) {
+                if (rhParams.getHabitDetail() != null) {
                     return Thing.HABIT;
-                } else return Reminder.getType(getReminderTime(), System.currentTimeMillis());
+                } else return Reminder.getType(rhParams.getReminderTime(), System.currentTimeMillis());
             }
         } else {
             int typeBefore = mThing.getType();
@@ -843,15 +840,15 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         }
     }
 
-    private long getReminderTime() {
-        if (reminderInMillis != 0) {
-            return reminderInMillis;
-        }
-        if (reminderAfterTime != null) {
-            return DateTimeUtil.getActualTimeAfterSomeTime(reminderAfterTime);
-        }
-        return -1;
-    }
+//    private long rhParams.getReminderTime() {
+//        if (reminderInMillis != 0) {
+//            return reminderInMillis;
+//        }
+//        if (reminderAfterTime != null) {
+//            return DateTimeUtil.getActualTimeAfterSomeTime(reminderAfterTime);
+//        }
+//        return -1;
+//    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -891,17 +888,15 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 }
             }
         }
+        updateUndoRedoActionButtonState();
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        if (mUndoSnackbar != null) {
-            mUndoSnackbar.dismiss();
-        }
         switch (item.getItemId()) {
             case R.id.act_add_attachment:
-                mAddAttachmentDialogFragment.show(getFragmentManager(),
+                AddAttachmentDialogFragment.newInstance().show(getFragmentManager(),
                         AddAttachmentDialogFragment.TAG);
                 break;
             case R.id.act_check_list:
@@ -911,19 +906,27 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 mColorPicker.show();
                 break;
             case R.id.act_set_as_private_thing:
-                setAsPrivateThingOrCancel();
+                togglePrivateThing();
+                break;
+            case R.id.act_undo:
+                undoOrRedo(mActionList.undo(), true);
+                break;
+            case R.id.act_redo:
+                undoOrRedo(mActionList.redo(), false);
                 break;
             case R.id.act_check_habit_detail:
-                mHabitDetailDialogFragment.show(getFragmentManager(), HabitDetailDialogFragment.TAG);
+                HabitDetailDialogFragment hddf = HabitDetailDialogFragment.newInstance();
+                hddf.setHabit(mHabit);
+                hddf.show(getFragmentManager(), HabitDetailDialogFragment.TAG);
                 break;
             case R.id.act_share:
                 SendInfoHelper.shareThing(this, mThing);
                 break;
             case R.id.act_finish_this_time_habit:
-                HabitDAO.getInstance(mApplication).finishOneTime(mHabit);
+                HabitDAO.getInstance(mApp).finishOneTime(mHabit);
                 mHabitFinishedThisTime = true;
-                habitType = mHabit.getType();
-                habitDetail = mHabit.getDetail();
+                rhParams.setHabitType(mHabit.getType());
+                rhParams.setHabitDetail(mHabit.getDetail());
                 returnToThingsActivity(true, false);
                 break;
             case R.id.act_finish:
@@ -934,6 +937,9 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 break;
             case R.id.act_restore:
                 returnToThingsActivity(Thing.UNDERWAY);
+                break;
+            case R.id.act_export:
+                ThingExporter.startExporting(this, getAccentColor(), mThing);
                 break;
         }
         return super.onOptionsItemSelected(item);
@@ -950,10 +956,10 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     private void toggleCheckListActionItem(Menu menu, boolean toDisable) {
         MenuItem item = menu.findItem(R.id.act_check_list);
         if (toDisable) {
-            item.setIcon(R.mipmap.act_disable_check_list);
+            item.setIcon(R.drawable.act_disable_check_list);
             item.setTitle(getString(R.string.act_disable_check_list));
         } else {
-            item.setIcon(R.mipmap.act_enable_check_list);
+            item.setIcon(R.drawable.act_enable_check_list);
             item.setTitle(getString(R.string.act_enable_check_list));
         }
     }
@@ -968,8 +974,9 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     }
 
     private void toggleCheckList() {
-        String content = mEtContent.getText().toString();
+        String before;
         if (mRvCheckList.getVisibility() == View.VISIBLE) {
+            before = CheckListHelper.toCheckListStr(mCheckListAdapter.getItems());
             toggleCheckListActionItem(mActionbar.getMenu(), false);
             mEtContent.setVisibility(View.VISIBLE);
             mRvCheckList.setVisibility(View.GONE);
@@ -977,7 +984,10 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             mChecklistTouchHelper.attachToRecyclerView(null);
 
             String contentStr = CheckListHelper.toContentStr(mCheckListAdapter.getItems());
+            boolean temp = shouldAddToActionList;
+            shouldAddToActionList = false;
             mEtContent.setText(contentStr);
+            shouldAddToActionList = temp;
 
             if (contentStr.isEmpty()) {
                 KeyboardUtil.showKeyboard(mEtContent);
@@ -990,6 +1000,8 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             mEtContent.setVisibility(View.GONE);
             mLlMoveChecklist.setVisibility(View.VISIBLE);
 
+            String content = mEtContent.getText().toString();
+            before = content;
             List<String> items = CheckListHelper.toCheckListItems(content, true);
             boolean focusFirst = false;
             if (items.size() == 2 && items.get(0).equals("0")) {
@@ -1004,6 +1016,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 mCheckListAdapter.setEtLongClickListener(mEtContentLongClickListener);
                 mLlmCheckList = new LinearLayoutManager(this);
                 mCheckListAdapter.setItemsChangeCallback(new CheckListItemsChangeCallback());
+                mCheckListAdapter.setActionCallback(new CheckListActionCallback());
             } else {
                 mCheckListAdapter.setItems(items);
             }
@@ -1025,6 +1038,10 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 KeyboardUtil.hideKeyboard(getCurrentFocus());
             }
         }
+        if (shouldAddToActionList) {
+            mActionList.addAction(new ThingAction(
+                    ThingAction.TOGGLE_CHECKLIST, before, null));
+        }
     }
 
     private boolean cannotSetAsPrivateThing() {
@@ -1036,7 +1053,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         return start != null;
     }
 
-    private void setAsPrivateThingOrCancel() {
+    private void togglePrivateThing() {
         SharedPreferences sp = getSharedPreferences(Def.Meta.PREFERENCES_NAME, MODE_PRIVATE);
         String pwd = sp.getString(Def.Meta.KEY_PRIVATE_PASSWORD, null);
         if (pwd == null) {
@@ -1046,7 +1063,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             if (isPrivateThing) {
                 tryToCancelPrivateThing();
             } else {
-                setAsPrivateThingUI();
+                setAsPrivateThingUiAndAddAction();
                 togglePrivateThingActionItem(mActionbar.getMenu(), false);
             }
         }
@@ -1066,14 +1083,30 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     }
 
     private void tryToCancelPrivateThing() {
+        if (!mThing.isPrivate()) {
+            // the thing isn't private before, user just want to see what will happen
+            // by clicking "set as/cancel private thing" button.
+            cancelPrivateThingUiAndAddAction();
+            if (shouldAddToActionList) {
+                mActionList.addAction(new ThingAction(
+                        ThingAction.TOGGLE_PRIVATE, null, null));
+            }
+            return;
+        }
+
         String cp = getSharedPreferences(Def.Meta.PREFERENCES_NAME, MODE_PRIVATE)
                 .getString(Def.Meta.KEY_PRIVATE_PASSWORD, null);
+        final boolean shouldAddToActionList = this.shouldAddToActionList;
         AuthenticationHelper.authenticate(
                 this, getAccentColor(), getString(R.string.act_cancel_private_thing), cp,
                 new AuthenticationHelper.AuthenticationCallback() {
                     @Override
                     public void onAuthenticated() {
-                        cancelPrivateThingUI();
+                        cancelPrivateThingUiAndAddAction();
+                        if (shouldAddToActionList) {
+                            mActionList.addAction(new ThingAction(
+                                    ThingAction.TOGGLE_PRIVATE, null, null));
+                        }
                     }
 
                     @Override
@@ -1083,7 +1116,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 });
     }
 
-    private void cancelPrivateThingUI() {
+    private void cancelPrivateThingUiAndAddAction() {
         togglePrivateThingActionItem(mActionbar.getMenu(), true);
 
         mEtTitle.setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, 0);
@@ -1092,14 +1125,19 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         mEtTitle.setPadding(paddingSide, mEtTitle.getPaddingTop(), paddingSide, 0);
     }
 
-    private void setAsPrivateThingUI() {
-        mEtTitle.setCompoundDrawablesWithIntrinsicBounds(R.mipmap.ic_locked_small, 0, 0, 0);
+    private void setAsPrivateThingUiAndAddAction() {
+        mEtTitle.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_locked_small, 0, 0, 0);
 
         int paddingSide = (int) (screenDensity * 16);
         mEtTitle.setPadding(paddingSide, mEtTitle.getPaddingTop(), paddingSide, 0);
+
+        if (shouldAddToActionList) {
+            mActionList.addAction(
+                    new ThingAction(ThingAction.TOGGLE_PRIVATE, null, null));
+        }
     }
 
-    private void AlertNoTitleWhenSetPrivateThing() {
+    private void alertNoTitleWhenSetPrivateThing() {
         AlertDialogFragment adf = new AlertDialogFragment();
         adf.setShowCancel(false);
 
@@ -1112,6 +1150,140 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         adf.show(getFragmentManager(), AlertDialogFragment.TAG);
     }
 
+    private void updateUndoRedoActionButtonState() {
+        MenuItem undoItem = mActionbar.getMenu().findItem(R.id.act_undo);
+        if (undoItem == null) {
+            return;
+        }
+        undoItem.setEnabled(mActionList.canUndo());
+
+        MenuItem redoItem = mActionbar.getMenu().findItem(R.id.act_redo);
+        redoItem.setEnabled(mActionList.canRedo());
+    }
+
+    private void undoOrRedo(ThingAction action, boolean undo) {
+        shouldAddToActionList = false;
+        Object to = undo ? action.getBefore() : action.getAfter();
+        switch (action.getType()) {
+            case ThingAction.UPDATE_TITLE:
+                undoOrRedoTitleContent(action, undo, mEtTitle);
+                break;
+            case ThingAction.UPDATE_CONTENT:
+                undoOrRedoTitleContent(action, undo, mEtContent);
+                break;
+            case ThingAction.TOGGLE_CHECKLIST: {
+                toggleCheckList();
+                String from = (String) action.getBefore();
+                if (CheckListHelper.isCheckListStr(from) && undo) {
+                    mCheckListAdapter.setItems(CheckListHelper.toCheckListItems(from, false));
+                }
+                break;
+            }
+            case ThingAction.UPDATE_CHECKLIST:
+                mCheckListAdapter.setItems(CheckListHelper.toCheckListItems((String) to, false));
+                break;
+            case ThingAction.MOVE_CHECKLIST: {
+                Object from = undo ? action.getAfter() : action.getBefore();
+                moveChecklist((int) from, (int) to);
+                break;
+            }
+            case ThingAction.UPDATE_COLOR:
+                mColorPicker.pickForUI(DisplayUtil.getColorIndex((int) to, mApp));
+                changeColor((int) to);
+                break;
+            case ThingAction.ADD_ATTACHMENT:
+                // before: attachmentTypePathName, after: position
+                undoOrRedoAddAttachment(action, undo);
+                break;
+            case ThingAction.DELETE_ATTACHMENT:
+                // before:position, after:attachmentTypePathName
+                undoOrRedoDeleteAttachment(action, undo);
+                break;
+            case ThingAction.MOVE_ATTACHMENT:
+                Object from = undo ? action.getAfter() : action.getBefore();
+                moveAttachment((int) from, (int) to,
+                        action.getExtras().getBoolean(ThingAction.KEY_ATTACHMENT_TYPE));
+                break;
+            case ThingAction.TOGGLE_REMINDER_OR_HABIT:
+                cbQuickRemind.toggle();
+                break;
+            case ThingAction.UPDATE_REMINDER_OR_HABIT:
+                undoOrRedoReminderHabit(action, undo);
+                break;
+            case ThingAction.TOGGLE_PRIVATE:
+                togglePrivateThing();
+                break;
+        }
+        updateUndoRedoActionButtonState();
+        shouldAddToActionList = true;
+    }
+
+    private void undoOrRedoTitleContent(ThingAction action, boolean undo, EditText et) {
+        Object to = undo ? action.getBefore() : action.getAfter();
+        int cursorPos;
+        if (undo) {
+            cursorPos = action.getExtras().getInt(ThingAction.KEY_CURSOR_POS_BEFORE);
+        } else {
+            cursorPos = action.getExtras().getInt(ThingAction.KEY_CURSOR_POS_AFTER);
+        }
+        et.setText(to.toString());
+        et.setSelection(cursorPos);
+    }
+
+    private void undoOrRedoAddAttachment(ThingAction action, boolean undo) {
+        // before: attachmentTypePathName, after: position
+        String atpn  = (String) action.getBefore();
+        int position = (int) action.getAfter();
+        if (undo) {
+            if (atpn.startsWith(String.valueOf(AttachmentHelper.AUDIO))) {
+                notifyAudioAttachmentsChanged(false, position);
+            } else {
+                notifyImageAttachmentsChanged(false, position);
+            }
+        } else {
+            attachmentTypePathName = atpn;
+            addAttachment(position);
+        }
+    }
+
+    private void undoOrRedoDeleteAttachment(ThingAction action, boolean undo) {
+        // before:position, after:attachmentTypePathName
+        int position = (int) action.getBefore();
+        String atpn  = (String) action.getAfter();
+        if (undo) {
+            attachmentTypePathName = atpn;
+            addAttachment(position);
+        } else {
+            if (atpn.startsWith(String.valueOf(AttachmentHelper.AUDIO))) {
+                notifyAudioAttachmentsChanged(false, position);
+            } else {
+                notifyImageAttachmentsChanged(false, position);
+            }
+        }
+    }
+
+    private void undoOrRedoReminderHabit(ThingAction action, boolean undo) {
+        ReminderHabitParams to = (ReminderHabitParams) (undo ? action.getBefore() : action.getAfter());
+        rhParams = new ReminderHabitParams(to);
+
+        boolean isCheckedBefore = action.getExtras().getBoolean(ThingAction.KEY_CHECKBOX_STATE);
+        if (!isCheckedBefore) {
+            // Means we checked it later. Now that we are doing undo, we should toggle it back.
+            cbQuickRemind.toggle();
+        }
+        tvQuickRemind.setText(rhParams.getDateTimeStr());
+
+        if (undo) {
+            int pickedBefore = action.getExtras().getInt(ThingAction.KEY_PICKED_BEFORE);
+            quickRemindPicker.pickForUI(pickedBefore);
+        } else {
+            int pickedAfter = action.getExtras().getInt(ThingAction.KEY_PICKED_AFTER);
+            quickRemindPicker.pickForUI(pickedAfter);
+        }
+        updateTaskDescription(getAccentColor());
+        updateBackImage();
+    }
+
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
@@ -1120,7 +1292,6 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             mColorPicker.dismiss();
             quickRemindPicker.dismiss();
             mNormalSnackbar.dismiss();
-            mUndoSnackbar.dismiss();
         }
 
         setSpans();
@@ -1241,6 +1412,10 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             } else {
                 notifyAudioAttachmentsChanged(true, position);
             }
+        }
+        if (shouldAddToActionList) {
+            mActionList.addAction(new ThingAction(
+                    ThingAction.ADD_ATTACHMENT, attachmentTypePathName, position));
         }
     }
 
@@ -1391,7 +1566,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     }
 
     public LruCache<String, Bitmap> getBitmapLruCache() {
-        return mApplication.getBitmapLruCache();
+        return mApp.getBitmapLruCache();
     }
 
     private void setScrollEvents() {
@@ -1412,60 +1587,58 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             statusBarOffset = statusBarHeight;
         }
 
-        final ViewTreeObserver observer = mScrollView.getViewTreeObserver();
-        observer.addOnScrollChangedListener(
-                new ViewTreeObserver.OnScrollChangedListener() {
-                    @Override
-                    public void onScrollChanged() {
-                        int scrollY = mScrollView.getScrollY();
+        mScrollView.setOnScrollChangeListener(new NestedScrollView.OnScrollChangeListener() {
+            @Override
+            public void onScrollChange(
+                    NestedScrollView v, int scrollX, int scrollY, int oldScrollX, int oldScrollY) {
+                int imageHeight = 0;
+                if (mRvImageAttachment.getVisibility() == View.VISIBLE) {
+                    imageHeight = mRvImageAttachment.getHeight();
+                }
 
-                        int imageHeight = 0;
-                        if (mRvImageAttachment.getVisibility() == View.VISIBLE) {
-                            imageHeight = mRvImageAttachment.getHeight();
-                        }
+                // the scrollY that action bar shadow should begin to appear
+                float shadowAY;
+                // the scrollY that action bar shadow should totally appear
+                float shadowTY;
+                if (imageHeight == 0) {
+                    shadowAY = screenDensity * 14;
+                } else {
+                    shadowAY = imageHeight -
+                            barsHeight - statusBarOffset + screenDensity * 20;
+                }
+                shadowTY = shadowAY + screenDensity * 20;
+                if (scrollY >= shadowTY) {
+                    mActionBarShadow.setAlpha(1.0f);
+                } else if (scrollY <= shadowAY) {
+                    mActionBarShadow.setAlpha(0);
+                } else {
+                    float progress = scrollY - shadowAY;
+                    mActionBarShadow.setAlpha(progress / (shadowTY - shadowAY));
+                }
 
-                        // the scrollY that action bar shadow should begin to appear
-                        float shadowAY;
-                        // the scrollY that action bar shadow should totally appear
-                        float shadowTY;
-                        if (imageHeight == 0) {
-                            shadowAY = screenDensity * 14;
-                        } else {
-                            shadowAY = imageHeight -
-                                    barsHeight - statusBarOffset + screenDensity * 20;
-                        }
-                        shadowTY = shadowAY + screenDensity * 20;
-                        if (scrollY >= shadowTY) {
-                            mActionBarShadow.setAlpha(1.0f);
-                        } else if (scrollY <= shadowAY) {
-                            mActionBarShadow.setAlpha(0);
-                        } else {
-                            float progress = scrollY - shadowAY;
-                            mActionBarShadow.setAlpha(progress / (shadowTY - shadowAY));
-                        }
-
-                        if (imageHeight != 0) {
-                            float abAY = shadowAY - screenDensity * 12;
-                            float abTY = abAY + screenDensity * 16;
-                            int abAlpha;
-                            if (scrollY <= abAY) {
-                                abAlpha = 0;
-                            } else if (scrollY >= abTY) {
-                                abAlpha = 255;
-                            } else {
-                                float progress = (scrollY - abAY) / (abTY - abAY);
-                                abAlpha = (int) (progress * 255);
-                            }
-
-                            int color = getAccentColor();
-                            color = DisplayUtil.getTransparentColor(color, abAlpha);
-                            mStatusBar.setBackgroundColor(color);
-                            mActionbar.setBackgroundColor(color);
-                        }
+                if (imageHeight != 0) {
+                    float abAY = shadowAY - screenDensity * 12;
+                    float abTY = abAY + screenDensity * 16;
+                    int abAlpha;
+                    if (scrollY <= abAY) {
+                        abAlpha = 0;
+                    } else if (scrollY >= abTY) {
+                        abAlpha = 255;
+                    } else {
+                        float progress = (scrollY - abAY) / (abTY - abAY);
+                        abAlpha = (int) (progress * 255);
                     }
-                });
+
+                    int color = getAccentColor();
+                    color = DisplayUtil.getTransparentColor(color, abAlpha);
+                    mStatusBar.setBackgroundColor(color);
+                    mActionbar.setBackgroundColor(color);
+                }
+            }
+        });
 
         if (f(R.id.ll_quick_remind).getVisibility() == View.VISIBLE) {
+            ViewTreeObserver observer = mScrollView.getViewTreeObserver();
             observer.addOnScrollChangedListener(
                     new ViewTreeObserver.OnScrollChangedListener() {
                         @Override
@@ -1516,36 +1689,48 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         mColorPicker.setPickedListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                changingColor = true;
+                int colorFrom = getAccentColor();
+                int colorTo   = mColorPicker.getPickedColor();
+                if (colorFrom == colorTo) {
+                    return;
+                }
+                changeColor(mColorPicker.getPickedColor());
+                if (shouldAddToActionList) {
+                    mActionList.addAction(new ThingAction(
+                            ThingAction.UPDATE_COLOR, colorFrom, colorTo));
+                }
+            }
+        });
+    }
 
-                int colorFrom = ((ColorDrawable) mFlBackground.getBackground()).getColor();
-                int colorTo = mColorPicker.getPickedColor();
-                quickRemindPicker.setAccentColor(colorTo);
-                quickRemindPicker.pickForUI(quickRemindPicker.getPickedIndex());
-                ObjectAnimator.ofObject(mFlBackground, "backgroundColor",
-                        new ArgbEvaluator(), colorFrom, colorTo).setDuration(600).start();
+    private void changeColor(int colorTo) {
+        changingColor = true;
 
-                updateTaskDescription(colorTo);
+        int colorFrom = ((ColorDrawable) mFlBackground.getBackground()).getColor();
+        quickRemindPicker.setAccentColor(colorTo);
+        quickRemindPicker.pickForUI(quickRemindPicker.getPickedIndex());
+        ObjectAnimator.ofObject(mFlBackground, "backgroundColor",
+                new ArgbEvaluator(), colorFrom, colorTo).setDuration(600).start();
 
-                colorFrom = ((ColorDrawable) mActionbar.getBackground()).getColor();
-                int alpha = Color.alpha(colorFrom);
-                colorTo = DisplayUtil.getTransparentColor(colorTo, alpha);
-                ObjectAnimator.ofObject(mActionbar, "backgroundColor",
-                        new ArgbEvaluator(), colorFrom, colorTo).setDuration(600).start();
-                ObjectAnimator.ofObject(mStatusBar, "backgroundColor",
-                        new ArgbEvaluator(), colorFrom, colorTo).setDuration(600).start();
+        updateTaskDescription(colorTo);
 
-                mExecutor.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            Thread.sleep(666);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
-                        changingColor = false;
-                    }
-                });
+        colorFrom = ((ColorDrawable) mActionbar.getBackground()).getColor();
+        int alpha = Color.alpha(colorFrom);
+        colorTo = DisplayUtil.getTransparentColor(colorTo, alpha);
+        ObjectAnimator.ofObject(mActionbar, "backgroundColor",
+                new ArgbEvaluator(), colorFrom, colorTo).setDuration(600).start();
+        ObjectAnimator.ofObject(mStatusBar, "backgroundColor",
+                new ArgbEvaluator(), colorFrom, colorTo).setDuration(600).start();
+
+        mExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Thread.sleep(666);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                changingColor = false;
             }
         });
     }
@@ -1556,6 +1741,10 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 updateTaskDescription(getAccentColor());
                 updateBackImage();
+                if (shouldAddToActionList) {
+                    mActionList.addAction(new ThingAction(
+                            ThingAction.TOGGLE_REMINDER_OR_HABIT, null, null));
+                }
             }
         });
         if (mThing.getState() == Thing.UNDERWAY) {
@@ -1569,77 +1758,39 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         quickRemindPicker.setPickedListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (quickRemindPicker.getPickedIndex() == 9) {
+                int pickedBefore = quickRemindPicker.getPreviousIndex();
+                int pickedAfter  = quickRemindPicker.getPickedIndex();
+                if (pickedAfter == 9) {
+                    mDateTimeDialogFragment.setPickedBefore(pickedBefore);
                     mDateTimeDialogFragment.show(getFragmentManager(), DateTimeDialogFragment.TAG);
                 } else {
-                    habitType = -1;
-                    habitDetail = null;
-                    reminderAfterTime = quickRemindPicker.getPickedTimeAfter();
-                    reminderInMillis = 0;
+                    ReminderHabitParams before = new ReminderHabitParams(rhParams);
+                    boolean isChecked = cbQuickRemind.isChecked();
+                    rhParams.reset();
+                    rhParams.setReminderAfterTime(quickRemindPicker.getPickedTimeAfter());
                     if (cbQuickRemind.isChecked()) {
                         updateTaskDescription(getAccentColor());
                         updateBackImage();
                     } else {
+                        boolean temp = shouldAddToActionList;
+                        shouldAddToActionList = false;
                         cbQuickRemind.setChecked(true);
+                        shouldAddToActionList = temp;
+                    }
+
+                    if (shouldAddToActionList) {
+                        ThingAction action = new ThingAction(
+                                ThingAction.UPDATE_REMINDER_OR_HABIT, before,
+                                new ReminderHabitParams(rhParams));
+                        action.getExtras().putBoolean(
+                                ThingAction.KEY_CHECKBOX_STATE, isChecked);
+                        action.getExtras().putInt(ThingAction.KEY_PICKED_BEFORE, pickedBefore);
+                        action.getExtras().putInt(ThingAction.KEY_PICKED_AFTER,  pickedAfter);
+                        mActionList.addAction(action);
                     }
                 }
             }
         });
-    }
-
-    private void setSnackbarEvents() {
-        Snackbar.DismissCallback callback = new Snackbar.DismissCallback() {
-            @Override
-            public void onDismiss() {
-                mUndoItems.clear();
-                mUndoPositions.clear();
-            }
-        };
-        mUndoSnackbar.setDismissCallback(callback);
-
-        mUndoSnackbar.setUndoListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                int size = mUndoItems.size();
-                String str = mUndoItems.get(size - 1);
-                int pos = mUndoPositions.get(size - 1);
-                mUndoItems.remove(size - 1);
-                mUndoPositions.remove(size - 1);
-                updateUndoMessage();
-
-                if (mUndoType == UNDO_CHECKLIST) {
-                    mCheckListAdapter.addItem(pos, str);
-                } else {
-                    attachmentTypePathName = str;
-                    addAttachment(pos);
-                }
-
-                if (mUndoItems.isEmpty()) {
-                    mUndoSnackbar.dismiss();
-                }
-            }
-        });
-    }
-
-    private void updateUndoMessage() {
-        boolean isChinese = LocaleUtil.isChinese(this);
-        String deleted = getString(R.string.sb_delete);
-        String typeStr;
-        if (mUndoType == UNDO_CHECKLIST) {
-            typeStr = getString(R.string.item);
-        } else {
-            typeStr = getString(R.string.attachment);
-        }
-
-        int size = mUndoItems.size();
-        if (size > 1 && !isChinese) {
-            typeStr += "s";
-        }
-        if (isChinese) {
-            mUndoSnackbar.setMessage(deleted + " " + size + " " + typeStr);
-        } else {
-            mUndoSnackbar.setMessage(size + " " + typeStr + " " + deleted);
-        }
     }
 
     private void alertCancel(@StringRes int titleRes, @StringRes int contentRes,
@@ -1665,15 +1816,16 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 new AlertDialogFragment.CancelListener() {
                     @Override
                     public void onCancel() {
-                        mIbBack.setImageResource(R.mipmap.act_back_habit);
+                        mIbBack.setImageResource(R.drawable.act_back_habit);
                         cbQuickRemind.setChecked(true);
                         quickRemindPicker.pickForUI(9);
-                        reminderAfterTime = null;
-                        reminderInMillis = 0;
-                        habitType = mHabit.getType();
-                        habitDetail = mHabit.getDetail();
+                        rhParams.reset();
+                        int habitType = mHabit.getType();
+                        String habitDetail = mHabit.getDetail();
+                        rhParams.setHabitType(habitType);
+                        rhParams.setHabitDetail(habitDetail);
                         tvQuickRemind.setText(DateTimeUtil.getDateTimeStrRec(
-                                mApplication, habitType, habitDetail));
+                                mApp, habitType, habitDetail));
                     }
                 });
     }
@@ -1683,13 +1835,12 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 new AlertDialogFragment.CancelListener() {
                     @Override
                     public void onCancel() {
-                        mIbBack.setImageResource(R.mipmap.act_back_goal);
+                        mIbBack.setImageResource(R.drawable.act_back_goal);
                         cbQuickRemind.setChecked(true);
                         quickRemindPicker.pickForUI(9);
-                        reminderInMillis = mReminder.getNotifyTime();
-                        reminderAfterTime = null;
-                        habitType = -1;
-                        habitDetail = null;
+                        rhParams.reset();
+                        long reminderInMillis = mReminder.getNotifyTime();
+                        rhParams.setReminderInMillis(reminderInMillis);
                         tvQuickRemind.setText(DateTimeUtil.getDateTimeStrAt(
                                 reminderInMillis, DetailActivity.this, false));
                     }
@@ -1697,13 +1848,14 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     }
 
     private void createHabit(long id, HabitDAO habitDAO) {
-        Habit habit = new Habit(id, habitType, 0, habitDetail, "", "", System.currentTimeMillis(), 0);
+        Habit habit = new Habit(id, rhParams.getHabitType(), 0, rhParams.getHabitDetail(),
+                "", "", System.currentTimeMillis(), 0);
         habit.initHabitReminders();
         habitDAO.createHabit(habit);
     }
 
-    private void returnToThingsActivity(boolean alertForPrivateThing, boolean alertForCancelling) {
-        if (changingColor) return;
+    private boolean prepareForReturnNormally() {
+        if (changingColor) return false;
 
         if (mAudioAttachmentAdapter != null && mAudioAttachmentAdapter.getPlayingIndex() != -1) {
             mAudioAttachmentAdapter.stopPlaying();
@@ -1712,24 +1864,30 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         if (!mEditable) {
             setResult(Def.Communication.RESULT_NO_UPDATE);
             finish();
-            return;
+            return false;
         }
 
         KeyboardUtil.hideKeyboard(getCurrentFocus());
         mNormalSnackbar.dismiss();
 
-        long id = mThing.getId();
         if (App.isSomethingUpdatedSpecially()) {
-            updateThingAndItsPosition(id);
+            updateThingAndItsPosition(mThing.getId());
         }
 
-        if (alertForPrivateThing && isPrivateThing() && cannotSetAsPrivateThing()) {
-            AlertNoTitleWhenSetPrivateThing();
+        return true;
+    }
+
+    private void returnToThingsActivity(boolean alertForPrivateThing, boolean alertForCancelling) {
+        if (!prepareForReturnNormally()) {
             return;
         }
 
-        boolean reminderUpdated = true, habitUpdated = true;
-        long reminderTime = getReminderTime();
+        if (alertForPrivateThing && isPrivateThing() && cannotSetAsPrivateThing()) {
+            alertNoTitleWhenSetPrivateThing();
+            return;
+        }
+
+        long reminderTime = rhParams.getReminderTime();
 
         int typeBefore = mThing.getType();
         int typeAfter = getThingTypeAfter();
@@ -1738,140 +1896,52 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         boolean isHabitBefore = typeBefore == Thing.HABIT;
         boolean isHabitAfter = typeAfter == Thing.HABIT;
 
-        if (cbQuickRemind.isChecked() && habitDetail == null && reminderTime <= System.currentTimeMillis()) {
+        if (cbQuickRemind.isChecked() && rhParams.getHabitDetail() == null
+                && reminderTime <= System.currentTimeMillis()) {
             mNormalSnackbar.setMessage(R.string.error_later);
             mFlBackground.postDelayed(mShowNormalSnackbar, 120);
             return;
         }
 
-        String title = mEtTitle.getText().toString();
-        if (isPrivateThing()) {
-            title = Thing.PRIVATE_THING_PREFIX + title;
-        }
+        String title      = getThingTitle();
+        String content    = getThingContent();
+        String attachment = getThingAttachment();
 
-        String content;
-        int color = getAccentColor();
-
-        if (mRvCheckList.getVisibility() == View.VISIBLE) {
-            content = CheckListHelper.toCheckListStr(mCheckListAdapter.getItems());
-            if (mHabitFinishedThisTime) {
-                content = content.replaceAll(CheckListHelper.SIGNAL + "1",
-                        CheckListHelper.SIGNAL + "0");
-            }
-        } else {
-            content = mEtContent.getText().toString();
-        }
-
-        List<String> imageItems = null, audioItems = null;
-        if (mRvImageAttachment.getVisibility() == View.VISIBLE) {
-            imageItems = mImageAttachmentAdapter.getItems();
-        }
-        if (mRvAudioAttachment.getVisibility() == View.VISIBLE) {
-            audioItems = mAudioAttachmentAdapter.getItems();
-        }
-        String attachment = AttachmentHelper.toAttachmentStr(imageItems, audioItems);
-        List<String> attachmentsToDelete = AttachmentHelper
-                .getAttachmentsToDelete(mThing.getAttachment(), attachment);
-        if (attachmentsToDelete != null && !attachmentsToDelete.isEmpty()) {
-            mApplication.addAttachmentsToDeleteFile(attachmentsToDelete);
-        }
-
-        Intent intent = new Intent();
-        int resultCode = Def.Communication.RESULT_NO_UPDATE;
         if (mType == CREATE && title.isEmpty() && content.isEmpty() && attachment.isEmpty()) {
-            resultCode = Def.Communication.RESULT_CREATE_BLANK_THING;
-            setResult(resultCode);
-            if (App.isSomethingUpdatedSpecially()) {
-                App.setShouldJustNotifyDataSetChanged(true);
-            }
-            if (shouldSendBroadCast()) {
-                sendBroadCastToUpdateMainUI(intent, resultCode);
-            }
-            finish();
+            createEmptyThing();
             return;
         }
 
-        ReminderDAO rDao = ReminderDAO.getInstance(mApplication);
-        if (!isReminderBefore && isReminderAfter) {
-            if (!isHabitBefore || !alertForCancelling) {
-                rDao.create(new Reminder(mThing.getId(), reminderTime));
-            }
-        } else if (isReminderBefore && !isReminderAfter) {
-            if (typeBefore == Thing.GOAL && alertForCancelling) {
-                alertForCancellingGoal();
-                return;
-            } else {
-                rDao.delete(id);
-            }
-        } else if (isReminderBefore) {
-            if (mReminder.getNotifyTime() == reminderTime && typeBefore == typeAfter) {
-                reminderUpdated = false;
-            } else {
-                if (typeBefore == Thing.GOAL && alertForCancelling) {
-                    alertForCancellingGoal();
-                    return;
-                }
-                mReminder.setNotifyTime(reminderTime);
-                mReminder.setState(Reminder.UNDERWAY);
-                mReminder.initNotifyMinutes();
-                mReminder.setUpdateTime(System.currentTimeMillis());
-                rDao.update(mReminder);
-            }
-        } else {
-            reminderUpdated = false;
+        Boolean reminderUpdated = setOrUpdateReminder(isReminderBefore, isReminderAfter,
+                isHabitBefore, alertForCancelling, reminderTime, typeBefore, typeAfter);
+        if (reminderUpdated == null) {
+            return;
         }
 
-        HabitDAO hDao = HabitDAO.getInstance(mApplication);
-        if (!isHabitBefore && isHabitAfter) {
-            createHabit(id, hDao);
-        } else if (isHabitBefore && !isHabitAfter) {
-            if (alertForCancelling) {
-                alertForCancellingHabit();
-                return;
-            } else {
-                hDao.deleteHabit(id);
-            }
-        } else if (isHabitBefore) {
-            if (Habit.noUpdate(mHabit, habitType, habitDetail)) {
-                habitUpdated = false;
-            } else {
-                if (alertForCancelling) {
-                    alertForCancellingHabit();
-                    return;
-                } else {
-                    hDao.deleteHabit(id);
-                    createHabit(id, hDao);
-                }
-            }
-        } else {
-            habitUpdated = false;
+        Boolean habitUpdated = setOrUpdateHabit(isHabitBefore, isHabitAfter, alertForCancelling);
+        if (habitUpdated == null) {
+            return;
         }
 
+        int color = getAccentColor();
+        Intent intent = new Intent();
+
+        Integer resultCode = createOrUpdateThing(title, content, attachment,
+                typeBefore, typeAfter, color, reminderUpdated, habitUpdated, intent);
+        if (resultCode == null) {
+            return;
+        }
+
+        afterCreateOrUpdateThing(intent, resultCode);
+    }
+
+    private Integer createOrUpdateThing(
+            String title, String content, String attachment,
+            @Thing.Type int typeBefore, @Thing.Type int typeAfter, int color,
+            boolean reminderUpdated, boolean habitUpdated, Intent intent) {
+        Integer resultCode = Def.Communication.RESULT_NO_UPDATE;
         if (mType == CREATE) {
-            mThing.setTitle(title);
-            mThing.setContent(content);
-            mThing.setAttachment(attachment);
-            mThing.setType(typeAfter);
-            mThing.setColor(color);
-
-            long currentTime = System.currentTimeMillis();
-            mThing.setCreateTime(currentTime);
-            mThing.setUpdateTime(currentTime);
-
-            intent.putExtra(Def.Communication.KEY_THING, mThing);
-            resultCode = Def.Communication.RESULT_CREATE_THING_DONE;
-
-            // Create thing here directly to database. Solve the problem that if ThingsActivity
-            // is destroyed while user share something from other apps to EverythingDone. In that
-            // case, ThingsActivity won't receive broadcast to handle creation and that thing
-            // will be missed.
-            WeakReference<ThingsActivity> wr = App.thingsActivityWR;
-            if (wr == null || wr.get() == null) {
-                ThingManager.getInstance(mApplication).create(mThing, true, true);
-                intent.putExtra(Def.Communication.KEY_CREATED_DONE, true);
-            } else if (!shouldSendBroadCast()) {
-                setResult(resultCode, intent);
-            }
+            resultCode = createThing(title, content, attachment, typeAfter, color, intent);
         } else {
             boolean noUpdate = Thing.noUpdate(mThing, title, content, attachment, typeAfter, color)
                     && !reminderUpdated && !habitUpdated && !mHabitFinishedThisTime;
@@ -1880,44 +1950,17 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             } else {
                 if (title.isEmpty() && content.isEmpty() && attachment.isEmpty()) {
                     returnToThingsActivity(Thing.DELETED_FOREVER);
-                    return;
+                    resultCode = null;
                 } else {
-                    mThing.setTitle(title);
-                    mThing.setContent(content);
-                    mThing.setAttachment(attachment);
-                    mThing.setType(typeAfter);
-                    mThing.setColor(color);
-                    mThing.setUpdateTime(System.currentTimeMillis());
-
-                    intent.putExtra(Def.Communication.KEY_TYPE_BEFORE, typeBefore);
-                    boolean sameType = mApplication.getLimit() ==
-                            Def.LimitForGettingThings.ALL_UNDERWAY
-                            || Thing.sameType(typeBefore, typeAfter);
-                    if (sameType) {
-                        resultCode = Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME;
-                    } else {
-                        intent.putExtra(Def.Communication.KEY_THING, mThing);
-                        resultCode = Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_DIFFERENT;
-                    }
-
-                    if (mPosition != -1) {
-                        intent.putExtra(Def.Communication.KEY_POSITION, mPosition);
-                        int updateResult = ThingManager.getInstance(mApplication).update(
-                                typeBefore, mThing, mPosition, true);
-                        if (updateResult != 0) {
-                            intent.putExtra(Def.Communication.KEY_CALL_CHANGE, updateResult == 1);
-                        }
-                    } else {
-                        ThingDAO.getInstance(mApplication).update(typeBefore, mThing, true, true);
-                    }
-
-                    if (!shouldSendBroadCast()) {
-                        setResult(resultCode, intent);
-                    }
+                    resultCode = updateThing(title, content, attachment,
+                            typeBefore, typeAfter, color, intent);
                 }
             }
         }
+        return resultCode;
+    }
 
+    private void afterCreateOrUpdateThing(Intent intent, int resultCode) {
         if (App.isSomethingUpdatedSpecially()
                 && resultCode != Def.Communication.RESULT_NO_UPDATE) {
             App.setShouldJustNotifyDataSetChanged(true);
@@ -1935,7 +1978,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         }
         KeyboardUtil.hideKeyboard(getCurrentFocus());
 
-        ThingManager manager = ThingManager.getInstance(mApplication);
+        ThingManager manager = ThingManager.getInstance(mApp);
         Intent intent = new Intent();
         intent.putExtra(Def.Communication.KEY_THING, mThing);
 
@@ -1950,20 +1993,20 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         if (mPosition == -1) {
             int stateBefore = mThing.getState();
             mThing = Thing.getSameCheckStateThing(mThing, stateBefore, stateAfter);
-            ThingDAO dao = ThingDAO.getInstance(mApplication);
+            ThingDAO dao = ThingDAO.getInstance(mApp);
             dao.updateState(mThing, mThing.getLocation(), stateBefore, stateAfter, true, true,
                     false, dao.getHeaderId(), true);
 
             long id = mThing.getId();
             int type = mThing.getType();
             if (type == Thing.GOAL && stateAfter == Thing.UNDERWAY) {
-                ReminderDAO reminderDAO = ReminderDAO.getInstance(mApplication);
+                ReminderDAO reminderDAO = ReminderDAO.getInstance(mApp);
                 Reminder goal = reminderDAO.getReminderById(id);
-                ThingManager.getInstance(mApplication).getUndoGoals().add(goal);
+                ThingManager.getInstance(mApp).getUndoGoals().add(goal);
                 reminderDAO.resetGoal(goal);
             }
             if (type == Thing.HABIT) {
-                HabitDAO habitDAO = HabitDAO.getInstance(mApplication);
+                HabitDAO habitDAO = HabitDAO.getInstance(mApp);
                 long curTime = System.currentTimeMillis();
                 if (stateAfter == Thing.UNDERWAY) {
                     habitDAO.updateHabitToLatest(id, true, true);
@@ -1988,6 +2031,197 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         finish();
     }
 
+    private String getThingTitle() {
+        String title = mEtTitle.getText().toString();
+        if (isPrivateThing()) {
+            title = Thing.PRIVATE_THING_PREFIX + title;
+        }
+        return title;
+    }
+
+    private String getThingContent() {
+        String content;
+        if (mRvCheckList.getVisibility() == View.VISIBLE) {
+            content = CheckListHelper.toCheckListStr(mCheckListAdapter.getItems());
+            if (mHabitFinishedThisTime) {
+                content = content.replaceAll(CheckListHelper.SIGNAL + "1",
+                        CheckListHelper.SIGNAL + "0");
+            }
+        } else {
+            content = mEtContent.getText().toString();
+        }
+        return content;
+    }
+
+    private String getThingAttachment() {
+        List<String> imageItems = null, audioItems = null;
+        if (mRvImageAttachment.getVisibility() == View.VISIBLE) {
+            imageItems = mImageAttachmentAdapter.getItems();
+        }
+        if (mRvAudioAttachment.getVisibility() == View.VISIBLE) {
+            audioItems = mAudioAttachmentAdapter.getItems();
+        }
+        String attachment = AttachmentHelper.toAttachmentStr(imageItems, audioItems);
+        List<String> attachmentsToDelete = AttachmentHelper
+                .getAttachmentsToDelete(mThing.getAttachment(), attachment);
+        if (attachmentsToDelete != null && !attachmentsToDelete.isEmpty()) {
+            mApp.addAttachmentsToDeleteFile(attachmentsToDelete);
+        }
+        return attachment;
+    }
+
+    private void createEmptyThing() {
+        int resultCode = Def.Communication.RESULT_CREATE_BLANK_THING;
+        setResult(resultCode);
+        if (App.isSomethingUpdatedSpecially()) {
+            App.setShouldJustNotifyDataSetChanged(true);
+        }
+        if (shouldSendBroadCast()) {
+            sendBroadCastToUpdateMainUI(new Intent(), resultCode);
+        }
+        finish();
+    }
+
+    private Boolean setOrUpdateReminder(
+            boolean isReminderBefore, boolean isReminderAfter, boolean isHabitBefore,
+            boolean alertForCancelling, long reminderTime,
+            @Thing.Type int typeBefore, @Thing.Type int typeAfter) {
+        Boolean reminderUpdated = true;
+        ReminderDAO rDao = ReminderDAO.getInstance(mApp);
+        if (!isReminderBefore && isReminderAfter) {
+            if (!isHabitBefore || !alertForCancelling) {
+                rDao.create(new Reminder(mThing.getId(), reminderTime));
+            }
+        } else if (isReminderBefore && !isReminderAfter) {
+            if (typeBefore == Thing.GOAL && alertForCancelling) {
+                alertForCancellingGoal();
+                reminderUpdated = null;
+            } else {
+                rDao.delete(mThing.getId());
+            }
+        } else if (isReminderBefore) {
+            if (mReminder.getNotifyTime() == reminderTime && typeBefore == typeAfter) {
+                reminderUpdated = false;
+            } else {
+                if (typeBefore == Thing.GOAL && alertForCancelling) {
+                    alertForCancellingGoal();
+                    reminderUpdated = null;
+                }
+                mReminder.setNotifyTime(reminderTime);
+                mReminder.setState(Reminder.UNDERWAY);
+                mReminder.initNotifyMinutes();
+                mReminder.setUpdateTime(System.currentTimeMillis());
+                rDao.update(mReminder);
+            }
+        } else {
+            reminderUpdated = false;
+        }
+        return reminderUpdated;
+    }
+
+    private Boolean setOrUpdateHabit(
+            boolean isHabitBefore, boolean isHabitAfter, boolean alertForCancelling) {
+        HabitDAO hDao = HabitDAO.getInstance(mApp);
+        Boolean habitUpdated = true;
+        long id = mThing.getId();
+        if (!isHabitBefore && isHabitAfter) {
+            createHabit(id, hDao);
+        } else if (isHabitBefore && !isHabitAfter) {
+            if (alertForCancelling) {
+                alertForCancellingHabit();
+                habitUpdated = null;
+            } else {
+                hDao.deleteHabit(id);
+            }
+        } else if (isHabitBefore) {
+            if (Habit.noUpdate(mHabit, rhParams.getHabitType(), rhParams.getHabitDetail())) {
+                habitUpdated = false;
+            } else {
+                if (alertForCancelling) {
+                    alertForCancellingHabit();
+                    habitUpdated = null;
+                } else {
+                    hDao.deleteHabit(id);
+                    createHabit(id, hDao);
+                }
+            }
+        } else {
+            habitUpdated = false;
+        }
+        return habitUpdated;
+    }
+
+    private int createThing(String title, String content, String attachment,
+                             @Thing.Type int typeAfter, int color, Intent intent) {
+        mThing.setTitle(title);
+        mThing.setContent(content);
+        mThing.setAttachment(attachment);
+        mThing.setType(typeAfter);
+        mThing.setColor(color);
+
+        long currentTime = System.currentTimeMillis();
+        mThing.setCreateTime(currentTime);
+        mThing.setUpdateTime(currentTime);
+
+        intent.putExtra(Def.Communication.KEY_THING, mThing);
+        int resultCode = Def.Communication.RESULT_CREATE_THING_DONE;
+
+        // Create thing here directly to database. Solve the problem that if ThingsActivity
+        // is destroyed while user share something from other apps to EverythingDone. In that
+        // case, ThingsActivity won't receive broadcast to handle creation and that thing
+        // will be missed.
+        WeakReference<ThingsActivity> wr = App.thingsActivityWR;
+        if (wr == null || wr.get() == null) {
+            ThingManager.getInstance(mApp).create(mThing, true, true);
+            intent.putExtra(Def.Communication.KEY_CREATED_DONE, true);
+        } else if (!shouldSendBroadCast()) {
+            setResult(resultCode, intent);
+        }
+
+        return resultCode;
+    }
+
+    private int updateThing(
+            String title, String content, String attachment,
+            @Thing.Type int typeBefore, @Thing.Type int typeAfter,
+            int color, Intent intent) {
+        mThing.setTitle(title);
+        mThing.setContent(content);
+        mThing.setAttachment(attachment);
+        mThing.setType(typeAfter);
+        mThing.setColor(color);
+        mThing.setUpdateTime(System.currentTimeMillis());
+
+        intent.putExtra(Def.Communication.KEY_TYPE_BEFORE, typeBefore);
+        boolean sameType = mApp.getLimit() ==
+                Def.LimitForGettingThings.ALL_UNDERWAY
+                || Thing.sameType(typeBefore, typeAfter);
+        int resultCode;
+        if (sameType) {
+            resultCode = Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME;
+        } else {
+            intent.putExtra(Def.Communication.KEY_THING, mThing);
+            resultCode = Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_DIFFERENT;
+        }
+
+        if (mPosition != -1) {
+            intent.putExtra(Def.Communication.KEY_POSITION, mPosition);
+            int updateResult = ThingManager.getInstance(mApp).update(
+                    typeBefore, mThing, mPosition, true);
+            if (updateResult != 0) {
+                intent.putExtra(Def.Communication.KEY_CALL_CHANGE, updateResult == 1);
+            }
+        } else {
+            ThingDAO.getInstance(mApp).update(typeBefore, mThing, true, true);
+        }
+
+        if (!shouldSendBroadCast()) {
+            setResult(resultCode, intent);
+        }
+
+        return resultCode;
+    }
+
     private boolean shouldSendBroadCast() {
         return mSenderName.equals(ReminderReceiver.TAG) || mSenderName.equals(HabitReceiver.TAG)
                 || mSenderName.equals(AutoNotifyReceiver.TAG) || "intent".equals(mSenderName);
@@ -2007,25 +2241,73 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
     public void updateBackImage() {
         if (cbQuickRemind.isChecked()) {
-            if (habitDetail != null) {
-                mIbBack.setImageResource(R.mipmap.act_back_habit);
+            if (rhParams.getHabitDetail() != null) {
+                mIbBack.setImageResource(R.drawable.act_back_habit);
             } else {
-                if (Reminder.getType(getReminderTime(), System.currentTimeMillis()) == Thing.GOAL) {
-                    mIbBack.setImageResource(R.mipmap.act_back_goal);
+                if (Reminder.getType(rhParams.getReminderTime(),
+                        System.currentTimeMillis()) == Thing.GOAL) {
+                    mIbBack.setImageResource(R.drawable.act_back_goal);
                 } else {
-                    mIbBack.setImageResource(R.mipmap.act_back_reminder);
+                    mIbBack.setImageResource(R.drawable.act_back_reminder);
                 }
             }
         } else {
             int thingType = mThing.getType();
             if (Thing.isTypeReminder(thingType)) {
-                mIbBack.setImageResource(R.mipmap.act_back_reminder);
+                mIbBack.setImageResource(R.drawable.act_back_reminder);
             } else if (Thing.isTypeHabit(thingType)) {
-                mIbBack.setImageResource(R.mipmap.act_back_habit);
+                mIbBack.setImageResource(R.drawable.act_back_habit);
             } else if (Thing.isTypeGoal(thingType)) {
-                mIbBack.setImageResource(R.mipmap.act_back_goal);
+                mIbBack.setImageResource(R.drawable.act_back_goal);
             } else {
-                mIbBack.setImageResource(R.mipmap.act_back_note);
+                mIbBack.setImageResource(R.drawable.act_back_note);
+            }
+        }
+    }
+
+    class ActionTextWatcher implements TextWatcher {
+
+        private int mActionType;
+
+        private String mBefore;
+        private int mCursorPosBefore;
+
+        private EditText mEditText;
+
+        public ActionTextWatcher(int actionType) {
+            mActionType = actionType;
+            mEditText = (mActionType == ThingAction.UPDATE_TITLE ? mEtTitle : mEtContent);
+        }
+
+        @Override
+        public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            mBefore = s.toString();
+            mCursorPosBefore = mEditText.getSelectionEnd();
+        }
+
+        @Override
+        public void onTextChanged(CharSequence s, int start, int before, int count) { }
+
+        @Override
+        public void afterTextChanged(Editable s) {
+            if (shouldAddToActionList) {
+                ThingAction action = new ThingAction(mActionType, mBefore, s.toString());
+                action.getExtras().putInt(
+                        ThingAction.KEY_CURSOR_POS_BEFORE, mCursorPosBefore);
+                action.getExtras().putInt(
+                        ThingAction.KEY_CURSOR_POS_AFTER, mEditText.getSelectionStart());
+                mActionList.addAction(action);
+            }
+        }
+    }
+
+    class CheckListActionCallback implements CheckListAdapter.ActionCallback {
+
+        @Override
+        public void onAction(String before, String after) {
+            if (shouldAddToActionList) {
+                mActionList.addAction(
+                        new ThingAction(ThingAction.UPDATE_CHECKLIST, before, after));
             }
         }
     }
@@ -2055,15 +2337,6 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 }
             } else {
                 KeyboardUtil.hideKeyboard(getCurrentFocus());
-                if (mUndoType != UNDO_CHECKLIST) {
-                    mUndoSnackbar.dismiss();
-                }
-                mUndoType = UNDO_CHECKLIST;
-                mUndoItems.add(item);
-                mUndoPositions.add(position);
-                updateUndoMessage();
-
-                mRvCheckList.postDelayed(mShowUndoSnackbar, KeyboardUtil.HIDE_DELAY);
             }
         }
     }
@@ -2093,14 +2366,11 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             notifyImageAttachmentsChanged(false, pos);
 
             KeyboardUtil.hideKeyboard(getCurrentFocus());
-            if (mUndoType != UNDO_IMAGE) {
-                mUndoSnackbar.dismiss();
+
+            if (shouldAddToActionList) {
+                mActionList.addAction(new ThingAction(
+                        ThingAction.DELETE_ATTACHMENT, pos, item));
             }
-            mUndoType = UNDO_IMAGE;
-            mUndoItems.add(item);
-            mUndoPositions.add(pos);
-            updateUndoMessage();
-            mRvImageAttachment.postDelayed(mShowUndoSnackbar, KeyboardUtil.HIDE_DELAY);
         }
     }
 
@@ -2112,20 +2382,49 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             notifyAudioAttachmentsChanged(false, pos);
 
             KeyboardUtil.hideKeyboard(getCurrentFocus());
-            if (mUndoType != UNDO_AUDIO) {
-                mUndoSnackbar.dismiss();
-            }
-            mUndoType = UNDO_AUDIO;
-            mUndoItems.add(item);
-            mUndoPositions.add(pos);
-            updateUndoMessage();
-            mRvImageAttachment.postDelayed(mShowUndoSnackbar, KeyboardUtil.HIDE_DELAY);
 
             int index = mAudioAttachmentAdapter.getPlayingIndex();
             if (pos < index) {
                 mAudioAttachmentAdapter.setPlayingIndex(index - 1);
             }
+
+            if (shouldAddToActionList) {
+                mActionList.addAction(new ThingAction(
+                        ThingAction.DELETE_ATTACHMENT, pos, item));
+            }
         }
+    }
+
+    private boolean moveChecklist(int from, int to) {
+        List<String> items = mCheckListAdapter.getItems();
+        int pos2 = items.indexOf("2");
+        int fromPos2 = from - pos2;
+        int toPos2 = to - pos2;
+        if (fromPos2 * toPos2 <= 0) {
+            return false;
+        }
+
+        int pos3 = items.indexOf("3");
+        if (pos3 != -1) { // there are finished items
+            int pos4 = pos3 + 1;
+            if ((from <= pos3 && to >= pos3) || (from >= pos3 && to <= pos3)) {
+                return false;
+            }
+            if ((from <= pos4 && to >= pos4) || (from >= pos4 && to <= pos4)) {
+                return false;
+            }
+        }
+
+        String item = items.remove(from);
+        items.add(to, item);
+        mCheckListAdapter.notifyItemMoved(from, to);
+
+        if (shouldAddToActionList) {
+            mActionList.addAction(new ThingAction(
+                    ThingAction.MOVE_CHECKLIST, from, to));
+        }
+
+        return true;
     }
 
     class CheckListTouchCallback extends ItemTouchHelper.Callback {
@@ -2141,31 +2440,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                               RecyclerView.ViewHolder target) {
             final int from = viewHolder.getAdapterPosition();
             final int to   = target.getAdapterPosition();
-
-            List<String> items = mCheckListAdapter.getItems();
-            int pos2 = items.indexOf("2");
-            int fromPos2 = from - pos2;
-            int toPos2 = to - pos2;
-            if (fromPos2 * toPos2 <= 0) {
-                return false;
-            }
-
-            int pos3 = items.indexOf("3");
-            if (pos3 != -1) { // there are finished items
-                int pos4 = pos3 + 1;
-                if ((from <= pos3 && to >= pos3) || (from >= pos3 && to <= pos3)) {
-                    return false;
-                }
-                if ((from <= pos4 && to >= pos4) || (from >= pos4 && to <= pos4)) {
-                    return false;
-                }
-            }
-
-            String item = items.remove(from);
-            items.add(to, item);
-            mCheckListAdapter.notifyItemMoved(from, to);
-
-            return true;
+            return moveChecklist(from, to);
         }
 
         @Override
@@ -2179,6 +2454,34 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         @Override
         public boolean isLongPressDragEnabled() {
             return false;
+        }
+    }
+
+    private void moveAttachment(int from, int to, boolean isImageAttachment) {
+        List<String> items;
+        if (isImageAttachment) {
+            items = mImageAttachmentAdapter.getItems();
+        } else {
+            items = mAudioAttachmentAdapter.getItems();
+        }
+        String typePathName = items.remove(from);
+        items.add(to, typePathName);
+
+        if (isImageAttachment) {
+            mImageAttachmentAdapter.notifyItemMoved(from, to);
+        } else {
+            mAudioAttachmentAdapter.notifyItemMoved(from, to);
+            if (mAudioAttachmentAdapter.getPlayingIndex() != -1) {
+                mAudioAttachmentAdapter.setPlayingIndex(items.indexOf(typePathName));
+            }
+        }
+
+        if (shouldAddToActionList) {
+            ThingAction action = new ThingAction(
+                    ThingAction.MOVE_ATTACHMENT, from, to);
+            action.getExtras().putBoolean(
+                    ThingAction.KEY_ATTACHMENT_TYPE, isImageAttachment);
+            mActionList.addAction(action);
         }
     }
 
@@ -2203,23 +2506,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             final int from = viewHolder.getAdapterPosition();
             final int to = target.getAdapterPosition();
 
-            List<String> items;
-            if (isImageAttachmentAdapter) {
-                items = mImageAttachmentAdapter.getItems();
-            } else {
-                items = mAudioAttachmentAdapter.getItems();
-            }
-            String typePathName = items.remove(from);
-            items.add(to, typePathName);
-
-            if (isImageAttachmentAdapter) {
-                mImageAttachmentAdapter.notifyItemMoved(from, to);
-            } else {
-                mAudioAttachmentAdapter.notifyItemMoved(from, to);
-                if (mAudioAttachmentAdapter.getPlayingIndex() != -1) {
-                    mAudioAttachmentAdapter.setPlayingIndex(items.indexOf(typePathName));
-                }
-            }
+            moveAttachment(from, to, isImageAttachmentAdapter);
             return true;
         }
 

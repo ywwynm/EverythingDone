@@ -5,25 +5,35 @@
 
     <item
         android:id="@+id/act_add_attachment"
-        android:icon="@mipmap/act_add_attachment"
+        android:icon="@drawable/act_add_attachment"
         android:title="@string/act_add_attachment"
         app:showAsAction="always"/>
 
     <item
         android:id="@+id/act_check_list"
-        android:icon="@mipmap/act_enable_check_list"
+        android:icon="@drawable/act_enable_check_list"
         android:title="@string/act_enable_check_list"
         app:showAsAction="always"/>
 
     <item
         android:id="@+id/act_change_color"
-        android:icon="@mipmap/act_change_color"
+        android:icon="@drawable/act_change_color"
         android:title="@string/act_change_color"
         app:showAsAction="always"/>
 
     <item
         android:id="@+id/act_set_as_private_thing"
         android:title="@string/act_set_as_private_thing"
+        app:showAsAction="never"/>
+
+    <item
+        android:id="@+id/act_undo"
+        android:title="@string/act_undo"
+        app:showAsAction="never"/>
+
+    <item
+        android:id="@+id/act_redo"
+        android:title="@string/act_redo"
         app:showAsAction="never"/>
 
     <item
@@ -44,6 +54,11 @@
     <item
         android:id="@+id/act_delete"
         android:title="@string/act_delete"
+        app:showAsAction="never"/>
+
+    <item
+        android:id="@+id/act_export"
+        android:title="@string/act_export"
         app:showAsAction="never"/>
 
 </menu>

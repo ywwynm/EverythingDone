@@ -10,8 +10,8 @@ import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.R;
-import com.ywwynm.everythingdone.activities.SettingsActivity;
 import com.ywwynm.everythingdone.adapters.ChooserFragmentAdapter;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil;
@@ -25,8 +25,6 @@ import java.util.List;
 public class ChooserDialogFragment extends BaseDialogFragment {
 
     public static final String TAG = "ChooserDialogFragment";
-
-    private SettingsActivity mActivity;
 
     private int mAccentColor;
     private String mTitle;
@@ -60,8 +58,6 @@ public class ChooserDialogFragment extends BaseDialogFragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         super.onCreateView(inflater, container, savedInstanceState);
 
-        mActivity = (SettingsActivity) getActivity();
-
         mTvTitle       = f(R.id.tv_title_fragment_chooser);
         mRecyclerView  = f(R.id.rv_fragment_chooser);
         mTvConfirmAsBt = f(R.id.tv_confirm_as_bt_fragment_chooser);
@@ -71,7 +67,7 @@ public class ChooserDialogFragment extends BaseDialogFragment {
         mSeparator1 = f(R.id.view_separator_1);
         mSeparator2 = f(R.id.view_separator_2);
 
-        mLlm = new LinearLayoutManager(mActivity);
+        mLlm = new LinearLayoutManager(getActivity());
 
         initUI();
         setEvents();
@@ -107,14 +103,14 @@ public class ChooserDialogFragment extends BaseDialogFragment {
         if (mItems.size() > 9) {
             LinearLayout.LayoutParams params = (LinearLayout.LayoutParams)
                     mRecyclerView.getLayoutParams();
-            params.height = (int) (40 * 8.5 * DisplayUtil.getScreenDensity(mActivity));
+            params.height = (int) (40 * 8.5 * DisplayUtil.getScreenDensity(App.getApp()));
             mRecyclerView.requestLayout();
         } else {
             mSeparator1.setVisibility(View.INVISIBLE);
             mSeparator2.setVisibility(View.INVISIBLE);
         }
 
-        mAdapter = new ChooserFragmentAdapter(mActivity, mItems, mAccentColor);
+        mAdapter = new ChooserFragmentAdapter(getActivity(), mItems, mAccentColor);
         mAdapter.setOnItemClickListener(mOnItemClickListener);
         mRecyclerView.setAdapter(mAdapter);
         mRecyclerView.setLayoutManager(mLlm);

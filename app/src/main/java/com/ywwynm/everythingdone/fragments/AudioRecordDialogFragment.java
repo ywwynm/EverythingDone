@@ -207,7 +207,7 @@ public class AudioRecordDialogFragment extends BaseDialogFragment {
 
         mVisualizer.animate().alpha(1.0f).setDuration(ANIM_DURATION);
         mBase.animate().alpha(1.0f).setDuration(ANIM_DURATION);
-        mFabMain.setImageResource(R.mipmap.act_stop_recording_audio);
+        mFabMain.setImageResource(R.drawable.act_stop_recording_audio);
     }
 
     private void recordingToStopped() {
@@ -223,7 +223,7 @@ public class AudioRecordDialogFragment extends BaseDialogFragment {
         mBase.animate().alpha(0.16f).setDuration(ANIM_DURATION);
 
         mFabMain.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#4CAF50")));
-        mFabMain.setImageResource(R.mipmap.act_save_audio);
+        mFabMain.setImageResource(R.drawable.act_save_audio);
 
         mIvReRecording.setClickable(true);
         mIvCancelRecording.setClickable(true);
@@ -238,7 +238,7 @@ public class AudioRecordDialogFragment extends BaseDialogFragment {
         mChronometer.animate().translationY(0).setDuration(ANIM_DURATION);
 
         mFabMain.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#FFFFFF")));
-        mFabMain.setImageResource(R.mipmap.act_start_recording_audio);
+        mFabMain.setImageResource(R.drawable.act_start_recording_audio);
 
         mIvReRecording.setClickable(false);
         mIvCancelRecording.setClickable(false);

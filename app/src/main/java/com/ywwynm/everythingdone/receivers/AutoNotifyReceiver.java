@@ -44,7 +44,7 @@ public class AutoNotifyReceiver extends BroadcastReceiver {
             thing = ThingDAO.getInstance(context).getThingById(id);
         }
 
-        if (thing.getState() != Thing.UNDERWAY) {
+        if (thing == null || thing.getState() != Thing.UNDERWAY) {
             return;
         }
 

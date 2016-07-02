@@ -70,7 +70,10 @@ public class ThingDAO {
     public Thing getThingById(long id) {
         Cursor cursor = db.query(Def.Database.TABLE_THINGS, null,
                 "id=" + id, null, null, null, null);
-        cursor.moveToFirst();
+        boolean moved = cursor.moveToFirst();
+        if (!moved) {
+            return null;
+        }
         Thing thing = new Thing(cursor);
         cursor.close();
         return thing;
@@ -134,7 +137,7 @@ public class ThingDAO {
         }
     }
 
-    public void update(int typeBefore, Thing updatedThing, boolean handleNotifyEmpty,
+    public void update(@Thing.Type int typeBefore, Thing updatedThing, boolean handleNotifyEmpty,
                        boolean handleCurrentLimit) {
         if (updatedThing == null) {
             return;
@@ -167,7 +170,8 @@ public class ThingDAO {
         }
     }
 
-    public void updateState(Thing thing, long location, int stateBefore, int stateAfter,
+    public void updateState(Thing thing, long location,
+                            @Thing.State int stateBefore, @Thing.State int stateAfter,
                             boolean handleNotifyEmpty, boolean handleCurrentLimit,
                             boolean toUndo, long headerLocation, boolean shouldUpdateHeader) {
         long id = thing.getId();
@@ -228,7 +232,8 @@ public class ThingDAO {
         }
     }
 
-    public void updateStates(List<Thing> things, List<Long> locations, int stateBefore, int stateAfter,
+    public void updateStates(List<Thing> things, List<Long> locations,
+                             @Thing.State int stateBefore, @Thing.State int stateAfter,
                              boolean toUndo, long headerLocation) {
         db.beginTransaction();
         try {
@@ -425,7 +430,7 @@ public class ThingDAO {
         }
     }
 
-    private void deleteNotifyEmpty(int type, int state, boolean handleCurrentLimit) {
+    private void deleteNotifyEmpty(@Thing.Type int type, @Thing.State int state, boolean handleCurrentLimit) {
         int[] limits = Thing.getLimits(type, state);
         final int currentLimit = mLimit;
         ThingsCounts thingsCounts = ThingsCounts.getInstance(mContext);
@@ -456,7 +461,7 @@ public class ThingDAO {
         }
     }
 
-    private void createNotifyEmpty(int type, int state, boolean handleCurrentLimit) {
+    private void createNotifyEmpty(@Thing.Type int type, @Thing.State int state, boolean handleCurrentLimit) {
         int[] limits = Thing.getLimits(type, state);
         final int currentLimit = mLimit;
         ThingsCounts thingsCounts = ThingsCounts.getInstance(mContext);

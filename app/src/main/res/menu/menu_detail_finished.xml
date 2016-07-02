@@ -5,18 +5,23 @@
     <item
         android:id="@+id/act_share"
         android:title="@string/act_share"
-        android:icon="@mipmap/act_share_white"
+        android:icon="@drawable/act_share_white"
         app:showAsAction="always"/>
 
     <item
         android:id="@+id/act_restore"
         android:title="@string/act_restore"
-        android:icon="@mipmap/act_restore"
+        android:icon="@drawable/act_restore"
         app:showAsAction="always"/>
 
     <item
         android:id="@+id/act_check_habit_detail"
         android:title="@string/act_check_habit_info"
+        app:showAsAction="never"/>
+
+    <item
+        android:id="@+id/act_export"
+        android:title="@string/act_export"
         app:showAsAction="never"/>
 
 </menu>

@@ -38,7 +38,7 @@
                 android:id="@+id/fab_share"
                 android:layout_height="56dp"
                 android:layout_width="56dp"
-                android:src="@mipmap/act_share_white"
+                android:src="@drawable/act_share_white"
                 android:layout_gravity="end"
                 android:layout_marginEnd="@dimen/fab_margin"
                 android:layout_marginRight="@dimen/fab_margin"

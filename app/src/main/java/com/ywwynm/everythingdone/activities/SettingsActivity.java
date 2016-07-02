@@ -26,6 +26,7 @@ import android.widget.RelativeLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
+import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.database.HabitDAO;
@@ -70,9 +71,6 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
     private int mAccentColor;
 
-    private View    mStatusBar;
-    private Toolbar mActionbar;
-
     // group ui
     public static final String DEFAULT_DRAWER_HEADER = "default_drawer_header";
     private LinearLayout mLlDrawerHeader;
@@ -107,7 +105,6 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     private LoadingDialogFragment mLdgRestore;
 
     // group privacy
-
     private TextView       mTvSetPasswordAsBt;
     private RelativeLayout mRlFgprtAsBt;
     private TextView       mTvFgprtTitle;
@@ -126,12 +123,13 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     private TextView     mTvANRingtoneTitle;
     private TextView     mTvANRingtone;
 
-    public static void initSystemRingtoneList(final Context context) {
+    public static void initSystemRingtoneList() {
         sRingtoneTitleList = new ArrayList<>();
         sRingtoneUriList   = new ArrayList<>();
         new Thread() {
             @Override
             public void run() {
+                Context context = App.getApp();
                 RingtoneManager manager = new RingtoneManager(context);
                 manager.setType(RingtoneManager.TYPE_NOTIFICATION);
 
@@ -164,11 +162,13 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                     }
                 }
 
-                int count = manager.getCursor().getCount();
+                Cursor cursor = manager.getCursor();
+                int count = cursor.getCount();
                 for (int i = 0; i < count; i++) {
                     sRingtoneUriList.add(manager.getRingtoneUri(i));
                     sRingtoneTitleList.add(manager.getRingtone(i).getTitle(context));
                 }
+                cursor.close();
             }
         }.start();
     }
@@ -318,9 +318,6 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
     @Override
     protected void findViews() {
-        mStatusBar = f(R.id.view_status_bar);
-        mActionbar = f(R.id.actionbar);
-
         // ui
         mLlDrawerHeader = f(R.id.ll_change_drawer_header_as_bt);
         mTvDrawerHeader = f(R.id.tv_drawer_header_path);
@@ -365,15 +362,9 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
     @Override
     protected void initUI() {
+        DisplayUtil.expandStatusBarAboveKitkat(f(R.id.view_status_bar));
         DisplayUtil.darkStatusBarForMIUI(this);
         DisplayUtil.coverStatusBar(f(R.id.view_status_bar_cover));
-
-        if (DeviceUtil.hasKitKatApi()) {
-            RelativeLayout.LayoutParams params = (RelativeLayout.LayoutParams)
-                    mStatusBar.getLayoutParams();
-            params.height = DisplayUtil.getStatusbarHeight(this);
-            mStatusBar.requestLayout();
-        }
 
         EdgeEffectUtil.forScrollView((ScrollView) f(R.id.sv_settings),
                 ContextCompat.getColor(this, R.color.blue_deep));
@@ -415,7 +406,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             return;
         }
 
-        FingerprintHelper fph = FingerprintHelper.getInstance(this);
+        FingerprintHelper fph = FingerprintHelper.getInstance();
         String password = mPreferences.getString(Def.Meta.KEY_PRIVATE_PASSWORD, null);
         if (password == null || !fph.isFingerprintReady()) {
             mRlFgprtAsBt.setEnabled(false);
@@ -475,10 +466,13 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
     @Override
     protected void setActionbar() {
-        setSupportActionBar(mActionbar);
+        Toolbar toolbar = f(R.id.actionbar);
+        setSupportActionBar(toolbar);
         ActionBar actionBar = getSupportActionBar();
-        actionBar.setDisplayHomeAsUpEnabled(true);
-        mActionbar.setNavigationOnClickListener(new View.OnClickListener() {
+        if (actionBar != null) {
+            actionBar.setDisplayHomeAsUpEnabled(true);
+        }
+        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 finish();
@@ -643,7 +637,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
     private void showChangeDrawerHeaderDialog() {
         final TwoOptionsDialogFragment todf = new TwoOptionsDialogFragment();
-        todf.setStartAction(R.mipmap.act_default_drawer_header, R.string.default_drawer_header,
+        todf.setStartAction(R.drawable.act_default_drawer_header, R.string.default_drawer_header,
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
@@ -652,7 +646,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                         todf.dismiss();
                     }
                 });
-        todf.setEndAction(R.mipmap.act_select_image_as_drawer_header, R.string.act_choose_image_file,
+        todf.setEndAction(R.drawable.act_select_image_as_drawer_header, R.string.act_choose_image_file,
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
@@ -853,7 +847,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
         boolean isChecked = mCbFgprt.isChecked();
         if (isChecked) {
-            FingerprintHelper.getInstance(this).createFingerprintKeyForEverythingDone();
+            FingerprintHelper.getInstance().createFingerprintKeyForEverythingDone();
         }
         editor.putBoolean(Def.Meta.KEY_USE_FINGERPRINT, isChecked);
 
@@ -923,7 +917,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             while (cursor.moveToNext()) {
                 long id = cursor.getLong(
                         cursor.getColumnIndex(Def.Database.COLUMN_ID_THINGS));
-                int type = cursor.getInt(
+                @Thing.Type int type = cursor.getInt(
                         cursor.getColumnIndex(Def.Database.COLUMN_TYPE_THINGS));
                 int state = cursor.getInt(
                         cursor.getColumnIndex(Def.Database.COLUMN_STATE_THINGS));

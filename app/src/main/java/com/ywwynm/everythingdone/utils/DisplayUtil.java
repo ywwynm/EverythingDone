@@ -29,6 +29,9 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.EditText;
+import android.widget.FrameLayout;
+import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.ywwynm.everythingdone.R;
@@ -189,6 +192,24 @@ public class DisplayUtil {
         // view.setBackground(wrappedDrawable);
 
         // ViewCompat.setBackgroundTintList(view, ColorStateList.valueOf(color));
+    }
+
+    public static void expandStatusBarAboveKitkat(View statusBar) {
+        if (DeviceUtil.hasKitKatApi()) {
+            final int height = getStatusbarHeight(statusBar.getContext());
+            ViewGroup.LayoutParams vlp = statusBar.getLayoutParams();
+            if (vlp instanceof LinearLayout.LayoutParams) {
+                LinearLayout.LayoutParams llp = (LinearLayout.LayoutParams) vlp;
+                llp.height = height;
+            } else if (vlp instanceof RelativeLayout.LayoutParams) {
+                RelativeLayout.LayoutParams rlp = (RelativeLayout.LayoutParams) vlp;
+                rlp.height = height;
+            } else if (vlp instanceof FrameLayout.LayoutParams) {
+                FrameLayout.LayoutParams flp = (FrameLayout.LayoutParams) vlp;
+                flp.height = height;
+            }
+            statusBar.requestLayout();
+        }
     }
 
     public static void darkStatusBarForMIUI(Activity activity) {

@@ -241,8 +241,8 @@ public class ThingManager {
      *         2 if we updated a thing to a new type but didn't create a NOTIFY_EMPTY for current limit.
      *         In this situation, ThingsActivity should call ThingsAdapter#notifyItemRemoved({@param position}).
      */
-    public int update(final int typeBefore, final Thing updatedThing, int position,
-                          boolean handleNotifyEmpty) {
+    public int update(@Thing.Type final int typeBefore, final Thing updatedThing, int position,
+                      boolean handleNotifyEmpty) {
         if (handleNotifyEmpty &&
                 willCreateNEforOtherLimit(
                         updatedThing.getId(), typeBefore, updatedThing.getState(), false)) {
@@ -256,7 +256,7 @@ public class ThingManager {
             }
         });
 
-        int state = updatedThing.getState();
+        int state     = updatedThing.getState();
         int typeAfter = updatedThing.getType();
         mThingsCounts.handleUpdate(typeBefore, state, typeAfter, state, 1);
 
@@ -305,8 +305,9 @@ public class ThingManager {
      *          when {@param toUndo} is true or ThingsAdapter#notifyItemRemoved(int) when
      *          {@param toUndo} is false.
      */
-    public boolean updateState(final Thing thing, int position, final long location, final int stateBefore,
-                               final int stateAfter, final boolean toUndo, final boolean handleNotifyEmpty) {
+    public boolean updateState(final Thing thing, int position, final long location,
+                               @Thing.State final int stateBefore, @Thing.State final int stateAfter,
+                               final boolean toUndo, final boolean handleNotifyEmpty) {
         if (handleNotifyEmpty &&
                 willCreateNEforOtherLimit(thing.getId(), thing.getType(), stateBefore, true)) {
             updateHeader(1);
@@ -394,8 +395,8 @@ public class ThingManager {
      *          than use their original positions. Returning this arrayList helps us undo updates.
      *          See {@link ThingManager#undoUpdateStates(List, List, int, int, boolean)} for more details.
      */
-    public List<Integer> updateStates(List<Thing> things, final int stateBefore,
-                             final int stateAfter) {
+    public List<Integer> updateStates(
+            List<Thing> things, @Thing.State final int stateBefore, @Thing.State final int stateAfter) {
         final List<Thing> clonedThings = new ArrayList<>();
         Thing temp;
         for (Thing thing : things) {
@@ -496,8 +497,9 @@ public class ThingManager {
      * @param handleNotifyEmpty whether we should handle deletion/creation of NOTIFY_EMPTYs.
      */
     public void undoUpdateStates(List<Thing> things, final List<Integer> positions,
-                                 List<Long> locations, final int stateBefore,
-                                 final int stateAfter) {
+                                 List<Long> locations,
+                                 @Thing.State final int stateBefore,
+                                 @Thing.State final int stateAfter) {
         final List<Thing> clonedThings = new ArrayList<>();
         for (Thing thing : things) {
             clonedThings.add(thing);
@@ -623,7 +625,7 @@ public class ThingManager {
      * @return {@code true} if a NOTIFY_EMPTY is needed to create under current
      * limit({@link mLimit}) and we created it indeed. {@code false} otherwise.
      */
-    public boolean createNEnow(int type, int state, boolean addToThingsNow) {
+    public boolean createNEnow(@Thing.Type int type, @Thing.State int state, boolean addToThingsNow) {
         int[] limits = Thing.getLimits(type, state);
         for (int limit : limits) {
             if (mLimit == limit) {
@@ -638,7 +640,8 @@ public class ThingManager {
         return false;
     }
 
-    private boolean willCreateNEforOtherLimit(long id, int type, int state, boolean updateState) {
+    private boolean willCreateNEforOtherLimit(long id, @Thing.Type int type, @Thing.State int state,
+                                              boolean updateState) {
         int[] limits = Thing.getLimits(type, state);
         for (int limit : limits) {
             if (mLimit != limit) {
@@ -675,7 +678,7 @@ public class ThingManager {
      * @return {@code true} if the first thing under current limit({@link mLimit}) is a NOTIFY_EMPTY
      *          and we have already deleted it by calling this. {@code false} otherwise.
      */
-    public boolean deleteNEnow(int type, int state) {
+    public boolean deleteNEnow(@Thing.Type int type, @Thing.State int state) {
         int[] limits = Thing.getLimits(type, state);
         for (int limit : limits) {
             if (mLimit == limit) {
@@ -702,6 +705,18 @@ public class ThingManager {
             if (thing.isSelected()) return thing;
         }
         return null;
+    }
+
+    public Thing[] getSelectedThings() {
+        List<Thing> selectedThings = new ArrayList<>();
+        for (Thing thing : mThings) {
+            if (thing.isSelected()) {
+                selectedThings.add(thing);
+            }
+        }
+        Thing[] ret = new Thing[selectedThings.size()];
+        selectedThings.toArray(ret);
+        return ret;
     }
 
     public void setSelectedTo(boolean selected) {

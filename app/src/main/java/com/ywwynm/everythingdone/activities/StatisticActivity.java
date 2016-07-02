@@ -58,6 +58,9 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
 
     public static final String TAG = "StatisticActivity";
 
+    private static final int CN_SMALL = 14;
+    private static final int EN       = 12;
+
     private App mApplication;
 
     private SharedPreferences mPreferences;
@@ -139,12 +142,7 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
     }
 
     private void initHeaderUI() {
-        if (DeviceUtil.hasKitKatApi()) {
-            LinearLayout.LayoutParams params = (LinearLayout.LayoutParams)
-                    mStatusbar.getLayoutParams();
-            params.height = DisplayUtil.getStatusbarHeight(this);
-            mStatusbar.requestLayout();
-        }
+        DisplayUtil.expandStatusBarAboveKitkat(mStatusbar);
 
         final String D = SettingsActivity.DEFAULT_DRAWER_HEADER;
         String header = mPreferences.getString(Def.Meta.KEY_DRAWER_HEADER, D);
@@ -259,8 +257,10 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
     protected void setActionbar() {
         setSupportActionBar(mActionbar);
         ActionBar actionBar = getSupportActionBar();
-        actionBar.setDisplayHomeAsUpEnabled(true);
-        actionBar.setTitle(null);
+        if (actionBar != null) {
+            actionBar.setDisplayHomeAsUpEnabled(true);
+            actionBar.setTitle(null);
+        }
         mActionbar.setNavigationOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -567,11 +567,11 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
         @Override
         protected void onPostExecute(String[] strings) {
             int[] iconRes = {
-                    R.mipmap.drawer_note,
-                    R.mipmap.drawer_reminder,
-                    R.mipmap.drawer_habit,
-                    R.mipmap.drawer_goal,
-                    R.mipmap.drawer_all
+                    R.drawable.drawer_note,
+                    R.drawable.drawer_reminder,
+                    R.drawable.drawer_habit,
+                    R.drawable.drawer_goal,
+                    R.drawable.drawer_all
             };
             int[] firstRes = {
                     R.string.note,
@@ -597,10 +597,10 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
         @Override
         protected void onPostExecute(String[] strings) {
             int[] iconRes = {
-                    R.mipmap.ic_char_count,
-                    R.mipmap.ic_image_count,
-                    R.mipmap.ic_video_count,
-                    R.mipmap.ic_audio_count
+                    R.drawable.ic_char_count,
+                    R.drawable.ic_image_count,
+                    R.drawable.ic_video_count,
+                    R.drawable.ic_audio_count
             };
             int[] firstRes = {
                     R.string.statistic_note_char_count,
@@ -626,10 +626,10 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
         @Override
         protected void onPostExecute(String[] strings) {
             int[] iconRes = {
-                    R.mipmap.drawer_finished,
-                    R.mipmap.ic_average_notify_time,
-                    R.mipmap.ic_average_finish_time,
-                    R.mipmap.ic_finish_in_advance
+                    R.drawable.drawer_finished,
+                    R.drawable.ic_average_notify_time,
+                    R.drawable.ic_average_finish_time,
+                    R.drawable.ic_finish_in_advance
             };
             int[] firstRes = {
                     R.string.statistic_reminder_completion_rate,
@@ -642,7 +642,7 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
             if (LocaleUtil.isChinese(mApplication)) {
                 textSizes = null;
             } else {
-                textSizes = new float[] { 14, 14, 14, 14 };
+                textSizes = new float[] { EN, EN, EN, EN };
             }
             rv.setAdapter(new StatisticAdapter(StatisticActivity.this, iconRes, firstRes,
                     textSizes, strings));
@@ -660,11 +660,11 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
         @Override
         protected void onPostExecute(String[] strings) {
             int[] iconRes = {
-                    R.mipmap.drawer_finished,
-                    R.mipmap.ic_habit_finish_and_all,
-                    R.mipmap.ic_habit_finish_rate,
-                    R.mipmap.ic_longest_finish_times,
-                    R.mipmap.ic_longest_pit
+                    R.drawable.drawer_finished,
+                    R.drawable.ic_habit_finish_and_all,
+                    R.drawable.ic_habit_finish_rate,
+                    R.drawable.ic_longest_finish_times,
+                    R.drawable.ic_longest_pit
             };
             int[] firstRes = {
                     R.string.statistic_habit_developed_rate,
@@ -676,9 +676,9 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
             RecyclerView rv = f(R.id.rv_habit_record_statistic);
             float[] textSizes;
             if (LocaleUtil.isChinese(mApplication)) {
-                textSizes = new float[] { 16, 14, 16, 16, 16 };
+                textSizes = new float[] { 16, CN_SMALL, 16, 16, 16 };
             } else {
-                textSizes = new float[] { 14, 14, 16, 14, 14 };
+                textSizes = new float[] { EN, EN, 14, EN, EN };
             }
             rv.setAdapter(new StatisticAdapter(StatisticActivity.this, iconRes, firstRes,
                     textSizes, strings));
@@ -696,10 +696,10 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
         @Override
         protected void onPostExecute(String[] strings) {
             int[] iconRes = {
-                    R.mipmap.drawer_finished,
-                    R.mipmap.ic_average_notify_time_goal,
-                    R.mipmap.ic_average_finish_time_goal,
-                    R.mipmap.ic_finish_in_advance
+                    R.drawable.drawer_finished,
+                    R.drawable.ic_average_notify_time_goal,
+                    R.drawable.ic_average_finish_time_goal,
+                    R.drawable.ic_finish_in_advance
             };
             int[] firstRes = {
                     R.string.statistic_goal_completion_rate,
@@ -712,7 +712,7 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
             if (LocaleUtil.isChinese(mApplication)) {
                 textSizes = null;
             } else {
-                textSizes = new float[] { 14, 16, 14, 14 };
+                textSizes = new float[] { EN, 16, EN, EN };
             }
             rv.setAdapter(new StatisticAdapter(StatisticActivity.this, iconRes, firstRes,
                     textSizes, strings));

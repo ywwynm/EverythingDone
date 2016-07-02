@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.ywwynm.everythingdone.activities.HelpActivity">
+
+    <View
+        android:id="@+id/view_status_bar"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:background="@color/app_accent"/>
+
+    <android.support.v7.widget.Toolbar
+        android:id="@+id/actionbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:layout_below="@id/view_status_bar"
+        android:background="@color/app_accent"
+        app:contentInsetStart="72dp"
+        app:titleTextColor="@color/black_54p"/>
+
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/rv_help"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/actionbar"/>
+
+    <FrameLayout
+        android:id="@+id/fl_fragment_container_help"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/actionbar" />
+
+    <View
+        android:id="@+id/actionbar_shadow"
+        android:layout_width="match_parent"
+        android:layout_height="4dp"
+        android:layout_below="@id/actionbar"
+        android:background="@drawable/actionbar_shadow"/>
+
+</RelativeLayout>

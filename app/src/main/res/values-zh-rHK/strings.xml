@@ -292,7 +292,7 @@
     <string name="backup_content">完事兒將會備份您創建的所有記事以及應用設置，所有的提醒、習慣或目標也都將在恢復後正常執行。但是完事兒將不會備份您在記事中添加的各類附件，若有需要，請您使用其它手段備份，附件所在文件夾為 sdcard/EverythingDone</string>
     <string name="backup_failed_content">請重新嘗試，或者前往關於界面發送建議反饋</string>
     <string name="backup_failed_title">備份失敗</string>
-    <string name="backup_loading_content">請稍等片刻，先去喝點好喝的吧</string>
+    <string name="backup_loading_content">請稍等片刻，先去喝點好喝的吧~</string>
     <string name="backup_loading_title">正在備份</string>
     <string name="backup_start">開始備份</string>
     <string name="backup_success_content">請前往 sdcard 根目錄下查看 EverythingDone.bak 文件</string>
@@ -302,7 +302,7 @@
     <string name="restore_failed_other">請確保 EverythingDone.bak 是有效的備份文件</string>
     <string name="restore_failed_title">恢復失敗</string>
     <string name="restore_file_not_exist">未找到備份文件,請將有效的 EverythingDone.bak 文件放在 sdcard 根目錄下</string>
-    <string name="restore_loading_content">請稍等片刻，先去吃點好吃的吧</string>
+    <string name="restore_loading_content">請稍等片刻，先去吃點好吃的吧~</string>
     <string name="restore_loading_title">正在恢復</string>
     <string name="restore_start">開始恢復</string>
     <string name="restore_success_content">請等待應用重啟。為確保數據安全，請不要進行其它操作</string>
@@ -404,5 +404,18 @@
     <string name="warning_should_set_password_first"><![CDATA[閣下還未設置私密記事密碼，請前往設置 -> 隱私 -> 設置私密記事密碼進行設置]]></string>
     <string name="warning_title_should_not_be_empty">如果閣下要設置該記事為私密記事，請您為它設置標題</string>
     <string name="cannot_set_as_private_thing_title">無法設置為私密記事</string>
+    <string name="help_detail">幫助詳情</string>
+    <string name="act_export">導出到 SD 卡</string>
+    <string name="export_failed_content">請稍後重新嘗試</string>
+    <string name="export_failed_title">導出到 SD 卡失敗</string>
+    <string name="export_loading_title">正在導出到 SD 卡...</string>
+    <string name="export_loading_content">先去玩會兒好玩的吧~</string>
+    <string name="export_success_title">成功導出到 SD 卡</string>
+    <string name="export_success_content_part_1">已導出 %1$d 件記事</string>
+    <string name="export_success_content_part_2">,請前往 SD卡/Everything Done/export 目錄下查看相應的 zip 文件</string>
+    <string name="act_redo">重做</string>
+    <string name="act_undo">撤銷</string>
+    <string name="from_1_1_4_to_1_1_5_content">點擊右上角的菜單按鈕，即可看到撤銷 / 重做。藉此，您可以讓記事自由地回到過去或者未來。</string>
+    <string name="from_1_1_4_to_1_1_5_title">您現在可以使用撤銷 / 重做功能了</string>
 
 </resources>

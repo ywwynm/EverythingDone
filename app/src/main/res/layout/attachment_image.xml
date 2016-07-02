@@ -18,7 +18,7 @@
         android:layout_width="40dp"
         android:layout_height="40dp"
         android:layout_gravity="center"
-        android:src="@mipmap/ic_video_signal"
+        android:src="@drawable/ic_video_signal"
         android:contentDescription="@string/description_video_attachment"
         android:alpha="0.86"
         android:visibility="gone"/>
@@ -29,7 +29,7 @@
         android:layout_height="40dp"
         android:scaleType="center"
         android:layout_gravity="bottom|end"
-        android:src="@mipmap/delete_image_checklist"
+        android:src="@drawable/delete_image_checklist"
         android:contentDescription="@string/description_delete_image_attachment"
         style="@style/SelectableItemBackground.Light"/>
 

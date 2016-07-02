@@ -5,7 +5,7 @@
     android:layout_height="match_parent">
 
     <TextView
-        android:id="@+id/tv_title_authentication"
+        android:id="@+id/tv_title_fingerprint"
         android:layout_width="240dp"
         android:layout_height="wrap_content"
         android:layout_marginLeft="20dp"
@@ -16,13 +16,13 @@
         android:textStyle="bold"/>
 
     <TextView
-        android:id="@+id/tv_content_authentication"
+        android:id="@+id/tv_content_fingerprint"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginLeft="20dp"
         android:layout_marginTop="16dp"
         android:layout_marginRight="20dp"
-        android:layout_below="@id/tv_title_authentication"
+        android:layout_below="@id/tv_title_fingerprint"
         android:textSize="16sp"/>
 
     <com.mattprecious.swirl.SwirlView
@@ -32,7 +32,7 @@
         android:layout_marginLeft="20dp"
         android:layout_marginTop="16dp"
         android:layout_marginRight="20dp"
-        android:layout_below="@id/tv_content_authentication"/>
+        android:layout_below="@id/tv_content_fingerprint"/>
 
     <TextView
         android:id="@+id/tv_fingerprint_state"
@@ -43,7 +43,7 @@
         android:layout_marginRight="20dp"
         android:layout_toEndOf="@id/swirlview_fingerprint"
         android:layout_toRightOf="@id/swirlview_fingerprint"
-        android:layout_below="@id/tv_content_authentication"
+        android:layout_below="@id/tv_content_fingerprint"
         android:gravity="center_vertical"
         android:textColor="@color/black_26p"/>
 
@@ -59,7 +59,7 @@
         android:orientation="horizontal">
 
         <TextView
-            android:id="@+id/tv_cancel_as_bt_authentication"
+            android:id="@+id/tv_cancel_as_bt_fingerprint"
             android:layout_width="wrap_content"
             android:layout_height="36dp"
             android:paddingLeft="12dp"
@@ -72,7 +72,7 @@
             android:text="@string/cancel"/>
 
         <TextView
-            android:id="@+id/tv_second_as_bt_authentication"
+            android:id="@+id/tv_second_as_bt_fingerprint"
             android:layout_width="wrap_content"
             android:layout_height="36dp"
             android:paddingLeft="12dp"

@@ -1,5 +1,6 @@
 package com.ywwynm.everythingdone.views.pickers;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.graphics.Rect;
@@ -16,6 +17,7 @@ import android.widget.TextView;
 
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
+import com.ywwynm.everythingdone.adapters.BaseViewHolder;
 import com.ywwynm.everythingdone.adapters.SingleChoiceAdapter;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil;
@@ -37,7 +39,7 @@ public class DateTimePicker extends PopupPicker {
     private String[] mItems;
     private View.OnClickListener mOnClickListener;
     private DateTimePickerAdapter mAdapter;
-    private int mPreviousIndex;
+    private int mPreviousIndex = 8;
 
     public DateTimePicker(Context context, View parent, int type, int accentColor) {
         super(context, parent, type == Def.PickerType.AFTER_TIME ?
@@ -83,6 +85,7 @@ public class DateTimePicker extends PopupPicker {
         mAccentColor = accentColor;
     }
 
+    @SuppressLint("SetTextI18n")
     @Override
     public void updateAnchor() {
         int index = getPickedIndex();
@@ -179,6 +182,10 @@ public class DateTimePicker extends PopupPicker {
         pickForUI(mPreviousIndex);
     }
 
+    public int getPreviousIndex() {
+        return mPreviousIndex;
+    }
+
     @Override
     public int getPickedIndex() {
         return mAdapter.getPickedPosition();
@@ -219,12 +226,12 @@ public class DateTimePicker extends PopupPicker {
         }
 
         @Override
-        public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+        public BaseViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
             return new DateTimeViewHolder(mInflater.inflate(R.layout.datetime_picker_bt, parent, false));
         }
 
         @Override
-        public void onBindViewHolder(RecyclerView.ViewHolder viewHolder, int position) {
+        public void onBindViewHolder(BaseViewHolder viewHolder, int position) {
             DateTimeViewHolder holder = (DateTimeViewHolder) viewHolder;
             int m8 = (int) (mScreenDensity * 8);
             RecyclerView.LayoutParams params = (RecyclerView.LayoutParams) holder.bt.getLayoutParams();
@@ -259,13 +266,13 @@ public class DateTimePicker extends PopupPicker {
             return 0;
         }
 
-        class DateTimeViewHolder extends RecyclerView.ViewHolder {
+        class DateTimeViewHolder extends BaseViewHolder {
 
             final Button bt;
 
             public DateTimeViewHolder(View itemView) {
                 super(itemView);
-                bt = (Button) itemView.findViewById(R.id.bt_pick_after_time);
+                bt = f(R.id.bt_pick_after_time);
                 bt.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {

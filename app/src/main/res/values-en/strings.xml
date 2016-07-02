@@ -185,13 +185,13 @@
     <string name="alert_cancel_habit_content">This action cannot be undone.
         EverythingDone will not supervise or help you to develop this habit any longer.</string>
     <string name="alert_cancel_habit_title">Are you sure to give up this habit?</string>
-    <string name="act_get_it">get it</string>
-    <string name="act_finish_this_time_habit">finish this time</string>
+    <string name="act_get_it">Get it</string>
+    <string name="act_finish_this_time_habit">Finish this time</string>
     <string name="habit_last_five">Last five times:</string>
     <string name="habit_next_reminder">Next reminder:</string>
     <string name="sb_cannot_finish_habit_more_times">Cannot finish more times until next cycle</string>
     <string name="alert_continue">Are you sure to continue?</string>
-    <string name="alert_find_habit_goal">These things contain some habits or goals. You may want to finsh or give up them in another time or separately.</string>
+    <string name="alert_find_habit_goal">These things contain some habits or goals. You may want to finish or give up them in another time or separately.</string>
     <string name="continue_for_alert">CONTINUE</string>
     <string name="continue_get_rid_of_habit_goal">REMOVE HABITS/GOALS AND CONTINUE</string>
     <string name="end_of_month">END OF MONTH</string>
@@ -385,6 +385,19 @@
     <string name="fingerprint_cannot_use_to_verify">You cannot use fingerprint to verify your identity now</string>
     <string name="fingerprint_verify_success">Verify your identity successfully!</string>
     <string name="warning_title_should_not_be_empty">If you want to set this thing as private thing, please set a title for it at first.</string>
-    <string name="warning_should_set_password_first"><![CDATA[You have not set password for private thing. Plesae go to Settings -> Privacy -> Set password for private things and set a pattern at first.]]></string>
+    <string name="warning_should_set_password_first"><![CDATA[You have not set password for private thing. Please go to Settings -> Privacy -> Set password for private things and set a pattern at first.]]></string>
     <string name="cannot_set_as_private_thing_title">Cannot set as private thing</string>
+    <string name="help_detail">Help Detail</string>
+    <string name="act_export">Export to sdcard</string>
+    <string name="export_failed_content">Please try again later</string>
+    <string name="export_failed_title">Export Failed</string>
+    <string name="export_loading_content">Please wait for a while. Let\'s play OW!!!</string>
+    <string name="export_loading_title">Exporting to sdcard...</string>
+    <string name="export_success_title">Export Successfully</string>
+    <string name="export_success_content_part_1">Exported %1$d thing</string>
+    <string name="export_success_content_part_2">. Please go to sdcard/EverythingDone/export and check related zip file.</string>
+    <string name="act_redo">Redo</string>
+    <string name="act_undo">Undo</string>
+    <string name="from_1_1_4_to_1_1_5_content">Click menu button, you will see Undo and Redo there. Now you can let your things back to past or future at any time if you want.</string>
+    <string name="from_1_1_4_to_1_1_5_title">Undo/Redo are now supported</string>
 </resources>

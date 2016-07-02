@@ -2,7 +2,6 @@ package com.ywwynm.everythingdone.utils;
 
 import android.content.Context;
 import android.graphics.Rect;
-import android.util.Log;
 import android.view.View;
 import android.view.ViewTreeObserver;
 import android.view.Window;
@@ -68,25 +67,18 @@ public class KeyboardUtil {
                     public void onGlobalLayout() {
                         // decor.getRoot.getHeight is always full height
                         int fullHeight = decorView.getRootView().getHeight();
-                        Log.d(TAG, "fullHeight: " + fullHeight);
 
                         // r will be populated with the coordinates of your view that area still visible.
                         decorView.getWindowVisibleDisplayFrame(r);
-                        Log.d(TAG, "r.bottom - r.top: " + (r.bottom - r.top));
 
                         // get the height diff as px
                         int heightDiff = fullHeight - (r.bottom - r.top);
-                        Log.d(TAG, "height diff: " + heightDiff);
-
                         // set the initialDiff at the beginning.
                         if (initialDiff == -1) {
                             initialDiff = heightDiff;
                         }
 
                         int diff = heightDiff - initialDiff;
-                        Log.d(TAG, "heightDiff - initialDiff: " + diff);
-                        Log.d(TAG, " ");
-
                         // if it could be a keyboard add the padding to the view
                         if (diff > possibleKeyboardHeight) {
                             if (!mKeyboardOpened) {

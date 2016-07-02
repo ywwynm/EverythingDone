@@ -87,7 +87,7 @@
                 android:layout_gravity="bottom|end"
                 android:layout_margin="@dimen/fab_margin"
                 android:scaleType="center"
-                android:src="@mipmap/act_create"
+                android:src="@drawable/act_create"
                 app:elevation="6dp"
                 app:borderWidth="0dp"
                 app:pressedTranslationZ="12dp"
@@ -126,7 +126,7 @@
             android:textSize="28sp"
             android:textColor="@color/black_26p"
             android:text="@string/no_result"
-            android:drawableTop="@mipmap/img_no_result"
+            android:drawableTop="@drawable/img_no_result"
             android:visibility="invisible"
             android:alpha="0"/>
 

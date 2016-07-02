@@ -54,9 +54,9 @@ public class Snackbar {
         mDismissCallback = dismissCallback;
     }
 
-    public Snackbar(App application, int type, View decorView,
+    public Snackbar(App app, int type, View decorView,
                     FloatingActionButton bindingFab) {
-        mApplication = application;
+        mApplication = app;
         mType = type;
         mWindowRect = new Rect();
         int layoutId = 0;

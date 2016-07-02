@@ -34,11 +34,11 @@ public class HabitRecordAdapter extends RecyclerView.Adapter<HabitRecordAdapter.
     public void onBindViewHolder(ImageViewHolder holder, int position) {
         char s = mRecord.charAt(position);
         if (s == '0') {
-            holder.iv.setImageResource(R.mipmap.ic_habit_record_unfinished);
+            holder.iv.setImageResource(R.drawable.ic_habit_record_unfinished);
         } else if (s == '1') {
-            holder.iv.setImageResource(R.mipmap.ic_habit_record_finished);
+            holder.iv.setImageResource(R.drawable.ic_habit_record_finished);
         } else {
-            holder.iv.setImageResource(R.mipmap.ic_habit_record_unknown);
+            holder.iv.setImageResource(R.drawable.ic_habit_record_unknown);
         }
     }
 
@@ -47,13 +47,13 @@ public class HabitRecordAdapter extends RecyclerView.Adapter<HabitRecordAdapter.
         return mRecord.length();
     }
 
-    class ImageViewHolder extends RecyclerView.ViewHolder {
+    class ImageViewHolder extends BaseViewHolder {
 
         final ImageView iv;
 
         public ImageViewHolder(View itemView) {
             super(itemView);
-            iv = (ImageView) itemView.findViewById(R.id.iv_habit_record);
+            iv = f(R.id.iv_habit_record);
         }
     }
 }

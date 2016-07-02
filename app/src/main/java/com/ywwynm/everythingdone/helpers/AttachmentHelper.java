@@ -41,6 +41,22 @@ public class AttachmentHelper {
     public static final int VIDEO  = 1;
     public static final int AUDIO  = 2;
 
+    public static List<File> getOriginalFiles(String attachmentStr) {
+        if (attachmentStr == null || !attachmentStr.contains(SIGNAL)) {
+            return null;
+        }
+        List<File> files = new ArrayList<>();
+        String[] typePathNames = attachmentStr.split(SIGNAL);
+        for (int i = 1; i < typePathNames.length; i++) {
+            String pathName = typePathNames[i].substring(1, typePathNames[i].length());
+            File file = new File(pathName);
+            if (file.exists()) {
+                files.add(file);
+            }
+        }
+        return files;
+    }
+
     public static Pair<List<String>, List<String>> toAttachmentItems(String attachmentStr) {
         List<String> imageItems = new ArrayList<>();
         List<String> audioItems = new ArrayList<>();

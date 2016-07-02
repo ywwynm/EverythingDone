@@ -91,19 +91,19 @@ public class AudioAttachmentAdapter extends RecyclerView.Adapter<AudioAttachment
         if (mPlayingIndex == position) {
             holder.ivFirst.setVisibility(View.VISIBLE);
             if (mPlayer.isPlaying()) {
-                holder.ivFirst.setImageResource(R.mipmap.act_pause);
+                holder.ivFirst.setImageResource(R.drawable.act_pause);
             } else {
-                holder.ivFirst.setImageResource(R.mipmap.act_play);
+                holder.ivFirst.setImageResource(R.drawable.act_play);
             }
-            holder.ivSecond.setImageResource(R.mipmap.act_stop_playing_audio);
+            holder.ivSecond.setImageResource(R.drawable.act_stop_playing_audio);
         } else {
             if (mEditable) {
                 holder.ivFirst.setVisibility(View.VISIBLE);
-                holder.ivFirst.setImageResource(R.mipmap.act_play);
-                holder.ivSecond.setImageResource(R.mipmap.delete_audio);
+                holder.ivFirst.setImageResource(R.drawable.act_play);
+                holder.ivSecond.setImageResource(R.drawable.delete_audio);
             } else {
                 holder.ivFirst.setVisibility(View.GONE);
-                holder.ivSecond.setImageResource(R.mipmap.act_play);
+                holder.ivSecond.setImageResource(R.drawable.act_play);
             }
         }
     }
@@ -138,7 +138,7 @@ public class AudioAttachmentAdapter extends RecyclerView.Adapter<AudioAttachment
         mPlayer = null;
     }
 
-    class AudioCardViewHolder extends RecyclerView.ViewHolder {
+    class AudioCardViewHolder extends BaseViewHolder {
 
         final CardView  cv;
         final TextView  tvName;
@@ -150,15 +150,15 @@ public class AudioAttachmentAdapter extends RecyclerView.Adapter<AudioAttachment
         public AudioCardViewHolder(View itemView) {
             super(itemView);
 
-            cv       = (CardView)  itemView.findViewById(R.id.cv_audio_attachment);
-            tvName   = (TextView)  itemView.findViewById(R.id.tv_audio_file_name);
-            tvSize   = (TextView)  itemView.findViewById(R.id.tv_audio_size);
-            ivFirst  = (ImageView) itemView.findViewById(R.id.iv_card_audio_first);
-            ivSecond = (ImageView) itemView.findViewById(R.id.iv_card_audio_second);
-            ivThird  = (ImageView) itemView.findViewById(R.id.iv_card_audio_third);
+            cv       = f(R.id.cv_audio_attachment);
+            tvName   = f(R.id.tv_audio_file_name);
+            tvSize   = f(R.id.tv_audio_size);
+            ivFirst  = f(R.id.iv_card_audio_first);
+            ivSecond = f(R.id.iv_card_audio_second);
+            ivThird  = f(R.id.iv_card_audio_third);
 
             Drawable d = ContextCompat.getDrawable(
-                    mActivity, R.mipmap.act_show_attachment_info);
+                    mActivity, R.drawable.act_show_attachment_info);
             Drawable d1 = d.mutate();
             d1.setColorFilter(Color.parseColor("#8A000000"), PorterDuff.Mode.SRC_ATOP);
             ivThird.setImageDrawable(d1);

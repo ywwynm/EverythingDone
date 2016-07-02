@@ -10,6 +10,10 @@ import com.ywwynm.everythingdone.database.ThingDAO;
 import com.ywwynm.everythingdone.helpers.AuthenticationHelper;
 import com.ywwynm.everythingdone.model.Thing;
 
+/**
+ * Created by ywwynm on 2016/6/21
+ * An Activity only used when user clicked notification content of a private thing.
+ */
 public class AuthenticationActivity extends AppCompatActivity {
 
     @Override

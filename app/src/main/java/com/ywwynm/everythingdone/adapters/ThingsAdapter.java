@@ -23,6 +23,7 @@ import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import com.squareup.leakcanary.RefWatcher;
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.model.Habit;
@@ -52,7 +53,7 @@ public class ThingsAdapter extends RecyclerView.Adapter<ThingsAdapter.ThingViewH
 
     public static final String TAG = "ThingsAdapter";
 
-    private App mApplication;
+    private App mApp;
 
     private final float mScreenDensity;
 
@@ -73,17 +74,17 @@ public class ThingsAdapter extends RecyclerView.Adapter<ThingsAdapter.ThingViewH
 
     private Handler mAnimHandler;
 
-    public ThingsAdapter(App application, OnItemTouchedListener listener) {
-        mApplication = application;
-        mScreenDensity = DisplayUtil.getScreenDensity(mApplication);
+    public ThingsAdapter(App app, OnItemTouchedListener listener) {
+        mApp = app;
+        mScreenDensity = DisplayUtil.getScreenDensity(mApp);
 
-        mThingManager = ThingManager.getInstance(application);
-        mReminderDAO  = ReminderDAO.getInstance(application);
-        mHabitDAO     = HabitDAO.getInstance(application);
+        mThingManager = ThingManager.getInstance(app);
+        mReminderDAO  = ReminderDAO.getInstance(app);
+        mHabitDAO     = HabitDAO.getInstance(app);
 
         mCheckListAdapters = new HashMap<>();
 
-        mInflater = LayoutInflater.from(mApplication);
+        mInflater = LayoutInflater.from(mApp);
 
         mOnItemTouchedListener = listener;
         mOnTouchListener = new View.OnTouchListener() {
@@ -219,14 +220,14 @@ public class ThingsAdapter extends RecyclerView.Adapter<ThingsAdapter.ThingViewH
                 List<String> items = CheckListHelper.toCheckListItems(content, false);
                 CheckListAdapter adapter = mCheckListAdapters.get(id);
                 if (adapter == null) {
-                    adapter = new CheckListAdapter(mApplication,
+                    adapter = new CheckListAdapter(mApp,
                             CheckListAdapter.TEXTVIEW, items);
                     mCheckListAdapters.put(id, adapter);
                 } else {
                     adapter.setItems(items);
                 }
                 holder.rvChecklist.setAdapter(adapter);
-                holder.rvChecklist.setLayoutManager(new LinearLayoutManager(mApplication));
+                holder.rvChecklist.setLayoutManager(new LinearLayoutManager(mApp));
 
                 int rp = (int) (mScreenDensity * 6);
                 holder.rvChecklist.setPaddingRelative(rp, p, p, 0);
@@ -253,26 +254,26 @@ public class ThingsAdapter extends RecyclerView.Adapter<ThingsAdapter.ThingViewH
                     holder.ivReminder.getLayoutParams();
             if (thingType == Thing.REMINDER) {
                 params.setMargins(0, (int) (mScreenDensity * 2), 0, 0);
-                holder.ivReminder.setImageResource(R.mipmap.card_reminder);
+                holder.ivReminder.setImageResource(R.drawable.card_reminder);
                 holder.tvReminderTime.setTextSize(12);
 
-                String timeStr = DateTimeUtil.getDateTimeStrAt(notifyTime, mApplication, false);
+                String timeStr = DateTimeUtil.getDateTimeStrAt(notifyTime, mApp, false);
                 if (timeStr.startsWith("on ")) {
                     timeStr = timeStr.substring(3, timeStr.length());
                 }
                 holder.tvReminderTime.setText(timeStr);
                 if (thingState != Thing.UNDERWAY || state != Reminder.UNDERWAY) {
-                    holder.tvReminderTime.append(", " + Reminder.getStateDescription(thingState, state, mApplication));
+                    holder.tvReminderTime.append(", " + Reminder.getStateDescription(thingState, state, mApp));
                 }
             } else {
                 params.setMargins(0, (int) (mScreenDensity * 1.6), 0, 0);
-                holder.ivReminder.setImageResource(R.mipmap.card_goal);
+                holder.ivReminder.setImageResource(R.drawable.card_goal);
                 holder.tvReminderTime.setTextSize(16);
 
                 if (thingState == Reminder.UNDERWAY && state == Reminder.UNDERWAY) {
-                    holder.tvReminderTime.setText(DateTimeUtil.getDateTimeStrGoal(notifyTime, mApplication));
+                    holder.tvReminderTime.setText(DateTimeUtil.getDateTimeStrGoal(notifyTime, mApp));
                 } else {
-                    holder.tvReminderTime.setText(Reminder.getStateDescription(thingState, state, mApplication));
+                    holder.tvReminderTime.setText(Reminder.getStateDescription(thingState, state, mApp));
                 }
             }
         } else {
@@ -287,7 +288,7 @@ public class ThingsAdapter extends RecyclerView.Adapter<ThingsAdapter.ThingViewH
             holder.rlHabit.setVisibility(View.VISIBLE);
             holder.rlHabit.setPadding(p, p, p, 0);
 
-            holder.tvHabitSummary.setText(habit.getSummary(mApplication));
+            holder.tvHabitSummary.setText(habit.getSummary(mApp));
 
             if (thing.getState() == Thing.UNDERWAY) {
                 holder.tvHabitNextReminder.setVisibility(View.VISIBLE);
@@ -296,9 +297,9 @@ public class ThingsAdapter extends RecyclerView.Adapter<ThingsAdapter.ThingViewH
                 holder.llHabitRecord.setVisibility(View.VISIBLE);
                 holder.tvHabitFinishedThisT.setVisibility(View.VISIBLE);
 
-                String next = mApplication.getString(R.string.habit_next_reminder);
+                String next = mApp.getString(R.string.habit_next_reminder);
                 holder.tvHabitNextReminder.setText(
-                        next + " " + habit.getNextReminderDescription(mApplication));
+                        next + " " + habit.getNextReminderDescription(mApp));
 
                 String record = habit.getRecord();
                 StringBuilder lastFive;
@@ -313,7 +314,7 @@ public class ThingsAdapter extends RecyclerView.Adapter<ThingsAdapter.ThingViewH
                 }
                 holder.habitRecordPresenter.setRecord(lastFive.toString());
 
-                holder.tvHabitFinishedThisT.setText(habit.getFinishedTimesThisTStr(mApplication));
+                holder.tvHabitFinishedThisT.setText(habit.getFinishedTimesThisTStr(mApp));
             } else {
                 holder.tvHabitNextReminder.setVisibility(View.GONE);
                 holder.vHabitSeparator2.setVisibility(View.GONE);
@@ -332,7 +333,7 @@ public class ThingsAdapter extends RecyclerView.Adapter<ThingsAdapter.ThingViewH
         if (firstImageTypePathName != null) {
             holder.flImageAttachment.setVisibility(View.VISIBLE);
 
-            int imageW = DisplayUtil.getThingCardWidth(mApplication);
+            int imageW = DisplayUtil.getThingCardWidth(mApp);
             int imageH = imageW * 3 / 4;
 
             // without this, the first card with an image won't display well on lollipop device
@@ -358,7 +359,7 @@ public class ThingsAdapter extends RecyclerView.Adapter<ThingsAdapter.ThingViewH
             }
 
             // load bitmap in a new thread
-            LruCache<String, Bitmap> cache = mApplication.getBitmapLruCache();
+            LruCache<String, Bitmap> cache = mApp.getBitmapLruCache();
             String key = AttachmentHelper.generateKeyForCache(
                     firstImageTypePathName.substring(1, firstImageTypePathName.length()), imageW, imageH);
             Bitmap bitmap = cache.get(key);
@@ -382,10 +383,10 @@ public class ThingsAdapter extends RecyclerView.Adapter<ThingsAdapter.ThingViewH
                 holder.vPaddingBottom.setVisibility(View.VISIBLE);
             }
 
-            holder.tvImageCount.setText(AttachmentHelper.getImageAttachmentCountStr(attachment, mApplication));
+            holder.tvImageCount.setText(AttachmentHelper.getImageAttachmentCountStr(attachment, mApp));
 
             // when this card is unselected in selecting/moving mode, image should be covered
-            if (mApplication.getModeManager().getCurrentMode() == ModeManager.NORMAL) {
+            if (mApp.getModeManager().getCurrentMode() == ModeManager.NORMAL) {
                 holder.vImageCover.setVisibility(View.GONE);
             } else {
                 holder.vImageCover.setVisibility(thing.isSelected() ? View.GONE : View.VISIBLE);
@@ -398,7 +399,7 @@ public class ThingsAdapter extends RecyclerView.Adapter<ThingsAdapter.ThingViewH
 
     private void updateCardForAudioAttachment(ThingViewHolder holder, Thing thing) {
         String attachment = thing.getAttachment();
-        String str = AttachmentHelper.getAudioAttachmentCountStr(attachment, mApplication);
+        String str = AttachmentHelper.getAudioAttachmentCountStr(attachment, mApp);
         if (str == null) {
             holder.llAudioAttachment.setVisibility(View.GONE);
         } else {
@@ -412,7 +413,7 @@ public class ThingsAdapter extends RecyclerView.Adapter<ThingsAdapter.ThingViewH
 
     private void setCardAppearance(final ThingViewHolder holder, int color, final boolean selected) {
         final CardView cv = holder.cv;
-        int currentMode = mApplication.getModeManager().getCurrentMode();
+        int currentMode = mApp.getModeManager().getCurrentMode();
         if (currentMode == ModeManager.MOVING) {
             if (selected) {
                 ObjectAnimator.ofFloat(cv, "scaleX", 1.11f).setDuration(96).start();
@@ -425,14 +426,14 @@ public class ThingsAdapter extends RecyclerView.Adapter<ThingsAdapter.ThingViewH
                 cv.setScaleY(1.0f);
                 cv.setCardElevation(2 * mScreenDensity);
                 cv.setCardBackgroundColor(
-                        DisplayUtil.getLightColor(color, mApplication));
+                        DisplayUtil.getLightColor(color, mApp));
             }
         } else if (currentMode == ModeManager.SELECTING) {
             if (selected) {
                 cv.setCardBackgroundColor(color);
             } else {
                 cv.setCardBackgroundColor(
-                        DisplayUtil.getLightColor(color, mApplication));
+                        DisplayUtil.getLightColor(color, mApp));
             }
         } else {
             cv.setCardBackgroundColor(color);
@@ -443,7 +444,7 @@ public class ThingsAdapter extends RecyclerView.Adapter<ThingsAdapter.ThingViewH
         v.setVisibility(View.INVISIBLE);
         if (getItemViewType(position) != Thing.HEADER) {
             final Animation animation = AnimationUtils.loadAnimation(
-                    mApplication, R.anim.things_show);
+                    mApp, R.anim.things_show);
             animation.setAnimationListener(new Animation.AnimationListener() {
                 @Override
                 public void onAnimationStart(Animation animation) {
@@ -484,7 +485,7 @@ public class ThingsAdapter extends RecyclerView.Adapter<ThingsAdapter.ThingViewH
         boolean onItemLongClick(View v, int position);
     }
 
-    public class ThingViewHolder extends RecyclerView.ViewHolder{
+    public class ThingViewHolder extends BaseViewHolder {
 
         final InterceptTouchCardView cv;
         final View vPaddingBottom;
@@ -522,46 +523,46 @@ public class ThingsAdapter extends RecyclerView.Adapter<ThingsAdapter.ThingViewH
         public ThingViewHolder(View item) {
             super(item);
 
-            cv             = (InterceptTouchCardView) item.findViewById(R.id.cv_thing);
-            vPaddingBottom = item.findViewById(R.id.view_thing_padding_bottom);
+            cv             = f(R.id.cv_thing);
+            vPaddingBottom = f(R.id.view_thing_padding_bottom);
 
-            flImageAttachment = (FrameLayout) item.findViewById(R.id.fl_thing_image);
-            ivImageAttachment = (ImageView) item.findViewById(R.id.iv_thing_image);
-            tvImageCount      = (TextView) item.findViewById(R.id.tv_thing_image_attachment_count);
-            pbLoading         = (ProgressBar) item.findViewById(R.id.pb_thing_image_attachment);
-            vImageCover       = item.findViewById(R.id.view_thing_image_cover);
+            flImageAttachment = f(R.id.fl_thing_image);
+            ivImageAttachment = f(R.id.iv_thing_image);
+            tvImageCount      = f(R.id.tv_thing_image_attachment_count);
+            pbLoading         = f(R.id.pb_thing_image_attachment);
+            vImageCover       = f(R.id.view_thing_image_cover);
 
-            tvTitle      = (TextView) item.findViewById(R.id.tv_thing_title);
-            ivPrivateThing = (ImageView) item.findViewById(R.id.iv_private_thing);
+            tvTitle        = f(R.id.tv_thing_title);
+            ivPrivateThing = f(R.id.iv_private_thing);
 
-            tvContent    = (TextView) item.findViewById(R.id.tv_thing_content);
-            rvChecklist  = (RecyclerView) item.findViewById(R.id.rv_check_list);
+            tvContent    = f(R.id.tv_thing_content);
+            rvChecklist  = f(R.id.rv_check_list);
 
-            llAudioAttachment = (LinearLayout) item.findViewById(R.id.ll_thing_audio_attachment);
-            tvAudioCount      = (TextView) item.findViewById(R.id.tv_thing_audio_attachment_count);
+            llAudioAttachment = f(R.id.ll_thing_audio_attachment);
+            tvAudioCount      = f(R.id.tv_thing_audio_attachment_count);
 
-            rlReminder         = (RelativeLayout) item.findViewById(R.id.rl_thing_reminder);
-            vReminderSeparator = item.findViewById(R.id.view_reminder_separator);
-            ivReminder         = (ImageView) item.findViewById(R.id.iv_thing_reminder);
-            tvReminderTime     = (TextView) item.findViewById(R.id.tv_thing_reminder_time);
+            rlReminder         = f(R.id.rl_thing_reminder);
+            vReminderSeparator = f(R.id.view_reminder_separator);
+            ivReminder         = f(R.id.iv_thing_reminder);
+            tvReminderTime     = f(R.id.tv_thing_reminder_time);
 
-            rlHabit              = (RelativeLayout) item.findViewById(R.id.rl_thing_habit);
-            vHabitSeparator1     = item.findViewById(R.id.view_habit_separator_1);
-            tvHabitSummary       = (TextView) item.findViewById(R.id.tv_thing_habit_summary);
-            tvHabitNextReminder  = (TextView) item.findViewById(R.id.tv_thing_habit_next_reminder);
-            vHabitSeparator2     = item.findViewById(R.id.view_habit_separator_2);
-            llHabitRecord        = (LinearLayout) item.findViewById(R.id.ll_thing_habit_record);
-            tvHabitLastFive      = (TextView) item.findViewById(R.id.tv_thing_habit_last_five_record);
+            rlHabit              = f(R.id.rl_thing_habit);
+            vHabitSeparator1     = f(R.id.view_habit_separator_1);
+            tvHabitSummary       = f(R.id.tv_thing_habit_summary);
+            tvHabitNextReminder  = f(R.id.tv_thing_habit_next_reminder);
+            vHabitSeparator2     = f(R.id.view_habit_separator_2);
+            llHabitRecord        = f(R.id.ll_thing_habit_record);
+            tvHabitLastFive      = f(R.id.tv_thing_habit_last_five_record);
             habitRecordPresenter = new HabitRecordPresenter(new ImageView[] {
-                    (ImageView) item.findViewById(R.id.iv_thing_habit_record_1),
-                    (ImageView) item.findViewById(R.id.iv_thing_habit_record_2),
-                    (ImageView) item.findViewById(R.id.iv_thing_habit_record_3),
-                    (ImageView) item.findViewById(R.id.iv_thing_habit_record_4),
-                    (ImageView) item.findViewById(R.id.iv_thing_habit_record_5)
+                    f(R.id.iv_thing_habit_record_1),
+                    f(R.id.iv_thing_habit_record_2),
+                    f(R.id.iv_thing_habit_record_3),
+                    f(R.id.iv_thing_habit_record_4),
+                    f(R.id.iv_thing_habit_record_5)
             });
-            tvHabitFinishedThisT = (TextView) item.findViewById(R.id.tv_thing_habit_finished_this_t);
+            tvHabitFinishedThisT = f(R.id.tv_thing_habit_finished_this_t);
 
-            int pbColor = ContextCompat.getColor(mApplication, R.color.app_accent);
+            int pbColor = ContextCompat.getColor(mApp, R.color.app_accent);
             pbLoading.getIndeterminateDrawable().setColorFilter(pbColor, PorterDuff.Mode.SRC_IN);
 
             if (mOnItemTouchedListener != null) {

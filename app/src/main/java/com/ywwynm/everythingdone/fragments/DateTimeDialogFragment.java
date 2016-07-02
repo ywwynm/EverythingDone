@@ -1,5 +1,6 @@
 package com.ywwynm.everythingdone.fragments;
 
+import android.annotation.SuppressLint;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.support.annotation.StringRes;
@@ -23,8 +24,8 @@ import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.App;
+import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.DetailActivity;
 import com.ywwynm.everythingdone.adapters.DateTimePagerAdapter;
@@ -34,7 +35,9 @@ import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Reminder;
+import com.ywwynm.everythingdone.model.ReminderHabitParams;
 import com.ywwynm.everythingdone.model.Thing;
+import com.ywwynm.everythingdone.model.ThingAction;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil;
@@ -54,6 +57,7 @@ import java.util.List;
  * Created by ywwynm on 2015/8/14.
  * DialogFragment used to pick date/time/recurrence for a Reminder/Habit/Goal.
  */
+@SuppressLint("SetTextI18n")
 public class DateTimeDialogFragment extends BaseDialogFragment {
 
     public static final String TAG = "DateTimeDialogFragment";
@@ -70,6 +74,8 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
     private int black_26p;
 
     private boolean confirmed;
+
+    private int mPickedBefore;
 
     // tabs
     private TabLayout            mTabLayout;
@@ -170,6 +176,10 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
         return fragment;
     }
 
+    public void setPickedBefore(int pickedBefore) {
+        mPickedBefore = pickedBefore;
+    }
+
     class InitiallyShowPageRunnable implements Runnable {
 
         int page;
@@ -200,7 +210,7 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
         App application = (App)
                 mActivity.getApplication();
         int limit = application.getLimit();
-        if (mActivity.habitDetail != null ||
+        if (mActivity.rhParams.getHabitDetail() != null ||
                 limit == Def.LimitForGettingThings.HABIT_UNDERWAY) {
             mVpDateTime.post(new InitiallyShowPageRunnable(2));
             initAll(2);
@@ -268,10 +278,10 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
             findViewsRec();
             initUIRec();
             setEventsRec();
-            if (mThing.getType() == Thing.HABIT || mActivity.habitDetail != null) {
+            if (mThing.getType() == Thing.HABIT || mActivity.rhParams.getHabitDetail() != null) {
                 int type;
-                if (mActivity.habitDetail != null) {
-                    type = mActivity.habitType;
+                if (mActivity.rhParams.getHabitDetail() != null) {
+                    type = mActivity.rhParams.getHabitType();
                 } else {
                     Habit habit = HabitDAO.getInstance(mActivity).getHabitById(mThing.getId());
                     type = habit.getType();
@@ -295,6 +305,7 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
         mTabInitiated[page] = true;
     }
 
+    @SuppressLint("InflateParams")
     private void initMembers() {
         mActivity = (DetailActivity) getActivity();
         mAccentColor = mActivity.getAccentColor();
@@ -427,11 +438,12 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
 
     private void initUIAt() {
         DateTime dt = new DateTime();
-        if (mActivity.reminderInMillis != 0) {
-            dt = dt.withMillis(mActivity.reminderInMillis);
-        } else if (mActivity.reminderAfterTime != null) {
-            dt = dt.withMillis(DateTimeUtil.getActualTimeAfterSomeTime(
-                    mActivity.reminderAfterTime));
+        long reminderInMillis = mActivity.rhParams.getReminderInMillis();
+        int[] reminderAfterTime = mActivity.rhParams.getReminderAfterTime();
+        if (reminderInMillis != -1) {
+            dt = dt.withMillis(reminderInMillis);
+        } else if (reminderAfterTime != null) {
+            dt = dt.withMillis(DateTimeUtil.getActualTimeAfterSomeTime(reminderAfterTime));
         } else if (Thing.isReminderType(mThing.getType())) {
             Reminder reminder = ReminderDAO.getInstance(mActivity).getReminderById(mThing.getId());
             dt = dt.withMillis(reminder.getNotifyTime());
@@ -464,20 +476,16 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
     }
 
     private String getHabitDetail() {
-        String habitDetail = null;
-        if (mActivity.habitDetail != null) {
-            habitDetail = mActivity.habitDetail;
-        } else if (mThing.getType() == Thing.HABIT) {
+        String habitDetail = mActivity.rhParams.getHabitDetail();
+        if (habitDetail == null && mThing.getType() == Thing.HABIT) {
             habitDetail = HabitDAO.getInstance(mActivity).getHabitById(mThing.getId()).getDetail();
         }
         return habitDetail;
     }
 
     private int getHabitType() {
-        int habitType = -1;
-        if (mActivity.habitType != -1) {
-            habitType = mActivity.habitType;
-        } else if (mThing.getType() == Thing.HABIT) {
+        int habitType = mActivity.rhParams.getHabitType();
+        if (habitType == -1 && mThing.getType() == Thing.HABIT) {
             habitType = HabitDAO.getInstance(mActivity).getHabitById(mThing.getId()).getType();
         }
         return habitType;
@@ -520,6 +528,7 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
         mRlWmy.setVisibility(View.VISIBLE);
         mRvTimeOfDay.setVisibility(View.GONE);
         mIvPickAllAsBtRec.setVisibility(View.VISIBLE);
+        updatePickAllButton(mAdapterDayOfWeek);
         mFlDayYear.setVisibility(View.GONE);
 
         if (getHabitType() == Calendar.WEEK_OF_YEAR) {
@@ -534,7 +543,7 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
             DateTime dt = new DateTime();
             int week = dt.getDayOfWeek();
             week = week == 7 ? 0 : week;
-            mAdapterDayOfWeek.togglePick(week);
+            mAdapterDayOfWeek.pick(week);
             mIlHourWmy.setTextForEditText("" + dt.getHourOfDay());
             String minute = "" + dt.getMinuteOfHour();
             minute = minute.length() == 1 ? "0" + minute : minute;
@@ -557,6 +566,7 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
         mRlWmy.setVisibility(View.VISIBLE);
         mRvTimeOfDay.setVisibility(View.GONE);
         mIvPickAllAsBtRec.setVisibility(View.VISIBLE);
+        updatePickAllButton(mAdapterDayOfMonth);
         mFlDayYear.setVisibility(View.GONE);
 
         if (getHabitType() == Calendar.MONTH) {
@@ -565,8 +575,8 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
                 List<Integer> days = Habit.getDayOrMonthListFromDetail(habitDetail);
                 mAdapterDayOfMonth.pick(days);
                 if (days.get(days.size() - 1) == 27) {
-                    mAdapterDayOfMonth.togglePick(27);
-                    mAdapterDayOfMonth.togglePick(mAdapterDayOfMonth.getItemCount() - 1);
+                    mAdapterDayOfMonth.pick(27);
+                    mAdapterDayOfMonth.pick(mAdapterDayOfMonth.getItemCount() - 1);
                 }
                 String[] times = Habit.getTimeFromDetailWeekMonth(habitDetail);
                 mIlHourWmy.setTextForEditText(times[0]);
@@ -576,7 +586,7 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
             DateTime dt = new DateTime();
             int day = dt.getDayOfMonth();
             day = day >= 28 ? 27 : day - 1;
-            mAdapterDayOfMonth.togglePick(day);
+            mAdapterDayOfMonth.pick(day);
             mIlHourWmy.setTextForEditText("" + dt.getHourOfDay());
             String minute = "" + dt.getMinuteOfHour();
             minute = minute.length() == 1 ? "0" + minute : minute;
@@ -599,6 +609,7 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
         mRlWmy.setVisibility(View.VISIBLE);
         mRvTimeOfDay.setVisibility(View.GONE);
         mIvPickAllAsBtRec.setVisibility(View.VISIBLE);
+        updatePickAllButton(mAdapterMonthOfYear);
         mFlDayYear.setVisibility(View.VISIBLE);
 
         if (getHabitType() == Calendar.YEAR) {
@@ -622,7 +633,7 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
         } else {
             DateTime dt = new DateTime();
             int month = dt.getMonthOfYear() - 1;
-            mAdapterMonthOfYear.togglePick(month);
+            mAdapterMonthOfYear.pick(month);
             int day = dt.getDayOfMonth();
             if (day >= 28) {
                 EditText et = mIlDayYear.getEditText();
@@ -643,6 +654,14 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
 
         updatePickedTimesRec();
         updateTimePeriodRec();
+    }
+
+    private void updatePickAllButton(RecurrencePickerAdapter adapter) {
+        if (adapter.getPickedCount() == adapter.getItemCount()) {
+            mIvPickAllAsBtRec.setImageResource(R.drawable.act_deselect_all);
+        } else {
+            mIvPickAllAsBtRec.setImageResource(R.drawable.act_select_all);
+        }
     }
 
     private void setEvents() {
@@ -803,7 +822,7 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
         mIvPickAllAsBtRec.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                pickAll(mDtpRec.getPickedIndex());
+                pickOrUnpickAll(mDtpRec.getPickedIndex());
             }
         });
 
@@ -821,20 +840,36 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
         updateRvHeightRec(0);
     }
 
-    private void pickAll(int index) {
+    private void pickOrUnpickAll(int index) {
         if (index == 1) {
-            mAdapterDayOfWeek.pickAll();
+            if (mAdapterDayOfWeek.getPickedCount() == mAdapterDayOfWeek.getItemCount()) {
+                mAdapterDayOfWeek.unpickAll();
+            } else {
+                mAdapterDayOfWeek.pickAll();
+            }
             mAdapterDayOfWeek.notifyDataSetChanged();
             mTvTimesLRec.setText("" + mAdapterDayOfWeek.getPickedCount());
+            updatePickAllButton(mAdapterDayOfWeek);
         } else if (index == 2) {
-            mAdapterDayOfMonth.pickAll();
+            if (mAdapterDayOfMonth.getPickedCount() == mAdapterDayOfMonth.getItemCount()) {
+                mAdapterDayOfMonth.unpickAll();
+            } else {
+                mAdapterDayOfMonth.pickAll();
+            }
             mAdapterDayOfMonth.notifyDataSetChanged();
             mTvTimesLRec.setText("" + mAdapterDayOfMonth.getPickedCount());
+            updatePickAllButton(mAdapterDayOfMonth);
         } else if (index == 3) {
-            mAdapterMonthOfYear.pickAll();
+            if (mAdapterMonthOfYear.getPickedCount() == mAdapterMonthOfYear.getItemCount()) {
+                mAdapterMonthOfYear.unpickAll();
+            } else {
+                mAdapterMonthOfYear.pickAll();
+            }
             mAdapterMonthOfYear.notifyDataSetChanged();
             mTvTimesLRec.setText("" + mAdapterMonthOfYear.getPickedCount());
+            updatePickAllButton(mAdapterMonthOfYear);
         }
+        improveComplex();
     }
 
     private void setEventsRecDay() {
@@ -910,6 +945,7 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
         public void onClick(View v) {
             mTvTimesLRec.setText("" + mAdapter.getPickedCount());
             improveComplex();
+            updatePickAllButton(mAdapter);
         }
     }
 
@@ -1054,10 +1090,10 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
             if (dt.compareTo(cur) <= 0) {
                 setErrorAt(R.string.error_later);
             } else {
-                mActivity.habitType = -1;
-                mActivity.habitDetail = null;
-                mActivity.reminderInMillis = dt.getMillis();
-                mActivity.reminderAfterTime = null;
+                ReminderHabitParams before = new ReminderHabitParams(mActivity.rhParams);
+                mActivity.rhParams.reset();
+                mActivity.rhParams.setReminderInMillis(dt.getMillis());
+                addActionForUndoRedo(before);
                 updateActivityCbAndBackAndTd();
                 mActivity.tvQuickRemind.setText(
                         DateTimeUtil.getDateTimeStrAt(dt, mActivity, false));
@@ -1099,10 +1135,10 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
                     return;
                 }
 
-                mActivity.reminderAfterTime = new int[] { type, time };
-                mActivity.reminderInMillis = 0;
-                mActivity.habitType = -1;
-                mActivity.habitDetail = null;
+                ReminderHabitParams before = new ReminderHabitParams(mActivity.rhParams);
+                mActivity.rhParams.reset();
+                mActivity.rhParams.setReminderAfterTime(new int[] { type, time });
+                addActionForUndoRedo(before);
                 updateActivityCbAndBackAndTd();
                 mActivity.tvQuickRemind.setText(DateTimeUtil.getDateTimeStrAfter(type, time, mActivity));
                 confirmed = true;
@@ -1138,10 +1174,11 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
                     detail = Habit.generateDetailMonthOfYear(months, day, hour, minute);
                 }
             }
-            mActivity.reminderAfterTime = null;
-            mActivity.reminderInMillis = 0;
-            mActivity.habitType = type;
-            mActivity.habitDetail = detail;
+            ReminderHabitParams before = mActivity.rhParams;
+            mActivity.rhParams.reset();
+            mActivity.rhParams.setHabitType(type);
+            mActivity.rhParams.setHabitDetail(detail);
+            addActionForUndoRedo(before);
             updateActivityCbAndBackAndTd();
             mActivity.tvQuickRemind.setText(DateTimeUtil.getDateTimeStrRec(mActivity, type, detail));
             confirmed = true;
@@ -1191,8 +1228,23 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
             mActivity.updateTaskDescription(mAccentColor);
             mActivity.updateBackImage();
         } else {
+            final boolean temp = mActivity.shouldAddToActionList;
+            mActivity.shouldAddToActionList = false;
+            // onCheckedChange handles update cb, back and td.
             mActivity.cbQuickRemind.setChecked(true);
+            mActivity.shouldAddToActionList = temp;
         }
+    }
+
+    private void addActionForUndoRedo(ReminderHabitParams before) {
+        ReminderHabitParams after = new ReminderHabitParams(mActivity.rhParams);
+        ThingAction action = new ThingAction(
+                ThingAction.UPDATE_REMINDER_OR_HABIT, before, after);
+        action.getExtras().putBoolean(
+                ThingAction.KEY_CHECKBOX_STATE, mActivity.cbQuickRemind.isChecked());
+        action.getExtras().putInt(ThingAction.KEY_PICKED_BEFORE, mPickedBefore);
+        action.getExtras().putInt(ThingAction.KEY_PICKED_AFTER,  9);
+        mActivity.getActionList().addAction(action);
     }
 
     private String checkCanConfirmRec() {

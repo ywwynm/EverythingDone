@@ -51,7 +51,7 @@
         android:layout_gravity="center_vertical"
         android:layout_marginStart="56dp"
         android:layout_marginLeft="56dp"
-        android:src="@mipmap/act_delete_time_rec"
+        android:src="@drawable/act_delete_time_rec"
         android:contentDescription="@string/description_delete_item"
         style="@style/SelectableItemBackground"/>
 

@@ -62,7 +62,7 @@ public class StatisticAdapter extends RecyclerView.Adapter<StatisticAdapter.Stat
         return mIconRes.length;
     }
 
-    class StatisticHolder extends RecyclerView.ViewHolder {
+    class StatisticHolder extends BaseViewHolder {
 
         TextView tvFirst;
         TextView tvSecond;
@@ -71,9 +71,9 @@ public class StatisticAdapter extends RecyclerView.Adapter<StatisticAdapter.Stat
         public StatisticHolder(View itemView) {
             super(itemView);
 
-            tvFirst = (TextView) itemView.findViewById(R.id.tv_first_rv_statistic);
-            tvSecond = (TextView) itemView.findViewById(R.id.tv_second_rv_statistic);
-            vSeparator = itemView.findViewById(R.id.view_separator_statistic);
+            tvFirst    = f(R.id.tv_first_rv_statistic);
+            tvSecond   = f(R.id.tv_second_rv_statistic);
+            vSeparator = f(R.id.view_separator_statistic);
         }
     }
 

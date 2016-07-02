@@ -53,9 +53,12 @@ public class DeviceUtil {
     private static String getProperty(String key) {
         try {
             Properties properties = new Properties();
-            properties.load(new FileInputStream(
-                    new File(Environment.getRootDirectory(), "build.prop")));
-            return properties.getProperty(key, null);
+            FileInputStream fis = new FileInputStream(
+                    new File(Environment.getRootDirectory(), "build.prop"));
+            properties.load(fis);
+            String prop = properties.getProperty(key, null);
+            fis.close();
+            return prop;
         } catch (Exception e) {
             return null;
         }

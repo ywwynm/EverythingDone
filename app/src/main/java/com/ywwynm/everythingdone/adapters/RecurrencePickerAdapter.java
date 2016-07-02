@@ -6,7 +6,6 @@ import android.graphics.Color;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.CardView;
-import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -88,7 +87,7 @@ public class RecurrencePickerAdapter extends MultiChoiceAdapter {
     }
 
     @Override
-    public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+    public BaseViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         if (viewType == NORMAL) {
             return new NormalViewHolder(mInflater.inflate(
                     R.layout.recurrence_picker_normal, parent, false));
@@ -99,7 +98,7 @@ public class RecurrencePickerAdapter extends MultiChoiceAdapter {
     }
 
     @Override
-    public void onBindViewHolder(RecyclerView.ViewHolder viewHolder, int position) {
+    public void onBindViewHolder(BaseViewHolder viewHolder, int position) {
         int unPickerColor = ContextCompat.getColor(mContext, R.color.bg_unpicked);
         int black_54 = ContextCompat.getColor(mContext, R.color.black_54);
         if (getItemViewType(position) == END_OF_MONTH) {
@@ -163,15 +162,15 @@ public class RecurrencePickerAdapter extends MultiChoiceAdapter {
         return count;
     }
 
-    class NormalViewHolder extends RecyclerView.ViewHolder {
+    class NormalViewHolder extends BaseViewHolder {
 
         final FloatingActionButton fab;
         final TextView tvDate;
 
         public NormalViewHolder(View itemView) {
             super(itemView);
-            fab = (FloatingActionButton) itemView.findViewById(R.id.fab_recurrence_picker);
-            tvDate = (TextView) itemView.findViewById(R.id.tv_recurrence_picker);
+            fab = f(R.id.fab_recurrence_picker);
+            tvDate = f(R.id.tv_recurrence_picker);
 
             fab.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -185,15 +184,15 @@ public class RecurrencePickerAdapter extends MultiChoiceAdapter {
         }
     }
 
-    class EndOfMonthViewHolder extends RecyclerView.ViewHolder {
+    class EndOfMonthViewHolder extends BaseViewHolder {
 
         final CardView cv;
         final TextView tv;
 
         public EndOfMonthViewHolder(View itemView) {
             super(itemView);
-            cv = (CardView) itemView.findViewById(R.id.cv_end_of_month_rec);
-            tv = (TextView) itemView.findViewById(R.id.tv_end_of_month_rec);
+            cv = f(R.id.cv_end_of_month_rec);
+            tv = f(R.id.tv_end_of_month_rec);
             cv.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {

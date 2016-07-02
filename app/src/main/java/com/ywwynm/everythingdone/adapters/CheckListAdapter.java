@@ -30,7 +30,7 @@ import java.util.List;
  * Created by ywwynm on 2015/9/17.
  * Adapter for check list.
  */
-public class CheckListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
 
     public static final String TAG = "CheckListAdapter";
 
@@ -51,6 +51,11 @@ public class CheckListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         void onTouch(int pos);
     }
     private IvStateTouchCallback mIvStateTouchCallback;
+
+    public interface ActionCallback {
+        void onAction(String before, String after);
+    }
+    private ActionCallback mActionCallback;
 
     private View.OnTouchListener mEtTouchListener;
     private View.OnClickListener mEtClickListener;
@@ -83,6 +88,10 @@ public class CheckListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
 
     public void setIvStateTouchCallback(IvStateTouchCallback ivStateTouchCallback) {
         mIvStateTouchCallback = ivStateTouchCallback;
+    }
+
+    public void setActionCallback(ActionCallback actionCallback) {
+        mActionCallback = actionCallback;
     }
 
     public void setEtTouchListener(View.OnTouchListener etTouchListener) {
@@ -120,7 +129,7 @@ public class CheckListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     }
 
     @Override
-    public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+    public BaseViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         if (mType == TEXTVIEW) {
             return new TextViewHolder(mInflater.inflate(R.layout.check_list_tv, parent, false));
         } else {
@@ -129,7 +138,7 @@ public class CheckListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     }
 
     @Override
-    public void onBindViewHolder(RecyclerView.ViewHolder viewHolder, int position) {
+    public void onBindViewHolder(BaseViewHolder viewHolder, int position) {
         int white_76 = ContextCompat.getColor(mContext, R.color.white_76p);
         int white_50 = Color.parseColor("#80FFFFFF");
         float density = DisplayUtil.getScreenDensity(mContext);
@@ -148,11 +157,11 @@ public class CheckListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                 String stateContent = mItems.get(position);
                 char state = stateContent.charAt(0);
                 if (state == '0') {
-                    holder.iv.setImageResource(R.mipmap.checklist_unchecked_card);
+                    holder.iv.setImageResource(R.drawable.checklist_unchecked_card);
                     holder.tv.setTextColor(white_76);
                     holder.tv.setPaintFlags(flag & ~Paint.STRIKE_THRU_TEXT_FLAG);
                 } else if (state == '1') {
-                    holder.iv.setImageResource(R.mipmap.checklist_checked_card);
+                    holder.iv.setImageResource(R.drawable.checklist_checked_card);
                     holder.tv.setTextColor(white_50);
                     holder.tv.setPaintFlags(flag | Paint.STRIKE_THRU_TEXT_FLAG);
                 }
@@ -172,7 +181,7 @@ public class CheckListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                 params.setMargins(0, params.topMargin, 0, params.bottomMargin);
             }
         } else {
-            EditTextHolder holder = (EditTextHolder) viewHolder;
+            final EditTextHolder holder = (EditTextHolder) viewHolder;
             holder.flSeparator.setVisibility(View.GONE);
             holder.ivState.setVisibility(View.VISIBLE);
             holder.ivState.setClickable(true);
@@ -197,24 +206,24 @@ public class CheckListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
             char state = stateContent.charAt(0);
             if (state == '0') {
                 if (!mDragging) {
-                    holder.ivState.setImageResource(R.mipmap.checklist_unchecked_detail);
+                    holder.ivState.setImageResource(R.drawable.checklist_unchecked_detail);
                 } else {
-                    holder.ivState.setImageResource(R.mipmap.checklist_move_76);
+                    holder.ivState.setImageResource(R.drawable.checklist_move_76);
                 }
                 holder.et.setTextColor(white_76);
                 holder.et.setText(stateContent.substring(1, stateContent.length()));
             } else if (state == '1') {
                 if (!mDragging) {
-                    holder.ivState.setImageResource(R.mipmap.checklist_checked_detail);
+                    holder.ivState.setImageResource(R.drawable.checklist_checked_detail);
                 } else {
-                    holder.ivState.setImageResource(R.mipmap.checklist_move_50);
+                    holder.ivState.setImageResource(R.drawable.checklist_move_50);
                 }
                 holder.et.setTextColor(white_50);
                 holder.et.setPaintFlags(flags | Paint.STRIKE_THRU_TEXT_FLAG);
                 holder.et.setText(stateContent.substring(1, stateContent.length()));
             } else if (state == '2') {
                 params.topMargin = (int) (density * 4);
-                holder.ivState.setImageResource(R.mipmap.checklist_add);
+                holder.ivState.setImageResource(R.drawable.checklist_add);
                 holder.et.setHint(mContext.getString(R.string.hint_new_item));
                 holder.et.setText("");
             } else if (state == '3') {
@@ -224,7 +233,7 @@ public class CheckListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                 holder.flSeparator.setVisibility(View.VISIBLE);
             } else if (state == '4') {
                 params.topMargin = (int) (density * 6);
-                holder.ivState.setImageResource(R.mipmap.checklist_finished);
+                holder.ivState.setImageResource(R.drawable.checklist_finished);
                 holder.ivState.setClickable(false);
                 holder.et.setEnabled(false);
                 holder.et.setText(mContext.getString(R.string.finished));
@@ -244,29 +253,19 @@ public class CheckListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         } else return size;
     }
 
-    public void addItem(int pos, String item) {
-        if (CheckListHelper.getFirstFinishedItemIndex(mItems) == -1 && item.startsWith("1")) {
-            mItems.add("3");
-            mItems.add("4");
-            notifyDataSetChanged();
-        }
-        mItems.add(pos, item);
-        notifyItemInserted(pos);
-    }
-
-    class TextViewHolder extends RecyclerView.ViewHolder {
+    class TextViewHolder extends BaseViewHolder {
 
         final ImageView iv;
         final TextView  tv;
 
         public TextViewHolder(View itemView) {
             super(itemView);
-            iv = (ImageView) itemView.findViewById(R.id.iv_check_list_state);
-            tv = (TextView)  itemView.findViewById(R.id.tv_check_list);
+            iv = f(R.id.iv_check_list_state);
+            tv = f(R.id.tv_check_list);
         }
     }
 
-    public class EditTextHolder extends RecyclerView.ViewHolder {
+    public class EditTextHolder extends BaseViewHolder {
 
         public final FrameLayout flSeparator;
         public final ImageView   ivState;
@@ -275,10 +274,10 @@ public class CheckListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
 
         public EditTextHolder(View itemView) {
             super(itemView);
-            flSeparator = (FrameLayout) itemView.findViewById(R.id.fl_check_list_separator);
-            ivState     = (ImageView)   itemView.findViewById(R.id.iv_check_list_state);
-            et          = (EditText)    itemView.findViewById(R.id.et_check_list);
-            ivDelete    = (ImageView)   itemView.findViewById(R.id.iv_check_list_delete);
+            flSeparator = f(R.id.fl_check_list_separator);
+            ivState     = f(R.id.iv_check_list_state);
+            et          = f(R.id.et_check_list);
+            ivDelete    = f(R.id.iv_check_list_delete);
 
             if (mType == EDITTEXT_EDITABLE) {
                 DisplayUtil.setSelectionHandlersColor(et, ContextCompat.getColor(
@@ -310,6 +309,8 @@ public class CheckListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
             ivState.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
+                    String before = CheckListHelper.toCheckListStr(mItems);
+
                     int pos = getAdapterPosition(), posAfter;
                     KeyboardUtil.hideKeyboard(et);
 
@@ -344,7 +345,7 @@ public class CheckListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                             pos = size - 3;
                         }
                     } else {
-                        insertItem(v, pos, "");
+                        insertItem(CheckListHelper.toCheckListStr(mItems), v, pos, "");
                         return;
                     }
 
@@ -357,6 +358,11 @@ public class CheckListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                     mItems.add(posAfter, itemAfter);
                     notifyItemInserted(posAfter);
                     mWatchEditTextChange = true;
+
+                    if (mActionCallback != null) {
+                        mActionCallback.onAction(
+                                before, CheckListHelper.toCheckListStr(mItems));
+                    }
                 }
             });
 
@@ -380,8 +386,10 @@ public class CheckListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
             }
 
             et.addTextChangedListener(new TextWatcher() {
+                private String mBefore;
                 @Override
                 public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                    mBefore = CheckListHelper.toCheckListStr(mItems);
                 }
 
                 @Override
@@ -396,6 +404,10 @@ public class CheckListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                     if (state == '0' || state == '1') {
                         mItems.set(pos, state + s.toString());
                     }
+                    if (mActionCallback != null) {
+                        mActionCallback.onAction(
+                                mBefore, CheckListHelper.toCheckListStr(mItems));
+                    }
                 }
             });
 
@@ -405,7 +417,7 @@ public class CheckListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                     if (hasFocus) {
                         int pos = getAdapterPosition();
                         if (mItems.get(pos).charAt(0) == '2') {
-                            insertItem(v, pos, "");
+                            insertItem(CheckListHelper.toCheckListStr(mItems), v, pos, "");
                         } else {
                             v.post(new Runnable() {
                                 @Override
@@ -432,14 +444,15 @@ public class CheckListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                             int cursorPos = et.getSelectionEnd();
                             int etLength = et.getText().length();
                             if (cursorPos == etLength) {
-                                insertItem(v, pos, "");
+                                insertItem(CheckListHelper.toCheckListStr(mItems), v, pos, "");
                             } else {
+                                String before = CheckListHelper.toCheckListStr(mItems);
                                 String current = mItems.get(pos);
                                 String newCurrent = current.substring(0, cursorPos + 1);
                                 String next = current.substring(cursorPos + 1, etLength + 1);
                                 mItems.set(pos, newCurrent);
                                 notifyItemChanged(pos);
-                                insertItem(v, pos, next);
+                                insertItem(before, v, pos, next);
                             }
                             return true;
                         } else if (keyCode == KeyEvent.KEYCODE_DEL) {
@@ -459,7 +472,7 @@ public class CheckListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
          * Inserting occurs in three ways: click ImageView "add", click EditText "new item"
          * and press enter when focus is on any EditTexts.
          */
-        private void insertItem(View v, final int pos, String preset) {
+        private void insertItem(String before, View v, final int pos, String preset) {
             final char state = mItems.get(pos).charAt(0);
             if (state == '2') {
                 mItems.set(pos, "0");
@@ -478,9 +491,15 @@ public class CheckListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                     }
                 });
             }
+
+            if (mActionCallback != null) {
+                mActionCallback.onAction(
+                        before, CheckListHelper.toCheckListStr(mItems));
+            }
         }
 
         private void removeItem(View v, int pos, boolean deleteByClick) {
+            String before = CheckListHelper.toCheckListStr(mItems);
             boolean justNotifyAll = false;
             String current = mItems.get(pos);
             final int posToFocus;
@@ -556,6 +575,11 @@ public class CheckListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
                         }
                     });
                 }
+            }
+
+            if (mActionCallback != null) {
+                mActionCallback.onAction(
+                        before, CheckListHelper.toCheckListStr(mItems));
             }
         }
     }

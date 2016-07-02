@@ -1,5 +1,8 @@
 package com.ywwynm.everythingdone.fragments;
 
+import android.annotation.SuppressLint;
+import android.app.Activity;
+import android.content.Context;
 import android.os.Bundle;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -8,6 +11,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.DetailActivity;
 import com.ywwynm.everythingdone.adapters.HabitRecordAdapter;
@@ -22,8 +26,6 @@ import com.ywwynm.everythingdone.utils.LocaleUtil;
 public class HabitDetailDialogFragment extends BaseDialogFragment {
 
     public static final String TAG = "HabitDetailDialogFragment";
-
-    private DetailActivity mActivity;
     private Habit mHabit;
 
     private TextView mTvCr;
@@ -46,10 +48,9 @@ public class HabitDetailDialogFragment extends BaseDialogFragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         super.onCreateView(inflater, container, savedInstanceState);
 
-        mActivity = (DetailActivity) getActivity();
-
         TextView title = f(R.id.tv_habit_detail_title);
-        int accentColor = mActivity.getAccentColor();
+        DetailActivity activity = (DetailActivity) getActivity();
+        int accentColor = activity.getAccentColor();
         title.setTextColor(accentColor);
 
         mTvCr     = f(R.id.tv_habit_detail_completion_rate);
@@ -76,13 +77,15 @@ public class HabitDetailDialogFragment extends BaseDialogFragment {
         return R.layout.fragment_habit_detail;
     }
 
+    @SuppressLint("SetTextI18n")
     private void initUI() {
         mTvCr.setText(mHabit.getCompletionRate());
 
         int piT = mHabit.getPersistInT();
+        Context context = App.getApp();
         mTvTs.setText((piT < 0 ? 0 : piT) + " " +
-                DateTimeUtil.getTimeTypeStr(mHabit.getType(), mActivity));
-        if (piT > 1 && LocaleUtil.isEnglish(mActivity)) {
+                    DateTimeUtil.getTimeTypeStr(mHabit.getType(), context));
+        if (piT > 1 && LocaleUtil.isEnglish(context)) {
             mTvTs.append("s");
         }
 
@@ -98,9 +101,11 @@ public class HabitDetailDialogFragment extends BaseDialogFragment {
         } else {
             record = record.substring(len - 30, len);
         }
-        HabitRecordAdapter habitRecordAdapter = new HabitRecordAdapter(mActivity, record);
+
+        Activity activity = getActivity();
+        HabitRecordAdapter habitRecordAdapter = new HabitRecordAdapter(activity, record);
         mRvRecord.setAdapter(habitRecordAdapter);
-        GridLayoutManager glm = new GridLayoutManager(mActivity, 6);
+        GridLayoutManager glm = new GridLayoutManager(activity, 6);
         mRvRecord.setLayoutManager(glm);
     }
 }

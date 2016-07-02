@@ -9,6 +9,7 @@ import android.support.annotation.StringRes;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
+import com.ywwynm.everythingdone.fragments.AlertDialogFragment;
 import com.ywwynm.everythingdone.fragments.LongTextDialogFragment;
 import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.Thing;
@@ -16,6 +17,7 @@ import com.ywwynm.everythingdone.utils.DisplayUtil;
 
 import static com.ywwynm.everythingdone.Def.Meta.KEY_1_0_3_TO_1_0_4;
 import static com.ywwynm.everythingdone.Def.Meta.KEY_1_0_4_TO_1_0_5;
+import static com.ywwynm.everythingdone.Def.Meta.KEY_1_1_4_TO_1_1_5;
 import static com.ywwynm.everythingdone.Def.Meta.META_DATA_NAME;
 
 /**
@@ -92,6 +94,27 @@ public class AppUpdateHelper {
         ltdf.show(activity.getFragmentManager(), LongTextDialogFragment.TAG);
 
         sp.edit().putBoolean(KEY_1_0_4_TO_1_0_5, true).apply();
+        return true;
+    }
+
+    public static boolean updateFrom1_1_4To1_1_5(Activity activity, int color) {
+        SharedPreferences sp = activity.getSharedPreferences(
+                META_DATA_NAME, Context.MODE_PRIVATE);
+        boolean updated = sp.getBoolean(KEY_1_1_4_TO_1_1_5, false);
+        if (updated) {
+            return false;
+        }
+
+        AlertDialogFragment adf = new AlertDialogFragment();
+        adf.setShowCancel(false);
+        adf.setTitleColor(color);
+        adf.setConfirmColor(color);
+        adf.setTitle(activity.getString(R.string.from_1_1_4_to_1_1_5_title));
+        adf.setContent(activity.getString(R.string.from_1_1_4_to_1_1_5_content));
+        adf.show(activity.getFragmentManager(), AlertDialogFragment.TAG);
+
+        sp.edit().putBoolean(KEY_1_1_4_TO_1_1_5, true).apply();
+
         return true;
     }
 

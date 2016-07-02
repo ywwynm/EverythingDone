@@ -20,7 +20,7 @@ public class AuthenticationHelper {
             return;
         }
 
-        FingerprintHelper.getInstance(activity)
+        FingerprintHelper.getInstance()
                 .tryToAuthenticatingByFingerprint(
                         activity, accentColor, title, correctPassword, callback);
     }

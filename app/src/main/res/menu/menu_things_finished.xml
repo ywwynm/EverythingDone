@@ -5,13 +5,13 @@
     <item
         android:id="@+id/act_search"
         android:title="@string/act_search"
-        android:icon="@mipmap/act_search"
+        android:icon="@drawable/act_search"
         app:showAsAction="always"/>
 
     <item
         android:id="@+id/act_delete_all"
         android:title="@string/act_delete_all"
-        android:icon="@mipmap/act_delete_all"
+        android:icon="@drawable/act_delete_all"
         app:showAsAction="always"/>
 
 </menu>

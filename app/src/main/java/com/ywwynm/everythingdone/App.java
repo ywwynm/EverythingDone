@@ -6,6 +6,8 @@ import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.util.LruCache;
 
+import com.squareup.leakcanary.LeakCanary;
+import com.squareup.leakcanary.RefWatcher;
 import com.ywwynm.everythingdone.activities.SettingsActivity;
 import com.ywwynm.everythingdone.activities.ThingsActivity;
 import com.ywwynm.everythingdone.database.ReminderDAO;
@@ -35,6 +37,8 @@ import java.util.concurrent.Executors;
 public class App extends Application {
 
     public static final String TAG = "EverythingDone";
+
+    private static App app;
 
     private ThingManager mThingManager;
 
@@ -81,11 +85,17 @@ public class App extends Application {
     private static boolean somethingUpdatedSpecially = false;
     private static boolean justNotifyDataSetChanged = false;
 
+    private static RefWatcher refWatcher;
+
     @Override
     public void onCreate() {
         super.onCreate();
 
+        app = this;
+
         CrashHelper.getInstance().init(this);
+
+        refWatcher = LeakCanary.install(this);
 
         firstLaunch();
 
@@ -99,7 +109,7 @@ public class App extends Application {
         }
 
         mThingManager = ThingManager.getInstance(this);
-        SettingsActivity.initSystemRingtoneList(this);
+        SettingsActivity.initSystemRingtoneList();
 
         mThingsToDeleteForever = new ArrayList<>();
         mAttachmentsToDeleteFile = new ArrayList<>();
@@ -118,6 +128,14 @@ public class App extends Application {
             metaData.edit().putLong(Def.Meta.KEY_START_USING_TIME,
                     System.currentTimeMillis()).apply();
         }
+    }
+
+    public static App getApp() {
+        return app;
+    }
+
+    public static RefWatcher getRefWatcher() {
+        return refWatcher;
     }
 
     public List<Thing> getThingsToDeleteForever() {

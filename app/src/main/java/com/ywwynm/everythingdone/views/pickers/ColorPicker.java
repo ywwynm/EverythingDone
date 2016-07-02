@@ -17,6 +17,7 @@ import android.widget.Button;
 
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
+import com.ywwynm.everythingdone.adapters.BaseViewHolder;
 import com.ywwynm.everythingdone.adapters.SingleChoiceAdapter;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 
@@ -33,8 +34,6 @@ public class ColorPicker extends PopupPicker {
     private View.OnClickListener mOnClickListener;
     private ColorPickerAdapter mAdapter;
     private Rect mWindowRect;
-
-    private boolean mIsLastIcon = false;
 
     public ColorPicker(Context context, View parent, int type) {
         super(context, parent, R.style.ColorPickerAnimation);
@@ -67,15 +66,11 @@ public class ColorPicker extends PopupPicker {
         mWindowRect = new Rect();
     }
 
-    public void setIsLastIcon(boolean isLastIcon) {
-        mIsLastIcon = isLastIcon;
-    }
-
     @Override
     public void show() {
         int xOffset = 0;
         mParent.getWindowVisibleDisplayFrame(mWindowRect);
-        if (mType == Def.PickerType.COLOR_NO_ALL && !mIsLastIcon) {
+        if (mType == Def.PickerType.COLOR_NO_ALL) {
             xOffset += (int) (mScreenDensity * 36);
             if (DisplayUtil.isTablet(mContext)) {
                 xOffset += (int) (mScreenDensity * 12);
@@ -134,7 +129,7 @@ public class ColorPicker extends PopupPicker {
         }
 
         @Override
-        public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+        public BaseViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
             if (viewType == ALL_COLOR) {
                 return new AllColorViewHolder(
                         mInflater.inflate(R.layout.color_picker_bt, parent, false));
@@ -145,16 +140,16 @@ public class ColorPicker extends PopupPicker {
         }
 
         @Override
-        public void onBindViewHolder(RecyclerView.ViewHolder viewHolder, int position) {
+        public void onBindViewHolder(BaseViewHolder viewHolder, int position) {
             if (mType == Def.PickerType.COLOR_HAVE_ALL) {
                 if (position == 0) {
                     AllColorViewHolder holder = (AllColorViewHolder) viewHolder;
                     if (mPickedPosition == 0) {
                         holder.bt.setCompoundDrawablesWithIntrinsicBounds(
-                                R.mipmap.ic_checkbox_checked, 0, 0, 0);
+                                R.drawable.ic_checkbox_checked, 0, 0, 0);
                     } else {
                         holder.bt.setCompoundDrawablesWithIntrinsicBounds(
-                                R.mipmap.ic_checkbox_unchecked, 0, 0, 0);
+                                R.drawable.ic_checkbox_unchecked, 0, 0, 0);
                     }
                     holder.bt.setClickable(mPickedPosition != 0);
                 } else {
@@ -172,7 +167,7 @@ public class ColorPicker extends PopupPicker {
                     .getIntArray(R.array.thing)[index]));
             setFabMargin(holder.fab, index);
             if (mPickedPosition == position) {
-                holder.fab.setImageDrawable(ContextCompat.getDrawable(mContext, R.mipmap.ic_color_picked));
+                holder.fab.setImageDrawable(ContextCompat.getDrawable(mContext, R.drawable.ic_color_picked));
             } else {
                 holder.fab.setImageDrawable(null);
             }
@@ -234,13 +229,13 @@ public class ColorPicker extends PopupPicker {
             return super.getItemViewType(position);
         }
 
-        class AllColorViewHolder extends RecyclerView.ViewHolder {
+        class AllColorViewHolder extends BaseViewHolder {
 
             final Button bt;
 
             public AllColorViewHolder(View itemView) {
                 super(itemView);
-                bt = (Button) itemView.findViewById(R.id.bt_all_color);
+                bt = f(R.id.bt_all_color);
                 bt.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
@@ -254,13 +249,13 @@ public class ColorPicker extends PopupPicker {
             }
         }
 
-        class FabViewHolder extends RecyclerView.ViewHolder {
+        class FabViewHolder extends BaseViewHolder {
 
             final FloatingActionButton fab;
 
             public FabViewHolder(View itemView) {
                 super(itemView);
-                fab = (FloatingActionButton) itemView.findViewById(R.id.fab_pick_color);
+                fab = f(R.id.fab_pick_color);
                 fab.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {

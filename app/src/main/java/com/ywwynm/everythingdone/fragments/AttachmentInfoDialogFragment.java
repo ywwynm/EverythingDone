@@ -11,6 +11,7 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import com.ywwynm.everythingdone.R;
+import com.ywwynm.everythingdone.adapters.BaseViewHolder;
 
 import java.util.List;
 
@@ -84,7 +85,7 @@ public class AttachmentInfoDialogFragment extends BaseDialogFragment {
             return mItems.size();
         }
 
-        class Holder extends RecyclerView.ViewHolder {
+        class Holder extends BaseViewHolder {
 
             final TextView tvTitle;
             final TextView tvContent;
@@ -92,8 +93,8 @@ public class AttachmentInfoDialogFragment extends BaseDialogFragment {
             public Holder(View itemView) {
                 super(itemView);
 
-                tvTitle   = (TextView) itemView.findViewById(R.id.tv_rv_attachment_info_title);
-                tvContent = (TextView) itemView.findViewById(R.id.tv_rv_attachment_info_content);
+                tvTitle   = f(R.id.tv_rv_attachment_info_title);
+                tvContent = f(R.id.tv_rv_attachment_info_content);
             }
         }
 

@@ -7,23 +7,23 @@
         <item
             android:id="@+id/drawer_underway"
             android:title="@string/underway"
-            android:icon="@mipmap/drawer_all"/>
+            android:icon="@drawable/drawer_all"/>
         <item
             android:id="@+id/drawer_note"
             android:title="@string/note"
-            android:icon="@mipmap/drawer_note"/>
+            android:icon="@drawable/drawer_note"/>
         <item
             android:id="@+id/drawer_reminder"
             android:title="@string/reminder"
-            android:icon="@mipmap/drawer_reminder"/>
+            android:icon="@drawable/drawer_reminder"/>
         <item
             android:id="@+id/drawer_habit"
             android:title="@string/habit"
-            android:icon="@mipmap/drawer_habit"/>
+            android:icon="@drawable/drawer_habit"/>
         <item
             android:id="@+id/drawer_goal"
             android:title="@string/goal"
-            android:icon="@mipmap/drawer_goal"/>
+            android:icon="@drawable/drawer_goal"/>
     </group>
 
     <group
@@ -31,11 +31,11 @@
         <item
             android:id="@+id/drawer_finished"
             android:title="@string/finished"
-            android:icon="@mipmap/drawer_finished"/>
+            android:icon="@drawable/drawer_finished"/>
         <item
             android:id="@+id/drawer_deleted"
             android:title="@string/deleted"
-            android:icon="@mipmap/drawer_deleted"/>
+            android:icon="@drawable/drawer_deleted"/>
     </group>
 
     <group
@@ -43,11 +43,16 @@
         <item
             android:id="@+id/drawer_settings"
             android:title="@string/settings"
-            android:icon="@mipmap/drawer_settings"/>
+            android:icon="@drawable/drawer_settings"/>
+
+        <item
+            android:id="@+id/drawer_help"
+            android:title="@string/help"
+            android:icon="@drawable/drawer_help"/>
         <item
             android:id="@+id/drawer_about"
             android:title="@string/about"
-            android:icon="@mipmap/drawer_about"/>
+            android:icon="@drawable/drawer_about"/>
     </group>
 
 </menu>

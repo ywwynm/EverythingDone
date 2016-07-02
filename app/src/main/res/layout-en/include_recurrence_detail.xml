@@ -48,8 +48,8 @@
         android:layout_toRightOf="@id/tv_every_rec"
         android:layout_centerVertical="true"
         android:gravity="center_vertical"
-        android:drawableEnd="@mipmap/ic_dropdown"
-        android:drawableRight="@mipmap/ic_dropdown"
+        android:drawableEnd="@drawable/ic_dropdown"
+        android:drawableRight="@drawable/ic_dropdown"
         android:textSize="16sp"
         style="@style/SelectableItemBackground"
         tools:ignore="RelativeOverlap"/>
@@ -64,7 +64,7 @@
         android:layout_marginEnd="2dp"
         android:layout_marginRight="2dp"
         android:scaleType="center"
-        android:src="@mipmap/act_select_all"
+        android:src="@drawable/act_select_all"
         android:contentDescription="@string/act_select_all"
         style="@style/SelectableItemBackground"/>
 

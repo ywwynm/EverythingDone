@@ -9,10 +9,10 @@
     android:focusableInTouchMode="true"
     tools:context="com.ywwynm.everythingdone.activities.DetailActivity">
 
-    <ScrollView
+    <android.support.v4.widget.NestedScrollView
         android:id="@+id/sv_detail"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:layout_marginBottom="56dp">
 
         <LinearLayout
@@ -66,9 +66,10 @@
             <android.support.v7.widget.RecyclerView
                 android:id="@+id/rv_check_list"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="999999999dp"
                 android:layout_marginTop="20dp"
                 android:overScrollMode="never"
+                android:isScrollContainer="false"
                 android:paddingLeft="8dp"
                 android:paddingRight="8dp"
                 android:visibility="gone"/>
@@ -101,8 +102,8 @@
                     android:paddingEnd="10dp"
                     android:paddingRight="10dp"
                     android:gravity="center_vertical"
-                    android:drawableStart="@mipmap/act_move_checklist"
-                    android:drawableLeft="@mipmap/act_move_checklist"
+                    android:drawableStart="@drawable/act_move_checklist"
+                    android:drawableLeft="@drawable/act_move_checklist"
                     android:drawablePadding="14dp"
                     android:text="@string/act_move_check_list"
                     android:textSize="16sp"
@@ -133,7 +134,7 @@
 
         </LinearLayout>
 
-    </ScrollView>
+    </android.support.v4.widget.NestedScrollView>
 
     <View
         android:id="@+id/view_image_cover"

@@ -19,8 +19,8 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 
-import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.App;
+import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.adapters.ImageViewerPagerAdapter;
 import com.ywwynm.everythingdone.fragments.AlertDialogFragment;
@@ -178,6 +178,13 @@ public class ImageViewerActivity extends EverythingDoneBaseActivity {
 
             if (type == 0) {
                 attacher.setOnViewTapListener(imageListener);
+                attacher.setOnLongClickListener(new View.OnLongClickListener() {
+                    @Override
+                    public boolean onLongClick(View v) {
+                        System.out.println("long");
+                        return true;
+                    }
+                });
             } else {
                 videoSignal.setOnClickListener(videoListener);
                 attacher.setZoomable(false);

@@ -4,7 +4,6 @@ import android.content.Context;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
 import android.support.v4.content.ContextCompat;
-import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -45,22 +44,22 @@ public class ChooserFragmentAdapter extends SingleChoiceAdapter {
     }
 
     @Override
-    public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+    public BaseViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         return new ChoiceHolder(mInflater.inflate(R.layout.rv_fragment_chooser, parent, false));
     }
 
     @Override
-    public void onBindViewHolder(RecyclerView.ViewHolder viewHolder, int position) {
+    public void onBindViewHolder(BaseViewHolder viewHolder, int position) {
         ChoiceHolder holder = (ChoiceHolder) viewHolder;
         holder.tv.setText(mItems.get(position));
         Context context = holder.tv.getContext();
         int uncheckedColor = ContextCompat.getColor(context, R.color.black_54);
         Drawable d;
         if (mPickedPosition == position) {
-            d = ContextCompat.getDrawable(context, R.mipmap.ic_radiobutton_checked);
+            d = ContextCompat.getDrawable(context, R.drawable.ic_radiobutton_checked);
             d.mutate().setColorFilter(mAccentColor, PorterDuff.Mode.SRC_ATOP);
         } else {
-            d = ContextCompat.getDrawable(context, R.mipmap.ic_radiobutton_unchecked);
+            d = ContextCompat.getDrawable(context, R.drawable.ic_radiobutton_unchecked);
             d.mutate().setColorFilter(uncheckedColor, PorterDuff.Mode.SRC_ATOP);
         }
         holder.tv.setCompoundDrawablesWithIntrinsicBounds(d, null, null, null);
@@ -71,14 +70,14 @@ public class ChooserFragmentAdapter extends SingleChoiceAdapter {
         return mItems.size();
     }
 
-    class ChoiceHolder extends RecyclerView.ViewHolder {
+    class ChoiceHolder extends BaseViewHolder {
 
         final TextView tv;
 
         public ChoiceHolder(View itemView) {
             super(itemView);
 
-            tv = (TextView) itemView.findViewById(R.id.tv_rv_chooser_fragment);
+            tv = f(R.id.tv_rv_chooser_fragment);
 
             tv.setOnClickListener(new View.OnClickListener() {
                 @Override

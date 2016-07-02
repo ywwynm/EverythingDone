@@ -4,11 +4,15 @@ import android.content.Context;
 import android.database.Cursor;
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.support.annotation.IntDef;
 
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
+
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 
 import static com.ywwynm.everythingdone.Def.LimitForGettingThings.ALL_DELETED;
 import static com.ywwynm.everythingdone.Def.LimitForGettingThings.ALL_FINISHED;
@@ -23,6 +27,15 @@ import static com.ywwynm.everythingdone.Def.LimitForGettingThings.REMINDER_UNDER
  * Model layer. Related to table things.
  */
 public class Thing implements Parcelable {
+
+    @IntDef({HEADER, NOTE, REMINDER, HABIT, GOAL,
+            WELCOME_UNDERWAY, WELCOME_NOTE, WELCOME_REMINDER, WELCOME_HABIT, WELCOME_GOAL,
+            NOTIFICATION_UNDERWAY, NOTIFICATION_NOTE, NOTIFICATION_REMINDER,
+            NOTIFICATION_HABIT, NOTIFICATION_GOAL,
+            NOTIFY_EMPTY_UNDERWAY, NOTIFY_EMPTY_NOTE, NOTIFY_EMPTY_REMINDER, NOTIFY_EMPTY_HABIT,
+            NOTIFY_EMPTY_GOAL, NOTIFY_EMPTY_FINISHED, NOTIFY_EMPTY_DELETED, })
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface Type {}
 
     public static final int HEADER                = -1;
     public static final int NOTE                  = 0;
@@ -48,6 +61,10 @@ public class Thing implements Parcelable {
     public static final int NOTIFY_EMPTY_FINISHED = 19;
     public static final int NOTIFY_EMPTY_DELETED  = 20;
 
+    @IntDef({UNDERWAY, FINISHED, DELETED, DELETED_FOREVER})
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface State {}
+
     public static final int UNDERWAY              = 0;
     public static final int FINISHED              = 1;
     public static final int DELETED               = 2;
@@ -69,8 +86,8 @@ public class Thing implements Parcelable {
     };
 
     private long   id;
-    private int    type;
-    private int    state;
+    private @Type  int type;
+    private @State int state;
     private int    color;
     private String title;
     private String content;
@@ -82,13 +99,13 @@ public class Thing implements Parcelable {
 
     private boolean selected;
 
-    public Thing(long id, int type, int color, long location) {
+    public Thing(long id, @Type int type, int color, long location) {
         this(id, type, UNDERWAY, color, "", "", "", location,
                 System.currentTimeMillis(), System.currentTimeMillis(), 0);
     }
 
-    public Thing(long id, int type, int state, int color, String title, String content, String attachment,
-                 long location, long createTime, long updateTime, long finishTime) {
+    public Thing(long id, @Type int type, @State int state, int color, String title, String content,
+                 String attachment, long location, long createTime, long updateTime, long finishTime) {
         this.id         = id;
         this.type       = type;
         this.state      = state;
@@ -155,19 +172,19 @@ public class Thing implements Parcelable {
         this.id = id;
     }
 
-    public int getType() {
+    public @Type int getType() {
         return type;
     }
 
-    public void setType(int type) {
+    public void setType(@Type int type) {
         this.type = type;
     }
 
-    public int getState() {
+    public @State int getState() {
         return state;
     }
 
-    public void setState(int state) {
+    public void setState(@State int state) {
         this.state = state;
     }
 
@@ -254,7 +271,7 @@ public class Thing implements Parcelable {
         this.selected = selected;
     }
 
-    public static String getTypeStr(int type, Context context) {
+    public static String getTypeStr(@Type int type, Context context) {
         if (type == NOTE) {
             return context.getString(R.string.note);
         } else if (type == REMINDER) {
@@ -266,7 +283,19 @@ public class Thing implements Parcelable {
         } else return context.getString(R.string.thing);
     }
 
-    public static int[] getLimits(int type, int state) {
+    public static String getStateStr(@State int state, Context context) {
+        if (state == UNDERWAY) {
+            return context.getString(R.string.underway);
+        } else if (state == FINISHED) {
+            return context.getString(R.string.finished);
+        } else if (state == DELETED) {
+            return context.getString(R.string.deleted);
+        } else {
+            return context.getString(R.string.underway);
+        }
+    }
+
+    public static int[] getLimits(@Type int type, @State int state) {
         int[] limits;
         if (state == FINISHED || type == NOTIFY_EMPTY_FINISHED) {
             limits = new int[] { Def.LimitForGettingThings.ALL_FINISHED };
@@ -305,7 +334,7 @@ public class Thing implements Parcelable {
         return limits;
     }
 
-    public static boolean isTypeStateMatchLimit(int type, int state, int limit) {
+    public static boolean isTypeStateMatchLimit(@Type int type, @State int state, int limit) {
         if (state == Thing.DELETED_FOREVER) {
             return false;
         }
@@ -370,7 +399,7 @@ public class Thing implements Parcelable {
         return thing;
     }
 
-    public static Thing getSameCheckStateThing(Thing thing, int stateBefore, int stateAfter) {
+    public static Thing getSameCheckStateThing(Thing thing, @State int stateBefore, @State int stateAfter) {
         Thing result = thing;
         if (stateBefore == UNDERWAY && stateAfter == FINISHED) {
             String content = thing.getContent();
@@ -391,7 +420,7 @@ public class Thing implements Parcelable {
     }
 
     public static boolean noUpdate(Thing thing, String title, String content, String attachment,
-                                   int type, int color) {
+                                   @Type int type, int color) {
         return thing.title.equals(title)
             && thing.content.equals(content)
             && thing.attachment.equals(attachment)
@@ -399,30 +428,30 @@ public class Thing implements Parcelable {
             && thing.color == color;
     }
 
-    public static boolean isImportantType(int type) {
+    public static boolean isImportantType(@Type int type) {
         return type == HABIT || type == GOAL;
     }
 
-    public static boolean isReminderType(int type) {
+    public static boolean isReminderType(@Type int type) {
         return type == REMINDER || type == GOAL;
     }
 
-    public static boolean isTypeReminder(int type) {
+    public static boolean isTypeReminder(@Type int type) {
         return type == REMINDER || type == WELCOME_REMINDER
                 || type == NOTIFICATION_REMINDER || type == NOTIFY_EMPTY_REMINDER;
     }
 
-    public static boolean isTypeHabit(int type) {
+    public static boolean isTypeHabit(@Type int type) {
         return type == HABIT || type == WELCOME_HABIT
                 || type == NOTIFICATION_HABIT || type == NOTIFY_EMPTY_HABIT;
     }
 
-    public static boolean isTypeGoal(int type) {
+    public static boolean isTypeGoal(@Type int type) {
         return type == GOAL || type == WELCOME_GOAL
                 || type == NOTIFICATION_GOAL || type == NOTIFY_EMPTY_GOAL;
     }
 
-    public static boolean sameType(int type1, int type2) {
+    public static boolean sameType(@Type int type1, @Type int type2) {
         if (type1 == type2) return true;
         if (type1 == WELCOME_UNDERWAY) return true;
         if (type1 == WELCOME_REMINDER && type2 == REMINDER) {

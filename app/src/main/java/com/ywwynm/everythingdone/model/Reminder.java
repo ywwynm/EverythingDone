@@ -131,7 +131,7 @@ public class Reminder {
         return reminder.notifyTime == notifyTime && reminder.state == state;
     }
 
-    public static int getType(long notifyTime, long createTime) {
+    public static @Thing.Type int getType(long notifyTime, long createTime) {
         if (DateTimeUtil.calculateTimeGap(createTime, notifyTime, Calendar.DATE) > GOAL_DAYS) {
             return Thing.GOAL;
         } else return Thing.REMINDER;

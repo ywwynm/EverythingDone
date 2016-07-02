@@ -36,7 +36,7 @@
         android:layout_height="36dp"
         android:layout_alignParentEnd="true"
         android:layout_alignParentRight="true"
-        android:src="@mipmap/delete_image_checklist"
+        android:src="@drawable/delete_image_checklist"
         android:scaleType="center"
         style="@style/SelectableItemBackground.Light"
         android:contentDescription="@string/description_delete_item"

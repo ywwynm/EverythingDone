@@ -7,7 +7,7 @@
     </style>
 
     <!--<style name="EverythingDoneTheme.Detail.Overflow" parent="Widget.AppCompat.ActionButton.Overflow">-->
-        <!--<item name="android:src">@mipmap/ic_overflow</item>-->
+        <!--<item name="android:src">@drawable/ic_overflow</item>-->
     <!--</style>-->
 
     <style name="SelectableItemForeground">

@@ -27,15 +27,15 @@ import java.util.List;
  * Created by ywwynm on 2016/1/27.
  * Time of day recurrence adapter
  */
-public class TimeOfDayRecAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+public class TimeOfDayRecAdapter extends RecyclerView.Adapter<BaseViewHolder> {
 
     public static final String TAG = "TimeOfDayRecAdapter";
 
     public static final int EDITTEXT = 0;
     public static final int TEXTVIEW = 1;
 
-    private final int[] mIcons = { R.mipmap.ic_reminder_1, R.mipmap.ic_reminder_2,
-            R.mipmap.ic_reminder_3, R.mipmap.ic_reminder_4 };
+    private final int[] mIcons = { R.drawable.ic_reminder_1, R.drawable.ic_reminder_2,
+            R.drawable.ic_reminder_3, R.drawable.ic_reminder_4 };
 
     private Context mContext;
     private LayoutInflater mInflater;
@@ -106,7 +106,7 @@ public class TimeOfDayRecAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
     }
 
     @Override
-    public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+    public BaseViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         if (viewType == TEXTVIEW) {
             return new TextViewHolder(mInflater.inflate(R.layout.time_of_day_rec_tv, parent, false));
         } else {
@@ -115,7 +115,7 @@ public class TimeOfDayRecAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
     }
 
     @Override
-    public void onBindViewHolder(RecyclerView.ViewHolder viewHolder, int position) {
+    public void onBindViewHolder(BaseViewHolder viewHolder, int position) {
         if (getItemViewType(position) == EDITTEXT) {
             EditTextHolder holder = (EditTextHolder) viewHolder;
             DisplayUtil.tintView(holder.etHour, black_26p);
@@ -160,7 +160,7 @@ public class TimeOfDayRecAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         }
     }
 
-    public class EditTextHolder extends RecyclerView.ViewHolder {
+    public class EditTextHolder extends BaseViewHolder {
 
         public ImageView ivReminder;
         public EditText  etHour;
@@ -170,10 +170,10 @@ public class TimeOfDayRecAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         public EditTextHolder(View itemView) {
             super(itemView);
 
-            ivReminder = (ImageView) itemView.findViewById(R.id.iv_reminder_rec_day);
-            etHour     = (EditText) itemView.findViewById(R.id.et_hour_rec_day);
-            etMinute   = (EditText) itemView.findViewById(R.id.et_minute_rec_day);
-            ivDelete   = (ImageView) itemView.findViewById(R.id.iv_delete_reminder_as_bt_rec_day);
+            ivReminder = f(R.id.iv_reminder_rec_day);
+            etHour     = f(R.id.et_hour_rec_day);
+            etMinute   = f(R.id.et_minute_rec_day);
+            ivDelete   = f(R.id.iv_delete_reminder_as_bt_rec_day);
 
             DisplayUtil.setSelectionHandlersColor(etHour, mAccentColor);
             DisplayUtil.setSelectionHandlersColor(etMinute, mAccentColor);
@@ -275,14 +275,14 @@ public class TimeOfDayRecAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         }
     }
 
-    public class TextViewHolder extends RecyclerView.ViewHolder {
+    public class TextViewHolder extends BaseViewHolder {
 
         public TextView tvNewReminder;
 
         public TextViewHolder(View itemView) {
             super(itemView);
 
-            tvNewReminder = (TextView) itemView.findViewById(R.id.tv_new_reminder_as_bt_rec_day);
+            tvNewReminder = f(R.id.tv_new_reminder_as_bt_rec_day);
 
             tvNewReminder.setOnClickListener(new View.OnClickListener() {
                 @Override

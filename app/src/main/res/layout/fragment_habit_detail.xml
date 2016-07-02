@@ -111,6 +111,7 @@
         android:layout_marginBottom="8dp"
         style="@style/SelectableItemBackground"
         android:textStyle="bold"
+        android:textAllCaps="true"
         android:text="@string/act_get_it"/>
 
 </LinearLayout>
