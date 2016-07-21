@@ -113,7 +113,7 @@ public class FingerprintDialogFragment extends BaseDialogFragment {
                 } else {
                     tryTimes--;
                     String warning = getString(R.string.fingerprint_error_part_1);
-                    if (LocaleUtil.isEnglish(context)) {
+                    if (!LocaleUtil.isChinese(context)) {
                         warning += " ";
                     }
                     warning += LocaleUtil.getTimesStr(context, tryTimes);

@@ -8,7 +8,6 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.LayerDrawable;
 import android.media.ExifInterface;
-import android.util.Log;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -141,7 +140,6 @@ public class BitmapUtil {
             ExifInterface exif = new ExifInterface(pathName);
             int orientation = exif.getAttributeInt(
                     ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
-            Log.d(TAG, "image orientation: " + orientation);
             Matrix matrix = new Matrix();
             if (orientation == ExifInterface.ORIENTATION_ROTATE_90) {
                 matrix.postRotate(90);

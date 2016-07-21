@@ -49,7 +49,6 @@
     </style>
 
     <style name="EverythingDoneTheme.ImageViewer" parent="Theme.AppCompat.Light.NoActionBar">
-
     </style>
 
     <style name="EverythingDoneTheme.ImageViewer.Actionbar" parent="Theme.AppCompat.NoActionBar">

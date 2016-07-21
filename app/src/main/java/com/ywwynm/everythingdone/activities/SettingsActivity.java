@@ -646,7 +646,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                         todf.dismiss();
                     }
                 });
-        todf.setEndAction(R.drawable.act_select_image_as_drawer_header, R.string.act_choose_image_file,
+        todf.setEndAction(R.drawable.act_select_image_as_drawer_header, R.string.more,
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
@@ -669,7 +669,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         intent.setType("image/*");
         startActivityForResult(
-                Intent.createChooser(intent, getString(R.string.act_choose_image_file)),
+                Intent.createChooser(intent, getString(R.string.act_choose_image_as_drawer_header)),
                 Def.Communication.REQUEST_CHOOSE_IMAGE_FILE);
     }
 

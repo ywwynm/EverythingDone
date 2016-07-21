@@ -109,7 +109,7 @@
 
     <include layout="@layout/include_contextual_toolbar_things" />
 
-    <com.ywwynm.everythingdone.views.RevealLayout.RevealLayout
+    <com.ywwynm.everythingdone.views.reveal.RevealLayout
         android:id="@+id/reveal_layout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -136,7 +136,7 @@
             android:layout_height="match_parent"
             android:visibility="invisible"/>
 
-    </com.ywwynm.everythingdone.views.RevealLayout.RevealLayout>
+    </com.ywwynm.everythingdone.views.reveal.RevealLayout>
 
     <View
         android:id="@+id/view_status_bar_cover"

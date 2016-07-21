@@ -18,7 +18,7 @@
     <item
         android:id="@+id/act_change_color"
         android:icon="@drawable/act_change_color"
-        android:title="@string/act_change_color"
+        android:title="@string/act_change_background"
         app:showAsAction="always"/>
 
     <item
@@ -53,7 +53,7 @@
 
     <item
         android:id="@+id/act_export"
-        android:title="@string/act_export"
+        android:title="@string/act_export_to_sdcard"
         app:showAsAction="never"/>
 
 </menu>

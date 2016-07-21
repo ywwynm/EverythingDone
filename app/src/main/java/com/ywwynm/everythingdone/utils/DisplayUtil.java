@@ -1,6 +1,7 @@
 package com.ywwynm.everythingdone.utils;
 
 import android.animation.ValueAnimator;
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.res.ColorStateList;
@@ -47,12 +48,13 @@ import java.util.Random;
  */
 public class DisplayUtil {
 
-    public static final String TAG = "EverythingDone$DisplayUtil";
+    public static final String TAG = "DisplayUtil";
 
     public static float getScreenDensity(Context context) {
         return context.getResources().getDisplayMetrics().density;
     }
 
+    @SuppressLint("NewApi")
     public static Point getDisplaySize(Context context) {
         Point screen = new Point();
         Display display = ((WindowManager) context.getSystemService(Context.WINDOW_SERVICE))

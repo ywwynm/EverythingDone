@@ -127,7 +127,7 @@ public class AboutActivity extends EverythingDoneBaseActivity {
             }
         }
 
-        Typeface tf = FontCache.get("roboto-mono.ttf", this);
+        Typeface tf = FontCache.get(Def.Meta.ROBOTO_MONO, this);
         mTvYwwynm.setTypeface(tf);
         mTvEverythingDone.setTypeface(tf);
 

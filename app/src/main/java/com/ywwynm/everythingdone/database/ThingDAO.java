@@ -56,11 +56,42 @@ public class ThingDAO {
         Cursor cursor = db.query(Def.Database.TABLE_THINGS,
                 null, null, null, null, null, "id desc");
         cursor.moveToFirst();
-        int type = cursor.getInt(cursor.getColumnIndex(Def.Database.COLUMN_TYPE_THINGS));
-        if (type != Thing.HEADER) {
-            updateHeader(cursor.getLong(0));
-        }
+        long maxId = cursor.getLong(0);
         cursor.close();
+
+        cursor = db.query(Def.Database.TABLE_THINGS, null,
+                "type=" + Thing.HEADER, null, null, null, null);
+        if (!cursor.moveToFirst()) { // Header does not exist. Interesting situation.
+            createHeader(maxId + 1);
+            cursor.close();
+        } else {
+            cursor.close();
+            cursor = db.query(Def.Database.TABLE_THINGS,
+                    null, null, null, null, null, "id desc");
+            cursor.moveToFirst();
+            int type = cursor.getInt(cursor.getColumnIndex(Def.Database.COLUMN_TYPE_THINGS));
+            if (type != Thing.HEADER) {
+                updateHeader(cursor.getLong(0) + 1);
+            }
+            cursor.close();
+        }
+    }
+
+    private void createHeader(long id) {
+        ContentValues values = new ContentValues();
+        values.put(Def.Database.COLUMN_ID_THINGS, id);
+        values.put(Def.Database.COLUMN_TYPE_THINGS, Thing.HEADER);
+        values.put(Def.Database.COLUMN_STATE_THINGS, Thing.UNDERWAY);
+        values.put(Def.Database.COLUMN_COLOR_THINGS, -14784871);
+        values.put(Def.Database.COLUMN_TITLE_THINGS, "Let this be my last words");
+        values.put(Def.Database.COLUMN_CONTENT_THINGS, "I trust thy love");
+        values.put(Def.Database.COLUMN_ATTACHMENT_THINGS, "to QQ");
+        values.put(Def.Database.COLUMN_LOCATION_THINGS, id);
+        values.put(Def.Database.COLUMN_CREATE_TIME_THINGS, System.currentTimeMillis());
+        values.put(Def.Database.COLUMN_UPDATE_TIME_THINGS, System.currentTimeMillis());
+        values.put(Def.Database.COLUMN_FINISH_TIME_THINGS, 0);
+
+        db.insert(Def.Database.TABLE_THINGS, null, values);
     }
 
     public void setLimit(int limit) {

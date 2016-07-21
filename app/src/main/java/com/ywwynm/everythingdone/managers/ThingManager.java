@@ -8,6 +8,7 @@ import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
+import com.ywwynm.everythingdone.helpers.AttachmentHelper;
 import com.ywwynm.everythingdone.helpers.AutoNotifyHelper;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
 import com.ywwynm.everythingdone.model.Reminder;
@@ -145,6 +146,15 @@ public class ThingManager {
 
     public long getHeaderId() {
         return mHeaderId;
+    }
+
+    public boolean shouldRequestPermissionForStorage() {
+        for (Thing thing : mThings) {
+            if (AttachmentHelper.isValidForm(thing.getAttachment())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public void searchThings(String keyword, int color) {

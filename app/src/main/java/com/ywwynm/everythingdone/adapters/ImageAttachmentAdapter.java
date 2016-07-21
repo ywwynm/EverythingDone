@@ -1,12 +1,10 @@
 package com.ywwynm.everythingdone.adapters;
 
 import android.content.Context;
-import android.graphics.Bitmap;
 import android.graphics.PorterDuff;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.util.LruCache;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,10 +12,12 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.resource.drawable.GlideDrawable;
+import com.bumptech.glide.request.RequestListener;
+import com.bumptech.glide.request.target.Target;
 import com.ywwynm.everythingdone.R;
-import com.ywwynm.everythingdone.activities.DetailActivity;
 import com.ywwynm.everythingdone.helpers.AttachmentHelper;
-import com.ywwynm.everythingdone.utils.ImageLoader;
 
 import java.util.List;
 
@@ -38,8 +38,6 @@ public class ImageAttachmentAdapter extends RecyclerView.Adapter<ImageAttachment
 
     private List<String> mItems;
 
-    private LruCache<String, Bitmap> mBitmapCache;
-
     public interface ClickCallback {
         void onClick(View v, int pos);
     }
@@ -57,8 +55,6 @@ public class ImageAttachmentAdapter extends RecyclerView.Adapter<ImageAttachment
         mInflater = LayoutInflater.from(context);
 
         mItems = items;
-
-        mBitmapCache = ((DetailActivity) mContext).getBitmapLruCache();
 
         mClickCallback  = clickCallback;
         mRemoveCallback = removeCallback;
@@ -89,26 +85,34 @@ public class ImageAttachmentAdapter extends RecyclerView.Adapter<ImageAttachment
         params.width  = size[0];
         params.height = size[1];
 
-        String key = AttachmentHelper.generateKeyForCache(pathName, size[0], size[1]);
         int type = typePathName.charAt(0) == '0' ? IMAGE : VIDEO;
-        Bitmap bitmap = mBitmapCache.get(key);
-        if (bitmap == null) {
-            if (type == IMAGE) {
-                holder.ivVideoSignal.setVisibility(View.GONE);
-            }
-            ImageLoader loader = new ImageLoader(type, mBitmapCache,
-                    holder.ivImage, holder.ivVideoSignal, holder.ivDelete, holder.pbLoading);
-            loader.execute(key, size[0], size[1]);
+        if (type == IMAGE) {
+            holder.ivVideoSignal.setVisibility(View.GONE);
         } else {
-            holder.ivImage.setImageBitmap(bitmap);
-            if (type == VIDEO) {
-                holder.ivVideoSignal.setVisibility(View.VISIBLE);
-            } else {
-                holder.ivVideoSignal.setVisibility(View.GONE);
-            }
-            holder.ivDelete.setVisibility(View.VISIBLE);
-            holder.pbLoading.setVisibility(View.GONE);
+            holder.ivVideoSignal.setVisibility(View.VISIBLE);
         }
+
+        Glide.with(holder.ivImage.getContext())
+                .load(pathName)
+                .centerCrop()
+                .listener(new RequestListener<String, GlideDrawable>() {
+                    @Override
+                    public boolean onException(
+                            Exception e, String model, Target<GlideDrawable> target,
+                            boolean isFirstResource) {
+                        return false;
+                    }
+
+                    @Override
+                    public boolean onResourceReady(
+                            GlideDrawable resource, String model, Target<GlideDrawable> target,
+                            boolean isFromMemoryCache, boolean isFirstResource) {
+                        holder.ivDelete.setVisibility(View.VISIBLE);
+                        holder.pbLoading.setVisibility(View.GONE);
+                        return false;
+                    }
+                })
+                .into(holder.ivImage);
     }
 
     @Override

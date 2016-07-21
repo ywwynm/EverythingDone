@@ -13,15 +13,13 @@ import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.RelativeLayout;
 
-import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.App;
+import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.adapters.ThingsAdapter;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.views.ActivityHeader;
 import com.ywwynm.everythingdone.views.FloatingActionButton;
-
-import java.lang.ref.WeakReference;
 
 /**
  * Created by ywwynm on 2015/7/17.
@@ -42,35 +40,35 @@ public class ModeManager {
     private ThingManager mThingManager;
     private float screenDensity;
 
-    private WeakReference<DrawerLayout> mWrDrawerLayout;
-    //private DrawerLayout bindingDrawerLayout;
+    //private WeakReference<DrawerLayout> mWrDrawerLayout;
+    private DrawerLayout mDrawerLayout;
 
-    //private FloatingActionButton bindingFab;
-    private WeakReference<FloatingActionButton> mWrFab;
+    private FloatingActionButton mFab;
+    //private WeakReference<FloatingActionButton> mWrFab;
 
-    //private ActivityHeader bindingHeader;
-    private WeakReference<ActivityHeader> mWrActivityHeader;
+    private ActivityHeader mHeader;
+    //private WeakReference<ActivityHeader> mWrActivityHeader;
 
-    //private RelativeLayout bindingRlContextualToolbar;
-    private WeakReference<RelativeLayout> mWrRlContextualToolbar;
+    private RelativeLayout mRlContextualToolbar;
+    //private WeakReference<RelativeLayout> mWrRlContextualToolbar;
 
-    //private Toolbar bindingContextualToolbar;
-    private WeakReference<Toolbar> mWrContextualToolbar;
+    private Toolbar mContextualToolbar;
+    //private WeakReference<Toolbar> mWrContextualToolbar;
 
-    //private View.OnClickListener navigationIconClickedListener;
-    private WeakReference<View.OnClickListener> mWrNavigationIconListener;
+    private View.OnClickListener mNavigationListener;
+    //private WeakReference<View.OnClickListener> mWrNavigationIconListener;
 
-    //private Toolbar.OnMenuItemClickListener mOnContextualMenuClickedListener;
-    private WeakReference<Toolbar.OnMenuItemClickListener> mWrContextualMenuListener;
+    private Toolbar.OnMenuItemClickListener mContextualListener;
+    //private WeakReference<Toolbar.OnMenuItemClickListener> mWrContextualMenuListener;
 
     private Animation showContextualToolbar;
     private Animation hideContextualToolbar;
 
-    //private RecyclerView bindingRecyclerView;
-    private WeakReference<RecyclerView> mWrRecyclerView;
+    private RecyclerView mRecyclerView;
+    //private WeakReference<RecyclerView> mWrRecyclerView;
 
-    //private ThingsAdapter bindingAdapter;
-    private WeakReference<ThingsAdapter> mWrAdapter;
+    private ThingsAdapter mAdapter;
+    //private WeakReference<ThingsAdapter> mWrAdapter;
 
     private View.OnClickListener backNormalModeListener;
 
@@ -91,29 +89,29 @@ public class ModeManager {
         mThingManager = ThingManager.getInstance(mApp);
         screenDensity = DisplayUtil.getScreenDensity(mApp);
 
-        mWrDrawerLayout = new WeakReference<>(drawerLayout);
+        mDrawerLayout = drawerLayout;
 
-        mWrFab = new WeakReference<>(fab);
-        mWrActivityHeader = new WeakReference<>(header);
+        mFab = fab;
+        mHeader = header;
 
-        mWrRlContextualToolbar = new WeakReference<>(rlContextualToolbar);
-        mWrContextualToolbar = new WeakReference<>(toolbar);
+        mRlContextualToolbar = rlContextualToolbar;
+        mContextualToolbar = toolbar;
 
-        mWrNavigationIconListener = new WeakReference<>(nListener);
-        mWrContextualMenuListener = new WeakReference<>(listener);
+        mNavigationListener = nListener;
+        mContextualListener = listener;
 
         showContextualToolbar = AnimationUtils.loadAnimation(mApp,
                 R.anim.contextual_toolbar_show);
         hideContextualToolbar = AnimationUtils.loadAnimation(mApp,
                 R.anim.contextual_toolbar_hide);
 
-        mWrRecyclerView = new WeakReference<>(recyclerView);
-        mWrAdapter = new WeakReference<>(adapter);
+        mRecyclerView = recyclerView;
+        mAdapter = adapter;
 
         notifyDataSetRunnable = new Runnable() {
             @Override
             public void run() {
-                mWrAdapter.get().notifyDataSetChanged();
+                mAdapter.notifyDataSetChanged();
             }
         };
 
@@ -127,7 +125,7 @@ public class ModeManager {
         hideActionBarShadowRunnable = new Runnable() {
             @Override
             public void run() {
-                mWrActivityHeader.get().hideActionbarShadow();
+                mHeader.hideActionbarShadow();
             }
         };
     }
@@ -151,7 +149,7 @@ public class ModeManager {
         beforeMode = currentMode;
         currentMode = SELECTING;
 
-        RecyclerView rv = mWrRecyclerView.get();
+        RecyclerView rv = mRecyclerView;
         if (beforeMode == NORMAL) {
             notifyThingsSelected(position);
         } else {
@@ -169,17 +167,17 @@ public class ModeManager {
     public void backNormalMode(final int position) {
         boolean isSearching = App.isSearching;
         if (!isSearching) {
-            mWrDrawerLayout.get().setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
+            mDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
         }
         beforeMode = currentMode;
         currentMode = NORMAL;
         if (beforeMode == SELECTING) {
             hideContextualToolbar();
-            ThingsAdapter adapter = mWrAdapter.get();
+            ThingsAdapter adapter = mAdapter;
             adapter.setShouldThingsAnimWhenAppearing(false);
             adapter.notifyDataSetChanged();
         } else {
-            CardView cv = (CardView) mWrRecyclerView.get().
+            CardView cv = (CardView) mRecyclerView.
                     findViewHolderForAdapterPosition(position).itemView;
             ObjectAnimator.ofFloat(cv, "CardElevation", 2 * screenDensity).
                     setDuration(96).start();
@@ -188,78 +186,80 @@ public class ModeManager {
         }
         if (mApp.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY
                 && !isSearching) {
-            mWrFab.get().spread();
+            mFab.spread();
         }
         mThingManager.setSelectedTo(false);
-        ((SimpleItemAnimator) mWrRecyclerView.get().getItemAnimator())
+        ((SimpleItemAnimator) mRecyclerView.getItemAnimator())
                 .setSupportsChangeAnimations(true);
     }
 
     public void notifyThingsSelected(final int position) {
-        mWrFab.get().shrink();
+        mFab.shrink();
         mThingManager.getThings().get(position).setSelected(true);
-        mWrAdapter.get().notifyDataSetChanged();
+        mAdapter.notifyDataSetChanged();
     }
 
     public void showContextualToolbar(boolean anim) {
-        Toolbar toolbar = mWrContextualToolbar.get();
-        toolbar.setTitleTextAppearance(mApp, R.style.ContextualToolbarText);
-        toolbar.setNavigationIcon(R.drawable.act_close);
-        toolbar.setNavigationOnClickListener(backNormalModeListener);
-        toolbar.setOnMenuItemClickListener(mWrContextualMenuListener.get());
+        Toolbar tb = mContextualToolbar;
+        tb.setTitleTextAppearance(mApp, R.style.ContextualToolbarText);
+        tb.setNavigationIcon(R.drawable.act_close);
+        tb.setNavigationOnClickListener(backNormalModeListener);
+        tb.setOnMenuItemClickListener(mContextualListener);
         int limit = mApp.getLimit();
         if (limit <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
-            toolbar.inflateMenu(R.menu.menu_contextual_underway);
+            tb.inflateMenu(R.menu.menu_contextual_underway);
         } else if (limit == Def.LimitForGettingThings.ALL_FINISHED) {
-            toolbar.inflateMenu(R.menu.menu_contextual_finished);
+            tb.inflateMenu(R.menu.menu_contextual_finished);
         } else {
-            toolbar.inflateMenu(R.menu.menu_contextual_deleted);
+            tb.inflateMenu(R.menu.menu_contextual_deleted);
         }
 
-        RelativeLayout rl = mWrRlContextualToolbar.get();
+        RelativeLayout rl = mRlContextualToolbar;
         rl.setVisibility(View.VISIBLE);
         if (anim) {
             rl.setAnimation(showContextualToolbar);
             showContextualToolbar.startNow();
         }
-        mWrRecyclerView.get().postDelayed(hideActionBarShadowRunnable, 200);
+        mRecyclerView.postDelayed(hideActionBarShadowRunnable, 200);
     }
 
     public void hideContextualToolbar() {
-        mWrActivityHeader.get().showActionbarShadow();
+        mHeader.showActionbarShadow();
 
-        Toolbar toolbar = mWrContextualToolbar.get();
-        toolbar.setNavigationOnClickListener(mWrNavigationIconListener.get());
-        toolbar.setOnMenuItemClickListener(null);
+        Toolbar tb = mContextualToolbar;
+        tb.setNavigationOnClickListener(mNavigationListener);
+        tb.setOnMenuItemClickListener(null);
 
-        RelativeLayout rl = mWrRlContextualToolbar.get();
+        RelativeLayout rl = mRlContextualToolbar;
         rl.setAnimation(hideContextualToolbar);
         hideContextualToolbar.start();
         rl.setVisibility(View.INVISIBLE);
-        toolbar.getMenu().clear();
+        tb.getMenu().clear();
     }
 
     public void updateSelectedCount() {
         int selectedCount = mThingManager.getSelectedCount();
-        Toolbar toolbar = mWrContextualToolbar.get();
+        Toolbar toolbar = mContextualToolbar;
         toolbar.setTitle(selectedCount + " / "
                 + (mThingManager.getThings().size() - 1));
     }
 
     public void updateSelectAllButton() {
-        MenuItem item = mWrContextualToolbar.get().getMenu().findItem(R.id.act_select_all);
+        MenuItem item = mContextualToolbar.getMenu().findItem(R.id.act_select_all);
         if (item == null) {
             return;
         }
         if (mThingManager.getSelectedCount() == mThingManager.getThings().size() - 1) {
             item.setIcon(R.drawable.act_deselect_all);
+            item.setTitle(R.string.act_deselect_all);
         } else {
             item.setIcon(R.drawable.act_select_all);
+            item.setTitle(R.string.act_select_all);
         }
     }
 
     public void updateTitleTextSize() {
-        Toolbar toolbar = mWrContextualToolbar.get();
+        Toolbar toolbar = mContextualToolbar;
         toolbar.setTitleTextAppearance(mApp, R.style.ContextualToolbarText);
         toolbar.invalidate();
     }

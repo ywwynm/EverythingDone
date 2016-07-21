@@ -29,11 +29,6 @@ public class LocaleUtil {
         return locale.getLanguage().equals(Locale.TRADITIONAL_CHINESE.getLanguage());
     }
 
-    public static boolean isEnglish(Context context) {
-        Locale locale = context.getResources().getConfiguration().locale;
-        return locale.getLanguage().equals(Locale.ENGLISH.getLanguage());
-    }
-
     public static String getTimesStr(Context context, int times) {
         String timesStr = context.getString(R.string.times);
         if (isChinese(context)) {

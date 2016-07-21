@@ -139,7 +139,25 @@ public class VoiceVisualizer extends FrameLayout {
     }
 
     private void drawBar(int volume) {
+        // TODO: 2016/7/9 wave algorithm
+//        double factor = Math.random();
+//        boolean up = factor < 0.5;
+
         for (int i = 0; i < mNumColumns; i++) {
+//            if (up) {
+//                factor += 0.01;
+//                if (factor >= 1) {
+//                    up = false;
+//                    factor = Math.random();
+//                }
+//            } else {
+//                factor -= 0.01;
+//                if (factor <= 0) {
+//                    up = true;
+//                    factor = Math.random();
+//                }
+//            }
+
             float height = getRandomHeight(volume);
             float left = i * mColumnWidth;
             float right = (i + 1) * mColumnWidth;
@@ -147,6 +165,57 @@ public class VoiceVisualizer extends FrameLayout {
             RectF rect = createRectF(left, right, height);
             mCanvas.drawRect(rect, mPaint);
         }
+    }
+
+    private float getRandomHeight(int volume, double factor) {
+        double randomVolume = factor * volume + 1;
+        //double randomVolume = Math.random() * volume + 1;
+        float height = getHeight();
+        switch (mRenderRange) {
+            case RENDER_RANGE_TOP:
+                height = mBaseY;
+                break;
+            case RENDER_RANGE_BOTTOM:
+                height = (getHeight() - mBaseY);
+                break;
+            case RENDER_RANGE_TOP_BOTTOM:
+                height = getHeight();
+                break;
+        }
+
+        float shrinkFactor;
+        if (volume < 55) {
+            shrinkFactor = 160f;
+        } else {
+            shrinkFactor = 80f;
+        }
+
+        return (height / shrinkFactor) * (float) randomVolume;
+    }
+
+    private float getRandomHeight(int volume) {
+        double randomVolume = Math.random() * volume + 1;
+        float height = getHeight();
+        switch (mRenderRange) {
+            case RENDER_RANGE_TOP:
+                height = mBaseY;
+                break;
+            case RENDER_RANGE_BOTTOM:
+                height = (getHeight() - mBaseY);
+                break;
+            case RENDER_RANGE_TOP_BOTTOM:
+                height = getHeight();
+                break;
+        }
+
+        float shrinkFactor;
+        if (volume < 50) {
+            shrinkFactor = 160f;
+        } else {
+            shrinkFactor = 80f;
+        }
+
+        return (height / shrinkFactor) * (float) randomVolume;
     }
 
     private void drawPixel(int volume) {
@@ -192,23 +261,6 @@ public class VoiceVisualizer extends FrameLayout {
                 mCanvas.drawRect(rect, mPaint);
             }
         }
-    }
-
-    private float getRandomHeight(int volume) {
-        double randomVolume = Math.random() * volume + 1;
-        float height = getHeight();
-        switch (mRenderRange) {
-            case RENDER_RANGE_TOP:
-                height = mBaseY;
-                break;
-            case RENDER_RANGE_BOTTOM:
-                height = (getHeight() - mBaseY);
-                break;
-            case RENDER_RANGE_TOP_BOTTOM:
-                height = getHeight();
-                break;
-        }
-        return (height / 36f) * (float) randomVolume;
     }
 
     private RectF createRectF(float left, float right, float height) {

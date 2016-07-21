@@ -18,6 +18,7 @@ import java.util.List;
 /**
  * Created by tyorikan on 2015/06/09.
  * Updated by ywwynm on 2015/10/02 to meet requirements.
+ * Updated by ywwynm on 2016/7/8 to get real decibel
  *
  * Sampling AudioRecord Input
  * This output send to {@link VoiceVisualizer}
@@ -26,14 +27,16 @@ public class AudioRecorder {
 
     private static final int RECORDING_SAMPLE_RATE = 44100;
 
-    private AudioRecord mAudioRecord;
-    private boolean mIsListening;
-    private boolean mIsRecording;
-    private int mBufSize;
-
     private int mSamplingInterval = 100;
 
+    private AudioRecord mAudioRecord;
+
+    private int mBufSize;
+
     private List<VoiceVisualizer> mVoiceVisualizers = new ArrayList<>();
+
+    private boolean mIsListening;
+    private boolean mIsRecording;
 
     private File mRawFile;
     private File mOutputFile;
@@ -45,7 +48,7 @@ public class AudioRecorder {
     /**
      * link to VisualizerView
      *
-     * @param visualizerView {@link VisualizerView}
+     * @param voiceVisualizer {@link VoiceVisualizer}
      */
     public void link(VoiceVisualizer voiceVisualizer) {
         mVoiceVisualizers.add(voiceVisualizer);
@@ -70,7 +73,7 @@ public class AudioRecorder {
     }
 
     private void initAudioRecord() {
-        int bufferSize = AudioRecord.getMinBufferSize(
+        int bufSize = AudioRecord.getMinBufferSize(
                 RECORDING_SAMPLE_RATE,
                 AudioFormat.CHANNEL_IN_STEREO,
                 AudioFormat.ENCODING_PCM_16BIT
@@ -81,11 +84,11 @@ public class AudioRecorder {
                 RECORDING_SAMPLE_RATE,
                 AudioFormat.CHANNEL_IN_STEREO,
                 AudioFormat.ENCODING_PCM_16BIT,
-                bufferSize
+                bufSize
         );
 
         if (mAudioRecord.getState() == AudioRecord.STATE_INITIALIZED) {
-            mBufSize = bufferSize;
+            mBufSize = bufSize;
         }
     }
 
@@ -135,15 +138,6 @@ public class AudioRecorder {
 
     public File getSavedFile() {
         return mOutputFile;
-    }
-
-    private int calculateDecibel(byte[] buf) {
-        int sum = 0;
-        for (int i = 0; i < mBufSize; i++) {
-            sum += Math.abs(buf[i]);
-        }
-        // avg 10-50
-        return (int) (sum / mBufSize / 1.2f);
     }
 
     private void saveToWaveFile() {
@@ -243,12 +237,13 @@ public class AudioRecorder {
             }
 
             int readSize;
-            byte[] audioData = new byte[mBufSize];
+            byte[] audioBytes  = new byte [mBufSize];
             while (mIsListening) {
-                readSize = mAudioRecord.read(audioData, 0, mBufSize);
+                readSize  = mAudioRecord.read(audioBytes,  0, mBufSize);
 
                 if (System.currentTimeMillis() - time >= mSamplingInterval) {
-                    int decibel = calculateDecibel(audioData);
+                    int decibel = calculateDecibel(audioBytes, readSize);
+                    System.out.println(decibel);
                     if (mVoiceVisualizers != null && !mVoiceVisualizers.isEmpty()) {
                         for (int i = 0; i < mVoiceVisualizers.size(); i++) {
                             mVoiceVisualizers.get(i).receive(decibel);
@@ -258,9 +253,9 @@ public class AudioRecorder {
                 }
 
                 if (mIsRecording) {
-                    if (readSize != AudioRecord.ERROR_INVALID_OPERATION) {
+                    if (fos != null && readSize != AudioRecord.ERROR_INVALID_OPERATION) {
                         try {
-                            fos.write(audioData);
+                            fos.write(audioBytes);
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
@@ -275,6 +270,31 @@ public class AudioRecorder {
                     e.printStackTrace();
                 }
             }
+        }
+
+        private int calculateDecibel(byte[] buf, int byteReadSize) {
+//            int sum = 0;
+//            for (int i = 0; i < mBufSize; i++) {
+//                sum += Math.abs(buf[i]);
+//            }
+//            // avg 10-50
+//            return (int) (sum / mBufSize / 1.2f);
+
+            if (byteReadSize == 0) {
+                return 0;
+            }
+
+            long sum = 0;
+            for (int i = 0; i < buf.length / 2; i++) {
+                short data = (short) ((buf[i * 2] & 0xff) | (buf[i * 2 + 1] << 8));
+                sum += data * data;
+            }
+
+            double amplitude = sum / (double) (byteReadSize / 2); // 振幅
+            double decibel = 10 * Math.log10(amplitude);
+
+            System.out.println("decibel:" + decibel);
+            return (int) decibel;
         }
     }
 }

@@ -40,6 +40,10 @@ public class AttachmentHelper {
     public static final int IMAGE  = 0;
     public static final int VIDEO  = 1;
     public static final int AUDIO  = 2;
+    
+    public static boolean isValidForm(String attachment) {
+        return !attachment.isEmpty() && !attachment.equals("to QQ");
+    }
 
     public static List<File> getOriginalFiles(String attachmentStr) {
         if (attachmentStr == null || !attachmentStr.contains(SIGNAL)) {
@@ -96,7 +100,7 @@ public class AttachmentHelper {
     }
 
     public static String getFirstImageTypePathName(String attachment) {
-        if (attachment.isEmpty() || attachment.equals("to QQ")) {
+        if (!isValidForm(attachment)) {
             return null;
         }
         String[] typePathNames = attachment.split(SIGNAL);
@@ -112,7 +116,7 @@ public class AttachmentHelper {
     }
 
     public static String getImageAttachmentCountStr(String attachment, Context context) {
-        if (attachment.isEmpty() || attachment.equals("to QQ")) {
+        if (!isValidForm(attachment)) {
             return null;
         }
 
@@ -154,7 +158,7 @@ public class AttachmentHelper {
     }
 
     public static String getAudioAttachmentCountStr(String attachment, Context context) {
-        if (attachment.isEmpty() || attachment.equals("to QQ")) {
+        if (!isValidForm(attachment)) {
             return null;
         }
         String[] typePathNames = attachment.split(SIGNAL);
@@ -175,10 +179,6 @@ public class AttachmentHelper {
             }
             return count + " " + audios;
         }
-    }
-
-    public static String generateKeyForCache(String pathName, int width, int height) {
-        return width + "*" + height + SIZE_SEPARATOR + pathName;
     }
 
     public static File createAttachmentFile(int type) {

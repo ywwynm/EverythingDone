@@ -44,7 +44,7 @@ public class DrawerHeader {
         if (LocaleUtil.isChinese(mApplication)) {
             mTvLocation.setTextSize(16);
             mTvCompletionRate.setTextSize(28);
-        } else if (LocaleUtil.isEnglish(mApplication)) {
+        } else {
             int width = DisplayUtil.getScreenSize(mApplication).x;
             if (width <= 720) {
                 mTvLocation.setTextSize(12);

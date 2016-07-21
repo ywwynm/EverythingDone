@@ -27,6 +27,8 @@ public final class Def {
 
         public static final String FEEDBACK_EMAIL = "everythingdonefeedback@gmail.com";
 
+        public static final String ROBOTO_MONO = "roboto-mono.ttf";
+
         public static final String KEY_START_USING_TIME     = "start_using_time";
         public static final String KEY_DRAWER_HEADER        = "drawer_header";
         public static final String KEY_TWICE_BACK           = "twice_back";
@@ -131,6 +133,10 @@ public final class Def {
         public static final int REQUEST_PERMISSION_BACKUP              = 8;
         public static final int REQUEST_PERMISSION_RESTORE             = 9;
         public static final int REQUEST_PERMISSION_SEND_ERROR_FEEDBACK = 10;
+        public static final int REQUEST_PERMISSION_LOAD_THINGS         = 11; // ThingsActivity
+        public static final int REQUEST_PERMISSION_EXPORT_MAIN         = 12;
+        public static final int REQUEST_PERMISSION_EXPORT_DETAIL       = 13;
+        public static final int REQUEST_PERMISSION_LOAD_THING          = 14; // DetailActivity
 
         public static final String KEY_SENDER_NAME          = PREFIX + "key.sender_name";
         public static final String KEY_DETAIL_ACTIVITY_TYPE = PREFIX + "key.detail_activity_type";

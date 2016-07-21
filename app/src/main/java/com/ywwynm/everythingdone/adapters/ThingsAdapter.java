@@ -1,7 +1,7 @@
 package com.ywwynm.everythingdone.adapters;
 
 import android.animation.ObjectAnimator;
-import android.graphics.Bitmap;
+import android.annotation.SuppressLint;
 import android.graphics.PorterDuff;
 import android.os.Handler;
 import android.support.v4.content.ContextCompat;
@@ -9,7 +9,6 @@ import android.support.v7.widget.CardView;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
-import android.util.LruCache;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -23,22 +22,24 @@ import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-import com.squareup.leakcanary.RefWatcher;
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.resource.drawable.GlideDrawable;
+import com.bumptech.glide.request.RequestListener;
+import com.bumptech.glide.request.target.Target;
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.R;
+import com.ywwynm.everythingdone.database.HabitDAO;
+import com.ywwynm.everythingdone.database.ReminderDAO;
+import com.ywwynm.everythingdone.helpers.AttachmentHelper;
+import com.ywwynm.everythingdone.helpers.CheckListHelper;
+import com.ywwynm.everythingdone.managers.ModeManager;
+import com.ywwynm.everythingdone.managers.ThingManager;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.Thing;
-import com.ywwynm.everythingdone.database.HabitDAO;
-import com.ywwynm.everythingdone.database.ReminderDAO;
-import com.ywwynm.everythingdone.managers.ModeManager;
-import com.ywwynm.everythingdone.managers.ThingManager;
-import com.ywwynm.everythingdone.helpers.AttachmentHelper;
-import com.ywwynm.everythingdone.helpers.CheckListHelper;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
-import com.ywwynm.everythingdone.utils.ImageLoader;
 import com.ywwynm.everythingdone.views.HabitRecordPresenter;
 import com.ywwynm.everythingdone.views.InterceptTouchCardView;
 
@@ -195,6 +196,7 @@ public class ThingsAdapter extends RecyclerView.Adapter<ThingsAdapter.ThingViewH
         }
     }
 
+    @SuppressLint("NewApi")
     private void updateCardForContent(ThingViewHolder holder, Thing thing) {
         int p = (int) (mScreenDensity * 16);
         String content = thing.getContent();
@@ -281,6 +283,7 @@ public class ThingsAdapter extends RecyclerView.Adapter<ThingsAdapter.ThingViewH
         }
     }
 
+    @SuppressLint("SetTextI18n")
     private void updateCardForHabit(ThingViewHolder holder, Thing thing) {
         Habit habit = mHabitDAO.getHabitById(thing.getId());
         if (habit != null) {
@@ -327,7 +330,7 @@ public class ThingsAdapter extends RecyclerView.Adapter<ThingsAdapter.ThingViewH
         }
     }
 
-    private void updateCardForImageAttachment(ThingViewHolder holder, Thing thing) {
+    private void updateCardForImageAttachment(final ThingViewHolder holder, Thing thing) {
         String attachment = thing.getAttachment();
         String firstImageTypePathName = AttachmentHelper.getFirstImageTypePathName(attachment);
         if (firstImageTypePathName != null) {
@@ -358,19 +361,27 @@ public class ThingsAdapter extends RecyclerView.Adapter<ThingsAdapter.ThingViewH
                 paramsLayout.setMargins(0, m, 0, 0);
             }
 
-            // load bitmap in a new thread
-            LruCache<String, Bitmap> cache = mApp.getBitmapLruCache();
-            String key = AttachmentHelper.generateKeyForCache(
-                    firstImageTypePathName.substring(1, firstImageTypePathName.length()), imageW, imageH);
-            Bitmap bitmap = cache.get(key);
-            if (bitmap != null) {
-                holder.pbLoading.setVisibility(View.GONE);
-                holder.ivImageAttachment.setImageBitmap(bitmap);
-            } else {
-                int type = firstImageTypePathName.charAt(0) == '0' ? 0 : 1;
-                new ImageLoader(type, cache, holder.ivImageAttachment, holder.pbLoading)
-                        .execute(key, imageW, imageH);
-            }
+            String pathName = firstImageTypePathName.substring(1, firstImageTypePathName.length());
+            Glide.with(mApp)
+                    .load(pathName)
+                    .listener(new RequestListener<String, GlideDrawable>() {
+                        @Override
+                        public boolean onException(
+                                Exception e, String model, Target<GlideDrawable> target,
+                                boolean isFirstResource) {
+                            return false;
+                        }
+
+                        @Override
+                        public boolean onResourceReady(
+                                GlideDrawable resource, String model, Target<GlideDrawable> target,
+                                boolean isFromMemoryCache, boolean isFirstResource) {
+                            holder.pbLoading.setVisibility(View.GONE);
+                            return false;
+                        }
+                    })
+                    .centerCrop()
+                    .into(holder.ivImageAttachment);
 
             // if thing has only an image/video, there should be no margins for ImageView
             if (holder.tvTitle.getVisibility() == View.GONE

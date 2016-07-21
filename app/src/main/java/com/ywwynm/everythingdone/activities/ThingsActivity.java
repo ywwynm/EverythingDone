@@ -62,6 +62,7 @@ import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.HabitRecord;
 import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.Thing;
+import com.ywwynm.everythingdone.permission.PermissionUtil;
 import com.ywwynm.everythingdone.permission.SimplePermissionCallback;
 import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
@@ -73,7 +74,7 @@ import com.ywwynm.everythingdone.utils.SystemNotificationUtil;
 import com.ywwynm.everythingdone.views.ActivityHeader;
 import com.ywwynm.everythingdone.views.DrawerHeader;
 import com.ywwynm.everythingdone.views.FloatingActionButton;
-import com.ywwynm.everythingdone.views.RevealLayout.RevealLayout;
+import com.ywwynm.everythingdone.views.reveal.RevealLayout;
 import com.ywwynm.everythingdone.views.Snackbar;
 import com.ywwynm.everythingdone.views.pickers.ColorPicker;
 
@@ -772,8 +773,25 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             mSpan++;
         }
 
-        // post here to make sure that animation plays well and completely
-        mRecyclerView.postDelayed(initRecyclerViewRunnable, 240);
+        boolean shouldRequestPermission = !PermissionUtil.hasStoragePermission(this);
+        if (shouldRequestPermission && mThingManager.shouldRequestPermissionForStorage()) {
+            doWithPermissionChecked(new SimplePermissionCallback(this) {
+                @Override
+                public void onGranted() {
+                    mRecyclerView.postDelayed(initRecyclerViewRunnable, 240);
+                }
+
+                @Override
+                public void onDenied() {
+                    super.onDenied();
+                    finish();
+                }
+            }, Def.Communication.REQUEST_PERMISSION_LOAD_THINGS,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        } else {
+            // post here to make sure that animation plays well and completely
+            mRecyclerView.postDelayed(initRecyclerViewRunnable, 240);
+        }
 
         MenuItem itemAll = mDrawer.getMenu().findItem(R.id.drawer_underway);
         itemAll.setCheckable(true);
@@ -1403,7 +1421,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         if (LocaleUtil.isChinese(mApp)) {
             sb.append(updateStr).append(" ").append(count)
                     .append(" ").append(getString(R.string.a_thing));
-        } else if (LocaleUtil.isEnglish(mApp)) {
+        } else {
             String str = mApp.getString(R.string.a_thing);
             if (count > 1) {
                 str += "s";
@@ -1640,7 +1658,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             intent.putExtra(Def.Communication.KEY_POSITION, position);
 
             ActivityOptionsCompat transition = ActivityOptionsCompat.makeScaleUpAnimation(
-                    v, v.getWidth() / 2, v.getHeight() / 2, 0, 0);
+                    v, 0, 0, v.getWidth(), v.getHeight());
             ActivityCompat.startActivityForResult(
                     ThingsActivity.this, intent, Def.Communication.REQUEST_ACTIVITY_DETAIL,
                     transition.toBundle());
@@ -1897,10 +1915,16 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     handleUpdateStates(Thing.DELETED_FOREVER);
                     break;
                 case R.id.act_export:
-                    int accentColor = DisplayUtil.getRandomColor(App.getApp());
-                    ThingExporter.startExporting(ThingsActivity.this, accentColor,
-                            mThingManager.getSelectedThings());
-                    mModeManager.backNormalMode(0);
+                    doWithPermissionChecked(new SimplePermissionCallback(ThingsActivity.this) {
+                        @Override
+                        public void onGranted() {
+                            int accentColor = DisplayUtil.getRandomColor(App.getApp());
+                            ThingExporter.startExporting(ThingsActivity.this, accentColor,
+                                    mThingManager.getSelectedThings());
+                            mModeManager.backNormalMode(0);
+                        }
+                    }, Def.Communication.REQUEST_PERMISSION_EXPORT_MAIN,
+                            Manifest.permission.WRITE_EXTERNAL_STORAGE);
                     break;
             }
             mModeManager.updateSelectedCount();

@@ -3,11 +3,7 @@ package com.ywwynm.everythingdone;
 import android.app.Application;
 import android.content.SharedPreferences;
 import android.database.Cursor;
-import android.graphics.Bitmap;
-import android.util.LruCache;
 
-import com.squareup.leakcanary.LeakCanary;
-import com.squareup.leakcanary.RefWatcher;
 import com.ywwynm.everythingdone.activities.SettingsActivity;
 import com.ywwynm.everythingdone.activities.ThingsActivity;
 import com.ywwynm.everythingdone.database.ReminderDAO;
@@ -57,14 +53,6 @@ public class App extends Application {
     private ModeManager mModeManager;
     public static boolean isSearching = false;
 
-    private LruCache<String, Bitmap> mBitmapLruCache =
-            new LruCache<String, Bitmap>(((int) Runtime.getRuntime().maxMemory() / 512) / 6) {
-                @Override
-                protected int sizeOf(String key, Bitmap value) {
-                    return value.getByteCount() / 1024;
-                }
-            };
-
     private ExecutorService mExecutor;
 
     // Used to judge if there is a ThingsActivity instance.
@@ -85,8 +73,6 @@ public class App extends Application {
     private static boolean somethingUpdatedSpecially = false;
     private static boolean justNotifyDataSetChanged = false;
 
-    private static RefWatcher refWatcher;
-
     @Override
     public void onCreate() {
         super.onCreate();
@@ -94,8 +80,6 @@ public class App extends Application {
         app = this;
 
         CrashHelper.getInstance().init(this);
-
-        refWatcher = LeakCanary.install(this);
 
         firstLaunch();
 
@@ -134,10 +118,6 @@ public class App extends Application {
         return app;
     }
 
-    public static RefWatcher getRefWatcher() {
-        return refWatcher;
-    }
-
     public List<Thing> getThingsToDeleteForever() {
         return mThingsToDeleteForever;
     }
@@ -157,10 +137,6 @@ public class App extends Application {
 
     public void setModeManager(ModeManager modeManager) {
         this.mModeManager = modeManager;
-    }
-
-    public LruCache<String, Bitmap> getBitmapLruCache() {
-        return mBitmapLruCache;
     }
 
     public ExecutorService getAppExecutor() {
@@ -204,7 +180,7 @@ public class App extends Application {
                     ReminderDAO dao = ReminderDAO.getInstance(App.this);
                     for (Thing thing : mThingsToDeleteForever) {
                         String attachment = thing.getAttachment();
-                        if (!attachment.isEmpty() && !attachment.equals("to QQ")) {
+                        if (AttachmentHelper.isValidForm(attachment)) {
                             String[] attachments = attachment.split(AttachmentHelper.SIGNAL);
                             for (int i = 1; i < attachments.length; i++) {
                                 String pathName = attachments[i].substring(1, attachments[i].length());
@@ -243,7 +219,7 @@ public class App extends Application {
                     while (cursor.moveToNext()) {
                         String attachment = cursor.getString(cursor.getColumnIndex(
                                 Def.Database.COLUMN_ATTACHMENT_THINGS));
-                        if (!attachment.isEmpty() && !attachment.equals("to QQ")) {
+                        if (AttachmentHelper.isValidForm(attachment)) {
                             String[] attachments = attachment.split(AttachmentHelper.SIGNAL);
                             for (int i = 1; i < attachments.length; i++) {
                                 String pathName = attachments[i].substring(

@@ -56,7 +56,7 @@ public class RecurrencePickerAdapter extends MultiChoiceAdapter {
         mType = type;
 
         if (type == Def.PickerType.DAY_OF_WEEK) {
-            mItems = context.getResources().getStringArray(R.array.day_of_week);
+            mItems = context.getResources().getStringArray(R.array.day_of_week); // 周日, Sunday
             if (LocaleUtil.isChinese(context)) {
                 for (int i = 0; i < mItems.length; i++) {
                     mItems[i] = mItems[i].substring(1, 2);

@@ -1,5 +1,6 @@
 package com.ywwynm.everythingdone.activities;
 
+import android.Manifest;
 import android.animation.ArgbEvaluator;
 import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
@@ -35,7 +36,6 @@ import android.text.TextWatcher;
 import android.text.style.ClickableSpan;
 import android.text.style.URLSpan;
 import android.util.Log;
-import android.util.LruCache;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -78,6 +78,8 @@ import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.ReminderHabitParams;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.model.ThingAction;
+import com.ywwynm.everythingdone.permission.PermissionUtil;
+import com.ywwynm.everythingdone.permission.SimplePermissionCallback;
 import com.ywwynm.everythingdone.receivers.AutoNotifyReceiver;
 import com.ywwynm.everythingdone.receivers.HabitReceiver;
 import com.ywwynm.everythingdone.receivers.ReminderReceiver;
@@ -597,18 +599,38 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             }
         }
 
-        String attachment = mThing.getAttachment();
-        if (!attachment.isEmpty()) {
-            Pair<List<String>, List<String>> items = AttachmentHelper.toAttachmentItems(attachment);
-            if (!items.first.isEmpty()) {
-                initImageAttachmentUI(items.first);
-            } else {
+        final String attachment = mThing.getAttachment();
+        if (AttachmentHelper.isValidForm(attachment)) {
+            if (!PermissionUtil.hasStoragePermission(this)) {
+                // make ui normal before asking for permission
                 setScrollViewMarginTop(true);
             }
+            doWithPermissionChecked(
+                    new SimplePermissionCallback(this) {
+                        @Override
+                        public void onGranted() {
+                            Pair<List<String>, List<String>> items =
+                                    AttachmentHelper.toAttachmentItems(attachment);
+                            if (!items.first.isEmpty()) {
+                                initImageAttachmentUI(items.first);
+                            } else {
+                                setScrollViewMarginTop(true);
+                            }
 
-            if (!items.second.isEmpty()) {
-                initAudioAttachmentUI(items.second);
-            }
+                            if (!items.second.isEmpty()) {
+                                initAudioAttachmentUI(items.second);
+                            }
+                        }
+                        @Override
+                        public void onDenied() {
+                            super.onDenied();
+                            finish();
+                        }
+
+                    },
+                    Def.Communication.REQUEST_PERMISSION_LOAD_THING,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE);
+
         } else {
             setScrollViewMarginTop(true);
         }
@@ -840,16 +862,6 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         }
     }
 
-//    private long rhParams.getReminderTime() {
-//        if (reminderInMillis != 0) {
-//            return reminderInMillis;
-//        }
-//        if (reminderAfterTime != null) {
-//            return DateTimeUtil.getActualTimeAfterSomeTime(reminderAfterTime);
-//        }
-//        return -1;
-//    }
-
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         if (mThing.getType() >= Thing.NOTIFICATION_UNDERWAY) {
@@ -939,7 +951,15 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 returnToThingsActivity(Thing.UNDERWAY);
                 break;
             case R.id.act_export:
-                ThingExporter.startExporting(this, getAccentColor(), mThing);
+                doWithPermissionChecked(
+                        new SimplePermissionCallback(DetailActivity.this) {
+                            @Override
+                            public void onGranted() {
+                                ThingExporter.startExporting(
+                                        DetailActivity.this, getAccentColor(), mThing);
+                            }
+                        }, Def.Communication.REQUEST_PERMISSION_EXPORT_DETAIL,
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE);
                 break;
         }
         return super.onOptionsItemSelected(item);
@@ -1563,10 +1583,6 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
     public int getAccentColor() {
         return ((ColorDrawable) mFlBackground.getBackground()).getColor();
-    }
-
-    public LruCache<String, Bitmap> getBitmapLruCache() {
-        return mApp.getBitmapLruCache();
     }
 
     private void setScrollEvents() {
@@ -2351,8 +2367,18 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             intent.putExtra(Def.Communication.KEY_TYPE_PATH_NAME,
                     (ArrayList) mImageAttachmentAdapter.getItems());
             intent.putExtra(Def.Communication.KEY_POSITION, pos);
+
+            int w = v.getWidth();
+            int startX = 0, startY = 0;
+            int startWidth = w, startHeight = v.getHeight();
+            if (w == DisplayUtil.getDisplaySize(App.getApp()).x) {
+                startX = w / 2;
+                startY = startHeight / 2;
+                startWidth = startHeight = 0;
+            }
+
             ActivityOptionsCompat transition = ActivityOptionsCompat.makeScaleUpAnimation(
-                    v, v.getWidth() >> 1, v.getHeight() >> 1, 0, 0);
+                    v, startX, startY, startWidth, startHeight);
             ActivityCompat.startActivityForResult(DetailActivity.this, intent,
                     Def.Communication.REQUEST_ACTIVITY_IMAGE_VIEWER, transition.toBundle());
         }

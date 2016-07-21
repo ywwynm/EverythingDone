@@ -33,7 +33,7 @@
     <string name="act_select_color">選擇顏色</string>
     <string name="act_add_attachment">添加附件</string>
     <string name="act_enable_check_list">啟用清單</string>
-    <string name="act_change_color">改變顏色</string>
+    <string name="act_change_background">改變顏色</string>
 
     <!--menu items in contextual toolbar-->
     <string name="act_share">分享</string>
@@ -222,7 +222,7 @@
     <string name="this_gai">該</string>
     <string name="thing">記事</string>
     <string name="sb_finish_habit">完成了該習慣</string>
-    <string name="act_check_habit_info">查看習慣完成情况</string>
+    <string name="act_check_habit_detail">查看習慣詳情</string>
     <string name="habit_detail_completion_rate">完成率</string>
     <string name="habit_detail_persist_in">堅持時間</string>
     <string name="habit_detail_record">最近 30 次完成情况</string>
@@ -346,7 +346,7 @@
     <string name="sb_cannot_finish_habit_first_time">請等待第一個週期的到來</string>
     <string name="error_number_too_big">過大的輸入，你一定是在逗我</string>
     <string name="error_too_late">那是我難以觸及的永恒</string>
-    <string name="act_choose_image_file">選擇圖片</string>
+    <string name="act_choose_image_as_drawer_header">選擇抽屜頂部圖片</string>
     <string name="change_drawer_header">抽屜頭部圖片</string>
     <string name="default_drawer_header">默認圖片</string>
     <string name="settings_group_ui">介面</string>
@@ -405,7 +405,7 @@
     <string name="warning_title_should_not_be_empty">如果您要設置該記事為私密記事，請您為它設置標題</string>
     <string name="cannot_set_as_private_thing_title">無法設置為私密記事</string>
     <string name="help_detail">幫助詳情</string>
-    <string name="act_export">導出到 SD 卡</string>
+    <string name="act_export_to_sdcard">導出到 SD 卡</string>
     <string name="export_failed_content">請稍後重新嘗試</string>
     <string name="export_failed_title">導出到 SD 卡失敗</string>
     <string name="export_loading_title">正在導出到 SD 卡...</string>
@@ -417,5 +417,11 @@
     <string name="act_undo">撤銷</string>
     <string name="from_1_1_4_to_1_1_5_content">點擊右上角的菜單按鈕，即可看到撤銷 / 重做。藉此，您可以讓記事自由地回到過去或者未來。</string>
     <string name="from_1_1_4_to_1_1_5_title">您現在可以使用撤銷 / 重做功能了</string>
+    <string name="act_check_habit_record">查看最近 30 次完成情況</string>
+    <string name="habit_detail_record_count">記錄次數</string>
+    <string name="habit_detail_total_t">總週期數</string>
+    <string name="act_check_habit_overview">查看習慣概覽</string>
+    <string name="act_deselect_all">取消全選</string>
+    <string name="notification_has_attachment">[ 附件 ]</string>
 
 </resources>

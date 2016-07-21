@@ -26,6 +26,7 @@ import com.ywwynm.everythingdone.helpers.CheckListHelper;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.HabitReminder;
 import com.ywwynm.everythingdone.model.Thing;
+import com.ywwynm.everythingdone.permission.PermissionUtil;
 
 import java.io.File;
 import java.util.List;
@@ -61,8 +62,9 @@ public class SystemNotificationUtil {
                 .setSmallIcon(getIconRes(type))
                 .setAutoCancel(true);
 
-        String title = thing.getTitleToDisplay();
-        String content = thing.getContent();
+        String title      = thing.getTitleToDisplay();
+        String content    = thing.getContent();
+        String attachment = thing.getAttachment();
 
         String contentTitle = title, contentText = content;
         int style = 0;
@@ -73,7 +75,11 @@ public class SystemNotificationUtil {
 
         if (title.isEmpty() && content.isEmpty()) {
             contentTitle = Thing.getTypeStr(type, context);
-            contentText = context.getString(R.string.empty);
+            if (AttachmentHelper.isValidForm(attachment)) {
+                contentText = context.getString(R.string.notification_has_attachment);
+            } else {
+                contentText = context.getString(R.string.empty);
+            }
         } else {
             if (title.isEmpty()) {
                 contentTitle = Thing.getTypeStr(type, context);
@@ -81,18 +87,19 @@ public class SystemNotificationUtil {
             } else if (content.isEmpty()) {
                 contentTitle = Thing.getTypeStr(type, context);
                 contentText = title;
-            } else {
+            } else { // no empty here
                 style = 1;
             }
         }
 
+        // TODO: 2016/7/8 permission
         builder.setContentTitle(contentTitle).setContentText(contentText);
         if (style == 1) {
             builder.setStyle(new NotificationCompat.BigTextStyle().bigText(contentText));
         }
 
-        String firstImageUri = AttachmentHelper.getFirstImageTypePathName(thing.getAttachment());
-        if (firstImageUri != null) {
+        String firstImageUri = AttachmentHelper.getFirstImageTypePathName(attachment);
+        if (firstImageUri != null && PermissionUtil.hasStoragePermission(context)) {
             String pathName = firstImageUri.substring(1, firstImageUri.length());
             Bitmap bigPicture;
             Point display = DisplayUtil.getDisplaySize(context);

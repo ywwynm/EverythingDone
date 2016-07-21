@@ -1,0 +1,466 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="app_name">完事儿</string>
+
+    <!--titles of Activities-->
+    <string name="title_activity_things_all">所有记事</string>
+    <string name="title_activity_detail">记事</string>
+    <string name="title_activity_image_viewer">附件</string>
+    <string name="title_activity_settings">设置</string>
+    <string name="title_activity_about">关于</string>
+    <string name="title_activity_statistic">统计</string>
+
+    <string name="title_create_thing">创建记事</string>
+    <string name="title_edit_thing">编辑</string>
+
+    <!--entrances to different activities in drawer-->
+    <string name="underway">正在进行</string>
+    <string name="all">所有记事</string>
+    <string name="thing">记事</string>
+    <string name="note">记录</string>
+    <string name="reminder">提醒</string>
+    <string name="habit">习惯</string>
+    <string name="goal">目标</string>
+    <string name="other">其它</string>
+    <string name="finished">已完成</string>
+    <string name="deleted">回收站</string>
+    <string name="settings">设置</string>
+    <string name="about">关于</string>
+
+    <!--drawer header-->
+    <string name="completion_rate_all">所有记事完成率</string>
+    <string name="completion_rate_note">「记录」完成率</string>
+    <string name="completion_rate_reminder">「提醒」完成率</string>
+    <string name="completion_rate_habit">「习惯」完成率</string>
+    <string name="completion_rate_goal">「目标」完成率</string>
+
+    <!--menu items in action bars-->
+    <string name="act_search">搜索</string>
+    <string name="act_finish_all">全部完成</string>
+    <string name="act_delete_all">全部删除</string>
+    <string name="act_clear_now">清空回收站</string>
+    <string name="act_select_color">选择颜色</string>
+    <string name="act_add_attachment">添加附件</string>
+
+    <string name="act_take_photo">拍照</string>
+    <string name="act_shoot_video">录制视频</string>
+    <string name="act_record_audio">录音</string>
+    <string name="act_choose_media_files">选择媒体文件</string>
+    <string name="act_enable_check_list">启用清单</string>
+    <string name="act_disable_check_list">取消清单</string>
+    <string name="act_move_check_list">移动清单项</string>
+    <string name="act_back_from_move_checklist">完成并返回</string>
+    <string name="act_change_background">改变颜色</string>
+    <string name="act_finish">完成</string>
+    <string name="act_check_habit_detail">查看习惯详情</string>
+    <string name="act_habit_developed">我已养成该习惯</string>
+    <string name="act_delete">删除</string>
+    <string name="act_restore">还原</string>
+    <string name="act_delete_attachment">删除该附件</string>
+    <string name="act_show_attachment_info">查看附件详情</string>
+    <string name="act_set_as_private_thing">设为私密记事</string>
+    <string name="act_cancel_private_thing">取消设置私密记事</string>
+    <string name="act_export_to_sdcard">导出到 SD 卡</string>
+    <string name="act_undo">撤销</string>
+    <string name="act_redo">重做</string>
+
+    <string name="act_edit">编辑</string>
+    <string name="act_dial">拨打</string>
+    <string name="act_open_in_browser">访问网页</string>
+    <string name="act_send_email">发送邮件</string>
+    <string name="act_open_in_map">打开地图</string>
+
+    <string name="act_feedback">建议反馈</string>
+
+    <string name="act_finish_this_time_habit">完成这一次</string>
+    <string name="act_get_it">好哒</string>
+    <string name="act_delay_10_minutes">延迟10分钟</string>
+
+    <!--menu items in contextual toolbar-->
+    <string name="act_share">分享</string>
+    <string name="act_select_all">全选</string>
+    <string name="act_delete_selected">删除选中的记事</string>
+    <string name="act_finish_selected">完成选中的记事</string>
+    <string name="act_restore_selected">还原选中的记事</string>
+    <string name="act_delete_selected_forever">彻底删除选中的记事</string>
+
+    <!--default cards when user opens EverythingDone for the first time-->
+    <!--and when user finishes all tasks-->
+    <string name="welcome_underway_title">欢迎使用完事儿</string>
+    <string name="welcome_underway_content">滑动以完成记事</string>
+    <string name="welcome_note_content">随便写点什么，完事儿帮您永远记住</string>
+    <string name="welcome_reminder_content">让完事儿提醒您接下来的事情</string>
+    <string name="welcome_habit_content">养成习惯，改正缺点</string>
+    <string name="welcome_goal_content">您的梦想正在升起</string>
+
+    <string name="empty">空</string>
+    <string name="congratulations">恭喜！</string>
+    <string name="empty_underway">您已经完成了所有的记事~</string>
+    <string name="empty_note">旧的记忆随风而逝，新的故事何时落笔？</string>
+    <string name="empty_reminder">完事儿很高兴为您服务！</string>
+    <string name="empty_habit">您已经成为了一个更好的人</string>
+    <string name="empty_goal">恭喜您完成了所有的目标！别累着了，先给自己放个假吧！</string>
+    <string name="empty_finished">什么事儿都没完成吗？</string>
+    <string name="empty_deleted">你有一定要清空回收站的强迫症吗？我也有的说…</string>
+
+    <!--hints in DetailActivity-->
+    <string name="hint_title">标题</string>
+    <string name="hint_content">内容</string>
+
+    <string name="create_at">创建于</string>
+    <string name="update_at">更新于</string>
+
+    <!--messages and components in Snackbars-->
+    <string name="sb_cannot_be_blank">空白记事已被舍弃</string>
+    <string name="sb_cannot_finish_habit_first_time">请等待第一个周期的到来</string>
+    <string name="sb_cannot_finish_habit_more_times">直到下个周期前无法继续完成</string>
+    <string name="sb_underway">还原了</string>
+    <string name="sb_finish">完成了</string>
+    <string name="sb_finish_habit">完成了该习惯</string>
+    <string name="sb_delete">已删除</string>
+    <string name="sb_delete_forever">永久删除了</string>
+
+    <string name="a_thing">件记事</string>
+    <string name="item">个项目</string>
+    <string name="attachment">个附件</string>
+    <string name="sb_undo">撤销</string>
+    <string name="sb_undo_underway">已完成</string>
+    <string name="sb_undo_finish">并未完成</string>
+
+    <string name="all_color">全部颜色</string>
+    <string name="no_result">找不到对象</string>
+
+    <string name="after_15_minutes">15 分钟</string>
+    <string name="after_30_minutes">30 分钟</string>
+    <string name="after_1_hour">1 小时</string>
+    <string name="after_2_hours">2 小时</string>
+    <string name="after_1_day">1 天</string>
+    <string name="after_2_days">2 天</string>
+    <string name="after_1_week">1 周</string>
+    <string name="after_1_month">1 个月</string>
+    <string name="after_1_year">1 年</string>
+    <string name="custom">自定义</string>
+
+    <string name="remind_me">提醒我于</string>
+    <string name="after">后</string>
+    <string name="later">后</string>
+
+    <string name="quick_remind_title_at">某个时刻</string>
+    <string name="quick_remind_title_after">一段时间之后</string>
+    <string name="quick_remind_title_recurrence">重复</string>
+
+    <string name="confirm">确定</string>
+    <string name="cancel">取消</string>
+    <string name="more">更多</string>
+
+    <string name="description_a">个</string>
+
+    <string name="description_time">时间</string>
+    <string name="description_habit_record">习惯的完成记录</string>
+
+    <string name="year">年</string>
+    <string name="month">月</string>
+    <string name="week">星期</string>
+    <string name="day">日</string>
+    <string name="hour">小时</string>
+    <string name="minute">分钟</string>
+
+    <string name="month_day">号</string>
+
+    <string name="months">个月</string>
+    <string name="weeks">个星期</string>
+    <string name="days">天</string>
+    <string name="hours">个小时</string>
+
+    <array name="day_of_week">
+        <item>周日</item>
+        <item>周一</item>
+        <item>周二</item>
+        <item>周三</item>
+        <item>周四</item>
+        <item>周五</item>
+        <item>周六</item>
+    </array>
+
+    <string name="yesterday">昨天</string>
+    <string name="today">今天</string>
+    <string name="tomorrow">明天</string>
+    <string name="this_week">这个星期</string>
+    <string name="this_month">这个月</string>
+    <string name="end_of_month">月末</string>
+    <string name="this_year">今年</string>
+
+    <array name="time_period">
+        <item>凌晨</item>
+        <item>早晨</item>
+        <item>上午</item>
+        <item>中午</item>
+        <item>下午</item>
+        <item>傍晚</item>
+        <item>晚上</item>
+        <item>深夜</item>
+    </array>
+
+    <string name="statistic_second">秒</string>
+    <string name="statistic_minute">分钟</string>
+    <string name="statistic_hour">小时</string>
+    <string name="statistic_day">天</string>
+    <string name="statistic_year">年</string>
+
+    <string name="error_later">请设置为将来的某一时刻</string>
+    <string name="error_too_late">那是我难以触及的永恒</string>
+    <string name="error_complete_time">请完善时刻信息</string>
+    <string name="error_number_too_big">过大的输入，你一定是在逗我</string>
+    <string name="error_different">请设置不一样的时间</string>
+    <string name="error_activity_not_found">未找到相关应用</string>
+    <string name="error_cannot_add_from_network">无法添加网络文件</string>
+    <string name="error_unsupported_file_type">不支持的文件类型</string>
+    <string name="error_permission_denied">未授予相关权限，无法继续操作</string>
+
+    <string name="at">于</string>
+    <string name="every">每</string>
+    <string name="times">次</string>
+    <string name="this_gai">该</string>
+
+    <string name="description_back">返回</string>
+
+    <string name="reminder_reminded">已提醒</string>
+    <string name="reminder_needless">已无需提醒</string>
+    <string name="reminder_unavailable">已失效</string>
+    <string name="reminder_expired">已过期</string>
+
+    <string name="will_remind">将提醒于</string>
+
+    <string name="habit_next_reminder">下一次提醒:</string>
+    <string name="habit_last_five">最近五次完成情况:</string>
+    <string name="i_persist_in_for">我已经坚持了</string>
+    <string name="habit_developed">养成了这个习惯</string>
+
+    <string name="i_work_hard_for">我努力了</string>
+    <string name="finished_goal">最终实现了这个目标</string>
+
+    <string-array name="month_of_year">
+        <item>一月</item>
+        <item>二月</item>
+        <item>三月</item>
+        <item>四月</item>
+        <item>五月</item>
+        <item>六月</item>
+        <item>七月</item>
+        <item>八月</item>
+        <item>九月</item>
+        <item>十月</item>
+        <item>十一月</item>
+        <item>十二月</item>
+    </string-array>
+
+    <string name="hint_new_item">新增项目</string>
+    <string name="description_check_info">完成信息</string>
+    <string name="description_delete_item">删除项目</string>
+
+    <string name="description_image_attachment">图片类附件</string>
+    <string name="description_video_attachment">视频附件</string>
+    <string name="description_delete_image_attachment">删除该图片附件</string>
+
+    <string name="images">张图片</string>
+    <string name="videos">个视频</string>
+    <string name="audios">段音频</string>
+
+    <string name="description_audio_attachment">录音</string>
+    <string name="description_re_recording_audio">重新录音</string>
+    <string name="description_cancel_recording_audio">取消录音</string>
+    <string name="description_play_audio_attachment">播放音频文件</string>
+    <string name="description_delete_audio_attachment">删除该音频附件</string>
+    <string name="description_audio_attachment_info">查看该音频附件详细信息</string>
+
+    <string name="attachment_info_title">附件详情</string>
+    <string name="file_path">文件路径</string>
+    <string name="file_path_not_existed">永恒未知处</string>
+    <string name="file_size">文件大小</string>
+    <string name="image_size">图片宽高</string>
+    <string name="image_create_time">图片创建时间</string>
+    <string name="file_last_modify_time">文件最后修改时间</string>
+    <string name="video_size">视频宽高</string>
+    <string name="video_duration">视频时长</string>
+    <string name="video_create_time">视频创建时间</string>
+    <string name="audio_duration">音频时长</string>
+    <string name="audio_bitrate">比特率</string>
+    <string name="audio_sample_rate">采样率</string>
+
+    <string name="input_file_name">请输入文件名</string>
+
+    <string name="alert_continue">确定要继续该操作吗？</string>
+    <string name="alert_find_habit_goal">这些事情中包含了部分习惯或目标，您可能希望单独、谨慎地完成或舍弃它们</string>
+    <string name="continue_for_alert">继续</string>
+    <string name="continue_get_rid_of_habit_goal">去除其中的习惯、目标并继续</string>
+
+    <string name="alert_cancel_goal_title">确定要放弃该目标吗？</string>
+    <string name="alert_cancel_goal_content">该操作无法撤销，完事儿将无法记录其倒计时，也将无法与您一同庆祝它的完成</string>
+    <string name="alert_cancel_habit_title">确定要放弃这个习惯吗？</string>
+    <string name="alert_cancel_habit_content">该操作无法撤销，完事儿将无法督促、协助您养成这个习惯</string>
+    <string name="alert_delete_attachment">确定要删除该附件吗？</string>
+
+    <string name="new_reminder_time_rec">新的提醒时刻</string>
+
+    <string name="habit_detail_title">习惯详情</string>
+    <string name="habit_detail_completion_rate">完成率</string>
+    <string name="habit_detail_persist_in">坚持时间</string>
+    <string name="habit_detail_times">完成次数</string>
+    <string name="habit_detail_record">最近 30 次完成情况</string>
+
+    <string name="celebration_goal_part_1">您花了</string>
+    <string name="celebration_goal_part_2">实现该目标，现在是时候庆祝了！</string>
+    <string name="celebration_goal_part_3">能伴随您在成长、成功的道路上前行是完事儿的荣幸，祝您再接再厉。</string>
+
+    <string name="celebration_habit_part_1">您坚持了</string>
+    <string name="celebration_habit_part_2">，完成了</string>
+    <string name="celebration_habit_part_3">，终于养成了这个习惯，真是一段艰难却美好的经历！</string>
+    <string name="celebration_habit_part_4">很高兴能看到一个更好的您，完事儿将始终帮您进步。</string>
+
+    <string name="from_everything_done">来自Android应用《完事儿》</string>
+
+    <string name="press_again_to_exit">再按一次以退出</string>
+
+    <string name="settings_group_ui">界面</string>
+    <string name="settings_group_ringtone">铃声</string>
+    <string name="settings_group_data">数据</string>
+    <string name="settings_group_privacy">隐私</string>
+    <string name="settings_group_advanced">高级</string>
+    <string name="change_drawer_header">抽屉头部图片</string>
+    <string name="default_drawer_header">默认图片</string>
+    <string name="act_choose_image_as_drawer_header">选择抽屉顶部图片</string>
+    <string name="twice_back">按两次返回键退出应用</string>
+    <string name="chooser_ringtone">选择铃声</string>
+    <string name="backup">备份</string>
+    <string name="backup_content">完事儿将会备份您创建的所有记事以及应用设置，所有的提醒、习惯或目标也都将在恢复后正常执行。但是完事儿将不会备份您在记事中添加的各类附件，若有需要，请您使用其它手段备份，附件所在文件夹为 SD卡/EverythingDone</string>
+    <string name="backup_start">开始备份</string>
+    <string name="backup_loading_title">正在备份</string>
+    <string name="backup_loading_content">请稍等片刻，先去喝点好喝的吧~</string>
+    <string name="backup_success_title">备份已完成</string>
+    <string name="backup_success_content">请前往 SD 卡根目录下查看 EverythingDone.bak 文件</string>
+    <string name="backup_failed_title">备份失败</string>
+    <string name="backup_failed_content">请重新尝试，或者前往关于界面发送建议反馈</string>
+    <string name="restore">恢复</string>
+    <string name="restore_content">请将有效的 EverythingDone.bak 文件放在 SD 卡根目录下</string>
+    <string name="restore_start">开始恢复</string>
+    <string name="restore_loading_title">正在恢复</string>
+    <string name="restore_loading_content">请稍等片刻，先去吃点好吃的吧~</string>
+    <string name="restore_success_title">恢复成功</string>
+    <string name="restore_failed_title">恢复失败</string>
+    <string name="restore_success_content">请等待应用重启。为确保数据安全，请不要进行其它操作</string>
+    <string name="restore_file_not_exist">未找到备份文件，请将有效的 EverythingDone.bak 文件放在 sdcard 根目录下</string>
+    <string name="restore_failed_other">请确保 EverythingDone.bak 是有效的备份文件</string>
+    <string name="set_private_thing_password">设置私密记事密码</string>
+    <string name="draw_pattern">绘制密码图案</string>
+    <string name="relax_finger_when_finish">完成时松开手指</string>
+    <string name="draw_pattern_finished">图案已记录</string>
+    <string name="draw_pattern_again">再次绘制以确认</string>
+    <string name="pattern_not_same">图案不一致</string>
+    <string name="last">上一步</string>
+    <string name="done">完成</string>
+    <string name="confirm_pattern">绘制图案以验证</string>
+    <string name="wrong_pattern">图案错误</string>
+    <string name="use_fingerprint">使用指纹</string>
+    <string name="use_fingerprint_to_verify">使用您预设的指纹作为验证方式之一</string>
+    <string name="password_not_set">未设置私密记事密码</string>
+    <string name="not_support_fgprt">您的设备不支持标准的 Android 指纹模块</string>
+    <string name="system_fgprt_not_set"><![CDATA[系统指纹模块未启用，请前往系统设置 -> 安全 -> 指纹启用指纹模块]]></string>
+    <string name="fgprt_not_enrolled"><![CDATA[未找到可用的指纹，请前往系统设置 -> 安全 -> 指纹录制一个指纹]]></string>
+    <string name="auto_notify">自动提醒</string>
+    <string name="auto_notify_set_time">设置自动提醒时间</string>
+    <string name="auto_notify_help_info">设置一个时间，完事儿将会在您创建每件记事的相应时间后自动地提醒您。如果您创建的不是记录，完事儿将会根据其提醒时刻，智能地决定是否自动提醒。</string>
+    <string name="auto_notify_off">关闭</string>
+    <string name="auto_notify_ringtone">自动提醒铃声</string>
+
+    <string name="check_private_thing">查看私密记事</string>
+    <string name="confirm_fingerprint">确认指纹以继续</string>
+    <string name="touch_sensor">触摸指纹传感器</string>
+    <string name="fingerprint_error_part_1">您还可以尝试</string>
+    <string name="fingerprint_cannot_use_to_verify">你暂时无法使用指纹验证身份</string>
+    <string name="fingerprint_verify_success">身份验证成功！</string>
+    <string name="use_pattern">使用图案</string>
+
+    <string name="cannot_set_as_private_thing_title">无法设置为私密记事</string>
+    <string name="warning_should_set_password_first">您还未设置私密记事密码，请前往设置 -> 隐私 -> 设置私密记事密码进行设置</string>
+    <string name="warning_title_should_not_be_empty">如果您要设置该记事为私密记事，请您为它设置标题</string>
+
+    <string name="help">帮助</string>
+    <string name="help_detail">帮助详情</string>
+
+    <string name="about_motto">记住事情，完成事情</string>
+    <string name="about_version">版本：</string>
+
+    <string name="act_share_everythingdone">分享完事儿</string>
+    <string name="send_feedback_to_developer">通过 Email 发送建议、反馈给开发者</string>
+    <string name="app_crash_title">完事儿刚刚好像爆炸了QAQ</string>
+    <string name="app_crash_content">现在您就可以向开发者发送错误报告，这样就可以迫使他加班加点修复 bug 了。\n当然，您也可以在其它时刻前往关于界面反馈这个问题，到时只需要在您的邮件中附上 SD卡/EverythingDone/log 目录下相应的 log 文件(您可以根据它们名称中的时间信息，来选择最合适的那个 log 文件作为邮件附件)即可。</string>
+    <string name="app_crash_send_now">现在反馈</string>
+
+    <string name="act_support">支持开发者</string>
+
+    <string name="app_share_info">记住事情，完成事情，这对你来说算一个挑战吗？完事儿能够为你提醒日程活动、帮你养成习惯、督促你完成目标，你也可以在完事儿里记下身边的故事与风景，留下美好的回忆。\n\n遵循 Material Design 的界面设计让你领略 Android 应用的美，在精致的细节中享受流畅的操作。\n\n前往 Google Play、酷安网、豌豆荚、小米应用商店等搜索“完事儿”即可下载。</string>
+
+    <string name="support_star">去应用商店评分</string>
+    <string name="support_select_market">选择应用商店</string>
+    <string name="support_donate">向我捐赠</string>
+    <string name="support_content">您可以点击界面上方的分享按钮向您的朋友分享完事儿，也可以点击建议反馈按钮向开发者发送您对完事儿的意见。除此之外，您还可以前往应用商店为本应用评分，或者向我捐赠。您的支持是我前进的动力。</string>
+
+    <string name="support_donate_content">我的支付宝账号是 532061865@qq.com。您的捐赠是对我的鼓励，谢谢！</string>
+    <string name="support_donate_copy_name">复制账号</string>
+    <string name="support_donate_clip_title">支付宝账号</string>
+    <string name="support_donate_clip_content">532061865@qq.com</string>
+    <string name="success_clipboard">已成功复制账号到剪贴板</string>
+
+    <string name="content_description_header">头部</string>
+
+    <string name="statistic_start_from_part_1">我从</string>
+    <string name="statistic_start_from_part_2">开始使用完事儿。在这</string>
+    <string name="statistic_start_from_part_3">天里，我完成、创建了：</string>
+
+    <string name="statistic_note_record">在「记录」里，我记下了这些：</string>
+    <string name="statistic_note_char_count">文字</string>
+    <string name="statistic_note_image_count">图片</string>
+    <string name="statistic_note_video_count">视频</string>
+    <string name="statistic_note_audio_count">音频</string>
+
+    <string name="statistic_reminder_record">这儿是一些关于「提醒」的数据：</string>
+    <string name="statistic_reminder_completion_rate">提醒完成率</string>
+    <string name="statistic_reminder_notify_time">平均提醒时长</string>
+    <string name="statistic_reminder_finish_time">平均完成时间</string>
+    <string name="statistic_reminder_in_advance">提前完成的比例</string>
+
+    <string name="statistic_habit_record">我打算养成一些「习惯」，下面是相关的统计信息：</string>
+    <string name="statistic_habit_developed_rate">习惯养成率</string>
+    <string name="statistic_habit_finished_all">完成次数\n/ 总次数</string>
+    <string name="statistic_habit_completion_rate">完成率</string>
+    <string name="statistic_habit_longest_finish_times">最长连续完成次数</string>
+    <string name="statistic_habit_longest_pit">最长坚持周期数</string>
+
+    <string name="statistic_goal_record">我定下了一些「目标」，来看看我的完成情况吧：</string>
+    <string name="statistic_goal_completion_rate">目标完成率</string>
+    <string name="statistic_goal_notify_time">平均期限</string>
+
+    <string name="please_wait">请稍等</string>
+    <string name="generating_screen_shot" tools:ignore="TypographyEllipsis">正在对统计界面截图...</string>
+    <string name="share_statistic">分享我的使用情况</string>
+
+    <string name="export_loading_title" tools:ignore="TypographyEllipsis">正在导出到 SD 卡...</string>
+    <string name="export_loading_content">先去玩会儿好玩的吧~</string>
+    <string name="export_success_title">成功导出到 SD 卡</string>
+    <string name="export_success_content_part_1">已导出 %1$d 件记事</string>
+    <string name="export_success_content_part_2">，请前往 SD卡/EverythingDone/export 目录下查看相应的 zip 文件</string>
+    <string name="export_failed_title">导出到 SD 卡失败</string>
+    <string name="export_failed_content">请稍后重新尝试</string>
+
+    <string name="title_important_alert">这是一个很重要的提醒</string>
+    <string name="content_important_reminder_permission">如果您正在使用一些系统优化类的应用(如 360 手机卫士)，或者您的手机自带了这样的应用(如华为的节电助手)，请将完事儿加入它们的白名单中，以确保完事儿能够正常地进行提醒。\n\n此外，请您在系统自带的权限管理中授予完事儿请求的权限，它们是：\n(1) 开机自启动，用于设定闹钟，如果您不授予完事儿该权限，当您重启手机后，完事儿将无法继续提醒您的日程、习惯或目标;\n(2) 读写存储空间，用于插入附件、分享使用情况时保存界面截图等;\n(3) 录音，用于录制音频文件作为记事附件。\n完事儿绝对不会恶意地使用这些权限，请您放心！</string>
+
+    <string name="from_1_1_4_to_1_1_5_title">您现在可以使用撤销 / 重做功能了</string>
+    <string name="from_1_1_4_to_1_1_5_content">点击右上角的菜单按钮，即可看到撤销 / 重做。借此，您可以让记事自由地回到过去或者未来。</string>
+    <string name="act_check_habit_record">查看最近 30 次完成情况</string>
+    <string name="habit_detail_record_count">记录次数</string>
+    <string name="habit_detail_total_t">总周期数</string>
+    <string name="act_check_habit_overview">查看习惯概览</string>
+    <string name="act_deselect_all">取消全选</string>
+    <string name="notification_has_attachment">[ 附件 ]</string>
+
+</resources>

@@ -57,7 +57,7 @@ public class Habit {
 
     public Habit(Cursor c) {
         this(c.getLong(0), c.getInt(1), c.getInt(2), c.getString(3), c.getString(4), c.getString(5),
-                c.getLong(5), c.getLong(6));
+                c.getLong(6), c.getLong(7));
     }
 
     public long getId() {
@@ -240,6 +240,11 @@ public class Habit {
         nf.setMaximumFractionDigits(2);
         String str = nf.format((float) fTimes / total);
         return str.substring(0, str.length() - 1) + " %";
+    }
+
+    public int getTotalT() {
+        int total = DateTimeUtil.calculateTimeGap(createTime, System.currentTimeMillis(), type);
+        return total - getTotalIntervalT();
     }
 
     public int getPersistInT() {
