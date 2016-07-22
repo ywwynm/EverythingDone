@@ -1,5 +1,6 @@
 package com.ywwynm.everythingdone.utils;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.Resources;
 import android.widget.EditText;
@@ -212,6 +213,13 @@ public class DateTimeUtil {
         return sb.toString();
     }
 
+    /**
+     * Help {@param et} to ensure that it displays hour text correctly. When the field is above
+     * 23, we should make it be 23 since there are only 24 hours in a day and 24:00 means 0:00
+     * in EverythingDone.
+     * @param et the {@link EditText} to improve text format.
+     */
+    @SuppressLint("SetTextI18n")
     public static void limitHourForEditText(EditText et) {
         String hourStr = et.getText().toString();
         if (!hourStr.isEmpty()) {
@@ -222,6 +230,14 @@ public class DateTimeUtil {
         }
     }
 
+    /**
+     * Help {@param et} to ensure that it displays minute text correctly. When the field is below
+     * 10, we should add a zero before the original text to make it display in form of pattern "mm".
+     * Besides, when the minute is above 59, since a hour contains only 60 minutes, we should let it
+     * be 59, too.
+     * @param et the {@link EditText} to improve text format.
+     */
+    @SuppressLint("SetTextI18n")
     public static void formatLimitMinuteForEditText(EditText et) {
         String minuteStr = et.getText().toString();
         if (minuteStr.length() == 1) {
@@ -234,6 +250,24 @@ public class DateTimeUtil {
         }
     }
 
+    /**
+     * Get datetime string for {@link com.ywwynm.everythingdone.model.Habit}. For the time being,
+     * this method will be called only in {@link com.ywwynm.everythingdone.activities.DetailActivity}
+     * and {@link com.ywwynm.everythingdone.fragments.DateTimeDialogFragment}.
+     *
+     * This method will return a string in form of:
+     * 1. For a daily habit: at 6:30, 12:00 every day; 每天 6:30, 12:00
+     * 2. For a weekly habit: at 19:00 every Monday, Wednesday; 每周一, 三晚上 19:00
+     * 3. For a monthly habit: at 6:30 on the 1st, 6th, 16th, last day of every month;
+     *                         每个月 1号, 6号, 16号, 月末早晨 6:30
+     * 4. For a yearly habit: at 18:00 on the last day of June, December in every year;
+     *                        每年六月, 十二月月末傍晚 18:00
+     *
+     * @param context context used to get string resources
+     * @param type habit's type
+     * @param detail habit's detail information
+     * @return appropriate string to describe the habit
+     */
     public static String getDateTimeStrRec(Context context, int type, String detail) {
         if (type == Calendar.DATE) {
             return getDateTimeStrRecTimeOfDay(context, detail);
@@ -311,7 +345,7 @@ public class DateTimeUtil {
             sb.append(every).append(monthStr).append(" ");
             String monthDay = context.getString(R.string.month_day);
             for (String day : days) {
-                if ("27".equals(day)) {
+                if ("27".equals(day)) { // different from 28 in method below, but is correct.
                     sb.append(context.getString(R.string.end_of_month)).append(", ");
                 } else {
                     sb.append(Integer.parseInt(day) + 1).append(monthDay).append(", ");
@@ -395,7 +429,6 @@ public class DateTimeUtil {
         return (day + 1) + postfix;
     }
 
-    // todo: add annotations for methods below.
     private static void appendYearMonthDayStr(int year, int month, int day, int curYear,
                                              Date date, Context context, StringBuilder sb, boolean isChinese) {
         Resources res = context.getResources();
@@ -436,6 +469,10 @@ public class DateTimeUtil {
         return dayOfWeek == Calendar.SUNDAY ? 0 : 8 - dayOfWeek;
     }
 
+    /**
+     * Get a string describes time period. Often used in Chinese environment.
+     * They are: 凌晨, 早晨, 上午, 中午, 下午, 傍晚, 晚上, 深夜
+     */
     public static String getTimePeriodStr(int hour, Resources res) {
         String[] periods = res.getStringArray(R.array.time_period);
         int[] limits = { 6, 8, 12, 13, 17, 19, 22 };
@@ -447,6 +484,7 @@ public class DateTimeUtil {
         return periods[7];
     }
 
+    // todo: add annotations for methods below.
     public static int getTimeTypeLimit(int y, int m, int index) {
         if (index == 1) {
             return 12;
@@ -502,8 +540,8 @@ public class DateTimeUtil {
                 return hour + BLK + hourStr + " " + min + BLK + minStr;
             }
         } else if (second < 86400 * 365) {
-            long day  =  second / 86400;
-            long hour = (second % 86400) / 3600;
+            long day  =   second / 86400;
+            long hour =  (second % 86400) / 3600;
             long min  = ((second % 86400) % 3600) / 60;
             if (hour == 0) {
                 return day + BLK + dayStr;
@@ -522,7 +560,7 @@ public class DateTimeUtil {
             if (day == 0) {
                 return year + BLK + yearStr;
             } else {
-                return year + BLK + year + " " + day + BLK + dayStr;
+                return year + BLK + yearStr + " " + day + BLK + dayStr;
             }
         }
     }
