@@ -92,7 +92,6 @@ public class SystemNotificationUtil {
             }
         }
 
-        // TODO: 2016/7/8 permission
         builder.setContentTitle(contentTitle).setContentText(contentText);
         if (style == 1) {
             builder.setStyle(new NotificationCompat.BigTextStyle().bigText(contentText));
