@@ -139,10 +139,6 @@ public class App extends Application {
         this.mModeManager = modeManager;
     }
 
-    public ExecutorService getAppExecutor() {
-        return mExecutor;
-    }
-
     public static List<Long> getRunningDetailActivities() {
         return runningDetailActivities;
     }
