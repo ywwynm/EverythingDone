@@ -271,6 +271,8 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         mFabRippleColor = color;
         mFab.setRippleColor(mFabRippleColor);
         mActivityHeader.updateText();
+
+        KeyboardUtil.hideKeyboard(getCurrentFocus());
     }
 
     @Override
@@ -278,6 +280,8 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         super.onPause();
         App.putThingsActivityInstance(this);
         dismissSnackbars();
+
+        KeyboardUtil.hideKeyboard(getCurrentFocus());
     }
 
     @Override
