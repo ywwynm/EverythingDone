@@ -33,10 +33,12 @@ public abstract class EverythingDoneBaseActivity extends AppCompatActivity {
         init();
     }
 
+    @SuppressWarnings("unchecked")
     protected final <T extends View> T f(@IdRes int id) {
         return (T) findViewById(id);
     }
 
+    @SuppressWarnings("unchecked")
     protected final <T extends View> T f(View v, @IdRes int id) {
         return (T) v.findViewById(id);
     }
@@ -66,11 +68,7 @@ public abstract class EverythingDoneBaseActivity extends AppCompatActivity {
     private HashMap<Integer, PermissionCallback> mCallbackMap;
 
     public void doWithPermissionChecked(
-            PermissionCallback permissionCallback, int requestCode, String... permissions) {
-        if (permissionCallback == null) {
-            return;
-        }
-
+            @NonNull PermissionCallback permissionCallback, int requestCode, String... permissions) {
         if (DeviceUtil.hasMarshmallowApi()) {
             if (mCallbackMap == null) {
                 mCallbackMap = new HashMap<>();
