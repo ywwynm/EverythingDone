@@ -22,6 +22,8 @@ public final class Def {
 
         public static final int DATABASE_VERSION = 1;
 
+        public static final int ONGOING_NOTIFICATION_ID = Integer.MAX_VALUE;
+
         public static final String APP_FILE_DIR =
                 Environment.getExternalStorageDirectory().getAbsolutePath() + "/EverythingDone";
 
