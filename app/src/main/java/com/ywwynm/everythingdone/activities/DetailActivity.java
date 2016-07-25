@@ -2242,7 +2242,8 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
     private boolean shouldSendBroadCast() {
         return mSenderName.equals(ReminderReceiver.TAG) || mSenderName.equals(HabitReceiver.TAG)
-                || mSenderName.equals(AutoNotifyReceiver.TAG) || "intent".equals(mSenderName);
+                || mSenderName.equals(AutoNotifyReceiver.TAG) || "intent".equals(mSenderName)
+                || mSenderName.equals(App.class.getName());
     }
 
     private void sendBroadCastToUpdateMainUI(Intent intent, int resultCode) {
