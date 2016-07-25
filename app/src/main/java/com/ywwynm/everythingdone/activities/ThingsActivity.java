@@ -43,6 +43,7 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.bumptech.glide.Glide;
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
@@ -943,6 +944,11 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
                 super.onScrollStateChanged(recyclerView, newState);
                 EdgeEffectUtil.forRecyclerView(recyclerView, edgeColor);
+                if (newState == RecyclerView.SCROLL_STATE_IDLE) {
+                    Glide.with(ThingsActivity.this).resumeRequests();
+                } else { // dragging or settling
+                    Glide.with(ThingsActivity.this).pauseRequests();
+                }
             }
         });
 
