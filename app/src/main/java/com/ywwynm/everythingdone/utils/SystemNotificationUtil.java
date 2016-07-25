@@ -15,6 +15,7 @@ import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.content.ContextCompat;
 
+import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.AuthenticationActivity;
@@ -39,6 +40,19 @@ public class SystemNotificationUtil {
 
     public static final String TAG = "EverythingDone$SystemNotificationUtil";
 
+    /**
+     * Create a {@link NotificationCompat.Builder} for a giving thing which shows its text(title,
+     * content, type description, checklist and so on), color, attachment and defines basic content
+     * pendingIntent.
+     *
+     * @param senderName caller's tag that tells DetailActivity who opened it
+     * @param id the notification's id. todo is this thing's id?
+     * @param position the position of {@param thing} inside
+     *                 {@link com.ywwynm.everythingdone.managers.ThingManager#mThings}
+     * @param thing the {@link Thing} to be notified.
+     * @param autoNotify {@code true} means this notification is used to show automatic reminder.
+     * @return the builder object that contains enough information for a notification's UI.
+     */
     public static NotificationCompat.Builder newGeneralNotificationBuilder(
             Context context, String senderName, long id, int position, Thing thing, boolean autoNotify) {
 
@@ -56,7 +70,7 @@ public class SystemNotificationUtil {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context)
                 .setColor(color)
                 .setDefaults(Notification.DEFAULT_LIGHTS)
-                .setPriority(Notification.PRIORITY_MAX)
+                .setPriority(NotificationCompat.PRIORITY_MAX)
                 .setContentIntent(contentPendingIntent)
                 .setSound(getRingtoneUri(type, context, autoNotify))
                 .setSmallIcon(getIconRes(type))
@@ -118,6 +132,16 @@ public class SystemNotificationUtil {
         }
 
         return builder;
+    }
+
+    public static void createOngoingNotification() {
+        // TODO: 2016/7/24 don't show on Android Wear
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(App.getApp())
+                .setOngoing(true)
+                .setPriority(NotificationCompat.PRIORITY_MIN) /* don't show icon in status bar */
+                .setSmallIcon(0);
+        NotificationManagerCompat.from(App.getApp()).notify(
+                Def.Meta.ONGOING_NOTIFICATION_ID, builder.build());
     }
 
     public static void cancelNotification(long thingId, int type, Context context) {

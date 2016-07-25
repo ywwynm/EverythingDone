@@ -113,6 +113,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     public static final int UPDATE = 1;
 
     public float screenDensity;
+
     // type + path + name of attachment to add
     public String attachmentTypePathName;
 
@@ -727,28 +728,28 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                     quickRemindPicker.dismiss();
                 }
             });
-        }
-        if (DeviceUtil.hasKitKatApi()) {
-            KeyboardUtil.addKeyboardCallback(window, new KeyboardUtil.KeyboardCallback() {
+            if (DeviceUtil.hasKitKatApi()) {
+                KeyboardUtil.addKeyboardCallback(window, new KeyboardUtil.KeyboardCallback() {
 
-                View contentView = f(R.id.fl_background);
+                    View contentView = f(R.id.fl_background);
 
-                @Override
-                public void onKeyboardShow(int keyboardHeight) {
-                    if (contentView.getPaddingBottom() == 0) {
-                        //set the padding of the contentView for the keyboard
-                        contentView.setPadding(0, 0, 0, keyboardHeight);
+                    @Override
+                    public void onKeyboardShow(int keyboardHeight) {
+                        if (contentView.getPaddingBottom() == 0) {
+                            //set the padding of the contentView for the keyboard
+                            contentView.setPadding(0, 0, 0, keyboardHeight);
+                        }
                     }
-                }
 
-                @Override
-                public void onKeyboardHide() {
-                    if (contentView.getPaddingBottom() != 0) {
-                        //reset the padding of the contentView
-                        contentView.setPadding(0, 0, 0, 0);
+                    @Override
+                    public void onKeyboardHide() {
+                        if (contentView.getPaddingBottom() != 0) {
+                            //reset the padding of the contentView
+                            contentView.setPadding(0, 0, 0, 0);
+                        }
                     }
-                }
-            });
+                });
+            }
         }
 
         mEtContent.setOnClickListener(mEtContentClickListener);
@@ -1130,9 +1131,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                     }
 
                     @Override
-                    public void onCancel() {
-
-                    }
+                    public void onCancel() { }
                 });
     }
 
