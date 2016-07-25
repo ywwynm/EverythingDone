@@ -131,20 +131,98 @@
     <string name="act_open_in_map">Visit</string>
     <string name="act_edit">Edit</string>
 
-
-
-
     <!--SettingsActivity-->
     <string name="act_choose_image_as_drawer_header">Choose image as drawer header</string>
 
-    <string name="quick_create_title">Create new thing quickly</string>
-    <string name="quick_create_description">Show an ongoing notification to provide quick-create access</string>
-
-
-
-
     <!--AboutActivity-->
     <string name="act_support">Support Developer</string>
+
+
+
+
+
+    <!--————————————————————other text appearing at UI————————————————————-->
+
+    <!--SettingsActivity-->
+    <string name="settings_group_ui">UI</string>
+    <string name="settings_group_ringtone">Ringtone</string>
+    <string name="settings_group_data">Data</string>
+    <string name="settings_group_privacy">Privacy</string>
+    <string name="settings_group_advanced">Advanced</string>
+
+    <!--group ui-->
+    <string name="change_drawer_header">Drawer Header Image</string>
+    <string name="default_drawer_header">Default</string>
+    <string name="twice_back">Press Back twice to exit</string>
+
+    <string name="chooser_ringtone">Select Ringtone</string>
+
+    <!--group data-->
+    <!--backup-->
+    <string name="backup">Backup</string>
+    <string name="backup_content">Your things and preferences will be backed up. After backup, EverythingDone will keep reminding you every reminders, habits and goals. However, we will not backup attachments. If they are necessary, please backup them by yourself. The attachment files are located in sdcard/EverythingDone.</string>
+    <string name="backup_failed_content">Please try again or send feedback to developer</string>
+    <string name="backup_failed_title">Backup failed</string>
+    <string name="backup_loading_content">Please wait for a while. Maybe you can drink something.</string>
+    <string name="backup_loading_title">Backing up</string>
+    <string name="backup_start">Start backup</string>
+    <string name="backup_success_content">Please check file EverythingDone.bak in sdcard root directory.</string>
+    <string name="backup_success_title">Backup successfully</string>
+    <!--restore-->
+    <string name="restore">Restore</string>
+    <string name="restore_content">Please place a valid EverythingDone.bak in sdcard root directory.</string>
+    <string name="restore_failed_other">Please make sure that EverythingDone.bak is valid.</string>
+    <string name="restore_failed_title">Restore failed</string>
+    <string name="restore_file_not_exist">EverythingDone.bak not found. Please place it in sdcard root directory.</string>
+    <string name="restore_loading_content">Please wait for a while. How about eating something?</string>
+    <string name="restore_loading_title">Restoring</string>
+    <string name="restore_start">Start Restore</string>
+    <string name="restore_success_content">Please wait for app restarting. Do not do anything until app is completely restarted to keep your data safe.</string>
+    <string name="restore_success_title">Restore successfully</string>
+
+    <!--group privacy-->
+    <string name="set_private_thing_password">Set password for private things</string>
+    <string name="use_fingerprint">Use fingerprint</string>
+
+    <!--pattern password-->
+    <string name="password_not_set">Password for private thing has not been set.</string>
+    <string name="draw_pattern">Draw a pattern</string>
+    <string name="relax_finger_when_finish">Release finger when done</string>
+    <string name="draw_pattern_again">Draw pattern again to confirm</string>
+    <string name="pattern_not_same">Pattern is different</string>
+    <string name="draw_pattern_finished">Pattern recorded</string>
+    <string name="done">Done</string>
+    <string name="last">Back</string>
+    <string name="confirm_pattern">Confirm your pattern</string>
+    <string name="wrong_pattern">Wrong pattern</string>
+
+    <!--fingerprint-->
+    <!--some of these strings appeared in DetailActivity, AuthenticationActivity and so on-->
+    <string name="not_support_fgprt">Your device does not support standard Android fingerprint module</string>
+    <string name="system_fgprt_not_set"><![CDATA[System fingerprint module has not been enabled. Please go to Settings -> Security -> Fingerprint to enable it.]]></string>
+    <string name="fgprt_not_enrolled"><![CDATA[No fingerprint available. Please go to Settings -> Security -> Fingerprint and register at least one fingerprint.]]></string>
+    <string name="check_private_thing">Check Private Thing</string>
+    <string name="confirm_fingerprint">Confirm fingerprint to continue</string>
+    <string name="touch_sensor">Touch fingerprint sensor</string>
+    <string name="use_fingerprint_to_verify">Use predetermined fingerprint as an easier way to verify your identity</string>
+    <string name="use_pattern">Use Pattern</string>
+    <string name="fingerprint_error_part_1">You can still try for</string>
+    <string name="fingerprint_cannot_use_to_verify">You cannot use fingerprint to verify your identity now</string>
+    <string name="fingerprint_verify_success">Verify your identity successfully!</string>
+    <string name="warning_title_should_not_be_empty">If you want to set this thing as private thing, please set a title for it at first.</string>
+    <string name="warning_should_set_password_first"><![CDATA[You have not set password for private thing. Please go to Settings -> Privacy -> Set password for private things and set a pattern at first.]]></string>
+    <string name="cannot_set_as_private_thing_title">Cannot set as private thing</string>
+
+    <!--group advanced-->
+    <!--quick create-->
+    <string name="quick_create_title">Create new thing quickly</string>
+    <string name="quick_create_description">Show an ongoing notification to provide quick-create access</string>
+    <!--automatic reminder-->
+    <string name="auto_notify">Automatic Reminder</string>
+    <string name="auto_notify_help_info">EverythingDone will automatically remind you after a new thing is created. If you didn\'t create a Record, EverythingDone will decide if automatic reminder should be set according to the thing\'s remind time.</string>
+    <string name="auto_notify_off">Off</string>
+    <string name="auto_notify_set_time">Set Automatic Reminder Time</string>
+
 
 
 
@@ -318,13 +396,6 @@
     <string name="celebration_habit_part_3">and finally developed it today. What a rough but beautiful road!</string>
     <string name="celebration_habit_part_4">It\'s so glad to see a better you. EverythingDone will always help you better yourself.</string>
     <string name="from_everything_done">from Android app EverythingDone</string>
-    <string name="auto_notify">Automatic Reminder</string>
-    <string name="auto_notify_help_info">EverythingDone will automatically remind you after a new thing is created. If you didn\'t create a Record, EverythingDone will decide if automatic reminder should be set according to the thing\'s remind time.</string>
-    <string name="auto_notify_off">Off</string>
-    <string name="auto_notify_set_time">Set Automatic Reminder Time</string>
-    <string name="chooser_ringtone">Select Ringtone</string>
-    <string name="settings_group_advanced">Advanced</string>
-    <string name="settings_group_ringtone">Ringtone</string>
     <string name="month_day">day</string>
     <string name="description_audio_attachment">audio attachment</string>
     <string name="description_cancel_recording_audio">cancel record</string>
@@ -360,26 +431,6 @@
     <string name="support_donate_content">My Alipay Account is 532061865@qq.com. Your donation will encourage me a lot. Thank you!</string>
     <string name="support_donate_copy_name">COPY ACCOUNT</string>
     <string name="auto_notify_ringtone">Automatic Reminder\nRingtone</string>
-    <string name="backup">Backup</string>
-    <string name="restore">Restore</string>
-    <string name="settings_group_data">Data</string>
-    <string name="backup_content">Your things and preferences will be backed up. After backup, EverythingDone will keep reminding you every reminders, habits and goals. However, we will not backup attachments. If they are necessary, please backup them by yourself. The attachment files are located in sdcard/EverythingDone.</string>
-    <string name="backup_failed_content">Please try again or send feedback to developer</string>
-    <string name="backup_failed_title">Backup failed</string>
-    <string name="backup_loading_content">Please wait for a while. Maybe you can drink something.</string>
-    <string name="backup_loading_title">Backing up</string>
-    <string name="backup_start">Start backup</string>
-    <string name="backup_success_content">Please check file EverythingDone.bak in sdcard root directory.</string>
-    <string name="backup_success_title">Backup successfully</string>
-    <string name="restore_content">Please place a valid EverythingDone.bak in sdcard root directory.</string>
-    <string name="restore_failed_other">Please make sure that EverythingDone.bak is valid.</string>
-    <string name="restore_failed_title">Restore failed</string>
-    <string name="restore_file_not_exist">EverythingDone.bak not found. Please place it in sdcard root directory.</string>
-    <string name="restore_loading_content">Please wait for a while. How about eating something?</string>
-    <string name="restore_loading_title">Restoring</string>
-    <string name="restore_start">Start Restore</string>
-    <string name="restore_success_content">Please wait for app restarting. Do not do anything until app is completely restarted to keep your data safe.</string>
-    <string name="restore_success_title">Restore successfully</string>
     <string name="content_description_header">header</string>
     <string name="statistic_start_from_part_1">I have used EverythingDone since</string>
     <string name="statistic_start_from_part_2">. During</string>
@@ -415,9 +466,6 @@
     <string name="sb_cannot_finish_habit_first_time">Please wait for the first cycle</string>
     <string name="error_number_too_big">Number is too big!</string>
     <string name="error_too_late">Cannot wait for that day</string>
-    <string name="change_drawer_header">Drawer Header Image</string>
-    <string name="default_drawer_header">Default</string>
-    <string name="settings_group_ui">UI</string>
     <string name="content_important_reminder_permission">If you are using some apps that can improve your Android system, or there are such kind of pre-installed apps in your phone, please add EverythingDone to their white-list, otherwise maybe you cannot receive notifications from EverythingDone.\n\nIn addition, please grant permissions that EverythingDone requested in permission manager. These permissions are:\n(1) Auto boot after phone boots, used to create notifications for Reminder,Habit and Goals;\n(2) Read/Write external storage, used to insert file as attachment for things;\n(3) Record audio, used to record audio as attachment for things.\nEverythingDone promises that it won\'t use these permissions to do bad things. Thank you.</string>
     <string name="title_important_alert">THIS IS AN IMPORTANT NOTIFICATION</string>
     <string name="more">More</string>
@@ -438,35 +486,7 @@
     <string name="video_duration">Video Duration</string>
     <string name="video_create_time">Video Create Time</string>
     <string name="press_again_to_exit">Press one more time to exit</string>
-    <string name="twice_back">Press Back twice to exit</string>
     <string name="description_audio_attachment_info">Audio detail info</string>
-    <string name="not_support_fgprt">Your device does not support standard Android fingerprint module</string>
-    <string name="set_private_thing_password">Set password for private things</string>
-    <string name="settings_group_privacy">Privacy</string>
-    <string name="use_fingerprint">Use fingerprint</string>
-    <string name="password_not_set">Password for private thing has not been set.</string>
-    <string name="system_fgprt_not_set"><![CDATA[System fingerprint module has not been enabled. Please go to Settings -> Security -> Fingerprint to enable it.]]></string>
-    <string name="fgprt_not_enrolled"><![CDATA[No fingerprint available. Please go to Settings -> Security -> Fingerprint and register at least one fingerprint.]]></string>
-    <string name="done">Done</string>
-    <string name="draw_pattern">Draw a pattern</string>
-    <string name="draw_pattern_again">Draw pattern again to confirm</string>
-    <string name="draw_pattern_finished">Pattern recorded</string>
-    <string name="last">Back</string>
-    <string name="pattern_not_same">Pattern is different</string>
-    <string name="relax_finger_when_finish">Release finger when done</string>
-    <string name="confirm_pattern">Confirm your pattern</string>
-    <string name="wrong_pattern">Wrong pattern</string>
-    <string name="check_private_thing">Check Private Thing</string>
-    <string name="confirm_fingerprint">Confirm fingerprint to continue</string>
-    <string name="touch_sensor">Touch fingerprint sensor</string>
-    <string name="use_fingerprint_to_verify">Use predetermined fingerprint as an easier way to verify your identity</string>
-    <string name="use_pattern">Use Pattern</string>
-    <string name="fingerprint_error_part_1">You can still try for</string>
-    <string name="fingerprint_cannot_use_to_verify">You cannot use fingerprint to verify your identity now</string>
-    <string name="fingerprint_verify_success">Verify your identity successfully!</string>
-    <string name="warning_title_should_not_be_empty">If you want to set this thing as private thing, please set a title for it at first.</string>
-    <string name="warning_should_set_password_first"><![CDATA[You have not set password for private thing. Please go to Settings -> Privacy -> Set password for private things and set a pattern at first.]]></string>
-    <string name="cannot_set_as_private_thing_title">Cannot set as private thing</string>
     <string name="help_detail">Help Detail</string>
     <string name="export_failed_content">Please try again later</string>
     <string name="export_failed_title">Export Failed</string>
