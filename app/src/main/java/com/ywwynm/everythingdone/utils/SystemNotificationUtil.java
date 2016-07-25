@@ -163,7 +163,7 @@ public class SystemNotificationUtil {
                 .setContentTitle(context.getString(R.string.app_name))
                 .setContentText(context.getString(R.string.title_create_thing))
                 .setContentIntent(contentPendingIntent)
-                .setSmallIcon(R.drawable.act_create);
+                .setSmallIcon(R.drawable.act_create_white);
         nmc.notify(Def.Meta.ONGOING_NOTIFICATION_ID, builder.build());
     }
 
