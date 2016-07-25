@@ -15,11 +15,13 @@ import android.os.AsyncTask;
 import android.provider.Settings;
 import android.support.annotation.StringRes;
 import android.support.design.widget.Snackbar;
+import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.ActionBar;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
@@ -51,6 +53,7 @@ import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil;
 import com.ywwynm.everythingdone.utils.FileUtil;
 import com.ywwynm.everythingdone.utils.LocaleUtil;
+import com.ywwynm.everythingdone.utils.SystemNotificationUtil;
 import com.ywwynm.everythingdone.utils.UriPathConverter;
 
 import java.io.File;
@@ -111,7 +114,10 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     private TextView       mTvFgprtDscrpt;
     private CheckBox       mCbFgprt;
 
-    // group auto notify
+    // group advanced
+    private RelativeLayout mRlQuickCreateAsBt;
+    private CheckBox       mCbQuickCreate;
+
     private static List<String>   sANItems;
     private int                   mANPicked;
     private LinearLayout          mLlANAsBt;
@@ -347,7 +353,10 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         mTvFgprtDscrpt     = f(R.id.tv_use_fingerprint_description);
         mCbFgprt           = f(R.id.cb_use_fingerprint);
 
-        // auto notify
+        // advanced
+        mRlQuickCreateAsBt = f(R.id.rl_quick_create_as_bt);
+        mCbQuickCreate     = f(R.id.cb_quick_create);
+
         mLlANAsBt = f(R.id.ll_advanced_auto_notify_as_bt);
         mTvAN     = f(R.id.tv_advanced_auto_notify_time);
         mIvANAsBt = f(R.id.iv_auto_notify_help_as_bt);
@@ -371,7 +380,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
         initUiUserInterface();
         initUiRingtone();
-        initUiAutoNotify();
+        initUiAdvanced();
     }
 
     private void initUiUserInterface() {
@@ -438,7 +447,12 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         mCbFgprt.setChecked(useFingerprint);
     }
 
-    private void initUiAutoNotify() {
+    private void initUiAdvanced() {
+        // quick create
+        boolean qc = mPreferences.getBoolean(Def.Meta.KEY_QUICK_CREATE, true);
+        mCbQuickCreate.setChecked(qc);
+
+        // auto notify
         int index = mPreferences.getInt(Def.Meta.KEY_AUTO_NOTIFY, 0);
         if (index == 0) {
             mTvAN.setText(getString(R.string.auto_notify_off));
@@ -486,7 +500,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         setRingtoneEvents();
         setDataEvents();
         setPrivacyEvents();
-        setAutoNotifyEvents();
+        setAdvancedEvents();
     }
 
     private void setUiEvents() {
@@ -614,7 +628,9 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         pldf.show(getFragmentManager(), PatternLockDialogFragment.TAG);
     }
 
-    private void setAutoNotifyEvents() {
+    private void setAdvancedEvents() {
+        setQuickCreateEvents();
+
         mLlANAsBt.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -631,6 +647,27 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                 final AlertDialogFragment adf = createAlertDialog(
                         false, R.string.auto_notify, R.string.auto_notify_help_info);
                 adf.show(getFragmentManager(), AlertDialogFragment.TAG);
+            }
+        });
+    }
+
+    private void setQuickCreateEvents() {
+        mRlQuickCreateAsBt.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mCbQuickCreate.toggle();
+            }
+        });
+
+        mCbQuickCreate.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    SystemNotificationUtil.createOngoingNotification(App.getApp());
+                } else {
+                    NotificationManagerCompat.from(App.getApp()).cancel(
+                            Def.Meta.ONGOING_NOTIFICATION_ID);
+                }
             }
         });
     }
@@ -850,6 +887,8 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             FingerprintHelper.getInstance().createFingerprintKeyForEverythingDone();
         }
         editor.putBoolean(Def.Meta.KEY_USE_FINGERPRINT, isChecked);
+
+        editor.putBoolean(Def.Meta.KEY_QUICK_CREATE, mCbQuickCreate.isChecked());
 
         editor.putInt(Def.Meta.KEY_AUTO_NOTIFY, mANPicked);
         editor.commit();

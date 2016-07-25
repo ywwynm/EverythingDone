@@ -20,6 +20,7 @@ import android.net.Uri;
 import android.support.annotation.StringRes;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.ActivityOptionsCompat;
+import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.util.Pair;
 import android.support.v4.widget.NestedScrollView;
@@ -348,6 +349,8 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
         ThingManager thingManager = ThingManager.getInstance(mApp);
         if (mType == CREATE) {
+            SystemNotificationUtil.createOngoingNotification(this);
+
             long newId = thingManager.getHeaderId();
             App.getRunningDetailActivities().add(newId);
             mThing = new Thing(newId, Thing.NOTE,

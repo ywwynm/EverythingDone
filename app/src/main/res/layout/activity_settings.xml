@@ -382,10 +382,55 @@
                     android:textSize="14sp"
                     android:text="@string/settings_group_advanced"/>
 
+                <RelativeLayout
+                    android:id="@+id/rl_quick_create_as_bt"
+                    android:layout_width="match_parent"
+                    android:layout_height="72dp"
+                    android:layout_marginTop="40dp"
+                    android:paddingLeft="16dp"
+                    android:paddingRight="16dp"
+                    style="@style/SelectableItemBackground">
+
+                    <CheckBox
+                        android:id="@+id/cb_quick_create"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentEnd="true"
+                        android:layout_alignParentRight="true"
+                        android:layout_centerVertical="true"
+                        android:clickable="false"/>
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentStart="true"
+                        android:layout_alignParentLeft="true"
+                        android:layout_centerVertical="true"
+                        android:layout_toStartOf="@id/cb_quick_create"
+                        android:layout_toLeftOf="@id/cb_quick_create"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/quick_create_title"
+                            android:textSize="16sp"/>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/quick_create_description"
+                            android:textColor="@color/black_26p"
+                            android:textSize="14sp"/>
+
+                    </LinearLayout>
+
+                </RelativeLayout>
+
                 <FrameLayout
                     android:layout_width="match_parent"
                     android:layout_height="72dp"
-                    android:layout_marginTop="40dp">
+                    android:layout_marginTop="112dp">
 
                     <LinearLayout
                         android:id="@+id/ll_advanced_auto_notify_as_bt"
@@ -432,7 +477,7 @@
                     android:id="@+id/ll_ringtone_auto_notify_as_bt"
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
-                    android:layout_marginTop="112dp"
+                    android:layout_marginTop="184dp"
                     android:paddingLeft="16dp"
                     android:paddingRight="16dp"
                     android:gravity="center_vertical"

@@ -265,10 +265,11 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         }
 
         int color = DisplayUtil.getRandomColor(mApp);
-        while (color == mFabRippleColor) {
+        while (color == mFabRippleColor || color == SystemNotificationUtil.newThingColor) {
             color = DisplayUtil.getRandomColor(mApp);
         }
         mFabRippleColor = color;
+        SystemNotificationUtil.newThingColor = color;
         mFab.setRippleColor(mFabRippleColor);
         mActivityHeader.updateText();
 

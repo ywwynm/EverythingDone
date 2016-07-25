@@ -40,6 +40,8 @@ public class SystemNotificationUtil {
 
     public static final String TAG = "EverythingDone$SystemNotificationUtil";
 
+    public static int newThingColor;
+
     /**
      * Create a {@link NotificationCompat.Builder} for a giving thing which shows its text(title,
      * content, type description, checklist and so on), color, attachment and defines basic content
@@ -134,14 +136,35 @@ public class SystemNotificationUtil {
         return builder;
     }
 
-    public static void createOngoingNotification() {
+    public static void createOngoingNotification(Context context) {
         // TODO: 2016/7/24 don't show on Android Wear
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(App.getApp())
+        NotificationManagerCompat nmc = NotificationManagerCompat.from(context);
+        nmc.cancel(Def.Meta.ONGOING_NOTIFICATION_ID);
+
+        int color = DisplayUtil.getRandomColor(context);
+        while (color == newThingColor) {
+            color = DisplayUtil.getRandomColor(context);
+        }
+        newThingColor = color;
+
+        Intent contentIntent = new Intent(context, DetailActivity.class);
+        contentIntent.putExtra(Def.Communication.KEY_SENDER_NAME, App.class.getName());
+        contentIntent.putExtra(Def.Communication.KEY_DETAIL_ACTIVITY_TYPE,
+                DetailActivity.CREATE);
+        contentIntent.putExtra(Def.Communication.KEY_COLOR, color);
+
+        PendingIntent contentPendingIntent = PendingIntent.getActivity(context,
+                Def.Meta.ONGOING_NOTIFICATION_ID, contentIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context)
                 .setOngoing(true)
                 .setPriority(NotificationCompat.PRIORITY_MIN) /* don't show icon in status bar */
-                .setSmallIcon(0);
-        NotificationManagerCompat.from(App.getApp()).notify(
-                Def.Meta.ONGOING_NOTIFICATION_ID, builder.build());
+                .setColor(color)
+                .setContentTitle(context.getString(R.string.app_name))
+                .setContentText(context.getString(R.string.title_create_thing))
+                .setContentIntent(contentPendingIntent)
+                .setSmallIcon(R.drawable.act_create);
+        nmc.notify(Def.Meta.ONGOING_NOTIFICATION_ID, builder.build());
     }
 
     public static void cancelNotification(long thingId, int type, Context context) {

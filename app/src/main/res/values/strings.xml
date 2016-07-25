@@ -131,8 +131,17 @@
     <string name="act_open_in_map">Visit</string>
     <string name="act_edit">Edit</string>
 
+
+
+
     <!--SettingsActivity-->
     <string name="act_choose_image_as_drawer_header">Choose image as drawer header</string>
+
+    <string name="quick_create_title">Create new thing quickly</string>
+    <string name="quick_create_description">Show an ongoing notification to provide quick-create access</string>
+
+
+
 
     <!--AboutActivity-->
     <string name="act_support">Support Developer</string>

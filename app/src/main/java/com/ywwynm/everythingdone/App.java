@@ -16,6 +16,7 @@ import com.ywwynm.everythingdone.managers.ModeManager;
 import com.ywwynm.everythingdone.managers.ThingManager;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.utils.FileUtil;
+import com.ywwynm.everythingdone.utils.SystemNotificationUtil;
 
 import java.io.File;
 import java.lang.ref.WeakReference;
@@ -95,6 +96,8 @@ public class App extends Application {
         mThingManager = ThingManager.getInstance(this);
         SettingsActivity.initSystemRingtoneList();
 
+        initQuickCreate();
+
         mThingsToDeleteForever = new ArrayList<>();
         mAttachmentsToDeleteFile = new ArrayList<>();
 
@@ -111,6 +114,14 @@ public class App extends Application {
         if (metaData.getLong(Def.Meta.KEY_START_USING_TIME, 0) == 0) {
             metaData.edit().putLong(Def.Meta.KEY_START_USING_TIME,
                     System.currentTimeMillis()).apply();
+        }
+    }
+
+    private void initQuickCreate() {
+        SharedPreferences metaData = getSharedPreferences(
+                Def.Meta.META_DATA_NAME, MODE_PRIVATE);
+        if (metaData.getBoolean(Def.Meta.KEY_QUICK_CREATE, true)) {
+            SystemNotificationUtil.createOngoingNotification(this);
         }
     }
 
