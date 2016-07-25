@@ -462,5 +462,7 @@
     <string name="act_check_habit_overview">查看习惯概览</string>
     <string name="act_deselect_all">取消全选</string>
     <string name="notification_has_attachment">[ 附件 ]</string>
+    <string name="quick_create_title">快速创建记事</string>
+    <string name="quick_create_description">显示一个常驻通知栏的通知，作为快速创建记事的入口</string>
 
 </resources>
