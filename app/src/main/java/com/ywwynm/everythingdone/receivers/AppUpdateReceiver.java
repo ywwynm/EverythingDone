@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
 
+import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.helpers.AlarmHelper;
 
 public class AppUpdateReceiver extends BroadcastReceiver {
@@ -18,6 +19,8 @@ public class AppUpdateReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         if (Intent.ACTION_MY_PACKAGE_REPLACED.equals(intent.getAction())) {
             Log.v(TAG, "App updated!");
+
+            App.initQuickCreate();
 
             AlarmHelper.createAllAlarms(context, false);
 

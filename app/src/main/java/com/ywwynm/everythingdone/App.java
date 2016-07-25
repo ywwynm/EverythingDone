@@ -117,11 +117,11 @@ public class App extends Application {
         }
     }
 
-    private void initQuickCreate() {
-        SharedPreferences metaData = getSharedPreferences(
-                Def.Meta.META_DATA_NAME, MODE_PRIVATE);
-        if (metaData.getBoolean(Def.Meta.KEY_QUICK_CREATE, true)) {
-            SystemNotificationUtil.createOngoingNotification(this);
+    public static void initQuickCreate() {
+        SharedPreferences sp = app.getSharedPreferences(
+                Def.Meta.PREFERENCES_NAME, MODE_PRIVATE);
+        if (sp.getBoolean(Def.Meta.KEY_QUICK_CREATE, true)) {
+            SystemNotificationUtil.createOngoingNotification(app);
         }
     }
 
