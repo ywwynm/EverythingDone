@@ -20,7 +20,6 @@ import android.net.Uri;
 import android.support.annotation.StringRes;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.ActivityOptionsCompat;
-import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.util.Pair;
 import android.support.v4.widget.NestedScrollView;
@@ -113,6 +112,8 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     public static final int CREATE = 0;
     public static final int UPDATE = 1;
 
+    private static int createActiviesCount = 0;
+
     public float screenDensity;
 
     // type + path + name of attachment to add
@@ -182,6 +183,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     private Runnable mShowNormalSnackbar;
 
     private boolean mRemoveDetailActivityInstance = false;
+    private boolean mMinusCreateActivitiesCount   = false;
 
     private HashMap<View, Integer> mTouchMovedCountMap = new HashMap<>();
     private HashMap<View, Boolean> mOnLongClickedMap   = new HashMap<>();
@@ -349,6 +351,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
         ThingManager thingManager = ThingManager.getInstance(mApp);
         if (mType == CREATE) {
+            createActiviesCount++;
             SystemNotificationUtil.createOngoingNotification(this);
 
             long newId = thingManager.getHeaderId();
@@ -445,25 +448,30 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         }
     }
 
-    private void updateThingAndItsPosition(long id) {
+    private void updateThingAndItsPosition(long oriId) {
         ThingManager manager = ThingManager.getInstance(mApp);
         if (mType == CREATE) {
-            mThing = new Thing(manager.getHeaderId(), Thing.NOTE, 0, id);
+            long newId = manager.getHeaderId();
+            List<Long> runningDetailActivities = App.getRunningDetailActivities();
+            int index = runningDetailActivities.lastIndexOf(oriId);
+            runningDetailActivities.set(index, newId);
+            mThing = new Thing(newId, Thing.NOTE, 0, newId);
             return;
         }
+
         List<Thing> things = manager.getThings();
         final int size = things.size();
         int i;
         for (i = 0; i < size; i++) {
             Thing temp = things.get(i);
-            if (temp.getId() == id) {
+            if (temp.getId() == oriId) {
                 mThing = temp;
                 mPosition = i;
                 break;
             }
         }
         if (i == size) {
-            mThing = ThingDAO.getInstance(mApp).getThingById(id);
+            mThing = ThingDAO.getInstance(mApp).getThingById(oriId);
             mPosition = -1;
         }
     }
@@ -974,6 +982,11 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         List<Long> detailActivities = App.getRunningDetailActivities();
         detailActivities.remove(mThing.getId());
         mRemoveDetailActivityInstance = true;
+
+        if (mType == CREATE) {
+            createActiviesCount--;
+            mMinusCreateActivitiesCount = true;
+        }
         super.finish();
     }
 
@@ -1338,6 +1351,10 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         super.onDestroy();
         if (!mRemoveDetailActivityInstance) {
             App.getRunningDetailActivities().remove(mThing.getId());
+        }
+
+        if (mType == CREATE && !mMinusCreateActivitiesCount) {
+            createActiviesCount--;
         }
     }
 
@@ -2189,7 +2206,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         // case, ThingsActivity won't receive broadcast to handle creation and that thing
         // will be missed.
         WeakReference<ThingsActivity> wr = App.thingsActivityWR;
-        if (wr == null || wr.get() == null) {
+        if (wr == null || wr.get() == null || createActiviesCount > 1) {
             ThingManager.getInstance(mApp).create(mThing, true, true);
             intent.putExtra(Def.Communication.KEY_CREATED_DONE, true);
         } else if (!shouldSendBroadCast()) {
@@ -2247,8 +2264,9 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     }
 
     private void sendBroadCastToUpdateMainUI(Intent intent, int resultCode) {
-        if (App.getRunningDetailActivities().size() > 1
-                && resultCode != Def.Communication.RESULT_NO_UPDATE) {
+        List<Long> runningDetailActivities = App.getRunningDetailActivities();
+        int size = runningDetailActivities.size();
+        if (size > 1 && resultCode != Def.Communication.RESULT_NO_UPDATE) {
             // A DetailActivity has been opened before and this is another one opened from notification.
             App.setSomethingUpdatedSpecially(true);
         }

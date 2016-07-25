@@ -162,7 +162,9 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     private BroadcastReceiver mUpdateUiReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (App.getRunningDetailActivities().size() > 0) {
+            List<Long> runningDetailActivities = App.getRunningDetailActivities();
+            int size = runningDetailActivities.size();
+            if (size > 0) {
                 mBroadCastIntent = intent;
                 return;
             }
