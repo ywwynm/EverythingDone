@@ -40,7 +40,7 @@ public class SystemNotificationUtil {
 
     public static final String TAG = "EverythingDone$SystemNotificationUtil";
 
-    public static int newThingColor;
+    public static int newThingColor = DisplayUtil.getRandomColor(App.getApp());
 
     /**
      * Create a {@link NotificationCompat.Builder} for a giving thing which shows its text(title,
@@ -137,7 +137,6 @@ public class SystemNotificationUtil {
     }
 
     public static void createOngoingNotification(Context context) {
-        // TODO: 2016/7/24 don't show on Android Wear
         NotificationManagerCompat nmc = NotificationManagerCompat.from(context);
         nmc.cancel(Def.Meta.ONGOING_NOTIFICATION_ID);
 
