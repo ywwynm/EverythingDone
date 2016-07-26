@@ -774,7 +774,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             mDrawer.setFitsSystemWindows(false);
         }
 
-        mDrawerLayout.setScrimColor(Color.parseColor("#60000000"));
+        mDrawerLayout.setScrimColor(Color.parseColor("#84000000"));
 
         mSpan = DisplayUtil.isTablet(this) ? 3 : 2;
         if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
