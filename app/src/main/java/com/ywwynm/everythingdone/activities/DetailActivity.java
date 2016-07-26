@@ -352,7 +352,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         ThingManager thingManager = ThingManager.getInstance(mApp);
         if (mType == CREATE) {
             createActiviesCount++;
-            SystemNotificationUtil.createOngoingNotification(this);
+            App.initQuickCreate();
 
             long newId = thingManager.getHeaderId();
             App.getRunningDetailActivities().add(newId);
