@@ -462,9 +462,13 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         if (App.isSearching) {
             toggleSearching();
         } else if (mApp.getLimit() != Def.LimitForGettingThings.ALL_UNDERWAY) {
+            mFab.spread();
             mApp.setLimit(Def.LimitForGettingThings.ALL_UNDERWAY, true);
+            invalidateOptionsMenu();
+            mRecyclerView.scrollToPosition(0);
             mThingsAdapter.setShouldThingsAnimWhenAppearing(false);
             mThingsAdapter.notifyDataSetChanged();
+            mActivityHeader.reset(false);
         }
 
         MenuItem underway = mDrawer.getMenu().getItem(0);
