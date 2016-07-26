@@ -339,7 +339,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         int size = mThingManager.getThings().size();
         switch (item.getItemId()) {
             case R.id.act_search:
-                toggleSearching();
+                toggleSearching(true);
                 break;
             case R.id.act_finish_all:
                 if (size != 1) {
@@ -375,7 +375,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 mModeManager.backNormalMode(0);
                 return;
             } else if (App.isSearching) {
-                toggleSearching();
+                toggleSearching(true);
                 return;
             }
 
@@ -460,7 +460,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
     private void updateMainUiForCreateDone(Intent data) {
         if (App.isSearching) {
-            toggleSearching();
+            toggleSearching(false);
         }
 
         if (mApp.getLimit() != Def.LimitForGettingThings.ALL_UNDERWAY) {
@@ -1516,7 +1516,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         mApp.releaseResourcesAfterDeleteForever();
     }
 
-    private void toggleSearching() {
+    private void toggleSearching(boolean shouldThingsAnimWhenAppearing) {
         dismissSnackbars();
         final boolean toNormal = App.isSearching;
         if (toNormal) {
@@ -1543,7 +1543,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             mApp.setLimit(mApp.getLimit(), true);
             mActivityHeader.updateText();
             mDrawerHeader.updateCompletionRate();
-            mThingsAdapter.setShouldThingsAnimWhenAppearing(true);
+            mThingsAdapter.setShouldThingsAnimWhenAppearing(shouldThingsAnimWhenAppearing);
             handleSearchResults();
             if (!DeviceUtil.hasKitKatApi()) {
                 getWindow().setSoftInputMode(
@@ -1639,7 +1639,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         @Override
         public void onClick(View v) {
             if (App.isSearching) {
-                toggleSearching();
+                toggleSearching(true);
             } else {
                 mDrawerLayout.openDrawer(GravityCompat.START);
                 dismissSnackbars();
