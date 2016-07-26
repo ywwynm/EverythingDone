@@ -75,9 +75,9 @@ import com.ywwynm.everythingdone.utils.SystemNotificationUtil;
 import com.ywwynm.everythingdone.views.ActivityHeader;
 import com.ywwynm.everythingdone.views.DrawerHeader;
 import com.ywwynm.everythingdone.views.FloatingActionButton;
-import com.ywwynm.everythingdone.views.reveal.RevealLayout;
 import com.ywwynm.everythingdone.views.Snackbar;
 import com.ywwynm.everythingdone.views.pickers.ColorPicker;
+import com.ywwynm.everythingdone.views.reveal.RevealLayout;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -461,7 +461,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     private void updateMainUiForCreateDone(Intent data) {
         if (App.isSearching) {
             toggleSearching();
-        } else {
+        } else if (mApp.getLimit() != Def.LimitForGettingThings.ALL_UNDERWAY) {
             mApp.setLimit(Def.LimitForGettingThings.ALL_UNDERWAY, true);
             mThingsAdapter.setShouldThingsAnimWhenAppearing(false);
             mThingsAdapter.notifyDataSetChanged();
@@ -478,33 +478,78 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 App.justNotifyDataSetChanged();
         final Thing thingToCreate = data.getParcelableExtra(
                 Def.Communication.KEY_THING);
+
+        if (createdDone) {
+            mRecyclerView.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    justNotifyDataSetChanged();
+                    afterUpdateMainUiForCreateDone();
+                }
+            }, 560);
+            return;
+        }
+
+        /**
+         * Changed behavior here at 2016/7/26 because of multi create-type DetailActivities
+         * entered from ongoing notification.
+         *
+         * <b>There must be 2 postDelays.</b>
+         *
+         * If the outside one was removed, which means {@link ThingManager#create(Thing, boolean, boolean)}
+         * was called without any delay, and if {@link App#mLimit} is not
+         * {@link Def.LimitForGettingThings.ALL_UNDERWAY}, we will call
+         * {@link ThingsAdapter#notifyDataSetChanged()} very early(see code above, head part of this
+         * function) so all created things will display before {@link justNotifyDataSetChanged()}
+         * (I don't know why a thing can display because of notifyDataSetChanged called before its
+         * creation). In this case, since we should call {@link justNotifyDataSetChanged()} indeed,
+         * we can see {@link mRecyclerView} refreshes twice but without any visible change of things.
+         *
+         * If the inside one was removed and merged with outside one into a postDelayed(Runnable, 600),
+         * since {@link justNotifyDataSetChanged()} called {@link ThingManager#loadThings()},
+         * which get all things from database, and {@link ThingManager#create(Thing, boolean, boolean)}
+         * will create a new thread to write a thing to database, which is not very reliable at
+         * time/order, sometimes we cannot see all things even after
+         * {@link ThingsAdapter#notifyDataSetChanged()} but they are truly existed.
+         *
+         * Sometimes I may think that I can remove outside postDelay and add a flag for that if we
+         * have already called notifyDataSetChanged at head(If the flag is true, we won't call
+         * justNotifyDataSetChanged later). But we need item add animation of RecyclerView
+         * ({@link ThingsAdapter#notifyItemInserted(int)}), as a result, I give up that thought.
+         */
+        // TODO: 2016/7/26 double 300 is good?
         mRecyclerView.postDelayed(new Runnable() {
             @Override
             public void run() {
-                if (createdDone) {
-                    justNotifyDataSetChanged();
-                } else {
-                    boolean change = mThingManager.create(thingToCreate, true, true);
-                    if (justNotifyDataSetChanged) {
-                        justNotifyDataSetChanged();
-                    } else {
-                        if (change) {
-                            mThingsAdapter.notifyItemChanged(1);
+                final boolean change = mThingManager.create(thingToCreate, true, true);
+                mRecyclerView.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (justNotifyDataSetChanged) {
+                            justNotifyDataSetChanged();
                         } else {
-                            mThingsAdapter.notifyItemInserted(1);
+                            if (change) {
+                                mThingsAdapter.notifyItemChanged(1);
+                            } else {
+                                mThingsAdapter.notifyItemInserted(1);
+                            }
                         }
+                        afterUpdateMainUiForCreateDone();
                     }
-                }
-                if (mModeManager.getCurrentMode() == ModeManager.SELECTING) {
-                    updateSelectingUi(false);
-                }
-                mActivityHeader.updateText();
-                mDrawerHeader.updateTexts();
-                mUpdateMainUiInOnResume = true;
-                App.setSomethingUpdatedSpecially(false);
-                mBroadCastIntent = null;
+                }, 300);
             }
-        }, 560);
+        }, 300);
+    }
+
+    private void afterUpdateMainUiForCreateDone() {
+        if (mModeManager.getCurrentMode() == ModeManager.SELECTING) {
+            updateSelectingUi(false);
+        }
+        mActivityHeader.updateText();
+        mDrawerHeader.updateTexts();
+        mUpdateMainUiInOnResume = true;
+        App.setSomethingUpdatedSpecially(false);
+        mBroadCastIntent = null;
     }
 
     private void updateMainUiForUpdateSameType(final Intent data) {
