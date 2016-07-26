@@ -464,5 +464,7 @@
     <string name="notification_has_attachment">[ 附件 ]</string>
     <string name="quick_create_title">快速创建记事</string>
     <string name="quick_create_description">显示一个常驻通知栏的通知，作为快速创建记事的入口</string>
+    <string name="last_backup">最近一次备份:</string>
+    <string name="no_backup_before">暂无备份</string>
 
 </resources>

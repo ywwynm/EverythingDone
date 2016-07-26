@@ -12,6 +12,7 @@ import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Environment;
 import android.provider.Settings;
 import android.support.annotation.StringRes;
 import android.support.design.widget.Snackbar;
@@ -103,7 +104,8 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
     // group data
     private TextView              mTvBackupAsBt;
-    private TextView              mTvRestoreAsBt;
+    private RelativeLayout        mRlRestoreAsBt;
+    private TextView              mTvRestoreLastInfo;
     private LoadingDialogFragment mLdgBackup;
     private LoadingDialogFragment mLdgRestore;
 
@@ -343,8 +345,9 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         mTvsRingtone[2] = f(R.id.tv_ringtone_goal);
 
         // data
-        mTvBackupAsBt  = f(R.id.tv_backup_as_bt);
-        mTvRestoreAsBt = f(R.id.tv_restore_as_bt);
+        mTvBackupAsBt      = f(R.id.tv_backup_as_bt);
+        mRlRestoreAsBt     = f(R.id.rl_restore_as_bt);
+        mTvRestoreLastInfo = f(R.id.tv_restore_last_info);
 
         // privacy
         mTvSetPasswordAsBt = f(R.id.tv_set_password_as_bt);
@@ -380,6 +383,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
         initUiUserInterface();
         initUiRingtone();
+        updateUiRestore();
         initUiAdvanced();
     }
 
@@ -401,6 +405,19 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     private void initUiRingtone() {
         for (int i = 0; i < 3; i++) {
             mTvsRingtone[i].setText(mChosenRingtoneTitles[i]);
+        }
+    }
+
+    private void updateUiRestore() {
+        File backupFile = new File(
+                Environment.getExternalStorageDirectory(), "EverythingDone.bak");
+        if (backupFile.exists()) {
+            StringBuilder sb = new StringBuilder(getString(R.string.last_backup));
+            long time = backupFile.lastModified();
+            sb.append(" ").append(DateTimeUtil.getDateTimeStrAt(time, this, false));
+            mTvRestoreLastInfo.setText(sb);
+        } else {
+            mTvRestoreLastInfo.setText(R.string.no_backup_before);
         }
     }
 
@@ -542,7 +559,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                 showBackupDialog();
             }
         });
-        mTvRestoreAsBt.setOnClickListener(new View.OnClickListener() {
+        mRlRestoreAsBt.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 showRestoreDialog();
@@ -934,6 +951,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             if (success) {
                 titleRes = R.string.backup_success_title;
                 contentRes = R.string.backup_success_content;
+                updateUiRestore();
             } else {
                 titleRes = R.string.backup_failed_title;
                 contentRes = R.string.backup_failed_content;
@@ -1017,7 +1035,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                         0, intent, PendingIntent.FLAG_CANCEL_CURRENT);
                 AlarmManager am = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
                 am.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 2100, pendingIntent);
-                mTvRestoreAsBt.postDelayed(new Runnable() {
+                mRlRestoreAsBt.postDelayed(new Runnable() {
                     @Override
                     public void run() {
                         System.exit(0);

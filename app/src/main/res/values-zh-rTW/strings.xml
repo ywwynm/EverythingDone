@@ -425,5 +425,7 @@
     <string name="notification_has_attachment">[ 附件 ]</string>
     <string name="quick_create_title">快速創建記事</string>
     <string name="quick_create_description">顯示一個常駐通知欄的通知，作為快速創建記事的入口</string>
+    <string name="last_backup">最近一次備份:</string>
+    <string name="no_backup_before">暫無備份</string>
 
 </resources>

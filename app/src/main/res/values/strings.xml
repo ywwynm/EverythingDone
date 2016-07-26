@@ -159,15 +159,17 @@
 
     <!--group data-->
     <!--backup-->
-    <string name="backup">Backup</string>
+    <string name="backup">Back up</string>
     <string name="backup_content">Your things and preferences will be backed up. After backup, EverythingDone will keep reminding you every reminders, habits and goals. However, we will not backup attachments. If they are necessary, please backup them by yourself. The attachment files are located in sdcard/EverythingDone.</string>
     <string name="backup_failed_content">Please try again or send feedback to developer</string>
-    <string name="backup_failed_title">Backup failed</string>
+    <string name="backup_failed_title">Back up failed</string>
     <string name="backup_loading_content">Please wait for a while. Maybe you can drink something.</string>
     <string name="backup_loading_title">Backing up</string>
     <string name="backup_start">Start backup</string>
     <string name="backup_success_content">Please check file EverythingDone.bak in sdcard root directory.</string>
-    <string name="backup_success_title">Backup successfully</string>
+    <string name="backup_success_title">Back up successfully</string>
+    <string name="last_backup">Last backup:</string>
+    <string name="no_backup_before">No backup before</string>
     <!--restore-->
     <string name="restore">Restore</string>
     <string name="restore_content">Please place a valid EverythingDone.bak in sdcard root directory.</string>
