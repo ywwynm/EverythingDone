@@ -461,7 +461,9 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     private void updateMainUiForCreateDone(Intent data) {
         if (App.isSearching) {
             toggleSearching();
-        } else if (mApp.getLimit() != Def.LimitForGettingThings.ALL_UNDERWAY) {
+        }
+
+        if (mApp.getLimit() != Def.LimitForGettingThings.ALL_UNDERWAY) {
             mFab.spread();
             mApp.setLimit(Def.LimitForGettingThings.ALL_UNDERWAY, true);
             invalidateOptionsMenu();
