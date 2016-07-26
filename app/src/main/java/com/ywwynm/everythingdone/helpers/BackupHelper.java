@@ -3,7 +3,9 @@ package com.ywwynm.everythingdone.helpers;
 import android.content.Context;
 import android.os.Environment;
 
+import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.R;
+import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.FileUtil;
 
 import java.io.File;
@@ -52,6 +54,20 @@ public class BackupHelper {
             }
         } else {
             return failed;
+        }
+    }
+
+    public static String getLastBackupTimeString() {
+        File backupFile = new File(
+                Environment.getExternalStorageDirectory(), BACKUP_FILE_NAME);
+        Context context = App.getApp();
+        if (backupFile.exists()) {
+            StringBuilder sb = new StringBuilder(context.getString(R.string.last_backup));
+            long time = backupFile.lastModified();
+            sb.append(" ").append(DateTimeUtil.getDateTimeStrAt(time, context, false));
+            return sb.toString();
+        } else {
+            return context.getString(R.string.no_backup_before);
         }
     }
 

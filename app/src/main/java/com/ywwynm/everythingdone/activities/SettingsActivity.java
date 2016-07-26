@@ -409,16 +409,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     }
 
     private void updateUiRestore() {
-        File backupFile = new File(
-                Environment.getExternalStorageDirectory(), "EverythingDone.bak");
-        if (backupFile.exists()) {
-            StringBuilder sb = new StringBuilder(getString(R.string.last_backup));
-            long time = backupFile.lastModified();
-            sb.append(" ").append(DateTimeUtil.getDateTimeStrAt(time, this, false));
-            mTvRestoreLastInfo.setText(sb);
-        } else {
-            mTvRestoreLastInfo.setText(R.string.no_backup_before);
-        }
+        mTvRestoreLastInfo.setText(BackupHelper.getLastBackupTimeString());
     }
 
     private void initUiPrivacy() {
