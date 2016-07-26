@@ -2205,6 +2205,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         // is destroyed while user share something from other apps to EverythingDone. In that
         // case, ThingsActivity won't receive broadcast to handle creation and that thing
         // will be missed.
+        // Another case is that there are more than 1 create-type DetailActivity instance.
         WeakReference<ThingsActivity> wr = App.thingsActivityWR;
         if (wr == null || wr.get() == null || createActiviesCount > 1) {
             ThingManager.getInstance(mApp).create(mThing, true, true);
