@@ -96,7 +96,7 @@ public class App extends Application {
         mThingManager = ThingManager.getInstance(this);
         SettingsActivity.initSystemRingtoneList();
 
-        initQuickCreate();
+        SystemNotificationUtil.tryToCreateQuickCreateNotification(this);
 
         mThingsToDeleteForever = new ArrayList<>();
         mAttachmentsToDeleteFile = new ArrayList<>();
@@ -114,14 +114,6 @@ public class App extends Application {
         if (metaData.getLong(Def.Meta.KEY_START_USING_TIME, 0) == 0) {
             metaData.edit().putLong(Def.Meta.KEY_START_USING_TIME,
                     System.currentTimeMillis()).apply();
-        }
-    }
-
-    public static void initQuickCreate() {
-        SharedPreferences sp = app.getSharedPreferences(
-                Def.Meta.PREFERENCES_NAME, MODE_PRIVATE);
-        if (sp.getBoolean(Def.Meta.KEY_QUICK_CREATE, true)) {
-            SystemNotificationUtil.createOngoingNotification(app);
         }
     }
 

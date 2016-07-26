@@ -5,8 +5,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
 
-import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.helpers.AlarmHelper;
+import com.ywwynm.everythingdone.utils.SystemNotificationUtil;
 
 public class AppUpdateReceiver extends BroadcastReceiver {
 
@@ -20,7 +20,7 @@ public class AppUpdateReceiver extends BroadcastReceiver {
         if (Intent.ACTION_MY_PACKAGE_REPLACED.equals(intent.getAction())) {
             Log.v(TAG, "App updated!");
 
-            App.initQuickCreate();
+            SystemNotificationUtil.tryToCreateQuickCreateNotification(context);
 
             AlarmHelper.createAllAlarms(context, false);
 

@@ -136,7 +136,15 @@ public class SystemNotificationUtil {
         return builder;
     }
 
-    public static void createOngoingNotification(Context context) {
+    public static void tryToCreateQuickCreateNotification(Context context) {
+        SharedPreferences sp = context.getSharedPreferences(
+                Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE);
+        if (sp.getBoolean(Def.Meta.KEY_QUICK_CREATE, true)) {
+            createQuickCreateNotification(context);
+        }
+    }
+
+    public static void createQuickCreateNotification(Context context) {
         NotificationManagerCompat nmc = NotificationManagerCompat.from(context);
         nmc.cancel(Def.Meta.ONGOING_NOTIFICATION_ID);
 

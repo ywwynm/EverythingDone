@@ -12,7 +12,6 @@ import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.AsyncTask;
-import android.os.Environment;
 import android.provider.Settings;
 import android.support.annotation.StringRes;
 import android.support.design.widget.Snackbar;
@@ -671,7 +670,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
-                    SystemNotificationUtil.createOngoingNotification(App.getApp());
+                    SystemNotificationUtil.createQuickCreateNotification(App.getApp());
                 } else {
                     NotificationManagerCompat.from(App.getApp()).cancel(
                             Def.Meta.ONGOING_NOTIFICATION_ID);
