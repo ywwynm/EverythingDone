@@ -152,12 +152,8 @@ public class SystemNotificationUtil {
         }
         App.newThingColor = color;
 
-        Intent contentIntent = new Intent(context, DetailActivity.class);
-        contentIntent.putExtra(Def.Communication.KEY_SENDER_NAME, App.class.getName());
-        contentIntent.putExtra(Def.Communication.KEY_DETAIL_ACTIVITY_TYPE,
-                DetailActivity.CREATE);
-        contentIntent.putExtra(Def.Communication.KEY_COLOR, color);
-
+        Intent contentIntent = DetailActivity.getOpenIntentForCreate(
+                context, App.class.getName(), color);
         PendingIntent contentPendingIntent = PendingIntent.getActivity(context,
                 Def.Meta.ONGOING_NOTIFICATION_ID, contentIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 

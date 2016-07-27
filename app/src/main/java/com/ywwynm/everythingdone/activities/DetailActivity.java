@@ -6,6 +6,7 @@ import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
 import android.app.ActivityManager;
 import android.content.ActivityNotFoundException;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
@@ -113,7 +114,27 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     public static final int CREATE = 0;
     public static final int UPDATE = 1;
 
-    private static int createActiviesCount = 0;
+    public static Intent getOpenIntentForCreate(Context context, String senderName, int color) {
+        final Intent intent = new Intent(context, DetailActivity.class);
+        intent.putExtra(Def.Communication.KEY_SENDER_NAME, senderName);
+        intent.putExtra(Def.Communication.KEY_DETAIL_ACTIVITY_TYPE,
+                DetailActivity.CREATE);
+        intent.putExtra(Def.Communication.KEY_COLOR, color);
+        return intent;
+    }
+
+    public static Intent getOpenIntentForUpdate(
+            Context context, String senderName, long id, int position) {
+        final Intent intent = new Intent(context, DetailActivity.class);
+        intent.putExtra(Def.Communication.KEY_SENDER_NAME, senderName);
+        intent.putExtra(Def.Communication.KEY_DETAIL_ACTIVITY_TYPE,
+                DetailActivity.UPDATE);
+        intent.putExtra(Def.Communication.KEY_ID, id);
+        intent.putExtra(Def.Communication.KEY_POSITION, position);
+        return intent;
+    }
+
+    private static int createActivitiesCount = 0;
 
     public float screenDensity;
 
@@ -352,7 +373,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
         ThingManager thingManager = ThingManager.getInstance(mApp);
         if (mType == CREATE) {
-            createActiviesCount++;
+            createActivitiesCount++;
             SystemNotificationUtil.tryToCreateQuickCreateNotification(this);
 
             long newId = thingManager.getHeaderId();
@@ -985,7 +1006,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         mRemoveDetailActivityInstance = true;
 
         if (mType == CREATE) {
-            createActiviesCount--;
+            createActivitiesCount--;
             mMinusCreateActivitiesCount = true;
         }
         super.finish();
@@ -1355,7 +1376,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         }
 
         if (mType == CREATE && !mMinusCreateActivitiesCount) {
-            createActiviesCount--;
+            createActivitiesCount--;
         }
     }
 
@@ -2208,7 +2229,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         // will be missed.
         // Another case is that there are more than 1 create-type DetailActivity instance.
         WeakReference<ThingsActivity> wr = App.thingsActivityWR;
-        if (wr == null || wr.get() == null || createActiviesCount > 1) {
+        if (wr == null || wr.get() == null || createActivitiesCount > 1) {
             ThingManager.getInstance(mApp).create(mThing, true, true);
             intent.putExtra(Def.Communication.KEY_CREATED_DONE, true);
         } else if (!shouldSendBroadCast()) {
