@@ -1,16 +1,12 @@
 package com.ywwynm.everythingdone.appwidget;
 
-import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;
 import android.content.Context;
-import android.content.Intent;
 import android.support.v4.util.Pair;
-import android.widget.RemoteViews;
 
-import com.ywwynm.everythingdone.R;
-import com.ywwynm.everythingdone.activities.DetailActivity;
 import com.ywwynm.everythingdone.database.ThingDAO;
+import com.ywwynm.everythingdone.helpers.AppWidgetHelper;
 import com.ywwynm.everythingdone.managers.ThingManager;
 import com.ywwynm.everythingdone.model.Thing;
 
@@ -41,7 +37,7 @@ public class ThingWidget extends AppWidgetProvider {
                 thing = pair.second;
             }
             appWidgetManager.updateAppWidget(appWidgetId,
-                    createRemoteViews(context, thing, position));
+                    AppWidgetHelper.createRemoteViewsForSingleThing(context, thing, position));
         }
     }
 
@@ -56,15 +52,5 @@ public class ThingWidget extends AppWidgetProvider {
             }
         }
         return pair;
-    }
-
-    private RemoteViews createRemoteViews(Context context, Thing thing, int position) {
-        RemoteViews remoteViews = new RemoteViews(context.getPackageName(), R.layout.widget_thing);
-        final Intent contentIntent = DetailActivity.getOpenIntentForUpdate(
-                context, TAG, thing.getId(), position);
-        PendingIntent pendingIntent = PendingIntent.getActivity(
-                context, (int) thing.getId(), contentIntent, 0);
-        remoteViews.setOnClickPendingIntent(R.id.ll_widget_thing, pendingIntent);
-        return remoteViews;
     }
 }
