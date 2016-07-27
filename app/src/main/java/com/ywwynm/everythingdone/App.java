@@ -15,6 +15,7 @@ import com.ywwynm.everythingdone.helpers.CrashHelper;
 import com.ywwynm.everythingdone.managers.ModeManager;
 import com.ywwynm.everythingdone.managers.ThingManager;
 import com.ywwynm.everythingdone.model.Thing;
+import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.FileUtil;
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil;
 
@@ -74,6 +75,8 @@ public class App extends Application {
     private static boolean somethingUpdatedSpecially = false;
     private static boolean justNotifyDataSetChanged = false;
 
+    public static int newThingColor;
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -81,6 +84,8 @@ public class App extends Application {
         app = this;
 
         CrashHelper.getInstance().init(this);
+
+        newThingColor = DisplayUtil.getRandomColor(this);
 
         firstLaunch();
 

@@ -40,8 +40,6 @@ public class SystemNotificationUtil {
 
     public static final String TAG = "EverythingDone$SystemNotificationUtil";
 
-    public static int newThingColor = DisplayUtil.getRandomColor(App.getApp());
-
     /**
      * Create a {@link NotificationCompat.Builder} for a giving thing which shows its text(title,
      * content, type description, checklist and so on), color, attachment and defines basic content
@@ -149,10 +147,10 @@ public class SystemNotificationUtil {
         nmc.cancel(Def.Meta.ONGOING_NOTIFICATION_ID);
 
         int color = DisplayUtil.getRandomColor(context);
-        while (color == newThingColor) {
+        while (color == App.newThingColor) {
             color = DisplayUtil.getRandomColor(context);
         }
-        newThingColor = color;
+        App.newThingColor = color;
 
         Intent contentIntent = new Intent(context, DetailActivity.class);
         contentIntent.putExtra(Def.Communication.KEY_SENDER_NAME, App.class.getName());

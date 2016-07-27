@@ -151,6 +151,15 @@
             android:label="@string/help">
         </activity>
 
+        <receiver android:name=".appwidget.CreateWidget">
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_create" />
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+        </receiver>
+
     </application>
 
 </manifest>
