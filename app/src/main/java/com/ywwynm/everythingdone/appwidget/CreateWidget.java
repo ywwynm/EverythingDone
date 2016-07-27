@@ -19,13 +19,15 @@ import com.ywwynm.everythingdone.utils.DisplayUtil;
  */
 public class CreateWidget extends AppWidgetProvider {
 
+    public static final String TAG = "CreateWidget";
+
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
         for (int appWidgetId : appWidgetIds) {
             RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_create);
 
             Intent contentIntent = new Intent(context, DetailActivity.class);
-            contentIntent.putExtra(Def.Communication.KEY_SENDER_NAME, App.class.getName());
+            contentIntent.putExtra(Def.Communication.KEY_SENDER_NAME, TAG);
             contentIntent.putExtra(Def.Communication.KEY_DETAIL_ACTIVITY_TYPE,
                     DetailActivity.CREATE);
 
@@ -38,7 +40,7 @@ public class CreateWidget extends AppWidgetProvider {
 
             PendingIntent pendingIntent = PendingIntent.getActivity(context,
                     appWidgetId, contentIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-            views.setOnClickPendingIntent(R.id.tv_widget_create_as_bt, pendingIntent);
+            views.setOnClickPendingIntent(R.id.iv_widget_create_content, pendingIntent);
             appWidgetManager.updateAppWidget(appWidgetId, views);
         }
     }

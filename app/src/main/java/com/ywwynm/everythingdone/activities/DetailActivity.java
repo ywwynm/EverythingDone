@@ -57,6 +57,7 @@ import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.adapters.AudioAttachmentAdapter;
 import com.ywwynm.everythingdone.adapters.CheckListAdapter;
 import com.ywwynm.everythingdone.adapters.ImageAttachmentAdapter;
+import com.ywwynm.everythingdone.appwidget.CreateWidget;
 import com.ywwynm.everythingdone.collections.ThingActionsList;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ReminderDAO;
@@ -2259,9 +2260,12 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     }
 
     private boolean shouldSendBroadCast() {
-        return mSenderName.equals(ReminderReceiver.TAG) || mSenderName.equals(HabitReceiver.TAG)
-                || mSenderName.equals(AutoNotifyReceiver.TAG) || "intent".equals(mSenderName)
-                || mSenderName.equals(App.class.getName());
+        return mSenderName.equals(ReminderReceiver.TAG)
+                || mSenderName.equals(HabitReceiver.TAG)
+                || mSenderName.equals(AutoNotifyReceiver.TAG)
+                || "intent".equals(mSenderName)
+                || mSenderName.equals(App.class.getName())
+                || mSenderName.equals(CreateWidget.TAG);
     }
 
     private void sendBroadCastToUpdateMainUI(Intent intent, int resultCode) {

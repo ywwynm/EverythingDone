@@ -151,7 +151,9 @@
             android:label="@string/help">
         </activity>
 
-        <receiver android:name=".appwidget.CreateWidget">
+        <receiver
+            android:name=".appwidget.CreateWidget"
+            android:label="@string/title_create_thing">
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_info_create" />
