@@ -64,6 +64,7 @@ public class ThingWidget extends AppWidgetProvider {
                 context, TAG, thing.getId(), position);
         PendingIntent pendingIntent = PendingIntent.getActivity(
                 context, (int) thing.getId(), contentIntent, 0);
+        remoteViews.setOnClickPendingIntent(R.id.ll_widget_thing, pendingIntent);
         return remoteViews;
     }
 }
