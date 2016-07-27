@@ -58,7 +58,7 @@ import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.adapters.AudioAttachmentAdapter;
 import com.ywwynm.everythingdone.adapters.CheckListAdapter;
 import com.ywwynm.everythingdone.adapters.ImageAttachmentAdapter;
-import com.ywwynm.everythingdone.appwidget.CreateWidget;
+import com.ywwynm.everythingdone.appwidgets.CreateWidget;
 import com.ywwynm.everythingdone.collections.ThingActionsList;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ReminderDAO;

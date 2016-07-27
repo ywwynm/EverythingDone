@@ -1,4 +1,4 @@
-package com.ywwynm.everythingdone.appwidget;
+package com.ywwynm.everythingdone.appwidgets;
 
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;

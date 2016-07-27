@@ -1,4 +1,4 @@
-package com.ywwynm.everythingdone.appwidget;
+package com.ywwynm.everythingdone.appwidgets;
 
 import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;
@@ -23,7 +23,7 @@ public class CreateWidget extends AppWidgetProvider {
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
         for (int appWidgetId : appWidgetIds) {
-            RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_create);
+            RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.app_widget_create);
 
             int color = DisplayUtil.getRandomColor(context);
             while (color == App.newThingColor) {

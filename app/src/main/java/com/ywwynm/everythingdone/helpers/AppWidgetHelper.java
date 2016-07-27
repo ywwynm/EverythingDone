@@ -21,7 +21,7 @@ public class AppWidgetHelper {
 
     public static RemoteViews createRemoteViewsForSingleThing(
             Context context, Thing thing, int position) {
-        RemoteViews remoteViews = new RemoteViews(context.getPackageName(), R.layout.widget_thing);
+        RemoteViews remoteViews = new RemoteViews(context.getPackageName(), R.layout.app_widget_thing);
         setAppearance(remoteViews, thing);
         final Intent contentIntent = DetailActivity.getOpenIntentForUpdate(
                 context, TAG, thing.getId(), position);
