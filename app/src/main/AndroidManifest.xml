@@ -162,6 +162,17 @@
             </intent-filter>
         </receiver>
 
+        <receiver
+            android:name=".appwidget.ThingWidget"
+            android:label="@string/thing">
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_thing" />
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+        </receiver>
+
     </application>
 
 </manifest>
