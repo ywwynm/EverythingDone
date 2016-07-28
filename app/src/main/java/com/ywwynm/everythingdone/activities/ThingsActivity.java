@@ -921,18 +921,14 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     location[1] -= statusBarHeight;
                 }
 
-                final Intent intent = new Intent(ThingsActivity.this, DetailActivity.class);
-                intent.putExtra(Def.Communication.KEY_SENDER_NAME, TAG);
-                intent.putExtra(Def.Communication.KEY_DETAIL_ACTIVITY_TYPE,
-                        DetailActivity.CREATE);
-                intent.putExtra(Def.Communication.KEY_ID, -1L);
-                intent.putExtra(Def.Communication.KEY_COLOR, mFabRippleColor);
-
                 mViewToReveal.setBackgroundColor(mFabRippleColor);
                 mViewToReveal.setVisibility(View.VISIBLE);
                 mRevealLayout.setVisibility(View.VISIBLE);
 
                 mRevealLayout.show(location[0], location[1]);
+
+                final Intent intent = DetailActivity.getOpenIntentForCreate(
+                        ThingsActivity.this, TAG, mFabRippleColor);
                 mFab.postDelayed(new Runnable() {
                     @Override
                     public void run() {
@@ -1692,7 +1688,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                             new AuthenticationHelper.AuthenticationCallback() {
                                 @Override
                                 public void onAuthenticated() {
-                                    openDetailActivity(thing, position, v);
+                                    openDetailActivityForUpdate(thing, position, v);
                                 }
 
                                 @Override
@@ -1701,7 +1697,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                                 }
                             });
                 } else {
-                    openDetailActivity(thing, position, v);
+                    openDetailActivityForUpdate(thing, position, v);
                 }
             } else {
                 Thing thing = things.get(position);
@@ -1712,15 +1708,9 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             }
         }
 
-        private void openDetailActivity(Thing thing, int position, View v) {
-            final Intent intent = new Intent(ThingsActivity.this, DetailActivity.class);
-            intent.putExtra(Def.Communication.KEY_SENDER_NAME,
-                    ThingsActivity.class.getName());
-            intent.putExtra(Def.Communication.KEY_DETAIL_ACTIVITY_TYPE,
-                    DetailActivity.UPDATE);
-            intent.putExtra(Def.Communication.KEY_ID, thing.getId());
-            intent.putExtra(Def.Communication.KEY_POSITION, position);
-
+        private void openDetailActivityForUpdate(Thing thing, int position, View v) {
+            final Intent intent = DetailActivity.getOpenIntentForUpdate(
+                    ThingsActivity.this, TAG, thing.getId(), position);
             ActivityOptionsCompat transition = ActivityOptionsCompat.makeScaleUpAnimation(
                     v, 0, 0, v.getWidth(), v.getHeight());
             ActivityCompat.startActivityForResult(

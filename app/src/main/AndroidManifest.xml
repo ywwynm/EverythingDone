@@ -151,10 +151,23 @@
             android:label="@string/help">
         </activity>
 
-        <receiver android:name=".appwidget.CreateWidget">
+        <receiver
+            android:name=".appwidgets.CreateWidget"
+            android:label="@string/title_create_thing">
             <meta-data
                 android:name="android.appwidget.provider"
-                android:resource="@xml/widget_info_create" />
+                android:resource="@xml/app_widget_info_create" />
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".appwidgets.ThingWidget"
+            android:label="@string/thing">
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/app_widget_info_thing" />
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
