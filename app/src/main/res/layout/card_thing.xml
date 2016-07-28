@@ -6,7 +6,6 @@
     android:id="@+id/cv_thing"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    style="@style/SelectableItemForeground.Light"
     app:cardCornerRadius="2dp">
 
     <LinearLayout

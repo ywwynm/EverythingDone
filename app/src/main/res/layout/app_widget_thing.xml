@@ -43,7 +43,7 @@
             android:layout_height="28dp"
             android:layout_gravity="center"/>
 
-        <View
+        <TextView
             android:id="@+id/view_thing_image_cover"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -113,7 +113,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
-        <View
+        <TextView
             android:id="@+id/view_reminder_separator"
             android:layout_width="match_parent"
             android:layout_height="2dp"
@@ -146,7 +146,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
-        <View
+        <TextView
             android:id="@+id/view_habit_separator_1"
             android:layout_width="match_parent"
             android:layout_height="2dp"
@@ -183,7 +183,7 @@
             android:textSize="12sp"
             android:textColor="@color/white_54p"/>
 
-        <View
+        <TextView
             android:id="@+id/view_habit_separator_2"
             android:layout_width="match_parent"
             android:layout_height="2dp"
@@ -222,7 +222,7 @@
 
     </RelativeLayout>
 
-    <View
+    <TextView
         android:id="@+id/view_thing_padding_bottom"
         android:layout_width="wrap_content"
         android:layout_height="16dp"/>
