@@ -37,18 +37,6 @@
             android:background="@color/black_26p"
             tools:ignore="SmallSp"/>
 
-        <ProgressBar
-            android:id="@+id/pb_thing_image_attachment"
-            android:layout_width="28dp"
-            android:layout_height="28dp"
-            android:layout_gravity="center"/>
-
-        <TextView
-            android:id="@+id/view_thing_image_cover"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@color/white_66p"/>
-
     </FrameLayout>
 
     <TextView
