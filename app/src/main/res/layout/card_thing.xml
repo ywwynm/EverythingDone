@@ -164,7 +164,7 @@
                 android:id="@+id/iv_thing_habit"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="5dp"
+                android:layout_marginTop="6dp"
                 android:layout_below="@id/view_habit_separator_1"
                 android:src="@drawable/card_habit"
                 android:contentDescription="@string/description_time"/>

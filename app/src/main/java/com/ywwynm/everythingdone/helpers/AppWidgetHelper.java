@@ -3,14 +3,12 @@ package com.ywwynm.everythingdone.helpers;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Bitmap;
 import android.util.TypedValue;
 import android.view.View;
 import android.widget.RemoteViews;
 
 import com.bumptech.glide.Glide;
-import com.bumptech.glide.request.animation.GlideAnimation;
-import com.bumptech.glide.request.target.SimpleTarget;
+import com.bumptech.glide.request.target.AppWidgetTarget;
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.DetailActivity;
@@ -68,9 +66,9 @@ public class AppWidgetHelper {
     private AppWidgetHelper() {}
 
     public static RemoteViews createRemoteViewsForSingleThing(
-            Context context, Thing thing, int position) {
+            Context context, Thing thing, int position, int appWidgetId) {
         RemoteViews remoteViews = new RemoteViews(context.getPackageName(), R.layout.app_widget_thing);
-        setAppearance(context, remoteViews, thing);
+        setAppearance(context, remoteViews, thing, appWidgetId);
         final Intent contentIntent = DetailActivity.getOpenIntentForUpdate(
                 context, TAG, thing.getId(), position);
         PendingIntent pendingIntent = PendingIntent.getActivity(
@@ -79,15 +77,46 @@ public class AppWidgetHelper {
         return remoteViews;
     }
 
-    public static void setAppearance(Context context, RemoteViews remoteViews, Thing thing) {
+    public static void setAppearance(Context context, RemoteViews remoteViews, Thing thing, int appWidgetId) {
         remoteViews.setInt(LL_WIDGET_THING, "setBackgroundColor", thing.getColor());
 
+        setImageAttachment(context, remoteViews, thing, appWidgetId);
         setTitleAndPrivate(remoteViews, thing);
         setContent(remoteViews, thing);
         setReminder(context, remoteViews, thing);
         setHabit(context, remoteViews, thing);
         setAudioAttachment(context, remoteViews, thing);
-        setImageAttachment(context, remoteViews, thing);
+    }
+
+    private static void setImageAttachment(Context context, RemoteViews remoteViews, Thing thing, int appWidgetId) {
+        String attachment = thing.getAttachment();
+        String firstImageTypePathName = AttachmentHelper.getFirstImageTypePathName(attachment);
+        if (firstImageTypePathName == null) {
+            return;
+        }
+
+        remoteViews.setViewVisibility(FL_IMAGE_ATTACHMENT, View.VISIBLE);
+
+        String pathName = firstImageTypePathName.substring(1, firstImageTypePathName.length());
+        Glide.with(context)
+                .load(pathName)
+                .asBitmap()
+                .into(new AppWidgetTarget(
+                        context, remoteViews, IV_IMAGE_ATTACHMENT, new int[] { appWidgetId }));
+
+        // if thing has only an image/video, there should be no margins for ImageView
+//            if (holder.tvTitle.getVisibility() == View.GONE
+//                    && holder.tvContent.getVisibility() == View.GONE
+//                    && holder.rvChecklist.getVisibility() == View.GONE
+//                    && holder.llAudioAttachment.getVisibility() == View.GONE
+//                    && holder.rlReminder.getVisibility() == View.GONE) {
+//                holder.vPaddingBottom.setVisibility(View.GONE);
+//            } else {
+//                holder.vPaddingBottom.setVisibility(View.VISIBLE);
+//            }
+
+        remoteViews.setTextViewText(TV_IMAGE_COUNT,
+                AttachmentHelper.getImageAttachmentCountStr(attachment, context));
     }
 
     private static void setTitleAndPrivate(RemoteViews remoteViews, Thing thing) {
@@ -225,8 +254,7 @@ public class AppWidgetHelper {
                     lastFive.append("?");
                 }
             }
-            // TODO: 2016/7/28 last five appearance
-//                holder.habitRecordPresenter.setRecord(lastFive.toString());
+            setHabitLastFive(remoteViews, lastFive.toString());
 
             remoteViews.setTextViewText(TV_HABIT_FINISHED_THIS_T,
                     habit.getFinishedTimesThisTStr(context));
@@ -237,6 +265,9 @@ public class AppWidgetHelper {
             remoteViews.setViewVisibility(LL_HABIT_RECORD,          View.GONE);
             remoteViews.setViewVisibility(TV_HABIT_FINISHED_THIS_T, View.GONE);
         }
+
+        remoteViews.setViewVisibility(V_REMINDER_HABIT_HELPER, View.VISIBLE);
+        remoteViews.setViewVisibility(V_PADDING_BOTTOM,  View.VISIBLE);
     }
 
     private static void setAudioAttachment(Context context, RemoteViews remoteViews, Thing thing) {
@@ -253,41 +284,24 @@ public class AppWidgetHelper {
         remoteViews.setTextViewText(TV_AUDIO_COUNT, str);
     }
 
-    private static void setImageAttachment(Context context, final RemoteViews remoteViews, Thing thing) {
-        String attachment = thing.getAttachment();
-        String firstImageTypePathName = AttachmentHelper.getFirstImageTypePathName(attachment);
-        if (firstImageTypePathName == null) {
-            return;
+    private static void setHabitLastFive(RemoteViews remoteViews, String lastFive) {
+        int[] ids = {
+                R.id.iv_thing_habit_record_1,
+                R.id.iv_thing_habit_record_2,
+                R.id.iv_thing_habit_record_3,
+                R.id.iv_thing_habit_record_4,
+                R.id.iv_thing_habit_record_5
+        };
+        char[] states = lastFive.toCharArray();
+        for (int i = 0; i < states.length; i++) {
+            if (states[i] == '0') {
+                remoteViews.setImageViewResource(ids[i], R.drawable.card_habit_unfinished);
+            } else if (states[i] == '1') {
+                remoteViews.setImageViewResource(ids[i], R.drawable.card_habit_finished);
+            } else {
+                remoteViews.setImageViewResource(ids[i], R.drawable.card_habit_unknown);
+            }
         }
-
-        remoteViews.setViewVisibility(FL_IMAGE_ATTACHMENT, View.VISIBLE);
-
-        String pathName = firstImageTypePathName.substring(1, firstImageTypePathName.length());
-        Glide.with(context)
-                .load(pathName)
-                .asBitmap()
-                .centerCrop()
-                .into(new SimpleTarget<Bitmap>() {
-                    @Override
-                    public void onResourceReady(
-                            Bitmap resource, GlideAnimation<? super Bitmap> glideAnimation) {
-                        remoteViews.setImageViewBitmap(IV_IMAGE_ATTACHMENT, resource);
-                    }
-                });
-
-        // if thing has only an image/video, there should be no margins for ImageView
-//            if (holder.tvTitle.getVisibility() == View.GONE
-//                    && holder.tvContent.getVisibility() == View.GONE
-//                    && holder.rvChecklist.getVisibility() == View.GONE
-//                    && holder.llAudioAttachment.getVisibility() == View.GONE
-//                    && holder.rlReminder.getVisibility() == View.GONE) {
-//                holder.vPaddingBottom.setVisibility(View.GONE);
-//            } else {
-//                holder.vPaddingBottom.setVisibility(View.VISIBLE);
-//            }
-
-        remoteViews.setTextViewText(TV_IMAGE_COUNT,
-                AttachmentHelper.getImageAttachmentCountStr(attachment, context));
     }
 
 }

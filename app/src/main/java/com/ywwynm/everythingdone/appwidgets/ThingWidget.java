@@ -38,7 +38,7 @@ public class ThingWidget extends AppWidgetProvider {
                 thing = pair.second;
             }
             appWidgetManager.updateAppWidget(appWidgetId,
-                    AppWidgetHelper.createRemoteViewsForSingleThing(context, thing, position));
+                    AppWidgetHelper.createRemoteViewsForSingleThing(context, thing, position, appWidgetId));
         }
     }
 
