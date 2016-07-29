@@ -25,7 +25,7 @@ public class ThingWidget extends AppWidgetProvider {
         ThingManager thingManager = ThingManager.getInstance(context);
         ThingDAO thingDAO = ThingDAO.getInstance(context);
         for (int appWidgetId : appWidgetIds) {
-            long id = 0;
+            long id = 291;
             Pair<Integer, Thing> pair = getThingAndPositionFromManager(thingManager, id);
             int position;
             Thing thing;
