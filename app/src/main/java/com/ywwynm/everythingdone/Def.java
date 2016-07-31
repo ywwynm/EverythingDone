@@ -140,6 +140,7 @@ public final class Def {
         public static final int REQUEST_PERMISSION_EXPORT_MAIN         = 12;
         public static final int REQUEST_PERMISSION_EXPORT_DETAIL       = 13;
         public static final int REQUEST_PERMISSION_LOAD_THING          = 14; // DetailActivity
+        public static final int REQUEST_PERMISSION_LOAD_THINGS_2       = 15; // ThingWidgetConfigureActivity
 
         public static final String KEY_SENDER_NAME          = PREFIX + "key.sender_name";
         public static final String KEY_DETAIL_ACTIVITY_TYPE = PREFIX + "key.detail_activity_type";

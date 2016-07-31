@@ -16,6 +16,7 @@ public class BaseViewHolder extends RecyclerView.ViewHolder {
         mContentView = itemView;
     }
 
+    @SuppressWarnings("unchecked")
     protected final <T extends View> T f(int id) {
         return (T) mContentView.findViewById(id);
     }

@@ -832,8 +832,8 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             mSpan++;
         }
 
-        boolean shouldRequestPermission = !PermissionUtil.hasStoragePermission(this);
-        if (shouldRequestPermission && mThingManager.shouldRequestPermissionForStorage()) {
+        if (!PermissionUtil.hasStoragePermission(this)
+                && PermissionUtil.shouldRequestPermissionWhenLoadingThings(mThingManager.getThings())) {
             doWithPermissionChecked(new SimplePermissionCallback(this) {
                 @Override
                 public void onGranted() {
