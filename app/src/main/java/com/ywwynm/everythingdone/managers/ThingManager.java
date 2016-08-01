@@ -734,6 +734,25 @@ public class ThingManager {
         return count;
     }
 
+    public Thing getThingById(long id) {
+        for (Thing thing : mThings) {
+            if (thing.getId() == id) {
+                return thing;
+            }
+        }
+        return null;
+    }
+
+    public int getPosition(Thing thing) {
+        final int size = mThings.size();
+        for (int i = 0; i < size; i++) {
+            if (mThings.get(i).getId() == thing.getId()) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
     private void updateHeader(int addSize) {
         mHeaderId += addSize;
         Thing header = mThings.get(0);

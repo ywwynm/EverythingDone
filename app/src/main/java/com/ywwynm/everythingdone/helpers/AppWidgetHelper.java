@@ -3,6 +3,7 @@ package com.ywwynm.everythingdone.helpers;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
 import android.util.TypedValue;
 import android.view.View;
 import android.widget.RemoteViews;
@@ -13,6 +14,7 @@ import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.DetailActivity;
+import com.ywwynm.everythingdone.appwidgets.BaseThingWidget;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.model.Habit;
@@ -84,7 +86,7 @@ public class AppWidgetHelper {
 
         setImageAttachment(context, remoteViews, thing, appWidgetId);
         setTitleAndPrivate(remoteViews, thing);
-        setContent(context, remoteViews, thing);
+        setContent(context, remoteViews, thing, appWidgetId);
         setReminder(context, remoteViews, thing);
         setHabit(context, remoteViews, thing);
         setAudioAttachment(context, remoteViews, thing);
@@ -139,7 +141,7 @@ public class AppWidgetHelper {
         remoteViews.setViewVisibility(LL_WIDGET_THING_CONTENT, View.VISIBLE);
     }
 
-    private static void setContent(Context context, RemoteViews remoteViews, Thing thing) {
+    private static void setContent(Context context, RemoteViews remoteViews, Thing thing, int appWidgetId) {
         int p = (int) (screenDensity * 12);
         String content = thing.getContent();
         if (content.isEmpty() || thing.isPrivate()) {
@@ -163,8 +165,19 @@ public class AppWidgetHelper {
             remoteViews.setViewVisibility(TV_CONTENT,   View.GONE);
 
             Intent intent = new Intent(context, ChecklistWidgetService.class);
-            intent.putExtra(Def.Communication.KEY_CHECKLIST_STRING, content);
+            intent.putExtra(Def.Communication.KEY_WIDGET_ID, appWidgetId);
+            intent.putExtra(Def.Communication.KEY_ID, thing.getId());
+            intent.setData(Uri.parse(intent.toUri(Intent.URI_INTENT_SCHEME)));
             remoteViews.setRemoteAdapter(LV_CHECKLIST, intent);
+
+            intent = new Intent(context, BaseThingWidget.class);
+            intent.setAction(BaseThingWidget.ACTION_UPDATE_CHECKLIST);
+            intent.setData(Uri.parse(intent.toUri(Intent.URI_INTENT_SCHEME)));
+            intent.putExtra(Def.Communication.KEY_ID, thing.getId());
+            intent.putExtra(Def.Communication.KEY_CHECKLIST_STRING, "");
+            PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 0, intent,
+                    PendingIntent.FLAG_UPDATE_CURRENT);
+            remoteViews.setPendingIntentTemplate(R.id.lv_check_list, pendingIntent);
 
             remoteViews.setViewPadding(LV_CHECKLIST, (int) (-6 * screenDensity), p, 0, 0);
         }

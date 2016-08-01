@@ -169,6 +169,7 @@ public final class Def {
         public static final String KEY_HELP_TITLES   = PREFIX + "key.help_title";
         public static final String KEY_HELP_CONTENTS = PREFIX + "key.help_content";
 
+        public static final String KEY_WIDGET_ID        = PREFIX + "key.widget_id";
         public static final String KEY_CHECKLIST_STRING = PREFIX + "key.checklist_string";
 
         public static final int RESULT_NO_UPDATE                        = 0;
