@@ -35,7 +35,7 @@ public class ThingDAO {
     private ThingDAO(Context context) {
         mContext = context;
         mLimit = Def.LimitForGettingThings.ALL_UNDERWAY;
-        EverythingDoneSQLiteOpenHelper helper = new EverythingDoneSQLiteOpenHelper(context);
+        DBHelper helper = new DBHelper(context);
         db = helper.getWritableDatabase();
         checkSelf();
     }

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <appwidget-provider
     xmlns:android="http://schemas.android.com/apk/res/android"
-    android:minWidth="120dp"
-    android:minHeight="50dp"
+    android:minWidth="110dp"
+    android:minHeight="110dp"
     android:updatePeriodMillis="0"
     android:configure="com.ywwynm.everythingdone.activities.ThingWidgetConfigureActivity"
     android:initialLayout="@layout/app_widget_thing"

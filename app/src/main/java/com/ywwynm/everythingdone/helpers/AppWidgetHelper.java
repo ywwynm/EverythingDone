@@ -10,6 +10,7 @@ import android.widget.RemoteViews;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.target.AppWidgetTarget;
 import com.ywwynm.everythingdone.App;
+import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.DetailActivity;
 import com.ywwynm.everythingdone.database.HabitDAO;
@@ -17,6 +18,7 @@ import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.Thing;
+import com.ywwynm.everythingdone.services.ChecklistWidgetService;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 
@@ -31,7 +33,7 @@ public class AppWidgetHelper {
     private static final float screenDensity = DisplayUtil.getScreenDensity(App.getApp());
 
     private static final int LL_WIDGET_THING          = R.id.ll_widget_thing;
-    private static final int V_PADDING_BOTTOM         = R.id.view_thing_padding_bottom;
+    private static final int LL_WIDGET_THING_CONTENT  = R.id.ll_widget_thing_content;
 
     private static final int FL_IMAGE_ATTACHMENT      = R.id.fl_image_attachment;
     private static final int IV_IMAGE_ATTACHMENT      = R.id.iv_image_attachment;
@@ -82,7 +84,7 @@ public class AppWidgetHelper {
 
         setImageAttachment(context, remoteViews, thing, appWidgetId);
         setTitleAndPrivate(remoteViews, thing);
-        setContent(remoteViews, thing);
+        setContent(context, remoteViews, thing);
         setReminder(context, remoteViews, thing);
         setHabit(context, remoteViews, thing);
         setAudioAttachment(context, remoteViews, thing);
@@ -124,8 +126,8 @@ public class AppWidgetHelper {
         if (!title.isEmpty()) {
             int p = (int) (screenDensity * 12);
             remoteViews.setViewVisibility(TV_TITLE, View.VISIBLE);
-            remoteViews.setViewPadding(TV_TITLE, p, p, p, 0);
             remoteViews.setTextViewText(TV_TITLE, title);
+            remoteViews.setViewPadding(TV_TITLE, 0, p, 0, 0);
         }
 
         if (thing.isPrivate()) {
@@ -134,10 +136,10 @@ public class AppWidgetHelper {
             remoteViews.setViewVisibility(V_PRIVATE_HELPER_2, View.VISIBLE);
         }
 
-        remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);
+        remoteViews.setViewVisibility(LL_WIDGET_THING_CONTENT, View.VISIBLE);
     }
 
-    private static void setContent(RemoteViews remoteViews, Thing thing) {
+    private static void setContent(Context context, RemoteViews remoteViews, Thing thing) {
         int p = (int) (screenDensity * 12);
         String content = thing.getContent();
         if (content.isEmpty() || thing.isPrivate()) {
@@ -147,30 +149,27 @@ public class AppWidgetHelper {
         if (!CheckListHelper.isCheckListStr(content)) {
             remoteViews.setViewVisibility(LV_CHECKLIST, View.GONE);
             remoteViews.setViewVisibility(TV_CONTENT,   View.VISIBLE);
-            remoteViews.setViewPadding(TV_CONTENT, p, p, p, 0);
+            remoteViews.setViewPadding(TV_CONTENT, 0, p, 0, 0);
             remoteViews.setTextViewText(TV_CONTENT, content);
+            int length = content.length();
+            if (length <= 60) {
+                remoteViews.setTextViewTextSize(TV_CONTENT, TypedValue.COMPLEX_UNIT_SP,
+                        -0.14f * length + 24.14f);
+            } else {
+                remoteViews.setTextViewTextSize(TV_CONTENT, TypedValue.COMPLEX_UNIT_SP, 16);
+            }
         } else {
             remoteViews.setViewVisibility(LV_CHECKLIST, View.VISIBLE);
             remoteViews.setViewVisibility(TV_CONTENT,   View.GONE);
 
-//                long id = thing.getId();
-//                List<String> items = CheckListHelper.toCheckListItems(content, false);
-//                CheckListAdapter adapter = mCheckListAdapters.get(id);
-//                if (adapter == null) {
-//                    adapter = new CheckListAdapter(mApp,
-//                            CheckListAdapter.TEXTVIEW, items);
-//                    mCheckListAdapters.put(id, adapter);
-//                } else {
-//                    adapter.setItems(items);
-//                }
-//                holder.rvChecklist.setAdapter(adapter);
-//                holder.rvChecklist.setLayoutManager(new LinearLayoutManager());
+            Intent intent = new Intent(context, ChecklistWidgetService.class);
+            intent.putExtra(Def.Communication.KEY_CHECKLIST_STRING, content);
+            remoteViews.setRemoteAdapter(LV_CHECKLIST, intent);
 
-            int rp = (int) (screenDensity * 6);
-            remoteViews.setViewPadding(LV_CHECKLIST, rp, p, p, 0);
+            remoteViews.setViewPadding(LV_CHECKLIST, 0, p, 0, 0);
         }
 
-        remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);
+        remoteViews.setViewVisibility(LL_WIDGET_THING_CONTENT, View.VISIBLE);
     }
 
     private static void setReminder(Context context, RemoteViews remoteViews, Thing thing) {
@@ -186,7 +185,7 @@ public class AppWidgetHelper {
 
         int p = (int) (screenDensity * 12);
         remoteViews.setViewVisibility(RL_REMINDER, View.VISIBLE);
-        remoteViews.setViewPadding(RL_REMINDER, p, p, p, 0);
+        remoteViews.setViewPadding(RL_REMINDER, 0, p, 0, 0);
 
         if (thingType == Thing.REMINDER) {
             remoteViews.setViewPadding(IV_REMINDER, 0, (int) (screenDensity * 2), 0, 0);
@@ -217,7 +216,7 @@ public class AppWidgetHelper {
         }
 
         remoteViews.setViewVisibility(V_REMINDER_HABIT_HELPER, View.VISIBLE);
-        remoteViews.setViewVisibility(V_PADDING_BOTTOM,  View.VISIBLE);
+        remoteViews.setViewVisibility(LL_WIDGET_THING_CONTENT, View.VISIBLE);
     }
 
     private static void setHabit(Context context, RemoteViews remoteViews, Thing thing) {
@@ -228,7 +227,7 @@ public class AppWidgetHelper {
 
         int p = (int) (screenDensity * 12);
         remoteViews.setViewVisibility(RL_HABIT, View.VISIBLE);
-        remoteViews.setViewPadding(RL_HABIT, p, p, p, 0);
+        remoteViews.setViewPadding(RL_HABIT, 0, p, 0, 0);
 
         remoteViews.setTextViewText(TV_HABIT_SUMMARY, habit.getSummary(context));
 
@@ -267,7 +266,7 @@ public class AppWidgetHelper {
         }
 
         remoteViews.setViewVisibility(V_REMINDER_HABIT_HELPER, View.VISIBLE);
-        remoteViews.setViewVisibility(V_PADDING_BOTTOM,  View.VISIBLE);
+        remoteViews.setViewVisibility(LL_WIDGET_THING_CONTENT, View.VISIBLE);
     }
 
     private static void setAudioAttachment(Context context, RemoteViews remoteViews, Thing thing) {

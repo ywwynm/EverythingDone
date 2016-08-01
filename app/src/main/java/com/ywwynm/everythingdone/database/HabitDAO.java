@@ -36,7 +36,7 @@ public class HabitDAO {
 
     private HabitDAO(Context context) {
         mContext = context;
-        EverythingDoneSQLiteOpenHelper helper = new EverythingDoneSQLiteOpenHelper(context);
+        DBHelper helper = new DBHelper(context);
         db = helper.getWritableDatabase();
         updateMaxHabitReminderRecordId();
     }

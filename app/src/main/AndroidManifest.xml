@@ -33,7 +33,7 @@
         <activity
             android:name=".activities.DetailActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
-            android:label="@string/title_activity_detail"
+            android:label="@string/thing"
             android:screenOrientation="user"
             android:theme="@style/EverythingDoneTheme.Detail"
             android:windowSoftInputMode="adjustResize">
@@ -153,13 +153,35 @@
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
             </intent-filter>
         </receiver>
+
         <receiver
-            android:name=".appwidgets.ThingWidget"
+            android:name=".appwidgets.ThingWidgetSmall"
             android:label="@string/thing">
             <meta-data
                 android:name="android.appwidget.provider"
-                android:resource="@xml/app_widget_info_thing"/>
+                android:resource="@xml/app_widget_info_thing_small"/>
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+        </receiver>
 
+        <receiver
+            android:name=".appwidgets.ThingWidgetMiddle"
+            android:label="@string/thing">
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/app_widget_info_thing_middle"/>
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".appwidgets.ThingWidgetLarge"
+            android:label="@string/thing">
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/app_widget_info_thing_large"/>
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
             </intent-filter>
@@ -175,6 +197,12 @@
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
             </intent-filter>
         </activity>
+
+        <service
+            android:name=".services.ChecklistWidgetService"
+            android:permission="android.permission.BIND_REMOTEVIEWS">
+
+        </service>
 
     </application>
 

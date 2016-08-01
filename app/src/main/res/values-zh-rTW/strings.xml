@@ -3,11 +3,11 @@
 
     <!--titles of Activities-->
     <string name="title_activity_things_all">所有記事</string>
-    <string name="title_activity_detail">記事</string>
 
     <!--entrances to different activities in drawer-->
     <string name="underway">正在進行</string>
     <string name="all">所有記事</string>
+    <string name="thing">記事</string>
     <string name="note">記錄</string>
     <string name="reminder">提醒</string>
     <string name="habit">習慣</string>
@@ -220,7 +220,6 @@
     <string name="i_work_hard_for">我努力了</string>
     <string name="finished_goal">最終實現了這個目標</string>
     <string name="this_gai">該</string>
-    <string name="thing">記事</string>
     <string name="sb_finish_habit">完成了該習慣</string>
     <string name="act_check_habit_detail">查看習慣詳情</string>
     <string name="habit_detail_completion_rate">完成率</string>

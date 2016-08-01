@@ -26,7 +26,7 @@ public class ReminderDAO {
 
     private ReminderDAO(Context context) {
         mContext = context;
-        EverythingDoneSQLiteOpenHelper helper = new EverythingDoneSQLiteOpenHelper(context);
+        DBHelper helper = new DBHelper(context);
         db = helper.getWritableDatabase();
     }
 

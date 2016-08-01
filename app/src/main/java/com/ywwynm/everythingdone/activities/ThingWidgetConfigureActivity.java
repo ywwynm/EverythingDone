@@ -18,9 +18,13 @@ import com.bumptech.glide.Glide;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.adapters.BaseThingsAdapter;
+import com.ywwynm.everythingdone.database.AppWidgetDAO;
+import com.ywwynm.everythingdone.database.DBHelper;
 import com.ywwynm.everythingdone.database.ThingDAO;
 import com.ywwynm.everythingdone.helpers.AppWidgetHelper;
+import com.ywwynm.everythingdone.helpers.AttachmentHelper;
 import com.ywwynm.everythingdone.managers.ModeManager;
+import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.permission.PermissionUtil;
 import com.ywwynm.everythingdone.permission.SimplePermissionCallback;
@@ -156,6 +160,19 @@ public class ThingWidgetConfigureActivity extends EverythingDoneBaseActivity {
         });
     }
 
+    private void endSelectThing(Thing thing) {
+        AppWidgetDAO.getInstance(this).insert(mAppWidgetId, thing.getId());
+
+        RemoteViews views = AppWidgetHelper.createRemoteViewsForSingleThing(
+                this, thing, -1, mAppWidgetId);
+        AppWidgetManager.getInstance(this).updateAppWidget(mAppWidgetId, views);
+
+        Intent intent = new Intent();
+        intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, mAppWidgetId);
+        setResult(RESULT_OK, intent);
+        finish();
+    }
+
     class ThingsAdapter extends BaseThingsAdapter {
 
         public ThingsAdapter() {
@@ -199,16 +216,7 @@ public class ThingWidgetConfigureActivity extends EverythingDoneBaseActivity {
                 cv.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        Context context = ThingWidgetConfigureActivity.this;
-                        Thing thing = mThings.get(getAdapterPosition());
-                        RemoteViews views = AppWidgetHelper.createRemoteViewsForSingleThing(
-                                context, thing, -1, mAppWidgetId);
-                        AppWidgetManager.getInstance(context).updateAppWidget(mAppWidgetId, views);
-
-                        Intent intent = new Intent();
-                        intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, mAppWidgetId);
-                        setResult(RESULT_OK, intent);
-                        finish();
+                        endSelectThing(mThings.get(getAdapterPosition()));
                     }
                 });
             }

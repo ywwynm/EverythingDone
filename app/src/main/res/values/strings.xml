@@ -5,12 +5,11 @@
 
     <!--task descriptions-->
     <string name="app_name">EverythingDone</string>
-    <string name="title_create_thing">Create New Thing</string>
+    <string name="title_create_thing">Create new thing</string> <!--also used in appwidget-->
     <string name="title_edit_thing">Edit</string>
 
     <!--activity titles-->
     <string name="title_activity_things_all">All things</string>
-    <string name="title_activity_detail">Thing</string>
     <string name="title_activity_image_viewer">Attachment</string>
     <string name="title_activity_settings">Settings</string>
     <string name="title_activity_about">About</string>
@@ -19,7 +18,7 @@
 
     <!--drawer items-->
     <string name="underway">Underway</string>
-    <string name="thing">thing</string>
+    <string name="thing">Thing</string>
     <string name="all">All things</string>
     <string name="note">Note</string>
     <string name="reminder">Reminder</string>

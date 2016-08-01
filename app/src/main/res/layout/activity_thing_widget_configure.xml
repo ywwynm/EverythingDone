@@ -19,7 +19,8 @@
         android:layout_height="?attr/actionBarSize"
         android:layout_below="@id/view_status_bar"
         android:background="@color/app_accent"
-        app:contentInsetStart="72dp"/>
+        app:contentInsetStart="72dp"
+        app:titleTextColor="@color/black_54p"/>
 
     <android.support.v7.widget.RecyclerView
         android:id="@+id/rv_things"

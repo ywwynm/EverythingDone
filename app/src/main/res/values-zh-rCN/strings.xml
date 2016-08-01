@@ -3,7 +3,6 @@
 
     <!--titles of Activities-->
     <string name="title_activity_things_all">所有记事</string>
-    <string name="title_activity_detail">记事</string>
     <string name="title_activity_image_viewer">附件</string>
     <string name="title_activity_settings">设置</string>
     <string name="title_activity_about">关于</string>

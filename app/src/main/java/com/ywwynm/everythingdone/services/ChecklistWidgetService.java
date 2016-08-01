@@ -1,0 +1,142 @@
+package com.ywwynm.everythingdone.services;
+
+import android.content.Context;
+import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.support.v4.content.ContextCompat;
+import android.text.SpannableString;
+import android.text.Spanned;
+import android.text.style.StrikethroughSpan;
+import android.util.TypedValue;
+import android.view.View;
+import android.widget.LinearLayout;
+import android.widget.RemoteViews;
+import android.widget.RemoteViewsService;
+
+import com.ywwynm.everythingdone.Def;
+import com.ywwynm.everythingdone.R;
+import com.ywwynm.everythingdone.helpers.CheckListHelper;
+import com.ywwynm.everythingdone.utils.DisplayUtil;
+
+import java.util.List;
+
+/**
+ * Created by qiizhang on 2016/8/1.
+ * adapter service for checklist in a thing
+ */
+public class ChecklistWidgetService extends RemoteViewsService {
+
+    private static final int IV_STATE   = R.id.iv_check_list_state;
+    private static final int TV_CONTENT = R.id.tv_check_list;
+
+    @Override
+    public RemoteViewsFactory onGetViewFactory(Intent intent) {
+        return new ChecklistViewFactory(getApplicationContext(), intent);
+    }
+
+    class ChecklistViewFactory implements RemoteViewsFactory {
+
+        private Context mContext;
+        private Intent mIntent;
+
+        private List<String> mItems;
+
+        public ChecklistViewFactory(Context mContext, Intent mIntent) {
+            this.mContext = mContext;
+            this.mIntent  = mIntent;
+        }
+
+        @Override
+        public void onCreate() {
+            String checklistStr = mIntent.getStringExtra(Def.Communication.KEY_CHECKLIST_STRING);
+            mItems = CheckListHelper.toCheckListItems(checklistStr, false);
+            mItems.remove("2");
+            mItems.remove("3");
+            mItems.remove("4");
+        }
+
+        @Override
+        public void onDataSetChanged() {
+
+        }
+
+        @Override
+        public void onDestroy() {
+
+        }
+
+        @Override
+        public int getCount() {
+            int size = mItems.size();
+            return size <= 8 ? size : 9;
+        }
+
+        @Override
+        public RemoteViews getViewAt(int position) {
+            RemoteViews rv = new RemoteViews(mContext.getPackageName(), R.layout.check_list_tv);
+
+            int white_76 = ContextCompat.getColor(mContext, R.color.white_76p);
+            int white_50 = Color.parseColor("#80FFFFFF");
+            float density = DisplayUtil.getScreenDensity(mContext);
+            if (position == 8) {
+                rv.setViewVisibility(IV_STATE, View.GONE);
+                rv.setTextViewTextSize(TV_CONTENT, TypedValue.COMPLEX_UNIT_SP, 18);
+                rv.setTextViewText(TV_CONTENT, "...");
+                rv.setViewPadding(TV_CONTENT, (int) (density * 8), 0, 0, 0);
+//                params.setMargins((int) (density * 8), 0, 0, params.bottomMargin);
+            } else {
+                rv.setViewVisibility(IV_STATE, View.VISIBLE);
+                String stateContent = mItems.get(position);
+                char state = stateContent.charAt(0);
+                String text = stateContent.substring(1, stateContent.length());
+                if (state == '0') {
+                    rv.setImageViewResource(IV_STATE, R.drawable.checklist_unchecked_card);
+                    rv.setTextColor(TV_CONTENT, white_76);
+                    rv.setTextViewText(TV_CONTENT, text);
+//                    holder.tv.setPaintFlags(flag & ~Paint.STRIKE_THRU_TEXT_FLAG);
+                } else if (state == '1') {
+                    rv.setImageViewResource(IV_STATE, R.drawable.checklist_checked_card);
+                    rv.setTextColor(TV_CONTENT, white_50);
+                    SpannableString spannable = new SpannableString(text);
+                    spannable.setSpan(new StrikethroughSpan(), 0, text.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+                    rv.setTextViewText(TV_CONTENT, spannable);
+//                    holder.tv.setPaintFlags(flag | Paint.STRIKE_THRU_TEXT_FLAG);
+                }
+
+                int size = mItems.size();
+                if (size >= 8) {
+                    rv.setTextViewTextSize(TV_CONTENT, TypedValue.COMPLEX_UNIT_SP, 14);
+                    rv.setViewPadding(TV_CONTENT, 0, (int) (density * 2), 0, 0);
+                } else {
+                    float textSize = -4 * size / 7f + 130f / 7;
+                    rv.setTextViewTextSize(TV_CONTENT, TypedValue.COMPLEX_UNIT_SP, textSize);
+                    float mt = - 2 * textSize / 3 + 34f / 3;
+                    rv.setViewPadding(TV_CONTENT, 0, (int) mt, 0, 0);
+                }
+            }
+            return rv;
+        }
+
+        @Override
+        public RemoteViews getLoadingView() {
+            return null;
+        }
+
+        @Override
+        public int getViewTypeCount() {
+            return 1;
+        }
+
+        @Override
+        public long getItemId(int position) {
+            return position;
+        }
+
+        @Override
+        public boolean hasStableIds() {
+            return true;
+        }
+    }
+
+}

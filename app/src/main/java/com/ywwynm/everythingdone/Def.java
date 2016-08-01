@@ -20,7 +20,7 @@ public final class Def {
         public static final String CREATE_ALARMS_FILE_NAME  = "create_alarms.dat";
         public static final String FEEDBACK_ERROR_FILE_NAME = "feedback_error.dat";
 
-        public static final int DATABASE_VERSION = 1;
+        public static final int DATABASE_VERSION = 2;
 
         public static final int ONGOING_NOTIFICATION_ID = Integer.MAX_VALUE;
 
@@ -109,6 +109,10 @@ public final class Def {
         public static final String COLUMN_RECORD_WEEK_HABIT_RECORDS  = "record_week";
         public static final String COLUMN_RECORD_DAY_HABIT_RECORDS   = "record_day";
 
+        public static final String TABLE_APP_WIDGET           = "app_widget";
+        public static final String COLUMN_ID_APP_WIDGET       = "id";
+        public static final String COLUMN_THING_ID_APP_WIDGET = "thing_id";
+
     }
 
     public abstract static class Communication {
@@ -162,8 +166,10 @@ public final class Def {
 
         public static final String KEY_TIME = PREFIX + "key.time";
 
-        public static final String KEY_HELP_TITLES = PREFIX + "key.help_title";
+        public static final String KEY_HELP_TITLES   = PREFIX + "key.help_title";
         public static final String KEY_HELP_CONTENTS = PREFIX + "key.help_content";
+
+        public static final String KEY_CHECKLIST_STRING = PREFIX + "key.checklist_string";
 
         public static final int RESULT_NO_UPDATE                        = 0;
         public static final int RESULT_CREATE_THING_DONE                = 1;
