@@ -166,7 +166,7 @@ public class AppWidgetHelper {
             intent.putExtra(Def.Communication.KEY_CHECKLIST_STRING, content);
             remoteViews.setRemoteAdapter(LV_CHECKLIST, intent);
 
-            remoteViews.setViewPadding(LV_CHECKLIST, 0, p, 0, 0);
+            remoteViews.setViewPadding(LV_CHECKLIST, (int) (-6 * screenDensity), p, 0, 0);
         }
 
         remoteViews.setViewVisibility(LL_WIDGET_THING_CONTENT, View.VISIBLE);
