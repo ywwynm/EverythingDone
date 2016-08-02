@@ -12,6 +12,7 @@ import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
+import com.ywwynm.everythingdone.helpers.AppWidgetHelper;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
 import com.ywwynm.everythingdone.managers.ThingManager;
 import com.ywwynm.everythingdone.model.Habit;
@@ -67,6 +68,7 @@ public class HabitReceiver extends BroadcastReceiver {
                 if (rThingId == habitId) {
                     updateHabitRecordTimes(context, hrId);
                     sendBroadCastToUpdateMainUI(context, thing, position);
+                    AppWidgetHelper.updateAppWidget(context, thing.getId());
                     return;
                 }
             }
@@ -85,6 +87,7 @@ public class HabitReceiver extends BroadcastReceiver {
 
             updateHabitRecordTimes(context, hrId);
             sendBroadCastToUpdateMainUI(context, thing, position);
+            AppWidgetHelper.updateAppWidget(context, thing.getId());
 
             NotificationCompat.Builder builder = SystemNotificationUtil
                     .newGeneralNotificationBuilder(context, TAG, habitId, position, thing, false);
