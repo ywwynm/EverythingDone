@@ -116,7 +116,7 @@ public class BaseThingWidget extends AppWidgetProvider {
         for (int i = 0; i < size; i++) {
             appWidgetIds[i] = thingWidgetInfos.get(i).getId();
         }
-        appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetIds, R.id.lv_check_list);
+        appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetIds, R.id.lv_thing_check_list);
     }
 
     @Override
@@ -158,7 +158,7 @@ public class BaseThingWidget extends AppWidgetProvider {
                         context, thing, position, appWidgetId, getClass()));
 
         // this line is necessary if there is a checklist
-        appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetId, R.id.lv_check_list);
+        appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetId, R.id.lv_thing_check_list);
     }
 
     @Override

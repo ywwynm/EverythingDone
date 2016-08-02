@@ -4,12 +4,15 @@ import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.util.TypedValue;
 import android.view.View;
 import android.widget.RemoteViews;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.bitmap_recycle.BitmapPool;
+import com.bumptech.glide.load.resource.bitmap.BitmapTransformation;
 import com.bumptech.glide.request.target.AppWidgetTarget;
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
@@ -27,6 +30,7 @@ import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.model.ThingWidgetInfo;
 import com.ywwynm.everythingdone.services.ChecklistWidgetService;
+import com.ywwynm.everythingdone.utils.BitmapUtil;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 
@@ -46,8 +50,8 @@ public class AppWidgetHelper {
 
     private static final int LL_WIDGET_THING          = R.id.ll_widget_thing;
 
-    private static final int FL_IMAGE_ATTACHMENT      = R.id.fl_image_attachment;
-    private static final int IV_IMAGE_ATTACHMENT      = R.id.iv_image_attachment;
+    private static final int FL_IMAGE_ATTACHMENT      = R.id.fl_thing_image;
+    private static final int IV_IMAGE_ATTACHMENT      = R.id.iv_thing_image;
     private static final int TV_IMAGE_COUNT           = R.id.tv_thing_image_attachment_count;
 
     private static final int TV_TITLE                 = R.id.tv_thing_title;
@@ -56,7 +60,7 @@ public class AppWidgetHelper {
     private static final int V_PRIVATE_HELPER_2       = R.id.view_private_helper_2;
 
     private static final int TV_CONTENT               = R.id.tv_thing_content;
-    private static final int LV_CHECKLIST             = R.id.lv_check_list;
+    private static final int LV_CHECKLIST             = R.id.lv_thing_check_list;
 
     private static final int LL_AUDIO_ATTACHMENT      = R.id.ll_thing_audio_attachment;
     private static final int TV_AUDIO_COUNT           = R.id.tv_thing_audio_attachment_count;
@@ -145,7 +149,8 @@ public class AppWidgetHelper {
         setHabit(context, remoteViews, thing);
     }
 
-    private static void setImageAttachment(Context context, RemoteViews remoteViews, Thing thing, int appWidgetId) {
+    private static void setImageAttachment(
+            Context context, RemoteViews remoteViews, Thing thing, int appWidgetId) {
         // TODO: 2016/8/2 只有图片的时候，reminder、habit的分割线为gone
 
         String attachment = thing.getAttachment();
@@ -157,10 +162,27 @@ public class AppWidgetHelper {
 
         remoteViews.setViewVisibility(FL_IMAGE_ATTACHMENT, View.VISIBLE);
 
-        String pathName = firstImageTypePathName.substring(1, firstImageTypePathName.length());
+        final String pathName = firstImageTypePathName.substring(1, firstImageTypePathName.length());
+        BitmapTransformation transformation = new BitmapTransformation(context) {
+            @Override
+            protected Bitmap transform(BitmapPool pool, Bitmap toTransform, int outWidth, int outHeight) {
+                int width = toTransform.getWidth();
+                Bitmap bitmap = BitmapUtil.createCroppedBitmap(
+                        toTransform, width, (int) (width * 9 / 16f));
+                return bitmap;
+            }
+
+            @Override
+            public String getId() {
+                return pathName;
+            }
+        };
+
         Glide.with(context)
                 .load(pathName)
                 .asBitmap()
+                .fitCenter()
+                .transform(transformation)
                 .into(new AppWidgetTarget(
                         context, remoteViews, IV_IMAGE_ATTACHMENT, new int[] { appWidgetId }));
 
@@ -230,7 +252,7 @@ public class AppWidgetHelper {
             intent.setData(Uri.parse(intent.toUri(Intent.URI_INTENT_SCHEME)));
             PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 0, intent,
                     PendingIntent.FLAG_UPDATE_CURRENT);
-            remoteViews.setPendingIntentTemplate(R.id.lv_check_list, pendingIntent);
+            remoteViews.setPendingIntentTemplate(R.id.lv_thing_check_list, pendingIntent);
 
             remoteViews.setViewPadding(LV_CHECKLIST, (int) (6 * screenDensity), dp12, dp12, 0);
         }

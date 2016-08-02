@@ -85,7 +85,7 @@
         android:visibility="gone"/>
 
     <ListView
-        android:id="@+id/lv_check_list"
+        android:id="@+id/lv_thing_check_list"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:divider="@null"
