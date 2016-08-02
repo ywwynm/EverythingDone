@@ -7,6 +7,7 @@ import android.support.v4.content.ContextCompat;
 import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.style.StrikethroughSpan;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.View;
 import android.widget.RemoteViews;
@@ -14,7 +15,6 @@ import android.widget.RemoteViewsService;
 
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
-import com.ywwynm.everythingdone.appwidgets.BaseThingWidget;
 import com.ywwynm.everythingdone.database.ThingDAO;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
 import com.ywwynm.everythingdone.managers.ThingManager;
@@ -46,13 +46,17 @@ public class ChecklistWidgetService extends RemoteViewsService {
         private Thing mThing;
         private List<String> mItems;
 
-        public ChecklistViewFactory(Context mContext, Intent mIntent) {
-            this.mContext = mContext;
-            this.mIntent  = mIntent;
+        public ChecklistViewFactory(Context context, Intent intent) {
+            mContext = context;
+            mIntent  = intent;
         }
 
         @Override
         public void onCreate() {
+            init();
+        }
+
+        private void init() {
             long id = mIntent.getLongExtra(Def.Communication.KEY_ID, -1);
             ThingManager thingManager = ThingManager.getInstance(mContext);
             mThing = thingManager.getThingById(id);
@@ -72,7 +76,7 @@ public class ChecklistWidgetService extends RemoteViewsService {
 
         @Override
         public void onDataSetChanged() {
-
+            init();
         }
 
         @Override
@@ -101,6 +105,8 @@ public class ChecklistWidgetService extends RemoteViewsService {
             } else {
                 rv.setViewVisibility(IV_STATE, View.VISIBLE);
                 String stateContent = mItems.get(position);
+                Log.i("ywwynm", "position: " + position);
+                Log.i("ywwynm", "stateContent: " + stateContent);
                 char state = stateContent.charAt(0);
                 String text = stateContent.substring(1, stateContent.length());
                 if (state == '0') {
@@ -134,7 +140,7 @@ public class ChecklistWidgetService extends RemoteViewsService {
 
         private void setupEvents(RemoteViews rv, int position) {
             if (mThing.getState() == Thing.UNDERWAY) {
-                Intent intent = new Intent(BaseThingWidget.ACTION_UPDATE_CHECKLIST);
+                Intent intent = new Intent(Def.Communication.BROADCAST_ACTION_UPDATE_CHECKLIST);
                 intent.putExtra(Def.Communication.KEY_ID, mThing.getId());
                 intent.putExtra(Def.Communication.KEY_POSITION, position);
                 rv.setOnClickFillInIntent(LL_CHECK_LIST, intent);
@@ -153,12 +159,12 @@ public class ChecklistWidgetService extends RemoteViewsService {
 
         @Override
         public long getItemId(int position) {
-            return position;
+            return mItems.get(position).hashCode();
         }
 
         @Override
         public boolean hasStableIds() {
-            return true;
+            return false;
         }
     }
 

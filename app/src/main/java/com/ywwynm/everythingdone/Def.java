@@ -20,7 +20,7 @@ public final class Def {
         public static final String CREATE_ALARMS_FILE_NAME  = "create_alarms.dat";
         public static final String FEEDBACK_ERROR_FILE_NAME = "feedback_error.dat";
 
-        public static final int DATABASE_VERSION = 2;
+        public static final int DATABASE_VERSION = 3;
 
         public static final int ONGOING_NOTIFICATION_ID = Integer.MAX_VALUE;
 
@@ -112,6 +112,7 @@ public final class Def {
         public static final String TABLE_APP_WIDGET           = "app_widget";
         public static final String COLUMN_ID_APP_WIDGET       = "id";
         public static final String COLUMN_THING_ID_APP_WIDGET = "thing_id";
+        public static final String COLUMN_SIZE_APP_WIDGET     = "size";
 
     }
 
@@ -144,7 +145,7 @@ public final class Def {
         public static final int REQUEST_PERMISSION_EXPORT_MAIN         = 12;
         public static final int REQUEST_PERMISSION_EXPORT_DETAIL       = 13;
         public static final int REQUEST_PERMISSION_LOAD_THING          = 14; // DetailActivity
-        public static final int REQUEST_PERMISSION_LOAD_THINGS_2       = 15; // ThingWidgetConfigureActivity
+        public static final int REQUEST_PERMISSION_LOAD_THINGS_2       = 15; // BaseThingWidgetConfiguration
 
         public static final String KEY_SENDER_NAME          = PREFIX + "key.sender_name";
         public static final String KEY_DETAIL_ACTIVITY_TYPE = PREFIX + "key.detail_activity_type";
@@ -193,6 +194,8 @@ public final class Def {
 
         public static final String BROADCAST_ACTION_UPDATE_MAIN_UI =
                 PREFIX + "action.broadcast.update_main_ui";
+        public static final String BROADCAST_ACTION_UPDATE_CHECKLIST =
+                PREFIX + "action.broadcast.update_checklist";
 
     }
 

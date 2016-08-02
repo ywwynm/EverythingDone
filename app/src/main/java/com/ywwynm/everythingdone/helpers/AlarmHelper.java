@@ -114,7 +114,7 @@ public class AlarmHelper {
         while (cursor.moveToNext()) {
             long id = cursor.getLong(
                     cursor.getColumnIndex(Def.Database.COLUMN_ID_THINGS));
-            int type = cursor.getInt(
+            @Thing.Type int type = cursor.getInt(
                     cursor.getColumnIndex(Def.Database.COLUMN_TYPE_THINGS));
             int state = cursor.getInt(
                     cursor.getColumnIndex(Def.Database.COLUMN_STATE_THINGS));

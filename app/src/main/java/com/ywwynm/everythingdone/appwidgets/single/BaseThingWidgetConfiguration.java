@@ -1,8 +1,7 @@
-package com.ywwynm.everythingdone.activities;
+package com.ywwynm.everythingdone.appwidgets.single;
 
 import android.Manifest;
 import android.appwidget.AppWidgetManager;
-import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.os.Bundle;
@@ -17,14 +16,12 @@ import android.widget.RemoteViews;
 import com.bumptech.glide.Glide;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
+import com.ywwynm.everythingdone.activities.EverythingDoneBaseActivity;
 import com.ywwynm.everythingdone.adapters.BaseThingsAdapter;
 import com.ywwynm.everythingdone.database.AppWidgetDAO;
-import com.ywwynm.everythingdone.database.DBHelper;
 import com.ywwynm.everythingdone.database.ThingDAO;
 import com.ywwynm.everythingdone.helpers.AppWidgetHelper;
-import com.ywwynm.everythingdone.helpers.AttachmentHelper;
 import com.ywwynm.everythingdone.managers.ModeManager;
-import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.permission.PermissionUtil;
 import com.ywwynm.everythingdone.permission.SimplePermissionCallback;
@@ -34,7 +31,11 @@ import com.ywwynm.everythingdone.utils.EdgeEffectUtil;
 
 import java.util.List;
 
-public class ThingWidgetConfigureActivity extends EverythingDoneBaseActivity {
+public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
+
+    protected Class getSenderClass() {
+        return BaseThingWidget.class;
+    }
 
     private Toolbar      mActionBar;
     private RecyclerView mRecyclerView;
@@ -152,19 +153,21 @@ public class ThingWidgetConfigureActivity extends EverythingDoneBaseActivity {
                 super.onScrollStateChanged(recyclerView, newState);
                 EdgeEffectUtil.forRecyclerView(recyclerView, edgeColor);
                 if (newState == RecyclerView.SCROLL_STATE_IDLE) {
-                    Glide.with(ThingWidgetConfigureActivity.this).resumeRequests();
+                    Glide.with(BaseThingWidgetConfiguration.this).resumeRequests();
                 } else { // dragging or settling
-                    Glide.with(ThingWidgetConfigureActivity.this).pauseRequests();
+                    Glide.with(BaseThingWidgetConfiguration.this).pauseRequests();
                 }
             }
         });
     }
 
     private void endSelectThing(Thing thing) {
-        AppWidgetDAO.getInstance(this).insert(mAppWidgetId, thing.getId());
+        Class clazz = getSenderClass();
+        AppWidgetDAO.getInstance(this).insert(mAppWidgetId, thing.getId(),
+                AppWidgetHelper.getSizeByProviderClass(clazz));
 
         RemoteViews views = AppWidgetHelper.createRemoteViewsForSingleThing(
-                this, thing, -1, mAppWidgetId);
+                this, thing, -1, mAppWidgetId, clazz);
         AppWidgetManager.getInstance(this).updateAppWidget(mAppWidgetId, views);
 
         Intent intent = new Intent();
@@ -176,7 +179,7 @@ public class ThingWidgetConfigureActivity extends EverythingDoneBaseActivity {
     class ThingsAdapter extends BaseThingsAdapter {
 
         public ThingsAdapter() {
-            super(ThingWidgetConfigureActivity.this);
+            super(BaseThingWidgetConfiguration.this);
         }
 
         @Override

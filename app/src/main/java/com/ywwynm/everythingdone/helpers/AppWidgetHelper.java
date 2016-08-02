@@ -1,6 +1,7 @@
 package com.ywwynm.everythingdone.helpers;
 
 import android.app.PendingIntent;
+import android.appwidget.AppWidgetManager;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
@@ -14,15 +15,22 @@ import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.DetailActivity;
-import com.ywwynm.everythingdone.appwidgets.BaseThingWidget;
+import com.ywwynm.everythingdone.appwidgets.single.BaseThingWidget;
+import com.ywwynm.everythingdone.appwidgets.single.ThingWidgetLarge;
+import com.ywwynm.everythingdone.appwidgets.single.ThingWidgetMiddle;
+import com.ywwynm.everythingdone.appwidgets.single.ThingWidgetSmall;
+import com.ywwynm.everythingdone.database.AppWidgetDAO;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.Thing;
+import com.ywwynm.everythingdone.model.ThingWidgetInfo;
 import com.ywwynm.everythingdone.services.ChecklistWidgetService;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
+
+import java.util.List;
 
 /**
  * Created by ywwynm on 2016/7/27.
@@ -52,8 +60,9 @@ public class AppWidgetHelper {
     private static final int LL_AUDIO_ATTACHMENT      = R.id.ll_thing_audio_attachment;
     private static final int TV_AUDIO_COUNT           = R.id.tv_thing_audio_attachment_count;
 
+    private static final int V_BOTTOM_HELPER          = R.id.view_reminder_habit_state_helper;
+
     private static final int RL_REMINDER              = R.id.rl_thing_reminder;
-    private static final int V_REMINDER_HABIT_HELPER  = R.id.view_reminder_habit_helper;
     private static final int V_REMINDER_SEPARATOR     = R.id.view_reminder_separator;
     private static final int IV_REMINDER              = R.id.iv_thing_reminder;
     private static final int TV_REMINDER_TIME         = R.id.tv_thing_reminder_time;
@@ -63,16 +72,54 @@ public class AppWidgetHelper {
     private static final int TV_HABIT_SUMMARY         = R.id.tv_thing_habit_summary;
     private static final int TV_HABIT_NEXT_REMINDER   = R.id.tv_thing_habit_next_reminder;
     private static final int V_HABIT_SEPARATOR_2      = R.id.view_habit_separator_2;
-    private static final int LL_HABIT_RECORD          = R.id.ll_habit_record;
+    private static final int LL_HABIT_RECORD          = R.id.ll_thing_habit_record;
     private static final int TV_HABIT_LAST_FIVE       = R.id.tv_thing_habit_last_five_record;
     private static final int TV_HABIT_FINISHED_THIS_T = R.id.tv_thing_habit_finished_this_t;
 
+    private static final int LL_THING_STATE           = R.id.ll_thing_state;
+    private static final int TV_THING_STATE           = R.id.tv_thing_state;
+
     private AppWidgetHelper() {}
 
+    public static void updateAppWidget(Context context, long thingId) {
+        // TODO: 2016/8/2 when there is things list widget, we should also update it, too.
+        AppWidgetDAO appWidgetDAO = AppWidgetDAO.getInstance(context);
+        List<ThingWidgetInfo> thingWidgetInfos = appWidgetDAO.getThingWidgetInfosByThingId(thingId);
+        for (ThingWidgetInfo thingWidgetInfo : thingWidgetInfos) {
+            Intent intent = new Intent(context, getProviderClassBySize(thingWidgetInfo.getSize()));
+            intent.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
+            intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS,
+                    new int[] { thingWidgetInfo.getId() });
+            context.sendBroadcast(intent);
+        }
+    }
+
+    public static Class getProviderClassBySize(@ThingWidgetInfo.Size int size) {
+        if (size == ThingWidgetInfo.SIZE_SMALL) {
+            return ThingWidgetSmall.class;
+        } else if (size == ThingWidgetInfo.SIZE_MIDDLE) {
+            return ThingWidgetMiddle.class;
+        } else if (size == ThingWidgetInfo.SIZE_LARGE) {
+            return ThingWidgetLarge.class;
+        }
+        return BaseThingWidget.class;
+    }
+
+    public static @ThingWidgetInfo.Size int getSizeByProviderClass(Class clazz) {
+        if (clazz.equals(ThingWidgetSmall.class)) {
+            return ThingWidgetInfo.SIZE_SMALL;
+        } else if (clazz.equals(ThingWidgetMiddle.class)) {
+            return ThingWidgetInfo.SIZE_MIDDLE;
+        } else if (clazz.equals(ThingWidgetLarge.class)) {
+            return ThingWidgetInfo.SIZE_LARGE;
+        }
+        return ThingWidgetInfo.SIZE_MIDDLE;
+    }
+
     public static RemoteViews createRemoteViewsForSingleThing(
-            Context context, Thing thing, int position, int appWidgetId) {
+            Context context, Thing thing, int position, int appWidgetId, Class clazz) {
         RemoteViews remoteViews = new RemoteViews(context.getPackageName(), R.layout.app_widget_thing);
-        setAppearance(context, remoteViews, thing, appWidgetId);
+        setAppearance(context, remoteViews, thing, appWidgetId, clazz);
         final Intent contentIntent = DetailActivity.getOpenIntentForUpdate(
                 context, TAG, thing.getId(), position);
         PendingIntent pendingIntent = PendingIntent.getActivity(
@@ -81,21 +128,27 @@ public class AppWidgetHelper {
         return remoteViews;
     }
 
-    public static void setAppearance(Context context, RemoteViews remoteViews, Thing thing, int appWidgetId) {
+    private static void setAppearance(
+            Context context, RemoteViews remoteViews, Thing thing, int appWidgetId, Class clazz) {
         remoteViews.setInt(LL_WIDGET_THING, "setBackgroundColor", thing.getColor());
 
         setImageAttachment(context, remoteViews, thing, appWidgetId);
         setTitleAndPrivate(remoteViews, thing);
-        setContent(context, remoteViews, thing, appWidgetId);
+        setContent(context, remoteViews, thing, appWidgetId, clazz);
+        setAudioAttachment(context, remoteViews, thing);
+        setState(context, remoteViews, thing);
+
         setReminder(context, remoteViews, thing);
         setHabit(context, remoteViews, thing);
-        setAudioAttachment(context, remoteViews, thing);
     }
 
     private static void setImageAttachment(Context context, RemoteViews remoteViews, Thing thing, int appWidgetId) {
+        // TODO: 2016/8/2 只有图片的时候，reminder、habit的分割线为gone
+
         String attachment = thing.getAttachment();
         String firstImageTypePathName = AttachmentHelper.getFirstImageTypePathName(attachment);
         if (firstImageTypePathName == null) {
+            remoteViews.setViewVisibility(FL_IMAGE_ATTACHMENT, View.GONE);
             return;
         }
 
@@ -108,17 +161,6 @@ public class AppWidgetHelper {
                 .into(new AppWidgetTarget(
                         context, remoteViews, IV_IMAGE_ATTACHMENT, new int[] { appWidgetId }));
 
-        // if thing has only an image/video, there should be no margins for ImageView
-//            if (holder.tvTitle.getVisibility() == View.GONE
-//                    && holder.tvContent.getVisibility() == View.GONE
-//                    && holder.rvChecklist.getVisibility() == View.GONE
-//                    && holder.llAudioAttachment.getVisibility() == View.GONE
-//                    && holder.rlReminder.getVisibility() == View.GONE) {
-//                holder.vPaddingBottom.setVisibility(View.GONE);
-//            } else {
-//                holder.vPaddingBottom.setVisibility(View.VISIBLE);
-//            }
-
         remoteViews.setTextViewText(TV_IMAGE_COUNT,
                 AttachmentHelper.getImageAttachmentCountStr(attachment, context));
     }
@@ -130,21 +172,29 @@ public class AppWidgetHelper {
             remoteViews.setViewVisibility(TV_TITLE, View.VISIBLE);
             remoteViews.setTextViewText(TV_TITLE, title);
             remoteViews.setViewPadding(TV_TITLE, 0, p, 0, 0);
+            remoteViews.setViewVisibility(LL_WIDGET_THING_CONTENT, View.VISIBLE);
+        } else {
+            remoteViews.setViewVisibility(TV_TITLE, View.GONE);
         }
 
         if (thing.isPrivate()) {
             remoteViews.setViewVisibility(V_PRIVATE_HELPER_1, View.VISIBLE);
             remoteViews.setViewVisibility(IV_PRIVATE_THING, View.VISIBLE);
             remoteViews.setViewVisibility(V_PRIVATE_HELPER_2, View.VISIBLE);
+        } else {
+            remoteViews.setViewVisibility(V_PRIVATE_HELPER_1, View.GONE);
+            remoteViews.setViewVisibility(IV_PRIVATE_THING, View.GONE);
+            remoteViews.setViewVisibility(V_PRIVATE_HELPER_2, View.GONE);
         }
-
-        remoteViews.setViewVisibility(LL_WIDGET_THING_CONTENT, View.VISIBLE);
     }
 
-    private static void setContent(Context context, RemoteViews remoteViews, Thing thing, int appWidgetId) {
+    private static void setContent(
+            Context context, RemoteViews remoteViews, Thing thing, int appWidgetId, Class clazz) {
         int p = (int) (screenDensity * 12);
         String content = thing.getContent();
         if (content.isEmpty() || thing.isPrivate()) {
+            remoteViews.setViewVisibility(LV_CHECKLIST, View.GONE);
+            remoteViews.setViewVisibility(TV_CONTENT,   View.GONE);
             return;
         }
 
@@ -170,11 +220,12 @@ public class AppWidgetHelper {
             intent.setData(Uri.parse(intent.toUri(Intent.URI_INTENT_SCHEME)));
             remoteViews.setRemoteAdapter(LV_CHECKLIST, intent);
 
-            intent = new Intent(context, BaseThingWidget.class);
-            intent.setAction(BaseThingWidget.ACTION_UPDATE_CHECKLIST);
+            /**
+             * see {@link ChecklistWidgetService.ChecklistViewFactory#setupEvents(RemoteViews, int)}
+             */
+            intent = new Intent(context, clazz);
+            intent.setAction(Def.Communication.BROADCAST_ACTION_UPDATE_CHECKLIST);
             intent.setData(Uri.parse(intent.toUri(Intent.URI_INTENT_SCHEME)));
-            intent.putExtra(Def.Communication.KEY_ID, thing.getId());
-            intent.putExtra(Def.Communication.KEY_CHECKLIST_STRING, "");
             PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 0, intent,
                     PendingIntent.FLAG_UPDATE_CURRENT);
             remoteViews.setPendingIntentTemplate(R.id.lv_check_list, pendingIntent);
@@ -185,11 +236,39 @@ public class AppWidgetHelper {
         remoteViews.setViewVisibility(LL_WIDGET_THING_CONTENT, View.VISIBLE);
     }
 
+    private static void setAudioAttachment(Context context, RemoteViews remoteViews, Thing thing) {
+        String attachment = thing.getAttachment();
+        String str = AttachmentHelper.getAudioAttachmentCountStr(attachment, context);
+        if (str == null) {
+            remoteViews.setViewVisibility(LL_AUDIO_ATTACHMENT, View.GONE);
+            return;
+        }
+
+        remoteViews.setViewVisibility(LL_AUDIO_ATTACHMENT, View.VISIBLE);
+        remoteViews.setViewPadding(LL_AUDIO_ATTACHMENT, 0, (int) (screenDensity * 9), 0, 0);
+        remoteViews.setTextViewText(TV_AUDIO_COUNT, str);
+
+        remoteViews.setViewVisibility(LL_WIDGET_THING_CONTENT, View.VISIBLE);
+    }
+
+    private static void setState(Context context, RemoteViews remoteViews, Thing thing) {
+        @Thing.State int state = thing.getState();
+        if (state != Thing.UNDERWAY) {
+            remoteViews.setViewVisibility(V_BOTTOM_HELPER, View.VISIBLE);
+            remoteViews.setViewVisibility(LL_THING_STATE, View.VISIBLE);
+            remoteViews.setTextViewText(TV_THING_STATE, Thing.getStateStr(state, context));
+        } else {
+            remoteViews.setViewVisibility(V_BOTTOM_HELPER, View.GONE);
+            remoteViews.setViewVisibility(LL_THING_STATE, View.GONE);
+        }
+    }
+
     private static void setReminder(Context context, RemoteViews remoteViews, Thing thing) {
         int thingType = thing.getType();
         int thingState = thing.getState();
         Reminder reminder = ReminderDAO.getInstance(context).getReminderById(thing.getId());
         if (reminder == null) {
+            remoteViews.setViewVisibility(RL_REMINDER, View.GONE);
             return;
         }
 
@@ -228,13 +307,15 @@ public class AppWidgetHelper {
             }
         }
 
-        remoteViews.setViewVisibility(V_REMINDER_HABIT_HELPER, View.VISIBLE);
+        remoteViews.setViewVisibility(V_BOTTOM_HELPER, View.VISIBLE);
         remoteViews.setViewVisibility(LL_WIDGET_THING_CONTENT, View.VISIBLE);
+        remoteViews.setViewVisibility(LL_THING_STATE, View.GONE);
     }
 
     private static void setHabit(Context context, RemoteViews remoteViews, Thing thing) {
         Habit habit = HabitDAO.getInstance(context).getHabitById(thing.getId());
         if (habit == null)  {
+            remoteViews.setViewVisibility(RL_HABIT, View.GONE);
             return;
         }
 
@@ -278,22 +359,9 @@ public class AppWidgetHelper {
             remoteViews.setViewVisibility(TV_HABIT_FINISHED_THIS_T, View.GONE);
         }
 
-        remoteViews.setViewVisibility(V_REMINDER_HABIT_HELPER, View.VISIBLE);
+        remoteViews.setViewVisibility(V_BOTTOM_HELPER, View.VISIBLE);
         remoteViews.setViewVisibility(LL_WIDGET_THING_CONTENT, View.VISIBLE);
-    }
-
-    private static void setAudioAttachment(Context context, RemoteViews remoteViews, Thing thing) {
-        String attachment = thing.getAttachment();
-        String str = AttachmentHelper.getAudioAttachmentCountStr(attachment, context);
-        if (str == null) {
-            return;
-        }
-
-        remoteViews.setViewVisibility(LL_AUDIO_ATTACHMENT, View.VISIBLE);
-        int p = (int) (screenDensity * 12);
-        remoteViews.setViewPadding(LL_AUDIO_ATTACHMENT, p, p / 4 * 3, p, 0);
-
-        remoteViews.setTextViewText(TV_AUDIO_COUNT, str);
+        remoteViews.setViewVisibility(LL_THING_STATE, View.GONE);
     }
 
     private static void setHabitLastFive(RemoteViews remoteViews, String lastFive) {

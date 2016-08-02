@@ -53,6 +53,7 @@ import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.fragments.AlertDialogFragment;
 import com.ywwynm.everythingdone.fragments.ThreeActionsAlertDialogFragment;
 import com.ywwynm.everythingdone.helpers.AppUpdateHelper;
+import com.ywwynm.everythingdone.helpers.AppWidgetHelper;
 import com.ywwynm.everythingdone.helpers.AuthenticationHelper;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
 import com.ywwynm.everythingdone.helpers.SendInfoHelper;
@@ -81,6 +82,7 @@ import com.ywwynm.everythingdone.views.reveal.RevealLayout;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 
@@ -128,6 +130,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     private List<Integer>     mUndoPositions;
     private List<Long>        mUndoLocations;
     private List<HabitRecord> mUndoHabitRecords;
+    private HashSet<Long>     mThingsIdsToUpdateWidget;
     private boolean           mUndoAll;
     private int               mStateToUndoFrom;
 
@@ -752,10 +755,11 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         mApp = (App) getApplication();
         mThingManager = ThingManager.getInstance(mApp);
 
-        mUndoThings         = new ArrayList<>();
-        mUndoPositions      = new ArrayList<>();
-        mUndoLocations      = new ArrayList<>();
-        mUndoHabitRecords = new ArrayList<>();
+        mUndoThings              = new ArrayList<>();
+        mUndoPositions           = new ArrayList<>();
+        mUndoLocations           = new ArrayList<>();
+        mUndoHabitRecords        = new ArrayList<>();
+        mThingsIdsToUpdateWidget = new HashSet<>();
     }
 
     @Override
@@ -1016,6 +1020,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     mThingManager.undoUpdateStates(mUndoThings, mUndoPositions, mUndoLocations,
                             mStateToUndoFrom, stateAfter);
                     mUndoThings.clear();
+                    mThingsIdsToUpdateWidget.clear();
                     mUndoPositions.clear();
                     mUndoLocations.clear();
                     if (mStateToUndoFrom == Thing.DELETED_FOREVER) {
@@ -1032,6 +1037,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     int position = mUndoPositions.get(size - 1);
                     long location = mUndoLocations.get(size - 1);
                     mUndoThings.remove(size - 1);
+                    mThingsIdsToUpdateWidget.remove(thing.getId());
                     mUndoPositions.remove(size - 1);
                     mUndoLocations.remove(size - 1);
 
@@ -1068,6 +1074,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     int size = mUndoHabitRecords.size();
                     HabitRecord hr = mUndoHabitRecords.get(size - 1);
                     int position = mUndoPositions.get(size - 1);
+                    mThingsIdsToUpdateWidget.remove(hr.getHabitId());
                     mUndoHabitRecords.remove(size - 1);
                     mUndoPositions.remove(size - 1);
 
@@ -1077,6 +1084,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                         size = mUndoThings.size();
                         Thing thing = mUndoThings.get(size - 1);
                         mUndoThings.remove(size - 1);
+                        mThingsIdsToUpdateWidget.remove(thing.getId());
                         mThingManager.update(thing.getType(), thing, position, false);
                         mThingManager.getThings().set(position, thing);
                     }
@@ -1086,6 +1094,9 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
                     if (mUndoHabitRecords.isEmpty()) {
                         mHabitSnackbar.dismiss();
+                        for (Long id : mThingsIdsToUpdateWidget) {
+                            AppWidgetHelper.updateAppWidget(ThingsActivity.this, id);
+                        }
                     }
                 }
             }
@@ -1286,6 +1297,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     //thing.setSelected(false);
                     SystemNotificationUtil.cancelNotification(thing.getId(), type, mApp);
                     mUndoThings.add(thing);
+                    mThingsIdsToUpdateWidget.add(thing.getId());
                     mUndoLocations.add(thing.getLocation());
                     if (stateAfter == Thing.DELETED_FOREVER) {
                         thingsToDeleteForever.add(new Thing(thing));
@@ -1301,6 +1313,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 }
                 SystemNotificationUtil.cancelNotification(thing.getId(), type, mApp);
                 mUndoThings.add(thing);
+                mThingsIdsToUpdateWidget.add(thing.getId());
                 mUndoLocations.add(thing.getLocation());
                 if (stateAfter == Thing.DELETED_FOREVER) {
                     thingsToDeleteForever.add(new Thing(thing));
@@ -1341,6 +1354,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     thing.setSelected(false);
                     if (Thing.isImportantType(thing.getType())) {
                         iterator.remove();
+                        mThingsIdsToUpdateWidget.remove(thing.getId());
                         mUndoLocations.remove(thing.getLocation());
                         thingsToDelete.remove(thing);
                     }
@@ -1363,6 +1377,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     thingsToDelete.remove(undoThing);
                 }
                 mUndoThings.clear();
+                mThingsIdsToUpdateWidget.clear();
                 mUndoLocations.clear();
             }
         });
@@ -1502,7 +1517,12 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             mHabitSnackbar.dismiss();
         }
 
+        for (Long id : mThingsIdsToUpdateWidget) {
+            AppWidgetHelper.updateAppWidget(this, id);
+        }
+
         mUndoThings.clear();
+        mThingsIdsToUpdateWidget.clear();
         mUndoPositions.clear();
         mUndoLocations.clear();
         mUndoHabitRecords.clear();
@@ -1626,7 +1646,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 content = reminder.getCelebrationText(mApp);
             }
             adf.setContent(content);
-            adf.show(getFragmentManager(), AlertDialogFragment.TAG);
+            adf.showAllowingStateLoss(getFragmentManager(), AlertDialogFragment.TAG);
         }
     }
 
@@ -1829,6 +1849,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
             long id = thingToSwipe.getId();
             SystemNotificationUtil.cancelNotification(id, thingType, mApp);
+            mThingsIdsToUpdateWidget.add(id);
 
             if (thingType == Thing.HABIT) {
                 HabitDAO habitDAO = HabitDAO.getInstance(mApp);

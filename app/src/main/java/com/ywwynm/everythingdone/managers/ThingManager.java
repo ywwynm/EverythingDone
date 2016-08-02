@@ -743,10 +743,10 @@ public class ThingManager {
         return null;
     }
 
-    public int getPosition(Thing thing) {
+    public int getPosition(long id) {
         final int size = mThings.size();
         for (int i = 0; i < size; i++) {
-            if (mThings.get(i).getId() == thing.getId()) {
+            if (mThings.get(i).getId() == id) {
                 return i;
             }
         }

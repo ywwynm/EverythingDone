@@ -23,6 +23,7 @@ public class BootReceiver extends BroadcastReceiver {
             SystemNotificationUtil.tryToCreateQuickCreateNotification(context);
 
             AlarmHelper.createAllAlarms(context, true);
+            // TODO: 2016/8/2 should update widgets here?
         }
     }
 }

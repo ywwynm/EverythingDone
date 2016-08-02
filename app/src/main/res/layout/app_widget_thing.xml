@@ -10,7 +10,7 @@
     <FrameLayout
         android:id="@+id/fl_thing_image"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="40dp"
         android:visibility="gone">
 
         <ImageView
@@ -43,7 +43,7 @@
     <LinearLayout
         android:id="@+id/ll_widget_thing_content"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:paddingLeft="12dp"
         android:paddingRight="12dp"
         android:paddingBottom="12dp"
@@ -107,7 +107,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:visibility="gone">
+            android:visibility="gone"
+            tools:ignore="UseCompoundDrawables">
 
             <ImageView
                 android:layout_width="wrap_content"
@@ -130,7 +131,7 @@
         </LinearLayout>
 
         <TextView
-            android:id="@+id/view_reminder_habit_helper"
+            android:id="@+id/view_reminder_habit_state_helper"
             android:layout_width="1px"
             android:layout_height="0dp"
             android:layout_weight="1"
@@ -251,6 +252,30 @@
                 android:textSize="12sp"/>
 
         </RelativeLayout>
+
+        <LinearLayout
+            android:id="@+id/ll_thing_state"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/view_state_separator"
+                android:layout_width="match_parent"
+                android:layout_height="2dp"
+                android:layout_marginBottom="8dp"
+                android:background="@drawable/dashed_line_card"
+                android:layerType="software"/>
+
+            <TextView
+                android:id="@+id/tv_thing_state"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/white_66p"
+                android:textSize="14sp"/>
+
+        </LinearLayout>
 
     </LinearLayout>
 

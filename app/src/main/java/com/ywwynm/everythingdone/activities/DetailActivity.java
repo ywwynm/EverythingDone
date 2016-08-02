@@ -69,6 +69,7 @@ import com.ywwynm.everythingdone.fragments.DateTimeDialogFragment;
 import com.ywwynm.everythingdone.fragments.HabitDetailDialogFragment;
 import com.ywwynm.everythingdone.fragments.TwoOptionsDialogFragment;
 import com.ywwynm.everythingdone.helpers.AppUpdateHelper;
+import com.ywwynm.everythingdone.helpers.AppWidgetHelper;
 import com.ywwynm.everythingdone.helpers.AttachmentHelper;
 import com.ywwynm.everythingdone.helpers.AuthenticationHelper;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
@@ -387,7 +388,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         } else {
             App.getRunningDetailActivities().add(id);
             if (mPosition == -1) {
-                mThing = ThingDAO.getInstance(mApp).getThingById(id);
+                updateThingAndItsPosition(id);
             } else {
                 List<Thing> things = thingManager.getThings();
                 if (mPosition >= things.size()) {
@@ -398,6 +399,10 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                         updateThingAndItsPosition(id);
                     }
                 }
+            }
+            if (mThing == null) {
+                finish();
+                return;
             }
             mReminder = ReminderDAO.getInstance(mApp).getReminderById(id);
             if (mThing.getType() == Thing.HABIT) {
@@ -2026,6 +2031,8 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         if (shouldSendBroadCast()) {
             sendBroadCastToUpdateMainUI(intent, resultCode);
         }
+        AppWidgetHelper.updateAppWidget(this, mThing.getId());
+
         finish();
     }
 
@@ -2085,6 +2092,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         } else {
             setResult(resultCode, intent);
         }
+        AppWidgetHelper.updateAppWidget(this, mThing.getId());
         finish();
     }
 
@@ -2286,7 +2294,8 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 || mSenderName.equals(AutoNotifyReceiver.TAG)
                 || "intent".equals(mSenderName)
                 || mSenderName.equals(App.class.getName())
-                || mSenderName.equals(CreateWidget.TAG);
+                || mSenderName.equals(CreateWidget.TAG)
+                || mSenderName.equals(AppWidgetHelper.TAG);
     }
 
     private void sendBroadCastToUpdateMainUI(Intent intent, int resultCode) {
