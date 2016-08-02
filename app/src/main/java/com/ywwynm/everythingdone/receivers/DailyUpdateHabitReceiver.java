@@ -9,6 +9,7 @@ import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
+import com.ywwynm.everythingdone.helpers.AppWidgetHelper;
 import com.ywwynm.everythingdone.model.Thing;
 
 public class DailyUpdateHabitReceiver extends BroadcastReceiver {
@@ -32,6 +33,7 @@ public class DailyUpdateHabitReceiver extends BroadcastReceiver {
         while (cursor.moveToNext()) {
             long id = cursor.getLong(0);
             habitDAO.dailyUpdate(id);
+            AppWidgetHelper.updateAppWidget(context, id);
         }
         cursor.close();
     }
