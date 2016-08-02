@@ -60,7 +60,6 @@ public class ReminderNotificationActionReceiver extends BroadcastReceiver {
             App.setSomethingUpdatedSpecially(true);
             sendBroadCastToUpdateMainUI(context, thing, position,
                     Def.Communication.RESULT_UPDATE_THING_STATE_DIFFERENT);
-            AppWidgetHelper.updateAppWidget(context, id);
         } else if (action.equals(Def.Communication.NOTIFICATION_ACTION_DELAY)) {
             if (position == -1) {
                 ThingDAO thingDAO = ThingDAO.getInstance(context);
@@ -99,6 +98,8 @@ public class ReminderNotificationActionReceiver extends BroadcastReceiver {
             sendBroadCastToUpdateMainUI(context, thing, position,
                     Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME);
         }
+
+        AppWidgetHelper.updateAppWidget(context, id);
 
         NotificationManagerCompat nmc = NotificationManagerCompat.from(context);
         nmc.cancel((int) id);
