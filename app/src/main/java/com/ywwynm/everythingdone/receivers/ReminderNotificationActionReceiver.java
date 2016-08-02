@@ -9,6 +9,7 @@ import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
+import com.ywwynm.everythingdone.helpers.AppWidgetHelper;
 import com.ywwynm.everythingdone.managers.ThingManager;
 import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.Thing;
@@ -59,6 +60,7 @@ public class ReminderNotificationActionReceiver extends BroadcastReceiver {
             App.setSomethingUpdatedSpecially(true);
             sendBroadCastToUpdateMainUI(context, thing, position,
                     Def.Communication.RESULT_UPDATE_THING_STATE_DIFFERENT);
+            AppWidgetHelper.updateAppWidget(context, id);
         } else if (action.equals(Def.Communication.NOTIFICATION_ACTION_DELAY)) {
             if (position == -1) {
                 ThingDAO thingDAO = ThingDAO.getInstance(context);

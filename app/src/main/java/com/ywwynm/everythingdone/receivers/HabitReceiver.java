@@ -68,7 +68,7 @@ public class HabitReceiver extends BroadcastReceiver {
                 if (rThingId == habitId) {
                     updateHabitRecordTimes(context, hrId);
                     sendBroadCastToUpdateMainUI(context, thing, position);
-                    AppWidgetHelper.updateAppWidget(context, thing.getId());
+                    AppWidgetHelper.updateAppWidget(context, rThingId);
                     return;
                 }
             }
