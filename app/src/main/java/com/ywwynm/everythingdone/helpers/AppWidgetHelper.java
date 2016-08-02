@@ -42,8 +42,9 @@ public class AppWidgetHelper {
 
     private static final float screenDensity = DisplayUtil.getScreenDensity(App.getApp());
 
+    private static final int dp12 = (int) (screenDensity * 12);
+
     private static final int LL_WIDGET_THING          = R.id.ll_widget_thing;
-    private static final int LL_WIDGET_THING_CONTENT  = R.id.ll_widget_thing_content;
 
     private static final int FL_IMAGE_ATTACHMENT      = R.id.fl_image_attachment;
     private static final int IV_IMAGE_ATTACHMENT      = R.id.iv_image_attachment;
@@ -78,6 +79,8 @@ public class AppWidgetHelper {
 
     private static final int LL_THING_STATE           = R.id.ll_thing_state;
     private static final int TV_THING_STATE           = R.id.tv_thing_state;
+
+    private static final int V_PADDING_BOTTOM         = R.id.view_thing_padding_bottom;
 
     private AppWidgetHelper() {}
 
@@ -168,11 +171,10 @@ public class AppWidgetHelper {
     private static void setTitleAndPrivate(RemoteViews remoteViews, Thing thing) {
         String title = thing.getTitleToDisplay();
         if (!title.isEmpty()) {
-            int p = (int) (screenDensity * 12);
             remoteViews.setViewVisibility(TV_TITLE, View.VISIBLE);
             remoteViews.setTextViewText(TV_TITLE, title);
-            remoteViews.setViewPadding(TV_TITLE, 0, p, 0, 0);
-            remoteViews.setViewVisibility(LL_WIDGET_THING_CONTENT, View.VISIBLE);
+            remoteViews.setViewPadding(TV_TITLE, dp12, dp12, dp12, 0);
+            remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);
         } else {
             remoteViews.setViewVisibility(TV_TITLE, View.GONE);
         }
@@ -190,7 +192,6 @@ public class AppWidgetHelper {
 
     private static void setContent(
             Context context, RemoteViews remoteViews, Thing thing, int appWidgetId, Class clazz) {
-        int p = (int) (screenDensity * 12);
         String content = thing.getContent();
         if (content.isEmpty() || thing.isPrivate()) {
             remoteViews.setViewVisibility(LV_CHECKLIST, View.GONE);
@@ -201,7 +202,7 @@ public class AppWidgetHelper {
         if (!CheckListHelper.isCheckListStr(content)) {
             remoteViews.setViewVisibility(LV_CHECKLIST, View.GONE);
             remoteViews.setViewVisibility(TV_CONTENT,   View.VISIBLE);
-            remoteViews.setViewPadding(TV_CONTENT, 0, p, 0, 0);
+            remoteViews.setViewPadding(TV_CONTENT, dp12, dp12, dp12, 0);
             remoteViews.setTextViewText(TV_CONTENT, content);
             int length = content.length();
             if (length <= 60) {
@@ -211,6 +212,7 @@ public class AppWidgetHelper {
                 remoteViews.setTextViewTextSize(TV_CONTENT, TypedValue.COMPLEX_UNIT_SP, 16);
             }
         } else {
+            remoteViews.setViewPadding(LV_CHECKLIST, dp12, dp12, dp12, 0);
             remoteViews.setViewVisibility(LV_CHECKLIST, View.VISIBLE);
             remoteViews.setViewVisibility(TV_CONTENT,   View.GONE);
 
@@ -230,10 +232,10 @@ public class AppWidgetHelper {
                     PendingIntent.FLAG_UPDATE_CURRENT);
             remoteViews.setPendingIntentTemplate(R.id.lv_check_list, pendingIntent);
 
-            remoteViews.setViewPadding(LV_CHECKLIST, (int) (-6 * screenDensity), p, 0, 0);
+            remoteViews.setViewPadding(LV_CHECKLIST, (int) (6 * screenDensity), dp12, dp12, 0);
         }
 
-        remoteViews.setViewVisibility(LL_WIDGET_THING_CONTENT, View.VISIBLE);
+        remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);
     }
 
     private static void setAudioAttachment(Context context, RemoteViews remoteViews, Thing thing) {
@@ -245,10 +247,10 @@ public class AppWidgetHelper {
         }
 
         remoteViews.setViewVisibility(LL_AUDIO_ATTACHMENT, View.VISIBLE);
-        remoteViews.setViewPadding(LL_AUDIO_ATTACHMENT, 0, (int) (screenDensity * 9), 0, 0);
+        remoteViews.setViewPadding(LL_AUDIO_ATTACHMENT, dp12, (int) (screenDensity * 9), dp12, 0);
         remoteViews.setTextViewText(TV_AUDIO_COUNT, str);
 
-        remoteViews.setViewVisibility(LL_WIDGET_THING_CONTENT, View.VISIBLE);
+        remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);
     }
 
     private static void setState(Context context, RemoteViews remoteViews, Thing thing) {
@@ -275,9 +277,8 @@ public class AppWidgetHelper {
         int state = reminder.getState();
         long notifyTime = reminder.getNotifyTime();
 
-        int p = (int) (screenDensity * 12);
         remoteViews.setViewVisibility(RL_REMINDER, View.VISIBLE);
-        remoteViews.setViewPadding(RL_REMINDER, 0, p, 0, 0);
+        remoteViews.setViewPadding(RL_REMINDER, dp12, dp12, dp12, 0);
 
         if (thingType == Thing.REMINDER) {
             remoteViews.setViewPadding(IV_REMINDER, 0, (int) (screenDensity * 2), 0, 0);
@@ -308,7 +309,7 @@ public class AppWidgetHelper {
         }
 
         remoteViews.setViewVisibility(V_BOTTOM_HELPER, View.VISIBLE);
-        remoteViews.setViewVisibility(LL_WIDGET_THING_CONTENT, View.VISIBLE);
+        remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);
         remoteViews.setViewVisibility(LL_THING_STATE, View.GONE);
     }
 
@@ -319,9 +320,8 @@ public class AppWidgetHelper {
             return;
         }
 
-        int p = (int) (screenDensity * 12);
         remoteViews.setViewVisibility(RL_HABIT, View.VISIBLE);
-        remoteViews.setViewPadding(RL_HABIT, 0, p, 0, 0);
+        remoteViews.setViewPadding(RL_HABIT, dp12, dp12, dp12, 0);
 
         remoteViews.setTextViewText(TV_HABIT_SUMMARY, habit.getSummary(context));
 
@@ -360,7 +360,7 @@ public class AppWidgetHelper {
         }
 
         remoteViews.setViewVisibility(V_BOTTOM_HELPER, View.VISIBLE);
-        remoteViews.setViewVisibility(LL_WIDGET_THING_CONTENT, View.VISIBLE);
+        remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);
         remoteViews.setViewVisibility(LL_THING_STATE, View.GONE);
     }
 
