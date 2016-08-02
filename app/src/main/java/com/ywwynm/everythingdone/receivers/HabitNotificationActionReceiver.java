@@ -9,6 +9,7 @@ import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
+import com.ywwynm.everythingdone.helpers.AppWidgetHelper;
 import com.ywwynm.everythingdone.managers.ThingManager;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.HabitReminder;
@@ -35,6 +36,7 @@ public class HabitNotificationActionReceiver extends BroadcastReceiver {
             if (habit.allowFinish(time)) {
                 habitDAO.finishOneTime(habit);
                 sendBroadCastToUpdateMainUI(context, id, position);
+                AppWidgetHelper.updateAppWidget(context, id);
             }
         }
         NotificationManagerCompat nmc = NotificationManagerCompat.from(context);
