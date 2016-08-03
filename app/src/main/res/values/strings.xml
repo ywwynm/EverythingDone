@@ -485,7 +485,7 @@
 
     <string name="from_1_1_4_to_1_1_5_content">Click menu button, you will see Undo and Redo there. Now you can let your things back to past or future at any time if you want.</string>
     <string name="from_1_1_4_to_1_1_5_title">Undo/Redo are now supported</string>
-    <string name="notification_has_attachment">[ Attachment ]</string>
+    <string name="notification_has_attachment">[Attachment]</string>
 
 
     <string-array name="help_titles" tools:ignore="MissingTranslation">

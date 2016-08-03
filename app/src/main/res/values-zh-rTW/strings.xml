@@ -421,7 +421,7 @@
     <string name="habit_detail_total_t">總週期數</string>
     <string name="act_check_habit_overview">查看習慣概覽</string>
     <string name="act_deselect_all">取消全選</string>
-    <string name="notification_has_attachment">[ 附件 ]</string>
+    <string name="notification_has_attachment">[附件]</string>
     <string name="quick_create_title">快速創建記事</string>
     <string name="quick_create_description">顯示一個常駐通知欄的通知，作為快速創建記事的入口</string>
     <string name="last_backup">最近一次備份:</string>
