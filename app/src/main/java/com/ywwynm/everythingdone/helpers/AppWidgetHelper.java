@@ -4,15 +4,13 @@ import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.util.TypedValue;
 import android.view.View;
 import android.widget.RemoteViews;
 
 import com.bumptech.glide.Glide;
-import com.bumptech.glide.load.engine.bitmap_recycle.BitmapPool;
-import com.bumptech.glide.load.resource.bitmap.BitmapTransformation;
 import com.bumptech.glide.request.target.AppWidgetTarget;
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
@@ -30,7 +28,6 @@ import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.model.ThingWidgetInfo;
 import com.ywwynm.everythingdone.services.ChecklistWidgetService;
-import com.ywwynm.everythingdone.utils.BitmapUtil;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 
@@ -82,6 +79,7 @@ public class AppWidgetHelper {
     private static final int TV_HABIT_FINISHED_THIS_T = R.id.tv_thing_habit_finished_this_t;
 
     private static final int LL_THING_STATE           = R.id.ll_thing_state;
+    private static final int V_STATE_SEPARATOR        = R.id.view_state_separator;
     private static final int TV_THING_STATE           = R.id.tv_thing_state;
 
     private static final int V_PADDING_BOTTOM         = R.id.view_thing_padding_bottom;
@@ -149,45 +147,73 @@ public class AppWidgetHelper {
         setHabit(context, remoteViews, thing);
     }
 
+    private static void setSeparatorVisibilities(
+            RemoteViews remoteViews, int visibility) {
+        remoteViews.setViewVisibility(V_STATE_SEPARATOR,    visibility);
+        remoteViews.setViewVisibility(V_REMINDER_SEPARATOR, visibility);
+        remoteViews.setViewVisibility(V_HABIT_SEPARATOR_1,  visibility);
+    }
+
     private static void setImageAttachment(
             Context context, RemoteViews remoteViews, Thing thing, int appWidgetId) {
-        // TODO: 2016/8/2 只有图片的时候，reminder、habit的分割线为gone
+        // TODO: 2016/8/2 只有图片的时候，reminder、habit、state的分割线为gone
 
         String attachment = thing.getAttachment();
         String firstImageTypePathName = AttachmentHelper.getFirstImageTypePathName(attachment);
         if (firstImageTypePathName == null) {
-            remoteViews.setViewVisibility(FL_IMAGE_ATTACHMENT, View.GONE);
+            remoteViews.setViewVisibility(FL_IMAGE_ATTACHMENT,  View.GONE);
+            remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);
             return;
         }
 
         remoteViews.setViewVisibility(FL_IMAGE_ATTACHMENT, View.VISIBLE);
 
         final String pathName = firstImageTypePathName.substring(1, firstImageTypePathName.length());
-        BitmapTransformation transformation = new BitmapTransformation(context) {
-            @Override
-            protected Bitmap transform(BitmapPool pool, Bitmap toTransform, int outWidth, int outHeight) {
-                int width = toTransform.getWidth();
-                Bitmap bitmap = BitmapUtil.createCroppedBitmap(
-                        toTransform, width, (int) (width * 9 / 16f));
-                return bitmap;
-            }
-
-            @Override
-            public String getId() {
-                return pathName;
-            }
-        };
-
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inJustDecodeBounds = true;
+        BitmapFactory.decodeFile(pathName, options);
         Glide.with(context)
                 .load(pathName)
                 .asBitmap()
-                .fitCenter()
-                .transform(transformation)
+                .override(options.outWidth, options.outWidth * 3 / 4)
+                .centerCrop()
                 .into(new AppWidgetTarget(
                         context, remoteViews, IV_IMAGE_ATTACHMENT, new int[] { appWidgetId }));
 
         remoteViews.setTextViewText(TV_IMAGE_COUNT,
                 AttachmentHelper.getImageAttachmentCountStr(attachment, context));
+
+        remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.GONE);
+        setSeparatorVisibilities(remoteViews, View.GONE);
+    }
+
+    private boolean onlyImageAttachmentInThingWidget(Context context, Thing thing) {
+        if (thing.getState() != Thing.UNDERWAY) {
+            return false;
+        }
+        if (!thing.getTitle().isEmpty() || thing.getContent().isEmpty()) {
+            return false;
+        }
+        String attachment = thing.getAttachment();
+        if (AttachmentHelper.getFirstImageTypePathName(attachment) == null) {
+            return false;
+        }
+        if (AttachmentHelper.getAudioAttachmentCountStr(attachment, context) != null) {
+            return false;
+        }
+
+        long id = thing.getId();
+        ReminderDAO reminderDAO = ReminderDAO.getInstance(context);
+        if (reminderDAO.getReminderById(id) != null) {
+            return false;
+        }
+
+        HabitDAO habitDAO = HabitDAO.getInstance(context);
+        if (habitDAO.getHabitById(id) != null) {
+            return false;
+        }
+
+        return true;
     }
 
     private static void setTitleAndPrivate(RemoteViews remoteViews, Thing thing) {
@@ -197,6 +223,7 @@ public class AppWidgetHelper {
             remoteViews.setTextViewText(TV_TITLE, title);
             remoteViews.setViewPadding(TV_TITLE, dp12, dp12, dp12, 0);
             remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);
+            setSeparatorVisibilities(remoteViews, View.VISIBLE);
         } else {
             remoteViews.setViewVisibility(TV_TITLE, View.GONE);
         }
@@ -258,6 +285,7 @@ public class AppWidgetHelper {
         }
 
         remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);
+        setSeparatorVisibilities(remoteViews, View.VISIBLE);
     }
 
     private static void setAudioAttachment(Context context, RemoteViews remoteViews, Thing thing) {
@@ -273,6 +301,7 @@ public class AppWidgetHelper {
         remoteViews.setTextViewText(TV_AUDIO_COUNT, str);
 
         remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);
+        setSeparatorVisibilities(remoteViews, View.VISIBLE);
     }
 
     private static void setState(Context context, RemoteViews remoteViews, Thing thing) {
@@ -281,6 +310,7 @@ public class AppWidgetHelper {
             remoteViews.setViewVisibility(V_BOTTOM_HELPER, View.VISIBLE);
             remoteViews.setViewVisibility(LL_THING_STATE, View.VISIBLE);
             remoteViews.setTextViewText(TV_THING_STATE, Thing.getStateStr(state, context));
+            remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);
         } else {
             remoteViews.setViewVisibility(V_BOTTOM_HELPER, View.GONE);
             remoteViews.setViewVisibility(LL_THING_STATE, View.GONE);
@@ -331,8 +361,8 @@ public class AppWidgetHelper {
         }
 
         remoteViews.setViewVisibility(V_BOTTOM_HELPER, View.VISIBLE);
-        remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);
         remoteViews.setViewVisibility(LL_THING_STATE, View.GONE);
+        remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);
     }
 
     private static void setHabit(Context context, RemoteViews remoteViews, Thing thing) {
@@ -382,8 +412,8 @@ public class AppWidgetHelper {
         }
 
         remoteViews.setViewVisibility(V_BOTTOM_HELPER, View.VISIBLE);
-        remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);
         remoteViews.setViewVisibility(LL_THING_STATE, View.GONE);
+        remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);
     }
 
     private static void setHabitLastFive(RemoteViews remoteViews, String lastFive) {
