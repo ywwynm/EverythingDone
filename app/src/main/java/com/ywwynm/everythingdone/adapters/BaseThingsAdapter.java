@@ -322,7 +322,8 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
                     && holder.tvContent.getVisibility() == View.GONE
                     && holder.rvChecklist.getVisibility() == View.GONE
                     && holder.llAudioAttachment.getVisibility() == View.GONE
-                    && holder.rlReminder.getVisibility() == View.GONE) {
+                    && holder.rlReminder.getVisibility() == View.GONE
+                    && holder.rlHabit.getVisibility() == View.GONE) {
                 holder.vPaddingBottom.setVisibility(View.GONE);
             } else {
                 holder.vPaddingBottom.setVisibility(View.VISIBLE);
