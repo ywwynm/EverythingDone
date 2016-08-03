@@ -3,6 +3,7 @@ package com.ywwynm.everythingdone.helpers;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
 import android.util.TypedValue;
 import android.view.View;
 import android.widget.RemoteViews;
@@ -164,6 +165,7 @@ public class AppWidgetHelper {
 
             Intent intent = new Intent(context, ChecklistWidgetService.class);
             intent.putExtra(Def.Communication.KEY_CHECKLIST_STRING, content);
+            intent.setData(Uri.parse(intent.toUri(Intent.URI_INTENT_SCHEME)));
             remoteViews.setRemoteAdapter(LV_CHECKLIST, intent);
 
             remoteViews.setViewPadding(LV_CHECKLIST, (int) (-6 * screenDensity), p, 0, 0);
