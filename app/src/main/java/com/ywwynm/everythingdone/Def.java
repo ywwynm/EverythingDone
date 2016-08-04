@@ -17,7 +17,7 @@ public final class Def {
         public static final String META_DATA_NAME           = "EverythingDone_metadata";
         public static final String PREFERENCES_NAME         = "EverythingDone_preferences";
         public static final String THINGS_COUNTS_NAME       = "EverythingDone_things_counts";
-        public static final String CREATE_ALARMS_FILE_NAME  = "create_alarms.dat";
+        public static final String RESTORE_DONE_FILE_NAME   = "restore_done.dat";
         public static final String FEEDBACK_ERROR_FILE_NAME = "feedback_error.dat";
 
         public static final int DATABASE_VERSION = 3;

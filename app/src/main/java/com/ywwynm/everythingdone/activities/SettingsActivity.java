@@ -989,7 +989,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                 AlarmHelper.cancelAlarms(context, thingIds, reminderIds, habitReminderIds);
                 try {
                     FileOutputStream fos = SettingsActivity.this.openFileOutput(
-                            Def.Meta.CREATE_ALARMS_FILE_NAME, MODE_PRIVATE);
+                            Def.Meta.RESTORE_DONE_FILE_NAME, MODE_PRIVATE);
                     fos.write("我的女神陈锦琼".getBytes());
                 } catch (IOException e) {
                     e.printStackTrace();

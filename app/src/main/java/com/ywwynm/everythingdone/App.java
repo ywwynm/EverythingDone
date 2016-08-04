@@ -12,9 +12,11 @@ import com.ywwynm.everythingdone.helpers.AlarmHelper;
 import com.ywwynm.everythingdone.helpers.AppUpdateHelper;
 import com.ywwynm.everythingdone.helpers.AttachmentHelper;
 import com.ywwynm.everythingdone.helpers.CrashHelper;
+import com.ywwynm.everythingdone.helpers.FingerprintHelper;
 import com.ywwynm.everythingdone.managers.ModeManager;
 import com.ywwynm.everythingdone.managers.ThingManager;
 import com.ywwynm.everythingdone.model.Thing;
+import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.FileUtil;
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil;
@@ -92,9 +94,19 @@ public class App extends Application {
         AppUpdateHelper.getInstance(this).handleAppUpdate();
 
         File file = new File(getApplicationInfo().dataDir + "/files/" +
-                Def.Meta.CREATE_ALARMS_FILE_NAME);
+                Def.Meta.RESTORE_DONE_FILE_NAME);
         if (file.exists()) {
             AlarmHelper.createAllAlarms(this, false);
+            FingerprintHelper fingerprintHelper = FingerprintHelper.getInstance();
+            if (DeviceUtil.hasMarshmallowApi()
+                    && fingerprintHelper.isFingerprintEnabledInEverythingDone()
+                    && fingerprintHelper.isFingerprintReady()) {
+                /*
+                    Fix bug: if restored, fingerprint will not work unless user disable/enable
+                    fingerprint in SettingsActivity
+                 */
+                fingerprintHelper.createFingerprintKeyForEverythingDone();
+            }
             FileUtil.deleteFile(file);
         }
 
