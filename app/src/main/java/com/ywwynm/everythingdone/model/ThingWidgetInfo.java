@@ -14,11 +14,12 @@ import java.lang.annotation.RetentionPolicy;
  */
 public class ThingWidgetInfo {
 
-    public static final int SIZE_SMALL  = 0;
-    public static final int SIZE_MIDDLE = 1;
-    public static final int SIZE_LARGE  = 2;
+    public static final int SIZE_TINY   = 0;
+    public static final int SIZE_SMALL  = 1;
+    public static final int SIZE_MIDDLE = 2;
+    public static final int SIZE_LARGE  = 3;
 
-    @IntDef({SIZE_SMALL, SIZE_MIDDLE, SIZE_LARGE})
+    @IntDef({SIZE_TINY, SIZE_SMALL, SIZE_MIDDLE, SIZE_LARGE})
     @Retention(RetentionPolicy.SOURCE)
     public @interface Size {}
 

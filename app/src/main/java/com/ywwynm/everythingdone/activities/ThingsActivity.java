@@ -29,6 +29,7 @@ import android.support.v7.widget.Toolbar.OnMenuItemClickListener;
 import android.support.v7.widget.helper.ItemTouchHelper;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -188,6 +189,8 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        Log.i(TAG, "onCreate");
+
         setDrawer();
 
         IntentFilter filter = new IntentFilter(
@@ -263,6 +266,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        Log.i(TAG, "onResume");
 
         updateTaskDescription();
 

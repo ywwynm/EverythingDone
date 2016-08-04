@@ -155,6 +155,17 @@
         </receiver>
 
         <receiver
+            android:name=".appwidgets.single.ThingWidgetTiny"
+            android:label="@string/thing">
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/app_widget_info_thing_tiny"/>
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+        </receiver>
+
+        <receiver
             android:name=".appwidgets.single.ThingWidgetSmall"
             android:label="@string/thing">
             <meta-data
@@ -189,6 +200,17 @@
 
         <activity
             android:name=".appwidgets.single.BaseThingWidgetConfiguration"
+            android:theme="@style/EverythingDoneTheme.Help"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:label="@string/title_activity_thing_widget_configure"
+            android:screenOrientation="user">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".appwidgets.single.ThingWidgetConfigurationTiny"
             android:theme="@style/EverythingDoneTheme.Help"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:label="@string/title_activity_thing_widget_configure"

@@ -7,9 +7,7 @@ import android.support.v4.content.ContextCompat;
 import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.style.StrikethroughSpan;
-import android.util.Log;
 import android.util.TypedValue;
-import android.view.View;
 import android.widget.RemoteViews;
 import android.widget.RemoteViewsService;
 
@@ -96,6 +94,8 @@ public class ChecklistWidgetService extends RemoteViewsService {
             int white_76 = ContextCompat.getColor(mContext, R.color.white_76p);
             int white_50 = Color.parseColor("#80FFFFFF");
             float density = DisplayUtil.getScreenDensity(mContext);
+
+            rv.setViewPadding(LL_CHECK_LIST, (int) (-6 * density), 0, 0, 0);
 
             String stateContent = mItems.get(position);
             char state = stateContent.charAt(0);

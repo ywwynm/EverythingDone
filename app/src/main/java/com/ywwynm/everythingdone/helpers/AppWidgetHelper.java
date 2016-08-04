@@ -20,6 +20,7 @@ import com.ywwynm.everythingdone.appwidgets.single.BaseThingWidget;
 import com.ywwynm.everythingdone.appwidgets.single.ThingWidgetLarge;
 import com.ywwynm.everythingdone.appwidgets.single.ThingWidgetMiddle;
 import com.ywwynm.everythingdone.appwidgets.single.ThingWidgetSmall;
+import com.ywwynm.everythingdone.appwidgets.single.ThingWidgetTiny;
 import com.ywwynm.everythingdone.database.AppWidgetDAO;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ReminderDAO;
@@ -52,17 +53,13 @@ public class AppWidgetHelper {
     private static final int TV_IMAGE_COUNT           = R.id.tv_thing_image_attachment_count;
 
     private static final int TV_TITLE                 = R.id.tv_thing_title;
-    private static final int V_PRIVATE_HELPER_1       = R.id.view_private_helper_1;
     private static final int IV_PRIVATE_THING         = R.id.iv_private_thing;
-    private static final int V_PRIVATE_HELPER_2       = R.id.view_private_helper_2;
 
     private static final int TV_CONTENT               = R.id.tv_thing_content;
     private static final int LV_CHECKLIST             = R.id.lv_thing_check_list;
 
     private static final int LL_AUDIO_ATTACHMENT      = R.id.ll_thing_audio_attachment;
     private static final int TV_AUDIO_COUNT           = R.id.tv_thing_audio_attachment_count;
-
-    private static final int V_BOTTOM_HELPER          = R.id.view_reminder_habit_state_helper;
 
     private static final int RL_REMINDER              = R.id.rl_thing_reminder;
     private static final int V_REMINDER_SEPARATOR     = R.id.view_reminder_separator;
@@ -100,7 +97,9 @@ public class AppWidgetHelper {
     }
 
     public static Class getProviderClassBySize(@ThingWidgetInfo.Size int size) {
-        if (size == ThingWidgetInfo.SIZE_SMALL) {
+        if (size == ThingWidgetInfo.SIZE_TINY) {
+            return ThingWidgetTiny.class;
+        } else if (size == ThingWidgetInfo.SIZE_SMALL) {
             return ThingWidgetSmall.class;
         } else if (size == ThingWidgetInfo.SIZE_MIDDLE) {
             return ThingWidgetMiddle.class;
@@ -111,7 +110,9 @@ public class AppWidgetHelper {
     }
 
     public static @ThingWidgetInfo.Size int getSizeByProviderClass(Class clazz) {
-        if (clazz.equals(ThingWidgetSmall.class)) {
+        if (clazz.equals(ThingWidgetTiny.class)) {
+            return ThingWidgetInfo.SIZE_TINY;
+        } else if (clazz.equals(ThingWidgetSmall.class)) {
             return ThingWidgetInfo.SIZE_SMALL;
         } else if (clazz.equals(ThingWidgetMiddle.class)) {
             return ThingWidgetInfo.SIZE_MIDDLE;
@@ -156,7 +157,11 @@ public class AppWidgetHelper {
 
     private static void setImageAttachment(
             Context context, RemoteViews remoteViews, Thing thing, int appWidgetId) {
-        // TODO: 2016/8/2 只有图片的时候，reminder、habit、state的分割线为gone
+        if (thing.isPrivate()) {
+            remoteViews.setViewVisibility(FL_IMAGE_ATTACHMENT,  View.GONE);
+            remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);
+            return;
+        }
 
         String attachment = thing.getAttachment();
         String firstImageTypePathName = AttachmentHelper.getFirstImageTypePathName(attachment);
@@ -229,13 +234,9 @@ public class AppWidgetHelper {
         }
 
         if (thing.isPrivate()) {
-            remoteViews.setViewVisibility(V_PRIVATE_HELPER_1, View.VISIBLE);
             remoteViews.setViewVisibility(IV_PRIVATE_THING, View.VISIBLE);
-            remoteViews.setViewVisibility(V_PRIVATE_HELPER_2, View.VISIBLE);
         } else {
-            remoteViews.setViewVisibility(V_PRIVATE_HELPER_1, View.GONE);
             remoteViews.setViewVisibility(IV_PRIVATE_THING, View.GONE);
-            remoteViews.setViewVisibility(V_PRIVATE_HELPER_2, View.GONE);
         }
     }
 
@@ -280,7 +281,7 @@ public class AppWidgetHelper {
                     PendingIntent.FLAG_UPDATE_CURRENT);
             remoteViews.setPendingIntentTemplate(R.id.lv_thing_check_list, pendingIntent);
 
-            remoteViews.setViewPadding(LV_CHECKLIST, (int) (6 * screenDensity), dp12, dp12, dp12);
+            remoteViews.setViewPadding(LV_CHECKLIST, dp12, dp12, dp12, 0);
         }
 
         remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);
@@ -306,12 +307,10 @@ public class AppWidgetHelper {
     private static void setState(Context context, RemoteViews remoteViews, Thing thing) {
         @Thing.State int state = thing.getState();
         if (state != Thing.UNDERWAY) {
-            remoteViews.setViewVisibility(V_BOTTOM_HELPER, View.VISIBLE);
             remoteViews.setViewVisibility(LL_THING_STATE, View.VISIBLE);
             remoteViews.setTextViewText(TV_THING_STATE, Thing.getStateStr(state, context));
             remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);
         } else {
-            remoteViews.setViewVisibility(V_BOTTOM_HELPER, View.GONE);
             remoteViews.setViewVisibility(LL_THING_STATE, View.GONE);
         }
     }
@@ -359,7 +358,6 @@ public class AppWidgetHelper {
             }
         }
 
-        remoteViews.setViewVisibility(V_BOTTOM_HELPER, View.VISIBLE);
         remoteViews.setViewVisibility(LL_THING_STATE, View.GONE);
         remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);
     }
@@ -410,7 +408,6 @@ public class AppWidgetHelper {
             remoteViews.setViewVisibility(TV_HABIT_FINISHED_THIS_T, View.GONE);
         }
 
-        remoteViews.setViewVisibility(V_BOTTOM_HELPER, View.VISIBLE);
         remoteViews.setViewVisibility(LL_THING_STATE, View.GONE);
         remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);
     }

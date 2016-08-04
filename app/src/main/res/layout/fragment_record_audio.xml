@@ -19,7 +19,7 @@
             android:background="@android:color/transparent"
             android:alpha="0.16"
             app:renderRange="top"
-            app:numColumns="36"/>
+            app:numColumns="24"/>
 
         <LinearLayout
             android:id="@+id/ll_audio_file_name"
