@@ -154,6 +154,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     private Runnable initRecyclerViewRunnable = new Runnable() {
         @Override
         public void run() {
+            mThingsAdapter.setShouldThingsAnimWhenAppearing(true);
             mRecyclerView.setAdapter(mThingsAdapter);
             mStaggeredGridLayoutManager = new StaggeredGridLayoutManager(
                     mSpan, StaggeredGridLayoutManager.VERTICAL);
