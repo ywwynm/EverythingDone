@@ -10,6 +10,7 @@ import android.support.v4.app.NotificationManagerCompat;
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
+import com.ywwynm.everythingdone.helpers.AppWidgetHelper;
 import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.database.ReminderDAO;
@@ -65,6 +66,8 @@ public class ReminderReceiver extends BroadcastReceiver {
                     reminder.setState(thing.getState() == Thing.UNDERWAY ?
                             Reminder.REMINDED : Reminder.EXPIRED);
                     reminderDAO.update(reminder);
+                    sendBroadCastToUpdateMainUI(context, thing, position);
+                    AppWidgetHelper.updateAppWidget(context, id);
                     return;
                 }
             }
@@ -73,6 +76,7 @@ public class ReminderReceiver extends BroadcastReceiver {
                 reminder.setState(Reminder.REMINDED);
                 reminderDAO.update(reminder);
                 sendBroadCastToUpdateMainUI(context, thing, position);
+                AppWidgetHelper.updateAppWidget(context, id);
 
                 NotificationCompat.Builder builder = SystemNotificationUtil
                         .newGeneralNotificationBuilder(context, TAG, id, position, thing, false);

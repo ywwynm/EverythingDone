@@ -4,6 +4,6 @@
     android:minWidth="180dp"
     android:minHeight="180dp"
     android:updatePeriodMillis="0"
-    android:configure="com.ywwynm.everythingdone.activities.ThingWidgetConfigureActivity"
+    android:configure="com.ywwynm.everythingdone.appwidgets.single.ThingWidgetConfigurationMiddle"
     android:initialLayout="@layout/app_widget_thing"
     android:resizeMode="horizontal|vertical"/>

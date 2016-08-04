@@ -9,6 +9,7 @@ import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
+import com.ywwynm.everythingdone.helpers.AppWidgetHelper;
 import com.ywwynm.everythingdone.managers.ThingManager;
 import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.Thing;
@@ -97,6 +98,8 @@ public class ReminderNotificationActionReceiver extends BroadcastReceiver {
             sendBroadCastToUpdateMainUI(context, thing, position,
                     Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME);
         }
+
+        AppWidgetHelper.updateAppWidget(context, id);
 
         NotificationManagerCompat nmc = NotificationManagerCompat.from(context);
         nmc.cancel((int) id);

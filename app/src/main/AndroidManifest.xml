@@ -155,7 +155,7 @@
         </receiver>
 
         <receiver
-            android:name=".appwidgets.ThingWidgetSmall"
+            android:name=".appwidgets.single.ThingWidgetSmall"
             android:label="@string/thing">
             <meta-data
                 android:name="android.appwidget.provider"
@@ -166,7 +166,7 @@
         </receiver>
 
         <receiver
-            android:name=".appwidgets.ThingWidgetMiddle"
+            android:name=".appwidgets.single.ThingWidgetMiddle"
             android:label="@string/thing">
             <meta-data
                 android:name="android.appwidget.provider"
@@ -177,7 +177,7 @@
         </receiver>
 
         <receiver
-            android:name=".appwidgets.ThingWidgetLarge"
+            android:name=".appwidgets.single.ThingWidgetLarge"
             android:label="@string/thing">
             <meta-data
                 android:name="android.appwidget.provider"
@@ -188,7 +188,40 @@
         </receiver>
 
         <activity
-            android:name=".activities.ThingWidgetConfigureActivity"
+            android:name=".appwidgets.single.BaseThingWidgetConfiguration"
+            android:theme="@style/EverythingDoneTheme.Help"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:label="@string/title_activity_thing_widget_configure"
+            android:screenOrientation="user">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".appwidgets.single.ThingWidgetConfigurationSmall"
+            android:theme="@style/EverythingDoneTheme.Help"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:label="@string/title_activity_thing_widget_configure"
+            android:screenOrientation="user">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".appwidgets.single.ThingWidgetConfigurationMiddle"
+            android:theme="@style/EverythingDoneTheme.Help"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:label="@string/title_activity_thing_widget_configure"
+            android:screenOrientation="user">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".appwidgets.single.ThingWidgetConfigurationLarge"
             android:theme="@style/EverythingDoneTheme.Help"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:label="@string/title_activity_thing_widget_configure"

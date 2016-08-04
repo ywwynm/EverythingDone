@@ -6,6 +6,10 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 
 import com.ywwynm.everythingdone.Def;
+import com.ywwynm.everythingdone.model.ThingWidgetInfo;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by qiizhang on 2016/8/1.
@@ -38,22 +42,35 @@ public class AppWidgetDAO {
         return sAppWidgetDAO;
     }
 
-    public long getThingIdByAppWidgetId(int appWidgetId) {
-        long thingId = -1;
+    public ThingWidgetInfo getThingWidgetInfoById(long appWidgetId) {
+        ThingWidgetInfo thingWidgetInfo = null;
         String selection = Def.Database.COLUMN_ID_APP_WIDGET + "=" + appWidgetId;
         Cursor cursor = db.query(Def.Database.TABLE_APP_WIDGET,
                 null, selection, null, null, null, null);
         if (cursor.moveToFirst()) {
-            thingId = cursor.getLong(cursor.getColumnIndex(Def.Database.COLUMN_THING_ID_APP_WIDGET));
+            thingWidgetInfo = new ThingWidgetInfo(cursor);
         }
         cursor.close();
-        return thingId;
+        return thingWidgetInfo;
     }
 
-    public boolean insert(int appWidgetId, long thingId) {
+    public List<ThingWidgetInfo> getThingWidgetInfosByThingId(long thingId) {
+        List<ThingWidgetInfo> thingWidgetInfos = new ArrayList<>();
+        String selection = Def.Database.COLUMN_THING_ID_APP_WIDGET + "=" + thingId;
+        Cursor cursor = db.query(Def.Database.TABLE_APP_WIDGET,
+                null, selection, null, null, null, null);
+        while (cursor.moveToNext()) {
+            thingWidgetInfos.add(new ThingWidgetInfo(cursor));
+        }
+        cursor.close();
+        return thingWidgetInfos;
+    }
+
+    public boolean insert(int appWidgetId, long thingId, @ThingWidgetInfo.Size int size) {
         ContentValues values = new ContentValues();
         values.put(Def.Database.COLUMN_ID_APP_WIDGET,       appWidgetId);
         values.put(Def.Database.COLUMN_THING_ID_APP_WIDGET, thingId);
+        values.put(Def.Database.COLUMN_SIZE_APP_WIDGET,     size);
         return db.insert(Def.Database.TABLE_APP_WIDGET, null, values) != -1;
     }
 

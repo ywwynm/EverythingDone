@@ -3,20 +3,22 @@ package com.ywwynm.everythingdone.services;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
-import android.graphics.Paint;
 import android.support.v4.content.ContextCompat;
 import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.style.StrikethroughSpan;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.View;
-import android.widget.LinearLayout;
 import android.widget.RemoteViews;
 import android.widget.RemoteViewsService;
 
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
+import com.ywwynm.everythingdone.database.ThingDAO;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
+import com.ywwynm.everythingdone.managers.ThingManager;
+import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 
 import java.util.List;
@@ -27,8 +29,9 @@ import java.util.List;
  */
 public class ChecklistWidgetService extends RemoteViewsService {
 
-    private static final int IV_STATE   = R.id.iv_check_list_state;
-    private static final int TV_CONTENT = R.id.tv_check_list;
+    private static final int LL_CHECK_LIST = R.id.ll_check_list_tv;
+    private static final int IV_STATE      = R.id.iv_check_list_state;
+    private static final int TV_CONTENT    = R.id.tv_check_list;
 
     @Override
     public RemoteViewsFactory onGetViewFactory(Intent intent) {
@@ -40,17 +43,32 @@ public class ChecklistWidgetService extends RemoteViewsService {
         private Context mContext;
         private Intent mIntent;
 
+        private Thing mThing;
         private List<String> mItems;
 
-        public ChecklistViewFactory(Context mContext, Intent mIntent) {
-            this.mContext = mContext;
-            this.mIntent  = mIntent;
+        public ChecklistViewFactory(Context context, Intent intent) {
+            mContext = context;
+            mIntent  = intent;
         }
 
         @Override
         public void onCreate() {
-            String checklistStr = mIntent.getStringExtra(Def.Communication.KEY_CHECKLIST_STRING);
-            mItems = CheckListHelper.toCheckListItems(checklistStr, false);
+            init();
+        }
+
+        private void init() {
+            long id = mIntent.getLongExtra(Def.Communication.KEY_ID, -1);
+            ThingManager thingManager = ThingManager.getInstance(mContext);
+            mThing = thingManager.getThingById(id);
+            if (mThing == null) {
+                ThingDAO thingDAO = ThingDAO.getInstance(mContext);
+                mThing = thingDAO.getThingById(id);
+                if (mThing == null) {
+                    return;
+                }
+            }
+
+            mItems = CheckListHelper.toCheckListItems(mThing.getContent(), false);
             mItems.remove("2");
             mItems.remove("3");
             mItems.remove("4");
@@ -58,7 +76,7 @@ public class ChecklistWidgetService extends RemoteViewsService {
 
         @Override
         public void onDataSetChanged() {
-
+            init();
         }
 
         @Override
@@ -84,24 +102,24 @@ public class ChecklistWidgetService extends RemoteViewsService {
                 rv.setTextViewTextSize(TV_CONTENT, TypedValue.COMPLEX_UNIT_SP, 18);
                 rv.setTextViewText(TV_CONTENT, "...");
                 rv.setViewPadding(TV_CONTENT, (int) (density * 8), 0, 0, 0);
-//                params.setMargins((int) (density * 8), 0, 0, params.bottomMargin);
             } else {
                 rv.setViewVisibility(IV_STATE, View.VISIBLE);
                 String stateContent = mItems.get(position);
+                Log.i("ywwynm", "position: " + position);
+                Log.i("ywwynm", "stateContent: " + stateContent);
                 char state = stateContent.charAt(0);
                 String text = stateContent.substring(1, stateContent.length());
                 if (state == '0') {
                     rv.setImageViewResource(IV_STATE, R.drawable.checklist_unchecked_card);
                     rv.setTextColor(TV_CONTENT, white_76);
                     rv.setTextViewText(TV_CONTENT, text);
-//                    holder.tv.setPaintFlags(flag & ~Paint.STRIKE_THRU_TEXT_FLAG);
                 } else if (state == '1') {
                     rv.setImageViewResource(IV_STATE, R.drawable.checklist_checked_card);
                     rv.setTextColor(TV_CONTENT, white_50);
                     SpannableString spannable = new SpannableString(text);
-                    spannable.setSpan(new StrikethroughSpan(), 0, text.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+                    spannable.setSpan(new StrikethroughSpan(), 0, text.length(),
+                            Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
                     rv.setTextViewText(TV_CONTENT, spannable);
-//                    holder.tv.setPaintFlags(flag | Paint.STRIKE_THRU_TEXT_FLAG);
                 }
 
                 int size = mItems.size();
@@ -114,8 +132,19 @@ public class ChecklistWidgetService extends RemoteViewsService {
                     float mt = - 2 * textSize / 3 + 34f / 3;
                     rv.setViewPadding(TV_CONTENT, 0, (int) mt, 0, 0);
                 }
+
+                setupEvents(rv, position);
             }
             return rv;
+        }
+
+        private void setupEvents(RemoteViews rv, int position) {
+            if (mThing.getState() == Thing.UNDERWAY) {
+                Intent intent = new Intent(Def.Communication.BROADCAST_ACTION_UPDATE_CHECKLIST);
+                intent.putExtra(Def.Communication.KEY_ID, mThing.getId());
+                intent.putExtra(Def.Communication.KEY_POSITION, position);
+                rv.setOnClickFillInIntent(LL_CHECK_LIST, intent);
+            }
         }
 
         @Override
@@ -130,12 +159,12 @@ public class ChecklistWidgetService extends RemoteViewsService {
 
         @Override
         public long getItemId(int position) {
-            return position;
+            return mItems.get(position).hashCode();
         }
 
         @Override
         public boolean hasStableIds() {
-            return true;
+            return false;
         }
     }
 

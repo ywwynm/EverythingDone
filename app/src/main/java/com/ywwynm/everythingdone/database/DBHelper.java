@@ -79,6 +79,7 @@ public class DBHelper extends SQLiteOpenHelper {
             + Def.Database.TABLE_APP_WIDGET + " ("
                 + Def.Database.COLUMN_ID_APP_WIDGET       + " integer primary key, "
                 + Def.Database.COLUMN_THING_ID_APP_WIDGET + " integer not null, "
+                + Def.Database.COLUMN_SIZE_APP_WIDGET     + " integer not null, " /* added in version 3 */
                 + "foreign key("
                     + Def.Database.COLUMN_THING_ID_APP_WIDGET
                 + ") references "
@@ -111,6 +112,9 @@ public class DBHelper extends SQLiteOpenHelper {
 
     private static final String SQL_DROP_TABLE_HABIT_RECORDS = "drop table if exists "
             + Def.Database.TABLE_HABIT_RECORDS;
+
+    private static final String SQL_DROP_TABLE_APP_WIDGET = "drop table if exists "
+            + Def.Database.TABLE_APP_WIDGET;
 
     private Context mContext;
 
@@ -162,6 +166,10 @@ public class DBHelper extends SQLiteOpenHelper {
 //        onCreate(db);
         if (oldVersion == 1) {
             // no table "app_widget" in first version
+            db.execSQL(SQL_CREATE_TABLE_APP_WIDGET);
+        } else if (oldVersion == 2) {
+            // Only for developing. I forget to create a column that describes widget's size
+            db.execSQL(SQL_DROP_TABLE_APP_WIDGET);
             db.execSQL(SQL_CREATE_TABLE_APP_WIDGET);
         }
     }
