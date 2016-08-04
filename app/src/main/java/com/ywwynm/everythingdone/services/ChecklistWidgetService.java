@@ -86,8 +86,7 @@ public class ChecklistWidgetService extends RemoteViewsService {
 
         @Override
         public int getCount() {
-            int size = mItems.size();
-            return size <= 8 ? size : 9;
+            return mItems.size();
         }
 
         @Override
@@ -97,44 +96,35 @@ public class ChecklistWidgetService extends RemoteViewsService {
             int white_76 = ContextCompat.getColor(mContext, R.color.white_76p);
             int white_50 = Color.parseColor("#80FFFFFF");
             float density = DisplayUtil.getScreenDensity(mContext);
-            if (position == 8) {
-                rv.setViewVisibility(IV_STATE, View.GONE);
-                rv.setTextViewTextSize(TV_CONTENT, TypedValue.COMPLEX_UNIT_SP, 18);
-                rv.setTextViewText(TV_CONTENT, "...");
-                rv.setViewPadding(TV_CONTENT, (int) (density * 8), 0, 0, 0);
-            } else {
-                rv.setViewVisibility(IV_STATE, View.VISIBLE);
-                String stateContent = mItems.get(position);
-                Log.i("ywwynm", "position: " + position);
-                Log.i("ywwynm", "stateContent: " + stateContent);
-                char state = stateContent.charAt(0);
-                String text = stateContent.substring(1, stateContent.length());
-                if (state == '0') {
-                    rv.setImageViewResource(IV_STATE, R.drawable.checklist_unchecked_card);
-                    rv.setTextColor(TV_CONTENT, white_76);
-                    rv.setTextViewText(TV_CONTENT, text);
-                } else if (state == '1') {
-                    rv.setImageViewResource(IV_STATE, R.drawable.checklist_checked_card);
-                    rv.setTextColor(TV_CONTENT, white_50);
-                    SpannableString spannable = new SpannableString(text);
-                    spannable.setSpan(new StrikethroughSpan(), 0, text.length(),
-                            Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-                    rv.setTextViewText(TV_CONTENT, spannable);
-                }
 
-                int size = mItems.size();
-                if (size >= 8) {
-                    rv.setTextViewTextSize(TV_CONTENT, TypedValue.COMPLEX_UNIT_SP, 14);
-                    rv.setViewPadding(TV_CONTENT, 0, (int) (density * 2), 0, 0);
-                } else {
-                    float textSize = -4 * size / 7f + 130f / 7;
-                    rv.setTextViewTextSize(TV_CONTENT, TypedValue.COMPLEX_UNIT_SP, textSize);
-                    float mt = - 2 * textSize / 3 + 34f / 3;
-                    rv.setViewPadding(TV_CONTENT, 0, (int) mt, 0, 0);
-                }
-
-                setupEvents(rv, position);
+            String stateContent = mItems.get(position);
+            char state = stateContent.charAt(0);
+            String text = stateContent.substring(1, stateContent.length());
+            if (state == '0') {
+                rv.setImageViewResource(IV_STATE, R.drawable.checklist_unchecked_card);
+                rv.setTextColor(TV_CONTENT, white_76);
+                rv.setTextViewText(TV_CONTENT, text);
+            } else if (state == '1') {
+                rv.setImageViewResource(IV_STATE, R.drawable.checklist_checked_card);
+                rv.setTextColor(TV_CONTENT, white_50);
+                SpannableString spannable = new SpannableString(text);
+                spannable.setSpan(new StrikethroughSpan(), 0, text.length(),
+                        Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+                rv.setTextViewText(TV_CONTENT, spannable);
             }
+
+            int size = mItems.size();
+            if (size >= 8) {
+                rv.setTextViewTextSize(TV_CONTENT, TypedValue.COMPLEX_UNIT_SP, 14);
+                rv.setViewPadding(TV_CONTENT, 0, (int) (density * 2), 0, 0);
+            } else {
+                float textSize = -4 * size / 7f + 130f / 7;
+                rv.setTextViewTextSize(TV_CONTENT, TypedValue.COMPLEX_UNIT_SP, textSize);
+                float mt = - 2 * textSize / 3 + 34f / 3;
+                rv.setViewPadding(TV_CONTENT, 0, (int) mt, 0, 0);
+            }
+
+            setupEvents(rv, position);
             return rv;
         }
 

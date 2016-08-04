@@ -261,7 +261,6 @@ public class AppWidgetHelper {
                 remoteViews.setTextViewTextSize(TV_CONTENT, TypedValue.COMPLEX_UNIT_SP, 16);
             }
         } else {
-            remoteViews.setViewPadding(LV_CHECKLIST, dp12, dp12, dp12, 0);
             remoteViews.setViewVisibility(LV_CHECKLIST, View.VISIBLE);
             remoteViews.setViewVisibility(TV_CONTENT,   View.GONE);
 
@@ -281,7 +280,7 @@ public class AppWidgetHelper {
                     PendingIntent.FLAG_UPDATE_CURRENT);
             remoteViews.setPendingIntentTemplate(R.id.lv_thing_check_list, pendingIntent);
 
-            remoteViews.setViewPadding(LV_CHECKLIST, (int) (6 * screenDensity), dp12, dp12, 0);
+            remoteViews.setViewPadding(LV_CHECKLIST, (int) (6 * screenDensity), dp12, dp12, dp12);
         }
 
         remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);
