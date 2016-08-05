@@ -48,7 +48,6 @@ public class AppWidgetHelper {
 
     private static final int LL_WIDGET_THING          = R.id.ll_widget_thing;
 
-    private static final int FL_IMAGE_ATTACHMENT      = R.id.fl_thing_image;
     private static final int IV_IMAGE_ATTACHMENT      = R.id.iv_thing_image;
     private static final int TV_IMAGE_COUNT           = R.id.tv_thing_image_attachment_count;
 
@@ -158,20 +157,23 @@ public class AppWidgetHelper {
     private static void setImageAttachment(
             Context context, RemoteViews remoteViews, Thing thing, int appWidgetId) {
         if (thing.isPrivate()) {
-            remoteViews.setViewVisibility(FL_IMAGE_ATTACHMENT,  View.GONE);
-            remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);
+            remoteViews.setViewVisibility(IV_IMAGE_ATTACHMENT,  View.GONE);
+            remoteViews.setViewVisibility(TV_IMAGE_COUNT,       View.GONE);
+            remoteViews.setViewVisibility(V_PADDING_BOTTOM,     View.VISIBLE);
             return;
         }
 
         String attachment = thing.getAttachment();
         String firstImageTypePathName = AttachmentHelper.getFirstImageTypePathName(attachment);
         if (firstImageTypePathName == null) {
-            remoteViews.setViewVisibility(FL_IMAGE_ATTACHMENT,  View.GONE);
+            remoteViews.setViewVisibility(IV_IMAGE_ATTACHMENT,  View.GONE);
+            remoteViews.setViewVisibility(TV_IMAGE_COUNT,       View.GONE);
             remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);
             return;
         }
 
-        remoteViews.setViewVisibility(FL_IMAGE_ATTACHMENT, View.VISIBLE);
+        remoteViews.setViewVisibility(IV_IMAGE_ATTACHMENT,  View.VISIBLE);
+        remoteViews.setViewVisibility(TV_IMAGE_COUNT,       View.VISIBLE);
 
         final String pathName = firstImageTypePathName.substring(1, firstImageTypePathName.length());
         BitmapFactory.Options options = new BitmapFactory.Options();
@@ -190,35 +192,6 @@ public class AppWidgetHelper {
 
         remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.GONE);
         setSeparatorVisibilities(remoteViews, View.GONE);
-    }
-
-    private boolean onlyImageAttachmentInThingWidget(Context context, Thing thing) {
-        if (thing.getState() != Thing.UNDERWAY) {
-            return false;
-        }
-        if (!thing.getTitle().isEmpty() || thing.getContent().isEmpty()) {
-            return false;
-        }
-        String attachment = thing.getAttachment();
-        if (AttachmentHelper.getFirstImageTypePathName(attachment) == null) {
-            return false;
-        }
-        if (AttachmentHelper.getAudioAttachmentCountStr(attachment, context) != null) {
-            return false;
-        }
-
-        long id = thing.getId();
-        ReminderDAO reminderDAO = ReminderDAO.getInstance(context);
-        if (reminderDAO.getReminderById(id) != null) {
-            return false;
-        }
-
-        HabitDAO habitDAO = HabitDAO.getInstance(context);
-        if (habitDAO.getHabitById(id) != null) {
-            return false;
-        }
-
-        return true;
     }
 
     private static void setTitleAndPrivate(RemoteViews remoteViews, Thing thing) {
