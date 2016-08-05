@@ -6,5 +6,5 @@
     android:updatePeriodMillis="0"
     android:configure="com.ywwynm.everythingdone.appwidgets.single.ThingWidgetConfigurationTiny"
     android:initialLayout="@layout/app_widget_thing"
-    android:previewImage="@drawable/thing_widget_preview_tiny"
+    android:previewImage="@drawable/widget_thing_preview_tiny"
     android:resizeMode="horizontal|vertical"/>
