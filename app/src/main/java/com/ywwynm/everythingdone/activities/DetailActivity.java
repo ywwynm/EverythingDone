@@ -69,7 +69,7 @@ import com.ywwynm.everythingdone.fragments.DateTimeDialogFragment;
 import com.ywwynm.everythingdone.fragments.HabitDetailDialogFragment;
 import com.ywwynm.everythingdone.fragments.TwoOptionsDialogFragment;
 import com.ywwynm.everythingdone.helpers.AppUpdateHelper;
-import com.ywwynm.everythingdone.helpers.AppWidgetHelper;
+import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper;
 import com.ywwynm.everythingdone.helpers.AttachmentHelper;
 import com.ywwynm.everythingdone.helpers.AuthenticationHelper;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;

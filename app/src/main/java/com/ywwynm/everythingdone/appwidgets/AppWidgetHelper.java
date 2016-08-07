@@ -1,4 +1,4 @@
-package com.ywwynm.everythingdone.helpers;
+package com.ywwynm.everythingdone.appwidgets;
 
 import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;
@@ -24,6 +24,8 @@ import com.ywwynm.everythingdone.appwidgets.single.ThingWidgetTiny;
 import com.ywwynm.everythingdone.database.AppWidgetDAO;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ReminderDAO;
+import com.ywwynm.everythingdone.helpers.AttachmentHelper;
+import com.ywwynm.everythingdone.helpers.CheckListHelper;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.Thing;

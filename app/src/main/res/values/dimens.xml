@@ -14,21 +14,21 @@
 
     <dimen name="card_audio_attachment_margin">0dp</dimen>
 
-    <dimen name="il_et_day_width_rec">56dp</dimen>
-
     <dimen name="layout_end_of_month_rec_width">132dp</dimen>
-
-    <dimen name="tv_end_of_month_rec_text_size">14sp</dimen>
-
-    <dimen name="tv_as_bt_datetime_tab_after_margin_top">6dp</dimen>
-
-    <dimen name="tv_auto_notify_text_size">16sp</dimen>
 
     <dimen name="card_note_reminder_statistic_margin">14dp</dimen>
 
-    <dimen name="move_checklist_dashed_line_length">120dp</dimen>
-
     <dimen name="settings_card_margin_top">8dp</dimen>
     <dimen name="settings_card_margin_side">-2dp</dimen>
+
+    <dimen name="il_et_day_width_rec">132dp</dimen>
+
+    <dimen name="tv_end_of_month_rec_text_size">12sp</dimen>
+
+    <dimen name="tv_as_bt_datetime_tab_after_margin_top">5dp</dimen>
+
+    <dimen name="tv_auto_notify_text_size">14sp</dimen>
+
+    <dimen name="move_checklist_dashed_line_length">136dp</dimen>
 
 </resources>

@@ -20,7 +20,7 @@ import com.ywwynm.everythingdone.activities.EverythingDoneBaseActivity;
 import com.ywwynm.everythingdone.adapters.BaseThingsAdapter;
 import com.ywwynm.everythingdone.database.AppWidgetDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
-import com.ywwynm.everythingdone.helpers.AppWidgetHelper;
+import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper;
 import com.ywwynm.everythingdone.managers.ModeManager;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.permission.PermissionUtil;

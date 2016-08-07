@@ -174,6 +174,14 @@ public class DBHelper extends SQLiteOpenHelper {
         }
     }
 
+    @Override
+    public void onDowngrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+        if (newVersion < oldVersion) {
+            onUpgrade(db, newVersion, oldVersion);
+            db.setVersion(oldVersion);
+        }
+    }
+
     private String generateInsertInitialSQL(int id, int type, int titleRes, int contentRes) {
         return "insert into " + Def.Database.TABLE_THINGS + " values(" + "'"
                 + id + "', '"

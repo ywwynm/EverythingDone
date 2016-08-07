@@ -29,7 +29,6 @@ import android.support.v7.widget.Toolbar.OnMenuItemClickListener;
 import android.support.v7.widget.helper.ItemTouchHelper;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -54,7 +53,7 @@ import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.fragments.AlertDialogFragment;
 import com.ywwynm.everythingdone.fragments.ThreeActionsAlertDialogFragment;
 import com.ywwynm.everythingdone.helpers.AppUpdateHelper;
-import com.ywwynm.everythingdone.helpers.AppWidgetHelper;
+import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper;
 import com.ywwynm.everythingdone.helpers.AuthenticationHelper;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
 import com.ywwynm.everythingdone.helpers.SendInfoHelper;
@@ -190,8 +189,6 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        Log.i(TAG, "onCreate");
-
         setDrawer();
 
         IntentFilter filter = new IntentFilter(
@@ -267,8 +264,6 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        Log.i(TAG, "onResume");
-
         updateTaskDescription();
 
         if (mUpdateMainUiInOnResume && App.justNotifyDataSetChanged()) {

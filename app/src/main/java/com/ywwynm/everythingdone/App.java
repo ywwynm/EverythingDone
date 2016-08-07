@@ -97,15 +97,16 @@ public class App extends Application {
                 Def.Meta.RESTORE_DONE_FILE_NAME);
         if (file.exists()) {
             AlarmHelper.createAllAlarms(this, false);
-            FingerprintHelper fingerprintHelper = FingerprintHelper.getInstance();
-            if (DeviceUtil.hasMarshmallowApi()
-                    && fingerprintHelper.isFingerprintEnabledInEverythingDone()
-                    && fingerprintHelper.isFingerprintReady()) {
+            if (DeviceUtil.hasMarshmallowApi()) {
+                FingerprintHelper fingerprintHelper = FingerprintHelper.getInstance();
+                if (fingerprintHelper.isFingerprintEnabledInEverythingDone()
+                        && fingerprintHelper.isFingerprintReady()) {
                 /*
                     Fix bug: if restored, fingerprint will not work unless user disable/enable
                     fingerprint in SettingsActivity
                  */
-                fingerprintHelper.createFingerprintKeyForEverythingDone();
+                    fingerprintHelper.createFingerprintKeyForEverythingDone();
+                }
             }
             FileUtil.deleteFile(file);
         }
