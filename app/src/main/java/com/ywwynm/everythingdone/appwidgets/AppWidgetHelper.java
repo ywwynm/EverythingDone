@@ -31,6 +31,7 @@ import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.model.ThingWidgetInfo;
 import com.ywwynm.everythingdone.services.ChecklistWidgetService;
+import com.ywwynm.everythingdone.services.ThingsListWidgetService;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 
@@ -48,7 +49,7 @@ public class AppWidgetHelper {
 
     private static final int dp12 = (int) (screenDensity * 12);
 
-    private static final int LL_WIDGET_THING          = R.id.ll_widget_thing;
+    private static final int LL_WIDGET_THING          = R.id.rl_widget_thing;
 
     private static final int IV_IMAGE_ATTACHMENT      = R.id.iv_thing_image;
     private static final int TV_IMAGE_COUNT           = R.id.tv_thing_image_attachment_count;
@@ -131,7 +132,26 @@ public class AppWidgetHelper {
                 context, TAG, thing.getId(), position);
         PendingIntent pendingIntent = PendingIntent.getActivity(
                 context, (int) thing.getId(), contentIntent, 0);
-        remoteViews.setOnClickPendingIntent(R.id.ll_widget_thing, pendingIntent);
+        remoteViews.setOnClickPendingIntent(R.id.rl_widget_thing, pendingIntent);
+        return remoteViews;
+    }
+
+    public static RemoteViews createRemoteViewsForThingsList(Context context, int limit, int appWidgetId) {
+        RemoteViews remoteViews = new RemoteViews(context.getPackageName(), R.layout.app_widget_things_list);
+        Intent intent = new Intent(context, ThingsListWidgetService.class);
+        intent.putExtra(Def.Communication.KEY_LIMIT, limit);
+        intent.putExtra(Def.Communication.KEY_WIDGET_ID, appWidgetId);
+        remoteViews.setRemoteAdapter(R.id.lv_things_list, intent);
+
+        intent = new Intent(context, DetailActivity.class);
+        intent.putExtra(Def.Communication.KEY_SENDER_NAME, TAG);
+        intent.putExtra(Def.Communication.KEY_DETAIL_ACTIVITY_TYPE,
+                DetailActivity.UPDATE);
+        intent.setData(Uri.parse(intent.toUri(Intent.URI_INTENT_SCHEME)));
+        PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT);
+        remoteViews.setPendingIntentTemplate(R.id.lv_things_list, pendingIntent);
+
         return remoteViews;
     }
 
@@ -157,7 +177,7 @@ public class AppWidgetHelper {
     }
 
     private static void setImageAttachment(
-            Context context, RemoteViews remoteViews, Thing thing, int appWidgetId) {
+            Context context, final RemoteViews remoteViews, Thing thing, int appWidgetId) {
         if (thing.isPrivate()) {
             remoteViews.setViewVisibility(IV_IMAGE_ATTACHMENT,  View.GONE);
             remoteViews.setViewVisibility(TV_IMAGE_COUNT,       View.GONE);
@@ -181,13 +201,25 @@ public class AppWidgetHelper {
         BitmapFactory.Options options = new BitmapFactory.Options();
         options.inJustDecodeBounds = true;
         BitmapFactory.decodeFile(pathName, options);
-        Glide.with(context)
-                .load(pathName)
-                .asBitmap()
-                .override(options.outWidth, options.outWidth * 3 / 4)
-                .centerCrop()
-                .into(new AppWidgetTarget(
-                        context, remoteViews, IV_IMAGE_ATTACHMENT, new int[] { appWidgetId }));
+
+//        Glide.with(context)
+//                .load(pathName)
+//                .asBitmap()
+//                .override(options.outWidth, options.outWidth * 3 / 4)
+//                .centerCrop()
+//                .into(new SimpleTarget<Bitmap>() {
+//                    @Override
+//                    public void onResourceReady(Bitmap resource, GlideAnimation<? super Bitmap> glideAnimation) {
+//                        remoteViews.setImageViewBitmap(IV_IMAGE_ATTACHMENT, resource);
+//                    }
+//                });
+//        Glide.with(context)
+//                .load(pathName)
+//                .asBitmap()
+//                .override(options.outWidth, options.outWidth * 3 / 4)
+//                .centerCrop()
+//                .into(new AppWidgetTarget(
+//                        context, remoteViews, IV_IMAGE_ATTACHMENT, new int[] { appWidgetId }));
 
         remoteViews.setTextViewText(TV_IMAGE_COUNT,
                 AttachmentHelper.getImageAttachmentCountStr(attachment, context));

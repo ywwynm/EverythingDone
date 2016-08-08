@@ -198,6 +198,17 @@
             </intent-filter>
         </receiver>
 
+        <receiver
+            android:name=".appwidgets.list.ThingsListWidget"
+            android:label="@string/title_activity_things_all">
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/app_widget_info_things_list"/>
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+        </receiver>
+
         <activity
             android:name=".appwidgets.single.BaseThingWidgetConfiguration"
             android:theme="@style/EverythingDoneTheme.Help"
@@ -255,6 +266,12 @@
 
         <service
             android:name=".services.ChecklistWidgetService"
+            android:permission="android.permission.BIND_REMOTEVIEWS">
+
+        </service>
+
+        <service
+            android:name=".services.ThingsListWidgetService"
             android:permission="android.permission.BIND_REMOTEVIEWS">
 
         </service>

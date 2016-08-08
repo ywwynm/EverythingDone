@@ -42,7 +42,7 @@ public class AppWidgetDAO {
         return sAppWidgetDAO;
     }
 
-    public ThingWidgetInfo getThingWidgetInfoById(long appWidgetId) {
+    public ThingWidgetInfo getThingWidgetInfoById(int appWidgetId) {
         ThingWidgetInfo thingWidgetInfo = null;
         String selection = Def.Database.COLUMN_ID_APP_WIDGET + "=" + appWidgetId;
         Cursor cursor = db.query(Def.Database.TABLE_APP_WIDGET,
