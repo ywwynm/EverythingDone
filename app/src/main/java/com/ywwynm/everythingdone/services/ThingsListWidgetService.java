@@ -9,7 +9,6 @@ import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper;
-import com.ywwynm.everythingdone.appwidgets.list.ThingsListWidget;
 import com.ywwynm.everythingdone.database.ThingDAO;
 import com.ywwynm.everythingdone.managers.ThingManager;
 import com.ywwynm.everythingdone.model.Thing;
@@ -79,12 +78,12 @@ public class ThingsListWidgetService extends RemoteViewsService {
         @Override
         public RemoteViews getViewAt(int position) {
             Thing thing = mThings.get(position);
-            RemoteViews rv = AppWidgetHelper.createRemoteViewsForSingleThing(
-                    mContext, thing, position + 1, mAppWidgetId, ThingsListWidget.class);
+            RemoteViews rv = AppWidgetHelper.createRemoteViewsForThingsListItem(
+                    mContext, thing, mAppWidgetId);
             Intent intent = new Intent();
             intent.putExtra(Def.Communication.KEY_ID, thing.getId());
             intent.putExtra(Def.Communication.KEY_POSITION, position + 1);
-            rv.setOnClickFillInIntent(R.id.rl_widget_thing, intent);
+            rv.setOnClickFillInIntent(R.id.root_widget_thing, intent);
             return rv;
         }
 

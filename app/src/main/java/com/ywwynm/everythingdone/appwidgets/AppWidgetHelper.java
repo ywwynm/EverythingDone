@@ -4,6 +4,7 @@ import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.util.TypedValue;
@@ -12,10 +13,12 @@ import android.widget.RemoteViews;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.target.AppWidgetTarget;
+import com.squareup.picasso.Picasso;
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.DetailActivity;
+import com.ywwynm.everythingdone.appwidgets.list.ThingsListWidget;
 import com.ywwynm.everythingdone.appwidgets.single.BaseThingWidget;
 import com.ywwynm.everythingdone.appwidgets.single.ThingWidgetLarge;
 import com.ywwynm.everythingdone.appwidgets.single.ThingWidgetMiddle;
@@ -35,6 +38,7 @@ import com.ywwynm.everythingdone.services.ThingsListWidgetService;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -49,7 +53,7 @@ public class AppWidgetHelper {
 
     private static final int dp12 = (int) (screenDensity * 12);
 
-    private static final int LL_WIDGET_THING          = R.id.rl_widget_thing;
+    private static final int ROOT_WIDGET_THING        = R.id.root_widget_thing;
 
     private static final int IV_IMAGE_ATTACHMENT      = R.id.iv_thing_image;
     private static final int TV_IMAGE_COUNT           = R.id.tv_thing_image_attachment_count;
@@ -132,7 +136,7 @@ public class AppWidgetHelper {
                 context, TAG, thing.getId(), position);
         PendingIntent pendingIntent = PendingIntent.getActivity(
                 context, (int) thing.getId(), contentIntent, 0);
-        remoteViews.setOnClickPendingIntent(R.id.rl_widget_thing, pendingIntent);
+        remoteViews.setOnClickPendingIntent(R.id.root_widget_thing, pendingIntent);
         return remoteViews;
     }
 
@@ -155,11 +159,19 @@ public class AppWidgetHelper {
         return remoteViews;
     }
 
+    public static RemoteViews createRemoteViewsForThingsListItem(
+            Context context, Thing thing, int appWidgetId) {
+        RemoteViews remoteViews = new RemoteViews(context.getPackageName(),
+                R.layout.app_widget_item_thing);
+        setAppearance(context, remoteViews, thing, appWidgetId, ThingsListWidget.class);
+        return remoteViews;
+    }
+
     private static void setAppearance(
             Context context, RemoteViews remoteViews, Thing thing, int appWidgetId, Class clazz) {
-        remoteViews.setInt(LL_WIDGET_THING, "setBackgroundColor", thing.getColor());
+        remoteViews.setInt(ROOT_WIDGET_THING, "setBackgroundColor", thing.getColor());
 
-        setImageAttachment(context, remoteViews, thing, appWidgetId);
+        setImageAttachment(context, remoteViews, thing, appWidgetId, clazz);
         setTitleAndPrivate(remoteViews, thing);
         setContent(context, remoteViews, thing, appWidgetId, clazz);
         setAudioAttachment(context, remoteViews, thing);
@@ -177,7 +189,7 @@ public class AppWidgetHelper {
     }
 
     private static void setImageAttachment(
-            Context context, final RemoteViews remoteViews, Thing thing, int appWidgetId) {
+            Context context, RemoteViews remoteViews, Thing thing, int appWidgetId, Class clazz) {
         if (thing.isPrivate()) {
             remoteViews.setViewVisibility(IV_IMAGE_ATTACHMENT,  View.GONE);
             remoteViews.setViewVisibility(TV_IMAGE_COUNT,       View.GONE);
@@ -198,6 +210,35 @@ public class AppWidgetHelper {
         remoteViews.setViewVisibility(TV_IMAGE_COUNT,       View.VISIBLE);
 
         final String pathName = firstImageTypePathName.substring(1, firstImageTypePathName.length());
+        if (clazz.getSuperclass().equals(BaseThingWidget.class)) {
+            loadImageUsingGlide(context, pathName, remoteViews, appWidgetId);
+        } else {
+            loadImageUsingPicasso(context, pathName, remoteViews, appWidgetId);
+        }
+
+        remoteViews.setTextViewText(TV_IMAGE_COUNT,
+                AttachmentHelper.getImageAttachmentCountStr(attachment, context));
+
+        remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.GONE);
+        setSeparatorVisibilities(remoteViews, View.GONE);
+    }
+
+    private static void loadImageUsingGlide(
+            Context context, String pathName, RemoteViews remoteViews, int appWidgetId) {
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inJustDecodeBounds = true;
+        BitmapFactory.decodeFile(pathName, options);
+        Glide.with(context)
+                .load(pathName)
+                .asBitmap()
+                .override(options.outWidth, options.outWidth * 3 / 4)
+                .centerCrop()
+                .into(new AppWidgetTarget(
+                        context, remoteViews, IV_IMAGE_ATTACHMENT, new int[] { appWidgetId }));
+    }
+
+    private static void loadImageUsingPicasso(
+            Context context, String pathName, final RemoteViews remoteViews, int appWidgetId) {
         BitmapFactory.Options options = new BitmapFactory.Options();
         options.inJustDecodeBounds = true;
         BitmapFactory.decodeFile(pathName, options);
@@ -213,19 +254,18 @@ public class AppWidgetHelper {
 //                        remoteViews.setImageViewBitmap(IV_IMAGE_ATTACHMENT, resource);
 //                    }
 //                });
-//        Glide.with(context)
-//                .load(pathName)
-//                .asBitmap()
-//                .override(options.outWidth, options.outWidth * 3 / 4)
-//                .centerCrop()
-//                .into(new AppWidgetTarget(
-//                        context, remoteViews, IV_IMAGE_ATTACHMENT, new int[] { appWidgetId }));
 
-        remoteViews.setTextViewText(TV_IMAGE_COUNT,
-                AttachmentHelper.getImageAttachmentCountStr(attachment, context));
+        try {
+            Bitmap bitmap = Picasso.with(context)
+                    .load(pathName).get();
+            remoteViews.setImageViewBitmap(IV_IMAGE_ATTACHMENT, bitmap);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
-        remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.GONE);
-        setSeparatorVisibilities(remoteViews, View.GONE);
+//        Bitmap bitmap = BitmapUtil.decodeFileFitsSize(
+//                pathName, options.outWidth, options.outWidth * 3 / 4);
+//        remoteViews.setImageViewBitmap(IV_IMAGE_ATTACHMENT, bitmap);
     }
 
     private static void setTitleAndPrivate(RemoteViews remoteViews, Thing thing) {
