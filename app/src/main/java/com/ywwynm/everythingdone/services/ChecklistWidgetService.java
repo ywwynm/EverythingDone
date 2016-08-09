@@ -13,6 +13,7 @@ import android.widget.RemoteViewsService;
 
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
+import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper;
 import com.ywwynm.everythingdone.database.ThingDAO;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
 import com.ywwynm.everythingdone.managers.ThingManager;
@@ -28,8 +29,6 @@ import java.util.List;
 public class ChecklistWidgetService extends RemoteViewsService {
 
     private static final int LL_CHECK_LIST = R.id.ll_check_list_tv;
-    private static final int IV_STATE      = R.id.iv_check_list_state;
-    private static final int TV_CONTENT    = R.id.tv_check_list;
 
     @Override
     public RemoteViewsFactory onGetViewFactory(Intent intent) {
@@ -89,41 +88,8 @@ public class ChecklistWidgetService extends RemoteViewsService {
 
         @Override
         public RemoteViews getViewAt(int position) {
-            RemoteViews rv = new RemoteViews(mContext.getPackageName(), R.layout.check_list_tv);
-
-            int white_76 = ContextCompat.getColor(mContext, R.color.white_76p);
-            int white_50 = Color.parseColor("#80FFFFFF");
-            float density = DisplayUtil.getScreenDensity(mContext);
-
-            rv.setViewPadding(LL_CHECK_LIST, (int) (-6 * density), 0, 0, 0);
-
-            String stateContent = mItems.get(position);
-            char state = stateContent.charAt(0);
-            String text = stateContent.substring(1, stateContent.length());
-            if (state == '0') {
-                rv.setImageViewResource(IV_STATE, R.drawable.checklist_unchecked_card);
-                rv.setTextColor(TV_CONTENT, white_76);
-                rv.setTextViewText(TV_CONTENT, text);
-            } else if (state == '1') {
-                rv.setImageViewResource(IV_STATE, R.drawable.checklist_checked_card);
-                rv.setTextColor(TV_CONTENT, white_50);
-                SpannableString spannable = new SpannableString(text);
-                spannable.setSpan(new StrikethroughSpan(), 0, text.length(),
-                        Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-                rv.setTextViewText(TV_CONTENT, spannable);
-            }
-
-            int size = mItems.size();
-            if (size >= 8) {
-                rv.setTextViewTextSize(TV_CONTENT, TypedValue.COMPLEX_UNIT_SP, 14);
-                rv.setViewPadding(TV_CONTENT, 0, (int) (density * 2), 0, 0);
-            } else {
-                float textSize = -4 * size / 7f + 130f / 7;
-                rv.setTextViewTextSize(TV_CONTENT, TypedValue.COMPLEX_UNIT_SP, textSize);
-                float mt = - 2 * textSize / 3 + 34f / 3;
-                rv.setViewPadding(TV_CONTENT, 0, (int) mt, 0, 0);
-            }
-
+            RemoteViews rv = AppWidgetHelper.createRemoteViewsForChecklistItem(
+                    mContext, mItems.get(position), getCount());
             setupEvents(rv, position);
             return rv;
         }

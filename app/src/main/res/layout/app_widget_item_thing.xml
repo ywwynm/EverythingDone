@@ -86,6 +86,12 @@
             android:theme="@style/CheckListStyle"/>
 
         <LinearLayout
+            android:id="@+id/ll_check_list_items_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"/>
+
+        <LinearLayout
             android:id="@+id/ll_thing_audio_attachment"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -114,8 +120,6 @@
         </LinearLayout>
 
     </LinearLayout>
-
-
 
     <FrameLayout
         android:id="@+id/fl_reminder_habit_state"
