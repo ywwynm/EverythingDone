@@ -98,6 +98,11 @@ public class AppWidgetHelper {
 
     private static final int V_PADDING_BOTTOM         = R.id.view_thing_padding_bottom;
 
+    private static final int LV_THINGS_LIST           = R.id.lv_things_list;
+    private static final int LL_THINGS_LIST_HEADER    = R.id.ll_things_list_header;
+    private static final int TV_THINGS_LIST_TITLE     = R.id.tv_things_list_title;
+    private static final int IV_THINGS_LIST_CREATE    = R.id.iv_things_list_create;
+
     private AppWidgetHelper() {}
 
     public static void updateAppWidget(Context context, long thingId) {
@@ -153,19 +158,28 @@ public class AppWidgetHelper {
 
     public static RemoteViews createRemoteViewsForThingsList(Context context, int limit, int appWidgetId) {
         RemoteViews remoteViews = new RemoteViews(context.getPackageName(), R.layout.app_widget_things_list);
-        Intent intent = new Intent(context, ThingsListWidgetService.class);
+
+        // create image view click event
+        Intent intent = DetailActivity.getOpenIntentForCreate(context, TAG, 0);
+        PendingIntent pendingIntent = PendingIntent.getActivity(
+                context, appWidgetId, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        remoteViews.setOnClickPendingIntent(IV_THINGS_LIST_CREATE, pendingIntent);
+
+        // adapter for things
+        intent = new Intent(context, ThingsListWidgetService.class);
         intent.putExtra(Def.Communication.KEY_LIMIT, limit);
         intent.putExtra(Def.Communication.KEY_WIDGET_ID, appWidgetId);
-        remoteViews.setRemoteAdapter(R.id.lv_things_list, intent);
+        remoteViews.setRemoteAdapter(LV_THINGS_LIST, intent);
 
+        // thing item click event
         intent = new Intent(context, DetailActivity.class);
         intent.putExtra(Def.Communication.KEY_SENDER_NAME, TAG);
         intent.putExtra(Def.Communication.KEY_DETAIL_ACTIVITY_TYPE,
                 DetailActivity.UPDATE);
         intent.setData(Uri.parse(intent.toUri(Intent.URI_INTENT_SCHEME)));
-        PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent,
+        pendingIntent = PendingIntent.getActivity(context, 0, intent,
                 PendingIntent.FLAG_UPDATE_CURRENT);
-        remoteViews.setPendingIntentTemplate(R.id.lv_things_list, pendingIntent);
+        remoteViews.setPendingIntentTemplate(LV_THINGS_LIST, pendingIntent);
 
         return remoteViews;
     }
@@ -288,16 +302,21 @@ public class AppWidgetHelper {
             Context context, String pathName, RemoteViews remoteViews) {
         int width  = (int) (screenDensity * 180);
         int height = width * 3 / 4;
-        BitmapRequestBuilder builder =
-                Glide.with(context)
-                        .load(pathName)
-                        .asBitmap()
-                        .override(width, height)
-                        .centerCrop();
-        FutureTarget futureTarget = builder.into(width, height);
         try {
-            remoteViews.setImageViewBitmap(IV_IMAGE_ATTACHMENT, (Bitmap) futureTarget.get());
-        } catch (InterruptedException | ExecutionException e) {
+            BitmapRequestBuilder builder =
+                    Glide.with(context)
+                            .load(pathName)
+                            .asBitmap()
+                            .override(width, height)
+                            .centerCrop();
+            FutureTarget futureTarget = builder.into(width, height);
+            try {
+                remoteViews.setImageViewBitmap(IV_IMAGE_ATTACHMENT, (Bitmap) futureTarget.get());
+            } catch (InterruptedException | ExecutionException e) {
+                e.printStackTrace();
+            }
+        } catch (SecurityException e) {
+            // sometimes Glide is willing to check network state but I don't know why.
             e.printStackTrace();
         }
     }
@@ -411,7 +430,7 @@ public class AppWidgetHelper {
             rvItem.setViewVisibility(IV_STATE_CHECK_LIST, View.GONE);
             rvItem.setTextViewText(TV_CONTENT_CHECK_LIST, "...");
             rvItem.setTextViewTextSize(TV_CONTENT_CHECK_LIST, TypedValue.COMPLEX_UNIT_SP, 18);
-            rvItem.setViewPadding(TV_CONTENT_CHECK_LIST, 0, 0, 0, 0);
+            rvItem.setViewPadding(TV_CONTENT_CHECK_LIST, 0, (int) (-4 * screenDensity), 0, 0);
             remoteViews.addView(LL_CHECK_LIST_ITEMS, rvItem);
         }
     }

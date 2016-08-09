@@ -375,13 +375,22 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         ThingManager thingManager = ThingManager.getInstance(mApp);
         if (mType == CREATE) {
             createActivitiesCount++;
-            SystemNotificationUtil.tryToCreateQuickCreateNotification(this);
 
             long newId = thingManager.getHeaderId();
             App.getRunningDetailActivities().add(newId);
-            mThing = new Thing(newId, Thing.NOTE,
-                    intent.getIntExtra(Def.Communication.KEY_COLOR,
-                            DisplayUtil.getRandomColor(this)), newId);
+
+            int color = intent.getIntExtra(Def.Communication.KEY_COLOR, 0);
+            if (color == 0) {
+                color = DisplayUtil.getRandomColor(this);
+                while (color == App.newThingColor) {
+                    color = DisplayUtil.getRandomColor(this);
+                }
+                App.newThingColor = color;
+            }
+            mThing = new Thing(newId, Thing.NOTE, color, newId);
+
+            SystemNotificationUtil.tryToCreateQuickCreateNotification(this);
+
             if ("intent".equals(mSenderName)) {
                 setupThingFromIntent();
             }
