@@ -6,7 +6,12 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.net.Uri;
+import android.support.v4.content.ContextCompat;
+import android.text.SpannableString;
+import android.text.Spanned;
+import android.text.style.StrikethroughSpan;
 import android.util.TypedValue;
 import android.view.View;
 import android.widget.RemoteViews;
@@ -63,7 +68,12 @@ public class AppWidgetHelper {
     private static final int IV_PRIVATE_THING         = R.id.iv_private_thing;
 
     private static final int TV_CONTENT               = R.id.tv_thing_content;
+
     private static final int LV_CHECKLIST             = R.id.lv_thing_check_list;
+    private static final int LL_CHECK_LIST_ITEMS      = R.id.ll_check_list_items_container;
+    private static final int LL_CHECK_LIST_ITEM_ROOT  = R.id.ll_check_list_tv;
+    private static final int IV_STATE_CHECK_LIST      = R.id.iv_check_list_state;
+    private static final int TV_CONTENT_CHECK_LIST    = R.id.tv_check_list;
 
     private static final int LL_AUDIO_ATTACHMENT      = R.id.ll_thing_audio_attachment;
     private static final int TV_AUDIO_COUNT           = R.id.tv_thing_audio_attachment_count;
@@ -166,6 +176,42 @@ public class AppWidgetHelper {
                 R.layout.app_widget_item_thing);
         setAppearance(context, remoteViews, thing, appWidgetId, ThingsListWidget.class);
         return remoteViews;
+    }
+
+    public static RemoteViews createRemoteViewsForChecklistItem(
+            Context context, String item, int itemsSize) {
+        RemoteViews rv = new RemoteViews(context.getPackageName(), R.layout.check_list_tv);
+
+        int white_76 = ContextCompat.getColor(context, R.color.white_76p);
+        int white_50 = Color.parseColor("#80FFFFFF");
+
+        rv.setViewPadding(LL_CHECK_LIST_ITEM_ROOT, (int) (-6 * screenDensity), 0, 0, 0);
+
+        char state = item.charAt(0);
+        String text = item.substring(1, item.length());
+        if (state == '0') {
+            rv.setImageViewResource(IV_STATE_CHECK_LIST, R.drawable.checklist_unchecked_card);
+            rv.setTextColor(TV_CONTENT_CHECK_LIST, white_76);
+            rv.setTextViewText(TV_CONTENT_CHECK_LIST, text);
+        } else if (state == '1') {
+            rv.setImageViewResource(IV_STATE_CHECK_LIST, R.drawable.checklist_checked_card);
+            rv.setTextColor(TV_CONTENT_CHECK_LIST, white_50);
+            SpannableString spannable = new SpannableString(text);
+            spannable.setSpan(new StrikethroughSpan(), 0, text.length(),
+                    Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+            rv.setTextViewText(TV_CONTENT_CHECK_LIST, spannable);
+        }
+
+        if (itemsSize >= 8) {
+            rv.setTextViewTextSize(TV_CONTENT_CHECK_LIST, TypedValue.COMPLEX_UNIT_SP, 14);
+            rv.setViewPadding(TV_CONTENT_CHECK_LIST, 0, (int) (screenDensity * 2), 0, 0);
+        } else {
+            float textSize = -4 * itemsSize / 7f + 130f / 7;
+            rv.setTextViewTextSize(TV_CONTENT_CHECK_LIST, TypedValue.COMPLEX_UNIT_SP, textSize);
+            float mt = - 2 * textSize / 3 + 34f / 3;
+            rv.setViewPadding(TV_CONTENT_CHECK_LIST, 0, (int) mt, 0, 0);
+        }
+        return rv;
     }
 
     private static void setAppearance(
@@ -279,14 +325,16 @@ public class AppWidgetHelper {
             Context context, RemoteViews remoteViews, Thing thing, int appWidgetId, Class clazz) {
         String content = thing.getContent();
         if (content.isEmpty() || thing.isPrivate()) {
-            remoteViews.setViewVisibility(LV_CHECKLIST, View.GONE);
-            remoteViews.setViewVisibility(TV_CONTENT,   View.GONE);
+            remoteViews.setViewVisibility(LV_CHECKLIST,             View.GONE);
+            remoteViews.setViewVisibility(LL_CHECK_LIST_ITEMS, View.GONE);
+            remoteViews.setViewVisibility(TV_CONTENT,               View.GONE);
             return;
         }
 
         if (!CheckListHelper.isCheckListStr(content)) {
-            remoteViews.setViewVisibility(LV_CHECKLIST, View.GONE);
-            remoteViews.setViewVisibility(TV_CONTENT,   View.VISIBLE);
+            remoteViews.setViewVisibility(LV_CHECKLIST,             View.GONE);
+            remoteViews.setViewVisibility(LL_CHECK_LIST_ITEMS, View.GONE);
+            remoteViews.setViewVisibility(TV_CONTENT,               View.VISIBLE);
             remoteViews.setViewPadding(TV_CONTENT, dp12, dp12, dp12, 0);
             remoteViews.setTextViewText(TV_CONTENT, content);
             int length = content.length();
@@ -297,30 +345,75 @@ public class AppWidgetHelper {
                 remoteViews.setTextViewTextSize(TV_CONTENT, TypedValue.COMPLEX_UNIT_SP, 16);
             }
         } else {
-            remoteViews.setViewVisibility(LV_CHECKLIST, View.VISIBLE);
-            remoteViews.setViewVisibility(TV_CONTENT,   View.GONE);
-
-            Intent intent = new Intent(context, ChecklistWidgetService.class);
-            intent.putExtra(Def.Communication.KEY_WIDGET_ID, appWidgetId);
-            intent.putExtra(Def.Communication.KEY_ID, thing.getId());
-            intent.setData(Uri.parse(intent.toUri(Intent.URI_INTENT_SCHEME)));
-            remoteViews.setRemoteAdapter(LV_CHECKLIST, intent);
-
-            /**
-             * see {@link ChecklistWidgetService.ChecklistViewFactory#setupEvents(RemoteViews, int)}
-             */
-            intent = new Intent(context, clazz);
-            intent.setAction(Def.Communication.BROADCAST_ACTION_UPDATE_CHECKLIST);
-            intent.setData(Uri.parse(intent.toUri(Intent.URI_INTENT_SCHEME)));
-            PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 0, intent,
-                    PendingIntent.FLAG_UPDATE_CURRENT);
-            remoteViews.setPendingIntentTemplate(R.id.lv_thing_check_list, pendingIntent);
-
-            remoteViews.setViewPadding(LV_CHECKLIST, dp12, dp12, dp12, 0);
+            if (clazz.getSuperclass().equals(BaseThingWidget.class)) {
+                setChecklistForSingleThing(context, remoteViews, thing, appWidgetId, clazz);
+            } else {
+                setChecklistForThingsListItem(context, remoteViews, content);
+            }
         }
 
         remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);
         setSeparatorVisibilities(remoteViews, View.VISIBLE);
+    }
+
+    private static void setChecklistForSingleThing(
+            Context context, RemoteViews remoteViews, Thing thing, int appWidgetId, Class clazz) {
+        remoteViews.setViewVisibility(LV_CHECKLIST,             View.VISIBLE);
+        remoteViews.setViewVisibility(LL_CHECK_LIST_ITEMS, View.GONE);
+        remoteViews.setViewVisibility(TV_CONTENT,               View.GONE);
+
+        remoteViews.setViewPadding(LV_CHECKLIST, dp12, dp12, dp12, 0);
+
+        Intent intent = new Intent(context, ChecklistWidgetService.class);
+        intent.putExtra(Def.Communication.KEY_WIDGET_ID, appWidgetId);
+        intent.putExtra(Def.Communication.KEY_ID, thing.getId());
+        intent.setData(Uri.parse(intent.toUri(Intent.URI_INTENT_SCHEME)));
+        remoteViews.setRemoteAdapter(LV_CHECKLIST, intent);
+
+        /**
+         * see {@link ChecklistWidgetService.ChecklistViewFactory#setupEvents(RemoteViews, int)}
+         */
+        intent = new Intent(context, clazz);
+        intent.setAction(Def.Communication.BROADCAST_ACTION_UPDATE_CHECKLIST);
+        intent.setData(Uri.parse(intent.toUri(Intent.URI_INTENT_SCHEME)));
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 0, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT);
+        remoteViews.setPendingIntentTemplate(R.id.lv_thing_check_list, pendingIntent);
+    }
+
+    private static void setChecklistForThingsListItem(
+            Context context, RemoteViews remoteViews, String checklistStr) {
+        remoteViews.setViewVisibility(LL_CHECK_LIST_ITEMS, View.VISIBLE);
+        remoteViews.setViewVisibility(LV_CHECKLIST,             View.GONE);
+        remoteViews.setViewVisibility(TV_CONTENT,               View.GONE);
+
+        remoteViews.removeAllViews(LL_CHECK_LIST_ITEMS);
+
+        remoteViews.setViewPadding(LL_CHECK_LIST_ITEMS, dp12, dp12, dp12, 0);
+
+        List<String> items = CheckListHelper.toCheckListItems(checklistStr, false);
+        items.remove("2");
+        items.remove("3");
+        items.remove("4");
+        final int size = items.size();
+
+        if (size > 8) {
+            items = items.subList(0, 8);
+        }
+
+        for (String item : items) {
+            RemoteViews rvItem = createRemoteViewsForChecklistItem(context, item, size);
+            remoteViews.addView(LL_CHECK_LIST_ITEMS, rvItem);
+        }
+
+        if (size > 8) {
+            RemoteViews rvItem = new RemoteViews(context.getPackageName(), R.layout.check_list_tv);
+            rvItem.setViewVisibility(IV_STATE_CHECK_LIST, View.GONE);
+            rvItem.setTextViewText(TV_CONTENT_CHECK_LIST, "...");
+            rvItem.setTextViewTextSize(TV_CONTENT_CHECK_LIST, TypedValue.COMPLEX_UNIT_SP, 18);
+            rvItem.setViewPadding(TV_CONTENT_CHECK_LIST, 0, 0, 0, 0);
+            remoteViews.addView(LL_CHECK_LIST_ITEMS, rvItem);
+        }
     }
 
     private static void setAudioAttachment(Context context, RemoteViews remoteViews, Thing thing) {
