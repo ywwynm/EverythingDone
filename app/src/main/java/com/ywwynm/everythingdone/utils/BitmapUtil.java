@@ -48,6 +48,10 @@ public class BitmapUtil {
     }
 
     public static Bitmap createScaledBitmap(Bitmap src, int reqWidth, int reqHeight, boolean inside) {
+        if (src == null) {
+            return null;
+        }
+
         int oWidth  = src.getWidth();
         int oHeight = src.getHeight();
 

@@ -11,9 +11,10 @@ import android.util.TypedValue;
 import android.view.View;
 import android.widget.RemoteViews;
 
+import com.bumptech.glide.BitmapRequestBuilder;
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.FutureTarget;
 import com.bumptech.glide.request.target.AppWidgetTarget;
-import com.squareup.picasso.Picasso;
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
@@ -38,8 +39,8 @@ import com.ywwynm.everythingdone.services.ThingsListWidgetService;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 
-import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Created by ywwynm on 2016/7/27.
@@ -211,9 +212,9 @@ public class AppWidgetHelper {
 
         final String pathName = firstImageTypePathName.substring(1, firstImageTypePathName.length());
         if (clazz.getSuperclass().equals(BaseThingWidget.class)) {
-            loadImageUsingGlide(context, pathName, remoteViews, appWidgetId);
+            loadImageForSingleThing(context, pathName, remoteViews, appWidgetId);
         } else {
-            loadImageUsingPicasso(context, pathName, remoteViews, appWidgetId);
+            loadImageForThingsListItem(context, pathName, remoteViews);
         }
 
         remoteViews.setTextViewText(TV_IMAGE_COUNT,
@@ -223,7 +224,7 @@ public class AppWidgetHelper {
         setSeparatorVisibilities(remoteViews, View.GONE);
     }
 
-    private static void loadImageUsingGlide(
+    private static void loadImageForSingleThing(
             Context context, String pathName, RemoteViews remoteViews, int appWidgetId) {
         BitmapFactory.Options options = new BitmapFactory.Options();
         options.inJustDecodeBounds = true;
@@ -237,35 +238,22 @@ public class AppWidgetHelper {
                         context, remoteViews, IV_IMAGE_ATTACHMENT, new int[] { appWidgetId }));
     }
 
-    private static void loadImageUsingPicasso(
-            Context context, String pathName, final RemoteViews remoteViews, int appWidgetId) {
-        BitmapFactory.Options options = new BitmapFactory.Options();
-        options.inJustDecodeBounds = true;
-        BitmapFactory.decodeFile(pathName, options);
-
-//        Glide.with(context)
-//                .load(pathName)
-//                .asBitmap()
-//                .override(options.outWidth, options.outWidth * 3 / 4)
-//                .centerCrop()
-//                .into(new SimpleTarget<Bitmap>() {
-//                    @Override
-//                    public void onResourceReady(Bitmap resource, GlideAnimation<? super Bitmap> glideAnimation) {
-//                        remoteViews.setImageViewBitmap(IV_IMAGE_ATTACHMENT, resource);
-//                    }
-//                });
-
+    private static void loadImageForThingsListItem(
+            Context context, String pathName, RemoteViews remoteViews) {
+        int width  = (int) (screenDensity * 180);
+        int height = width * 3 / 4;
+        BitmapRequestBuilder builder =
+                Glide.with(context)
+                        .load(pathName)
+                        .asBitmap()
+                        .override(width, height)
+                        .centerCrop();
+        FutureTarget futureTarget = builder.into(width, height);
         try {
-            Bitmap bitmap = Picasso.with(context)
-                    .load(pathName).get();
-            remoteViews.setImageViewBitmap(IV_IMAGE_ATTACHMENT, bitmap);
-        } catch (IOException e) {
+            remoteViews.setImageViewBitmap(IV_IMAGE_ATTACHMENT, (Bitmap) futureTarget.get());
+        } catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();
         }
-
-//        Bitmap bitmap = BitmapUtil.decodeFileFitsSize(
-//                pathName, options.outWidth, options.outWidth * 3 / 4);
-//        remoteViews.setImageViewBitmap(IV_IMAGE_ATTACHMENT, bitmap);
     }
 
     private static void setTitleAndPrivate(RemoteViews remoteViews, Thing thing) {
