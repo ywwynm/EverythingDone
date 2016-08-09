@@ -13,7 +13,6 @@ import android.widget.RemoteViews;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.target.AppWidgetTarget;
-import com.squareup.picasso.Picasso;
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
@@ -35,10 +34,10 @@ import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.model.ThingWidgetInfo;
 import com.ywwynm.everythingdone.services.ChecklistWidgetService;
 import com.ywwynm.everythingdone.services.ThingsListWidgetService;
+import com.ywwynm.everythingdone.utils.BitmapUtil;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 
-import java.io.IOException;
 import java.util.List;
 
 /**
@@ -213,7 +212,7 @@ public class AppWidgetHelper {
         if (clazz.getSuperclass().equals(BaseThingWidget.class)) {
             loadImageUsingGlide(context, pathName, remoteViews, appWidgetId);
         } else {
-            loadImageUsingPicasso(context, pathName, remoteViews, appWidgetId);
+            loadImageDirectly(pathName, remoteViews);
         }
 
         remoteViews.setTextViewText(TV_IMAGE_COUNT,
@@ -237,35 +236,14 @@ public class AppWidgetHelper {
                         context, remoteViews, IV_IMAGE_ATTACHMENT, new int[] { appWidgetId }));
     }
 
-    private static void loadImageUsingPicasso(
-            Context context, String pathName, final RemoteViews remoteViews, int appWidgetId) {
+    private static void loadImageDirectly(String pathName, final RemoteViews remoteViews) {
         BitmapFactory.Options options = new BitmapFactory.Options();
         options.inJustDecodeBounds = true;
         BitmapFactory.decodeFile(pathName, options);
 
-//        Glide.with(context)
-//                .load(pathName)
-//                .asBitmap()
-//                .override(options.outWidth, options.outWidth * 3 / 4)
-//                .centerCrop()
-//                .into(new SimpleTarget<Bitmap>() {
-//                    @Override
-//                    public void onResourceReady(Bitmap resource, GlideAnimation<? super Bitmap> glideAnimation) {
-//                        remoteViews.setImageViewBitmap(IV_IMAGE_ATTACHMENT, resource);
-//                    }
-//                });
-
-        try {
-            Bitmap bitmap = Picasso.with(context)
-                    .load(pathName).get();
-            remoteViews.setImageViewBitmap(IV_IMAGE_ATTACHMENT, bitmap);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-//        Bitmap bitmap = BitmapUtil.decodeFileFitsSize(
-//                pathName, options.outWidth, options.outWidth * 3 / 4);
-//        remoteViews.setImageViewBitmap(IV_IMAGE_ATTACHMENT, bitmap);
+        Bitmap bitmap = BitmapUtil.decodeFileFitsSize(
+                pathName, options.outWidth, options.outWidth * 3 / 4);
+        remoteViews.setImageViewBitmap(IV_IMAGE_ATTACHMENT, bitmap);
     }
 
     private static void setTitleAndPrivate(RemoteViews remoteViews, Thing thing) {
