@@ -33,7 +33,7 @@
     </style>
 
     <style name="SelectableItemThemeLight">
-        <item name="colorControlHighlight">#66FFFFFF</item>
+        <item name="colorControlHighlight">@color/control_highlight_light</item>
     </style>
 
 </resources>

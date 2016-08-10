@@ -53,6 +53,8 @@
     <color name="white_54p">#89FFFFFF</color>
     <color name="white_16p">#28FFFFFF</color>
 
+    <color name="control_highlight_light">#66FFFFFF</color>
+
     <color name="bg_snackbar">#323232</color>
 
     <color name="error">#DD2C00</color>

@@ -34,7 +34,8 @@
             android:layout_height="40dp"
             android:contentDescription="@string/title_create_thing"
             android:src="@drawable/act_create"
-            android:scaleType="centerInside"/>
+            android:scaleType="centerInside"
+            android:background="@drawable/selectable_item_background_appwidget"/>
 
     </LinearLayout>
 
@@ -43,6 +44,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_marginTop="44dp"
-        android:dividerHeight="4dp"/>
+        android:dividerHeight="4dp"
+        android:theme="@style/Theme.AppCompat.Light"/>
 
 </FrameLayout>
