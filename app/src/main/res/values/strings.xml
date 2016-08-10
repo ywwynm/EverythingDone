@@ -15,11 +15,12 @@
     <string name="title_activity_about">About</string>
     <string name="title_activity_statistic">Statistic</string>
     <string name="title_activity_thing_widget_configure">Select single thing</string>
+    <string name="title_activity_things_list_widget_configuration">Select underway things</string>
 
     <!--drawer items-->
     <string name="underway">Underway</string>
     <string name="thing">Thing</string>
-    <string name="all">All things</string>
+    <string name="all_things">All things</string>
     <string name="note">Note</string>
     <string name="reminder">Reminder</string>
     <string name="habit">Habit</string>
@@ -212,6 +213,9 @@
     <string name="auto_notify_help_info">EverythingDone will automatically remind you after a new thing is created. If you didn\'t create a Record, EverythingDone will decide if automatic reminder should be set according to the thing\'s remind time.</string>
     <string name="auto_notify_off">Off</string>
     <string name="auto_notify_set_time">Set Automatic Reminder Time</string>
+
+
+    <string name="all">All</string>
 
 
     <string name="congratulations">Congratulations</string>

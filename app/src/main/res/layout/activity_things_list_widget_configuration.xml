@@ -1,7 +1,92 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:orientation="vertical"
-              android:layout_width="match_parent"
-              android:layout_height="match_parent">
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="280dp"
+    android:layout_height="wrap_content"
+    android:paddingTop="16dp"
+    android:paddingBottom="4dp"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/tv_title_things_list_widget_configuration"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingLeft="16dp"
+        android:paddingRight="16dp"
+        android:layout_marginBottom="12dp"
+        android:textAllCaps="true"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:text="@string/title_activity_things_list_widget_configuration"/>
+
+    <TextView
+        android:id="@+id/tv_underway_widget_config"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:gravity="center_vertical"
+        android:paddingLeft="16dp"
+        android:paddingRight="16dp"
+        android:drawableStart="@drawable/drawer_all"
+        android:drawableLeft="@drawable/drawer_all"
+        android:drawablePadding="16dp"
+        android:text="@string/all"
+        android:onClick="onClick"
+        style="@style/SelectableItemBackground"/>
+
+    <TextView
+        android:id="@+id/tv_note_widget_config"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:gravity="center_vertical"
+        android:paddingLeft="16dp"
+        android:paddingRight="16dp"
+        android:drawableStart="@drawable/drawer_note"
+        android:drawableLeft="@drawable/drawer_note"
+        android:drawablePadding="16dp"
+        android:text="@string/note"
+        android:onClick="onClick"
+        style="@style/SelectableItemBackground"/>
+
+    <TextView
+        android:id="@+id/tv_reminder_widget_config"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:gravity="center_vertical"
+        android:paddingLeft="16dp"
+        android:paddingRight="16dp"
+        android:drawableStart="@drawable/drawer_reminder"
+        android:drawableLeft="@drawable/drawer_reminder"
+        android:drawablePadding="16dp"
+        android:text="@string/reminder"
+        android:onClick="onClick"
+        style="@style/SelectableItemBackground"/>
+
+    <TextView
+        android:id="@+id/tv_habit_widget_config"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:gravity="center_vertical"
+        android:paddingLeft="16dp"
+        android:paddingRight="16dp"
+        android:drawableStart="@drawable/drawer_habit"
+        android:drawableLeft="@drawable/drawer_habit"
+        android:drawablePadding="16dp"
+        android:text="@string/habit"
+        android:onClick="onClick"
+        style="@style/SelectableItemBackground"/>
+
+    <TextView
+        android:id="@+id/tv_goal_widget_config"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:gravity="center_vertical"
+        android:paddingLeft="16dp"
+        android:paddingRight="16dp"
+        android:drawableStart="@drawable/drawer_goal"
+        android:drawableLeft="@drawable/drawer_goal"
+        android:drawablePadding="16dp"
+        android:text="@string/goal"
+        android:onClick="onClick"
+        style="@style/SelectableItemBackground"/>
 
 </LinearLayout>

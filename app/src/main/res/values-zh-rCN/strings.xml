@@ -13,7 +13,7 @@
 
     <!--entrances to different activities in drawer-->
     <string name="underway">正在进行</string>
-    <string name="all">所有记事</string>
+    <string name="all_things">所有记事</string>
     <string name="thing">记事</string>
     <string name="note">记录</string>
     <string name="reminder">提醒</string>
@@ -466,5 +466,7 @@
     <string name="last_backup">最近一次备份:</string>
     <string name="no_backup_before">暂无备份</string>
     <string name="title_activity_thing_widget_configure">选择一件记事</string>
+    <string name="title_activity_things_list_widget_configuration">选择正在进行的记事</string>
+    <string name="all">全部</string>
 
 </resources>

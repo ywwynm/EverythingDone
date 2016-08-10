@@ -6,7 +6,7 @@
 
     <!--entrances to different activities in drawer-->
     <string name="underway">正在進行</string>
-    <string name="all">所有記事</string>
+    <string name="all_things">所有記事</string>
     <string name="thing">記事</string>
     <string name="note">記錄</string>
     <string name="reminder">提醒</string>
@@ -427,5 +427,7 @@
     <string name="last_backup">最近一次備份:</string>
     <string name="no_backup_before">暫無備份</string>
     <string name="title_activity_thing_widget_configure">選擇一件記事</string>
+    <string name="title_activity_things_list_widget_configuration">選擇正在進行的記事</string>
+    <string name="all">全部</string>
 
 </resources>

@@ -434,7 +434,11 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         setSpans();
 
         if (mEditable) {
-            mDateTimeDialogFragment = DateTimeDialogFragment.newInstance(mThing);
+            int limit = intent.getIntExtra(Def.Communication.KEY_LIMIT, -1);
+            if (limit == -1) {
+                limit = mApp.getLimit();
+            }
+            mDateTimeDialogFragment = DateTimeDialogFragment.newInstance(mThing, limit);
         }
         mExecutor = Executors.newSingleThreadExecutor();
 

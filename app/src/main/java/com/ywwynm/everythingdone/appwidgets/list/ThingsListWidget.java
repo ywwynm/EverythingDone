@@ -6,8 +6,6 @@ import android.content.Context;
 
 import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper;
 import com.ywwynm.everythingdone.database.AppWidgetDAO;
-import com.ywwynm.everythingdone.database.ThingDAO;
-import com.ywwynm.everythingdone.managers.ThingManager;
 import com.ywwynm.everythingdone.model.ThingWidgetInfo;
 
 /**
@@ -21,15 +19,23 @@ public class ThingsListWidget extends AppWidgetProvider {
         super.onUpdate(context, appWidgetManager, appWidgetIds);
         AppWidgetDAO appWidgetDAO = AppWidgetDAO.getInstance(context);
         for (int appWidgetId : appWidgetIds) {
-//            ThingWidgetInfo info = appWidgetDAO.getThingWidgetInfoById(appWidgetId);
-//            if (info == null) {
-//                break;
-//            }
+            ThingWidgetInfo info = appWidgetDAO.getThingWidgetInfoById(appWidgetId);
+            if (info == null) {
+                break;
+            }
 
-//            int limit = -1 * (int) info.getThingId() - 1;
-            int limit = 0;
+            int limit = -1 * (int) info.getThingId() - 1;
             appWidgetManager.updateAppWidget(appWidgetId,
                     AppWidgetHelper.createRemoteViewsForThingsList(context, limit, appWidgetId));
+        }
+    }
+
+    @Override
+    public void onDeleted(Context context, int[] appWidgetIds) {
+        super.onDeleted(context, appWidgetIds);
+        AppWidgetDAO appWidgetDAO = AppWidgetDAO.getInstance(context);
+        for (int appWidgetId : appWidgetIds) {
+            appWidgetDAO.delete(appWidgetId);
         }
     }
 }

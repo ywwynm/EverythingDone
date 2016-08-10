@@ -24,6 +24,7 @@ import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.DetailActivity;
+import com.ywwynm.everythingdone.activities.ThingsActivity;
 import com.ywwynm.everythingdone.appwidgets.list.ThingsListWidget;
 import com.ywwynm.everythingdone.appwidgets.single.BaseThingWidget;
 import com.ywwynm.everythingdone.appwidgets.single.ThingWidgetLarge;
@@ -159,9 +160,18 @@ public class AppWidgetHelper {
     public static RemoteViews createRemoteViewsForThingsList(Context context, int limit, int appWidgetId) {
         RemoteViews remoteViews = new RemoteViews(context.getPackageName(), R.layout.app_widget_things_list);
 
-        // create image view click event
-        Intent intent = DetailActivity.getOpenIntentForCreate(context, TAG, 0);
+        remoteViews.setTextViewText(TV_THINGS_LIST_TITLE, getStringForLimit(context, limit));
+
+        Intent intent = new Intent(context, ThingsActivity.class);
+        intent.putExtra(Def.Communication.KEY_LIMIT, limit);
         PendingIntent pendingIntent = PendingIntent.getActivity(
+                context, appWidgetId, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        remoteViews.setOnClickPendingIntent(LL_THINGS_LIST_HEADER, pendingIntent);
+
+        // create image view click event
+        intent = DetailActivity.getOpenIntentForCreate(context, TAG, 0);
+        intent.putExtra(Def.Communication.KEY_LIMIT, limit);
+        pendingIntent = PendingIntent.getActivity(
                 context, appWidgetId, intent, PendingIntent.FLAG_UPDATE_CURRENT);
         remoteViews.setOnClickPendingIntent(IV_THINGS_LIST_CREATE, pendingIntent);
 
@@ -170,6 +180,7 @@ public class AppWidgetHelper {
         intent.putExtra(Def.Communication.KEY_LIMIT, limit);
         intent.putExtra(Def.Communication.KEY_WIDGET_ID, appWidgetId);
         remoteViews.setRemoteAdapter(LV_THINGS_LIST, intent);
+        // don't set empty view since I want to show NOTIFY_EMPTY-type things
 
         // thing item click event
         intent = new Intent(context, DetailActivity.class);
@@ -182,6 +193,21 @@ public class AppWidgetHelper {
         remoteViews.setPendingIntentTemplate(LV_THINGS_LIST, pendingIntent);
 
         return remoteViews;
+    }
+
+    private static String getStringForLimit(Context context, int limit) {
+        if (limit < Def.LimitForGettingThings.ALL_UNDERWAY
+                || limit > Def.LimitForGettingThings.GOAL_UNDERWAY) {
+            return null;
+        }
+        int[] resources = {
+                R.string.underway,
+                R.string.note,
+                R.string.reminder,
+                R.string.habit,
+                R.string.goal
+        };
+        return context.getString(resources[limit]);
     }
 
     public static RemoteViews createRemoteViewsForThingsListItem(
@@ -318,7 +344,6 @@ public class AppWidgetHelper {
         } catch (SecurityException e) {
             // sometimes Glide is willing to check network state but I don't know why.
             e.printStackTrace();
-            loadImageForThingsListItem(context, pathName, remoteViews);
         }
     }
 
