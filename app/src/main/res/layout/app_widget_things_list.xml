@@ -35,8 +35,7 @@
             android:contentDescription="@string/title_create_thing"
             android:src="@drawable/act_create"
             android:scaleType="centerInside"
-            android:clickable="true"
-            style="@style/SelectableItemBackground.Borderless"/>
+            android:background="@drawable/selectable_item_background_appwidget"/>
 
     </LinearLayout>
 
