@@ -44,6 +44,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_marginTop="44dp"
-        android:dividerHeight="4dp"/>
+        android:dividerHeight="4dp"
+        android:theme="@style/Theme.AppCompat.Light"/>
 
 </FrameLayout>

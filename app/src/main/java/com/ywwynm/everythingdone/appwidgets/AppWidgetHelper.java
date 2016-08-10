@@ -318,6 +318,7 @@ public class AppWidgetHelper {
         } catch (SecurityException e) {
             // sometimes Glide is willing to check network state but I don't know why.
             e.printStackTrace();
+            loadImageForThingsListItem(context, pathName, remoteViews);
         }
     }
 
