@@ -2044,7 +2044,8 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         if (shouldSendBroadCast()) {
             sendBroadCastToUpdateMainUI(intent, resultCode);
         }
-        AppWidgetHelper.updateAppWidget(this, mThing.getId());
+        AppWidgetHelper.updateSingleThingAppWidgets(this, mThing.getId());
+        AppWidgetHelper.updateThingsListAppWidgetsForType(this, mThing.getType());
 
         finish();
     }
@@ -2105,7 +2106,8 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         } else {
             setResult(resultCode, intent);
         }
-        AppWidgetHelper.updateAppWidget(this, mThing.getId());
+        AppWidgetHelper.updateSingleThingAppWidgets(this, mThing.getId());
+        AppWidgetHelper.updateThingsListAppWidgetsForType(this, mThing.getType());
         finish();
     }
 

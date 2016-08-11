@@ -106,8 +106,7 @@ public class AppWidgetHelper {
 
     private AppWidgetHelper() {}
 
-    public static void updateAppWidget(Context context, long thingId) {
-        // TODO: 2016/8/2 when there is things list widget, we should also update it, too.
+    public static void updateSingleThingAppWidgets(Context context, long thingId) {
         AppWidgetDAO appWidgetDAO = AppWidgetDAO.getInstance(context);
         List<ThingWidgetInfo> thingWidgetInfos = appWidgetDAO.getThingWidgetInfosByThingId(thingId);
         for (ThingWidgetInfo thingWidgetInfo : thingWidgetInfos) {
@@ -116,6 +115,33 @@ public class AppWidgetHelper {
             intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS,
                     new int[] { thingWidgetInfo.getId() });
             context.sendBroadcast(intent);
+        }
+    }
+
+    public static void updateThingsListAppWidgets(Context context, int limit) {
+        AppWidgetDAO appWidgetDAO = AppWidgetDAO.getInstance(context);
+        int storedLimit = -limit - 1;
+        List<ThingWidgetInfo> thingWidgetInfos = appWidgetDAO.getThingWidgetInfosByThingId(storedLimit);
+        for (ThingWidgetInfo thingWidgetInfo : thingWidgetInfos) {
+            Intent intent = new Intent(context, ThingsListWidget.class);
+            intent.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
+            intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS,
+                    new int[] { thingWidgetInfo.getId() });
+            context.sendBroadcast(intent);
+        }
+    }
+
+    public static void updateThingsListAppWidgetsForType(Context context, @Thing.Type int type) {
+        int[] limits = Thing.getLimits(type, Thing.UNDERWAY);
+        for (int limit : limits) {
+            updateThingsListAppWidgets(context, limit);
+        }
+    }
+
+    public static void updateAllThingsListAppWidgets(Context context) {
+        for (int limit = Def.LimitForGettingThings.ALL_UNDERWAY;
+             limit <= Def.LimitForGettingThings.GOAL_UNDERWAY; limit++) {
+            updateThingsListAppWidgets(context, limit);
         }
     }
 

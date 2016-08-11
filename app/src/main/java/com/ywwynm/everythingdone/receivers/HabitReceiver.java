@@ -68,7 +68,8 @@ public class HabitReceiver extends BroadcastReceiver {
                 if (rThingId == habitId) {
                     updateHabitRecordTimes(context, hrId);
                     sendBroadCastToUpdateMainUI(context, thing, position);
-                    AppWidgetHelper.updateAppWidget(context, rThingId);
+                    AppWidgetHelper.updateSingleThingAppWidgets(context, rThingId);
+                    AppWidgetHelper.updateThingsListAppWidgetsForType(context, Thing.HABIT);
                     return;
                 }
             }
@@ -87,7 +88,8 @@ public class HabitReceiver extends BroadcastReceiver {
 
             updateHabitRecordTimes(context, hrId);
             sendBroadCastToUpdateMainUI(context, thing, position);
-            AppWidgetHelper.updateAppWidget(context, thing.getId());
+            AppWidgetHelper.updateSingleThingAppWidgets(context, thing.getId());
+            AppWidgetHelper.updateThingsListAppWidgetsForType(context, Thing.HABIT);
 
             NotificationCompat.Builder builder = SystemNotificationUtil
                     .newGeneralNotificationBuilder(context, TAG, habitId, position, thing, false);

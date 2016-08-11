@@ -1120,8 +1120,9 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     if (mUndoHabitRecords.isEmpty()) {
                         mHabitSnackbar.dismiss();
                         for (Long id : mThingsIdsToUpdateWidget) {
-                            AppWidgetHelper.updateAppWidget(ThingsActivity.this, id);
+                            AppWidgetHelper.updateSingleThingAppWidgets(ThingsActivity.this, id);
                         }
+                        AppWidgetHelper.updateThingsListAppWidgetsForType(mApp, Thing.HABIT);
                     }
                 }
             }
@@ -1557,8 +1558,10 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         }
 
         for (Long id : mThingsIdsToUpdateWidget) {
-            AppWidgetHelper.updateAppWidget(this, id);
+            AppWidgetHelper.updateSingleThingAppWidgets(this, id);
         }
+        // update all things list widget since it's hard to get limits for things to update widget.
+        AppWidgetHelper.updateAllThingsListAppWidgets(this);
 
         mUndoThings.clear();
         mThingsIdsToUpdateWidget.clear();
