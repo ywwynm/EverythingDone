@@ -24,7 +24,7 @@
             android:screenOrientation="user"
             android:theme="@style/EverythingDoneTheme.Things"
             android:windowSoftInputMode="adjustResize"
-            android:launchMode="singleInstance">
+            android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
 

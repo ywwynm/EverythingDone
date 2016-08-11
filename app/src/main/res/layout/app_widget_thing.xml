@@ -135,8 +135,8 @@
 
         </RelativeLayout>
 
-        <LinearLayout
-            android:id="@+id/ll_thing_state"
+        <RelativeLayout
+            android:id="@+id/rl_thing_state"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
@@ -153,14 +153,27 @@
                 android:background="@drawable/dashed_line_card"
                 android:layerType="software"/>
 
+            <ImageView
+                android:id="@+id/iv_thing_state"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/view_state_separator"
+                tools:ignore="ContentDescription"/>
+
             <TextView
                 android:id="@+id/tv_thing_state"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_below="@id/view_state_separator"
+                android:layout_toEndOf="@id/iv_thing_state"
+                android:layout_toRightOf="@id/iv_thing_state"
+                android:layout_marginStart="12dp"
+                android:layout_marginLeft="12dp"
                 android:textColor="@color/white_66p"
-                android:textSize="14sp"/>
+                android:textSize="14dp"
+                tools:ignore="SpUsage"/>
 
-        </LinearLayout>
+        </RelativeLayout>
 
     </FrameLayout>
 
@@ -242,7 +255,7 @@
             android:layout_height="wrap_content"
             android:divider="@null"
             android:visibility="gone"
-            android:theme="@style/CheckListStyle"/>
+            android:theme="@style/WidgetCheckListStyle"/>
 
         <LinearLayout
             android:id="@+id/ll_thing_audio_attachment"

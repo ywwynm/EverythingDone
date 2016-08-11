@@ -93,9 +93,10 @@ public class AppWidgetHelper {
     private static final int TV_HABIT_LAST_FIVE       = R.id.tv_thing_habit_last_five_record;
     private static final int TV_HABIT_FINISHED_THIS_T = R.id.tv_thing_habit_finished_this_t;
 
-    private static final int LL_THING_STATE           = R.id.ll_thing_state;
+    private static final int RL_THING_STATE           = R.id.rl_thing_state;
     private static final int V_STATE_SEPARATOR        = R.id.view_state_separator;
     private static final int TV_THING_STATE           = R.id.tv_thing_state;
+    private static final int IV_THING_STATE           = R.id.iv_thing_state;
 
     private static final int V_PADDING_BOTTOM         = R.id.view_thing_padding_bottom;
 
@@ -506,11 +507,18 @@ public class AppWidgetHelper {
     private static void setState(Context context, RemoteViews remoteViews, Thing thing) {
         @Thing.State int state = thing.getState();
         if (state != Thing.UNDERWAY) {
-            remoteViews.setViewVisibility(LL_THING_STATE, View.VISIBLE);
+            remoteViews.setViewVisibility(RL_THING_STATE, View.VISIBLE);
             remoteViews.setTextViewText(TV_THING_STATE, Thing.getStateStr(state, context));
+            if (state == Thing.FINISHED) {
+                remoteViews.setImageViewResource(IV_THING_STATE, R.drawable.ic_finished_widget);
+                remoteViews.setViewPadding(IV_THING_STATE, 0, (int) (screenDensity * 2.5), 0, 0);
+            } else if (state == Thing.DELETED) {
+                remoteViews.setImageViewResource(IV_THING_STATE, R.drawable.ic_deleted_widget);
+                remoteViews.setViewPadding(IV_THING_STATE, 0, (int) (screenDensity * 1.5), 0, 0);
+            }
             remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);
         } else {
-            remoteViews.setViewVisibility(LL_THING_STATE, View.GONE);
+            remoteViews.setViewVisibility(RL_THING_STATE, View.GONE);
         }
     }
 
@@ -557,7 +565,7 @@ public class AppWidgetHelper {
             }
         }
 
-        remoteViews.setViewVisibility(LL_THING_STATE, View.GONE);
+        remoteViews.setViewVisibility(RL_THING_STATE, View.GONE);
         remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);
     }
 
@@ -607,7 +615,7 @@ public class AppWidgetHelper {
             remoteViews.setViewVisibility(TV_HABIT_FINISHED_THIS_T, View.GONE);
         }
 
-        remoteViews.setViewVisibility(LL_THING_STATE, View.GONE);
+        remoteViews.setViewVisibility(RL_THING_STATE, View.GONE);
         remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);
     }
 
