@@ -24,7 +24,6 @@ import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.DetailActivity;
@@ -168,10 +167,11 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
     private TextView mTvConfirmAsBt;
     private TextView mTvCancelAsBt;
 
-    public static DateTimeDialogFragment newInstance(Thing thing) {
+    public static DateTimeDialogFragment newInstance(Thing thing, int limit) {
         DateTimeDialogFragment fragment = new DateTimeDialogFragment();
         Bundle args = new Bundle();
         args.putParcelable(Def.Communication.KEY_THING, thing);
+        args.putInt(Def.Communication.KEY_LIMIT, limit);
         fragment.setArguments(args);
         return fragment;
     }
@@ -206,10 +206,7 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
 
         Bundle args = getArguments();
         mThing = args.getParcelable(Def.Communication.KEY_THING);
-
-        App application = (App)
-                mActivity.getApplication();
-        int limit = application.getLimit();
+        int limit = args.getInt(Def.Communication.KEY_LIMIT);
         if (mActivity.rhParams.getHabitDetail() != null ||
                 limit == Def.LimitForGettingThings.HABIT_UNDERWAY) {
             mVpDateTime.post(new InitiallyShowPageRunnable(2));

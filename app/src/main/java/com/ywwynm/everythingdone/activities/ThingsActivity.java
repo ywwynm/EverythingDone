@@ -48,12 +48,12 @@ import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.adapters.ThingsAdapter;
+import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.fragments.AlertDialogFragment;
 import com.ywwynm.everythingdone.fragments.ThreeActionsAlertDialogFragment;
 import com.ywwynm.everythingdone.helpers.AppUpdateHelper;
-import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper;
 import com.ywwynm.everythingdone.helpers.AuthenticationHelper;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
 import com.ywwynm.everythingdone.helpers.SendInfoHelper;
@@ -213,6 +213,14 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         AppUpdateHelper.getInstance(this).showInfo(this);
 
         tryToShowFeedbackErrorDialog();
+
+        Intent intent = getIntent();
+        if (intent != null) {
+            int limit = intent.getIntExtra(Def.Communication.KEY_LIMIT, -1);
+            if (limit != -1 && limit != App.getApp().getLimit()) {
+                App.getApp().setLimit(limit, true);
+            }
+        }
     }
 
     private void tryToShowFeedbackErrorDialog() {
@@ -304,6 +312,23 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         mApp.setDetailActivityRun(false);
         updateTaskDescription();
         App.thingsActivityWR.clear();
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        // launched from things list widget
+        int newLimit = intent.getIntExtra(Def.Communication.KEY_LIMIT, -1);
+        if (newLimit != -1 && mApp.getLimit() != newLimit) {
+            if (mModeManager.getCurrentMode() != ModeManager.NORMAL) {
+                mModeManager.backNormalMode(0);
+            }
+            if (App.isSearching) {
+                toggleSearching(false);
+            }
+            changeToLimit(newLimit, true);
+            KeyboardUtil.hideKeyboard(getWindow());
+        }
     }
 
     private void updateTaskDescription() {
@@ -856,10 +881,10 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             mRecyclerView.postDelayed(initRecyclerViewRunnable, 240);
         }
 
-        MenuItem itemAll = mDrawer.getMenu().findItem(R.id.drawer_underway);
-        itemAll.setCheckable(true);
-        itemAll.setChecked(true);
-        mPreviousItem = itemAll;
+        MenuItem item = mDrawer.getMenu().getItem(mApp.getLimit());
+        item.setCheckable(true);
+        item.setChecked(true);
+        mPreviousItem = item;
 
         mActivityHeader.updateText();
         if (mModeManager.getCurrentMode() == ModeManager.SELECTING) {
@@ -1239,37 +1264,51 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     }
 
                     mDrawerLayout.closeDrawer(GravityCompat.START);
-                    menuItem.setCheckable(true);
-                    menuItem.setChecked(true);
-                    mPreviousItem.setChecked(false);
-                    mPreviousItem = menuItem;
-                    mRecyclerView.setVisibility(View.INVISIBLE);
-                    mApp.setLimit(newLimit, false);
-                    invalidateOptionsMenu();
-                    mRecyclerView.scrollToPosition(0);
-                    mActivityHeader.reset(true);
+                    checkDrawerItem(menuItem);
 
-                    mRecyclerView.postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-                            mRecyclerView.setVisibility(View.VISIBLE);
-                            mThingsAdapter.setShouldThingsAnimWhenAppearing(true);
-                            mThingManager.loadThings();
-                            mThingsAdapter.notifyDataSetChanged();
-                        }
-                    }, 360);
-
-                    mActivityHeader.updateText();
-                    mDrawerHeader.updateTexts();
-                    if (mApp.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
-                        mFab.spread();
-                    } else {
-                        mFab.shrink();
-                    }
+                    changeToLimit(newLimit, false);
                 }
                 return true;
             }
         });
+    }
+
+    private void changeToLimit(int newLimit, boolean updateDrawerItem) {
+        if (updateDrawerItem) {
+            MenuItem menuItem = mDrawer.getMenu().getItem(newLimit);
+            checkDrawerItem(menuItem);
+        }
+
+        mRecyclerView.setVisibility(View.INVISIBLE);
+        mApp.setLimit(newLimit, false);
+        invalidateOptionsMenu();
+        mRecyclerView.scrollToPosition(0);
+        mActivityHeader.reset(true);
+
+        mRecyclerView.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                mRecyclerView.setVisibility(View.VISIBLE);
+                mThingsAdapter.setShouldThingsAnimWhenAppearing(true);
+                mThingManager.loadThings();
+                mThingsAdapter.notifyDataSetChanged();
+            }
+        }, 360);
+
+        mActivityHeader.updateText();
+        mDrawerHeader.updateTexts();
+        if (newLimit <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
+            mFab.spread();
+        } else {
+            mFab.shrink();
+        }
+    }
+
+    private void checkDrawerItem(MenuItem menuItem) {
+        menuItem.setCheckable(true);
+        menuItem.setChecked(true);
+        mPreviousItem.setChecked(false);
+        mPreviousItem = menuItem;
     }
 
     private void handleUpdateStates(int stateAfter) {

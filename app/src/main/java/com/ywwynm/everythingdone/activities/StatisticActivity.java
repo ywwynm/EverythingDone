@@ -578,7 +578,7 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
                     R.string.reminder,
                     R.string.habit,
                     R.string.goal,
-                    R.string.all
+                    R.string.all_things
             };
             RecyclerView rv = f(R.id.rv_finished_created_statistic);
             rv.setAdapter(new StatisticAdapter(

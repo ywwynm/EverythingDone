@@ -23,7 +23,8 @@
             android:label="@string/app_name"
             android:screenOrientation="user"
             android:theme="@style/EverythingDoneTheme.Things"
-            android:windowSoftInputMode="adjustResize">
+            android:windowSoftInputMode="adjustResize"
+            android:launchMode="singleInstance">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
 
@@ -259,6 +260,14 @@
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:label="@string/title_activity_thing_widget_configure"
             android:screenOrientation="user">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".appwidgets.list.ThingsListWidgetConfiguration"
+            android:theme="@style/Theme.AppCompat.Light.Dialog">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
             </intent-filter>

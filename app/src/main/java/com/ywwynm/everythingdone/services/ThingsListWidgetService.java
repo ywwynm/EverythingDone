@@ -21,6 +21,7 @@ import java.util.List;
  * adapter service for things list
  */
 public class ThingsListWidgetService extends RemoteViewsService {
+
     @Override
     public RemoteViewsFactory onGetViewFactory(Intent intent) {
         return new ThingsListViewFactory(getApplicationContext(), intent);
