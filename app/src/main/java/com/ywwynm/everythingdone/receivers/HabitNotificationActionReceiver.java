@@ -36,7 +36,8 @@ public class HabitNotificationActionReceiver extends BroadcastReceiver {
             if (habit.allowFinish(time)) {
                 habitDAO.finishOneTime(habit);
                 sendBroadCastToUpdateMainUI(context, id, position);
-                AppWidgetHelper.updateAppWidget(context, id);
+                AppWidgetHelper.updateSingleThingAppWidgets(context, id);
+                AppWidgetHelper.updateThingsListAppWidgetsForType(context, Thing.HABIT);
             }
         }
         NotificationManagerCompat nmc = NotificationManagerCompat.from(context);

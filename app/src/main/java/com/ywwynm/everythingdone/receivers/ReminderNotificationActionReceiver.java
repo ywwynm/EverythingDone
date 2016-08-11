@@ -26,7 +26,7 @@ public class ReminderNotificationActionReceiver extends BroadcastReceiver {
         long id = intent.getLongExtra(Def.Communication.KEY_ID, 0);
         int position = intent.getIntExtra(Def.Communication.KEY_POSITION, -1);
 
-        Thing thing;
+        Thing thing = null;
         if (action.equals(Def.Communication.NOTIFICATION_ACTION_FINISH)) {
             if (position == -1) {
                 ThingDAO thingDAO = ThingDAO.getInstance(context);
@@ -99,7 +99,10 @@ public class ReminderNotificationActionReceiver extends BroadcastReceiver {
                     Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME);
         }
 
-        AppWidgetHelper.updateAppWidget(context, id);
+        AppWidgetHelper.updateSingleThingAppWidgets(context, id);
+        if (thing != null) {
+            AppWidgetHelper.updateThingsListAppWidgetsForType(context, thing.getType());
+        }
 
         NotificationManagerCompat nmc = NotificationManagerCompat.from(context);
         nmc.cancel((int) id);

@@ -4,6 +4,7 @@ import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;
 import android.content.Context;
 
+import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper;
 import com.ywwynm.everythingdone.database.AppWidgetDAO;
 import com.ywwynm.everythingdone.model.ThingWidgetInfo;
@@ -27,6 +28,9 @@ public class ThingsListWidget extends AppWidgetProvider {
             int limit = -1 * (int) info.getThingId() - 1;
             appWidgetManager.updateAppWidget(appWidgetId,
                     AppWidgetHelper.createRemoteViewsForThingsList(context, limit, appWidgetId));
+
+            // notify data set changed for things list
+            appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetId, R.id.lv_things_list);
         }
     }
 

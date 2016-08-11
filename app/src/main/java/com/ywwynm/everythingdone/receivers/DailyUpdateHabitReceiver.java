@@ -33,8 +33,9 @@ public class DailyUpdateHabitReceiver extends BroadcastReceiver {
         while (cursor.moveToNext()) {
             long id = cursor.getLong(0);
             habitDAO.dailyUpdate(id);
-            AppWidgetHelper.updateAppWidget(context, id);
+            AppWidgetHelper.updateSingleThingAppWidgets(context, id);
         }
+        AppWidgetHelper.updateThingsListAppWidgetsForType(context, Thing.HABIT);
         cursor.close();
     }
 

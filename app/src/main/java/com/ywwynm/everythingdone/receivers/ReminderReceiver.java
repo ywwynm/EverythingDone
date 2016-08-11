@@ -67,7 +67,8 @@ public class ReminderReceiver extends BroadcastReceiver {
                             Reminder.REMINDED : Reminder.EXPIRED);
                     reminderDAO.update(reminder);
                     sendBroadCastToUpdateMainUI(context, thing, position);
-                    AppWidgetHelper.updateAppWidget(context, id);
+                    AppWidgetHelper.updateSingleThingAppWidgets(context, id);
+                    AppWidgetHelper.updateThingsListAppWidgetsForType(context, thing.getType());
                     return;
                 }
             }
@@ -76,7 +77,8 @@ public class ReminderReceiver extends BroadcastReceiver {
                 reminder.setState(Reminder.REMINDED);
                 reminderDAO.update(reminder);
                 sendBroadCastToUpdateMainUI(context, thing, position);
-                AppWidgetHelper.updateAppWidget(context, id);
+                AppWidgetHelper.updateSingleThingAppWidgets(context, id);
+                AppWidgetHelper.updateThingsListAppWidgetsForType(context, thing.getType());
 
                 NotificationCompat.Builder builder = SystemNotificationUtil
                         .newGeneralNotificationBuilder(context, TAG, id, position, thing, false);

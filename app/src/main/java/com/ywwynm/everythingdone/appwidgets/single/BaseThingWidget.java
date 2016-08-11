@@ -43,7 +43,7 @@ public class BaseThingWidget extends AppWidgetProvider {
             String updatedContent = getUpdatedContent(thing.getContent(), position);
             thing.setContent(updatedContent);
             updateThing(context, thing);
-            updateUiEverywhereForChecklist(context, id);
+            updateUiEverywhereForChecklist(context, thing);
         }
         super.onReceive(context, intent);
     }
@@ -81,9 +81,23 @@ public class BaseThingWidget extends AppWidgetProvider {
         }
     }
 
-    private void updateUiEverywhereForChecklist(Context context, long thingId) {
+    private void updateUiEverywhereForChecklist(Context context, Thing thing) {
+        long thingId = thing.getId();
         updateThingWidgetsForChecklist(context, thingId);
+        AppWidgetHelper.updateThingsListAppWidgetsForType(context, thing.getType());
         updateThingsActivityForChecklist(context, thingId);
+    }
+
+    private void updateThingWidgetsForChecklist(Context context, long thingId) {
+        AppWidgetDAO appWidgetDAO = AppWidgetDAO.getInstance(context);
+        List<ThingWidgetInfo> thingWidgetInfos = appWidgetDAO.getThingWidgetInfosByThingId(thingId);
+        AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(context);
+        final int size = thingWidgetInfos.size();
+        int[] appWidgetIds = new int[size];
+        for (int i = 0; i < size; i++) {
+            appWidgetIds[i] = thingWidgetInfos.get(i).getId();
+        }
+        appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetIds, R.id.lv_thing_check_list);
     }
 
     private void updateThingsActivityForChecklist(Context context, long thingId) {
@@ -105,18 +119,6 @@ public class BaseThingWidget extends AppWidgetProvider {
         intent.putExtra(Def.Communication.KEY_POSITION, thingManager.getPosition(thing.getId()));
 
         context.sendBroadcast(intent);
-    }
-
-    private void updateThingWidgetsForChecklist(Context context, long thingId) {
-        AppWidgetDAO appWidgetDAO = AppWidgetDAO.getInstance(context);
-        List<ThingWidgetInfo> thingWidgetInfos = appWidgetDAO.getThingWidgetInfosByThingId(thingId);
-        AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(context);
-        final int size = thingWidgetInfos.size();
-        int[] appWidgetIds = new int[size];
-        for (int i = 0; i < size; i++) {
-            appWidgetIds[i] = thingWidgetInfos.get(i).getId();
-        }
-        appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetIds, R.id.lv_thing_check_list);
     }
 
     @Override
