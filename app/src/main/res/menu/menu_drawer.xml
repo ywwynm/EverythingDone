@@ -34,7 +34,7 @@
             android:icon="@drawable/drawer_finished"/>
         <item
             android:id="@+id/drawer_deleted"
-            android:title="@string/deleted"
+            android:title="@string/drawer_deleted"
             android:icon="@drawable/drawer_deleted"/>
     </group>
 

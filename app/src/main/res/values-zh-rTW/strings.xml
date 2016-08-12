@@ -14,7 +14,7 @@
     <string name="goal">目標</string>
     <string name="other">其它</string>
     <string name="finished">已完成</string>
-    <string name="deleted">回收站</string>
+    <string name="deleted">已删除</string>
     <string name="settings">設定</string>
     <string name="about">關於</string>
 
@@ -429,5 +429,6 @@
     <string name="title_activity_thing_widget_configure">選擇一件記事</string>
     <string name="title_activity_things_list_widget_configuration">選擇正在進行的記事</string>
     <string name="all">全部</string>
+    <string name="drawer_deleted">回收站</string>
 
 </resources>
