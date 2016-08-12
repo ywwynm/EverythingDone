@@ -1,4 +1,4 @@
-package com.ywwynm.everythingdone.services;
+package com.ywwynm.everythingdone.appwidgets.list;
 
 import android.content.Context;
 import android.content.Intent;

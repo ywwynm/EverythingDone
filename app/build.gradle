@@ -8,8 +8,8 @@ android {
         applicationId "com.ywwynm.everythingdone"
         minSdkVersion 16
         targetSdkVersion 23
-        versionCode 16
-        versionName "1.2.0"
+        versionCode 17
+        versionName "1.2.1"
     }
     buildTypes {
         release {
@@ -30,5 +30,4 @@ dependencies {
     compile 'joda-time:joda-time:2.9.3'
     compile 'com.mattprecious.swirl:swirl:1.0.0'
     compile 'com.github.bumptech.glide:glide:3.7.0'
-    compile 'com.squareup.picasso:picasso:2.5.2'
 }

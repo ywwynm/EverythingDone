@@ -201,7 +201,7 @@
 
         <receiver
             android:name=".appwidgets.list.ThingsListWidget"
-            android:label="@string/title_activity_things_all">
+            android:label="@string/title_widget_things_list">
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/app_widget_info_things_list"/>
@@ -274,13 +274,13 @@
         </activity>
 
         <service
-            android:name=".services.ChecklistWidgetService"
+            android:name=".appwidgets.single.ChecklistWidgetService"
             android:permission="android.permission.BIND_REMOTEVIEWS">
 
         </service>
 
         <service
-            android:name=".services.ThingsListWidgetService"
+            android:name=".appwidgets.list.ThingsListWidgetService"
             android:permission="android.permission.BIND_REMOTEVIEWS">
 
         </service>

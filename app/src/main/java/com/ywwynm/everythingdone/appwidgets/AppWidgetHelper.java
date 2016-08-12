@@ -40,8 +40,8 @@ import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.model.ThingWidgetInfo;
-import com.ywwynm.everythingdone.services.ChecklistWidgetService;
-import com.ywwynm.everythingdone.services.ThingsListWidgetService;
+import com.ywwynm.everythingdone.appwidgets.single.ChecklistWidgetService;
+import com.ywwynm.everythingdone.appwidgets.list.ThingsListWidgetService;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 
@@ -222,6 +222,9 @@ public class AppWidgetHelper {
         intent = new Intent(context, ThingsListWidgetService.class);
         intent.putExtra(Def.Communication.KEY_LIMIT, limit);
         intent.putExtra(Def.Communication.KEY_WIDGET_ID, appWidgetId);
+        // Very important! without this line, things list widgets of two different limits
+        // may have same ListView content
+        intent.setData(Uri.parse(intent.toUri(Intent.URI_INTENT_SCHEME)));
         remoteViews.setRemoteAdapter(LV_THINGS_LIST, intent);
         // don't set empty view since I want to show NOTIFY_EMPTY-type things
 
@@ -321,9 +324,9 @@ public class AppWidgetHelper {
     private static void setImageAttachment(
             Context context, RemoteViews remoteViews, Thing thing, int appWidgetId, Class clazz) {
         if (thing.isPrivate()) {
-            remoteViews.setViewVisibility(IV_IMAGE_ATTACHMENT,  View.GONE);
-            remoteViews.setViewVisibility(TV_IMAGE_COUNT,       View.GONE);
-            remoteViews.setViewVisibility(V_PADDING_BOTTOM,     View.VISIBLE);
+            remoteViews.setViewVisibility(IV_IMAGE_ATTACHMENT, View.GONE);
+            remoteViews.setViewVisibility(TV_IMAGE_COUNT,      View.GONE);
+            remoteViews.setViewVisibility(V_PADDING_BOTTOM,    View.VISIBLE);
             return;
         }
 
@@ -332,7 +335,7 @@ public class AppWidgetHelper {
         if (firstImageTypePathName == null) {
             remoteViews.setViewVisibility(IV_IMAGE_ATTACHMENT,  View.GONE);
             remoteViews.setViewVisibility(TV_IMAGE_COUNT,       View.GONE);
-            remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);
+            remoteViews.setViewVisibility(V_PADDING_BOTTOM,     View.VISIBLE);
             return;
         }
 
@@ -369,15 +372,12 @@ public class AppWidgetHelper {
 
     private static void loadImageForThingsListItem(
             Context context, String pathName, RemoteViews remoteViews) {
-        App app = (App) context;
-        System.out.println(app);
         int width  = (int) (screenDensity * 180);
         int height = width * 3 / 4;
         BitmapRequestBuilder builder =
                 Glide.with(context)
                         .load(pathName)
                         .asBitmap()
-                        .override(width, height)
                         .centerCrop();
         FutureTarget futureTarget = builder.into(width, height);
         try {
@@ -410,16 +410,16 @@ public class AppWidgetHelper {
             Context context, RemoteViews remoteViews, Thing thing, int appWidgetId, Class clazz) {
         String content = thing.getContent();
         if (content.isEmpty() || thing.isPrivate()) {
-            remoteViews.setViewVisibility(LV_CHECKLIST,             View.GONE);
+            remoteViews.setViewVisibility(LV_CHECKLIST,        View.GONE);
             remoteViews.setViewVisibility(LL_CHECK_LIST_ITEMS, View.GONE);
-            remoteViews.setViewVisibility(TV_CONTENT,               View.GONE);
+            remoteViews.setViewVisibility(TV_CONTENT,          View.GONE);
             return;
         }
 
         if (!CheckListHelper.isCheckListStr(content)) {
-            remoteViews.setViewVisibility(LV_CHECKLIST,             View.GONE);
+            remoteViews.setViewVisibility(LV_CHECKLIST,        View.GONE);
             remoteViews.setViewVisibility(LL_CHECK_LIST_ITEMS, View.GONE);
-            remoteViews.setViewVisibility(TV_CONTENT,               View.VISIBLE);
+            remoteViews.setViewVisibility(TV_CONTENT,          View.VISIBLE);
             remoteViews.setViewPadding(TV_CONTENT, dp12, dp12, dp12, 0);
             remoteViews.setTextViewText(TV_CONTENT, content);
             int length = content.length();
@@ -443,15 +443,16 @@ public class AppWidgetHelper {
 
     private static void setChecklistForSingleThing(
             Context context, RemoteViews remoteViews, Thing thing, int appWidgetId, Class clazz) {
-        remoteViews.setViewVisibility(LV_CHECKLIST,             View.VISIBLE);
+        remoteViews.setViewVisibility(LV_CHECKLIST,        View.VISIBLE);
         remoteViews.setViewVisibility(LL_CHECK_LIST_ITEMS, View.GONE);
-        remoteViews.setViewVisibility(TV_CONTENT,               View.GONE);
+        remoteViews.setViewVisibility(TV_CONTENT,          View.GONE);
 
         remoteViews.setViewPadding(LV_CHECKLIST, dp12, dp12, dp12, 0);
 
         Intent intent = new Intent(context, ChecklistWidgetService.class);
         intent.putExtra(Def.Communication.KEY_WIDGET_ID, appWidgetId);
         intent.putExtra(Def.Communication.KEY_ID, thing.getId());
+        // Very important! without this line, two different checklist items may have same content
         intent.setData(Uri.parse(intent.toUri(Intent.URI_INTENT_SCHEME)));
         remoteViews.setRemoteAdapter(LV_CHECKLIST, intent);
 
@@ -469,8 +470,8 @@ public class AppWidgetHelper {
     private static void setChecklistForThingsListItem(
             Context context, RemoteViews remoteViews, String checklistStr) {
         remoteViews.setViewVisibility(LL_CHECK_LIST_ITEMS, View.VISIBLE);
-        remoteViews.setViewVisibility(LV_CHECKLIST,             View.GONE);
-        remoteViews.setViewVisibility(TV_CONTENT,               View.GONE);
+        remoteViews.setViewVisibility(LV_CHECKLIST,        View.GONE);
+        remoteViews.setViewVisibility(TV_CONTENT,          View.GONE);
 
         remoteViews.removeAllViews(LL_CHECK_LIST_ITEMS);
 
@@ -578,7 +579,7 @@ public class AppWidgetHelper {
             }
         }
 
-        remoteViews.setViewVisibility(RL_THING_STATE, View.GONE);
+        remoteViews.setViewVisibility(RL_THING_STATE,   View.GONE);
         remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);
     }
 

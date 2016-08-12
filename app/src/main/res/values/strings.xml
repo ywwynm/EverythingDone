@@ -17,6 +17,8 @@
     <string name="title_activity_thing_widget_configure">Select single thing</string>
     <string name="title_activity_things_list_widget_configuration">Select underway things</string>
 
+    <string name="title_widget_things_list">Underway things</string>
+
     <!--drawer items-->
     <string name="underway">Underway</string>
     <string name="thing">Thing</string>

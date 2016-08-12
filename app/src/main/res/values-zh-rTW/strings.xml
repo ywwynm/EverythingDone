@@ -430,5 +430,6 @@
     <string name="title_activity_things_list_widget_configuration">選擇正在進行的記事</string>
     <string name="all">全部</string>
     <string name="drawer_deleted">回收站</string>
+    <string name="title_widget_things_list">正在進行的記事</string>
 
 </resources>

@@ -111,10 +111,10 @@ public class App extends Application {
                 FingerprintHelper fingerprintHelper = FingerprintHelper.getInstance();
                 if (fingerprintHelper.isFingerprintEnabledInEverythingDone()
                         && fingerprintHelper.isFingerprintReady()) {
-                /*
-                    Fix bug: if restored, fingerprint will not work unless user disable/enable
-                    fingerprint in SettingsActivity
-                 */
+                    /*
+                        Fix bug: if restored, fingerprint will not work unless user disable/enable
+                        fingerprint in SettingsActivity
+                     */
                     fingerprintHelper.createFingerprintKeyForEverythingDone();
                 }
             }
