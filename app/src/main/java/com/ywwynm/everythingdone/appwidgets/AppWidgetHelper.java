@@ -107,6 +107,14 @@ public class AppWidgetHelper {
 
     private AppWidgetHelper() {}
 
+    /**
+     * Update single thing widgets whose UI components are bind with a {@link Thing} with {@param thingId}.
+     * This method should be called at any time if a {@link Thing} is updated by user(simple
+     * behaviors include updating in DetailActivity, swipe in ThingsActivity and so on; More
+     * complicated behaviors include click checklist item in single thing appwidget...), or by app
+     * itself(for example, daily update for habits).
+     * @param thingId this param will be used to find appwidgets from database to update
+     */
     public static void updateSingleThingAppWidgets(Context context, long thingId) {
         AppWidgetDAO appWidgetDAO = AppWidgetDAO.getInstance(context);
         List<ThingWidgetInfo> thingWidgetInfos = appWidgetDAO.getThingWidgetInfosByThingId(thingId);
@@ -119,6 +127,14 @@ public class AppWidgetHelper {
         }
     }
 
+    /**
+     * Update things list widget whose UI components are bind with a list of things under {@param limit}.
+     * This method should be called at any time if any thing was created/updated by user or by app
+     * itself. Please see {@link #updateSingleThingAppWidgets(Context, long)}'s annotation to get
+     * examples for these actions. Especially, this method should be called after user create new thing
+     * from create appwidget or things list appwidget, which won't influence single thing appwidget.
+     * @param limit this param will be used to find appwidgets from database to update.
+     */
     public static void updateThingsListAppWidgets(Context context, int limit) {
         AppWidgetDAO appWidgetDAO = AppWidgetDAO.getInstance(context);
         int storedLimit = -limit - 1;
@@ -353,23 +369,20 @@ public class AppWidgetHelper {
 
     private static void loadImageForThingsListItem(
             Context context, String pathName, RemoteViews remoteViews) {
+        App app = (App) context;
+        System.out.println(app);
         int width  = (int) (screenDensity * 180);
         int height = width * 3 / 4;
+        BitmapRequestBuilder builder =
+                Glide.with(context)
+                        .load(pathName)
+                        .asBitmap()
+                        .override(width, height)
+                        .centerCrop();
+        FutureTarget futureTarget = builder.into(width, height);
         try {
-            BitmapRequestBuilder builder =
-                    Glide.with(context)
-                            .load(pathName)
-                            .asBitmap()
-                            .override(width, height)
-                            .centerCrop();
-            FutureTarget futureTarget = builder.into(width, height);
-            try {
-                remoteViews.setImageViewBitmap(IV_IMAGE_ATTACHMENT, (Bitmap) futureTarget.get());
-            } catch (InterruptedException | ExecutionException e) {
-                e.printStackTrace();
-            }
-        } catch (SecurityException e) {
-            // sometimes Glide is willing to check network state but I don't know why.
+            remoteViews.setImageViewBitmap(IV_IMAGE_ATTACHMENT, (Bitmap) futureTarget.get());
+        } catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();
         }
     }

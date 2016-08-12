@@ -3,7 +3,9 @@ package com.ywwynm.everythingdone;
 import android.app.Application;
 import android.content.SharedPreferences;
 import android.database.Cursor;
+import android.util.Log;
 
+import com.bumptech.glide.Glide;
 import com.ywwynm.everythingdone.activities.SettingsActivity;
 import com.ywwynm.everythingdone.activities.ThingsActivity;
 import com.ywwynm.everythingdone.database.ReminderDAO;
@@ -93,6 +95,14 @@ public class App extends Application {
 
         AppUpdateHelper.getInstance(this).handleAppUpdate();
 
+        /*
+            Force initialization within app's domain.
+            If this line was removed, things list widget may not load images because of checking
+            network state without corresponding permission.
+            {@see https://github.com/bumptech/glide/issues/1405} for more details.
+         */
+        Glide.with(this);
+
         File file = new File(getApplicationInfo().dataDir + "/files/" +
                 Def.Meta.RESTORE_DONE_FILE_NAME);
         if (file.exists()) {
@@ -116,7 +126,7 @@ public class App extends Application {
 
         SystemNotificationUtil.tryToCreateQuickCreateNotification(this);
 
-        mThingsToDeleteForever = new ArrayList<>();
+        mThingsToDeleteForever   = new ArrayList<>();
         mAttachmentsToDeleteFile = new ArrayList<>();
 
         mLimit = Def.LimitForGettingThings.ALL_UNDERWAY;
@@ -124,6 +134,8 @@ public class App extends Application {
         mExecutor = Executors.newSingleThreadExecutor();
 
         AlarmHelper.createDailyUpdateHabitAlarm(this);
+
+        Log.i(TAG, "app is launched");
     }
 
     private void firstLaunch() {
