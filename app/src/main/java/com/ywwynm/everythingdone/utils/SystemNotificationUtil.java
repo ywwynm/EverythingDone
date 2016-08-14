@@ -56,13 +56,8 @@ public class SystemNotificationUtil {
     public static NotificationCompat.Builder newGeneralNotificationBuilder(
             Context context, String senderName, long id, int position, Thing thing, boolean autoNotify) {
 
-        Intent contentIntent = new Intent(context, AuthenticationActivity.class);
-        contentIntent.putExtra(Def.Communication.KEY_SENDER_NAME, senderName);
-        contentIntent.putExtra(Def.Communication.KEY_DETAIL_ACTIVITY_TYPE,
-                DetailActivity.UPDATE);
-        contentIntent.putExtra(Def.Communication.KEY_ID, id);
-        contentIntent.putExtra(Def.Communication.KEY_POSITION, position);
-
+        Intent contentIntent = AuthenticationActivity.getOpenIntent(
+                context, senderName, id, position);
         int type = thing.getType();
         int color = thing.getColor();
         PendingIntent contentPendingIntent = PendingIntent.getActivity(context,

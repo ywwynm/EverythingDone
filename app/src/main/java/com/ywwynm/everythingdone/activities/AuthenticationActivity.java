@@ -1,5 +1,6 @@
 package com.ywwynm.everythingdone.activities;
 
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
@@ -15,6 +16,17 @@ import com.ywwynm.everythingdone.model.Thing;
  * An Activity only used when user clicked notification content of a private thing.
  */
 public class AuthenticationActivity extends AppCompatActivity {
+
+    public static Intent getOpenIntent(
+            Context context, String senderName, long id, int position) {
+        final Intent intent = new Intent(context, AuthenticationActivity.class);
+        intent.putExtra(Def.Communication.KEY_SENDER_NAME, senderName);
+        intent.putExtra(Def.Communication.KEY_DETAIL_ACTIVITY_TYPE,
+                DetailActivity.UPDATE);
+        intent.putExtra(Def.Communication.KEY_ID, id);
+        intent.putExtra(Def.Communication.KEY_POSITION, position);
+        return intent;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

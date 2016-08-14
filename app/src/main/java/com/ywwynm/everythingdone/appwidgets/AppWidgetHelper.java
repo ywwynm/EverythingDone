@@ -23,6 +23,7 @@ import com.bumptech.glide.request.target.AppWidgetTarget;
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
+import com.ywwynm.everythingdone.activities.AuthenticationActivity;
 import com.ywwynm.everythingdone.activities.DetailActivity;
 import com.ywwynm.everythingdone.activities.ThingsActivity;
 import com.ywwynm.everythingdone.appwidgets.list.ThingsListWidget;
@@ -192,7 +193,7 @@ public class AppWidgetHelper {
             Context context, Thing thing, int position, int appWidgetId, Class clazz) {
         RemoteViews remoteViews = new RemoteViews(context.getPackageName(), R.layout.app_widget_thing);
         setAppearance(context, remoteViews, thing, appWidgetId, clazz);
-        final Intent contentIntent = DetailActivity.getOpenIntentForUpdate(
+        final Intent contentIntent = AuthenticationActivity.getOpenIntent(
                 context, TAG, thing.getId(), position);
         PendingIntent pendingIntent = PendingIntent.getActivity(
                 context, (int) thing.getId(), contentIntent, 0);
@@ -229,7 +230,7 @@ public class AppWidgetHelper {
         // don't set empty view since I want to show NOTIFY_EMPTY-type things
 
         // thing item click event
-        intent = new Intent(context, DetailActivity.class);
+        intent = new Intent(context, AuthenticationActivity.class);
         intent.putExtra(Def.Communication.KEY_SENDER_NAME, TAG);
         intent.putExtra(Def.Communication.KEY_DETAIL_ACTIVITY_TYPE,
                 DetailActivity.UPDATE);
@@ -400,9 +401,13 @@ public class AppWidgetHelper {
         }
 
         if (thing.isPrivate()) {
-            remoteViews.setViewVisibility(IV_PRIVATE_THING, View.VISIBLE);
+            remoteViews.setViewVisibility(R.id.view_private_helper_1, View.VISIBLE);
+            remoteViews.setViewVisibility(IV_PRIVATE_THING,           View.VISIBLE);
+            remoteViews.setViewVisibility(R.id.view_private_helper_2, View.VISIBLE);
         } else {
-            remoteViews.setViewVisibility(IV_PRIVATE_THING, View.GONE);
+            remoteViews.setViewVisibility(R.id.view_private_helper_1, View.GONE);
+            remoteViews.setViewVisibility(IV_PRIVATE_THING,           View.GONE);
+            remoteViews.setViewVisibility(R.id.view_private_helper_2, View.GONE);
         }
     }
 
@@ -505,7 +510,7 @@ public class AppWidgetHelper {
     private static void setAudioAttachment(Context context, RemoteViews remoteViews, Thing thing) {
         String attachment = thing.getAttachment();
         String str = AttachmentHelper.getAudioAttachmentCountStr(attachment, context);
-        if (str == null) {
+        if (str == null || thing.isPrivate()) {
             remoteViews.setViewVisibility(LL_AUDIO_ATTACHMENT, View.GONE);
             return;
         }
@@ -540,7 +545,7 @@ public class AppWidgetHelper {
         int thingType = thing.getType();
         int thingState = thing.getState();
         Reminder reminder = ReminderDAO.getInstance(context).getReminderById(thing.getId());
-        if (reminder == null) {
+        if (reminder == null || thing.isPrivate()) {
             remoteViews.setViewVisibility(RL_REMINDER, View.GONE);
             return;
         }
@@ -585,7 +590,7 @@ public class AppWidgetHelper {
 
     private static void setHabit(Context context, RemoteViews remoteViews, Thing thing) {
         Habit habit = HabitDAO.getInstance(context).getHabitById(thing.getId());
-        if (habit == null)  {
+        if (habit == null || thing.isPrivate())  {
             remoteViews.setViewVisibility(RL_HABIT, View.GONE);
             return;
         }

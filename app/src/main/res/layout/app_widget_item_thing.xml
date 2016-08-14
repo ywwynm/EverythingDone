@@ -47,6 +47,10 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical">
+        <!--
+            Different from app_widget_thing.xml, this layout is wrap_content instead of
+            match_parent.
+        -->
 
         <TextView
             android:id="@+id/tv_thing_title"
@@ -58,6 +62,13 @@
             android:textStyle="bold"
             android:visibility="gone"/>
 
+        <TextView
+            android:id="@+id/view_private_helper_1"
+            android:layout_width="1px"
+            android:layout_height="0dp"
+            android:layout_weight="3"
+            android:visibility="gone"/>
+
         <ImageView
             android:id="@+id/iv_private_thing"
             android:layout_width="48dp"
@@ -66,6 +77,13 @@
             android:layout_gravity="center"
             android:src="@drawable/ic_locked_big"
             tools:ignore="ContentDescription"
+            android:visibility="gone"/>
+
+        <TextView
+            android:id="@+id/view_private_helper_2"
+            android:layout_width="1px"
+            android:layout_height="0dp"
+            android:layout_weight="4"
             android:visibility="gone"/>
 
         <TextView
