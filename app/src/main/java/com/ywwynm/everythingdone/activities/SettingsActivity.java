@@ -7,6 +7,7 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.res.Resources;
 import android.database.Cursor;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
@@ -60,6 +61,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static com.ywwynm.everythingdone.Def.Communication.REQUEST_CHOOSE_AUDIO_FILE;
@@ -78,6 +80,9 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     public static final String DEFAULT_DRAWER_HEADER = "default_drawer_header";
     private LinearLayout mLlDrawerHeader;
     private TextView     mTvDrawerHeader;
+
+    private LinearLayout mLlLanguage;
+    private TextView     mTvLanguage;
 
     private RelativeLayout mRlTwiceBackAsBt;
     private CheckBox       mCbTwiceBack;
@@ -329,6 +334,9 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         mLlDrawerHeader = f(R.id.ll_change_drawer_header_as_bt);
         mTvDrawerHeader = f(R.id.tv_drawer_header_path);
 
+        mLlLanguage = f(R.id.ll_app_language_as_bt);
+        mTvLanguage = f(R.id.tv_app_language);
+
         mRlTwiceBackAsBt = f(R.id.rl_twice_back_as_bt);
         mCbTwiceBack     = f(R.id.cb_twice_back);
 
@@ -396,6 +404,8 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             mTvDrawerHeader.setTextSize(12);
             mTvDrawerHeader.setText(header);
         }
+
+        mTvLanguage.setText(LocaleUtil.getLanguageDescription(LocaleUtil.getMyLanguageCode()));
 
         boolean twiceBack = mPreferences.getBoolean(Def.Meta.KEY_TWICE_BACK, false);
         mCbTwiceBack.setChecked(twiceBack);
@@ -515,6 +525,13 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             @Override
             public void onClick(View v) {
                 showChangeDrawerHeaderDialog();
+            }
+        });
+
+        mLlLanguage.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showChooseLanguageDialog();
             }
         });
 
@@ -715,6 +732,42 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         startActivityForResult(
                 Intent.createChooser(intent, getString(R.string.act_choose_image_as_drawer_header)),
                 Def.Communication.REQUEST_CHOOSE_IMAGE_FILE);
+    }
+
+    private void showChooseLanguageDialog() {
+        final ChooserDialogFragment cdf = new ChooserDialogFragment();
+        cdf.setAccentColor(mAccentColor);
+        cdf.setTitle(getString(R.string.change_app_language));
+        cdf.setShouldShowMore(false);
+        final Resources resources = getResources();
+        final String[] languages = resources.getStringArray(R.array.languages);
+        cdf.setItems(Arrays.asList(languages));
+
+        String display = mTvLanguage.getText().toString();
+        int index = 0;
+        for (int i = 0; i < languages.length; i++) {
+            if (display.equals(languages[i])) {
+                index = i;
+                break;
+            }
+        }
+        final int initialIndex = index;
+        cdf.setInitialIndex(initialIndex);
+        cdf.setConfirmListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                int pickedIndex = cdf.getPickedIndex();
+                if (pickedIndex == initialIndex) {
+                    return;
+                }
+                mPreferences.edit().putString(Def.Meta.KEY_LANGUAGE_CODE,
+                        resources.getStringArray(R.array.language_codes)[pickedIndex]).commit();
+                finish();
+                Intent intent = new Intent(SettingsActivity.this, SettingsActivity.class);
+                startActivity(intent);
+            }
+        });
+        cdf.showAllowingStateLoss(getFragmentManager(), ChooserDialogFragment.TAG);
     }
 
     private void showBackupDialog() {

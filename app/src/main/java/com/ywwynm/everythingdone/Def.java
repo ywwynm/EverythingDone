@@ -34,6 +34,7 @@ public final class Def {
         public static final String KEY_START_USING_TIME     = "start_using_time";
         public static final String KEY_DRAWER_HEADER        = "drawer_header";
         public static final String KEY_TWICE_BACK           = "twice_back";
+        public static final String KEY_LANGUAGE_CODE        = "language_code";
         public static final String KEY_RINGTONE_REMINDER    = "ringtone_reminder";
         public static final String KEY_RINGTONE_HABIT       = "ringtone_habit";
         public static final String KEY_RINGTONE_GOAL        = "ringtone_goal";

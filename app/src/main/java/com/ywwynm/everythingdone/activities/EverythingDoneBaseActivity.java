@@ -13,6 +13,7 @@ import android.view.View;
 
 import com.ywwynm.everythingdone.permission.PermissionCallback;
 import com.ywwynm.everythingdone.utils.DeviceUtil;
+import com.ywwynm.everythingdone.utils.LocaleUtil;
 
 import java.util.HashMap;
 
@@ -27,6 +28,10 @@ public abstract class EverythingDoneBaseActivity extends AppCompatActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // Call this before setContentView so that NavigationView can update its language correctly.
+        LocaleUtil.changeLanguage();
+
         setContentView(getLayoutResource());
 
         beforeInit();

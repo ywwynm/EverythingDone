@@ -92,11 +92,39 @@
 
                 </LinearLayout>
 
+                <LinearLayout
+                    android:id="@+id/ll_app_language_as_bt"
+                    android:layout_width="match_parent"
+                    android:layout_height="72dp"
+                    android:layout_marginTop="112dp"
+                    android:paddingLeft="16dp"
+                    android:paddingRight="16dp"
+                    android:orientation="vertical"
+                    android:gravity="center_vertical"
+                    style="@style/SelectableItemBackground">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/app_language"
+                        android:textSize="16sp"/>
+
+                    <TextView
+                        android:id="@+id/tv_app_language"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="1dp"
+                        android:layout_marginLeft="1dp"
+                        android:textColor="@color/black_26p"
+                        android:textSize="14sp"/>
+
+                </LinearLayout>
+
                 <RelativeLayout
                     android:id="@+id/rl_twice_back_as_bt"
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
-                    android:layout_marginTop="112dp"
+                    android:layout_marginTop="184dp"
                     android:paddingLeft="16dp"
                     android:paddingRight="16dp"
                     style="@style/SelectableItemBackground">
