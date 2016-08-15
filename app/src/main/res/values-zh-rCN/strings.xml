@@ -470,5 +470,8 @@
     <string name="all">全部</string>
     <string name="drawer_deleted">回收站</string>
     <string name="title_widget_things_list">正在进行的记事</string>
+    <string name="app_language">语言</string>
+    <string name="change_app_language">更改应用语言</string>
+    <string name="follow_system_settings">跟随系统设置</string>
 
 </resources>

@@ -431,5 +431,8 @@
     <string name="all">全部</string>
     <string name="drawer_deleted">回收站</string>
     <string name="title_widget_things_list">正在進行的記事</string>
+    <string name="app_language">語言</string>
+    <string name="change_app_language">更改應用語言</string>
+    <string name="follow_system_settings">跟隨系統設置</string>
 
 </resources>

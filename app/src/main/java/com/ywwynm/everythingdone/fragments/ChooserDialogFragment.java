@@ -42,7 +42,8 @@ public class ChooserDialogFragment extends BaseDialogFragment {
     private TextView mTvCancelAsBt;
     private TextView mTvMoreAsBt;
 
-    private boolean mShouldShowMore = true;
+    private boolean mShouldOverScroll = false;
+    private boolean mShouldShowMore   = true;
 
     private View mSeparator1;
     private View mSeparator2;
@@ -108,6 +109,12 @@ public class ChooserDialogFragment extends BaseDialogFragment {
         } else {
             mSeparator1.setVisibility(View.INVISIBLE);
             mSeparator2.setVisibility(View.INVISIBLE);
+        }
+
+        if (mShouldOverScroll) {
+            mRecyclerView.setOverScrollMode(View.OVER_SCROLL_ALWAYS);
+        } else {
+            mRecyclerView.setOverScrollMode(View.OVER_SCROLL_NEVER);
         }
 
         mAdapter = new ChooserFragmentAdapter(getActivity(), mItems, mAccentColor);
@@ -187,6 +194,10 @@ public class ChooserDialogFragment extends BaseDialogFragment {
 
     public void setItems(List<String> items) {
         mItems = items;
+    }
+
+    public void setShouldOverScroll(boolean shouldOverScroll) {
+        mShouldOverScroll = shouldOverScroll;
     }
 
     public void setShouldShowMore(boolean shouldShowMore) {

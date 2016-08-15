@@ -147,25 +147,19 @@
     <string name="default_drawer_header">Default</string>
     <string name="app_language">Language</string>
     <string name="change_app_language">Change App Language</string>
-
     <string-array name="languages">
         <item>@string/follow_system_settings</item>
         <item>简体中文</item>
-        <item>繁体中文</item>
+        <item>繁體中文</item>
         <item>English</item>
     </string-array>
-
     <string-array name="language_codes">
         <item>follow system_</item>
         <item>zh_cn</item>
         <item>zh_tw</item>
         <item>en_</item>
     </string-array>
-
     <string name="follow_system_settings">Follow System</string>
-    <string name="simplified_chinese" translatable="false">简体中文</string>
-    <string name="traditional_chinese" translatable="false">繁体中文</string>
-    <string name="english" translatable="false">English</string>
     <string name="twice_back">Press Back twice to exit</string>
 
     <string name="chooser_ringtone">Select Ringtone</string>

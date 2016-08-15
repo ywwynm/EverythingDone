@@ -1,8 +1,14 @@
 package com.ywwynm.everythingdone;
 
+import android.app.AlarmManager;
 import android.app.Application;
+import android.app.PendingIntent;
+import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 
 import com.bumptech.glide.Glide;
@@ -272,4 +278,26 @@ public class App extends Application {
             mExecutor.execute(r);
         }
     }
+    public static void killMeAndRestart(Context context, Class toLaunch, long time) {
+        Intent intent;
+        if (toLaunch == null) {
+            intent = context.getPackageManager().getLaunchIntentForPackage(
+                    context.getPackageName());
+        } else {
+            intent = new Intent(context, toLaunch);
+        }
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        PendingIntent pendingIntent = PendingIntent.getActivity(context,
+                0, intent, PendingIntent.FLAG_CANCEL_CURRENT);
+        AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        am.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + time + 100, pendingIntent);
+        Handler handler = new Handler(Looper.getMainLooper());
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                System.exit(0);
+            }
+        }, time);
+    }
+
 }

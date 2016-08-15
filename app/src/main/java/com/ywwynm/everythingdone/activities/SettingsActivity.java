@@ -2,8 +2,6 @@ package com.ywwynm.everythingdone.activities;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
-import android.app.AlarmManager;
-import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -42,9 +40,9 @@ import com.ywwynm.everythingdone.fragments.TwoOptionsDialogFragment;
 import com.ywwynm.everythingdone.helpers.AlarmHelper;
 import com.ywwynm.everythingdone.helpers.AttachmentHelper;
 import com.ywwynm.everythingdone.helpers.AuthenticationHelper;
-import com.ywwynm.everythingdone.helpers.FingerprintHelper;
 import com.ywwynm.everythingdone.helpers.AutoNotifyHelper;
 import com.ywwynm.everythingdone.helpers.BackupHelper;
+import com.ywwynm.everythingdone.helpers.FingerprintHelper;
 import com.ywwynm.everythingdone.model.HabitReminder;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.permission.SimplePermissionCallback;
@@ -108,7 +106,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
     // group data
     private TextView              mTvBackupAsBt;
-    private RelativeLayout        mRlRestoreAsBt;
+    private LinearLayout          mLlRestoreAsBt;
     private TextView              mTvRestoreLastInfo;
     private LoadingDialogFragment mLdgBackup;
     private LoadingDialogFragment mLdgRestore;
@@ -353,7 +351,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
         // data
         mTvBackupAsBt      = f(R.id.tv_backup_as_bt);
-        mRlRestoreAsBt     = f(R.id.rl_restore_as_bt);
+        mLlRestoreAsBt     = f(R.id.ll_restore_as_bt);
         mTvRestoreLastInfo = f(R.id.tv_restore_last_info);
 
         // privacy
@@ -566,7 +564,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                 showBackupDialog();
             }
         });
-        mRlRestoreAsBt.setOnClickListener(new View.OnClickListener() {
+        mLlRestoreAsBt.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 showRestoreDialog();
@@ -762,9 +760,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                 }
                 mPreferences.edit().putString(Def.Meta.KEY_LANGUAGE_CODE,
                         resources.getStringArray(R.array.language_codes)[pickedIndex]).commit();
-                finish();
-                Intent intent = new Intent(SettingsActivity.this, SettingsActivity.class);
-                startActivity(intent);
+                App.killMeAndRestart(SettingsActivity.this, null, 0);
             }
         });
         cdf.showAllowingStateLoss(getFragmentManager(), ChooserDialogFragment.TAG);
@@ -837,6 +833,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         cdf.setTitle(getString(R.string.chooser_ringtone));
         cdf.setItems(sRingtoneTitleList);
         cdf.setInitialIndex(sRingtoneUriList.indexOf(mChosenRingtoneUris[index]));
+        cdf.setShouldOverScroll(true);
         cdf.setConfirmListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -1072,18 +1069,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             adf.show(getFragmentManager(), AlertDialogFragment.TAG);
 
             if (BackupHelper.SUCCESS.equals(s)) {
-                Intent intent = getPackageManager().getLaunchIntentForPackage(getPackageName());
-                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                PendingIntent pendingIntent = PendingIntent.getActivity(SettingsActivity.this,
-                        0, intent, PendingIntent.FLAG_CANCEL_CURRENT);
-                AlarmManager am = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
-                am.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 2100, pendingIntent);
-                mRlRestoreAsBt.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        System.exit(0);
-                    }
-                }, 2000);
+                App.killMeAndRestart(SettingsActivity.this, null, 1200);
             }
         }
     }
