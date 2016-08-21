@@ -5,6 +5,7 @@ import android.content.res.ColorStateList;
 import android.graphics.PorterDuff;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.GridLayoutManager;
@@ -30,6 +31,8 @@ public class ColorPicker extends PopupPicker {
 
     public static final String TAG = "ColorPicker";
 
+    private int[] mColors;
+
     private int mType;
     private View.OnClickListener mOnClickListener;
     private ColorPickerAdapter mAdapter;
@@ -37,13 +40,14 @@ public class ColorPicker extends PopupPicker {
 
     public ColorPicker(Context context, View parent, int type) {
         super(context, parent, R.style.ColorPickerAnimation);
+        mColors = context.getResources().getIntArray(R.array.thing);
         mType = type;
         ViewGroup.LayoutParams params = mRecyclerView.getLayoutParams();
         params.width = (int) (mScreenDensity * 128);
         if (mType == Def.PickerType.COLOR_HAVE_ALL) {
-            params.height = (int) (mScreenDensity * 208);
+            params.height = (int) (mScreenDensity * 256);
         } else if (mType == Def.PickerType.COLOR_NO_ALL) {
-            params.height = (int) (mScreenDensity * 168);
+            params.height = (int) (mScreenDensity * 216);
         }
         mRecyclerView.setOverScrollMode(View.OVER_SCROLL_NEVER);
         mRecyclerView.setHasFixedSize(true);
@@ -93,13 +97,14 @@ public class ColorPicker extends PopupPicker {
     }
 
     public int getPickedColor() {
+        int picked = mAdapter.getPickedPosition();
         if (mType == Def.PickerType.COLOR_HAVE_ALL) {
-            if (mAdapter.getPickedPosition() <= 0) {
+            if (picked <= 0) {
                 return -1979711488;
             } else {
-                return mContext.getResources().getIntArray(R.array.thing)[mAdapter.getPickedPosition() - 1];
+                return mColors[picked - 1];
             }
-        } else return mContext.getResources().getIntArray(R.array.thing)[mAdapter.getPickedPosition()];
+        } else return mColors[picked];
     }
 
     @Override
@@ -163,8 +168,7 @@ public class ColorPicker extends PopupPicker {
         private void setFab(RecyclerView.ViewHolder viewHolder, int position) {
             FabViewHolder holder = (FabViewHolder) viewHolder;
             int index = mType == Def.PickerType.COLOR_HAVE_ALL ? position - 1 : position;
-            holder.fab.setBackgroundTintList(ColorStateList.valueOf(mContext.getResources()
-                    .getIntArray(R.array.thing)[index]));
+            holder.fab.setBackgroundTintList(ColorStateList.valueOf(mColors[index]));
             setFabMargin(holder.fab, index);
             if (mPickedPosition == position) {
                 holder.fab.setImageDrawable(ContextCompat.getDrawable(mContext, R.drawable.ic_color_picked));
@@ -201,20 +205,30 @@ public class ColorPicker extends PopupPicker {
                     params.setMargins(m8, m4, m16, m4);
                     break;
                 case 4:
-                    params.setMargins(m16, m4, m8, m16);
+                    params.setMargins(m16, m4, m8, m4);
                     break;
                 case 5:
+                    params.setMargins(m8, m4, m16, m4);
+                    break;
+                case 6:
+                    params.setMargins(m16, m4, m8, m16);
+                    break;
+                case 7:
                     params.setMargins(m8, m4, m16, m16);
                     break;
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+                params.setMarginStart(params.leftMargin);
+                params.setMarginEnd(params.rightMargin);
             }
         }
 
         @Override
         public int getItemCount() {
             if (mType == Def.PickerType.COLOR_HAVE_ALL) {
-                return 7;
+                return mColors.length + 1;
             } else if (mType == Def.PickerType.COLOR_NO_ALL) {
-                return 6;
+                return mColors.length;
             }
             return 0;
         }

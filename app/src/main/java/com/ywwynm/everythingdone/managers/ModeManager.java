@@ -135,6 +135,9 @@ public class ModeManager {
     }
 
     public void toMovingMode(int position) {
+        if (position < 0 || position > mThingManager.getThings().size() - 1) {
+            return;
+        }
         beforeMode = currentMode;
         currentMode = MOVING;
         notifyThingsSelected(position);
@@ -153,11 +156,14 @@ public class ModeManager {
         if (beforeMode == NORMAL) {
             notifyThingsSelected(position);
         } else {
-            CardView cv = (CardView) rv.
-                    findViewHolderForAdapterPosition(position).itemView;
-            ObjectAnimator.ofFloat(cv, "cardElevation", 2 * screenDensity).setDuration(96).start();
-            ObjectAnimator.ofFloat(cv, "scaleX", 1.0f).setDuration(96).start();
-            ObjectAnimator.ofFloat(cv, "scaleY", 1.0f).setDuration(96).start();
+            RecyclerView.ViewHolder holder = rv.
+                    findViewHolderForAdapterPosition(position);
+            if (holder != null) {
+                CardView cv = (CardView) holder.itemView;
+                ObjectAnimator.ofFloat(cv, "cardElevation", 2 * screenDensity).setDuration(96).start();
+                ObjectAnimator.ofFloat(cv, "scaleX", 1.0f).setDuration(96).start();
+                ObjectAnimator.ofFloat(cv, "scaleY", 1.0f).setDuration(96).start();
+            }
         }
         ((SimpleItemAnimator) rv.getItemAnimator())
                 .setSupportsChangeAnimations(false);
@@ -177,12 +183,15 @@ public class ModeManager {
             adapter.setShouldThingsAnimWhenAppearing(false);
             adapter.notifyDataSetChanged();
         } else {
-            CardView cv = (CardView) mRecyclerView.
-                    findViewHolderForAdapterPosition(position).itemView;
-            ObjectAnimator.ofFloat(cv, "CardElevation", 2 * screenDensity).
-                    setDuration(96).start();
-            cv.animate().scaleX(1.0f).setDuration(96);
-            cv.animate().scaleY(1.0f).withEndAction(notifyDataSetRunnable).setDuration(96);
+            RecyclerView.ViewHolder holder = mRecyclerView.
+                    findViewHolderForAdapterPosition(position);
+            if (holder != null) {
+                CardView cv = (CardView) holder.itemView;
+                ObjectAnimator.ofFloat(cv, "CardElevation", 2 * screenDensity).
+                        setDuration(96).start();
+                cv.animate().scaleX(1.0f).setDuration(96);
+                cv.animate().scaleY(1.0f).withEndAction(notifyDataSetRunnable).setDuration(96);
+            }
         }
         if (mApp.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY
                 && !isSearching) {

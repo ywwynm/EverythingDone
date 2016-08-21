@@ -8,14 +8,18 @@
         <item>@color/blue_grey_deep_grey</item>
         <item>@color/brown</item>
         <item>@color/blue_deep</item>
+        <item>@color/pine_green</item>
+        <item>@color/my_purple</item>
     </array>
 
-    <color name="blue_grey_500">#607D8B</color>
     <color name="my_cyan">#00B1C6</color>
-    <color name="blue_grey_deep_blue">#366686</color>
+    <color name="pine_green">#21A675</color>
+    <color name="blue_grey_500">#607D8B</color>
     <color name="blue_grey_deep_grey">#364656</color>
-    <color name="brown">#96766B</color>
+    <color name="blue_grey_deep_blue">#366686</color>
     <color name="blue_deep">#166096</color>
+    <color name="brown">#96766B</color>
+    <color name="my_purple">#665696</color>
 
     <array name="thing_dark">
         <item>#3A4B53</item> <!-- blue_grey_500 -->
@@ -33,6 +37,8 @@
         <item>#C0C4C8</item> <!-- blue_grey_deep_grey -->
         <item>#D8D0CD</item> <!-- brown -->
         <item>#B8CAD8</item> <!-- blue_deep -->
+        <item>#C6E8DB</item> <!-- pine green -->
+        <item>#D7D3E4</item> <!-- my_purple -->
     </array>
 
     <color name="bg_activity_things">#EEEEEE</color>

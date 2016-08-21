@@ -117,8 +117,8 @@ public class DisplayUtil {
     }
 
     public static int getRandomColor(Context context) {
-        // instead of 5 times, 6 sounds better~
-        int[] mlTimesWithQQPerNight = { 1, 1, 2, 2, 3, 3, 4, 4, 5, 6, 6 };
+        // instead of 5 or 8 times, 6 sounds better~
+        int[] mlTimesWithQQPerNight = { 1, 1, 2, 2, 3, 3, 4, 4, 5, 6, 6, 7, 7, 8 };
         Random r = new Random();
         int decision = r.nextInt(mlTimesWithQQPerNight.length);
         return context.getResources().getIntArray(R.array.thing)[mlTimesWithQQPerNight[decision] - 1];
@@ -126,7 +126,7 @@ public class DisplayUtil {
 
     public static int getColorIndex(int color, Context context) {
         int[] colors = context.getResources().getIntArray(R.array.thing);
-        for (int i = 0; i < 6; i++) {
+        for (int i = 0; i < colors.length; i++) {
             if (colors[i] == color) {
                 return i;
             }

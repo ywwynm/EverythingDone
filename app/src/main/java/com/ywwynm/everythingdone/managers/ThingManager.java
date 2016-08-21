@@ -114,6 +114,12 @@ public class ThingManager {
     public void loadThings() {
         mThings = mDao.getThingsForDisplay(mLimit);
 
+        // 756699
+//        int color = Color.parseColor("#665696");
+//        Thing test = new Thing(10000, Thing.NOTE, Thing.UNDERWAY, color, "么么哒", "啦啦啦德玛西亚\n666",
+//                "", 10000, System.currentTimeMillis(), System.currentTimeMillis(), 0);
+//        mThings.add(1, test);
+
         // do self-check to prevent wrong display for normal and empty states.
         int size = mThings.size();
         if (size == 1) {
