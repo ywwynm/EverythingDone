@@ -214,14 +214,37 @@ public class DisplayUtil {
         }
     }
 
-    public static void darkStatusBarForMIUI(Activity activity) {
-        Class<? extends Window> clazz = activity.getWindow().getClass();
+    public static void darkStatusBar(Activity activity) {
+        Window window = activity.getWindow();
+        darkStatusBarForMIUI(window);
+        darkStatusBarForFlyme(window);
+    }
+
+    private static void darkStatusBarForMIUI(Window window) {
+        Class<? extends Window> clazz = window.getClass();
         try {
             Class<?> layoutParams = Class.forName("android.view.MiuiWindowManager$LayoutParams");
             Field field = layoutParams.getField("EXTRA_FLAG_STATUS_BAR_DARK_MODE");
             int darkModeFlag = field.getInt(layoutParams);
             Method extraFlagField = clazz.getMethod("setExtraFlags", int.class, int.class);
-            extraFlagField.invoke(activity.getWindow(), darkModeFlag, darkModeFlag);
+            extraFlagField.invoke(window, darkModeFlag, darkModeFlag);
+        } catch (Exception ignored) { }
+    }
+
+    private static void darkStatusBarForFlyme(Window window) {
+        try {
+            WindowManager.LayoutParams lp = window.getAttributes();
+            Field darkFlag = WindowManager.LayoutParams.class
+                    .getDeclaredField("MEIZU_FLAG_DARK_STATUS_BAR_ICON");
+            Field meizuFlags = WindowManager.LayoutParams.class
+                    .getDeclaredField("meizuFlags");
+            darkFlag.setAccessible(true);
+            meizuFlags.setAccessible(true);
+            int bit = darkFlag.getInt(null);
+            int value = meizuFlags.getInt(lp);
+            value |= bit;
+            meizuFlags.setInt(lp, value);
+            window.setAttributes(lp);
         } catch (Exception ignored) { }
     }
 

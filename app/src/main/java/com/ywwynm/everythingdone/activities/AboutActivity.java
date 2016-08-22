@@ -114,7 +114,7 @@ public class AboutActivity extends EverythingDoneBaseActivity {
     @Override
     protected void initUI() {
         DisplayUtil.expandStatusBarAboveKitkat(mStatusBar);
-        DisplayUtil.darkStatusBarForMIUI(this);
+        DisplayUtil.darkStatusBar(this);
         DisplayUtil.coverStatusBar(f(R.id.view_status_bar_cover));
 
         if (DeviceUtil.hasKitKatApi()) {

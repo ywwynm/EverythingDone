@@ -380,7 +380,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     @Override
     protected void initUI() {
         DisplayUtil.expandStatusBarAboveKitkat(f(R.id.view_status_bar));
-        DisplayUtil.darkStatusBarForMIUI(this);
+        DisplayUtil.darkStatusBar(this);
         DisplayUtil.coverStatusBar(f(R.id.view_status_bar_cover));
 
         EdgeEffectUtil.forScrollView((ScrollView) f(R.id.sv_settings),

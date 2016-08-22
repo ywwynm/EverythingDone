@@ -62,7 +62,7 @@ public class HelpActivity extends EverythingDoneBaseActivity {
     @Override
     protected void initUI() {
         DisplayUtil.expandStatusBarAboveKitkat(f(R.id.view_status_bar));
-        DisplayUtil.darkStatusBarForMIUI(this);
+        DisplayUtil.darkStatusBar(this);
 
         final RecyclerView rv = f(R.id.rv_help);
         rv.setAdapter(new HelpAdapter());

@@ -835,7 +835,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
     @Override
     protected void initUI() {
-        DisplayUtil.darkStatusBarForMIUI(this);
+        DisplayUtil.darkStatusBar(this);
         DisplayUtil.coverStatusBar(f(R.id.view_status_bar_cover));
 
         if (DeviceUtil.hasKitKatApi()) {
