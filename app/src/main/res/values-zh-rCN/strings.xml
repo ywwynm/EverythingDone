@@ -348,7 +348,7 @@
     <string name="restore_success_content">请等待应用重启。为确保数据安全，请不要进行其它操作</string>
     <string name="restore_file_not_exist">未找到备份文件，请将有效的 EverythingDone.bak 文件放在 sdcard 根目录下</string>
     <string name="restore_failed_other">请确保 EverythingDone.bak 是有效的备份文件</string>
-    <string name="set_private_thing_password">设置私密记事密码</string>
+    <string name="set_app_password">设置应用密码</string>
     <string name="draw_pattern">绘制密码图案</string>
     <string name="relax_finger_when_finish">完成时松开手指</string>
     <string name="draw_pattern_finished">图案已记录</string>
@@ -473,5 +473,6 @@
     <string name="app_language">语言</string>
     <string name="change_app_language">更改应用语言</string>
     <string name="follow_system_settings">跟随系统设置</string>
+    <string name="set_app_password_detail">该密码将用于设置、查看私密记事，备份、恢复数据，以及进行其它涉及隐私的操作时的身份验证</string>
 
 </resources>

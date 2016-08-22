@@ -112,7 +112,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     private LoadingDialogFragment mLdgRestore;
 
     // group privacy
-    private TextView       mTvSetPasswordAsBt;
+    private LinearLayout   mLlSetPasswordAsBt;
     private RelativeLayout mRlFgprtAsBt;
     private TextView       mTvFgprtTitle;
     private TextView       mTvFgprtDscrpt;
@@ -355,7 +355,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         mTvRestoreLastInfo = f(R.id.tv_restore_last_info);
 
         // privacy
-        mTvSetPasswordAsBt = f(R.id.tv_set_password_as_bt);
+        mLlSetPasswordAsBt = f(R.id.ll_set_password_as_bt);
         mRlFgprtAsBt       = f(R.id.rl_use_fingerprint_as_bt);
         mTvFgprtTitle      = f(R.id.tv_use_fingerprint_title);
         mTvFgprtDscrpt     = f(R.id.tv_use_fingerprint_description);
@@ -573,7 +573,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     }
 
     private void setPrivacyEvents() {
-        mTvSetPasswordAsBt.setOnClickListener(new View.OnClickListener() {
+        mLlSetPasswordAsBt.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 String passwordBefore = mPreferences.getString(
@@ -635,7 +635,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         pldf.setType(PatternLockDialogFragment.TYPE_VALIDATE);
         pldf.setAccentColor(mAccentColor);
         pldf.setCorrectPassword(passwordBefore);
-        pldf.setValidateTitle(getString(R.string.set_private_thing_password));
+        pldf.setValidateTitle(getString(R.string.set_app_password));
         pldf.setAuthenticationCallback(new AuthenticationHelper.AuthenticationCallback() {
             @Override
             public void onAuthenticated() {
@@ -773,19 +773,33 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         adf.setConfirmListener(new AlertDialogFragment.ConfirmListener() {
             @Override
             public void onConfirm() {
-                doWithPermissionChecked(
-                        new SimplePermissionCallback(SettingsActivity.this) {
-                            @Override
-                            public void onGranted() {
-                                showBackupLoadingDialog();
-                                new BackupTask().execute();
-                            }
-                        },
-                        Def.Communication.REQUEST_PERMISSION_BACKUP,
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE);
+                authenticateToBackup();
             }
         });
         adf.show(getFragmentManager(), AlertDialogFragment.TAG);
+    }
+
+    private void authenticateToBackup() {
+        String password = mPreferences.getString(Def.Meta.KEY_PRIVATE_PASSWORD, null);
+        AuthenticationHelper.authenticate(this, mAccentColor, getString(R.string.backup_start), password,
+                new AuthenticationHelper.AuthenticationCallback() {
+                    @Override
+                    public void onAuthenticated() {
+                        doWithPermissionChecked(
+                                new SimplePermissionCallback(SettingsActivity.this) {
+                                    @Override
+                                    public void onGranted() {
+                                        showBackupLoadingDialog();
+                                        new BackupTask().execute();
+                                    }
+                                },
+                                Def.Communication.REQUEST_PERMISSION_BACKUP,
+                                Manifest.permission.WRITE_EXTERNAL_STORAGE);
+                    }
+
+                    @Override
+                    public void onCancel() { }
+                });
     }
 
     private void showBackupLoadingDialog() {
@@ -803,19 +817,33 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         adf.setConfirmListener(new AlertDialogFragment.ConfirmListener() {
             @Override
             public void onConfirm() {
-                doWithPermissionChecked(
-                        new SimplePermissionCallback(SettingsActivity.this) {
-                            @Override
-                            public void onGranted() {
-                                showRestoreLoadingDialog();
-                                new RestoreTask().execute();
-                            }
-                        },
-                        Def.Communication.REQUEST_PERMISSION_RESTORE,
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE);
+                authenticateToRestore();
             }
         });
         adf.show(getFragmentManager(), AlertDialogFragment.TAG);
+    }
+
+    private void authenticateToRestore() {
+        String password = mPreferences.getString(Def.Meta.KEY_PRIVATE_PASSWORD, null);
+        AuthenticationHelper.authenticate(this, mAccentColor, getString(R.string.restore_start), password,
+                new AuthenticationHelper.AuthenticationCallback() {
+                    @Override
+                    public void onAuthenticated() {
+                        doWithPermissionChecked(
+                                new SimplePermissionCallback(SettingsActivity.this) {
+                                    @Override
+                                    public void onGranted() {
+                                        showRestoreLoadingDialog();
+                                        new RestoreTask().execute();
+                                    }
+                                },
+                                Def.Communication.REQUEST_PERMISSION_RESTORE,
+                                Manifest.permission.WRITE_EXTERNAL_STORAGE);
+                    }
+
+                    @Override
+                    public void onCancel() { }
+                });
     }
 
     private void showRestoreLoadingDialog() {

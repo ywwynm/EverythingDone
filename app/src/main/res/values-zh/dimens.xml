@@ -10,4 +10,6 @@
 
     <dimen name="move_checklist_dashed_line_length">120dp</dimen>
 
+    <dimen name="tv_set_app_password_detail_text_size">14sp</dimen>
+
 </resources>

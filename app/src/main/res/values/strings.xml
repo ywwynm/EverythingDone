@@ -190,7 +190,8 @@
     <string name="restore_success_title">Restore successfully</string>
 
     <!--group privacy-->
-    <string name="set_private_thing_password">Set password for private things</string>
+    <string name="set_app_password">Set password for EverythingDone</string>
+    <string name="set_app_password_detail">The password will be used to authenticate your identity when set or check private thing, backup, restore and so on</string>
     <string name="use_fingerprint">Use fingerprint</string>
 
     <!--pattern password-->

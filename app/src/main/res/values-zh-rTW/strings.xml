@@ -375,7 +375,7 @@
     <string name="act_back_from_move_checklist">完成並返回</string>
     <string name="act_move_check_list">移動清單項</string>
     <string name="not_support_fgprt">您的設備不支持標準的 Android 指紋模塊</string>
-    <string name="set_private_thing_password">設定私密記事密碼</string>
+    <string name="set_app_password">設定應用密碼</string>
     <string name="settings_group_privacy">隱私</string>
     <string name="use_fingerprint">使用指紋</string>
     <string name="password_not_set">未設定私密記事密碼</string>
@@ -434,5 +434,6 @@
     <string name="app_language">語言</string>
     <string name="change_app_language">更改應用語言</string>
     <string name="follow_system_settings">跟隨系統設置</string>
+    <string name="set_app_password_detail">該密碼將用於設置、查看私密記事，備份、恢復數據，以及進行其它涉及隱私的操作時的身份驗證</string>
 
 </resources>

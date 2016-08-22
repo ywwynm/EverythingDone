@@ -14,6 +14,10 @@ public class AuthenticationHelper {
     public static void authenticate(
             Activity activity, int accentColor, String title, String correctPassword,
             AuthenticationCallback callback) {
+        if (correctPassword == null) {
+            callback.onAuthenticated();
+            return;
+        }
 
         if (!DeviceUtil.hasMarshmallowApi()) {
             authenticateByPattern(activity, accentColor, title, correctPassword, callback);

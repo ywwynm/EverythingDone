@@ -93,7 +93,7 @@ public class PatternLockDialogFragment extends BaseDialogFragment {
     }
 
     private void initUiSet() {
-        mTvTitle.setText(R.string.set_private_thing_password);
+        mTvTitle.setText(R.string.set_app_password);
         updateUiSetStep1();
     }
 
