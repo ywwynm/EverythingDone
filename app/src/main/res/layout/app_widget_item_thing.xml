@@ -140,10 +140,11 @@
 
     </LinearLayout>
 
-    <FrameLayout
-        android:id="@+id/fl_reminder_habit_state"
+    <LinearLayout
+        android:id="@+id/ll_reminder_habit_state"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
 
         <RelativeLayout
             android:id="@+id/rl_thing_reminder"
@@ -293,15 +294,12 @@
                 android:layout_below="@id/view_state_separator"
                 android:layout_toEndOf="@id/iv_thing_state"
                 android:layout_toRightOf="@id/iv_thing_state"
-                android:layout_marginStart="12dp"
-                android:layout_marginLeft="12dp"
-                android:textColor="@color/white_66p"
                 android:textSize="14dp"
                 tools:ignore="SpUsage"/>
 
         </RelativeLayout>
 
-    </FrameLayout>
+    </LinearLayout>
 
     <TextView
         android:id="@+id/view_thing_padding_bottom"

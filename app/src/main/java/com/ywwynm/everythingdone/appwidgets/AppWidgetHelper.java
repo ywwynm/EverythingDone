@@ -37,12 +37,14 @@ import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.helpers.AttachmentHelper;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
+import com.ywwynm.everythingdone.managers.ThingManager;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.model.ThingWidgetInfo;
 import com.ywwynm.everythingdone.appwidgets.single.ChecklistWidgetService;
 import com.ywwynm.everythingdone.appwidgets.list.ThingsListWidgetService;
+import com.ywwynm.everythingdone.receivers.ReminderNotificationActionReceiver;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 
@@ -309,7 +311,9 @@ public class AppWidgetHelper {
         setTitleAndPrivate(remoteViews, thing);
         setContent(context, remoteViews, thing, appWidgetId, clazz);
         setAudioAttachment(context, remoteViews, thing);
+
         setState(context, remoteViews, thing);
+        setAction(context, remoteViews, thing, clazz);
 
         setReminder(context, remoteViews, thing);
         setHabit(context, remoteViews, thing);
@@ -525,20 +529,71 @@ public class AppWidgetHelper {
 
     private static void setState(Context context, RemoteViews remoteViews, Thing thing) {
         @Thing.State int state = thing.getState();
-        if (state != Thing.UNDERWAY) {
-            remoteViews.setViewVisibility(RL_THING_STATE, View.VISIBLE);
-            remoteViews.setTextViewText(TV_THING_STATE, Thing.getStateStr(state, context));
-            if (state == Thing.FINISHED) {
-                remoteViews.setImageViewResource(IV_THING_STATE, R.drawable.ic_finished_widget);
-                remoteViews.setViewPadding(IV_THING_STATE, 0, (int) (screenDensity * 2.5), 0, 0);
-            } else if (state == Thing.DELETED) {
-                remoteViews.setImageViewResource(IV_THING_STATE, R.drawable.ic_deleted_widget);
-                remoteViews.setViewPadding(IV_THING_STATE, 0, (int) (screenDensity * 1.5), 0, 0);
-            }
-            remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);
-        } else {
+        if (thing.isPrivate() || state == Thing.UNDERWAY) {
             remoteViews.setViewVisibility(RL_THING_STATE, View.GONE);
+            return;
         }
+
+        remoteViews.setViewVisibility(RL_THING_STATE, View.VISIBLE);
+        remoteViews.setTextViewText(TV_THING_STATE, Thing.getStateStr(state, context));
+        if (state == Thing.FINISHED) {
+            remoteViews.setImageViewResource(IV_THING_STATE, R.drawable.ic_finished_widget);
+            remoteViews.setViewPadding(IV_THING_STATE, 0, (int) (screenDensity * 2.5),
+                    (int) (screenDensity * 12), 0);
+        } else if (state == Thing.DELETED) {
+            remoteViews.setImageViewResource(IV_THING_STATE, R.drawable.ic_deleted_widget);
+            remoteViews.setViewPadding(IV_THING_STATE, 0, (int) (screenDensity * 1.5),
+                    (int) (screenDensity * 12), 0);
+        }
+        remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);
+
+//        if (state != Thing.UNDERWAY) {
+//
+//        } else {
+//            remoteViews.setViewVisibility(IV_THING_STATE, View.GONE);
+//            remoteViews.setTextColor(TV_THING_STATE, ContextCompat.getColor(context, R.color.app_accent));
+//            if (thing.getType() != Thing.HABIT) {
+//                setStateActionForReminder(context, remoteViews, thing);
+//            } else {
+//                setStateActionForHabit(context, remoteViews, thing);
+//            }
+//        }
+    }
+
+    private static void setAction(Context context, RemoteViews remoteViews, Thing thing, Class clazz) {
+        @Thing.State int state = thing.getState();
+        if (thing.isPrivate() || state != Thing.UNDERWAY) {
+            //remoteViews.setViewVisibility(RL_THING_STATE, View.GONE);
+            return;
+        }
+    }
+
+    private static void setActionForReminder(Context context, RemoteViews remoteViews, Thing thing) {
+        remoteViews.setTextViewText(TV_THING_STATE, context.getString(R.string.act_finish));
+
+        long id = thing.getId();
+        int position = ThingManager.getInstance(context).getPosition(id);
+        Intent intent = new Intent(context, ReminderNotificationActionReceiver.class);
+        intent.setAction(Def.Communication.NOTIFICATION_ACTION_FINISH);
+        intent.putExtra(Def.Communication.KEY_ID, id);
+        intent.putExtra(Def.Communication.KEY_POSITION, position);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(context,
+                (int) id, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        remoteViews.setOnClickPendingIntent(TV_THING_STATE, pendingIntent);
+    }
+
+    private static void setActionForHabit(Context context, RemoteViews remoteViews, Thing thing) {
+        remoteViews.setTextViewText(TV_THING_STATE, context.getString(R.string.act_finish_this_time_habit));
+
+        long id = thing.getId();
+        int position = ThingManager.getInstance(context).getPosition(id);
+        Intent intent = new Intent(context, ReminderNotificationActionReceiver.class);
+        intent.setAction(Def.Communication.NOTIFICATION_ACTION_FINISH);
+        intent.putExtra(Def.Communication.KEY_ID, id);
+        intent.putExtra(Def.Communication.KEY_POSITION, position);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(context,
+                (int) id, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        remoteViews.setOnClickPendingIntent(TV_THING_STATE, pendingIntent);
     }
 
     private static void setReminder(Context context, RemoteViews remoteViews, Thing thing) {
@@ -584,7 +639,6 @@ public class AppWidgetHelper {
             }
         }
 
-        remoteViews.setViewVisibility(RL_THING_STATE,   View.GONE);
         remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);
     }
 
@@ -634,7 +688,6 @@ public class AppWidgetHelper {
             remoteViews.setViewVisibility(TV_HABIT_FINISHED_THIS_T, View.GONE);
         }
 
-        remoteViews.setViewVisibility(RL_THING_STATE, View.GONE);
         remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);
     }
 
