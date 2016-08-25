@@ -193,6 +193,8 @@ public final class Def {
         public static final String NOTIFICATION_ACTION_GET_IT =
                 PREFIX + "action.notification.get_it";
 
+        public static final String WIDGET_ACTION_FINISH = PREFIX + "action.widget.finish";
+
         public static final String BROADCAST_ACTION_UPDATE_MAIN_UI =
                 PREFIX + "action.broadcast.update_main_ui";
         public static final String BROADCAST_ACTION_UPDATE_CHECKLIST =

@@ -435,5 +435,6 @@
     <string name="change_app_language">更改應用語言</string>
     <string name="follow_system_settings">跟隨系統設置</string>
     <string name="set_app_password_detail">該密碼將用於設置、查看私密記事，備份、恢復數據，以及進行其它涉及隱私的操作時的身份驗證</string>
+    <string name="error_cannot_finish_habit_this_time">無法完成這一次</string>
 
 </resources>

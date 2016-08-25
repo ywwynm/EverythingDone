@@ -1,9 +1,11 @@
 package com.ywwynm.everythingdone.receivers;
 
+import android.annotation.SuppressLint;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.support.v4.app.NotificationManagerCompat;
+import android.util.Log;
 
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
@@ -18,8 +20,11 @@ import java.util.List;
 
 public class ReminderNotificationActionReceiver extends BroadcastReceiver {
 
+    public static final String TAG = "RemnderNotificationActionReceiver";
+
     public ReminderNotificationActionReceiver() { }
 
+    @SuppressLint("LongLogTag")
     @Override
     public void onReceive(Context context, Intent intent) {
         String action = intent.getAction();
@@ -27,18 +32,19 @@ public class ReminderNotificationActionReceiver extends BroadcastReceiver {
         int position = intent.getIntExtra(Def.Communication.KEY_POSITION, -1);
 
         Thing thing = null;
-        if (action.equals(Def.Communication.NOTIFICATION_ACTION_FINISH)) {
+        if (action.equals(Def.Communication.NOTIFICATION_ACTION_FINISH)
+                || action.equals(Def.Communication.WIDGET_ACTION_FINISH)) {
             if (position == -1) {
                 ThingDAO thingDAO = ThingDAO.getInstance(context);
                 thing = thingDAO.getThingById(id);
                 thing = Thing.getSameCheckStateThing(thing, Thing.UNDERWAY, Thing.FINISHED);
-                boolean handleNotifyEmpty = true;
-                boolean handleCurrentLimit = true;
-                boolean toUndo = false;
-                boolean shouldUpdateHeader = true;
+                long hId = thingDAO.getHeaderId();
                 thingDAO.updateState(thing, thing.getLocation(), Thing.UNDERWAY, Thing.FINISHED,
-                        handleNotifyEmpty, handleCurrentLimit, toUndo, thingDAO.getHeaderId(),
-                        shouldUpdateHeader);
+                        true,  /* handleNotifyEmpty  */
+                        true,  /* handleCurrentLimit */
+                        false, /* toUndo             */
+                        hId,
+                        true   /* shouldUpdateHeader */);
             } else {
                 ThingManager thingManager = ThingManager.getInstance(context);
                 List<Thing> things = thingManager.getThings();
@@ -81,6 +87,10 @@ public class ReminderNotificationActionReceiver extends BroadcastReceiver {
                     }
                 } else {
                     thing = things.get(position);
+                }
+                if (thing == null) {
+                    Log.e(TAG, "delay reminder/goal from notification but thing is null!");
+                    return;
                 }
                 thing.setUpdateTime(System.currentTimeMillis());
                 thingManager.update(thing.getType(), thing, position, false);

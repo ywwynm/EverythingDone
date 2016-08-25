@@ -44,6 +44,7 @@ import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.model.ThingWidgetInfo;
 import com.ywwynm.everythingdone.appwidgets.single.ChecklistWidgetService;
 import com.ywwynm.everythingdone.appwidgets.list.ThingsListWidgetService;
+import com.ywwynm.everythingdone.receivers.HabitWidgetActionReceiver;
 import com.ywwynm.everythingdone.receivers.ReminderNotificationActionReceiver;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
@@ -100,6 +101,9 @@ public class AppWidgetHelper {
     private static final int V_STATE_SEPARATOR        = R.id.view_state_separator;
     private static final int TV_THING_STATE           = R.id.tv_thing_state;
     private static final int IV_THING_STATE           = R.id.iv_thing_state;
+
+    private static final int LL_THING_ACTION          = R.id.ll_thing_action;
+    private static final int TV_THING_ACTION          = R.id.tv_thing_action;
 
     private static final int V_PADDING_BOTTOM         = R.id.view_thing_padding_bottom;
 
@@ -546,54 +550,52 @@ public class AppWidgetHelper {
                     (int) (screenDensity * 12), 0);
         }
         remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);
-
-//        if (state != Thing.UNDERWAY) {
-//
-//        } else {
-//            remoteViews.setViewVisibility(IV_THING_STATE, View.GONE);
-//            remoteViews.setTextColor(TV_THING_STATE, ContextCompat.getColor(context, R.color.app_accent));
-//            if (thing.getType() != Thing.HABIT) {
-//                setStateActionForReminder(context, remoteViews, thing);
-//            } else {
-//                setStateActionForHabit(context, remoteViews, thing);
-//            }
-//        }
     }
 
     private static void setAction(Context context, RemoteViews remoteViews, Thing thing, Class clazz) {
-        @Thing.State int state = thing.getState();
-        if (thing.isPrivate() || state != Thing.UNDERWAY) {
-            //remoteViews.setViewVisibility(RL_THING_STATE, View.GONE);
+        @Thing.Type int type = thing.getType();
+        if (thing.isPrivate() || thing.getState() != Thing.UNDERWAY
+                || (type != Thing.REMINDER && type != Thing.GOAL && type != Thing.HABIT)
+                || !clazz.getSuperclass().equals(BaseThingWidget.class)) {
+            remoteViews.setViewVisibility(LL_THING_ACTION, View.GONE);
             return;
         }
+
+        remoteViews.setViewVisibility(LL_THING_ACTION, View.VISIBLE);
+        if (type == Thing.HABIT) {
+            setActionForHabit(context, remoteViews, thing);
+        } else {
+            setActionForReminder(context, remoteViews, thing);
+        }
+        remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);
     }
 
     private static void setActionForReminder(Context context, RemoteViews remoteViews, Thing thing) {
-        remoteViews.setTextViewText(TV_THING_STATE, context.getString(R.string.act_finish));
+        remoteViews.setTextViewText(TV_THING_ACTION, context.getString(R.string.act_finish));
 
         long id = thing.getId();
         int position = ThingManager.getInstance(context).getPosition(id);
         Intent intent = new Intent(context, ReminderNotificationActionReceiver.class);
-        intent.setAction(Def.Communication.NOTIFICATION_ACTION_FINISH);
+        intent.setAction(Def.Communication.WIDGET_ACTION_FINISH);
         intent.putExtra(Def.Communication.KEY_ID, id);
         intent.putExtra(Def.Communication.KEY_POSITION, position);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(context,
                 (int) id, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-        remoteViews.setOnClickPendingIntent(TV_THING_STATE, pendingIntent);
+        remoteViews.setOnClickPendingIntent(TV_THING_ACTION, pendingIntent);
     }
 
     private static void setActionForHabit(Context context, RemoteViews remoteViews, Thing thing) {
-        remoteViews.setTextViewText(TV_THING_STATE, context.getString(R.string.act_finish_this_time_habit));
+        remoteViews.setTextViewText(TV_THING_ACTION, context.getString(R.string.act_finish_this_time_habit));
 
         long id = thing.getId();
         int position = ThingManager.getInstance(context).getPosition(id);
-        Intent intent = new Intent(context, ReminderNotificationActionReceiver.class);
-        intent.setAction(Def.Communication.NOTIFICATION_ACTION_FINISH);
+        Intent intent = new Intent(context, HabitWidgetActionReceiver.class);
+        intent.setAction(Def.Communication.WIDGET_ACTION_FINISH);
         intent.putExtra(Def.Communication.KEY_ID, id);
         intent.putExtra(Def.Communication.KEY_POSITION, position);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(context,
                 (int) id, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-        remoteViews.setOnClickPendingIntent(TV_THING_STATE, pendingIntent);
+        remoteViews.setOnClickPendingIntent(TV_THING_ACTION, pendingIntent);
     }
 
     private static void setReminder(Context context, RemoteViews remoteViews, Thing thing) {

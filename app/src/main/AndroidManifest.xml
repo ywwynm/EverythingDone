@@ -85,6 +85,11 @@
             android:exported="true">
         </receiver>
         <receiver
+            android:name=".receivers.HabitWidgetActionReceiver"
+            android:enabled="true"
+            android:exported="true">
+        </receiver>
+        <receiver
             android:name=".receivers.BootReceiver"
             android:enabled="true"
             android:exported="true">

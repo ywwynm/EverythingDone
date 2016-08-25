@@ -16,44 +16,54 @@ import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
 import com.ywwynm.everythingdone.managers.ThingManager;
 import com.ywwynm.everythingdone.model.Habit;
-import com.ywwynm.everythingdone.model.HabitReminder;
+import com.ywwynm.everythingdone.model.HabitRecord;
 import com.ywwynm.everythingdone.model.Thing;
 
 import java.util.List;
 
-public class HabitNotificationActionReceiver extends BroadcastReceiver {
+/**
+ * Created by ywwynm on 2016/8/25.
+ * habit widget action BroadcastReceiver
+ */
+@SuppressLint("LongLogTag")
+public class HabitWidgetActionReceiver extends BroadcastReceiver {
 
-    public static final String TAG = "HabitNotificationActionReceiver";
-
-    public HabitNotificationActionReceiver() { }
+    public static final String TAG = "HabitWidgetActionReceiver";
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        String action = intent.getAction();
-        long hrId = intent.getLongExtra(Def.Communication.KEY_ID, 0);
-
-        if (action.equals(Def.Communication.NOTIFICATION_ACTION_FINISH)) {
+        if (Def.Communication.WIDGET_ACTION_FINISH.equals(intent.getAction())) {
             int position = intent.getIntExtra(Def.Communication.KEY_POSITION, -1);
-            long time = intent.getLongExtra(Def.Communication.KEY_TIME, 0);
             HabitDAO habitDAO = HabitDAO.getInstance(context);
-            HabitReminder habitReminder = habitDAO.getHabitReminderById(hrId);
-            long id = habitReminder.getHabitId();
+            long id = intent.getLongExtra(Def.Communication.KEY_ID, -1);
+            if (id == -1) {
+                Log.e(TAG, "user wants to finish habit once while id is empty or -1!");
+                return;
+            }
             Habit habit = habitDAO.getHabitById(id);
-            if (habit.allowFinish(time)) {
-                habitDAO.finishOneTime(habit);
+            if (habit == null) {
+                Log.e(TAG, "user wants to finish habit once while habit is null!");
+                return;
+            }
+
+            if (habit.allowFinish()) {
+                HabitRecord habitRecord = habitDAO.finishOneTime(habit);
                 sendBroadCastToUpdateMainUI(context, id, position);
                 AppWidgetHelper.updateSingleThingAppWidgets(context, id);
                 AppWidgetHelper.updateThingsListAppWidgetsForType(context, Thing.HABIT);
+                NotificationManagerCompat.from(context).cancel((int) habitRecord.getHabitReminderId());
             } else {
-                Toast.makeText(context, R.string.error_cannot_finish_habit_this_time,
-                        Toast.LENGTH_LONG).show();
+                if (habit.getRecord().isEmpty() && habit.getRemindedTimes() == 0) {
+                    Toast.makeText(context, R.string.sb_cannot_finish_habit_first_time,
+                            Toast.LENGTH_LONG).show();
+                } else {
+                    Toast.makeText(context, R.string.sb_cannot_finish_habit_more_times,
+                            Toast.LENGTH_LONG).show();
+                }
             }
         }
-        NotificationManagerCompat nmc = NotificationManagerCompat.from(context);
-        nmc.cancel((int) hrId);
     }
 
-    @SuppressLint("LongLogTag")
     private void sendBroadCastToUpdateMainUI(Context context, long id, int position) {
         Thing thing;
         if (position == -1) {

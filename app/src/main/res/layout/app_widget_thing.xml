@@ -173,6 +173,34 @@
 
         </RelativeLayout>
 
+        <LinearLayout
+            android:id="@+id/ll_thing_action"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingTop="12dp"
+            android:paddingLeft="12dp"
+            android:paddingRight="12dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/view_action_separator"
+                android:layout_width="match_parent"
+                android:layout_height="2dp"
+                android:layout_marginBottom="8dp"
+                android:background="@drawable/dashed_line_card"
+                android:layerType="software"/>
+
+            <TextView
+                android:id="@+id/tv_thing_action"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="14dp"
+                android:textColor="@color/app_accent"
+                tools:ignore="SpUsage"/>
+
+        </LinearLayout>
+
     </LinearLayout>
 
     <FrameLayout
