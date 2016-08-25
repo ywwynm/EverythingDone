@@ -1477,6 +1477,10 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     }
 
     public void addAttachment(int position) {
+        if (attachmentTypePathName == null) {
+            Log.e(TAG, "adding attachment while attachmentTypePathName is null!");
+            return;
+        }
         if (!attachmentTypePathName.startsWith(String.valueOf(AttachmentHelper.AUDIO))) {
             if (mImageAttachmentAdapter == null) {
                 initImageAttachmentUI(
