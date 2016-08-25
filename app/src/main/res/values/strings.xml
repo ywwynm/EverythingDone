@@ -195,7 +195,7 @@
     <string name="use_fingerprint">Use fingerprint</string>
 
     <!--pattern password-->
-    <string name="password_not_set">Password for private thing has not been set.</string>
+    <string name="password_not_set">Password has not been set.</string>
     <string name="draw_pattern">Draw a pattern</string>
     <string name="relax_finger_when_finish">Release finger when done</string>
     <string name="draw_pattern_again">Draw pattern again to confirm</string>

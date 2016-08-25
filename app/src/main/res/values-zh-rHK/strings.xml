@@ -378,7 +378,7 @@
     <string name="set_app_password">設定應用密碼</string>
     <string name="settings_group_privacy">隱私</string>
     <string name="use_fingerprint">使用指紋</string>
-    <string name="password_not_set">未設定私密記事密碼</string>
+    <string name="password_not_set">未設定應用密碼</string>
     <string name="system_fgprt_not_set"><![CDATA[系統指紋模塊未啟用，請前往系統設置 -> 安全 -> 指紋啟用指紋模塊]]></string>
     <string name="fgprt_not_enrolled"><![CDATA[未找到可用的指紋，請前往系統設置 -> 安全 -> 指紋錄製一個指紋]]></string>
     <string name="done">完成</string>

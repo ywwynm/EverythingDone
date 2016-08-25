@@ -360,7 +360,7 @@
     <string name="wrong_pattern">图案错误</string>
     <string name="use_fingerprint">使用指纹</string>
     <string name="use_fingerprint_to_verify">使用您预设的指纹作为验证方式之一</string>
-    <string name="password_not_set">未设置私密记事密码</string>
+    <string name="password_not_set">未设置应用密码</string>
     <string name="not_support_fgprt">您的设备不支持标准的 Android 指纹模块</string>
     <string name="system_fgprt_not_set"><![CDATA[系统指纹模块未启用，请前往系统设置 -> 安全 -> 指纹启用指纹模块]]></string>
     <string name="fgprt_not_enrolled"><![CDATA[未找到可用的指纹，请前往系统设置 -> 安全 -> 指纹录制一个指纹]]></string>
