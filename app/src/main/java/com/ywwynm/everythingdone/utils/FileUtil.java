@@ -226,7 +226,6 @@ public class FileUtil {
             retriever.setDataSource(pathName);
             String timeStr = retriever.extractMetadata(
                     MediaMetadataRetriever.METADATA_KEY_DATE);
-            System.out.println(timeStr);
             // 20160417T112003.000Z
             int year   = Integer.parseInt(timeStr.substring(0, 4));
             int month  = Integer.parseInt(timeStr.substring(4, 6));

@@ -3,7 +3,9 @@ package com.ywwynm.everythingdone.views.recording;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
+import android.util.Log;
 
+import com.ywwynm.everythingdone.BuildConfig;
 import com.ywwynm.everythingdone.helpers.AttachmentHelper;
 import com.ywwynm.everythingdone.utils.FileUtil;
 
@@ -24,6 +26,8 @@ import java.util.List;
  * This output send to {@link VoiceVisualizer}
  */
 public class AudioRecorder {
+
+    public static final String TAG = "AudioRecorder";
 
     private static final int RECORDING_SAMPLE_RATE = 44100;
 
@@ -243,7 +247,6 @@ public class AudioRecorder {
 
                 if (System.currentTimeMillis() - time >= mSamplingInterval) {
                     int decibel = calculateDecibel(audioBytes, readSize);
-                    System.out.println(decibel);
                     if (mVoiceVisualizers != null && !mVoiceVisualizers.isEmpty()) {
                         for (int i = 0; i < mVoiceVisualizers.size(); i++) {
                             mVoiceVisualizers.get(i).receive(decibel);
@@ -293,7 +296,9 @@ public class AudioRecorder {
             double amplitude = sum / (double) (byteReadSize / 2); // 振幅
             double decibel = 10 * Math.log10(amplitude);
 
-            System.out.println("decibel:" + decibel);
+            if (BuildConfig.DEBUG) {
+                Log.i(TAG, "decibel: " + decibel);
+            }
             return (int) decibel;
         }
     }

@@ -636,7 +636,6 @@ public class ThingManager {
         for (int limit : limits) {
             if (mLimit == limit) {
                 if (mThings.size() == 1) {
-                    System.out.println("createNEnow: mHeaderId = " + mHeaderId);
                     Thing notifyEmpty = Thing.generateNotifyEmpty(limit, mHeaderId, mContext);
                     create(notifyEmpty, false, addToThingsNow);
                     return true;
