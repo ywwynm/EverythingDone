@@ -128,7 +128,6 @@ public class App extends Application {
         }
 
         mThingManager = ThingManager.getInstance(this);
-        SettingsActivity.initSystemRingtoneList();
 
         SystemNotificationUtil.tryToCreateQuickCreateNotification(this);
 

@@ -475,5 +475,6 @@
     <string name="follow_system_settings">跟随系统设置</string>
     <string name="set_app_password_detail">该密码将用于设置、查看私密记事，备份、恢复数据，以及进行其它涉及隐私的操作时的身份验证</string>
     <string name="error_cannot_finish_habit_this_time">无法完成这一次</string>
+    <string name="ringtone_loading">正在载入铃声...</string>
 
 </resources>

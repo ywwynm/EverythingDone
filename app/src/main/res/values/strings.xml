@@ -162,7 +162,9 @@
     <string name="follow_system_settings">Follow System</string>
     <string name="twice_back">Press Back twice to exit</string>
 
+    <!--group ringtone-->
     <string name="chooser_ringtone">Select Ringtone</string>
+    <string name="ringtone_loading">Loading ringtone...</string>
 
     <!--group data-->
     <!--backup-->

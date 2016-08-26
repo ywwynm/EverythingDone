@@ -13,6 +13,8 @@ import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.Settings;
 import android.support.annotation.StringRes;
 import android.support.design.widget.Snackbar;
@@ -111,8 +113,8 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     private TextView              mTvBackupAsBt;
     private LinearLayout          mLlRestoreAsBt;
     private TextView              mTvRestoreLastInfo;
-    private LoadingDialogFragment mLdgBackup;
-    private LoadingDialogFragment mLdgRestore;
+    private LoadingDialogFragment mLdfBackup;
+    private LoadingDialogFragment mLdfRestore;
 
     // group privacy
     private LinearLayout   mLlSetPasswordAsBt;
@@ -136,7 +138,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     private TextView     mTvANRingtoneTitle;
     private TextView     mTvANRingtone;
 
-    public static void initSystemRingtoneList() {
+    private void initSystemRingtoneList(final LoadingDialogFragment ldf, final int index) {
         sRingtoneTitleList = new ArrayList<>();
         sRingtoneUriList   = new ArrayList<>();
         new Thread() {
@@ -182,6 +184,15 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                     sRingtoneTitleList.add(manager.getRingtone(i).getTitle(context));
                 }
                 cursor.close();
+
+                Handler handler = new Handler(Looper.getMainLooper());
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        ldf.dismiss();
+                        showRingtoneDialog(index);
+                    }
+                });
             }
         }.start();
     }
@@ -550,14 +561,25 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             mLlsRingtone[j].setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    if (mCdfsRingtone[j] == null) {
-                        initRingtoneFragment(j);
+                    if (sRingtoneTitleList == null) {
+                        final LoadingDialogFragment ldf = createLoadingDialog(
+                                R.string.please_wait, R.string.ringtone_loading);
+                        ldf.showAllowingStateLoss(getFragmentManager(), LoadingDialogFragment.TAG);
+                        initSystemRingtoneList(ldf, j);
+                    } else {
+                        showRingtoneDialog(j);
                     }
-                    mCdfsRingtone[j].showAllowingStateLoss(
-                            getFragmentManager(), ChooserDialogFragment.TAG);
                 }
             });
         }
+    }
+
+    private void showRingtoneDialog(int index) {
+        if (mCdfsRingtone[index] == null) {
+            initRingtoneFragment(index);
+        }
+        mCdfsRingtone[index].showAllowingStateLoss(
+                getFragmentManager(), ChooserDialogFragment.TAG);
     }
 
     private void setDataEvents() {
@@ -814,11 +836,11 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     }
 
     private void showBackupLoadingDialog() {
-        if (mLdgBackup == null) {
-            mLdgBackup = createLoadingDialog(
+        if (mLdfBackup == null) {
+            mLdfBackup = createLoadingDialog(
                     R.string.backup_loading_title, R.string.backup_loading_content);
         }
-        mLdgBackup.show(getFragmentManager(), LoadingDialogFragment.TAG);
+        mLdfBackup.show(getFragmentManager(), LoadingDialogFragment.TAG);
     }
 
     private void showRestoreDialog() {
@@ -858,11 +880,11 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     }
 
     private void showRestoreLoadingDialog() {
-        if (mLdgRestore == null) {
-            mLdgRestore = createLoadingDialog(
+        if (mLdfRestore == null) {
+            mLdfRestore = createLoadingDialog(
                     R.string.restore_loading_title, R.string.restore_loading_content);
         }
-        mLdgRestore.show(getFragmentManager(), LoadingDialogFragment.TAG);
+        mLdfRestore.show(getFragmentManager(), LoadingDialogFragment.TAG);
     }
 
     private void initRingtoneFragment(final int index) {
@@ -1025,7 +1047,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
         @Override
         protected void onPostExecute(Boolean success) {
-            mLdgBackup.dismiss();
+            mLdfBackup.dismiss();
             int titleRes, contentRes;
             if (success) {
                 titleRes = R.string.backup_success_title;
@@ -1090,7 +1112,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
         @Override
         protected void onPostExecute(String s) {
-            mLdgRestore.dismiss();
+            mLdfRestore.dismiss();
             String title, content;
             if (BackupHelper.SUCCESS.equals(s)) {
                 title = getString(R.string.restore_success_title);
