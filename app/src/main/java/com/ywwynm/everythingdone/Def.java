@@ -195,10 +195,12 @@ public final class Def {
 
         public static final String WIDGET_ACTION_FINISH = PREFIX + "action.widget.finish";
 
-        public static final String BROADCAST_ACTION_UPDATE_MAIN_UI =
+        public static final String BROADCAST_ACTION_UPDATE_MAIN_UI     =
                 PREFIX + "action.broadcast.update_main_ui";
-        public static final String BROADCAST_ACTION_UPDATE_CHECKLIST =
+        public static final String BROADCAST_ACTION_UPDATE_CHECKLIST   =
                 PREFIX + "action.broadcast.update_checklist";
+        public static final String BROADCAST_ACTION_RESP_LOCALE_CHANGE =
+                PREFIX + "action.broadcast.resp_locale_change";
 
     }
 

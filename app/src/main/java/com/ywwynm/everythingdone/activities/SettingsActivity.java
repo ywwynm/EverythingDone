@@ -2,6 +2,8 @@ package com.ywwynm.everythingdone.activities;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -46,6 +48,7 @@ import com.ywwynm.everythingdone.helpers.FingerprintHelper;
 import com.ywwynm.everythingdone.model.HabitReminder;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.permission.SimplePermissionCallback;
+import com.ywwynm.everythingdone.receivers.LocaleChangeReceiver;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
@@ -758,9 +761,17 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                 if (pickedIndex == initialIndex) {
                     return;
                 }
+                Context context = SettingsActivity.this;
                 mPreferences.edit().putString(Def.Meta.KEY_LANGUAGE_CODE,
                         resources.getStringArray(R.array.language_codes)[pickedIndex]).commit();
-                App.killMeAndRestart(SettingsActivity.this, null, 0);
+                App.killMeAndRestart(context, null, 0);
+
+                Intent intent = new Intent(context, LocaleChangeReceiver.class);
+                intent.setAction(Def.Communication.BROADCAST_ACTION_RESP_LOCALE_CHANGE);
+                PendingIntent pendingIntent = PendingIntent.getBroadcast(context,
+                        0, intent, PendingIntent.FLAG_CANCEL_CURRENT);
+                AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+                am.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 600, pendingIntent);
             }
         });
         cdf.showAllowingStateLoss(getFragmentManager(), ChooserDialogFragment.TAG);

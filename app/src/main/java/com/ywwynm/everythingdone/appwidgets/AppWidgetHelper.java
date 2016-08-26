@@ -169,6 +169,24 @@ public class AppWidgetHelper {
         }
     }
 
+    public static void updateAllAppWidgets(Context context) {
+        AppWidgetDAO dao = AppWidgetDAO.getInstance(context);
+        List<ThingWidgetInfo> thingWidgetInfos = dao.getAllThingWidgetInfos();
+        for (ThingWidgetInfo thingWidgetInfo : thingWidgetInfos) {
+            long thingId = thingWidgetInfo.getThingId();
+            Intent intent;
+            if (thingId < 0) { // for things list widgets
+                intent = new Intent(context, ThingsListWidget.class);
+            } else {
+                intent = new Intent(context, getProviderClassBySize(thingWidgetInfo.getSize()));
+            }
+            intent.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
+            intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS,
+                    new int[] { thingWidgetInfo.getId() });
+            context.sendBroadcast(intent);
+        }
+    }
+
     public static Class getProviderClassBySize(@ThingWidgetInfo.Size int size) {
         if (size == ThingWidgetInfo.SIZE_TINY) {
             return ThingWidgetTiny.class;

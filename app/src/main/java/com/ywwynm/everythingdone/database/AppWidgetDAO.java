@@ -66,6 +66,17 @@ public class AppWidgetDAO {
         return thingWidgetInfos;
     }
 
+    public List<ThingWidgetInfo> getAllThingWidgetInfos() {
+        List<ThingWidgetInfo> thingWidgetInfos = new ArrayList<>();
+        Cursor cursor = db.query(Def.Database.TABLE_APP_WIDGET,
+                null, null, null, null, null, null);
+        while (cursor.moveToNext()) {
+            thingWidgetInfos.add(new ThingWidgetInfo(cursor));
+        }
+        cursor.close();
+        return thingWidgetInfos;
+    }
+
     public boolean insert(int appWidgetId, long thingId, @ThingWidgetInfo.Size int size) {
         ContentValues values = new ContentValues();
         values.put(Def.Database.COLUMN_ID_APP_WIDGET,       appWidgetId);

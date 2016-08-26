@@ -66,28 +66,23 @@
 
         <receiver
             android:name=".receivers.ReminderReceiver"
-            android:enabled="true"
-            android:exported="true">
+            android:enabled="true">
         </receiver>
         <receiver
             android:name=".receivers.ReminderNotificationActionReceiver"
-            android:enabled="true"
-            android:exported="true">
+            android:enabled="true">
         </receiver>
         <receiver
             android:name=".receivers.HabitReceiver"
-            android:enabled="true"
-            android:exported="true">
+            android:enabled="true">
         </receiver>
         <receiver
             android:name=".receivers.HabitNotificationActionReceiver"
-            android:enabled="true"
-            android:exported="true">
+            android:enabled="true">
         </receiver>
         <receiver
             android:name=".receivers.HabitWidgetActionReceiver"
-            android:enabled="true"
-            android:exported="true">
+            android:enabled="true">
         </receiver>
         <receiver
             android:name=".receivers.BootReceiver"
@@ -96,6 +91,10 @@
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
             </intent-filter>
+        </receiver>
+        <receiver
+            android:name=".receivers.LocaleChangeReceiver"
+            android:enabled="true">
         </receiver>
 
         <activity
@@ -113,8 +112,7 @@
 
         <receiver
             android:name=".receivers.AutoNotifyReceiver"
-            android:enabled="true"
-            android:exported="true">
+            android:enabled="true">
         </receiver>
 
         <activity
@@ -126,8 +124,7 @@
 
         <receiver
             android:name=".receivers.DailyUpdateHabitReceiver"
-            android:enabled="true"
-            android:exported="true">
+            android:enabled="true">
         </receiver>
         <receiver
             android:name=".receivers.AppUpdateReceiver"
