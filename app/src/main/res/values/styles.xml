@@ -119,6 +119,10 @@
         <item name="@android:windowExitAnimation">@anim/time_type_picker_hide</item>
     </style>
 
+    <style name="SelectableItemForeground">
+        <item name="android:foreground">@drawable/selectable_item_background</item>
+    </style>
+
     <style name="SelectableItemBackgroundBorderlessLight">
         <item name="android:background">@drawable/selectable_item_background_light</item>
     </style>

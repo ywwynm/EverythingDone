@@ -6,6 +6,10 @@
         <item name="colorControlHighlight">#66FFFFFF</item>
     </style>
 
+    <style name="SelectableItemForeground">
+        <item name="android:foreground">?attr/selectableItemBackground</item>
+    </style>
+
     <style name="SelectableItemBackgroundBorderlessLight">
         <item name="android:background">?android:attr/selectableItemBackgroundBorderless</item>
     </style>

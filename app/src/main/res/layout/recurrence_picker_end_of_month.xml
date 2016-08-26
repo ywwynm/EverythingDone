@@ -11,10 +11,10 @@
         android:layout_width="@dimen/layout_end_of_month_rec_width"
         android:layout_height="36dp"
         android:layout_gravity="center"
-        android:foreground="@drawable/selectable_item_background"
         app:cardBackgroundColor="@color/black_54p"
         app:cardCornerRadius="18dp"
-        app:cardElevation="0dp"/>
+        app:cardElevation="0dp"
+        style="@style/SelectableItemForeground"/>
 
     <TextView
         android:id="@+id/tv_end_of_month_rec"
