@@ -66,7 +66,7 @@
             android:paddingTop="8dp"
             android:paddingRight="12dp"
             android:paddingBottom="8dp"
-            style="@style/SelectableItemBackground"
+            android:background="@drawable/selectable_item_background"
             android:textColor="@color/black_26p"
             android:textAllCaps="true"
             android:text="@string/cancel"/>
@@ -82,7 +82,7 @@
             android:textStyle="bold"
             android:text="@string/confirm"
             android:textAllCaps="true"
-            style="@style/SelectableItemBackground"/>
+            android:background="@drawable/selectable_item_background"/>
 
     </LinearLayout>
 

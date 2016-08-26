@@ -112,7 +112,7 @@
                     android:text="@string/act_move_check_list"
                     android:textSize="16sp"
                     android:textColor="@color/white_66p"
-                    style="@style/SelectableItemBackground.Light"/>
+                    android:background="@drawable/selectable_item_background_light"/>
 
             </LinearLayout>
 

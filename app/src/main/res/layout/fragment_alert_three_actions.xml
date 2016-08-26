@@ -35,7 +35,7 @@
         android:paddingLeft="20dp"
         android:paddingRight="20dp"
         android:gravity="center_vertical|end"
-        style="@style/SelectableItemBackground"
+        android:background="@drawable/selectable_item_background"
         android:textAllCaps="true"/>
 
     <TextView
@@ -46,7 +46,7 @@
         android:paddingLeft="20dp"
         android:paddingRight="20dp"
         android:gravity="center_vertical|end"
-        style="@style/SelectableItemBackground"
+        android:background="@drawable/selectable_item_background"
         android:textAllCaps="true"/>
 
     <TextView
@@ -60,7 +60,7 @@
         android:gravity="center_vertical|end"
         android:textColor="@color/black_26p"
         android:text="@string/cancel"
-        style="@style/SelectableItemBackground"
+        android:background="@drawable/selectable_item_background"
         android:textAllCaps="true"/>
 
 </LinearLayout>

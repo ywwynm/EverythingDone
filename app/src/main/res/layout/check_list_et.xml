@@ -28,7 +28,7 @@
         android:layout_height="36dp"
         android:contentDescription="@string/description_check_info"
         android:scaleType="center"
-        style="@style/SelectableItemBackground.Light"/>
+        android:background="@drawable/selectable_item_background_light"/>
 
     <ImageView
         android:id="@+id/iv_check_list_delete"
@@ -38,7 +38,7 @@
         android:layout_alignParentRight="true"
         android:src="@drawable/delete_image_checklist"
         android:scaleType="center"
-        style="@style/SelectableItemBackground.Light"
+        android:background="@drawable/selectable_item_background_light"
         android:contentDescription="@string/description_delete_item"
         android:visibility="invisible"
         android:clickable="false"/>

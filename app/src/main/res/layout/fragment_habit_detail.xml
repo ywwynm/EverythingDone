@@ -155,7 +155,7 @@
         android:paddingRight="20dp"
         android:gravity="center_vertical|end"
         android:text="@string/act_check_habit_record"
-        style="@style/SelectableItemBackground"
+        android:background="@drawable/selectable_item_background"
         android:textAllCaps="true"/>
 
     <TextView
@@ -168,7 +168,7 @@
         android:layout_marginBottom="8dp"
         android:gravity="center_vertical|end"
         android:text="@string/act_get_it"
-        style="@style/SelectableItemBackground"
+        android:background="@drawable/selectable_item_background"
         android:textAllCaps="true"/>
 
 </LinearLayout>

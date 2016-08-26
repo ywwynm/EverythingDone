@@ -89,7 +89,7 @@
                 android:layout_marginRight="@dimen/iv_fab_audio_margin"
                 android:src="@drawable/act_re_recording_audio"
                 android:contentDescription="@string/description_re_recording_audio"
-                style="@style/SelectableItemBackground"
+                android:background="@drawable/selectable_item_background"
                 android:alpha="0"/>
 
             <android.support.design.widget.FloatingActionButton
@@ -112,7 +112,7 @@
                 android:layout_marginLeft="@dimen/iv_fab_audio_margin"
                 android:src="@drawable/act_cancel_recording_audio"
                 android:contentDescription="@string/description_cancel_recording_audio"
-                style="@style/SelectableItemBackground"
+                android:background="@drawable/selectable_item_background"
                 android:alpha="0"/>
 
         </LinearLayout>

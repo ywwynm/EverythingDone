@@ -24,6 +24,6 @@
         android:layout_alignParentRight="true"
         android:textSize="14sp"
         android:textColor="@color/app_accent"
-        style="@style/SelectableItemBackground.Light"/>
+        android:background="@drawable/selectable_item_background_light"/>
 
 </RelativeLayout>

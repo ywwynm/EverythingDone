@@ -16,6 +16,6 @@
         android:drawablePadding="12dp"
         android:textSize="16sp"
         android:text="@string/new_reminder_time_rec"
-        style="@style/SelectableItemBackground"/>
+        android:background="@drawable/selectable_item_background"/>
 
 </LinearLayout>

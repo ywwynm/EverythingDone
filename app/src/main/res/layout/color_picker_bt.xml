@@ -9,7 +9,7 @@
     android:paddingLeft="16dp"
     android:textSize="14sp"
     android:textColor="@color/black_54p"
-    style="@style/SelectableItemBackground"
+    android:background="@drawable/selectable_item_background"
     android:theme="@style/Theme.AppCompat.Light"
     android:drawableStart="@drawable/ic_checkbox_unchecked"
     android:drawableLeft="@drawable/ic_checkbox_unchecked"/>

@@ -68,7 +68,7 @@
             android:textStyle="bold"
             android:text="@string/confirm"
             android:textAllCaps="true"
-            style="@style/SelectableItemBackground"/>
+            android:background="@drawable/selectable_item_background"/>
 
     </LinearLayout>
 

@@ -26,7 +26,7 @@
         android:layout_toRightOf="@id/tv_every_rec"
         android:layout_centerVertical="true"
         android:textSize="16sp"
-        style="@style/SelectableItemBackground"/>
+        android:background="@drawable/selectable_item_background"/>
 
     <TextView
         android:id="@+id/tv_times_l_recurrence"
@@ -64,6 +64,6 @@
         android:scaleType="center"
         android:src="@drawable/act_select_all"
         android:contentDescription="@string/act_select_all"
-        style="@style/SelectableItemBackground"/>
+        android:background="@drawable/selectable_item_background"/>
 
 </RelativeLayout>

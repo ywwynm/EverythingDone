@@ -51,7 +51,7 @@
         android:drawableEnd="@drawable/ic_dropdown"
         android:drawableRight="@drawable/ic_dropdown"
         android:textSize="16sp"
-        style="@style/SelectableItemBackground"
+        android:background="@drawable/selectable_item_background"
         tools:ignore="RelativeOverlap"/>
 
     <ImageView
@@ -66,6 +66,6 @@
         android:scaleType="center"
         android:src="@drawable/act_select_all"
         android:contentDescription="@string/act_select_all"
-        style="@style/SelectableItemBackground"/>
+        android:background="@drawable/selectable_item_background"/>
 
 </RelativeLayout>

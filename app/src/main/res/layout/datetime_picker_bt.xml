@@ -9,4 +9,4 @@
     android:gravity="center_vertical"
     android:textSize="14sp"
     android:textColor="@color/black_54p"
-    style="@style/SelectableItemBackground"/>
+    android:background="@drawable/selectable_item_background"/>

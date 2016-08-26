@@ -6,34 +6,8 @@
         <item name="colorControlHighlight">#66FFFFFF</item>
     </style>
 
-    <!--<style name="EverythingDoneTheme.Detail.Overflow" parent="Widget.AppCompat.ActionButton.Overflow">-->
-        <!--<item name="android:src">@drawable/ic_overflow</item>-->
-    <!--</style>-->
-
-    <style name="SelectableItemForeground">
-        <item name="android:foreground">?android:attr/selectableItemBackground</item>
-    </style>
-
-    <style name="SelectableItemForeground.Light">
-        <item name="android:theme">@style/SelectableItemThemeLight</item>
-        <item name="android:foreground">?android:attr/selectableItemBackground</item>
-    </style>
-
-    <style name="SelectableItemBackground">
-        <item name="android:background">?android:attr/selectableItemBackground</item>
-    </style>
-
-    <style name="SelectableItemBackground.Light">
-        <item name="android:theme">@style/SelectableItemThemeLight</item>
-        <item name="android:background">?android:attr/selectableItemBackground</item>
-    </style>
-
-    <style name="SelectableItemBackground.Borderless">
+    <style name="SelectableItemBackgroundBorderlessLight">
         <item name="android:background">?android:attr/selectableItemBackgroundBorderless</item>
-    </style>
-
-    <style name="SelectableItemThemeLight">
-        <item name="colorControlHighlight">@color/control_highlight_light</item>
     </style>
 
 </resources>

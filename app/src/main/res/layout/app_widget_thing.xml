@@ -5,7 +5,7 @@
     android:id="@+id/root_widget_thing"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:foreground="@drawable/selectable_item_background_appwidget_light">
+    android:foreground="@drawable/selectable_item_background_light">
 
     <TextView
         android:id="@+id/view_thing_padding_bottom"
@@ -168,6 +168,7 @@
                 android:layout_below="@id/view_state_separator"
                 android:layout_toEndOf="@id/iv_thing_state"
                 android:layout_toRightOf="@id/iv_thing_state"
+                android:textColor="@color/white_66p"
                 android:textSize="14dp"
                 tools:ignore="SpUsage"/>
 

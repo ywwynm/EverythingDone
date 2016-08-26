@@ -53,6 +53,6 @@
         android:layout_marginLeft="56dp"
         android:src="@drawable/act_delete_time_rec"
         android:contentDescription="@string/description_delete_item"
-        style="@style/SelectableItemBackground"/>
+        android:background="@drawable/selectable_item_background"/>
 
 </LinearLayout>

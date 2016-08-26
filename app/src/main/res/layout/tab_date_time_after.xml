@@ -34,7 +34,7 @@
         android:gravity="center_vertical"
         android:drawableEnd="@drawable/ic_dropdown"
         android:drawableRight="@drawable/ic_dropdown"
-        style="@style/SelectableItemBackground"/>
+        android:background="@drawable/selectable_item_background"/>
 
     <TextView
         android:id="@+id/tv_error_after"

@@ -58,7 +58,7 @@
             android:textColor="@color/black_26p"
             android:textAllCaps="true"
             android:text="@string/cancel"
-            style="@style/SelectableItemBackground"/>
+            android:background="@drawable/selectable_item_background"/>
 
         <TextView
             android:id="@+id/tv_right_as_bt_pattern"
@@ -73,7 +73,7 @@
             android:textAllCaps="true"
             android:textStyle="bold"
             android:text="@string/confirm"
-            style="@style/SelectableItemBackground"/>
+            android:background="@drawable/selectable_item_background"/>
 
     </RelativeLayout>
 

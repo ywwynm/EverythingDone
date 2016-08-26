@@ -12,7 +12,7 @@
         android:gravity="center"
         android:paddingBottom="16dp"
         android:textColor="@color/black_54p"
-        style="@style/SelectableItemBackground"/>
+        android:background="@drawable/selectable_item_background"/>
 
     <TextView
         android:id="@+id/tv_action_end"
@@ -21,6 +21,6 @@
         android:gravity="center"
         android:paddingBottom="16dp"
         android:textColor="@color/black_54p"
-        style="@style/SelectableItemBackground"/>
+        android:background="@drawable/selectable_item_background"/>
 
 </LinearLayout>

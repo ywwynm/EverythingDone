@@ -99,7 +99,6 @@
         <item name="@android:windowEnterAnimation">@anim/snackbar_show</item>
     </style>
 
-
     <style name="ContextualToolbarText" parent="@style/TextAppearance.Widget.AppCompat.Toolbar.Title">
         <item name="android:textColor">@color/black_54p</item>
         <item name="android:textSize">@dimen/contextual_toolbar_text_size</item>
@@ -120,23 +119,7 @@
         <item name="@android:windowExitAnimation">@anim/time_type_picker_hide</item>
     </style>
 
-    <style name="SelectableItemForeground">
-        <item name="android:foreground">@drawable/selectable_item_background</item>
-    </style>
-
-    <style name="SelectableItemForeground.Light">
-        <item name="android:foreground">@drawable/selectable_item_background_light</item>
-    </style>
-
-    <style name="SelectableItemBackground">
-        <item name="android:background">@drawable/selectable_item_background</item>
-    </style>
-
-    <style name="SelectableItemBackground.Light">
-        <item name="android:background">@drawable/selectable_item_background_light</item>
-    </style>
-
-    <style name="SelectableItemBackground.Borderless">
+    <style name="SelectableItemBackgroundBorderlessLight">
         <item name="android:background">@drawable/selectable_item_background_light</item>
     </style>
 

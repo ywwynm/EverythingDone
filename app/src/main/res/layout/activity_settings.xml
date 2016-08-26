@@ -73,7 +73,7 @@
                     android:paddingRight="16dp"
                     android:orientation="vertical"
                     android:gravity="center_vertical"
-                    style="@style/SelectableItemBackground">
+                    android:background="@drawable/selectable_item_background">
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -99,7 +99,7 @@
                     android:paddingRight="16dp"
                     android:orientation="vertical"
                     android:gravity="center_vertical"
-                    style="@style/SelectableItemBackground">
+                    android:background="@drawable/selectable_item_background">
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -123,7 +123,7 @@
                     android:layout_marginTop="184dp"
                     android:paddingLeft="16dp"
                     android:paddingRight="16dp"
-                    style="@style/SelectableItemBackground">
+                    android:background="@drawable/selectable_item_background">
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -178,7 +178,7 @@
                     android:paddingRight="16dp"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    style="@style/SelectableItemBackground">
+                    android:background="@drawable/selectable_item_background">
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -204,7 +204,7 @@
                     android:paddingRight="16dp"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    style="@style/SelectableItemBackground">
+                    android:background="@drawable/selectable_item_background">
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -230,7 +230,7 @@
                     android:paddingRight="16dp"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    style="@style/SelectableItemBackground">
+                    android:background="@drawable/selectable_item_background">
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -282,7 +282,7 @@
                     android:gravity="center_vertical"
                     android:text="@string/backup"
                     android:textSize="16sp"
-                    style="@style/SelectableItemBackground"/>
+                    android:background="@drawable/selectable_item_background"/>
 
                 <LinearLayout
                     android:id="@+id/ll_restore_as_bt"
@@ -293,7 +293,7 @@
                     android:layout_marginTop="96dp"
                     android:gravity="center_vertical"
                     android:orientation="vertical"
-                    style="@style/SelectableItemBackground">
+                    android:background="@drawable/selectable_item_background">
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -344,7 +344,7 @@
                     android:paddingRight="16dp"
                     android:gravity="center_vertical"
                     android:orientation="vertical"
-                    style="@style/SelectableItemBackground">
+                    android:background="@drawable/selectable_item_background">
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -369,7 +369,7 @@
                     android:layout_marginTop="112dp"
                     android:paddingLeft="16dp"
                     android:paddingRight="16dp"
-                    style="@style/SelectableItemBackground">
+                    android:background="@drawable/selectable_item_background">
 
                     <CheckBox
                         android:id="@+id/cb_use_fingerprint"
@@ -442,7 +442,7 @@
                     android:layout_marginTop="40dp"
                     android:paddingLeft="16dp"
                     android:paddingRight="16dp"
-                    style="@style/SelectableItemBackground">
+                    android:background="@drawable/selectable_item_background">
 
                     <CheckBox
                         android:id="@+id/cb_quick_create"
@@ -493,7 +493,7 @@
                         android:paddingRight="16dp"
                         android:orientation="vertical"
                         android:gravity="center_vertical"
-                        style="@style/SelectableItemBackground">
+                        android:background="@drawable/selectable_item_background">
 
                         <TextView
                             android:layout_width="wrap_content"
@@ -520,7 +520,7 @@
                         android:scaleType="center"
                         android:contentDescription="@string/help"
                         android:src="@drawable/act_show_help_info"
-                        style="@style/SelectableItemBackground"/>
+                        android:background="@drawable/selectable_item_background"/>
 
                 </FrameLayout>
 
@@ -533,7 +533,7 @@
                     android:paddingRight="16dp"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    style="@style/SelectableItemBackground">
+                    android:background="@drawable/selectable_item_background">
 
                     <TextView
                         android:id="@+id/tv_ringtone_auto_notify_title"

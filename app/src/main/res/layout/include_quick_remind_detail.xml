@@ -32,7 +32,7 @@
         android:paddingRight="4dp"
         android:layout_marginEnd="16dp"
         android:layout_marginRight="16dp"
-        style="@style/SelectableItemBackground.Light">
+        android:background="@drawable/selectable_item_background_light">
 
         <TextView
             android:id="@+id/tv_quick_remind"

@@ -31,7 +31,7 @@
         android:drawablePadding="16dp"
         android:text="@string/all"
         android:onClick="onClick"
-        style="@style/SelectableItemBackground"/>
+        android:background="@drawable/selectable_item_background"/>
 
     <TextView
         android:id="@+id/tv_note_widget_config"
@@ -45,7 +45,7 @@
         android:drawablePadding="16dp"
         android:text="@string/note"
         android:onClick="onClick"
-        style="@style/SelectableItemBackground"/>
+        android:background="@drawable/selectable_item_background"/>
 
     <TextView
         android:id="@+id/tv_reminder_widget_config"
@@ -59,7 +59,7 @@
         android:drawablePadding="16dp"
         android:text="@string/reminder"
         android:onClick="onClick"
-        style="@style/SelectableItemBackground"/>
+        android:background="@drawable/selectable_item_background"/>
 
     <TextView
         android:id="@+id/tv_habit_widget_config"
@@ -73,7 +73,7 @@
         android:drawablePadding="16dp"
         android:text="@string/habit"
         android:onClick="onClick"
-        style="@style/SelectableItemBackground"/>
+        android:background="@drawable/selectable_item_background"/>
 
     <TextView
         android:id="@+id/tv_goal_widget_config"
@@ -87,6 +87,6 @@
         android:drawablePadding="16dp"
         android:text="@string/goal"
         android:onClick="onClick"
-        style="@style/SelectableItemBackground"/>
+        android:background="@drawable/selectable_item_background"/>
 
 </LinearLayout>

@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:foreground="@drawable/selectable_item_background_appwidget_light">
+    android:foreground="@drawable/selectable_item_background_light">
 
     <FrameLayout
         android:id="@+id/fl_thing_image"
@@ -294,6 +294,7 @@
                 android:layout_below="@id/view_state_separator"
                 android:layout_toEndOf="@id/iv_thing_state"
                 android:layout_toRightOf="@id/iv_thing_state"
+                android:textColor="@color/white_66p"
                 android:textSize="14dp"
                 tools:ignore="SpUsage"/>
 
