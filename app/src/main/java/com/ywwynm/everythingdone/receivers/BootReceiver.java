@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 
+import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper;
 import com.ywwynm.everythingdone.helpers.AlarmHelper;
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil;
 
@@ -23,7 +24,7 @@ public class BootReceiver extends BroadcastReceiver {
             SystemNotificationUtil.tryToCreateQuickCreateNotification(context);
 
             AlarmHelper.createAllAlarms(context, true);
-            // TODO: 2016/8/2 should update widgets here?
+            AppWidgetHelper.updateAllAppWidgets(context);
         }
     }
 }
