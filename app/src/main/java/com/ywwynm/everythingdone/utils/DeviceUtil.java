@@ -26,6 +26,10 @@ public class DeviceUtil {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.M;
     }
 
+    public static boolean hasNougatApi() {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.N;
+    }
+
     public static String getDeviceInfo() {
         return "OS Version:   " + getAndroidVersion() + "\n" +
                "Manufacturer: " + getManufacturer()   + "\n" +
