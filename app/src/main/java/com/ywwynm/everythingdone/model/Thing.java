@@ -6,6 +6,7 @@ import android.os.Parcel;
 import android.os.Parcelable;
 import android.support.annotation.IntDef;
 
+import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
@@ -70,7 +71,8 @@ public class Thing implements Parcelable {
     public static final int DELETED               = 2;
     public static final int DELETED_FOREVER       = 3;
 
-    public static final String PRIVATE_THING_PREFIX = "`启q琼L";
+    public static final String PRIVATE_THING_PREFIX
+            = App.getApp().getString(R.string.base_signal) + "L";
 
     public static final Parcelable.Creator<Thing> CREATOR = new Parcelable.Creator<Thing>() {
 

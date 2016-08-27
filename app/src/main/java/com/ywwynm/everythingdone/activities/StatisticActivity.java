@@ -60,7 +60,7 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
     private static final int CN_SMALL = 14;
     private static final int EN       = 12;
 
-    private App mApplication;
+    private App mApp;
 
     private SharedPreferences mPreferences;
 
@@ -99,15 +99,15 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
 
     @Override
     protected void initMembers() {
-        mApplication = (App) getApplication();
+        mApp = (App) getApplication();
         mPreferences = getSharedPreferences(Def.Meta.PREFERENCES_NAME, MODE_PRIVATE);
 
-        mThingsCounts = ThingsCounts.getInstance(mApplication);
-        mThingDAO = ThingDAO.getInstance(mApplication);
+        mThingsCounts = ThingsCounts.getInstance(mApp);
+        mThingDAO = ThingDAO.getInstance(mApp);
 
-        mScreenDensity = DisplayUtil.getScreenDensity(mApplication);
+        mScreenDensity = DisplayUtil.getScreenDensity(mApp);
 
-        final int screenWidth = DisplayUtil.getScreenSize(mApplication).x;
+        final int screenWidth = DisplayUtil.getScreenSize(mApp).x;
         mHeaderHeight = screenWidth * 1080f / 1920;
 
         mSharedFiles = new ArrayList<>();
@@ -180,8 +180,11 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
                 time, System.currentTimeMillis(), Calendar.DATE) + 1;
         StringBuilder sb = new StringBuilder();
         sb.append(getString(R.string.statistic_start_from_part_1));
-        if (LocaleUtil.isChinese(mApplication)) {
-            sb.append(dt.toString(" yyyy 年 M 月 d 日"))
+        if (LocaleUtil.isChinese(mApp)) {
+            String year  = mApp.getString(R.string.year);
+            String month = mApp.getString(R.string.month);
+            String day   = mApp.getString(R.string.day);
+            sb.append(dt.toString(" yyyy " + year + " M " + month + " d " + day))
                     .append(getString(R.string.statistic_start_from_part_2))
                     .append(" ").append(gap).append(" ");
         } else {
@@ -285,7 +288,7 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
     private void startScreenshot() {
         if (mLdf == null) {
             mLdf = new LoadingDialogFragment();
-            mLdf.setAccentColor(ContextCompat.getColor(mApplication, R.color.blue_grey_deep_grey));
+            mLdf.setAccentColor(ContextCompat.getColor(mApp, R.color.blue_grey_deep_grey));
             mLdf.setTitle(getString(R.string.please_wait));
             mLdf.setContent(getString(R.string.generating_screen_shot));
         }
@@ -309,9 +312,9 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
 
     private void updateActionbarState() {
         int statusbarSize = DeviceUtil.hasKitKatApi() ?
-                DisplayUtil.getStatusbarHeight(mApplication) : 0;
+                DisplayUtil.getStatusbarHeight(mApp) : 0;
         int scrollY = mScrollView.getScrollY();
-        int color = ContextCompat.getColor(mApplication, R.color.blue_grey_deep_grey);
+        int color = ContextCompat.getColor(mApp, R.color.blue_grey_deep_grey);
         int actionbarSize = mActionbar.getHeight();
         float abSY = mHeaderHeight - statusbarSize - 2 * actionbarSize;
         float abTY = abSY + actionbarSize;
@@ -380,7 +383,7 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
         int maxCft  = 0; // longest continuous finish times
         int maxPit = 0; // longest persist in T
 
-        HabitDAO hDao = HabitDAO.getInstance(mApplication);
+        HabitDAO hDao = HabitDAO.getInstance(mApp);
         Cursor cursor = mThingDAO.getThingsCursor("type=" + Thing.HABIT);
         while (cursor.moveToNext()) {
             long id = cursor.getLong(
@@ -428,7 +431,7 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
         int inAdvcCount = 0; // count of reminders that have been finished in advance
         int fCount = 0;
 
-        ReminderDAO rDao = ReminderDAO.getInstance(mApplication);
+        ReminderDAO rDao = ReminderDAO.getInstance(mApp);
         Cursor cursor = mThingDAO.getThingsCursor("type=" +
                 (isReminder ? Thing.REMINDER : Thing.GOAL));
         while (cursor.moveToNext()) {
@@ -456,18 +459,18 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
 
         int tCount = cursor.getCount();
         if (isReminder) {
-            strs[1] = DateTimeUtil.getTimeLengthStr(tNtfMillis / tCount, mApplication);
+            strs[1] = DateTimeUtil.getTimeLengthStr(tNtfMillis / tCount, mApp);
         } else {
-            strs[1] = DateTimeUtil.getTimeLengthStrOnlyDay(tNtfMillis / tCount, mApplication);
+            strs[1] = DateTimeUtil.getTimeLengthStrOnlyDay(tNtfMillis / tCount, mApp);
         }
 
         if (fCount == 0) {
             strs[2] = "∞";
         } else {
             if (isReminder) {
-                strs[2] = DateTimeUtil.getTimeLengthStr(tFinTime / fCount, mApplication);
+                strs[2] = DateTimeUtil.getTimeLengthStr(tFinTime / fCount, mApp);
             } else {
-                strs[2] = DateTimeUtil.getTimeLengthStrOnlyDay(tFinTime / fCount, mApplication);
+                strs[2] = DateTimeUtil.getTimeLengthStrOnlyDay(tFinTime / fCount, mApp);
             }
         }
 
@@ -623,7 +626,7 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
             };
             RecyclerView rv = f(R.id.rv_reminder_record_statistic);
             float[] textSizes;
-            if (LocaleUtil.isChinese(mApplication)) {
+            if (LocaleUtil.isChinese(mApp)) {
                 textSizes = null;
             } else {
                 textSizes = new float[] { EN, EN, EN, EN };
@@ -659,7 +662,7 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
             };
             RecyclerView rv = f(R.id.rv_habit_record_statistic);
             float[] textSizes;
-            if (LocaleUtil.isChinese(mApplication)) {
+            if (LocaleUtil.isChinese(mApp)) {
                 textSizes = new float[] { 16, CN_SMALL, 16, 16, 16 };
             } else {
                 textSizes = new float[] { EN, EN, 14, EN, EN };
@@ -693,7 +696,7 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
             };
             RecyclerView rv = f(R.id.rv_goal_record_statistic);
             float[] textSizes;
-            if (LocaleUtil.isChinese(mApplication)) {
+            if (LocaleUtil.isChinese(mApp)) {
                 textSizes = null;
             } else {
                 textSizes = new float[] { EN, 16, EN, EN };

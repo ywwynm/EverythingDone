@@ -32,7 +32,10 @@ public class DateTimeUtil {
 
     public static String getGeneralDateTimeFormatPattern(Context context) {
         if (LocaleUtil.isChinese(context)) {
-            return "yyyy年M月d日EEEE H:mm:ss";
+            String year  = context.getString(R.string.year);
+            String month = context.getString(R.string.month);
+            String day   = context.getString(R.string.day);
+            return "yyyy" + year + "M" + month + "d" + day + "EEEE H:mm:ss";
         } else {
             return "H:mm:ss, MMM d, yyyy, EEEEEEEEE";
         }

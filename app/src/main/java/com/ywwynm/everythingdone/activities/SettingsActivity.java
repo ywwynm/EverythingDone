@@ -1003,7 +1003,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                 try {
                     FileOutputStream fos = SettingsActivity.this.openFileOutput(
                             Def.Meta.RESTORE_DONE_FILE_NAME, MODE_PRIVATE);
-                    fos.write("我的女神陈锦琼".getBytes());
+                    fos.write(getString(R.string.qq_my_love).getBytes());
                 } catch (IOException e) {
                     e.printStackTrace();
                     result = getString(R.string.restore_failed_other);

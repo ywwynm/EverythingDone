@@ -54,7 +54,7 @@ public class DateTimePicker extends PopupPicker {
             params.width = (int) (mScreenDensity * 120);
             mItems = mContext.getResources().getStringArray(R.array.time_type);
             if (LocaleUtil.isChinese(mContext)) {
-                mItems[2] = "天";
+                mItems[2] = mContext.getString(R.string.days);
             }
         } else {
             params.width = (int) (mScreenDensity * 98);
@@ -62,7 +62,7 @@ public class DateTimePicker extends PopupPicker {
             mItems = new String[4];
             System.arraycopy(items, 2, mItems, 0, 4);
             if (LocaleUtil.isChinese(mContext)) {
-                mItems[0] = "天";
+                mItems[0] = mContext.getString(R.string.days);
             }
         }
         params.height = getRecyclerViewHeight();

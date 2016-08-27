@@ -11,6 +11,7 @@ import android.support.v4.util.Pair;
 import android.support.v7.widget.RecyclerView;
 import android.widget.LinearLayout;
 
+import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.fragments.AttachmentInfoDialogFragment;
@@ -34,7 +35,7 @@ import java.util.List;
  */
 public class AttachmentHelper {
 
-    public static final String SIGNAL = "`启q琼";
+    public static final String SIGNAL = App.getApp().getString(R.string.base_signal);
     public static final String SIZE_SEPARATOR = "`";
 
     public static final int IMAGE  = 0;
