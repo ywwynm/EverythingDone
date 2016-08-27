@@ -29,6 +29,7 @@ public abstract class BaseDialogFragment extends DialogFragment {
 
     protected abstract @LayoutRes int getLayoutResource();
 
+    @SuppressWarnings("unchecked")
     protected final <T extends View> T f(View view, @IdRes int id) {
         return (T) view.findViewById(id);
     }

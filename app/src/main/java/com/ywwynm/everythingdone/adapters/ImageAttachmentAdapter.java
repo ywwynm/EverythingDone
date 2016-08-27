@@ -140,23 +140,17 @@ public class ImageAttachmentAdapter extends RecyclerView.Adapter<ImageAttachment
             int pbColor = ContextCompat.getColor(mContext, R.color.app_accent);
             pbLoading.getIndeterminateDrawable().setColorFilter(pbColor, PorterDuff.Mode.SRC_IN);
 
-            fl.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    if (mClickCallback != null) {
-                        mClickCallback.onClick(v, getAdapterPosition());
-                    }
+            fl.setOnClickListener(v -> {
+                if (mClickCallback != null) {
+                    mClickCallback.onClick(v, getAdapterPosition());
                 }
             });
 
             if (mEditable) {
                 ivDelete.setVisibility(View.VISIBLE);
-                ivDelete.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        if (mRemoveCallback != null) {
-                            mRemoveCallback.onRemove(getAdapterPosition());
-                        }
+                ivDelete.setOnClickListener(v -> {
+                    if (mRemoveCallback != null) {
+                        mRemoveCallback.onRemove(getAdapterPosition());
                     }
                 });
             } else {

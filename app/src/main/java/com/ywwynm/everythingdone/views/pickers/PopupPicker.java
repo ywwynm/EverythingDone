@@ -39,19 +39,15 @@ public abstract class PopupPicker {
         mPopupWindow = new PopupWindow(mContentView,
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         mPopupWindow.setBackgroundDrawable(ContextCompat.getDrawable(context, R.drawable.bg_picker));
-        mContentView.setOnKeyListener(new View.OnKeyListener() {
-
-            @Override
-            public boolean onKey(View v, int keyCode, KeyEvent event) {
-                if (keyCode == KeyEvent.KEYCODE_BACK
-                        && event.getRepeatCount() == 1) {
-                    if (mPopupWindow != null && mPopupWindow.isShowing()) {
-                        mPopupWindow.dismiss();
-                        return true;
-                    }
+        mContentView.setOnKeyListener((v, keyCode, event) -> {
+            if (keyCode == KeyEvent.KEYCODE_BACK
+                    && event.getRepeatCount() == 1) {
+                if (mPopupWindow != null && mPopupWindow.isShowing()) {
+                    mPopupWindow.dismiss();
+                    return true;
                 }
-                return false;
             }
+            return false;
         });
         mPopupWindow.setAnimationStyle(popupAnimStyle);
         mPopupWindow.setOutsideTouchable(true);

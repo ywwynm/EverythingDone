@@ -44,12 +44,7 @@ public class AttachmentInfoDialogFragment extends BaseDialogFragment {
         title.setTextColor(mAccentColor);
         TextView confirm = f(R.id.tv_confirm_as_bt_attachment_info);
         confirm.setTextColor(mAccentColor);
-        confirm.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                dismiss();
-            }
-        });
+        confirm.setOnClickListener(v -> dismiss());
 
         RecyclerView recyclerView = f(R.id.rv_attachment_info);
         recyclerView.setLayoutManager(new LinearLayoutManager(activity));

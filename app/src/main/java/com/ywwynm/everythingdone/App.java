@@ -206,27 +206,24 @@ public class App extends Application {
 
     public void releaseResourcesAfterDeleteForever() {
         if (!mThingsToDeleteForever.isEmpty()) {
-            Runnable r = new Runnable() {
-                @Override
-                public void run() {
-                    String appDir = Def.Meta.APP_FILE_DIR;
-                    ReminderDAO dao = ReminderDAO.getInstance(App.this);
-                    for (Thing thing : mThingsToDeleteForever) {
-                        String attachment = thing.getAttachment();
-                        if (AttachmentHelper.isValidForm(attachment)) {
-                            String[] attachments = attachment.split(AttachmentHelper.SIGNAL);
-                            for (int i = 1; i < attachments.length; i++) {
-                                String pathName = attachments[i].substring(1, attachments[i].length());
-                                if (pathName.startsWith(appDir)
-                                        && !mAttachmentsToDeleteFile.contains(pathName)) {
-                                    mAttachmentsToDeleteFile.add(pathName);
-                                }
+            Runnable r = () -> {
+                String appDir = Def.Meta.APP_FILE_DIR;
+                ReminderDAO dao = ReminderDAO.getInstance(App.this);
+                for (Thing thing : mThingsToDeleteForever) {
+                    String attachment = thing.getAttachment();
+                    if (AttachmentHelper.isValidForm(attachment)) {
+                        String[] attachments = attachment.split(AttachmentHelper.SIGNAL);
+                        for (int i = 1; i < attachments.length; i++) {
+                            String pathName = attachments[i].substring(1, attachments[i].length());
+                            if (pathName.startsWith(appDir)
+                                    && !mAttachmentsToDeleteFile.contains(pathName)) {
+                                mAttachmentsToDeleteFile.add(pathName);
                             }
                         }
-                        dao.delete(thing.getId());
                     }
-                    mThingsToDeleteForever.clear();
+                    dao.delete(thing.getId());
                 }
+                mThingsToDeleteForever.clear();
             };
             mExecutor.execute(r);
         }
@@ -242,36 +239,33 @@ public class App extends Application {
 
     public void deleteAttachmentFiles() {
         if (!mAttachmentsToDeleteFile.isEmpty()) {
-            Runnable r = new Runnable() {
-                @Override
-                public void run() {
-                    String appDir = Def.Meta.APP_FILE_DIR;
-                    List<String> usedAttachments = new ArrayList<>();
-                    ThingDAO dao = ThingDAO.getInstance(App.this);
-                    Cursor cursor = dao.getAllThingsCursor();
-                    while (cursor.moveToNext()) {
-                        String attachment = cursor.getString(cursor.getColumnIndex(
-                                Def.Database.COLUMN_ATTACHMENT_THINGS));
-                        if (AttachmentHelper.isValidForm(attachment)) {
-                            String[] attachments = attachment.split(AttachmentHelper.SIGNAL);
-                            for (int i = 1; i < attachments.length; i++) {
-                                String pathName = attachments[i].substring(
-                                        1, attachments[i].length());
-                                if (pathName.startsWith(appDir)
-                                        && !usedAttachments.contains(pathName)) {
-                                    usedAttachments.add(pathName);
-                                }
+            Runnable r = () -> {
+                String appDir = Def.Meta.APP_FILE_DIR;
+                List<String> usedAttachments = new ArrayList<>();
+                ThingDAO dao = ThingDAO.getInstance(App.this);
+                Cursor cursor = dao.getAllThingsCursor();
+                while (cursor.moveToNext()) {
+                    String attachment = cursor.getString(cursor.getColumnIndex(
+                            Def.Database.COLUMN_ATTACHMENT_THINGS));
+                    if (AttachmentHelper.isValidForm(attachment)) {
+                        String[] attachments = attachment.split(AttachmentHelper.SIGNAL);
+                        for (int i = 1; i < attachments.length; i++) {
+                            String pathName = attachments[i].substring(
+                                    1, attachments[i].length());
+                            if (pathName.startsWith(appDir)
+                                    && !usedAttachments.contains(pathName)) {
+                                usedAttachments.add(pathName);
                             }
                         }
                     }
-                    cursor.close();
-                    for (String path : mAttachmentsToDeleteFile) {
-                        if (!usedAttachments.contains(path)) {
-                            FileUtil.deleteFile(path);
-                        }
-                    }
-                    mAttachmentsToDeleteFile.clear();
                 }
+                cursor.close();
+                for (String path : mAttachmentsToDeleteFile) {
+                    if (!usedAttachments.contains(path)) {
+                        FileUtil.deleteFile(path);
+                    }
+                }
+                mAttachmentsToDeleteFile.clear();
             };
             mExecutor.execute(r);
         }
@@ -290,12 +284,7 @@ public class App extends Application {
         AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         am.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + time + 100, pendingIntent);
         Handler handler = new Handler(Looper.getMainLooper());
-        handler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                System.exit(0);
-            }
-        }, time);
+        handler.postDelayed(() -> System.exit(0), time);
     }
 
 }

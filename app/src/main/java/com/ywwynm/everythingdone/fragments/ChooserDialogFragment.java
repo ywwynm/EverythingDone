@@ -124,12 +124,9 @@ public class ChooserDialogFragment extends BaseDialogFragment {
         mAdapter.pick(mInitialIndex);
 
         if (mItems.size() > 9) {
-            mRecyclerView.post(new Runnable() {
-                @Override
-                public void run() {
-                    mRecyclerView.scrollToPosition(mInitialIndex);
-                    updateSeparators();
-                }
+            mRecyclerView.post(() -> {
+                mRecyclerView.scrollToPosition(mInitialIndex);
+                updateSeparators();
             });
         }
     }
@@ -144,30 +141,19 @@ public class ChooserDialogFragment extends BaseDialogFragment {
                 }
             });
         }
-        mTvCancelAsBt.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                dismiss();
+        mTvCancelAsBt.setOnClickListener(v -> dismiss());
+        mTvConfirmAsBt.setOnClickListener(v -> {
+            if (mConfirmListener != null) {
+                mConfirmListener.onClick(v);
             }
-        });
-        mTvConfirmAsBt.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (mConfirmListener != null) {
-                    mConfirmListener.onClick(v);
-                }
-                dismiss();
-            }
+            dismiss();
         });
         if (mShouldShowMore) {
-            mTvMoreAsBt.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    if (mMoreListener != null) {
-                        mMoreListener.onClick(v);
-                    }
-                    dismiss();
+            mTvMoreAsBt.setOnClickListener(v -> {
+                if (mMoreListener != null) {
+                    mMoreListener.onClick(v);
                 }
+                dismiss();
             });
         }
 

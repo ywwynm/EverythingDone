@@ -76,12 +76,7 @@ public class TwoOptionsDialogFragment extends BaseDialogFragment {
     @Override
     public void onDismiss(DialogInterface dialog) {
         if (mShouldShowKeyboardAfterDismiss && mViewToFocusAfterDismiss != null) {
-            mViewToFocusAfterDismiss.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    KeyboardUtil.showKeyboard(mViewToFocusAfterDismiss);
-                }
-            }, 60);
+            mViewToFocusAfterDismiss.postDelayed(() -> KeyboardUtil.showKeyboard(mViewToFocusAfterDismiss), 60);
         }
         super.onDismiss(dialog);
     }

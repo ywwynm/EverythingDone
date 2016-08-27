@@ -172,13 +172,10 @@ public class RecurrencePickerAdapter extends MultiChoiceAdapter {
             fab = f(R.id.fab_recurrence_picker);
             tvDate = f(R.id.tv_recurrence_picker);
 
-            fab.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    togglePick(getAdapterPosition());
-                    if (mOnPickListener != null) {
-                        mOnPickListener.onClick(v);
-                    }
+            fab.setOnClickListener(v -> {
+                togglePick(getAdapterPosition());
+                if (mOnPickListener != null) {
+                    mOnPickListener.onClick(v);
                 }
             });
         }
@@ -193,13 +190,10 @@ public class RecurrencePickerAdapter extends MultiChoiceAdapter {
             super(itemView);
             cv = f(R.id.cv_end_of_month_rec);
             tv = f(R.id.tv_end_of_month_rec);
-            cv.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    togglePick(getAdapterPosition());
-                    if (mOnPickListener != null) {
-                        mOnPickListener.onClick(v);
-                    }
+            cv.setOnClickListener(v -> {
+                togglePick(getAdapterPosition());
+                if (mOnPickListener != null) {
+                    mOnPickListener.onClick(v);
                 }
             });
         }

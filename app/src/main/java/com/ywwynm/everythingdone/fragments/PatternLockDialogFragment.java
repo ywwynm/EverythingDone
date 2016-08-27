@@ -140,22 +140,14 @@ public class PatternLockDialogFragment extends BaseDialogFragment {
 
         });
 
-        mTvLeftAsBt.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                dismiss();
+        mTvLeftAsBt.setOnClickListener(v -> dismiss());
+        mTvRightAsBt.setOnClickListener(v -> {
+            if (mLockView.getSimplePattern().isEmpty()) {
+                return;
             }
-        });
-        mTvRightAsBt.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (mLockView.getSimplePattern().isEmpty()) {
-                    return;
-                }
-                mLockView.clearPattern();
-                updateUiSetStep2();
-                setEventsSetStep2();
-            }
+            mLockView.clearPattern();
+            updateUiSetStep2();
+            setEventsSetStep2();
         });
     }
 
@@ -178,26 +170,20 @@ public class PatternLockDialogFragment extends BaseDialogFragment {
             }
         });
 
-        mTvLeftAsBt.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                mLockView.clearPattern();
-                updateUiSetStep1();
-                setEventsSetStep1();
-            }
+        mTvLeftAsBt.setOnClickListener(v -> {
+            mLockView.clearPattern();
+            updateUiSetStep1();
+            setEventsSetStep1();
         });
-        mTvRightAsBt.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                String password = mLockView.getSimplePattern();
-                if (!mPassword.equals(password)) {
-                    return;
-                }
+        mTvRightAsBt.setOnClickListener(v -> {
+            String password = mLockView.getSimplePattern();
+            if (!mPassword.equals(password)) {
+                return;
+            }
 
-                dismiss();
-                if (mPasswordSetDoneListener != null) {
-                    mPasswordSetDoneListener.onClick(v);
-                }
+            dismiss();
+            if (mPasswordSetDoneListener != null) {
+                mPasswordSetDoneListener.onClick(v);
             }
         });
     }

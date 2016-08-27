@@ -167,12 +167,9 @@ public class DisplayUtil {
         ValueAnimator offsetAnimator = ValueAnimator.ofFloat(start, end);
         offsetAnimator.setDuration(300);
         offsetAnimator.setInterpolator(new AccelerateDecelerateInterpolator());
-        offsetAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-            @Override
-            public void onAnimationUpdate(ValueAnimator animation) {
-                float progress = (Float) animation.getAnimatedValue();
-                d.setProgress(progress);
-            }
+        offsetAnimator.addUpdateListener(animation -> {
+            float progress = (Float) animation.getAnimatedValue();
+            d.setProgress(progress);
         });
         offsetAnimator.start();
     }

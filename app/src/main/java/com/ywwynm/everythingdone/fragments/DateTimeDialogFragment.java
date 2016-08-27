@@ -12,7 +12,6 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.SimpleItemAnimator;
 import android.text.InputFilter;
-import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -662,95 +661,73 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
     }
 
     private void setEvents() {
-        mContentView.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                    KeyboardUtil.hideKeyboard(v);
-                    return true;
-                }
-                return false;
+        mContentView.setOnTouchListener((v, event) -> {
+            if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                KeyboardUtil.hideKeyboard(v);
+                return true;
             }
+            return false;
         });
         setButtonEvents();
         setViewPagerEvents();
     }
 
     private void setButtonEvents() {
-        mTvConfirmAsBt.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                endSettingTime();
-            }
-        });
-        mTvCancelAsBt.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                dismiss();
-            }
-        });
+        mTvConfirmAsBt.setOnClickListener(v -> endSettingTime());
+        mTvCancelAsBt.setOnClickListener(v -> dismiss());
     }
 
     private void setViewPagerEvents() {
-        mVpDateTime.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                KeyboardUtil.hideKeyboard(v);
-                return false;
-            }
+        mVpDateTime.setOnTouchListener((v, event) -> {
+            KeyboardUtil.hideKeyboard(v);
+            return false;
         });
         mVpDateTime.addOnPageChangeListener(mPageChangeListener);
     }
 
     private void setEventsAt() {
-        mEtsAt[4].setOnEditorActionListener(new TextView.OnEditorActionListener() {
-            @Override
-            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                if (actionId == EditorInfo.IME_ACTION_DONE) {
-                    endSettingTime();
-                    return true;
-                }
-                return false;
+        mEtsAt[4].setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_DONE) {
+                endSettingTime();
+                return true;
             }
+            return false;
         });
         for (int i = 0; i < mIlsAt.length; i++) {
             final int index = i;
-            mIlsAt[i].setOnFocusChangeListenerForEditText(new View.OnFocusChangeListener() {
-                @Override
-                public void onFocusChange(View v, boolean hasFocus) {
-                    int[] times = new int[5];
-                    String temp;
-                    for (int i = 0; i < times.length; i++) {
-                        temp = mEtsAt[i].getText().toString();
-                        if (temp.isEmpty()) {
-                            times[i] = -1;
-                        } else {
-                            try {
-                                times[i] = Integer.parseInt(temp);
-                            } catch (NumberFormatException e) {
-                                e.printStackTrace();
-                                return;
-                            }
-                        }
-                        if (times[i] == 0 && i != 0 && i != 3 && i != 4) {
-                            mEtsAt[i].setText("1");
-                            times[i] = 1;
-                        }
-                        if (times[0] != -1 && times[1] != -1) {
-                            int limit = DateTimeUtil.getTimeTypeLimit(times[0], times[1], i);
-                            if (times[i] > limit) {
-                                times[i] = limit;
-                                mEtsAt[i].setText(limit + "");
-                            }
+            mIlsAt[i].setOnFocusChangeListenerForEditText((v, hasFocus) -> {
+                int[] times = new int[5];
+                String temp;
+                for (int i1 = 0; i1 < times.length; i1++) {
+                    temp = mEtsAt[i1].getText().toString();
+                    if (temp.isEmpty()) {
+                        times[i1] = -1;
+                    } else {
+                        try {
+                            times[i1] = Integer.parseInt(temp);
+                        } catch (NumberFormatException e) {
+                            e.printStackTrace();
+                            return;
                         }
                     }
+                    if (times[i1] == 0 && i1 != 0 && i1 != 3 && i1 != 4) {
+                        mEtsAt[i1].setText("1");
+                        times[i1] = 1;
+                    }
+                    if (times[0] != -1 && times[1] != -1) {
+                        int limit = DateTimeUtil.getTimeTypeLimit(times[0], times[1], i1);
+                        if (times[i1] > limit) {
+                            times[i1] = limit;
+                            mEtsAt[i1].setText(limit + "");
+                        }
+                    }
+                }
 
-                    if (!hasFocus) {
-                        if (!mEtsAt[index].getText().toString().isEmpty()) {
-                            formatMinuteAt();
-                        }
-                        updateSummaryAt(times[0], times[1], times[2], times[3]);
+                if (!hasFocus) {
+                    if (!mEtsAt[index].getText().toString().isEmpty()) {
+                        formatMinuteAt();
                     }
+                    updateSummaryAt(times[0], times[1], times[2], times[3]);
                 }
             });
         }
@@ -758,70 +735,51 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
 
     private void setEventsAfter() {
         mTvTimeAsBtAfter.setOnClickListener(mTvTimeAsBtClickListener);
-        mDtpAfter.setPickedListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
+        mDtpAfter.setPickedListener(v -> improveComplex());
+        mEtTimeAfter.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus) {
+                DisplayUtil.tintView(v, mAccentColor);
+                ((EditText) v).setTextColor(mAccentColor);
+                ((EditText) v).setHighlightColor(DisplayUtil.getLightColor(mAccentColor, mActivity));
+            } else {
                 improveComplex();
+                DisplayUtil.tintView(v, black_26p);
+                ((EditText) v).setTextColor(black_54p);
             }
         });
-        mEtTimeAfter.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-            @Override
-            public void onFocusChange(View v, boolean hasFocus) {
-                if (hasFocus) {
-                    DisplayUtil.tintView(v, mAccentColor);
-                    ((EditText) v).setTextColor(mAccentColor);
-                    ((EditText) v).setHighlightColor(DisplayUtil.getLightColor(mAccentColor, mActivity));
-                } else {
-                    improveComplex();
-                    DisplayUtil.tintView(v, black_26p);
-                    ((EditText) v).setTextColor(black_54p);
-                }
+        mEtTimeAfter.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_NEXT) {
+                improveComplex();
+                KeyboardUtil.hideKeyboard(v);
+                mDtpAfter.show();
+                return true;
             }
-        });
-        mEtTimeAfter.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-            @Override
-            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                if (actionId == EditorInfo.IME_ACTION_NEXT) {
-                    improveComplex();
-                    KeyboardUtil.hideKeyboard(v);
-                    mDtpAfter.show();
-                    return true;
-                }
-                return false;
-            }
+            return false;
         });
     }
 
     private void setEventsRec() {
         mTvTimeAsBtRec.setOnClickListener(mTvTimeAsBtClickListener);
-        mDtpRec.setPickedListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                int pickedIndex = mDtpRec.getPickedIndex();
+        mDtpRec.setPickedListener(v -> {
+            int pickedIndex = mDtpRec.getPickedIndex();
 
-                mIvPickAllAsBtRec.setVisibility(View.VISIBLE);
-                mRvTimeOfDay.setVisibility(View.GONE);
-                mRlWmy.setVisibility(View.GONE);
+            mIvPickAllAsBtRec.setVisibility(View.VISIBLE);
+            mRvTimeOfDay.setVisibility(View.GONE);
+            mRlWmy.setVisibility(View.GONE);
 
-                mTvSummaryRec.setText("");
+            mTvSummaryRec.setText("");
 
-                if (pickedIndex == 0) {
-                    updateUIRecDay();
-                } else if (pickedIndex == 1) {
-                    updateUIRecWeek();
-                } else if (pickedIndex == 2) {
-                    updateUIRecMonth();
-                } else {
-                    updateUIRecYear();
-                }
+            if (pickedIndex == 0) {
+                updateUIRecDay();
+            } else if (pickedIndex == 1) {
+                updateUIRecWeek();
+            } else if (pickedIndex == 2) {
+                updateUIRecMonth();
+            } else {
+                updateUIRecYear();
             }
         });
-        mIvPickAllAsBtRec.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                pickOrUnpickAll(mDtpRec.getPickedIndex());
-            }
-        });
+        mIvPickAllAsBtRec.setOnClickListener(v -> pickOrUnpickAll(mDtpRec.getPickedIndex()));
 
         setEventsRecDay();
         setEventsRecWmy();
@@ -886,30 +844,24 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
     }
 
     private void setEventsRecWmy() {
-        mIlHourWmy.setOnFocusChangeListenerForEditText(new View.OnFocusChangeListener() {
-            @Override
-            public void onFocusChange(View v, boolean hasFocus) {
-                if (!hasFocus) {
-                    DateTimeUtil.limitHourForEditText((EditText) v);
-                    String hourStr = mIlHourWmy.getTextFromEditText();
-                    if (hourStr.isEmpty()) {
-                        mTvSummaryRec.setText("");
-                        return;
-                    }
-                    int hour = Integer.parseInt(hourStr);
-                    if (hour >= 24) {
-                        mIlHourWmy.setTextForEditText("23");
-                    }
-                    updateTimePeriodRec();
+        mIlHourWmy.setOnFocusChangeListenerForEditText((v, hasFocus) -> {
+            if (!hasFocus) {
+                DateTimeUtil.limitHourForEditText((EditText) v);
+                String hourStr = mIlHourWmy.getTextFromEditText();
+                if (hourStr.isEmpty()) {
+                    mTvSummaryRec.setText("");
+                    return;
                 }
+                int hour = Integer.parseInt(hourStr);
+                if (hour >= 24) {
+                    mIlHourWmy.setTextForEditText("23");
+                }
+                updateTimePeriodRec();
             }
         });
-        mIlMinuteWmy.setOnFocusChangeListenerForEditText(new View.OnFocusChangeListener() {
-            @Override
-            public void onFocusChange(View v, boolean hasFocus) {
-                if (!hasFocus) {
-                    DateTimeUtil.formatLimitMinuteForEditText((EditText) v);
-                }
+        mIlMinuteWmy.setOnFocusChangeListenerForEditText((v, hasFocus) -> {
+            if (!hasFocus) {
+                DateTimeUtil.formatLimitMinuteForEditText((EditText) v);
             }
         });
     }
@@ -955,31 +907,28 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
     }
 
     private void setEventsRecYear() {
-        mIlDayYear.setOnFocusChangeListenerForEditText(new View.OnFocusChangeListener() {
-            @Override
-            public void onFocusChange(View v, boolean hasFocus) {
-                EditText et = (EditText) v;
-                if (!hasFocus) {
-                    String dayStr = et.getText().toString();
-                    if (dayStr.isEmpty()) return;
-                    try {
-                        int day = Integer.parseInt(dayStr);
-                        if (day == 0) {
-                            et.setText("1");
-                        } else if (day >= 28) {
-                            et.setInputType(EditorInfo.TYPE_CLASS_TEXT);
-                            et.setFilters(new InputFilter[] { new InputFilter.LengthFilter(12) });
-                            mIlDayYear.setTextForEditText(mActivity.getString(R.string.end_of_month));
-                        }
-                    } catch (NumberFormatException e) {
+        mIlDayYear.setOnFocusChangeListenerForEditText((v, hasFocus) -> {
+            EditText et = (EditText) v;
+            if (!hasFocus) {
+                String dayStr = et.getText().toString();
+                if (dayStr.isEmpty()) return;
+                try {
+                    int day = Integer.parseInt(dayStr);
+                    if (day == 0) {
+                        et.setText("1");
+                    } else if (day >= 28) {
                         et.setInputType(EditorInfo.TYPE_CLASS_TEXT);
-                        et.setFilters(new InputFilter[]{new InputFilter.LengthFilter(2)});
-                        e.printStackTrace();
+                        et.setFilters(new InputFilter[] { new InputFilter.LengthFilter(12) });
+                        mIlDayYear.setTextForEditText(mActivity.getString(R.string.end_of_month));
                     }
-                } else {
-                    et.setInputType(EditorInfo.TYPE_CLASS_NUMBER);
-                    et.setFilters(new InputFilter[] { new InputFilter.LengthFilter(2) });
+                } catch (NumberFormatException e) {
+                    et.setInputType(EditorInfo.TYPE_CLASS_TEXT);
+                    et.setFilters(new InputFilter[]{new InputFilter.LengthFilter(2)});
+                    e.printStackTrace();
                 }
+            } else {
+                et.setInputType(EditorInfo.TYPE_CLASS_NUMBER);
+                et.setFilters(new InputFilter[] { new InputFilter.LengthFilter(2) });
             }
         });
         mAdapterMonthOfYear.setOnPickListener(new RecAdapterPickedListener(mAdapterMonthOfYear));

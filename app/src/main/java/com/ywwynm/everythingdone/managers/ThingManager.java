@@ -200,12 +200,7 @@ public class ThingManager {
     public boolean create(final Thing thingToCreate, boolean handleNotifyEmpty, boolean addToThingsNow) {
         // create in database at first
         thingToCreate.setId(mHeaderId);
-        mExecutor.execute(new Runnable() {
-            @Override
-            public void run() {
-                mDao.create(thingToCreate, true, false);
-            }
-        });
+        mExecutor.execute(() -> mDao.create(thingToCreate, true, false));
 
         updateHeader(1);
 
@@ -255,12 +250,7 @@ public class ThingManager {
             updateHeader(1);
         }
 
-        mExecutor.execute(new Runnable() {
-            @Override
-            public void run() {
-                mDao.update(typeBefore, updatedThing, true, false);
-            }
-        });
+        mExecutor.execute(() -> mDao.update(typeBefore, updatedThing, true, false));
 
         int state     = updatedThing.getState();
         int typeAfter = updatedThing.getType();
@@ -325,13 +315,8 @@ public class ThingManager {
         } else thingToUpdate = thing;
 
         final long headerId = mHeaderId;
-        mExecutor.execute(new Runnable() {
-            @Override
-            public void run() {
-                mDao.updateState(thingToUpdate, location, stateBefore, stateAfter,
-                        handleNotifyEmpty, false, toUndo, headerId, true);
-            }
-        });
+        mExecutor.execute(() -> mDao.updateState(thingToUpdate, location, stateBefore, stateAfter,
+                handleNotifyEmpty, false, toUndo, headerId, true));
 
         int type = thing.getType();
         boolean deletedNEnow = false;
@@ -411,12 +396,7 @@ public class ThingManager {
         }
 
         final long headerId = mHeaderId;
-        mExecutor.execute(new Runnable() {
-            @Override
-            public void run() {
-                mDao.updateStates(clonedThings, null, stateBefore, stateAfter, false, headerId);
-            }
-        });
+        mExecutor.execute(() -> mDao.updateStates(clonedThings, null, stateBefore, stateAfter, false, headerId));
 
         // things.get(0).getType() will lead us to current limit.
         int type = things.get(0).getType();
@@ -460,24 +440,21 @@ public class ThingManager {
             mThingsCounts.handleUpdate(t, stateBefore, t, stateAfter, v);
         }
 
-        mExecutor.execute(new Runnable() {
-            @Override
-            public void run() {
-                for (Reminder goal : mUndoGoals) {
-                    rDao.resetGoal(goal);
-                }
+        mExecutor.execute(() -> {
+            for (Reminder goal : mUndoGoals) {
+                rDao.resetGoal(goal);
+            }
 
-                HabitDAO habitDAO = HabitDAO.getInstance(mContext);
-                long curTime = System.currentTimeMillis();
-                if (stateAfter == Thing.UNDERWAY) {
-                    for (Long habitId : mUndoHabits) {
-                        habitDAO.updateHabitToLatest(habitId, true, true);
-                        habitDAO.addHabitIntervalInfo(habitId, curTime + ";");
-                    }
-                } else {
-                    for (Long habitId : mUndoHabits) {
-                        habitDAO.addHabitIntervalInfo(habitId, curTime + ",");
-                    }
+            HabitDAO habitDAO = HabitDAO.getInstance(mContext);
+            long curTime = System.currentTimeMillis();
+            if (stateAfter == Thing.UNDERWAY) {
+                for (Long habitId : mUndoHabits) {
+                    habitDAO.updateHabitToLatest(habitId, true, true);
+                    habitDAO.addHabitIntervalInfo(habitId, curTime + ";");
+                }
+            } else {
+                for (Long habitId : mUndoHabits) {
+                    habitDAO.addHabitIntervalInfo(habitId, curTime + ",");
                 }
             }
         });
@@ -516,13 +493,8 @@ public class ThingManager {
         }
 
         final long headerId = mHeaderId;
-        mExecutor.execute(new Runnable() {
-            @Override
-            public void run() {
-                mDao.updateStates(clonedThings, clonedLocations, stateBefore, stateAfter,
-                        true, headerId);
-            }
-        });
+        mExecutor.execute(() -> mDao.updateStates(clonedThings, clonedLocations, stateBefore, stateAfter,
+                true, headerId));
 
         updateHeader(6);
 
@@ -549,23 +521,20 @@ public class ThingManager {
             mThingsCounts.handleUpdate(t, stateBefore, t, stateAfter, v);
         }
 
-        mExecutor.execute(new Runnable() {
-            @Override
-            public void run() {
-                mIsHandlingUndo = true;
-                ReminderDAO reminderDAO = ReminderDAO.getInstance(mContext);
-                for (Reminder goal : mUndoGoals) {
-                    reminderDAO.update(goal);
-                }
-                mUndoGoals.clear();
-
-                HabitDAO habitDAO = HabitDAO.getInstance(mContext);
-                for (Long habitId : mUndoHabits) {
-                    habitDAO.removeLastHabitIntervalInfo(habitId);
-                }
-                mUndoHabits.clear();
-                mIsHandlingUndo = false;
+        mExecutor.execute(() -> {
+            mIsHandlingUndo = true;
+            ReminderDAO reminderDAO = ReminderDAO.getInstance(mContext);
+            for (Reminder goal : mUndoGoals) {
+                reminderDAO.update(goal);
             }
+            mUndoGoals.clear();
+
+            HabitDAO habitDAO = HabitDAO.getInstance(mContext);
+            for (Long habitId : mUndoHabits) {
+                habitDAO.removeLastHabitIntervalInfo(habitId);
+            }
+            mUndoHabits.clear();
+            mIsHandlingUndo = false;
         });
 
         createNEnow(type, stateBefore, !App.isSearching);
@@ -613,12 +582,7 @@ public class ThingManager {
         for (int i = start, j = 0; i <= end; i++, j++) {
             mThings.get(i).setLocation(locations[j]);
         }
-        mExecutor.execute(new Runnable() {
-            @Override
-            public void run() {
-                mDao.updateLocations(ids, locations);
-            }
-        });
+        mExecutor.execute(() -> mDao.updateLocations(ids, locations));
     }
 
     /**

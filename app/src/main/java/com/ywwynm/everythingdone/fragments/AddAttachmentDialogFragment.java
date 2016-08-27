@@ -64,80 +64,64 @@ public class AddAttachmentDialogFragment extends BaseDialogFragment {
     }
 
     private void setEvents() {
-        mTvTakePhotoAsBt.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-                if (intent.resolveActivity(mActivity.getPackageManager()) == null) {
-                    mActivity.showNormalSnackbar(R.string.error_activity_not_found);
-                    dismiss();
-                    return;
-                }
-
-                mActivity.doWithPermissionChecked(
-                        new SimplePermissionCallback(mActivity) {
-                            @Override
-                            public void onGranted() {
-                                startTakePhoto();
-                            }
-                        },
-                        Def.Communication.REQUEST_PERMISSION_TAKE_PHOTO,
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        mTvTakePhotoAsBt.setOnClickListener(v -> {
+            Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+            if (intent.resolveActivity(mActivity.getPackageManager()) == null) {
+                mActivity.showNormalSnackbar(R.string.error_activity_not_found);
+                dismiss();
+                return;
             }
+
+            mActivity.doWithPermissionChecked(
+                    new SimplePermissionCallback(mActivity) {
+                        @Override
+                        public void onGranted() {
+                            startTakePhoto();
+                        }
+                    },
+                    Def.Communication.REQUEST_PERMISSION_TAKE_PHOTO,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE);
         });
 
-        mTvShootVideoAsBt.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
-                if (intent.resolveActivity(mActivity.getPackageManager()) == null) {
-                    mActivity.showNormalSnackbar(R.string.error_activity_not_found);
-                    dismiss();
-                    return;
-                }
-
-                mActivity.doWithPermissionChecked(
-                        new SimplePermissionCallback(mActivity) {
-                            @Override
-                            public void onGranted() {
-                                startShootVideo();
-                            }
-                        },
-                        Def.Communication.REQUEST_PERMISSION_SHOOT_VIDEO,
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        mTvShootVideoAsBt.setOnClickListener(v -> {
+            Intent intent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
+            if (intent.resolveActivity(mActivity.getPackageManager()) == null) {
+                mActivity.showNormalSnackbar(R.string.error_activity_not_found);
+                dismiss();
+                return;
             }
+
+            mActivity.doWithPermissionChecked(
+                    new SimplePermissionCallback(mActivity) {
+                        @Override
+                        public void onGranted() {
+                            startShootVideo();
+                        }
+                    },
+                    Def.Communication.REQUEST_PERMISSION_SHOOT_VIDEO,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE);
         });
 
-        mTvRecordAudioAsBt.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                mActivity.doWithPermissionChecked(
-                        new SimplePermissionCallback(mActivity) {
-                            @Override
-                            public void onGranted() {
-                                showRecordAudioDialog();
-                            }
-                        },
-                        Def.Communication.REQUEST_PERMISSION_RECORD_AUDIO,
-                        Manifest.permission.RECORD_AUDIO,
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE);
-            }
-        });
+        mTvRecordAudioAsBt.setOnClickListener(v -> mActivity.doWithPermissionChecked(
+                new SimplePermissionCallback(mActivity) {
+                    @Override
+                    public void onGranted() {
+                        showRecordAudioDialog();
+                    }
+                },
+                Def.Communication.REQUEST_PERMISSION_RECORD_AUDIO,
+                Manifest.permission.RECORD_AUDIO,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE));
 
-        mTvChooseMediaFilesAsBt.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                mActivity.doWithPermissionChecked(
-                        new SimplePermissionCallback(mActivity) {
-                            @Override
-                            public void onGranted() {
-                                startChooseMediaFile();
-                            }
-                        },
-                        Def.Communication.REQUEST_PERMISSION_CHOOSE_MEDIA_FILE,
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE);
-            }
-        });
+        mTvChooseMediaFilesAsBt.setOnClickListener(v -> mActivity.doWithPermissionChecked(
+                new SimplePermissionCallback(mActivity) {
+                    @Override
+                    public void onGranted() {
+                        startChooseMediaFile();
+                    }
+                },
+                Def.Communication.REQUEST_PERMISSION_CHOOSE_MEDIA_FILE,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE));
     }
 
     public void startTakePhoto() {

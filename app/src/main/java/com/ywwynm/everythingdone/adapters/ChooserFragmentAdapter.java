@@ -79,14 +79,11 @@ public class ChooserFragmentAdapter extends SingleChoiceAdapter {
 
             tv = f(R.id.tv_rv_chooser_fragment);
 
-            tv.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    pick(getAdapterPosition());
-                    notifyItemChanged(mPickedPosition);
-                    if (mOnItemClickListener != null) {
-                        mOnItemClickListener.onClick(v);
-                    }
+            tv.setOnClickListener(v -> {
+                pick(getAdapterPosition());
+                notifyItemChanged(mPickedPosition);
+                if (mOnItemClickListener != null) {
+                    mOnItemClickListener.onClick(v);
                 }
             });
         }

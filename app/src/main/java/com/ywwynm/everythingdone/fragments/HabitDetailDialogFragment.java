@@ -73,21 +73,11 @@ public class HabitDetailDialogFragment extends BaseDialogFragment {
 
         mTvToggleAsBt = f(R.id.tv_toggle_check_habit_detail_as_bt);
         mTvToggleAsBt.setTextColor(accentColor);
-        mTvToggleAsBt.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                toggle();
-            }
-        });
+        mTvToggleAsBt.setOnClickListener(v -> toggle());
 
         TextView getIt = f(R.id.tv_get_it_as_bt);
         getIt.setTextColor(accentColor);
-        getIt.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                dismiss();
-            }
-        });
+        getIt.setOnClickListener(v -> dismiss());
 
         initUI();
 

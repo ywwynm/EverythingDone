@@ -273,14 +273,11 @@ public class DateTimePicker extends PopupPicker {
             public DateTimeViewHolder(View itemView) {
                 super(itemView);
                 bt = f(R.id.bt_pick_after_time);
-                bt.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        mPopupWindow.dismiss();
-                        pickForUI(getAdapterPosition());
-                        if (mOnClickListener != null) {
-                            mOnClickListener.onClick(v);
-                        }
+                bt.setOnClickListener(v -> {
+                    mPopupWindow.dismiss();
+                    pickForUI(getAdapterPosition());
+                    if (mOnClickListener != null) {
+                        mOnClickListener.onClick(v);
                     }
                 });
             }
