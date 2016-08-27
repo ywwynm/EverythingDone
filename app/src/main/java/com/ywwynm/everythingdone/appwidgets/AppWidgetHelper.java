@@ -27,7 +27,9 @@ import com.ywwynm.everythingdone.activities.AuthenticationActivity;
 import com.ywwynm.everythingdone.activities.DetailActivity;
 import com.ywwynm.everythingdone.activities.ThingsActivity;
 import com.ywwynm.everythingdone.appwidgets.list.ThingsListWidget;
+import com.ywwynm.everythingdone.appwidgets.list.ThingsListWidgetService;
 import com.ywwynm.everythingdone.appwidgets.single.BaseThingWidget;
+import com.ywwynm.everythingdone.appwidgets.single.ChecklistWidgetService;
 import com.ywwynm.everythingdone.appwidgets.single.ThingWidgetLarge;
 import com.ywwynm.everythingdone.appwidgets.single.ThingWidgetMiddle;
 import com.ywwynm.everythingdone.appwidgets.single.ThingWidgetSmall;
@@ -37,13 +39,10 @@ import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.helpers.AttachmentHelper;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
-import com.ywwynm.everythingdone.managers.ThingManager;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.model.ThingWidgetInfo;
-import com.ywwynm.everythingdone.appwidgets.single.ChecklistWidgetService;
-import com.ywwynm.everythingdone.appwidgets.list.ThingsListWidgetService;
 import com.ywwynm.everythingdone.receivers.HabitWidgetActionReceiver;
 import com.ywwynm.everythingdone.receivers.ReminderNotificationActionReceiver;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
@@ -592,11 +591,9 @@ public class AppWidgetHelper {
         remoteViews.setTextViewText(TV_THING_ACTION, context.getString(R.string.act_finish));
 
         long id = thing.getId();
-        int position = ThingManager.getInstance(context).getPosition(id);
         Intent intent = new Intent(context, ReminderNotificationActionReceiver.class);
         intent.setAction(Def.Communication.WIDGET_ACTION_FINISH);
         intent.putExtra(Def.Communication.KEY_ID, id);
-        intent.putExtra(Def.Communication.KEY_POSITION, position);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(context,
                 (int) id, intent, PendingIntent.FLAG_UPDATE_CURRENT);
         remoteViews.setOnClickPendingIntent(TV_THING_ACTION, pendingIntent);
@@ -606,11 +603,9 @@ public class AppWidgetHelper {
         remoteViews.setTextViewText(TV_THING_ACTION, context.getString(R.string.act_finish_this_time_habit));
 
         long id = thing.getId();
-        int position = ThingManager.getInstance(context).getPosition(id);
         Intent intent = new Intent(context, HabitWidgetActionReceiver.class);
         intent.setAction(Def.Communication.WIDGET_ACTION_FINISH);
         intent.putExtra(Def.Communication.KEY_ID, id);
-        intent.putExtra(Def.Communication.KEY_POSITION, position);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(context,
                 (int) id, intent, PendingIntent.FLAG_UPDATE_CURRENT);
         remoteViews.setOnClickPendingIntent(TV_THING_ACTION, pendingIntent);

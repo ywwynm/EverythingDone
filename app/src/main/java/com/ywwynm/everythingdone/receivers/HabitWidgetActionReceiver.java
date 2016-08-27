@@ -34,6 +34,7 @@ public class HabitWidgetActionReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         if (Def.Communication.WIDGET_ACTION_FINISH.equals(intent.getAction())) {
             int position = intent.getIntExtra(Def.Communication.KEY_POSITION, -1);
+
             HabitDAO habitDAO = HabitDAO.getInstance(context);
             long id = intent.getLongExtra(Def.Communication.KEY_ID, -1);
             if (id == -1) {
@@ -44,6 +45,11 @@ public class HabitWidgetActionReceiver extends BroadcastReceiver {
             if (habit == null) {
                 Log.e(TAG, "user wants to finish habit once while habit is null!");
                 return;
+            }
+
+
+            if (position == -1) {
+                position = ThingManager.getInstance(context).getPosition(id);
             }
 
             if (habit.allowFinish()) {

@@ -30,6 +30,9 @@ public class ReminderNotificationActionReceiver extends BroadcastReceiver {
         String action = intent.getAction();
         long id = intent.getLongExtra(Def.Communication.KEY_ID, 0);
         int position = intent.getIntExtra(Def.Communication.KEY_POSITION, -1);
+        if (position == -1) {
+            position = ThingManager.getInstance(context).getPosition(id);
+        }
 
         Thing thing = null;
         if (action.equals(Def.Communication.NOTIFICATION_ACTION_FINISH)

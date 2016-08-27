@@ -62,6 +62,7 @@ import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.HabitRecord;
 import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.Thing;
+import com.ywwynm.everythingdone.model.ThingsCounts;
 import com.ywwynm.everythingdone.permission.PermissionUtil;
 import com.ywwynm.everythingdone.permission.SimplePermissionCallback;
 import com.ywwynm.everythingdone.utils.DeviceUtil;
@@ -151,6 +152,10 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     private Runnable initRecyclerViewRunnable = new Runnable() {
         @Override
         public void run() {
+            if (mThingsAdapter.getItemCount() <=
+                    ThingsCounts.getInstance(mApp).getThingsCountForActivityHeader(mApp.getLimit())) {
+                mThingManager.loadThings();
+            }
             mThingsAdapter.setShouldThingsAnimWhenAppearing(true);
             mRecyclerView.setAdapter(mThingsAdapter);
             mStaggeredGridLayoutManager = new StaggeredGridLayoutManager(
