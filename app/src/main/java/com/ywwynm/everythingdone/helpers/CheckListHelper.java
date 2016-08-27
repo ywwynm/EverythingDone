@@ -1,5 +1,8 @@
 package com.ywwynm.everythingdone.helpers;
 
+import com.ywwynm.everythingdone.App;
+import com.ywwynm.everythingdone.R;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -15,7 +18,8 @@ public class CheckListHelper {
     public static final int SIGNAL_LENGTH   = 4;
     public static final int CHECK_STATE_NUM = 5;
 
-    public static final String SIGNAL = "`启Q琼";
+    // cannot write hardcoded signal after updated to Jack compiler with Java 8
+    public static final String SIGNAL = App.getApp().getString(R.string.checklist_signal);
 
     public static boolean isCheckListStr(String s) {
         return s.length() >= SIGNAL_LENGTH && s.substring(0, SIGNAL_LENGTH).equals(SIGNAL);

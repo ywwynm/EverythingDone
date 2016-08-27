@@ -516,6 +516,7 @@
     <string name="from_1_1_4_to_1_1_5_title">Undo/Redo are now supported</string>
     <string name="notification_has_attachment">[Attachment]</string>
 
+    <string name="checklist_signal" tools:ignore="MissingTranslation">`启Q琼</string>
 
     <string-array name="help_titles" tools:ignore="MissingTranslation">
         <item>为什么会有这个页面？</item>
