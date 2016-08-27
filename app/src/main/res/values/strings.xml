@@ -517,6 +517,7 @@
     <string name="notification_has_attachment">[Attachment]</string>
 
     <string name="checklist_signal" tools:ignore="MissingTranslation">`启Q琼</string>
+    <string name="qq_my_love" tools:ignore="MissingTranslation">陈锦琼，我的女神</string>
 
     <string-array name="help_titles" tools:ignore="MissingTranslation">
         <item>为什么会有这个页面？</item>

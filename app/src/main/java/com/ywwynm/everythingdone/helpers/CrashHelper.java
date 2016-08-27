@@ -4,8 +4,10 @@ import android.app.Application;
 import android.content.Context;
 import android.os.Process;
 
+import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.BuildConfig;
 import com.ywwynm.everythingdone.Def;
+import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.FileUtil;
 
@@ -87,7 +89,7 @@ public class CrashHelper implements Thread.UncaughtExceptionHandler {
         try {
             FileOutputStream fos = mApplication.openFileOutput(
                     Def.Meta.FEEDBACK_ERROR_FILE_NAME, Context.MODE_PRIVATE);
-            fos.write("陈锦琼，我的女神".getBytes());
+            fos.write(App.getApp().getString(R.string.qq_my_love).getBytes());
         } catch (IOException e) {
             e.printStackTrace();
         }
