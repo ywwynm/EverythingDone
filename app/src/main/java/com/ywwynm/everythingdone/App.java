@@ -12,7 +12,6 @@ import android.os.Looper;
 import android.util.Log;
 
 import com.bumptech.glide.Glide;
-import com.ywwynm.everythingdone.activities.SettingsActivity;
 import com.ywwynm.everythingdone.activities.ThingsActivity;
 import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;

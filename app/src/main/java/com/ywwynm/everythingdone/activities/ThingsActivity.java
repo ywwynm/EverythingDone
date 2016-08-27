@@ -39,7 +39,6 @@ import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.FrameLayout;
-import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -808,9 +807,9 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
         View dhView = mDrawer.getHeaderView(0);
         mDrawerHeader = new DrawerHeader(mApp,
-                (ImageView) f(dhView, R.id.iv_drawer_header),
-                (TextView)  f(dhView, R.id.tv_dh_location),
-                (TextView)  f(dhView, R.id.tv_dh_completion_rate));
+                f(dhView, R.id.iv_drawer_header),
+                f(dhView, R.id.tv_dh_location),
+                f(dhView, R.id.tv_dh_completion_rate));
 
         mFab = f(R.id.fab_create);
 
@@ -819,9 +818,9 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
         mActivityHeader = new ActivityHeader(mApp, mRecyclerView,
                 f(R.id.actionbar_shadow),
-                (RelativeLayout) f(R.id.rl_header),
-                (TextView) f(R.id.tv_header_title),
-                (TextView) f(R.id.tv_header_subtitle));
+                f(R.id.rl_header),
+                f(R.id.tv_header_title),
+                f(R.id.tv_header_subtitle));
 
         View decor = getWindow().getDecorView();
         mNormalSnackbar = new Snackbar(mApp, Snackbar.NORMAL, decor, mFab);

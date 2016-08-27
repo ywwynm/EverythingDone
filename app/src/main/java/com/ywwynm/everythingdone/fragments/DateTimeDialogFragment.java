@@ -390,14 +390,14 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
         mFlDayYear = f(tab2, R.id.fl_day_rec_wmy);
 
         mIlDayYear   = new InputLayout(mActivity,
-                (TextView) f(tab2, R.id.tv_day_rec_wmy),
-                (EditText) f(tab2, R.id.et_day_rec_wmy), mAccentColor);
+                f(tab2, R.id.tv_day_rec_wmy),
+                f(tab2, R.id.et_day_rec_wmy), mAccentColor);
         mIlHourWmy   = new InputLayout(mActivity,
-                (TextView) f(tab2, R.id.tv_hour_rec_wmy),
-                (EditText) f(tab2, R.id.et_hour_rec_wmy), mAccentColor);
+                f(tab2, R.id.tv_hour_rec_wmy),
+                f(tab2, R.id.et_hour_rec_wmy), mAccentColor);
         mIlMinuteWmy = new InputLayout(mActivity,
-                (TextView) f(tab2, R.id.tv_minute_rec_wmy),
-                (EditText) f(tab2, R.id.et_minute_rec_wmy), mAccentColor);
+                f(tab2, R.id.tv_minute_rec_wmy),
+                f(tab2, R.id.et_minute_rec_wmy), mAccentColor);
 
         // week
         mGlmDayOfWeek     = new GridLayoutManager(mActivity, 4);

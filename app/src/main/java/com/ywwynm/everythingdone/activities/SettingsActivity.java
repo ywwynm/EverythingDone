@@ -28,7 +28,6 @@ import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
-import android.widget.ScrollView;
 import android.widget.TextView;
 
 import com.ywwynm.everythingdone.App;
@@ -397,7 +396,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         DisplayUtil.darkStatusBar(this);
         DisplayUtil.coverStatusBar(f(R.id.view_status_bar_cover));
 
-        EdgeEffectUtil.forScrollView((ScrollView) f(R.id.sv_settings),
+        EdgeEffectUtil.forScrollView(f(R.id.sv_settings),
                 ContextCompat.getColor(this, R.color.blue_deep));
 
         initUiUserInterface();

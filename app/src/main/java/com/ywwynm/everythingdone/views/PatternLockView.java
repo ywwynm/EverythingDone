@@ -777,7 +777,7 @@ public class PatternLockView extends View {
     }
 
     private int resolveMeasured(int measureSpec, int desired) {
-        int result = 0;
+        int result;
         int specSize = MeasureSpec.getSize(measureSpec);
         switch (MeasureSpec.getMode(measureSpec)) {
             case MeasureSpec.UNSPECIFIED:

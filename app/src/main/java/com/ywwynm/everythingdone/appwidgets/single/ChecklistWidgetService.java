@@ -2,12 +2,6 @@ package com.ywwynm.everythingdone.appwidgets.single;
 
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Color;
-import android.support.v4.content.ContextCompat;
-import android.text.SpannableString;
-import android.text.Spanned;
-import android.text.style.StrikethroughSpan;
-import android.util.TypedValue;
 import android.widget.RemoteViews;
 import android.widget.RemoteViewsService;
 
@@ -18,7 +12,6 @@ import com.ywwynm.everythingdone.database.ThingDAO;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
 import com.ywwynm.everythingdone.managers.ThingManager;
 import com.ywwynm.everythingdone.model.Thing;
-import com.ywwynm.everythingdone.utils.DisplayUtil;
 
 import java.util.List;
 

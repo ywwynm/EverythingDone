@@ -20,7 +20,7 @@ import java.util.List;
 
 public class ReminderNotificationActionReceiver extends BroadcastReceiver {
 
-    public static final String TAG = "RemnderNotificationActionReceiver";
+    public static final String TAG = "ReminderNotificationActionReceiver";
 
     public ReminderNotificationActionReceiver() { }
 
