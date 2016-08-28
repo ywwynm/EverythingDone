@@ -465,7 +465,7 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
         }
 
         if (fCount == 0) {
-            strs[2] = "∞";
+            strs[2] = "∞"; // TODO: 2016/8/28 infinity should be written in strings.xml
         } else {
             if (isReminder) {
                 strs[2] = DateTimeUtil.getTimeLengthStr(tFinTime / fCount, mApp);
