@@ -116,6 +116,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
     // group privacy
     private LinearLayout   mLlSetPasswordAsBt;
+    private TextView       mTvSetPassword;
     private RelativeLayout mRlFgprtAsBt;
     private TextView       mTvFgprtTitle;
     private TextView       mTvFgprtDscrpt;
@@ -362,6 +363,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
         // privacy
         mLlSetPasswordAsBt = f(R.id.ll_set_password_as_bt);
+        mTvSetPassword     = f(R.id.tv_set_password_title);
         mRlFgprtAsBt       = f(R.id.rl_use_fingerprint_as_bt);
         mTvFgprtTitle      = f(R.id.tv_use_fingerprint_title);
         mTvFgprtDscrpt     = f(R.id.tv_use_fingerprint_description);
@@ -426,6 +428,17 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     }
 
     private void initUiPrivacy() {
+        String password = mPreferences.getString(Def.Meta.KEY_PRIVATE_PASSWORD, null);
+        if (password == null) {
+            mTvSetPassword.setText(R.string.set_app_password);
+        } else {
+            mTvSetPassword.setText(R.string.change_app_password);
+        }
+
+        initUiFingerprint();
+    }
+
+    private void initUiFingerprint() {
         if (!DeviceUtil.hasMarshmallowApi()) {
             mRlFgprtAsBt.setEnabled(false);
             mCbFgprt.setEnabled(false);
@@ -610,7 +623,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         pldf.setType(PatternLockDialogFragment.TYPE_VALIDATE);
         pldf.setAccentColor(mAccentColor);
         pldf.setCorrectPassword(passwordBefore);
-        pldf.setValidateTitle(getString(R.string.set_app_password));
+        pldf.setValidateTitle(getString(R.string.change_app_password));
         pldf.setAuthenticationCallback(new AuthenticationHelper.AuthenticationCallback() {
             @Override
             public void onAuthenticated() {
@@ -837,6 +850,10 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             }
 
             int pickedIndex = cdf.getPickedIndex();
+            if (pickedIndex == -1) {
+                throw new IllegalStateException(
+                        "user picked a ringtone but getPickedIndex returned -1");
+            }
             Uri uri = sRingtoneUriList.get(pickedIndex);
             Context context = SettingsActivity.this;
             if (isFileRingtone(mRingtoneManager, uri)) {

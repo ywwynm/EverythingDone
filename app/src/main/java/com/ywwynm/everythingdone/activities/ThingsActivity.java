@@ -188,6 +188,8 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         }
     };
 
+    private boolean mIgnoreFirstAfterTextChangedForSearch = true;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -501,9 +503,12 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 Def.Communication.KEY_THING);
 
         if (createdDone) {
-            mRecyclerView.postDelayed(() -> {
-                justNotifyDataSetChanged();
-                afterUpdateMainUiForCreateDone();
+            mRecyclerView.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    justNotifyDataSetChanged();
+                    afterUpdateMainUiForCreateDone();
+                }
             }, 560);
             return;
         }
@@ -536,20 +541,26 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
          * ({@link ThingsAdapter#notifyItemInserted(int)}), as a result, I give up that thought.
          */
         // TODO: 2016/7/26 double 300 is good?
-        mRecyclerView.postDelayed(() -> {
-            final boolean change = mThingManager.create(thingToCreate, true, true);
-            mRecyclerView.postDelayed(() -> {
-                if (justNotifyDataSetChanged) {
-                    justNotifyDataSetChanged();
-                } else {
-                    if (change) {
-                        mThingsAdapter.notifyItemChanged(1);
-                    } else {
-                        mThingsAdapter.notifyItemInserted(1);
+        mRecyclerView.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                final boolean change = mThingManager.create(thingToCreate, true, true);
+                mRecyclerView.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (justNotifyDataSetChanged) {
+                            justNotifyDataSetChanged();
+                        } else {
+                            if (change) {
+                                mThingsAdapter.notifyItemChanged(1);
+                            } else {
+                                mThingsAdapter.notifyItemInserted(1);
+                            }
+                        }
+                        afterUpdateMainUiForCreateDone();
                     }
-                }
-                afterUpdateMainUiForCreateDone();
-            }, 300);
+                }, 300);
+            }
         }, 300);
     }
 
@@ -568,38 +579,41 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         @Thing.Type final int typeBefore = data.getIntExtra(
                 Def.Communication.KEY_TYPE_BEFORE, Thing.NOTE);
         final boolean justNotifyDataSetChanged = App.justNotifyDataSetChanged();
-        mRecyclerView.postDelayed(() -> {
-            if (justNotifyDataSetChanged) {
-                justNotifyDataSetChanged();
-            } else if (Thing.isTypeStateMatchLimit(typeBefore,
-                    Thing.UNDERWAY, mApp.getLimit())) {
-                int pos = data.getIntExtra(
-                        Def.Communication.KEY_POSITION, 1);
-                if (!App.isSearching) {
-                    mThingsAdapter.notifyItemChanged(pos);
-                } else {
-                    List<Thing> things = mThingManager.getThings();
-                    if (pos > 0 && pos < things.size()) {
-                        Thing thing = things.get(pos);
-                        if (thing.matchSearchRequirement(
-                                mEtSearch.getText().toString(),
-                                mColorPicker.getPickedColor())) {
-                            mThingsAdapter.notifyItemChanged(pos);
-                        } else {
-                            things.remove(pos);
-                            mThingsAdapter.notifyItemRemoved(pos);
+        mRecyclerView.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if (justNotifyDataSetChanged) {
+                    justNotifyDataSetChanged();
+                } else if (Thing.isTypeStateMatchLimit(typeBefore,
+                        Thing.UNDERWAY, mApp.getLimit())) {
+                    int pos = data.getIntExtra(
+                            Def.Communication.KEY_POSITION, 1);
+                    if (!App.isSearching) {
+                        mThingsAdapter.notifyItemChanged(pos);
+                    } else {
+                        List<Thing> things = mThingManager.getThings();
+                        if (pos > 0 && pos < things.size()) {
+                            Thing thing = things.get(pos);
+                            if (thing.matchSearchRequirement(
+                                    mEtSearch.getText().toString(),
+                                    mColorPicker.getPickedColor())) {
+                                mThingsAdapter.notifyItemChanged(pos);
+                            } else {
+                                things.remove(pos);
+                                mThingsAdapter.notifyItemRemoved(pos);
+                            }
+                            handleSearchResults();
                         }
-                        handleSearchResults();
+                    }
+                    if (mModeManager.getCurrentMode() == ModeManager.SELECTING) {
+                        updateSelectingUi(false);
                     }
                 }
-                if (mModeManager.getCurrentMode() == ModeManager.SELECTING) {
-                    updateSelectingUi(false);
-                }
+                mDrawerHeader.updateCompletionRate();
+                mUpdateMainUiInOnResume = true;
+                App.setSomethingUpdatedSpecially(false);
+                mBroadCastIntent = null;
             }
-            mDrawerHeader.updateCompletionRate();
-            mUpdateMainUiInOnResume = true;
-            App.setSomethingUpdatedSpecially(false);
-            mBroadCastIntent = null;
         }, 560);
     }
 
@@ -610,37 +624,40 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 Def.Communication.KEY_TYPE_BEFORE, Thing.NOTE);
 
         final boolean justNotifyDataSetChanged = App.justNotifyDataSetChanged();
-        mRecyclerView.postDelayed(() -> {
-            final int type = thing.getType();
-            final int curLimit = mApp.getLimit();
-            boolean limitMatched = Thing.isTypeStateMatchLimit(type, Thing.UNDERWAY, curLimit);
+        mRecyclerView.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                final int type = thing.getType();
+                final int curLimit = mApp.getLimit();
+                boolean limitMatched = Thing.isTypeStateMatchLimit(type, Thing.UNDERWAY, curLimit);
 
-            if (justNotifyDataSetChanged || limitMatched) {
-                justNotifyDataSetChanged();
-            } else if (Thing.isTypeStateMatchLimit(typeBefore, Thing.UNDERWAY, curLimit)) {
-                if (App.isSearching) {
-                    mThingsAdapter.notifyItemRemoved(data.getIntExtra(
-                            Def.Communication.KEY_POSITION, 1));
-                    handleSearchResults();
-                } else {
-                    final boolean change = data.getBooleanExtra(
-                            Def.Communication.KEY_CALL_CHANGE, false);
-                    if (change) {
-                        mThingsAdapter.notifyItemChanged(1);
-                    } else {
+                if (justNotifyDataSetChanged || limitMatched) {
+                    justNotifyDataSetChanged();
+                } else if (Thing.isTypeStateMatchLimit(typeBefore, Thing.UNDERWAY, curLimit)) {
+                    if (App.isSearching) {
                         mThingsAdapter.notifyItemRemoved(data.getIntExtra(
                                 Def.Communication.KEY_POSITION, 1));
+                        handleSearchResults();
+                    } else {
+                        final boolean change = data.getBooleanExtra(
+                                Def.Communication.KEY_CALL_CHANGE, false);
+                        if (change) {
+                            mThingsAdapter.notifyItemChanged(1);
+                        } else {
+                            mThingsAdapter.notifyItemRemoved(data.getIntExtra(
+                                    Def.Communication.KEY_POSITION, 1));
+                        }
+                    }
+                    if (mModeManager.getCurrentMode() == ModeManager.SELECTING) {
+                        updateSelectingUi(false);
                     }
                 }
-                if (mModeManager.getCurrentMode() == ModeManager.SELECTING) {
-                    updateSelectingUi(false);
-                }
-            }
 
-            mDrawerHeader.updateCompletionRate();
-            mUpdateMainUiInOnResume = true;
-            App.setSomethingUpdatedSpecially(false);
-            mBroadCastIntent = null;
+                mDrawerHeader.updateCompletionRate();
+                mUpdateMainUiInOnResume = true;
+                App.setSomethingUpdatedSpecially(false);
+                mBroadCastIntent = null;
+            }
         }, 560);
     }
 
@@ -661,32 +678,36 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         celebrateHabitGoalFinish(thing, thing.getState(), stateAfter);
 
         final boolean justNotifyDataSetChanged = App.justNotifyDataSetChanged();
-        mRecyclerView.postDelayed(() -> {
-            final int type = thing.getType();
-            final int curLimit = mApp.getLimit();
-            boolean limitMatched = Thing.isTypeStateMatchLimit(type, stateAfter, curLimit);
-            if (justNotifyDataSetChanged || limitMatched) {
-                justNotifyDataSetChanged();
-            } else if (Thing.isTypeStateMatchLimit(type, thing.getState(), curLimit)) {
-                mUndoThings.add(thing);
-                mUndoPositions.add(position);
-                mUndoLocations.add(thing.getLocation());
-                mStateToUndoFrom = stateAfter;
-                if (changed) {
-                    mThingsAdapter.notifyItemChanged(1);
-                    updateUIAfterStateUpdated(stateAfter,
-                            mRecyclerView.getItemAnimator().getChangeDuration(), false);
-                } else {
-                    mThingsAdapter.notifyItemRemoved(position);
-                    updateUIAfterStateUpdated(stateAfter,
-                            mRecyclerView.getItemAnimator().getRemoveDuration(), false);
+        mRecyclerView.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                final int type = thing.getType();
+                final int curLimit = mApp.getLimit();
+                boolean limitMatched = Thing.isTypeStateMatchLimit(type, stateAfter, curLimit);
+                if (justNotifyDataSetChanged || limitMatched) {
+                    justNotifyDataSetChanged();
+                } else if (Thing.isTypeStateMatchLimit(type, thing.getState(), curLimit)) {
+                    mUndoThings.add(thing);
+                    mThingsIdsToUpdateWidget.add(thing.getId());
+                    mUndoPositions.add(position);
+                    mUndoLocations.add(thing.getLocation());
+                    mStateToUndoFrom = stateAfter;
+                    if (changed) {
+                        mThingsAdapter.notifyItemChanged(1);
+                        updateUIAfterStateUpdated(stateAfter,
+                                mRecyclerView.getItemAnimator().getChangeDuration(), false);
+                    } else {
+                        mThingsAdapter.notifyItemRemoved(position);
+                        updateUIAfterStateUpdated(stateAfter,
+                                mRecyclerView.getItemAnimator().getRemoveDuration(), false);
+                    }
                 }
-            }
 
-            mDrawerHeader.updateCompletionRate();
-            mUpdateMainUiInOnResume = true;
-            App.setSomethingUpdatedSpecially(false);
-            mBroadCastIntent = null;
+                mDrawerHeader.updateCompletionRate();
+                mUpdateMainUiInOnResume = true;
+                App.setSomethingUpdatedSpecially(false);
+                mBroadCastIntent = null;
+            }
         }, 560);
     }
 
@@ -992,7 +1013,6 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 mThingManager.undoUpdateStates(mUndoThings, mUndoPositions, mUndoLocations,
                         mStateToUndoFrom, stateAfter);
                 mUndoThings.clear();
-                mThingsIdsToUpdateWidget.clear();
                 mUndoPositions.clear();
                 mUndoLocations.clear();
                 if (mStateToUndoFrom == Thing.DELETED_FOREVER) {
@@ -1009,7 +1029,6 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 int position = mUndoPositions.get(size - 1);
                 long location = mUndoLocations.get(size - 1);
                 mUndoThings.remove(size - 1);
-                mThingsIdsToUpdateWidget.remove(thing.getId());
                 mUndoPositions.remove(size - 1);
                 mUndoLocations.remove(size - 1);
 
@@ -1084,6 +1103,10 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
             @Override
             public void afterTextChanged(Editable s) {
+                if (mIgnoreFirstAfterTextChangedForSearch) {
+                    mIgnoreFirstAfterTextChangedForSearch = false;
+                    return;
+                }
                 beginSearchThings();
             }
         });
@@ -1554,6 +1577,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         mThingsAdapter.notifyDataSetChanged();
         App.isSearching = !toNormal;
         invalidateOptionsMenu();
+        mIgnoreFirstAfterTextChangedForSearch = true;
     }
 
     private void handleSearchResults() {

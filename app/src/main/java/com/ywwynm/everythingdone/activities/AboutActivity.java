@@ -160,7 +160,7 @@ public class AboutActivity extends EverythingDoneBaseActivity {
                 System.arraycopy(times, 1, times, 0, times.length - 1);
                 times[times.length - 1] = System.currentTimeMillis();
                 if (times[0] >= (System.currentTimeMillis() - 500000)) {
-                    Toast.makeText(context, "紛飛，浅唱，瓊", Toast.LENGTH_LONG).show();
+                    Toast.makeText(context, getString(R.string.fly_sing_qiong), Toast.LENGTH_LONG).show();
                     for (int i = 0; i < times.length; i++) {
                         times[i] = 0;
                     }

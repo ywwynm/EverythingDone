@@ -1,9 +1,14 @@
 package com.ywwynm.everythingdone.fragments;
 
+import android.content.Context;
 import android.content.DialogInterface;
+import android.graphics.PorterDuff;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,7 +17,8 @@ import android.widget.TextView;
 
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.R;
-import com.ywwynm.everythingdone.adapters.ChooserFragmentAdapter;
+import com.ywwynm.everythingdone.adapters.BaseViewHolder;
+import com.ywwynm.everythingdone.adapters.SingleChoiceAdapter;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil;
 
@@ -117,8 +123,7 @@ public class ChooserDialogFragment extends BaseDialogFragment {
             mRecyclerView.setOverScrollMode(View.OVER_SCROLL_NEVER);
         }
 
-        mAdapter = new ChooserFragmentAdapter(getActivity(), mItems, mAccentColor);
-        mAdapter.setOnItemClickListener(mOnItemClickListener);
+        mAdapter = new ChooserFragmentAdapter(getActivity(), mItems);
         mRecyclerView.setAdapter(mAdapter);
         mRecyclerView.setLayoutManager(mLlm);
         mAdapter.pick(mInitialIndex);
@@ -220,6 +225,84 @@ public class ChooserDialogFragment extends BaseDialogFragment {
         } else {
             mSeparator1.setVisibility(View.VISIBLE);
             mSeparator2.setVisibility(View.VISIBLE);
+        }
+    }
+
+    class ChooserFragmentAdapter extends SingleChoiceAdapter {
+
+        public static final String TAG = "ChooserFragmentAdapter";
+
+        private LayoutInflater mInflater;
+        private List<String> mItems;
+
+        public ChooserFragmentAdapter(Context context, List<String> items) {
+            mInflater = LayoutInflater.from(context);
+            mItems = items;
+        }
+
+        /**
+         * Don't know why should we write this method. However, if we remove it and called
+         * {@link SingleChoiceAdapter#getPickedPosition()} directly, there may be a crash.
+         * For example, {@link ChooserDialogFragment#getPickedIndex()} called in SettingsActivity
+         * will always return -1, which is very strange. I think this is caused by Jack compiler.
+         * Anyway let's make it work again at first.
+         */
+        @Override
+        public int getPickedPosition() {
+            return mPickedPosition;
+        }
+
+        @Override
+        public void pick(int position) {
+            notifyItemChanged(mPickedPosition);
+            mPickedPosition = position;
+        }
+
+        @Override
+        public BaseViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+            return new ChoiceHolder(mInflater.inflate(R.layout.rv_fragment_chooser, parent, false));
+        }
+
+        @Override
+        public void onBindViewHolder(BaseViewHolder viewHolder, int position) {
+            ChoiceHolder holder = (ChoiceHolder) viewHolder;
+            holder.tv.setText(mItems.get(position));
+            Context context = holder.tv.getContext();
+            int uncheckedColor = ContextCompat.getColor(context, R.color.black_54);
+            Drawable d;
+            if (mPickedPosition == position) { // -15310698
+                d = ContextCompat.getDrawable(context, R.drawable.ic_radiobutton_checked);
+                d.mutate().setColorFilter(mAccentColor, PorterDuff.Mode.SRC_ATOP);
+                Log.i(TAG, "mAccentColor: " + mAccentColor);
+            } else {
+                d = ContextCompat.getDrawable(context, R.drawable.ic_radiobutton_unchecked);
+                d.mutate().setColorFilter(uncheckedColor, PorterDuff.Mode.SRC_ATOP);
+            }
+            holder.tv.setCompoundDrawablesWithIntrinsicBounds(d, null, null, null);
+        }
+
+        @Override
+        public int getItemCount() {
+            return mItems.size();
+        }
+
+        class ChoiceHolder extends BaseViewHolder {
+
+            final TextView tv;
+
+            public ChoiceHolder(View itemView) {
+                super(itemView);
+
+                tv = f(R.id.tv_rv_chooser_fragment);
+
+                tv.setOnClickListener(view -> {
+                    pick(getAdapterPosition());
+                    notifyItemChanged(mPickedPosition);
+                    if (mOnItemClickListener != null) {
+                        mOnItemClickListener.onClick(view);
+                    }
+                });
+            }
         }
     }
 }

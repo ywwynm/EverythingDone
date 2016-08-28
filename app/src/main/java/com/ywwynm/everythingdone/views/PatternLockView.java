@@ -444,8 +444,14 @@ public class PatternLockView extends View {
     private void startCellActivatedAnimation(Cell cell) {
         final CellState cellState = mCellStates[cell.row][cell.column];
         startSizeAnimation(mDotSize, mDotSizeActivated, 96,
-                mLinearOutSlowInInterpolator, cellState, () -> startSizeAnimation(mDotSizeActivated, mDotSize, 192,
-                        mFastOutSlowInInterpolator, cellState, null));
+                mLinearOutSlowInInterpolator, cellState, new Runnable() {
+
+                    @Override
+                    public void run() {
+                        startSizeAnimation(mDotSizeActivated, mDotSize, 192,
+                                mFastOutSlowInInterpolator, cellState, null);
+                    }
+                });
         startLineEndAnimation(cellState, mInProgressX, mInProgressY,
                 getCenterXForColumn(cell.column), getCenterYForRow(cell.row));
     }
@@ -455,11 +461,16 @@ public class PatternLockView extends View {
                                        final float targetY) {
         ValueAnimator valueAnimator = ValueAnimator.ofFloat(0, 1);
         valueAnimator
-                .addUpdateListener(animation -> {
-                    float t = (Float) animation.getAnimatedValue();
-                    state.lineEndX = (1 - t) * startX + t * targetX;
-                    state.lineEndY = (1 - t) * startY + t * targetY;
-                    invalidate();
+                .addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+
+                    @Override
+                    public void onAnimationUpdate(ValueAnimator animation) {
+                        float t = (Float) animation.getAnimatedValue();
+                        state.lineEndX = (1 - t) * startX + t * targetX;
+                        state.lineEndY = (1 - t) * startY + t * targetY;
+                        invalidate();
+                    }
+
                 });
         valueAnimator.addListener(new AnimatorListenerAdapter() {
 
@@ -480,16 +491,23 @@ public class PatternLockView extends View {
                                     final Runnable endRunnable) {
         ValueAnimator valueAnimator = ValueAnimator.ofFloat(start, end);
         valueAnimator
-                .addUpdateListener(animation -> {
-                    state.size = (Float) animation.getAnimatedValue();
-                    invalidate();
+                .addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+
+                    @Override
+                    public void onAnimationUpdate(ValueAnimator animation) {
+                        state.size = (Float) animation.getAnimatedValue();
+                        invalidate();
+                    }
+
                 });
         if (endRunnable != null) {
             valueAnimator.addListener(new AnimatorListenerAdapter() {
 
                 @Override
                 public void onAnimationEnd(Animator animation) {
-                    endRunnable.run();
+                    if (endRunnable != null) {
+                        endRunnable.run();
+                    }
                 }
 
             });

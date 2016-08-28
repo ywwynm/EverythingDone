@@ -546,7 +546,9 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         DisplayUtil.expandStatusBarAboveKitkat(mStatusBar);
 
         int color = mThing.getColor();
-        AppUpdateHelper.updateFrom1_1_4To1_1_5(this, color);
+        if (mEditable) {
+            AppUpdateHelper.updateFrom1_1_4To1_1_5(this, color);
+        }
 
         int thingType = mThing.getType();
         int thingState = mThing.getState();
@@ -1943,7 +1945,9 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             if (noUpdate) {
                 setResult(resultCode);
             } else {
+                Log.i(TAG, "title: " + title + ", content: " + content + ", attachment: " + attachment);
                 if (title.isEmpty() && content.isEmpty() && attachment.isEmpty()) {
+                    Log.i(TAG, "returnToThingsActivity with state = DF");
                     returnToThingsActivity(Thing.DELETED_FOREVER);
                     resultCode = null;
                 } else {

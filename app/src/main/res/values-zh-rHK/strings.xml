@@ -400,7 +400,7 @@
     <string name="fingerprint_cannot_use_to_verify">你暫時無法使用指紋驗證身份</string>
     <string name="fingerprint_verify_success">身份驗證成功！</string>
     <string name="fingerprint_error_part_1">閣下還可以嘗試</string>
-    <string name="warning_should_set_password_first"><![CDATA[閣下還未設置私密記事密碼，請前往設置 -> 隱私 -> 設置私密記事密碼進行設置]]></string>
+    <string name="warning_should_set_password_first"><![CDATA[閣下還未設定應用密碼，請前往設置 -> 隱私 -> 設定應用密碼進行設定]]></string>
     <string name="warning_title_should_not_be_empty">如果閣下要設置該記事為私密記事，請您為它設置標題</string>
     <string name="cannot_set_as_private_thing_title">無法設置為私密記事</string>
     <string name="help_detail">幫助詳情</string>
@@ -434,8 +434,9 @@
     <string name="app_language">語言</string>
     <string name="change_app_language">更改應用語言</string>
     <string name="follow_system_settings">跟隨系統設置</string>
-    <string name="set_app_password_detail">該密碼將用於設置、查看私密記事，備份、恢復數據，以及進行其它涉及隱私的操作時的身份驗證</string>
+    <string name="set_app_password_detail">該密碼將用於對涉及隱私、安全的操作進行身份確認，包括查看私密記事，備份、恢複數據等</string>
     <string name="error_cannot_finish_habit_this_time">無法完成這一次</string>
     <string name="ringtone_loading">正在載入鈴聲...</string>
+    <string name="change_app_password">更改應用密碼</string>
 
 </resources>

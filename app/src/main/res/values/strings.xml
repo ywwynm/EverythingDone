@@ -195,6 +195,7 @@
 
     <!--group privacy-->
     <string name="set_app_password">Set password for EverythingDone</string>
+    <string name="change_app_password">Change password for EverythingDone</string>
     <string name="set_app_password_detail">The password will be used to authenticate your identity when set or check private thing, backup, restore and so on</string>
     <string name="use_fingerprint">Use fingerprint</string>
 
@@ -224,7 +225,7 @@
     <string name="fingerprint_cannot_use_to_verify">You cannot use fingerprint to verify your identity now</string>
     <string name="fingerprint_verify_success">Verify your identity successfully!</string>
     <string name="warning_title_should_not_be_empty">If you want to set this thing as private thing, please set a title for it at first.</string>
-    <string name="warning_should_set_password_first"><![CDATA[You have not set password for private thing. Please go to Settings -> Privacy -> Set password for private things and set a pattern at first.]]></string>
+    <string name="warning_should_set_password_first"><![CDATA[You have not set password for EverythingDone. Please go to Settings -> Privacy -> Set password for EverythingDone and set a pattern at first.]]></string>
     <string name="cannot_set_as_private_thing_title">Cannot set as private thing</string>
 
     <!--group advanced-->
@@ -516,8 +517,10 @@
     <string name="from_1_1_4_to_1_1_5_title">Undo/Redo are now supported</string>
     <string name="notification_has_attachment">[Attachment]</string>
 
-    <string name="base_signal" tools:ignore="MissingTranslation">`启Q琼</string>
-    <string name="qq_my_love" tools:ignore="MissingTranslation">陈锦琼，我的女神</string>
+    <string name="base_signal" translatable="false">`启q琼</string>
+    <string name="base_signal_upper" translatable="false">`启Q琼</string>
+    <string name="qq_my_love" translatable="false">陈锦琼，我的女神</string>
+    <string name="fly_sing_qiong" translatable="false">紛飛，浅唱，瓊</string>
 
     <string-array name="help_titles" tools:ignore="MissingTranslation">
         <item>为什么会有这个页面？</item>
@@ -530,10 +533,10 @@
         <item>为什么完成全部记事后还会出现一个新的记事，而且划不掉？强迫症快哭出来了。</item>
         <item>我能看到一些关于提醒、习惯的统计信息吗？</item>
         <item>为什么我删掉了一个记事，完成率却没有改变？</item>
-        <item>为什么习惯最多每天提醒4次？为什么不能设置每几个周期多少次这样的提醒呢？</item>
+        <item>为什么习惯最多每天提醒 4 次？为什么不能设置每几个周期多少次这样的提醒呢？</item>
         <item>为什么“记录”的完成、创建数目会算在完成率的计算公式里，而在每个周期里“习惯”的完成次数却不会？</item>
         <item>为什么现在还没有同步的功能？</item>
-        <item>为什么只有六种记事颜色，而且都是偏冷色调？</item>
+        <item>还会有更多的记事颜色吗？</item>
         <item>为什么不支持农历？</item>
         <item>为什么图片附件缩略图裁剪的位置不恰当，而且大图显示不够清晰？</item>
         <item>为什么我在 Google Play 无法搜索到完事儿？</item>
@@ -564,7 +567,7 @@
             \n\n如果你还无法接收到提醒，请你向我发送反馈，同时注明你的手机型号、系统类型、版本号，我会与你进一步联系。
             \n\n现在各种 ROM(尤其是本地化做得不错的 ROM)都希望能够控制第三方应用的一切行为，对于流氓应用来说，这是强有力的防护手段。完事儿虽然不是流氓应用，但这些厂商不知道，也不会为我开特例，因此，完事儿的提醒功能可能或多或少都会受到一些影响，请你谅解我，也请你谅解这些厂商。</item>
 
-        <item>目前(版本号：1.1.3)，完事儿需要的权限包括：
+        <item>目前(版本号：1.2.3)，完事儿需要的权限包括：
             \n\n1. 开机自启动，用于设定提醒，如果你不授予完事儿该权限，当你重启手机后，完事儿将无法继续提醒你的日程、习惯或目标；
             \n\n2. 读写存储空间，用于插入附件、分享使用情况时保存界面截图等；
             \n\n3. 录音，用于录制音频文件作为记事附件。
@@ -606,7 +609,7 @@
 
         <item>设计稿里是有柔和、冷静两种色调的，但光选择“冷静”里应该有哪些颜色，就耗费了将近一个星期……
             \n\n现在如果要提供更多、柔和一些的颜色，还要考虑和已有的颜色协调，字体、对话框颜色搭配，不让界面因多种颜色而让人眼花缭乱等等问题。
-            \n\n更多的颜色目前计划在 1.3.0 之前的某个版本推出。</item>
+            \n\n绿色和紫色已经在 1.2.2 版本中推出，未来可能会以多主题的方式提供更多的颜色。</item>
 
         <item>对目前的我来说，确定某一天的农历日期的算法实在是高深、困难；对于用户来说，输入某个农历日期也是一件麻烦的事情。加入农历是少有的、我会感觉不知道从何入手的事情，因此你可以期待这个功能在10年内能不能加入了。</item>
 

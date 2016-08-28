@@ -5,6 +5,7 @@ import android.database.Cursor;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.support.annotation.IntDef;
+import android.util.Log;
 
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;

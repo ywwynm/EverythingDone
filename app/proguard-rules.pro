@@ -71,7 +71,7 @@
 }
 # 对实现了Parcelable接口的所有类的类名不进行混淆，对其成员变量为Parcelable$Creator类型的成员变量的变量名不进行混淆
 -keep class * implements android.os.Parcelable {
-  public static final android.os.Parcelable$Creator *;
+  public static final *;
 }
 -keepclassmembers class fqcn.of.javascript.interface.for.webview {
 public *;
@@ -94,6 +94,8 @@ public *;
 -dontwarn org.joda.time.**
 -keep class org.joda.time.** { *; }
 -keep interface org.joda.time.** { *; }
+
+#-keep class com.ywwynm.everythingdone.model.Thing { *; }
 
 #-keep class com.ywwynm.everythingdone.utils.DisplayUtil
 #-keep class com.ywwynm.everythingdone.utils.EdgeEffectUtil

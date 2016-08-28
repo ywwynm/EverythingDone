@@ -27,8 +27,12 @@ import java.util.concurrent.Executors;
  * Created by ywwynm on 2015/9/6.
  * Controller for {@link Thing}.
  * Containing a {@link ThingDAO} member {@link mDao} to operate database.
+ *
+ * Please notice that we cannot use lambda in this class to replace "new Runnable".
  */
 public class ThingManager {
+
+    public static final String TAG = "ThingManager";
 
     private Context mContext;
 
@@ -75,17 +79,15 @@ public class ThingManager {
     private ThingManager(Context context) {
         mContext = context;
         mDao = ThingDAO.getInstance(context);
-
-        setLimit(Def.LimitForGettingThings.ALL_UNDERWAY, true);
-
         mThingsCounts = ThingsCounts.getInstance(context);
-
-        mHeaderId = mThings.get(0).getId();
-
         mExecutor = Executors.newSingleThreadExecutor();
 
         mUndoHabits = new ArrayList<>();
         mUndoGoals  = new ArrayList<>();
+
+        setLimit(Def.LimitForGettingThings.ALL_UNDERWAY, true);
+
+        mHeaderId = mThings.get(0).getId();
     }
 
     public static ThingManager getInstance(Context context) {
@@ -113,12 +115,6 @@ public class ThingManager {
 
     public void loadThings() {
         mThings = mDao.getThingsForDisplay(mLimit);
-
-        // 756699
-//        int color = Color.parseColor("#665696");
-//        Thing test = new Thing(10000, Thing.NOTE, Thing.UNDERWAY, color, "么么哒", "啦啦啦德玛西亚\n666",
-//                "", 10000, System.currentTimeMillis(), System.currentTimeMillis(), 0);
-//        mThings.add(1, test);
 
         // do self-check to prevent wrong display for normal and empty states.
         int size = mThings.size();
@@ -200,7 +196,12 @@ public class ThingManager {
     public boolean create(final Thing thingToCreate, boolean handleNotifyEmpty, boolean addToThingsNow) {
         // create in database at first
         thingToCreate.setId(mHeaderId);
-        mExecutor.execute(() -> mDao.create(thingToCreate, true, false));
+        mExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                mDao.create(thingToCreate, true, false);
+            }
+        });
 
         updateHeader(1);
 
@@ -250,7 +251,12 @@ public class ThingManager {
             updateHeader(1);
         }
 
-        mExecutor.execute(() -> mDao.update(typeBefore, updatedThing, true, false));
+        mExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                mDao.update(typeBefore, updatedThing, true, false);
+            }
+        });
 
         int state     = updatedThing.getState();
         int typeAfter = updatedThing.getType();
@@ -315,8 +321,13 @@ public class ThingManager {
         } else thingToUpdate = thing;
 
         final long headerId = mHeaderId;
-        mExecutor.execute(() -> mDao.updateState(thingToUpdate, location, stateBefore, stateAfter,
-                handleNotifyEmpty, false, toUndo, headerId, true));
+        mExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                mDao.updateState(thingToUpdate, location, stateBefore, stateAfter,
+                        handleNotifyEmpty, false, toUndo, headerId, true);
+            }
+        });
 
         int type = thing.getType();
         boolean deletedNEnow = false;
@@ -396,7 +407,12 @@ public class ThingManager {
         }
 
         final long headerId = mHeaderId;
-        mExecutor.execute(() -> mDao.updateStates(clonedThings, null, stateBefore, stateAfter, false, headerId));
+        mExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                mDao.updateStates(clonedThings, null, stateBefore, stateAfter, false, headerId);
+            }
+        });
 
         // things.get(0).getType() will lead us to current limit.
         int type = things.get(0).getType();
@@ -440,21 +456,24 @@ public class ThingManager {
             mThingsCounts.handleUpdate(t, stateBefore, t, stateAfter, v);
         }
 
-        mExecutor.execute(() -> {
-            for (Reminder goal : mUndoGoals) {
-                rDao.resetGoal(goal);
-            }
-
-            HabitDAO habitDAO = HabitDAO.getInstance(mContext);
-            long curTime = System.currentTimeMillis();
-            if (stateAfter == Thing.UNDERWAY) {
-                for (Long habitId : mUndoHabits) {
-                    habitDAO.updateHabitToLatest(habitId, true, true);
-                    habitDAO.addHabitIntervalInfo(habitId, curTime + ";");
+        mExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                for (Reminder goal : mUndoGoals) {
+                    rDao.resetGoal(goal);
                 }
-            } else {
-                for (Long habitId : mUndoHabits) {
-                    habitDAO.addHabitIntervalInfo(habitId, curTime + ",");
+
+                HabitDAO habitDAO = HabitDAO.getInstance(mContext);
+                long curTime = System.currentTimeMillis();
+                if (stateAfter == Thing.UNDERWAY) {
+                    for (Long habitId : mUndoHabits) {
+                        habitDAO.updateHabitToLatest(habitId, true, true);
+                        habitDAO.addHabitIntervalInfo(habitId, curTime + ";");
+                    }
+                } else {
+                    for (Long habitId : mUndoHabits) {
+                        habitDAO.addHabitIntervalInfo(habitId, curTime + ",");
+                    }
                 }
             }
         });
@@ -493,8 +512,13 @@ public class ThingManager {
         }
 
         final long headerId = mHeaderId;
-        mExecutor.execute(() -> mDao.updateStates(clonedThings, clonedLocations, stateBefore, stateAfter,
-                true, headerId));
+        mExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                mDao.updateStates(clonedThings, clonedLocations, stateBefore, stateAfter,
+                        true, headerId);
+            }
+        });
 
         updateHeader(6);
 
@@ -521,20 +545,24 @@ public class ThingManager {
             mThingsCounts.handleUpdate(t, stateBefore, t, stateAfter, v);
         }
 
-        mExecutor.execute(() -> {
-            mIsHandlingUndo = true;
-            ReminderDAO reminderDAO = ReminderDAO.getInstance(mContext);
-            for (Reminder goal : mUndoGoals) {
-                reminderDAO.update(goal);
-            }
-            mUndoGoals.clear();
+        mExecutor.execute(new Runnable() {
 
-            HabitDAO habitDAO = HabitDAO.getInstance(mContext);
-            for (Long habitId : mUndoHabits) {
-                habitDAO.removeLastHabitIntervalInfo(habitId);
+            @Override
+            public void run() {
+                mIsHandlingUndo = true;
+                ReminderDAO reminderDAO = ReminderDAO.getInstance(mContext);
+                for (Reminder goal : mUndoGoals) {
+                    reminderDAO.update(goal);
+                }
+                mUndoGoals.clear();
+
+                HabitDAO habitDAO = HabitDAO.getInstance(mContext);
+                for (Long habitId : mUndoHabits) {
+                    habitDAO.removeLastHabitIntervalInfo(habitId);
+                }
+                mUndoHabits.clear();
+                mIsHandlingUndo = false;
             }
-            mUndoHabits.clear();
-            mIsHandlingUndo = false;
         });
 
         createNEnow(type, stateBefore, !App.isSearching);
@@ -582,7 +610,12 @@ public class ThingManager {
         for (int i = start, j = 0; i <= end; i++, j++) {
             mThings.get(i).setLocation(locations[j]);
         }
-        mExecutor.execute(() -> mDao.updateLocations(ids, locations));
+        mExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                mDao.updateLocations(ids, locations);
+            }
+        });
     }
 
     /**

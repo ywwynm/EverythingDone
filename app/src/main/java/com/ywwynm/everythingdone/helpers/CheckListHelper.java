@@ -19,7 +19,7 @@ public class CheckListHelper {
     public static final int CHECK_STATE_NUM = 5;
 
     // cannot write hardcoded signal after updated to Jack compiler with Java 8
-    public static final String SIGNAL = App.getApp().getString(R.string.base_signal);
+    public static final String SIGNAL = App.getApp().getString(R.string.base_signal_upper);
 
     public static boolean isCheckListStr(String s) {
         return s.length() >= SIGNAL_LENGTH && s.substring(0, SIGNAL_LENGTH).equals(SIGNAL);
