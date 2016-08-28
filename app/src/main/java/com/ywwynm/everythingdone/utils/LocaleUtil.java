@@ -22,18 +22,36 @@ public class LocaleUtil {
 
     public static final String TAG = "EverythingDone$LocaleUtil";
 
+    @SuppressWarnings("deprecation")
+    public static Locale getSystemLocale(Context context) {
+        if (DeviceUtil.hasNougatApi()) {
+            return context.getResources().getConfiguration().getLocales().get(0);
+        } else {
+            return context.getResources().getConfiguration().locale;
+        }
+    }
+
+    @SuppressWarnings("deprecation")
+    public static void setAppLocale(Configuration configuration, Locale locale) {
+        if (DeviceUtil.hasNougatApi()) {
+            configuration.setLocale(locale);
+        } else {
+            configuration.locale = locale;
+        }
+    }
+
     public static boolean isChinese(Context context) {
         return isSimplifiedChinese(context) || isTraditionalChinese(context);
     }
 
     public static boolean isSimplifiedChinese(Context context) {
-        Locale locale = context.getResources().getConfiguration().locale;
-        return locale.getLanguage().equals(Locale.SIMPLIFIED_CHINESE.getLanguage());
+        return getSystemLocale(context).getLanguage()
+                .equals(Locale.SIMPLIFIED_CHINESE.getLanguage());
     }
 
     public static boolean isTraditionalChinese(Context context) {
-        Locale locale = context.getResources().getConfiguration().locale;
-        return locale.getLanguage().equals(Locale.TRADITIONAL_CHINESE.getLanguage());
+        return getSystemLocale(context).getLanguage()
+                .equals(Locale.TRADITIONAL_CHINESE.getLanguage());
     }
 
     private static final String LANGUAGE_CODE_FOLLOW_SYSTEM = "follow system";
@@ -77,7 +95,7 @@ public class LocaleUtil {
         Resources resources = App.getApp().getResources();
         DisplayMetrics dm = resources.getDisplayMetrics();
         Configuration configuration = resources.getConfiguration();
-        configuration.locale = new Locale(language, countryOrDistinct);
+        setAppLocale(configuration, new Locale(language, countryOrDistinct));
         resources.updateConfiguration(configuration, dm);
     }
 
