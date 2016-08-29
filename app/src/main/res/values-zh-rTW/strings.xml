@@ -438,5 +438,6 @@
     <string name="error_cannot_finish_habit_this_time">無法完成這一次</string>
     <string name="ringtone_loading">正在載入鈴聲...</string>
     <string name="change_app_password">更改應用密碼</string>
+    <string name="notification_private_thing_content">[私密記事]</string>
 
 </resources>

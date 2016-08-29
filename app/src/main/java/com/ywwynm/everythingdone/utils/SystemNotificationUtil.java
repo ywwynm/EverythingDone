@@ -44,9 +44,10 @@ public class SystemNotificationUtil {
      * Create a {@link NotificationCompat.Builder} for a giving thing which shows its text(title,
      * content, type description, checklist and so on), color, attachment and defines basic content
      * pendingIntent.
+     * Please notice that a private thing can also be notified.
      *
      * @param senderName caller's tag that tells DetailActivity who opened it
-     * @param id the notification's id. todo is this thing's id?
+     * @param id the notification's id.
      * @param position the position of {@param thing} inside
      *                 {@link com.ywwynm.everythingdone.managers.ThingManager#mThings}
      * @param thing the {@link Thing} to be notified.
@@ -57,8 +58,10 @@ public class SystemNotificationUtil {
             Context context, String senderName, long id, int position, Thing thing, boolean autoNotify) {
 
         Intent contentIntent = AuthenticationActivity.getOpenIntent(
-                context, senderName, id, position);
-        int type = thing.getType();
+                context, senderName, id, position,
+                Def.Communication.AUTHENTICATE_ACTION_VIEW,
+                context.getString(R.string.check_private_thing));
+        int type  = thing.getType();
         int color = thing.getColor();
         PendingIntent contentPendingIntent = PendingIntent.getActivity(context,
                 (int) id, contentIntent, PendingIntent.FLAG_UPDATE_CURRENT);
@@ -74,6 +77,11 @@ public class SystemNotificationUtil {
         String title      = thing.getTitleToDisplay();
         String content    = thing.getContent();
         String attachment = thing.getAttachment();
+
+        if (thing.isPrivate()) {
+            content    = context.getString(R.string.notification_private_thing_content);
+            attachment = "";
+        }
 
         String contentTitle = title, contentText = content;
         int style = 0;

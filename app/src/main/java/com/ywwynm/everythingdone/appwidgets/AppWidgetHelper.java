@@ -217,7 +217,9 @@ public class AppWidgetHelper {
         RemoteViews remoteViews = new RemoteViews(context.getPackageName(), R.layout.app_widget_thing);
         setAppearance(context, remoteViews, thing, appWidgetId, clazz);
         final Intent contentIntent = AuthenticationActivity.getOpenIntent(
-                context, TAG, thing.getId(), position);
+                context, TAG, thing.getId(), position,
+                Def.Communication.AUTHENTICATE_ACTION_VIEW,
+                context.getString(R.string.check_private_thing));
         PendingIntent pendingIntent = PendingIntent.getActivity(
                 context, (int) thing.getId(), contentIntent, 0);
         remoteViews.setOnClickPendingIntent(R.id.root_widget_thing, pendingIntent);

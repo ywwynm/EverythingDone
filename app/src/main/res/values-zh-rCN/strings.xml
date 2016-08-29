@@ -477,5 +477,6 @@
     <string name="error_cannot_finish_habit_this_time">无法完成这一次</string>
     <string name="ringtone_loading">正在载入铃声...</string>
     <string name="change_app_password">更改应用密码</string>
+    <string name="notification_private_thing_content">[私密记事]</string>
 
 </resources>

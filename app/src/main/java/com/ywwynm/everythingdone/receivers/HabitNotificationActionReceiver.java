@@ -11,6 +11,7 @@ import android.widget.Toast;
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
+import com.ywwynm.everythingdone.activities.AuthenticationActivity;
 import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
@@ -38,16 +39,26 @@ public class HabitNotificationActionReceiver extends BroadcastReceiver {
             HabitDAO habitDAO = HabitDAO.getInstance(context);
             HabitReminder habitReminder = habitDAO.getHabitReminderById(hrId);
             long id = habitReminder.getHabitId();
-            Habit habit = habitDAO.getHabitById(id);
-            if (habit.allowFinish(time)) {
-                habitDAO.finishOneTime(habit);
-                sendBroadCastToUpdateMainUI(context, id, position);
-                AppWidgetHelper.updateSingleThingAppWidgets(context, id);
-                AppWidgetHelper.updateThingsListAppWidgetsForType(context, Thing.HABIT);
-            } else {
-                Toast.makeText(context, R.string.error_cannot_finish_habit_this_time,
-                        Toast.LENGTH_LONG).show();
+            for (Long dId : App.getRunningDetailActivities()) if (dId == id) {
+                return;
             }
+            Intent actionIntent = AuthenticationActivity.getOpenIntent(
+                    context, TAG, id, position,
+                    Def.Communication.AUTHENTICATE_ACTION_FINISH,
+                    context.getString(R.string.act_finish));
+            actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            actionIntent.putExtra(Def.Communication.KEY_TIME, time);
+            context.startActivity(actionIntent);
+//            Habit habit = habitDAO.getHabitById(id);
+//            if (habit.allowFinish(time)) {
+//                habitDAO.finishOneTime(habit);
+//                sendBroadCastToUpdateMainUI(context, id, position);
+//                AppWidgetHelper.updateSingleThingAppWidgets(context, id);
+//                AppWidgetHelper.updateThingsListAppWidgetsForType(context, Thing.HABIT);
+//            } else {
+//                Toast.makeText(context, R.string.error_cannot_finish_habit_this_time,
+//                        Toast.LENGTH_LONG).show();
+//            }
         }
         NotificationManagerCompat nmc = NotificationManagerCompat.from(context);
         nmc.cancel((int) hrId);

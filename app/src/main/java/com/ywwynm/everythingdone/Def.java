@@ -168,11 +168,14 @@ public final class Def {
 
         public static final String KEY_TIME = PREFIX + "key.time";
 
-        public static final String KEY_HELP_TITLES   = PREFIX + "key.help_title";
-        public static final String KEY_HELP_CONTENTS = PREFIX + "key.help_content";
+        public static final String KEY_HELP_TITLES   = PREFIX + "key.help_titles";
+        public static final String KEY_HELP_CONTENTS = PREFIX + "key.help_contents";
 
         public static final String KEY_WIDGET_ID        = PREFIX + "key.widget_id";
         public static final String KEY_LIMIT            = PREFIX + "key.limit";
+
+        // added for notification action for private thing
+        public static final String KEY_TITLE            = PREFIX + "key.title";
 
         public static final int RESULT_NO_UPDATE                        = 0;
         public static final int RESULT_CREATE_THING_DONE                = 1;
@@ -193,14 +196,28 @@ public final class Def {
         public static final String NOTIFICATION_ACTION_GET_IT =
                 PREFIX + "action.notification.get_it";
 
+        // added for finish(or finish this time) action in single thing app widget
         public static final String WIDGET_ACTION_FINISH = PREFIX + "action.widget.finish";
 
         public static final String BROADCAST_ACTION_UPDATE_MAIN_UI     =
                 PREFIX + "action.broadcast.update_main_ui";
+
+        // added for update checklist in single thing app widget
         public static final String BROADCAST_ACTION_UPDATE_CHECKLIST   =
                 PREFIX + "action.broadcast.update_checklist";
+
+        // added for in-app language setting
         public static final String BROADCAST_ACTION_RESP_LOCALE_CHANGE =
                 PREFIX + "action.broadcast.resp_locale_change";
+
+        public static final String AUTHENTICATE_ACTION_VIEW   =
+                PREFIX + "action.authenticate.view";
+
+        // added mainly for notification action for private thing
+        public static final String AUTHENTICATE_ACTION_FINISH =
+                PREFIX + "action.authenticate.finish";
+        public static final String AUTHENTICATE_ACTION_DELAY  =
+                PREFIX + "action.authenticate.delay";
 
     }
 
