@@ -54,26 +54,29 @@ public class AuthenticationActivity extends AppCompatActivity {
         long id = intent.getLongExtra(Def.Communication.KEY_ID, -1);
         int position = intent.getIntExtra(Def.Communication.KEY_POSITION, -1);
         ThingManager thingManager = ThingManager.getInstance(mApp);
+        ThingDAO thingDAO = ThingDAO.getInstance(mApp);
         Thing thing = null;
         if (position == -1) {
             position = thingManager.getPosition(id);
             if (position == -1) {
-                thing = ThingDAO.getInstance(mApp).getThingById(id);
+                thing = thingDAO.getThingById(id);
+            } else {
+                thing = thingManager.getThings().get(position);
             }
         } else {
             List<Thing> things = thingManager.getThings();
             final int size = things.size();
             if (position >= size || things.get(position).getId() != id) {
                 for (int i = 0; i < size; i++) {
-                    Thing tmp = things.get(i);
-                    if (tmp.getId() == id) {
-                        thing = tmp;
+                    Thing temp = things.get(i);
+                    if (temp.getId() == id) {
+                        thing = temp;
                         position = i;
                         break;
                     }
                 }
                 if (thing == null) {
-                    thing = ThingDAO.getInstance(mApp).getThingById(id);
+                    thing = thingDAO.getThingById(id);
                     position = -1;
                 }
             } else {
@@ -87,28 +90,6 @@ public class AuthenticationActivity extends AppCompatActivity {
         }
 
         tryToAuthenticate(thing, position);
-
-//        if (thing.isPrivate()) {
-//            int color = thing.getColor();
-//            String cp = getSharedPreferences(Def.Meta.PREFERENCES_NAME, MODE_PRIVATE)
-//                    .getString(Def.Meta.KEY_PRIVATE_PASSWORD, null);
-//            AuthenticationHelper.authenticate(
-//                    this, color, getString(R.string.check_private_thing), cp,
-//                    new AuthenticationHelper.AuthenticationCallback() {
-//                        @Override
-//                        public void onAuthenticated() {
-//                            actView();
-//                        }
-//
-//                        @Override
-//                        public void onCancel() {
-//                            finish();
-//                            overridePendingTransition(0, 0);
-//                        }
-//                    });
-//        } else {
-//            actView();
-//        }
     }
 
     private void tryToAuthenticate(final Thing thing, final int position) {
@@ -182,7 +163,7 @@ public class AuthenticationActivity extends AppCompatActivity {
                     true   /* shouldUpdateHeader */);
         }
         App.setSomethingUpdatedSpecially(true);
-        sendBroadCastToUpdateUI(thing, position,
+        sendBroadCastToUpdateUiEverywhere(thing, position,
                 Def.Communication.RESULT_UPDATE_THING_STATE_DIFFERENT);
     }
 
@@ -196,7 +177,7 @@ public class AuthenticationActivity extends AppCompatActivity {
         Habit habit = habitDAO.getHabitById(id);
         if (habit.allowFinish(time)) {
             habitDAO.finishOneTime(habit);
-            sendBroadCastToUpdateUI(thing, position,
+            sendBroadCastToUpdateUiEverywhere(thing, position,
                     Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME);
         } else {
             Toast.makeText(this, R.string.error_cannot_finish_habit_this_time,
@@ -206,13 +187,10 @@ public class AuthenticationActivity extends AppCompatActivity {
 
     private void actDelay(Thing thing, int position) {
         long id = thing.getId();
+        thing.setUpdateTime(System.currentTimeMillis());
         if (position == -1) {
-            ThingDAO thingDAO = ThingDAO.getInstance(mApp);
-            thing = thingDAO.getThingById(id);
-            thing.setUpdateTime(System.currentTimeMillis());
-            thingDAO.update(thing.getType(), thing, false, false);
+            ThingDAO.getInstance(mApp).update(thing.getType(), thing, false, false);
         } else {
-            thing.setUpdateTime(System.currentTimeMillis());
             ThingManager.getInstance(mApp).update(thing.getType(), thing, position, false);
         }
         ReminderDAO dao = ReminderDAO.getInstance(mApp);
@@ -225,7 +203,7 @@ public class AuthenticationActivity extends AppCompatActivity {
         dao.update(reminder);
 
         App.setSomethingUpdatedSpecially(true);
-        sendBroadCastToUpdateUI(thing, position,
+        sendBroadCastToUpdateUiEverywhere(thing, position,
                 Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME);
     }
 
@@ -235,7 +213,7 @@ public class AuthenticationActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
-    private void sendBroadCastToUpdateUI(Thing thing, int position, int resultCode) {
+    private void sendBroadCastToUpdateUiEverywhere(Thing thing, int position, int resultCode) {
         Intent broadcastIntent = new Intent(
                 Def.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI);
         broadcastIntent.putExtra(Def.Communication.KEY_RESULT_CODE, resultCode);
