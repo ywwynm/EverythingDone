@@ -48,8 +48,8 @@ public class AutoNotifyReceiver extends BroadcastReceiver {
             return;
         }
 
-        for (Long dId : App.getRunningDetailActivities()) {
-            if (dId == id) return;
+        for (Long dId : App.getRunningDetailActivities()) if (dId == id) {
+            return;
         }
 
         NotificationCompat.Builder builder = SystemNotificationUtil
