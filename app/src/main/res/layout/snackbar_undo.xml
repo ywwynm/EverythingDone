@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout
+<LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/rl_snackbar"
     android:layout_width="match_parent"
     android:layout_height="@dimen/sb_height"
-    android:background="@color/bg_snackbar">
+    android:background="@color/bg_snackbar"
+    android:orientation="horizontal">
 
     <TextView
         android:id="@+id/tv_message"
@@ -16,14 +17,17 @@
         android:textSize="14sp"
         android:textColor="#FFFFFF"/>
 
+    <View
+        android:layout_width="0px"
+        android:layout_height="1px"
+        android:layout_weight="1"/>
+
     <Button
         android:id="@+id/bt_undo"
         android:layout_width="88dp"
         android:layout_height="@dimen/sb_height"
-        android:layout_alignParentEnd="true"
-        android:layout_alignParentRight="true"
         android:textSize="14sp"
         android:textColor="@color/app_accent"
         android:background="@drawable/selectable_item_background_light"/>
 
-</RelativeLayout>
+</LinearLayout>

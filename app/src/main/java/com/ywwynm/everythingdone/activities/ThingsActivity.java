@@ -812,10 +812,10 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 f(R.id.tv_header_title),
                 f(R.id.tv_header_subtitle));
 
-        View decor = getWindow().getDecorView();
-        mNormalSnackbar = new Snackbar(mApp, Snackbar.NORMAL, decor, mFab);
-        mUndoSnackbar   = new Snackbar(mApp, Snackbar.UNDO,   decor, mFab);
-        mHabitSnackbar  = new Snackbar(mApp, Snackbar.UNDO,   decor, mFab);
+        View fl = f(R.id.fl_things);
+        mNormalSnackbar = new Snackbar(mApp, Snackbar.NORMAL, fl, mFab);
+        mUndoSnackbar   = new Snackbar(mApp, Snackbar.UNDO,   fl, mFab);
+        mHabitSnackbar  = new Snackbar(mApp, Snackbar.UNDO,   fl, mFab);
 
         mModeManager = new ModeManager(mApp, mDrawerLayout, mFab, mActivityHeader,
                 rlContextualToolbar, contextualToolbar, new OnNavigationIconClickedListener(),

@@ -10,8 +10,6 @@ import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.AuthenticationActivity;
-import com.ywwynm.everythingdone.managers.ThingManager;
-import com.ywwynm.everythingdone.model.Thing;
 
 public class ReminderNotificationActionReceiver extends BroadcastReceiver {
 
@@ -51,25 +49,5 @@ public class ReminderNotificationActionReceiver extends BroadcastReceiver {
 
         NotificationManagerCompat nmc = NotificationManagerCompat.from(context);
         nmc.cancel((int) id);
-    }
-
-    private void sendBroadCastToUpdateMainUI(Context context, Thing thing, int position, int resultCode) {
-        Intent broadcastIntent = new Intent(
-                Def.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI);
-        broadcastIntent.putExtra(Def.Communication.KEY_RESULT_CODE, resultCode);
-        broadcastIntent.putExtra(Def.Communication.KEY_THING, thing);
-        broadcastIntent.putExtra(Def.Communication.KEY_POSITION, position);
-        if (resultCode == Def.Communication.RESULT_UPDATE_THING_STATE_DIFFERENT) {
-            broadcastIntent.putExtra(Def.Communication.KEY_STATE_AFTER, Thing.FINISHED);
-            if (position != -1) {
-                ThingManager thingManager = ThingManager.getInstance(context);
-                broadcastIntent.putExtra(Def.Communication.KEY_CALL_CHANGE,
-                        thingManager.updateState(thing, position, thing.getLocation(), Thing.UNDERWAY,
-                                Thing.FINISHED, false, true));
-            }
-        } else {
-            broadcastIntent.putExtra(Def.Communication.KEY_TYPE_BEFORE, thing.getType());
-        }
-        context.sendBroadcast(broadcastIntent);
     }
 }

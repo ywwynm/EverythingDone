@@ -1,23 +1,18 @@
 package com.ywwynm.everythingdone.views;
 
-import android.graphics.Point;
 import android.graphics.Rect;
 import android.support.annotation.StringRes;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.WindowManager;
 import android.widget.Button;
-import android.widget.PopupWindow;
-import android.widget.RelativeLayout;
+import android.widget.FrameLayout;
 import android.widget.TextView;
 
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
-import com.ywwynm.everythingdone.utils.DisplayUtil;
-import com.ywwynm.everythingdone.utils.DeviceUtil;
 
 /**
  * Created by ywwynm on 2015/7/4.
@@ -30,18 +25,19 @@ public class Snackbar {
     public static final int NORMAL = 0;
     public static final int UNDO  = 1;
 
-    private App mApplication;
+    private App mApp;
     private int mType;
     private float mHeight;
 
     private Rect mWindowRect;
     private Thread mHideThread;
 
-    private RelativeLayout mContentLayout;
+    private View mContentView;
     private TextView mTvMessage;
     private Button mBtUndo;
-    private View mDecorView;
-    private PopupWindow mPopupWindow;
+    private ViewGroup mTargetParent;
+
+    //private PopupWindow mPopupWindow;
 
     private FloatingActionButton mBindingFab;
 
@@ -54,9 +50,9 @@ public class Snackbar {
         mDismissCallback = dismissCallback;
     }
 
-    public Snackbar(App app, int type, View decorView,
+    public Snackbar(App app, int type, View targetParent,
                     FloatingActionButton bindingFab) {
-        mApplication = app;
+        mApp = app;
         mType = type;
         mWindowRect = new Rect();
         int layoutId = 0;
@@ -73,71 +69,86 @@ public class Snackbar {
         } else if (mType == UNDO) {
             layoutId = R.layout.snackbar_undo;
         }
-        View inflater = LayoutInflater.from(decorView.getContext()).inflate(layoutId, null);
-        mTvMessage = (TextView) inflater.findViewById(R.id.tv_message);
+
+        mTargetParent = (ViewGroup) targetParent;
+
+        mContentView = LayoutInflater.from(targetParent.getContext()).inflate(layoutId, null);
+        mTvMessage = (TextView) mContentView.findViewById(R.id.tv_message);
         if (mType == UNDO) {
-            mBtUndo = (Button) inflater.findViewById(R.id.bt_undo);
+            mBtUndo = (Button) mContentView.findViewById(R.id.bt_undo);
         }
-        mDecorView = decorView;
-        mPopupWindow = new PopupWindow(inflater,
-                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        if (!DeviceUtil.hasLollipopApi()) {
-            mPopupWindow.setAnimationStyle(R.style.SnackbarAnimation);
-        } else {
-            mContentLayout = (RelativeLayout) inflater.findViewById(R.id.rl_snackbar);
-            mPopupWindow.setAnimationStyle(R.style.SnackbarAnimationOnlyExit);
-        }
+        // TODO: 2016/8/30 don't cast directly
+
+//        mPopupWindow = new PopupWindow(inflater,
+//                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+//        if (!DeviceUtil.hasLollipopApi()) {
+//            mPopupWindow.setAnimationStyle(R.style.SnackbarAnimation);
+//        } else {
+//            mContentView = (RelativeLayout) inflater.findViewById(R.id.rl_snackbar);
+//            mPopupWindow.setAnimationStyle(R.style.SnackbarAnimationOnlyExit);
+//        }
         mBindingFab = bindingFab;
-        mHeight = mApplication.getResources().getDimension(R.dimen.sb_height);
+        mHeight = mApp.getResources().getDimension(R.dimen.sb_height);
     }
 
     public void show() {
-        if (mPopupWindow.isShowing()) {
+        if (isShowing()) {
             return;
         }
 
-        Point popupDisplay = DisplayUtil.getDisplaySize(mApplication);
-        mDecorView.getWindowVisibleDisplayFrame(mWindowRect);
-
-        mPopupWindow.setWidth(popupDisplay.x == mWindowRect.right ? popupDisplay.x : mWindowRect.right);
-
-        int offsetY = 0;
-        if (popupDisplay.y != mWindowRect.bottom) {
-            // if there is a Navigation Bar, Snackbar should show above it.
-            offsetY = popupDisplay.y - mWindowRect.bottom;
-        }
+//        Point popupDisplay = DisplayUtil.getDisplaySize(mApp);
+//        mTargetParent.getWindowVisibleDisplayFrame(mWindowRect);
+//
+//        mPopupWindow.setWidth(popupDisplay.x == mWindowRect.right ? popupDisplay.x : mWindowRect.right);
+//
+//        int offsetY = 0;
+//        if (popupDisplay.y != mWindowRect.bottom) {
+//            // if there is a Navigation Bar, Snackbar should show above it.
+//            offsetY = popupDisplay.y - mWindowRect.bottom;
+//        }
 
         if (mBindingFab != null &&
-                mApplication.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
+                mApp.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
             mBindingFab.showFromBottom();
             mBindingFab.raise(mHeight);
         }
 
-        try {
-            mPopupWindow.showAtLocation(mDecorView, Gravity.START | Gravity.BOTTOM, 0, offsetY);
-        } catch (WindowManager.BadTokenException e) {
-            e.printStackTrace();
-            return;
+        if (mContentView.getParent() == null) {
+            FrameLayout.LayoutParams flp = new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, (int) mHeight);
+            flp.gravity = Gravity.BOTTOM;
+            mTargetParent.addView(mContentView, flp);
         }
 
-        if (DeviceUtil.hasLollipopApi()) {
-            mContentLayout.setTranslationY(mHeight);
-            mContentLayout.animate().translationY(0).setDuration(200);
-        }
+        mContentView.setTranslationY(mHeight);
+        mContentView.animate().translationY(0).setDuration(200).start();
+
+//        try {
+//            mPopupWindow.showAtLocation(mTargetParent, Gravity.START | Gravity.BOTTOM, 0, offsetY);
+//        } catch (WindowManager.BadTokenException e) {
+//            e.printStackTrace();
+//            return;
+//        }
+
+//        if (DeviceUtil.hasLollipopApi()) {
+//            mContentView.setTranslationY(mHeight);
+//            mContentView.animate().translationY(0).setDuration(200);
+//        }
 
         if (mType == NORMAL) {
-            mDecorView.postDelayed(mHideThread, 1200 + 160);
+            mTargetParent.postDelayed(mHideThread, 1200 + 160);
         }
     }
 
     public void dismiss() {
         try {
-            mPopupWindow.dismiss();
+            mContentView.animate().translationY(mHeight).setDuration(200).start();
+            //mPopupWindow.dismiss();
             if (mType == NORMAL && mHideThread != null) {
                 mHideThread.interrupt();
             }
             if (mBindingFab != null &&
-                    mApplication.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
+                    mApp.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
                 mBindingFab.fall();
             }
             if (mDismissCallback != null) {
@@ -149,7 +160,10 @@ public class Snackbar {
     }
 
     public boolean isShowing() {
-        return mPopupWindow.isShowing();
+        if (mContentView.getParent() == null) {
+            return false;
+        }
+        return mContentView.getTranslationY() != mHeight;
     }
 
     public void setUndoListener(View.OnClickListener onClickListener) {
@@ -160,7 +174,7 @@ public class Snackbar {
     }
 
     public void setMessage(@StringRes int stringRes) {
-        mTvMessage.setText(mApplication.getString(stringRes));
+        mTvMessage.setText(mApp.getString(stringRes));
     }
 
     public void setMessage(String msg) {
@@ -168,7 +182,7 @@ public class Snackbar {
     }
 
     public void setUndoText(@StringRes int stringRes) {
-        setUndoText(mApplication.getString(stringRes));
+        setUndoText(mApp.getString(stringRes));
     }
 
     public void setUndoText(String text) {
