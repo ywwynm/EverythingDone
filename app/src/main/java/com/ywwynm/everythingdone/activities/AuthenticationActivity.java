@@ -126,17 +126,12 @@ public class AuthenticationActivity extends AppCompatActivity {
     }
 
     private void act(String action, Thing thing, int position) {
-        switch (action) {
-            case Def.Communication.AUTHENTICATE_ACTION_FINISH:
-                actFinish(thing, position);
-                break;
-            case Def.Communication.AUTHENTICATE_ACTION_DELAY:
-                actDelay(thing, position);
-                break;
-            case Def.Communication.AUTHENTICATE_ACTION_VIEW:
-            default:
-                actView();
-                break;
+        if (Def.Communication.AUTHENTICATE_ACTION_FINISH.equals(action)) {
+            actFinish(thing, position);
+        } else if (Def.Communication.AUTHENTICATE_ACTION_DELAY.equals(action)) {
+            actDelay(thing, position);
+        } else { // action view and others
+            actView();
         }
         finish();
         overridePendingTransition(0, 0);

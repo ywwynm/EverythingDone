@@ -256,6 +256,8 @@ public class AppWidgetHelper {
 
         // thing item click event
         intent = new Intent(context, AuthenticationActivity.class);
+        intent.setAction(Def.Communication.AUTHENTICATE_ACTION_VIEW);
+        intent.putExtra(Def.Communication.KEY_TITLE, context.getString(R.string.check_private_thing));
         intent.putExtra(Def.Communication.KEY_SENDER_NAME, TAG);
         intent.putExtra(Def.Communication.KEY_DETAIL_ACTIVITY_TYPE,
                 DetailActivity.UPDATE);

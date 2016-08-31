@@ -47,16 +47,22 @@ public class ThingsListWidgetService extends RemoteViewsService {
         }
 
         private void init() {
-            int limit = mIntent.getIntExtra(Def.Communication.KEY_LIMIT, -1);
+            int limit = mIntent.getIntExtra(Def.Communication.KEY_LIMIT, 0);
+            List<Thing> things;
             if (limit == App.getApp().getLimit() && !App.isSearching) {
                 ThingManager thingManager = ThingManager.getInstance(mContext);
-                mThings = new ArrayList<>();
-                mThings.addAll(thingManager.getThings());
+                things = thingManager.getThings();
             } else {
                 ThingDAO thingDAO = ThingDAO.getInstance(mContext);
-                mThings = thingDAO.getThingsForDisplay(limit);
+                things = thingDAO.getThingsForDisplay(limit);
             }
-            mThings.remove(0); // remove header
+
+            mThings = new ArrayList<>();
+            for (Thing thing : things) {
+                if (thing.getType() != Thing.HEADER) {
+                    mThings.add(new Thing(thing));
+                }
+            }
 
             mAppWidgetId = mIntent.getIntExtra(Def.Communication.KEY_WIDGET_ID, 0);
         }
@@ -78,6 +84,9 @@ public class ThingsListWidgetService extends RemoteViewsService {
 
         @Override
         public RemoteViews getViewAt(int position) {
+            if (position < -1 || position >= getCount()) {
+                return null;
+            }
             Thing thing = mThings.get(position);
             RemoteViews rv = AppWidgetHelper.createRemoteViewsForThingsListItem(
                     mContext, thing, mAppWidgetId);

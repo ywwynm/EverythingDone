@@ -122,9 +122,9 @@ public class ThingManager {
             create(Thing.generateNotifyEmpty(mLimit, getHeaderId(), mContext), false, true);
         } else if (size > 2) {
             int pos = -1;
-            Thing thing, notifyEmpty = null;
+            Thing notifyEmpty = null;
             for (int i = 1; i < size; i++) {
-                thing = mThings.get(i);
+                Thing thing = mThings.get(i);
                 if (thing.getType() >= Thing.NOTIFY_EMPTY_UNDERWAY) {
                     pos = i;
                     notifyEmpty = thing;
