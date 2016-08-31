@@ -11,7 +11,6 @@ import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.Point;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -36,7 +35,6 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
@@ -764,21 +762,21 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         super.onConfigurationChanged(newConfig);
         dismissSnackbars();
         mColorPicker.dismiss();
-
-        mSpan = DisplayUtil.isTablet(this) ? 3 : 2;
-        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
-            mSpan++;
-        }
-        mStaggeredGridLayoutManager.setSpanCount(mSpan);
+//
+//        mSpan = DisplayUtil.isTablet(this) ? 3 : 2;
+//        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
+//            mSpan++;
+//        }
+//        mStaggeredGridLayoutManager.setSpanCount(mSpan);
         if (mThingManager.getThings().size() > 1) {
             mRecyclerView.scrollToPosition(0);
         }
-
+//
         if (!App.isSearching) {
             mActivityHeader.reset(false);
         }
 
-        mThingsAdapter.notifyDataSetChanged();
+        //mThingsAdapter.notifyDataSetChanged();
 
         mModeManager.updateTitleTextSize();
         if (mModeManager.getCurrentMode() != ModeManager.SELECTING && !App.isSearching
