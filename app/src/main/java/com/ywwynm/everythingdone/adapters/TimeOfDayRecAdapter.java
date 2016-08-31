@@ -6,6 +6,7 @@ import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.RecyclerView;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -179,19 +180,22 @@ public class TimeOfDayRecAdapter extends RecyclerView.Adapter<BaseViewHolder> {
             DisplayUtil.setSelectionHandlersColor(etHour, mAccentColor);
             DisplayUtil.setSelectionHandlersColor(etMinute, mAccentColor);
 
-            View.OnFocusChangeListener focusChangeListener = (v, hasFocus) -> {
-                if (hasFocus) {
-                    DisplayUtil.tintView(v, mAccentColor);
-                    ((EditText) v).setTextColor(mAccentColor);
-                    ((EditText) v).setHighlightColor(
-                            DisplayUtil.getLightColor(mAccentColor, mContext));
-                } else {
-                    DisplayUtil.tintView(v, black_26p);
-                    ((EditText) v).setTextColor(black_54p);
-                    if (v.equals(etHour)) {
-                        DateTimeUtil.limitHourForEditText(etHour);
+            View.OnFocusChangeListener focusChangeListener = new View.OnFocusChangeListener() {
+                @Override
+                public void onFocusChange(View v, boolean hasFocus) {
+                    if (hasFocus) {
+                        DisplayUtil.tintView(v, mAccentColor);
+                        ((EditText) v).setTextColor(mAccentColor);
+                        ((EditText) v).setHighlightColor(
+                                DisplayUtil.getLightColor(mAccentColor, mContext));
                     } else {
-                        DateTimeUtil.formatLimitMinuteForEditText((EditText) v);
+                        DisplayUtil.tintView(v, black_26p);
+                        ((EditText) v).setTextColor(black_54p);
+                        if (v.equals(etHour)) {
+                            DateTimeUtil.limitHourForEditText(etHour);
+                        } else {
+                            DateTimeUtil.formatLimitMinuteForEditText((EditText) v);
+                        }
                     }
                 }
             };
@@ -201,34 +205,43 @@ public class TimeOfDayRecAdapter extends RecyclerView.Adapter<BaseViewHolder> {
             etHour.addTextChangedListener(new TimeTextWatcher(TimeTextWatcher.HOUR));
             etMinute.addTextChangedListener(new TimeTextWatcher(TimeTextWatcher.MINUTE));
 
-            etHour.setOnEditorActionListener((v, actionId, event) -> {
-                if (actionId == EditorInfo.IME_ACTION_NEXT) {
-                    etMinute.requestFocus();
-                    return true;
+            etHour.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+                @Override
+                public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                    if (actionId == EditorInfo.IME_ACTION_NEXT) {
+                        etMinute.requestFocus();
+                        return true;
+                    }
+                    return false;
                 }
-                return false;
             });
-            etMinute.setOnEditorActionListener((v, actionId, event) -> {
-                if (actionId == EditorInfo.IME_ACTION_DONE) {
-                    KeyboardUtil.hideKeyboard(v);
-                    v.clearFocus();
-                    return true;
+            etMinute.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+                @Override
+                public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                    if (actionId == EditorInfo.IME_ACTION_DONE) {
+                        KeyboardUtil.hideKeyboard(v);
+                        v.clearFocus();
+                        return true;
+                    }
+                    return false;
                 }
-                return false;
             });
 
-            ivDelete.setOnClickListener(v -> {
-                int pos = getAdapterPosition();
-                mItems.remove(2 * pos);
-                mItems.remove(2 * pos);
-                final int size = mItems.size();
-                if (size < 7 && mItems.get(size - 1) != 96) {
-                    mItems.add(96);
-                }
-                notifyItemRemoved(pos);
-                notifyItemRangeChanged(pos, (size + 1) / 2);
-                if (mOnItemChangeCallback != null) {
-                    mOnItemChangeCallback.onItemRemoved();
+            ivDelete.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    int pos = getAdapterPosition();
+                    mItems.remove(2 * pos);
+                    mItems.remove(2 * pos);
+                    final int size = mItems.size();
+                    if (size < 7 && mItems.get(size - 1) != 96) {
+                        mItems.add(96);
+                    }
+                    notifyItemRemoved(pos);
+                    notifyItemRangeChanged(pos, (size + 1) / 2);
+                    if (mOnItemChangeCallback != null) {
+                        mOnItemChangeCallback.onItemRemoved();
+                    }
                 }
             });
         }
@@ -273,17 +286,20 @@ public class TimeOfDayRecAdapter extends RecyclerView.Adapter<BaseViewHolder> {
 
             tvNewReminder = f(R.id.tv_new_reminder_as_bt_rec_day);
 
-            tvNewReminder.setOnClickListener(v -> {
-                final int size = mItems.size(), pos = getAdapterPosition();
-                mItems.set(size - 1, -1);
-                mItems.add(-1);
-                notifyItemChanged(pos);
-                if (size < 7) {
-                    mItems.add(96);
-                    notifyItemInserted(pos + 1);
-                }
-                if (mOnItemChangeCallback != null) {
-                    mOnItemChangeCallback.onItemInserted();
+            tvNewReminder.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    final int size = mItems.size(), pos = getAdapterPosition();
+                    mItems.set(size - 1, -1);
+                    mItems.add(-1);
+                    notifyItemChanged(pos);
+                    if (size < 7) {
+                        mItems.add(96);
+                        notifyItemInserted(pos + 1);
+                    }
+                    if (mOnItemChangeCallback != null) {
+                        mOnItemChangeCallback.onItemInserted();
+                    }
                 }
             });
         }

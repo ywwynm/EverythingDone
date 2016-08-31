@@ -135,7 +135,12 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
             actionBar.setDisplayHomeAsUpEnabled(true);
         }
 
-        mActionBar.setNavigationOnClickListener(v -> finish());
+        mActionBar.setNavigationOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                finish();
+            }
+        });
     }
 
     @Override
@@ -211,7 +216,12 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
             public Holder(View item) {
                 super(item);
 
-                cv.setOnClickListener(v -> endSelectThing(mThings.get(getAdapterPosition())));
+                cv.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        endSelectThing(mThings.get(getAdapterPosition()));
+                    }
+                });
             }
         }
 

@@ -290,77 +290,88 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
         }
 
         private void setupIvListeners() {
-            ivState.setOnTouchListener((v, event) -> {
-                final int pos = getAdapterPosition();
-                String item = mItems.get(pos);
-                if (event.getAction() == MotionEvent.ACTION_DOWN && mDragging
-                        && !item.equals("2") && !item.equals("3") && !item.equals("4")) {
-                    if (mIvStateTouchCallback != null) {
-                        mIvStateTouchCallback.onTouch(pos);
+            ivState.setOnTouchListener(new View.OnTouchListener() {
+                @Override
+                public boolean onTouch(View v, MotionEvent event) {
+                    final int pos = getAdapterPosition();
+                    String item = mItems.get(pos);
+                    if (event.getAction() == MotionEvent.ACTION_DOWN && mDragging
+                            && !item.equals("2") && !item.equals("3") && !item.equals("4")) {
+                        if (mIvStateTouchCallback != null) {
+                            mIvStateTouchCallback.onTouch(pos);
+                        }
+                        return true;
                     }
-                    return true;
+                    return false;
                 }
-                return false;
             });
 
-            ivState.setOnClickListener(v -> {
-                String before = CheckListHelper.toCheckListStr(mItems);
+            ivState.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    String before = CheckListHelper.toCheckListStr(mItems);
 
-                int pos = getAdapterPosition(), posAfter;
-                KeyboardUtil.hideKeyboard(et);
+                    int pos = getAdapterPosition(), posAfter;
+                    KeyboardUtil.hideKeyboard(et);
 
-                String item = mItems.get(pos);
-                char state = item.charAt(0);
-                if (mDragging && state != '2') {
-                    return;
-                }
-
-                if (state == '0') {
-                    state = '1';
-                    int size = mItems.size();
-                    int firstFinishedItemIndex = CheckListHelper.getFirstFinishedItemIndex(mItems);
-                    if (firstFinishedItemIndex == -1) {
-                        mItems.add(size, "3");
-                        mItems.add(size + 1, "4");
-                        notifyItemInserted(size);
-                        notifyItemInserted(size + 1);
-                        posAfter = size + 1;
-                    } else {
-                        posAfter = firstFinishedItemIndex - 1;
+                    String item = mItems.get(pos);
+                    char state = item.charAt(0);
+                    if (mDragging && state != '2') {
+                        return;
                     }
-                } else if (state == '1') {
-                    state = '0';
-                    posAfter = 0;
-                    if (CheckListHelper.onlyOneFinishedItem(mItems)) {
+
+                    if (state == '0') {
+                        state = '1';
                         int size = mItems.size();
-                        mItems.remove(size - 2);
-                        notifyItemRemoved(size - 2);
-                        mItems.remove(size - 2);
-                        notifyItemRemoved(size - 2);
-                        pos = size - 3;
+                        int firstFinishedItemIndex = CheckListHelper.getFirstFinishedItemIndex(mItems);
+                        if (firstFinishedItemIndex == -1) {
+                            mItems.add(size, "3");
+                            mItems.add(size + 1, "4");
+                            notifyItemInserted(size);
+                            notifyItemInserted(size + 1);
+                            posAfter = size + 1;
+                        } else {
+                            posAfter = firstFinishedItemIndex - 1;
+                        }
+                    } else if (state == '1') {
+                        state = '0';
+                        posAfter = 0;
+                        if (CheckListHelper.onlyOneFinishedItem(mItems)) {
+                            int size = mItems.size();
+                            mItems.remove(size - 2);
+                            notifyItemRemoved(size - 2);
+                            mItems.remove(size - 2);
+                            notifyItemRemoved(size - 2);
+                            pos = size - 3;
+                        }
+                    } else {
+                        insertItem(CheckListHelper.toCheckListStr(mItems), v, pos, "");
+                        return;
                     }
-                } else {
-                    insertItem(CheckListHelper.toCheckListStr(mItems), v, pos, "");
-                    return;
-                }
 
-                String itemAfter = state + item.substring(1, item.length());
+                    String itemAfter = state + item.substring(1, item.length());
 
-                mWatchEditTextChange = false;
-                mItems.remove(pos);
-                notifyItemRemoved(pos);
+                    mWatchEditTextChange = false;
+                    mItems.remove(pos);
+                    notifyItemRemoved(pos);
 
-                mItems.add(posAfter, itemAfter);
-                notifyItemInserted(posAfter);
-                mWatchEditTextChange = true;
+                    mItems.add(posAfter, itemAfter);
+                    notifyItemInserted(posAfter);
+                    mWatchEditTextChange = true;
 
-                if (mActionCallback != null) {
-                    mActionCallback.onAction(
-                            before, CheckListHelper.toCheckListStr(mItems));
+                    if (mActionCallback != null) {
+                        mActionCallback.onAction(
+                                before, CheckListHelper.toCheckListStr(mItems));
+                    }
                 }
             });
 
-            ivDelete.setOnClickListener(v -> removeItem(v, getAdapterPosition(), true));
+            ivDelete.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    removeItem(v, getAdapterPosition(), true);
+                }
+            });
         }
 
         private void setupEtListeners() {
@@ -400,51 +411,60 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
                 }
             });
 
-            et.setOnFocusChangeListener((v, hasFocus) -> {
-                if (hasFocus) {
-                    int pos = getAdapterPosition();
-                    if (mItems.get(pos).charAt(0) == '2') {
-                        insertItem(CheckListHelper.toCheckListStr(mItems), v, pos, "");
+            et.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+                @Override
+                public void onFocusChange(View v, boolean hasFocus) {
+                    if (hasFocus) {
+                        int pos = getAdapterPosition();
+                        if (mItems.get(pos).charAt(0) == '2') {
+                            insertItem(CheckListHelper.toCheckListStr(mItems), v, pos, "");
+                        } else {
+                            v.post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    ivDelete.setClickable(true);
+                                    ivDelete.setVisibility(View.VISIBLE);
+                                }
+                            });
+                        }
                     } else {
-                        v.post(() -> {
-                            ivDelete.setClickable(true);
-                            ivDelete.setVisibility(View.VISIBLE);
-                        });
+                        ivDelete.setClickable(false);
+                        ivDelete.setVisibility(View.INVISIBLE);
                     }
-                } else {
-                    ivDelete.setClickable(false);
-                    ivDelete.setVisibility(View.INVISIBLE);
                 }
             });
 
-            et.setOnKeyListener((v, keyCode, event) -> {
-                int action = event.getAction();
-                final int pos = getAdapterPosition();
-                if (action == KeyEvent.ACTION_DOWN) {
-                    if (keyCode == KeyEvent.KEYCODE_ENTER) {
-                        int cursorPos = et.getSelectionEnd();
-                        int etLength = et.getText().length();
-                        if (cursorPos == etLength) {
-                            insertItem(CheckListHelper.toCheckListStr(mItems), v, pos, "");
-                        } else {
-                            String before = CheckListHelper.toCheckListStr(mItems);
-                            String current = mItems.get(pos);
-                            String newCurrent = current.substring(0, cursorPos + 1);
-                            String next = current.substring(cursorPos + 1, etLength + 1);
-                            mItems.set(pos, newCurrent);
-                            notifyItemChanged(pos);
-                            insertItem(before, v, pos, next);
-                        }
-                        return true;
-                    } else if (keyCode == KeyEvent.KEYCODE_DEL) {
-                        if ((pos != 0 && et.getSelectionEnd() == 0)
-                                || (pos == 0 && mItems.get(0).length() == 1)) {
-                            removeItem(v, pos, false);
+            et.setOnKeyListener(new View.OnKeyListener() {
+                @Override
+                public boolean onKey(View v, int keyCode, KeyEvent event) {
+                    int action = event.getAction();
+                    final int pos = getAdapterPosition();
+                    if (action == KeyEvent.ACTION_DOWN) {
+                        if (keyCode == KeyEvent.KEYCODE_ENTER) {
+                            int cursorPos = et.getSelectionEnd();
+                            int etLength = et.getText().length();
+                            if (cursorPos == etLength) {
+                                insertItem(CheckListHelper.toCheckListStr(mItems), v, pos, "");
+                            } else {
+                                String before = CheckListHelper.toCheckListStr(mItems);
+                                String current = mItems.get(pos);
+                                String newCurrent = current.substring(0, cursorPos + 1);
+                                String next = current.substring(cursorPos + 1, etLength + 1);
+                                mItems.set(pos, newCurrent);
+                                notifyItemChanged(pos);
+                                insertItem(before, v, pos, next);
+                            }
                             return true;
+                        } else if (keyCode == KeyEvent.KEYCODE_DEL) {
+                            if ((pos != 0 && et.getSelectionEnd() == 0)
+                                    || (pos == 0 && mItems.get(0).length() == 1)) {
+                                removeItem(v, pos, false);
+                                return true;
+                            }
                         }
                     }
+                    return false;
                 }
-                return false;
             });
         }
 
@@ -464,7 +484,12 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
             notifyItemInserted(pos + 1);
             v.clearFocus();
             if (mItemsChangeCallback != null) {
-                v.post(() -> mItemsChangeCallback.onInsert(state == '2' ? pos : pos + 1));
+                v.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        mItemsChangeCallback.onInsert(state == '2' ? pos : pos + 1);
+                    }
+                });
             }
 
             if (mActionCallback != null) {
@@ -543,7 +568,12 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
                 if (deleteByClick) {
                     mItemsChangeCallback.onRemove(pos, current, -1);
                 } else {
-                    v.post(() -> mItemsChangeCallback.onRemove(posToFocus, null, cursorPos));
+                    v.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            mItemsChangeCallback.onRemove(posToFocus, null, cursorPos);
+                        }
+                    });
                 }
             }
 

@@ -83,12 +83,15 @@ public class ThreeActionsAlertDialogFragment extends BaseDialogFragment {
         if (mFirstAction != null) {
             tvFirstAsBt.setText(mFirstAction);
             tvFirstAsBt.setTextColor(mColors[2]);
-            tvFirstAsBt.setOnClickListener(v -> {
-                if (mOnClickListener != null) {
-                    mOnClickListener.onFirstClicked();
+            tvFirstAsBt.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (mOnClickListener != null) {
+                        mOnClickListener.onFirstClicked();
+                    }
+                    mContinued = true;
+                    dismiss();
                 }
-                mContinued = true;
-                dismiss();
             });
         } else {
             tvFirstAsBt.setVisibility(View.GONE);
@@ -97,22 +100,28 @@ public class ThreeActionsAlertDialogFragment extends BaseDialogFragment {
         if (mSecondAction != null) {
             tvSecondAsBt.setText(mSecondAction);
             tvSecondAsBt.setTextColor(mColors[2]);
-            tvSecondAsBt.setOnClickListener(v -> {
-                if (mOnClickListener != null) {
-                    mOnClickListener.onSecondClicked();
+            tvSecondAsBt.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (mOnClickListener != null) {
+                        mOnClickListener.onSecondClicked();
+                    }
+                    mContinued = true;
+                    dismiss();
                 }
-                mContinued = true;
-                dismiss();
             });
         } else {
             tvSecondAsBt.setVisibility(View.GONE);
         }
 
-        tvThirdAsBt.setOnClickListener(v -> {
-            if (mOnClickListener != null) {
-                mOnClickListener.onThirdClicked();
+        tvThirdAsBt.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (mOnClickListener != null) {
+                    mOnClickListener.onThirdClicked();
+                }
+                dismiss();
             }
-            dismiss();
         });
 
         return mContentView;

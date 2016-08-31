@@ -108,11 +108,26 @@ public class ModeManager {
         mRecyclerView = recyclerView;
         mAdapter = adapter;
 
-        notifyDataSetRunnable = () -> mAdapter.notifyDataSetChanged();
+        notifyDataSetRunnable = new Runnable() {
+            @Override
+            public void run() {
+                mAdapter.notifyDataSetChanged();
+            }
+        };
 
-        backNormalModeListener = v -> backNormalMode(0);
+        backNormalModeListener = new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                ModeManager.this.backNormalMode(0);
+            }
+        };
 
-        hideActionBarShadowRunnable = () -> mHeader.hideActionbarShadow();
+        hideActionBarShadowRunnable = new Runnable() {
+            @Override
+            public void run() {
+                mHeader.hideActionbarShadow();
+            }
+        };
     }
 
     public int getCurrentMode() {

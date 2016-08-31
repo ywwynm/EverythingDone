@@ -86,11 +86,14 @@ public class HelpActivity extends EverythingDoneBaseActivity {
         if (actionBar != null) {
             actionBar.setDisplayHomeAsUpEnabled(true);
         }
-        toolbar.setNavigationOnClickListener(v -> {
-            if (mHelpDetailFragment != null && mHelpDetailFragment.isVisible()) {
-                getSupportFragmentManager().popBackStack();
-            } else {
-                finish();
+        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (mHelpDetailFragment != null && mHelpDetailFragment.isVisible()) {
+                    getSupportFragmentManager().popBackStack();
+                } else {
+                    finish();
+                }
             }
         });
     }
@@ -135,18 +138,21 @@ public class HelpActivity extends EverythingDoneBaseActivity {
 
                 tv = f(R.id.tv_help_rv);
 
-                f(R.id.ll_help_rv).setOnClickListener(v -> {
-                    final int pos = getAdapterPosition();
-                    mHelpDetailFragment = HelpDetailFragment.newInstance(
-                            mTitles, mContents, pos);
-                    final String tag = HelpDetailFragment.TAG;
-                    getSupportFragmentManager()
-                            .beginTransaction()
-                            .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
-                            .replace(R.id.fl_fragment_container_help,
-                                    mHelpDetailFragment, tag)
-                            .addToBackStack(tag)
-                            .commit();
+                f(R.id.ll_help_rv).setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        final int pos = getAdapterPosition();
+                        mHelpDetailFragment = HelpDetailFragment.newInstance(
+                                mTitles, mContents, pos);
+                        final String tag = HelpDetailFragment.TAG;
+                        getSupportFragmentManager()
+                                .beginTransaction()
+                                .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
+                                .replace(R.id.fl_fragment_container_help,
+                                        mHelpDetailFragment, tag)
+                                .addToBackStack(tag)
+                                .commit();
+                    }
                 });
             }
         }

@@ -43,20 +43,23 @@ public class InputLayout {
         setColors(black_26p);
 
         mEditText.setSelectAllOnFocus(true);
-        mEditText.setOnFocusChangeListener((v, hasFocus) -> {
-            if (hasFocus) {
-                raiseLabel(true);
-                setColors(mAccentColor);
-                mTextView.setTypeface(Typeface.DEFAULT_BOLD);
-            } else {
-                if (mEditText.getText().toString().isEmpty()) {
-                    fallLabel();
+        mEditText.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View v, boolean hasFocus) {
+                if (hasFocus) {
+                    InputLayout.this.raiseLabel(true);
+                    InputLayout.this.setColors(mAccentColor);
+                    mTextView.setTypeface(Typeface.DEFAULT_BOLD);
+                } else {
+                    if (mEditText.getText().toString().isEmpty()) {
+                        InputLayout.this.fallLabel();
+                    }
+                    InputLayout.this.setColors(black_26p);
+                    mTextView.setTypeface(Typeface.DEFAULT);
                 }
-                setColors(black_26p);
-                mTextView.setTypeface(Typeface.DEFAULT);
-            }
-            if (mOnFocusChangeListener != null) {
-                mOnFocusChangeListener.onFocusChange(v, hasFocus);
+                if (mOnFocusChangeListener != null) {
+                    mOnFocusChangeListener.onFocusChange(v, hasFocus);
+                }
             }
         });
         DisplayUtil.setSelectionHandlersColor(mEditText, accentColor);

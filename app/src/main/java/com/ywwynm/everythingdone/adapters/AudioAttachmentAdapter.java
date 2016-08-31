@@ -119,10 +119,13 @@ public class AudioAttachmentAdapter extends RecyclerView.Adapter<AudioAttachment
         File file = new File(typePathName.substring(1, typePathName.length()));
 
         mPlayer = MediaPlayer.create(mActivity, Uri.fromFile(file));
-        mPlayer.setOnCompletionListener(mp -> {
-            final int index1 = mPlayingIndex;
-            stopPlaying();
-            notifyItemChanged(index1);
+        mPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+            @Override
+            public void onCompletion(MediaPlayer mp) {
+                final int index1 = mPlayingIndex;
+                stopPlaying();
+                notifyItemChanged(index1);
+            }
         });
         mPlayer.start();
     }
@@ -160,12 +163,20 @@ public class AudioAttachmentAdapter extends RecyclerView.Adapter<AudioAttachment
             d1.setColorFilter(Color.parseColor("#8A000000"), PorterDuff.Mode.SRC_ATOP);
             ivThird.setImageDrawable(d1);
 
-            cv.setOnClickListener(v -> togglePlay());
+            cv.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    togglePlay();
+                }
+            });
 
-            ivThird.setOnClickListener(v -> {
-                String item = mItems.get(getAdapterPosition());
-                String pathName = item.substring(1, item.length());
-                AttachmentHelper.showAttachmentInfoDialog(mActivity, mAccentColor, pathName);
+            ivThird.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    String item = mItems.get(AudioCardViewHolder.this.getAdapterPosition());
+                    String pathName = item.substring(1, item.length());
+                    AttachmentHelper.showAttachmentInfoDialog(mActivity, mAccentColor, pathName);
+                }
             });
 
             if (mEditable) {
@@ -176,16 +187,24 @@ public class AudioAttachmentAdapter extends RecyclerView.Adapter<AudioAttachment
         }
 
         private void setEventsEditable() {
-            ivFirst.setOnClickListener(v -> togglePlay());
+            ivFirst.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    togglePlay();
+                }
+            });
 
-            ivSecond.setOnClickListener(v -> {
-                int pos = getAdapterPosition();
-                if (mPlayingIndex == pos) {
-                    stopPlaying();
-                    notifyItemChanged(pos);
-                } else {
-                    if (mRemoveCallback != null) {
-                        mRemoveCallback.onRemoved(pos);
+            ivSecond.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    int pos = getAdapterPosition();
+                    if (mPlayingIndex == pos) {
+                        stopPlaying();
+                        notifyItemChanged(pos);
+                    } else {
+                        if (mRemoveCallback != null) {
+                            mRemoveCallback.onRemoved(pos);
+                        }
                     }
                 }
             });
@@ -211,28 +230,34 @@ public class AudioAttachmentAdapter extends RecyclerView.Adapter<AudioAttachment
         }
 
         private void setEventsUneditable() {
-            ivFirst.setOnClickListener(v -> {
-                if (mPlayer.isPlaying()) {
-                    mPlayer.pause();
-                } else {
-                    mPlayer.start();
+            ivFirst.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (mPlayer.isPlaying()) {
+                        mPlayer.pause();
+                    } else {
+                        mPlayer.start();
+                    }
+                    notifyItemChanged(getAdapterPosition());
                 }
-                notifyItemChanged(getAdapterPosition());
             });
 
-            ivSecond.setOnClickListener(v -> {
-                int pos = getAdapterPosition();
-                if (mPlayingIndex == pos) {
-                    stopPlaying();
-                } else {
-                    if (mPlayingIndex != -1) {
-                        final int index = mPlayingIndex;
-                        stopPlaying();
-                        notifyItemChanged(index);
+            ivSecond.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    int pos = getAdapterPosition();
+                    if (mPlayingIndex == pos) {
+                         stopPlaying();
+                    } else {
+                        if (mPlayingIndex != -1) {
+                            final int index = mPlayingIndex;
+                            stopPlaying();
+                            notifyItemChanged(index);
+                        }
+                        startPlaying(pos);
                     }
-                    startPlaying(pos);
+                    notifyItemChanged(pos);
                 }
-                notifyItemChanged(pos);
             });
         }
     }

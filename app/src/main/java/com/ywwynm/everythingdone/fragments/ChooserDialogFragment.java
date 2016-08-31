@@ -129,9 +129,12 @@ public class ChooserDialogFragment extends BaseDialogFragment {
         mAdapter.pick(mInitialIndex);
 
         if (mItems.size() > 9) {
-            mRecyclerView.post(() -> {
-                mRecyclerView.scrollToPosition(mInitialIndex);
-                updateSeparators();
+            mRecyclerView.post(new Runnable() {
+                @Override
+                public void run() {
+                    mRecyclerView.scrollToPosition(mInitialIndex);
+                    updateSeparators();
+                }
             });
         }
     }
@@ -146,19 +149,30 @@ public class ChooserDialogFragment extends BaseDialogFragment {
                 }
             });
         }
-        mTvCancelAsBt.setOnClickListener(v -> dismiss());
-        mTvConfirmAsBt.setOnClickListener(v -> {
-            if (mConfirmListener != null) {
-                mConfirmListener.onClick(v);
+        mTvCancelAsBt.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dismiss();
             }
-            dismiss();
         });
-        if (mShouldShowMore) {
-            mTvMoreAsBt.setOnClickListener(v -> {
-                if (mMoreListener != null) {
-                    mMoreListener.onClick(v);
+        mTvConfirmAsBt.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (mConfirmListener != null) {
+                    mConfirmListener.onClick(v);
                 }
                 dismiss();
+            }
+        });
+        if (mShouldShowMore) {
+            mTvMoreAsBt.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (mMoreListener != null) {
+                        mMoreListener.onClick(v);
+                    }
+                    dismiss();
+                }
             });
         }
 
@@ -240,18 +254,6 @@ public class ChooserDialogFragment extends BaseDialogFragment {
             mItems = items;
         }
 
-        /**
-         * Don't know why should we write this method. However, if we remove it and called
-         * {@link SingleChoiceAdapter#getPickedPosition()} directly, there may be a crash.
-         * For example, {@link ChooserDialogFragment#getPickedIndex()} called in SettingsActivity
-         * will always return -1, which is very strange. I think this is caused by Jack compiler.
-         * Anyway let's make it work again at first.
-         */
-        @Override
-        public int getPickedPosition() {
-            return mPickedPosition;
-        }
-
         @Override
         public void pick(int position) {
             notifyItemChanged(mPickedPosition);
@@ -295,11 +297,14 @@ public class ChooserDialogFragment extends BaseDialogFragment {
 
                 tv = f(R.id.tv_rv_chooser_fragment);
 
-                tv.setOnClickListener(view -> {
-                    pick(getAdapterPosition());
-                    notifyItemChanged(mPickedPosition);
-                    if (mOnItemClickListener != null) {
-                        mOnItemClickListener.onClick(view);
+                tv.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        pick(getAdapterPosition());
+                        notifyItemChanged(mPickedPosition);
+                        if (mOnItemClickListener != null) {
+                            mOnItemClickListener.onClick(v);
+                        }
                     }
                 });
             }

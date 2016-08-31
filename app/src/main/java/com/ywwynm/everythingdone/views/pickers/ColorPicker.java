@@ -250,11 +250,14 @@ public class ColorPicker extends PopupPicker {
             public AllColorViewHolder(View itemView) {
                 super(itemView);
                 bt = f(R.id.bt_all_color);
-                bt.setOnClickListener(v -> {
-                    mPopupWindow.dismiss();
-                    pickForUI(0);
-                    if (mOnClickListener != null) {
-                        mOnClickListener.onClick(v);
+                bt.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        mPopupWindow.dismiss();
+                        pickForUI(0);
+                        if (mOnClickListener != null) {
+                            mOnClickListener.onClick(v);
+                        }
                     }
                 });
             }
@@ -267,11 +270,14 @@ public class ColorPicker extends PopupPicker {
             public FabViewHolder(View itemView) {
                 super(itemView);
                 fab = f(R.id.fab_pick_color);
-                fab.setOnClickListener(v -> {
-                    mPopupWindow.dismiss();
-                    pickForUI(getAdapterPosition());
-                    if (mOnClickListener != null) {
-                        mOnClickListener.onClick(v);
+                fab.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        mPopupWindow.dismiss();
+                        pickForUI(getAdapterPosition());
+                        if (mOnClickListener != null) {
+                            mOnClickListener.onClick(v);
+                        }
                     }
                 });
             }

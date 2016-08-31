@@ -24,9 +24,11 @@ import android.support.v7.app.ActionBar;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import com.ywwynm.everythingdone.App;
@@ -185,9 +187,12 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                 cursor.close();
 
                 Handler handler = new Handler(Looper.getMainLooper());
-                handler.post(() -> {
-                    ldf.dismiss();
-                    showRingtoneDialog(index);
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        ldf.dismiss();
+                        showRingtoneDialog(index);
+                    }
                 });
             }
         }.start();
@@ -254,9 +259,12 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                 final Ringtone ringtone = RingtoneManager.getRingtone(this, uri);
                 ringtone.play();
                 mPlayingRingtone = ringtone;
-                root.postDelayed(() -> {
-                    if (ringtone.isPlaying()) {
-                        ringtone.stop();
+                root.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (ringtone.isPlaying()) {
+                            ringtone.stop();
+                        }
                     }
                 }, 6000);
 
@@ -391,7 +399,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         DisplayUtil.darkStatusBar(this);
         DisplayUtil.coverStatusBar(f(R.id.view_status_bar_cover));
 
-        EdgeEffectUtil.forScrollView(f(R.id.sv_settings),
+        EdgeEffectUtil.forScrollView((ScrollView) f(R.id.sv_settings),
                 ContextCompat.getColor(this, R.color.blue_deep));
 
         initUiUserInterface();
@@ -520,7 +528,12 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         if (actionBar != null) {
             actionBar.setDisplayHomeAsUpEnabled(true);
         }
-        toolbar.setNavigationOnClickListener(v -> finish());
+        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                finish();
+            }
+        });
     }
 
     @Override
@@ -533,24 +546,42 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     }
 
     private void setUiEvents() {
-        mLlDrawerHeader.setOnClickListener(v -> showChangeDrawerHeaderDialog());
+        mLlDrawerHeader.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showChangeDrawerHeaderDialog();
+            }
+        });
 
-        mLlLanguage.setOnClickListener(v -> showChooseLanguageDialog());
+        mLlLanguage.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showChooseLanguageDialog();
+            }
+        });
 
-        mRlTwiceBackAsBt.setOnClickListener(v -> mCbTwiceBack.setChecked(!mCbTwiceBack.isChecked()));
+        mRlTwiceBackAsBt.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mCbTwiceBack.setChecked(!mCbTwiceBack.isChecked());
+            }
+        });
     }
 
     private void setRingtoneEvents() {
         for (int i = 0; i < 4; i++) {
             final int j = i;
-            mLlsRingtone[j].setOnClickListener(v -> {
-                if (sRingtoneTitleList == null) {
-                    final LoadingDialogFragment ldf = createLoadingDialog(
-                            R.string.please_wait, R.string.ringtone_loading);
-                    ldf.showAllowingStateLoss(getFragmentManager(), LoadingDialogFragment.TAG);
-                    initSystemRingtoneList(ldf, j);
-                } else {
-                    showRingtoneDialog(j);
+            mLlsRingtone[j].setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (sRingtoneTitleList == null) {
+                        final LoadingDialogFragment ldf = createLoadingDialog(
+                                R.string.please_wait, R.string.ringtone_loading);
+                        ldf.showAllowingStateLoss(getFragmentManager(), LoadingDialogFragment.TAG);
+                        initSystemRingtoneList(ldf, j);
+                    } else {
+                        showRingtoneDialog(j);
+                    }
                 }
             });
         }
@@ -565,43 +596,59 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     }
 
     private void setDataEvents() {
-        mTvBackupAsBt.setOnClickListener(v -> showBackupDialog());
-        mLlRestoreAsBt.setOnClickListener(v -> showRestoreDialog());
+        mTvBackupAsBt.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showBackupDialog();
+            }
+        });
+        mLlRestoreAsBt.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showRestoreDialog();
+            }
+        });
     }
 
     private void setPrivacyEvents() {
-        mLlSetPasswordAsBt.setOnClickListener(v -> {
-            String passwordBefore = mPreferences.getString(
-                    Def.Meta.KEY_PRIVATE_PASSWORD, null);
-            if (passwordBefore == null) {
-                beginSetPassword();
-            } else {
-                beginChangePassword(passwordBefore);
+        mLlSetPasswordAsBt.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String passwordBefore = mPreferences.getString(
+                        Def.Meta.KEY_PRIVATE_PASSWORD, null);
+                if (passwordBefore == null) {
+                    beginSetPassword();
+                } else {
+                    beginChangePassword(passwordBefore);
+                }
             }
         });
 
-        mRlFgprtAsBt.setOnClickListener(v -> {
-            final boolean toUseFingerprint = !mCbFgprt.isChecked();
-            if (!toUseFingerprint) {
-                final PatternLockDialogFragment pldf = new PatternLockDialogFragment();
-                pldf.setValidateTitle(getString(R.string.use_fingerprint));
-                pldf.setCorrectPassword(mPreferences.getString(Def.Meta.KEY_PRIVATE_PASSWORD, null));
-                pldf.setAuthenticationCallback(new AuthenticationHelper.AuthenticationCallback() {
-                    @Override
-                    public void onAuthenticated() {
-                        mCbFgprt.setChecked(false);
-                    }
+        mRlFgprtAsBt.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                final boolean toUseFingerprint = !mCbFgprt.isChecked();
+                if (!toUseFingerprint) {
+                    final PatternLockDialogFragment pldf = new PatternLockDialogFragment();
+                    pldf.setValidateTitle(getString(R.string.use_fingerprint));
+                    pldf.setCorrectPassword(mPreferences.getString(Def.Meta.KEY_PRIVATE_PASSWORD, null));
+                    pldf.setAuthenticationCallback(new AuthenticationHelper.AuthenticationCallback() {
+                        @Override
+                        public void onAuthenticated() {
+                            mCbFgprt.setChecked(false);
+                        }
 
-                    @Override
-                    public void onCancel() {
+                        @Override
+                        public void onCancel() {
 
-                    }
-                });
-                pldf.setAccentColor(mAccentColor);
-                pldf.setType(PatternLockDialogFragment.TYPE_VALIDATE);
-                pldf.show(getFragmentManager(), PatternLockDialogFragment.TAG);
-            } else {
-                mCbFgprt.setChecked(true);
+                        }
+                    });
+                    pldf.setAccentColor(mAccentColor);
+                    pldf.setType(PatternLockDialogFragment.TYPE_VALIDATE);
+                    pldf.show(getFragmentManager(), PatternLockDialogFragment.TAG);
+                } else {
+                    mCbFgprt.setChecked(true);
+                }
             }
         });
     }
@@ -610,10 +657,13 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         final PatternLockDialogFragment pldf = new PatternLockDialogFragment();
         pldf.setType(PatternLockDialogFragment.TYPE_SET);
         pldf.setAccentColor(mAccentColor);
-        pldf.setPasswordSetDoneListener(v -> {
-            mPreferences.edit()
-                    .putString(Def.Meta.KEY_PRIVATE_PASSWORD, pldf.getPassword()).apply();
-            initUiPrivacy();
+        pldf.setPasswordSetDoneListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mPreferences.edit()
+                        .putString(Def.Meta.KEY_PRIVATE_PASSWORD, pldf.getPassword()).apply();
+                initUiPrivacy();
+            }
         });
         pldf.show(getFragmentManager(), PatternLockDialogFragment.TAG);
     }
@@ -641,29 +691,43 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     private void setAdvancedEvents() {
         setQuickCreateEvents();
 
-        mLlANAsBt.setOnClickListener(v -> {
-            if (mCdfAN == null) {
-                initAutoNotifyFragment();
+        mLlANAsBt.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (mCdfAN == null) {
+                    initAutoNotifyFragment();
+                }
+                mCdfAN.show(getFragmentManager(), ChooserDialogFragment.TAG);
             }
-            mCdfAN.show(getFragmentManager(), ChooserDialogFragment.TAG);
         });
 
-        mIvANAsBt.setOnClickListener(v -> {
-            final AlertDialogFragment adf = createAlertDialog(
-                    false, R.string.auto_notify, R.string.auto_notify_help_info);
-            adf.show(getFragmentManager(), AlertDialogFragment.TAG);
+        mIvANAsBt.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                final AlertDialogFragment adf = createAlertDialog(
+                        false, R.string.auto_notify, R.string.auto_notify_help_info);
+                adf.show(getFragmentManager(), AlertDialogFragment.TAG);
+            }
         });
     }
 
     private void setQuickCreateEvents() {
-        mRlQuickCreateAsBt.setOnClickListener(v -> mCbQuickCreate.toggle());
+        mRlQuickCreateAsBt.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mCbQuickCreate.toggle();
+            }
+        });
 
-        mCbQuickCreate.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (isChecked) {
-                SystemNotificationUtil.createQuickCreateNotification(App.getApp());
-            } else {
-                NotificationManagerCompat.from(App.getApp()).cancel(
-                        Def.Meta.ONGOING_NOTIFICATION_ID);
+        mCbQuickCreate.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    SystemNotificationUtil.createQuickCreateNotification(App.getApp());
+                } else {
+                    NotificationManagerCompat.from(App.getApp()).cancel(
+                            Def.Meta.ONGOING_NOTIFICATION_ID);
+                }
             }
         });
     }
@@ -671,23 +735,29 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     private void showChangeDrawerHeaderDialog() {
         final TwoOptionsDialogFragment todf = new TwoOptionsDialogFragment();
         todf.setStartAction(R.drawable.act_default_drawer_header, R.string.default_drawer_header,
-                v -> {
-                    mTvDrawerHeader.setTextSize(14);
-                    mTvDrawerHeader.setText(R.string.default_drawer_header);
-                    todf.dismiss();
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        mTvDrawerHeader.setTextSize(14);
+                        mTvDrawerHeader.setText(R.string.default_drawer_header);
+                        todf.dismiss();
+                    }
                 });
         todf.setEndAction(R.drawable.act_select_image_as_drawer_header, R.string.more,
-                v -> {
-                    todf.dismiss();
-                    doWithPermissionChecked(
-                            new SimplePermissionCallback(SettingsActivity.this) {
-                                @Override
-                                public void onGranted() {
-                                    startChooseImageAsDrawerHeader();
-                                }
-                            },
-                            Def.Communication.REQUEST_PERMISSION_CHOOSE_IMAGE_FILE,
-                            Manifest.permission.WRITE_EXTERNAL_STORAGE);
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        todf.dismiss();
+                        doWithPermissionChecked(
+                                new SimplePermissionCallback(SettingsActivity.this) {
+                                    @Override
+                                    public void onGranted() {
+                                        startChooseImageAsDrawerHeader();
+                                    }
+                                },
+                                Def.Communication.REQUEST_PERMISSION_CHOOSE_IMAGE_FILE,
+                                Manifest.permission.WRITE_EXTERNAL_STORAGE);
+                    }
                 });
         todf.show(getFragmentManager(), TwoOptionsDialogFragment.TAG);
     }
@@ -719,22 +789,25 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         }
         final int initialIndex = index;
         cdf.setInitialIndex(initialIndex);
-        cdf.setConfirmListener(v -> {
-            int pickedIndex = cdf.getPickedIndex();
-            if (pickedIndex == initialIndex) {
-                return;
-            }
-            Context context = SettingsActivity.this;
-            mPreferences.edit().putString(Def.Meta.KEY_LANGUAGE_CODE,
-                    resources.getStringArray(R.array.language_codes)[pickedIndex]).commit();
-            App.killMeAndRestart(context, null, 0);
+        cdf.setConfirmListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                int pickedIndex = cdf.getPickedIndex();
+                if (pickedIndex == initialIndex) {
+                    return;
+                }
+                Context context = SettingsActivity.this;
+                mPreferences.edit().putString(Def.Meta.KEY_LANGUAGE_CODE,
+                        resources.getStringArray(R.array.language_codes)[pickedIndex]).commit();
+                App.killMeAndRestart(context, null, 0);
 
-            Intent intent = new Intent(context, LocaleChangeReceiver.class);
-            intent.setAction(Def.Communication.BROADCAST_ACTION_RESP_LOCALE_CHANGE);
-            PendingIntent pendingIntent = PendingIntent.getBroadcast(context,
-                    0, intent, PendingIntent.FLAG_CANCEL_CURRENT);
-            AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-            am.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 600, pendingIntent);
+                Intent intent = new Intent(context, LocaleChangeReceiver.class);
+                intent.setAction(Def.Communication.BROADCAST_ACTION_RESP_LOCALE_CHANGE);
+                PendingIntent pendingIntent = PendingIntent.getBroadcast(context,
+                        0, intent, PendingIntent.FLAG_CANCEL_CURRENT);
+                AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+                am.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 600, pendingIntent);
+            }
         });
         cdf.showAllowingStateLoss(getFragmentManager(), ChooserDialogFragment.TAG);
     }
@@ -743,7 +816,12 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         final AlertDialogFragment adf = createAlertDialog(
                 true, R.string.backup, R.string.backup_content);
         adf.setConfirmText(getString(R.string.backup_start));
-        adf.setConfirmListener(this::authenticateToBackup);
+        adf.setConfirmListener(new AlertDialogFragment.ConfirmListener() {
+            @Override
+            public void onConfirm() {
+                authenticateToBackup();
+            }
+        });
         adf.show(getFragmentManager(), AlertDialogFragment.TAG);
     }
 
@@ -782,7 +860,12 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         final AlertDialogFragment adf = createAlertDialog(
                 true, R.string.restore, R.string.restore_content);
         adf.setConfirmText(getString(R.string.restore_start));
-        adf.setConfirmListener(this::authenticateToRestore);
+        adf.setConfirmListener(new AlertDialogFragment.ConfirmListener() {
+            @Override
+            public void onConfirm() {
+                authenticateToRestore();
+            }
+        });
         adf.show(getFragmentManager(), AlertDialogFragment.TAG);
     }
 
@@ -825,51 +908,63 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         cdf.setItems(sRingtoneTitleList);
         cdf.setInitialIndex(sRingtoneUriList.indexOf(mChosenRingtoneUris[index]));
         cdf.setShouldOverScroll(true);
-        cdf.setConfirmListener(v -> {
-            int pickedIndex = cdf.getPickedIndex();
-            mTvsRingtone[index].setText(sRingtoneTitleList.get(pickedIndex));
-            cdf.setInitialIndex(pickedIndex);
-            mChosenRingtoneUris[index] = sRingtoneUriList.get(pickedIndex);
-            mChosenRingtoneTitles[index] = sRingtoneTitleList.get(pickedIndex);
-        });
-        cdf.setMoreListener(v -> {
-            mChoosingIndex = index;
-            doWithPermissionChecked(
-                    new SimplePermissionCallback(SettingsActivity.this) {
-                        @Override
-                        public void onGranted() {
-                            startChooseRingtoneFromStorage();
-                        }
-                    },
-                    Def.Communication.REQUEST_PERMISSION_CHOOSE_AUDIO_FILE,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE);
-        });
-        cdf.setOnItemClickListener(v -> {
-            if (mPlayingRingtone != null) {
-                mPlayingRingtone.stop();
+        cdf.setConfirmListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                int pickedIndex = cdf.getPickedIndex();
+                mTvsRingtone[index].setText(sRingtoneTitleList.get(pickedIndex));
+                cdf.setInitialIndex(pickedIndex);
+                mChosenRingtoneUris[index] = sRingtoneUriList.get(pickedIndex);
+                mChosenRingtoneTitles[index] = sRingtoneTitleList.get(pickedIndex);
             }
-
-            int pickedIndex = cdf.getPickedIndex();
-            if (pickedIndex == -1) {
-                throw new IllegalStateException(
-                        "user picked a ringtone but getPickedIndex returned -1");
+        });
+        cdf.setMoreListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mChoosingIndex = index;
+                doWithPermissionChecked(
+                        new SimplePermissionCallback(SettingsActivity.this) {
+                            @Override
+                            public void onGranted() {
+                                startChooseRingtoneFromStorage();
+                            }
+                        },
+                        Def.Communication.REQUEST_PERMISSION_CHOOSE_AUDIO_FILE,
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE);
             }
-            Uri uri = sRingtoneUriList.get(pickedIndex);
-            Context context = SettingsActivity.this;
-            if (isFileRingtone(mRingtoneManager, uri)) {
-                String pathName = UriPathConverter.getLocalPathName(context, uri);
-                if (pathName == null) { // TODO: 2016/5/16 strange behavior here
-                    return;
+        });
+        cdf.setOnItemClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (mPlayingRingtone != null) {
+                    mPlayingRingtone.stop();
                 }
-                uri = Uri.fromFile(new File(pathName));
+
+                int pickedIndex = cdf.getPickedIndex();
+                if (pickedIndex == -1) {
+                    throw new IllegalStateException(
+                            "user picked a ringtone but getPickedIndex returned -1");
+                }
+                Uri uri = sRingtoneUriList.get(pickedIndex);
+                Context context = SettingsActivity.this;
+                if (isFileRingtone(mRingtoneManager, uri)) {
+                    String pathName = UriPathConverter.getLocalPathName(context, uri);
+                    if (pathName == null) { // TODO: 2016/5/16 strange behavior here
+                        return;
+                    }
+                    uri = Uri.fromFile(new File(pathName));
+                }
+                Ringtone ringtone = RingtoneManager.getRingtone(context, uri);
+                ringtone.play();
+                mPlayingRingtone = ringtone;
             }
-            Ringtone ringtone = RingtoneManager.getRingtone(context, uri);
-            ringtone.play();
-            mPlayingRingtone = ringtone;
         });
-        cdf.setOnDismissListener(() -> {
-            if (mPlayingRingtone != null) {
-                mPlayingRingtone.stop();
+        cdf.setOnDismissListener(new ChooserDialogFragment.OnDismissListener() {
+            @Override
+            public void onDismiss() {
+                if (mPlayingRingtone != null) {
+                    mPlayingRingtone.stop();
+                }
             }
         });
     }
@@ -889,12 +984,15 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         mCdfAN.setTitle(getString(R.string.auto_notify_set_time));
         mCdfAN.setItems(sANItems);
         mCdfAN.setInitialIndex(mANPicked);
-        mCdfAN.setConfirmListener(v -> {
-            int index = mCdfAN.getPickedIndex();
-            mCdfAN.setInitialIndex(index);
-            mTvAN.setText(sANItems.get(index));
-            mANPicked = index;
-            updateUiAutoNotifyRingtone(index != 0);
+        mCdfAN.setConfirmListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                int index = mCdfAN.getPickedIndex();
+                mCdfAN.setInitialIndex(index);
+                mTvAN.setText(sANItems.get(index));
+                mANPicked = index;
+                updateUiAutoNotifyRingtone(index != 0);
+            }
         });
     }
 

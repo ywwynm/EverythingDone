@@ -110,28 +110,31 @@ public class VoiceVisualizer extends FrameLayout {
      * @param volume volume from mic input
      */
     protected void receive(final int volume) {
-        new Handler(Looper.getMainLooper()).post(() -> {
-            if (mCanvas == null) {
-                return;
-            }
+        new Handler(Looper.getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+                if (mCanvas == null) {
+                    return;
+                }
 
-            if (volume == 0) {
-                mCanvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
-            } else if ((mType & Type.FADE.getFlag()) != 0) {
-                // Fade out old contents
-                mFadePaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.MULTIPLY));
-                mCanvas.drawPaint(mFadePaint);
-            } else {
-                mCanvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
-            }
+                if (volume == 0) {
+                    mCanvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
+                } else if ((mType & Type.FADE.getFlag()) != 0) {
+                    // Fade out old contents
+                    mFadePaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.MULTIPLY));
+                    mCanvas.drawPaint(mFadePaint);
+                } else {
+                    mCanvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
+                }
 
-            if ((mType & Type.BAR.getFlag()) != 0) {
-                drawBar(volume);
+                if ((mType & Type.BAR.getFlag()) != 0) {
+                    VoiceVisualizer.this.drawBar(volume);
+                }
+                if ((mType & Type.PIXEL.getFlag()) != 0) {
+                    VoiceVisualizer.this.drawPixel(volume);
+                }
+                VoiceVisualizer.this.invalidate();
             }
-            if ((mType & Type.PIXEL.getFlag()) != 0) {
-                drawPixel(volume);
-            }
-            invalidate();
         });
     }
 

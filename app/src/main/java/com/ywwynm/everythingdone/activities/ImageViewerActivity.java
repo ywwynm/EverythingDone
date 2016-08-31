@@ -165,20 +165,28 @@ public class ImageViewerActivity extends EverythingDoneBaseActivity {
     }
 
     private PhotoViewAttacher.OnViewTapListener getImageListener() {
-        return (view, x, y) -> toggleSystemUI();
+        return new PhotoViewAttacher.OnViewTapListener() {
+            @Override
+            public void onViewTap(View view, float x, float y) {
+                toggleSystemUI();
+            }
+        };
     }
 
     private View.OnClickListener getVideoListener() {
-        return v -> {
-            int pos = mVpImage.getCurrentItem();
-            String typePathName = mTypePathNames.get(pos);
-            String pathName = typePathName.substring(1, typePathName.length());
-            File file = new File(pathName);
+        return new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                int pos = mVpImage.getCurrentItem();
+                String typePathName = mTypePathNames.get(pos);
+                String pathName = typePathName.substring(1, typePathName.length());
+                File file = new File(pathName);
 
-            Intent intent = new Intent(Intent.ACTION_VIEW);
-            intent.setDataAndType(Uri.fromFile(file),
-                    "video/" + FileUtil.getPostfix(pathName));
-            startActivity(intent);
+                Intent intent = new Intent(Intent.ACTION_VIEW);
+                intent.setDataAndType(Uri.fromFile(file),
+                        "video/" + FileUtil.getPostfix(pathName));
+                startActivity(intent);
+            }
         };
     }
 
@@ -221,7 +229,12 @@ public class ImageViewerActivity extends EverythingDoneBaseActivity {
             actionBar.setDisplayHomeAsUpEnabled(true);
         }
         updateAttachmentNumber();
-        mActionbar.setNavigationOnClickListener(v -> returnToDetailActivity());
+        mActionbar.setNavigationOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                returnToDetailActivity();
+            }
+        });
     }
 
     @Override
@@ -246,15 +259,18 @@ public class ImageViewerActivity extends EverythingDoneBaseActivity {
             adf.setContentColor(ContextCompat.getColor(this, R.color.black_69p));
             adf.setConfirmColor(mAccentColor);
             adf.setContent(getString(R.string.alert_delete_attachment));
-            adf.setConfirmListener(() -> {
-                int currentIndex = mVpImage.getCurrentItem();
-                mAttachers.remove(currentIndex);
-                mTypePathNames.remove(currentIndex);
-                mAdapter.removeTab(mVpImage, currentIndex);
-                updateAttachmentNumber();
-                mUpdated = true;
-                if (mAdapter.getCount() == 0) {
-                    returnToDetailActivity();
+            adf.setConfirmListener(new AlertDialogFragment.ConfirmListener() {
+                @Override
+                public void onConfirm() {
+                    int currentIndex = mVpImage.getCurrentItem();
+                    mAttachers.remove(currentIndex);
+                    mTypePathNames.remove(currentIndex);
+                    mAdapter.removeTab(mVpImage, currentIndex);
+                    updateAttachmentNumber();
+                    mUpdated = true;
+                    if (mAdapter.getCount() == 0) {
+                        returnToDetailActivity();
+                    }
                 }
             });
             adf.show(getFragmentManager(), AlertDialogFragment.TAG);

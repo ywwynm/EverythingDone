@@ -92,10 +92,13 @@ public class FingerprintDialogFragment extends BaseDialogFragment {
                 mSwirlView.setState(SwirlView.State.OFF);
                 mTvState.setTextColor(ContextCompat.getColor(App.getApp(), R.color.black_26p));
                 mTvState.setText(R.string.fingerprint_verify_success);
-                mSwirlView.postDelayed(() -> {
-                    dismiss();
-                    if (mAuthenticationCallback != null) {
-                        mAuthenticationCallback.onAuthenticated();
+                mSwirlView.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        dismiss();
+                        if (mAuthenticationCallback != null) {
+                            mAuthenticationCallback.onAuthenticated();
+                        }
                     }
                 }, 500);
             }
@@ -151,28 +154,41 @@ public class FingerprintDialogFragment extends BaseDialogFragment {
         mTvTitle.setText(mTitle);
         mTvContent.setText(R.string.confirm_fingerprint);
 
-        mSwirlView.postDelayed(() -> mSwirlView.setState(SwirlView.State.ON), 200);
+        mSwirlView.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                mSwirlView.setState(SwirlView.State.ON);
+            }
+        }, 200);
 
         mTvState.setText(R.string.touch_sensor);
         mTvSecondAsBt.setText(R.string.use_pattern);
     }
 
     private void setEvents() {
-        f(R.id.tv_cancel_as_bt_fingerprint).setOnClickListener(v -> dismiss());
+        f(R.id.tv_cancel_as_bt_fingerprint).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dismiss();
+            }
+        });
 
         final String cp = getActivity().getSharedPreferences(
                 Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE)
                 .getString(Def.Meta.KEY_PRIVATE_PASSWORD, "");
-        mTvSecondAsBt.setOnClickListener(v -> {
-            mAuthenticated = true;
-            dismiss();
-            PatternLockDialogFragment pldf = new PatternLockDialogFragment();
-            pldf.setType(PatternLockDialogFragment.TYPE_VALIDATE);
-            pldf.setAccentColor(mAccentColor);
-            pldf.setCorrectPassword(cp);
-            pldf.setValidateTitle(getString(R.string.check_private_thing));
-            pldf.setAuthenticationCallback(mAuthenticationCallback);
-            pldf.show(getFragmentManager(), PatternLockDialogFragment.TAG);
+        mTvSecondAsBt.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mAuthenticated = true;
+                dismiss();
+                PatternLockDialogFragment pldf = new PatternLockDialogFragment();
+                pldf.setType(PatternLockDialogFragment.TYPE_VALIDATE);
+                pldf.setAccentColor(mAccentColor);
+                pldf.setCorrectPassword(cp);
+                pldf.setValidateTitle(getString(R.string.check_private_thing));
+                pldf.setAuthenticationCallback(mAuthenticationCallback);
+                pldf.show(getFragmentManager(), PatternLockDialogFragment.TAG);
+            }
         });
     }
 

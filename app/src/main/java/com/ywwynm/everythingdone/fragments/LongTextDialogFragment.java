@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.ScrollView;
@@ -48,23 +49,31 @@ public class LongTextDialogFragment extends BaseDialogFragment {
         }
 
         tvConfirmAsBt.setTextColor(mAccentColor);
-        tvConfirmAsBt.setOnClickListener(v -> dismiss());
+        tvConfirmAsBt.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dismiss();
+            }
+        });
 
         final View v1 = f(R.id.view_separator_1);
         final View v2 = f(R.id.view_separator_2);
         final ScrollView sv = f(R.id.sv_long_text);
         sv.getViewTreeObserver().addOnScrollChangedListener(
-                () -> {
-                    int scrollY = sv.getScrollY();
-                    if (scrollY <= 0) {
-                        v1.setVisibility(View.INVISIBLE);
-                        v2.setVisibility(View.VISIBLE);
-                    } else if (scrollY >= sv.getChildAt(0).getHeight() - sv.getHeight()) {
-                        v1.setVisibility(View.VISIBLE);
-                        v2.setVisibility(View.INVISIBLE);
-                    } else {
-                        v1.setVisibility(View.VISIBLE);
-                        v2.setVisibility(View.VISIBLE);
+                new ViewTreeObserver.OnScrollChangedListener() {
+                    @Override
+                    public void onScrollChanged() {
+                        int scrollY = sv.getScrollY();
+                        if (scrollY <= 0) {
+                            v1.setVisibility(View.INVISIBLE);
+                            v2.setVisibility(View.VISIBLE);
+                        } else if (scrollY >= sv.getChildAt(0).getHeight() - sv.getHeight()) {
+                            v1.setVisibility(View.VISIBLE);
+                            v2.setVisibility(View.INVISIBLE);
+                        } else {
+                            v1.setVisibility(View.VISIBLE);
+                            v2.setVisibility(View.VISIBLE);
+                        }
                     }
                 }
         );

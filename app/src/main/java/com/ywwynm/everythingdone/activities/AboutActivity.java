@@ -141,7 +141,12 @@ public class AboutActivity extends EverythingDoneBaseActivity {
         if (actionBar != null) {
             actionBar.setDisplayHomeAsUpEnabled(true);
         }
-        mActionbar.setNavigationOnClickListener(v -> finish());
+        mActionbar.setNavigationOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                finish();
+            }
+        });
     }
 
     @Override
@@ -168,11 +173,14 @@ public class AboutActivity extends EverythingDoneBaseActivity {
             }
         });
 
-        mFab.setOnClickListener(v -> {
-            if (mSupportDf == null) {
-                initSupportDialog();
+        mFab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (mSupportDf == null) {
+                    initSupportDialog();
+                }
+                mSupportDf.show(getFragmentManager(), ThreeActionsAlertDialogFragment.TAG);
             }
-            mSupportDf.show(getFragmentManager(), ThreeActionsAlertDialogFragment.TAG);
         });
     }
 
@@ -212,15 +220,18 @@ public class AboutActivity extends EverythingDoneBaseActivity {
         mDonateDf.setTitle(getString(R.string.support_donate));
         mDonateDf.setContent(getString(R.string.support_donate_content));
         mDonateDf.setConfirmText(getString(R.string.support_donate_copy_name));
-        mDonateDf.setConfirmListener(() -> {
-            ClipboardManager clipboardManager = (ClipboardManager)
-                    getSystemService(CLIPBOARD_SERVICE);
-            ClipData clipData = ClipData.newPlainText(
-                    getString(R.string.support_donate_clip_title),
-                    getString(R.string.support_donate_clip_content));
-            clipboardManager.setPrimaryClip(clipData);
-            Toast.makeText(AboutActivity.this, R.string.success_clipboard,
-                    Toast.LENGTH_SHORT).show();
+        mDonateDf.setConfirmListener(new AlertDialogFragment.ConfirmListener() {
+            @Override
+            public void onConfirm() {
+                ClipboardManager clipboardManager = (ClipboardManager)
+                        getSystemService(CLIPBOARD_SERVICE);
+                ClipData clipData = ClipData.newPlainText(
+                        getString(R.string.support_donate_clip_title),
+                        getString(R.string.support_donate_clip_content));
+                clipboardManager.setPrimaryClip(clipData);
+                Toast.makeText(AboutActivity.this, R.string.success_clipboard,
+                        Toast.LENGTH_SHORT).show();
+            }
         });
     }
 }

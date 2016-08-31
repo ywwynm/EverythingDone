@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.os.SystemClock;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.content.ContextCompat;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,6 +16,7 @@ import android.widget.Chronometer;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.DetailActivity;
@@ -131,54 +133,71 @@ public class AudioRecordDialogFragment extends BaseDialogFragment {
     private void setEvents() {
         final int normalColor = ContextCompat.getColor(mActivity, R.color.black_26p);
         final int accentColor = mActivity.getAccentColor();
-        mEtFileName.setOnFocusChangeListener((v, hasFocus) -> {
-            if (hasFocus) {
-                DisplayUtil.tintView(mEtFileName, accentColor);
-            } else {
-                DisplayUtil.tintView(mEtFileName, normalColor);
+        mEtFileName.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View v, boolean hasFocus) {
+                if (hasFocus) {
+                    DisplayUtil.tintView(mEtFileName, accentColor);
+                } else {
+                    DisplayUtil.tintView(mEtFileName, normalColor);
+                }
             }
         });
 
-        mEtFileName.setOnEditorActionListener((v, actionId, event) -> {
-            if (actionId == EditorInfo.IME_ACTION_DONE) {
-                saveFileAndLeave();
-                return true;
+        mEtFileName.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            @Override
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                if (actionId == EditorInfo.IME_ACTION_DONE) {
+                    saveFileAndLeave();
+                    return true;
+                }
+                return false;
             }
-            return false;
         });
 
-        mFabMain.setOnClickListener(v -> {
-            if (mState == PREPARED) {
-                mRecorder.startRecording();
+        mFabMain.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (mState == PREPARED) {
+                    mRecorder.startRecording();
 
-                preparedToRecording();
+                    preparedToRecording();
 
-                mState = RECORDING;
-            } else if (mState == RECORDING) {
-                mRecorder.stopListening(true);
-                mFileToSave = mRecorder.getSavedFile();
+                    mState = RECORDING;
+                } else if (mState == RECORDING) {
+                    mRecorder.stopListening(true);
+                    mFileToSave = mRecorder.getSavedFile();
+                    mRecorder.startListening();
+
+                    recordingToStopped();
+
+                    mState = STOPPED;
+                } else {
+                    saveFileAndLeave();
+                }
+            }
+        });
+
+        mIvReRecording.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                FileUtil.deleteFile(mFileToSave.getAbsolutePath());
+
+                mRecorder.stopListening(false);
                 mRecorder.startListening();
 
-                recordingToStopped();
+                stoppedToPrepared();
 
-                mState = STOPPED;
-            } else {
-                saveFileAndLeave();
+                mState = PREPARED;
             }
         });
 
-        mIvReRecording.setOnClickListener(v -> {
-            FileUtil.deleteFile(mFileToSave.getAbsolutePath());
-
-            mRecorder.stopListening(false);
-            mRecorder.startListening();
-
-            stoppedToPrepared();
-
-            mState = PREPARED;
+        mIvCancelRecording.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dismiss();
+            }
         });
-
-        mIvCancelRecording.setOnClickListener(v -> dismiss());
     }
 
     private void preparedToRecording() {

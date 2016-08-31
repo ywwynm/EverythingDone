@@ -14,6 +14,7 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
+import android.view.ViewTreeObserver;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -263,26 +264,39 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
             actionBar.setDisplayHomeAsUpEnabled(true);
             actionBar.setTitle(null);
         }
-        mActionbar.setNavigationOnClickListener(v -> finish());
+        mActionbar.setNavigationOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                finish();
+            }
+        });
     }
 
     @Override
     protected void setEvents() {
         mScrollView.getViewTreeObserver().addOnScrollChangedListener(
-                () -> {
-                    updateFabState();
-                    updateActionbarState();
+                new ViewTreeObserver.OnScrollChangedListener() {
+                    @Override
+                    public void onScrollChanged() {
+                        updateFabState();
+                        updateActionbarState();
+                    }
                 });
 
-        mFab.setOnClickListener(v -> doWithPermissionChecked(
-                new SimplePermissionCallback(StatisticActivity.this) {
-                    @Override
-                    public void onGranted() {
-                        startScreenshot();
-                    }
-                },
-                Def.Communication.REQUEST_PERMISSION_SCREENSHOT,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE));
+        mFab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                doWithPermissionChecked(
+                    new SimplePermissionCallback(StatisticActivity.this) {
+                        @Override
+                        public void onGranted() {
+                            startScreenshot();
+                        }
+                    },
+                    Def.Communication.REQUEST_PERMISSION_SCREENSHOT,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE);
+            }
+        });
     }
 
     private void startScreenshot() {

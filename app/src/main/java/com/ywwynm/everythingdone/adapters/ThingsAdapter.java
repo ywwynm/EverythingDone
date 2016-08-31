@@ -44,7 +44,12 @@ public class ThingsAdapter extends BaseThingsAdapter {
         mThingManager = ThingManager.getInstance(mApp);
 
         mOnItemTouchedListener = listener;
-        mOnTouchListener = (v, event) -> mOnItemTouchedListener.onItemTouch(v, event);
+        mOnTouchListener = new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                return mOnItemTouchedListener.onItemTouch(v, event);
+            }
+        };
 
         mAnimHandler = new Handler();
     }
@@ -123,9 +128,12 @@ public class ThingsAdapter extends BaseThingsAdapter {
                 @Override
                 public void onAnimationRepeat(Animation animation) { }
             });
-            mAnimHandler.postDelayed(() -> {
-                v.setVisibility(View.VISIBLE);
-                v.startAnimation(animation);
+            mAnimHandler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    v.setVisibility(View.VISIBLE);
+                    v.startAnimation(animation);
+                }
             }, position * 30);
         }
     }
@@ -143,8 +151,18 @@ public class ThingsAdapter extends BaseThingsAdapter {
 
             if (mOnItemTouchedListener != null) {
                 cv.setOnTouchListener(mOnTouchListener);
-                cv.setOnClickListener(v -> mOnItemTouchedListener.onItemClick(v, getAdapterPosition()));
-                cv.setOnLongClickListener(v -> mOnItemTouchedListener.onItemLongClick(v, getAdapterPosition()));
+                cv.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        mOnItemTouchedListener.onItemClick(v, getAdapterPosition());
+                    }
+                });
+                cv.setOnLongClickListener(new View.OnLongClickListener() {
+                    @Override
+                    public boolean onLongClick(View v) {
+                        return mOnItemTouchedListener.onItemLongClick(v, getAdapterPosition());
+                    }
+                });
             }
         }
     }

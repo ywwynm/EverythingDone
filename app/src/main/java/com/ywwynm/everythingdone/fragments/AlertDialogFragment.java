@@ -70,20 +70,26 @@ public class AlertDialogFragment extends BaseDialogFragment {
             mConfirmText = activity.getString(R.string.confirm);
         }
         tvConfirmAsBt.setText(mConfirmText);
-        tvConfirmAsBt.setOnClickListener(v -> {
-            if (mConfirmListener != null) {
-                mConfirmListener.onConfirm();
+        tvConfirmAsBt.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (mConfirmListener != null) {
+                    mConfirmListener.onConfirm();
+                }
+                mConfirmed = true;
+                dismiss();
             }
-            mConfirmed = true;
-            dismiss();
         });
 
         if (mShowCancel) {
-            tvCancelAsBt.setOnClickListener(v -> {
-                if (mCancelListener != null) {
-                    mCancelListener.onCancel();
+            tvCancelAsBt.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (mCancelListener != null) {
+                        mCancelListener.onCancel();
+                    }
+                    dismiss();
                 }
-                dismiss();
             });
         } else {
             tvCancelAsBt.setVisibility(View.GONE);
