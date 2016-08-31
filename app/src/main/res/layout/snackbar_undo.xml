@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/rl_snackbar"
+    android:id="@+id/ll_snackbar_root"
     android:layout_width="match_parent"
     android:layout_height="@dimen/sb_height"
     android:background="@color/bg_snackbar"
@@ -26,8 +26,11 @@
         android:id="@+id/bt_undo"
         android:layout_width="88dp"
         android:layout_height="@dimen/sb_height"
+        android:layout_marginStart="8dp"
+        android:layout_marginLeft="8dp"
         android:textSize="14sp"
         android:textColor="@color/app_accent"
-        android:background="@drawable/selectable_item_background_light"/>
+        android:background="@drawable/selectable_item_background_light"
+        android:visibility="gone"/>
 
 </LinearLayout>

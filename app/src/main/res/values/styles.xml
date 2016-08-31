@@ -91,14 +91,6 @@
         <item name="spinBars">true</item>
     </style>
 
-    <style name="SnackbarAnimationOnlyExit">
-        <item name="@android:windowExitAnimation">@anim/snackbar_hide</item>
-    </style>
-
-    <style name="SnackbarAnimation" parent="@style/SnackbarAnimationOnlyExit">
-        <item name="@android:windowEnterAnimation">@anim/snackbar_show</item>
-    </style>
-
     <style name="ContextualToolbarText" parent="@style/TextAppearance.Widget.AppCompat.Toolbar.Title">
         <item name="android:textColor">@color/black_54p</item>
         <item name="android:textSize">@dimen/contextual_toolbar_text_size</item>

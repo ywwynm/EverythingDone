@@ -812,7 +812,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 f(R.id.tv_header_title),
                 f(R.id.tv_header_subtitle));
 
-        View fl = f(R.id.fl_things);
+        FrameLayout fl  = f(R.id.fl_things);
         mNormalSnackbar = new Snackbar(mApp, Snackbar.NORMAL, fl, mFab);
         mUndoSnackbar   = new Snackbar(mApp, Snackbar.UNDO,   fl, mFab);
         mHabitSnackbar  = new Snackbar(mApp, Snackbar.UNDO,   fl, mFab);
@@ -993,9 +993,9 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 super.onScrollStateChanged(recyclerView, newState);
                 EdgeEffectUtil.forRecyclerView(recyclerView, edgeColor);
                 if (newState == RecyclerView.SCROLL_STATE_IDLE) {
-                    Glide.with(ThingsActivity.this).resumeRequests();
+                    Glide.with(mApp).resumeRequests();
                 } else { // dragging or settling
-                    Glide.with(ThingsActivity.this).pauseRequests();
+                    Glide.with(mApp).pauseRequests();
                 }
             }
         });

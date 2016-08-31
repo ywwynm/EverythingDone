@@ -17,6 +17,13 @@ import com.ywwynm.everythingdone.R;
 /**
  * Created by ywwynm on 2015/7/4.
  * A simple Snackbar inspired by Material Design based on PopupWindow.
+ *
+ * updated on 2016/8/30
+ * Change the implementation to {@link ViewGroup#addView(View, ViewGroup.LayoutParams)} instead
+ * of PopupWindow, fixed problems when there is a NavigationBar and window has translucent flags.
+ * Besides, this implementation will also be compatible with multi-window announced in Android Nougat.
+ * Now, the animation and behavior is like official {@link android.support.design.widget.Snackbar},
+ * but this one suits Material Design better than that.
  */
 public class Snackbar {
 
@@ -29,15 +36,12 @@ public class Snackbar {
     private int mType;
     private float mHeight;
 
-    private Rect mWindowRect;
     private Thread mHideThread;
 
     private View mContentView;
     private TextView mTvMessage;
     private Button mBtUndo;
     private ViewGroup mTargetParent;
-
-    //private PopupWindow mPopupWindow;
 
     private FloatingActionButton mBindingFab;
 
@@ -50,14 +54,11 @@ public class Snackbar {
         mDismissCallback = dismissCallback;
     }
 
-    public Snackbar(App app, int type, View targetParent,
+    public Snackbar(App app, int type, ViewGroup targetParent,
                     FloatingActionButton bindingFab) {
         mApp = app;
         mType = type;
-        mWindowRect = new Rect();
-        int layoutId = 0;
         if (mType == NORMAL) {
-            layoutId = R.layout.snackbar_blank;
             mHideThread = new Thread() {
                 @Override
                 public void run() {
@@ -66,27 +67,18 @@ public class Snackbar {
                     }
                 }
             };
-        } else if (mType == UNDO) {
-            layoutId = R.layout.snackbar_undo;
         }
 
-        mTargetParent = (ViewGroup) targetParent;
+        mTargetParent = targetParent;
 
-        mContentView = LayoutInflater.from(targetParent.getContext()).inflate(layoutId, null);
+        mContentView = LayoutInflater.from(targetParent.getContext())
+                .inflate(R.layout.snackbar_undo, null);
         mTvMessage = (TextView) mContentView.findViewById(R.id.tv_message);
         if (mType == UNDO) {
             mBtUndo = (Button) mContentView.findViewById(R.id.bt_undo);
+            mBtUndo.setVisibility(View.VISIBLE);
         }
-        // TODO: 2016/8/30 don't cast directly
 
-//        mPopupWindow = new PopupWindow(inflater,
-//                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-//        if (!DeviceUtil.hasLollipopApi()) {
-//            mPopupWindow.setAnimationStyle(R.style.SnackbarAnimation);
-//        } else {
-//            mContentView = (RelativeLayout) inflater.findViewById(R.id.rl_snackbar);
-//            mPopupWindow.setAnimationStyle(R.style.SnackbarAnimationOnlyExit);
-//        }
         mBindingFab = bindingFab;
         mHeight = mApp.getResources().getDimension(R.dimen.sb_height);
     }
@@ -95,17 +87,6 @@ public class Snackbar {
         if (isShowing()) {
             return;
         }
-
-//        Point popupDisplay = DisplayUtil.getDisplaySize(mApp);
-//        mTargetParent.getWindowVisibleDisplayFrame(mWindowRect);
-//
-//        mPopupWindow.setWidth(popupDisplay.x == mWindowRect.right ? popupDisplay.x : mWindowRect.right);
-//
-//        int offsetY = 0;
-//        if (popupDisplay.y != mWindowRect.bottom) {
-//            // if there is a Navigation Bar, Snackbar should show above it.
-//            offsetY = popupDisplay.y - mWindowRect.bottom;
-//        }
 
         if (mBindingFab != null &&
                 mApp.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
@@ -122,18 +103,6 @@ public class Snackbar {
 
         mContentView.setTranslationY(mHeight);
         mContentView.animate().translationY(0).setDuration(200).start();
-
-//        try {
-//            mPopupWindow.showAtLocation(mTargetParent, Gravity.START | Gravity.BOTTOM, 0, offsetY);
-//        } catch (WindowManager.BadTokenException e) {
-//            e.printStackTrace();
-//            return;
-//        }
-
-//        if (DeviceUtil.hasLollipopApi()) {
-//            mContentView.setTranslationY(mHeight);
-//            mContentView.animate().translationY(0).setDuration(200);
-//        }
 
         if (mType == NORMAL) {
             mTargetParent.postDelayed(mHideThread, 1200 + 160);

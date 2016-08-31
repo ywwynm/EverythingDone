@@ -527,12 +527,12 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         cbQuickRemind      = f(R.id.cb_quick_remind);
         tvQuickRemind      = f(R.id.tv_quick_remind);
 
-        View decorView = getWindow().getDecorView();
-        mNormalSnackbar = new Snackbar(mApp, Snackbar.NORMAL, decorView, null);
+        mNormalSnackbar = new Snackbar(mApp, Snackbar.NORMAL, mFlBackground, null);
         if (mEditable) {
             mLlMoveChecklist     = f(R.id.ll_move_checklist);
             mTvMoveChecklistAsBt = f(R.id.tv_move_checklist_as_bt);
 
+            View decorView = getWindow().getDecorView();
             mColorPicker = new ColorPicker(this, decorView, Def.PickerType.COLOR_NO_ALL);
             quickRemindPicker = new DateTimePicker(this, decorView,
                     Def.PickerType.AFTER_TIME, mThing.getColor());
@@ -1945,9 +1945,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             if (noUpdate) {
                 setResult(resultCode);
             } else {
-                Log.i(TAG, "title: " + title + ", content: " + content + ", attachment: " + attachment);
                 if (title.isEmpty() && content.isEmpty() && attachment.isEmpty()) {
-                    Log.i(TAG, "returnToThingsActivity with state = DF");
                     returnToThingsActivity(Thing.DELETED_FOREVER);
                     resultCode = null;
                 } else {
