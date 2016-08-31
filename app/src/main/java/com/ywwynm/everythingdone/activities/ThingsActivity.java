@@ -758,25 +758,33 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
      * Focus on change of screen orientation.
      */
     @Override
-    public void onConfigurationChanged(Configuration newConfig) {
+    public void onConfigurationChanged(final Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
         dismissSnackbars();
         mColorPicker.dismiss();
-//
-//        mSpan = DisplayUtil.isTablet(this) ? 3 : 2;
-//        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
-//            mSpan++;
-//        }
-//        mStaggeredGridLayoutManager.setSpanCount(mSpan);
-        if (mThingManager.getThings().size() > 1) {
-            mRecyclerView.scrollToPosition(0);
-        }
-//
+
         if (!App.isSearching) {
             mActivityHeader.reset(false);
         }
 
-        //mThingsAdapter.notifyDataSetChanged();
+        mRecyclerView.setVisibility(View.INVISIBLE);
+        mFlRoot.postDelayed(new Runnable() {
+            // if we don't use postDelayed, RevealLayout will show at a completely wrong hierarchy
+            @Override
+            public void run() {
+                mThingsAdapter.setShouldThingsAnimWhenAppearing(true);
+                mRecyclerView.setVisibility(View.VISIBLE);
+                mSpan = DisplayUtil.isTablet(mApp) ? 3 : 2;
+                if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+                    mSpan++;
+                }
+                mStaggeredGridLayoutManager.setSpanCount(mSpan);
+                if (mThingManager.getThings().size() > 1) {
+                    mRecyclerView.scrollToPosition(0);
+                }
+                mThingsAdapter.notifyDataSetChanged();
+            }
+        }, 360);
 
         mModeManager.updateTitleTextSize();
         if (mModeManager.getCurrentMode() != ModeManager.SELECTING && !App.isSearching
