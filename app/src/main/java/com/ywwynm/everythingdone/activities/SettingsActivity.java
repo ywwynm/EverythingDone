@@ -4,6 +4,8 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -15,6 +17,7 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.MediaStore;
 import android.provider.Settings;
 import android.support.annotation.StringRes;
 import android.support.design.widget.Snackbar;
@@ -240,10 +243,26 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                 mTvDrawerHeader.setTextSize(12);
                 mTvDrawerHeader.setText(pathName);
             } else if (requestCode == REQUEST_CHOOSE_AUDIO_FILE) {
-                File file = new File(pathName);
-                uri = Uri.fromFile(file); // fuck kitkat document.
-
                 String audioName = FileUtil.getNameWithoutPostfix(pathName);
+                if (DeviceUtil.hasNougatApi()) {
+                    ContentResolver resolver = getContentResolver();
+                    uri = MediaStore.Audio.Media.getContentUriForPath(pathName);
+                    Cursor cursor = resolver.query(uri, null, null, null, null);
+                    if (cursor == null || !cursor.moveToFirst()) {
+                        ContentValues contentValues = new ContentValues(1);
+                        contentValues.put(MediaStore.Audio.Media.DATA, pathName);
+                        contentValues.put(MediaStore.Audio.Media.TITLE, audioName);
+                        uri = getContentResolver()
+                                .insert(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, contentValues);
+                    }
+                    if (cursor != null) {
+                        cursor.close();
+                    }
+                } else {
+                    uri = Uri.fromFile(new File(pathName)); // fuck kitkat document.
+                }
+                //uri = Uri.fromFile(new File(pathName)); // fuck kitkat document.
+
                 mChosenRingtoneTitles[mChoosingIndex] = audioName;
                 mChosenRingtoneUris[mChoosingIndex] = uri;
                 if (!sRingtoneUriList.contains(uri)) {
@@ -254,6 +273,8 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                     mCdfsRingtone[mChoosingIndex].setInitialIndex(
                             sRingtoneUriList.indexOf(uri));
                 }
+                mCdfsRingtone[mChoosingIndex].showAllowingStateLoss(
+                        getFragmentManager(), ChooserDialogFragment.TAG);
                 mTvsRingtone[mChoosingIndex].setText(audioName);
 
                 final Ringtone ringtone = RingtoneManager.getRingtone(this, uri);
