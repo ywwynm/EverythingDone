@@ -1,10 +1,12 @@
 package com.ywwynm.everythingdone.appwidgets.list;
 
+import android.annotation.SuppressLint;
 import android.appwidget.AppWidgetManager;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.widget.RemoteViews;
@@ -22,6 +24,8 @@ import com.ywwynm.everythingdone.utils.DisplayUtil;
  */
 public class ThingsListWidgetConfiguration extends AppCompatActivity {
 
+    public static final String TAG = "ThingsListWidgetConfiguration";
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -31,6 +35,16 @@ public class ThingsListWidgetConfiguration extends AppCompatActivity {
         TextView tvTitle = (TextView) findViewById(R.id.tv_title_things_list_widget_configuration);
         if (tvTitle != null) {
             tvTitle.setTextColor(DisplayUtil.getRandomColor(this));
+        }
+
+        int appWidgetId = getIntent().getIntExtra(
+                AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID);
+        Intent intent = new Intent();
+        intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
+        setResult(RESULT_CANCELED, intent);
+
+        if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) {
+            finish();
         }
     }
 

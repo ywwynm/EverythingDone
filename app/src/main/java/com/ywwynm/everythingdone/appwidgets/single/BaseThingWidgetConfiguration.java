@@ -72,12 +72,15 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
     @Override
     protected void initMembers() {
         Intent intent = getIntent();
-        Bundle extras = intent.getExtras();
-        if (extras != null) {
-            mAppWidgetId = extras.getInt(AppWidgetManager.EXTRA_APPWIDGET_ID,
-                    AppWidgetManager.INVALID_APPWIDGET_ID);
-        }
+        mAppWidgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID,
+                AppWidgetManager.INVALID_APPWIDGET_ID);
+        intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, mAppWidgetId);
+        setResult(RESULT_CANCELED, intent);
 
+        if (mAppWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) {
+            finish();
+            return;
+        }
 
         mSpanCount = DisplayUtil.isTablet(this) ? 3 : 2;
         if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
