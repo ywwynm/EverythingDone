@@ -1,11 +1,13 @@
 package com.ywwynm.everythingdone.activities;
 
 import android.annotation.SuppressLint;
+import android.content.ContentValues;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.graphics.Point;
 import android.graphics.PorterDuff;
 import android.net.Uri;
+import android.provider.MediaStore;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.ActionBar;
@@ -183,7 +185,16 @@ public class ImageViewerActivity extends EverythingDoneBaseActivity {
                 File file = new File(pathName);
 
                 Intent intent = new Intent(Intent.ACTION_VIEW);
-                intent.setDataAndType(Uri.fromFile(file),
+                Uri uri;
+                if (DeviceUtil.hasNougatApi()) {
+                    ContentValues contentValues = new ContentValues(1);
+                    contentValues.put(MediaStore.Video.Media.DATA, file.getAbsolutePath());
+                    uri = getContentResolver()
+                            .insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, contentValues);
+                } else {
+                    uri = Uri.fromFile(file);
+                }
+                intent.setDataAndType(uri,
                         "video/" + FileUtil.getPostfix(pathName));
                 startActivity(intent);
             }

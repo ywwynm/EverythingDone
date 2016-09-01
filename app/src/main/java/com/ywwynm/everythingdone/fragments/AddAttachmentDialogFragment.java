@@ -1,6 +1,7 @@
 package com.ywwynm.everythingdone.fragments;
 
 import android.Manifest;
+import android.content.ContentValues;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -15,6 +16,7 @@ import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.DetailActivity;
 import com.ywwynm.everythingdone.helpers.AttachmentHelper;
 import com.ywwynm.everythingdone.permission.SimplePermissionCallback;
+import com.ywwynm.everythingdone.utils.DeviceUtil;
 
 import java.io.File;
 
@@ -145,7 +147,14 @@ public class AddAttachmentDialogFragment extends BaseDialogFragment {
         File file = AttachmentHelper.createAttachmentFile(AttachmentHelper.IMAGE);
         if (file != null) {
             mActivity.attachmentTypePathName = AttachmentHelper.IMAGE + file.getAbsolutePath();
-            intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(file));
+            if (DeviceUtil.hasNougatApi()) {
+                ContentValues contentValues = new ContentValues(1);
+                contentValues.put(MediaStore.Images.Media.DATA, file.getAbsolutePath());
+                intent.putExtra(MediaStore.EXTRA_OUTPUT, mActivity.getContentResolver()
+                        .insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues));
+            } else {
+                intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(file));
+            }
             mActivity.startActivityForResult(intent,
                     Def.Communication.REQUEST_TAKE_PHOTO);
         }
@@ -157,7 +166,14 @@ public class AddAttachmentDialogFragment extends BaseDialogFragment {
         File file = AttachmentHelper.createAttachmentFile(AttachmentHelper.VIDEO);
         if (file != null) {
             mActivity.attachmentTypePathName = AttachmentHelper.VIDEO + file.getAbsolutePath();
-            intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(file));
+            if (DeviceUtil.hasNougatApi()) {
+                ContentValues contentValues = new ContentValues(1);
+                contentValues.put(MediaStore.Video.Media.DATA, file.getAbsolutePath());
+                intent.putExtra(MediaStore.EXTRA_OUTPUT, mActivity.getContentResolver()
+                        .insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, contentValues));
+            } else {
+                intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(file));
+            }
             mActivity.startActivityForResult(intent,
                     Def.Communication.REQUEST_CAPTURE_VIDEO);
         }
