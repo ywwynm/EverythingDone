@@ -148,6 +148,10 @@ public final class Def {
         public static final int REQUEST_PERMISSION_LOAD_THING          = 14; // DetailActivity
         public static final int REQUEST_PERMISSION_LOAD_THINGS_2       = 15; // BaseThingWidgetConfiguration
 
+        // On some sony/oneplus devices, reading ringtone's title needs READ_EXTERNAL_SDCARD
+        // permission, so we request it directly before SettingsActivity's init.
+        public static final int REQUEST_PERMISSION_OPEN_SETTINGS       = 16;
+
         public static final String KEY_SENDER_NAME          = PREFIX + "key.sender_name";
         public static final String KEY_DETAIL_ACTIVITY_TYPE = PREFIX + "key.detail_activity_type";
 

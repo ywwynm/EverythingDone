@@ -15,10 +15,12 @@ import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.MediaStore;
 import android.provider.Settings;
+import android.support.annotation.Nullable;
 import android.support.annotation.StringRes;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.NotificationManagerCompat;
@@ -52,6 +54,7 @@ import com.ywwynm.everythingdone.helpers.BackupHelper;
 import com.ywwynm.everythingdone.helpers.FingerprintHelper;
 import com.ywwynm.everythingdone.model.HabitReminder;
 import com.ywwynm.everythingdone.model.Thing;
+import com.ywwynm.everythingdone.permission.PermissionCallback;
 import com.ywwynm.everythingdone.permission.SimplePermissionCallback;
 import com.ywwynm.everythingdone.receivers.LocaleChangeReceiver;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
@@ -243,26 +246,8 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                 mTvDrawerHeader.setTextSize(12);
                 mTvDrawerHeader.setText(pathName);
             } else if (requestCode == REQUEST_CHOOSE_AUDIO_FILE) {
+                uri = Uri.fromFile(new File(pathName));
                 String audioName = FileUtil.getNameWithoutPostfix(pathName);
-                if (DeviceUtil.hasNougatApi()) {
-                    ContentResolver resolver = getContentResolver();
-                    uri = MediaStore.Audio.Media.getContentUriForPath(pathName);
-                    Cursor cursor = resolver.query(uri, null, null, null, null);
-                    if (cursor == null || !cursor.moveToFirst()) {
-                        ContentValues contentValues = new ContentValues(1);
-                        contentValues.put(MediaStore.Audio.Media.DATA, pathName);
-                        contentValues.put(MediaStore.Audio.Media.TITLE, audioName);
-                        uri = getContentResolver()
-                                .insert(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, contentValues);
-                    }
-                    if (cursor != null) {
-                        cursor.close();
-                    }
-                } else {
-                    uri = Uri.fromFile(new File(pathName)); // fuck kitkat document.
-                }
-                //uri = Uri.fromFile(new File(pathName)); // fuck kitkat document.
-
                 mChosenRingtoneTitles[mChoosingIndex] = audioName;
                 mChosenRingtoneUris[mChoosingIndex] = uri;
                 if (!sRingtoneUriList.contains(uri)) {
@@ -939,21 +924,25 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                 mChosenRingtoneTitles[index] = sRingtoneTitleList.get(pickedIndex);
             }
         });
-        cdf.setMoreListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                mChoosingIndex = index;
-                doWithPermissionChecked(
-                        new SimplePermissionCallback(SettingsActivity.this) {
-                            @Override
-                            public void onGranted() {
-                                startChooseRingtoneFromStorage();
-                            }
-                        },
-                        Def.Communication.REQUEST_PERMISSION_CHOOSE_AUDIO_FILE,
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE);
-            }
-        });
+        if (!DeviceUtil.hasNougatApi()) {
+            cdf.setMoreListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    mChoosingIndex = index;
+                    doWithPermissionChecked(
+                            new SimplePermissionCallback(SettingsActivity.this) {
+                                @Override
+                                public void onGranted() {
+                                    startChooseRingtoneFromStorage();
+                                }
+                            },
+                            Def.Communication.REQUEST_PERMISSION_CHOOSE_AUDIO_FILE,
+                            Manifest.permission.WRITE_EXTERNAL_STORAGE);
+                }
+            });
+        } else { // TODO: 2016/9/2 cannot set audio file as ringtone above N
+            cdf.setShouldShowMore(false);
+        }
         cdf.setOnItemClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {

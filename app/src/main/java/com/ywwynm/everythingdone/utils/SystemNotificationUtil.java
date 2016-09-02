@@ -2,18 +2,25 @@ package com.ywwynm.everythingdone.utils;
 
 import android.app.Notification;
 import android.app.PendingIntent;
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.Point;
 import android.graphics.drawable.BitmapDrawable;
+import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
+import android.os.Environment;
+import android.provider.MediaStore;
 import android.provider.Settings;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.os.EnvironmentCompat;
 
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
@@ -30,6 +37,7 @@ import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.permission.PermissionUtil;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -221,13 +229,14 @@ public class SystemNotificationUtil {
         if (uriStr.equals(fs)) {
             return Settings.System.DEFAULT_NOTIFICATION_URI;
         } else {
-            Uri uri = Uri.parse(uriStr);
+            Uri uri = Uri.parse(Uri.decode(uriStr));
             RingtoneManager rm = new RingtoneManager(context);
             rm.setType(RingtoneManager.TYPE_NOTIFICATION);
             if (uri != Settings.System.DEFAULT_NOTIFICATION_URI
                     && rm.getRingtonePosition(uri) == -1) { // user's ringtone
                 String pathName = UriPathConverter.getLocalPathName(context, uri);
-                if (pathName == null || !new File(pathName).exists()) {
+                // TODO: 2016/9/2 nougat ringtone
+                if (DeviceUtil.hasNougatApi() || pathName == null || !new File(pathName).exists()) {
                     preferences.edit().putString(key, fs).apply();
                     return Settings.System.DEFAULT_NOTIFICATION_URI;
                 }

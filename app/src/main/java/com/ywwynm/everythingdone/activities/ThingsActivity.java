@@ -1271,9 +1271,18 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                         newLimit = Def.LimitForGettingThings.ALL_DELETED;
                     } else {
                         if (id == R.id.drawer_settings) {
-                            Intent intent = new Intent(ThingsActivity.this, SettingsActivity.class);
-                            ThingsActivity.this.startActivityForResult(intent,
-                                    Def.Communication.REQUEST_ACTIVITY_SETTINGS);
+                            doWithPermissionChecked(
+                                    new SimplePermissionCallback(ThingsActivity.this) {
+                                        @Override
+                                        public void onGranted() {
+                                            Intent intent = new Intent(
+                                                    ThingsActivity.this, SettingsActivity.class);
+                                            startActivityForResult(intent,
+                                                    Def.Communication.REQUEST_ACTIVITY_SETTINGS);
+                                        }
+                                    },
+                                    Def.Communication.REQUEST_PERMISSION_OPEN_SETTINGS,
+                                    Manifest.permission.WRITE_EXTERNAL_STORAGE);
                         } else if (id == R.id.drawer_help) {
                             ThingsActivity.this.startActivity(new Intent(ThingsActivity.this, HelpActivity.class));
                         } else if (id == R.id.drawer_about) {
