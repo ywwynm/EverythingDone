@@ -457,7 +457,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 mDrawerLayout.postDelayed(new Runnable() {
                     @Override
                     public void run() {
-                        ThingsActivity.this.justNotifyDataSetChanged();
+                        justNotifyDataSetChanged();
                         mUpdateMainUiInOnResume = true;
                         mBroadCastIntent = null;
                     }
@@ -474,6 +474,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                         mNormalSnackbar.show();
                         mUpdateMainUiInOnResume = true;
                         App.setSomethingUpdatedSpecially(false);
+                        App.setShouldJustNotifyDataSetChanged(false);
                         mBroadCastIntent = null;
                     }
                 }, 560);
@@ -491,6 +492,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 if (mBroadCastIntent == null) {
                     mUpdateMainUiInOnResume = true;
                     App.setSomethingUpdatedSpecially(false);
+                    App.setShouldJustNotifyDataSetChanged(false);
                 } else {
                     updateMainUi(mBroadCastIntent, mBroadCastIntent.getIntExtra(
                             Def.Communication.KEY_RESULT_CODE, 0));
@@ -596,6 +598,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         mDrawerHeader.updateTexts();
         mUpdateMainUiInOnResume = true;
         App.setSomethingUpdatedSpecially(false);
+        App.setShouldJustNotifyDataSetChanged(false);
         mBroadCastIntent = null;
     }
 
@@ -636,6 +639,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 mDrawerHeader.updateCompletionRate();
                 mUpdateMainUiInOnResume = true;
                 App.setSomethingUpdatedSpecially(false);
+                App.setShouldJustNotifyDataSetChanged(false);
                 mBroadCastIntent = null;
             }
         }, 560);
@@ -680,6 +684,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 mDrawerHeader.updateCompletionRate();
                 mUpdateMainUiInOnResume = true;
                 App.setSomethingUpdatedSpecially(false);
+                App.setShouldJustNotifyDataSetChanged(false);
                 mBroadCastIntent = null;
             }
         }, 560);
@@ -730,6 +735,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 mDrawerHeader.updateCompletionRate();
                 mUpdateMainUiInOnResume = true;
                 App.setSomethingUpdatedSpecially(false);
+                App.setShouldJustNotifyDataSetChanged(false);
                 mBroadCastIntent = null;
             }
         }, 560);
@@ -794,14 +800,6 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 && mApp.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
             mFab.showFromBottom();
         }
-    }
-
-    @Override
-    public void onMultiWindowModeChanged(boolean isInMultiWindowMode) {
-        super.onMultiWindowModeChanged(isInMultiWindowMode);
-//        if (App.isSearching) {
-//            toggleSearching(true);
-//        }
     }
 
     @Override
