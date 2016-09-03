@@ -1,6 +1,6 @@
 package com.ywwynm.everythingdone.views.pickers;
 
-import android.content.Context;
+import android.app.Activity;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.RecyclerView;
 import android.view.KeyEvent;
@@ -20,7 +20,7 @@ public abstract class PopupPicker {
 
     public static String TAG = "PopupPicker";
 
-    protected Context mContext;
+    protected Activity mActivity;
     protected float mScreenDensity;
 
     protected PopupWindow mPopupWindow;
@@ -29,16 +29,16 @@ public abstract class PopupPicker {
     protected View mContentView;
     protected RecyclerView mRecyclerView;
 
-    public PopupPicker(Context context, View parent, int popupAnimStyle) {
-        mContext = context;
-        mScreenDensity = DisplayUtil.getScreenDensity(mContext);
+    public PopupPicker(Activity activity, View parent, int popupAnimStyle) {
+        mActivity = activity;
+        mScreenDensity = DisplayUtil.getScreenDensity(mActivity);
         mParent = parent;
 
-        mContentView = LayoutInflater.from(context).inflate(R.layout.rv_popup_picker, null);
+        mContentView = LayoutInflater.from(activity).inflate(R.layout.rv_popup_picker, null);
         mRecyclerView = (RecyclerView) mContentView.findViewById(R.id.rv_popup_picker);
         mPopupWindow = new PopupWindow(mContentView,
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        mPopupWindow.setBackgroundDrawable(ContextCompat.getDrawable(context, R.drawable.bg_picker));
+        mPopupWindow.setBackgroundDrawable(ContextCompat.getDrawable(activity, R.drawable.bg_picker));
         mContentView.setOnKeyListener(new View.OnKeyListener() {
             @Override
             public boolean onKey(View v, int keyCode, KeyEvent event) {

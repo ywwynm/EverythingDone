@@ -1,8 +1,9 @@
 package com.ywwynm.everythingdone.views.pickers;
 
 import android.annotation.SuppressLint;
-import android.content.Context;
+import android.app.Activity;
 import android.content.res.Configuration;
+import android.graphics.Point;
 import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.support.v4.content.ContextCompat;
@@ -41,33 +42,33 @@ public class DateTimePicker extends PopupPicker {
     private DateTimePickerAdapter mAdapter;
     private int mPreviousIndex = 8;
 
-    public DateTimePicker(Context context, View parent, int type, int accentColor) {
-        super(context, parent, type == Def.PickerType.AFTER_TIME ?
+    public DateTimePicker(Activity activity, View parent, int type, int accentColor) {
+        super(activity, parent, type == Def.PickerType.AFTER_TIME ?
                 R.style.QuickRemindPickerAnimation : R.style.TimeTypePickerAnimation);
         mType = type;
         mAccentColor = accentColor;
         ViewGroup.LayoutParams params = mRecyclerView.getLayoutParams();
         if (mType == Def.PickerType.AFTER_TIME) {
             params.width = (int) (mScreenDensity * 168);
-            mItems = mContext.getResources().getStringArray(R.array.quick_remind);
+            mItems = mActivity.getResources().getStringArray(R.array.quick_remind);
         } else if (mType == Def.PickerType.TIME_TYPE_HAVE_HOUR_MINUTE) {
             params.width = (int) (mScreenDensity * 120);
-            mItems = mContext.getResources().getStringArray(R.array.time_type);
-            if (LocaleUtil.isChinese(mContext)) {
-                mItems[2] = mContext.getString(R.string.days);
+            mItems = mActivity.getResources().getStringArray(R.array.time_type);
+            if (LocaleUtil.isChinese(mActivity)) {
+                mItems[2] = mActivity.getString(R.string.days);
             }
         } else {
             params.width = (int) (mScreenDensity * 98);
-            String[] items = mContext.getResources().getStringArray(R.array.time_type);
+            String[] items = mActivity.getResources().getStringArray(R.array.time_type);
             mItems = new String[4];
             System.arraycopy(items, 2, mItems, 0, 4);
-            if (LocaleUtil.isChinese(mContext)) {
-                mItems[0] = mContext.getString(R.string.days);
+            if (LocaleUtil.isChinese(mActivity)) {
+                mItems[0] = mActivity.getString(R.string.days);
             }
         }
         params.height = getRecyclerViewHeight();
         mRecyclerView.setHasFixedSize(true);
-        LinearLayoutManager layoutManager = new LinearLayoutManager(mContext);
+        LinearLayoutManager layoutManager = new LinearLayoutManager(mActivity);
         mRecyclerView.setLayoutManager(layoutManager);
         mAdapter = new DateTimePickerAdapter();
         mRecyclerView.setAdapter(mAdapter);
@@ -89,11 +90,14 @@ public class DateTimePicker extends PopupPicker {
     @Override
     public void updateAnchor() {
         int index = getPickedIndex();
+        if (index < 0 || index >= mItems.length) {
+            return;
+        }
         TextView anchor = (TextView) mAnchor;
         if (index != 9) {
             if (mType == Def.PickerType.AFTER_TIME) {
-                String after = mContext.getString(R.string.after);
-                if (LocaleUtil.isChinese(mContext)) {
+                String after = mActivity.getString(R.string.after);
+                if (LocaleUtil.isChinese(mActivity)) {
                     anchor.setText(mItems[index]);
                     anchor.append(after);
                 } else {
@@ -102,7 +106,7 @@ public class DateTimePicker extends PopupPicker {
                 }
             } else {
                 int offset = mType == Def.PickerType.TIME_TYPE_HAVE_HOUR_MINUTE ? 0 : 1;
-                if (!LocaleUtil.isChinese(mContext)) {
+                if (!LocaleUtil.isChinese(mActivity)) {
                     anchor.setText(mItems[index].toLowerCase());
                     if (offset == 0) {
                         anchor.append(" ");
@@ -113,13 +117,13 @@ public class DateTimePicker extends PopupPicker {
                     boolean b2 = mType == Def.PickerType.TIME_TYPE_NO_HOUR_MINUTE
                             && (index == 1 || index == 2);
                     if (b1 || b2) {
-                        anchor.setText(mContext.getString(R.string.description_a) + mItems[index]);
+                        anchor.setText(mActivity.getString(R.string.description_a) + mItems[index]);
                     } else {
                         anchor.setText(mItems[index]);
                     }
                 }
                 if (mType == Def.PickerType.TIME_TYPE_HAVE_HOUR_MINUTE) {
-                    anchor.append(mContext.getString(R.string.later));
+                    anchor.append(mActivity.getString(R.string.later));
                 }
             }
         }
@@ -132,11 +136,14 @@ public class DateTimePicker extends PopupPicker {
         }
         mRecyclerView.scrollToPosition(getPickedIndex());
 
-        final int displayHeight = DisplayUtil.getDisplaySize(mContext).y;
+        Point display = DisplayUtil.getDisplaySize(mActivity);
+        int displayHeight = display.y;
 
         ViewGroup.LayoutParams params = mRecyclerView.getLayoutParams();
         int recyclerViewHeight = getRecyclerViewHeight();
-        if (mContext.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
+        int orientation = mActivity.getResources().getConfiguration().orientation;
+        boolean isInLandscape = orientation == Configuration.ORIENTATION_LANDSCAPE;
+        if (isInLandscape) {
             Rect window = new Rect();
             mParent.getWindowVisibleDisplayFrame(window);
             if (displayHeight - window.bottom >= 96 * mScreenDensity) { // Keyboard is showing.
@@ -156,12 +163,25 @@ public class DateTimePicker extends PopupPicker {
         View anchor = (View) mAnchor;
         anchor.getLocationInWindow(pos);
         if (mType == Def.PickerType.AFTER_TIME) {
+            if (DisplayUtil.isInMultiWindow(mActivity)) {
+                View decor = mActivity.getWindow().getDecorView();
+                if (decor.getWidth() == display.x) {
+                    // portrait multi-window
+                    int[] location = new int[2];
+                    decor.getLocationOnScreen(location);
+                    if (location[1] == 0) {
+                        displayHeight -= (display.y - decor.getHeight());
+                    } else {
+                        displayHeight -= location[1];
+                    }
+                }
+            }
             mPopupWindow.showAtLocation(mParent, Gravity.BOTTOM | Gravity.START,
                     (int) (pos[0] - mScreenDensity * 16),
                     displayHeight - pos[1] - anchor.getHeight());
         } else {
             mPopupWindow.showAtLocation(mParent, Gravity.TOP | Gravity.START,
-                    pos[0] - DisplayUtil.getStatusbarHeight(mContext),
+                    pos[0] - DisplayUtil.getStatusbarHeight(mActivity),
                     (int) (pos[1] - mScreenDensity * 56));
         }
 
@@ -222,7 +242,7 @@ public class DateTimePicker extends PopupPicker {
         private LayoutInflater mInflater;
 
         public DateTimePickerAdapter() {
-            mInflater = LayoutInflater.from(mContext);
+            mInflater = LayoutInflater.from(mActivity);
         }
 
         @Override
@@ -249,7 +269,7 @@ public class DateTimePicker extends PopupPicker {
                 holder.bt.setClickable(position == 9);
             } else {
                 holder.bt.setTypeface(Typeface.DEFAULT);
-                holder.bt.setTextColor(ContextCompat.getColor(mContext, R.color.black_54p));
+                holder.bt.setTextColor(ContextCompat.getColor(mActivity, R.color.black_54p));
                 holder.bt.setClickable(true);
             }
         }

@@ -217,6 +217,9 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         // receiver. So these two boolean values are useless now.
         App.setSomethingUpdatedSpecially(false);
         App.setShouldJustNotifyDataSetChanged(false);
+        if (App.isSearching) {
+            App.isSearching = false; // maybe we searched in multi-window mode and quit it later
+        }
 
         App.putThingsActivityInstance(this);
 
@@ -794,6 +797,14 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     }
 
     @Override
+    public void onMultiWindowModeChanged(boolean isInMultiWindowMode) {
+        super.onMultiWindowModeChanged(isInMultiWindowMode);
+//        if (App.isSearching) {
+//            toggleSearching(true);
+//        }
+    }
+
+    @Override
     protected void initMembers() {
         mApp = (App) getApplication();
         mThingManager = ThingManager.getInstance(mApp);
@@ -964,7 +975,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 dismissSnackbars();
                 mFab.setClickable(false);
                 int[] location = new int[2];
-                mFab.getLocationOnScreen(location);
+                mFab.getLocationInWindow(location);
                 location[0] += mFab.getWidth() / 2;
                 location[1] += mFab.getHeight() / 2;
                 if (!DeviceUtil.hasKitKatApi()) {

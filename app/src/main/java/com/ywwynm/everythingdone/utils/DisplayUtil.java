@@ -261,6 +261,13 @@ public class DisplayUtil {
         return DeviceUtil.hasMarshmallowApi() && DeviceUtil.isEMUI();
     }
 
+    public static boolean isInMultiWindow(Activity activity) {
+        if (DeviceUtil.hasNougatApi()) {
+            return activity.isInMultiWindowMode();
+        }
+        return false;
+    }
+
     /**
      * Set color of handlers appearing when user is selecting content of {@link EditText}.
      * @param editText handlers of which {@link EditText} should be set to {@param color}.

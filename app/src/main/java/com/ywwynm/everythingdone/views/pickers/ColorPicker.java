@@ -1,6 +1,6 @@
 package com.ywwynm.everythingdone.views.pickers;
 
-import android.content.Context;
+import android.app.Activity;
 import android.content.res.ColorStateList;
 import android.graphics.PorterDuff;
 import android.graphics.Rect;
@@ -20,6 +20,7 @@ import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.adapters.BaseViewHolder;
 import com.ywwynm.everythingdone.adapters.SingleChoiceAdapter;
+import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 
 /**
@@ -38,9 +39,9 @@ public class ColorPicker extends PopupPicker {
     private ColorPickerAdapter mAdapter;
     private Rect mWindowRect;
 
-    public ColorPicker(Context context, View parent, int type) {
-        super(context, parent, R.style.ColorPickerAnimation);
-        mColors = context.getResources().getIntArray(R.array.thing);
+    public ColorPicker(Activity activity, View parent, int type) {
+        super(activity, parent, R.style.ColorPickerAnimation);
+        mColors = activity.getResources().getIntArray(R.array.thing);
         mType = type;
         ViewGroup.LayoutParams params = mRecyclerView.getLayoutParams();
         params.width = (int) (mScreenDensity * 128);
@@ -51,7 +52,7 @@ public class ColorPicker extends PopupPicker {
         }
         mRecyclerView.setOverScrollMode(View.OVER_SCROLL_NEVER);
         mRecyclerView.setHasFixedSize(true);
-        GridLayoutManager layoutManager = new GridLayoutManager(mContext, 2);
+        GridLayoutManager layoutManager = new GridLayoutManager(this.mActivity, 2);
         layoutManager.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
             @Override
             public int getSpanSize(int position) {
@@ -73,19 +74,26 @@ public class ColorPicker extends PopupPicker {
     @Override
     public void show() {
         int xOffset = 0;
+        int[] location = new int[2];
+        mParent.getLocationOnScreen(location);
+        // if we are in multi-window mode, we should detect which part we are in, left or right.
+        boolean isRightWindow = location[0] != 0;
+
         mParent.getWindowVisibleDisplayFrame(mWindowRect);
         if (mType == Def.PickerType.COLOR_NO_ALL) {
             xOffset += (int) (mScreenDensity * 36);
-            if (DisplayUtil.isTablet(mContext)) {
+            if (DisplayUtil.isTablet(this.mActivity)) {
                 xOffset += (int) (mScreenDensity * 12);
             }
         }
-        if (mWindowRect.right != DisplayUtil.getDisplaySize(mContext).x) {
-            xOffset += (int) (mScreenDensity * 40);
+        if (mWindowRect.right != DisplayUtil.getDisplaySize(this.mActivity).x) {
+            if (!DeviceUtil.hasNougatApi() || isRightWindow) {
+                xOffset += (int) (mScreenDensity * 40);
+            }
         }
 
         mPopupWindow.showAtLocation(mParent, Gravity.TOP | Gravity.END,
-                xOffset, DisplayUtil.getStatusbarHeight(mContext));
+                xOffset, DisplayUtil.getStatusbarHeight(this.mActivity));
     }
 
     public void setPickedListener(View.OnClickListener listener) {
@@ -130,7 +138,7 @@ public class ColorPicker extends PopupPicker {
         private LayoutInflater mInflater;
 
         public ColorPickerAdapter() {
-            mInflater = LayoutInflater.from(mContext);
+            mInflater = LayoutInflater.from(ColorPicker.this.mActivity);
         }
 
         @Override
@@ -171,7 +179,7 @@ public class ColorPicker extends PopupPicker {
             holder.fab.setBackgroundTintList(ColorStateList.valueOf(mColors[index]));
             setFabMargin(holder.fab, index);
             if (mPickedPosition == position) {
-                holder.fab.setImageDrawable(ContextCompat.getDrawable(mContext, R.drawable.ic_color_picked));
+                holder.fab.setImageDrawable(ContextCompat.getDrawable(ColorPicker.this.mActivity, R.drawable.ic_color_picked));
             } else {
                 holder.fab.setImageDrawable(null);
             }
