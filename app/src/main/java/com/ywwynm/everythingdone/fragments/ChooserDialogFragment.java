@@ -171,7 +171,6 @@ public class ChooserDialogFragment extends BaseDialogFragment {
                     if (mMoreListener != null) {
                         mMoreListener.onClick(v);
                     }
-                    dismiss();
                 }
             });
         }
@@ -183,6 +182,14 @@ public class ChooserDialogFragment extends BaseDialogFragment {
                 EdgeEffectUtil.forRecyclerView(mRecyclerView, mAccentColor);
             }
         });
+    }
+
+    public void notifyDataSetChanged() {
+        mAdapter.notifyDataSetChanged();
+    }
+
+    public void pick(int position) {
+        mAdapter.pick(position);
     }
 
     public int getPickedIndex() {

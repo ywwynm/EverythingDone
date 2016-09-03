@@ -4,8 +4,6 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
-import android.content.ContentResolver;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -15,12 +13,9 @@ import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.AsyncTask;
-import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.provider.MediaStore;
 import android.provider.Settings;
-import android.support.annotation.Nullable;
 import android.support.annotation.StringRes;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.NotificationManagerCompat;
@@ -54,7 +49,6 @@ import com.ywwynm.everythingdone.helpers.BackupHelper;
 import com.ywwynm.everythingdone.helpers.FingerprintHelper;
 import com.ywwynm.everythingdone.model.HabitReminder;
 import com.ywwynm.everythingdone.model.Thing;
-import com.ywwynm.everythingdone.permission.PermissionCallback;
 import com.ywwynm.everythingdone.permission.SimplePermissionCallback;
 import com.ywwynm.everythingdone.receivers.LocaleChangeReceiver;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
@@ -248,19 +242,12 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             } else if (requestCode == REQUEST_CHOOSE_AUDIO_FILE) {
                 uri = Uri.fromFile(new File(pathName));
                 String audioName = FileUtil.getNameWithoutPostfix(pathName);
-                mChosenRingtoneTitles[mChoosingIndex] = audioName;
-                mChosenRingtoneUris[mChoosingIndex] = uri;
                 if (!sRingtoneUriList.contains(uri)) {
                     sRingtoneTitleList.add(1, audioName);
                     sRingtoneUriList.add(1, uri);
-                    mCdfsRingtone[mChoosingIndex].setInitialIndex(1);
-                } else {
-                    mCdfsRingtone[mChoosingIndex].setInitialIndex(
-                            sRingtoneUriList.indexOf(uri));
                 }
-                mCdfsRingtone[mChoosingIndex].showAllowingStateLoss(
-                        getFragmentManager(), ChooserDialogFragment.TAG);
-                mTvsRingtone[mChoosingIndex].setText(audioName);
+                mCdfsRingtone[mChoosingIndex].pick(1);
+                mCdfsRingtone[mChoosingIndex].notifyDataSetChanged();
 
                 final Ringtone ringtone = RingtoneManager.getRingtone(this, uri);
                 ringtone.play();
