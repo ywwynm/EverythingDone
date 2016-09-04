@@ -13,6 +13,7 @@ import com.ywwynm.everythingdone.database.AppWidgetDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
 import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
+import com.ywwynm.everythingdone.helpers.RemoteActionHelper;
 import com.ywwynm.everythingdone.managers.ThingManager;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.model.ThingWidgetInfo;
@@ -29,21 +30,23 @@ public class BaseThingWidget extends AppWidgetProvider {
     public void onReceive(Context context, Intent intent) {
         if (Def.Communication.BROADCAST_ACTION_UPDATE_CHECKLIST.equals(intent.getAction())) {
             long id = intent.getLongExtra(Def.Communication.KEY_ID, -1);
-            ThingManager thingManager = ThingManager.getInstance(context);
-            Thing thing = thingManager.getThingById(id);
-            if (thing == null) {
-                ThingDAO thingDAO = ThingDAO.getInstance(context);
-                thing = thingDAO.getThingById(id);
-                if (thing == null) {
-                    return;
-                }
-            }
+            int itemPos = intent.getIntExtra(Def.Communication.KEY_POSITION, 0);
+            RemoteActionHelper.toggleChecklistItem(context, id, itemPos);
 
-            int position = intent.getIntExtra(Def.Communication.KEY_POSITION, 0);
-            String updatedContent = getUpdatedContent(thing.getContent(), position);
-            thing.setContent(updatedContent);
-            updateThing(context, thing);
-            updateUiEverywhereForChecklist(context, thing);
+//            ThingManager thingManager = ThingManager.getInstance(context);
+//            Thing thing = thingManager.getThingById(id);
+//            if (thing == null) {
+//                ThingDAO thingDAO = ThingDAO.getInstance(context);
+//                thing = thingDAO.getThingById(id);
+//                if (thing == null) {
+//                    return;
+//                }
+//            }
+//
+//            String updatedContent = getUpdatedContent(thing.getContent(), itemPos);
+//            thing.setContent(updatedContent);
+//            updateThing(context, thing);
+//            updateUiEverywhereForChecklist(context, thing);
         }
         super.onReceive(context, intent);
     }

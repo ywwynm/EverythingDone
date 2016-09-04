@@ -6,16 +6,15 @@ import android.content.Context;
 import android.content.Intent;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
+import android.support.v4.util.Pair;
 
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
-import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper;
+import com.ywwynm.everythingdone.database.ReminderDAO;
+import com.ywwynm.everythingdone.helpers.RemoteActionHelper;
 import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.Thing;
-import com.ywwynm.everythingdone.database.ReminderDAO;
-import com.ywwynm.everythingdone.database.ThingDAO;
-import com.ywwynm.everythingdone.managers.ThingManager;
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil;
 
 import java.util.List;
@@ -35,40 +34,31 @@ public class ReminderReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         long id = intent.getLongExtra(Def.Communication.KEY_ID, 0);
         ReminderDAO reminderDAO = ReminderDAO.getInstance(context);
+        Pair<Thing, Integer> pair = App.getThingAndPosition(context, id, -1);
+        Thing thing = pair.first;
+        if (thing == null) {
+            reminderDAO.delete(id);
+            return;
+        }
+        int position = pair.second;
+        int typeBefore = thing.getType();
+
         Reminder reminder = reminderDAO.getReminderById(id);
+        if (reminder == null) {
+            RemoteActionHelper.correctIfNoReminder(context, thing, position, typeBefore);
+            return;
+        }
 
         if (reminder.getState() == Reminder.UNDERWAY) {
-            ThingManager thingManager = ThingManager.getInstance(context);
-            List<Thing> things = thingManager.getThings();
-            Thing thing = null;
-            int size = things.size();
-            int position = -1;
-            for (int i = 0; i < size; i++) {
-                thing = things.get(i);
-                if (thing.getId() == id) {
-                    position = i;
-                    break;
-                }
-            }
-
-            if (position == -1) { // not same type or limit.
-                thing = ThingDAO.getInstance(context).getThingById(id);
-            }
-
-            if (thing == null) {
-                reminderDAO.delete(id);
-                return;
-            }
-
             List<Long> runningDetailActivities = App.getRunningDetailActivities();
             for (Long thingId : runningDetailActivities) {
                 if (thingId == id) {
                     reminder.setState(thing.getState() == Thing.UNDERWAY ?
                             Reminder.REMINDED : Reminder.EXPIRED);
                     reminderDAO.update(reminder);
-                    sendBroadCastToUpdateMainUI(context, thing, position);
-                    AppWidgetHelper.updateSingleThingAppWidgets(context, id);
-                    AppWidgetHelper.updateThingsListAppWidgetsForType(context, thing.getType());
+                    RemoteActionHelper.updateUiEverywhere(
+                            context, thing, position, typeBefore,
+                            Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME);
                     return;
                 }
             }
@@ -76,9 +66,9 @@ public class ReminderReceiver extends BroadcastReceiver {
             if (thing.getState() == Thing.UNDERWAY) {
                 reminder.setState(Reminder.REMINDED);
                 reminderDAO.update(reminder);
-                sendBroadCastToUpdateMainUI(context, thing, position);
-                AppWidgetHelper.updateSingleThingAppWidgets(context, id);
-                AppWidgetHelper.updateThingsListAppWidgetsForType(context, thing.getType());
+                RemoteActionHelper.updateUiEverywhere(
+                        context, thing, position, typeBefore,
+                        Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME);
 
                 NotificationCompat.Builder builder = SystemNotificationUtil
                         .newGeneralNotificationBuilder(context, TAG, id, position, thing, false);
@@ -109,17 +99,5 @@ public class ReminderReceiver extends BroadcastReceiver {
                 reminderDAO.update(reminder);
             }
         }
-    }
-
-    private void sendBroadCastToUpdateMainUI(Context context, Thing thing, int position) {
-        App.setSomethingUpdatedSpecially(true);
-        Intent broadcastIntent = new Intent(
-                Def.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI);
-        broadcastIntent.putExtra(Def.Communication.KEY_RESULT_CODE,
-                Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME);
-        broadcastIntent.putExtra(Def.Communication.KEY_THING, thing);
-        broadcastIntent.putExtra(Def.Communication.KEY_POSITION, position);
-        broadcastIntent.putExtra(Def.Communication.KEY_TYPE_BEFORE, thing.getType());
-        context.sendBroadcast(broadcastIntent);
     }
 }

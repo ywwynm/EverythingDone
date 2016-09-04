@@ -5,15 +5,25 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.support.v4.app.NotificationManagerCompat;
+import android.support.v4.util.Pair;
 
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.AuthenticationActivity;
+import com.ywwynm.everythingdone.database.ReminderDAO;
+import com.ywwynm.everythingdone.helpers.RemoteActionHelper;
+import com.ywwynm.everythingdone.model.Thing;
 
 public class ReminderNotificationActionReceiver extends BroadcastReceiver {
 
     public static final String TAG = "ReminderNotificationActionReceiver";
+
+    private static final String[] LEGAL_ACTIONS = {
+            Def.Communication.NOTIFICATION_ACTION_FINISH,
+            Def.Communication.WIDGET_ACTION_FINISH,
+            Def.Communication.NOTIFICATION_ACTION_DELAY
+    };
 
     public ReminderNotificationActionReceiver() { }
 
@@ -22,32 +32,53 @@ public class ReminderNotificationActionReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         String action = intent.getAction();
         long id = intent.getLongExtra(Def.Communication.KEY_ID, 0);
+        NotificationManagerCompat nmc = NotificationManagerCompat.from(context);
+        nmc.cancel((int) id);
+
+        boolean matched = false;
+        for (String legalAction : LEGAL_ACTIONS) {
+            if (legalAction.equals(action)) {
+                matched = true;
+                break;
+            }
+        }
+        if (!matched) {
+            return;
+        }
+
         int position = intent.getIntExtra(Def.Communication.KEY_POSITION, -1);
+        Pair<Thing, Integer> pair = App.getThingAndPosition(context, id, position);
+        Thing thing = pair.first;
+        if (thing == null) {
+            ReminderDAO.getInstance(context).delete(id);
+            return;
+        }
+        position = pair.second;
 
         if (action.equals(Def.Communication.NOTIFICATION_ACTION_FINISH)
                 || action.equals(Def.Communication.WIDGET_ACTION_FINISH)) {
-            for (Long dId : App.getRunningDetailActivities()) if (dId == id) {
-                return;
+            if (thing.isPrivate()) {
+                Intent actionIntent = AuthenticationActivity.getOpenIntent(
+                        context, TAG, id, position,
+                        Def.Communication.AUTHENTICATE_ACTION_FINISH,
+                        context.getString(R.string.act_finish));
+                actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(actionIntent);
+            } else {
+                RemoteActionHelper.finishReminder(context, thing, position);
             }
-            Intent actionIntent = AuthenticationActivity.getOpenIntent(
-                    context, TAG, id, position,
-                    Def.Communication.AUTHENTICATE_ACTION_FINISH,
-                    context.getString(R.string.act_finish));
-            actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            context.startActivity(actionIntent);
-        } else if (action.equals(Def.Communication.NOTIFICATION_ACTION_DELAY)) {
-            for (Long dId : App.getRunningDetailActivities()) if (dId == id) {
-                return;
-            }
-            Intent actionIntent = AuthenticationActivity.getOpenIntent(
-                    context, TAG, id, position,
-                    Def.Communication.AUTHENTICATE_ACTION_DELAY,
-                    context.getString(R.string.act_delay_10_minutes));
-            actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            context.startActivity(actionIntent);
-        }
 
-        NotificationManagerCompat nmc = NotificationManagerCompat.from(context);
-        nmc.cancel((int) id);
+        } else if (action.equals(Def.Communication.NOTIFICATION_ACTION_DELAY)) {
+            if (thing.isPrivate()) {
+                Intent actionIntent = AuthenticationActivity.getOpenIntent(
+                        context, TAG, id, position,
+                        Def.Communication.AUTHENTICATE_ACTION_DELAY,
+                        context.getString(R.string.act_delay_10_minutes));
+                actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(actionIntent);
+            } else {
+                RemoteActionHelper.delay10Minutes(context, thing, position);
+            }
+        }
     }
 }

@@ -9,6 +9,7 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.os.Handler;
 import android.os.Looper;
+import android.support.v4.util.Pair;
 import android.util.Log;
 
 import com.bumptech.glide.Glide;
@@ -278,6 +279,7 @@ public class App extends Application {
             mExecutor.execute(r);
         }
     }
+
     public static void killMeAndRestart(Context context, Class toLaunch, long time) {
         Intent intent;
         if (toLaunch == null) {
@@ -298,6 +300,41 @@ public class App extends Application {
                 System.exit(0);
             }
         }, time);
+    }
+
+    public static Pair<Thing, Integer> getThingAndPosition(Context context, long id, int knownPos) {
+        ThingManager thingManager = ThingManager.getInstance(context);
+        ThingDAO thingDAO = ThingDAO.getInstance(context);
+        Thing thing = null;
+        int correctPos = knownPos;
+        if (knownPos == -1) {
+            correctPos = thingManager.getPosition(id);
+            if (correctPos == -1) {
+                thing = thingDAO.getThingById(id);
+            } else {
+                thing = thingManager.getThings().get(correctPos);
+            }
+        } else {
+            List<Thing> things = thingManager.getThings();
+            final int size = things.size();
+            if (knownPos >= size || things.get(knownPos).getId() != id) {
+                for (int i = 0; i < size; i++) {
+                    Thing temp = things.get(i);
+                    if (temp.getId() == id) {
+                        thing = temp;
+                        correctPos = i;
+                        break;
+                    }
+                }
+                if (thing == null) {
+                    thing = thingDAO.getThingById(id);
+                    correctPos = -1;
+                }
+            } else {
+                thing = things.get(knownPos);
+            }
+        }
+        return new Pair<>(thing, correctPos);
     }
 
 }

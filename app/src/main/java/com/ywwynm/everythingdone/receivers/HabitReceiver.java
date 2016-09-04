@@ -6,14 +6,15 @@ import android.content.Context;
 import android.content.Intent;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
+import android.support.v4.util.Pair;
 
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
-import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
+import com.ywwynm.everythingdone.helpers.RemoteActionHelper;
 import com.ywwynm.everythingdone.managers.ThingManager;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.HabitReminder;
@@ -37,39 +38,29 @@ public class HabitReceiver extends BroadcastReceiver {
         long hrId = intent.getLongExtra(Def.Communication.KEY_ID, 0);
         HabitDAO habitDAO = HabitDAO.getInstance(context);
         HabitReminder habitReminder = habitDAO.getHabitReminderById(hrId);
+        if (habitReminder == null) {
+            return;
+        }
+
         long habitId = habitReminder.getHabitId();
         SystemNotificationUtil.cancelNotification(habitId, Thing.HABIT, context);
 
-        ThingManager thingManager = ThingManager.getInstance(context);
-        List<Thing> things = thingManager.getThings();
-        Thing thing = null;
-        int size = things.size();
-        int position = -1;
-        for (int i = 0; i < size; i++) {
-            thing = things.get(i);
-            if (thing.getId() == habitId) {
-                position = i;
-                break;
-            }
-        }
-
-        if (position == -1) { // not same type or limit.
-            thing = ThingDAO.getInstance(context).getThingById(habitId);
-        }
-
+        Pair<Thing, Integer> pair = App.getThingAndPosition(context, habitId, -1);
+        Thing thing = pair.first;
         if (thing == null) {
             habitDAO.deleteHabit(habitId);
             return;
         }
+        int position = pair.second;
 
         if (thing.getState() == Thing.UNDERWAY) {
             List<Long> runningDetailActivities = App.getRunningDetailActivities();
             for (Long rThingId : runningDetailActivities) {
                 if (rThingId == habitId) {
                     updateHabitRecordTimes(context, hrId);
-                    sendBroadCastToUpdateMainUI(context, thing, position);
-                    AppWidgetHelper.updateSingleThingAppWidgets(context, rThingId);
-                    AppWidgetHelper.updateThingsListAppWidgetsForType(context, Thing.HABIT);
+                    RemoteActionHelper.updateUiEverywhere(
+                            context, thing, position, thing.getType(),
+                            Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME);
                     return;
                 }
             }
@@ -80,16 +71,16 @@ public class HabitReceiver extends BroadcastReceiver {
                         CheckListHelper.SIGNAL + "1", CheckListHelper.SIGNAL + "0");
                 thing.setContent(sameCheckContent);
                 if (position != -1) {
-                    thingManager.update(Thing.HABIT, thing, position, false);
+                    ThingManager.getInstance(context).update(Thing.HABIT, thing, position, false);
                 } else {
                     ThingDAO.getInstance(context).update(Thing.HABIT, thing, false, false);
                 }
             }
 
             updateHabitRecordTimes(context, hrId);
-            sendBroadCastToUpdateMainUI(context, thing, position);
-            AppWidgetHelper.updateSingleThingAppWidgets(context, thing.getId());
-            AppWidgetHelper.updateThingsListAppWidgetsForType(context, Thing.HABIT);
+            RemoteActionHelper.updateUiEverywhere(
+                    context, thing, position, thing.getType(),
+                    Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME);
 
             NotificationCompat.Builder builder = SystemNotificationUtil
                     .newGeneralNotificationBuilder(context, TAG, habitId, position, thing, false);
@@ -119,8 +110,10 @@ public class HabitReceiver extends BroadcastReceiver {
     private void updateHabitRecordTimes(Context context, long hrId) {
         HabitDAO habitDAO = HabitDAO.getInstance(context);
         HabitReminder habitReminder = habitDAO.getHabitReminderById(hrId);
+        if (habitReminder == null) return;
         long habitId = habitReminder.getHabitId();
         Habit habit = habitDAO.getHabitById(habitId);
+        if (habit == null) return;
         habitDAO.updateHabitReminderToNext(hrId);
         int recordTimes = habit.getRecord().length();
         int remindedTimes = habit.getRemindedTimes();
@@ -141,17 +134,5 @@ public class HabitReceiver extends BroadcastReceiver {
             // At the same time, we can see previous finishes as finishes after notifications.
             habitDAO.updateHabitRemindedTimes(habitId, recordTimes + 1);
         }
-    }
-
-    private void sendBroadCastToUpdateMainUI(Context context, Thing thing, int position) {
-        App.setSomethingUpdatedSpecially(true);
-        Intent broadcastIntent = new Intent(
-                Def.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI);
-        broadcastIntent.putExtra(Def.Communication.KEY_RESULT_CODE,
-                Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME);
-        broadcastIntent.putExtra(Def.Communication.KEY_THING, thing);
-        broadcastIntent.putExtra(Def.Communication.KEY_POSITION, position);
-        broadcastIntent.putExtra(Def.Communication.KEY_TYPE_BEFORE, thing.getType());
-        context.sendBroadcast(broadcastIntent);
     }
 }
