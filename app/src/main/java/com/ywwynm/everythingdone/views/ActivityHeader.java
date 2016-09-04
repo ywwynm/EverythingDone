@@ -2,12 +2,13 @@ package com.ywwynm.everythingdone.views;
 
 import android.content.res.Configuration;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.App;
+import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.managers.ModeManager;
 import com.ywwynm.everythingdone.managers.ThingManager;
@@ -23,7 +24,7 @@ public class ActivityHeader {
 
     public static final String TAG = "ActivityHeader";
 
-    private App mApplication;
+    private App mApp;
     private float mScreenDensity;
 
     private boolean shouldListenToScroll = true;
@@ -40,22 +41,13 @@ public class ActivityHeader {
 
     private RecyclerView mBindingRecyclerView;
 
-    public ActivityHeader(App application, RecyclerView recyclerView,
+    public ActivityHeader(App app, RecyclerView recyclerView,
                           View actionbarShadow, RelativeLayout relativeLayout, TextView title,
                           TextView subtitle) {
-        mApplication = application;
-        mScreenDensity = DisplayUtil.getScreenDensity(mApplication);
+        mApp = app;
+        mScreenDensity = DisplayUtil.getScreenDensity(mApp);
 
-        headerTranslationYFactor = 65f / 90;
-        titleShrinkFactor = -1.0f / 540 / mScreenDensity;
-
-        if (DisplayUtil.isTablet(application)) {
-            headerTranslationYFactor = 62f / 90;
-        } else if (mApplication.getResources().getConfiguration().orientation
-                == Configuration.ORIENTATION_LANDSCAPE) {
-            headerTranslationYFactor = 68f / 90;
-            titleShrinkFactor = -1.0f / 360 / mScreenDensity;
-        }
+        computeFactors(null);
 
         mActionbarShadow = actionbarShadow;
         mRelativeLayout = relativeLayout;
@@ -64,6 +56,39 @@ public class ActivityHeader {
 
         mBindingRecyclerView = recyclerView;
         updateSubtitle();
+    }
+
+    public void computeFactors(Toolbar actionbar) {
+        headerTranslationYFactor = 65f / 90;
+        titleShrinkFactor = -1.0f / 540 / mScreenDensity;
+        boolean isTablet    = DisplayUtil.isTablet(mApp);
+        boolean isLandscape = mApp.getResources().getConfiguration().orientation
+                == Configuration.ORIENTATION_LANDSCAPE;
+        if (isTablet) {
+            headerTranslationYFactor = 62f / 90;
+            titleShrinkFactor = -1.0f / 540 / mScreenDensity;
+        } else if (isLandscape) {
+            headerTranslationYFactor = 68f / 90;
+            titleShrinkFactor = -1.0f / 360 / mScreenDensity;
+        }
+
+        if (actionbar != null) {
+            int actionbarHeight = actionbar.getHeight();
+            if (near(actionbarHeight, (int) (mScreenDensity * 48))) {
+                headerTranslationYFactor = 68f / 90;
+                titleShrinkFactor = -1.0f / 360 / mScreenDensity;
+            } else if (near(actionbarHeight, (int) (mScreenDensity * 56))) {
+                headerTranslationYFactor = 65f / 90;
+                titleShrinkFactor = -1.0f / 540 / mScreenDensity;
+            } else if (near(actionbarHeight, (int) (mScreenDensity * 64))) {
+                headerTranslationYFactor = 62f / 90;
+                titleShrinkFactor = -1.0f / 540 / mScreenDensity;
+            }
+        }
+    }
+
+    private boolean near(int h1, int h2) {
+        return Math.abs(h1 - h2) < 8;
     }
 
     public void updateAll(int firstVisibleItemPosition, boolean anim) {
@@ -107,7 +132,7 @@ public class ActivityHeader {
             updateHeader((int) (90 * mScreenDensity), anim);
             actionbarShadowAlphaAfter = 1.0f;
         }
-        if (mApplication.getModeManager().getCurrentMode() != ModeManager.SELECTING) {
+        if (mApp.getModeManager().getCurrentMode() != ModeManager.SELECTING) {
             if (anim) {
                 mActionbarShadow.animate().alpha(actionbarShadowAlphaAfter).withLayer().setDuration(160);
             } else {
@@ -119,7 +144,7 @@ public class ActivityHeader {
     }
 
     public void updateText() {
-        switch (mApplication.getLimit()) {
+        switch (mApp.getLimit()) {
             case Def.LimitForGettingThings.ALL_UNDERWAY:
                 mTitle.setText(R.string.underway);
                 break;
@@ -146,11 +171,11 @@ public class ActivityHeader {
     }
 
     private void updateSubtitle() {
-        int thingsCount = ThingManager.getInstance(mApplication).getThingsCounts()
-                .getThingsCountForActivityHeader(mApplication.getLimit());
-        String subtitle = thingsCount == 0 ? mApplication.getString(R.string.empty) :
-                "" + thingsCount + " " + mApplication.getString(R.string.a_thing);
-        if (thingsCount > 1 && !LocaleUtil.isChinese(mApplication)) {
+        int thingsCount = ThingManager.getInstance(mApp).getThingsCounts()
+                .getThingsCountForActivityHeader(mApp.getLimit());
+        String subtitle = thingsCount == 0 ? mApp.getString(R.string.empty) :
+                "" + thingsCount + " " + mApp.getString(R.string.a_thing);
+        if (thingsCount > 1 && !LocaleUtil.isChinese(mApp)) {
             subtitle += "s";
         }
         mSubtitle.setText(subtitle);

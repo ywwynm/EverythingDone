@@ -11,6 +11,7 @@ import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Point;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -35,6 +36,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewTreeObserver;
 import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
@@ -772,6 +774,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         dismissSnackbars();
         mColorPicker.dismiss();
 
+        mActivityHeader.computeFactors(mActionbar);
         if (!App.isSearching) {
             mActivityHeader.reset(false);
         }
@@ -783,10 +786,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             public void run() {
                 mThingsAdapter.setShouldThingsAnimWhenAppearing(true);
                 mRecyclerView.setVisibility(View.VISIBLE);
-                mSpan = DisplayUtil.isTablet(mApp) ? 3 : 2;
-                if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-                    mSpan++;
-                }
+                computeSpanCount();
                 mStaggeredGridLayoutManager.setSpanCount(mSpan);
                 if (mThingManager.getThings().size() > 1) {
                     mRecyclerView.scrollToPosition(0);
@@ -799,6 +799,21 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         if (mModeManager.getCurrentMode() != ModeManager.SELECTING && !App.isSearching
                 && mApp.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
             mFab.showFromBottom();
+        }
+    }
+
+    private void computeSpanCount() {
+        mSpan = DisplayUtil.isTablet(this) ? 3 : 2;
+        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            if (DisplayUtil.isInMultiWindow(this)) {
+                View decor = getWindow().getDecorView();
+                Point display = DisplayUtil.getDisplaySize(this);
+                if (decor.getWidth() != display.x) {
+                    mSpan++;
+                }
+            } else {
+                mSpan++;
+            }
         }
     }
 
@@ -885,29 +900,20 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
         mDrawerLayout.setScrimColor(Color.parseColor("#84000000"));
 
-        mSpan = DisplayUtil.isTablet(this) ? 3 : 2;
-        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
-            mSpan++;
-        }
-
-        if (!PermissionUtil.hasStoragePermission(this)
-                && PermissionUtil.shouldRequestPermissionWhenLoadingThings(mThingManager.getThings())) {
-            doWithPermissionChecked(new SimplePermissionCallback(this) {
-                @Override
-                public void onGranted() {
-                    mRecyclerView.postDelayed(initRecyclerViewRunnable, 240);
-                }
-
-                @Override
-                public void onDenied() {
-                    super.onDenied();
-                    finish();
-                }
-            }, Def.Communication.REQUEST_PERMISSION_LOAD_THINGS,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        if (DeviceUtil.hasNougatApi()) {
+            final View decor = getWindow().getDecorView();
+            decor.getViewTreeObserver().addOnPreDrawListener(
+                    new ViewTreeObserver.OnPreDrawListener() {
+                        @Override
+                        public boolean onPreDraw() {
+                            initRecyclerViewUi();
+                            mActivityHeader.computeFactors(mActionbar);
+                            decor.getViewTreeObserver().removeOnPreDrawListener(this);
+                            return true;
+                        }
+                    });
         } else {
-            // post here to make sure that animation plays well and completely
-            mRecyclerView.postDelayed(initRecyclerViewRunnable, 240);
+            initRecyclerViewUi();
         }
 
         MenuItem item = mDrawer.getMenu().getItem(mApp.getLimit());
@@ -923,6 +929,32 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
         if (!DeviceUtil.hasLollipopApi()) {
             DisplayUtil.setSelectionHandlersColor(mEtSearch, -1979711488);
+        }
+    }
+
+    private void initRecyclerViewUi() {
+        computeSpanCount();
+
+        if (!PermissionUtil.hasStoragePermission(this)
+                && PermissionUtil.shouldRequestPermissionWhenLoadingThings(mThingManager.getThings())) {
+            doWithPermissionChecked(
+                    new SimplePermissionCallback(this) {
+                        @Override
+                        public void onGranted() {
+                            mRecyclerView.postDelayed(initRecyclerViewRunnable, 240);
+                        }
+
+                        @Override
+                        public void onDenied() {
+                            super.onDenied();
+                            finish();
+                        }
+                    },
+                    Def.Communication.REQUEST_PERMISSION_LOAD_THINGS,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        } else {
+            // post here to make sure that animation plays well and completely
+            mRecyclerView.postDelayed(initRecyclerViewRunnable, 240);
         }
     }
 
