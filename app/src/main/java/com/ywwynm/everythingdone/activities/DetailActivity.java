@@ -68,11 +68,13 @@ import com.ywwynm.everythingdone.fragments.AddAttachmentDialogFragment;
 import com.ywwynm.everythingdone.fragments.AlertDialogFragment;
 import com.ywwynm.everythingdone.fragments.DateTimeDialogFragment;
 import com.ywwynm.everythingdone.fragments.HabitDetailDialogFragment;
+import com.ywwynm.everythingdone.fragments.LoadingDialogFragment;
 import com.ywwynm.everythingdone.fragments.TwoOptionsDialogFragment;
 import com.ywwynm.everythingdone.helpers.AppUpdateHelper;
 import com.ywwynm.everythingdone.helpers.AttachmentHelper;
 import com.ywwynm.everythingdone.helpers.AuthenticationHelper;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
+import com.ywwynm.everythingdone.helpers.ScreenshotHelper;
 import com.ywwynm.everythingdone.helpers.SendInfoHelper;
 import com.ywwynm.everythingdone.helpers.ThingExporter;
 import com.ywwynm.everythingdone.managers.ThingManager;
@@ -986,7 +988,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 hddf.show(getFragmentManager(), HabitDetailDialogFragment.TAG);
                 break;
             case R.id.act_share:
-                SendInfoHelper.shareThing(this, mThing);
+                chooseHowToShareThing();
                 break;
             case R.id.act_finish_this_time_habit:
                 HabitDAO.getInstance(mApp).finishOneTime(mHabit);
@@ -1361,6 +1363,40 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         updateBackImage();
     }
 
+    private void chooseHowToShareThing() {
+        final TwoOptionsDialogFragment todf = new TwoOptionsDialogFragment();
+        todf.setStartAction(R.drawable.act_open_in_browser, R.string.act_share,
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        todf.dismiss();
+                        SendInfoHelper.shareThing(DetailActivity.this, mThing);
+                    }
+                });
+        todf.setEndAction(R.drawable.act_open_in_map, R.string.act_share,
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        todf.dismiss();
+                        shareThingInScreenshot();
+                    }
+                });
+        todf.show(getFragmentManager(), TwoOptionsDialogFragment.TAG);
+    }
+
+    private void shareThingInScreenshot() {
+        final LoadingDialogFragment ldf = new LoadingDialogFragment();
+        int color = getAccentColor();
+        ldf.setAccentColor(color);
+        ldf.setTitle(getString(R.string.please_wait));
+        ldf.setContent(getString(R.string.generating_screen_shot));
+        ldf.show(getFragmentManager(), LoadingDialogFragment.TAG);
+
+        ScreenshotHelper.startScreenshot(mScrollView, color,
+                new ScreenshotHelper.ShareCallback(
+                        this, ldf, SendInfoHelper.getShareThingTitle(this, mThing)));
+    }
+
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
@@ -1394,7 +1430,6 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         if (!mRemoveDetailActivityInstance) {
             App.getRunningDetailActivities().remove(mThing.getId());
         }
-
         if (mType == CREATE && !mMinusCreateActivitiesCount) {
             createActivitiesCount--;
         }

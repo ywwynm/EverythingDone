@@ -61,6 +61,17 @@ public class SendInfoHelper {
     public static void shareThing(Context context, Thing thing) {
         if (thing == null) return;
 
+        String title      = getShareThingTitle(context, thing);
+        String content    = getThingShareInfo(context, thing);
+        String attachment = thing.getAttachment();
+
+        startShare(context, title, content,
+                AttachmentHelper.toUriList(attachment), AttachmentHelper.isAllImage(attachment));
+    }
+
+    public static String getShareThingTitle(Context context, Thing thing) {
+        if (thing == null) return null;
+
         boolean isChinese = LocaleUtil.isChinese(context);
         String title = context.getString(R.string.act_share);
         String thisStr = context.getString(R.string.this_gai);
@@ -69,13 +80,7 @@ public class SendInfoHelper {
         } else {
             title += thisStr;
         }
-        title = title + Thing.getTypeStr(thing.getType(), context);
-
-        String content = getThingShareInfo(context, thing);
-        String attachment = thing.getAttachment();
-
-        startShare(context, title, content,
-                AttachmentHelper.toUriList(attachment), AttachmentHelper.isAllImage(attachment));
+        return title + Thing.getTypeStr(thing.getType(), context);
     }
 
     @SuppressLint("SimpleDateFormat")

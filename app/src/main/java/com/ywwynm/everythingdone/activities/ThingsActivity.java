@@ -145,7 +145,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
      * is caused by swipe-to-dismiss or user's touch event.
      * See {@link ThingsActivity#setRecyclerViewEvents()} for details.
      */
-    private boolean mScrollNotCausedByFinger = false;
+    private boolean mScrollCausedByFinger = true;
 
     /**
      * Used to know whether reveal animation for entering {@link DetailActivity} with type
@@ -173,6 +173,8 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
     private Intent mBroadCastIntent;
 
+    private boolean mCanSeeUi = true;
+
     private BroadcastReceiver mUpdateUiReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -187,6 +189,23 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             updateMainUi(intent, resultCode);
         }
     };
+
+    interface RemoteAction {
+        void updateUi();
+    }
+
+    private RemoteAction mRemoteAction;
+
+    public void setRemoteAction(RemoteAction remoteAction) {
+        if (mRemoteAction != null) {
+            mRemoteAction.updateUi();
+        }
+        if (mCanSeeUi) {
+            remoteAction.updateUi();
+        } else {
+            mRemoteAction = remoteAction;
+        }
+    }
 
     private Runnable mCloseDrawerRunnable = new Runnable() {
         @Override
@@ -285,6 +304,11 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     }
 
     @Override
+    protected void onStart() {
+        super.onStart();
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
         updateTaskDescription();
@@ -310,6 +334,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         super.onPause();
         App.putThingsActivityInstance(this);
         dismissSnackbars();
+        mScrollCausedByFinger = false;
 
         KeyboardUtil.hideKeyboard(getCurrentFocus());
     }
@@ -765,58 +790,6 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         App.setShouldJustNotifyDataSetChanged(false);
     }
 
-    /**
-     * Focus on change of screen orientation.
-     */
-    @Override
-    public void onConfigurationChanged(final Configuration newConfig) {
-        super.onConfigurationChanged(newConfig);
-        dismissSnackbars();
-        mColorPicker.dismiss();
-
-        mActivityHeader.computeFactors(mActionbar);
-        if (!App.isSearching) {
-            mActivityHeader.reset(false);
-        }
-
-        mRecyclerView.setVisibility(View.INVISIBLE);
-        mFlRoot.postDelayed(new Runnable() {
-            // if we don't use postDelayed, RevealLayout will show at a completely wrong hierarchy
-            @Override
-            public void run() {
-                mThingsAdapter.setShouldThingsAnimWhenAppearing(true);
-                mRecyclerView.setVisibility(View.VISIBLE);
-                computeSpanCount();
-                mStaggeredGridLayoutManager.setSpanCount(mSpan);
-                if (mThingManager.getThings().size() > 1) {
-                    mRecyclerView.scrollToPosition(0);
-                }
-                mThingsAdapter.notifyDataSetChanged();
-            }
-        }, 360);
-
-        mModeManager.updateTitleTextSize();
-        if (mModeManager.getCurrentMode() != ModeManager.SELECTING && !App.isSearching
-                && mApp.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
-            mFab.showFromBottom();
-        }
-    }
-
-    private void computeSpanCount() {
-        mSpan = DisplayUtil.isTablet(this) ? 3 : 2;
-        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
-            if (DisplayUtil.isInMultiWindow(this)) {
-                View decor = getWindow().getDecorView();
-                Point display = DisplayUtil.getDisplaySize(this);
-                if (decor.getWidth() != display.x) {
-                    mSpan++;
-                }
-            } else {
-                mSpan++;
-            }
-        }
-    }
-
     @Override
     protected void initMembers() {
         mApp = (App) getApplication();
@@ -958,6 +931,58 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         }
     }
 
+    /**
+     * Focus on change of screen orientation.
+     */
+    @Override
+    public void onConfigurationChanged(final Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        dismissSnackbars();
+        mColorPicker.dismiss();
+
+        mActivityHeader.computeFactors(mActionbar);
+        if (!App.isSearching) {
+            mActivityHeader.reset(false);
+        }
+
+        mRecyclerView.setVisibility(View.INVISIBLE);
+        mFlRoot.postDelayed(new Runnable() {
+            // if we don't use postDelayed, RevealLayout will show at a completely wrong hierarchy
+            @Override
+            public void run() {
+                mThingsAdapter.setShouldThingsAnimWhenAppearing(true);
+                mRecyclerView.setVisibility(View.VISIBLE);
+                computeSpanCount();
+                mStaggeredGridLayoutManager.setSpanCount(mSpan);
+                if (mThingManager.getThings().size() > 1) {
+                    mRecyclerView.scrollToPosition(0);
+                }
+                mThingsAdapter.notifyDataSetChanged();
+            }
+        }, 360);
+
+        mModeManager.updateTitleTextSize();
+        if (mModeManager.getCurrentMode() != ModeManager.SELECTING && !App.isSearching
+                && mApp.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
+            mFab.showFromBottom();
+        }
+    }
+
+    private void computeSpanCount() {
+        mSpan = DisplayUtil.isTablet(this) ? 3 : 2;
+        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            if (DisplayUtil.isInMultiWindow(this)) {
+                View decor = getWindow().getDecorView();
+                Point display = DisplayUtil.getDisplaySize(this);
+                if (decor.getWidth() != display.x) {
+                    mSpan++;
+                }
+            } else {
+                mSpan++;
+            }
+        }
+    }
+
     @Override
     protected void setActionbar() {
         setSupportActionBar(mActionbar);
@@ -1052,8 +1077,8 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                    if (mScrollNotCausedByFinger) {
-                        mScrollNotCausedByFinger = false;
+                    if (!mScrollCausedByFinger) {
+                        mScrollCausedByFinger = true;
                     }
                     if (mThingsAdapter.isShouldThingsAnimWhenAppearing()) {
                         mThingsAdapter.setShouldThingsAnimWhenAppearing(false);
@@ -1069,7 +1094,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
             @Override
             public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
-                if (!mScrollNotCausedByFinger) {
+                if (mScrollCausedByFinger) {
                     dismissSnackbars();
                     int[] positions = new int[mSpan];
                     mStaggeredGridLayoutManager.findFirstVisibleItemPositions(positions);
@@ -1098,7 +1123,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             @Override
             public void onClick(View v) {
                 int stateAfter = mUndoThings.get(0).getState();
-                mScrollNotCausedByFinger = true;
+                mScrollCausedByFinger = false;
 
                 if (mUndoAll) {
                     mThingManager.undoUpdateStates(mUndoThings, mUndoPositions, mUndoLocations,
@@ -1112,7 +1137,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
                     mThingsAdapter.notifyDataSetChanged();
                     mUndoAll = false;
-                    ThingsActivity.this.updateUIAfterStateUpdated(stateAfter,
+                    updateUIAfterStateUpdated(stateAfter,
                             mRecyclerView.getItemAnimator().getChangeDuration(), true);
                 } else if (!mUndoThings.isEmpty()) {
                     int size = mUndoThings.size();
@@ -1514,14 +1539,13 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         mActivityHeader.updateText();
         mDrawerHeader.updateCompletionRate();
 
-        mScrollNotCausedByFinger = true;
+        mScrollCausedByFinger = false;
         mRecyclerView.postDelayed(new Runnable() {
             @Override
             public void run() {
                 int[] positions = new int[mSpan];
                 mStaggeredGridLayoutManager.findFirstVisibleItemPositions(positions);
                 mActivityHeader.updateAll(positions[0], true);
-                mScrollNotCausedByFinger = false;
             }
         }, timeDelay);
 
@@ -1779,8 +1803,8 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         @Override
         public boolean onItemTouch(View v, MotionEvent event) {
             if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                if (mScrollNotCausedByFinger) {
-                    mScrollNotCausedByFinger = false;
+                if (!mScrollCausedByFinger) {
+                    mScrollCausedByFinger = true;
                 }
                 if (mThingsAdapter.isShouldThingsAnimWhenAppearing()) {
                     mThingsAdapter.setShouldThingsAnimWhenAppearing(false);
@@ -2015,7 +2039,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
             boolean changed = mThingManager.updateState(thingToSwipe, position, location,
                     state, Thing.FINISHED, false, true);
-            mScrollNotCausedByFinger = true;
+            mScrollCausedByFinger = false;
 
             if (App.isSearching) {
                 if (things.size() == 1) {

@@ -1,12 +1,9 @@
 package com.ywwynm.everythingdone.activities;
 
 import android.Manifest;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.net.Uri;
 import android.os.AsyncTask;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.ActionBar;
@@ -31,6 +28,7 @@ import com.ywwynm.everythingdone.database.ThingDAO;
 import com.ywwynm.everythingdone.fragments.LoadingDialogFragment;
 import com.ywwynm.everythingdone.helpers.AttachmentHelper;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
+import com.ywwynm.everythingdone.helpers.ScreenshotHelper;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.Thing;
@@ -41,18 +39,13 @@ import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil;
-import com.ywwynm.everythingdone.utils.FileUtil;
 import com.ywwynm.everythingdone.utils.LocaleUtil;
 import com.ywwynm.everythingdone.views.FloatingActionButton;
 
 import org.joda.time.DateTime;
 
 import java.io.File;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
 
 public class StatisticActivity extends EverythingDoneBaseActivity {
 
@@ -83,16 +76,6 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
 
     private LoadingDialogFragment mLdf;
 
-    private List<File> mSharedFiles;
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        for (File sharedFile : mSharedFiles) {
-            FileUtil.deleteFile(sharedFile);
-        }
-    }
-
     @Override
     protected int getLayoutResource() {
         return R.layout.activity_statistic;
@@ -110,8 +93,6 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
 
         final int screenWidth = DisplayUtil.getScreenSize(mApp).x;
         mHeaderHeight = screenWidth * 1080f / 1920;
-
-        mSharedFiles = new ArrayList<>();
     }
 
     @Override
@@ -308,7 +289,20 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
         }
         mLdf.show(getFragmentManager(), LoadingDialogFragment.TAG);
 
-        new ScreenshotTask().execute();
+        ScreenshotHelper.startScreenshot(mScrollView,
+                new ScreenshotHelper.ShareCallback(
+                        this, mLdf, getString(R.string.share_statistic)));
+//        ScreenshotHelper.startScreenshot(mScrollView, new ScreenshotHelper.ScreenshotCallback() {
+//            @Override
+//            public void onTaskDone(File file) {
+//                mLdf.dismiss();
+//                Intent intent = new Intent(Intent.ACTION_SEND);
+//                intent.setType("image/jpeg");
+//                intent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(file));
+//                startActivity(Intent.createChooser(
+//                        intent, getString(R.string.share_statistic)));
+//            }
+//        });
     }
 
     private void updateFabState() {
@@ -519,25 +513,6 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
         return longest;
     }
 
-    private File getScreenShot() {
-        final int count = mScrollView.getChildCount();
-        int height = 0;
-        for (int i = 0; i < count; i++) {
-            View view = mScrollView.getChildAt(i);
-            height += view.getHeight();
-        }
-
-        // get screen shot bitmap
-        Bitmap bitmap = Bitmap.createBitmap(mScrollView.getWidth(), height,
-                Bitmap.Config.ARGB_8888);
-        final Canvas canvas = new Canvas(bitmap);
-        mScrollView.draw(canvas);
-
-        String name = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
-        name += ".jpeg";
-        return BitmapUtil.saveBitmapToStorage(FileUtil.TEMP_PATH, name, bitmap);
-    }
-
     class FinishedCreatedTask extends AsyncTask<Object, Object, String[]> {
 
         @Override
@@ -718,33 +693,6 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
             rv.setAdapter(new StatisticAdapter(StatisticActivity.this, iconRes, firstRes,
                     textSizes, strings));
             rv.setLayoutManager(new LinearLayoutManager(StatisticActivity.this));
-        }
-    }
-
-    class ScreenshotTask extends AsyncTask<Object, Object, File> {
-
-        @Override
-        protected File doInBackground(Object... params) {
-            // sleep this thread for 1.6s to make sure that scrollbar have been drawn completely.
-            // As a result, we can get screenshot of mScrollView by view.draw(Canvas).
-            // Otherwise, we may get Exception and crash because we draw something in worker thread.
-            try {
-                Thread.sleep(1600);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            return getScreenShot();
-        }
-
-        @Override
-        protected void onPostExecute(File file) {
-            mLdf.dismiss();
-            mSharedFiles.add(file);
-            Intent intent = new Intent(Intent.ACTION_SEND);
-            intent.setType("image/jpeg");
-            intent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(file));
-            startActivity(Intent.createChooser(
-                    intent, getString(R.string.share_statistic)));
         }
     }
 }
