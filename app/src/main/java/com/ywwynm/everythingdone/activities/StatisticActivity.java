@@ -285,7 +285,7 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
             mLdf = new LoadingDialogFragment();
             mLdf.setAccentColor(ContextCompat.getColor(mApp, R.color.blue_grey_deep_grey));
             mLdf.setTitle(getString(R.string.please_wait));
-            mLdf.setContent(getString(R.string.generating_screen_shot));
+            mLdf.setContent(getString(R.string.generating_screenshot));
         }
         mLdf.show(getFragmentManager(), LoadingDialogFragment.TAG);
 

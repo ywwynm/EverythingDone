@@ -6,15 +6,19 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.net.Uri;
 import android.os.AsyncTask;
-import android.support.annotation.StringRes;
 import android.support.v4.widget.NestedScrollView;
+import android.support.v7.widget.RecyclerView;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 import android.widget.ScrollView;
 
-import com.ywwynm.everythingdone.R;
+import com.ywwynm.everythingdone.adapters.AudioAttachmentAdapter;
+import com.ywwynm.everythingdone.adapters.CheckListAdapter;
 import com.ywwynm.everythingdone.fragments.LoadingDialogFragment;
 import com.ywwynm.everythingdone.utils.BitmapUtil;
+import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.FileUtil;
 
 import java.io.File;
@@ -32,7 +36,7 @@ public class ScreenshotHelper {
 
     public static final String TAG = "ScreenshotHelper";
 
-    private static List<File> sGeneratedFiles;
+    private static List<File> sScreenshotFiles;
 
     public interface ScreenshotCallback {
         void onTaskDone(File file);
@@ -75,18 +79,18 @@ public class ScreenshotHelper {
     }
 
     public static void startScreenshot(View view, int color, ScreenshotCallback callback) {
-        if (sGeneratedFiles == null) {
-            sGeneratedFiles = new ArrayList<>();
+        if (sScreenshotFiles == null) {
+            sScreenshotFiles = new ArrayList<>();
         }
         new ScreenshotTask(callback).execute(view, color);
     }
 
     public static void clearGeneratedScreenshots() {
-        if (sGeneratedFiles != null) {
-            for (File generatedFile : sGeneratedFiles) {
+        if (sScreenshotFiles != null) {
+            for (File generatedFile : sScreenshotFiles) {
                 FileUtil.deleteFile(generatedFile);
             }
-            sGeneratedFiles.clear();
+            sScreenshotFiles.clear();
         }
     }
 
@@ -154,18 +158,92 @@ public class ScreenshotHelper {
 
         @Override
         protected void onPostExecute(File file) {
-//            mLdf.dismiss();
-//            mSharedFiles.add(file);
-//            Intent intent = new Intent(Intent.ACTION_SEND);
-//            intent.setType("image/jpeg");
-//            intent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(file));
-//            startActivity(Intent.createChooser(
-//                    intent, getString(R.string.share_statistic)));
-            sGeneratedFiles.add(file);
+            sScreenshotFiles.add(file);
             if (mCallback != null) {
                 mCallback.onTaskDone(file);
             }
         }
     }
+
+
+    // ---------- helper constants/methods/classes for screenshot in DetailActivity ---------- //
+
+    public static final int TITLE            = 0;
+    public static final int CONTENT          = 1;
+    public static final int CHECKLIST        = 2;
+    public static final int CHECKLIST_MARGIN = 3;
+    public static final int AUDIO            = 4;
+
+    public static List<Integer> updateUiBeforeScreenshot(
+            boolean editable, boolean imageRecyclerViewShown,
+            EditText etTitle, EditText etContent,
+            RecyclerView rvChecklist, CheckListAdapter checkListAdapter,
+            LinearLayout llMoveChecklist,
+            RecyclerView rvAudio, AudioAttachmentAdapter audioAdapter) {
+        List<Integer> didList = new ArrayList<>();
+        boolean noTitle = etTitle.getText().toString().isEmpty();
+        if (noTitle) {
+            etTitle.setVisibility(View.GONE);
+            didList.add(TITLE);
+        }
+        if (etContent.getVisibility() == View.VISIBLE &&
+                etContent.getText().toString().isEmpty()) {
+            etContent.setVisibility(View.GONE);
+            didList.add(CONTENT);
+        }
+        if (editable) {
+            if (rvChecklist != null && rvChecklist.getVisibility() == View.VISIBLE
+                    && checkListAdapter != null && llMoveChecklist.getVisibility() == View.VISIBLE) {
+                // 5 possible situations for finished/unfinished items
+                List<String> items = checkListAdapter.getItems();
+                items.remove("2");
+                checkListAdapter.notifyDataSetChanged();
+                llMoveChecklist.setVisibility(View.GONE);
+                didList.add(CHECKLIST);
+                if (noTitle && imageRecyclerViewShown) {
+                    LinearLayout.LayoutParams llp = (LinearLayout.LayoutParams)
+                            rvChecklist.getLayoutParams();
+                    llp.topMargin = (int)
+                            (DisplayUtil.getScreenDensity(rvChecklist.getContext()) * 8);;
+                    rvChecklist.requestLayout();
+                    didList.add(CHECKLIST_MARGIN);
+                }
+            }
+        }
+        if (rvAudio != null && rvAudio.getVisibility() == View.VISIBLE && audioAdapter != null) {
+            audioAdapter.setTakingScreenshot(true);
+            didList.add(AUDIO);
+        }
+        return didList;
+    }
+
+    public static void updateUiAfterScreenshot(
+            List<Integer> didList,
+            EditText etTitle, EditText etContent,
+            RecyclerView rvChecklist, CheckListAdapter checkListAdapter,
+            LinearLayout llMoveChecklist, AudioAttachmentAdapter audioAdapter) {
+        for (int did : didList) {
+            if (did == TITLE) {
+                etTitle.setVisibility(View.VISIBLE);
+            } else if (did == CONTENT) {
+                etContent.setVisibility(View.VISIBLE);
+            } else if (did == CHECKLIST) { // must be editable if go here
+                List<String> items = checkListAdapter.getItems();
+                int index = CheckListHelper.getLastUnfinishedItemIndex(items) + 1;
+                items.add(index, "2");
+                checkListAdapter.notifyDataSetChanged();
+                llMoveChecklist.setVisibility(View.VISIBLE);
+            } else if (did == CHECKLIST_MARGIN) {
+                LinearLayout.LayoutParams llp = (LinearLayout.LayoutParams)
+                        rvChecklist.getLayoutParams();
+                llp.topMargin = (int) (DisplayUtil.getScreenDensity(rvChecklist.getContext()) * 20);
+                rvChecklist.requestLayout();
+            } else if (did == AUDIO) {
+                audioAdapter.setTakingScreenshot(false);
+            }
+        }
+    }
+
+    // ---------- end helper things for DetailActivity ---------- //
 
 }

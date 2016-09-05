@@ -25,21 +25,10 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
 
-            <android.support.v7.widget.RecyclerView
-                android:id="@+id/rv_things"
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:clipToPadding="false"
-                android:paddingLeft="@dimen/rv_things_padding"
-                android:layout_marginTop="?attr/actionBarSize"
-                android:paddingRight="@dimen/rv_things_padding"
-                android:scrollbars="vertical"
-                android:scrollbarStyle="outsideOverlay"
-                android:theme="@style/Theme.AppCompat.Light"/>
-
-            <RelativeLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
 
                 <android.support.v7.widget.Toolbar
                     android:id="@+id/actionbar"
@@ -47,6 +36,8 @@
                     android:layout_height="?attr/actionBarSize"
                     android:theme="@style/EverythingDoneTheme.Things.Toolbar"
                     android:background="@android:color/transparent"
+                    android:focusable="true"
+                    android:focusableInTouchMode="true"
                     app:contentInsetStart="72dp">
 
                     <View
@@ -75,13 +66,24 @@
                     android:id="@+id/actionbar_shadow"
                     android:layout_width="match_parent"
                     android:layout_height="4dp"
-                    android:layout_below="@id/actionbar"
                     android:alpha="0.0"
                     android:background="@drawable/actionbar_shadow"/>
 
-            </RelativeLayout>
+            </LinearLayout>
 
             <include layout="@layout/include_activity_header_things" />
+
+            <android.support.v7.widget.RecyclerView
+                android:id="@+id/rv_things"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:paddingLeft="@dimen/rv_things_padding"
+                android:layout_marginTop="?attr/actionBarSize"
+                android:paddingRight="@dimen/rv_things_padding"
+                android:scrollbars="vertical"
+                android:scrollbarStyle="outsideOverlay"
+                android:theme="@style/Theme.AppCompat.Light"/>
 
             <com.ywwynm.everythingdone.views.FloatingActionButton
                 android:id="@+id/fab_create"

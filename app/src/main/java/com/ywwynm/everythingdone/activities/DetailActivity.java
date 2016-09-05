@@ -1389,12 +1389,29 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         int color = getAccentColor();
         ldf.setAccentColor(color);
         ldf.setTitle(getString(R.string.please_wait));
-        ldf.setContent(getString(R.string.generating_screen_shot));
+        ldf.setContent(getString(R.string.generating_screenshot));
         ldf.show(getFragmentManager(), LoadingDialogFragment.TAG);
+
+        boolean imageRecyclerViewShown = mRvImageAttachment != null
+                && mRvImageAttachment.getVisibility() == View.VISIBLE
+                && mRvImageAttachment != null;
+        final List<Integer> didList = ScreenshotHelper.updateUiBeforeScreenshot(
+                mEditable, imageRecyclerViewShown, mEtTitle, mEtContent,
+                mRvCheckList, mCheckListAdapter, mLlMoveChecklist,
+                mRvAudioAttachment, mAudioAttachmentAdapter);
 
         ScreenshotHelper.startScreenshot(mScrollView, color,
                 new ScreenshotHelper.ShareCallback(
-                        this, ldf, SendInfoHelper.getShareThingTitle(this, mThing)));
+                        this, ldf, SendInfoHelper.getShareThingTitle(this, mThing)) {
+                    @Override
+                    public void onTaskDone(File file) {
+                        super.onTaskDone(file);
+                        ScreenshotHelper.updateUiAfterScreenshot(didList,
+                                mEtTitle, mEtContent,
+                                mRvCheckList, mCheckListAdapter, mLlMoveChecklist,
+                                mAudioAttachmentAdapter);
+                    }
+                });
     }
 
     @Override
@@ -2344,12 +2361,12 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
     private boolean shouldSendBroadCast() {
         return mSenderName.equals(ReminderReceiver.TAG)
-                || mSenderName.equals(HabitReceiver.TAG)
-                || mSenderName.equals(AutoNotifyReceiver.TAG)
-                || "intent".equals(mSenderName)
-                || mSenderName.equals(App.class.getName())
-                || mSenderName.equals(CreateWidget.TAG)
-                || mSenderName.equals(AppWidgetHelper.TAG);
+            || mSenderName.equals(HabitReceiver.TAG)
+            || mSenderName.equals(AutoNotifyReceiver.TAG)
+            || mSenderName.equals("intent")
+            || mSenderName.equals(App.class.getName())
+            || mSenderName.equals(CreateWidget.TAG)
+            || mSenderName.equals(AppWidgetHelper.TAG);
     }
 
     private void sendBroadCastToUpdateMainUI(Intent intent, int resultCode) {

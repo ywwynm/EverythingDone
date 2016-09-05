@@ -91,9 +91,19 @@ public class CheckListHelper {
     }
 
     public static int getFirstFinishedItemIndex(List<String> items) {
-        int size = items.size();
+        final int size = items.size();
         for (int i = 0; i < size; i++) {
             if (items.get(i).startsWith("1")) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    public static int getLastUnfinishedItemIndex(List<String> items) {
+        final int size = items.size();
+        for (int i = size - 1; i >= 0; i--) {
+            if (items.get(i).startsWith("0")) {
                 return i;
             }
         }

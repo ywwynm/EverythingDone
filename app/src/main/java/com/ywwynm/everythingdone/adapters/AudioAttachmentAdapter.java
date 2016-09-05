@@ -44,6 +44,8 @@ public class AudioAttachmentAdapter extends RecyclerView.Adapter<AudioAttachment
     private int mPlayingIndex = -1;
     private MediaPlayer mPlayer;
 
+    private boolean mTakingScreenshot = false;
+
     public interface RemoveCallback {
         void onRemoved(int pos);
     }
@@ -59,6 +61,14 @@ public class AudioAttachmentAdapter extends RecyclerView.Adapter<AudioAttachment
         mItems = items;
 
         mRemoveCallback = callback;
+    }
+
+    public void setTakingScreenshot(boolean takingScreenshot) {
+        mTakingScreenshot = takingScreenshot;
+        if (mPlayer != null && mPlayer.isPlaying()) {
+            stopPlaying();
+        }
+        notifyDataSetChanged();
     }
 
     public List<String> getItems() {
@@ -88,22 +98,31 @@ public class AudioAttachmentAdapter extends RecyclerView.Adapter<AudioAttachment
         long duration = FileUtil.getMediaDuration(pathName);
         holder.tvSize.setText(DateTimeUtil.getDurationBriefStr(duration));
 
-        if (mPlayingIndex == position) {
-            holder.ivFirst.setVisibility(View.VISIBLE);
-            if (mPlayer.isPlaying()) {
-                holder.ivFirst.setImageResource(R.drawable.act_pause);
-            } else {
-                holder.ivFirst.setImageResource(R.drawable.act_play);
-            }
-            holder.ivSecond.setImageResource(R.drawable.act_stop_playing_audio);
+        if (mTakingScreenshot) {
+            holder.ivFirst .setVisibility(View.VISIBLE);
+            holder.ivSecond.setVisibility(View.GONE);
+            holder.ivThird .setVisibility(View.GONE);
+            holder.ivFirst.setImageResource(R.drawable.act_play);
         } else {
-            if (mEditable) {
+            holder.ivSecond.setVisibility(View.VISIBLE);
+            holder.ivThird. setVisibility(View.VISIBLE);
+            if (mPlayingIndex == position) {
                 holder.ivFirst.setVisibility(View.VISIBLE);
-                holder.ivFirst.setImageResource(R.drawable.act_play);
-                holder.ivSecond.setImageResource(R.drawable.delete_audio);
+                if (mPlayer.isPlaying()) {
+                    holder.ivFirst.setImageResource(R.drawable.act_pause);
+                } else {
+                    holder.ivFirst.setImageResource(R.drawable.act_play);
+                }
+                holder.ivSecond.setImageResource(R.drawable.act_stop_playing_audio);
             } else {
-                holder.ivFirst.setVisibility(View.GONE);
-                holder.ivSecond.setImageResource(R.drawable.act_play);
+                if (mEditable) {
+                    holder.ivFirst.setVisibility(View.VISIBLE);
+                    holder.ivFirst.setImageResource(R.drawable.act_play);
+                    holder.ivSecond.setImageResource(R.drawable.delete_audio);
+                } else {
+                    holder.ivFirst.setVisibility(View.GONE);
+                    holder.ivSecond.setImageResource(R.drawable.act_play);
+                }
             }
         }
     }

@@ -178,9 +178,12 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     private BroadcastReceiver mUpdateUiReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            List<Long> runningDetailActivities = App.getRunningDetailActivities();
-            int size = runningDetailActivities.size();
-            if (size > 0) {
+            if (!mCanSeeUi) {
+                if (mBroadCastIntent != null) {
+                    int resultCode = mBroadCastIntent.getIntExtra(Def.Communication.KEY_RESULT_CODE,
+                            Def.Communication.RESULT_NO_UPDATE);
+                    updateMainUi(mBroadCastIntent, resultCode);
+                }
                 mBroadCastIntent = intent;
                 return;
             }
@@ -189,23 +192,6 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             updateMainUi(intent, resultCode);
         }
     };
-
-    interface RemoteAction {
-        void updateUi();
-    }
-
-    private RemoteAction mRemoteAction;
-
-    public void setRemoteAction(RemoteAction remoteAction) {
-        if (mRemoteAction != null) {
-            mRemoteAction.updateUi();
-        }
-        if (mCanSeeUi) {
-            remoteAction.updateUi();
-        } else {
-            mRemoteAction = remoteAction;
-        }
-    }
 
     private Runnable mCloseDrawerRunnable = new Runnable() {
         @Override
@@ -306,12 +292,19 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     @Override
     protected void onStart() {
         super.onStart();
+        mCanSeeUi = true;
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         updateTaskDescription();
+
+        if (mBroadCastIntent != null) {
+            int resultCode = mBroadCastIntent.getIntExtra(Def.Communication.KEY_RESULT_CODE,
+                    Def.Communication.RESULT_NO_UPDATE);
+            updateMainUi(mBroadCastIntent, resultCode);
+        }
 
         if (mUpdateMainUiInOnResume && App.justNotifyDataSetChanged()) {
             justNotifyDataSetChanged();
@@ -342,6 +335,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     @Override
     protected void onStop() {
         super.onStop();
+        mCanSeeUi = false;
         mApp.deleteAttachmentFiles();
     }
 

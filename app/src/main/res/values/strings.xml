@@ -477,7 +477,7 @@
     <string name="statistic_goal_record">I have set some goals. Let\'s see my performance:</string>
     <string name="statistic_goal_completion_rate">Goal\'s\nCompletion Rate</string>
     <string name="statistic_goal_notify_time">Average Term</string>
-    <string name="generating_screen_shot">Taking screenshot...</string>
+    <string name="generating_screenshot">Taking screenshot...</string>
     <string name="please_wait">Please Wait</string>
     <string name="share_statistic">Share my use story</string>
     <string name="sb_cannot_finish_habit_first_time">Please wait for the first cycle</string>

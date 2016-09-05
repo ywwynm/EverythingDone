@@ -439,7 +439,7 @@
     <string name="statistic_goal_notify_time">平均期限</string>
 
     <string name="please_wait">请稍等</string>
-    <string name="generating_screen_shot" tools:ignore="TypographyEllipsis">正在对统计界面截图...</string>
+    <string name="generating_screenshot" tools:ignore="TypographyEllipsis">正在截图...</string>
     <string name="share_statistic">分享我的使用情况</string>
 
     <string name="export_loading_title" tools:ignore="TypographyEllipsis">正在导出到 SD 卡...</string>
