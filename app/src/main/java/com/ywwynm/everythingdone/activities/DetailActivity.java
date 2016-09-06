@@ -1385,6 +1385,12 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     }
 
     private void shareThingInScreenshot() {
+        if (!canShareThingInScreenshot()) {
+            mNormalSnackbar.setMessage("fuck you");
+            mFlRoot.postDelayed(mShowNormalSnackbar, KeyboardUtil.HIDE_DELAY);
+            return;
+        }
+
         final LoadingDialogFragment ldf = new LoadingDialogFragment();
         int color = getAccentColor();
         ldf.setAccentColor(color);
@@ -1392,12 +1398,11 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         ldf.setContent(getString(R.string.generating_screenshot));
         ldf.show(getFragmentManager(), LoadingDialogFragment.TAG);
 
-        boolean imageRecyclerViewShown = mRvImageAttachment != null
-                && mRvImageAttachment.getVisibility() == View.VISIBLE
-                && mRvImageAttachment != null;
+        // I also hate this method for its long parameters but what can I do?
         final List<Integer> didList = ScreenshotHelper.updateUiBeforeScreenshot(
-                mEditable, imageRecyclerViewShown, mEtTitle, mEtContent,
+                mEditable, mEtTitle, mEtContent,
                 mRvCheckList, mCheckListAdapter, mLlMoveChecklist,
+                mRvImageAttachment, mImageAttachmentAdapter,
                 mRvAudioAttachment, mAudioAttachmentAdapter);
 
         ScreenshotHelper.startScreenshot(mScrollView, color,
@@ -1409,9 +1414,28 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                         ScreenshotHelper.updateUiAfterScreenshot(didList,
                                 mEtTitle, mEtContent,
                                 mRvCheckList, mCheckListAdapter, mLlMoveChecklist,
-                                mAudioAttachmentAdapter);
+                                mImageAttachmentAdapter,
+                                mRvAudioAttachment, mAudioAttachmentAdapter);
                     }
                 });
+    }
+
+    private boolean canShareThingInScreenshot() {
+        boolean canShare = true;
+        if (mEtTitle.getText().toString().isEmpty()
+                && mRvImageAttachment.getVisibility() != View.VISIBLE
+                && mRvAudioAttachment.getVisibility() != View.VISIBLE) {
+            if (mEtContent.getVisibility() == View.VISIBLE) {
+                if (mEtContent.getText().toString().isEmpty()) {
+                    canShare = false;
+                }
+            } else if (mRvCheckList.getVisibility() == View.VISIBLE) {
+                if (mEditable && mCheckListAdapter.getItemCount() == 1) {
+                    canShare = false;
+                }
+            }
+        }
+        return canShare;
     }
 
     @Override

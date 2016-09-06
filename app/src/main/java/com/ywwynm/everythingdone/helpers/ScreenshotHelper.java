@@ -14,8 +14,10 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 
+import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.adapters.AudioAttachmentAdapter;
 import com.ywwynm.everythingdone.adapters.CheckListAdapter;
+import com.ywwynm.everythingdone.adapters.ImageAttachmentAdapter;
 import com.ywwynm.everythingdone.fragments.LoadingDialogFragment;
 import com.ywwynm.everythingdone.utils.BitmapUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
@@ -168,51 +170,97 @@ public class ScreenshotHelper {
 
     // ---------- helper constants/methods/classes for screenshot in DetailActivity ---------- //
 
-    public static final int TITLE            = 0;
-    public static final int CONTENT          = 1;
-    public static final int CHECKLIST        = 2;
-    public static final int CHECKLIST_MARGIN = 3;
-    public static final int AUDIO            = 4;
+    public static final int UPDATE_TITLE            = 0;
+    public static final int UPDATE_TITLE_PADDING    = 1;
+    public static final int UPDATE_CONTENT          = 2;
+    public static final int UPDATE_CONTENT_MARGIN   = 3;
+    public static final int UPDATE_CHECKLIST        = 4;
+    public static final int UPDATE_CHECKLIST_MARGIN = 5;
+    public static final int UPDATE_IMAGE            = 6;
+    public static final int UPDATE_AUDIO            = 7;
+    public static final int UPDATE_AUDIO_MARGIN     = 8;
+
+    private static final float density = DisplayUtil.getScreenDensity(App.getApp());
 
     public static List<Integer> updateUiBeforeScreenshot(
-            boolean editable, boolean imageRecyclerViewShown,
+            boolean editable,
             EditText etTitle, EditText etContent,
             RecyclerView rvChecklist, CheckListAdapter checkListAdapter,
             LinearLayout llMoveChecklist,
+            RecyclerView rvImage, ImageAttachmentAdapter imageAdapter,
             RecyclerView rvAudio, AudioAttachmentAdapter audioAdapter) {
         List<Integer> didList = new ArrayList<>();
         boolean noTitle = etTitle.getText().toString().isEmpty();
+        boolean noImage = rvImage == null || rvImage.getVisibility() != View.VISIBLE
+                || imageAdapter == null;
         if (noTitle) {
             etTitle.setVisibility(View.GONE);
-            didList.add(TITLE);
+            didList.add(UPDATE_TITLE);
+        } else if (noImage) {
+            float top = density * 20;
+            etTitle.setPadding(etTitle.getPaddingLeft(), (int) top, etTitle.getPaddingRight(), 0);
+            etTitle.requestLayout();
+            didList.add(UPDATE_TITLE_PADDING);
         }
+
         if (etContent.getVisibility() == View.VISIBLE &&
                 etContent.getText().toString().isEmpty()) {
             etContent.setVisibility(View.GONE);
-            didList.add(CONTENT);
+            didList.add(UPDATE_CONTENT);
+        } else if (!noImage) {
+            LinearLayout.LayoutParams llp = (LinearLayout.LayoutParams)
+                    etContent.getLayoutParams();
+            llp.topMargin = (int) (density * 8);
+            etContent.requestLayout();
+            didList.add(UPDATE_CONTENT_MARGIN);
         }
+
         if (editable) {
             if (rvChecklist != null && rvChecklist.getVisibility() == View.VISIBLE
                     && checkListAdapter != null && llMoveChecklist.getVisibility() == View.VISIBLE) {
                 // 5 possible situations for finished/unfinished items
                 List<String> items = checkListAdapter.getItems();
+                boolean unfinishedExisted = CheckListHelper.getLastUnfinishedItemIndex(items) != -1;
                 items.remove("2");
+                if (!unfinishedExisted) {
+                    items.remove("3");
+                }
                 checkListAdapter.notifyDataSetChanged();
                 llMoveChecklist.setVisibility(View.GONE);
-                didList.add(CHECKLIST);
-                if (noTitle && imageRecyclerViewShown) {
+                didList.add(UPDATE_CHECKLIST);
+
+                if (noTitle && !noImage) {
                     LinearLayout.LayoutParams llp = (LinearLayout.LayoutParams)
                             rvChecklist.getLayoutParams();
-                    llp.topMargin = (int)
-                            (DisplayUtil.getScreenDensity(rvChecklist.getContext()) * 8);;
+                    if (!unfinishedExisted) {
+                        llp.topMargin = (int) (density * -4);
+                    } else {
+                        llp.topMargin = (int) (density * 8);
+                    }
                     rvChecklist.requestLayout();
-                    didList.add(CHECKLIST_MARGIN);
+                    didList.add(UPDATE_CHECKLIST_MARGIN);
                 }
+            }
+            if (!noImage) {
+                imageAdapter.setTakingScreenshot(true);
+                didList.add(UPDATE_IMAGE);
             }
         }
         if (rvAudio != null && rvAudio.getVisibility() == View.VISIBLE && audioAdapter != null) {
             audioAdapter.setTakingScreenshot(true);
-            didList.add(AUDIO);
+            didList.add(UPDATE_AUDIO);
+            boolean noContent = etContent.getVisibility() != View.VISIBLE ||
+                    etContent.getText().toString().isEmpty();
+            if (noTitle && noContent) {
+                LinearLayout.LayoutParams llp = (LinearLayout.LayoutParams) rvAudio.getLayoutParams();
+                if (noImage) {
+                    llp.topMargin = (int) (density * 20);
+                } else {
+                    llp.topMargin = (int) (density * 8);
+                }
+                rvAudio.requestLayout();
+                didList.add(UPDATE_AUDIO_MARGIN);
+            }
         }
         return didList;
     }
@@ -221,25 +269,46 @@ public class ScreenshotHelper {
             List<Integer> didList,
             EditText etTitle, EditText etContent,
             RecyclerView rvChecklist, CheckListAdapter checkListAdapter,
-            LinearLayout llMoveChecklist, AudioAttachmentAdapter audioAdapter) {
+            LinearLayout llMoveChecklist,
+            ImageAttachmentAdapter imageAdapter,
+            RecyclerView rvAudio, AudioAttachmentAdapter audioAdapter) {
         for (int did : didList) {
-            if (did == TITLE) {
+            if (did == UPDATE_TITLE) {
                 etTitle.setVisibility(View.VISIBLE);
-            } else if (did == CONTENT) {
+            } else if (did == UPDATE_TITLE_PADDING) {
+                float top = density * 12;
+                etTitle.setPadding(etTitle.getPaddingLeft(), (int) top, etTitle.getPaddingRight(), 0);
+                etTitle.requestLayout();
+                didList.add(UPDATE_TITLE_PADDING);
+            } else if (did == UPDATE_CONTENT) {
                 etContent.setVisibility(View.VISIBLE);
-            } else if (did == CHECKLIST) { // must be editable if go here
+            } else if (did == UPDATE_CONTENT_MARGIN) {
+                LinearLayout.LayoutParams llp = (LinearLayout.LayoutParams)
+                        etContent.getLayoutParams();
+                llp.topMargin = (int) (density * 20);
+                etContent.requestLayout();
+            } else if (did == UPDATE_CHECKLIST) { // must be editable if go here
                 List<String> items = checkListAdapter.getItems();
                 int index = CheckListHelper.getLastUnfinishedItemIndex(items) + 1;
                 items.add(index, "2");
+                if (!items.get(index + 1).equals("3")) {
+                    items.add(index + 1, "3");
+                }
                 checkListAdapter.notifyDataSetChanged();
                 llMoveChecklist.setVisibility(View.VISIBLE);
-            } else if (did == CHECKLIST_MARGIN) {
+            } else if (did == UPDATE_CHECKLIST_MARGIN) {
                 LinearLayout.LayoutParams llp = (LinearLayout.LayoutParams)
                         rvChecklist.getLayoutParams();
-                llp.topMargin = (int) (DisplayUtil.getScreenDensity(rvChecklist.getContext()) * 20);
+                llp.topMargin = (int) (density * 20);
                 rvChecklist.requestLayout();
-            } else if (did == AUDIO) {
+            } else if (did == UPDATE_IMAGE) {
+                imageAdapter.setTakingScreenshot(false);
+            } else if (did == UPDATE_AUDIO) {
                 audioAdapter.setTakingScreenshot(false);
+            } else if (did == UPDATE_AUDIO_MARGIN) {
+                LinearLayout.LayoutParams llp = (LinearLayout.LayoutParams) rvAudio.getLayoutParams();
+                llp.topMargin = (int) (density * 32);
+                rvAudio.requestLayout();
             }
         }
     }

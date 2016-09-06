@@ -48,6 +48,8 @@ public class ImageAttachmentAdapter extends RecyclerView.Adapter<ImageAttachment
     }
     private RemoveCallback mRemoveCallback;
 
+    private boolean mTakingScreenshot = false;
+
     public ImageAttachmentAdapter(Context context, boolean editable, List<String> items,
                                   ClickCallback clickCallback, RemoveCallback removeCallback) {
         mContext = context;
@@ -66,6 +68,11 @@ public class ImageAttachmentAdapter extends RecyclerView.Adapter<ImageAttachment
 
     public List<String> getItems() {
         return mItems;
+    }
+
+    public void setTakingScreenshot(boolean takingScreenshot) {
+        mTakingScreenshot = takingScreenshot;
+        notifyDataSetChanged();
     }
 
     @Override
@@ -113,6 +120,12 @@ public class ImageAttachmentAdapter extends RecyclerView.Adapter<ImageAttachment
                     }
                 })
                 .into(holder.ivImage);
+
+        if (!mTakingScreenshot && mEditable) {
+            holder.ivDelete.setVisibility(View.VISIBLE);
+        } else {
+            holder.ivDelete.setVisibility(View.GONE);
+        }
     }
 
     @Override
