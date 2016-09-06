@@ -61,6 +61,11 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
     private View.OnClickListener mEtClickListener;
     private View.OnLongClickListener mEtLongClickListener;
 
+    public interface TvItemClickCallback {
+        void onItemClick(int itemPos);
+    }
+    private TvItemClickCallback mTvItemClickCallback;
+
     private Context mContext;
 
     private LayoutInflater mInflater;
@@ -104,6 +109,10 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
 
     public void setEtLongClickListener(View.OnLongClickListener etLongClickListener) {
         mEtLongClickListener = etLongClickListener;
+    }
+
+    public void setTvItemClickCallback(TvItemClickCallback tvItemClickCallback) {
+        mTvItemClickCallback = tvItemClickCallback;
     }
 
     public void setItems(List<String> items) {
@@ -179,6 +188,8 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
 
                 holder.tv.setText(stateContent.substring(1, stateContent.length()));
                 params.setMargins(0, params.topMargin, 0, params.bottomMargin);
+
+                setEventForTextViewItem(holder);
             }
         } else {
             final EditTextHolder holder = (EditTextHolder) viewHolder;
@@ -242,6 +253,20 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
                 holder.et.getPaint().setTextSkewX(-0.20f);
             }
             mWatchEditTextChange = true;
+        }
+    }
+
+    private void setEventForTextViewItem(final TextViewHolder holder) {
+        if (holder.getAdapterPosition() == 8 || mTvItemClickCallback == null) {
+            holder.itemView.setClickable(false);
+        } else {
+            holder.itemView.setClickable(true);
+            holder.itemView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    mTvItemClickCallback.onItemClick(holder.getAdapterPosition());
+                }
+            });
         }
     }
 

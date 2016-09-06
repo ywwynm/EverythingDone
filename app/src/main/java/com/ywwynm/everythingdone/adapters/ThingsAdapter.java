@@ -11,6 +11,8 @@ import android.view.animation.AnimationUtils;
 
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.R;
+import com.ywwynm.everythingdone.helpers.CheckListHelper;
+import com.ywwynm.everythingdone.managers.ModeManager;
 import com.ywwynm.everythingdone.managers.ThingManager;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.utils.DeviceUtil;
@@ -136,6 +138,30 @@ public class ThingsAdapter extends BaseThingsAdapter {
                 }
             }, position * 30);
         }
+    }
+
+    @Override
+    protected void onChecklistAdapterInitialized(
+            CheckListAdapter adapter, final Thing thing, final int thingPos) {
+        super.onChecklistAdapterInitialized(adapter, thing, thingPos);
+        if (thing.getType() <= Thing.HEADER
+                || thing.getType() >= Thing.NOTIFICATION_UNDERWAY
+                || thing.getState() != Thing.UNDERWAY
+                || getCurrentMode() != ModeManager.NORMAL) {
+            adapter.setTvItemClickCallback(null);
+            return;
+        }
+        adapter.setTvItemClickCallback(new CheckListAdapter.TvItemClickCallback() {
+            @Override
+            public void onItemClick(int itemPos) {
+                String updatedContent = CheckListHelper.toggleChecklistItem(
+                        thing.getContent(), itemPos);
+                thing.setContent(updatedContent);
+                int typeBefore = thing.getType();
+                ThingManager.getInstance(mApp).update(typeBefore, thing, thingPos, false);
+                notifyItemChanged(thingPos);
+            }
+        });
     }
 
     public interface OnItemTouchedListener {

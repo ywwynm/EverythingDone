@@ -90,6 +90,28 @@ public class CheckListHelper {
         return SIGNAL + 0 + content.replaceAll("\n", SIGNAL + 0);
     }
 
+    public static String toggleChecklistItem(String content, int itemPos) {
+        List<String> items = toCheckListItems(content, false);
+        items.remove("2");
+        items.remove("3");
+        items.remove("4");
+        String oldItem = items.get(itemPos);
+        items.remove(itemPos);
+        if (oldItem.startsWith("0")) { // unfinished to finished
+            String newItem = "1" + oldItem.substring(1, oldItem.length());
+            int firstFinishedIndex = getFirstFinishedItemIndex(items);
+            if (firstFinishedIndex == -1) {
+                items.add(newItem);
+            } else {
+                items.add(firstFinishedIndex, newItem);
+            }
+        } else {
+            String newItem = "0" + oldItem.substring(1, oldItem.length());
+            items.add(0, newItem);
+        }
+        return toCheckListStr(items);
+    }
+
     public static int getFirstFinishedItemIndex(List<String> items) {
         final int size = items.size();
         for (int i = 0; i < size; i++) {

@@ -17,8 +17,6 @@ import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.Thing;
 
-import java.util.List;
-
 /**
  * Created by ywwynm on 2016/9/4.
  * Helper class for execute actions that happen not in ThingsActivity or DetailActivity.
@@ -97,37 +95,17 @@ public class RemoteActionHelper {
         if (thing == null) {
             return;
         }
-        String updatedContent = getUpdatedContent(thing.getContent(), itemPos);
+        String updatedContent = CheckListHelper.toggleChecklistItem(thing.getContent(), itemPos);
         thing.setContent(updatedContent);
         int position = pair.second;
         int typeBefore = thing.getType();
         if (position == -1) {
-            ThingDAO.getInstance(context).update(typeBefore, thing, true, true);
+            ThingDAO.getInstance(context).update(typeBefore, thing, false, false);
+        } else {
+            ThingManager.getInstance(context).update(typeBefore, thing, position, false);
         }
         updateUiEverywhere(context, thing, position, typeBefore,
                 Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME);
-    }
-
-    private static String getUpdatedContent(String content, int itemPos) {
-        List<String> items = CheckListHelper.toCheckListItems(content, false);
-        items.remove("2");
-        items.remove("3");
-        items.remove("4");
-        String oldItem = items.get(itemPos);
-        items.remove(itemPos);
-        if (oldItem.startsWith("0")) { // unfinished to finished
-            String newItem = "1" + oldItem.substring(1, oldItem.length());
-            int firstFinishedIndex = CheckListHelper.getFirstFinishedItemIndex(items);
-            if (firstFinishedIndex == -1) {
-                items.add(newItem);
-            } else {
-                items.add(firstFinishedIndex, newItem);
-            }
-        } else {
-            String newItem = "0" + oldItem.substring(1, oldItem.length());
-            items.add(0, newItem);
-        }
-        return CheckListHelper.toCheckListStr(items);
     }
 
     public static void correctIfNoReminder(

@@ -4,7 +4,8 @@
     android:id="@+id/ll_check_list_tv"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal">
+    android:orientation="horizontal"
+    android:background="@drawable/selectable_item_background_light">
 
     <ImageView
         android:id="@+id/iv_check_list_state"

@@ -162,6 +162,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
                 } else {
                     adapter.setItems(items);
                 }
+                onChecklistAdapterInitialized(adapter, thing, holder.getAdapterPosition());
                 holder.rvChecklist.setAdapter(adapter);
                 holder.rvChecklist.setLayoutManager(new LinearLayoutManager(mContext));
 
@@ -172,6 +173,10 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
             holder.tvContent.setVisibility(View.GONE);
             holder.rvChecklist.setVisibility(View.GONE);
         }
+    }
+
+    protected void onChecklistAdapterInitialized(CheckListAdapter adapter, Thing thing, int thingPos) {
+        // do nothing here
     }
 
     private void updateCardForReminder(BaseThingViewHolder holder, Thing thing) {
@@ -475,6 +480,8 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
 
             int pbColor = ContextCompat.getColor(item.getContext(), R.color.app_accent);
             pbLoading.getIndeterminateDrawable().setColorFilter(pbColor, PorterDuff.Mode.SRC_IN);
+
+            cv.setShouldInterceptTouchEvent(false);
         }
 
     }
