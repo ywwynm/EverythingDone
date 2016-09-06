@@ -98,8 +98,6 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
     private ThingManager mThingManager;
 
-    private FrameLayout mFlRoot;
-
     private RevealLayout mRevealLayout;
     private View         mViewToReveal;
     private TextView     mTvNoResult;
@@ -798,8 +796,6 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
     @Override
     protected void findViews() {
-        mFlRoot = f(R.id.fl_root_things);
-
         mRevealLayout = f(R.id.reveal_layout);
         mViewToReveal = f(R.id.view_to_reveal);
         mTvNoResult   = f(R.id.tv_no_result);
@@ -940,7 +936,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         }
 
         mRecyclerView.setVisibility(View.INVISIBLE);
-        mFlRoot.postDelayed(new Runnable() {
+        mRecyclerView.postDelayed(new Runnable() {
             // if we don't use postDelayed, RevealLayout will show at a completely wrong hierarchy
             @Override
             public void run() {
@@ -1039,7 +1035,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
                 final Intent intent = DetailActivity.getOpenIntentForCreate(
                         ThingsActivity.this, TAG, mFabRippleColor);
-                mFlRoot.postDelayed(new Runnable() {
+                mRevealLayout.postDelayed(new Runnable() {
                     @Override
                     public void run() {
                         startActivityForResult(
@@ -1050,7 +1046,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
                 // change this value to prevent from flashing.
                 final int delay = mApp.hasDetailActivityRun() ? 960 : 1600;
-                mFlRoot.postDelayed(new Runnable() {
+                mRevealLayout.postDelayed(new Runnable() {
                     @Override
                     public void run() {
                         mRecyclerView.scrollToPosition(0);

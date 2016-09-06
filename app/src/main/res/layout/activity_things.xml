@@ -1,11 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout
+<merge
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/fl_root_things"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
     tools:context="com.ywwynm.everythingdone.activities.ThingsActivity">
 
     <android.support.v4.widget.DrawerLayout
@@ -150,5 +147,5 @@
         android:layout_height="0dp"
         android:background="@color/black_26p"/>
 
-</FrameLayout>
+</merge>
 
