@@ -422,8 +422,9 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             SystemNotificationUtil.cancelNotification(id, mThing.getType(), mApp);
         }
 
-        mEditable = mThing.getType() < Thing.NOTIFICATION_UNDERWAY
-                && mThing.getState() == Thing.UNDERWAY;
+        mEditable = mThing.getType() > Thing.HEADER
+                &&  mThing.getType() < Thing.NOTIFICATION_UNDERWAY
+                &&  mThing.getState() == Thing.UNDERWAY;
         if (mEditable) {
             mShowNormalSnackbar = new Runnable() {
                 @Override
