@@ -87,6 +87,10 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     private LinearLayout mLlLanguage;
     private TextView     mTvLanguage;
 
+    private RelativeLayout mRlToggleCli; // toggle checklist item
+    private CheckBox       mCbToggleCli;
+    private boolean        mToggleCliOtc;
+
     private RelativeLayout mRlTwiceBackAsBt;
     private CheckBox       mCbTwiceBack;
 
@@ -343,6 +347,9 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         mLlLanguage = f(R.id.ll_app_language_as_bt);
         mTvLanguage = f(R.id.tv_app_language);
 
+        mRlToggleCli = f(R.id.rl_toggle_checklist_as_bt);
+        mCbToggleCli = f(R.id.cb_toggle_checklist);
+
         mRlTwiceBackAsBt = f(R.id.rl_twice_back_as_bt);
         mCbTwiceBack     = f(R.id.cb_twice_back);
 
@@ -413,6 +420,9 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         }
 
         mTvLanguage.setText(LocaleUtil.getLanguageDescription(LocaleUtil.getMyLanguageCode()));
+
+        mToggleCliOtc = mPreferences.getBoolean(Def.Meta.KEY_TOGGLE_CLI_OTC, false);
+        mCbToggleCli.setChecked(mToggleCliOtc);
 
         boolean twiceBack = mPreferences.getBoolean(Def.Meta.KEY_TWICE_BACK, false);
         mCbTwiceBack.setChecked(twiceBack);
@@ -550,6 +560,13 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             @Override
             public void onClick(View v) {
                 showChooseLanguageDialog();
+            }
+        });
+
+        mRlToggleCli.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mCbToggleCli.setChecked(!mCbToggleCli.isChecked());
             }
         });
 
@@ -1006,6 +1023,13 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         editor.putString(Def.Meta.KEY_DRAWER_HEADER, header);
         if (!headerBefore.equals(header)) {
             setResult(Def.Communication.RESULT_UPDATE_DRAWER_HEADER_DONE);
+        }
+
+        boolean toggleCliOtc = mCbToggleCli.isChecked();
+        editor.putBoolean(Def.Meta.KEY_TOGGLE_CLI_OTC, toggleCliOtc);
+        if (toggleCliOtc != mToggleCliOtc) {
+            // set or unset Checklist items listeners for ThingsAdapter in ThingsActivity
+            App.setShouldJustNotifyDataSetChanged(true);
         }
 
         editor.putBoolean(Def.Meta.KEY_TWICE_BACK, mCbTwiceBack.isChecked());

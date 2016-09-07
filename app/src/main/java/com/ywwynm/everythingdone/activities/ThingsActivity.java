@@ -305,7 +305,12 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         }
 
         if (mUpdateMainUiInOnResume && App.justNotifyDataSetChanged()) {
-            justNotifyDataSetChanged();
+            mRecyclerView.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    justNotifyDataSetChanged();
+                }
+            }, 540);
         }
 
         int color = DisplayUtil.getRandomColor(this);

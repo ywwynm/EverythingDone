@@ -162,7 +162,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
                 } else {
                     adapter.setItems(items);
                 }
-                onChecklistAdapterInitialized(adapter, thing, holder.getAdapterPosition());
+                onChecklistAdapterInitialized(holder, adapter, thing);
                 holder.rvChecklist.setAdapter(adapter);
                 holder.rvChecklist.setLayoutManager(new LinearLayoutManager(mContext));
 
@@ -175,7 +175,8 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
         }
     }
 
-    protected void onChecklistAdapterInitialized(CheckListAdapter adapter, Thing thing, int thingPos) {
+    protected void onChecklistAdapterInitialized(
+            BaseThingViewHolder holder, CheckListAdapter adapter, Thing thing) {
         // do nothing here
     }
 

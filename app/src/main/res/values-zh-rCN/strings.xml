@@ -478,5 +478,6 @@
     <string name="ringtone_loading">正在载入铃声...</string>
     <string name="change_app_password">更改应用密码</string>
     <string name="notification_private_thing_content">[私密记事]</string>
+    <string name="toggle_checklist_thing_card">在记事卡片中调整清单项的勾选状态</string>
 
 </resources>

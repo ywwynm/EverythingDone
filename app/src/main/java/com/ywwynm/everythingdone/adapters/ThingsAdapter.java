@@ -1,5 +1,7 @@
 package com.ywwynm.everythingdone.adapters;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Handler;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
@@ -10,12 +12,16 @@ import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 
 import com.ywwynm.everythingdone.App;
+import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
+import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
+import com.ywwynm.everythingdone.helpers.RemoteActionHelper;
 import com.ywwynm.everythingdone.managers.ModeManager;
 import com.ywwynm.everythingdone.managers.ThingManager;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.utils.DeviceUtil;
+import com.ywwynm.everythingdone.utils.SystemNotificationUtil;
 
 import java.util.List;
 
@@ -142,26 +148,39 @@ public class ThingsAdapter extends BaseThingsAdapter {
 
     @Override
     protected void onChecklistAdapterInitialized(
-            CheckListAdapter adapter, final Thing thing, final int thingPos) {
-        super.onChecklistAdapterInitialized(adapter, thing, thingPos);
-        if (thing.getType() <= Thing.HEADER
+            final BaseThingViewHolder holder, CheckListAdapter adapter, final Thing thing) {
+        super.onChecklistAdapterInitialized(holder, adapter, thing);
+        SharedPreferences sp = mApp.getSharedPreferences(
+                Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE);
+        boolean toggleCliOtc = sp.getBoolean(Def.Meta.KEY_TOGGLE_CLI_OTC, false);
+        if (!toggleCliOtc
+                || thing.getType() <= Thing.HEADER
                 || thing.getType() >= Thing.NOTIFICATION_UNDERWAY
                 || thing.getState() != Thing.UNDERWAY
                 || getCurrentMode() != ModeManager.NORMAL) {
+            holder.cv.setShouldInterceptTouchEvent(true);
             adapter.setTvItemClickCallback(null);
-            return;
+        } else {
+            holder.cv.setShouldInterceptTouchEvent(false);
+            adapter.setTvItemClickCallback(new CheckListAdapter.TvItemClickCallback() {
+                @Override
+                public void onItemClick(int itemPos) {
+                    String updatedContent = CheckListHelper.toggleChecklistItem(
+                            thing.getContent(), itemPos);
+                    thing.setContent(updatedContent);
+                    int typeBefore = thing.getType();
+                    int thingPos = holder.getAdapterPosition();
+                    if (thingPos == -1) return;
+                    ThingManager.getInstance(mApp).update(typeBefore, thing, thingPos, false);
+                    notifyItemChanged(thingPos);
+                    long thingId = thing.getId();
+                    int thingType = thing.getType();
+                    AppWidgetHelper.updateSingleThingAppWidgets(mApp, thingId);
+                    AppWidgetHelper.updateThingsListAppWidgetsForType(mApp, thingType);
+                    SystemNotificationUtil.cancelNotification(thingId, thingType, mApp);
+                }
+            });
         }
-        adapter.setTvItemClickCallback(new CheckListAdapter.TvItemClickCallback() {
-            @Override
-            public void onItemClick(int itemPos) {
-                String updatedContent = CheckListHelper.toggleChecklistItem(
-                        thing.getContent(), itemPos);
-                thing.setContent(updatedContent);
-                int typeBefore = thing.getType();
-                ThingManager.getInstance(mApp).update(typeBefore, thing, thingPos, false);
-                notifyItemChanged(thingPos);
-            }
-        });
     }
 
     public interface OnItemTouchedListener {

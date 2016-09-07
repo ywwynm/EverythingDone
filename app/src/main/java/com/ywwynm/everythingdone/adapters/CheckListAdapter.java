@@ -259,8 +259,12 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
     private void setEventForTextViewItem(final TextViewHolder holder) {
         if (holder.getAdapterPosition() == 8 || mTvItemClickCallback == null) {
             holder.itemView.setClickable(false);
+            // If don't write this line, we can still get a touch feedback for whole parent
+            // RecyclerView even if its touch event should be intercepted by its parent.
+            holder.itemView.setBackgroundResource(0);
         } else {
             holder.itemView.setClickable(true);
+            holder.itemView.setBackgroundResource(R.drawable.selectable_item_background_light);
             holder.itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
