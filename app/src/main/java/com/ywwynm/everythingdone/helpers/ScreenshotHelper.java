@@ -11,14 +11,19 @@ import android.support.v7.widget.RecyclerView;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
+import android.widget.TextView;
 
 import com.ywwynm.everythingdone.App;
+import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.adapters.AudioAttachmentAdapter;
 import com.ywwynm.everythingdone.adapters.CheckListAdapter;
 import com.ywwynm.everythingdone.adapters.ImageAttachmentAdapter;
 import com.ywwynm.everythingdone.fragments.LoadingDialogFragment;
+import com.ywwynm.everythingdone.model.ReminderHabitParams;
+import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.utils.BitmapUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.FileUtil;
@@ -182,7 +187,20 @@ public class ScreenshotHelper {
 
     private static final float density = DisplayUtil.getScreenDensity(App.getApp());
 
-    public static List<Integer> updateUiBeforeScreenshot(
+    public static void showTypeInfo(View layout, @Thing.Type int type, ReminderHabitParams params) {
+        ImageView ivIcon = (ImageView) layout.findViewById(R.id.iv_icon_type_info);
+        ivIcon.setImageResource(Thing.getTypeIcon(type));
+
+        TextView tvInfo = (TextView) layout.findViewById(R.id.tv_type_info);
+
+        layout.setVisibility(View.VISIBLE);
+    }
+
+    public static void hideTypeInfo(View layout) {
+        layout.setVisibility(View.GONE);
+    }
+
+    public static List<Integer> updateThingUiBeforeScreenshot(
             boolean editable,
             EditText etTitle, EditText etContent,
             RecyclerView rvChecklist, CheckListAdapter checkListAdapter,
@@ -265,7 +283,7 @@ public class ScreenshotHelper {
         return didList;
     }
 
-    public static void updateUiAfterScreenshot(
+    public static void updateThingUiAfterScreenshot(
             List<Integer> didList,
             EditText etTitle, EditText etContent,
             RecyclerView rvChecklist, CheckListAdapter checkListAdapter,

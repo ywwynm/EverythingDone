@@ -2,25 +2,18 @@ package com.ywwynm.everythingdone.utils;
 
 import android.app.Notification;
 import android.app.PendingIntent;
-import android.content.ContentResolver;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.Point;
 import android.graphics.drawable.BitmapDrawable;
-import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
-import android.os.Environment;
-import android.provider.MediaStore;
 import android.provider.Settings;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.content.ContextCompat;
-import android.support.v4.os.EnvironmentCompat;
 
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
@@ -37,7 +30,6 @@ import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.permission.PermissionUtil;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.List;
 
 /**
@@ -79,7 +71,7 @@ public class SystemNotificationUtil {
                 .setPriority(NotificationCompat.PRIORITY_MAX)
                 .setContentIntent(contentPendingIntent)
                 .setSound(getRingtoneUri(type, context, autoNotify))
-                .setSmallIcon(getIconRes(type))
+                .setSmallIcon(Thing.getTypeIcon(type))
                 .setAutoCancel(true);
 
         String title      = thing.getTitleToDisplay();
@@ -242,18 +234,6 @@ public class SystemNotificationUtil {
                 }
             }
             return uri;
-        }
-    }
-
-    private static int getIconRes(int type) {
-        if (type == Thing.REMINDER) {
-            return R.drawable.notification_reminder;
-        } else if (type == Thing.HABIT) {
-            return R.drawable.notification_habit;
-        } else if (type == Thing.GOAL) {
-            return R.drawable.notification_goal;
-        } else {
-            return R.drawable.notification_note;
         }
     }
 

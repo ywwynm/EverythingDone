@@ -126,6 +126,32 @@
                 android:paddingRight="12dp"
                 android:visibility="gone"/>
 
+            <LinearLayout
+                android:id="@+id/ll_type_info_screenshot"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:paddingStart="18dp"
+                android:paddingLeft="18dp"
+                android:paddingEnd="20dp"
+                android:paddingRight="20dp"
+                android:visibility="gone"
+                tools:ignore="UseCompoundDrawables">
+
+                <ImageView
+                    android:id="@+id/iv_icon_type_info"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:src="@drawable/notification_reminder"
+                    tools:ignore="ContentDescription"/>
+
+                <TextView
+                    android:id="@+id/tv_type_info"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"/>
+
+            </LinearLayout>
+
             <TextView
                 android:id="@+id/tv_update_time"
                 android:layout_width="match_parent"

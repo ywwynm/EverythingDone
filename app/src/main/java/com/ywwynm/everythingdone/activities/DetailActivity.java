@@ -1399,26 +1399,32 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         ldf.setContent(getString(R.string.generating_screenshot));
         ldf.show(getFragmentManager(), LoadingDialogFragment.TAG);
 
-        // I also hate this method for its long parameters but what can I do?
-        final List<Integer> didList = ScreenshotHelper.updateUiBeforeScreenshot(
-                mEditable, mEtTitle, mEtContent,
-                mRvCheckList, mCheckListAdapter, mLlMoveChecklist,
-                mRvImageAttachment, mImageAttachmentAdapter,
-                mRvAudioAttachment, mAudioAttachmentAdapter);
-
+        final View typeInfoLayout   = f(R.id.ll_type_info_screenshot);
+        final List<Integer> didList = prepareForScreenshot(typeInfoLayout);
         ScreenshotHelper.startScreenshot(mScrollView, color,
                 new ScreenshotHelper.ShareCallback(
                         this, ldf, SendInfoHelper.getShareThingTitle(this, mThing)) {
                     @Override
                     public void onTaskDone(File file) {
                         super.onTaskDone(file);
-                        ScreenshotHelper.updateUiAfterScreenshot(didList,
+                        ScreenshotHelper.hideTypeInfo(typeInfoLayout);
+                        ScreenshotHelper.updateThingUiAfterScreenshot(didList,
                                 mEtTitle, mEtContent,
                                 mRvCheckList, mCheckListAdapter, mLlMoveChecklist,
                                 mImageAttachmentAdapter,
                                 mRvAudioAttachment, mAudioAttachmentAdapter);
                     }
                 });
+    }
+
+    private List<Integer> prepareForScreenshot(View typeInfoLayout) {
+        ScreenshotHelper.showTypeInfo(typeInfoLayout, getThingTypeAfter(), rhParams);
+        // I also hate this method for its long parameters but what can I do?
+        return ScreenshotHelper.updateThingUiBeforeScreenshot(
+                mEditable, mEtTitle, mEtContent,
+                mRvCheckList, mCheckListAdapter, mLlMoveChecklist,
+                mRvImageAttachment, mImageAttachmentAdapter,
+                mRvAudioAttachment, mAudioAttachmentAdapter);
     }
 
     private boolean canShareThingInScreenshot() {

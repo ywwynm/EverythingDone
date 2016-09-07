@@ -4,6 +4,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.support.annotation.DrawableRes;
 import android.support.annotation.IntDef;
 import android.util.Log;
 
@@ -284,6 +285,18 @@ public class Thing implements Parcelable {
         } else if (type == GOAL) {
             return context.getString(R.string.goal);
         } else return context.getString(R.string.thing);
+    }
+
+    public static @DrawableRes int getTypeIcon(@Type int type) {
+        if (type == Thing.REMINDER) {
+            return R.drawable.notification_reminder;
+        } else if (type == Thing.HABIT) {
+            return R.drawable.notification_habit;
+        } else if (type == Thing.GOAL) {
+            return R.drawable.notification_goal;
+        } else {
+            return R.drawable.notification_note;
+        }
     }
 
     public static String getStateStr(@State int state, Context context) {
