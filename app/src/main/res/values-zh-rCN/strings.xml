@@ -483,6 +483,6 @@
     <string name="act_share_thing_text_image">文本与图片</string>
     <string name="act_copy_content">复制记事内容</string>
     <string name="act_abandon_create">舍弃</string>
-    <string name="sb_abandon_create_thing">已舍弃新的记事</string>
+    <string name="sb_abandon_create_thing">新的记事已被舍弃</string>
 
 </resources>
