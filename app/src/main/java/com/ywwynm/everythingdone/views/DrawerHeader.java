@@ -11,6 +11,7 @@ import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.SettingsActivity;
 import com.ywwynm.everythingdone.model.ThingsCounts;
+import com.ywwynm.everythingdone.permission.PermissionUtil;
 import com.ywwynm.everythingdone.utils.BitmapUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.LocaleUtil;
@@ -25,15 +26,15 @@ public class DrawerHeader {
 
     public static final String TAG = "DrawerHeader";
 
-    private App mApplication;
+    private App mApp;
 
     private ImageView mIvHeader;
     private TextView mTvLocation;
     private TextView mTvCompletionRate;
 
-    public DrawerHeader(App application, ImageView ivHeader,
+    public DrawerHeader(App app, ImageView ivHeader,
                         TextView tvLocation, TextView tvCompletionRate) {
-        mApplication = application;
+        mApp = app;
 
         mIvHeader = ivHeader;
         mTvLocation = tvLocation;
@@ -41,11 +42,11 @@ public class DrawerHeader {
 
         updateDrawerHeader();
 
-        if (LocaleUtil.isChinese(mApplication)) {
+        if (LocaleUtil.isChinese(mApp)) {
             mTvLocation.setTextSize(16);
             mTvCompletionRate.setTextSize(28);
         } else {
-            int width = DisplayUtil.getScreenSize(mApplication).x;
+            int width = DisplayUtil.getScreenSize(mApp).x;
             if (width <= 720) {
                 mTvLocation.setTextSize(12);
             } else if (width <= 1080) {
@@ -60,7 +61,7 @@ public class DrawerHeader {
     public void updateDrawerHeader() {
         final String D = SettingsActivity.DEFAULT_DRAWER_HEADER;
 
-        SharedPreferences sp = mApplication.getSharedPreferences(
+        SharedPreferences sp = mApp.getSharedPreferences(
                 Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE);
         String header = sp.getString(Def.Meta.KEY_DRAWER_HEADER, D);
         if (D.equals(header)) {
@@ -72,7 +73,13 @@ public class DrawerHeader {
                 return;
             }
 
-            int width = (int) (320 * DisplayUtil.getScreenDensity(mApplication));
+            if (!PermissionUtil.hasStoragePermission(mApp)) {
+                // sometimes after re-installing the app by Android Studio, old data remains.
+                mIvHeader.setImageResource(R.drawable.drawer_header);
+                return;
+            }
+
+            int width = (int) (320 * DisplayUtil.getScreenDensity(mApp));
             Bitmap bm = BitmapUtil.decodeFileWithRequiredSize(
                     header, width, width * 9 / 16);
             mIvHeader.setImageBitmap(bm);
@@ -80,7 +87,7 @@ public class DrawerHeader {
     }
 
     public void updateTexts() {
-        switch (mApplication.getLimit()) {
+        switch (mApp.getLimit()) {
             case Def.LimitForGettingThings.ALL_UNDERWAY:
             case Def.LimitForGettingThings.ALL_FINISHED:
             case Def.LimitForGettingThings.ALL_DELETED:
@@ -105,7 +112,7 @@ public class DrawerHeader {
 
     public void updateCompletionRate() {
         mTvCompletionRate.setText(
-                ThingsCounts.getInstance(mApplication).getCompletionRate(mApplication.getLimit()));
+                ThingsCounts.getInstance(mApp).getCompletionRate(mApp.getLimit()));
     }
 
 }

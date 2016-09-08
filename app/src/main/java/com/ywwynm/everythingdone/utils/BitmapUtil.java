@@ -110,6 +110,10 @@ public class BitmapUtil {
         int oWidth  = options.outWidth;
         int oHeight = options.outHeight;
 
+        if (oWidth == 0 || oHeight == 0) {
+            return null;
+        }
+
         options.inSampleSize = calculateInSampleSize(oWidth, oHeight, reqWidth, reqHeight);
         options.inJustDecodeBounds = false;
         Bitmap src = BitmapFactory.decodeFile(pathName, options);
