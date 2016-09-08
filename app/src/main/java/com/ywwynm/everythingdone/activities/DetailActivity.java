@@ -1383,7 +1383,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
     private void chooseHowToShareThing() {
         final TwoOptionsDialogFragment todf = new TwoOptionsDialogFragment();
-        todf.setStartAction(R.drawable.act_open_in_browser, R.string.act_share_thing_text_image,
+        todf.setStartAction(R.drawable.act_share_text_image, R.string.act_share_thing_text_image,
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
@@ -1391,7 +1391,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                         SendInfoHelper.shareThing(DetailActivity.this, mThing);
                     }
                 });
-        todf.setEndAction(R.drawable.act_open_in_map, R.string.act_share_thing_screenshot,
+        todf.setEndAction(R.drawable.act_take_long_screenshot, R.string.act_share_thing_screenshot,
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
