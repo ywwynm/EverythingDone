@@ -6,6 +6,8 @@ import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
 import android.app.ActivityManager;
 import android.content.ActivityNotFoundException;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -51,6 +53,7 @@ import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
@@ -1007,6 +1010,9 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             case R.id.act_restore:
                 returnToThingsActivity(Thing.UNDERWAY);
                 break;
+            case R.id.act_copy_content:
+                copyContent();
+                break;
             case R.id.act_export:
                 doWithPermissionChecked(
                         new SimplePermissionCallback(DetailActivity.this) {
@@ -1366,7 +1372,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
     private void chooseHowToShareThing() {
         final TwoOptionsDialogFragment todf = new TwoOptionsDialogFragment();
-        todf.setStartAction(R.drawable.act_open_in_browser, R.string.act_share,
+        todf.setStartAction(R.drawable.act_open_in_browser, R.string.act_share_thing_text_image,
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
@@ -1374,7 +1380,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                         SendInfoHelper.shareThing(DetailActivity.this, mThing);
                     }
                 });
-        todf.setEndAction(R.drawable.act_open_in_map, R.string.act_share,
+        todf.setEndAction(R.drawable.act_open_in_map, R.string.act_share_thing_screenshot,
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
@@ -1418,7 +1424,8 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     }
 
     private List<Integer> prepareForScreenshot(View typeInfoLayout) {
-        ScreenshotHelper.showTypeInfo(typeInfoLayout, getThingTypeAfter(), rhParams);
+        ScreenshotHelper.showTypeInfo(typeInfoLayout, mThing.getId(),
+                getThingTypeAfter(), mThing.getState(), rhParams);
         // I also hate this method for its long parameters but what can I do?
         return ScreenshotHelper.updateThingUiBeforeScreenshot(
                 mEditable, mEtTitle, mEtContent,
@@ -1443,6 +1450,25 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             }
         }
         return canShare;
+    }
+
+    private void copyContent() {
+        String content = "";
+        if (mEtContent.getVisibility() == View.VISIBLE) {
+            content = mEtContent.getText().toString();
+        } else if (mRvCheckList != null && mRvCheckList.getVisibility() == View.VISIBLE
+                && mCheckListAdapter != null) {
+            content = CheckListHelper.toContentStr(
+                    CheckListHelper.toCheckListStr(mCheckListAdapter.getItems()), "X  ", "√  ");
+        }
+
+        ClipboardManager clipboardManager = (ClipboardManager)
+                getSystemService(CLIPBOARD_SERVICE);
+        ClipData clipData = ClipData.newPlainText(
+                getString(R.string.act_copy_content), content);
+        clipboardManager.setPrimaryClip(clipData);
+        Toast.makeText(this, R.string.success_clipboard,
+                Toast.LENGTH_SHORT).show();
     }
 
     @Override

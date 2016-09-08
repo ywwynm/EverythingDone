@@ -13,4 +13,9 @@
         android:title="@string/act_check_habit_detail"
         app:showAsAction="never"/>
 
+    <item
+        android:id="@+id/act_copy_content"
+        android:title="@string/act_copy_content"
+        app:showAsAction="never"/>
+
 </menu>

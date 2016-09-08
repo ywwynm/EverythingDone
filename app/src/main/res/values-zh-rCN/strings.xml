@@ -407,7 +407,7 @@
     <string name="support_donate_copy_name">复制账号</string>
     <string name="support_donate_clip_title">支付宝账号</string>
     <string name="support_donate_clip_content">532061865@qq.com</string>
-    <string name="success_clipboard">已成功复制账号到剪贴板</string>
+    <string name="success_clipboard">已成功复制到剪贴板</string>
 
     <string name="content_description_header">头部</string>
 
@@ -479,5 +479,8 @@
     <string name="change_app_password">更改应用密码</string>
     <string name="notification_private_thing_content">[私密记事]</string>
     <string name="toggle_checklist_thing_card">在记事卡片中调整清单项的勾选状态</string>
+    <string name="act_share_thing_screenshot">长截图</string>
+    <string name="act_share_thing_text_image">文本与图片</string>
+    <string name="act_copy_content">复制记事内容</string>
 
 </resources>

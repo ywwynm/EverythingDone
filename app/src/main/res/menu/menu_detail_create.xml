@@ -31,4 +31,9 @@
         android:title="@string/act_redo"
         app:showAsAction="never"/>
 
+    <item
+        android:id="@+id/act_copy_content"
+        android:title="@string/act_copy_content"
+        app:showAsAction="never"/>
+
 </menu>

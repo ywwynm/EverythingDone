@@ -91,6 +91,9 @@
     <!--DetailActivity finished-->
     <string name="act_restore">Restore</string>
 
+    <!--DetailActivity all-->
+    <string name="act_copy_content">Copy content</string>
+
     <!--HelpActivity-->
     <string name="act_feedback">Send feedback</string>
 
@@ -125,7 +128,11 @@
     <string name="act_send_email">Send Email</string>
     <string name="act_open_in_map">Visit</string>
     <string name="act_edit">Edit</string>
-
+    
+    <!--DetailActivity share-->
+    <string name="act_share_thing_text_image"><![CDATA[Text & Image]]></string>
+    <string name="act_share_thing_screenshot">Screenshot</string>
+    
     <!--SettingsActivity-->
     <string name="act_choose_image_as_drawer_header">Choose image as drawer header</string>
 
@@ -443,7 +450,7 @@
     <string name="support_star">RATE THIS APP IN MARKET</string>
     <string name="support_content">You can share this app with friends or send feedback to me. Besides, rate EverythingDone in app market is also a good choice. If you are even willing to donate for me, I will highly appreciate it.</string>
     <string name="support_select_market">Select app market</string>
-    <string name="success_clipboard">The account has been copied to clipboard successfully</string>
+    <string name="success_clipboard">Copied to clipboard successfully</string>
     <string name="support_donate_clip_content">532061865@qq.com</string>
     <string name="support_donate_clip_title">Alipay Account</string>
     <string name="support_donate_content">My Alipay Account is 532061865@qq.com. Your donation will encourage me a lot. Thank you!</string>

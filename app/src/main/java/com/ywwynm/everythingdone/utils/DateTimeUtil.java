@@ -44,7 +44,7 @@ public class DateTimeUtil {
     public static String getDateTimeStr(int type, int time, Context context) {
         String typeStr = getTimeTypeStr(type, context);
         if (LocaleUtil.isChinese(context)) {
-            return time + " " + typeStr;
+            return time + typeStr;
         } else {
             if (time > 1) {
                 typeStr += "s";
@@ -204,7 +204,7 @@ public class DateTimeUtil {
             }
         }
         if (isChinese) {
-            sb.append(getTimePeriodStr(hour, res)).append(" ");
+            sb.append(getTimePeriodStr(hour, res));
             appendHourMinute(hour, minute, sb);
         } else {
             sb.append(", ");
@@ -259,12 +259,12 @@ public class DateTimeUtil {
      * and {@link com.ywwynm.everythingdone.fragments.DateTimeDialogFragment}.
      *
      * This method will return a string in form of:
-     * 1. For a daily habit: at 6:30, 12:00 every day; 每天 6:30, 12:00
-     * 2. For a weekly habit: at 19:00 every Monday, Wednesday; 每周一, 三晚上 19:00
+     * 1. For a daily habit: at 6:30, 12:00 every day; 每天6:30, 12:00
+     * 2. For a weekly habit: at 19:00 every Monday, Wednesday; 每周一,三晚上19:00
      * 3. For a monthly habit: at 6:30 on the 1st, 6th, 16th, last day of every month;
-     *                         每个月 1号, 6号, 16号, 月末早晨 6:30
+     *                         每个月1号,6号,16号,月末早晨6:30
      * 4. For a yearly habit: at 18:00 on the last day of June, December in every year;
-     *                        每年六月, 十二月月末傍晚 18:00
+     *                        每年六月,十二月月末傍晚18:00
      *
      * @param context context used to get string resources
      * @param type habit's type
@@ -290,7 +290,7 @@ public class DateTimeUtil {
         String day = context.getString(R.string.days); // 天
         boolean isChinese = LocaleUtil.isChinese(context);
         if (isChinese) {
-            sb.append(every).append(day).append(" ");
+            sb.append(every).append(day);
         } else {
             sb.append("at ");
         }
@@ -318,12 +318,11 @@ public class DateTimeUtil {
             sb.append(every);
             sb.append(dayOfWeek[0].substring(0, 1));
             for (String day : days) {
-                sb.append(dayOfWeek[Integer.parseInt(day)].substring(1, 2)).append(", ");
+                sb.append(dayOfWeek[Integer.parseInt(day)].substring(1, 2)).append(",");
             }
             sb.deleteCharAt(sb.length() - 1);
-            sb.deleteCharAt(sb.length() - 1);
             sb.append(getTimePeriodStr(Integer.parseInt(times[0]), context.getResources()))
-                    .append(" ").append(dateTimes[1]);
+                    .append(dateTimes[1]);
         } else {
             sb.append("at ");
             sb.append(dateTimes[1]).append(every).append(" ");
@@ -344,20 +343,19 @@ public class DateTimeUtil {
         String every = context.getString(R.string.every);
         String monthStr = context.getString(R.string.months);
         boolean isChinese = LocaleUtil.isChinese(context);
-        if (isChinese) { // 每个月 1号, 6号, 16号, 26号早晨 6:30
-            sb.append(every).append(monthStr).append(" ");
+        if (isChinese) { // 每个月1号,6号,16号,26号早晨6:30
+            sb.append(every).append(monthStr);
             String monthDay = context.getString(R.string.month_day);
             for (String day : days) {
                 if ("27".equals(day)) { // different from 28 in method below, but is correct.
-                    sb.append(context.getString(R.string.end_of_month)).append(", ");
+                    sb.append(context.getString(R.string.end_of_month)).append(",");
                 } else {
-                    sb.append(Integer.parseInt(day) + 1).append(monthDay).append(", ");
+                    sb.append(Integer.parseInt(day) + 1).append(monthDay).append(",");
                 }
             }
             sb.deleteCharAt(sb.length() - 1);
-            sb.deleteCharAt(sb.length() - 1);
             sb.append(getTimePeriodStr(Integer.parseInt(times[0]), context.getResources()))
-                    .append(" ").append(dateTimes[1]);
+                    .append(dateTimes[1]);
         } else { // at 6:30 on the 1st, 6th, 16th, 26th day of every month
             sb.append("at ");
             sb.append(dateTimes[1]).append(" on the ");
@@ -384,20 +382,19 @@ public class DateTimeUtil {
         String yearStr = context.getString(R.string.year).toLowerCase();
         String[] monthOfYear = context.getResources().getStringArray(R.array.month_of_year);
         boolean isChinese = LocaleUtil.isChinese(context);
-        if (isChinese) { // 每年六月, 十二月月末傍晚 18:00
+        if (isChinese) { // 每年六月,十二月月末傍晚18:00
             sb.append(every).append(yearStr);
             for (String month : months) {
-                sb.append(monthOfYear[Integer.parseInt(month)]).append(", ");
+                sb.append(monthOfYear[Integer.parseInt(month)]).append(",");
             }
-            sb.deleteCharAt(sb.length() - 1);
             sb.deleteCharAt(sb.length() - 1);
             if ("28".equals(day)) {
                 sb.append(context.getString(R.string.end_of_month));
             } else {
-                sb.append(" ").append(Integer.parseInt(day)).append(context.getString(R.string.month_day));
+                sb.append(Integer.parseInt(day)).append(context.getString(R.string.month_day));
             }
             sb.append(getTimePeriodStr(Integer.parseInt(times[0]), context.getResources()))
-                    .append(" ").append(dateTimes[2]);
+                    .append(dateTimes[2]);
         } else { // at 18:00 on the last day of June, December in every year
             sb.append("at ");
             sb.append(dateTimes[2]).append(" on the ");

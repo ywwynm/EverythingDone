@@ -177,11 +177,11 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             if (!mCanSeeUi) {
-                if (mBroadCastIntent != null) {
-                    int resultCode = mBroadCastIntent.getIntExtra(Def.Communication.KEY_RESULT_CODE,
-                            Def.Communication.RESULT_NO_UPDATE);
-                    updateMainUi(mBroadCastIntent, resultCode);
-                }
+//                if (mBroadCastIntent != null) {
+//                    int resultCode = mBroadCastIntent.getIntExtra(Def.Communication.KEY_RESULT_CODE,
+//                            Def.Communication.RESULT_NO_UPDATE);
+//                    updateMainUi(mBroadCastIntent, resultCode);
+//                }
                 mBroadCastIntent = intent;
                 return;
             }
@@ -298,11 +298,11 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         super.onResume();
         updateTaskDescription();
 
-        if (mBroadCastIntent != null) {
-            int resultCode = mBroadCastIntent.getIntExtra(Def.Communication.KEY_RESULT_CODE,
-                    Def.Communication.RESULT_NO_UPDATE);
-            updateMainUi(mBroadCastIntent, resultCode);
-        }
+//        if (mBroadCastIntent != null) {
+//            int resultCode = mBroadCastIntent.getIntExtra(Def.Communication.KEY_RESULT_CODE,
+//                    Def.Communication.RESULT_NO_UPDATE);
+//            updateMainUi(mBroadCastIntent, resultCode);
+//        }
 
         if (mUpdateMainUiInOnResume && App.justNotifyDataSetChanged()) {
             mRecyclerView.postDelayed(new Runnable() {

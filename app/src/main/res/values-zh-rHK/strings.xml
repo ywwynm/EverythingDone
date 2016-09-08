@@ -281,7 +281,7 @@
     <string name="support_star">去應用商店評分</string>
     <string name="support_content">您可以點擊介面上方的分享按鈕向您的朋友分享完事兒，也可以點擊建議迴響按鈕向開發者發送您對完事兒的意見。除此之外，您還可以前往應用商店為本應用評分，或者向我捐贈。您的支持是我前進的動力。</string>
     <string name="support_select_market">選擇應用商店</string>
-    <string name="success_clipboard">已成功複製帳號到剪貼板</string>
+    <string name="success_clipboard">已成功複製到剪貼板</string>
     <string name="support_donate_clip_content">532061865@qq.com</string>
     <string name="support_donate_clip_title">支付寶帳號</string>
     <string name="support_donate_content">我的支付寶帳號是532061865@qq.com。您的捐贈是對我的鼓勵，謝謝！</string>
@@ -440,5 +440,8 @@
     <string name="change_app_password">更改應用密碼</string>
     <string name="notification_private_thing_content">[私密記事]</string>
     <string name="toggle_checklist_thing_card">在記事卡片中調整清單項的勾選狀態</string>
+    <string name="act_share_thing_screenshot">長截圖</string>
+    <string name="act_share_thing_text_image">文本及圖片</string>
+    <string name="act_copy_content">複製記事內容</string>
 
 </resources>

@@ -4,8 +4,12 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.PorterDuff;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.support.annotation.DrawableRes;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.widget.NestedScrollView;
 import android.support.v7.widget.RecyclerView;
 import android.view.View;
@@ -21,10 +25,13 @@ import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.adapters.AudioAttachmentAdapter;
 import com.ywwynm.everythingdone.adapters.CheckListAdapter;
 import com.ywwynm.everythingdone.adapters.ImageAttachmentAdapter;
+import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.fragments.LoadingDialogFragment;
+import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.ReminderHabitParams;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.utils.BitmapUtil;
+import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.FileUtil;
 
@@ -34,6 +41,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Created by qiizhang on 2016/9/5.
@@ -137,7 +145,8 @@ public class ScreenshotHelper {
         canvas.drawColor(color);
         scrollView.draw(canvas);
 
-        String name = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
+        String name = "screenshot_";
+        name += new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
         name += ".jpeg";
         return BitmapUtil.saveBitmapToStorage(FileUtil.TEMP_PATH, name, bitmap);
     }
@@ -187,12 +196,54 @@ public class ScreenshotHelper {
 
     private static final float density = DisplayUtil.getScreenDensity(App.getApp());
 
-    public static void showTypeInfo(View layout, @Thing.Type int type, ReminderHabitParams params) {
+    public static void showTypeInfo(
+            View layout, long thingId, @Thing.Type int type, @Thing.State int thingState,
+            ReminderHabitParams rhParams) {
         ImageView ivIcon = (ImageView) layout.findViewById(R.id.iv_icon_type_info);
-        ivIcon.setImageResource(Thing.getTypeIcon(type));
+        Context context = ivIcon.getContext();
+        @DrawableRes int iconRes = Thing.getTypeIcon(type);
+        Drawable d1 = ContextCompat.getDrawable(ivIcon.getContext(), iconRes);
+        Drawable d2 = d1.mutate();
+        d2.setColorFilter(ContextCompat.getColor(context, R.color.white_66p), PorterDuff.Mode.SRC_IN);
+        ivIcon.setImageDrawable(d2);
 
         TextView tvInfo = (TextView) layout.findViewById(R.id.tv_type_info);
+        LinearLayout.LayoutParams llp = (LinearLayout.LayoutParams) tvInfo.getLayoutParams();
+        if (Thing.isReminderType(type)) {
+            long reminderInMillis = rhParams.getReminderInMillis();
+            if (reminderInMillis == -1) {
+                int[] timeAfterType = rhParams.getReminderAfterTime();
+                reminderInMillis = DateTimeUtil.getActualTimeAfterSomeTime(timeAfterType);
+            }
+            String dateTimeStrAt = DateTimeUtil.getDateTimeStrAt(reminderInMillis, context, false);
+            if (dateTimeStrAt.startsWith("on ")) {
+                dateTimeStrAt = dateTimeStrAt.substring(3, dateTimeStrAt.length());
+            }
+            tvInfo.append(dateTimeStrAt);
+            Reminder reminder = ReminderDAO.getInstance(context).getReminderById(thingId);
+            if (reminder != null && reminder.getState() != Reminder.UNDERWAY) {
+                tvInfo.append(", " + Reminder.getStateDescription(
+                        thingState, reminder.getState(), context));
+            }
+            if (type == Thing.REMINDER) {
+                llp.topMargin = (int) (density * 0.5);
+            } else {
+                llp.topMargin = (int) (density * 1.5);
+            }
+        } else if (type == Thing.HABIT) {
+            String dateTimeStrRec = DateTimeUtil.getDateTimeStrRec(
+                    context, rhParams.getHabitType(), rhParams.getHabitDetail());
+            if (dateTimeStrRec != null && dateTimeStrRec.startsWith("at ")) {
+                dateTimeStrRec = dateTimeStrRec.substring(3, dateTimeStrRec.length());
+            }
+            tvInfo.append(dateTimeStrRec);
+            llp.topMargin = (int) (density * 0.5);
+        } else { // note
+            layout.setVisibility(View.GONE);
+            return; // don't show layout
+        }
 
+        tvInfo.requestLayout();
         layout.setVisibility(View.VISIBLE);
     }
 
@@ -297,7 +348,6 @@ public class ScreenshotHelper {
                 float top = density * 12;
                 etTitle.setPadding(etTitle.getPaddingLeft(), (int) top, etTitle.getPaddingRight(), 0);
                 etTitle.requestLayout();
-                didList.add(UPDATE_TITLE_PADDING);
             } else if (did == UPDATE_CONTENT) {
                 etContent.setVisibility(View.VISIBLE);
             } else if (did == UPDATE_CONTENT_MARGIN) {

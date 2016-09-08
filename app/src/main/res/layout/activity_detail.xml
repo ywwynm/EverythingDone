@@ -142,13 +142,20 @@
                     android:id="@+id/iv_icon_type_info"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:adjustViewBounds="true"
+                    android:maxWidth="20dp"
+                    android:maxHeight="20dp"
                     android:src="@drawable/notification_reminder"
                     tools:ignore="ContentDescription"/>
 
                 <TextView
                     android:id="@+id/tv_type_info"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"/>
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:layout_marginLeft="6dp"
+                    android:textSize="14sp"
+                    android:textColor="@color/white_66p"/>
 
             </LinearLayout>
 
