@@ -81,7 +81,7 @@ public class SystemNotificationUtil {
                 .setPriority(NotificationCompat.PRIORITY_MAX)
                 .setContentIntent(contentPendingIntent)
                 .setSound(soundUri)
-                .setSmallIcon(Thing.getTypeIcon(type))
+                .setSmallIcon(Thing.getTypeIconWhiteLarge(type))
                 .setAutoCancel(true);
 
         String title      = thing.getTitleToDisplay();

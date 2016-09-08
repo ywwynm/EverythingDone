@@ -145,7 +145,7 @@
                     android:adjustViewBounds="true"
                     android:maxWidth="20dp"
                     android:maxHeight="20dp"
-                    android:src="@drawable/notification_reminder"
+                    android:src="@drawable/ic_reminder_white_large"
                     tools:ignore="ContentDescription"/>
 
                 <TextView

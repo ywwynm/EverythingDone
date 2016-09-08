@@ -6,7 +6,6 @@ import android.os.Parcel;
 import android.os.Parcelable;
 import android.support.annotation.DrawableRes;
 import android.support.annotation.IntDef;
-import android.util.Log;
 
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
@@ -287,15 +286,15 @@ public class Thing implements Parcelable {
         } else return context.getString(R.string.thing);
     }
 
-    public static @DrawableRes int getTypeIcon(@Type int type) {
+    public static @DrawableRes int getTypeIconWhiteLarge(@Type int type) {
         if (type == Thing.REMINDER) {
-            return R.drawable.notification_reminder;
+            return R.drawable.ic_reminder_white_large;
         } else if (type == Thing.HABIT) {
-            return R.drawable.notification_habit;
+            return R.drawable.ic_habit_white_large;
         } else if (type == Thing.GOAL) {
-            return R.drawable.notification_goal;
+            return R.drawable.ic_goal_white_large;
         } else {
-            return R.drawable.notification_note;
+            return R.drawable.ic_note_white_large;
         }
     }
 

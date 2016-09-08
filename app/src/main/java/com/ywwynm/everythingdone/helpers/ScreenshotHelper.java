@@ -41,7 +41,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Created by qiizhang on 2016/9/5.
@@ -201,7 +200,7 @@ public class ScreenshotHelper {
             ReminderHabitParams rhParams) {
         ImageView ivIcon = (ImageView) layout.findViewById(R.id.iv_icon_type_info);
         Context context = ivIcon.getContext();
-        @DrawableRes int iconRes = Thing.getTypeIcon(type);
+        @DrawableRes int iconRes = Thing.getTypeIconWhiteLarge(type);
         Drawable d1 = ContextCompat.getDrawable(ivIcon.getContext(), iconRes);
         Drawable d2 = d1.mutate();
         d2.setColorFilter(ContextCompat.getColor(context, R.color.white_66p), PorterDuff.Mode.SRC_IN);
