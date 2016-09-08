@@ -160,6 +160,9 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
                 holder.tv.setTextSize(18);
                 holder.tv.setText("...");
                 params.setMargins((int) (density * 8), 0, 0, params.bottomMargin);
+                holder.itemView.setClickable(false);
+                holder.itemView.setBackgroundResource(0);
+                holder.itemView.setOnClickListener(null);
             } else {
                 holder.iv.setVisibility(View.VISIBLE);
                 int flag = holder.tv.getPaintFlags();
