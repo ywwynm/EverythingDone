@@ -286,6 +286,16 @@
             android:permission="android.permission.BIND_REMOTEVIEWS">
 
         </service>
+        
+        <provider
+            android:authorities="com.ywwynm.everythingdone"
+            android:name="android.support.v4.content.FileProvider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_provider_paths" />
+        </provider>
 
     </application>
 

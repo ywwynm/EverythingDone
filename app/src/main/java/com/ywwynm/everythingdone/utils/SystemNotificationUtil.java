@@ -14,6 +14,7 @@ import android.provider.Settings;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.content.FileProvider;
 
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
@@ -65,12 +66,21 @@ public class SystemNotificationUtil {
         int color = thing.getColor();
         PendingIntent contentPendingIntent = PendingIntent.getActivity(context,
                 (int) id, contentIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        Uri soundUri = getSoundUri(type, context, autoNotify);
+        if (DeviceUtil.hasNougatApi()) {
+            // Without this line, the sound won't play.
+            // But this is stupid... I think it should be fixed by Google
+            context.grantUriPermission("com.android.systemui", soundUri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        }
+
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context)
                 .setColor(color)
                 .setDefaults(Notification.DEFAULT_LIGHTS)
                 .setPriority(NotificationCompat.PRIORITY_MAX)
                 .setContentIntent(contentPendingIntent)
-                .setSound(getRingtoneUri(type, context, autoNotify))
+                .setSound(soundUri)
                 .setSmallIcon(Thing.getTypeIcon(type))
                 .setAutoCancel(true);
 
@@ -201,7 +211,7 @@ public class SystemNotificationUtil {
         builder.extend(new NotificationCompat.WearableExtender().setBackground(bm));
     }
 
-    private static Uri getRingtoneUri(int type, Context context, boolean autoNotify) {
+    private static Uri getSoundUri(int type, Context context, boolean autoNotify) {
         SharedPreferences preferences = context.getSharedPreferences(
                 Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE);
         String key;
@@ -227,10 +237,12 @@ public class SystemNotificationUtil {
             if (uri != Settings.System.DEFAULT_NOTIFICATION_URI
                     && rm.getRingtonePosition(uri) == -1) { // user's ringtone
                 String pathName = UriPathConverter.getLocalPathName(context, uri);
-                // TODO: 2016/9/2 nougat ringtone
-                if (DeviceUtil.hasNougatApi() || pathName == null || !new File(pathName).exists()) {
+                if (pathName == null || !new File(pathName).exists()) {
                     preferences.edit().putString(key, fs).apply();
                     return Settings.System.DEFAULT_NOTIFICATION_URI;
+                } else if (DeviceUtil.hasNougatApi()) {
+                    uri = FileProvider.getUriForFile(
+                            context, Def.Meta.APP_AUTHORITY, new File(pathName));
                 }
             }
             return uri;

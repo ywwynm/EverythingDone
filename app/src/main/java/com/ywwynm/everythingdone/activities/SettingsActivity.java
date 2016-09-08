@@ -244,8 +244,21 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                 mTvDrawerHeader.setTextSize(12);
                 mTvDrawerHeader.setText(pathName);
             } else if (requestCode == REQUEST_CHOOSE_AUDIO_FILE) {
-                uri = Uri.fromFile(new File(pathName));
                 String audioName = FileUtil.getNameWithoutPostfix(pathName);
+                File srcFile = new File(pathName);
+                if (!DeviceUtil.hasNougatApi()) {
+                    uri = Uri.fromFile(srcFile);
+                } else {
+                    File dstFile = FileUtil.createFile(Def.Meta.APP_FILE_DIR + "/ringtone",
+                            srcFile.getName());
+                    try {
+                        FileUtil.copyFile(srcFile, dstFile);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        // ignore this for the time being
+                    }
+                    uri = Uri.fromFile(dstFile);
+                }
                 if (!sRingtoneUriList.contains(uri)) {
                     sRingtoneTitleList.add(1, audioName);
                     sRingtoneUriList.add(1, uri);
@@ -928,25 +941,26 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                 mChosenRingtoneTitles[index] = sRingtoneTitleList.get(pickedIndex);
             }
         });
-        if (!DeviceUtil.hasNougatApi()) {
-            cdf.setMoreListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    mChoosingIndex = index;
-                    doWithPermissionChecked(
-                            new SimplePermissionCallback(SettingsActivity.this) {
-                                @Override
-                                public void onGranted() {
-                                    startChooseRingtoneFromStorage();
-                                }
-                            },
-                            Def.Communication.REQUEST_PERMISSION_CHOOSE_AUDIO_FILE,
-                            Manifest.permission.WRITE_EXTERNAL_STORAGE);
-                }
-            });
-        } else { // TODO: 2016/9/2 cannot set audio file as ringtone above N
-            cdf.setShouldShowMore(false);
-        }
+        cdf.setMoreListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mChoosingIndex = index;
+                doWithPermissionChecked(
+                        new SimplePermissionCallback(SettingsActivity.this) {
+                            @Override
+                            public void onGranted() {
+                                startChooseRingtoneFromStorage();
+                            }
+                        },
+                        Def.Communication.REQUEST_PERMISSION_CHOOSE_AUDIO_FILE,
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE);
+            }
+        });
+//        if (!DeviceUtil.hasNougatApi()) {
+//
+//        } else { // TODO: 2016/9/2 cannot set audio file as ringtone above N
+//            cdf.setShouldShowMore(false);
+//        }
         cdf.setOnItemClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
