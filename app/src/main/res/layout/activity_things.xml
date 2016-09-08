@@ -22,51 +22,37 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
 
-            <LinearLayout
+            <android.support.v7.widget.Toolbar
+                android:id="@+id/actionbar"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical">
-
-                <android.support.v7.widget.Toolbar
-                    android:id="@+id/actionbar"
-                    android:layout_width="match_parent"
-                    android:layout_height="?attr/actionBarSize"
-                    android:theme="@style/EverythingDoneTheme.Things.Toolbar"
-                    android:background="@android:color/transparent"
-                    android:focusable="true"
-                    android:focusableInTouchMode="true"
-                    app:contentInsetStart="72dp">
-
-                    <View
-                        android:id="@+id/view_inside_actionbar"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"/>
-
-                    <EditText
-                        android:id="@+id/et_search"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center_vertical"
-                        android:imeOptions="actionSearch"
-                        android:hint="@string/act_search"
-                        android:alpha="0"
-                        android:enabled="false"
-                        android:background="@null"
-                        android:singleLine="true"
-                        android:textColor="@color/black_54p"
-                        android:textCursorDrawable="@null"
-                        android:theme="@style/EverythingDoneTheme.Things.Search"/>
-
-                </android.support.v7.widget.Toolbar>
+                android:layout_height="?attr/actionBarSize"
+                android:theme="@style/EverythingDoneTheme.Things.Toolbar"
+                android:background="@android:color/transparent"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                app:contentInsetStart="72dp">
 
                 <View
-                    android:id="@+id/actionbar_shadow"
+                    android:id="@+id/view_inside_actionbar"
                     android:layout_width="match_parent"
-                    android:layout_height="4dp"
-                    android:alpha="0.0"
-                    android:background="@drawable/actionbar_shadow"/>
+                    android:layout_height="match_parent"/>
 
-            </LinearLayout>
+                <EditText
+                    android:id="@+id/et_search"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center_vertical"
+                    android:imeOptions="actionSearch"
+                    android:hint="@string/act_search"
+                    android:alpha="0"
+                    android:enabled="false"
+                    android:background="@null"
+                    android:singleLine="true"
+                    android:textColor="@color/black_54p"
+                    android:textCursorDrawable="@null"
+                    android:theme="@style/EverythingDoneTheme.Things.Search"/>
+
+            </android.support.v7.widget.Toolbar>
 
             <include layout="@layout/include_activity_header_things" />
 
@@ -81,6 +67,14 @@
                 android:scrollbars="vertical"
                 android:scrollbarStyle="outsideOverlay"
                 android:theme="@style/Theme.AppCompat.Light"/>
+
+            <View
+                android:id="@+id/actionbar_shadow"
+                android:layout_width="match_parent"
+                android:layout_height="4dp"
+                android:layout_marginTop="?attr/actionBarSize"
+                android:alpha="0.0"
+                android:background="@drawable/actionbar_shadow"/>
 
             <com.ywwynm.everythingdone.views.FloatingActionButton
                 android:id="@+id/fab_create"

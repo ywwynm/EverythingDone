@@ -1084,14 +1084,15 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         mRecyclerView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                int action = event.getAction();
+                if (action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_UP
+                        || action == MotionEvent.ACTION_MOVE) {
                     if (!mScrollCausedByFinger) {
                         mScrollCausedByFinger = true;
                     }
                     if (mThingsAdapter.isShouldThingsAnimWhenAppearing()) {
                         mThingsAdapter.setShouldThingsAnimWhenAppearing(false);
                     }
-                    return true;
                 }
                 return false;
             }
@@ -1810,7 +1811,9 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     class OnThingTouchedListener implements ThingsAdapter.OnItemTouchedListener {
         @Override
         public boolean onItemTouch(View v, MotionEvent event) {
-            if (event.getAction() == MotionEvent.ACTION_DOWN) {
+            int action = event.getAction();
+            if (action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_UP
+                    || action == MotionEvent.ACTION_MOVE) {
                 if (!mScrollCausedByFinger) {
                     mScrollCausedByFinger = true;
                 }
