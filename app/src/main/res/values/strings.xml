@@ -76,6 +76,7 @@
     <string name="act_change_background">Change background</string>
     <string name="act_undo">Undo</string>
     <string name="act_redo">Redo</string>
+    <string name="act_abandon_create">Abandon</string>
 
     <!--DetailActivity underway-->
     <string name="act_set_as_private_thing">Set As Private Thing</string>
@@ -258,6 +259,7 @@
     <string name="hint_title">title</string>
 
     <string name="sb_cannot_be_blank">Blank thing has been deleted</string>
+    <string name="sb_abandon_create_thing">The new thing was abandoned</string>
     <string name="sb_delete">deleted</string>
     <string name="sb_delete_forever">deleted forever</string>
     <string name="sb_finish">finished</string>

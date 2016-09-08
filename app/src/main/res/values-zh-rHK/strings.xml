@@ -443,5 +443,7 @@
     <string name="act_share_thing_screenshot">長截圖</string>
     <string name="act_share_thing_text_image">文本及圖片</string>
     <string name="act_copy_content">複製記事內容</string>
+    <string name="act_abandon_create">捨棄</string>
+    <string name="sb_abandon_create_thing">已捨棄新的記事</string>
 
 </resources>

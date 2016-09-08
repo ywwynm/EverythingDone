@@ -36,4 +36,9 @@
         android:title="@string/act_copy_content"
         app:showAsAction="never"/>
 
+    <item
+        android:id="@+id/act_abandon_create"
+        android:title="@string/act_abandon_create"
+        app:showAsAction="never" />
+
 </menu>

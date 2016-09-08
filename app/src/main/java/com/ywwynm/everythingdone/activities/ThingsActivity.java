@@ -503,6 +503,19 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     }
                 }, 560);
                 break;
+            case Def.Communication.RESULT_ABANDON_CREATE_THING:
+                mDrawerLayout.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        mNormalSnackbar.setMessage(R.string.sb_abandon_create_thing);
+                        mNormalSnackbar.show();
+                        mUpdateMainUiInOnResume = true;
+                        App.setSomethingUpdatedSpecially(false);
+                        App.setShouldJustNotifyDataSetChanged(false);
+                        mBroadCastIntent = null;
+                    }
+                }, 560);
+                break;
             case Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME:
                 updateMainUiForUpdateSameType(data);
                 break;

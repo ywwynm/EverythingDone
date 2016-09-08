@@ -188,10 +188,11 @@ public final class Def {
         public static final int RESULT_NO_UPDATE                        = 0;
         public static final int RESULT_CREATE_THING_DONE                = 1;
         public static final int RESULT_CREATE_BLANK_THING               = 2;
-        public static final int RESULT_UPDATE_THING_DONE_TYPE_SAME      = 3;
-        public static final int RESULT_UPDATE_THING_DONE_TYPE_DIFFERENT = 4;
-        public static final int RESULT_UPDATE_THING_STATE_DIFFERENT     = 5;
-        public static final int RESULT_JUST_NOTIFY_DATASET_CHANGED      = 6;
+        public static final int RESULT_ABANDON_CREATE_THING             = 3;
+        public static final int RESULT_UPDATE_THING_DONE_TYPE_SAME      = 4;
+        public static final int RESULT_UPDATE_THING_DONE_TYPE_DIFFERENT = 5;
+        public static final int RESULT_UPDATE_THING_STATE_DIFFERENT     = 6;
+        public static final int RESULT_JUST_NOTIFY_DATASET_CHANGED      = 7;
 
         public static final int RESULT_UPDATE_IMAGE_DONE = 1;
 
