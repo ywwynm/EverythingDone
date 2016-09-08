@@ -503,11 +503,11 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     }
                 }, 560);
                 break;
-            case Def.Communication.RESULT_ABANDON_CREATE_THING:
+            case Def.Communication.RESULT_ABANDON_NEW_THING:
                 mDrawerLayout.postDelayed(new Runnable() {
                     @Override
                     public void run() {
-                        mNormalSnackbar.setMessage(R.string.sb_abandon_create_thing);
+                        mNormalSnackbar.setMessage(R.string.sb_abandon_new_thing);
                         mNormalSnackbar.show();
                         mUpdateMainUiInOnResume = true;
                         App.setSomethingUpdatedSpecially(false);

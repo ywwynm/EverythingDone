@@ -37,8 +37,8 @@
         app:showAsAction="never"/>
 
     <item
-        android:id="@+id/act_abandon_create"
-        android:title="@string/act_abandon_create"
+        android:id="@+id/act_abandon_new_thing"
+        android:title="@string/act_abandon_new_thing"
         app:showAsAction="never" />
 
 </menu>

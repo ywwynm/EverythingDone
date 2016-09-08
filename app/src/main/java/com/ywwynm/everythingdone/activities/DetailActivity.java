@@ -1024,8 +1024,8 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                         }, Def.Communication.REQUEST_PERMISSION_EXPORT_DETAIL,
                         Manifest.permission.WRITE_EXTERNAL_STORAGE);
                 break;
-            case R.id.act_abandon_create:
-                int resultCode = Def.Communication.RESULT_ABANDON_CREATE_THING;
+            case R.id.act_abandon_new_thing:
+                int resultCode = Def.Communication.RESULT_ABANDON_NEW_THING;
                 Intent intent = new Intent(Def.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI);
                 intent.putExtra(Def.Communication.KEY_RESULT_CODE, resultCode);
                 if (shouldSendBroadCast()) {
