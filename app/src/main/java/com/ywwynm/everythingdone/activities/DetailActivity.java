@@ -1029,7 +1029,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 Intent intent = new Intent(Def.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI);
                 intent.putExtra(Def.Communication.KEY_RESULT_CODE, resultCode);
                 if (shouldSendBroadCast()) {
-                    sendBroadcast(intent);
+                    sendBroadCastToUpdateMainUI(intent, resultCode);
                 } else {
                     setResult(resultCode, intent);
                 }
@@ -2375,13 +2375,21 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         // case, ThingsActivity won't receive broadcast to handle creation and that thing
         // will be missed.
         // Another case is that there are more than 1 create-type DetailActivity instance.
-        WeakReference<ThingsActivity> wr = App.thingsActivityWR;
-        if (wr == null || wr.get() == null || createActivitiesCount > 1) {
-            ThingManager.getInstance(mApp).create(mThing, true, true);
+        if (shouldSendBroadCast() || createActivitiesCount > 1) {
+            boolean change = ThingManager.getInstance(mApp).create(mThing, true, true);
+            intent.putExtra(Def.Communication.KEY_CALL_CHANGE,  change);
             intent.putExtra(Def.Communication.KEY_CREATED_DONE, true);
-        } else if (!shouldSendBroadCast()) {
+        } else {
             setResult(resultCode, intent);
         }
+
+//        WeakReference<ThingsActivity> wr = App.thingsActivityWR;
+//        if (wr == null || wr.get() == null || createActivitiesCount > 1) {
+//            ThingManager.getInstance(mApp).create(mThing, true, true);
+//            intent.putExtra(Def.Communication.KEY_CREATED_DONE, true);
+//        } else if (!shouldSendBroadCast()) {
+//            setResult(resultCode, intent);
+//        }
 
         return resultCode;
     }

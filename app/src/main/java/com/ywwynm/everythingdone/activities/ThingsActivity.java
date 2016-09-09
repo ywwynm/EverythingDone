@@ -304,13 +304,20 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 //            updateMainUi(mBroadCastIntent, resultCode);
 //        }
 
-        if (mUpdateMainUiInOnResume && App.justNotifyDataSetChanged()) {
-            mRecyclerView.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    justNotifyDataSetChanged();
-                }
-            }, 540);
+        if (mUpdateMainUiInOnResume) {
+            if (App.justNotifyDataSetChanged()) {
+                mRecyclerView.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        justNotifyDataSetChanged();
+                        mBroadCastIntent = null;
+                    }
+                }, 540);
+            } else if (mBroadCastIntent != null) {
+                int resultCode = mBroadCastIntent.getIntExtra(Def.Communication.KEY_RESULT_CODE,
+                        Def.Communication.RESULT_NO_UPDATE);
+                updateMainUi(mBroadCastIntent, resultCode);
+            }
         }
 
         int color = DisplayUtil.getRandomColor(this);
@@ -498,7 +505,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                         mNormalSnackbar.show();
                         mUpdateMainUiInOnResume = true;
                         App.setSomethingUpdatedSpecially(false);
-                        App.setShouldJustNotifyDataSetChanged(false);
+                        //App.setShouldJustNotifyDataSetChanged(false);
                         mBroadCastIntent = null;
                     }
                 }, 560);
@@ -511,7 +518,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                         mNormalSnackbar.show();
                         mUpdateMainUiInOnResume = true;
                         App.setSomethingUpdatedSpecially(false);
-                        App.setShouldJustNotifyDataSetChanged(false);
+                        //App.setShouldJustNotifyDataSetChanged(false);
                         mBroadCastIntent = null;
                     }
                 }, 560);
@@ -538,7 +545,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         }
     }
 
-    private void updateMainUiForCreateDone(Intent data) {
+    private void updateMainUiForCreateDone(final Intent data) {
         if (App.isSearching) {
             toggleSearching(false);
         }
@@ -565,16 +572,16 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         final Thing thingToCreate = data.getParcelableExtra(
                 Def.Communication.KEY_THING);
 
-        if (createdDone) {
-            mRecyclerView.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    justNotifyDataSetChanged();
-                    afterUpdateMainUiForCreateDone();
-                }
-            }, 560);
-            return;
-        }
+//        if (createdDone) {
+//            mRecyclerView.postDelayed(new Runnable() {
+//                @Override
+//                public void run() {
+//                    justNotifyDataSetChanged();
+//                    afterUpdateMainUiForCreateDone();
+//                }
+//            }, 560);
+//            return;
+//        }
 
         /**
          * Changed behavior here at 2016/7/26 because of multi create-type DetailActivities
@@ -603,11 +610,15 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
          * justNotifyDataSetChanged later). But we need item add animation of RecyclerView
          * ({@link ThingsAdapter#notifyItemInserted(int)}), as a result, I give up that thought.
          */
-        // TODO: 2016/7/26 double 300 is good?
         mRecyclerView.postDelayed(new Runnable() {
             @Override
             public void run() {
-                final boolean change = mThingManager.create(thingToCreate, true, true);
+                final boolean change;
+                if (createdDone) {
+                    change = data.getBooleanExtra(Def.Communication.KEY_CALL_CHANGE, false);
+                } else {
+                    change = mThingManager.create(thingToCreate, true, true);
+                }
                 mRecyclerView.postDelayed(new Runnable() {
                     @Override
                     public void run() {
@@ -635,7 +646,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         mDrawerHeader.updateTexts();
         mUpdateMainUiInOnResume = true;
         App.setSomethingUpdatedSpecially(false);
-        App.setShouldJustNotifyDataSetChanged(false);
+        //App.setShouldJustNotifyDataSetChanged(false);
         mBroadCastIntent = null;
     }
 
@@ -676,7 +687,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 mDrawerHeader.updateCompletionRate();
                 mUpdateMainUiInOnResume = true;
                 App.setSomethingUpdatedSpecially(false);
-                App.setShouldJustNotifyDataSetChanged(false);
+                //App.setShouldJustNotifyDataSetChanged(false);
                 mBroadCastIntent = null;
             }
         }, 560);
@@ -721,7 +732,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 mDrawerHeader.updateCompletionRate();
                 mUpdateMainUiInOnResume = true;
                 App.setSomethingUpdatedSpecially(false);
-                App.setShouldJustNotifyDataSetChanged(false);
+                //App.setShouldJustNotifyDataSetChanged(false);
                 mBroadCastIntent = null;
             }
         }, 560);
@@ -772,7 +783,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 mDrawerHeader.updateCompletionRate();
                 mUpdateMainUiInOnResume = true;
                 App.setSomethingUpdatedSpecially(false);
-                App.setShouldJustNotifyDataSetChanged(false);
+                //App.setShouldJustNotifyDataSetChanged(false);
                 mBroadCastIntent = null;
             }
         }, 560);
