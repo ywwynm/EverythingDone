@@ -6,13 +6,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.support.v4.util.Pair;
 
-import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
+import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper;
 import com.ywwynm.everythingdone.database.AppWidgetDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
-import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper;
-import com.ywwynm.everythingdone.helpers.CheckListHelper;
 import com.ywwynm.everythingdone.helpers.RemoteActionHelper;
 import com.ywwynm.everythingdone.managers.ThingManager;
 import com.ywwynm.everythingdone.model.Thing;
@@ -32,96 +30,8 @@ public class BaseThingWidget extends AppWidgetProvider {
             long id = intent.getLongExtra(Def.Communication.KEY_ID, -1);
             int itemPos = intent.getIntExtra(Def.Communication.KEY_POSITION, 0);
             RemoteActionHelper.toggleChecklistItem(context, id, itemPos);
-
-//            ThingManager thingManager = ThingManager.getInstance(context);
-//            Thing thing = thingManager.getThingById(id);
-//            if (thing == null) {
-//                ThingDAO thingDAO = ThingDAO.getInstance(context);
-//                thing = thingDAO.getThingById(id);
-//                if (thing == null) {
-//                    return;
-//                }
-//            }
-//
-//            String updatedContent = getUpdatedContent(thing.getContent(), itemPos);
-//            thing.setContent(updatedContent);
-//            updateThing(context, thing);
-//            updateUiEverywhereForChecklist(context, thing);
         }
         super.onReceive(context, intent);
-    }
-
-    private String getUpdatedContent(String content, int position) {
-        List<String> items = CheckListHelper.toCheckListItems(content, false);
-        items.remove("2");
-        items.remove("3");
-        items.remove("4");
-        String oldItem = items.get(position);
-        items.remove(position);
-        if (oldItem.startsWith("0")) { // unfinished to finished
-            String newItem = "1" + oldItem.substring(1, oldItem.length());
-            int firstFinishedIndex = CheckListHelper.getFirstFinishedItemIndex(items);
-            if (firstFinishedIndex == -1) {
-                items.add(newItem);
-            } else {
-                items.add(firstFinishedIndex, newItem);
-            }
-        } else {
-            String newItem = "0" + oldItem.substring(1, oldItem.length());
-            items.add(0, newItem);
-        }
-        return CheckListHelper.toCheckListStr(items);
-    }
-
-    private void updateThing(Context context, Thing updatedThing) {
-        ThingManager thingManager = ThingManager.getInstance(context);
-        int position = thingManager.getPosition(updatedThing.getId());
-        if (position != -1) {
-            thingManager.update(updatedThing.getType(), updatedThing, position, false);
-        } else {
-            ThingDAO thingDAO = ThingDAO.getInstance(context);
-            thingDAO.update(updatedThing.getType(), updatedThing, false, true);
-        }
-    }
-
-    private void updateUiEverywhereForChecklist(Context context, Thing thing) {
-        long thingId = thing.getId();
-        updateThingWidgetsForChecklist(context, thingId);
-        AppWidgetHelper.updateThingsListAppWidgetsForType(context, thing.getType());
-        updateThingsActivityForChecklist(context, thingId);
-    }
-
-    private void updateThingWidgetsForChecklist(Context context, long thingId) {
-        AppWidgetDAO appWidgetDAO = AppWidgetDAO.getInstance(context);
-        List<ThingWidgetInfo> thingWidgetInfos = appWidgetDAO.getThingWidgetInfosByThingId(thingId);
-        AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(context);
-        final int size = thingWidgetInfos.size();
-        int[] appWidgetIds = new int[size];
-        for (int i = 0; i < size; i++) {
-            appWidgetIds[i] = thingWidgetInfos.get(i).getId();
-        }
-        appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetIds, R.id.lv_thing_check_list);
-    }
-
-    private void updateThingsActivityForChecklist(Context context, long thingId) {
-        ThingManager thingManager = ThingManager.getInstance(context);
-        Thing thing = thingManager.getThingById(thingId);
-        if (thing == null) { // this method should only be useful if ThingManager contains this thing
-            return;
-        }
-
-        if (App.isSomethingUpdatedSpecially()) {
-            App.setShouldJustNotifyDataSetChanged(true);
-        }
-        App.setSomethingUpdatedSpecially(true);
-
-        Intent intent = new Intent();
-        intent.setAction(Def.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI);
-        intent.putExtra(Def.Communication.KEY_RESULT_CODE,
-                Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME);
-        intent.putExtra(Def.Communication.KEY_POSITION, thingManager.getPosition(thing.getId()));
-
-        context.sendBroadcast(intent);
     }
 
     @Override
