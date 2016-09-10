@@ -481,8 +481,6 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
 
             int pbColor = ContextCompat.getColor(item.getContext(), R.color.app_accent);
             pbLoading.getIndeterminateDrawable().setColorFilter(pbColor, PorterDuff.Mode.SRC_IN);
-
-            cv.setShouldInterceptTouchEvent(false);
         }
 
     }
