@@ -1,4 +1,6 @@
-<resources>
+<resources
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="TypographyEllipsis">
     <string name="app_name">完事兒</string>
 
     <!--titles of Activities-->
@@ -435,7 +437,6 @@
     <string name="change_app_language">更改應用語言</string>
     <string name="follow_system_settings">跟隨系統設置</string>
     <string name="set_app_password_detail">該密碼將用於對涉及隱私、安全的操作進行身份確認，包括查看私密記事，備份、恢複數據等</string>
-    <string name="error_cannot_finish_habit_this_time">無法完成這一次</string>
     <string name="ringtone_loading">正在載入鈴聲...</string>
     <string name="change_app_password">更改應用密碼</string>
     <string name="notification_private_thing_content">[私密記事]</string>

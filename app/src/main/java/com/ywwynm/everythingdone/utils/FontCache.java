@@ -11,6 +11,10 @@ import java.util.HashMap;
  */
 public class FontCache {
 
+    public static final String TAG = "FontCache";
+
+    private FontCache() {}
+
     private static HashMap<String, Typeface> fontCache = new HashMap<>();
 
     public static Typeface get(String name, Context context) {

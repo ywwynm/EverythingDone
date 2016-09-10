@@ -590,6 +590,7 @@ public class PatternLockView extends View {
                 case MotionEvent.ACTION_HOVER_EXIT:
                     event.setAction(MotionEvent.ACTION_UP);
                     break;
+                default:break;
             }
             onTouchEvent(event);
             event.setAction(action);
@@ -1198,9 +1199,11 @@ public class PatternLockView extends View {
             super(in);
             mSerializedPattern = in.readString();
             mDisplayMode = in.readInt();
-            mInputEnabled = (Boolean) in.readValue(null);
-            mInStealthMode = (Boolean) in.readValue(null);
-            mTactileFeedbackEnabled = (Boolean) in.readValue(null);
+
+            ClassLoader loader = getClass().getClassLoader();
+            mInputEnabled = (Boolean) in.readValue(loader);
+            mInStealthMode = (Boolean) in.readValue(loader);
+            mTactileFeedbackEnabled = (Boolean) in.readValue(loader);
         }
 
         public String getSerializedPattern() {

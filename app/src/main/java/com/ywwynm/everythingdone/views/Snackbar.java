@@ -1,6 +1,5 @@
 package com.ywwynm.everythingdone.views;
 
-import android.graphics.Rect;
 import android.support.annotation.StringRes;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -44,15 +43,6 @@ public class Snackbar {
     private ViewGroup mTargetParent;
 
     private FloatingActionButton mBindingFab;
-
-    public interface DismissCallback {
-        void onDismiss();
-    }
-    private DismissCallback mDismissCallback;
-
-    public void setDismissCallback(DismissCallback dismissCallback) {
-        mDismissCallback = dismissCallback;
-    }
 
     public Snackbar(App app, int type, ViewGroup targetParent,
                     FloatingActionButton bindingFab) {
@@ -119,9 +109,6 @@ public class Snackbar {
             if (mBindingFab != null &&
                     mApp.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
                 mBindingFab.fall();
-            }
-            if (mDismissCallback != null) {
-                mDismissCallback.onDismiss();
             }
         } catch (Exception e) {
             e.printStackTrace();

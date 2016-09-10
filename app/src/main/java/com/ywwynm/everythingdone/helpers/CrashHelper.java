@@ -70,6 +70,9 @@ public class CrashHelper implements Thread.UncaughtExceptionHandler {
         String time = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
         String name = "crash_" + time + ".log";
         File file = FileUtil.createFile(path, name);
+        if (file == null) {
+            return;
+        }
 
         try {
             PrintWriter writer = new PrintWriter(new FileWriter(file));

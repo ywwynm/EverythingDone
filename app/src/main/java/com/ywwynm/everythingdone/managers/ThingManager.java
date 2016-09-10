@@ -647,8 +647,7 @@ public class ThingManager {
         int[] limits = Thing.getLimits(type, state);
         for (int limit : limits) {
             if (mLimit != limit) {
-                if (updateState ||
-                        (!updateState && limit != Def.LimitForGettingThings.ALL_UNDERWAY)) {
+                if (updateState || limit != Def.LimitForGettingThings.ALL_UNDERWAY) {
                     Cursor cursor = mDao.getThingsCursorForDisplay(limit, null, 0);
                     long id1 = -1;
                     int count = 0;
@@ -700,13 +699,6 @@ public class ThingManager {
      */
     public boolean isThingsEmpty() {
         return mThings.size() < 2 || mThings.get(1).getType() >= Thing.NOTIFY_EMPTY_UNDERWAY;
-    }
-
-    public Thing getSelectedThing() {
-        for (Thing thing : mThings) {
-            if (thing.isSelected()) return thing;
-        }
-        return null;
     }
 
     public Thing[] getSelectedThings() {

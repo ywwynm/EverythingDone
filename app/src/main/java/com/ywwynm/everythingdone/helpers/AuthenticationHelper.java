@@ -11,6 +11,10 @@ import com.ywwynm.everythingdone.utils.DeviceUtil;
  */
 public class AuthenticationHelper {
 
+    public static final String TAG = "AuthenticationHelper";
+
+    private AuthenticationHelper() {}
+
     public static void authenticate(
             Activity activity, int accentColor, String title, String correctPassword,
             AuthenticationCallback callback) {

@@ -26,6 +26,8 @@ public class DateTimeUtil {
 
     public static final String TAG = "EverythingDone$DateTimeUtil";
 
+    private DateTimeUtil() {}
+
     public static String getGeneralDateTimeStr(Context context, long time) {
         return new DateTime(time).toString(getGeneralDateTimeFormatPattern(context));
     }

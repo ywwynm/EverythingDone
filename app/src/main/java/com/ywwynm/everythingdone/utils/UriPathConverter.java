@@ -19,7 +19,9 @@ import java.util.List;
  */
 public class UriPathConverter {
 
-    public static final String TAG = "EverythingDone$UriPathConverter";
+    public static final String TAG = "UriPathConverter";
+
+    private UriPathConverter() {}
 
     public static String getLocalPathName(Context context, Uri uri) {
         String pathName = getPathName(context, uri);
@@ -85,6 +87,7 @@ public class UriPathConverter {
                     case "audio":
                         contentUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
                         break;
+                    default:break;
                 }
 
                 return getDataColumn(context, contentUri, "_id=" + split[1], null);

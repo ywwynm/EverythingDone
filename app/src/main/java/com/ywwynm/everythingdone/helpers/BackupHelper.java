@@ -21,6 +21,8 @@ public class BackupHelper {
 
     public static final String TAG = "BackupHelper";
 
+    private BackupHelper() {}
+
     private static final String BACKUP_FILE_NAME   = "EverythingDone.bak";
     private static final String BACKUP_FOLDER_NAME = "EverythingDoneBackup";
 

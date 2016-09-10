@@ -16,6 +16,8 @@ public class DeviceUtil {
 
     public static final String TAG = "EverythingDone$DeviceUtil";
 
+    private DeviceUtil() {}
+
     public static boolean hasKitKatApi() {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT;
     }

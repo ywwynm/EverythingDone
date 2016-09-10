@@ -19,7 +19,9 @@ import java.io.IOException;
  */
 public class BitmapUtil {
 
-    public static final String TAG = "EverythingDone$BitmapUtil";
+    public static final String TAG = "BitmapUtil";
+
+    private BitmapUtil() {}
 
     private static int calculateInSampleSize(int oWidth, int oHeight, int reqWidth, int reqHeight) {
         int inSampleSize = 1;
@@ -172,6 +174,10 @@ public class BitmapUtil {
 
     public static File saveBitmapToStorage(String parentPath, String name, Bitmap bitmap) {
         File file = FileUtil.createFile(parentPath, name);
+        if (file == null) {
+            return null;
+        }
+
         FileOutputStream fos = null;
         try {
             fos = new FileOutputStream(file);

@@ -28,6 +28,10 @@ import java.util.List;
  */
 public class AlarmHelper {
 
+    public static final String TAG = "AlarmHelper";
+
+    private AlarmHelper() {}
+
     public static void setReminderAlarm(Context context, long id, long notifyTime) {
         AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         Intent intent = new Intent(context, ReminderReceiver.class);

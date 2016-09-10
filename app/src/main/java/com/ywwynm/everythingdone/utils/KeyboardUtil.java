@@ -14,7 +14,9 @@ import android.view.inputmethod.InputMethodManager;
  */
 public class KeyboardUtil {
 
-    public static final String TAG = "EverythingDone$KeyboardUtil";
+    public static final String TAG = "KeyboardUtil";
+
+    private KeyboardUtil() {}
 
     public static final int HIDE_DELAY = 280;
 

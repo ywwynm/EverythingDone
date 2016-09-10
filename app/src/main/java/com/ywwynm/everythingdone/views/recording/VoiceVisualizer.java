@@ -195,7 +195,7 @@ public class VoiceVisualizer extends FrameLayout {
 
     private float getRandomHeight(int volume) {
         double randomVolume = Math.random() * volume + 1;
-        float height = getHeight();
+        float height;
         switch (mRenderRange) {
             case RENDER_RANGE_TOP:
                 height = mBaseY;
@@ -204,6 +204,7 @@ public class VoiceVisualizer extends FrameLayout {
                 height = (getHeight() - mBaseY);
                 break;
             case RENDER_RANGE_TOP_BOTTOM:
+            default:
                 height = getHeight();
                 break;
         }

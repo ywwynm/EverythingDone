@@ -50,6 +50,8 @@ public class ScreenshotHelper {
 
     public static final String TAG = "ScreenshotHelper";
 
+    private ScreenshotHelper() {}
+
     private static List<File> sScreenshotFiles;
 
     public interface ScreenshotCallback {

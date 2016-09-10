@@ -61,7 +61,6 @@ public class ImageViewerActivity extends EverythingDoneBaseActivity {
     private ViewPager mVpImage;
     private ImageViewerPagerAdapter mAdapter;
     private List<View> mTabs;
-    private List<PhotoViewAttacher> mAttachers;
 
     @Override
     protected int getLayoutResource() {
@@ -84,7 +83,6 @@ public class ImageViewerActivity extends EverythingDoneBaseActivity {
 
         int size = mTypePathNames.size();
         mTabs = new ArrayList<>(size);
-        mAttachers = new ArrayList<>(size);
     }
 
     @Override
@@ -139,7 +137,6 @@ public class ImageViewerActivity extends EverythingDoneBaseActivity {
                 videoSignal.setOnClickListener(videoListener);
                 attacher.setZoomable(false);
             }
-            mAttachers.add(attacher);
 
             mTabs.add(tab);
         }
@@ -274,7 +271,6 @@ public class ImageViewerActivity extends EverythingDoneBaseActivity {
                 @Override
                 public void onConfirm() {
                     int currentIndex = mVpImage.getCurrentItem();
-                    mAttachers.remove(currentIndex);
                     mTypePathNames.remove(currentIndex);
                     mAdapter.removeTab(mVpImage, currentIndex);
                     updateAttachmentNumber();

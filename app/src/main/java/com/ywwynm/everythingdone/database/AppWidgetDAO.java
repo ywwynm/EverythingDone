@@ -19,14 +19,11 @@ public class AppWidgetDAO {
 
     public static final String TAG = "AppWidgetDAO";
 
-    private Context mContext;
-
     private SQLiteDatabase db;
 
     private static AppWidgetDAO sAppWidgetDAO;
 
     private AppWidgetDAO(Context context) {
-        mContext = context;
         DBHelper helper = new DBHelper(context);
         db = helper.getWritableDatabase();
     }

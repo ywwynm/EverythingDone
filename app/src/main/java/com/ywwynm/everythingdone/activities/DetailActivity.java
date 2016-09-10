@@ -1032,6 +1032,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 }
                 finish();
                 break;
+            default:break;
         }
         return super.onOptionsItemSelected(item);
     }
@@ -1307,6 +1308,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             case ThingAction.TOGGLE_PRIVATE:
                 togglePrivateThing();
                 break;
+            default:break;
         }
         updateUndoRedoActionButtonState();
         shouldAddToActionList = true;

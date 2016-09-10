@@ -22,6 +22,8 @@ public class LocaleUtil {
 
     public static final String TAG = "EverythingDone$LocaleUtil";
 
+    private LocaleUtil() {}
+
     @SuppressWarnings("deprecation")
     public static Locale getSystemLocale(Context context) {
         if (DeviceUtil.hasNougatApi()) {

@@ -409,6 +409,7 @@ public class ThingDAO {
                         .append(") or type=").append(Thing.NOTIFY_EMPTY_DELETED)
                         .append(")");
                 break;
+            default:break;
         }
         if (color != -1979711488 && color != 0) {
             limitSb.append(" and color=").append(color);

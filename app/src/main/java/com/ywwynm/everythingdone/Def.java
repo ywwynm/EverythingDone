@@ -8,11 +8,11 @@ import android.os.Environment;
  */
 public final class Def {
 
-    public Def() {
-        // Create an empty constructor to prevent instantiation of the class.
-    }
+    private Def() { }
 
-    public abstract static class Meta {
+    public static final class Meta {
+
+        private Meta() {}
 
         public static final String META_DATA_NAME           = "EverythingDone_metadata";
         public static final String PREFERENCES_NAME         = "EverythingDone_preferences";
@@ -54,7 +54,9 @@ public final class Def {
 
     }
 
-    public abstract static class LimitForGettingThings {
+    public static final class LimitForGettingThings {
+
+        private LimitForGettingThings() {}
 
         public static final int ALL_UNDERWAY      = 0;
         public static final int NOTE_UNDERWAY     = 1;
@@ -66,7 +68,9 @@ public final class Def {
 
     }
 
-    public abstract static class Database {
+    public static final class Database {
+
+        private Database() {}
 
         public static final String TABLE_THINGS              = "things";
         public static final String COLUMN_ID_THINGS          = "id";
@@ -121,7 +125,9 @@ public final class Def {
 
     }
 
-    public abstract static class Communication {
+    public static final class Communication {
+
+        private Communication() {}
 
         private static final String PREFIX = "com.ywwynm.everythingdone.";
 
@@ -230,7 +236,9 @@ public final class Def {
 
     }
 
-    public abstract static class PickerType {
+    public static final class PickerType {
+
+        private PickerType() {}
 
         public static final int COLOR_HAVE_ALL             = 0;
         public static final int COLOR_NO_ALL               = 1;

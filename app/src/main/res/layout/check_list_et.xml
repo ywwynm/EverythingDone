@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/rl_checklist_et"
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
@@ -60,6 +61,7 @@
         android:textSize="20sp"
         android:autoLink="all"
         android:textCursorDrawable="@drawable/cursor_et_content"
-        android:theme="@style/EverythingDoneTheme.Detail.EditText"/>
+        android:theme="@style/EverythingDoneTheme.Detail.EditText"
+        tools:ignore="TextFields"/>
 
 </RelativeLayout>

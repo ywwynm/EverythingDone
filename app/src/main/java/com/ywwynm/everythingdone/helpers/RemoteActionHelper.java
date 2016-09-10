@@ -27,6 +27,8 @@ public class RemoteActionHelper {
 
     public static final String TAG = "RemoteActionHelper";
 
+    private RemoteActionHelper() {}
+
     public static void finishReminder(Context context, Thing thing, int position) {
         if (position == -1) {
             thing = Thing.getSameCheckStateThing(thing, Thing.UNDERWAY, Thing.FINISHED);

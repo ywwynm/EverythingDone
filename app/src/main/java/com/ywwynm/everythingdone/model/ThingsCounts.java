@@ -165,6 +165,7 @@ public class ThingsCounts {
                 counts[0] = getCount(GOAL, FINISHED);
                 counts[1] = getCount(GOAL, ALL);
                 break;
+            default:break;
         }
         return LocaleUtil.getPercentStr(counts[0], counts[1]);
     }

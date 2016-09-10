@@ -388,7 +388,6 @@
     <string name="habit_last_five">Last five times:</string>
     <string name="habit_next_reminder">Next reminder:</string>
     <string name="sb_cannot_finish_habit_more_times">Cannot finish more times until next cycle</string>
-    <string name="error_cannot_finish_habit_this_time">Cannot finish habit this time</string>
     <string name="alert_continue">Are you sure to continue?</string>
     <string name="alert_find_habit_goal">These things contain some habits or goals. You may want to finish or give up them in another time or separately.</string>
     <string name="continue_for_alert">CONTINUE</string>

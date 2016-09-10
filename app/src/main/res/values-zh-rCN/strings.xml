@@ -1,4 +1,6 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="TypographyEllipsis">
     <string name="app_name">完事儿</string>
 
     <!--titles of Activities-->
@@ -439,10 +441,10 @@
     <string name="statistic_goal_notify_time">平均期限</string>
 
     <string name="please_wait">请稍等</string>
-    <string name="generating_screenshot" tools:ignore="TypographyEllipsis">正在截图...</string>
+    <string name="generating_screenshot">正在截图...</string>
     <string name="share_statistic">分享我的使用情况</string>
 
-    <string name="export_loading_title" tools:ignore="TypographyEllipsis">正在导出到 SD 卡...</string>
+    <string name="export_loading_title">正在导出到 SD 卡...</string>
     <string name="export_loading_content">先去玩会儿好玩的吧~</string>
     <string name="export_success_title">成功导出到 SD 卡</string>
     <string name="export_success_content_part_1">已导出 %1$d 件记事</string>
@@ -474,7 +476,6 @@
     <string name="change_app_language">更改应用语言</string>
     <string name="follow_system_settings">跟随系统设置</string>
     <string name="set_app_password_detail">该密码将用于对涉及隐私、安全的操作进行身份确认，包括查看私密记事，备份、恢复数据等</string>
-    <string name="error_cannot_finish_habit_this_time">无法完成这一次</string>
     <string name="ringtone_loading">正在载入铃声...</string>
     <string name="change_app_password">更改应用密码</string>
     <string name="notification_private_thing_content">[私密记事]</string>

@@ -50,6 +50,8 @@ public class DisplayUtil {
 
     public static final String TAG = "DisplayUtil";
 
+    private DisplayUtil() {}
+
     public static float getScreenDensity(Context context) {
         return context.getResources().getDisplayMetrics().density;
     }

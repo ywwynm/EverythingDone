@@ -73,10 +73,6 @@ public class FloatingActionButton extends android.support.design.widget.Floating
         });
     }
 
-    public boolean isOnScreen() {
-        return mOnScreen;
-    }
-
     public void raise(float y) {
         animate().translationY(-y).setInterpolator(null).setDuration(200);
     }

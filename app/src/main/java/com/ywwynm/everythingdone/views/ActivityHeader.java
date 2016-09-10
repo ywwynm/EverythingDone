@@ -145,9 +145,6 @@ public class ActivityHeader {
 
     public void updateText() {
         switch (mApp.getLimit()) {
-            case Def.LimitForGettingThings.ALL_UNDERWAY:
-                mTitle.setText(R.string.underway);
-                break;
             case Def.LimitForGettingThings.NOTE_UNDERWAY:
                 mTitle.setText(R.string.note);
                 break;
@@ -165,6 +162,10 @@ public class ActivityHeader {
                 break;
             case Def.LimitForGettingThings.ALL_DELETED:
                 mTitle.setText(R.string.deleted);
+                break;
+            case Def.LimitForGettingThings.ALL_UNDERWAY:
+            default:
+                mTitle.setText(R.string.underway);
                 break;
         }
         updateSubtitle();

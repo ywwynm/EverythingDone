@@ -26,6 +26,8 @@ import static com.ywwynm.everythingdone.Def.Meta.META_DATA_NAME;
  */
 public class AppUpdateHelper {
 
+    public static final String TAG = "AppUpdateHelper";
+
     private static AppUpdateHelper sInstance;
 
     public static AppUpdateHelper getInstance(Context context) {

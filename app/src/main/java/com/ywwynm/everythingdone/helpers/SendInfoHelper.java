@@ -36,7 +36,9 @@ import java.util.Date;
  */
 public class SendInfoHelper {
 
-    public static final String TAG = "EverythingDone$SendInfoHelper";
+    public static final String TAG = "SendInfoHelper";
+
+    private SendInfoHelper() {}
 
     public static final String EXTRA_WX_SHARE = "Kdescription";
 

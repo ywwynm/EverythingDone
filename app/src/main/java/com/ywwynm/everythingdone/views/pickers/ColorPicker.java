@@ -224,6 +224,7 @@ public class ColorPicker extends PopupPicker {
                 case 7:
                     params.setMargins(m8, m4, m16, m16);
                     break;
+                default:break;
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
                 params.setMarginStart(params.leftMargin);

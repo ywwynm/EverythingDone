@@ -74,10 +74,6 @@ public class TimeOfDayRecAdapter extends RecyclerView.Adapter<BaseViewHolder> {
         }
     }
 
-    public List<Integer> getItems() {
-        return mItems;
-    }
-
     public List<Integer> getFinalItems() {
         List<Integer> items = new ArrayList<>();
         items.addAll(mItems);

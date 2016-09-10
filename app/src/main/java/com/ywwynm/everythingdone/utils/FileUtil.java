@@ -38,6 +38,10 @@ import java.util.zip.ZipOutputStream;
  */
 public class FileUtil {
 
+    public static final String TAG = "FileUtil";
+
+    private FileUtil() {}
+
     public static final String TEMP_PATH = Def.Meta.APP_FILE_DIR + "/temp";
 
     public static File createTempAudioFile(String postfix) {
@@ -337,8 +341,8 @@ public class FileUtil {
         }
     }
 
-    public static void zipFileOrDirectory(ZipOutputStream zout, File src, String curPath, String... exclude)
-            throws IOException {
+    public static void zipFileOrDirectory(
+            ZipOutputStream zout, File src, String curPath, String... exclude) {
         //从文件中读取字节的输入流
         FileInputStream in = null;
         try {

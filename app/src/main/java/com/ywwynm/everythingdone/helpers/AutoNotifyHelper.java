@@ -23,7 +23,9 @@ import java.util.Calendar;
  */
 public class AutoNotifyHelper {
 
-    public static final String TAG = "EverythingDone$AutoNotifyHelper";
+    public static final String TAG = "AutoNotifyHelper";
+
+    private AutoNotifyHelper() {}
 
     public static int[] AUTO_NOTIFY_TIMES = {
             15, 30, 1, 2, 6, 1, 3, 1

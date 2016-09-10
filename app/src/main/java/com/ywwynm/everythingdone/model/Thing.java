@@ -15,7 +15,6 @@ import com.ywwynm.everythingdone.utils.DisplayUtil;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
-import java.util.Objects;
 
 import static com.ywwynm.everythingdone.Def.LimitForGettingThings.ALL_DELETED;
 import static com.ywwynm.everythingdone.Def.LimitForGettingThings.ALL_FINISHED;
@@ -411,6 +410,7 @@ public class Thing implements Parcelable {
             case ALL_DELETED:
                 thing.setContent(context.getString(R.string.empty_deleted));
                 break;
+            default:return null;
         }
         return thing;
     }

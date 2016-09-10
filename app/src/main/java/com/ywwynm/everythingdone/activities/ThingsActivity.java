@@ -201,7 +201,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         }
     };
 
-    private boolean mIgnoreFirstAfterTextChangedForSearch = true;
+    private boolean mDontPickSearchColor = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -256,13 +256,13 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             adf.setConfirmListener(new AlertDialogFragment.ConfirmListener() {
                 @Override
                 public void onConfirm() {
-                    ThingsActivity.this.tryToFeedbackError();
+                    tryToFeedbackError();
                 }
             });
             adf.setCancelListener(new AlertDialogFragment.CancelListener() {
                 @Override
                 public void onCancel() {
-                    ThingsActivity.this.deleteFeedbackFile();
+                    deleteFeedbackFile();
                 }
             });
             adf.show(getFragmentManager(), AlertDialogFragment.TAG);
@@ -423,6 +423,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 dismissSnackbars();
                 mColorPicker.show();
                 break;
+            default:break;
         }
         return super.onOptionsItemSelected(item);
     }
@@ -1035,7 +1036,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent(ThingsActivity.this, StatisticActivity.class);
-                ThingsActivity.this.startActivity(intent);
+                startActivity(intent);
                 mRecyclerView.postDelayed(mCloseDrawerRunnable, 600);
             }
         });
@@ -1186,20 +1187,20 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
                     if (change) {
                         mThingsAdapter.notifyItemChanged(1);
-                        ThingsActivity.this.updateUIAfterStateUpdated(stateAfter,
+                        updateUIAfterStateUpdated(stateAfter,
                                 mRecyclerView.getItemAnimator().getChangeDuration(), true);
                     } else {
                         mThingsAdapter.notifyItemInserted(position);
                         mRecyclerView.smoothScrollToPosition(position);
-                        ThingsActivity.this.updateUIAfterStateUpdated(stateAfter,
+                        updateUIAfterStateUpdated(stateAfter,
                                 mRecyclerView.getItemAnimator().getAddDuration(), true);
                     }
                 }
                 if (App.isSearching) {
-                    ThingsActivity.this.handleSearchResults();
+                    handleSearchResults();
                 }
                 if (mUndoThings.isEmpty()) {
-                    ThingsActivity.this.dismissSnackbars();
+                    dismissSnackbars();
                 }
             }
         });
@@ -1244,7 +1245,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         mEtSearch.setOnFocusChangeListener(new View.OnFocusChangeListener() {
             @Override
             public void onFocusChange(View v, boolean hasFocus) {
-                ThingsActivity.this.dismissSnackbars();
+                dismissSnackbars();
             }
         });
 
@@ -1257,10 +1258,6 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
             @Override
             public void afterTextChanged(Editable s) {
-                if (mIgnoreFirstAfterTextChangedForSearch) {
-                    mIgnoreFirstAfterTextChangedForSearch = false;
-                    return;
-                }
                 beginSearchThings();
             }
         });
@@ -1270,7 +1267,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
                 if (actionId == EditorInfo.IME_ACTION_SEARCH) {
                     KeyboardUtil.hideKeyboard(mEtSearch);
-                    ThingsActivity.this.beginSearchThings();
+                    beginSearchThings();
                     return true;
                 }
                 return false;
@@ -1294,17 +1291,21 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             @Override
             public void onClick(View v) {
                 mRecyclerView.setOverScrollMode(View.OVER_SCROLL_ALWAYS);
-                ThingsActivity.this.getWindow().setSoftInputMode(
+                getWindow().setSoftInputMode(
                         WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
                 KeyboardUtil.hideKeyboard(mEtSearch);
-                ThingsActivity.this.searchThings();
+                searchThings();
             }
         });
     }
 
     private void beginSearchThings() {
         if (mColorPicker.getPickedIndex() < 0) {
-            mColorPicker.pickForUI(0);
+            if (mDontPickSearchColor) {
+                mDontPickSearchColor = false;
+            } else {
+                mColorPicker.pickForUI(0);
+            }
         }
         mRecyclerView.setOverScrollMode(View.OVER_SCROLL_ALWAYS);
         searchThings();
@@ -1379,18 +1380,18 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                                     Def.Communication.REQUEST_PERMISSION_OPEN_SETTINGS,
                                     Manifest.permission.WRITE_EXTERNAL_STORAGE);
                         } else if (id == R.id.drawer_help) {
-                            ThingsActivity.this.startActivity(new Intent(ThingsActivity.this, HelpActivity.class));
+                            startActivity(new Intent(ThingsActivity.this, HelpActivity.class));
                         } else if (id == R.id.drawer_about) {
-                            ThingsActivity.this.startActivity(new Intent(ThingsActivity.this, AboutActivity.class));
+                            startActivity(new Intent(ThingsActivity.this, AboutActivity.class));
                         }
                         mRecyclerView.postDelayed(mCloseDrawerRunnable, 600);
                         return true;
                     }
 
                     mDrawerLayout.closeDrawer(GravityCompat.START);
-                    ThingsActivity.this.checkDrawerItem(menuItem);
+                    checkDrawerItem(menuItem);
 
-                    ThingsActivity.this.changeToLimit(newLimit, false);
+                    changeToLimit(newLimit, false);
                 }
                 return true;
             }
@@ -1654,6 +1655,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 updateStr = getString(R.string.sb_delete_forever);
                 undoStr = getString(R.string.sb_undo);
                 break;
+            default:break;
         }
         if (LocaleUtil.isChinese(mApp)) {
             sb.append(updateStr).append(" ").append(count)
@@ -1759,7 +1761,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 mDrawerLayout.postDelayed(new Runnable() {
                     @Override
                     public void run() {
-                        ThingsActivity.this.getWindow().setSoftInputMode(
+                        getWindow().setSoftInputMode(
                                 WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
                     }
                 }, 300);
@@ -1769,7 +1771,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         mThingsAdapter.notifyDataSetChanged();
         App.isSearching = !toNormal;
         invalidateOptionsMenu();
-        mIgnoreFirstAfterTextChangedForSearch = true;
+        mDontPickSearchColor = true;
     }
 
     private void handleSearchResults() {
@@ -2168,6 +2170,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     }, Def.Communication.REQUEST_PERMISSION_EXPORT_MAIN,
                             Manifest.permission.WRITE_EXTERNAL_STORAGE);
                     break;
+                default:break;
             }
             mModeManager.updateSelectedCount();
             return false;

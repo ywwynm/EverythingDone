@@ -27,6 +27,10 @@ import java.util.List;
  */
 public class ThingExporter {
 
+    public static final String TAG = "ThingExporter";
+
+    private ThingExporter() {}
+
     public static void startExporting(Activity activity, int accentColor, Thing... things) {
         new ExportTask(activity, accentColor).execute(things);
     }

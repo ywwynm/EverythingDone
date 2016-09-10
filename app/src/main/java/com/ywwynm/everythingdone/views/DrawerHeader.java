@@ -105,6 +105,7 @@ public class DrawerHeader {
             case Def.LimitForGettingThings.GOAL_UNDERWAY:
                 mTvLocation.setText(R.string.completion_rate_goal);
                 break;
+            default:break;
         }
 
         updateCompletionRate();

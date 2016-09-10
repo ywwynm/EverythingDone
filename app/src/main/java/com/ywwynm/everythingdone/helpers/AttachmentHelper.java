@@ -35,6 +35,10 @@ import java.util.List;
  */
 public class AttachmentHelper {
 
+    public static final String TAG = "AttachmentHelper";
+
+    private AttachmentHelper() {}
+
     public static final String SIGNAL = App.getApp().getString(R.string.base_signal);
     public static final String SIZE_SEPARATOR = "`";
 
@@ -150,7 +154,7 @@ public class AttachmentHelper {
 
             if (imageCount != 0 && videoCount == 0) {
                 return imageCount + " " + images;
-            } else if (videoCount != 0 && imageCount == 0) {
+            } else if (imageCount == 0) { // && videoCount != 0
                 return videoCount + " " + videos;
             } else {
                 return imageCount + " " + images + ", " + videoCount + " " + videos;
@@ -356,8 +360,12 @@ public class AttachmentHelper {
 
     private static List<Pair<String, String>> getAttachmentInfoVideo(
             List<Pair<String, String>> list, Context context, String pathName) {
-        String fst = context.getString(R.string.video_size);
         int[] size = FileUtil.getVideoSize(pathName);
+        if (size == null) {
+            return null;
+        }
+
+        String fst = context.getString(R.string.video_size);
         String sec = size[0] + " * " + size[1];
         list.add(new Pair<>(fst, sec));
 

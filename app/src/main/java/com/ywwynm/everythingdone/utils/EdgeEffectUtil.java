@@ -18,7 +18,9 @@ import java.lang.reflect.Method;
  */
 public class EdgeEffectUtil {
 
-    public static final String TAG = "EverythingDone$EdgeEffectUtil";
+    public static final String TAG = "EdgeEffectUtil";
+
+    private EdgeEffectUtil() {}
 
     public static int getEdgeColorDark() {
         if (DeviceUtil.hasLollipopApi()) {

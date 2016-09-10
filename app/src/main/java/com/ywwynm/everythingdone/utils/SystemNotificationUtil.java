@@ -39,7 +39,9 @@ import java.util.List;
  */
 public class SystemNotificationUtil {
 
-    public static final String TAG = "EverythingDone$SystemNotificationUtil";
+    public static final String TAG = "SystemNotificationUtil";
+
+    private SystemNotificationUtil() {}
 
     /**
      * Create a {@link NotificationCompat.Builder} for a giving thing which shows its text(title,

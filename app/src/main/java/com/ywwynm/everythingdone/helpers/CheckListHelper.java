@@ -13,7 +13,9 @@ import java.util.List;
  */
 public class CheckListHelper {
 
-    public static final String TAG = "EverythingDone$CheckListHelper";
+    public static final String TAG = "CheckListHelper";
+
+    private CheckListHelper() {}
 
     public static final int SIGNAL_LENGTH   = 4;
     public static final int CHECK_STATE_NUM = 5;

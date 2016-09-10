@@ -74,6 +74,7 @@ public class AboutActivity extends EverythingDoneBaseActivity {
             case R.id.act_feedback:
                 SendInfoHelper.sendFeedback(this, false);
                 break;
+            default:break;
         }
         return true;
     }

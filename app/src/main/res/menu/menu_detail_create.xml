@@ -1,7 +1,8 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
       xmlns:app="http://schemas.android.com/apk/res-auto"
       xmlns:tools="http://schemas.android.com/tools"
-      tools:context="com.ywwynm.everythingdone.activities.DetailActivity">
+      tools:context="com.ywwynm.everythingdone.activities.DetailActivity"
+      tools:ignore="AlwaysShowAction">
 
     <item
         android:id="@+id/act_add_attachment"
