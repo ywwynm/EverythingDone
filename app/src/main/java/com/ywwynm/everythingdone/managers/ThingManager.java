@@ -165,12 +165,12 @@ public class ThingManager {
             for (Thing thing : things) {
                 if (thing.getType() == Thing.HEADER) continue;
 
-                String regex = "";
+                StringBuilder sbRegex = new StringBuilder();
                 for (int i = 0; i < CheckListHelper.CHECK_STATE_NUM; i++) {
-                    regex += CheckListHelper.SIGNAL + i + "|";
+                    sbRegex.append(CheckListHelper.SIGNAL).append(i).append("|");
                 }
-                regex = regex.substring(0, regex.length() - 1);
-                String content = thing.getContent().replaceAll(regex, "");
+                sbRegex.deleteCharAt(sbRegex.length() - 1);
+                String content = thing.getContent().replaceAll(sbRegex.toString(), "");
                 String title   = thing.getTitle().replaceAll(PTP, "");
 
                 if (content.contains(keyword) || title.contains(keyword)) {

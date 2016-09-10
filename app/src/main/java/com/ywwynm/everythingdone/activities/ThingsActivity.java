@@ -229,8 +229,6 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             App.isSearching = false; // maybe we searched in multi-window mode and quit it later
         }
 
-        App.putThingsActivityInstance(this);
-
         AppUpdateHelper.getInstance(this).showInfo(this);
 
         tryToShowFeedbackErrorDialog();
@@ -330,7 +328,6 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        App.putThingsActivityInstance(this);
         dismissSnackbars();
         mScrollCausedByFinger = false;
 
@@ -350,7 +347,6 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         unregisterReceiver(mUpdateUiReceiver);
         mApp.setDetailActivityRun(false);
         updateTaskDescription();
-        App.thingsActivityWR.clear();
     }
 
     @Override

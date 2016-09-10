@@ -167,31 +167,31 @@ public class VoiceVisualizer extends FrameLayout {
         }
     }
 
-    private float getRandomHeight(int volume, double factor) {
-        double randomVolume = factor * volume + 1;
-        //double randomVolume = Math.random() * volume + 1;
-        float height = getHeight();
-        switch (mRenderRange) {
-            case RENDER_RANGE_TOP:
-                height = mBaseY;
-                break;
-            case RENDER_RANGE_BOTTOM:
-                height = (getHeight() - mBaseY);
-                break;
-            case RENDER_RANGE_TOP_BOTTOM:
-                height = getHeight();
-                break;
-        }
-
-        float shrinkFactor;
-        if (volume < 55) {
-            shrinkFactor = 160f;
-        } else {
-            shrinkFactor = 80f;
-        }
-
-        return (height / shrinkFactor) * (float) randomVolume;
-    }
+//    private float getRandomHeight(int volume, double factor) {
+//        double randomVolume = factor * volume + 1;
+//        //double randomVolume = Math.random() * volume + 1;
+//        float height = getHeight();
+//        switch (mRenderRange) {
+//            case RENDER_RANGE_TOP:
+//                height = mBaseY;
+//                break;
+//            case RENDER_RANGE_BOTTOM:
+//                height = (getHeight() - mBaseY);
+//                break;
+//            case RENDER_RANGE_TOP_BOTTOM:
+//                height = getHeight();
+//                break;
+//        }
+//
+//        float shrinkFactor;
+//        if (volume < 55) {
+//            shrinkFactor = 160f;
+//        } else {
+//            shrinkFactor = 80f;
+//        }
+//
+//        return (height / shrinkFactor) * (float) randomVolume;
+//    }
 
     private float getRandomHeight(int volume) {
         double randomVolume = Math.random() * volume + 1;

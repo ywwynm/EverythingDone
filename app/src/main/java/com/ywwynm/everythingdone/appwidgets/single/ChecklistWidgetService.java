@@ -28,7 +28,7 @@ public class ChecklistWidgetService extends RemoteViewsService {
         return new ChecklistViewFactory(getApplicationContext(), intent);
     }
 
-    class ChecklistViewFactory implements RemoteViewsFactory {
+    static class ChecklistViewFactory implements RemoteViewsFactory {
 
         private Context mContext;
         private Intent mIntent;

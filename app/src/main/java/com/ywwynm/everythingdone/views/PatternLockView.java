@@ -13,12 +13,9 @@ import android.graphics.Path;
 import android.graphics.Rect;
 import android.os.Build;
 import android.os.Debug;
-import android.os.Handler;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.os.SystemClock;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.util.AttributeSet;
 import android.view.HapticFeedbackConstants;
 import android.view.MotionEvent;
@@ -1075,10 +1072,18 @@ public class PatternLockView extends View {
 
         @Override
         public boolean equals(Object object) {
-            if (object instanceof Cell)
+            if (object instanceof Cell) {
                 return column == ((Cell) object).column
                         && row == ((Cell) object).row;
+            }
             return super.equals(object);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = row;
+            result = 31 * result + column;
+            return result;
         }
 
         /**
@@ -1228,211 +1233,5 @@ public class PatternLockView extends View {
             dest.writeValue(mTactileFeedbackEnabled);
         }
     }
-
-    public static class FloatAnimator {
-
-        /**
-         * Animation delay, in milliseconds.
-         */
-        private static final long ANIMATION_DELAY = 1;
-        private final float mStartValue, mEndValue;
-        private final long mDuration;
-        private float mAnimatedValue;
-        private List<EventListener> mEventListeners;
-        private Handler mHandler;
-        private long mStartTime;
-        /**
-         * Creates new instance.
-         *
-         * @param start    start value.
-         * @param end      end value.
-         * @param duration duration, in milliseconds. This should not be long, as delay value
-         *                 between animation frame is just 1 millisecond.
-         */
-        public FloatAnimator(float start, float end, long duration) {
-            mStartValue = start;
-            mEndValue = end;
-            mDuration = duration;
-
-            mAnimatedValue = mStartValue;
-        }// FloatAnimator()
-
-        /**
-         * Adds event listener.
-         *
-         * @param listener the listener.
-         */
-        public void addEventListener(@Nullable EventListener listener) {
-            if (listener == null) return;
-
-            mEventListeners.add(listener);
-        }// addEventListener()
-
-        /**
-         * Gets animated value.
-         *
-         * @return animated value.
-         */
-        public float getAnimatedValue() {
-            return mAnimatedValue;
-        }// getAnimatedValue()
-
-        /**
-         * Starts animating.
-         */
-        public void start() {
-            if (mHandler != null)
-                return;
-
-            notifyAnimationStart();
-
-            mStartTime = System.currentTimeMillis();
-
-            mHandler = new Handler();
-            mHandler.post(new Runnable() {
-
-                @Override
-                public void run() {
-                    final Handler handler = mHandler;
-                    if (handler == null) return;
-
-                    final long elapsedTime = System.currentTimeMillis() - mStartTime;
-                    if (elapsedTime > mDuration) {
-                        mHandler = null;
-                        notifyAnimationEnd();
-                    } else {
-                        float fraction = mDuration > 0 ? (float) (elapsedTime) / mDuration : 1f;
-                        float delta = mEndValue - mStartValue;
-                        mAnimatedValue = mStartValue + delta * fraction;
-
-                        notifyAnimationUpdate();
-                        handler.postDelayed(this, ANIMATION_DELAY);
-                    }
-                }// run()
-
-            });
-        }// start()
-
-        /**
-         * Notifies all listeners that animation starts.
-         */
-        protected void notifyAnimationStart() {
-            final List<EventListener> listeners = mEventListeners;
-            if (listeners != null) {
-                for (EventListener listener : listeners)
-                    listener.onAnimationStart(this);
-            }// if
-        }// notifyAnimationStart()
-
-        /**
-         * Notifies all listeners that animation ends.
-         */
-        protected void notifyAnimationEnd() {
-            final List<EventListener> listeners = mEventListeners;
-            if (listeners != null) {
-                for (EventListener listener : listeners)
-                    listener.onAnimationEnd(this);
-            }// if
-        }// notifyAnimationEnd()
-
-        /**
-         * Notifies all listeners that animation updates.
-         */
-        protected void notifyAnimationUpdate() {
-            final List<EventListener> listeners = mEventListeners;
-            if (listeners != null) {
-                for (EventListener listener : listeners)
-                    listener.onAnimationUpdate(this);
-            }// if
-        }// notifyAnimationUpdate()
-
-        /**
-         * Cancels animating.
-         */
-        public void cancel() {
-            if (mHandler == null) return;
-
-            mHandler.removeCallbacksAndMessages(null);
-            mHandler = null;
-
-            notifyAnimationCancel();
-            notifyAnimationEnd();
-        }// cancel()
-
-        /**
-         * Notifies all listeners that animation cancels.
-         */
-        protected void notifyAnimationCancel() {
-            final List<EventListener> listeners = mEventListeners;
-            if (listeners != null) {
-                for (EventListener listener : listeners)
-                    listener.onAnimationCancel(this);
-            }// if
-        }// notifyAnimationCancel()
-
-        /**
-         * Event listener.
-         *
-         * @author Hai Bison
-         */
-        public interface EventListener {
-
-            /**
-             * Will be called when animation starts.
-             *
-             * @param animator the animator.
-             */
-            void onAnimationStart(@NonNull FloatAnimator animator);
-
-            /**
-             * Will be called when new animated value is calculated.
-             *
-             * @param animator the animator.
-             */
-            void onAnimationUpdate(@NonNull FloatAnimator animator);
-
-            /**
-             * Will be called when animation cancels.
-             *
-             * @param animator the animator.
-             */
-            void onAnimationCancel(@NonNull FloatAnimator animator);
-
-            /**
-             * Will be called when animation ends.
-             *
-             * @param animator the animator.
-             */
-            void onAnimationEnd(@NonNull FloatAnimator animator);
-
-        }// EventListener
-
-        /**
-         * Simple event listener.
-         *
-         * @author Hai Bison
-         */
-        public static class SimpleEventListener implements EventListener {
-
-            @Override
-            public void onAnimationStart(@NonNull FloatAnimator animator) {
-            }//onAnimationStart()
-
-            @Override
-            public void onAnimationUpdate(@NonNull FloatAnimator animator) {
-            }//onAnimationUpdate()
-
-            @Override
-            public void onAnimationCancel(@NonNull FloatAnimator animator) {
-            }//onAnimationCancel()
-
-            @Override
-            public void onAnimationEnd(@NonNull FloatAnimator animator) {
-            }//onAnimationEnd()
-
-        }// SimpleEventListener
-
-    }
-
 
 }

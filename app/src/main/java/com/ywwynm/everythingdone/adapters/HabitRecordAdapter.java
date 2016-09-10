@@ -47,7 +47,7 @@ public class HabitRecordAdapter extends RecyclerView.Adapter<HabitRecordAdapter.
         return mRecord.length();
     }
 
-    class ImageViewHolder extends BaseViewHolder {
+    static class ImageViewHolder extends BaseViewHolder {
 
         final ImageView iv;
 

@@ -5,6 +5,7 @@ import android.os.Environment;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.Properties;
 
 /**
@@ -55,16 +56,17 @@ public class DeviceUtil {
     }
 
     private static String getProperty(String key) {
+        FileInputStream fis = null;
         try {
             Properties properties = new Properties();
-            FileInputStream fis = new FileInputStream(
+            fis = new FileInputStream(
                     new File(Environment.getRootDirectory(), "build.prop"));
             properties.load(fis);
-            String prop = properties.getProperty(key, null);
-            fis.close();
-            return prop;
-        } catch (Exception e) {
+            return properties.getProperty(key, null);
+        } catch (IOException e) {
             return null;
+        } finally {
+            FileUtil.closeStream(fis);
         }
     }
 

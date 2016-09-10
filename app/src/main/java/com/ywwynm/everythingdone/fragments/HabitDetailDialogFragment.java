@@ -125,10 +125,12 @@ public class HabitDetailDialogFragment extends BaseDialogFragment {
         String record = mHabit.getRecord();
         int len = record.length();
         if (len < 30) {
+            StringBuilder sb = new StringBuilder(record);
             int add = 30 - len;
             for (int i = 0; i < add; i++) {
-                record += "?";
+                sb.append("?");
             }
+            record = sb.toString();
         } else {
             record = record.substring(len - 30, len);
         }

@@ -15,6 +15,7 @@ import com.ywwynm.everythingdone.utils.DisplayUtil;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.util.Objects;
 
 import static com.ywwynm.everythingdone.Def.LimitForGettingThings.ALL_DELETED;
 import static com.ywwynm.everythingdone.Def.LimitForGettingThings.ALL_FINISHED;
@@ -488,12 +489,12 @@ public class Thing implements Parcelable {
 
         String curContent = content;
         if (CheckListHelper.isSignalContainsStrIgnoreCase(keyword)) {
-            String regex = "";
+            StringBuilder sbRex = new StringBuilder();
             for (int i = 0; i < CheckListHelper.CHECK_STATE_NUM; i++) {
-                regex += CheckListHelper.SIGNAL + i + "|";
+                sbRex.append(CheckListHelper.SIGNAL).append(i).append("|");
             }
-            regex = regex.substring(0, regex.length() - 1);
-            curContent = curContent.replaceAll(regex, "");
+            sbRex.deleteCharAt(sbRex.length() - 1);
+            curContent = curContent.replaceAll(sbRex.toString(), "");
         }
         return curContent.contains(keyword);
     }
@@ -501,6 +502,11 @@ public class Thing implements Parcelable {
     @Override
     public boolean equals(Object o) {
         return this == o || o != null && getClass() == o.getClass() && id == ((Thing) o).id;
+    }
+
+    @Override
+    public int hashCode() {
+        return (int) (id ^ (id >>> 32));
     }
 
     @Override

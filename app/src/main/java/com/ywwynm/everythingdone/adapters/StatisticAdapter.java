@@ -62,7 +62,7 @@ public class StatisticAdapter extends RecyclerView.Adapter<StatisticAdapter.Stat
         return mIconRes.length;
     }
 
-    class StatisticHolder extends BaseViewHolder {
+    static class StatisticHolder extends BaseViewHolder {
 
         TextView tvFirst;
         TextView tvSecond;

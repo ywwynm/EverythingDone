@@ -145,10 +145,11 @@ public class AudioRecorder {
     }
 
     private void saveToWaveFile() {
+        FileInputStream  in  = null;
+        FileOutputStream out = null;
         try {
-            FileInputStream  in  = new FileInputStream(mRawFile);
-            FileOutputStream out = new FileOutputStream(mOutputFile);
-
+            in  = new FileInputStream(mRawFile);
+            out = new FileOutputStream(mOutputFile);
             long audioLength = in.getChannel().size();
             long dataLength  = audioLength + 36;
 
@@ -160,11 +161,11 @@ public class AudioRecorder {
             while (in.read(data) != -1) {
                 out.write(data);
             }
-
-            in.close();
-            out.close();
         } catch (IOException e) {
             e.printStackTrace();
+        } finally {
+            FileUtil.closeStream(in);
+            FileUtil.closeStream(out);
         }
     }
 
@@ -266,13 +267,7 @@ public class AudioRecorder {
                 }
             }
 
-            if (fos != null) {
-                try {
-                    fos.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
+            FileUtil.closeStream(fos);
         }
 
         private int calculateDecibel(byte[] buf, int byteReadSize) {
@@ -293,7 +288,7 @@ public class AudioRecorder {
                 sum += data * data;
             }
 
-            double amplitude = sum / (double) (byteReadSize / 2); // 振幅
+            double amplitude = sum / (byteReadSize / 2d); // 振幅
             double decibel = 10 * Math.log10(amplitude);
 
             if (BuildConfig.DEBUG) {

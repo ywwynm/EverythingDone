@@ -16,7 +16,6 @@ import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
-import com.ywwynm.everythingdone.helpers.RemoteActionHelper;
 import com.ywwynm.everythingdone.managers.ModeManager;
 import com.ywwynm.everythingdone.managers.ThingManager;
 import com.ywwynm.everythingdone.model.Thing;
@@ -142,7 +141,7 @@ public class ThingsAdapter extends BaseThingsAdapter {
                     v.setVisibility(View.VISIBLE);
                     v.startAnimation(animation);
                 }
-            }, position * 30);
+            }, position * 30L);
         }
     }
 

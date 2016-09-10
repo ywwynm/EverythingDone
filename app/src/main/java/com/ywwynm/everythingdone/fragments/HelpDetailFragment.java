@@ -84,7 +84,7 @@ public class HelpDetailFragment extends Fragment {
         helpActivity.updateActionBarTitle(false);
     }
 
-    class HelpDetailPagerAdapter extends PagerAdapter {
+    static class HelpDetailPagerAdapter extends PagerAdapter {
 
         View[] mPages;
 

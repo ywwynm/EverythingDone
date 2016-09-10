@@ -13,7 +13,6 @@ import android.support.v4.util.Pair;
 import android.util.Log;
 
 import com.bumptech.glide.Glide;
-import com.ywwynm.everythingdone.activities.ThingsActivity;
 import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
 import com.ywwynm.everythingdone.helpers.AlarmHelper;
@@ -30,7 +29,6 @@ import com.ywwynm.everythingdone.utils.FileUtil;
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil;
 
 import java.io.File;
-import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -66,18 +64,6 @@ public class App extends Application {
     public static boolean isSearching = false;
 
     private ExecutorService mExecutor;
-
-    // Used to judge if there is a ThingsActivity instance.
-    public static WeakReference<ThingsActivity> thingsActivityWR;
-
-    public static void putThingsActivityInstance(ThingsActivity thingsActivity) {
-        if (thingsActivityWR == null) {
-            thingsActivityWR = new WeakReference<>(thingsActivity);
-        } else {
-            thingsActivityWR.clear();
-            thingsActivityWR = new WeakReference<>(thingsActivity);
-        }
-    }
 
     private static List<Long> runningDetailActivities = new ArrayList<>();
     private boolean detailActivityRun = false;

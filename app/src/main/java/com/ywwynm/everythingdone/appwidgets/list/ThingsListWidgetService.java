@@ -27,7 +27,7 @@ public class ThingsListWidgetService extends RemoteViewsService {
         return new ThingsListViewFactory(getApplicationContext(), intent);
     }
 
-    class ThingsListViewFactory implements RemoteViewsFactory {
+    static class ThingsListViewFactory implements RemoteViewsFactory {
 
         private Context mContext;
         private Intent mIntent;

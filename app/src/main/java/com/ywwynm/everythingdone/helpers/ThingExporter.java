@@ -46,6 +46,10 @@ public class ThingExporter {
         @Override
         protected void onPreExecute() {
             Activity activity = mWrActivity.get();
+            if (activity == null) {
+                return;
+            }
+
             LoadingDialogFragment ldf = new LoadingDialogFragment();
             ldf.setAccentColor(mAccentColor);
             ldf.setTitle(activity.getString(R.string.export_loading_title));
@@ -60,11 +64,16 @@ public class ThingExporter {
             mParamsLength = params.length;
             int successTimes = 0;
             for (int i = 0; i < mParamsLength; i++) {
-                if (!isActivityHere()) {
+                if (mWrActivity == null) {
                     return null;
                 }
 
-                if (export(mWrActivity.get(), params[i])) {
+                Activity activity = mWrActivity.get();
+                if (activity == null) {
+                    continue;
+                }
+
+                if (export(activity, params[i])) {
                     successTimes++;
                 }
             }
@@ -77,13 +86,22 @@ public class ThingExporter {
                 return;
             }
 
-            if (!isActivityHere() || mWrLdf == null || mWrLdf.get() == null) {
+            if (mWrActivity == null || mWrLdf == null) {
                 return;
             }
 
-            mWrLdf.get().dismiss();
+            LoadingDialogFragment ldf = mWrLdf.get();
+            if (ldf == null) {
+                return;
+            }
+
+            ldf.dismiss();
 
             Activity activity = mWrActivity.get();
+            if (activity == null) {
+                return;
+            }
+
             AlertDialogFragment adf = new AlertDialogFragment();
             adf.setShowCancel(false);
             adf.setTitleColor(mAccentColor);
@@ -107,13 +125,6 @@ public class ThingExporter {
             }
 
             adf.show(activity.getFragmentManager(), AlertDialogFragment.TAG);
-        }
-
-        private boolean isActivityHere() {
-            if (mWrActivity == null) {
-                return false;
-            }
-            return mWrActivity.get() != null;
         }
     }
 

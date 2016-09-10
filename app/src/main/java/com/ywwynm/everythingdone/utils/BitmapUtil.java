@@ -179,13 +179,7 @@ public class BitmapUtil {
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
-            if (fos != null) {
-                try {
-                    fos.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
+            FileUtil.closeStream(fos);
         }
         return file;
     }

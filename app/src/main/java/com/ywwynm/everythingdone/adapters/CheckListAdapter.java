@@ -285,7 +285,7 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
         } else return size;
     }
 
-    class TextViewHolder extends BaseViewHolder {
+    static class TextViewHolder extends BaseViewHolder {
 
         final ImageView iv;
         final TextView  tv;

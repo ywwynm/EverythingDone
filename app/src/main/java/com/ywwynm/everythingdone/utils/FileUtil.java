@@ -14,6 +14,7 @@ import org.joda.time.DateTime;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -271,6 +272,16 @@ public class FileUtil {
         }
     }
 
+    public static void closeStream(Closeable closeable) {
+        if (closeable != null) {
+            try {
+                closeable.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
     public static void copyFile(File src, File dst) throws IOException {
         BufferedInputStream bis = new BufferedInputStream(new FileInputStream(src));
         BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(dst));
@@ -292,7 +303,9 @@ public class FileUtil {
             if (file.isFile()) {
                 File parent = new File(targetDir);
                 if (!parent.exists()) {
-                    parent.mkdirs();
+                    if (!parent.mkdirs()) {
+                        throw new IOException("Cannot create directory: " + parent.getAbsolutePath());
+                    }
                 }
                 File targetFile = new File(parent.getAbsolutePath(), file.getName());
                 copyFile(file, targetFile);
@@ -320,13 +333,7 @@ public class FileUtil {
             e.printStackTrace();
             return false;
         } finally {
-            if (zout != null) {
-                try {
-                    zout.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
+            closeStream(zout);
         }
     }
 
@@ -362,13 +369,7 @@ public class FileUtil {
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
-            if (in != null) {
-                try {
-                    in.close();
-                } catch (IOException ex) {
-                    ex.printStackTrace();
-                }
-            }
+            closeStream(in);
         }
     }
 
@@ -380,7 +381,11 @@ public class FileUtil {
             Enumeration entries = zipFile.entries();
             ZipEntry zipEntry;
             File dst = new File(outputDirectory);
-            dst.mkdirs();
+            if (!dst.exists()) {
+                if (!dst.mkdirs()) {
+                    throw new IOException("Cannot create directory: " + dst.getAbsolutePath());
+                }
+            }
 
             while (entries.hasMoreElements()) {
                 zipEntry = (ZipEntry) entries.nextElement();
@@ -392,19 +397,31 @@ public class FileUtil {
                         String name = zipEntry.getName();
                         name = name.substring(0, name.length() - 1);
                         File f = new File(outputDirectory + separator + name);
-                        f.mkdirs();
+                        if (!f.exists()) {
+                            if (!f.mkdirs()) {
+                                throw new IOException("Cannot create directory: " + f.getAbsolutePath());
+                            }
+                        }
                     } else {
                         int index = entryName.lastIndexOf("\\");
                         if (index != -1) {
                             File df = new File(outputDirectory + separator
                                     + entryName.substring(0, index));
-                            df.mkdirs();
+                            if (!df.exists()) {
+                                if (!df.mkdirs()) {
+                                    throw new IOException("Cannot create directory: " + df.getAbsolutePath());
+                                }
+                            }
                         }
                         index = entryName.lastIndexOf("/");
                         if (index != -1) {
                             File df = new File(outputDirectory + separator
                                     + entryName.substring(0, index));
-                            df.mkdirs();
+                            if (!df.exists()) {
+                                if (!df.mkdirs()) {
+                                    throw new IOException("Cannot create directory: " + df.getAbsolutePath());
+                                }
+                            }
                         }
                         File f = new File(outputDirectory + separator + zipEntry.getName());
                         in = zipFile.getInputStream(zipEntry);
@@ -420,20 +437,8 @@ public class FileUtil {
                     e.printStackTrace();
                     return false;
                 } finally {
-                    if (in != null) {
-                        try {
-                            in.close();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                    if (out != null) {
-                        try {
-                            out.close();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
+                    closeStream(in);
+                    closeStream(out);
                 }
             }
             return true;
@@ -522,13 +527,14 @@ public class FileUtil {
             File root = new File(mount);
             if (root.exists() && root.isDirectory() && root.canWrite()) {
                 File[] list = root.listFiles();
-                String hash = "[";
+                StringBuilder sb = new StringBuilder("[");
                 if (list != null) {
                     for (File f : list) {
-                        hash += f.getName().hashCode() + ":" + f.length() + ", ";
+                        sb.append(f.getName().hashCode()).append(":").append(f.length()).append(", ");
                     }
                 }
-                hash += "]";
+                sb.append("]");
+                String hash = sb.toString();
                 if (!mountHash.contains(hash)) {
                     mountHash.add(hash);
                     ret.add(mount);
