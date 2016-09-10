@@ -3,6 +3,7 @@ package com.ywwynm.everythingdone.helpers;
 import android.content.Context;
 import android.content.Intent;
 import android.support.v4.util.Pair;
+import android.util.Log;
 import android.widget.Toast;
 
 import com.ywwynm.everythingdone.App;
@@ -23,6 +24,8 @@ import com.ywwynm.everythingdone.model.Thing;
  * For example, action finish in a notification for Reminder will finally call method here.
  */
 public class RemoteActionHelper {
+
+    public static final String TAG = "RemoteActionHelper";
 
     public static void finishReminder(Context context, Thing thing, int position) {
         if (position == -1) {
@@ -160,7 +163,10 @@ public class RemoteActionHelper {
     public static void updateUiEverywhere(
             Context context, Thing thing, int position, int typeBefore, int resultCode) {
         if (App.isSomethingUpdatedSpecially()) {
-            App.setShouldJustNotifyDataSetChanged(true);
+            boolean shouldJustNotifyDataSetChanged = shouldJustNotifyDataSetChanged(thing, resultCode);
+            Log.d(TAG, "Sending broadcast to update ui. Something updated specially, should we"
+                + " justNotifyDataSetChanged: " + shouldJustNotifyDataSetChanged);
+            App.setShouldJustNotifyDataSetChanged(shouldJustNotifyDataSetChanged);
         } else {
             App.setSomethingUpdatedSpecially(true);
         }
@@ -176,14 +182,18 @@ public class RemoteActionHelper {
         if (resultCode == Def.Communication.RESULT_UPDATE_THING_STATE_DIFFERENT) {
             broadcastIntent.putExtra(Def.Communication.KEY_STATE_AFTER, Thing.FINISHED);
             if (position != -1) {
-                broadcastIntent.putExtra(Def.Communication.KEY_CALL_CHANGE,
-                        thingManager.updateState(thing, position, thing.getLocation(), Thing.UNDERWAY,
-                                Thing.FINISHED, false, true));
+                boolean shouldCallChange = thingManager.updateState(
+                        thing, position, thing.getLocation(), Thing.UNDERWAY,
+                        Thing.FINISHED, false, true);
+                Log.d(TAG, "Updating state from remote action, shouldCallChange: " + shouldCallChange);
+                broadcastIntent.putExtra(Def.Communication.KEY_CALL_CHANGE, shouldCallChange);
             }
         } else if (resultCode == Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_DIFFERENT) {
             if (position != -1) {
-                broadcastIntent.putExtra(Def.Communication.KEY_CALL_CHANGE,
-                        thingManager.update(typeBefore, thing, position, true) == 1);
+                boolean shouldCallChange =
+                        thingManager.update(typeBefore, thing, position, true) == 1;
+                Log.d(TAG, "Updating type from remote action, shouldCallChange: " + shouldCallChange);
+                broadcastIntent.putExtra(Def.Communication.KEY_CALL_CHANGE, shouldCallChange);
             }
         }
         context.sendBroadcast(broadcastIntent);
@@ -194,6 +204,32 @@ public class RemoteActionHelper {
         if (typeBefore != typeAfter) {
             AppWidgetHelper.updateThingsListAppWidgetsForType(context, typeAfter);
         }
+
+        sRemoteIntent = broadcastIntent;
+    }
+
+    private static Intent sRemoteIntent = null;
+
+    private static boolean shouldJustNotifyDataSetChanged(Thing thing, int resultCode) {
+        if (sRemoteIntent == null) {
+            return true;
+        }
+        // sRemoteIntent != null
+        Thing thingBefore = sRemoteIntent.getParcelableExtra(Def.Communication.KEY_THING);
+        if (thingBefore.getId() != thing.getId()) {
+            return true;
+        }
+        // handling same thing
+        int resultCodeBefore = sRemoteIntent.getIntExtra(
+                Def.Communication.KEY_RESULT_CODE, Def.Communication.RESULT_NO_UPDATE);
+        if (resultCode == resultCodeBefore) {
+            return false;
+        }
+        // different resultCode, which means different action
+        if (resultCodeBefore == Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME) {
+            return false;
+        }
+        return true;
     }
 
 }

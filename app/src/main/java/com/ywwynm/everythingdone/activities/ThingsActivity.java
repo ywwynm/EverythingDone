@@ -169,25 +169,28 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         }
     };
 
-    private Intent mBroadCastIntent;
+    private Intent mRemoteIntent;
 
     private boolean mCanSeeUi = true;
 
     private BroadcastReceiver mUpdateUiReceiver = new BroadcastReceiver() {
         @Override
-        public void onReceive(Context context, Intent intent) {
+        public void onReceive(Context context, final Intent intent) {
             if (!mCanSeeUi) {
-//                if (mBroadCastIntent != null) {
-//                    int resultCode = mBroadCastIntent.getIntExtra(Def.Communication.KEY_RESULT_CODE,
-//                            Def.Communication.RESULT_NO_UPDATE);
-//                    updateMainUi(mBroadCastIntent, resultCode);
-//                }
-                mBroadCastIntent = intent;
+                if (mRemoteIntent != null) {
+                    updateMainUi(mRemoteIntent);
+                    mDrawerLayout.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            mRemoteIntent = intent;
+                        }
+                    }, 600);
+                } else {
+                    mRemoteIntent = intent;
+                }
                 return;
             }
-            int resultCode = intent.getIntExtra(Def.Communication.KEY_RESULT_CODE,
-                    Def.Communication.RESULT_NO_UPDATE);
-            updateMainUi(intent, resultCode);
+            updateMainUi(intent);
         }
     };
 
@@ -298,25 +301,17 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         super.onResume();
         updateTaskDescription();
 
-//        if (mBroadCastIntent != null) {
-//            int resultCode = mBroadCastIntent.getIntExtra(Def.Communication.KEY_RESULT_CODE,
-//                    Def.Communication.RESULT_NO_UPDATE);
-//            updateMainUi(mBroadCastIntent, resultCode);
-//        }
-
         if (mUpdateMainUiInOnResume) {
             if (App.justNotifyDataSetChanged()) {
                 mRecyclerView.postDelayed(new Runnable() {
                     @Override
                     public void run() {
                         justNotifyDataSetChanged();
-                        mBroadCastIntent = null;
+                        mRemoteIntent = null;
                     }
                 }, 540);
-            } else if (mBroadCastIntent != null) {
-                int resultCode = mBroadCastIntent.getIntExtra(Def.Communication.KEY_RESULT_CODE,
-                        Def.Communication.RESULT_NO_UPDATE);
-                updateMainUi(mBroadCastIntent, resultCode);
+            } else if (mRemoteIntent != null) {
+                updateMainUi(mRemoteIntent);
             }
         }
 
@@ -480,6 +475,12 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         }
     }
 
+    private void updateMainUi(Intent data) {
+        int resultCode = data.getIntExtra(Def.Communication.KEY_RESULT_CODE,
+                Def.Communication.RESULT_NO_UPDATE);
+        updateMainUi(data, resultCode);
+    }
+
     private void updateMainUi(final Intent data, int resultCode) {
         mUpdateMainUiInOnResume = false;
         dismissSnackbars();
@@ -490,7 +491,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     public void run() {
                         justNotifyDataSetChanged();
                         mUpdateMainUiInOnResume = true;
-                        mBroadCastIntent = null;
+                        mRemoteIntent = null;
                     }
                 }, 560);
                 break;
@@ -504,9 +505,10 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                         mNormalSnackbar.setMessage(R.string.sb_cannot_be_blank);
                         mNormalSnackbar.show();
                         mUpdateMainUiInOnResume = true;
-                        App.setSomethingUpdatedSpecially(false);
-                        //App.setShouldJustNotifyDataSetChanged(false);
-                        mBroadCastIntent = null;
+                        if (mCanSeeUi) {
+                            App.setSomethingUpdatedSpecially(false);
+                        }
+                        mRemoteIntent = null;
                     }
                 }, 560);
                 break;
@@ -517,9 +519,10 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                         mNormalSnackbar.setMessage(R.string.sb_abandon_new_thing);
                         mNormalSnackbar.show();
                         mUpdateMainUiInOnResume = true;
-                        App.setSomethingUpdatedSpecially(false);
-                        //App.setShouldJustNotifyDataSetChanged(false);
-                        mBroadCastIntent = null;
+                        if (mCanSeeUi) {
+                            App.setSomethingUpdatedSpecially(false);
+                        }
+                        mRemoteIntent = null;
                     }
                 }, 560);
                 break;
@@ -532,13 +535,16 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             case Def.Communication.RESULT_UPDATE_THING_STATE_DIFFERENT:
                 updateMainUiForUpdateDifferentState(data);
                 break;
+            case Def.Communication.RESULT_NO_UPDATE:
             default:
-                if (mBroadCastIntent == null) {
+                if (mRemoteIntent == null) {
                     mUpdateMainUiInOnResume = true;
-                    App.setSomethingUpdatedSpecially(false);
-                    App.setShouldJustNotifyDataSetChanged(false);
+                    if (mCanSeeUi) {
+                        App.setSomethingUpdatedSpecially(false);
+                        App.setShouldJustNotifyDataSetChanged(false);
+                    }
                 } else {
-                    updateMainUi(mBroadCastIntent, mBroadCastIntent.getIntExtra(
+                    updateMainUi(mRemoteIntent, mRemoteIntent.getIntExtra(
                             Def.Communication.KEY_RESULT_CODE, 0));
                 }
                 break;
@@ -645,9 +651,10 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         mActivityHeader.updateText();
         mDrawerHeader.updateTexts();
         mUpdateMainUiInOnResume = true;
-        App.setSomethingUpdatedSpecially(false);
-        //App.setShouldJustNotifyDataSetChanged(false);
-        mBroadCastIntent = null;
+        if (mCanSeeUi) {
+            App.setSomethingUpdatedSpecially(false);
+        }
+        mRemoteIntent = null;
     }
 
     private void updateMainUiForUpdateSameType(final Intent data) {
@@ -686,9 +693,10 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 }
                 mDrawerHeader.updateCompletionRate();
                 mUpdateMainUiInOnResume = true;
-                App.setSomethingUpdatedSpecially(false);
-                //App.setShouldJustNotifyDataSetChanged(false);
-                mBroadCastIntent = null;
+                if (mCanSeeUi) {
+                    App.setSomethingUpdatedSpecially(false);
+                }
+                mRemoteIntent = null;
             }
         }, 560);
     }
@@ -731,9 +739,10 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
                 mDrawerHeader.updateCompletionRate();
                 mUpdateMainUiInOnResume = true;
-                App.setSomethingUpdatedSpecially(false);
-                //App.setShouldJustNotifyDataSetChanged(false);
-                mBroadCastIntent = null;
+                if (mCanSeeUi) {
+                    App.setSomethingUpdatedSpecially(false);
+                }
+                mRemoteIntent = null;
             }
         }, 560);
     }
@@ -782,9 +791,10 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
                 mDrawerHeader.updateCompletionRate();
                 mUpdateMainUiInOnResume = true;
-                App.setSomethingUpdatedSpecially(false);
-                //App.setShouldJustNotifyDataSetChanged(false);
-                mBroadCastIntent = null;
+                if (mCanSeeUi) {
+                    App.setSomethingUpdatedSpecially(false);
+                }
+                mRemoteIntent = null;
             }
         }, 560);
     }
@@ -807,8 +817,10 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         mThingsAdapter.setShouldThingsAnimWhenAppearing(true);
         mThingsAdapter.notifyDataSetChanged();
 
-        App.setSomethingUpdatedSpecially(false);
-        App.setShouldJustNotifyDataSetChanged(false);
+        if (mCanSeeUi) {
+            App.setSomethingUpdatedSpecially(false);
+            App.setShouldJustNotifyDataSetChanged(false);
+        }
     }
 
     @Override
