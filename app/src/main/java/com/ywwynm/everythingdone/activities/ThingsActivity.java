@@ -884,7 +884,6 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     @Override
     protected void initUI() {
         DisplayUtil.darkStatusBar(this);
-        DisplayUtil.coverStatusBar(f(R.id.view_status_bar_cover));
 
         if (DeviceUtil.hasKitKatApi()) {
             View statusbar = f(R.id.view_status_bar);
@@ -898,6 +897,8 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             dlp2.setMargins(0, dlp1.height, 0, 0);
             fl.requestLayout();
 
+            // These two lines can make layout expand into statusbar on Kitkat and will not
+            // influence the ui above Lollipop
             mDrawerLayout.setFitsSystemWindows(false);
             mDrawer.setFitsSystemWindows(false);
         }

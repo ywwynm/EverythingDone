@@ -104,7 +104,6 @@ import com.ywwynm.everythingdone.views.pickers.ColorPicker;
 import com.ywwynm.everythingdone.views.pickers.DateTimePicker;
 
 import java.io.File;
-import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -568,7 +567,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
     @Override
     protected void initUI() {
-        DisplayUtil.coverStatusBar(f(R.id.view_status_bar_cover));
+        DisplayUtil.expandLayoutAboveLollipop(this);
         DisplayUtil.expandStatusBarAboveKitkat(mStatusBar);
 
         int color = mThing.getColor();
@@ -790,21 +789,19 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             if (DeviceUtil.hasKitKatApi()) {
                 KeyboardUtil.addKeyboardCallback(window, new KeyboardUtil.KeyboardCallback() {
 
-                    View contentView = f(R.id.fl_root_detail);
-
                     @Override
                     public void onKeyboardShow(int keyboardHeight) {
-                        if (contentView.getPaddingBottom() == 0) {
+                        if (mFlRoot.getPaddingBottom() == 0) {
                             //set the padding of the contentView for the keyboard
-                            contentView.setPadding(0, 0, 0, keyboardHeight);
+                            mFlRoot.setPadding(0, 0, 0, keyboardHeight);
                         }
                     }
 
                     @Override
                     public void onKeyboardHide() {
-                        if (contentView.getPaddingBottom() != 0) {
+                        if (mFlRoot.getPaddingBottom() != 0) {
                             //reset the padding of the contentView
-                            contentView.setPadding(0, 0, 0, 0);
+                            mFlRoot.setPadding(0, 0, 0, 0);
                         }
                     }
                 });

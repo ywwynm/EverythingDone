@@ -118,10 +118,4 @@
         app:pressedTranslationZ="12dp"
         app:backgroundTint="@color/app_pink"/>
 
-    <View
-        android:id="@+id/view_status_bar_cover"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:background="@color/black_26p"/>
-
 </merge>

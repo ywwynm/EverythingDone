@@ -196,6 +196,16 @@ public class DisplayUtil {
         // ViewCompat.setBackgroundTintList(view, ColorStateList.valueOf(color));
     }
 
+    public static void expandLayoutAboveLollipop(Activity activity) {
+        if (DeviceUtil.hasLollipopApi()) {
+            View decor = activity.getWindow().getDecorView();
+            decor.setSystemUiVisibility(
+                    decor.getSystemUiVisibility()
+                            | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
+        }
+    }
+
     public static void expandStatusBarAboveKitkat(View statusBar) {
         if (DeviceUtil.hasKitKatApi()) {
             final int height = getStatusbarHeight(statusBar.getContext());
@@ -216,6 +226,11 @@ public class DisplayUtil {
 
     public static void darkStatusBar(Activity activity) {
         Window window = activity.getWindow();
+        if (DeviceUtil.hasMarshmallowApi()) {
+            View decor = window.getDecorView();
+            decor.setSystemUiVisibility(
+                    decor.getSystemUiVisibility() | View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+        }
         darkStatusBarForMIUI(window);
         darkStatusBarForFlyme(window);
     }
@@ -246,19 +261,6 @@ public class DisplayUtil {
             meizuFlags.setInt(lp, value);
             window.setAttributes(lp);
         } catch (Exception ignored) { }
-    }
-
-    public static void coverStatusBar(View statusBarCover) {
-        if (!shouldCoverStatusBar()) {
-            return;
-        }
-        ViewGroup.LayoutParams vlp = statusBarCover.getLayoutParams();
-        vlp.height = getStatusbarHeight(statusBarCover.getContext());
-        statusBarCover.requestLayout();
-    }
-
-    public static boolean shouldCoverStatusBar() {
-        return DeviceUtil.hasMarshmallowApi() && DeviceUtil.isEMUI();
     }
 
     public static boolean isInMultiWindow(Activity activity) {

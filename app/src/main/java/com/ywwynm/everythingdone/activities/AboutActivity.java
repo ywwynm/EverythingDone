@@ -51,21 +51,6 @@ public class AboutActivity extends EverythingDoneBaseActivity {
         return R.layout.activity_about;
     }
 
-//    @Override
-//    public void onRequestPermissionsResult(
-//            int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-//        if (requestCode == Def.Communication.REQUEST_PERMISSION_SHARE_APP) {
-//            final int G = PackageManager.PERMISSION_GRANTED;
-//            for (int grantResult : grantResults) {
-//                if (grantResult != G) {
-//                    Toast.makeText(this, R.string.error_permission_denied, Toast.LENGTH_LONG).show();
-//                    return;
-//                }
-//            }
-//            SendInfoHelper.shareApp(this);
-//        }
-//    }
-
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_about, menu);
@@ -113,9 +98,9 @@ public class AboutActivity extends EverythingDoneBaseActivity {
 
     @Override
     protected void initUI() {
+        DisplayUtil.expandLayoutAboveLollipop(this);
         DisplayUtil.expandStatusBarAboveKitkat(mStatusBar);
         DisplayUtil.darkStatusBar(this);
-        DisplayUtil.coverStatusBar(f(R.id.view_status_bar_cover));
 
         if (DeviceUtil.hasKitKatApi()) {
             if (DisplayUtil.hasNavigationBar(this)) {

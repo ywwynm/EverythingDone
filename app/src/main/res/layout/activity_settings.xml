@@ -24,12 +24,6 @@
         app:contentInsetStart="72dp"
         app:titleTextColor="@color/black_54p"/>
 
-    <View
-        android:id="@+id/view_status_bar_cover"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:background="@color/black_26p"/>
-
     <ScrollView
         android:id="@+id/sv_settings"
         android:layout_width="match_parent"

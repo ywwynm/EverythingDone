@@ -69,4 +69,6 @@
 
     <color name="app_pink">#E91E63</color>
 
+    <color name="bg_statusbar_lollipop">#24000000</color>
+
 </resources>

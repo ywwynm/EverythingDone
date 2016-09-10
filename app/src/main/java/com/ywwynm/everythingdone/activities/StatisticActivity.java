@@ -123,6 +123,7 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
     }
 
     private void initHeaderUI() {
+        DisplayUtil.expandLayoutAboveLollipop(this);
         DisplayUtil.expandStatusBarAboveKitkat(mStatusbar);
 
         final String D = SettingsActivity.DEFAULT_DRAWER_HEADER;

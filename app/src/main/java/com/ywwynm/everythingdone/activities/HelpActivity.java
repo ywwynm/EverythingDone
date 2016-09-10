@@ -61,6 +61,7 @@ public class HelpActivity extends EverythingDoneBaseActivity {
 
     @Override
     protected void initUI() {
+        DisplayUtil.expandLayoutAboveLollipop(this);
         DisplayUtil.expandStatusBarAboveKitkat(f(R.id.view_status_bar));
         DisplayUtil.darkStatusBar(this);
 

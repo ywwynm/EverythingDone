@@ -1,6 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
+    <style name="EverythingDoneTheme.Things" parent="Theme.AppCompat.NoActionBar">
+        <item name="colorPrimaryDark">#FFFFFF</item>
+        <item name="android:windowBackground">@color/bg_activity_things</item>
+        <item name="android:dialogTheme">@style/Theme.AppCompat.Light.Dialog</item>
+        <item name="swirl_ridgeColor">@color/black_54</item>
+        <item name="swirl_errorColor">@color/error</item>
+        <item name="android:statusBarColor">@color/bg_statusbar_lollipop</item>
+    </style>
+
+    <style name="EverythingDoneTheme.Detail" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="windowActionModeOverlay">true</item>
+        <item name="swirl_ridgeColor">@color/black_54</item>
+        <item name="swirl_errorColor">@color/error</item>
+        <item name="android:statusBarColor">@color/bg_statusbar_lollipop</item>
+    </style>
+
+    <style name="EverythingDoneTheme.Settings" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="colorAccent">@color/blue_deep</item>
+        <item name="swirl_ridgeColor">@color/blue_deep</item>
+        <item name="swirl_errorColor">@color/error</item>
+        <item name="android:statusBarColor">@color/bg_statusbar_lollipop</item>
+    </style>
+
+    <style name="EverythingDoneTheme.Statistic" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:dialogTheme">@style/Theme.AppCompat.Light.Dialog</item>
+        <item name="android:windowBackground">@color/bg_activity_things</item>
+        <item name="android:statusBarColor">@color/bg_statusbar_lollipop</item>
+    </style>
+
+    <style name="EverythingDoneTheme.About" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:statusBarColor">@color/bg_statusbar_lollipop</item>
+        <item name="android:windowTranslucentNavigation">true</item>
+    </style>
+
+    <style name="EverythingDoneTheme.Help" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:statusBarColor">@color/bg_statusbar_lollipop</item>
+    </style>
+
     <style name="EverythingDoneTheme.Detail.Actionbar">
         <item name="colorControlNormal">#FFFFFF</item>
         <item name="colorControlHighlight">#66FFFFFF</item>

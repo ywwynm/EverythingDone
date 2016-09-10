@@ -408,9 +408,9 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
     @Override
     protected void initUI() {
+        DisplayUtil.expandLayoutAboveLollipop(this);
         DisplayUtil.expandStatusBarAboveKitkat(f(R.id.view_status_bar));
         DisplayUtil.darkStatusBar(this);
-        DisplayUtil.coverStatusBar(f(R.id.view_status_bar_cover));
 
         EdgeEffectUtil.forScrollView((ScrollView) f(R.id.sv_settings),
                 ContextCompat.getColor(this, R.color.blue_deep));
