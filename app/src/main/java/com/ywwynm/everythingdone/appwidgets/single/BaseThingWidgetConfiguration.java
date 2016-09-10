@@ -4,7 +4,6 @@ import android.Manifest;
 import android.appwidget.AppWidgetManager;
 import android.content.Intent;
 import android.content.res.Configuration;
-import android.os.Bundle;
 import android.support.v7.app.ActionBar;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
@@ -18,9 +17,9 @@ import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.EverythingDoneBaseActivity;
 import com.ywwynm.everythingdone.adapters.BaseThingsAdapter;
+import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper;
 import com.ywwynm.everythingdone.database.AppWidgetDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
-import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper;
 import com.ywwynm.everythingdone.managers.ModeManager;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.permission.PermissionUtil;
@@ -101,7 +100,9 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
 
     @Override
     protected void initUI() {
+        DisplayUtil.expandLayoutAboveLollipop(this);
         DisplayUtil.expandStatusBarAboveKitkat(findViewById(R.id.view_status_bar));
+        DisplayUtil.darkStatusBar(this);
 
         if (!PermissionUtil.hasStoragePermission(this)
                 && PermissionUtil.shouldRequestPermissionWhenLoadingThings(mThings)) {
