@@ -159,6 +159,7 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
                 holder.iv.setVisibility(View.GONE);
                 holder.tv.setTextSize(18);
                 holder.tv.setText("...");
+                holder.tv.setContentDescription(mContext.getString(R.string.cd_checklist_more_items));
                 params.setMargins((int) (density * 8), 0, 0, params.bottomMargin);
                 holder.itemView.setClickable(false);
                 holder.itemView.setBackgroundResource(0);
@@ -170,10 +171,14 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
                 char state = stateContent.charAt(0);
                 if (state == '0') {
                     holder.iv.setImageResource(R.drawable.checklist_unchecked_card);
+                    holder.iv.setContentDescription(
+                            mContext.getString(R.string.cd_checklist_unfinished_item));
                     holder.tv.setTextColor(white_76);
                     holder.tv.setPaintFlags(flag & ~Paint.STRIKE_THRU_TEXT_FLAG);
                 } else if (state == '1') {
                     holder.iv.setImageResource(R.drawable.checklist_checked_card);
+                    holder.iv.setContentDescription(
+                            mContext.getString(R.string.cd_checklist_finished_item));
                     holder.tv.setTextColor(white_50);
                     holder.tv.setPaintFlags(flag | Paint.STRIKE_THRU_TEXT_FLAG);
                 }
@@ -221,16 +226,24 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
             if (state == '0') {
                 if (!mDragging) {
                     holder.ivState.setImageResource(R.drawable.checklist_unchecked_detail);
+                    holder.ivState.setContentDescription(
+                            mContext.getString(R.string.cd_checklist_unfinished_item_clickable));
                 } else {
                     holder.ivState.setImageResource(R.drawable.checklist_move_76);
+                    holder.ivState.setContentDescription(
+                            mContext.getString(R.string.cd_checklist_move));
                 }
                 holder.et.setTextColor(white_76);
                 holder.et.setText(stateContent.substring(1, stateContent.length()));
             } else if (state == '1') {
                 if (!mDragging) {
                     holder.ivState.setImageResource(R.drawable.checklist_checked_detail);
+                    holder.ivState.setContentDescription(
+                            mContext.getString(R.string.cd_checklist_finished_item_clickable));
                 } else {
                     holder.ivState.setImageResource(R.drawable.checklist_move_50);
+                    holder.ivState.setContentDescription(
+                            mContext.getString(R.string.cd_checklist_move));
                 }
                 holder.et.setTextColor(white_50);
                 holder.et.setPaintFlags(flags | Paint.STRIKE_THRU_TEXT_FLAG);
@@ -238,7 +251,9 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
             } else if (state == '2') {
                 params.topMargin = (int) (density * 4);
                 holder.ivState.setImageResource(R.drawable.checklist_add);
-                holder.et.setHint(mContext.getString(R.string.hint_new_item));
+                String newItem = mContext.getString(R.string.hint_new_item);
+                holder.ivState.setContentDescription(newItem);
+                holder.et.setHint(newItem);
                 holder.et.setText("");
             } else if (state == '3') {
                 holder.ivState.setVisibility(View.GONE);
@@ -249,11 +264,15 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
                 params.topMargin = (int) (density * 6);
                 holder.ivState.setImageResource(R.drawable.checklist_finished);
                 holder.ivState.setClickable(false);
+                holder.ivState.setContentDescription(
+                        mContext.getString(R.string.cd_checklist_finished_items));
                 holder.et.setEnabled(false);
                 holder.et.setText(mContext.getString(R.string.finished));
                 holder.et.setTextColor(white_50);
                 holder.et.setTextSize(16);
                 holder.et.getPaint().setTextSkewX(-0.20f);
+                holder.et.setContentDescription(
+                        mContext.getString(R.string.cd_checklist_finished_items));
             }
             mWatchEditTextChange = true;
         }

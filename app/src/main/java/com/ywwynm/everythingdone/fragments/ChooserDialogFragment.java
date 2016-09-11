@@ -8,7 +8,6 @@ import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -275,17 +274,19 @@ public class ChooserDialogFragment extends BaseDialogFragment {
         @Override
         public void onBindViewHolder(BaseViewHolder viewHolder, int position) {
             ChoiceHolder holder = (ChoiceHolder) viewHolder;
-            holder.tv.setText(mItems.get(position));
+            String item = mItems.get(position);
+            holder.tv.setText(item);
             Context context = holder.tv.getContext();
             int uncheckedColor = ContextCompat.getColor(context, R.color.black_54);
             Drawable d;
             if (mPickedPosition == position) { // -15310698
                 d = ContextCompat.getDrawable(context, R.drawable.ic_radiobutton_checked);
                 d.mutate().setColorFilter(mAccentColor, PorterDuff.Mode.SRC_ATOP);
-                Log.i(TAG, "mAccentColor: " + mAccentColor);
+                holder.tv.setContentDescription(context.getString(R.string.cd_chosen_item) + item);
             } else {
                 d = ContextCompat.getDrawable(context, R.drawable.ic_radiobutton_unchecked);
                 d.mutate().setColorFilter(uncheckedColor, PorterDuff.Mode.SRC_ATOP);
+                holder.tv.setContentDescription(context.getString(R.string.cd_not_chosen_item) + item);
             }
             holder.tv.setCompoundDrawablesWithIntrinsicBounds(d, null, null, null);
         }

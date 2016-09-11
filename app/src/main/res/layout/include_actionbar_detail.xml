@@ -2,6 +2,7 @@
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical">
@@ -20,14 +21,15 @@
         app:contentInsetStart="0dp"
         app:popupTheme="@style/Theme.AppCompat.Light">
 
+        <!--content description will be set in Activity-->
         <ImageButton
             android:id="@+id/ib_back"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:paddingLeft="18dp"
             android:paddingRight="18dp"
-            android:contentDescription="@string/description_back"
-            style="@style/SelectableItemBackgroundBorderlessLight"/>
+            style="@style/SelectableItemBackgroundBorderlessLight"
+            tools:ignore="ContentDescription"/>
 
     </android.support.v7.widget.Toolbar>
 

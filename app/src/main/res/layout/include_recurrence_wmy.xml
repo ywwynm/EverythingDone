@@ -84,7 +84,6 @@
         </FrameLayout>
 
         <FrameLayout
-            android:id="@+id/fl_minute_rec_wmy"
             android:layout_width="wrap_content"
             android:layout_height="64dp"
             android:layout_toEndOf="@id/fl_hour_rec_wmy"

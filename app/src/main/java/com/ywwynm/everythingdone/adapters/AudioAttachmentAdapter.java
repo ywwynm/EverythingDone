@@ -1,6 +1,7 @@
 package com.ywwynm.everythingdone.adapters;
 
 import android.app.Activity;
+import android.content.Context;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
@@ -104,24 +105,37 @@ public class AudioAttachmentAdapter extends RecyclerView.Adapter<AudioAttachment
             holder.ivThird .setVisibility(View.GONE);
             holder.ivFirst.setImageResource(R.drawable.act_play);
         } else {
+            Context context = holder.itemView.getContext();
             holder.ivSecond.setVisibility(View.VISIBLE);
             holder.ivThird. setVisibility(View.VISIBLE);
             if (mPlayingIndex == position) {
                 holder.ivFirst.setVisibility(View.VISIBLE);
                 if (mPlayer.isPlaying()) {
                     holder.ivFirst.setImageResource(R.drawable.act_pause);
+                    holder.ivFirst.setContentDescription(
+                            context.getString(R.string.cd_pause_play_audio_attachment));
                 } else {
                     holder.ivFirst.setImageResource(R.drawable.act_play);
+                    holder.ivFirst.setContentDescription(
+                            context.getString(R.string.cd_play_audio_attachment));
                 }
                 holder.ivSecond.setImageResource(R.drawable.act_stop_playing_audio);
+                holder.ivSecond.setContentDescription(
+                        context.getString(R.string.cd_stop_play_audio_attachment));
             } else {
                 if (mEditable) {
                     holder.ivFirst.setVisibility(View.VISIBLE);
                     holder.ivFirst.setImageResource(R.drawable.act_play);
+                    holder.ivFirst.setContentDescription(
+                            context.getString(R.string.cd_play_audio_attachment));
                     holder.ivSecond.setImageResource(R.drawable.delete_audio);
+                    holder.ivSecond.setContentDescription(
+                            context.getString(R.string.cd_delete_audio_attachment));
                 } else {
                     holder.ivFirst.setVisibility(View.GONE);
                     holder.ivSecond.setImageResource(R.drawable.act_play);
+                    holder.ivSecond.setContentDescription(
+                            context.getString(R.string.cd_play_audio_attachment));
                 }
             }
         }

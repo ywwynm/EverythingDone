@@ -4,13 +4,13 @@
     tools:ignore="TypographyEllipsis">
 
     <!--task descriptions-->
-    <string name="app_name">EverythingDone</string>
+    <string name="everythingdone">EverythingDone</string>
     <string name="title_create_thing">Create new thing</string> <!--also used in appwidget-->
     <string name="title_edit_thing">Edit</string>
 
     <!--activity titles-->
     <string name="title_activity_things_all">All things</string>
-    <string name="title_activity_image_viewer">Attachment</string>
+    <string name="image_or_video_attachment">Image or Video Attachment</string> <!--for ImageViewerActivity and more-->
     <string name="title_activity_settings">Settings</string>
     <string name="title_activity_about">About</string>
     <string name="title_activity_statistic">Statistic</string>
@@ -34,14 +34,32 @@
     <string name="help">Help</string>
     <string name="about">About</string>
 
+    <!--thing colors-->
+    <string-array name="thing_colors_names">
+        <item>@string/blue_grey_500</item>
+        <item>@string/my_cyan</item>
+        <item>@string/blue_grey_deep_blue</item>
+        <item>@string/blue_grey_deep_grey</item>
+        <item>@string/brown</item>
+        <item>@string/blue_deep</item>
+        <item>@string/pine_green</item>
+        <item>@string/my_purple</item>
+    </string-array>
+    <string name="blue_grey_500">blue grey</string>
+    <string name="my_cyan">cyan</string>
+    <string name="blue_grey_deep_blue">deep grey blue</string>
+    <string name="blue_grey_deep_grey">deep blue grey</string>
+    <string name="brown">brown</string>
+    <string name="blue_deep">deep blue</string>
+    <string name="pine_green">pine green</string>
+    <string name="my_purple">grey purple</string>
+
     <!--drawer headers-->
     <string name="completion_rate_all">All\'s completion rate</string>
     <string name="completion_rate_reminder">Reminder\'s completion rate</string>
     <string name="completion_rate_note">Note\'s completion rate</string>
     <string name="completion_rate_habit">Habit\'s completion rate</string>
     <string name="completion_rate_goal">Goal\'s completion rate</string>
-
-    <string name="other">other</string>
 
 
     <!--————————————————————General actions————————————————————-->
@@ -252,6 +270,83 @@
     <string name="all">All</string>
 
 
+    <!--content descriptions-->
+    <!--ThingsActivity-->
+    <string name="cd_open_drawer">Open Navigation Drawer</string>
+    <string name="cd_close_drawer">Close Navigation Drawer</string>
+    <string name="cd_quit_searching">Quit Searching</string>
+
+    <!--thing card or app widget-->
+    <string name="cd_habit_unfinished">Unfinished</string>
+    <string name="cd_habit_finished">Finished</string>
+    <string name="cd_habit_unknown">Unknown</string>
+
+    <!--Drawer header and StatisticActivity-->
+    <string name="cd_drawer_header">Click to check my usage details. Brief statistic:</string>
+    <string name="cd_statistic_header">Statistics of my usage</string>
+
+    <!--DetailActivity-->
+    <string name="cd_back_note">The thing is a Note, back</string>
+    <string name="cd_back_reminder">The thing is a Reminder, back</string>
+    <string name="cd_back_habit">The thing is a Habit, back</string>
+    <string name="cd_back_goal">The thing is a Goal, back</string>
+
+    <!--checklist item-->
+    <string name="cd_checklist_unfinished_item">Unfinished item</string>
+    <string name="cd_checklist_finished_item">Finished item</string>
+    <string name="cd_checklist_more_items">More checklist items</string>
+    <string name="cd_checklist_unfinished_item_clickable">Unfinished item, click to finish</string>
+    <string name="cd_checklist_finished_item_clickable">Finished item, click to unfinish</string>
+    <string name="cd_checklist_move">click and drag to move this item</string>
+    <string name="cd_checklist_finished_items">Finished items are as followings</string>
+
+    <!--SettingsActivity-->
+    <string name="cd_help_automatic_reminder">Help for Automatic Reminder</string>
+
+    <!--ChooserDialogFragment-->
+    <string name="cd_chosen_item">Chosen,</string>
+    <string name="cd_not_chosen_item">Not Chosen,</string>
+
+    <!--PatternLockView-->
+    <string name="cd_pattern_area">Nine-dots pattern area</string>
+
+    <!--attachment-->
+    <!--general-->
+    <string name="cd_image_attachment">image attachment</string>
+    <string name="cd_video_attachment">video attachment</string>
+    <string name="cd_audio_attachment">audio attachment</string>
+
+    <!--video attachment-->
+    <string name="cd_play_video_attachment">Play Video</string>
+
+    <!--audio attachment-->
+    <string name="cd_play_audio_attachment">Play audio</string>
+    <string name="cd_pause_play_audio_attachment">Pause playing audio</string>
+    <string name="cd_stop_play_audio_attachment">Stop playing audio</string>
+    <string name="cd_delete_audio_attachment">Delete this audio attachment</string>
+    <string name="description_audio_attachment_info">Audio file details</string>
+
+    <!--record audio-->
+    <string name="cd_start_record_audio">Start recording</string>
+    <string name="cd_stop_record_audio">Stop recording</string>
+    <string name="cd_save_recorded_audio_file">Save recorded file and back</string>
+    <string name="cd_re_recording_audio">re-record</string>
+    <string name="cd_cancel_recording_audio">cancel record</string>
+
+    <string name="cd_delete_image_attachment">delete this image attachment</string>
+    <string name="cd_delete_video_attachment">delete this video attachment</string>
+
+    <!--time of day rec item-->
+    <string name="cd_reminder_time">Reminder time</string>
+    <string name="cd_delete_reminder_time_day_rec">Delete this reminder time</string>
+
+    <!--picker-->
+    <string name="cd_picked">Picked,</string>
+    <string name="cd_unpicked">Unpicked,</string>
+    <!--week/month/year-->
+
+    <string name="private_thing">private thing</string>
+
     <string name="congratulations">Congratulations</string>
     <string name="empty">empty</string>
 
@@ -305,6 +400,7 @@
     <string name="month">Month</string>
     <string name="year">Year</string>
     <string name="day">Day</string>
+    <string name="day_hao">Day</string>
 
     <array name="day_of_week">
         <item>Sunday</item>
@@ -357,8 +453,6 @@
     <string name="hours">hour</string>
     <string name="months">month</string>
     <string name="weeks">week</string>
-    <string name="description_time">time</string>
-    <string name="description_back">back</string>
     <string name="reminder_expired">expired</string>
     <string name="reminder_needless">not needed</string>
     <string name="reminder_reminded">reminded</string>
@@ -366,8 +460,6 @@
     <string name="description_delete_item">delete item</string>
     <string name="description_check_info">information about check states</string>
     <string name="hint_new_item">new item</string>
-    <string name="item">item</string>
-    <string name="attachment">attachment</string>
     <string name="images">image</string>
     <string name="videos">video</string>
     <string name="input_file_name">Please enter file name</string>
@@ -423,15 +515,6 @@
     <string name="celebration_habit_part_4">It\'s so glad to see a better you. EverythingDone will always help you better yourself.</string>
     <string name="from_everything_done">from Android app EverythingDone</string>
     <string name="month_day">day</string>
-    <string name="description_audio_attachment">audio attachment</string>
-    <string name="description_cancel_recording_audio">cancel record</string>
-    <string name="description_delete_audio_attachment">delete this audio attachment</string>
-    <string name="description_delete_image_attachment">delete this image attachment</string>
-    <string name="description_habit_record">Habit finish record</string>
-    <string name="description_image_attachment">image attachment</string>
-    <string name="description_play_audio_attachment">play audio file</string>
-    <string name="description_re_recording_audio">re-record</string>
-    <string name="description_video_attachment">video attachment</string>
     <string name="welcome_goal_content">Your dream is rising</string>
     <string name="welcome_habit_content">Develop habits and correct shortcomings </string>
     <string name="welcome_note_content">Write something and I will remember it forever</string>
@@ -457,7 +540,6 @@
     <string name="support_donate_content">My Alipay Account is 532061865@qq.com. Your donation will encourage me a lot. Thank you!</string>
     <string name="support_donate_copy_name">COPY ACCOUNT</string>
     <string name="auto_notify_ringtone">Automatic Reminder\nRingtone</string>
-    <string name="content_description_header">header</string>
     <string name="statistic_start_from_part_1">I have used EverythingDone since</string>
     <string name="statistic_start_from_part_2">. During</string>
     <string name="statistic_start_from_part_3"><![CDATA[, I finished & created:]]></string>
@@ -512,7 +594,6 @@
     <string name="video_duration">Video Duration</string>
     <string name="video_create_time">Video Create Time</string>
     <string name="press_again_to_exit">Press one more time to exit</string>
-    <string name="description_audio_attachment_info">Audio detail info</string>
     <string name="help_detail">Help Detail</string>
     <string name="export_failed_content">Please try again later</string>
     <string name="export_failed_title">Export Failed</string>

@@ -1,11 +1,11 @@
 <resources
     xmlns:tools="http://schemas.android.com/tools"
     tools:ignore="TypographyEllipsis">
-    <string name="app_name">完事儿</string>
+    <string name="everythingdone">完事儿</string>
 
     <!--titles of Activities-->
     <string name="title_activity_things_all">所有记事</string>
-    <string name="title_activity_image_viewer">附件</string>
+    <string name="image_or_video_attachment">图片或视频附件</string>
     <string name="title_activity_settings">设置</string>
     <string name="title_activity_about">关于</string>
     <string name="title_activity_statistic">统计</string>
@@ -21,11 +21,19 @@
     <string name="reminder">提醒</string>
     <string name="habit">习惯</string>
     <string name="goal">目标</string>
-    <string name="other">其它</string>
     <string name="finished">已完成</string>
     <string name="deleted">已删除</string>
     <string name="settings">设置</string>
     <string name="about">关于</string>
+
+    <string name="blue_grey_500">蓝灰色</string>
+    <string name="my_cyan">浅青色</string>
+    <string name="blue_grey_deep_blue">深灰蓝</string>
+    <string name="blue_grey_deep_grey">深灰色</string>
+    <string name="brown">棕色</string>
+    <string name="blue_deep">深蓝色</string>
+    <string name="pine_green">松绿色</string>
+    <string name="my_purple">紫色</string>
 
     <!--drawer header-->
     <string name="completion_rate_all">所有记事完成率</string>
@@ -121,8 +129,6 @@
     <string name="sb_delete_forever">永久删除了</string>
 
     <string name="a_thing">件记事</string>
-    <string name="item">个项目</string>
-    <string name="attachment">个附件</string>
     <string name="sb_undo">撤销</string>
     <string name="sb_undo_underway">已完成</string>
     <string name="sb_undo_finish">并未完成</string>
@@ -154,9 +160,6 @@
     <string name="more">更多</string>
 
     <string name="description_a">个</string>
-
-    <string name="description_time">时间</string>
-    <string name="description_habit_record">习惯的完成记录</string>
 
     <string name="year">年</string>
     <string name="month">月</string>
@@ -222,8 +225,6 @@
     <string name="times">次</string>
     <string name="this_gai">该</string>
 
-    <string name="description_back">返回</string>
-
     <string name="reminder_reminded">已提醒</string>
     <string name="reminder_needless">已无需提醒</string>
     <string name="reminder_unavailable">已失效</string>
@@ -258,19 +259,19 @@
     <string name="description_check_info">完成信息</string>
     <string name="description_delete_item">删除项目</string>
 
-    <string name="description_image_attachment">图片类附件</string>
-    <string name="description_video_attachment">视频附件</string>
-    <string name="description_delete_image_attachment">删除该图片附件</string>
+    <string name="cd_image_attachment">图片类附件</string>
+    <string name="cd_video_attachment">视频附件</string>
+    <string name="cd_delete_image_attachment">删除该图片附件</string>
 
     <string name="images">张图片</string>
     <string name="videos">个视频</string>
     <string name="audios">段音频</string>
 
-    <string name="description_audio_attachment">录音</string>
-    <string name="description_re_recording_audio">重新录音</string>
-    <string name="description_cancel_recording_audio">取消录音</string>
-    <string name="description_play_audio_attachment">播放音频文件</string>
-    <string name="description_delete_audio_attachment">删除该音频附件</string>
+    <string name="cd_audio_attachment">音频附件</string>
+    <string name="cd_re_recording_audio">重新录音</string>
+    <string name="cd_cancel_recording_audio">取消录音</string>
+    <string name="cd_play_audio_attachment">播放音频文件</string>
+    <string name="cd_delete_audio_attachment">删除该音频附件</string>
     <string name="description_audio_attachment_info">查看该音频附件详细信息</string>
 
     <string name="attachment_info_title">附件详情</string>
@@ -411,8 +412,6 @@
     <string name="support_donate_clip_content">532061865@qq.com</string>
     <string name="success_clipboard">已成功复制到剪贴板</string>
 
-    <string name="content_description_header">头部</string>
-
     <string name="statistic_start_from_part_1">我从</string>
     <string name="statistic_start_from_part_2">开始使用完事儿。在这</string>
     <string name="statistic_start_from_part_3">天里，我完成、创建了：</string>
@@ -485,5 +484,41 @@
     <string name="act_copy_content">复制记事内容</string>
     <string name="act_abandon_new_thing">舍弃</string>
     <string name="sb_abandon_new_thing">新的记事已被舍弃</string>
+    <string name="cd_open_drawer">打开导航抽屉</string>
+    <string name="cd_drawer_header">点击查看详细统计信息，概述：</string>
+    <string name="cd_statistic_header">我的使用情况统计</string>
+    <string name="cd_start_record_audio">开始录音</string>
+    <string name="cd_stop_record_audio">停止录音</string>
+    <string name="cd_save_recorded_audio_file">保存录音文件并返回</string>
+    <string name="cd_chosen_item">已选中，</string>
+    <string name="cd_close_drawer">关闭导航抽屉</string>
+    <string name="cd_help_automatic_reminder">查看自动提醒的帮助信息</string>
+    <string name="cd_not_chosen_item">未选中，</string>
+    <string name="cd_pattern_area">九宫格图案密码区域</string>
+    <string name="cd_back_goal">该记事属于"目标"，返回</string>
+    <string name="cd_back_habit">该记事属于"习惯"，返回</string>
+    <string name="cd_back_note">该记事属于"记录"，返回</string>
+    <string name="cd_back_reminder">该记事属于"提醒"，返回</string>
+    <string name="cd_stop_play_audio_attachment">停止播放音频</string>
+    <string name="cd_play_video_attachment">播放视频文件</string>
+    <string name="cd_pause_play_audio_attachment">暂停音频播放</string>
+    <string name="cd_delete_video_attachment">删除该视频附件</string>
+    <string name="cd_checklist_finished_item">已完成的清单项</string>
+    <string name="cd_checklist_finished_item_clickable">已完成的清单项，点击取消完成</string>
+    <string name="cd_checklist_finished_items">下面是所有已完成的清单项</string>
+    <string name="cd_checklist_more_items">更多的清单项</string>
+    <string name="cd_checklist_move">点击并拖拽即可移动该清单项</string>
+    <string name="cd_checklist_unfinished_item">未完成的清单项</string>
+    <string name="cd_checklist_unfinished_item_clickable">未完成的清单项，点击以完成</string>
+    <string name="cd_delete_reminder_time_day_rec">删除该提醒时刻</string>
+    <string name="cd_reminder_time">提醒时刻</string>
+    <string name="cd_habit_finished">完成</string>
+    <string name="cd_habit_unfinished">未完成</string>
+    <string name="cd_habit_unknown">未知</string>
+    <string name="cd_quit_searching">离开搜索界面</string>
+    <string name="cd_picked">已选中，</string>
+    <string name="cd_unpicked">未选中，</string>
+    <string name="private_thing">私密记事</string>
+    <string name="day_hao">号</string>
 
 </resources>

@@ -27,6 +27,8 @@ public class HelpActivity extends EverythingDoneBaseActivity {
 
     private HelpDetailFragment mHelpDetailFragment;
 
+    private RecyclerView mRecyclerView;
+
     @Override
     protected int getLayoutResource() {
         return R.layout.activity_help;
@@ -65,16 +67,16 @@ public class HelpActivity extends EverythingDoneBaseActivity {
         DisplayUtil.expandStatusBarAboveKitkat(f(R.id.view_status_bar));
         DisplayUtil.darkStatusBar(this);
 
-        final RecyclerView rv = f(R.id.rv_help);
-        rv.setAdapter(new HelpAdapter());
-        rv.setLayoutManager(new LinearLayoutManager(this));
+        mRecyclerView = f(R.id.rv_help);
+        mRecyclerView.setAdapter(new HelpAdapter());
+        mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
 
-        rv.addOnScrollListener(new RecyclerView.OnScrollListener() {
+        mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
             final int color = ContextCompat.getColor(HelpActivity.this, R.color.blue_deep);
             @Override
             public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
                 super.onScrollStateChanged(recyclerView, newState);
-                EdgeEffectUtil.forRecyclerView(rv, color);
+                EdgeEffectUtil.forRecyclerView(mRecyclerView, color);
             }
         });
     }
@@ -108,6 +110,15 @@ public class HelpActivity extends EverythingDoneBaseActivity {
         ActionBar actionBar = getSupportActionBar();
         if (actionBar != null) {
             actionBar.setTitle(toDetail ? R.string.help_detail : R.string.help);
+        }
+    }
+
+    // Used to make the RecyclerView not focusable in talkback mode
+    public void setRecyclerViewFocusable(boolean focusable) {
+        if (focusable) {
+            mRecyclerView.setVisibility(View.VISIBLE);
+        } else {
+            mRecyclerView.setVisibility(View.GONE);
         }
     }
 

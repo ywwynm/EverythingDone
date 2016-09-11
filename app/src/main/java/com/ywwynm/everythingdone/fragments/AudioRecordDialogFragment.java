@@ -160,17 +160,13 @@ public class AudioRecordDialogFragment extends BaseDialogFragment {
             public void onClick(View v) {
                 if (mState == PREPARED) {
                     mRecorder.startRecording();
-
                     preparedToRecording();
-
                     mState = RECORDING;
                 } else if (mState == RECORDING) {
                     mRecorder.stopListening(true);
                     mFileToSave = mRecorder.getSavedFile();
                     mRecorder.startListening();
-
                     recordingToStopped();
-
                     mState = STOPPED;
                 } else {
                     saveFileAndLeave();
@@ -182,12 +178,9 @@ public class AudioRecordDialogFragment extends BaseDialogFragment {
             @Override
             public void onClick(View v) {
                 FileUtil.deleteFile(mFileToSave.getAbsolutePath());
-
                 mRecorder.stopListening(false);
                 mRecorder.startListening();
-
                 stoppedToPrepared();
-
                 mState = PREPARED;
             }
         });
@@ -208,6 +201,8 @@ public class AudioRecordDialogFragment extends BaseDialogFragment {
         mVisualizer.animate().alpha(1.0f).setDuration(ANIM_DURATION);
         mBase.animate().alpha(1.0f).setDuration(ANIM_DURATION);
         mFabMain.setImageResource(R.drawable.act_stop_recording_audio);
+
+        mFabMain.setContentDescription(getString(R.string.cd_stop_record_audio));
     }
 
     private void recordingToStopped() {
@@ -229,6 +224,8 @@ public class AudioRecordDialogFragment extends BaseDialogFragment {
         mIvCancelRecording.setClickable(true);
         mIvReRecording.animate().alpha(1.0f).setDuration(ANIM_DURATION);
         mIvCancelRecording.animate().alpha(1.0f).setDuration(ANIM_DURATION);
+
+        mFabMain.setContentDescription(getString(R.string.cd_save_recorded_audio_file));
     }
 
     private void stoppedToPrepared() {
@@ -244,6 +241,8 @@ public class AudioRecordDialogFragment extends BaseDialogFragment {
         mIvCancelRecording.setClickable(false);
         mIvReRecording.animate().alpha(0).setDuration(ANIM_DURATION >> 4);
         mIvCancelRecording.animate().alpha(0).setDuration(ANIM_DURATION >> 4);
+
+        mFabMain.setContentDescription(getString(R.string.cd_start_record_audio));
     }
 
     private void saveFileAndLeave() {

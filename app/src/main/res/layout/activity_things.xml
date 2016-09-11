@@ -84,6 +84,7 @@
                 android:layout_margin="@dimen/fab_margin"
                 android:scaleType="center"
                 android:src="@drawable/act_create"
+                android:contentDescription="@string/title_create_thing"
                 app:fabSize="normal"
                 app:elevation="6dp"
                 app:borderWidth="0dp"

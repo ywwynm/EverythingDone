@@ -11,7 +11,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:scaleType="centerCrop"
-        android:contentDescription="@string/description_image_attachment"/>
+        android:contentDescription="@string/cd_image_attachment"/>
 
     <ImageView
         android:id="@+id/iv_video_signal"
@@ -19,7 +19,7 @@
         android:layout_height="40dp"
         android:layout_gravity="center"
         android:src="@drawable/ic_video_signal"
-        android:contentDescription="@string/description_video_attachment"
+        android:contentDescription="@string/cd_video_attachment"
         android:alpha="0.86"
         android:visibility="gone"/>
 
@@ -30,7 +30,7 @@
         android:scaleType="center"
         android:layout_gravity="bottom|end"
         android:src="@drawable/delete_image_checklist"
-        android:contentDescription="@string/description_delete_image_attachment"
+        android:contentDescription="@string/cd_delete_image_attachment"
         android:background="@drawable/selectable_item_background_light"/>
 
     <ProgressBar

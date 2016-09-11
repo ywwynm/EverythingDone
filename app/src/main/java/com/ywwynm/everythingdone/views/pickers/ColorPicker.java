@@ -33,6 +33,7 @@ public class ColorPicker extends PopupPicker {
     public static final String TAG = "ColorPicker";
 
     private int[] mColors;
+    private String[] mColorsNames;
 
     private int mType;
     private View.OnClickListener mOnClickListener;
@@ -42,6 +43,7 @@ public class ColorPicker extends PopupPicker {
     public ColorPicker(Activity activity, View parent, int type) {
         super(activity, parent, R.style.ColorPickerAnimation);
         mColors = activity.getResources().getIntArray(R.array.thing);
+        mColorsNames = activity.getResources().getStringArray(R.array.thing_colors_names);
         mType = type;
         ViewGroup.LayoutParams params = mRecyclerView.getLayoutParams();
         params.width = (int) (mScreenDensity * 128);
@@ -160,9 +162,13 @@ public class ColorPicker extends PopupPicker {
                     if (mPickedPosition == 0) {
                         holder.bt.setCompoundDrawablesWithIntrinsicBounds(
                                 R.drawable.ic_checkbox_checked, 0, 0, 0);
+                        holder.bt.setContentDescription(
+                                mActivity.getString(R.string.cd_picked) + holder.bt.getText() + ",");
                     } else {
                         holder.bt.setCompoundDrawablesWithIntrinsicBounds(
                                 R.drawable.ic_checkbox_unchecked, 0, 0, 0);
+                        holder.bt.setContentDescription(
+                                mActivity.getString(R.string.cd_unpicked) + holder.bt.getText() + ",");
                     }
                     holder.bt.setClickable(mPickedPosition != 0);
                 } else {
@@ -179,9 +185,14 @@ public class ColorPicker extends PopupPicker {
             holder.fab.setBackgroundTintList(ColorStateList.valueOf(mColors[index]));
             setFabMargin(holder.fab, index);
             if (mPickedPosition == position) {
-                holder.fab.setImageDrawable(ContextCompat.getDrawable(ColorPicker.this.mActivity, R.drawable.ic_color_picked));
+                holder.fab.setImageDrawable(ContextCompat.getDrawable(
+                        mActivity, R.drawable.ic_color_picked));
+                holder.fab.setContentDescription(
+                        mActivity.getString(R.string.cd_picked) + mColorsNames[index] + ",");
             } else {
                 holder.fab.setImageDrawable(null);
+                holder.fab.setContentDescription(
+                        mActivity.getString(R.string.cd_unpicked) + mColorsNames[index] + ",");
             }
             holder.fab.setClickable(mPickedPosition != position);
         }

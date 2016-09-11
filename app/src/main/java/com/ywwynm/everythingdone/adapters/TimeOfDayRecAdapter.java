@@ -119,6 +119,8 @@ public class TimeOfDayRecAdapter extends RecyclerView.Adapter<BaseViewHolder> {
             DisplayUtil.tintView(holder.etHour, black_26p);
             DisplayUtil.tintView(holder.etMinute, black_26p);
             holder.ivReminder.setImageResource(mIcons[position]);
+            holder.ivReminder.setContentDescription(
+                    mContext.getString(R.string.cd_reminder_time) + (position + 1));
             int hour = mItems.get(2 * position);
             if (hour == -1) {
                 holder.etHour.setText("");

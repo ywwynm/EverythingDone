@@ -39,7 +39,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_below="@id/view_reminder_separator"
-                android:contentDescription="@string/description_time"/>
+                tools:ignore="ContentDescription"/>
 
             <TextView
                 android:id="@+id/tv_thing_reminder_time"
@@ -75,7 +75,7 @@
                 android:layout_marginTop="6dp"
                 android:layout_below="@id/view_habit_separator_1"
                 android:src="@drawable/card_habit"
-                android:contentDescription="@string/description_time"/>
+                android:contentDescription="@string/habit"/>
 
             <TextView
                 android:id="@+id/tv_thing_habit_summary"
@@ -154,6 +154,7 @@
                 android:background="@drawable/dashed_line_card"
                 android:layerType="software"/>
 
+            <!--content description will be set in java-->
             <ImageView
                 android:id="@+id/iv_thing_state"
                 android:layout_width="wrap_content"
@@ -185,7 +186,6 @@
             android:visibility="gone">
 
             <TextView
-                android:id="@+id/view_action_separator"
                 android:layout_width="match_parent"
                 android:layout_height="2dp"
                 android:layout_marginBottom="8dp"
@@ -214,7 +214,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:adjustViewBounds="true"
-            android:contentDescription="@string/description_image_attachment"
+            android:contentDescription="@string/image_or_video_attachment"
             android:visibility="gone"/>
 
         <TextView
@@ -275,7 +275,7 @@
             android:layout_marginTop="16dp"
             android:layout_gravity="center"
             android:src="@drawable/ic_locked_big"
-            tools:ignore="ContentDescription"
+            android:contentDescription="@string/private_thing"
             android:visibility="gone"/>
 
         <TextView
@@ -315,7 +315,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_vertical"
-                android:contentDescription="@string/description_audio_attachment"
+                android:contentDescription="@string/cd_audio_attachment"
                 android:src="@drawable/card_audio_attachment"/>
 
             <TextView

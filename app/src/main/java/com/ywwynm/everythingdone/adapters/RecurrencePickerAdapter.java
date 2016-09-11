@@ -37,7 +37,11 @@ public class RecurrencePickerAdapter extends MultiChoiceAdapter {
 
     private int mType;
 
+    private String mCdPicked;
+    private String mCdUnpicked;
+
     private String[] mItems;
+    private String[] mCds; // content descriptions
 
     private int mAccentColor;
 
@@ -55,8 +59,12 @@ public class RecurrencePickerAdapter extends MultiChoiceAdapter {
 
         mType = type;
 
+        mCdPicked = mContext.getString(R.string.cd_picked);
+        mCdUnpicked = mContext.getString(R.string.cd_unpicked);
+
         if (type == Def.PickerType.DAY_OF_WEEK) {
             mItems = context.getResources().getStringArray(R.array.day_of_week); // 周日, Sunday
+            mCds = context.getResources().getStringArray(R.array.day_of_week);
             if (LocaleUtil.isChinese(context)) {
                 for (int i = 0; i < mItems.length; i++) {
                     mItems[i] = mItems[i].substring(1, 2);
@@ -68,12 +76,25 @@ public class RecurrencePickerAdapter extends MultiChoiceAdapter {
             }
         } else if (type == Def.PickerType.DAY_OF_MONTH) {
             mItems = new String[28];
+            mCds = new String[28];
             for (int i = 0; i < 27; i++) {
                 mItems[i] = String.valueOf(i + 1);
             }
+            String day = mContext.getString(R.string.day_hao);
+            if (LocaleUtil.isChinese(mContext)) {
+                for (int i = 0; i < 27; i++) {
+                    mCds[i] = String.valueOf(i + 1) + day;
+                }
+            } else {
+                for (int i = 0; i < 27; i++) {
+                    mCds[i] = day + String.valueOf(i + 1);
+                }
+            }
             mItems[27] = context.getString(R.string.end_of_month);
+            mCds[27] = mItems[27];
         } else {
             mItems = context.getResources().getStringArray(R.array.month_of_year);
+            mCds = context.getResources().getStringArray(R.array.month_of_year);
             if (!LocaleUtil.isChinese(context)) {
                 for (int i = 0; i < mItems.length; i++) {
                     mItems[i] = mItems[i].substring(0, 3);
@@ -105,10 +126,12 @@ public class RecurrencePickerAdapter extends MultiChoiceAdapter {
             EndOfMonthViewHolder holder = (EndOfMonthViewHolder) viewHolder;
             if (mPicked[position]) {
                 holder.cv.setCardBackgroundColor(mAccentColor);
+                holder.cv.setContentDescription(mCdPicked + mCds[position] + ",");
                 DisplayUtil.setRippleColorForCardView(holder.cv, unPickerColor);
                 holder.tv.setTextColor(Color.WHITE);
             } else {
                 holder.cv.setCardBackgroundColor(unPickerColor);
+                holder.cv.setContentDescription(mCdUnpicked + mCds[position] + ",");
                 DisplayUtil.setRippleColorForCardView(holder.cv, mAccentColor);
                 holder.tv.setTextColor(black_54);
             }
@@ -124,12 +147,16 @@ public class RecurrencePickerAdapter extends MultiChoiceAdapter {
                 holder.fab.setBackgroundTintList(ColorStateList.valueOf(mAccentColor));
                 holder.fab.setRippleColor(unPickerColor);
                 holder.tvDate.setTextColor(Color.WHITE);
+                holder.fab.setContentDescription(mCdPicked + mCds[position] + ",");
             } else {
                 holder.fab.setBackgroundTintList(ColorStateList.valueOf(unPickerColor));
                 holder.fab.setRippleColor(mAccentColor);
                 holder.tvDate.setTextColor(black_54);
+                holder.fab.setContentDescription(mCdUnpicked + mCds[position] + ",");
             }
         }
+        viewHolder.itemView.setContentDescription(
+                (mPicked[position] ? mCdPicked : mCdUnpicked) + mCds[position] + ",");
     }
 
     @Override

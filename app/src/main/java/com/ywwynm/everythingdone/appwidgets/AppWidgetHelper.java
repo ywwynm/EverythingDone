@@ -340,10 +340,14 @@ public class AppWidgetHelper {
         String text = item.substring(1, item.length());
         if (state == '0') {
             rv.setImageViewResource(IV_STATE_CHECK_LIST, R.drawable.checklist_unchecked_card);
+            rv.setContentDescription(IV_STATE_CHECK_LIST,
+                    context.getString(R.string.cd_checklist_unfinished_item));
             rv.setTextColor(TV_CONTENT_CHECK_LIST, white_76);
             rv.setTextViewText(TV_CONTENT_CHECK_LIST, text);
         } else if (state == '1') {
             rv.setImageViewResource(IV_STATE_CHECK_LIST, R.drawable.checklist_checked_card);
+            rv.setContentDescription(IV_STATE_CHECK_LIST,
+                    context.getString(R.string.cd_checklist_finished_item));
             rv.setTextColor(TV_CONTENT_CHECK_LIST, white_50);
             SpannableString spannable = new SpannableString(text);
             spannable.setSpan(new StrikethroughSpan(), 0, text.length(),
@@ -568,6 +572,8 @@ public class AppWidgetHelper {
             RemoteViews rvItem = new RemoteViews(context.getPackageName(), R.layout.check_list_tv);
             rvItem.setViewVisibility(IV_STATE_CHECK_LIST, View.GONE);
             rvItem.setTextViewText(TV_CONTENT_CHECK_LIST, "...");
+            rvItem.setContentDescription(TV_CONTENT_CHECK_LIST,
+                    context.getString(R.string.cd_checklist_more_items));
             rvItem.setTextViewTextSize(TV_CONTENT_CHECK_LIST, TypedValue.COMPLEX_UNIT_SP, 18);
             rvItem.setViewPadding(TV_CONTENT_CHECK_LIST, 0, (int) (-4 * screenDensity), 0, 0);
             remoteViews.addView(LL_CHECK_LIST_ITEMS, rvItem);
@@ -601,10 +607,12 @@ public class AppWidgetHelper {
         remoteViews.setTextViewText(TV_THING_STATE, Thing.getStateStr(state, context));
         if (state == Thing.FINISHED) {
             remoteViews.setImageViewResource(IV_THING_STATE, R.drawable.ic_finished_widget);
+            remoteViews.setContentDescription(IV_THING_STATE, context.getString(R.string.finished));
             remoteViews.setViewPadding(IV_THING_STATE, 0, (int) (screenDensity * 2.5),
                     (int) (screenDensity * 12), 0);
         } else if (state == Thing.DELETED) {
             remoteViews.setImageViewResource(IV_THING_STATE, R.drawable.ic_deleted_widget);
+            remoteViews.setContentDescription(IV_THING_STATE, context.getString(R.string.deleted));
             remoteViews.setViewPadding(IV_THING_STATE, 0, (int) (screenDensity * 1.5),
                     (int) (screenDensity * 12), 0);
         }
@@ -671,6 +679,7 @@ public class AppWidgetHelper {
         if (thingType == Thing.REMINDER) {
             remoteViews.setViewPadding(IV_REMINDER, 0, (int) (screenDensity * 2), 0, 0);
             remoteViews.setImageViewResource(IV_REMINDER, R.drawable.card_reminder);
+            remoteViews.setContentDescription(IV_REMINDER, context.getString(R.string.reminder));
             remoteViews.setTextViewTextSize(TV_REMINDER_TIME, TypedValue.COMPLEX_UNIT_SP, 12);
 
             String timeStr = DateTimeUtil.getDateTimeStrAt(notifyTime, context, false);
@@ -685,6 +694,7 @@ public class AppWidgetHelper {
         } else {
             remoteViews.setViewPadding(IV_REMINDER, 0, (int) (screenDensity * 1.6), 0, 0);
             remoteViews.setImageViewResource(IV_REMINDER, R.drawable.card_goal);
+            remoteViews.setContentDescription(IV_REMINDER, context.getString(R.string.goal));
             remoteViews.setTextViewTextSize(TV_REMINDER_TIME, TypedValue.COMPLEX_UNIT_SP, 16);
 
             if (thingState == Reminder.UNDERWAY && state == Reminder.UNDERWAY) {
@@ -733,7 +743,7 @@ public class AppWidgetHelper {
                     lastFive.append("?");
                 }
             }
-            setHabitLastFive(remoteViews, lastFive.toString());
+            setHabitLastFive(remoteViews, context, lastFive.toString());
 
             remoteViews.setTextViewText(TV_HABIT_FINISHED_THIS_T,
                     habit.getFinishedTimesThisTStr(context));
@@ -748,7 +758,7 @@ public class AppWidgetHelper {
         remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);
     }
 
-    private static void setHabitLastFive(RemoteViews remoteViews, String lastFive) {
+    private static void setHabitLastFive(RemoteViews remoteViews, Context context, String lastFive) {
         int[] ids = {
                 R.id.iv_thing_habit_record_1,
                 R.id.iv_thing_habit_record_2,
@@ -760,10 +770,16 @@ public class AppWidgetHelper {
         for (int i = 0; i < states.length; i++) {
             if (states[i] == '0') {
                 remoteViews.setImageViewResource(ids[i], R.drawable.card_habit_unfinished);
+                remoteViews.setContentDescription(ids[i],
+                        context.getString(R.string.cd_habit_unfinished));
             } else if (states[i] == '1') {
                 remoteViews.setImageViewResource(ids[i], R.drawable.card_habit_finished);
+                remoteViews.setContentDescription(ids[i],
+                        context.getString(R.string.cd_habit_finished));
             } else {
                 remoteViews.setImageViewResource(ids[i], R.drawable.card_habit_unknown);
+                remoteViews.setContentDescription(ids[i],
+                        context.getString(R.string.cd_habit_unknown));
             }
         }
     }

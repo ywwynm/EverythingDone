@@ -35,6 +35,7 @@
         android:layout_marginTop="4dp"
         android:layout_marginBottom="12dp"
         android:layout_gravity="center_horizontal"
+        android:contentDescription="@string/cd_pattern_area"
         xmlns:app="http://schemas.android.com/apk/res-auto"
         app:wrongColor="@color/error"/>
 

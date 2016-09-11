@@ -176,7 +176,7 @@ public class SystemNotificationUtil {
                 .setOngoing(true)
                 .setPriority(NotificationCompat.PRIORITY_MIN) /* don't show icon in status bar */
                 .setColor(color)
-                .setContentTitle(context.getString(R.string.app_name))
+                .setContentTitle(context.getString(R.string.everythingdone))
                 .setContentText(context.getString(R.string.title_create_thing))
                 .setContentIntent(contentPendingIntent)
                 .setSmallIcon(R.drawable.act_create_white);

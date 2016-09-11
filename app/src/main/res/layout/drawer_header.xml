@@ -11,7 +11,7 @@
         android:layout_height="wrap_content"
         android:adjustViewBounds="true"
         android:scaleType="centerCrop"
-        android:contentDescription="@string/app_name"/>
+        android:contentDescription="@string/cd_drawer_header"/>
 
     <RelativeLayout
         android:layout_width="match_parent"

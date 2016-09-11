@@ -47,7 +47,7 @@
             android:id="@+id/iv_card_audio_first"
             android:layout_width="36dp"
             android:layout_height="match_parent"
-            android:contentDescription="@string/description_play_audio_attachment"
+            android:contentDescription="@string/cd_play_audio_attachment"
             android:scaleType="center"
             android:background="@drawable/selectable_item_background"/>
 
@@ -55,7 +55,7 @@
             android:id="@+id/iv_card_audio_second"
             android:layout_width="36dp"
             android:layout_height="match_parent"
-            android:contentDescription="@string/description_delete_audio_attachment"
+            android:contentDescription="@string/cd_delete_audio_attachment"
             android:scaleType="center"
             android:background="@drawable/selectable_item_background"/>
 

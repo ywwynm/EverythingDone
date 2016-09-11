@@ -372,7 +372,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             if (bmd != null) {
                 Bitmap bm = bmd.getBitmap();
                 setTaskDescription(new ActivityManager.TaskDescription(
-                        getString(R.string.app_name), bm,
+                        getString(R.string.everythingdone), bm,
                         ContextCompat.getColor(this, R.color.bg_activity_things)));
             }
         }
@@ -1334,7 +1334,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     private void setDrawer() {
         mDrawerHeader.updateTexts();
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this, mDrawerLayout,
-                R.string.app_name, R.string.app_name) {
+                R.string.cd_open_drawer, R.string.cd_close_drawer) {
             @Override
             public void onDrawerOpened(View drawerView) {
                 super.onDrawerOpened(drawerView);
@@ -1702,6 +1702,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         dismissSnackbars();
         final boolean toNormal = App.isSearching;
         if (toNormal) {
+            mActionbar.setNavigationContentDescription(R.string.cd_open_drawer);
             mDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
             mViewInsideActionbar.setVisibility(View.VISIBLE);
             mColorPicker.pickForUI(-1);
@@ -1740,6 +1741,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 DisplayUtil.playDrawerToggleAnim((DrawerArrowDrawable) mActionbar.getNavigationIcon());
             }
         } else {
+            mActionbar.setNavigationContentDescription(R.string.cd_quit_searching);
             mDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
             mViewInsideActionbar.setVisibility(View.GONE);
             mEtSearch.setEnabled(true);

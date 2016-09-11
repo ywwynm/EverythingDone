@@ -197,6 +197,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
             if (thingType == Thing.REMINDER) {
                 params.setMargins(0, (int) (mScreenDensity * 2), 0, 0);
                 holder.ivReminder.setImageResource(R.drawable.card_reminder);
+                holder.ivReminder.setContentDescription(mContext.getString(R.string.reminder));
                 holder.tvReminderTime.setTextSize(12);
 
                 String timeStr = DateTimeUtil.getDateTimeStrAt(notifyTime, mContext, false);
@@ -210,6 +211,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
             } else {
                 params.setMargins(0, (int) (mScreenDensity * 1.6), 0, 0);
                 holder.ivReminder.setImageResource(R.drawable.card_goal);
+                holder.ivReminder.setContentDescription(mContext.getString(R.string.goal));
                 holder.tvReminderTime.setTextSize(16);
 
                 if (thingState == Reminder.UNDERWAY && state == Reminder.UNDERWAY) {

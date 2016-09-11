@@ -94,8 +94,16 @@ public class ImageAttachmentAdapter extends RecyclerView.Adapter<ImageAttachment
 
         int type = typePathName.charAt(0) == '0' ? IMAGE : VIDEO;
         if (type == IMAGE) {
+            holder.ivImage.setContentDescription(
+                    mContext.getString(R.string.cd_image_attachment));
+            holder.ivDelete.setContentDescription(
+                    mContext.getString(R.string.cd_delete_image_attachment));
             holder.ivVideoSignal.setVisibility(View.GONE);
         } else {
+            holder.ivImage.setContentDescription(
+                    mContext.getString(R.string.cd_video_attachment));
+            holder.ivDelete.setContentDescription(
+                    mContext.getString(R.string.cd_delete_video_attachment));
             holder.ivVideoSignal.setVisibility(View.VISIBLE);
         }
 

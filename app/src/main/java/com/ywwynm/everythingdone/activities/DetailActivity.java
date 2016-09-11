@@ -20,6 +20,7 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.os.Build;
 import android.support.annotation.StringRes;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.ActivityOptionsCompat;
@@ -580,12 +581,16 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
         if (thingType == Thing.REMINDER || thingType == Thing.WELCOME_REMINDER) {
             mIbBack.setImageResource(R.drawable.act_back_reminder);
+            mIbBack.setContentDescription(getString(R.string.cd_back_reminder));
         } else if (thingType == Thing.HABIT || thingType == Thing.WELCOME_HABIT) {
             mIbBack.setImageResource(R.drawable.act_back_habit);
+            mIbBack.setContentDescription(getString(R.string.cd_back_habit));
         } else if (thingType == Thing.GOAL || thingType == Thing.WELCOME_GOAL) {
             mIbBack.setImageResource(R.drawable.act_back_goal);
+            mIbBack.setContentDescription(getString(R.string.cd_back_goal));
         } else {
             mIbBack.setImageResource(R.drawable.act_back_note);
+            mIbBack.setContentDescription(getString(R.string.cd_back_note));
         }
 
         mFlRoot.setBackgroundColor(color);
@@ -747,9 +752,11 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                     params.setMargins(0, params.topMargin, 0, 0);
                 }
             }
+            cbQuickRemind.setContentDescription(
+                    getString(R.string.remind_me) + tvQuickRemind.getText());
         }
 
-        updateTaskDescription(mThing.getColor());
+        updateDescriptions(mThing.getColor());
     }
 
     @Override
@@ -837,16 +844,27 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             @Override
             public void onClick(View v) {
                 boolean isDragging = mCheckListAdapter.isDragging();
+                boolean above17 = Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1;
                 if (!isDragging) {
                     mTvMoveChecklistAsBt.setText(R.string.act_back_from_move_checklist);
-                    mTvMoveChecklistAsBt.setCompoundDrawablesRelativeWithIntrinsicBounds(
-                            R.drawable.act_back_from_move_checklist, 0, 0, 0);
+                    if (above17) {
+                        mTvMoveChecklistAsBt.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                                R.drawable.act_back_from_move_checklist, 0, 0, 0);
+                    } else {
+                        mTvMoveChecklistAsBt.setCompoundDrawablesWithIntrinsicBounds(
+                                R.drawable.act_back_from_move_checklist, 0, 0, 0);
+                    }
                     mCheckListAdapter.setDragging(true);
                     mChecklistTouchHelper.attachToRecyclerView(mRvCheckList);
                 } else {
                     mTvMoveChecklistAsBt.setText(R.string.act_move_check_list);
-                    mTvMoveChecklistAsBt.setCompoundDrawablesRelativeWithIntrinsicBounds(
-                            R.drawable.act_move_checklist, 0, 0, 0);
+                    if (above17) {
+                        mTvMoveChecklistAsBt.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                                R.drawable.act_move_checklist, 0, 0, 0);
+                    } else {
+                        mTvMoveChecklistAsBt.setCompoundDrawablesWithIntrinsicBounds(
+                                R.drawable.act_move_checklist, 0, 0, 0);
+                    }
                     mCheckListAdapter.setDragging(false);
                     mChecklistTouchHelper.attachToRecyclerView(null);
                 }
@@ -863,22 +881,23 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         });
     }
 
-    public void updateTaskDescription(int color) {
-        if (DeviceUtil.hasLollipopApi()) {
-            String title;
-            if (mType == CREATE) {
-                title = getString(R.string.title_create_thing);
+    public void updateDescriptions(int color) {
+        String title;
+        if (mType == CREATE) {
+            title = getString(R.string.title_create_thing);
+        } else {
+            if (mEditable) {
+                title = getString(R.string.title_edit_thing);
             } else {
-                if (mEditable) {
-                    title = getString(R.string.title_edit_thing);
-                } else {
-                    title = "";
-                }
-                if (!LocaleUtil.isChinese(mApp)) {
-                    title += " ";
-                }
-                title += Thing.getTypeStr(getThingTypeAfter(), mApp);
+                title = "";
             }
+            if (!LocaleUtil.isChinese(mApp)) {
+                title += " ";
+            }
+            title += Thing.getTypeStr(getThingTypeAfter(), mApp);
+        }
+        mFlRoot.setContentDescription(title);
+        if (DeviceUtil.hasLollipopApi()) {
             BitmapDrawable bmd = (BitmapDrawable) getDrawable(R.mipmap.ic_launcher);
             if (bmd != null) {
                 Bitmap bm = bmd.getBitmap();
@@ -1376,7 +1395,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             int pickedAfter = action.getExtras().getInt(ThingAction.KEY_PICKED_AFTER);
             quickRemindPicker.pickForUI(pickedAfter);
         }
-        updateTaskDescription(getAccentColor());
+        updateDescriptions(getAccentColor());
         updateBackImage();
     }
 
@@ -1910,7 +1929,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         ObjectAnimator.ofObject(mFlRoot, "backgroundColor",
                 new ArgbEvaluator(), colorFrom, colorTo).setDuration(600).start();
 
-        updateTaskDescription(colorTo);
+        updateDescriptions(colorTo);
 
         colorFrom = ((ColorDrawable) mActionbar.getBackground()).getColor();
         int alpha = Color.alpha(colorFrom);
@@ -1937,8 +1956,10 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         cbQuickRemind.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                updateTaskDescription(getAccentColor());
+                updateDescriptions(getAccentColor());
                 updateBackImage();
+                cbQuickRemind.setContentDescription(
+                        getString(R.string.remind_me) + tvQuickRemind.getText());
                 if (shouldAddToActionList) {
                     mActionList.addAction(new ThingAction(
                             ThingAction.TOGGLE_REMINDER_OR_HABIT, null, null));
@@ -1967,7 +1988,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                     rhParams.reset();
                     rhParams.setReminderAfterTime(quickRemindPicker.getPickedTimeAfter());
                     if (cbQuickRemind.isChecked()) {
-                        updateTaskDescription(getAccentColor());
+                        updateDescriptions(getAccentColor());
                         updateBackImage();
                     } else {
                         boolean temp = shouldAddToActionList;
@@ -2015,6 +2036,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                     @Override
                     public void onCancel() {
                         mIbBack.setImageResource(R.drawable.act_back_habit);
+                        mIbBack.setContentDescription(getString(R.string.cd_back_habit));
                         cbQuickRemind.setChecked(true);
                         quickRemindPicker.pickForUI(9);
                         rhParams.reset();
@@ -2034,6 +2056,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                     @Override
                     public void onCancel() {
                         mIbBack.setImageResource(R.drawable.act_back_goal);
+                        mIbBack.setContentDescription(getString(R.string.cd_back_goal));
                         cbQuickRemind.setChecked(true);
                         quickRemindPicker.pickForUI(9);
                         rhParams.reset();
@@ -2461,24 +2484,31 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         if (cbQuickRemind.isChecked()) {
             if (rhParams.getHabitDetail() != null) {
                 mIbBack.setImageResource(R.drawable.act_back_habit);
+                mIbBack.setContentDescription(getString(R.string.cd_back_habit));
             } else {
                 if (Reminder.getType(rhParams.getReminderTime(),
                         System.currentTimeMillis()) == Thing.GOAL) {
                     mIbBack.setImageResource(R.drawable.act_back_goal);
+                    mIbBack.setContentDescription(getString(R.string.cd_back_goal));
                 } else {
                     mIbBack.setImageResource(R.drawable.act_back_reminder);
+                    mIbBack.setContentDescription(getString(R.string.cd_back_reminder));
                 }
             }
         } else {
             int thingType = mThing.getType();
             if (Thing.isTypeReminder(thingType)) {
                 mIbBack.setImageResource(R.drawable.act_back_reminder);
+                mIbBack.setContentDescription(getString(R.string.cd_back_reminder));
             } else if (Thing.isTypeHabit(thingType)) {
                 mIbBack.setImageResource(R.drawable.act_back_habit);
+                mIbBack.setContentDescription(getString(R.string.cd_back_habit));
             } else if (Thing.isTypeGoal(thingType)) {
                 mIbBack.setImageResource(R.drawable.act_back_goal);
+                mIbBack.setContentDescription(getString(R.string.cd_back_goal));
             } else {
                 mIbBack.setImageResource(R.drawable.act_back_note);
+                mIbBack.setContentDescription(getString(R.string.cd_back_note));
             }
         }
     }

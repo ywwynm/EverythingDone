@@ -124,8 +124,10 @@ public class ImageViewerActivity extends EverythingDoneBaseActivity {
             attacher.setScaleLevels(1.0f, 3.0f, 6.0f);
 
             if (type == 0) {
+                iv.setContentDescription(getString(R.string.cd_image_attachment));
                 videoSignal.setVisibility(View.GONE);
             } else {
+                iv.setContentDescription(getString(R.string.cd_video_attachment));
                 videoSignal.setVisibility(View.VISIBLE);
             }
 

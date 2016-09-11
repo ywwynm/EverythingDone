@@ -27,7 +27,7 @@
                     android:id="@+id/iv_header_statistic"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:contentDescription="@string/content_description_header"
+                    android:contentDescription="@string/cd_statistic_header"
                     android:scaleType="centerCrop"
                     android:adjustViewBounds="true"/>
 
@@ -43,6 +43,7 @@
                 android:layout_gravity="end"
                 android:layout_marginEnd="@dimen/fab_margin"
                 android:layout_marginRight="@dimen/fab_margin"
+                android:contentDescription="@string/share_statistic"
                 app:rippleColor="@color/white_54p"
                 app:backgroundTint="@color/app_pink"
                 app:elevation="6dp"

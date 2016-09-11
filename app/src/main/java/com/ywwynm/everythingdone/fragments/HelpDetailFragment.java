@@ -44,6 +44,7 @@ public class HelpDetailFragment extends Fragment {
 
         HelpActivity activity = (HelpActivity) getActivity();
         activity.updateActionBarTitle(true);
+        activity.setRecyclerViewFocusable(false);
 
         Bundle args = getArguments();
         String[] titles   = args.getStringArray(Def.Communication.KEY_HELP_TITLES);
@@ -82,6 +83,7 @@ public class HelpDetailFragment extends Fragment {
         super.onDestroyView();
         HelpActivity helpActivity = (HelpActivity) getActivity();
         helpActivity.updateActionBarTitle(false);
+        helpActivity.setRecyclerViewFocusable(true);
     }
 
     static class HelpDetailPagerAdapter extends PagerAdapter {

@@ -1,7 +1,7 @@
 <resources
     xmlns:tools="http://schemas.android.com/tools"
     tools:ignore="TypographyEllipsis">
-    <string name="app_name">完事兒</string>
+    <string name="everythingdone">完事兒</string>
 
     <!--titles of Activities-->
     <string name="title_activity_things_all">所有記事</string>
@@ -14,11 +14,19 @@
     <string name="reminder">提醒</string>
     <string name="habit">習慣</string>
     <string name="goal">目標</string>
-    <string name="other">其它</string>
     <string name="finished">已完成</string>
     <string name="deleted">已删除</string>
     <string name="settings">設定</string>
     <string name="about">關於</string>
+
+    <string name="blue_grey_500">藍灰色</string>
+    <string name="my_cyan">淺青色</string>
+    <string name="blue_grey_deep_blue">深灰藍</string>
+    <string name="blue_grey_deep_grey">深灰色</string>
+    <string name="brown">棕色</string>
+    <string name="blue_deep">深藍色</string>
+    <string name="pine_green">松綠色</string>
+    <string name="my_purple">紫色</string>
 
     <!--drawer header-->
     <string name="completion_rate_all">所有記事完成率</string>
@@ -163,8 +171,6 @@
     <string name="hours">個小時</string>
     <string name="months">個月</string>
     <string name="weeks">個星期</string>
-    <string name="description_time">時間</string>
-    <string name="description_back">返回</string>
     <string name="reminder_expired">已過期</string>
     <string name="reminder_needless">已無需提醒</string>
     <string name="reminder_reminded">已提醒</string>
@@ -184,8 +190,6 @@
     <string name="hint_new_item">新增項目</string>
     <string name="act_record_audio">錄音</string>
     <string name="act_shoot_video">錄製視頻</string>
-    <string name="attachment">個附件</string>
-    <string name="item">個項目</string>
     <string name="images">張圖片</string>
     <string name="videos">個視頻</string>
     <string name="alert_cancel_goal_content">該操作無法撤銷，完事兒將無法記錄其倒計時，也將無法與閣下一同慶祝它的完成</string>
@@ -246,17 +250,16 @@
     <string name="settings_group_advanced">高級</string>
     <string name="settings_group_ringtone">鈴聲</string>
     <string name="title_activity_about">關於</string>
-    <string name="title_activity_image_viewer">附件</string>
+    <string name="image_or_video_attachment">圖片或視頻附件</string>
     <string name="title_activity_settings">設定</string>
-    <string name="description_audio_attachment">錄音</string>
-    <string name="description_cancel_recording_audio">取消錄音</string>
-    <string name="description_delete_audio_attachment">删除該音訊附件</string>
-    <string name="description_delete_image_attachment">删除該圖片附件</string>
-    <string name="description_habit_record">習慣的完成記錄</string>
-    <string name="description_image_attachment">圖片類附件</string>
-    <string name="description_play_audio_attachment">播放音訊檔案</string>
-    <string name="description_re_recording_audio">重新錄音</string>
-    <string name="description_video_attachment">視頻附件</string>
+    <string name="cd_audio_attachment">音頻附件</string>
+    <string name="cd_cancel_recording_audio">取消錄音</string>
+    <string name="cd_delete_audio_attachment">删除該音訊附件</string>
+    <string name="cd_delete_image_attachment">删除該圖片附件</string>
+    <string name="cd_image_attachment">圖片類附件</string>
+    <string name="cd_play_audio_attachment">播放音訊檔案</string>
+    <string name="cd_re_recording_audio">重新錄音</string>
+    <string name="cd_video_attachment">視頻附件</string>
 
     <string-array name="month_of_year">
         <item>一月</item>
@@ -309,7 +312,6 @@
     <string name="restore_success_content">請等待應用重啟。為確保數據安全，請不要進行其它操作</string>
     <string name="restore_success_title">恢復成功</string>
     <string name="settings_group_data">數據</string>
-    <string name="content_description_header">頭部</string>
     <string name="statistic_start_from_part_1">我從</string>
     <string name="statistic_start_from_part_2">開始使用完事兒，在這</string>
     <string name="statistic_start_from_part_3">天裏，我創建、完成了：</string>
@@ -446,5 +448,41 @@
     <string name="act_copy_content">複製記事內容</string>
     <string name="act_abandon_new_thing">捨棄</string>
     <string name="sb_abandon_new_thing">新的記事已被捨棄</string>
+    <string name="cd_open_drawer">打開導航抽屜</string>
+    <string name="cd_drawer_header">點擊查看詳細統計信息，概述：</string>
+    <string name="cd_statistic_header">我的使用情況統計</string>
+    <string name="cd_start_record_audio">開始錄音</string>
+    <string name="cd_stop_record_audio">停止錄音</string>
+    <string name="cd_save_recorded_audio_file">保存錄音文件並返回</string>
+    <string name="cd_chosen_item">已選中，</string>
+    <string name="cd_close_drawer">關閉導航抽屜</string>
+    <string name="cd_help_automatic_reminder">查看自動提醒的幫助信息</string>
+    <string name="cd_not_chosen_item">未选中，</string>
+    <string name="cd_pattern_area">九宮格圖案密碼區域</string>
+    <string name="cd_back_goal">該記事屬於"目標"，返回</string>
+    <string name="cd_back_habit">該記事屬於"習慣"，返回</string>
+    <string name="cd_back_note">该记事属于"记录"，返回</string>
+    <string name="cd_back_reminder">該記事屬於"提醒"，返回</string>
+    <string name="cd_stop_play_audio_attachment">停止播放音頻</string>
+    <string name="cd_play_video_attachment">播放視頻檔案</string>
+    <string name="cd_pause_play_audio_attachment">暫停音訊播放</string>
+    <string name="cd_delete_video_attachment">刪除該視頻附件</string>
+    <string name="cd_checklist_finished_item">已完成的清單項</string>
+    <string name="cd_checklist_finished_item_clickable">已完成的清單項，點擊取消完成</string>
+    <string name="cd_checklist_finished_items">下面是所有已完成的清單項</string>
+    <string name="cd_checklist_more_items">更多的清單項</string>
+    <string name="cd_checklist_move">點擊並拖拽即可移動該清單項</string>
+    <string name="cd_checklist_unfinished_item">未完成的清單項</string>
+    <string name="cd_checklist_unfinished_item_clickable">未完成的清單項，點擊以完成</string>
+    <string name="cd_delete_reminder_time_day_rec">刪除該提醒時刻</string>
+    <string name="cd_reminder_time">提醒時刻</string>
+    <string name="cd_habit_finished">完成</string>
+    <string name="cd_habit_unfinished">未完成</string>
+    <string name="cd_habit_unknown">未知</string>
+    <string name="cd_quit_searching">離開搜索界面</string>
+    <string name="cd_picked">已选中，</string>
+    <string name="cd_unpicked">未选中，</string>
+    <string name="private_thing">私密記事</string>
+    <string name="day_hao">號</string>
 
 </resources>

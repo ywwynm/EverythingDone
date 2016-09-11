@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="48dp"
     android:orientation="horizontal">
@@ -12,7 +13,7 @@
         android:layout_gravity="center_vertical"
         android:layout_marginEnd="8dp"
         android:layout_marginRight="8dp"
-        android:contentDescription="@string/reminder"/>
+        tools:ignore="ContentDescription"/>
 
     <EditText
         android:id="@+id/et_hour_rec_day"
@@ -52,7 +53,7 @@
         android:layout_marginStart="56dp"
         android:layout_marginLeft="56dp"
         android:src="@drawable/act_delete_time_rec"
-        android:contentDescription="@string/description_delete_item"
+        android:contentDescription="@string/cd_delete_reminder_time_day_rec"
         android:background="@drawable/selectable_item_background"/>
 
 </LinearLayout>

@@ -16,7 +16,6 @@
         app:contentInsetStart="72dp"/>
 
     <View
-        android:id="@+id/contextual_toolbar_shadow"
         android:layout_width="match_parent"
         android:layout_height="5dp"
         android:layout_below="@id/contextual_toolbar"

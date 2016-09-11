@@ -88,7 +88,7 @@
                 android:layout_marginEnd="@dimen/iv_fab_audio_margin"
                 android:layout_marginRight="@dimen/iv_fab_audio_margin"
                 android:src="@drawable/act_re_recording_audio"
-                android:contentDescription="@string/description_re_recording_audio"
+                android:contentDescription="@string/cd_re_recording_audio"
                 android:background="@drawable/selectable_item_background"
                 android:alpha="0"/>
 
@@ -98,6 +98,7 @@
                 android:layout_height="56dp"
                 android:layout_gravity="center_vertical"
                 android:src="@drawable/act_start_recording_audio"
+                android:contentDescription="@string/cd_start_record_audio"
                 app:elevation="4dp"
                 app:pressedTranslationZ="8dp"
                 app:backgroundTint="#FFFFFF"
@@ -111,7 +112,7 @@
                 android:layout_marginStart="@dimen/iv_fab_audio_margin"
                 android:layout_marginLeft="@dimen/iv_fab_audio_margin"
                 android:src="@drawable/act_cancel_recording_audio"
-                android:contentDescription="@string/description_cancel_recording_audio"
+                android:contentDescription="@string/cd_cancel_recording_audio"
                 android:background="@drawable/selectable_item_background"
                 android:alpha="0"/>
 

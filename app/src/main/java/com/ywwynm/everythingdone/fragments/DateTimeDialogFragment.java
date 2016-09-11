@@ -1222,7 +1222,7 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
 
     private void updateActivityCbAndBackAndTd() {
         if (mActivity.cbQuickRemind.isChecked()) {
-            mActivity.updateTaskDescription(mAccentColor);
+            mActivity.updateDescriptions(mAccentColor);
             mActivity.updateBackImage();
         } else {
             final boolean temp = mActivity.shouldAddToActionList;

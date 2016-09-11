@@ -66,7 +66,6 @@
     </FrameLayout>
 
     <FrameLayout
-        android:id="@+id/fl_day_at"
         android:layout_width="wrap_content"
         android:layout_height="64dp"
         android:layout_toEndOf="@id/fl_month_at"
@@ -128,7 +127,6 @@
     </FrameLayout>
 
     <FrameLayout
-        android:id="@+id/fl_minute_at"
         android:layout_width="wrap_content"
         android:layout_height="64dp"
         android:layout_marginTop="8dp"
