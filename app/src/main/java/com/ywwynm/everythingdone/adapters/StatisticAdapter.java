@@ -1,6 +1,7 @@
 package com.ywwynm.everythingdone.adapters;
 
 import android.content.Context;
+import android.os.Build;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -39,8 +40,13 @@ public class StatisticAdapter extends RecyclerView.Adapter<StatisticAdapter.Stat
 
     @Override
     public void onBindViewHolder(StatisticHolder holder, int position) {
-        holder.tvFirst.setCompoundDrawablesRelativeWithIntrinsicBounds(
-                mIconRes[position], 0, 0, 0);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+            holder.tvFirst.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                    mIconRes[position], 0, 0, 0);
+        } else {
+            holder.tvFirst.setCompoundDrawablesWithIntrinsicBounds(
+                    mIconRes[position], 0, 0, 0);
+        }
         holder.tvFirst.setText(mFirstRes[position]);
         if (mFirstTextSizes == null || mFirstTextSizes.length <= position
                 || mFirstTextSizes[position] == 0) {

@@ -299,9 +299,11 @@ public class ThingDAO {
 
                 if (count == 1) {
                     Thing ne = Thing.generateNotifyEmpty(limit, getHeaderId(), mContext);
-                    create(ne, false, false);
-                    thingsCounts.handleCreation(ne.getType());
-                    neCreated++;
+                    if (ne != null) {
+                        create(ne, false, false);
+                        thingsCounts.handleCreation(ne.getType());
+                        neCreated++;
+                    }
                 } else if (count == 3) {
                     int NEtype = Thing.getNotifyEmptyType(limit);
                     cursor.close();
@@ -498,15 +500,17 @@ public class ThingDAO {
         final int currentLimit = mLimit;
         ThingsCounts thingsCounts = ThingsCounts.getInstance(mContext);
         Cursor cursor;
-        Thing notifyEmpty;
+        Thing ne;
 
         if (handleCurrentLimit) {
             for (int limit : limits) {
                 cursor = getThingsCursorForDisplay(limit, null, 0);
                 if (cursor.getCount() == 1) {
-                    notifyEmpty = Thing.generateNotifyEmpty(limit, getHeaderId(), mContext);
-                    create(notifyEmpty, false, false);
-                    thingsCounts.handleCreation(notifyEmpty.getType());
+                    ne = Thing.generateNotifyEmpty(limit, getHeaderId(), mContext);
+                    if (ne != null) {
+                        create(ne, false, false);
+                        thingsCounts.handleCreation(ne.getType());
+                    }
                 }
                 cursor.close();
             }
@@ -515,9 +519,11 @@ public class ThingDAO {
                 if (currentLimit != limit) {
                     cursor = getThingsCursorForDisplay(limit, null, 0);
                     if (cursor.getCount() == 1) {
-                        notifyEmpty = Thing.generateNotifyEmpty(limit, getHeaderId(), mContext);
-                        create(notifyEmpty, false, false);
-                        thingsCounts.handleCreation(notifyEmpty.getType());
+                        ne = Thing.generateNotifyEmpty(limit, getHeaderId(), mContext);
+                        if (ne != null) {
+                            create(ne, false, false);
+                            thingsCounts.handleCreation(ne.getType());
+                        }
                     }
                     cursor.close();
                 }
