@@ -398,6 +398,8 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
             long id = cursor.getLong(
                     cursor.getColumnIndex(Def.Database.COLUMN_ID_THINGS));
             Habit habit = hDao.getHabitById(id);
+            if (habit == null) continue;
+
             String record = habit.getRecord();
             fCount += countOfKey(record, "1");
             tCount += record.length();
@@ -447,6 +449,8 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
             long id = cursor.getLong(
                     cursor.getColumnIndex(Def.Database.COLUMN_ID_THINGS));
             Reminder reminder = rDao.getReminderById(id);
+            if (reminder == null) continue;
+
             tNtfMillis += reminder.getNotifyMillis();
 
             int state = cursor.getInt(
