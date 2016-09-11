@@ -3,7 +3,7 @@
     xmlns:android="http://schemas.android.com/apk/res/android">
 
     <group
-        >
+        android:id="@+id/drawer_group_things_underway">
         <item
             android:id="@+id/drawer_underway"
             android:title="@string/underway"
@@ -27,7 +27,7 @@
     </group>
 
     <group
-        >
+        android:id="@+id/drawer_group_things_other">
         <item
             android:id="@+id/drawer_finished"
             android:title="@string/finished"
@@ -39,7 +39,7 @@
     </group>
 
     <group
-        >
+        android:id="@+id/drawer_group_app_items">
         <item
             android:id="@+id/drawer_settings"
             android:title="@string/settings"
