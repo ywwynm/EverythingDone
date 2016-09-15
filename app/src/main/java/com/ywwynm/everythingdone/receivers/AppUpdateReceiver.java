@@ -21,11 +21,11 @@ public class AppUpdateReceiver extends BroadcastReceiver {
         if (Intent.ACTION_MY_PACKAGE_REPLACED.equals(intent.getAction())) {
             Log.i(TAG, "EverythingDone updated.");
 
-            SystemNotificationUtil.tryToCreateQuickCreateNotification(context);
-            Log.i(TAG, "Quick Create Notification created.");
-
             AlarmHelper.createAllAlarms(context, false);
             Log.i(TAG, "Alarms set.");
+
+            SystemNotificationUtil.tryToCreateQuickCreateNotification(context);
+            Log.i(TAG, "Quick Create Notification created.");
 
             AppWidgetHelper.updateAllAppWidgets(context);
             Log.i(TAG, "App widgets updated.");

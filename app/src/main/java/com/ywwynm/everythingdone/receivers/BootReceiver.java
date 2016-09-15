@@ -24,11 +24,11 @@ public class BootReceiver extends BroadcastReceiver {
         if (Intent.ACTION_BOOT_COMPLETED.equals(intent.getAction())) {
             Log.i(TAG, "Device boot, EverythingDone is responding...");
 
-            SystemNotificationUtil.tryToCreateQuickCreateNotification(context);
-            Log.i(TAG, "Quick Create Notification created.");
-
             AlarmHelper.createAllAlarms(context, true);
             Log.i(TAG, "Alarms set.");
+
+            SystemNotificationUtil.tryToCreateQuickCreateNotification(context);
+            Log.i(TAG, "Quick Create Notification created.");
 
             AppWidgetHelper.updateAllAppWidgets(context);
             Log.i(TAG, "App widgets updated.");

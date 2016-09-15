@@ -5,7 +5,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
 
-import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper;
 import com.ywwynm.everythingdone.helpers.AlarmHelper;
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil;
 
@@ -27,14 +26,13 @@ public class UserPresentReceiver extends BroadcastReceiver {
         if (Intent.ACTION_USER_PRESENT.equals(intent.getAction())) {
             Log.i(TAG, "Screen is on, EverythingDone is responding...");
 
-            SystemNotificationUtil.tryToCreateQuickCreateNotification(context);
-            Log.i(TAG, "Quick Create Notification created.");
-
             AlarmHelper.createAllAlarms(context, false);
             Log.i(TAG, "Alarms set.");
 
-            AppWidgetHelper.updateAllAppWidgets(context);
-            Log.i(TAG, "App widgets updated.");
+            SystemNotificationUtil.tryToCreateQuickCreateNotification(context);
+            Log.i(TAG, "Quick Create Notification created.");
+
+            // TODO: 2016/9/15 should we update widgets here?
 
             Log.i(TAG, "Everything Done after screen was on.");
         }
