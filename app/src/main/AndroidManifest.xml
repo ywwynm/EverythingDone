@@ -97,6 +97,14 @@
             android:name=".receivers.LocaleChangeReceiver"
             android:enabled="true">
         </receiver>
+        <receiver
+            android:name=".receivers.UserPresentReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.USER_PRESENT"/>
+            </intent-filter>
+        </receiver>
 
         <activity
             android:name=".activities.SettingsActivity"
