@@ -331,11 +331,29 @@ public class HabitDAO {
         return times;
     }
 
+    /**
+     * Update all data of a habit(habitReminders, habitRecords and alarms) to latest and
+     * correct state.
+     * This method will be often called for these reasons:
+     * 1. User finished a habit once  thus we should update the habit to next alarm;
+     * 2. Habit Notification appeared thus we should update the habit to next alarm;
+     * 3. We just want to set every alarms(of course including alarms for Habit) again to ensure
+     *    that they can still ring. see {@link AlarmHelper#createAllAlarms(Context, boolean)}
+     *    for more details.
+     *
+     * @param id id of the habit
+     * @param updateRemindedTimes
+     * @param forceToUpdateRemindedTimes
+     */
     public void updateHabitToLatest(
             long id, boolean updateRemindedTimes, boolean forceToUpdateRemindedTimes) {
         Habit habit = getHabitById(id);
-        int recordTimes = habit.getRecord().length();
+        if (habit == null) {
+            // This may happen if the universe boom, so we should consider it strictly.
+            return;
+        }
 
+        int recordTimes = habit.getRecord().length();
         if (updateRemindedTimes && forceToUpdateRemindedTimes) {
             // This will prevent this habit from finishing in this T if it was notified but
             // user didn't finish it at once.
@@ -349,6 +367,8 @@ public class HabitDAO {
         }
 
         habit.initHabitReminders(); // habitReminders have become latest.
+        // You may see that Habit#initHabitReminders() will also set member firstTime again,
+        // but this makes no change here because we don't update habit to database.
 
         habitReminders = habit.getHabitReminders();
         for (int i = 0; i < hrIds.size(); i++) {
@@ -357,11 +377,12 @@ public class HabitDAO {
         }
 
         // 将已经提前完成的habitReminder更新至新的周期里
+        int habitType = habit.getType();
         List<HabitRecord> habitRecordsThisT = habit.getHabitRecordsThisT();
         for (HabitRecord habitRecord : habitRecordsThisT) {
             HabitReminder hr = getHabitReminderById(habitRecord.getHabitReminderId());
             if (DateTimeUtil.calculateTimeGap(
-                    System.currentTimeMillis(), hr.getNotifyTime(), habit.getType()) == 0) {
+                    System.currentTimeMillis(), hr.getNotifyTime(), habitType) == 0) {
                 updateHabitReminderToNext(hr.getId());
             }
         }
@@ -369,7 +390,6 @@ public class HabitDAO {
         if (updateRemindedTimes && !forceToUpdateRemindedTimes) {
             int remindedTimes = habit.getRemindedTimes();
             if (recordTimes < remindedTimes) {
-                int habitType = habit.getType();
                 long minTime = habit.getMinHabitReminderTime();
                 long maxTime = habit.getFinalHabitReminder().getNotifyTime();
                 long maxLastTime = DateTimeUtil.getHabitReminderTime(habitType, maxTime, -1);

@@ -108,6 +108,18 @@ public class AlarmHelper {
         }
     }
 
+    /**
+     * Set all alarms again to ensure that they can still ring.
+     * At first we only do this job after device reboot, app update and restore data, which are all
+     * normal behaviors. However, we need to do this under more situations now, like after screen on,
+     * for some third-party roms those who changed behaviors of system components like
+     * {@link android.app.AlarmManager} and those who are willing to kill background apps in a
+     * force-stop-like way to "improve Android user experience". Yes, I'm talking about Huawei EMUI
+     * devices(maybe Xiaomi MIUI devices and Samsung devices are also interesting subjects, but
+     * Huawei is most stupid).
+     * @param context
+     * @param updateHabitRemindedTimes
+     */
     public static void createAllAlarms(
             Context context, boolean updateHabitRemindedTimes) {
         AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
@@ -125,24 +137,25 @@ public class AlarmHelper {
             if (state != Thing.UNDERWAY) continue;
             if (Thing.isReminderType(type)) {
                 Reminder reminder = reminderDAO.getReminderById(id);
-                if (reminder.getState() == Reminder.UNDERWAY) {
-                    long notifyTime = reminder.getNotifyTime();
-                    if (notifyTime < System.currentTimeMillis()) {
-                        reminder.setState(Reminder.EXPIRED);
-                        reminderDAO.update(reminder);
+                if (reminder == null || reminder.getState() != Reminder.UNDERWAY) {
+                    continue;
+                }
+                long notifyTime = reminder.getNotifyTime();
+                if (notifyTime < System.currentTimeMillis()) {
+                    reminder.setState(Reminder.EXPIRED);
+                    reminderDAO.update(reminder);
+                } else {
+                    Intent intent = new Intent(context, ReminderReceiver.class);
+                    intent.putExtra(Def.Communication.KEY_ID, id);
+                    PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                            context, (int) id, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+                    if (DeviceUtil.hasMarshmallowApi()) {
+                        am.setExactAndAllowWhileIdle(
+                                AlarmManager.RTC_WAKEUP, notifyTime, pendingIntent);
+                    } else if (DeviceUtil.hasKitKatApi()) {
+                        am.setExact(AlarmManager.RTC_WAKEUP, notifyTime, pendingIntent);
                     } else {
-                        Intent intent = new Intent(context, ReminderReceiver.class);
-                        intent.putExtra(Def.Communication.KEY_ID, id);
-                        PendingIntent pendingIntent = PendingIntent.getBroadcast(
-                                context, (int) id, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-                        if (DeviceUtil.hasMarshmallowApi()) {
-                            am.setExactAndAllowWhileIdle(
-                                    AlarmManager.RTC_WAKEUP, notifyTime, pendingIntent);
-                        } else if (DeviceUtil.hasKitKatApi()) {
-                            am.setExact(AlarmManager.RTC_WAKEUP, notifyTime, pendingIntent);
-                        } else {
-                            am.set(AlarmManager.RTC_WAKEUP, notifyTime, pendingIntent);
-                        }
+                        am.set(AlarmManager.RTC_WAKEUP, notifyTime, pendingIntent);
                     }
                 }
             } else if (type == Thing.HABIT) {
