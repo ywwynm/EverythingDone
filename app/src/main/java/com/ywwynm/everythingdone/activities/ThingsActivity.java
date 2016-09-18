@@ -31,6 +31,7 @@ import android.support.v7.widget.Toolbar.OnMenuItemClickListener;
 import android.support.v7.widget.helper.ItemTouchHelper;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -176,6 +177,8 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     private BroadcastReceiver mUpdateUiReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, final Intent intent) {
+            Log.i(TAG, "UPDATE_MAIN_UI broadcast received, mCanSeeUi: " + mCanSeeUi
+                    + ", mRemoteIntent: " + mRemoteIntent);
             if (!mCanSeeUi) {
                 if (mRemoteIntent != null) {
                     updateMainUi(mRemoteIntent);
@@ -479,6 +482,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     }
 
     private void updateMainUi(final Intent data, int resultCode) {
+        Log.i(TAG, "updateMainUi, resultCode: " + resultCode);
         mUpdateMainUiInOnResume = false;
         dismissSnackbars();
         switch (resultCode) {
@@ -658,15 +662,22 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         @Thing.Type final int typeBefore = data.getIntExtra(
                 Def.Communication.KEY_TYPE_BEFORE, Thing.NOTE);
         final boolean justNotifyDataSetChanged = App.justNotifyDataSetChanged();
+        Log.i(TAG, "updateMainUiForUpdateSameType called, "
+                + "typeBefore[" + typeBefore + "], "
+                + "justNotifyDataSetChanged[" + justNotifyDataSetChanged + "]");
         mRecyclerView.postDelayed(new Runnable() {
             @Override
             public void run() {
+                Log.i(TAG, "updateMainUiForUpdateSameType: delayed Runnable started.");
                 if (justNotifyDataSetChanged) {
                     justNotifyDataSetChanged();
                 } else if (Thing.isTypeStateMatchLimit(typeBefore,
                         Thing.UNDERWAY, mApp.getLimit())) {
                     int pos = data.getIntExtra(
                             Def.Communication.KEY_POSITION, 1);
+                    Log.i(TAG, "type and state match current limit, "
+                            + "thing's position[" + pos + "], "
+                            + "isSearching[" + App.isSearching + "]");
                     if (!App.isSearching) {
                         mThingsAdapter.notifyItemChanged(pos);
                     } else {
@@ -753,6 +764,12 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 Def.Communication.KEY_POSITION, 1);
         final boolean changed = data.getBooleanExtra(
                 Def.Communication.KEY_CALL_CHANGE, false);
+        final boolean justNotifyDataSetChanged = App.justNotifyDataSetChanged();
+        Log.i(TAG, "updateMainUiForUpdateDifferentState called, "
+                + "stateAfter[" + stateAfter + "], "
+                + "position[" + position + "], "
+                + "call change[" + changed + "], "
+                + "justNotifyDataSetChanged[" + justNotifyDataSetChanged + "]");
 
         if (mStateToUndoFrom != stateAfter) {
             dismissSnackbars();
@@ -760,13 +777,16 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
         celebrateHabitGoalFinish(thing, thing.getState(), stateAfter);
 
-        final boolean justNotifyDataSetChanged = App.justNotifyDataSetChanged();
-        mRecyclerView.postDelayed(new Runnable() {
+        mDrawerLayout.postDelayed(new Runnable() {
             @Override
             public void run() {
+                Log.i(TAG, "updateMainUiForUpdateDifferentState: delayed Runnable started.");
                 final int type = thing.getType();
                 final int curLimit = mApp.getLimit();
                 boolean limitMatched = Thing.isTypeStateMatchLimit(type, stateAfter, curLimit);
+                Log.i(TAG, "type[" + type + "], "
+                        + "curLimit[" + curLimit + "], "
+                        + "limitMatched[" + limitMatched + "]");
                 if (justNotifyDataSetChanged || limitMatched) {
                     justNotifyDataSetChanged();
                 } else if (Thing.isTypeStateMatchLimit(type, thing.getState(), curLimit)) {
