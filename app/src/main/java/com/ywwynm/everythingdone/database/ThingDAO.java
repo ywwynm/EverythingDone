@@ -37,7 +37,7 @@ public class ThingDAO {
         mLimit = Def.LimitForGettingThings.ALL_UNDERWAY;
         DBHelper helper = new DBHelper(context);
         db = helper.getWritableDatabase();
-        checkSelf();
+        recreateHeader();
     }
 
     // Singleton class
@@ -52,29 +52,32 @@ public class ThingDAO {
         return sThingDAO;
     }
 
-    public void checkSelf() {
+    private void recreateHeader() {
         Cursor cursor = db.query(Def.Database.TABLE_THINGS,
                 null, null, null, null, null, "id desc");
         cursor.moveToFirst();
         long maxId = cursor.getLong(0);
         cursor.close();
 
-        cursor = db.query(Def.Database.TABLE_THINGS, null,
-                "type=" + Thing.HEADER, null, null, null, null);
-        if (!cursor.moveToFirst()) { // Header does not exist. Interesting situation.
-            createHeader(maxId + 1);
-            cursor.close();
-        } else {
-            cursor.close();
-            cursor = db.query(Def.Database.TABLE_THINGS,
-                    null, null, null, null, null, "id desc");
-            cursor.moveToFirst();
-            int type = cursor.getInt(cursor.getColumnIndex(Def.Database.COLUMN_TYPE_THINGS));
-            if (type != Thing.HEADER) {
-                updateHeader(cursor.getLong(0) + 1);
-            }
-            cursor.close();
-        }
+        db.delete(Def.Database.TABLE_THINGS, "type=" + Thing.HEADER, null);
+        createHeader(maxId + 1);
+
+//        cursor = db.query(Def.Database.TABLE_THINGS, null,
+//                "type=" + Thing.HEADER, null, null, null, null);
+//        if (!cursor.moveToFirst()) { // Header does not exist. Interesting situation.
+//            createHeader(maxId + 1);
+//            cursor.close();
+//        } else {
+//            cursor.close();
+//            cursor = db.query(Def.Database.TABLE_THINGS,
+//                    null, null, null, null, null, "id desc");
+//            cursor.moveToFirst();
+//            int type = cursor.getInt(cursor.getColumnIndex(Def.Database.COLUMN_TYPE_THINGS));
+//            if (type != Thing.HEADER) {
+//                updateHeader(cursor.getLong(0) + 1);
+//            }
+//            cursor.close();
+//        }
     }
 
     private void createHeader(long id) {
