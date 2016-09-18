@@ -1,15 +1,21 @@
 package com.ywwynm.everythingdone;
 
+import android.annotation.TargetApi;
 import android.app.AlarmManager;
 import android.app.Application;
 import android.app.PendingIntent;
+import android.app.job.JobInfo;
+import android.app.job.JobScheduler;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.v4.util.Pair;
+import android.support.v4.util.TimeUtils;
 import android.util.Log;
 
 import com.bumptech.glide.Glide;
@@ -23,6 +29,7 @@ import com.ywwynm.everythingdone.helpers.FingerprintHelper;
 import com.ywwynm.everythingdone.managers.ModeManager;
 import com.ywwynm.everythingdone.managers.ThingManager;
 import com.ywwynm.everythingdone.model.Thing;
+import com.ywwynm.everythingdone.services.PullAliveJobService;
 import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.FileUtil;
@@ -126,7 +133,9 @@ public class App extends Application {
 
         AlarmHelper.createDailyUpdateHabitAlarm(this);
 
-        Log.i(TAG, "app is launched");
+        if (DeviceUtil.hasLollipopApi()) {
+            startPullAliveJob();
+        }
     }
 
     private void firstLaunch() {
@@ -136,6 +145,17 @@ public class App extends Application {
             metaData.edit().putLong(Def.Meta.KEY_START_USING_TIME,
                     System.currentTimeMillis()).apply();
         }
+    }
+
+    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+    private void startPullAliveJob() {
+        ComponentName componentName = new ComponentName(this, PullAliveJobService.class);
+        JobInfo.Builder builder = new JobInfo.Builder(Integer.MAX_VALUE, componentName);
+        builder.setPeriodic(10000);
+        //builder.setPeriodic(3600000); // once an hour
+        builder.setPersisted(true);
+        JobScheduler jobScheduler = (JobScheduler) getSystemService(JOB_SCHEDULER_SERVICE);
+        jobScheduler.schedule(builder.build());
     }
 
     public static App getApp() {

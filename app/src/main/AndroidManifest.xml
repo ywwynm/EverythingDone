@@ -1,15 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest package="com.ywwynm.everythingdone"
-          xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.ywwynm.everythingdone">
 
     <uses-feature
         android:name="android.hardware.camera"
-        android:required="true"/>
+        android:required="true" />
 
-    <uses-permission android:name="android.permission.USE_FINGERPRINT"/>
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
-    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <uses-permission android:name="android.permission.USE_FINGERPRINT" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:name=".App"
@@ -21,14 +22,13 @@
             android:name=".activities.ThingsActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:label="@string/everythingdone"
+            android:launchMode="singleTask"
             android:screenOrientation="user"
             android:theme="@style/EverythingDoneTheme.Things"
-            android:windowSoftInputMode="adjustResize"
-            android:launchMode="singleTask">
+            android:windowSoftInputMode="adjustResize">
             <intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-
-                <category android:name="android.intent.category.LAUNCHER"/>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
         <activity
@@ -39,70 +39,63 @@
             android:theme="@style/EverythingDoneTheme.Detail"
             android:windowSoftInputMode="adjustResize">
             <intent-filter android:label="@string/title_create_thing">
-                <action android:name="android.intent.action.SEND"/>
+                <action android:name="android.intent.action.SEND" />
 
-                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.DEFAULT" />
 
-                <data android:mimeType="text/plain"/>
-                <data android:mimeType="image/*"/>
-                <data android:mimeType="video/*"/>
-                <data android:mimeType="audio/*"/>
+                <data android:mimeType="text/plain" />
+                <data android:mimeType="image/*" />
+                <data android:mimeType="video/*" />
+                <data android:mimeType="audio/*" />
             </intent-filter>
             <intent-filter android:label="@string/title_create_thing">
-                <action android:name="android.intent.action.SEND_MULTIPLE"/>
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
 
-                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.DEFAULT" />
 
-                <data android:mimeType="image/*"/>
-                <data android:mimeType="video/*"/>
-                <data android:mimeType="audio/*"/>
+                <data android:mimeType="image/*" />
+                <data android:mimeType="video/*" />
+                <data android:mimeType="audio/*" />
             </intent-filter>
         </activity>
         <activity
             android:name=".activities.ImageViewerActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
-            android:theme="@style/EverythingDoneTheme.ImageViewer"
-            android:label="@string/image_or_video_attachment">
-        </activity>
+            android:label="@string/image_or_video_attachment"
+            android:theme="@style/EverythingDoneTheme.ImageViewer"/>
 
         <receiver
             android:name=".receivers.ReminderReceiver"
-            android:enabled="true">
-        </receiver>
+            android:enabled="true"/>
         <receiver
             android:name=".receivers.ReminderNotificationActionReceiver"
-            android:enabled="true">
-        </receiver>
+            android:enabled="true"/>
         <receiver
             android:name=".receivers.HabitReceiver"
-            android:enabled="true">
-        </receiver>
+            android:enabled="true"/>
         <receiver
             android:name=".receivers.HabitNotificationActionReceiver"
-            android:enabled="true">
-        </receiver>
+            android:enabled="true"/>
         <receiver
             android:name=".receivers.HabitWidgetActionReceiver"
-            android:enabled="true">
-        </receiver>
+            android:enabled="true"/>
         <receiver
             android:name=".receivers.BootReceiver"
             android:enabled="true"
             android:exported="true">
             <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
         <receiver
             android:name=".receivers.LocaleChangeReceiver"
-            android:enabled="true">
-        </receiver>
+            android:enabled="true"/>
         <receiver
             android:name=".receivers.UserPresentReceiver"
             android:enabled="true"
             android:exported="true">
             <intent-filter>
-                <action android:name="android.intent.action.USER_PRESENT"/>
+                <action android:name="android.intent.action.USER_PRESENT" />
             </intent-filter>
         </receiver>
 
@@ -110,59 +103,52 @@
             android:name=".activities.SettingsActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:label="@string/title_activity_settings"
-            android:theme="@style/EverythingDoneTheme.Settings">
-        </activity>
+            android:theme="@style/EverythingDoneTheme.Settings"/>
         <activity
             android:name=".activities.AboutActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:label="@string/title_activity_about"
-            android:theme="@style/EverythingDoneTheme.About">
-        </activity>
+            android:theme="@style/EverythingDoneTheme.About"/>
 
         <receiver
             android:name=".receivers.AutoNotifyReceiver"
-            android:enabled="true">
-        </receiver>
+            android:enabled="true"/>
 
         <activity
             android:name=".activities.StatisticActivity"
             android:label="@string/title_activity_statistic"
             android:screenOrientation="portrait"
-            android:theme="@style/EverythingDoneTheme.Statistic">
-        </activity>
+            android:theme="@style/EverythingDoneTheme.Statistic"/>
 
         <receiver
             android:name=".receivers.DailyUpdateHabitReceiver"
-            android:enabled="true">
-        </receiver>
+            android:enabled="true"/>
         <receiver
             android:name=".receivers.AppUpdateReceiver"
             android:enabled="true"
             android:exported="true">
             <intent-filter>
-                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
 
         <activity
             android:name=".activities.AuthenticationActivity"
-            android:theme="@style/EverythingDoneTheme.Authentication">
-        </activity>
+            android:theme="@style/EverythingDoneTheme.Authentication"/>
         <activity
             android:name=".activities.HelpActivity"
             android:label="@string/help"
-            android:theme="@style/EverythingDoneTheme.Help">
-        </activity>
+            android:theme="@style/EverythingDoneTheme.Help"/>
 
         <receiver
             android:name=".appwidgets.CreateWidget"
             android:label="@string/title_create_thing">
             <meta-data
                 android:name="android.appwidget.provider"
-                android:resource="@xml/app_widget_info_create"/>
+                android:resource="@xml/app_widget_info_create" />
 
             <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
         </receiver>
 
@@ -171,9 +157,9 @@
             android:label="@string/thing">
             <meta-data
                 android:name="android.appwidget.provider"
-                android:resource="@xml/app_widget_info_thing_tiny"/>
+                android:resource="@xml/app_widget_info_thing_tiny" />
             <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
         </receiver>
 
@@ -182,9 +168,9 @@
             android:label="@string/thing">
             <meta-data
                 android:name="android.appwidget.provider"
-                android:resource="@xml/app_widget_info_thing_small"/>
+                android:resource="@xml/app_widget_info_thing_small" />
             <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
         </receiver>
 
@@ -193,9 +179,9 @@
             android:label="@string/thing">
             <meta-data
                 android:name="android.appwidget.provider"
-                android:resource="@xml/app_widget_info_thing_middle"/>
+                android:resource="@xml/app_widget_info_thing_middle" />
             <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
         </receiver>
 
@@ -204,9 +190,9 @@
             android:label="@string/thing">
             <meta-data
                 android:name="android.appwidget.provider"
-                android:resource="@xml/app_widget_info_thing_large"/>
+                android:resource="@xml/app_widget_info_thing_large" />
             <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
         </receiver>
 
@@ -215,64 +201,64 @@
             android:label="@string/title_widget_things_list">
             <meta-data
                 android:name="android.appwidget.provider"
-                android:resource="@xml/app_widget_info_things_list"/>
+                android:resource="@xml/app_widget_info_things_list" />
             <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
         </receiver>
 
         <activity
             android:name=".appwidgets.single.BaseThingWidgetConfiguration"
-            android:theme="@style/EverythingDoneTheme.Help"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:label="@string/title_activity_thing_widget_configure"
-            android:screenOrientation="user">
+            android:screenOrientation="user"
+            android:theme="@style/EverythingDoneTheme.Help">
             <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
             </intent-filter>
         </activity>
 
         <activity
             android:name=".appwidgets.single.ThingWidgetConfigurationTiny"
-            android:theme="@style/EverythingDoneTheme.Help"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:label="@string/title_activity_thing_widget_configure"
-            android:screenOrientation="user">
+            android:screenOrientation="user"
+            android:theme="@style/EverythingDoneTheme.Help">
             <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
             </intent-filter>
         </activity>
 
         <activity
             android:name=".appwidgets.single.ThingWidgetConfigurationSmall"
-            android:theme="@style/EverythingDoneTheme.Help"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:label="@string/title_activity_thing_widget_configure"
-            android:screenOrientation="user">
+            android:screenOrientation="user"
+            android:theme="@style/EverythingDoneTheme.Help">
             <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
             </intent-filter>
         </activity>
 
         <activity
             android:name=".appwidgets.single.ThingWidgetConfigurationMiddle"
-            android:theme="@style/EverythingDoneTheme.Help"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:label="@string/title_activity_thing_widget_configure"
-            android:screenOrientation="user">
+            android:screenOrientation="user"
+            android:theme="@style/EverythingDoneTheme.Help">
             <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
             </intent-filter>
         </activity>
 
         <activity
             android:name=".appwidgets.single.ThingWidgetConfigurationLarge"
-            android:theme="@style/EverythingDoneTheme.Help"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:label="@string/title_activity_thing_widget_configure"
-            android:screenOrientation="user">
+            android:screenOrientation="user"
+            android:theme="@style/EverythingDoneTheme.Help">
             <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
             </intent-filter>
         </activity>
 
@@ -280,25 +266,25 @@
             android:name=".appwidgets.list.ThingsListWidgetConfiguration"
             android:theme="@style/Theme.AppCompat.Light.Dialog">
             <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
             </intent-filter>
         </activity>
 
         <service
             android:name=".appwidgets.single.ChecklistWidgetService"
-            android:permission="android.permission.BIND_REMOTEVIEWS">
-
-        </service>
+            android:permission="android.permission.BIND_REMOTEVIEWS"/>
 
         <service
             android:name=".appwidgets.list.ThingsListWidgetService"
-            android:permission="android.permission.BIND_REMOTEVIEWS">
+            android:permission="android.permission.BIND_REMOTEVIEWS"/>
 
-        </service>
-        
+        <service
+            android:name=".services.PullAliveJobService"
+            android:permission="android.permission.BIND_JOB_SERVICE"/>
+
         <provider
-            android:authorities="com.ywwynm.everythingdone"
             android:name="android.support.v4.content.FileProvider"
+            android:authorities="com.ywwynm.everythingdone"
             android:exported="false"
             android:grantUriPermissions="true">
             <meta-data

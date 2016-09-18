@@ -1964,6 +1964,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                     mActionList.addAction(new ThingAction(
                             ThingAction.TOGGLE_REMINDER_OR_HABIT, null, null));
                 }
+                tryToNotifyKeepAlarms();
             }
         });
         if (mThing.getState() == Thing.UNDERWAY) {
@@ -2010,6 +2011,14 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 }
             }
         });
+    }
+
+    private void tryToNotifyKeepAlarms() {
+//        SharedPreferences sp = getSharedPreferences(Def.Meta.META_DATA_NAME, MODE_PRIVATE);
+//        if (sp.getBoolean(Def.Meta.KEY_NOTIFY_KEEP_ALARMS, true)) {
+//            sp.edit().putBoolean(
+//                    Def.Meta.KEY_NOTIFY_KEEP_ALARMS, false).apply();
+//        }
     }
 
     private void alertCancel(@StringRes int titleRes, @StringRes int contentRes,
