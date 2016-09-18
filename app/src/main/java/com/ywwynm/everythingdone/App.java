@@ -15,8 +15,6 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.v4.util.Pair;
-import android.support.v4.util.TimeUtils;
-import android.util.Log;
 
 import com.bumptech.glide.Glide;
 import com.ywwynm.everythingdone.database.ReminderDAO;
@@ -151,7 +149,7 @@ public class App extends Application {
     private void startPullAliveJob() {
         ComponentName componentName = new ComponentName(this, PullAliveJobService.class);
         JobInfo.Builder builder = new JobInfo.Builder(Integer.MAX_VALUE, componentName);
-        builder.setPeriodic(10000);
+        builder.setPeriodic(600000);
         //builder.setPeriodic(3600000); // once an hour
         builder.setPersisted(true);
         JobScheduler jobScheduler = (JobScheduler) getSystemService(JOB_SCHEDULER_SERVICE);

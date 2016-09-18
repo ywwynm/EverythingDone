@@ -617,7 +617,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
          * justNotifyDataSetChanged later). But we need item add animation of RecyclerView
          * ({@link ThingsAdapter#notifyItemInserted(int)}), as a result, I give up that thought.
          */
-        mRecyclerView.postDelayed(new Runnable() {
+        mDrawerLayout.postDelayed(new Runnable() {
             @Override
             public void run() {
                 final boolean change;
@@ -665,7 +665,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         Log.i(TAG, "updateMainUiForUpdateSameType called, "
                 + "typeBefore[" + typeBefore + "], "
                 + "justNotifyDataSetChanged[" + justNotifyDataSetChanged + "]");
-        mRecyclerView.postDelayed(new Runnable() {
+        mDrawerLayout.postDelayed(new Runnable() {
             @Override
             public void run() {
                 Log.i(TAG, "updateMainUiForUpdateSameType: delayed Runnable started.");
@@ -716,7 +716,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 Def.Communication.KEY_TYPE_BEFORE, Thing.NOTE);
 
         final boolean justNotifyDataSetChanged = App.justNotifyDataSetChanged();
-        mRecyclerView.postDelayed(new Runnable() {
+        mDrawerLayout.postDelayed(new Runnable() {
             @Override
             public void run() {
                 final int type = thing.getType();
