@@ -330,6 +330,7 @@ public class AppWidgetHelper {
     public static RemoteViews createRemoteViewsForChecklistItem(
             Context context, String item, int itemsSize) {
         RemoteViews rv = new RemoteViews(context.getPackageName(), R.layout.check_list_tv);
+        rv.setInt(LL_CHECK_LIST_ITEM_ROOT, "setBackgroundResource", 0);
 
         int white_76 = ContextCompat.getColor(context, R.color.white_76p);
         int white_50 = Color.parseColor("#80FFFFFF");
