@@ -71,7 +71,7 @@ public class ThingsAdapter extends BaseThingsAdapter {
         return mApp.getModeManager().getCurrentMode();
     }
 
-    public boolean isShouldThingsAnimWhenAppearing() {
+    public boolean shouldThingsAnimWhenAppearing() {
         return mShouldThingsAnimWhenAppearing;
     }
 

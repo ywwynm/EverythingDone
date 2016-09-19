@@ -52,6 +52,7 @@ import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.adapters.ThingsAdapter;
+import com.ywwynm.everythingdone.adapters.ThingsAdapterWrapper;
 import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ReminderDAO;
@@ -79,6 +80,7 @@ import com.ywwynm.everythingdone.utils.KeyboardUtil;
 import com.ywwynm.everythingdone.utils.LocaleUtil;
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil;
 import com.ywwynm.everythingdone.views.ActivityHeader;
+import com.ywwynm.everythingdone.views.ConsistStaggeredLayoutManager;
 import com.ywwynm.everythingdone.views.DrawerHeader;
 import com.ywwynm.everythingdone.views.FloatingActionButton;
 import com.ywwynm.everythingdone.views.Snackbar;
@@ -121,10 +123,10 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     private FloatingActionButton mFab;
     private int                  mFabRippleColor;
 
-    private RecyclerView               mRecyclerView;
-    private ThingsAdapter              mThingsAdapter;
-    private ItemTouchHelper            mThingsTouchHelper;
-    private StaggeredGridLayoutManager mStaggeredGridLayoutManager;
+    private RecyclerView                  mRecyclerView;
+    private ThingsAdapterWrapper mAdapter;
+    private ItemTouchHelper               mThingsTouchHelper;
+    private ConsistStaggeredLayoutManager mStaggeredGridLayoutManager;
 
     private int mSpan;
 
@@ -158,13 +160,13 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     private Runnable initRecyclerViewRunnable = new Runnable() {
         @Override
         public void run() {
-            if (mThingsAdapter.getItemCount() <=
+            if (mAdapter.getItemCount() <=
                     ThingsCounts.getInstance(mApp).getThingsCountForActivityHeader(mApp.getLimit())) {
                 mThingManager.loadThings();
             }
-            mThingsAdapter.setShouldThingsAnimWhenAppearing(true);
-            mRecyclerView.setAdapter(mThingsAdapter);
-            mStaggeredGridLayoutManager = new StaggeredGridLayoutManager(
+            mAdapter.setShouldThingsAnimWhenAppearing(true);
+            mAdapter.attachToRecyclerView(mRecyclerView);
+            mStaggeredGridLayoutManager = new ConsistStaggeredLayoutManager(
                     mSpan, StaggeredGridLayoutManager.VERTICAL);
             mRecyclerView.setLayoutManager(mStaggeredGridLayoutManager);
         }
@@ -172,14 +174,13 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
     private Intent mRemoteIntent;
 
-    private boolean mCanSeeUi = true;
-
     private BroadcastReceiver mUpdateUiReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, final Intent intent) {
-            Log.i(TAG, "UPDATE_MAIN_UI broadcast received, mCanSeeUi: " + mCanSeeUi
-                    + ", mRemoteIntent: " + mRemoteIntent);
-            if (!mCanSeeUi) {
+            Log.i(TAG, "UPDATE_MAIN_UI broadcast received, "
+                    + "canSeeThingsActivity[" + App.canSeeThingsActivity + "], "
+                    + "mRemoteIntent[" + mRemoteIntent + "]");
+            if (!App.canSeeThingsActivity) {
                 if (mRemoteIntent != null) {
                     updateMainUi(mRemoteIntent);
                     mDrawerLayout.postDelayed(new Runnable() {
@@ -294,7 +295,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        mCanSeeUi = true;
+        App.canSeeThingsActivity = true;
     }
 
     @Override
@@ -302,6 +303,9 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         super.onResume();
         updateTaskDescription();
 
+        Log.i(TAG, "onResume called, mUpdateMainUiInOnResume[" + mUpdateMainUiInOnResume + "], "
+                + "justNotifyDataSetChanged[" + App.justNotifyDataSetChanged() + "], "
+                + "mRemoteIntent[" + mRemoteIntent + "]");
         if (mUpdateMainUiInOnResume) {
             if (App.justNotifyDataSetChanged()) {
                 mRecyclerView.postDelayed(new Runnable() {
@@ -313,6 +317,8 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 }, 540);
             } else if (mRemoteIntent != null) {
                 updateMainUi(mRemoteIntent);
+            } else {
+                mAdapter.tryToNotify();
             }
         }
 
@@ -340,7 +346,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     @Override
     protected void onStop() {
         super.onStop();
-        mCanSeeUi = false;
+        App.canSeeThingsActivity = false;
         mApp.deleteAttachmentFiles();
     }
 
@@ -482,7 +488,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     }
 
     private void updateMainUi(final Intent data, int resultCode) {
-        Log.i(TAG, "updateMainUi, resultCode: " + resultCode);
+        Log.i(TAG, "updateMainUi called, resultCode[" + resultCode + "]");
         mUpdateMainUiInOnResume = false;
         dismissSnackbars();
         switch (resultCode) {
@@ -506,7 +512,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                         mNormalSnackbar.setMessage(R.string.sb_cannot_be_blank);
                         mNormalSnackbar.show();
                         mUpdateMainUiInOnResume = true;
-                        if (mCanSeeUi) {
+                        if (App.canSeeThingsActivity) {
                             App.setSomethingUpdatedSpecially(false);
                         }
                         mRemoteIntent = null;
@@ -520,7 +526,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                         mNormalSnackbar.setMessage(R.string.sb_abandon_new_thing);
                         mNormalSnackbar.show();
                         mUpdateMainUiInOnResume = true;
-                        if (mCanSeeUi) {
+                        if (App.canSeeThingsActivity) {
                             App.setSomethingUpdatedSpecially(false);
                         }
                         mRemoteIntent = null;
@@ -540,7 +546,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             default:
                 if (mRemoteIntent == null) {
                     mUpdateMainUiInOnResume = true;
-                    if (mCanSeeUi) {
+                    if (App.canSeeThingsActivity) {
                         App.setSomethingUpdatedSpecially(false);
                         App.setShouldJustNotifyDataSetChanged(false);
                     }
@@ -562,8 +568,8 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             mApp.setLimit(Def.LimitForGettingThings.ALL_UNDERWAY, true);
             invalidateOptionsMenu();
             mRecyclerView.scrollToPosition(0);
-            mThingsAdapter.setShouldThingsAnimWhenAppearing(false);
-            mThingsAdapter.notifyDataSetChanged();
+            mAdapter.setShouldThingsAnimWhenAppearing(false);
+            mAdapter.notifyDataSetChanged();
             mActivityHeader.reset(false);
         }
 
@@ -633,9 +639,9 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                             justNotifyDataSetChanged();
                         } else {
                             if (change) {
-                                mThingsAdapter.notifyItemChanged(1);
+                                mAdapter.notifyItemChanged(1);
                             } else {
-                                mThingsAdapter.notifyItemInserted(1);
+                                mAdapter.notifyItemInserted(1);
                             }
                         }
                         afterUpdateMainUiForCreateDone();
@@ -652,7 +658,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         mActivityHeader.updateText();
         mDrawerHeader.updateTexts();
         mUpdateMainUiInOnResume = true;
-        if (mCanSeeUi) {
+        if (App.canSeeThingsActivity) {
             App.setSomethingUpdatedSpecially(false);
         }
         mRemoteIntent = null;
@@ -679,7 +685,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                             + "thing's position[" + pos + "], "
                             + "isSearching[" + App.isSearching + "]");
                     if (!App.isSearching) {
-                        mThingsAdapter.notifyItemChanged(pos);
+                        mAdapter.notifyItemChanged(pos);
                     } else {
                         List<Thing> things = mThingManager.getThings();
                         if (pos > 0 && pos < things.size()) {
@@ -687,10 +693,10 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                             if (thing.matchSearchRequirement(
                                     mEtSearch.getText().toString(),
                                     mColorPicker.getPickedColor())) {
-                                mThingsAdapter.notifyItemChanged(pos);
+                                mAdapter.notifyItemChanged(pos);
                             } else {
                                 things.remove(pos);
-                                mThingsAdapter.notifyItemRemoved(pos);
+                                mAdapter.notifyItemRemoved(pos);
                             }
                             handleSearchResults();
                         }
@@ -701,7 +707,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 }
                 mDrawerHeader.updateCompletionRate();
                 mUpdateMainUiInOnResume = true;
-                if (mCanSeeUi) {
+                if (App.canSeeThingsActivity) {
                     App.setSomethingUpdatedSpecially(false);
                 }
                 mRemoteIntent = null;
@@ -727,16 +733,16 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     justNotifyDataSetChanged();
                 } else if (Thing.isTypeStateMatchLimit(typeBefore, Thing.UNDERWAY, curLimit)) {
                     if (App.isSearching) {
-                        mThingsAdapter.notifyItemRemoved(data.getIntExtra(
+                        mAdapter.notifyItemRemoved(data.getIntExtra(
                                 Def.Communication.KEY_POSITION, 1));
                         handleSearchResults();
                     } else {
                         final boolean change = data.getBooleanExtra(
                                 Def.Communication.KEY_CALL_CHANGE, false);
                         if (change) {
-                            mThingsAdapter.notifyItemChanged(1);
+                            mAdapter.notifyItemChanged(1);
                         } else {
-                            mThingsAdapter.notifyItemRemoved(data.getIntExtra(
+                            mAdapter.notifyItemRemoved(data.getIntExtra(
                                     Def.Communication.KEY_POSITION, 1));
                         }
                     }
@@ -747,7 +753,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
                 mDrawerHeader.updateCompletionRate();
                 mUpdateMainUiInOnResume = true;
-                if (mCanSeeUi) {
+                if (App.canSeeThingsActivity) {
                     App.setSomethingUpdatedSpecially(false);
                 }
                 mRemoteIntent = null;
@@ -796,11 +802,11 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     mUndoLocations.add(thing.getLocation());
                     mStateToUndoFrom = stateAfter;
                     if (changed) {
-                        mThingsAdapter.notifyItemChanged(1);
+                        mAdapter.notifyItemChanged(1);
                         updateUIAfterStateUpdated(stateAfter,
                                 mRecyclerView.getItemAnimator().getChangeDuration(), false);
                     } else {
-                        mThingsAdapter.notifyItemRemoved(position);
+                        mAdapter.notifyItemRemoved(position);
                         updateUIAfterStateUpdated(stateAfter,
                                 mRecyclerView.getItemAnimator().getRemoveDuration(), false);
                     }
@@ -808,7 +814,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
                 mDrawerHeader.updateCompletionRate();
                 mUpdateMainUiInOnResume = true;
-                if (mCanSeeUi) {
+                if (App.canSeeThingsActivity) {
                     App.setSomethingUpdatedSpecially(false);
                 }
                 mRemoteIntent = null;
@@ -831,10 +837,10 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             updateSelectingUi(false);
         }
 
-        mThingsAdapter.setShouldThingsAnimWhenAppearing(true);
-        mThingsAdapter.notifyDataSetChanged();
+        mAdapter.setShouldThingsAnimWhenAppearing(true);
+        mAdapter.notifyDataSetChanged();
 
-        if (mCanSeeUi) {
+        if (App.canSeeThingsActivity) {
             App.setSomethingUpdatedSpecially(false);
             App.setShouldJustNotifyDataSetChanged(false);
         }
@@ -879,7 +885,8 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         mFab = f(R.id.fab_create);
 
         mRecyclerView  = f(R.id.rv_things);
-        mThingsAdapter = new ThingsAdapter(mApp, new OnThingTouchedListener());
+        ThingsAdapter adapter = new ThingsAdapter(mApp, new OnThingTouchedListener());
+        mAdapter = new ThingsAdapterWrapper(adapter);
 
         mActivityHeader = new ActivityHeader(mApp, mRecyclerView,
                 f(R.id.actionbar_shadow),
@@ -894,7 +901,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
         mModeManager = new ModeManager(mApp, mDrawerLayout, mFab, mActivityHeader,
                 rlContextualToolbar, contextualToolbar, new OnNavigationIconClickedListener(),
-                new OnContextualMenuClickedListener(), mRecyclerView, mThingsAdapter);
+                new OnContextualMenuClickedListener(), mRecyclerView, adapter);
         mApp.setModeManager(mModeManager);
     }
 
@@ -999,14 +1006,14 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             // if we don't use postDelayed, RevealLayout will show at a completely wrong hierarchy
             @Override
             public void run() {
-                mThingsAdapter.setShouldThingsAnimWhenAppearing(true);
+                mAdapter.setShouldThingsAnimWhenAppearing(true);
                 mRecyclerView.setVisibility(View.VISIBLE);
                 computeSpanCount();
                 mStaggeredGridLayoutManager.setSpanCount(mSpan);
                 if (mThingManager.getThings().size() > 1) {
                     mRecyclerView.scrollToPosition(0);
                 }
-                mThingsAdapter.notifyDataSetChanged();
+                mAdapter.notifyDataSetChanged();
             }
         }, 360);
 
@@ -1131,8 +1138,8 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     if (!mScrollCausedByFinger) {
                         mScrollCausedByFinger = true;
                     }
-                    if (mThingsAdapter.isShouldThingsAnimWhenAppearing()) {
-                        mThingsAdapter.setShouldThingsAnimWhenAppearing(false);
+                    if (mAdapter.shouldThingsAnimWhenAppearing()) {
+                        mAdapter.setShouldThingsAnimWhenAppearing(false);
                     }
                 }
                 return false;
@@ -1185,7 +1192,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                         mApp.getThingsToDeleteForever().clear();
                     }
 
-                    mThingsAdapter.notifyDataSetChanged();
+                    mAdapter.notifyDataSetChanged();
                     mUndoAll = false;
                     updateUIAfterStateUpdated(stateAfter,
                             mRecyclerView.getItemAnimator().getChangeDuration(), true);
@@ -1206,11 +1213,11 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                             thing, position, location, mStateToUndoFrom, stateAfter, true, true);
 
                     if (change) {
-                        mThingsAdapter.notifyItemChanged(1);
+                        mAdapter.notifyItemChanged(1);
                         updateUIAfterStateUpdated(stateAfter,
                                 mRecyclerView.getItemAnimator().getChangeDuration(), true);
                     } else {
-                        mThingsAdapter.notifyItemInserted(position);
+                        mAdapter.notifyItemInserted(position);
                         mRecyclerView.smoothScrollToPosition(position);
                         updateUIAfterStateUpdated(stateAfter,
                                 mRecyclerView.getItemAnimator().getAddDuration(), true);
@@ -1246,7 +1253,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                         mThingManager.getThings().set(position, thing);
                     }
 
-                    mThingsAdapter.notifyItemChanged(position);
+                    mAdapter.notifyItemChanged(position);
                     mDrawerHeader.updateCompletionRate();
 
                     if (mUndoHabitRecords.isEmpty()) {
@@ -1346,8 +1353,8 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
     private void searchThings() {
         mThingManager.searchThings(mEtSearch.getText().toString(), mColorPicker.getPickedColor());
-        mThingsAdapter.setShouldThingsAnimWhenAppearing(false);
-        mThingsAdapter.notifyDataSetChanged();
+        mAdapter.setShouldThingsAnimWhenAppearing(false);
+        mAdapter.notifyDataSetChanged();
         handleSearchResults();
     }
 
@@ -1434,9 +1441,9 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             @Override
             public void run() {
                 mRecyclerView.setVisibility(View.VISIBLE);
-                mThingsAdapter.setShouldThingsAnimWhenAppearing(true);
+                mAdapter.setShouldThingsAnimWhenAppearing(true);
                 mThingManager.loadThings();
-                mThingsAdapter.notifyDataSetChanged();
+                mAdapter.notifyDataSetChanged();
             }
         }, 360);
 
@@ -1574,7 +1581,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         }
         mStateToUndoFrom = stateAfter;
         mUndoPositions = mThingManager.updateStates(mUndoThings, stateBefore, stateAfter);
-        mThingsAdapter.notifyDataSetChanged();
+        mAdapter.notifyDataSetChanged();
         mUndoAll = true;
         if (!mUndoThings.isEmpty()) {
             updateUIAfterStateUpdated(stateAfter,
@@ -1746,7 +1753,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             mApp.setLimit(mApp.getLimit(), true);
             mActivityHeader.updateText();
             mDrawerHeader.updateCompletionRate();
-            mThingsAdapter.setShouldThingsAnimWhenAppearing(shouldThingsAnimWhenAppearing);
+            mAdapter.setShouldThingsAnimWhenAppearing(shouldThingsAnimWhenAppearing);
             handleSearchResults();
             if (!DeviceUtil.hasKitKatApi()) {
                 getWindow().setSoftInputMode(
@@ -1790,7 +1797,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             }
             DisplayUtil.playDrawerToggleAnim((DrawerArrowDrawable) mActionbar.getNavigationIcon());
         }
-        mThingsAdapter.notifyDataSetChanged();
+        mAdapter.notifyDataSetChanged();
         App.isSearching = !toNormal;
         invalidateOptionsMenu();
         mDontPickSearchColor = true;
@@ -1861,8 +1868,8 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 if (!mScrollCausedByFinger) {
                     mScrollCausedByFinger = true;
                 }
-                if (mThingsAdapter.isShouldThingsAnimWhenAppearing()) {
-                    mThingsAdapter.setShouldThingsAnimWhenAppearing(false);
+                if (mAdapter.shouldThingsAnimWhenAppearing()) {
+                    mAdapter.setShouldThingsAnimWhenAppearing(false);
                 }
             }
             return false;
@@ -1913,7 +1920,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             } else {
                 Thing thing = things.get(position);
                 thing.setSelected(!thing.isSelected());
-                mThingsAdapter.notifyItemChanged(position);
+                mAdapter.notifyItemChanged(position);
                 mModeManager.updateSelectedCount();
                 mModeManager.updateSelectAllButton();
             }
@@ -1986,7 +1993,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             final int to = target.getAdapterPosition();
             if (from != 0 && to != 0) {
                 mThingManager.move(from, to);
-                mThingsAdapter.notifyItemMoved(from, to);
+                mAdapter.notifyItemMoved(from, to);
                 if (firstMove) {
                     finalFrom = from;
                     firstMove = false;
@@ -2076,7 +2083,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                         mNormalSnackbar.show();
                     }
                 }
-                mThingsAdapter.notifyItemChanged(position);
+                mAdapter.notifyItemChanged(position);
                 mDrawerHeader.updateCompletionRate();
                 return;
             }
@@ -2104,11 +2111,11 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
             celebrateHabitGoalFinish(thingToSwipe, state, Thing.FINISHED);
             if (changed) {
-                mThingsAdapter.notifyItemChanged(position);
+                mAdapter.notifyItemChanged(position);
                 updateUIAfterStateUpdated(Thing.FINISHED,
                         mRecyclerView.getItemAnimator().getChangeDuration(), true);
             } else {
-                mThingsAdapter.notifyItemRemoved(position);
+                mAdapter.notifyItemRemoved(position);
                 updateUIAfterStateUpdated(Thing.FINISHED,
                         mRecyclerView.getItemAnimator().getRemoveDuration(), true);
             }
@@ -2165,7 +2172,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     } else {
                         mThingManager.setSelectedTo(true);
                     }
-                    mThingsAdapter.notifyDataSetChanged();
+                    mAdapter.notifyDataSetChanged();
                     mModeManager.updateSelectAllButton();
                     break;
                 case R.id.act_delete_selected:

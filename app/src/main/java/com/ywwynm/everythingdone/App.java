@@ -67,6 +67,7 @@ public class App extends Application {
 
     private ModeManager mModeManager;
     public static boolean isSearching = false;
+    public static boolean canSeeThingsActivity = false;
 
     private ExecutorService mExecutor;
 
@@ -149,8 +150,8 @@ public class App extends Application {
     private void startPullAliveJob() {
         ComponentName componentName = new ComponentName(this, PullAliveJobService.class);
         JobInfo.Builder builder = new JobInfo.Builder(Integer.MAX_VALUE, componentName);
-        builder.setPeriodic(600000);
-        //builder.setPeriodic(3600000); // once an hour
+        //builder.setPeriodic(10 * 1000);
+        builder.setPeriodic(30 * 60 * 1000); // half an hour
         builder.setPersisted(true);
         JobScheduler jobScheduler = (JobScheduler) getSystemService(JOB_SCHEDULER_SERVICE);
         jobScheduler.schedule(builder.build());

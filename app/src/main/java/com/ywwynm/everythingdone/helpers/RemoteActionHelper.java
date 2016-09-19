@@ -166,8 +166,6 @@ public class RemoteActionHelper {
             Context context, Thing thing, int position, int typeBefore, int resultCode) {
         if (App.isSomethingUpdatedSpecially()) {
             boolean shouldJustNotifyDataSetChanged = shouldJustNotifyDataSetChanged(thing, resultCode);
-            Log.d(TAG, "Sending broadcast to update ui. Something updated specially, should we"
-                + " justNotifyDataSetChanged: " + shouldJustNotifyDataSetChanged);
             App.setShouldJustNotifyDataSetChanged(shouldJustNotifyDataSetChanged);
         } else {
             App.setSomethingUpdatedSpecially(true);
