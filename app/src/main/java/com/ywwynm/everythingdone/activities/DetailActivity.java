@@ -2341,12 +2341,13 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 if (typeBefore == Thing.GOAL && alertForCancelling) {
                     alertForCancellingGoal();
                     reminderUpdated = null;
+                } else {
+                    mReminder.setNotifyTime(reminderTime);
+                    mReminder.setState(Reminder.UNDERWAY);
+                    mReminder.initNotifyMinutes();
+                    mReminder.setUpdateTime(System.currentTimeMillis());
+                    rDao.update(mReminder);
                 }
-                mReminder.setNotifyTime(reminderTime);
-                mReminder.setState(Reminder.UNDERWAY);
-                mReminder.initNotifyMinutes();
-                mReminder.setUpdateTime(System.currentTimeMillis());
-                rDao.update(mReminder);
             }
         } else {
             reminderUpdated = false;
