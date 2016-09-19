@@ -67,7 +67,6 @@ public class App extends Application {
 
     private ModeManager mModeManager;
     public static boolean isSearching = false;
-    public static boolean canSeeThingsActivity = false;
 
     private ExecutorService mExecutor;
 

@@ -2,8 +2,6 @@ package com.ywwynm.everythingdone.adapters;
 
 import android.support.v7.widget.RecyclerView;
 
-import com.ywwynm.everythingdone.App;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,6 +13,8 @@ public class ThingsAdapterWrapper {
 
     private ThingsAdapter mAdapter;
 
+    private boolean mShouldWaitNotify = false;
+
     interface NotifyAction {
         void notifyAdapter();
     }
@@ -23,6 +23,10 @@ public class ThingsAdapterWrapper {
     public ThingsAdapterWrapper(ThingsAdapter adapter) {
         mAdapter = adapter;
         mNotifyActions = new ArrayList<>();
+    }
+
+    public void setShouldWaitNotify(boolean shouldWaitNotify) {
+        mShouldWaitNotify = shouldWaitNotify;
     }
 
     public void attachToRecyclerView(RecyclerView recyclerView) {
@@ -53,7 +57,7 @@ public class ThingsAdapterWrapper {
     }
 
     public void notifyDataSetChanged() {
-        if (!App.canSeeThingsActivity) {
+        if (mShouldWaitNotify) {
             mNotifyActions.add(new NotifyAction() {
                 @Override
                 public void notifyAdapter() {
@@ -67,7 +71,7 @@ public class ThingsAdapterWrapper {
     }
 
     public void notifyItemInserted(final int position) {
-        if (!App.canSeeThingsActivity) {
+        if (mShouldWaitNotify) {
             mNotifyActions.add(new NotifyAction() {
                 @Override
                 public void notifyAdapter() {
@@ -80,7 +84,7 @@ public class ThingsAdapterWrapper {
     }
 
     public void notifyItemChanged(final int position) {
-        if (!App.canSeeThingsActivity) {
+        if (mShouldWaitNotify) {
             mNotifyActions.add(new NotifyAction() {
                 @Override
                 public void notifyAdapter() {
@@ -93,7 +97,7 @@ public class ThingsAdapterWrapper {
     }
 
     public void notifyItemRemoved(final int position) {
-        if (!App.canSeeThingsActivity) {
+        if (mShouldWaitNotify) {
             mNotifyActions.add(new NotifyAction() {
                 @Override
                 public void notifyAdapter() {

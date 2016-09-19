@@ -80,7 +80,7 @@ import com.ywwynm.everythingdone.utils.KeyboardUtil;
 import com.ywwynm.everythingdone.utils.LocaleUtil;
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil;
 import com.ywwynm.everythingdone.views.ActivityHeader;
-import com.ywwynm.everythingdone.views.ConsistStaggeredLayoutManager;
+import com.ywwynm.everythingdone.views.ThingsStaggeredLayoutManager;
 import com.ywwynm.everythingdone.views.DrawerHeader;
 import com.ywwynm.everythingdone.views.FloatingActionButton;
 import com.ywwynm.everythingdone.views.Snackbar;
@@ -126,7 +126,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     private RecyclerView                  mRecyclerView;
     private ThingsAdapterWrapper mAdapter;
     private ItemTouchHelper               mThingsTouchHelper;
-    private ConsistStaggeredLayoutManager mStaggeredGridLayoutManager;
+    private ThingsStaggeredLayoutManager mStaggeredGridLayoutManager;
 
     private int mSpan;
 
@@ -155,6 +155,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
      */
     private boolean mIsRevealAnimPlaying = false;
 
+    private boolean mCanSeeUi = false;
     private boolean mUpdateMainUiInOnResume = true;
 
     private Runnable initRecyclerViewRunnable = new Runnable() {
@@ -166,7 +167,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             }
             mAdapter.setShouldThingsAnimWhenAppearing(true);
             mAdapter.attachToRecyclerView(mRecyclerView);
-            mStaggeredGridLayoutManager = new ConsistStaggeredLayoutManager(
+            mStaggeredGridLayoutManager = new ThingsStaggeredLayoutManager(
                     mSpan, StaggeredGridLayoutManager.VERTICAL);
             mRecyclerView.setLayoutManager(mStaggeredGridLayoutManager);
         }
@@ -178,9 +179,9 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         @Override
         public void onReceive(Context context, final Intent intent) {
             Log.i(TAG, "UPDATE_MAIN_UI broadcast received, "
-                    + "canSeeThingsActivity[" + App.canSeeThingsActivity + "], "
+                    + "canSeeThingsActivity[" + mCanSeeUi + "], "
                     + "mRemoteIntent[" + mRemoteIntent + "]");
-            if (!App.canSeeThingsActivity) {
+            if (!mCanSeeUi) {
                 if (mRemoteIntent != null) {
                     updateMainUi(mRemoteIntent);
                     mDrawerLayout.postDelayed(new Runnable() {
@@ -295,7 +296,8 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        App.canSeeThingsActivity = true;
+        mCanSeeUi = true;
+        mAdapter.setShouldWaitNotify(false);
     }
 
     @Override
@@ -346,7 +348,8 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     @Override
     protected void onStop() {
         super.onStop();
-        App.canSeeThingsActivity = false;
+        mCanSeeUi = false;
+        mAdapter.setShouldWaitNotify(true);
         mApp.deleteAttachmentFiles();
     }
 
@@ -512,7 +515,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                         mNormalSnackbar.setMessage(R.string.sb_cannot_be_blank);
                         mNormalSnackbar.show();
                         mUpdateMainUiInOnResume = true;
-                        if (App.canSeeThingsActivity) {
+                        if (mCanSeeUi) {
                             App.setSomethingUpdatedSpecially(false);
                         }
                         mRemoteIntent = null;
@@ -526,7 +529,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                         mNormalSnackbar.setMessage(R.string.sb_abandon_new_thing);
                         mNormalSnackbar.show();
                         mUpdateMainUiInOnResume = true;
-                        if (App.canSeeThingsActivity) {
+                        if (mCanSeeUi) {
                             App.setSomethingUpdatedSpecially(false);
                         }
                         mRemoteIntent = null;
@@ -546,7 +549,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             default:
                 if (mRemoteIntent == null) {
                     mUpdateMainUiInOnResume = true;
-                    if (App.canSeeThingsActivity) {
+                    if (mCanSeeUi) {
                         App.setSomethingUpdatedSpecially(false);
                         App.setShouldJustNotifyDataSetChanged(false);
                     }
@@ -658,7 +661,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         mActivityHeader.updateText();
         mDrawerHeader.updateTexts();
         mUpdateMainUiInOnResume = true;
-        if (App.canSeeThingsActivity) {
+        if (mCanSeeUi) {
             App.setSomethingUpdatedSpecially(false);
         }
         mRemoteIntent = null;
@@ -707,7 +710,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 }
                 mDrawerHeader.updateCompletionRate();
                 mUpdateMainUiInOnResume = true;
-                if (App.canSeeThingsActivity) {
+                if (mCanSeeUi) {
                     App.setSomethingUpdatedSpecially(false);
                 }
                 mRemoteIntent = null;
@@ -753,7 +756,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
                 mDrawerHeader.updateCompletionRate();
                 mUpdateMainUiInOnResume = true;
-                if (App.canSeeThingsActivity) {
+                if (mCanSeeUi) {
                     App.setSomethingUpdatedSpecially(false);
                 }
                 mRemoteIntent = null;
@@ -814,7 +817,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
                 mDrawerHeader.updateCompletionRate();
                 mUpdateMainUiInOnResume = true;
-                if (App.canSeeThingsActivity) {
+                if (mCanSeeUi) {
                     App.setSomethingUpdatedSpecially(false);
                 }
                 mRemoteIntent = null;
@@ -840,7 +843,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         mAdapter.setShouldThingsAnimWhenAppearing(true);
         mAdapter.notifyDataSetChanged();
 
-        if (App.canSeeThingsActivity) {
+        if (mCanSeeUi) {
             App.setSomethingUpdatedSpecially(false);
             App.setShouldJustNotifyDataSetChanged(false);
         }
