@@ -14,6 +14,8 @@ import android.graphics.Color;
 import android.graphics.Point;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.support.annotation.NonNull;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.ActivityCompat;
@@ -57,6 +59,7 @@ import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.fragments.AlertDialogFragment;
+import com.ywwynm.everythingdone.fragments.LongTextDialogFragment;
 import com.ywwynm.everythingdone.fragments.ThreeActionsAlertDialogFragment;
 import com.ywwynm.everythingdone.helpers.AppUpdateHelper;
 import com.ywwynm.everythingdone.helpers.AuthenticationHelper;
@@ -245,6 +248,8 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 App.getApp().setLimit(limit, true);
             }
         }
+
+        checkIfReminderHabitsCorrect();
     }
 
     private void tryToShowFeedbackErrorDialog() {
@@ -270,7 +275,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     deleteFeedbackFile();
                 }
             });
-            adf.show(getFragmentManager(), AlertDialogFragment.TAG);
+            adf.showAllowingStateLoss(getFragmentManager(), AlertDialogFragment.TAG);
         }
     }
 
@@ -291,6 +296,54 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         File file = new File(getApplicationInfo().dataDir + "/files/" +
                 Def.Meta.FEEDBACK_ERROR_FILE_NAME);
         FileUtil.deleteFile(file);
+    }
+
+    private void checkIfReminderHabitsCorrect() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                alertReminderHabitIncorrect();
+//                List<Thing> things = mThingManager.getThings();
+//                ReminderDAO reminderDAO = ReminderDAO.getInstance(App.getApp());
+//                HabitDAO habitDAO = HabitDAO.getInstance(App.getApp());
+//                for (Thing thing : things) {
+//                    long id = thing.getId();
+//                    @Thing.Type int type = thing.getType();
+//                    if (Thing.isReminderType(type)) {
+//                        Reminder reminder = reminderDAO.getReminderById(id);
+//                        if (reminder != null
+//                                && reminder.getNotifyTime() < System.currentTimeMillis()
+//                                && reminder.getState() == Reminder.UNDERWAY) {
+//                            alertReminderHabitIncorrect();
+//                            return;
+//                        }
+//                    } else if (type == Thing.HABIT) {
+//                        Habit habit = habitDAO.getHabitById(id);
+//                        if (habit != null
+//                                && habit.getMinHabitReminderTime() < System.currentTimeMillis()) {
+//                            alertReminderHabitIncorrect();
+//                            return;
+//                        }
+//                    }
+//                }
+            }
+        }).start();
+    }
+
+    private void alertReminderHabitIncorrect() {
+        Handler handler = new Handler(Looper.getMainLooper());
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                LongTextDialogFragment adf = new LongTextDialogFragment();
+                int color = DisplayUtil.getRandomColor(App.getApp());
+                adf.setAccentColor(color);
+                adf.setTitle(getString(R.string.title_incorrect_reminder_habit));
+                adf.setContent(getString(R.string.content_incorrect_reminder_habit));
+                adf.setConfirmText(getString(R.string.act_get_it));
+                adf.showAllowingStateLoss(getFragmentManager(), AlertDialogFragment.TAG);
+            }
+        });
     }
 
     @Override
@@ -1575,7 +1628,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 mUndoLocations.clear();
             }
         });
-        df.show(getFragmentManager(), ThreeActionsAlertDialogFragment.TAG);
+        df.showAllowingStateLoss(getFragmentManager(), ThreeActionsAlertDialogFragment.TAG);
     }
 
     private void handleUpdateStates(int stateBefore, int stateAfter) {

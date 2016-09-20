@@ -270,6 +270,11 @@
     <string name="all">All</string>
 
 
+    <!--Dialogs-->
+    <string name="title_incorrect_reminder_habit">Wrong state of alarm detected</string>
+    <string name="content_incorrect_reminder_habit">EverythingDone found that some of your Reminder, Habit or Goal are in wrong state. That is, they were not notified at correct time as they should. </string>
+
+
     <!--content descriptions-->
     <!--ThingsActivity-->
     <string name="cd_open_drawer">Open Navigation Drawer</string>
