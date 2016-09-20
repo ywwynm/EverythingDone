@@ -85,9 +85,6 @@ public class AlertDialogFragment extends BaseDialogFragment {
             tvCancelAsBt.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    if (mCancelListener != null) {
-                        mCancelListener.onCancel();
-                    }
                     dismiss();
                 }
             });
