@@ -141,12 +141,7 @@ public class Habit {
     }
 
     public long getMinHabitReminderTime() {
-        long min = Long.MAX_VALUE;
-        for (HabitReminder habitReminder : mHabitReminders) {
-            long time = habitReminder.getNotifyTime();
-            if (time < min) min = time;
-        }
-        return min;
+        return getClosestHabitReminder().getNotifyTime();
     }
 
     public int getFinishedTimes() {
@@ -155,24 +150,6 @@ public class Habit {
             if (record.charAt(i) == '1') times++;
         }
         return times;
-    }
-
-    public long getFirstFinishTime() {
-        long min = Long.MAX_VALUE;
-        for (HabitRecord habitRecord : mHabitRecords) {
-            long time = habitRecord.getRecordTime();
-            if (time < min) min = time;
-        }
-        return min;
-    }
-
-    public long getLastFinishTime() {
-        long max = Long.MIN_VALUE;
-        for (HabitRecord habitRecord : mHabitRecords) {
-            long time = habitRecord.getRecordTime();
-            if (time > max) max = time;
-        }
-        return max;
     }
 
     public void initHabitReminders() {
@@ -186,11 +163,7 @@ public class Habit {
         } else if (type == Calendar.YEAR) {
             initHabitRemindersMonthOfYear();
         }
-        firstTime = Long.MAX_VALUE;
-        for (HabitReminder habitReminder : mHabitReminders) {
-            long time = habitReminder.getNotifyTime();
-            if (time < firstTime) firstTime = time;
-        }
+        firstTime = getMinHabitReminderTime();
     }
 
     public HabitReminder getClosestHabitReminder() {
@@ -324,14 +297,8 @@ public class Habit {
     }
 
     public String getNextReminderDescription(Context context) {
-        long minTime = Long.MAX_VALUE;
-        for (HabitReminder habitReminder : mHabitReminders) {
-            long time = habitReminder.getNotifyTime();
-            if (time < minTime) {
-                minTime = time;
-            }
-        }
-        return DateTimeUtil.getDateTimeStrAt(minTime, context, true);
+        long nextTime = getClosestHabitReminder().getNotifyTime();
+        return DateTimeUtil.getDateTimeStrAt(nextTime, context, true);
     }
 
     public String getSummary(Context context) {
