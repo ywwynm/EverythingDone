@@ -1,5 +1,6 @@
 package com.ywwynm.everythingdone.fragments;
 
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -26,6 +27,14 @@ public class LongTextDialogFragment extends BaseDialogFragment {
 
     private String mTitle;
     private String mContent;
+    private String mConfirmText = null;
+
+    private boolean mShowCancel = false;
+
+    private View.OnClickListener mConfirmListener;
+    private View.OnClickListener mCancelListener;
+
+    private boolean mConfirmed = false;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -33,6 +42,7 @@ public class LongTextDialogFragment extends BaseDialogFragment {
 
         TextView tvTitle       = f(R.id.tv_title_long_text);
         TextView tvContent     = f(R.id.tv_content_long_text);
+        TextView tvCancelAsBt  = f(R.id.tv_cancel_as_bt_long_text);
         TextView tvConfirmAsBt = f(R.id.tv_confirm_as_bt_long_text);
 
         if (mTitle != null) {
@@ -48,10 +58,27 @@ public class LongTextDialogFragment extends BaseDialogFragment {
             tvContent.setVisibility(View.GONE);
         }
 
+        if (mShowCancel) {
+            tvCancelAsBt.setVisibility(View.VISIBLE);
+            tvCancelAsBt.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    dismiss();
+                }
+            });
+        }
+
+        if (mConfirmText != null) {
+            tvConfirmAsBt.setText(mConfirmText);
+        }
         tvConfirmAsBt.setTextColor(mAccentColor);
         tvConfirmAsBt.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                if (mConfirmListener != null) {
+                    mConfirmListener.onClick(v);
+                }
+                mConfirmed = true;
                 dismiss();
             }
         });
@@ -95,6 +122,15 @@ public class LongTextDialogFragment extends BaseDialogFragment {
         window.setLayout((int) (screenDensity * 320), WindowManager.LayoutParams.WRAP_CONTENT);
     }
 
+    @Override
+    public void onDismiss(DialogInterface dialog) {
+        if (!mConfirmed && mCancelListener != null) {
+            mCancelListener.onClick(f(R.id.tv_cancel_as_bt_long_text));
+        }
+
+        super.onDismiss(dialog);
+    }
+
     public void setAccentColor(int accentColor) {
         mAccentColor = accentColor;
     }
@@ -107,4 +143,19 @@ public class LongTextDialogFragment extends BaseDialogFragment {
         mContent = content;
     }
 
+    public void setConfirmText(String confirmText) {
+        mConfirmText = confirmText;
+    }
+
+    public void setShowCancel(boolean showCancel) {
+        mShowCancel = showCancel;
+    }
+
+    public void setConfirmListener(View.OnClickListener confirmListener) {
+        mConfirmListener = confirmListener;
+    }
+
+    public void setCancelListener(View.OnClickListener cancelListener) {
+        mCancelListener = cancelListener;
+    }
 }

@@ -58,6 +58,20 @@
         android:orientation="horizontal">
 
         <TextView
+            android:id="@+id/tv_cancel_as_bt_long_text"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:paddingLeft="12dp"
+            android:paddingTop="8dp"
+            android:paddingRight="12dp"
+            android:paddingBottom="8dp"
+            android:background="@drawable/selectable_item_background"
+            android:textColor="@color/black_26p"
+            android:textAllCaps="true"
+            android:text="@string/cancel"
+            android:visibility="gone"/>
+
+        <TextView
             android:id="@+id/tv_confirm_as_bt_long_text"
             android:layout_width="wrap_content"
             android:layout_height="36dp"
