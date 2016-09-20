@@ -8,8 +8,8 @@ android {
         applicationId "com.ywwynm.everythingdone"
         minSdkVersion 16
         targetSdkVersion 24
-        versionCode 23
-        versionName "1.2.5.1"
+        versionCode 24
+        versionName "1.2.6 beta"
     }
     buildTypes {
         release {
