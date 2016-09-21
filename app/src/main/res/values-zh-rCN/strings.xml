@@ -509,7 +509,7 @@
     <string name="cd_checklist_more_items">更多的清单项</string>
     <string name="cd_checklist_move">点击并拖拽即可移动该清单项</string>
     <string name="cd_checklist_unfinished_item">未完成的清单项</string>
-    <string name="cd_checklist_unfinished_item_clickable">未完成的清单项，点击以完成</string>
+    <string name="cd_checklist_unfinished_item_clickable">未完成的清单项，点击即可完成</string>
     <string name="cd_delete_reminder_time_day_rec">删除该提醒时刻</string>
     <string name="cd_reminder_time">提醒时刻</string>
     <string name="cd_habit_finished">完成</string>
