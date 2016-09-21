@@ -189,10 +189,12 @@ public class DBHelper extends SQLiteOpenHelper {
                 + Thing.UNDERWAY + "', '"
                 + DisplayUtil.getRandomColor(mContext) + "', '"
                 + (titleRes != 0 ? mContext.getString(titleRes) : "") + "', '"
-                + mContext.getString(contentRes) + "', '', '"
+                + mContext.getString(contentRes) + "', "
+                + "''" + ", '"
                 + id + "', '"
                 + System.currentTimeMillis() + "', '"
-                + System.currentTimeMillis() + "', '0')";
+                + System.currentTimeMillis() + "', "
+                + "'0')";
     }
 
 //    private String generateTestSQL(int id, String title, String content) {
@@ -202,9 +204,11 @@ public class DBHelper extends SQLiteOpenHelper {
 //                + Thing.UNDERWAY + "', '"
 //                + DisplayUtil.getRandomColor(mContext) + "', '"
 //                + title + "', '"
-//                + content + "', '', '"
+//                + content + "', "
+//                + "''" + ", '"
 //                + id + "', '"
 //                + System.currentTimeMillis() + "', '"
-//                + System.currentTimeMillis() + "')";
+//                + System.currentTimeMillis() + "', "
+//                + "'0')";
 //    }
 }
