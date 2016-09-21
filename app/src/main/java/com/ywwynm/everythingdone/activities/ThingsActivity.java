@@ -249,7 +249,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             }
         }
 
-        checkIfReminderHabitsCorrect();
+        //checkIfReminderHabitsCorrect();
     }
 
     private void tryToShowFeedbackErrorDialog() {
@@ -302,30 +302,30 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                alertReminderHabitIncorrect();
-//                List<Thing> things = mThingManager.getThings();
-//                ReminderDAO reminderDAO = ReminderDAO.getInstance(App.getApp());
-//                HabitDAO habitDAO = HabitDAO.getInstance(App.getApp());
-//                for (Thing thing : things) {
-//                    long id = thing.getId();
-//                    @Thing.Type int type = thing.getType();
-//                    if (Thing.isReminderType(type)) {
-//                        Reminder reminder = reminderDAO.getReminderById(id);
-//                        if (reminder != null
-//                                && reminder.getNotifyTime() < System.currentTimeMillis()
-//                                && reminder.getState() == Reminder.UNDERWAY) {
-//                            alertReminderHabitIncorrect();
-//                            return;
-//                        }
-//                    } else if (type == Thing.HABIT) {
-//                        Habit habit = habitDAO.getHabitById(id);
-//                        if (habit != null
-//                                && habit.getMinHabitReminderTime() < System.currentTimeMillis()) {
-//                            alertReminderHabitIncorrect();
-//                            return;
-//                        }
-//                    }
-//                }
+                //alertReminderHabitIncorrect();
+                List<Thing> things = mThingManager.getThings();
+                ReminderDAO reminderDAO = ReminderDAO.getInstance(App.getApp());
+                HabitDAO habitDAO = HabitDAO.getInstance(App.getApp());
+                for (Thing thing : things) {
+                    long id = thing.getId();
+                    @Thing.Type int type = thing.getType();
+                    if (Thing.isReminderType(type)) {
+                        Reminder reminder = reminderDAO.getReminderById(id);
+                        if (reminder != null
+                                && reminder.getNotifyTime() < System.currentTimeMillis()
+                                && reminder.getState() == Reminder.UNDERWAY) {
+                            alertReminderHabitIncorrect();
+                            return;
+                        }
+                    } else if (type == Thing.HABIT) {
+                        Habit habit = habitDAO.getHabitById(id);
+                        if (habit != null
+                                && habit.getMinHabitReminderTime() < System.currentTimeMillis()) {
+                            alertReminderHabitIncorrect();
+                            return;
+                        }
+                    }
+                }
             }
         }).start();
     }
@@ -338,10 +338,12 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 LongTextDialogFragment adf = new LongTextDialogFragment();
                 int color = DisplayUtil.getRandomColor(App.getApp());
                 adf.setAccentColor(color);
-                adf.setTitle(getString(R.string.title_incorrect_reminder_habit));
-                adf.setContent(getString(R.string.content_incorrect_reminder_habit));
+//                adf.setTitle(getString(R.string.title_incorrect_reminder_habit));
+//                adf.setContent(getString(R.string.content_incorrect_reminder_habit));
                 adf.setConfirmText(getString(R.string.act_get_it));
-                adf.showAllowingStateLoss(getFragmentManager(), AlertDialogFragment.TAG);
+                if (mCanSeeUi) {
+                    adf.showAllowingStateLoss(getFragmentManager(), AlertDialogFragment.TAG);
+                }
             }
         });
     }
@@ -1111,6 +1113,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         mActionbar.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                mScrollCausedByFinger = true;
                 mRecyclerView.smoothScrollToPosition(0);
             }
         });
