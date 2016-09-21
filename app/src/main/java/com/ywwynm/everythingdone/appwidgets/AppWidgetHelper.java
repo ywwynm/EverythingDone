@@ -328,9 +328,12 @@ public class AppWidgetHelper {
     }
 
     public static RemoteViews createRemoteViewsForChecklistItem(
-            Context context, String item, int itemsSize) {
+            Context context, String item, int itemsSize, boolean isSingleThingWidget) {
         RemoteViews rv = new RemoteViews(context.getPackageName(), R.layout.check_list_tv);
-        rv.setInt(LL_CHECK_LIST_ITEM_ROOT, "setBackgroundResource", 0);
+
+        if (!isSingleThingWidget) {
+            rv.setInt(LL_CHECK_LIST_ITEM_ROOT, "setBackgroundResource", 0);
+        }
 
         int white_76 = ContextCompat.getColor(context, R.color.white_76p);
         int white_50 = Color.parseColor("#80FFFFFF");
@@ -341,14 +344,24 @@ public class AppWidgetHelper {
         String text = item.substring(1, item.length());
         if (state == '0') {
             rv.setImageViewResource(IV_STATE_CHECK_LIST, R.drawable.checklist_unchecked_card);
-            rv.setContentDescription(IV_STATE_CHECK_LIST,
-                    context.getString(R.string.cd_checklist_unfinished_item));
+            if (isSingleThingWidget) {
+                rv.setContentDescription(IV_STATE_CHECK_LIST,
+                        context.getString(R.string.cd_checklist_unfinished_item_clickable));
+            } else {
+                rv.setContentDescription(IV_STATE_CHECK_LIST,
+                        context.getString(R.string.cd_checklist_unfinished_item));
+            }
             rv.setTextColor(TV_CONTENT_CHECK_LIST, white_76);
             rv.setTextViewText(TV_CONTENT_CHECK_LIST, text);
         } else if (state == '1') {
             rv.setImageViewResource(IV_STATE_CHECK_LIST, R.drawable.checklist_checked_card);
-            rv.setContentDescription(IV_STATE_CHECK_LIST,
-                    context.getString(R.string.cd_checklist_finished_item));
+            if (isSingleThingWidget) {
+                rv.setContentDescription(IV_STATE_CHECK_LIST,
+                        context.getString(R.string.cd_checklist_finished_item_clickable));
+            } else {
+                rv.setContentDescription(IV_STATE_CHECK_LIST,
+                        context.getString(R.string.cd_checklist_finished_item));
+            }
             rv.setTextColor(TV_CONTENT_CHECK_LIST, white_50);
             SpannableString spannable = new SpannableString(text);
             spannable.setSpan(new StrikethroughSpan(), 0, text.length(),
@@ -565,7 +578,7 @@ public class AppWidgetHelper {
         }
 
         for (String item : items) {
-            RemoteViews rvItem = createRemoteViewsForChecklistItem(context, item, size);
+            RemoteViews rvItem = createRemoteViewsForChecklistItem(context, item, size, false);
             remoteViews.addView(LL_CHECK_LIST_ITEMS, rvItem);
         }
 
