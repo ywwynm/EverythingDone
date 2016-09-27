@@ -371,7 +371,8 @@ public class HabitDAO {
         // but this makes no change here because we don't update habit to database.
 
         habitReminders = habit.getHabitReminders();
-        for (int i = 0; i < hrIds.size(); i++) {
+        final int hrIdsSize = hrIds.size();
+        for (int i = 0; i < hrIdsSize; i++) {
             long newTime = habitReminders.get(i).getNotifyTime();
             updateHabitReminder(hrIds.get(i), newTime);
         }

@@ -73,9 +73,7 @@ public class ThingsListWidgetService extends RemoteViewsService {
         }
 
         @Override
-        public void onDestroy() {
-
-        }
+        public void onDestroy() { }
 
         @Override
         public int getCount() {
@@ -109,6 +107,9 @@ public class ThingsListWidgetService extends RemoteViewsService {
 
         @Override
         public long getItemId(int position) {
+            if (position < 0 || position > mThings.size() - 1) {
+                return -1L;
+            }
             return mThings.get(position).getId();
         }
 
