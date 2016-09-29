@@ -45,7 +45,16 @@ public abstract class BaseDialogFragment extends DialogFragment {
         return dialog;
     }
 
+    @Override
+    public void show(FragmentManager manager, String tag) {
+        if (!isAdded()) {
+            super.show(manager, tag);
+        }
+    }
+
     public void showAllowingStateLoss(FragmentManager manager, String tag) {
-        manager.beginTransaction().add(this, tag).commitAllowingStateLoss();
+        if (!isAdded()) {
+            manager.beginTransaction().add(this, tag).commitAllowingStateLoss();
+        }
     }
 }
