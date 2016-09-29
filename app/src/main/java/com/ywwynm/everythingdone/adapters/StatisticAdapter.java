@@ -74,7 +74,7 @@ public class StatisticAdapter extends RecyclerView.Adapter<StatisticAdapter.Stat
         TextView tvSecond;
         View vSeparator;
 
-        public StatisticHolder(View itemView) {
+        StatisticHolder(View itemView) {
             super(itemView);
 
             tvFirst    = f(R.id.tv_first_rv_statistic);

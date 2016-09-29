@@ -455,18 +455,6 @@ public class ThingDAO {
         }
     }
 
-    private void updateHeader(long newId) {
-        final String SQL = "update " + Def.Database.TABLE_THINGS
-                + " set id=" + newId + ",location=" + newId
-                + " where type=" + Thing.HEADER;
-        try {
-            db.execSQL(SQL);
-        } catch (SQLiteConstraintException e) {
-            e.printStackTrace();
-            updateHeader(newId);
-        }
-    }
-
     private void deleteNotifyEmpty(@Thing.Type int type, @Thing.State int state, boolean handleCurrentLimit) {
         int[] limits = Thing.getLimits(type, state);
         final int currentLimit = mLimit;

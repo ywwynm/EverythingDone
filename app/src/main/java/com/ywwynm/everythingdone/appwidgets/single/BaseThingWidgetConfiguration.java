@@ -182,7 +182,7 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
 
     class ThingsAdapter extends BaseThingsAdapter {
 
-        public ThingsAdapter() {
+        ThingsAdapter() {
             super(BaseThingWidgetConfiguration.this);
         }
 
@@ -217,7 +217,7 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
 
         class Holder extends BaseThingViewHolder {
 
-            public Holder(View item) {
+            Holder(View item) {
                 super(item);
 
                 cv.setOnClickListener(new View.OnClickListener() {

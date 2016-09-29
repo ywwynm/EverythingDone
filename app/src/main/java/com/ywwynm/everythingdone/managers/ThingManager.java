@@ -2,6 +2,7 @@ package com.ywwynm.everythingdone.managers;
 
 import android.content.Context;
 import android.database.Cursor;
+import android.util.SparseIntArray;
 
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
@@ -17,9 +18,7 @@ import com.ywwynm.everythingdone.model.ThingsCounts;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -431,7 +430,8 @@ public class ThingManager {
 
         final ReminderDAO rDao = ReminderDAO.getInstance(mContext);
         List<Integer> positions = new ArrayList<>(size);
-        HashMap<Integer, Integer> updateCounts = new HashMap<>();
+        SparseIntArray updateCounts = new SparseIntArray();
+        //HashMap<Integer, Integer> updateCounts = new HashMap<>();
         for (Thing thing : things) {
             int pos = mThings.indexOf(thing);
             positions.add(pos);
@@ -446,15 +446,21 @@ public class ThingManager {
                 mUndoGoals.add(rDao.getReminderById(id));
             }
 
-            Integer count = updateCounts.get(type);
-            updateCounts.put(type, count == null ? 1 : count + 1);
+            updateCounts.put(type, updateCounts.get(type) + 1);
         }
 
-        for (Map.Entry<Integer, Integer> entry : updateCounts.entrySet()) {
-            int t = entry.getKey();
-            int v = entry.getValue();
-            mThingsCounts.handleUpdate(t, stateBefore, t, stateAfter, v);
+        final int updateCountsSize = updateCounts.size();
+        for (int i = 0; i < updateCountsSize; i++) {
+            int t = updateCounts.keyAt(i);
+            int c = updateCounts.valueAt(i);
+            mThingsCounts.handleUpdate(t, stateBefore, t, stateAfter, c);
         }
+
+//        for (Map.Entry<Integer, Integer> entry : updateCounts.entrySet()) {
+//            int t = entry.getKey();
+//            int v = entry.getValue();
+//            mThingsCounts.handleUpdate(t, stateBefore, t, stateAfter, v);
+//        }
 
         mExecutor.execute(new Runnable() {
             @Override
@@ -528,22 +534,28 @@ public class ThingManager {
         }
 
         int size = things.size();
-        HashMap<Integer, Integer> updateCounts = new HashMap<>();
+        SparseIntArray updateCounts = new SparseIntArray();
+        //HashMap<Integer, Integer> updateCounts = new HashMap<>();
         Thing thing;
         for (int i = size - 1; i >= 0; i--) {
             thing = things.get(i);
             type = thing.getType();
             mThings.add(positions.get(i), thing);
-
-            Integer count = updateCounts.get(type);
-            updateCounts.put(type, count == null ? 1 : count + 1);
+            updateCounts.put(type, updateCounts.get(type) + 1);
         }
 
-        for (Map.Entry<Integer, Integer> entry : updateCounts.entrySet()) {
-            int t = entry.getKey();
-            int v = entry.getValue();
-            mThingsCounts.handleUpdate(t, stateBefore, t, stateAfter, v);
+        final int updateCountsSize = updateCounts.size();
+        for (int i = 0; i < updateCountsSize; i++) {
+            int t = updateCounts.keyAt(i);
+            int c = updateCounts.valueAt(i);
+            mThingsCounts.handleUpdate(t, stateBefore, t, stateAfter, c);
         }
+
+//        for (Map.Entry<Integer, Integer> entry : updateCounts.entrySet()) {
+//            int t = entry.getKey();
+//            int v = entry.getValue();
+//            mThingsCounts.handleUpdate(t, stateBefore, t, stateAfter, v);
+//        }
 
         mExecutor.execute(new Runnable() {
 

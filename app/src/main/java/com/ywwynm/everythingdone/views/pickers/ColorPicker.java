@@ -139,7 +139,7 @@ public class ColorPicker extends PopupPicker {
 
         private LayoutInflater mInflater;
 
-        public ColorPickerAdapter() {
+        ColorPickerAdapter() {
             mInflater = LayoutInflater.from(ColorPicker.this.mActivity);
         }
 
@@ -267,7 +267,7 @@ public class ColorPicker extends PopupPicker {
 
             final Button bt;
 
-            public AllColorViewHolder(View itemView) {
+            AllColorViewHolder(View itemView) {
                 super(itemView);
                 bt = f(R.id.bt_all_color);
                 bt.setOnClickListener(new View.OnClickListener() {
@@ -287,7 +287,7 @@ public class ColorPicker extends PopupPicker {
 
             final FloatingActionButton fab;
 
-            public FabViewHolder(View itemView) {
+            FabViewHolder(View itemView) {
                 super(itemView);
                 fab = f(R.id.fab_pick_color);
                 fab.setOnClickListener(new View.OnClickListener() {

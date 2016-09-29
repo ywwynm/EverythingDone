@@ -185,15 +185,15 @@ public class ScreenshotHelper {
 
     // ---------- helper constants/methods/classes for screenshot in DetailActivity ---------- //
 
-    public static final int UPDATE_TITLE            = 0;
-    public static final int UPDATE_TITLE_PADDING    = 1;
-    public static final int UPDATE_CONTENT          = 2;
-    public static final int UPDATE_CONTENT_MARGIN   = 3;
-    public static final int UPDATE_CHECKLIST        = 4;
-    public static final int UPDATE_CHECKLIST_MARGIN = 5;
-    public static final int UPDATE_IMAGE            = 6;
-    public static final int UPDATE_AUDIO            = 7;
-    public static final int UPDATE_AUDIO_MARGIN     = 8;
+    private static final int UPDATE_TITLE            = 0;
+    private static final int UPDATE_TITLE_PADDING    = 1;
+    private static final int UPDATE_CONTENT          = 2;
+    private static final int UPDATE_CONTENT_MARGIN   = 3;
+    private static final int UPDATE_CHECKLIST        = 4;
+    private static final int UPDATE_CHECKLIST_MARGIN = 5;
+    private static final int UPDATE_IMAGE            = 6;
+    private static final int UPDATE_AUDIO            = 7;
+    private static final int UPDATE_AUDIO_MARGIN     = 8;
 
     private static final float density = DisplayUtil.getScreenDensity(App.getApp());
 

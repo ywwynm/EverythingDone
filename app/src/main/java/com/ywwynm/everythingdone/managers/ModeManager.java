@@ -202,7 +202,7 @@ public class ModeManager {
                 .setSupportsChangeAnimations(true);
     }
 
-    public void notifyThingsSelected(final int position) {
+    private void notifyThingsSelected(final int position) {
         mFab.shrink();
         mThingManager.getThings().get(position).setSelected(true);
         mAdapter.notifyDataSetChanged();
@@ -232,7 +232,7 @@ public class ModeManager {
         mRecyclerView.postDelayed(hideActionBarShadowRunnable, 200);
     }
 
-    public void hideContextualToolbar() {
+    private void hideContextualToolbar() {
         mHeader.showActionbarShadow();
 
         Toolbar tb = mContextualToolbar;

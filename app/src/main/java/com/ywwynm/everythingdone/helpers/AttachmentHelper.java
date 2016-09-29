@@ -308,7 +308,7 @@ public class AttachmentHelper {
         aidf.show(activity.getFragmentManager(), AttachmentInfoDialogFragment.TAG);
     }
 
-    public static List<Pair<String, String>> getAttachmentInfo(Context context, String typePathName) {
+    private static List<Pair<String, String>> getAttachmentInfo(Context context, String typePathName) {
         char type = typePathName.charAt(0);
         String pathName = typePathName.substring(1, typePathName.length());
 

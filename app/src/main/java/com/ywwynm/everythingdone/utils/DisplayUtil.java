@@ -20,6 +20,7 @@ import android.support.v7.graphics.drawable.DrawerArrowDrawable;
 import android.support.v7.widget.AppCompatDrawableManager;
 import android.support.v7.widget.CardView;
 import android.util.Log;
+import android.util.SparseArray;
 import android.view.Display;
 import android.view.KeyCharacterMap;
 import android.view.KeyEvent;
@@ -186,7 +187,9 @@ public class DisplayUtil {
      */
     public static void tintView(View view, int color) {
         final Drawable d = view.getBackground();
-        final Drawable nd = d.getConstantState().newDrawable();
+        Drawable.ConstantState constantState = d.getConstantState();
+        if (constantState == null) return;
+        final Drawable nd = constantState.newDrawable();
         nd.setColorFilter(AppCompatDrawableManager.getPorterDuffColorFilter(
                 color, PorterDuff.Mode.SRC_IN));
         view.setBackground(nd);
@@ -339,7 +342,9 @@ public class DisplayUtil {
         return (res.getDisplayMetrics().widthPixels - basePadding * 2 * (span + 1)) / span;
     }
 
-    private static HashMap<Integer, StateListDrawable> sSldMap;
+    private static SparseArray<StateListDrawable> sSldMap;
+
+    //private static HashMap<Integer, StateListDrawable> sSldMap;
 
     public static void setRippleColorForCardView(CardView cardView, int color) {
         if (DeviceUtil.hasLollipopApi()) {
@@ -347,7 +352,7 @@ public class DisplayUtil {
             rp.setColor(ColorStateList.valueOf(color));
         } else {
             if (sSldMap == null) {
-                sSldMap = new HashMap<>();
+                sSldMap = new SparseArray<>();
             }
             StateListDrawable sld = sSldMap.get(color);
             if (sld == null) {

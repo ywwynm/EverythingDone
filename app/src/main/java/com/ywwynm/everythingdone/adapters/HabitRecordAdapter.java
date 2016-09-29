@@ -51,7 +51,7 @@ public class HabitRecordAdapter extends RecyclerView.Adapter<HabitRecordAdapter.
 
         final ImageView iv;
 
-        public ImageViewHolder(View itemView) {
+        ImageViewHolder(View itemView) {
             super(itemView);
             iv = f(R.id.iv_habit_record);
         }

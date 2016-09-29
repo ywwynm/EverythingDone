@@ -42,7 +42,7 @@ public class ThingExporter {
         private int mAccentColor;
         private int mParamsLength;
 
-        public ExportTask(Activity activity, int accentColor) {
+        ExportTask(Activity activity, int accentColor) {
             mWrActivity = new WeakReference<>(activity);
             mAccentColor = accentColor;
         }

@@ -28,8 +28,8 @@ public class RecurrencePickerAdapter extends MultiChoiceAdapter {
 
     public static final String TAG = "RecurrencePickerAdapter";
 
-    public static final int NORMAL       = 0;
-    public static final int END_OF_MONTH = 1;
+    private static final int NORMAL       = 0;
+    private static final int END_OF_MONTH = 1;
 
     private Context mContext;
 
@@ -189,12 +189,12 @@ public class RecurrencePickerAdapter extends MultiChoiceAdapter {
         return count;
     }
 
-    class NormalViewHolder extends BaseViewHolder {
+    private class NormalViewHolder extends BaseViewHolder {
 
         final FloatingActionButton fab;
         final TextView tvDate;
 
-        public NormalViewHolder(View itemView) {
+        NormalViewHolder(View itemView) {
             super(itemView);
             fab = f(R.id.fab_recurrence_picker);
             tvDate = f(R.id.tv_recurrence_picker);
@@ -211,12 +211,12 @@ public class RecurrencePickerAdapter extends MultiChoiceAdapter {
         }
     }
 
-    class EndOfMonthViewHolder extends BaseViewHolder {
+    private class EndOfMonthViewHolder extends BaseViewHolder {
 
         final CardView cv;
         final TextView tv;
 
-        public EndOfMonthViewHolder(View itemView) {
+        EndOfMonthViewHolder(View itemView) {
             super(itemView);
             cv = f(R.id.cv_end_of_month_rec);
             tv = f(R.id.tv_end_of_month_rec);

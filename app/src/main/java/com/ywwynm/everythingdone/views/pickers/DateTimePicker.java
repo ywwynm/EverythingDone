@@ -241,7 +241,7 @@ public class DateTimePicker extends PopupPicker {
 
         private LayoutInflater mInflater;
 
-        public DateTimePickerAdapter() {
+        DateTimePickerAdapter() {
             mInflater = LayoutInflater.from(mActivity);
         }
 
@@ -290,7 +290,7 @@ public class DateTimePicker extends PopupPicker {
 
             final Button bt;
 
-            public DateTimeViewHolder(View itemView) {
+            DateTimeViewHolder(View itemView) {
                 super(itemView);
                 bt = f(R.id.bt_pick_after_time);
                 bt.setOnClickListener(new View.OnClickListener() {

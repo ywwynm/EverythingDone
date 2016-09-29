@@ -145,7 +145,7 @@ public class HelpActivity extends EverythingDoneBaseActivity {
 
             TextView tv;
 
-            public HelperHolder(View itemView) {
+            HelperHolder(View itemView) {
                 super(itemView);
 
                 tv = f(R.id.tv_help_rv);

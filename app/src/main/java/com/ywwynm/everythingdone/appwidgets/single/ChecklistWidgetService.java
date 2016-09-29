@@ -36,7 +36,7 @@ public class ChecklistWidgetService extends RemoteViewsService {
         private Thing mThing;
         private List<String> mItems;
 
-        public ChecklistViewFactory(Context context, Intent intent) {
+        ChecklistViewFactory(Context context, Intent intent) {
             mContext = context;
             mIntent  = intent;
         }

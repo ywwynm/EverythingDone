@@ -149,7 +149,7 @@ public class ImageAttachmentAdapter extends RecyclerView.Adapter<ImageAttachment
         final ImageView ivDelete;
         final ProgressBar pbLoading;
 
-        public ImageViewHolder(View itemView) {
+        ImageViewHolder(View itemView) {
             super(itemView);
 
             fl            = f(R.id.fl_image_attachment);

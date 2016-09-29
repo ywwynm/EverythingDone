@@ -228,7 +228,7 @@ public class AudioRecorder {
         out.write(header, 0, 44);
     }
 
-    class RecordingThread extends Thread {
+    private class RecordingThread extends Thread {
 
         long time = System.currentTimeMillis();
 

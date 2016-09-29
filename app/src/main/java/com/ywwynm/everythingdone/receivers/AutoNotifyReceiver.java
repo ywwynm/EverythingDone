@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
+import android.support.v4.util.Pair;
 
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
@@ -27,33 +28,17 @@ public class AutoNotifyReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         long id = intent.getLongExtra(Def.Communication.KEY_ID, 0);
 
-        ThingManager thingManager = ThingManager.getInstance(context);
-        List<Thing> things = thingManager.getThings();
-        Thing thing = null;
-        int size = things.size();
-        int position = -1;
-        for (int i = 0; i < size; i++) {
-            thing = things.get(i);
-            if (thing.getId() == id) {
-                position = i;
-                break;
-            }
-        }
-
-        if (position == -1) { // not same type or limit.
-            thing = ThingDAO.getInstance(context).getThingById(id);
-        }
-
+        Pair<Thing, Integer> pair = App.getThingAndPosition(context, id, -1);
+        Thing thing = pair.first;
         if (thing == null || thing.getState() != Thing.UNDERWAY) {
             return;
         }
-
         for (Long dId : App.getRunningDetailActivities()) if (dId == id) {
             return;
         }
 
         NotificationCompat.Builder builder = SystemNotificationUtil
-                .newGeneralNotificationBuilder(context, TAG, id, position, thing, true);
+                .newGeneralNotificationBuilder(context, TAG, id, pair.second, thing, true);
         builder.setContentTitle(context.getString(R.string.auto_notify) + "-" + builder.mContentTitle);
         builder.setPriority(Notification.PRIORITY_DEFAULT);
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);

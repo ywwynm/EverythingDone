@@ -32,8 +32,8 @@ public class TimeOfDayRecAdapter extends RecyclerView.Adapter<BaseViewHolder> {
 
     public static final String TAG = "TimeOfDayRecAdapter";
 
-    public static final int EDITTEXT = 0;
-    public static final int TEXTVIEW = 1;
+    private static final int EDITTEXT = 0;
+    private static final int TEXTVIEW = 1;
 
     private final int[] mIcons = { R.drawable.ic_reminder_1, R.drawable.ic_reminder_2,
             R.drawable.ic_reminder_3, R.drawable.ic_reminder_4 };
@@ -160,14 +160,14 @@ public class TimeOfDayRecAdapter extends RecyclerView.Adapter<BaseViewHolder> {
         }
     }
 
-    public class EditTextHolder extends BaseViewHolder {
+    private class EditTextHolder extends BaseViewHolder {
 
-        public ImageView ivReminder;
-        public EditText  etHour;
-        public EditText  etMinute;
-        public ImageView ivDelete;
+        ImageView ivReminder;
+        EditText  etHour;
+        EditText  etMinute;
+        ImageView ivDelete;
 
-        public EditTextHolder(View itemView) {
+        EditTextHolder(View itemView) {
             super(itemView);
 
             ivReminder = f(R.id.iv_reminder_rec_day);
@@ -275,11 +275,11 @@ public class TimeOfDayRecAdapter extends RecyclerView.Adapter<BaseViewHolder> {
         }
     }
 
-    public class TextViewHolder extends BaseViewHolder {
+    private class TextViewHolder extends BaseViewHolder {
 
-        public TextView tvNewReminder;
+        TextView tvNewReminder;
 
-        public TextViewHolder(View itemView) {
+        TextViewHolder(View itemView) {
             super(itemView);
 
             tvNewReminder = f(R.id.tv_new_reminder_as_bt_rec_day);

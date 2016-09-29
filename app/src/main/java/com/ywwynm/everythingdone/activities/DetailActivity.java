@@ -2532,7 +2532,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
         private EditText mEditText;
 
-        public ActionTextWatcher(int actionType) {
+        ActionTextWatcher(int actionType) {
             mActionType = actionType;
             mEditText = (mActionType == ThingAction.UPDATE_TITLE ? mEtTitle : mEtContent);
         }

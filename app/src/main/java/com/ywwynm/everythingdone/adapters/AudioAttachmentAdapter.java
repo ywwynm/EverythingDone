@@ -180,7 +180,7 @@ public class AudioAttachmentAdapter extends RecyclerView.Adapter<AudioAttachment
         final ImageView ivSecond;
         final ImageView ivThird;
 
-        public AudioCardViewHolder(View itemView) {
+        AudioCardViewHolder(View itemView) {
             super(itemView);
 
             cv       = f(R.id.cv_audio_attachment);

@@ -36,7 +36,7 @@ public class ThingsListWidgetService extends RemoteViewsService {
 
         private List<Thing> mThings;
 
-        public ThingsListViewFactory(Context context, Intent intent) {
+        ThingsListViewFactory(Context context, Intent intent) {
             mContext = context;
             mIntent = intent;
         }

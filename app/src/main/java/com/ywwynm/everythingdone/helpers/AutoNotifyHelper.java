@@ -50,7 +50,7 @@ public class AutoNotifyHelper {
         alarmManager.set(AlarmManager.RTC_WAKEUP, time, pendingIntent);
     }
 
-    public static boolean shouldCreateAutoNotify(Thing thing, Context context) {
+    private static boolean shouldCreateAutoNotify(Thing thing, Context context) {
         int[] typeTime = getAutoNotifyPreferences(context);
         if (typeTime[1] == 0) {
             return false;
@@ -75,7 +75,7 @@ public class AutoNotifyHelper {
         return true;
     }
 
-    public static int[] getAutoNotifyPreferences(Context context) {
+    private static int[] getAutoNotifyPreferences(Context context) {
         int index = getAutoNotifyPreferencesIndex(context);
         int[] ret = new int[2];
         if (index == 0) {

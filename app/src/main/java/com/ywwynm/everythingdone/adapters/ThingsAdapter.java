@@ -188,9 +188,9 @@ public class ThingsAdapter extends BaseThingsAdapter {
         boolean onItemLongClick(View v, int position);
     }
 
-    class ThingViewHolder extends BaseThingViewHolder {
+    private class ThingViewHolder extends BaseThingViewHolder {
 
-        public ThingViewHolder(View item) {
+        ThingViewHolder(View item) {
             super(item);
 
             if (mOnItemTouchedListener != null) {

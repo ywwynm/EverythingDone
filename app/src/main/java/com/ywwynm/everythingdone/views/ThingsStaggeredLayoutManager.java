@@ -50,15 +50,15 @@ public class ThingsStaggeredLayoutManager extends StaggeredGridLayoutManager {
         startSmoothScroll(mSmoothScroller);
     }
 
-    class ThingsSmoothScroller extends LinearSmoothScroller {
+    private class ThingsSmoothScroller extends LinearSmoothScroller {
 
         private int mScreenHeight;
 
-        public ThingsSmoothScroller(Context context) {
+        ThingsSmoothScroller(Context context) {
             super(context);
         }
 
-        public void setScreenHeight(int screenHeight) {
+        void setScreenHeight(int screenHeight) {
             mScreenHeight = screenHeight;
         }
 

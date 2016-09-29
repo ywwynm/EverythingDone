@@ -90,7 +90,7 @@ public class AttachmentInfoDialogFragment extends BaseDialogFragment {
             final TextView tvTitle;
             final TextView tvContent;
 
-            public Holder(View itemView) {
+            Holder(View itemView) {
                 super(itemView);
 
                 tvTitle   = f(R.id.tv_rv_attachment_info_title);

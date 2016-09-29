@@ -309,7 +309,7 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
         final ImageView iv;
         final TextView  tv;
 
-        public TextViewHolder(View itemView) {
+        TextViewHolder(View itemView) {
             super(itemView);
             iv = f(R.id.iv_check_list_state);
             tv = f(R.id.tv_check_list);
@@ -323,7 +323,7 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
         public final EditText    et;
         public final ImageView   ivDelete;
 
-        public EditTextHolder(View itemView) {
+        EditTextHolder(View itemView) {
             super(itemView);
             flSeparator = f(R.id.fl_check_list_separator);
             ivState     = f(R.id.iv_check_list_state);

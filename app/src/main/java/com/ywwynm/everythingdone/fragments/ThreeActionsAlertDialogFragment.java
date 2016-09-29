@@ -46,7 +46,9 @@ public class ThreeActionsAlertDialogFragment extends BaseDialogFragment {
         super.onResume();
         float screenDensity = DisplayUtil.getScreenDensity(getActivity());
         Window window = getDialog().getWindow();
-        window.setLayout((int) (screenDensity * 320), WindowManager.LayoutParams.WRAP_CONTENT);
+        if (window != null) {
+            window.setLayout((int) (screenDensity * 320), WindowManager.LayoutParams.WRAP_CONTENT);
+        }
     }
 
     @Nullable

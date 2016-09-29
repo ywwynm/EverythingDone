@@ -9,13 +9,12 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.util.SparseArray;
 import android.view.View;
 
 import com.ywwynm.everythingdone.permission.PermissionCallback;
 import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.LocaleUtil;
-
-import java.util.HashMap;
 
 /**
  * Created by ywwynm on 2015/6/4.
@@ -70,18 +69,18 @@ public abstract class EverythingDoneBaseActivity extends AppCompatActivity {
 
     protected abstract void setEvents();
 
-    private HashMap<Integer, PermissionCallback> mCallbackMap;
+    private SparseArray<PermissionCallback> mCallbacks;
 
     public void doWithPermissionChecked(
             @NonNull PermissionCallback permissionCallback, int requestCode, String... permissions) {
         if (DeviceUtil.hasMarshmallowApi()) {
-            if (mCallbackMap == null) {
-                mCallbackMap = new HashMap<>();
+            if (mCallbacks == null) {
+                mCallbacks = new SparseArray<>();
             }
             for (String permission : permissions) {
                 int pg = ContextCompat.checkSelfPermission(this, permission);
                 if (pg != PackageManager.PERMISSION_GRANTED) {
-                    mCallbackMap.put(requestCode, permissionCallback);
+                    mCallbacks.put(requestCode, permissionCallback);
                     ActivityCompat.requestPermissions(this, permissions, requestCode);
                     return;
                 }
@@ -94,7 +93,7 @@ public abstract class EverythingDoneBaseActivity extends AppCompatActivity {
     @Override
     public void onRequestPermissionsResult(
             int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        PermissionCallback callback = mCallbackMap.get(requestCode);
+        PermissionCallback callback = mCallbacks.get(requestCode);
         if (callback != null) {
             for (int grantResult : grantResults) {
                 if (grantResult != PackageManager.PERMISSION_GRANTED) {

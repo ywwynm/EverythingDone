@@ -255,7 +255,7 @@ public class ChooserDialogFragment extends BaseDialogFragment {
         private LayoutInflater mInflater;
         private List<String> mItems;
 
-        public ChooserFragmentAdapter(Context context, List<String> items) {
+        ChooserFragmentAdapter(Context context, List<String> items) {
             mInflater = LayoutInflater.from(context);
             mItems = items;
         }
@@ -300,7 +300,7 @@ public class ChooserDialogFragment extends BaseDialogFragment {
 
             final TextView tv;
 
-            public ChoiceHolder(View itemView) {
+            ChoiceHolder(View itemView) {
                 super(itemView);
 
                 tv = f(R.id.tv_rv_chooser_fragment);
