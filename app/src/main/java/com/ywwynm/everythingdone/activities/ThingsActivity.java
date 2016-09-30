@@ -1238,6 +1238,10 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         mUndoSnackbar.setUndoListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                if (mUndoThings.isEmpty()) { // occurs when click button very quickly
+                    return;
+                }
+
                 int stateAfter = mUndoThings.get(0).getState();
                 mScrollCausedByFinger = false;
 
