@@ -79,7 +79,7 @@ public class SystemNotificationUtil {
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context)
                 .setColor(color)
-                .setDefaults(Notification.DEFAULT_LIGHTS)
+                .setDefaults(Notification.DEFAULT_LIGHTS | Notification.DEFAULT_VIBRATE)
                 .setPriority(NotificationCompat.PRIORITY_MAX)
                 .setContentIntent(contentPendingIntent)
                 .setSound(soundUri)
