@@ -353,7 +353,7 @@
     <string name="change_drawer_header">抽屜頭部圖片</string>
     <string name="default_drawer_header">默認圖片</string>
     <string name="settings_group_ui">介面</string>
-    <string name="content_important_reminder_permission">如果您正在使用一些系統優化類的應用(如360手機衛士)，或者您的手機自帶了這樣的應用(如華為的節電助手)，請將完事兒加入它們的白名單中，以確保完事兒能够正常地進行提醒。\n\n此外，請您在系統自帶的許可權管理中授予完事兒請求的許可權，它們是：\n(1) 開機自啟動，用於設定鬧鐘，如果您不授予完事兒該許可權，當您重啓手機後，完事兒將無法繼續提醒您的日程、習慣或目標;\n(2) 讀寫存儲空間，用於插入附件、分享使用情况時保存介面截圖等;\n(3) 錄音，用於錄製音訊檔案作為記事附件。\n完事兒絕對不會惡意地使用這些許可權，請您放心！</string>
+    <string name="content_important_reminder_permission">如果您正在使用一些系統優化類的應用(如360手機衛士)，或者您的手機自帶了這樣的應用(如華為的節電助手)，請將完事兒加入它們的白名單中，以確保完事兒能够正常地進行提醒。\n\n此外，請您在系統自帶的許可權管理中授予完事兒請求的許可權，它們是：\n(1) 開機自啟動，用於設定鬧鐘，如果您不授予完事兒該許可權，當您重啓手機後，完事兒將無法繼續提醒您的日程、習慣或目標;\n(2) 讀寫存儲空間，用於插入附件、分享使用情况時保存介面截圖等;\n(3) 錄音，用於錄製音訊檔案作為記事附件;\n(4) 使手機振動，用於更好地通知您完成記事。\n完事兒絕對不會惡意地使用這些許可權，請您放心！</string>
     <string name="title_important_alert">這是一個很重要的提醒</string>
     <string name="more">更多</string>
     <string name="app_crash_send_now">現在迴響</string>

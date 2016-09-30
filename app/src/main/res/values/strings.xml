@@ -579,7 +579,7 @@
     <string name="sb_cannot_finish_habit_first_time">Please wait for the first cycle</string>
     <string name="error_number_too_big">Number is too big!</string>
     <string name="error_too_late">Cannot wait for that day</string>
-    <string name="content_important_reminder_permission">If you are using some apps that can improve your Android system, or there are such kind of pre-installed apps in your phone, please add EverythingDone to their white-list, otherwise maybe you cannot receive notifications from EverythingDone.\n\nIn addition, please grant permissions that EverythingDone requested in permission manager. These permissions are:\n(1) Auto boot after phone boots, used to create notifications for Reminder,Habit and Goals;\n(2) Read/Write external storage, used to insert file as attachment for things;\n(3) Record audio, used to record audio as attachment for things.\nEverythingDone promises that it won\'t use these permissions to do bad things. Thank you.</string>
+    <string name="content_important_reminder_permission">If you are using some apps that can improve your Android system, or there are such kind of pre-installed apps in your phone, please add EverythingDone to their white-list, otherwise maybe you cannot receive notifications from EverythingDone.\n\nIn addition, please grant permissions that EverythingDone requested in permission manager. These permissions are:\n(1) Auto boot after phone boots, used to create notifications for Reminder,Habit and Goals;\n(2) Read/Write external storage, used to insert file as attachment for things;\n(3) Record audio, used to record audio as attachment for things;\n(4) Vibrate, help generate better notifications for you to finish things.\nEverythingDone promises that it won\'t use these permissions to do bad things. Thank you.</string>
     <string name="title_important_alert">THIS IS AN IMPORTANT NOTIFICATION</string>
     <string name="more">More</string>
     <string name="app_crash_title">Crash detected</string>
@@ -665,11 +665,12 @@
             \n\n如果你还无法接收到提醒，请你向我发送反馈，同时注明你的手机型号、系统类型、版本号，我会与你进一步联系。
             \n\n现在各种 ROM(尤其是本地化做得不错的 ROM)都希望能够控制第三方应用的一切行为，对于流氓应用来说，这是强有力的防护手段。完事儿虽然不是流氓应用，但这些厂商不知道，也不会为我开特例，因此，完事儿的提醒功能可能或多或少都会受到一些影响，请你谅解我，也请你谅解这些厂商。</item>
 
-        <item>目前(版本号：1.2.3)，完事儿需要的权限包括：
+        <item>目前(版本号：1.2.6)，完事儿需要的权限包括：
             \n\n1. 开机自启动，用于设定提醒，如果你不授予完事儿该权限，当你重启手机后，完事儿将无法继续提醒你的日程、习惯或目标；
             \n\n2. 读写存储空间，用于插入附件、分享使用情况时保存界面截图等；
-            \n\n3. 录音，用于录制音频文件作为记事附件。
-            \n\n4. 在 Android 6.0 及以上需要指纹权限，用于使用指纹来解锁私密记事。
+            \n\n3. 录音，用于录制音频文件作为记事附件；
+            \n\n4. 使手机振动，用于更好地通知您完成记事；
+            \n\n5. 在 Android 6.0 及以上需要指纹权限，用于使用指纹来解锁私密记事。
             \n\n在你的手机的权限管理、优化应用中，可能还会显示完事儿需要后台自启的权限，这也是用来保证提醒功能正常的。
             \n\n我承诺：绝对不声明不相干的权限，绝对不会使用已申请的权限做不对的事情。</item>
 
