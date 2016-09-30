@@ -69,6 +69,17 @@ public class SystemNotificationUtil {
         PendingIntent contentPendingIntent = PendingIntent.getActivity(context,
                 (int) id, contentIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
+        int defaults = Notification.DEFAULT_LIGHTS;
+        if (!DeviceUtil.isScreenOn(context) || !DeviceUtil.hasLollipopApi()) {
+            defaults |= Notification.DEFAULT_VIBRATE;
+        }
+        /*
+            After executed code above, on my Nexus 6P with Android Nougat, there will be short and
+            weak vibration(twice) if screen is on and longer/stronger vibration(twice) if screen
+            is off.
+         */
+        // TODO: 2016/9/30 Maybe we should provide different vibrations for different thing type. And it seems default vibration isn't very elegant on all devices.
+
         Uri soundUri = getSoundUri(type, context, autoNotify);
         if (DeviceUtil.hasNougatApi()) {
             // Without this line, the sound won't play.
@@ -79,7 +90,7 @@ public class SystemNotificationUtil {
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context)
                 .setColor(color)
-                .setDefaults(Notification.DEFAULT_LIGHTS | Notification.DEFAULT_VIBRATE)
+                .setDefaults(defaults)
                 .setPriority(NotificationCompat.PRIORITY_MAX)
                 .setContentIntent(contentPendingIntent)
                 .setSound(soundUri)
