@@ -1,7 +1,9 @@
 package com.ywwynm.everythingdone.utils;
 
+import android.content.Context;
 import android.os.Build;
 import android.os.Environment;
+import android.os.PowerManager;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -49,6 +51,16 @@ public class DeviceUtil {
 
     public static String getPhoneModel() {
         return Build.MODEL;
+    }
+
+    @SuppressWarnings("deprecation")
+    public static boolean isScreenOn(Context context) {
+        PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT_WATCH) {
+            return pm.isInteractive();
+        } else {
+            return pm.isScreenOn();
+        }
     }
 
     public static boolean isEMUI() {
