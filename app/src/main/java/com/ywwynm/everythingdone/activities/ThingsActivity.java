@@ -59,8 +59,8 @@ import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.fragments.AlertDialogFragment;
-import com.ywwynm.everythingdone.fragments.LongTextDialogFragment;
 import com.ywwynm.everythingdone.fragments.ThreeActionsAlertDialogFragment;
+import com.ywwynm.everythingdone.helpers.AlarmHelper;
 import com.ywwynm.everythingdone.helpers.AppUpdateHelper;
 import com.ywwynm.everythingdone.helpers.AuthenticationHelper;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
@@ -83,10 +83,10 @@ import com.ywwynm.everythingdone.utils.KeyboardUtil;
 import com.ywwynm.everythingdone.utils.LocaleUtil;
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil;
 import com.ywwynm.everythingdone.views.ActivityHeader;
-import com.ywwynm.everythingdone.views.ThingsStaggeredLayoutManager;
 import com.ywwynm.everythingdone.views.DrawerHeader;
 import com.ywwynm.everythingdone.views.FloatingActionButton;
 import com.ywwynm.everythingdone.views.Snackbar;
+import com.ywwynm.everythingdone.views.ThingsStaggeredLayoutManager;
 import com.ywwynm.everythingdone.views.pickers.ColorPicker;
 import com.ywwynm.everythingdone.views.reveal.RevealLayout;
 
@@ -249,7 +249,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             }
         }
 
-        //checkIfReminderHabitsCorrect();
+        checkIfReminderHabitsCorrect();
     }
 
     private void tryToShowFeedbackErrorDialog() {
@@ -302,7 +302,6 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                //alertReminderHabitIncorrect();
                 List<Thing> things = mThingManager.getThings();
                 ReminderDAO reminderDAO = ReminderDAO.getInstance(App.getApp());
                 HabitDAO habitDAO = HabitDAO.getInstance(App.getApp());
@@ -335,12 +334,24 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         handler.post(new Runnable() {
             @Override
             public void run() {
-                LongTextDialogFragment adf = new LongTextDialogFragment();
+                AlertDialogFragment adf = new AlertDialogFragment();
                 int color = DisplayUtil.getRandomColor(App.getApp());
-                adf.setAccentColor(color);
-//                adf.setTitle(getString(R.string.title_incorrect_reminder_habit));
-//                adf.setContent(getString(R.string.content_incorrect_reminder_habit));
-                adf.setConfirmText(getString(R.string.act_get_it));
+                adf.setTitleColor(color);
+                adf.setConfirmColor(color);
+                adf.setShowCancel(false);
+                adf.setTitle(getString(R.string.title_incorrect_reminder_habit));
+                adf.setContent(getString(R.string.content_incorrect_reminder_habit));
+                adf.setConfirmText(getString(R.string.act_reset_alarms));
+                // TODO: 2016/10/1 Very long text if app language is English
+                adf.setConfirmListener(new AlertDialogFragment.ConfirmListener() {
+                    @Override
+                    public void onConfirm() {
+                        AlarmHelper.createAllAlarms(App.getApp(), true);
+                        if (mAdapter != null) {
+                            mAdapter.notifyDataSetChanged();
+                        }
+                    }
+                });
                 if (mCanSeeUi) {
                     adf.showAllowingStateLoss(getFragmentManager(), AlertDialogFragment.TAG);
                 }

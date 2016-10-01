@@ -271,8 +271,9 @@
 
 
     <!--Dialogs-->
-    <!--<string name="title_incorrect_reminder_habit">Wrong state of alarm detected</string>-->
-    <!--<string name="content_incorrect_reminder_habit">EverythingDone found that some of your Reminder, Habit or Goal are in wrong state. That is, they were not notified at correct time as they should. </string>-->
+    <string name="title_incorrect_reminder_habit">Wrong state of things detected</string>
+    <string name="content_incorrect_reminder_habit">EverythingDone found that some of your Reminder, Habit or Goal were in wrong state. That is, they were not notified at correct time as they should be. \nPlease ensure that EverythingDone can run normally on background. You can lock app process in task manager, add it to white-list in battery optimization apps and allow permissions it requested to prevent it from being killed and losing the ability to notify you to do things. \nFor more information, please visit Help and check corresponding FAQ there. \nClick Reset alarms button to fix error state for things and re-activate Habits.</string>
+    <string name="act_reset_alarms">Reset alarms</string>
 
 
     <!--content descriptions-->

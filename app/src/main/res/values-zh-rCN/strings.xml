@@ -520,5 +520,8 @@
     <string name="cd_unpicked">未选中，</string>
     <string name="private_thing">私密记事</string>
     <string name="day_hao">号</string>
+    <string name="act_reset_alarms">重新设置闹钟</string>
+    <string name="content_incorrect_reminder_habit">完事儿发现有些提醒、习惯或目标处于错误的状态，它们没有在正确的时间提醒您。\n请确保完事儿能够在后台正常运行。您可以在多任务中锁定完事儿，在电池优化类的应用中将它加入白名单，以及授予所有它申请的权限，以确保提醒功能正常。\n您还可以前往帮助页面获取更详细的信息。\n点击\"重新设置闹钟\"按钮以修复记事状态错误，同时重新激活对习惯的提醒。</string>
+    <string name="title_incorrect_reminder_habit">提醒类记事状态错误</string>
 
 </resources>
