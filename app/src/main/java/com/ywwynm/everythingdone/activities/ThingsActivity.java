@@ -248,8 +248,6 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 App.getApp().setLimit(limit, true);
             }
         }
-
-        checkIfReminderHabitsCorrect();
     }
 
     private void tryToShowFeedbackErrorDialog() {
@@ -296,6 +294,12 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         File file = new File(getApplicationInfo().dataDir + "/files/" +
                 Def.Meta.FEEDBACK_ERROR_FILE_NAME);
         FileUtil.deleteFile(file);
+    }
+
+    @Override
+    protected void onPostResume() {
+        super.onPostResume();
+        checkIfReminderHabitsCorrect();
     }
 
     private void checkIfReminderHabitsCorrect() {
