@@ -425,8 +425,8 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             SystemNotificationUtil.cancelNotification(id, mThing.getType(), mApp);
         }
 
-        mEditable = mThing.getType() > Thing.HEADER
-                &&  mThing.getType() < Thing.NOTIFICATION_UNDERWAY
+        mEditable = mThing.getType()  >  Thing.HEADER
+                &&  mThing.getType()  <  Thing.NOTIFICATION_UNDERWAY
                 &&  mThing.getState() == Thing.UNDERWAY;
         if (mEditable) {
             mShowNormalSnackbar = new Runnable() {
@@ -940,7 +940,8 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        if (mThing.getType() >= Thing.NOTIFICATION_UNDERWAY) {
+        @Thing.Type int thingType = mThing.getType();
+        if (thingType <= Thing.HEADER || thingType >= Thing.NOTIFICATION_UNDERWAY) {
             return true;
         }
         MenuInflater inflater = getMenuInflater();
@@ -949,7 +950,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         } else {
             int state = mThing.getState();
             if (state == Thing.UNDERWAY) {
-                if (mThing.getType() == Thing.HABIT) {
+                if (thingType == Thing.HABIT) {
                     Habit habit = HabitDAO.getInstance(getApplicationContext())
                             .getHabitById(mThing.getId());
                     if (habit.allowFinish()) {
@@ -966,12 +967,12 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 togglePrivateThingActionItem(menu, !mThing.isPrivate());
             } else if (state == Thing.FINISHED) {
                 inflater.inflate(R.menu.menu_detail_finished, menu);
-                if (mThing.getType() != Thing.HABIT) {
+                if (thingType != Thing.HABIT) {
                     menu.findItem(R.id.act_check_habit_detail).setVisible(false);
                 }
             } else {
                 inflater.inflate(R.menu.menu_detail_deleted, menu);
-                if (mThing.getType() != Thing.HABIT) {
+                if (thingType != Thing.HABIT) {
                     menu.findItem(R.id.act_check_habit_detail).setVisible(false);
                 }
             }
@@ -1096,7 +1097,10 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             toggleCheckListActionItem(mActionbar.getMenu(), false);
             mEtContent.setVisibility(View.VISIBLE);
             mRvCheckList.setVisibility(View.GONE);
-            mLlMoveChecklist.setVisibility(View.GONE);
+            if (mLlMoveChecklist != null) {
+                // don't know why this is possible but some user's log showed that this can happen
+                mLlMoveChecklist.setVisibility(View.GONE);
+            }
             mChecklistTouchHelper.attachToRecyclerView(null);
 
             String contentStr = CheckListHelper.toContentStr(mCheckListAdapter.getItems());
@@ -1114,7 +1118,9 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             toggleCheckListActionItem(mActionbar.getMenu(), true);
             mRvCheckList.setVisibility(View.VISIBLE);
             mEtContent.setVisibility(View.GONE);
-            mLlMoveChecklist.setVisibility(View.VISIBLE);
+            if (mLlmCheckList != null) {
+                mLlMoveChecklist.setVisibility(View.VISIBLE);
+            }
 
             String content = mEtContent.getText().toString();
             before = content;
