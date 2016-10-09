@@ -93,7 +93,7 @@ public class AppUpdateHelper {
 
         LongTextDialogFragment ltdf = createLongTextDialog(
                 R.string.title_important_alert, R.string.content_important_reminder_permission);
-        ltdf.showAllowingStateLoss(activity.getFragmentManager(), LongTextDialogFragment.TAG);
+        ltdf.show(activity.getFragmentManager(), LongTextDialogFragment.TAG);
 
         sp.edit().putBoolean(KEY_1_0_4_TO_1_0_5, true).apply();
         return true;
@@ -113,7 +113,7 @@ public class AppUpdateHelper {
         adf.setConfirmColor(color);
         adf.setTitle(activity.getString(R.string.from_1_1_4_to_1_1_5_title));
         adf.setContent(activity.getString(R.string.from_1_1_4_to_1_1_5_content));
-        adf.showAllowingStateLoss(activity.getFragmentManager(), AlertDialogFragment.TAG);
+        adf.show(activity.getFragmentManager(), AlertDialogFragment.TAG);
 
         sp.edit().putBoolean(KEY_1_1_4_TO_1_1_5, true).apply();
 

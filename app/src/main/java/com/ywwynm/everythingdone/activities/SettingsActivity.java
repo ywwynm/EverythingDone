@@ -600,7 +600,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                     if (sRingtoneTitleList == null) {
                         final LoadingDialogFragment ldf = createLoadingDialog(
                                 R.string.please_wait, R.string.ringtone_loading);
-                        ldf.showAllowingStateLoss(getFragmentManager(), LoadingDialogFragment.TAG);
+                        ldf.show(getFragmentManager(), LoadingDialogFragment.TAG);
                         initSystemRingtoneList(ldf, j);
                     } else {
                         showRingtoneDialog(j);
@@ -614,7 +614,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         if (mCdfsRingtone[index] == null) {
             initRingtoneFragment(index);
         }
-        mCdfsRingtone[index].showAllowingStateLoss(
+        mCdfsRingtone[index].show(
                 getFragmentManager(), ChooserDialogFragment.TAG);
     }
 
@@ -832,7 +832,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                 am.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 600, pendingIntent);
             }
         });
-        cdf.showAllowingStateLoss(getFragmentManager(), ChooserDialogFragment.TAG);
+        cdf.show(getFragmentManager(), ChooserDialogFragment.TAG);
     }
 
     private void showBackupDialog() {
