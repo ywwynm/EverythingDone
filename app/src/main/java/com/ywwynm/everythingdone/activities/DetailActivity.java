@@ -425,7 +425,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             SystemNotificationUtil.cancelNotification(id, mThing.getType(), mApp);
         }
 
-        mEditable = mThing.getType()  >  Thing.HEADER
+        mEditable = mThing.getType()  != Thing.HEADER
                 &&  mThing.getType()  <  Thing.NOTIFICATION_UNDERWAY
                 &&  mThing.getState() == Thing.UNDERWAY;
         if (mEditable) {
@@ -941,7 +941,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         @Thing.Type int thingType = mThing.getType();
-        if (thingType <= Thing.HEADER || thingType >= Thing.NOTIFICATION_UNDERWAY) {
+        if (thingType == Thing.HEADER || thingType >= Thing.NOTIFICATION_UNDERWAY) {
             return true;
         }
         MenuInflater inflater = getMenuInflater();
