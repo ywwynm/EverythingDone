@@ -273,7 +273,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     deleteFeedbackFile();
                 }
             });
-            adf.showAllowingStateLoss(getFragmentManager(), AlertDialogFragment.TAG);
+            adf.show(getFragmentManager(), AlertDialogFragment.TAG);
         }
     }
 
@@ -303,6 +303,9 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     }
 
     private void checkIfReminderHabitsCorrect() {
+        if (App.getApp().getLimit() >= Def.LimitForGettingThings.ALL_FINISHED) {
+            return;
+        }
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -357,7 +360,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     }
                 });
                 if (mCanSeeUi) {
-                    adf.showAllowingStateLoss(getFragmentManager(), AlertDialogFragment.TAG);
+                    adf.show(getFragmentManager(), AlertDialogFragment.TAG);
                 }
             }
         });
@@ -1650,7 +1653,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 mUndoLocations.clear();
             }
         });
-        df.showAllowingStateLoss(getFragmentManager(), ThreeActionsAlertDialogFragment.TAG);
+        df.show(getFragmentManager(), ThreeActionsAlertDialogFragment.TAG);
     }
 
     private void handleUpdateStates(int stateBefore, int stateAfter) {
@@ -1920,7 +1923,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 content = reminder.getCelebrationText(mApp);
             }
             adf.setContent(content);
-            adf.showAllowingStateLoss(getFragmentManager(), AlertDialogFragment.TAG);
+            adf.show(getFragmentManager(), AlertDialogFragment.TAG);
         }
     }
 
