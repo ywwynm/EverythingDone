@@ -11,6 +11,7 @@ import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
 import com.ywwynm.everythingdone.helpers.AutoNotifyHelper;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
+import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.model.ThingsCounts;
@@ -18,6 +19,7 @@ import com.ywwynm.everythingdone.model.ThingsCounts;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -621,6 +623,78 @@ public class ThingManager {
 
         for (int i = start, j = 0; i <= end; i++, j++) {
             mThings.get(i).setLocation(locations[j]);
+        }
+        mExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                mDao.updateLocations(ids, locations);
+            }
+        });
+    }
+
+    /**
+     * update locations of {@link #mThings} according to Reminder and Habits' alarms time.
+     * This method will put the thing that is related to most urgent alarm in front of things list.
+     * created on 2016/10/10
+     */
+    public void updateLocationsByAlarmsTime() {
+        final ReminderDAO rDao = ReminderDAO.getInstance(mContext);
+        final HabitDAO    hDao = HabitDAO.getInstance(mContext);
+        Collections.sort(mThings, new Comparator<Thing>() {
+            @Override
+            public int compare(Thing thing1, Thing thing2) {
+                @Thing.Type int type1 = thing1.getType();
+                @Thing.Type int type2 = thing2.getType();
+                // header is on top
+                if (type1 == Thing.HEADER) return -1;
+                if (type2 == Thing.HEADER) return 1;
+
+                boolean shouldSort1 = isSpecialType(type1);
+                boolean shouldSort2 = isSpecialType(type2);
+                if (!shouldSort1 && !shouldSort2) {
+                    return 0;
+                } else if (shouldSort1 && !shouldSort2) {
+                    return -1;
+                } else if (!shouldSort1 && shouldSort2) {
+                    return 1;
+                } else {
+                    long time1 = getAlarmTime(thing1.getId(), type1);
+                    long time2 = getAlarmTime(thing2.getId(), type2);
+                    return (int) (time1 - time2);
+                }
+            }
+
+            private boolean isSpecialType(@Thing.Type int type) {
+                return Thing.isReminderType(type) || type == Thing.HABIT;
+            }
+
+            private long getAlarmTime(long id, @Thing.Type int type) {
+                long time = -1;
+                if (Thing.isReminderType(type)) {
+                    Reminder r1 = rDao.getReminderById(id);
+                    if (r1 != null && r1.getState() == Reminder.UNDERWAY) {
+                        time = r1.getNotifyTime();
+                    }
+                } else {
+                    Habit h1 = hDao.getHabitById(id);
+                    if (h1 != null) {
+                        time = h1.getMinHabitReminderTime();
+                    }
+                }
+                return time;
+            }
+        });
+        final int size = mThings.size();
+        final Long[] ids = new Long[size];
+        final Long[] locations = new Long[size];
+        for (int i = 0; i < size; i++) {
+            Thing thing = mThings.get(i);
+            ids[i] = thing.getId();
+            locations[i] = thing.getLocation();
+        }
+        Arrays.sort(locations, Collections.reverseOrder());
+        for (int i = 0; i < size; i++) {
+            mThings.get(i).setLocation(locations[i]);
         }
         mExecutor.execute(new Runnable() {
             @Override
