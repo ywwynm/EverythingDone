@@ -309,9 +309,10 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                List<Thing> things = mThingManager.getThings();
-                ReminderDAO reminderDAO = ReminderDAO.getInstance(App.getApp());
-                HabitDAO habitDAO = HabitDAO.getInstance(App.getApp());
+                App app = App.getApp();
+                List<Thing> things = ThingManager.getInstance(app).getThings();
+                ReminderDAO reminderDAO = ReminderDAO.getInstance(app);
+                HabitDAO habitDAO = HabitDAO.getInstance(app);
                 for (Thing thing : things) {
                     long id = thing.getId();
                     @Thing.Type int type = thing.getType();
