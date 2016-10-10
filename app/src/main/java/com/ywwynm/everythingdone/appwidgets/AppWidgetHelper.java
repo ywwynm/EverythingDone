@@ -276,7 +276,7 @@ public class AppWidgetHelper {
         remoteViews.setOnClickPendingIntent(LL_THINGS_LIST_HEADER, pendingIntent);
 
         // create image view click event
-        intent = DetailActivity.getOpenIntentForCreate(context, TAG, 0);
+        intent = DetailActivity.getOpenIntentForCreate(context, TAG, App.newThingColor);
         intent.putExtra(Def.Communication.KEY_LIMIT, limit);
         pendingIntent = PendingIntent.getActivity(
                 context, appWidgetId, intent, PendingIntent.FLAG_UPDATE_CURRENT);

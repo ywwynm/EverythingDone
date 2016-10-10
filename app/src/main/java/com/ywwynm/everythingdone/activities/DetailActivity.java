@@ -385,15 +385,9 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             App.getRunningDetailActivities().add(newId);
 
             int color = intent.getIntExtra(Def.Communication.KEY_COLOR, 0);
-            if (color == 0) {
-                color = DisplayUtil.getRandomColor(this);
-                while (color == App.newThingColor) {
-                    color = DisplayUtil.getRandomColor(this);
-                }
-                App.newThingColor = color;
-            }
             mThing = new Thing(newId, Thing.NOTE, color, newId);
 
+            // this can change App.newThingColor to a new random color
             SystemNotificationUtil.tryToCreateQuickCreateNotification(this);
 
             if ("intent".equals(mSenderName)) {

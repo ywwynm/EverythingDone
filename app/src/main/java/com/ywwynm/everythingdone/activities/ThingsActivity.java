@@ -124,7 +124,6 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     private ActivityHeader mActivityHeader;
 
     private FloatingActionButton mFab;
-    private int                  mFabRippleColor;
 
     private RecyclerView                  mRecyclerView;
     private ThingsAdapterWrapper mAdapter;
@@ -398,13 +397,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             }
         }
 
-        int color = DisplayUtil.getRandomColor(this);
-        while (color == App.newThingColor) {
-            color = DisplayUtil.getRandomColor(this);
-        }
-        App.newThingColor = color;
-        mFabRippleColor = color;
-        mFab.setRippleColor(mFabRippleColor);
+        mFab.setRippleColor(App.newThingColor);
         mActivityHeader.updateText();
 
         KeyboardUtil.hideKeyboard(getCurrentFocus());
@@ -1181,14 +1174,14 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     location[1] -= statusBarHeight;
                 }
 
-                mViewToReveal.setBackgroundColor(mFabRippleColor);
+                mViewToReveal.setBackgroundColor(App.newThingColor);
                 mViewToReveal.setVisibility(View.VISIBLE);
                 mRevealLayout.setVisibility(View.VISIBLE);
 
                 mRevealLayout.show(location[0], location[1]);
 
                 final Intent intent = DetailActivity.getOpenIntentForCreate(
-                        ThingsActivity.this, TAG, mFabRippleColor);
+                        ThingsActivity.this, TAG, App.newThingColor);
                 mRevealLayout.postDelayed(new Runnable() {
                     @Override
                     public void run() {
@@ -1621,8 +1614,9 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
     private void alertForHabitGoal(final int stateBefore, final int stateAfter) {
         ThreeActionsAlertDialogFragment df = new ThreeActionsAlertDialogFragment();
-        df.setTitleColor(mFabRippleColor);
-        df.setContinueColor(mFabRippleColor);
+        int color = DisplayUtil.getRandomColor(this);
+        df.setTitleColor(color);
+        df.setContinueColor(color);
         df.setTitle(getString(R.string.alert_continue));
         df.setContent(getString(R.string.alert_find_habit_goal));
         df.setFirstAction(getString(R.string.continue_get_rid_of_habit_goal));
