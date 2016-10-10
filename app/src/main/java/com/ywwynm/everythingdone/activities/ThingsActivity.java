@@ -472,9 +472,13 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             return true;
         }
 
-        if (mApp.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
+        int limit = mApp.getLimit();
+        if (limit <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
             getMenuInflater().inflate(R.menu.menu_things_underway, menu);
-        } else if (mApp.getLimit() == Def.LimitForGettingThings.ALL_FINISHED) {
+            if (limit == Def.LimitForGettingThings.NOTE_UNDERWAY) {
+                menu.findItem(R.id.act_sort_by_alarm).setVisible(false);
+            }
+        } else if (limit == Def.LimitForGettingThings.ALL_FINISHED) {
             getMenuInflater().inflate(R.menu.menu_things_finished, menu);
         } else {
             getMenuInflater().inflate(R.menu.menu_things_deleted, menu);
@@ -503,6 +507,12 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 if (size != 1) {
                     handleUpdateStates(Thing.DELETED_FOREVER);
                 }
+                break;
+            case R.id.act_sort_by_alarm:
+                mThingManager.updateLocationsByAlarmsTime();
+                mAdapter.setShouldThingsAnimWhenAppearing(true);
+                mAdapter.notifyDataSetChanged();
+                AppWidgetHelper.updateAllThingsListAppWidgets(mApp);
                 break;
             case R.id.act_select_color:
                 dismissSnackbars();

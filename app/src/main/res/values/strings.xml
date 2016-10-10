@@ -74,6 +74,7 @@
     <string name="act_finish_all">Finish all</string>
     <string name="act_delete_all">Delete all</string>
     <string name="act_clear_now">Clear</string>
+    <string name="act_sort_by_alarm">Sort by alarm time</string>
 
     <!--ThingsActivity searching-->
     <string name="act_select_color">Select color</string>

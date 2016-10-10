@@ -15,4 +15,11 @@
           android:title="@string/act_finish_all"
           android:icon="@drawable/act_finish_all"
           app:showAsAction="always"/>
+
+      <item
+          android:id="@+id/act_sort_by_alarm"
+          android:title="@string/act_sort_by_alarm"
+          android:icon="@drawable/act_sort_by_alarm"
+          app:showAsAction="always"/>
+
 </menu>
