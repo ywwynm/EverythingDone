@@ -2,7 +2,6 @@ package com.ywwynm.everythingdone.appwidgets;
 
 import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -114,24 +113,28 @@ public class AppWidgetHelper {
 
     private AppWidgetHelper() {}
 
-    public static boolean isAppWidgetExisted(Context context, ThingWidgetInfo thingWidgetInfo) {
-        AppWidgetManager awm = AppWidgetManager.getInstance(context);
-        Class provider;
-        if (thingWidgetInfo.getThingId() < 0) {
-            provider = ThingsListWidget.class;
-        } else {
-            provider = getProviderClassBySize(thingWidgetInfo.getSize());
-        }
-
-        int appWidgetIdToCheck = thingWidgetInfo.getId();
-        int[] appWidgetIds = awm.getAppWidgetIds(new ComponentName(context, provider));
-        for (int appWidgetId : appWidgetIds) {
-            if (appWidgetIdToCheck == appWidgetId) {
-                return true;
-            }
-        }
-        return false;
-    }
+    /*
+        it seemed that this method can cause StackOverflowError because it could be called many
+        times in updateAppWidgets methods, so I decided to delete it.
+     */
+//    public static boolean isAppWidgetExisted(Context context, ThingWidgetInfo thingWidgetInfo) {
+//        AppWidgetManager awm = AppWidgetManager.getInstance(context);
+//        Class provider;
+//        if (thingWidgetInfo.getThingId() < 0) {
+//            provider = ThingsListWidget.class;
+//        } else {
+//            provider = getProviderClassBySize(thingWidgetInfo.getSize());
+//        }
+//
+//        int appWidgetIdToCheck = thingWidgetInfo.getId();
+//        int[] appWidgetIds = awm.getAppWidgetIds(new ComponentName(context, provider));
+//        for (int appWidgetId : appWidgetIds) {
+//            if (appWidgetIdToCheck == appWidgetId) {
+//                return true;
+//            }
+//        }
+//        return false;
+//    }
 
     /**
      * Update single thing widgets whose UI components are bind with a {@link Thing} with {@param thingId}.
@@ -146,10 +149,10 @@ public class AppWidgetHelper {
         List<ThingWidgetInfo> thingWidgetInfos = appWidgetDAO.getThingWidgetInfosByThingId(thingId);
         for (ThingWidgetInfo thingWidgetInfo : thingWidgetInfos) {
             int appWidgetId = thingWidgetInfo.getId();
-            if (!isAppWidgetExisted(context, thingWidgetInfo)) {
-                appWidgetDAO.delete(appWidgetId);
-                continue;
-            }
+//            if (!isAppWidgetExisted(context, thingWidgetInfo)) {
+//                appWidgetDAO.delete(appWidgetId);
+//                continue;
+//            }
             Intent intent = new Intent(context, getProviderClassBySize(thingWidgetInfo.getSize()));
             intent.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
             intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS,
@@ -172,10 +175,10 @@ public class AppWidgetHelper {
         List<ThingWidgetInfo> thingWidgetInfos = appWidgetDAO.getThingWidgetInfosByThingId(storedLimit);
         for (ThingWidgetInfo thingWidgetInfo : thingWidgetInfos) {
             int appWidgetId = thingWidgetInfo.getId();
-            if (!isAppWidgetExisted(context, thingWidgetInfo)) {
-                appWidgetDAO.delete(appWidgetId);
-                continue;
-            }
+//            if (!isAppWidgetExisted(context, thingWidgetInfo)) {
+//                appWidgetDAO.delete(appWidgetId);
+//                continue;
+//            }
             Intent intent = new Intent(context, ThingsListWidget.class);
             intent.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
             intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS,
@@ -203,10 +206,10 @@ public class AppWidgetHelper {
         List<ThingWidgetInfo> thingWidgetInfos = appWidgetDAO.getAllThingWidgetInfos();
         for (ThingWidgetInfo thingWidgetInfo : thingWidgetInfos) {
             int appWidgetId = thingWidgetInfo.getId();
-            if (!isAppWidgetExisted(context, thingWidgetInfo)) {
-                appWidgetDAO.delete(appWidgetId);
-                continue;
-            }
+//            if (!isAppWidgetExisted(context, thingWidgetInfo)) {
+//                appWidgetDAO.delete(appWidgetId);
+//                continue;
+//            }
             long thingId = thingWidgetInfo.getThingId();
             Intent intent;
             if (thingId < 0) { // for things list widgets
