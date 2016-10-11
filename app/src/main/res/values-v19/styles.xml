@@ -52,7 +52,6 @@
 
     <style name="EverythingDoneTheme.Help" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="android:windowTranslucentStatus">true</item>
-        <item name="colorAccent">@color/app_accent</item>
     </style>
 
 </resources>
