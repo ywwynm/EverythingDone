@@ -42,4 +42,54 @@
         android:layout_below="@id/actionbar"
         android:background="@drawable/actionbar_shadow"/>
 
+    <FrameLayout
+        android:id="@+id/fl_app_widget_preview_and_ui_config"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/iv_app_widget_preview_background"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"/>
+
+        <android.support.v7.widget.RecyclerView
+            android:id="@+id/rv_app_widget_preview"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:overScrollMode="never"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp"
+            android:layout_gravity="bottom"
+            android:gravity="center_vertical"
+            android:background="@color/black_54p">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/white_86p"
+                android:text="透明度"/>
+
+            <SeekBar
+                android:id="@+id/sb_app_widget_alpha"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/white_86p"
+                android:text="OK"/>
+
+        </LinearLayout>
+
+    </FrameLayout>
+
 </RelativeLayout>

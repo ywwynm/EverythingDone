@@ -37,6 +37,7 @@
 
     <style name="EverythingDoneTheme.Help" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="android:statusBarColor">@color/bg_statusbar_lollipop</item>
+        <item name="colorAccent">@color/app_accent</item>
     </style>
 
     <style name="EverythingDoneTheme.Detail.Actionbar">

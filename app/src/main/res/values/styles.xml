@@ -84,7 +84,7 @@
     </style>
 
     <style name="EverythingDoneTheme.Help" parent="Theme.AppCompat.Light.NoActionBar">
-
+        <item name="colorAccent">@color/app_accent</item>
     </style>
 
     <style name="DrawerArrowStyle" parent="Widget.AppCompat.DrawerArrowToggle">

@@ -1,16 +1,25 @@
 package com.ywwynm.everythingdone.appwidgets.single;
 
 import android.Manifest;
+import android.app.WallpaperManager;
 import android.appwidget.AppWidgetManager;
 import android.content.Intent;
 import android.content.res.Configuration;
+import android.graphics.Color;
+import android.graphics.PorterDuff;
+import android.graphics.drawable.Drawable;
 import android.support.v7.app.ActionBar;
+import android.support.v7.widget.CardView;
+import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.RemoteViews;
+import android.widget.SeekBar;
 
 import com.bumptech.glide.Glide;
 import com.ywwynm.everythingdone.Def;
@@ -28,6 +37,7 @@ import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
@@ -46,6 +56,9 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
     private int mSpanCount;
 
     private int mAppWidgetId;
+
+    private FrameLayout mFlPreviewAndConfig;
+    private int mWidgetAlpha = 100;
 
     @Override
     protected int getLayoutResource() {
@@ -96,6 +109,8 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
     protected void findViews() {
         mActionBar    = f(R.id.actionbar);
         mRecyclerView = f(R.id.rv_things);
+
+        mFlPreviewAndConfig = f(R.id.fl_app_widget_preview_and_ui_config);
     }
 
     @Override
@@ -165,10 +180,75 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
         });
     }
 
+    private void previewAppWidget(final Thing thing) {
+        mFlPreviewAndConfig.setVisibility(View.VISIBLE);
+
+        ImageView ivBackground = f(R.id.iv_app_widget_preview_background);
+        WallpaperManager wm = WallpaperManager.getInstance(getApplicationContext());
+        Drawable wallpaper = wm.getDrawable();
+        if (wallpaper != null) {
+            ivBackground.setImageDrawable(wallpaper);
+        }
+
+        final BaseThingsAdapter adapter = new BaseThingsAdapter(this) {
+
+            @Override
+            protected int getCurrentMode() {
+                return ModeManager.NORMAL;
+            }
+
+            @Override
+            protected List<Thing> getThings() {
+                List<Thing> things = new ArrayList<>(1);
+                things.add(new Thing(thing));
+                return things;
+            }
+
+            @Override
+            public void onBindViewHolder(BaseThingViewHolder holder, int position) {
+                super.onBindViewHolder(holder, position);
+                CardView cv = (CardView) holder.itemView;
+                cv.setRadius(0);
+                cv.setCardElevation(0);
+                cv.setAlpha(mWidgetAlpha / 100f);
+            }
+        };
+        RecyclerView rvPreview = f(R.id.rv_app_widget_preview);
+        FrameLayout.LayoutParams flp = (FrameLayout.LayoutParams) rvPreview.getLayoutParams();
+        flp.width = DisplayUtil.getThingCardWidth(this);
+        rvPreview.requestLayout();
+
+        rvPreview.setAdapter(adapter);
+        rvPreview.setLayoutManager(new LinearLayoutManager(this));
+
+        SeekBar sbAlpha = f(R.id.sb_app_widget_alpha);
+        sbAlpha.setMax(100);
+        sbAlpha.setProgress(100);
+        sbAlpha.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if (fromUser) {
+                    mWidgetAlpha = progress;
+                    adapter.notifyDataSetChanged();
+                }
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) { }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) { }
+        });
+    }
+
+    private void endPreviewAppWidget() {
+        mFlPreviewAndConfig.setVisibility(View.GONE);
+    }
+
     private void endSelectThing(Thing thing) {
         Class clazz = getSenderClass();
         AppWidgetDAO.getInstance(this).insert(mAppWidgetId, thing.getId(),
-                AppWidgetHelper.getSizeByProviderClass(clazz));
+                AppWidgetHelper.getSizeByProviderClass(clazz), mWidgetAlpha);
 
         RemoteViews views = AppWidgetHelper.createRemoteViewsForSingleThing(
                 this, thing, -1, mAppWidgetId, clazz);
@@ -178,6 +258,15 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
         intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, mAppWidgetId);
         setResult(RESULT_OK, intent);
         finish();
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (mFlPreviewAndConfig.getVisibility() == View.VISIBLE) {
+            endPreviewAppWidget();
+        } else {
+            super.onBackPressed();
+        }
     }
 
     class ThingsAdapter extends BaseThingsAdapter {
@@ -223,7 +312,8 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
                 cv.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        endSelectThing(mThings.get(getAdapterPosition()));
+                        //endSelectThing(mThings.get(getAdapterPosition()));
+                        previewAppWidget(mThings.get(getAdapterPosition()));
                     }
                 });
             }

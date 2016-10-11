@@ -26,17 +26,20 @@ public class ThingWidgetInfo {
     private int mId;
     private long mThingId;
     private @Size int mSize;
+    private int mAlpha; // from 0-100, 0 means transparent and 100 means solid
 
-    public ThingWidgetInfo(int id, long thingId, @Size int size) {
+    public ThingWidgetInfo(int id, long thingId, @Size int size, int alpha) {
         mId = id;
         mThingId = thingId;
         mSize = size;
+        mAlpha = alpha;
     }
 
     public ThingWidgetInfo(Cursor cursor) {
         mId      = cursor.getInt(cursor.getColumnIndex(Def.Database.COLUMN_ID_APP_WIDGET));
         mThingId = cursor.getLong(cursor.getColumnIndex(Def.Database.COLUMN_THING_ID_APP_WIDGET));
         mSize    = cursor.getInt(cursor.getColumnIndex(Def.Database.COLUMN_SIZE_APP_WIDGET));
+        mAlpha   = cursor.getInt(cursor.getColumnIndex(Def.Database.COLUMN_ALPHA_APP_WIDGET));
     }
 
     public int getId() {
@@ -61,5 +64,13 @@ public class ThingWidgetInfo {
 
     public void setSize(@Size int size) {
         mSize = size;
+    }
+
+    public int getAlpha() {
+        return mAlpha;
+    }
+
+    public void setAlpha(int alpha) {
+        mAlpha = alpha;
     }
 }

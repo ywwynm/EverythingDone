@@ -39,7 +39,7 @@ public class FingerprintHelper extends FingerprintManager.AuthenticationCallback
 
     public static final String TAG = "FingerprintHelper";
 
-    public static final String FINGERPRINT_KEY_NAME = "everythingdone_fingerprint_key";
+    private static final String FINGERPRINT_KEY_NAME = "everythingdone_fingerprint_key";
 
     private static final String ANDROID_KEYSTORE = "AndroidKeyStore";
 
@@ -144,7 +144,7 @@ public class FingerprintHelper extends FingerprintManager.AuthenticationCallback
         }
     }
 
-    public boolean initFingerprintCipher() {
+    private boolean initFingerprintCipher() {
         if (!DeviceUtil.hasMarshmallowApi()) {
             return false;
         }

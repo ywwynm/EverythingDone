@@ -70,7 +70,7 @@ public class ThingsListWidgetConfiguration extends AppCompatActivity {
         int appWidgetId = intent.getIntExtra(
                 AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID);
         AppWidgetDAO appWidgetDAO = AppWidgetDAO.getInstance(this);
-        appWidgetDAO.insert(appWidgetId, -limit - 1, ThingWidgetInfo.SIZE_MIDDLE);
+        appWidgetDAO.insert(appWidgetId, -limit - 1, ThingWidgetInfo.SIZE_MIDDLE, 100);
 
         RemoteViews views = AppWidgetHelper.createRemoteViewsForThingsList(
                 this, limit, appWidgetId);

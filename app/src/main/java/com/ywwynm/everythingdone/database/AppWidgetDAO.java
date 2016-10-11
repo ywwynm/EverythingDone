@@ -74,11 +74,12 @@ public class AppWidgetDAO {
         return thingWidgetInfos;
     }
 
-    public boolean insert(int appWidgetId, long thingId, @ThingWidgetInfo.Size int size) {
+    public boolean insert(int appWidgetId, long thingId, @ThingWidgetInfo.Size int size, int alpha) {
         ContentValues values = new ContentValues();
         values.put(Def.Database.COLUMN_ID_APP_WIDGET,       appWidgetId);
         values.put(Def.Database.COLUMN_THING_ID_APP_WIDGET, thingId);
         values.put(Def.Database.COLUMN_SIZE_APP_WIDGET,     size);
+        values.put(Def.Database.COLUMN_ALPHA_APP_WIDGET,    alpha);
         return db.insert(Def.Database.TABLE_APP_WIDGET, null, values) != -1;
     }
 
