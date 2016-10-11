@@ -30,17 +30,18 @@ import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 import android.view.animation.AccelerateDecelerateInterpolator;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
+import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.ywwynm.everythingdone.R;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.HashMap;
 import java.util.Random;
 
 /**
@@ -240,6 +241,15 @@ public class DisplayUtil {
         darkStatusBarForFlyme(window);
     }
 
+    public static void cancelDarkStatusBar(Activity activity) {
+        Window window = activity.getWindow();
+        if (DeviceUtil.hasMarshmallowApi()) {
+            View decor = window.getDecorView();
+            decor.setSystemUiVisibility(
+                    decor.getSystemUiVisibility() & ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+        }
+    }
+
     private static void darkStatusBarForMIUI(Window window) {
         Class<? extends Window> clazz = window.getClass();
         try {
@@ -365,5 +375,18 @@ public class DisplayUtil {
             }
             cardView.setForeground(sld);
         }
+    }
+
+    public static void setSeekBarColor(SeekBar seekBar, int color) {
+        if (DeviceUtil.hasLollipopApi()) {
+            seekBar.setProgressTintList(ColorStateList.valueOf(color));
+        } else {
+            seekBar.getProgressDrawable().setColorFilter(color, PorterDuff.Mode.SRC_IN);
+        }
+        seekBar.getThumb().setColorFilter(color, PorterDuff.Mode.SRC_IN);
+    }
+
+    public static void setButtonColor(Button button, int color) {
+        button.getBackground().setColorFilter(color, PorterDuff.Mode.MULTIPLY);
     }
 }
