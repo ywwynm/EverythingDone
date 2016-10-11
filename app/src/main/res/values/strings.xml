@@ -352,6 +352,11 @@
     <string name="cd_unpicked">Unpicked,</string>
     <!--week/month/year-->
 
+    <!--BaseThingWidgetConfiguration-->
+    <string name="cd_app_widget_preview_background">App widget preview background</string>
+
+    <string name="app_widget_alpha">alpha:</string>
+
     <string name="private_thing">private thing</string>
 
     <string name="congratulations">Congratulations</string>

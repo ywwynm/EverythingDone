@@ -52,7 +52,8 @@
             android:id="@+id/iv_app_widget_preview_background"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:scaleType="centerCrop"/>
+            android:scaleType="centerCrop"
+            android:contentDescription="@string/cd_app_widget_preview_background"/>
 
         <android.support.v7.widget.RecyclerView
             android:id="@+id/rv_app_widget_preview"
@@ -64,29 +65,39 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="60dp"
-            android:paddingLeft="16dp"
-            android:paddingRight="16dp"
             android:layout_gravity="bottom"
             android:gravity="center_vertical"
-            android:background="@color/black_54p">
+            android:background="@color/black_14p">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginLeft="16dp"
                 android:textColor="@color/white_86p"
-                android:text="透明度"/>
+                android:text="@string/app_widget_alpha"
+                android:textAllCaps="true"/>
 
             <SeekBar
                 android:id="@+id/sb_app_widget_alpha"
                 android:layout_width="0dp"
                 android:layout_weight="1"
-                android:layout_height="wrap_content"/>
+                android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
+                android:layout_marginLeft="8dp"
+                android:layout_marginRight="8dp"/>
 
-            <TextView
+            <Button
+                android:id="@+id/bt_finish_set_alpha_app_widget"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:minWidth="0dp"
+                android:layout_marginEnd="8dp"
+                android:layout_marginRight="8dp"
+                android:paddingLeft="20dp"
+                android:paddingRight="20dp"
                 android:textColor="@color/white_86p"
-                android:text="OK"/>
+                android:text="@string/act_finish"/>
 
         </LinearLayout>
 

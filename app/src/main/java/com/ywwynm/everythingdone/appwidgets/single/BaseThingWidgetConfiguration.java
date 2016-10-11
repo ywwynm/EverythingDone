@@ -6,16 +6,18 @@ import android.appwidget.AppWidgetManager;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.graphics.Color;
-import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.ActionBar;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
 import android.support.v7.widget.Toolbar;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.RemoteViews;
@@ -182,6 +184,9 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
 
     private void previewAppWidget(final Thing thing) {
         mFlPreviewAndConfig.setVisibility(View.VISIBLE);
+        mActionBar.setVisibility(View.GONE);
+        mRecyclerView.setVisibility(View.GONE);
+        DisplayUtil.cancelDarkStatusBar(this);
 
         ImageView ivBackground = f(R.id.iv_app_widget_preview_background);
         WallpaperManager wm = WallpaperManager.getInstance(getApplicationContext());
@@ -213,17 +218,43 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
                 cv.setAlpha(mWidgetAlpha / 100f);
             }
         };
-        RecyclerView rvPreview = f(R.id.rv_app_widget_preview);
+        final RecyclerView rvPreview = f(R.id.rv_app_widget_preview);
         FrameLayout.LayoutParams flp = (FrameLayout.LayoutParams) rvPreview.getLayoutParams();
         flp.width = DisplayUtil.getThingCardWidth(this);
         rvPreview.requestLayout();
-
         rvPreview.setAdapter(adapter);
         rvPreview.setLayoutManager(new LinearLayoutManager(this));
+        rvPreview.setOnTouchListener(new View.OnTouchListener() {
+            private int mDx, mDy;
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                final int rawX = (int) event.getRawX();
+                final int rawY = (int) event.getRawY();
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN: {
+                        FrameLayout.LayoutParams flp = (FrameLayout.LayoutParams)
+                                rvPreview.getLayoutParams();
+                        mDx = rawX - flp.leftMargin;
+                        mDy = rawY - flp.topMargin;
+                        return true;
+                    }
+                    case MotionEvent.ACTION_MOVE: {
+                        FrameLayout.LayoutParams flp = (FrameLayout.LayoutParams)
+                                rvPreview.getLayoutParams();
+                        flp.leftMargin = rawX - mDx;
+                        flp.topMargin  = rawY - mDy;
+                        rvPreview.requestLayout();
+                        return true;
+                    }
+                }
+                return false;
+            }
+        });
 
         SeekBar sbAlpha = f(R.id.sb_app_widget_alpha);
         sbAlpha.setMax(100);
         sbAlpha.setProgress(100);
+        DisplayUtil.setSeekBarColor(sbAlpha, ContextCompat.getColor(this, R.color.app_accent));
         sbAlpha.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
@@ -239,10 +270,23 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) { }
         });
+
+        Button btFinish = f(R.id.bt_finish_set_alpha_app_widget);
+        DisplayUtil.setButtonColor(btFinish, Color.WHITE);
+        btFinish.setTextColor(thing.getColor());
+        btFinish.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                endSelectThing(thing);
+            }
+        });
     }
 
     private void endPreviewAppWidget() {
         mFlPreviewAndConfig.setVisibility(View.GONE);
+        mActionBar.setVisibility(View.VISIBLE);
+        mRecyclerView.setVisibility(View.VISIBLE);
+        DisplayUtil.darkStatusBar(this);
     }
 
     private void endSelectThing(Thing thing) {

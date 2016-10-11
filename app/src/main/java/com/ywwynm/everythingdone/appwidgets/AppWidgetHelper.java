@@ -252,8 +252,14 @@ public class AppWidgetHelper {
 
     public static RemoteViews createRemoteViewsForSingleThing(
             Context context, Thing thing, int position, int appWidgetId, Class clazz) {
+        AppWidgetDAO dao = AppWidgetDAO.getInstance(context);
+        ThingWidgetInfo widgetInfo = dao.getThingWidgetInfoById(appWidgetId);
+        int alpha = 100;
+        if (widgetInfo != null) {
+            alpha = widgetInfo.getAlpha();
+        }
         RemoteViews remoteViews = new RemoteViews(context.getPackageName(), R.layout.app_widget_thing);
-        setAppearance(context, remoteViews, thing, appWidgetId, clazz);
+        setAppearance(context, remoteViews, thing, appWidgetId, clazz, alpha);
         final Intent contentIntent = AuthenticationActivity.getOpenIntent(
                 context, TAG, thing.getId(), position,
                 Def.Communication.AUTHENTICATE_ACTION_VIEW,
@@ -326,7 +332,7 @@ public class AppWidgetHelper {
             Context context, Thing thing, int appWidgetId) {
         RemoteViews remoteViews = new RemoteViews(context.getPackageName(),
                 R.layout.app_widget_item_thing);
-        setAppearance(context, remoteViews, thing, appWidgetId, ThingsListWidget.class);
+        setAppearance(context, remoteViews, thing, appWidgetId, ThingsListWidget.class, 100);
         return remoteViews;
     }
 
@@ -385,7 +391,8 @@ public class AppWidgetHelper {
     }
 
     private static void setAppearance(
-            Context context, RemoteViews remoteViews, Thing thing, int appWidgetId, Class clazz) {
+            Context context, RemoteViews remoteViews, Thing thing, int appWidgetId, Class clazz,
+            int alpha) {
         remoteViews.setInt(ROOT_WIDGET_THING, "setBackgroundColor", thing.getColor());
 
         setImageAttachment(context, remoteViews, thing, appWidgetId, clazz);
