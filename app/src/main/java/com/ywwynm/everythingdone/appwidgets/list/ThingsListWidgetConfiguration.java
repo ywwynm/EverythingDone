@@ -8,8 +8,11 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.view.Window;
 import android.widget.RemoteViews;
+import android.widget.SeekBar;
 import android.widget.TextView;
 
+import com.ywwynm.everythingdone.App;
+import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper;
 import com.ywwynm.everythingdone.database.AppWidgetDAO;
@@ -24,26 +27,53 @@ public class ThingsListWidgetConfiguration extends AppCompatActivity {
 
     public static final String TAG = "ThingsListWidgetConfiguration";
 
+    private SeekBar mSbAlpha;
+
+    private int mAppWidgetId;
+
+    private boolean mIsSetting = false;
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         supportRequestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.activity_things_list_widget_configuration);
 
+        int color = DisplayUtil.getRandomColor(getApplicationContext());
         TextView tvTitle = (TextView) findViewById(R.id.tv_title_things_list_widget_configuration);
         if (tvTitle != null) {
-            tvTitle.setTextColor(DisplayUtil.getRandomColor(this));
+            tvTitle.setTextColor(color);
         }
 
-        int appWidgetId = getIntent().getIntExtra(
+        mSbAlpha = (SeekBar) findViewById(R.id.sb_app_widget_alpha);
+        mSbAlpha.setMax(100);
+        DisplayUtil.setSeekBarColor(mSbAlpha, color);
+
+        Intent intent = getIntent();
+        mAppWidgetId = intent.getIntExtra(
                 AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID);
-        Intent intent = new Intent();
-        intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
+        int appWidgetId2 = intent.getIntExtra(Def.Communication.KEY_WIDGET_ID,
+                AppWidgetManager.INVALID_APPWIDGET_ID);
+        intent = new Intent();
+        intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, mAppWidgetId);
         setResult(RESULT_CANCELED, intent);
 
-        if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) {
-            finish();
+        if (mAppWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) {
+            mAppWidgetId = appWidgetId2;
+            if (mAppWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) {
+                finish();
+            } else {
+                mIsSetting = true;
+            }
         }
+
+        AppWidgetDAO dao = AppWidgetDAO.getInstance(getApplicationContext());
+        ThingWidgetInfo info = dao.getThingWidgetInfoById(mAppWidgetId);
+        int alpha = 100;
+        if (info != null) {
+            alpha = info.getAlpha();
+        }
+        mSbAlpha.setProgress(alpha);
     }
 
     public void onClick(View view) {
@@ -66,19 +96,24 @@ public class ThingsListWidgetConfiguration extends AppCompatActivity {
                 break;
             default:break;
         }
-        Intent intent = getIntent();
-        int appWidgetId = intent.getIntExtra(
-                AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID);
-        AppWidgetDAO appWidgetDAO = AppWidgetDAO.getInstance(this);
-        appWidgetDAO.insert(appWidgetId, -limit - 1, ThingWidgetInfo.SIZE_MIDDLE, 100);
+        App app = App.getApp();
+        AppWidgetDAO appWidgetDAO = AppWidgetDAO.getInstance(app);
+        if (mIsSetting) {
+            appWidgetDAO.delete(mAppWidgetId);
+        }
+        appWidgetDAO.insert(mAppWidgetId, -limit - 1, ThingWidgetInfo.SIZE_MIDDLE,
+                mSbAlpha.getProgress());
 
-        RemoteViews views = AppWidgetHelper.createRemoteViewsForThingsList(
-                this, limit, appWidgetId);
-        AppWidgetManager.getInstance(this).updateAppWidget(appWidgetId, views);
-
-        intent = new Intent();
-        intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
-        setResult(RESULT_OK, intent);
+        if (!mIsSetting) {
+            RemoteViews views = AppWidgetHelper.createRemoteViewsForThingsList(
+                    this, limit, mAppWidgetId);
+            AppWidgetManager.getInstance(app).updateAppWidget(mAppWidgetId, views);
+            Intent intent = new Intent();
+            intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, mAppWidgetId);
+            setResult(RESULT_OK, intent);
+        } else {
+            AppWidgetHelper.updateThingsListAppWidget(app, mAppWidgetId);
+        }
         finish();
     }
 }

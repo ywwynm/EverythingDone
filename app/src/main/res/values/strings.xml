@@ -355,6 +355,9 @@
     <!--BaseThingWidgetConfiguration-->
     <string name="cd_app_widget_preview_background">App widget preview background</string>
 
+    <!--ThingsListWidget-->
+    <string name="cd_things_list_widget_setting">settings for things list app widget</string>
+
     <string name="app_widget_alpha">alpha:</string>
 
     <string name="private_thing">private thing</string>

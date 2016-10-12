@@ -29,6 +29,15 @@
             android:layout_weight="1"/>
 
         <ImageView
+            android:id="@+id/iv_things_list_setting"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/drawer_settings"
+            android:contentDescription="@string/cd_things_list_widget_setting"
+            android:scaleType="centerInside"
+            android:background="@drawable/selectable_item_background"/>
+
+        <ImageView
             android:id="@+id/iv_things_list_create"
             android:layout_width="40dp"
             android:layout_height="40dp"

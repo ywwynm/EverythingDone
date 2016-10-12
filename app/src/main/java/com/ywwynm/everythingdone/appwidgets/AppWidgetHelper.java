@@ -27,6 +27,7 @@ import com.ywwynm.everythingdone.activities.AuthenticationActivity;
 import com.ywwynm.everythingdone.activities.DetailActivity;
 import com.ywwynm.everythingdone.activities.ThingsActivity;
 import com.ywwynm.everythingdone.appwidgets.list.ThingsListWidget;
+import com.ywwynm.everythingdone.appwidgets.list.ThingsListWidgetConfiguration;
 import com.ywwynm.everythingdone.appwidgets.list.ThingsListWidgetService;
 import com.ywwynm.everythingdone.appwidgets.single.BaseThingWidget;
 import com.ywwynm.everythingdone.appwidgets.single.ChecklistWidgetService;
@@ -109,6 +110,7 @@ public class AppWidgetHelper {
     private static final int LV_THINGS_LIST           = R.id.lv_things_list;
     private static final int LL_THINGS_LIST_HEADER    = R.id.ll_things_list_header;
     private static final int TV_THINGS_LIST_TITLE     = R.id.tv_things_list_title;
+    private static final int IV_THINGS_LIST_SETTING   = R.id.iv_things_list_setting;
     private static final int IV_THINGS_LIST_CREATE    = R.id.iv_things_list_create;
 
     private AppWidgetHelper() {}
@@ -161,6 +163,14 @@ public class AppWidgetHelper {
         }
     }
 
+    public static void updateThingsListAppWidget(Context context, int appWidgetId) {
+        Intent intent = new Intent(context, ThingsListWidget.class);
+        intent.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
+        intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS,
+                new int[] { appWidgetId });
+        context.sendBroadcast(intent);
+    }
+
     /**
      * Update things list widget whose UI components are bind with a list of things under {@param limit}.
      * This method should be called at any time if any thing was created/updated by user or by app
@@ -174,16 +184,11 @@ public class AppWidgetHelper {
         int storedLimit = -limit - 1;
         List<ThingWidgetInfo> thingWidgetInfos = appWidgetDAO.getThingWidgetInfosByThingId(storedLimit);
         for (ThingWidgetInfo thingWidgetInfo : thingWidgetInfos) {
-            int appWidgetId = thingWidgetInfo.getId();
 //            if (!isAppWidgetExisted(context, thingWidgetInfo)) {
 //                appWidgetDAO.delete(appWidgetId);
 //                continue;
 //            }
-            Intent intent = new Intent(context, ThingsListWidget.class);
-            intent.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
-            intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS,
-                    new int[] { appWidgetId });
-            context.sendBroadcast(intent);
+            updateThingsListAppWidget(context, thingWidgetInfo.getId());
         }
     }
 
@@ -281,6 +286,13 @@ public class AppWidgetHelper {
                 context, appWidgetId, intent, PendingIntent.FLAG_UPDATE_CURRENT);
         remoteViews.setOnClickPendingIntent(LL_THINGS_LIST_HEADER, pendingIntent);
 
+        // setting image view click event
+        intent = new Intent(context, ThingsListWidgetConfiguration.class);
+        intent.putExtra(Def.Communication.KEY_WIDGET_ID, appWidgetId);
+        pendingIntent = PendingIntent.getActivity(
+                context, appWidgetId, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        remoteViews.setOnClickPendingIntent(IV_THINGS_LIST_SETTING, pendingIntent);
+
         // create image view click event
         intent = DetailActivity.getOpenIntentForCreate(context, TAG, App.newThingColor);
         intent.putExtra(Def.Communication.KEY_LIMIT, limit);
@@ -332,7 +344,13 @@ public class AppWidgetHelper {
             Context context, Thing thing, int appWidgetId) {
         RemoteViews remoteViews = new RemoteViews(context.getPackageName(),
                 R.layout.app_widget_item_thing);
-        setAppearance(context, remoteViews, thing, appWidgetId, ThingsListWidget.class, 100);
+        int alpha = 100;
+        AppWidgetDAO dao = AppWidgetDAO.getInstance(context);
+        ThingWidgetInfo info = dao.getThingWidgetInfoById(appWidgetId);
+        if (info != null) {
+            alpha = info.getAlpha();
+        }
+        setAppearance(context, remoteViews, thing, appWidgetId, ThingsListWidget.class, alpha);
         return remoteViews;
     }
 
@@ -393,7 +411,8 @@ public class AppWidgetHelper {
     private static void setAppearance(
             Context context, RemoteViews remoteViews, Thing thing, int appWidgetId, Class clazz,
             int alpha) {
-        remoteViews.setInt(ROOT_WIDGET_THING, "setBackgroundColor", thing.getColor());
+        remoteViews.setInt(ROOT_WIDGET_THING, "setBackgroundColor",
+                DisplayUtil.getTransparentColor(thing.getColor(), (int) (alpha / 100f * 255)));
 
         setImageAttachment(context, remoteViews, thing, appWidgetId, clazz);
         setTitleAndPrivate(remoteViews, thing);

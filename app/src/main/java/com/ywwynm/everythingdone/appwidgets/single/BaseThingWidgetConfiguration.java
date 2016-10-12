@@ -213,9 +213,13 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
             public void onBindViewHolder(BaseThingViewHolder holder, int position) {
                 super.onBindViewHolder(holder, position);
                 CardView cv = (CardView) holder.itemView;
+                if (cv == null) return;
                 cv.setRadius(0);
                 cv.setCardElevation(0);
-                cv.setAlpha(mWidgetAlpha / 100f);
+                int alphaColor = DisplayUtil.getTransparentColor(
+                        thing.getColor(), (int) (mWidgetAlpha / 100f * 255));
+                cv.setCardBackgroundColor(alphaColor);
+                //cv.setAlpha(mWidgetAlpha / 100f);
             }
         };
         final RecyclerView rvPreview = f(R.id.rv_app_widget_preview);
