@@ -210,6 +210,7 @@
 
         <activity
             android:name=".appwidgets.single.BaseThingWidgetConfiguration"
+            android:excludeFromRecents="true"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:label="@string/title_activity_thing_widget_configure"
             android:screenOrientation="user"
@@ -221,6 +222,7 @@
 
         <activity
             android:name=".appwidgets.single.ThingWidgetConfigurationTiny"
+            android:excludeFromRecents="true"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:label="@string/title_activity_thing_widget_configure"
             android:screenOrientation="user"
@@ -232,6 +234,7 @@
 
         <activity
             android:name=".appwidgets.single.ThingWidgetConfigurationSmall"
+            android:excludeFromRecents="true"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:label="@string/title_activity_thing_widget_configure"
             android:screenOrientation="user"
@@ -243,6 +246,7 @@
 
         <activity
             android:name=".appwidgets.single.ThingWidgetConfigurationMiddle"
+            android:excludeFromRecents="true"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:label="@string/title_activity_thing_widget_configure"
             android:screenOrientation="user"
@@ -254,6 +258,7 @@
 
         <activity
             android:name=".appwidgets.single.ThingWidgetConfigurationLarge"
+            android:excludeFromRecents="true"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:label="@string/title_activity_thing_widget_configure"
             android:screenOrientation="user"
@@ -265,6 +270,7 @@
 
         <activity
             android:name=".appwidgets.list.ThingsListWidgetConfiguration"
+            android:excludeFromRecents="true"
             android:theme="@style/Theme.AppCompat.Light.Dialog">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
