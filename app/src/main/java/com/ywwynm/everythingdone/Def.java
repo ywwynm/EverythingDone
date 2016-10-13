@@ -20,7 +20,7 @@ public final class Def {
         public static final String RESTORE_DONE_FILE_NAME   = "restore_done.dat";
         public static final String FEEDBACK_ERROR_FILE_NAME = "feedback_error.dat";
 
-        public static final int DATABASE_VERSION = 4;
+        public static final int DATABASE_VERSION = 5;
 
         public static final int ONGOING_NOTIFICATION_ID = Integer.MAX_VALUE;
 
@@ -125,6 +125,7 @@ public final class Def {
         public static final String COLUMN_THING_ID_APP_WIDGET = "thing_id";
         public static final String COLUMN_SIZE_APP_WIDGET     = "size";
         public static final String COLUMN_ALPHA_APP_WIDGET    = "alpha";
+        public static final String COLUMN_STYLE_APP_WIDGET    = "style";
 
     }
 

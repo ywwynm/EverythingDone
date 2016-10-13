@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.AppCompatCheckBox;
 import android.view.View;
 import android.view.Window;
 import android.widget.RemoteViews;
@@ -28,6 +29,7 @@ public class ThingsListWidgetConfiguration extends AppCompatActivity {
     public static final String TAG = "ThingsListWidgetConfiguration";
 
     private SeekBar mSbAlpha;
+    private AppCompatCheckBox mCbSimpleView;
 
     private int mAppWidgetId;
 
@@ -48,6 +50,16 @@ public class ThingsListWidgetConfiguration extends AppCompatActivity {
         mSbAlpha = (SeekBar) findViewById(R.id.sb_app_widget_alpha);
         mSbAlpha.setMax(100);
         DisplayUtil.setSeekBarColor(mSbAlpha, color);
+
+        mCbSimpleView = (AppCompatCheckBox) findViewById(R.id.cb_simple_view);
+        DisplayUtil.setCheckBoxColor(mCbSimpleView, color);
+
+        findViewById(R.id.rl_simple_view_as_bt).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mCbSimpleView.toggle();
+            }
+        });
 
         Intent intent = getIntent();
         mAppWidgetId = intent.getIntExtra(
@@ -72,6 +84,7 @@ public class ThingsListWidgetConfiguration extends AppCompatActivity {
         int alpha = 100;
         if (info != null) {
             alpha = info.getAlpha();
+            mCbSimpleView.setChecked(info.getStyle() == ThingWidgetInfo.STYLE_SIMPLE);
         }
         mSbAlpha.setProgress(alpha);
     }
@@ -101,8 +114,13 @@ public class ThingsListWidgetConfiguration extends AppCompatActivity {
         if (mIsSetting) {
             appWidgetDAO.delete(mAppWidgetId);
         }
+
+        @ThingWidgetInfo.Style int style = ThingWidgetInfo.STYLE_NORMAL;
+        if (mCbSimpleView.isChecked()) {
+            style = ThingWidgetInfo.STYLE_SIMPLE;
+        }
         appWidgetDAO.insert(mAppWidgetId, -limit - 1, ThingWidgetInfo.SIZE_MIDDLE,
-                mSbAlpha.getProgress());
+                mSbAlpha.getProgress(), style);
 
         if (!mIsSetting) {
             RemoteViews views = AppWidgetHelper.createRemoteViewsForThingsList(

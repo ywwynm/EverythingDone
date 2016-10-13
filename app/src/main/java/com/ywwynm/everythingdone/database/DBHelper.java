@@ -81,6 +81,7 @@ public class DBHelper extends SQLiteOpenHelper {
                 + Def.Database.COLUMN_THING_ID_APP_WIDGET + " integer not null, "
                 + Def.Database.COLUMN_SIZE_APP_WIDGET     + " integer not null, " /* added in version 3 */
                 + Def.Database.COLUMN_ALPHA_APP_WIDGET    + " integer not null default 100, " /* added in version 4 */
+                + Def.Database.COLUMN_STYLE_APP_WIDGET    + " integer not null default 0, " /* added in version 5 */
                 + "foreign key("
                     + Def.Database.COLUMN_THING_ID_APP_WIDGET
                 + ") references "
@@ -102,6 +103,10 @@ public class DBHelper extends SQLiteOpenHelper {
     private static final String SQL_ADD_COLUMN_ALPHA_APP_WIDGET = "alter table "
             + Def.Database.TABLE_APP_WIDGET
             + " add column " + Def.Database.COLUMN_ALPHA_APP_WIDGET + " integer not null default 100";
+
+    private static final String SQL_ADD_COLUMN_STYLE_APP_WIDGET = "alter table "
+            + Def.Database.TABLE_APP_WIDGET
+            + " add column " + Def.Database.COLUMN_STYLE_APP_WIDGET + " integer not null default 0";
 
     private static final String SQL_DROP_TABLE_THINGS = "drop table if exists "
             + Def.Database.TABLE_THINGS;
@@ -178,7 +183,12 @@ public class DBHelper extends SQLiteOpenHelper {
             db.execSQL(SQL_CREATE_TABLE_APP_WIDGET);
         } else if (oldVersion == 3) {
             db.execSQL(SQL_ADD_COLUMN_ALPHA_APP_WIDGET);
+            db.execSQL(SQL_ADD_COLUMN_STYLE_APP_WIDGET);
+        } else if (oldVersion == 4) {
+            // Only for developing. Thing list widget now can optimize style
+            db.execSQL(SQL_ADD_COLUMN_STYLE_APP_WIDGET);
         }
+        // released version should be 1, 3, 5.
     }
 
     @Override

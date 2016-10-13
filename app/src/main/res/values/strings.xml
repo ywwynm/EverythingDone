@@ -269,6 +269,8 @@
 
     <!--widget-->
     <string name="all">All</string>
+    <string name="app_widget_config_alpha">Alpha:</string>
+    <string name="things_list_config_simple_view">Use simpler thing view</string>
 
 
     <!--Dialogs-->
@@ -357,8 +359,6 @@
 
     <!--ThingsListWidget-->
     <string name="cd_things_list_widget_setting">settings for things list app widget</string>
-
-    <string name="app_widget_alpha">alpha:</string>
 
     <string name="private_thing">private thing</string>
 

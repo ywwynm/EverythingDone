@@ -258,13 +258,15 @@ public class AppWidgetHelper {
     public static RemoteViews createRemoteViewsForSingleThing(
             Context context, Thing thing, int position, int appWidgetId, Class clazz) {
         AppWidgetDAO dao = AppWidgetDAO.getInstance(context);
-        ThingWidgetInfo widgetInfo = dao.getThingWidgetInfoById(appWidgetId);
+        ThingWidgetInfo info = dao.getThingWidgetInfoById(appWidgetId);
         int alpha = 100;
-        if (widgetInfo != null) {
-            alpha = widgetInfo.getAlpha();
+        @ThingWidgetInfo.Style int style = ThingWidgetInfo.STYLE_NORMAL;
+        if (info != null) {
+            alpha = info.getAlpha();
+            style = info.getStyle();
         }
         RemoteViews remoteViews = new RemoteViews(context.getPackageName(), R.layout.app_widget_thing);
-        setAppearance(context, remoteViews, thing, appWidgetId, clazz, alpha);
+        setAppearance(context, remoteViews, thing, appWidgetId, clazz, alpha, style);
         final Intent contentIntent = AuthenticationActivity.getOpenIntent(
                 context, TAG, thing.getId(), position,
                 Def.Communication.AUTHENTICATE_ACTION_VIEW,
@@ -322,6 +324,8 @@ public class AppWidgetHelper {
                 PendingIntent.FLAG_UPDATE_CURRENT);
         remoteViews.setPendingIntentTemplate(LV_THINGS_LIST, pendingIntent);
 
+        remoteViews.setScrollPosition(LV_THINGS_LIST, 0);
+
         return remoteViews;
     }
 
@@ -345,12 +349,15 @@ public class AppWidgetHelper {
         RemoteViews remoteViews = new RemoteViews(context.getPackageName(),
                 R.layout.app_widget_item_thing);
         int alpha = 100;
+        @ThingWidgetInfo.Style int style = ThingWidgetInfo.STYLE_NORMAL;
         AppWidgetDAO dao = AppWidgetDAO.getInstance(context);
         ThingWidgetInfo info = dao.getThingWidgetInfoById(appWidgetId);
         if (info != null) {
             alpha = info.getAlpha();
+            style = info.getStyle();
         }
-        setAppearance(context, remoteViews, thing, appWidgetId, ThingsListWidget.class, alpha);
+        setAppearance(context, remoteViews, thing, appWidgetId,
+                ThingsListWidget.class, alpha, style);
         return remoteViews;
     }
 
@@ -410,20 +417,33 @@ public class AppWidgetHelper {
 
     private static void setAppearance(
             Context context, RemoteViews remoteViews, Thing thing, int appWidgetId, Class clazz,
-            int alpha) {
+            int alpha, @ThingWidgetInfo.Style int style) {
         remoteViews.setInt(ROOT_WIDGET_THING, "setBackgroundColor",
                 DisplayUtil.getTransparentColor(thing.getColor(), (int) (alpha / 100f * 255)));
 
         setImageAttachment(context, remoteViews, thing, appWidgetId, clazz);
-        setTitleAndPrivate(remoteViews, thing);
+
+        setTitleAndPrivate(remoteViews, thing, style);
+
         setContent(context, remoteViews, thing, appWidgetId, clazz);
+
         setAudioAttachment(context, remoteViews, thing);
 
         setState(context, remoteViews, thing);
         setAction(context, remoteViews, thing, clazz);
 
         setReminder(context, remoteViews, thing);
-        setHabit(context, remoteViews, thing);
+        setHabit(context, remoteViews, thing, style);
+
+        if (style == ThingWidgetInfo.STYLE_SIMPLE && getTitleToDisplayForSimpleStyle(thing) != null) {
+            remoteViews.setViewVisibility(LV_CHECKLIST,        View.GONE);
+            remoteViews.setViewVisibility(LL_CHECK_LIST_ITEMS, View.GONE);
+            remoteViews.setViewVisibility(TV_CONTENT,          View.GONE);
+
+            remoteViews.setViewVisibility(IV_IMAGE_ATTACHMENT, View.GONE);
+            remoteViews.setViewVisibility(TV_IMAGE_COUNT,      View.GONE);
+            remoteViews.setViewVisibility(LL_AUDIO_ATTACHMENT, View.GONE);
+        }
     }
 
     private static void setSeparatorVisibilities(
@@ -502,27 +522,59 @@ public class AppWidgetHelper {
         }
     }
 
-    private static void setTitleAndPrivate(RemoteViews remoteViews, Thing thing) {
-        String title = thing.getTitleToDisplay();
-        if (!title.isEmpty()) {
-            remoteViews.setViewVisibility(TV_TITLE, View.VISIBLE);
-            remoteViews.setTextViewText(TV_TITLE, title);
-            remoteViews.setViewPadding(TV_TITLE, dp12, dp12, dp12, 0);
-            remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);
-            setSeparatorVisibilities(remoteViews, View.VISIBLE);
-        } else {
-            remoteViews.setViewVisibility(TV_TITLE, View.GONE);
+    private static void setTitleAndPrivate(
+            RemoteViews remoteViews, Thing thing, @ThingWidgetInfo.Style int style) {
+        if (style == ThingWidgetInfo.STYLE_NORMAL) {
+            String title = thing.getTitleToDisplay();
+            if (!title.isEmpty()) {
+                remoteViews.setViewVisibility(TV_TITLE, View.VISIBLE);
+                remoteViews.setTextViewText(TV_TITLE, title);
+                remoteViews.setViewPadding(TV_TITLE, dp12, dp12, dp12, 0);
+                remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);
+                setSeparatorVisibilities(remoteViews, View.VISIBLE);
+            } else {
+                remoteViews.setViewVisibility(TV_TITLE, View.GONE);
+            }
+        } else { // simple style
+            String title = getTitleToDisplayForSimpleStyle(thing);
+            if (title != null) {
+                remoteViews.setViewVisibility(TV_TITLE, View.VISIBLE);
+                remoteViews.setTextViewText(TV_TITLE, title);
+                remoteViews.setViewPadding(TV_TITLE, dp12, dp12, dp12, 0);
+                remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);
+                setSeparatorVisibilities(remoteViews, View.VISIBLE);
+            } else {
+                remoteViews.setViewVisibility(TV_TITLE, View.GONE);
+            }
         }
 
-        if (thing.isPrivate()) {
-            remoteViews.setViewVisibility(R.id.view_private_helper_1, View.VISIBLE);
-            remoteViews.setViewVisibility(IV_PRIVATE_THING,           View.VISIBLE);
-            remoteViews.setViewVisibility(R.id.view_private_helper_2, View.VISIBLE);
-        } else {
-            remoteViews.setViewVisibility(R.id.view_private_helper_1, View.GONE);
-            remoteViews.setViewVisibility(IV_PRIVATE_THING,           View.GONE);
-            remoteViews.setViewVisibility(R.id.view_private_helper_2, View.GONE);
+        if (style == ThingWidgetInfo.STYLE_NORMAL) {
+            if (thing.isPrivate()) {
+                remoteViews.setViewVisibility(R.id.view_private_helper_1, View.VISIBLE);
+                remoteViews.setViewVisibility(IV_PRIVATE_THING, View.VISIBLE);
+                remoteViews.setViewVisibility(R.id.view_private_helper_2, View.VISIBLE);
+            } else {
+                remoteViews.setViewVisibility(R.id.view_private_helper_1, View.GONE);
+                remoteViews.setViewVisibility(IV_PRIVATE_THING, View.GONE);
+                remoteViews.setViewVisibility(R.id.view_private_helper_2, View.GONE);
+            }
         }
+    }
+
+    private static String getTitleToDisplayForSimpleStyle(Thing thing) {
+        String title = thing.getTitleToDisplay();
+        if (!title.isEmpty()) {
+            return title;
+        }
+        String content = thing.getContent();
+        if (!content.isEmpty()) {
+            if (CheckListHelper.isCheckListStr(content)) {
+                content = CheckListHelper.toContentStr(content, "X  ", "√  ");
+            }
+            return content;
+        }
+        // both title and content are empty, so there should be attachments
+        return null;
     }
 
     private static void setContent(
@@ -752,7 +804,9 @@ public class AppWidgetHelper {
         remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);
     }
 
-    private static void setHabit(Context context, RemoteViews remoteViews, Thing thing) {
+    private static void setHabit(
+            Context context, RemoteViews remoteViews, Thing thing,
+            @ThingWidgetInfo.Style int style) {
         Habit habit = HabitDAO.getInstance(context).getHabitById(thing.getId());
         if (habit == null || thing.isPrivate())  {
             remoteViews.setViewVisibility(RL_HABIT, View.GONE);
@@ -765,15 +819,24 @@ public class AppWidgetHelper {
         remoteViews.setTextViewText(TV_HABIT_SUMMARY, habit.getSummary(context));
 
         if (thing.getState() == Thing.UNDERWAY) {
-            remoteViews.setViewVisibility(TV_HABIT_NEXT_REMINDER,   View.VISIBLE);
+            remoteViews.setViewVisibility(TV_HABIT_NEXT_REMINDER, View.VISIBLE);
+            String next = context.getString(R.string.habit_next_reminder);
+            remoteViews.setTextViewText(TV_HABIT_NEXT_REMINDER,
+                    next + " " + habit.getNextReminderDescription(context));
+
+            if (style == ThingWidgetInfo.STYLE_SIMPLE) {
+                remoteViews.setViewVisibility(V_HABIT_SEPARATOR_2,      View.GONE);
+                remoteViews.setViewVisibility(TV_HABIT_LAST_FIVE,       View.GONE);
+                remoteViews.setViewVisibility(LL_HABIT_RECORD,          View.GONE);
+                remoteViews.setViewVisibility(TV_HABIT_FINISHED_THIS_T, View.GONE);
+                // only show summary and next reminder time
+                return;
+            }
+
             remoteViews.setViewVisibility(V_HABIT_SEPARATOR_2,      View.VISIBLE);
             remoteViews.setViewVisibility(TV_HABIT_LAST_FIVE,       View.VISIBLE);
             remoteViews.setViewVisibility(LL_HABIT_RECORD,          View.VISIBLE);
             remoteViews.setViewVisibility(TV_HABIT_FINISHED_THIS_T, View.VISIBLE);
-
-            String next = context.getString(R.string.habit_next_reminder);
-            remoteViews.setTextViewText(TV_HABIT_NEXT_REMINDER,
-                    next + " " + habit.getNextReminderDescription(context));
 
             String record = habit.getRecord();
             StringBuilder lastFive;

@@ -33,6 +33,7 @@ import com.ywwynm.everythingdone.database.AppWidgetDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
 import com.ywwynm.everythingdone.managers.ModeManager;
 import com.ywwynm.everythingdone.model.Thing;
+import com.ywwynm.everythingdone.model.ThingWidgetInfo;
 import com.ywwynm.everythingdone.permission.PermissionUtil;
 import com.ywwynm.everythingdone.permission.SimplePermissionCallback;
 import com.ywwynm.everythingdone.utils.DeviceUtil;
@@ -64,7 +65,7 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
 
     @Override
     protected int getLayoutResource() {
-        return R.layout.activity_thing_widget_configure;
+        return R.layout.activity_thing_widget_configuration;
     }
 
     @Override
@@ -296,7 +297,8 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
     private void endSelectThing(Thing thing) {
         Class clazz = getSenderClass();
         AppWidgetDAO.getInstance(this).insert(mAppWidgetId, thing.getId(),
-                AppWidgetHelper.getSizeByProviderClass(clazz), mWidgetAlpha);
+                AppWidgetHelper.getSizeByProviderClass(clazz), mWidgetAlpha,
+                ThingWidgetInfo.STYLE_NORMAL);
 
         RemoteViews views = AppWidgetHelper.createRemoteViewsForSingleThing(
                 this, thing, -1, mAppWidgetId, clazz);

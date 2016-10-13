@@ -488,8 +488,9 @@
     <string name="content_incorrect_reminder_habit">完事兒發現有些提醒、習慣或目標處於錯誤的狀態，它們沒有在正確的時間提醒您。\n請確保完事兒能夠在後台正常運行。您可以在多任務中鎖定完事兒，在電池優化類的應用中將它加入白名單，以及授予所有它申請的權限，以確保提醒功能正常。\n您還可以前往幫助頁面獲取更詳細的信息。\n點擊\"重新設置鬧鐘\"按鈕以修復記事狀態錯誤，同時重新激活對習慣的提醒。</string>
     <string name="title_incorrect_reminder_habit">提醒類記事狀態錯誤</string>
     <string name="act_sort_by_alarm">根據提醒時間排序</string>
-    <string name="app_widget_alpha">透明度:</string>
+    <string name="app_widget_config_alpha">透明度:</string>
     <string name="cd_app_widget_preview_background">小部件預覽背景</string>
     <string name="cd_things_list_widget_setting">打開記事列表小部件設置</string>
+    <string name="things_list_config_simple_view">採用簡單的記事視圖</string>
 
 </resources>

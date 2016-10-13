@@ -75,7 +75,7 @@
                 android:layout_marginStart="16dp"
                 android:layout_marginLeft="16dp"
                 android:textColor="@color/white_86p"
-                android:text="@string/app_widget_alpha"
+                android:text="@string/app_widget_config_alpha"
                 android:textAllCaps="true"/>
 
             <SeekBar
