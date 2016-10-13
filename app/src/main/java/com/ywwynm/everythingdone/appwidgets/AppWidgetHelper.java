@@ -423,7 +423,7 @@ public class AppWidgetHelper {
 
         setImageAttachment(context, remoteViews, thing, appWidgetId, clazz);
 
-        setTitleAndPrivate(remoteViews, thing, style);
+        setTitleAndPrivate(context, remoteViews, thing, style);
 
         setContent(context, remoteViews, thing, appWidgetId, clazz);
 
@@ -523,7 +523,7 @@ public class AppWidgetHelper {
     }
 
     private static void setTitleAndPrivate(
-            RemoteViews remoteViews, Thing thing, @ThingWidgetInfo.Style int style) {
+            Context context, RemoteViews remoteViews, Thing thing, @ThingWidgetInfo.Style int style) {
         if (style == ThingWidgetInfo.STYLE_NORMAL) {
             String title = thing.getTitleToDisplay();
             if (!title.isEmpty()) {
@@ -539,6 +539,8 @@ public class AppWidgetHelper {
             String title = getTitleToDisplayForSimpleStyle(thing);
             if (title != null) {
                 remoteViews.setViewVisibility(TV_TITLE, View.VISIBLE);
+                remoteViews.setTextColor(TV_TITLE,
+                        ContextCompat.getColor(context, R.color.white_66p));
                 remoteViews.setTextViewText(TV_TITLE, title);
                 remoteViews.setViewPadding(TV_TITLE, dp12, dp12, dp12, 0);
                 remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);
@@ -570,6 +572,7 @@ public class AppWidgetHelper {
         if (!content.isEmpty()) {
             if (CheckListHelper.isCheckListStr(content)) {
                 content = CheckListHelper.toContentStr(content, "X ", "√ ");
+                content = content.replaceAll("\n", "\n  ");
             }
             return content;
         }
