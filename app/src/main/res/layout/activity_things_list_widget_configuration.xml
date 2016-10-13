@@ -100,13 +100,17 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:paddingTop="20dp"
-        android:paddingBottom="12dp">
+        android:paddingBottom="12dp"
+        android:paddingStart="16dp"
+        android:paddingLeft="16dp"
+        android:paddingEnd="12dp"
+        android:paddingRight="12dp">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_marginLeft="16dp"
+            android:layout_marginEnd="8dp"
+            android:layout_marginRight="8dp"
             android:text="@string/app_widget_config_alpha"/>
 
         <SeekBar
@@ -114,11 +118,37 @@
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"
-            android:layout_marginTop="1dp"
-            android:layout_marginLeft="8dp"
-            android:layout_marginRight="8dp"/>
+            android:layout_marginTop="1dp"/>
 
     </LinearLayout>
+
+    <RelativeLayout
+        android:id="@+id/rl_alpha_header_as_bt"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:paddingLeft="16dp"
+        android:paddingRight="16dp"
+        android:background="@drawable/selectable_item_background">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/things_list_config_alpha_header"
+            tools:ignore="RelativeOverlap"
+            android:layout_centerVertical="true"/>
+
+        <android.support.v7.widget.AppCompatCheckBox
+            android:id="@+id/cb_alpha_header"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentRight="true"
+            android:layout_centerVertical="true"
+            android:clickable="false"
+            android:focusable="false"
+            android:focusableInTouchMode="false"/>
+
+    </RelativeLayout>
 
     <RelativeLayout
         android:id="@+id/rl_simple_view_as_bt"

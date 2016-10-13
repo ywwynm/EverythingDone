@@ -270,6 +270,7 @@
     <!--widget-->
     <string name="all">All</string>
     <string name="app_widget_config_alpha">Alpha:</string>
+    <string name="things_list_config_alpha_header">Transparent top bar</string>
     <string name="things_list_config_simple_view">Use simpler thing view</string>
 
 

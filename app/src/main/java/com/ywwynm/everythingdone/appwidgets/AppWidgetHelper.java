@@ -279,6 +279,23 @@ public class AppWidgetHelper {
 
     public static RemoteViews createRemoteViewsForThingsList(Context context, int limit, int appWidgetId) {
         RemoteViews remoteViews = new RemoteViews(context.getPackageName(), R.layout.app_widget_things_list);
+        int headerColor = ContextCompat.getColor(context, R.color.app_accent);
+        remoteViews.setInt(LL_THINGS_LIST_HEADER, "setBackgroundColor", headerColor);
+
+        AppWidgetDAO dao = AppWidgetDAO.getInstance(context);
+        ThingWidgetInfo info = dao.getThingWidgetInfoById(appWidgetId);
+        if (info != null) {
+            int alpha = info.getAlpha();
+            if (alpha < 0) {
+                if (alpha == ThingWidgetInfo.HEADER_ALPHA_0) {
+                    alpha = 0;
+                } else {
+                    alpha = (int) (Math.abs(alpha) / 100f * 255);
+                }
+                headerColor = DisplayUtil.getTransparentColor(headerColor, alpha);
+                remoteViews.setInt(LL_THINGS_LIST_HEADER, "setBackgroundColor", headerColor);
+            }
+        }
 
         remoteViews.setTextViewText(TV_THINGS_LIST_TITLE, getStringForLimit(context, limit));
 
@@ -418,6 +435,11 @@ public class AppWidgetHelper {
     private static void setAppearance(
             Context context, RemoteViews remoteViews, Thing thing, int appWidgetId, Class clazz,
             int alpha, @ThingWidgetInfo.Style int style) {
+        if (alpha == ThingWidgetInfo.HEADER_ALPHA_0) {
+            alpha = 0;
+        } else {
+            alpha = Math.abs(alpha);
+        }
         remoteViews.setInt(ROOT_WIDGET_THING, "setBackgroundColor",
                 DisplayUtil.getTransparentColor(thing.getColor(), (int) (alpha / 100f * 255)));
 

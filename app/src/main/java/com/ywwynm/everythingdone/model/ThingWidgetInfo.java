@@ -22,6 +22,8 @@ public class ThingWidgetInfo {
     @Retention(RetentionPolicy.SOURCE)
     public @interface Size {}
 
+    public static final int HEADER_ALPHA_0 = -19950129;
+
     public static final int STYLE_NORMAL = 0;
     public static final int STYLE_SIMPLE = 1;
     @IntDef({STYLE_NORMAL, STYLE_SIMPLE})

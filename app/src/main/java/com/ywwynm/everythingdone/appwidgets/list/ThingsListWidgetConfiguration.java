@@ -29,6 +29,7 @@ public class ThingsListWidgetConfiguration extends AppCompatActivity {
     public static final String TAG = "ThingsListWidgetConfiguration";
 
     private SeekBar mSbAlpha;
+    private AppCompatCheckBox mCbAlphaHeader;
     private AppCompatCheckBox mCbSimpleView;
 
     private int mAppWidgetId;
@@ -53,11 +54,19 @@ public class ThingsListWidgetConfiguration extends AppCompatActivity {
 
         mCbSimpleView = (AppCompatCheckBox) findViewById(R.id.cb_simple_view);
         DisplayUtil.setCheckBoxColor(mCbSimpleView, color);
-
         findViewById(R.id.rl_simple_view_as_bt).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 mCbSimpleView.toggle();
+            }
+        });
+
+        mCbAlphaHeader = (AppCompatCheckBox) findViewById(R.id.cb_alpha_header);
+        DisplayUtil.setCheckBoxColor(mCbAlphaHeader, color);
+        findViewById(R.id.rl_alpha_header_as_bt).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mCbAlphaHeader.toggle();
             }
         });
 
@@ -85,8 +94,13 @@ public class ThingsListWidgetConfiguration extends AppCompatActivity {
         if (info != null) {
             alpha = info.getAlpha();
             mCbSimpleView.setChecked(info.getStyle() == ThingWidgetInfo.STYLE_SIMPLE);
+            mCbAlphaHeader.setChecked(alpha < 0);
         }
-        mSbAlpha.setProgress(alpha);
+        if (alpha == ThingWidgetInfo.HEADER_ALPHA_0) {
+            mSbAlpha.setProgress(0);
+        } else {
+            mSbAlpha.setProgress(Math.abs(alpha));
+        }
     }
 
     public void onClick(View view) {
@@ -119,8 +133,16 @@ public class ThingsListWidgetConfiguration extends AppCompatActivity {
         if (mCbSimpleView.isChecked()) {
             style = ThingWidgetInfo.STYLE_SIMPLE;
         }
+        int alpha = mSbAlpha.getProgress();
+        if (mCbAlphaHeader.isChecked()) {
+            if (alpha != 0) {
+                alpha = -alpha;
+            } else {
+                alpha = ThingWidgetInfo.HEADER_ALPHA_0;
+            }
+        }
         appWidgetDAO.insert(mAppWidgetId, -limit - 1, ThingWidgetInfo.SIZE_MIDDLE,
-                mSbAlpha.getProgress(), style);
+                alpha, style);
 
         if (!mIsSetting) {
             RemoteViews views = AppWidgetHelper.createRemoteViewsForThingsList(
