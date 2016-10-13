@@ -1797,8 +1797,10 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         for (Long id : mThingsIdsToUpdateWidget) {
             AppWidgetHelper.updateSingleThingAppWidgets(this, id);
         }
-        // update all things list widget since it's hard to get limits for things to update widget.
-        AppWidgetHelper.updateAllThingsListAppWidgets(this);
+        if (!mThingsIdsToUpdateWidget.isEmpty()) {
+            // update all things list widget since it's hard to get limits for things to update widget.
+            AppWidgetHelper.updateAllThingsListAppWidgets(this);
+        }
 
         mUndoThings.clear();
         mThingsIdsToUpdateWidget.clear();
