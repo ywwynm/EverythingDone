@@ -569,7 +569,7 @@ public class AppWidgetHelper {
         String content = thing.getContent();
         if (!content.isEmpty()) {
             if (CheckListHelper.isCheckListStr(content)) {
-                content = CheckListHelper.toContentStr(content, "X  ", "√  ");
+                content = CheckListHelper.toContentStr(content, "X ", "√ ");
             }
             return content;
         }
