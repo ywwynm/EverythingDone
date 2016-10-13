@@ -17,6 +17,7 @@ import android.graphics.drawable.StateListDrawable;
 import android.os.Build;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.graphics.drawable.DrawerArrowDrawable;
+import android.support.v7.widget.AppCompatCheckBox;
 import android.support.v7.widget.AppCompatDrawableManager;
 import android.support.v7.widget.CardView;
 import android.util.Log;
@@ -388,5 +389,24 @@ public class DisplayUtil {
 
     public static void setButtonColor(Button button, int color) {
         button.getBackground().setColorFilter(color, PorterDuff.Mode.MULTIPLY);
+    }
+
+    public static void setCheckBoxColor(AppCompatCheckBox checkBox, int accentColor) {
+        setCheckBoxColor(checkBox,
+                ContextCompat.getColor(checkBox.getContext(), R.color.black_54), accentColor);
+    }
+
+    public static void setCheckBoxColor(AppCompatCheckBox checkBox, int uncheckedColor, int checkedColor) {
+        ColorStateList colorStateList = new ColorStateList(
+                new int[][] {
+                        new int[] { -android.R.attr.state_checked }, // unchecked
+                        new int[] {  android.R.attr.state_checked }  // checked
+                },
+                new int[] {
+                        uncheckedColor,
+                        checkedColor
+                }
+        );
+        checkBox.setSupportButtonTintList(colorStateList);
     }
 }
