@@ -2377,7 +2377,10 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                     alertForCancellingHabit();
                     habitUpdated = null;
                 } else {
-                    hDao.deleteHabit(id);
+                    for (;;) if (hDao.deleteHabit(id)) {
+                        // ensure the old habit is deleted successfully
+                        break;
+                    }
                     createHabit(id, hDao);
                 }
             }

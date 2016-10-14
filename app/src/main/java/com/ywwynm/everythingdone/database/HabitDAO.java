@@ -372,6 +372,17 @@ public class HabitDAO {
 
         habitReminders = habit.getHabitReminders();
         final int hrIdsSize = hrIds.size();
+        if (hrIdsSize != habitReminders.size()) {
+            /**
+             * it seems that this cannot happen but it did happen according to a user log.
+             * I've tried to solve this problem by ensuring old habit is deleted successfully
+             * when updating a habit in DetailActivity.
+             * See {@link com.ywwynm.everythingdone.activities.DetailActivity#setOrUpdateHabit(boolean, boolean, boolean)}
+             * and {@link #deleteHabit(long)} for more details.
+             * Maybe I didn't actually solve it. Let's see if there are more logs about that.
+             */
+            return;
+        }
         for (int i = 0; i < hrIdsSize; i++) {
             long newTime = habitReminders.get(i).getNotifyTime();
             updateHabitReminder(hrIds.get(i), newTime);
@@ -466,7 +477,7 @@ public class HabitDAO {
                 DateTimeUtil.getHabitReminderTime(type, time, -1));
     }
 
-    public void deleteHabit(long id) {
+    public boolean deleteHabit(long id) {
         db.beginTransaction();
         try {
             db.delete(Def.Database.TABLE_HABITS, "id=" + id, null);
@@ -474,8 +485,10 @@ public class HabitDAO {
             deleteHabitRecords(id);
             updateMaxHabitReminderRecordId();
             db.setTransactionSuccessful();
+            return true;
         } catch (Exception e) {
             e.printStackTrace();
+            return false;
         } finally {
             db.endTransaction();
         }
