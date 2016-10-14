@@ -33,9 +33,6 @@ import android.view.WindowManager;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.FrameLayout;
-import android.widget.LinearLayout;
-import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
@@ -217,16 +214,7 @@ public class DisplayUtil {
         if (DeviceUtil.hasKitKatApi()) {
             final int height = getStatusbarHeight(statusBar.getContext());
             ViewGroup.LayoutParams vlp = statusBar.getLayoutParams();
-            if (vlp instanceof LinearLayout.LayoutParams) {
-                LinearLayout.LayoutParams llp = (LinearLayout.LayoutParams) vlp;
-                llp.height = height;
-            } else if (vlp instanceof RelativeLayout.LayoutParams) {
-                RelativeLayout.LayoutParams rlp = (RelativeLayout.LayoutParams) vlp;
-                rlp.height = height;
-            } else if (vlp instanceof FrameLayout.LayoutParams) {
-                FrameLayout.LayoutParams flp = (FrameLayout.LayoutParams) vlp;
-                flp.height = height;
-            }
+            vlp.height = height;
             statusBar.requestLayout();
         }
     }
