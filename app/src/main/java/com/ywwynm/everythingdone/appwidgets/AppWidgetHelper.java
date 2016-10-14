@@ -272,7 +272,7 @@ public class AppWidgetHelper {
                 Def.Communication.AUTHENTICATE_ACTION_VIEW,
                 context.getString(R.string.check_private_thing));
         PendingIntent pendingIntent = PendingIntent.getActivity(
-                context, (int) thing.getId(), contentIntent, 0);
+                context, appWidgetId, contentIntent, 0);
         remoteViews.setOnClickPendingIntent(R.id.root_widget_thing, pendingIntent);
         return remoteViews;
     }
@@ -337,7 +337,7 @@ public class AppWidgetHelper {
         intent.putExtra(Def.Communication.KEY_DETAIL_ACTIVITY_TYPE,
                 DetailActivity.UPDATE);
         intent.setData(Uri.parse(intent.toUri(Intent.URI_INTENT_SCHEME)));
-        pendingIntent = PendingIntent.getActivity(context, 0, intent,
+        pendingIntent = PendingIntent.getActivity(context, appWidgetId, intent,
                 PendingIntent.FLAG_UPDATE_CURRENT);
         remoteViews.setPendingIntentTemplate(LV_THINGS_LIST, pendingIntent);
 
@@ -658,7 +658,7 @@ public class AppWidgetHelper {
         intent = new Intent(context, clazz);
         intent.setAction(Def.Communication.BROADCAST_ACTION_UPDATE_CHECKLIST);
         intent.setData(Uri.parse(intent.toUri(Intent.URI_INTENT_SCHEME)));
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 0, intent,
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(context, appWidgetId, intent,
                 PendingIntent.FLAG_UPDATE_CURRENT);
         remoteViews.setPendingIntentTemplate(R.id.lv_thing_check_list, pendingIntent);
     }
