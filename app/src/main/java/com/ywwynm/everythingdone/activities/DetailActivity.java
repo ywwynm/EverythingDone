@@ -384,7 +384,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             long newId = thingManager.getHeaderId();
             App.getRunningDetailActivities().add(newId);
 
-            int color = intent.getIntExtra(Def.Communication.KEY_COLOR, 0);
+            int color = intent.getIntExtra(Def.Communication.KEY_COLOR, App.newThingColor);
             mThing = new Thing(newId, Thing.NOTE, color, newId);
 
             // this can change App.newThingColor to a new random color
@@ -613,7 +613,9 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         if (mType == CREATE) {
             mEtContent.requestFocus();
             setScrollViewMarginTop(true);
-            mEtContent.setText(mThing.getContent());
+            String content = mThing.getContent();
+            mEtContent.setText(content);
+            mEtContent.setSelection(content.length());
         } else {
             String content = mThing.getContent();
             if (CheckListHelper.isCheckListStr(content)) {
