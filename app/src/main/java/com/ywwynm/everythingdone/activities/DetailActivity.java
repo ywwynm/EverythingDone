@@ -610,14 +610,13 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             setAsPrivateThingUiAndAddAction();
         }
 
+        String content = mThing.getContent();
         if (mType == CREATE) {
             mEtContent.requestFocus();
             setScrollViewMarginTop(true);
-            String content = mThing.getContent();
             mEtContent.setText(content);
             mEtContent.setSelection(content.length());
         } else {
-            String content = mThing.getContent();
             if (CheckListHelper.isCheckListStr(content)) {
                 mEtContent.setVisibility(View.GONE);
                 mRvCheckList.setVisibility(View.VISIBLE);
