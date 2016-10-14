@@ -112,6 +112,10 @@ public class ChecklistWidgetService extends RemoteViewsService {
 
         @Override
         public long getItemId(int position) {
+            final int count = getCount();
+            if (position < 0 || position >= count) {
+                return -1L;
+            }
             return mItems.get(position).hashCode();
         }
 
