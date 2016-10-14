@@ -631,8 +631,13 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                         App.setShouldJustNotifyDataSetChanged(false);
                     }
                 } else {
-                    updateMainUi(mRemoteIntent, mRemoteIntent.getIntExtra(
-                            Def.Communication.KEY_RESULT_CODE, 0));
+                    int mRemoteIntentResultCode = mRemoteIntent.getIntExtra(
+                            Def.Communication.KEY_RESULT_CODE, Def.Communication.RESULT_NO_UPDATE);
+                    if (mRemoteIntentResultCode == Def.Communication.RESULT_NO_UPDATE) {
+                        mRemoteIntent = null;
+                    } else {
+                        updateMainUi(mRemoteIntent, mRemoteIntentResultCode);
+                    }
                 }
                 break;
         }
