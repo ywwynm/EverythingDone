@@ -81,8 +81,12 @@ public class ChecklistWidgetService extends RemoteViewsService {
 
         @Override
         public RemoteViews getViewAt(int position) {
+            final int count = getCount();
+            if (position < 0 || position >= count) {
+                return null;
+            }
             RemoteViews rv = AppWidgetHelper.createRemoteViewsForChecklistItem(
-                    mContext, mItems.get(position), getCount(), true);
+                    mContext, mItems.get(position), count, true);
             setupEvents(rv, position);
             return rv;
         }
