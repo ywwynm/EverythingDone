@@ -503,6 +503,9 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 }
                 break;
             case R.id.act_sort_by_alarm:
+                mRecyclerView.scrollToPosition(0);
+                mActivityHeader.reset(true);
+                mFab.showFromBottom();
                 mThingManager.updateLocationsByAlarmsTime();
                 mAdapter.setShouldThingsAnimWhenAppearing(true);
                 mAdapter.notifyDataSetChanged();
