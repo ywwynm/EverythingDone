@@ -493,5 +493,6 @@
     <string name="cd_things_list_widget_setting">打開記事列表小部件設置</string>
     <string name="things_list_config_simple_view">採用簡單的記事視圖</string>
     <string name="things_list_config_alpha_header">頂部欄同時透明</string>
+    <string name="alert_cannot_share_empty_thing">無法分享空白記事</string>
 
 </resources>

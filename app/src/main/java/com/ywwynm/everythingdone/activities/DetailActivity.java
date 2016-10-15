@@ -1401,6 +1401,12 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     }
 
     private void chooseHowToShareThing() {
+        if (!canShareThing()) {
+            mNormalSnackbar.setMessage(getString(R.string.alert_cannot_share_empty_thing));
+            mFlRoot.postDelayed(mShowNormalSnackbar, KeyboardUtil.HIDE_DELAY);
+            return;
+        }
+
         final TwoOptionsDialogFragment todf = new TwoOptionsDialogFragment();
         todf.setStartAction(R.drawable.act_share_text_image, R.string.act_share_thing_text_image,
                 new View.OnClickListener() {
@@ -1422,12 +1428,6 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     }
 
     private void shareThingInScreenshot() {
-        if (!canShareThingInScreenshot()) {
-            mNormalSnackbar.setMessage("fuck you");
-            mFlRoot.postDelayed(mShowNormalSnackbar, KeyboardUtil.HIDE_DELAY);
-            return;
-        }
-
         final LoadingDialogFragment ldf = new LoadingDialogFragment();
         int color = getAccentColor();
         ldf.setAccentColor(color);
@@ -1464,7 +1464,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 mRvAudioAttachment, mAudioAttachmentAdapter);
     }
 
-    private boolean canShareThingInScreenshot() {
+    private boolean canShareThing() {
         boolean canShare = true;
         if (mEtTitle.getText().toString().isEmpty()
                 && mRvImageAttachment.getVisibility() != View.VISIBLE

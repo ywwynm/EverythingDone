@@ -529,5 +529,6 @@
     <string name="cd_things_list_widget_setting">打开记事列表小部件设置</string>
     <string name="things_list_config_simple_view">采用简单的记事视图</string>
     <string name="things_list_config_alpha_header">顶部栏同时透明</string>
+    <string name="alert_cannot_share_empty_thing">无法分享空白记事</string>
 
 </resources>

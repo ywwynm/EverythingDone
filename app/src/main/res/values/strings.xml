@@ -159,8 +159,46 @@
     <!--AboutActivity-->
     <string name="act_support">Support Developer</string>
 
+    <!--Snackbars-->
+    <string name="sb_undo">UNDO</string>
+    <string name="sb_undo_finish">NOT YET</string>
+    <string name="sb_undo_underway">FINISHED</string>
+
+
+    <!--————————————————————Alert titles and contents————————————————————-->
+    <string name="alert_cannot_share_empty_thing">Cannot share an empty thing</string>
+
+
+
 
     <!--————————————————————other text appearing at UI————————————————————-->
+
+    <!--ThingsActivity-->
+    <string name="welcome_underway_title">Welcome </string>
+    <string name="welcome_underway_content">Swipe to finish </string>
+
+    <string name="a_thing">thing</string>
+
+    <string name="congratulations">Congratulations</string>
+    <string name="empty">empty</string>
+
+
+    <!--DetailActivity-->
+    <string name="hint_title">title</string>
+    <string name="hint_content">content</string>
+
+    <string name="create_at">Created</string>
+    <string name="update_at">Updated</string>
+
+    <string name="after_1_year">1 year</string>
+    <string name="after_1_month">1 month</string>
+    <string name="after_1_week"> 1 week</string>
+    <string name="after_2_days">2 days</string>
+    <string name="after_1_day">1 day</string>
+    <string name="after_2_hours">2 hours</string>
+    <string name="after_1_hour">1 hour</string>
+    <string name="after_30_minutes">30 minutes</string>
+    <string name="after_15_minutes">15 minutes</string>
 
     <!--SettingsActivity-->
     <string name="settings_group_ui">UI</string>
@@ -353,7 +391,6 @@
     <!--picker-->
     <string name="cd_picked">Picked,</string>
     <string name="cd_unpicked">Unpicked,</string>
-    <!--week/month/year-->
 
     <!--BaseThingWidgetConfiguration-->
     <string name="cd_app_widget_preview_background">App widget preview background</string>
@@ -363,42 +400,15 @@
 
     <string name="private_thing">private thing</string>
 
-    <string name="congratulations">Congratulations</string>
-    <string name="empty">empty</string>
-
-    <string name="hint_content">content</string>
-    <string name="hint_title">title</string>
-
     <string name="sb_cannot_be_blank">Blank thing has been abandoned</string>
     <string name="sb_abandon_new_thing">New thing has been abandoned</string>
     <string name="sb_delete">deleted</string>
     <string name="sb_delete_forever">deleted forever</string>
     <string name="sb_finish">finished</string>
     <string name="sb_underway">restored</string>
-    <string name="sb_undo">UNDO</string>
-    <string name="sb_undo_finish">NOT YET</string>
-    <string name="sb_undo_underway">FINISHED</string>
-
-    <string name="a_thing">thing</string>
-
-    <string name="welcome_underway_title">Welcome </string>
-    <string name="welcome_underway_content">Swipe to finish </string>
 
     <string name="all_color">ALL COLOR</string>
     <string name="no_result">No result</string>
-
-    <string name="create_at">Created</string>
-    <string name="update_at">Updated</string>
-    <string name="after_15_minutes">15 minutes</string>
-
-    <string name="after_1_day">1 day</string>
-    <string name="after_1_hour">1 hour</string>
-    <string name="after_1_month">1 month</string>
-    <string name="after_1_week"> 1 week</string>
-    <string name="after_1_year">1 year</string>
-    <string name="after_2_days">2 days</string>
-    <string name="after_2_hours">2 hours</string>
-    <string name="after_30_minutes">30 minutes</string>
 
     <string name="after">after</string>
     <string name="custom">custom</string>
