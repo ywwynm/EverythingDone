@@ -9,7 +9,7 @@
     <string name="fly_sing_qiong" translatable="false">紛飛，浅唱，瓊</string>
 
 
-    <!--General strings-->
+    <!--——————————————————————General strings——————————————————————-->
     <string name="more">More</string>
     <string name="after">after</string>
     <string name="at">at</string>
@@ -87,14 +87,21 @@
     <string name="from_everything_done">from Android app EverythingDone</string>
 
 
-    <!--——————————————————————task descriptions————————————————————————-->
+
+
+
+
+    <!--——————————————————————Task descriptions——————————————————————-->
     <string name="everythingdone">EverythingDone</string>
     <string name="title_create_thing">Create new thing</string> <!--also used in appwidget-->
     <string name="title_edit_thing">Edit</string>
 
 
 
-    <!--——————————————————————activity titles——————————————————————————-->
+
+
+
+    <!--——————————————————————Activity titles————————————————————————-->
     <string name="title_activity_things_all">All things</string>
     <string name="image_or_video_attachment">Image or Video Attachment</string> <!--for ImageViewerActivity and more-->
     <string name="title_activity_settings">Settings</string>
@@ -106,7 +113,10 @@
 
 
 
-    <!--——————————————————————drawer items—————————————————————————————-->
+
+
+
+    <!--——————————————————————Drawer items———————————————————————————-->
     <string name="underway">Underway</string>
     <string name="thing">Thing</string>
     <string name="all_things">All things</string>
@@ -122,7 +132,10 @@
     <string name="about">About</string>
 
 
-    <!--——————————————————————strings for Thing————————————————————————-->
+
+
+
+    <!--——————————————————————Strings for Thing——————————————————————-->
     <string name="private_thing">private thing</string>
 
     <!--welcomes-->
@@ -192,7 +205,10 @@
 
 
 
-    <!--————————————————————————————drawer headers————————————————————————-->
+
+
+
+    <!--——————————————————————Drawer headers——————————————————————-->
     <string name="completion_rate_all">All\'s completion rate</string>
     <string name="completion_rate_reminder">Reminder\'s completion rate</string>
     <string name="completion_rate_note">Note\'s completion rate</string>
@@ -201,7 +217,10 @@
 
 
 
-    <!--————————————————————General actions————————————————————-->
+
+
+
+    <!--——————————————————————General actions——————————————————————-->
     <string name="act_share">Share</string> <!--used in other places, too-->
     <string name="act_get_it">Get it</string> <!--used in other places, too-->
 
@@ -211,7 +230,10 @@
 
 
 
-    <!--————————————————————actions in menu, fab and notification————————————————————-->
+
+
+
+    <!--——————————————————————Actions in menu, fab and notification——————————————————————-->
     <!--ThingsActivity normal-->
     <string name="act_search">Search</string>
     <string name="act_finish_all">Finish all</string>
@@ -267,7 +289,10 @@
     <string name="act_delay_10_minutes">10 minutes later</string>
 
 
-    <!--————————————————————actions not in menu, fab or notification————————————————————-->
+
+
+
+    <!--——————————————————————Actions not in menu, fab or notification——————————————————————-->
     <!--DetailActivity attachment-->
     <string name="act_take_photo">Take photo</string>
     <string name="act_shoot_video">Shoot video</string>
@@ -307,7 +332,11 @@
     <string name="act_sb_undo_underway">FINISHED</string>
 
 
-    <!--————————————————————General alerts, toasts and errors————————————————————-->
+
+
+
+
+    <!--——————————————————————General alerts, toasts and errors——————————————————————-->
     <string name="success_clipboard">Copied to clipboard successfully</string>
 
     <string name="error_permission_denied">Permission not granted. Cannot continue.</string>
@@ -318,7 +347,11 @@
     <string name="error_activity_not_found">Application not found to continue operation</string>
 
 
-    <!--————————————————————other text appearing at UI————————————————————-->
+
+
+
+
+    <!--——————————————————————Other texts appearing at UI——————————————————————-->
     <!--ThingsActivity-->
     <string name="a_thing">thing</string>
 
@@ -638,7 +671,10 @@
 
 
 
-    <!--————————————————————Content descriptions————————————————————-->
+
+
+
+    <!--——————————————————————Content descriptions——————————————————————-->
     <!--ThingsActivity-->
     <string name="cd_open_drawer">Open Navigation Drawer</string>
     <string name="cd_close_drawer">Close Navigation Drawer</string>
@@ -724,7 +760,7 @@
 
 
 
-    <!--HelpActivity-->
+    <!--——————————————————————HelpActivity——————————————————————-->
     <string name="help_detail">Help Detail</string>
 
     <string-array name="help_titles" tools:ignore="MissingTranslation">
