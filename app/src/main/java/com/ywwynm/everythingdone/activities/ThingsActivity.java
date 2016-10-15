@@ -59,6 +59,7 @@ import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.fragments.AlertDialogFragment;
+import com.ywwynm.everythingdone.fragments.LongTextDialogFragment;
 import com.ywwynm.everythingdone.fragments.ThreeActionsAlertDialogFragment;
 import com.ywwynm.everythingdone.helpers.AlarmHelper;
 import com.ywwynm.everythingdone.helpers.AppUpdateHelper;
@@ -341,26 +342,46 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         handler.post(new Runnable() {
             @Override
             public void run() {
-                AlertDialogFragment adf = new AlertDialogFragment();
                 int color = DisplayUtil.getRandomColor(App.getApp());
-                adf.setTitleColor(color);
-                adf.setConfirmColor(color);
-                adf.setShowCancel(false);
-                adf.setTitle(getString(R.string.title_incorrect_reminder_habit));
-                adf.setContent(getString(R.string.content_incorrect_reminder_habit));
-                adf.setConfirmText(getString(R.string.act_reset_alarms));
-                // TODO: 2016/10/1 Very long text if app language is English
-                adf.setConfirmListener(new AlertDialogFragment.ConfirmListener() {
-                    @Override
-                    public void onConfirm() {
-                        AlarmHelper.createAllAlarms(App.getApp(), true);
-                        if (mAdapter != null) {
-                            mAdapter.notifyDataSetChanged();
+                if (!LocaleUtil.isChinese(App.getApp())) {
+                    LongTextDialogFragment ltdf = new LongTextDialogFragment();
+                    ltdf.setAccentColor(color);
+                    ltdf.setShowCancel(false);
+                    ltdf.setTitle(getString(R.string.title_incorrect_reminder_habit));
+                    ltdf.setContent(getString(R.string.content_incorrect_reminder_habit));
+                    ltdf.setConfirmText(getString(R.string.act_reset_alarms));
+                    ltdf.setConfirmListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            AlarmHelper.createAllAlarms(App.getApp(), true);
+                            if (mAdapter != null) {
+                                mAdapter.notifyDataSetChanged();
+                            }
                         }
+                    });
+                    if (mCanSeeUi) {
+                        ltdf.show(getFragmentManager(), LongTextDialogFragment.TAG);
                     }
-                });
-                if (mCanSeeUi) {
-                    adf.show(getFragmentManager(), AlertDialogFragment.TAG);
+                } else {
+                    AlertDialogFragment adf = new AlertDialogFragment();
+                    adf.setTitleColor(color);
+                    adf.setConfirmColor(color);
+                    adf.setShowCancel(false);
+                    adf.setTitle(getString(R.string.title_incorrect_reminder_habit));
+                    adf.setContent(getString(R.string.content_incorrect_reminder_habit));
+                    adf.setConfirmText(getString(R.string.act_reset_alarms));
+                    adf.setConfirmListener(new AlertDialogFragment.ConfirmListener() {
+                        @Override
+                        public void onConfirm() {
+                            AlarmHelper.createAllAlarms(App.getApp(), true);
+                            if (mAdapter != null) {
+                                mAdapter.notifyDataSetChanged();
+                            }
+                        }
+                    });
+                    if (mCanSeeUi) {
+                        adf.show(getFragmentManager(), AlertDialogFragment.TAG);
+                    }
                 }
             }
         });
