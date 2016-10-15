@@ -25,9 +25,9 @@
         android:id="@+id/iv_check_list_state"
         android:layout_width="36dp"
         android:layout_height="36dp"
-        android:contentDescription="@string/description_check_info"
         android:scaleType="center"
-        android:background="@drawable/selectable_item_background_light"/>
+        android:background="@drawable/selectable_item_background_light"
+        tools:ignore="ContentDescription"/>
 
     <ImageView
         android:id="@+id/iv_check_list_delete"
@@ -38,7 +38,7 @@
         android:src="@drawable/delete_image_checklist"
         android:scaleType="center"
         android:background="@drawable/selectable_item_background_light"
-        android:contentDescription="@string/description_delete_item"
+        android:contentDescription="@string/cd_delete_checklist_item"
         android:visibility="invisible"
         android:clickable="false"/>
 

@@ -86,9 +86,9 @@
     <string name="sb_delete">已删除</string>
     <string name="sb_delete_forever">永久删除了</string>
     <string name="a_thing">件記事</string>
-    <string name="sb_undo">撤銷</string>
-    <string name="sb_undo_underway">已完成</string>
-    <string name="sb_undo_finish">並未完成</string>
+    <string name="act_sb_undo">撤銷</string>
+    <string name="act_sb_undo_underway">已完成</string>
+    <string name="act_sb_undo_finish">並未完成</string>
 
     <string name="all_color">全部顏色</string>
     <string name="no_result">找不到對象</string>
@@ -177,7 +177,7 @@
     <string name="reminder_unavailable">已失效</string>
     <string name="act_delay_10_minutes">延遲10分鐘</string>
     <string name="act_disable_check_list">取消清單</string>
-    <string name="description_delete_item">删除項目</string>
+    <string name="cd_delete_checklist_item">删除項目</string>
     <string name="act_choose_media_files">選擇媒體文件</string>
     <string name="act_dial">撥打</string>
     <string name="act_edit">編輯</string>
@@ -185,7 +185,6 @@
     <string name="act_open_in_map">打開地圖</string>
     <string name="act_send_email">發送郵件</string>
     <string name="act_take_photo">拍照</string>
-    <string name="description_check_info">完成資訊</string>
     <string name="error_activity_not_found">未找到相關程式</string>
     <string name="hint_new_item">新增項目</string>
     <string name="act_record_audio">錄音</string>
@@ -208,7 +207,7 @@
     <string name="act_finish_this_time_habit">完成這一次</string>
     <string name="habit_last_five">最近五次完成情況:</string>
     <string name="habit_next_reminder"> 下一次提醒:</string>
-    <string name="sb_cannot_finish_habit_more_times">直到下個週期前無法繼續完成</string>
+    <string name="alert_cannot_finish_habit_more_times">直到下個週期前無法繼續完成</string>
     <string name="alert_continue">確定要繼續該操作嗎？</string>
     <string name="alert_find_habit_goal">這些事情中包含了部分習慣或目標，閣下可能希望單獨、謹慎地完成或捨棄它們</string>
     <string name="continue_for_alert">繼續</string>
@@ -346,7 +345,7 @@
     <string name="share_statistic">分享我的使用情况</string>
     <string name="title_create_thing">創建記事</string>
     <string name="title_edit_thing">編輯</string>
-    <string name="sb_cannot_finish_habit_first_time">請等待第一個週期的到來</string>
+    <string name="alert_cannot_finish_habit_first_time">請等待第一個週期的到來</string>
     <string name="error_number_too_big">過大的輸入，你一定是在逗我</string>
     <string name="error_too_late">那是我難以觸及的永恒</string>
     <string name="act_choose_image_as_drawer_header">選擇抽屜頂部圖片</string>
@@ -375,7 +374,7 @@
     <string name="act_show_attachment_info">查看附件詳情</string>
     <string name="press_again_to_exit">再按一次以退出</string>
     <string name="twice_back">按兩次返回鍵退出應用</string>
-    <string name="description_audio_attachment_info">查看該音訊附件詳細資訊</string>
+    <string name="cd_audio_attachment_info">查看該音訊附件詳細資訊</string>
     <string name="act_back_from_move_checklist">完成並返回</string>
     <string name="act_move_check_list">移動清單項</string>
     <string name="not_support_fgprt">您的設備不支持標準的 Android 指紋模塊</string>
@@ -483,7 +482,7 @@
     <string name="cd_picked">已选中，</string>
     <string name="cd_unpicked">未选中，</string>
     <string name="private_thing">私密記事</string>
-    <string name="day_hao">號</string>
+    <string name="cd_day">號</string>
     <string name="act_reset_alarms">重新設置鬧鐘</string>
     <string name="content_incorrect_reminder_habit">完事兒發現有些提醒、習慣或目標處於錯誤的狀態，它們沒有在正確的時間提醒您。\n請確保完事兒能夠在後台正常運行。您可以在多任務中鎖定完事兒，在電池優化類的應用中將它加入白名單，以及授予所有它申請的權限，以確保提醒功能正常。\n您還可以前往幫助頁面獲取更詳細的信息。\n點擊\"重新設置鬧鐘\"按鈕以修復記事狀態錯誤，同時重新激活對習慣的提醒。</string>
     <string name="title_incorrect_reminder_habit">提醒類記事狀態錯誤</string>

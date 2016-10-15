@@ -63,7 +63,7 @@
             android:id="@+id/iv_card_audio_third"
             android:layout_width="36dp"
             android:layout_height="match_parent"
-            android:contentDescription="@string/description_audio_attachment_info"
+            android:contentDescription="@string/cd_audio_attachment_info"
             android:scaleType="center"
             android:background="@drawable/selectable_item_background"/>
 

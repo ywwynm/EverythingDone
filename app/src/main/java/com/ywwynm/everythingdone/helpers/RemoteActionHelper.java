@@ -60,10 +60,10 @@ public class RemoteActionHelper {
                     Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME);
         } else {
             if (habit.getRecord().isEmpty() && habit.getRemindedTimes() == 0) {
-                Toast.makeText(context, R.string.sb_cannot_finish_habit_first_time,
+                Toast.makeText(context, R.string.alert_cannot_finish_habit_first_time,
                         Toast.LENGTH_LONG).show();
             } else {
-                Toast.makeText(context, R.string.sb_cannot_finish_habit_more_times,
+                Toast.makeText(context, R.string.alert_cannot_finish_habit_more_times,
                         Toast.LENGTH_LONG).show();
             }
         }

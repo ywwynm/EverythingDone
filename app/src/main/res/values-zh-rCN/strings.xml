@@ -120,8 +120,8 @@
 
     <!--messages and components in Snackbars-->
     <string name="sb_cannot_be_blank">空白记事已被舍弃</string>
-    <string name="sb_cannot_finish_habit_first_time">请等待第一个周期的到来</string>
-    <string name="sb_cannot_finish_habit_more_times">直到下个周期前无法继续完成</string>
+    <string name="alert_cannot_finish_habit_first_time">请等待第一个周期的到来</string>
+    <string name="alert_cannot_finish_habit_more_times">直到下个周期前无法继续完成</string>
     <string name="sb_underway">还原了</string>
     <string name="sb_finish">完成了</string>
     <string name="sb_finish_habit">完成了该习惯</string>
@@ -129,9 +129,9 @@
     <string name="sb_delete_forever">永久删除了</string>
 
     <string name="a_thing">件记事</string>
-    <string name="sb_undo">撤销</string>
-    <string name="sb_undo_underway">已完成</string>
-    <string name="sb_undo_finish">并未完成</string>
+    <string name="act_sb_undo">撤销</string>
+    <string name="act_sb_undo_underway">已完成</string>
+    <string name="act_sb_undo_finish">并未完成</string>
 
     <string name="all_color">全部颜色</string>
     <string name="no_result">找不到对象</string>
@@ -256,8 +256,7 @@
     </string-array>
 
     <string name="hint_new_item">新增项目</string>
-    <string name="description_check_info">完成信息</string>
-    <string name="description_delete_item">删除项目</string>
+    <string name="cd_delete_checklist_item">删除项目</string>
 
     <string name="cd_image_attachment">图片类附件</string>
     <string name="cd_video_attachment">视频附件</string>
@@ -272,7 +271,7 @@
     <string name="cd_cancel_recording_audio">取消录音</string>
     <string name="cd_play_audio_attachment">播放音频文件</string>
     <string name="cd_delete_audio_attachment">删除该音频附件</string>
-    <string name="description_audio_attachment_info">查看该音频附件详细信息</string>
+    <string name="cd_audio_attachment_info">查看该音频附件详细信息</string>
 
     <string name="attachment_info_title">附件详情</string>
     <string name="file_path">文件路径</string>
@@ -519,7 +518,7 @@
     <string name="cd_picked">已选中，</string>
     <string name="cd_unpicked">未选中，</string>
     <string name="private_thing">私密记事</string>
-    <string name="day_hao">号</string>
+    <string name="cd_day">号</string>
     <string name="act_reset_alarms">重新设置闹钟</string>
     <string name="content_incorrect_reminder_habit">完事儿发现有些提醒、习惯或目标处于错误的状态，它们没有在正确的时间提醒您。\n请确保完事儿能够在后台正常运行。您可以在多任务中锁定完事儿，在电池优化类的应用中将它加入白名单，以及授予所有它申请的权限，以确保提醒功能正常。\n您还可以前往帮助页面获取更详细的信息。\n点击\"重新设置闹钟\"按钮以修复记事状态错误，同时重新激活对习惯的提醒。</string>
     <string name="title_incorrect_reminder_habit">提醒类记事状态错误</string>

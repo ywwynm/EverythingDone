@@ -1760,7 +1760,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         String finished = getString(R.string.sb_finish_habit);
         mHabitSnackbar.setMessage(
                 finished + " " + LocaleUtil.getTimesStr(mApp, mUndoHabitRecords.size()));
-        mHabitSnackbar.setUndoText(R.string.sb_undo_finish);
+        mHabitSnackbar.setUndoText(R.string.act_sb_undo_finish);
         mHabitSnackbar.show();
     }
 
@@ -1774,28 +1774,28 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 updateStr = getString(R.string.sb_underway);
                 if (limit <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
                     updateStr = getString(R.string.sb_finish);
-                    undoStr = getString(R.string.sb_undo_finish);
+                    undoStr = getString(R.string.act_sb_undo_finish);
                 } else if (limit == Def.LimitForGettingThings.ALL_FINISHED) {
-                    undoStr = getString(R.string.sb_undo_underway);
+                    undoStr = getString(R.string.act_sb_undo_underway);
                 } else {
-                    undoStr = getString(R.string.sb_undo);
+                    undoStr = getString(R.string.act_sb_undo);
                 }
                 break;
             case Thing.FINISHED:
                 updateStr = getString(R.string.sb_finish);
                 if (limit <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
-                    undoStr = getString(R.string.sb_undo_finish);
+                    undoStr = getString(R.string.act_sb_undo_finish);
                 } else {
-                    undoStr = getString(R.string.sb_undo);
+                    undoStr = getString(R.string.act_sb_undo);
                 }
                 break;
             case Thing.DELETED:
                 updateStr = getString(R.string.sb_delete);
-                undoStr = getString(R.string.sb_undo);
+                undoStr = getString(R.string.act_sb_undo);
                 break;
             case Thing.DELETED_FOREVER:
                 updateStr = getString(R.string.sb_delete_forever);
-                undoStr = getString(R.string.sb_undo);
+                undoStr = getString(R.string.act_sb_undo);
                 break;
             default:break;
         }
@@ -2193,9 +2193,9 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     } else {
                         dismissSnackbars();
                         if (habit.getRecord().isEmpty() && habit.getRemindedTimes() == 0) {
-                            mNormalSnackbar.setMessage(R.string.sb_cannot_finish_habit_first_time);
+                            mNormalSnackbar.setMessage(R.string.alert_cannot_finish_habit_first_time);
                         } else {
-                            mNormalSnackbar.setMessage(R.string.sb_cannot_finish_habit_more_times);
+                            mNormalSnackbar.setMessage(R.string.alert_cannot_finish_habit_more_times);
                         }
                         mNormalSnackbar.show();
                     }

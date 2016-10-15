@@ -80,7 +80,7 @@ public class RecurrencePickerAdapter extends MultiChoiceAdapter {
             for (int i = 0; i < 27; i++) {
                 mItems[i] = String.valueOf(i + 1);
             }
-            String day = mContext.getString(R.string.day_hao);
+            String day = mContext.getString(R.string.cd_day);
             if (LocaleUtil.isChinese(mContext)) {
                 for (int i = 0; i < 27; i++) {
                     mCds[i] = String.valueOf(i + 1) + day;

@@ -29,7 +29,6 @@
     <string name="week">week</string>
     <string name="month">Month</string>
     <string name="year">Year</string>
-    <string name="day_hao">Day</string>
 
     <array name="day_of_week">
         <item>Sunday</item>
@@ -106,6 +105,7 @@
     <string name="title_widget_things_list">Underway things</string>
 
 
+
     <!--——————————————————————drawer items—————————————————————————————-->
     <string name="underway">Underway</string>
     <string name="thing">Thing</string>
@@ -152,8 +152,8 @@
     <string name="habit_last_five">Last five times:</string>
     <string name="habit_next_reminder">Next reminder:</string>
 
-    <string name="sb_cannot_finish_habit_first_time">Please wait for the first cycle</string>
-    <string name="sb_cannot_finish_habit_more_times">Cannot finish more times until next cycle</string>
+    <string name="alert_cannot_finish_habit_first_time">Please wait for the first cycle</string>
+    <string name="alert_cannot_finish_habit_more_times">Cannot finish more times until next cycle</string>
 
     <!--attachment-->
     <string name="images">image</string>
@@ -302,9 +302,9 @@
     <string name="act_support">Support Developer</string>
 
     <!--Snackbars-->
-    <string name="sb_undo">UNDO</string>
-    <string name="sb_undo_finish">NOT YET</string>
-    <string name="sb_undo_underway">FINISHED</string>
+    <string name="act_sb_undo">UNDO</string>
+    <string name="act_sb_undo_finish">NOT YET</string>
+    <string name="act_sb_undo_underway">FINISHED</string>
 
 
     <!--————————————————————General alerts, toasts and errors————————————————————-->
@@ -659,6 +659,9 @@
     <string name="cd_back_habit">The thing is a Habit, back</string>
     <string name="cd_back_goal">The thing is a Goal, back</string>
 
+    <!--Recurrence picker in DateTimeDialogFragment-->
+    <string name="cd_day">Day</string>
+
     <!--checklist item-->
     <string name="cd_checklist_unfinished_item">Unfinished item</string>
     <string name="cd_checklist_finished_item">Finished item</string>
@@ -667,8 +670,7 @@
     <string name="cd_checklist_finished_item_clickable">Finished item, click to unfinish</string>
     <string name="cd_checklist_move">click and drag to move this item</string>
     <string name="cd_checklist_finished_items">Finished items are as followings</string>
-    <string name="description_delete_item">delete item</string>
-    <string name="description_check_info">information about check states</string>
+    <string name="cd_delete_checklist_item">delete item</string>
 
     <!--SettingsActivity-->
     <string name="cd_help_automatic_reminder">Help for Automatic Reminder</string>
@@ -694,7 +696,7 @@
     <string name="cd_pause_play_audio_attachment">Pause playing audio</string>
     <string name="cd_stop_play_audio_attachment">Stop playing audio</string>
     <string name="cd_delete_audio_attachment">Delete this audio attachment</string>
-    <string name="description_audio_attachment_info">Audio file details</string>
+    <string name="cd_audio_attachment_info">Audio file details</string>
 
     <!--record audio-->
     <string name="cd_start_record_audio">Start recording</string>
