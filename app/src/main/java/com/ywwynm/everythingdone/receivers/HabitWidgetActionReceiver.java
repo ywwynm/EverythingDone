@@ -52,8 +52,7 @@ public class HabitWidgetActionReceiver extends BroadcastReceiver {
                 nmc.cancel((int) habitReminder.getId());
             }
 
-            long time = intent.getLongExtra(Def.Communication.KEY_TIME, 0);
-            RemoteActionHelper.finishHabitOnce(context, thing, position, time);
+            RemoteActionHelper.finishHabitOnce(context, thing, position, -1L);
         }
     }
 }

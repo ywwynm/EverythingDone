@@ -54,7 +54,13 @@ public class RemoteActionHelper {
             return;
         }
 
-        if (habit.allowFinish(time)) {
+        boolean allowFinish;
+        if (time == -1) {
+            allowFinish = habit.allowFinish();
+        } else {
+            allowFinish = habit.allowFinish(time);
+        }
+        if (allowFinish) {
             habitDAO.finishOneTime(habit);
             updateUiEverywhere(context, thing, position, typeBefore,
                     Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME);

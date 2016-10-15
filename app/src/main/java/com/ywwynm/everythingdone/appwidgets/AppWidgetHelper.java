@@ -572,16 +572,14 @@ public class AppWidgetHelper {
             }
         }
 
-        if (style == ThingWidgetInfo.STYLE_NORMAL) {
-            if (thing.isPrivate()) {
-                remoteViews.setViewVisibility(R.id.view_private_helper_1, View.VISIBLE);
-                remoteViews.setViewVisibility(IV_PRIVATE_THING, View.VISIBLE);
-                remoteViews.setViewVisibility(R.id.view_private_helper_2, View.VISIBLE);
-            } else {
-                remoteViews.setViewVisibility(R.id.view_private_helper_1, View.GONE);
-                remoteViews.setViewVisibility(IV_PRIVATE_THING, View.GONE);
-                remoteViews.setViewVisibility(R.id.view_private_helper_2, View.GONE);
-            }
+        if (!thing.isPrivate() || style == ThingWidgetInfo.STYLE_SIMPLE) {
+            remoteViews.setViewVisibility(R.id.view_private_helper_1, View.GONE);
+            remoteViews.setViewVisibility(IV_PRIVATE_THING, View.GONE);
+            remoteViews.setViewVisibility(R.id.view_private_helper_2, View.GONE);
+        } else {
+            remoteViews.setViewVisibility(R.id.view_private_helper_1, View.VISIBLE);
+            remoteViews.setViewVisibility(IV_PRIVATE_THING, View.VISIBLE);
+            remoteViews.setViewVisibility(R.id.view_private_helper_2, View.VISIBLE);
         }
     }
 
