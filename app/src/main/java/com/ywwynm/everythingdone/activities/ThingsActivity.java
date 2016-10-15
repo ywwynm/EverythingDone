@@ -313,13 +313,15 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 List<Thing> things = ThingManager.getInstance(app).getThings();
                 ReminderDAO reminderDAO = ReminderDAO.getInstance(app);
                 HabitDAO habitDAO = HabitDAO.getInstance(app);
+                // 在某些启用对齐唤醒的设备上，闹钟的时间可能会有偏差，这是正常的，不是状态错误，不需要提醒
+                final long CHANCE = 6 * 60 * 1000L;
                 for (Thing thing : things) {
                     long id = thing.getId();
                     @Thing.Type int type = thing.getType();
                     if (Thing.isReminderType(type)) {
                         Reminder reminder = reminderDAO.getReminderById(id);
                         if (reminder != null
-                                && reminder.getNotifyTime() < System.currentTimeMillis()
+                                && reminder.getNotifyTime() + CHANCE < System.currentTimeMillis()
                                 && reminder.getState() == Reminder.UNDERWAY) {
                             alertReminderHabitIncorrect();
                             return;
@@ -327,7 +329,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     } else if (type == Thing.HABIT) {
                         Habit habit = habitDAO.getHabitById(id);
                         if (habit != null
-                                && habit.getMinHabitReminderTime() < System.currentTimeMillis()) {
+                                && habit.getMinHabitReminderTime() + CHANCE < System.currentTimeMillis()) {
                             alertReminderHabitIncorrect();
                             return;
                         }
