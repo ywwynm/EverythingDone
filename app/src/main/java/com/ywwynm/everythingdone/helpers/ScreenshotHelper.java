@@ -360,7 +360,8 @@ public class ScreenshotHelper {
                 List<String> items = checkListAdapter.getItems();
                 int index = CheckListHelper.getLastUnfinishedItemIndex(items) + 1;
                 items.add(index, "2");
-                if (!items.get(index + 1).equals("3")) {
+                if (index + 1 >= 0 && index + 1 < items.size()
+                        && !items.get(index + 1).equals("3")) {
                     items.add(index + 1, "3");
                 }
                 checkListAdapter.notifyDataSetChanged();
