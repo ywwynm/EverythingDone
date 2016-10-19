@@ -20,6 +20,8 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 
+import static com.ywwynm.everythingdone.R.string.days;
+
 /**
  * Created by ywwynm on 2015/8/27.
  * Helper for formatting datetime and getting information about that.
@@ -83,7 +85,7 @@ public class DateTimeUtil {
             case Calendar.HOUR_OF_DAY:
                 return context.getString(R.string.hours);
             case Calendar.DATE:
-                return context.getString(R.string.days);
+                return context.getString(days);
             case Calendar.WEEK_OF_YEAR:
                 return context.getString(R.string.weeks);
             case Calendar.MONTH:
@@ -139,8 +141,8 @@ public class DateTimeUtil {
     public static String getDateTimeStrGoal(Context context, Thing thing, Reminder goal) {
         @Thing.State int thingState = thing.getState();
         boolean isChinese = LocaleUtil.isChinese(context);
+        long notifyTime = goal.getNotifyTime();
         if (thingState == Thing.UNDERWAY) {
-            long notifyTime = goal.getNotifyTime();
             long curTime = System.currentTimeMillis();
             int days = calculateTimeGap(curTime, notifyTime, Calendar.DATE);
             if (days == 0) { // the alarm will ring today
@@ -176,31 +178,29 @@ public class DateTimeUtil {
                 return overdue;
             }
         } else if (thingState == Thing.FINISHED) {
+            long createTime = goal.getUpdateTime(); // in fact, this is goal's create time
             long finishTime = thing.getFinishTime();
-            int days = calculateTimeGap(goal.getUpdateTime(), finishTime, Calendar.DATE);
+            int finishDays = calculateTimeGap(createTime, finishTime, Calendar.DATE);
+            int goalDays = calculateTimeGap(createTime, notifyTime, Calendar.DATE);
+            String finishedIn = context.getString(R.string.goal_finished_normal);
+            if (finishDays < goalDays) {
+                finishedIn = context.getString(R.string.goal_finished_in_advance);
+            } else if (finishDays > goalDays) {
+                finishedIn = context.getString(R.string.goal_finished_overdue);
+            }
             String daysStr;
-            if (days == 0) {
+            if (finishDays == 0) {
                 // finished in <1 day
                 // 已用<1天完成
                 daysStr = "<1";
             } else {
                 // finished in 16 days
                 // 已用16天完成
-                daysStr = String.valueOf(days);
+                daysStr = String.valueOf(finishDays);
             }
-            String finishedIn = context.getString(R.string.goal_finished_in);
             finishedIn = String.format(finishedIn, daysStr);
-            if (days <= 1 && !isChinese) {
+            if (finishDays <= 1 && !isChinese) {
                 finishedIn = finishedIn.replace("days", "day");
-            }
-            if (finishTime > goal.getNotifyTime()) {
-                String overdue;
-                if (isChinese) {
-                    overdue = context.getString(R.string.goal_overdue).substring(1, 3); // "逾期"
-                } else {
-                    overdue = "overdue";
-                }
-                finishedIn += "," + overdue;
             }
             return finishedIn;
         } else {
@@ -384,7 +384,7 @@ public class DateTimeUtil {
     private static String getDateTimeStrRecTimeOfDay(Context context, String detail) {
         StringBuilder sb = new StringBuilder();
         String every = context.getString(R.string.every);
-        String day = context.getString(R.string.days); // 天
+        String day = context.getString(days); // 天
         boolean isChinese = LocaleUtil.isChinese(context);
         if (isChinese) {
             sb.append(every).append(day);
@@ -666,7 +666,7 @@ public class DateTimeUtil {
         long day = time / 86400000L;
         long hour = (time % 86400000) / 3600;
         if (hour > 12) day++;
-        String dayStr = context.getString(R.string.days);
+        String dayStr = context.getString(days);
         if (day == 0) {
             return "< 1 " + dayStr;
         } else if (day == 1) {
