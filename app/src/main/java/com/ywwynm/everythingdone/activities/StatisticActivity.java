@@ -457,14 +457,23 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
                     cursor.getColumnIndex(Def.Database.COLUMN_STATE_THINGS));
             if (state == Thing.FINISHED) {
                 fCount++;
-                long updateTime = reminder.getUpdateTime();
+                long notifyTime = reminder.getNotifyTime();
                 long finishTime = cursor.getLong(
                         cursor.getColumnIndex(Def.Database.COLUMN_FINISH_TIME_THINGS));
-                tFinTime += (finishTime - updateTime);
 
-                if (finishTime < reminder.getNotifyTime()
+                if (finishTime < notifyTime
                         && reminder.getState() != Reminder.REMINDED) {
                     inAdvcCount++;
+                }
+
+                if (isReminder) {
+                    // for a Reminder, I think it should be finished after alarm rings.
+                    if (finishTime > notifyTime) {
+                        tFinTime += (finishTime - notifyTime);
+                    }
+                } else {
+                    // for a Goal, I think it should be finished before alarm rings.
+                    tFinTime += (finishTime - reminder.getUpdateTime());
                 }
             }
         }
