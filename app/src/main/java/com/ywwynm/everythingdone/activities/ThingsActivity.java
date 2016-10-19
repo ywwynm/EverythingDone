@@ -2139,7 +2139,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         @Override
         public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
             int position = viewHolder.getAdapterPosition();
-            if (position < 0) {
+            if (position <= 0) {
                 return;
             }
 
