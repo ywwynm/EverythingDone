@@ -6,6 +6,8 @@ import android.content.res.Resources;
 import android.widget.EditText;
 
 import com.ywwynm.everythingdone.R;
+import com.ywwynm.everythingdone.model.Reminder;
+import com.ywwynm.everythingdone.model.Thing;
 
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeFieldType;
@@ -112,10 +114,68 @@ public class DateTimeUtil {
      * Using countdown to stress importance of a GOAL.
      *
      * @return A string with type of "after some days" according to {@param time}.
+     *
+     * Updated on 2016/10/19:
+     * Now you can call this method even if Reminder's state is not UNDERWAY.
+     * @return A string with type of "should be finished in some days", "should be finished today",
+     *         "over some days". In Chinese, "应于x天内完成", "应于今日完成", "已超过x天".
      */
     public static String getDateTimeStrGoal(long time, Context context) {
         int days = calculateTimeGap(System.currentTimeMillis(), time, Calendar.DATE);
         return getDateTimeStrAfter(Calendar.DATE, days, context);
+    }
+
+    /**
+     * should be finished before 19:30
+     * 2 days left
+     * overdue
+     * 2 days overdue
+     *
+     * 19:30前完成
+     * 2天内完成
+     * 已逾期
+     * 已逾期1天
+     *
+     * @param notifyTime
+     * @param thingState
+     * @param goalState
+     * @param context
+     * @return
+     */
+    public static String getDateTimeStrGoal(
+            long notifyTime, @Thing.State int thingState, int goalState, Context context) {
+        boolean isChinese = LocaleUtil.isChinese(context);
+        if (thingState == Thing.UNDERWAY) {
+            long curTime = System.currentTimeMillis();
+            int days = calculateTimeGap(curTime, notifyTime, Calendar.DATE);
+            if (days == 0) {
+                if (curTime <= notifyTime) {
+                    String shouldBefore = context.getString(R.string.goal_should_be_finished_before);
+                    return String.format(shouldBefore, new DateTime(notifyTime).toString("H:mm"));
+                } else {
+                    String overdue = context.getString(R.string.goal_overdue);
+                    overdue = String.format(overdue, 1);
+                    if (isChinese) {
+                        overdue = overdue.substring(0, 3); // "已逾期"
+                    } else {
+                        overdue = overdue.replace("1 days ", ""); // "overdue" left
+                    }
+                    return overdue;
+                }
+            } else if (curTime < notifyTime) {
+                String left = context.getString(R.string.goal_days_left);
+                left = String.format(left, days);
+                if (days == 1 && !isChinese) {
+                    left = left.replace("days", "day");
+                }
+                return left;
+            } else {
+
+            }
+        } else {
+            return Reminder.getStateDescription(thingState, goalState, context);
+        }
+        return null;
     }
 
     /**

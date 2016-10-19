@@ -168,6 +168,11 @@
     <string name="alert_cannot_finish_habit_first_time">Please wait for the first cycle</string>
     <string name="alert_cannot_finish_habit_more_times">Cannot finish more times until next cycle</string>
 
+    <!--Goal-->
+    <string name="goal_should_be_finished_before">should be finished before %1$s</string>
+    <string name="goal_days_left">%1$d days left</string>
+    <string name="goal_overdue">%1$d days overdue</string>
+
     <!--attachment-->
     <string name="images">image</string>
     <string name="videos">video</string>
