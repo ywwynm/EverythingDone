@@ -815,13 +815,15 @@ public class AppWidgetHelper {
             remoteViews.setContentDescription(IV_REMINDER, context.getString(R.string.goal));
             remoteViews.setTextViewTextSize(TV_REMINDER_TIME, TypedValue.COMPLEX_UNIT_SP, 16);
 
-            if (thingState == Reminder.UNDERWAY && state == Reminder.UNDERWAY) {
-                remoteViews.setTextViewText(TV_REMINDER_TIME,
-                        DateTimeUtil.getDateTimeStrGoal(notifyTime, context));
-            } else {
-                remoteViews.setTextViewText(TV_REMINDER_TIME,
-                        Reminder.getStateDescription(thingState, state, context));
-            }
+            remoteViews.setTextViewText(TV_REMINDER_TIME,
+                    DateTimeUtil.getDateTimeStrGoal(context, thing, reminder));
+//            if (thingState == Reminder.UNDERWAY && state == Reminder.UNDERWAY) {
+//                remoteViews.setTextViewText(TV_REMINDER_TIME,
+//                        DateTimeUtil.getDateTimeStrGoal(notifyTime, context));
+//            } else {
+//                remoteViews.setTextViewText(TV_REMINDER_TIME,
+//                        Reminder.getStateDescription(thingState, state, context));
+//            }
         }
 
         remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);

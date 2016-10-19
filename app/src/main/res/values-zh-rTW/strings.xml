@@ -494,4 +494,10 @@
     <string name="things_list_config_alpha_header">頂部欄同時透明</string>
     <string name="alert_cannot_share_empty_thing">無法分享空白記事</string>
 
+    <!--Goal-->
+    <string name="goal_should_finish_before">應於%1$s前完成</string>
+    <string name="goal_should_finish_in">應於%1$d天内完成</string>
+    <string name="goal_overdue">已逾期%1$d天</string>
+    <string name="goal_finished_in">已用%1$s天完成</string>
+
 </resources>

@@ -214,11 +214,14 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
                 holder.ivReminder.setContentDescription(mContext.getString(R.string.goal));
                 holder.tvReminderTime.setTextSize(16);
 
-                if (thingState == Reminder.UNDERWAY && state == Reminder.UNDERWAY) {
-                    holder.tvReminderTime.setText(DateTimeUtil.getDateTimeStrGoal(notifyTime, mContext));
-                } else {
-                    holder.tvReminderTime.setText(Reminder.getStateDescription(thingState, state, mContext));
-                }
+                holder.tvReminderTime.setText(
+                        DateTimeUtil.getDateTimeStrGoal(mContext, thing, reminder));
+
+//                if (thingState == Reminder.UNDERWAY && state == Reminder.UNDERWAY) {
+//                    holder.tvReminderTime.setText(DateTimeUtil.getDateTimeStrGoal(notifyTime, mContext));
+//                } else {
+//                    holder.tvReminderTime.setText(Reminder.getStateDescription(thingState, state, mContext));
+//                }
             }
         } else {
             holder.rlReminder.setVisibility(View.GONE);

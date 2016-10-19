@@ -114,11 +114,6 @@ public class DateTimeUtil {
      * Using countdown to stress importance of a GOAL.
      *
      * @return A string with type of "after some days" according to {@param time}.
-     *
-     * Updated on 2016/10/19:
-     * Now you can call this method even if Reminder's state is not UNDERWAY.
-     * @return A string with type of "should be finished in some days", "should be finished today",
-     *         "over some days". In Chinese, "应于x天内完成", "应于今日完成", "已超过x天".
      */
     public static String getDateTimeStrGoal(long time, Context context) {
         int days = calculateTimeGap(System.currentTimeMillis(), time, Calendar.DATE);
@@ -126,56 +121,96 @@ public class DateTimeUtil {
     }
 
     /**
-     * should be finished before 19:30
-     * 2 days left
-     * overdue
-     * 2 days overdue
+     * Returned strings are as followings:
      *
-     * 19:30前完成
-     * 2天内完成
-     * 已逾期
-     * 已逾期1天
+     * 1. if the Thing is UNDERWAY:
+     * 应于19:30前完成 should be finished before 19:30
+     * 应于270天内完成 should be finished in 270 days
+     * 已逾期         overdue
+     * 已逾期2天      2 days overdue
      *
-     * @param notifyTime
-     * @param thingState
-     * @param goalState
-     * @param context
-     * @return
+     * 2. if the Thing is FINISHED:
+     * 已用60天完成      finished in 60 days
+     * 已用160天完成,逾期 finished in 160 days, overdue
+     *
+     * 3. if the Thing is DELETED:
+     * see {@link Reminder#getStateDescription(int, int, Context)}
      */
-    public static String getDateTimeStrGoal(
-            long notifyTime, @Thing.State int thingState, int goalState, Context context) {
+    public static String getDateTimeStrGoal(Context context, Thing thing, Reminder goal) {
+        @Thing.State int thingState = thing.getState();
         boolean isChinese = LocaleUtil.isChinese(context);
         if (thingState == Thing.UNDERWAY) {
+            long notifyTime = goal.getNotifyTime();
             long curTime = System.currentTimeMillis();
             int days = calculateTimeGap(curTime, notifyTime, Calendar.DATE);
-            if (days == 0) {
+            if (days == 0) { // the alarm will ring today
                 if (curTime <= notifyTime) {
-                    String shouldBefore = context.getString(R.string.goal_should_be_finished_before);
+                    // should be finished before 16:00, 应于16:00前完成
+                    String shouldBefore = context.getString(R.string.goal_should_finish_before);
                     return String.format(shouldBefore, new DateTime(notifyTime).toString("H:mm"));
                 } else {
-                    String overdue = context.getString(R.string.goal_overdue);
-                    overdue = String.format(overdue, 1);
                     if (isChinese) {
-                        overdue = overdue.substring(0, 3); // "已逾期"
+                        String overdue = context.getString(R.string.goal_overdue);
+                        return overdue.substring(0, 3); // "已逾期"
                     } else {
-                        overdue = overdue.replace("1 days ", ""); // "overdue" left
+                        return "overdue";
                     }
-                    return overdue;
                 }
-            } else if (curTime < notifyTime) {
-                String left = context.getString(R.string.goal_days_left);
-                left = String.format(left, days);
+            } else if (curTime < notifyTime) { // days >= 1
+                // should be finished in 60 days
+                // 应于60天内完成
+                String shouldFinishIn = context.getString(R.string.goal_should_finish_in);
+                shouldFinishIn = String.format(shouldFinishIn, days);
                 if (days == 1 && !isChinese) {
-                    left = left.replace("days", "day");
+                    shouldFinishIn = shouldFinishIn.replace("days", "day");
                 }
-                return left;
-            } else {
-
+                return shouldFinishIn;
+            } else { // later than deadline while the thing isn't finished
+                // 16 days overdue
+                // 已逾期16天
+                String overdue = context.getString(R.string.goal_overdue);
+                overdue = String.format(overdue, days);
+                if (days == 1 && !isChinese) {
+                    overdue = overdue.replace("days", "day");
+                }
+                return overdue;
             }
+        } else if (thingState == Thing.FINISHED) {
+            long finishTime = thing.getFinishTime();
+            int days = calculateTimeGap(goal.getUpdateTime(), finishTime, Calendar.DATE);
+            String daysStr;
+            if (days == 0) {
+                // finished in <1 day
+                // 已用<1天完成
+                daysStr = "<1";
+            } else {
+                // finished in 16 days
+                // 已用16天完成
+                daysStr = String.valueOf(days);
+            }
+            String finishedIn = context.getString(R.string.goal_finished_in);
+            finishedIn = String.format(finishedIn, daysStr);
+            if (days <= 1 && !isChinese) {
+                finishedIn = finishedIn.replace("days", "day");
+            }
+            if (finishTime > goal.getNotifyTime()) {
+                String overdue;
+                if (isChinese) {
+                    overdue = context.getString(R.string.goal_overdue).substring(1, 3); // "逾期"
+                } else {
+                    overdue = "overdue";
+                }
+                finishedIn += "," + overdue;
+            }
+            return finishedIn;
         } else {
-            return Reminder.getStateDescription(thingState, goalState, context);
+            return Reminder.getStateDescription(thingState, goal.getState(), context);
         }
-        return null;
+    }
+
+    public static String getDateTimeStrAfterDays(long time, Context context) {
+        int days = calculateTimeGap(System.currentTimeMillis(), time, Calendar.DATE);
+        return getDateTimeStrAfter(Calendar.DATE, days, context);
     }
 
     /**
