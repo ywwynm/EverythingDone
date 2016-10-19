@@ -172,7 +172,9 @@
     <string name="goal_should_finish_before">should be finished before %1$s</string>
     <string name="goal_should_finish_in">should be finished in %1$d days</string>
     <string name="goal_overdue">%1$d days overdue</string>
-    <string name="goal_finished_in">finished in %1$s days</string>
+    <string name="goal_finished_normal">cost %1$s days to finish</string>
+    <string name="goal_finished_in_advance">cost %1$s days to finish in advance</string>
+    <string name="goal_finished_overdue">cost %1$s days to finish, overdue</string>
 
     <!--attachment-->
     <string name="images">image</string>

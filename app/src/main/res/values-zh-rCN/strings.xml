@@ -534,6 +534,8 @@
     <string name="goal_should_finish_before">应于%1$s前完成</string>
     <string name="goal_should_finish_in">应于%1$d天内完成</string>
     <string name="goal_overdue">已逾期%1$d天</string>
-    <string name="goal_finished_in">已用%1$s天完成</string>
+    <string name="goal_finished_normal">已用%1$s天完成</string>
+    <string name="goal_finished_in_advance">已用%1$s天提前完成</string>
+    <string name="goal_finished_overdue">已用%1$s天逾期完成</string>
 
 </resources>
