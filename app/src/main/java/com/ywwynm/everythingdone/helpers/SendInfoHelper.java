@@ -30,6 +30,8 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 
+import static com.ywwynm.everythingdone.R.string.days;
+
 /**
  * Created by ywwynm on 2016/2/13.
  * send information to other apps, like sharing or sending feedback.
@@ -181,7 +183,12 @@ public class SendInfoHelper {
         return sb.toString();
     }
 
-    public static String getReminderShareInfo(Context context, long id, int thingState, boolean isGoal) {
+    private static String getReminderShareInfo(Context context, long id, int thingState, boolean isGoal) {
+        Reminder reminder = ReminderDAO.getInstance(context).getReminderById(id);
+        if (reminder == null) {
+            return "";
+        }
+
         boolean isChinese = LocaleUtil.isChinese(context);
         String at = context.getString(R.string.at);
         StringBuilder sb = new StringBuilder();
@@ -191,7 +198,6 @@ public class SendInfoHelper {
         }
         String was = "was ";
 
-        Reminder reminder = ReminderDAO.getInstance(context).getReminderById(id);
         int reminderState = reminder.getState();
         if (reminderState == Reminder.REMINDED) {
             if (isChinese) {
@@ -209,7 +215,8 @@ public class SendInfoHelper {
                 sb.append(context.getString(R.string.will_remind));
                 if (!isChinese) sb.append(" ");
                 if (isGoal) {
-                    sb.append(DateTimeUtil.getDateTimeStrGoal(reminder.getNotifyTime(), context));
+                    sb.append(DateTimeUtil.getDateTimeStrAfterDays(reminder.getNotifyTime(), context));
+                    //sb.append(DateTimeUtil.getDateTimeStrGoal(reminder.getNotifyTime(), context));
                 } else {
                     sb.append(DateTimeUtil.getDateTimeStrAt(
                             reminder.getNotifyTime(), context, true));
@@ -224,13 +231,16 @@ public class SendInfoHelper {
         return sb.toString();
     }
 
-    public static String getHabitShareInfo(Context context, long id, int thingState) {
-        boolean isChinese = LocaleUtil.isChinese(context);
-        StringBuilder sb = new StringBuilder();
-
+    private static String getHabitShareInfo(Context context, long id, int thingState) {
         Habit habit = HabitDAO.getInstance(context).getHabitById(id);
+        if (habit == null) {
+            return "";
+        }
+
         int type = habit.getType();
         int piT = habit.getPersistInT();
+        boolean isChinese = LocaleUtil.isChinese(context);
+        StringBuilder sb = new StringBuilder();
 
         sb.append(habit.getSummary(context)).append(", ")
                 .append(context.getString(R.string.i_persist_in_for)).append(" ")
@@ -262,9 +272,9 @@ public class SendInfoHelper {
         if (type == Thing.GOAL) {
             Reminder goal = ReminderDAO.getInstance(context).getReminderById(thing.getId());
             int gap = DateTimeUtil.calculateTimeGap(
-                    goal.getCreateTime(), thing.getFinishTime(), Calendar.DATE);
+                    goal.getUpdateTime(), thing.getFinishTime(), Calendar.DATE);
             sb.append(context.getString(R.string.i_work_hard_for)).append(" ")
-                    .append(gap).append(" ").append(context.getString(R.string.days));
+                    .append(gap).append(" ").append(context.getString(days));
             if (!isChinese && gap > 1) {
                 sb.append("s");
             }
