@@ -397,6 +397,14 @@
     <string name="update_at">更新于</string>
     <string name="remind_me">提醒我于</string>
 
+    <string name="finish_at_normal">完成于</string>
+    <string name="finish_at_in_advance">提前完成于%1$s</string>
+    <string name="finish_at_overdue">逾期完成于%1$s</string>
+    <string name="finish_at_habit">习惯养成于</string>
+    <string name="finish_at_goal_normal">目标达成于</string>
+    <string name="finish_at_goal_in_advance">目标提前达成于%1$s</string>
+    <string name="finish_at_goal_overdue">目标逾期达成于%1$s</string>
+
     <string-array name="quick_remind">
         <item>@string/after_1_year</item>
         <item>@string/after_1_month</item>
@@ -872,8 +880,5 @@
 
     <string name="from_1_1_4_to_1_1_5_title">您现在可以使用撤销 / 重做功能了</string>
     <string name="from_1_1_4_to_1_1_5_content">点击右上角的菜单按钮，即可看到撤销 / 重做。借此，您可以让记事自由地回到过去或者未来。</string>
-    <string name="finish_at">完成于</string>
-    <string name="finish_at_goal">目标达成于</string>
-    <string name="finish_at_habit">习惯养成于</string>
 
 </resources>

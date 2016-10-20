@@ -704,27 +704,21 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             quickRemindPicker.pickForUI(8);
             rhParams.setReminderAfterTime(quickRemindPicker.getPickedTimeAfter());
         } else {
+            boolean isChinese = LocaleUtil.isChinese(this);
             if (mThing.getCreateTime() == mThing.getUpdateTime()) {
                 mTvUpdateTime.setText(R.string.create_at);
             } else {
                 mTvUpdateTime.setText(R.string.update_at);
             }
-            if (thingState == Thing.FINISHED) {
-                tvFinishTime.setVisibility(View.VISIBLE);
-            }
-            if (thingType == Thing.HABIT) {
-                tvFinishTime.setText(R.string.finish_at_habit);
-            } else if (thingType == Thing.GOAL) {
-                tvFinishTime.setText(R.string.finish_at_goal);
-            } else {
-                tvFinishTime.setText(R.string.finish_at);
-            }
-            if (!LocaleUtil.isChinese(this)) {
+            if (!isChinese) {
                 mTvUpdateTime.append(" ");
-                tvFinishTime.append(" ");
             }
             mTvUpdateTime.append(DateTimeUtil.getDateTimeStrAt(mThing.getUpdateTime(), mApp, true));
-            tvFinishTime .append(DateTimeUtil.getDateTimeStrAt(mThing.getFinishTime(), mApp, true));
+
+            // finish time
+            if (thingState == Thing.FINISHED) {
+                initAndShowTvFinishTime(tvFinishTime, thingType, isChinese);
+            }
 
             if (mReminder != null) {
                 cbQuickRemind.setChecked(mReminder.getState() == Reminder.UNDERWAY);
@@ -737,7 +731,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 tvQuickRemind.setText(DateTimeUtil.getDateTimeStrAt(reminderInMillis, this, false));
                 rhParams.setReminderInMillis(reminderInMillis);
                 int state = mReminder.getState();
-                if (state != Reminder.UNDERWAY || thingState != Reminder.UNDERWAY) {
+                if (state != Reminder.UNDERWAY || thingState != Thing.UNDERWAY) {
                     tvQuickRemind.append(", " + Reminder.getStateDescription(thingState, state, this));
                 }
             } else if (mHabit != null) {
@@ -767,6 +761,53 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         }
 
         updateDescriptions(mThing.getColor());
+    }
+
+    private void initAndShowTvFinishTime(TextView tvFinishTime, @Thing.Type int thingType, boolean isChinese) {
+        tvFinishTime.setVisibility(View.VISIBLE);
+        if (thingType == Thing.HABIT) {
+            tvFinishTime.setText(R.string.finish_at_habit);
+            if (!isChinese) {
+                tvFinishTime.append(" ");
+            }
+            tvFinishTime.append(DateTimeUtil.getDateTimeStrAt(mThing.getFinishTime(), mApp, true));
+        } else if (thingType == Thing.GOAL) {
+            String actionStr;
+            int finishType = 1;
+            if (mReminder != null) {
+                finishType = mReminder.getFinishType(mThing.getFinishTime(), true);
+            }
+            if (finishType == 0) {
+                actionStr = getString(R.string.finish_at_goal_in_advance);
+            } else if (finishType == 1) {
+                actionStr = getString(R.string.finish_at_goal_normal);
+            } else { // finishType == 2
+                actionStr = getString(R.string.finish_at_goal_overdue);
+            }
+            tvFinishTime.setText(String.format(
+                    actionStr, DateTimeUtil.getDateTimeStrAt(mThing.getFinishTime(), mApp, true)));
+        } else if (thingType == Thing.REMINDER) {
+            String actionStr;
+            int finishType = 1;
+            if (mReminder != null) {
+                finishType = mReminder.getFinishType(mThing.getFinishTime(), false);
+            }
+            if (finishType == 0) {
+                actionStr = getString(R.string.finish_at_in_advance);
+            } else if (finishType == 1) {
+                actionStr = getString(R.string.finish_at_normal);
+            } else { // finishType == 2
+                actionStr = getString(R.string.finish_at_overdue);
+            }
+            tvFinishTime.setText(String.format(
+                    actionStr, DateTimeUtil.getDateTimeStrAt(mThing.getFinishTime(), mApp, true)));
+        } else {
+            tvFinishTime.setText(R.string.finish_at_normal);
+            if (!isChinese) {
+                tvFinishTime.append(" ");
+            }
+            tvFinishTime.append(DateTimeUtil.getDateTimeStrAt(mThing.getFinishTime(), mApp, true));
+        }
     }
 
     @Override
@@ -1469,7 +1510,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     }
 
     private List<Integer> prepareForScreenshot(View typeInfoLayout) {
-        ScreenshotHelper.showTypeInfo(typeInfoLayout, mThing.getId(),
+        ScreenshotHelper.showTypeInfo(typeInfoLayout, mThing.getId(), mThing.getType(),
                 getThingTypeAfter(), mThing.getState(), rhParams);
         // I also hate this method for its long parameters but what can I do?
         return ScreenshotHelper.updateThingUiBeforeScreenshot(
