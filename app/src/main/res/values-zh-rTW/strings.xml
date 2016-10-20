@@ -872,5 +872,6 @@
 
     <string name="from_1_1_4_to_1_1_5_title">您現在可以使用復原 / 重做功能了</string>
     <string name="from_1_1_4_to_1_1_5_content">點擊右上角的選單按鈕，即可看到復原 / 重做。借此，您可以讓記事自由地回到過去或者未來。</string>
+    <string name="finish_at">完成於</string>
 
 </resources>

@@ -400,6 +400,7 @@
 
     <string name="create_at">Created</string>
     <string name="update_at">Updated</string>
+    <string name="finish_at">Finished</string>
     <string name="remind_me">Remind me </string>
 
     <string-array name="quick_remind">

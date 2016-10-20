@@ -570,8 +570,8 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             AppUpdateHelper.updateFrom1_1_4To1_1_5(this, color);
         }
 
-        int thingType = mThing.getType();
-        int thingState = mThing.getState();
+        @Thing.Type  int thingType  = mThing.getType();
+        @Thing.State int thingState = mThing.getState();
 
         if (thingType == Thing.REMINDER || thingType == Thing.WELCOME_REMINDER) {
             mIbBack.setImageResource(R.drawable.act_back_reminder);
@@ -695,9 +695,12 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         }
 
         mTvUpdateTime.getPaint().setTextSkewX(-0.25f);
+        TextView tvFinishTime = f(R.id.tv_finish_time);
+        tvFinishTime.getPaint().setTextSkewX(-0.25f);
 
         if (mType == CREATE) {
             mTvUpdateTime.setText("");
+            tvFinishTime.setVisibility(View.GONE);
             quickRemindPicker.pickForUI(8);
             rhParams.setReminderAfterTime(quickRemindPicker.getPickedTimeAfter());
         } else {
@@ -706,10 +709,15 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             } else {
                 mTvUpdateTime.setText(R.string.update_at);
             }
+            if (thingState == Thing.FINISHED) {
+                tvFinishTime.setVisibility(View.VISIBLE);
+            }
             if (!LocaleUtil.isChinese(this)) {
                 mTvUpdateTime.append(" ");
+                tvFinishTime.append(" ");
             }
-            mTvUpdateTime.append(DateTimeUtil.getDateTimeStrAt(mThing.getUpdateTime(), this, true));
+            mTvUpdateTime.append(DateTimeUtil.getDateTimeStrAt(mThing.getUpdateTime(), mApp, true));
+            tvFinishTime .append(DateTimeUtil.getDateTimeStrAt(mThing.getFinishTime(), mApp, true));
 
             if (mReminder != null) {
                 cbQuickRemind.setChecked(mReminder.getState() == Reminder.UNDERWAY);
