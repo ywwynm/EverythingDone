@@ -873,5 +873,7 @@
     <string name="from_1_1_4_to_1_1_5_title">您现在可以使用撤销 / 重做功能了</string>
     <string name="from_1_1_4_to_1_1_5_content">点击右上角的菜单按钮，即可看到撤销 / 重做。借此，您可以让记事自由地回到过去或者未来。</string>
     <string name="finish_at">完成于</string>
+    <string name="finish_at_goal">目标达成于</string>
+    <string name="finish_at_habit">习惯养成于</string>
 
 </resources>

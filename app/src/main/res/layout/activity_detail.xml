@@ -176,7 +176,6 @@
                 android:layout_marginTop="6dp"
                 android:paddingLeft="20dp"
                 android:paddingRight="20dp"
-                android:text="@string/finish_at"
                 android:textColor="@color/white_66p"
                 android:textSize="14sp"
                 android:visibility="gone"/>

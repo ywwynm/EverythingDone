@@ -712,6 +712,13 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             if (thingState == Thing.FINISHED) {
                 tvFinishTime.setVisibility(View.VISIBLE);
             }
+            if (thingType == Thing.HABIT) {
+                tvFinishTime.setText(R.string.finish_at_habit);
+            } else if (thingType == Thing.GOAL) {
+                tvFinishTime.setText(R.string.finish_at_goal);
+            } else {
+                tvFinishTime.setText(R.string.finish_at);
+            }
             if (!LocaleUtil.isChinese(this)) {
                 mTvUpdateTime.append(" ");
                 tvFinishTime.append(" ");
