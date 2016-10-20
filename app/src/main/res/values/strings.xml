@@ -15,14 +15,14 @@
     <string name="at">at</string>
     <string name="congratulations">Congratulations</string>
 
-    <array name="time_type">
+    <string-array name="time_type">
         <item>@string/minute</item>
         <item>@string/hour</item>
         <item>@string/day</item>
         <item>@string/week</item>
         <item>@string/month</item>
         <item>@string/year</item>
-    </array>
+    </string-array>
     <string name="minute">Minute</string>
     <string name="hour">Hour</string>
     <string name="day">Day</string>
@@ -30,7 +30,7 @@
     <string name="month">Month</string>
     <string name="year">Year</string>
 
-    <array name="day_of_week">
+    <string-array name="day_of_week">
         <item>Sunday</item>
         <item>Monday</item>
         <item>Tuesday</item>
@@ -38,7 +38,7 @@
         <item>Thursday</item>
         <item>Friday</item>
         <item>Saturday</item>
-    </array>
+    </string-array>
 
     <string-array name="month_of_year">
         <item>January</item>
@@ -55,7 +55,7 @@
         <item>December</item>
     </string-array>
 
-    <array name="time_period">
+    <string-array name="time_period">
         <item>before dawn</item>
         <item>in the early morning</item>
         <item>in the morning</item>
@@ -64,7 +64,7 @@
         <item>at dusk</item>
         <item>at night</item>
         <item>deep at night</item>
-    </array>
+    </string-array>
 
     <string name="today">today</string>
     <string name="tomorrow">tomorrow</string>
@@ -169,12 +169,12 @@
     <string name="alert_cannot_finish_habit_more_times">Cannot finish more times until next cycle</string>
 
     <!--Goal-->
-    <string name="goal_should_finish_before">should be finished before %1$s</string>
-    <string name="goal_should_finish_in">should be finished in %1$d days</string>
+    <string name="goal_should_finish_before">should be achieved before %1$s</string>
+    <string name="goal_should_finish_in">should be achieved in %1$d days</string>
     <string name="goal_overdue">%1$d days overdue</string>
-    <string name="goal_finished_normal">cost %1$s days to finish</string>
-    <string name="goal_finished_in_advance">cost %1$s days to finish in advance</string>
-    <string name="goal_finished_overdue">cost %1$s days to finish, overdue</string>
+    <string name="goal_finished_normal">cost %1$s days to achieve</string>
+    <string name="goal_finished_in_advance">cost %1$s days to achieve in advance</string>
+    <string name="goal_finished_overdue">cost %1$s days to achieve, overdue</string>
 
     <!--attachment-->
     <string name="images">image</string>
@@ -202,10 +202,10 @@
     <string name="my_purple">grey purple</string>
 
     <!--Sharing a Thing-->
-    <string name="i_persist_in_for">I\'ve persisted in it for</string>
-    <string name="habit_developed">finally developed this habit</string>
-    <string name="finished_goal">and finally achieved the goal</string>
-    <string name="i_work_hard_for">I work hard for</string>
+    <string name="share_i_work_hard_for">I work hard for</string>
+    <string name="share_i_persist_in_for">I\'ve persisted in it for</string>
+    <string name="share_goal_finished">and finally achieved the goal</string>
+    <string name="share_habit_developed">finally developed this habit</string>
 
     <string name="this_gai">this</string>
 
@@ -402,7 +402,7 @@
     <string name="update_at">Updated</string>
     <string name="remind_me">Remind me </string>
 
-    <array name="quick_remind">
+    <string-array name="quick_remind">
         <item>@string/after_1_year</item>
         <item>@string/after_1_month</item>
         <item>@string/after_1_week</item>
@@ -413,7 +413,7 @@
         <item>@string/after_30_minutes</item>
         <item>@string/after_15_minutes</item>
         <item>@string/custom</item>
-    </array>
+    </string-array>
     <string name="after_1_year">1 year</string>
     <string name="after_1_month">1 month</string>
     <string name="after_1_week"> 1 week</string>

@@ -1,138 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources
     xmlns:tools="http://schemas.android.com/tools"
     tools:ignore="TypographyEllipsis">
-    <string name="everythingdone">完事兒</string>
 
-    <!--titles of Activities-->
-    <string name="title_activity_things_all">所有記事</string>
 
-    <!--entrances to different activities in drawer-->
-    <string name="underway">正在進行</string>
-    <string name="all_things">所有記事</string>
-    <string name="thing">記事</string>
-    <string name="note">記錄</string>
-    <string name="reminder">提醒</string>
-    <string name="habit">習慣</string>
-    <string name="goal">目標</string>
-    <string name="finished">已完成</string>
-    <string name="deleted">已删除</string>
-    <string name="settings">設定</string>
-    <string name="about">關於</string>
-
-    <string name="blue_grey_500">藍灰色</string>
-    <string name="my_cyan">淺青色</string>
-    <string name="blue_grey_deep_blue">深灰藍</string>
-    <string name="blue_grey_deep_grey">深灰色</string>
-    <string name="brown">棕色</string>
-    <string name="blue_deep">深藍色</string>
-    <string name="pine_green">松綠色</string>
-    <string name="my_purple">紫色</string>
-
-    <!--drawer header-->
-    <string name="completion_rate_all">所有記事完成率</string>
-    <string name="completion_rate_note">「記錄」完成率</string>
-    <string name="completion_rate_reminder">「提醒」完成率</string>
-    <string name="completion_rate_habit">「習慣」完成率</string>
-    <string name="completion_rate_goal">「目標」完成率</string>
-
-    <!--menu items in action bars-->
-    <string name="act_search">搜尋</string>
-    <string name="act_finish_all">全部完成</string>
-    <string name="act_delete_all">全部删除</string>
-    <string name="act_clear_now">清空回收站</string>
-    <string name="act_select_color">選擇顏色</string>
-    <string name="act_add_attachment">添加附件</string>
-    <string name="act_enable_check_list">啟用清單</string>
-    <string name="act_change_background">改變顏色</string>
-
-    <!--menu items in contextual toolbar-->
-    <string name="act_share">分享</string>
-    <string name="act_select_all">全選</string>
-    <string name="act_delete_selected">删除選中的記事</string>
-    <string name="act_finish_selected">完成選中的記事</string>
-    <string name="act_restore_selected">還原選中的記事</string>
-    <string name="act_delete_selected_forever">徹底删除選中的記事</string>
-
-    <!--default cards when user opens EverythingDone for the first time-->
-    <!--and when user finishes all tasks-->
-    <string name="welcome_underway_title">歡迎使用完事兒</string>
-    <string name="welcome_underway_content">滑動以完成記事</string>
-    <string name="welcome_note_content">隨便寫點什麼，完事兒幫您永遠記住</string>
-    <string name="welcome_reminder_content">讓完事兒提醒您接下來的事情</string>
-    <string name="welcome_habit_content">養成習慣，改正缺點</string>
-    <string name="welcome_goal_content">閣下的夢想正在升起</string>
-
-    <string name="empty">空</string>
-    <string name="congratulations">恭喜！</string>
-    <string name="empty_underway">閣下已經完成了所有的記事~</string>
-    <string name="empty_note">舊的記憶隨風而逝，新的故事何時落筆？</string>
-    <string name="empty_reminder">完事兒很高興為閣下服務</string>
-    <string name="empty_habit">閣下已經成為了一個更好的人</string>
-    <string name="empty_goal">恭喜閣下完成了所有的目標！別累著了，先給自己放個假吧！</string>
-    <string name="empty_finished">什麼事兒都沒完成嗎？</string>
-    <string name="empty_deleted">你有一定要清空回收站的強迫症嗎？我也有喔…</string>
-
-    <!--hints in DetailActivity-->
-    <string name="hint_title">標題</string>
-    <string name="hint_content">内容</string>
-
-    <string name="create_at">創建於</string>
-    <string name="update_at">更新於</string>
-
-    <!--messages and components in Snackbars-->
-    <string name="sb_cannot_be_blank">空白記事已被捨棄</string>
-    <string name="sb_underway">還原了</string>
-    <string name="sb_finish">完成了</string>
-    <string name="sb_delete">已删除</string>
-    <string name="sb_delete_forever">永久删除了</string>
-    <string name="a_thing">件記事</string>
-    <string name="act_sb_undo">撤銷</string>
-    <string name="act_sb_undo_underway">已完成</string>
-    <string name="act_sb_undo_finish">並未完成</string>
-
-    <string name="all_color">全部顏色</string>
-    <string name="no_result">找不到對象</string>
-
-    <array name="quick_remind">
-        <item>@string/after_1_year</item>
-        <item>@string/after_1_month</item>
-        <item>@string/after_1_week</item>
-        <item>@string/after_2_days</item>
-        <item>@string/after_1_day</item>
-        <item>@string/after_2_hours</item>
-        <item>@string/after_1_hour</item>
-        <item>@string/after_30_minutes</item>
-        <item>@string/after_15_minutes</item>
-        <item>@string/custom</item>
-    </array>
-    <string name="after_15_minutes">15 分鐘</string>
-    <string name="after_30_minutes">30 分鐘</string>
-    <string name="after_1_hour">1 小時</string>
-    <string name="after_2_hours">2 小時</string>
-    <string name="after_1_day">1 天</string>
-    <string name="after_2_days">2 天</string>
-    <string name="after_1_week">1 周</string>
-    <string name="after_1_month">1 個月</string>
-    <string name="after_1_year">1 年</string>
-    <string name="custom">自定義</string>
-
-    <string name="remind_me">提醒我於</string>
+    <!--——————————————————————General strings——————————————————————-->
+    <string name="more">更多</string>
     <string name="after">後</string>
+    <string name="at">於</string>
+    <string name="congratulations">恭喜！</string>
 
-    <string name="quick_remind_title_after">一段時間之後</string>
-    <string name="quick_remind_title_at">某個時刻</string>
-    <string name="quick_remind_title_recurrence">重複</string>
-
-    <string name="confirm">確定</string>
-    <string name="cancel">取消</string>
-
-    <string name="year">年</string>
-    <string name="month">月</string>
-    <string name="day">日</string>
-    <string name="hour">小時</string>
+    <string-array name="time_type">
+        <item>@string/minute</item>
+        <item>@string/hour</item>
+        <item>@string/day</item>
+        <item>@string/week</item>
+        <item>@string/month</item>
+        <item>@string/year</item>
+    </string-array>
     <string name="minute">分鐘</string>
+    <string name="hour">小時</string>
+    <string name="day">日</string>
+    <string name="week">星期</string>
+    <string name="month">月</string>
+    <string name="year">年</string>
 
-    <array name="day_of_week">
+    <string-array name="day_of_week">
         <item>周日</item>
         <item>周一</item>
         <item>周二</item>
@@ -140,125 +33,7 @@
         <item>周四</item>
         <item>周五</item>
         <item>周六</item>
-    </array>
-
-    <array name="time_period">
-        <item>凌晨</item>
-        <item>早晨</item>
-        <item>上午</item>
-        <item>中午</item>
-        <item>下午</item>
-        <item>傍晚</item>
-        <item>晚上</item>
-        <item>深夜</item>
-    </array>
-
-    <string name="error_later">請設定為將來的某一時刻</string>
-    <string name="error_complete_time">請完善時刻資訊</string>
-
-    <string name="today">今天</string>
-    <string name="tomorrow">明天</string>
-    <string name="yesterday">昨天</string>
-    <string name="later">後</string>
-    <string name="week">星期</string>
-    <string name="description_a">個</string>
-    <string name="act_delete">删除</string>
-    <string name="act_finish">完成</string>
-    <string name="act_restore">還原</string>
-    <string name="every">每</string>
-    <string name="times">次</string>
-    <string name="days">天</string>
-    <string name="hours">個小時</string>
-    <string name="months">個月</string>
-    <string name="weeks">個星期</string>
-    <string name="reminder_expired">已過期</string>
-    <string name="reminder_needless">已無需提醒</string>
-    <string name="reminder_reminded">已提醒</string>
-    <string name="reminder_unavailable">已失效</string>
-    <string name="act_delay_10_minutes">延遲10分鐘</string>
-    <string name="act_disable_check_list">取消清單</string>
-    <string name="cd_delete_checklist_item">删除項目</string>
-    <string name="act_choose_media_files">選擇媒體文件</string>
-    <string name="act_dial">撥打</string>
-    <string name="act_edit">編輯</string>
-    <string name="act_open_in_browser">訪問網頁</string>
-    <string name="act_open_in_map">打開地圖</string>
-    <string name="act_send_email">發送郵件</string>
-    <string name="act_take_photo">拍照</string>
-    <string name="error_activity_not_found">未找到相關程式</string>
-    <string name="hint_new_item">新增項目</string>
-    <string name="act_record_audio">錄音</string>
-    <string name="act_shoot_video">錄製視頻</string>
-    <string name="images">張圖片</string>
-    <string name="videos">個視頻</string>
-    <string name="alert_cancel_goal_content">該操作無法撤銷，完事兒將無法記錄其倒計時，也將無法與閣下一同慶祝它的完成</string>
-    <string name="alert_cancel_goal_title">確定要放棄該目標嗎？</string>
-    <string name="audios">段音頻</string>
-    <string name="error_cannot_add_from_network">無法添加網絡文件</string>
-    <string name="error_unsupported_file_type">不支持的文件類型</string>
-    <string name="input_file_name">請輸入文件名</string>
-    <string name="act_delete_attachment">删除該附件</string>
-    <string name="alert_delete_attachment">確定要删除該附件嗎？</string>
-    <string name="new_reminder_time_rec">新的提醒時刻</string>
-    <string name="error_different">請設定不一樣的時間</string>
-    <string name="alert_cancel_habit_content">該操作無法撤銷，完事兒將無法督促、協助閣下養成這個習慣</string>
-    <string name="alert_cancel_habit_title">確定要放棄這個習慣嗎？</string>
-    <string name="act_get_it">好的</string>
-    <string name="act_finish_this_time_habit">完成這一次</string>
-    <string name="habit_last_five">最近五次完成情況:</string>
-    <string name="habit_next_reminder"> 下一次提醒:</string>
-    <string name="alert_cannot_finish_habit_more_times">直到下個週期前無法繼續完成</string>
-    <string name="alert_continue">確定要繼續該操作嗎？</string>
-    <string name="alert_find_habit_goal">這些事情中包含了部分習慣或目標，閣下可能希望單獨、謹慎地完成或捨棄它們</string>
-    <string name="continue_for_alert">繼續</string>
-    <string name="continue_get_rid_of_habit_goal">去除其中的習慣、目標並繼續</string>
-    <string name="end_of_month">月末</string>
-    <string name="this_month">這個月</string>
-    <string name="this_week">這個星期</string>
-    <string name="this_year">今年</string>
-    <string name="at">於</string>
-    <string name="will_remind">將提醒於</string>
-    <string name="i_persist_in_for">我已經堅持了</string>
-    <string name="act_habit_developed">我已養成該習慣</string>
-    <string name="habit_developed">養成了這個習慣</string>
-    <string name="month_day">號</string>
-    <string name="i_work_hard_for">我努力了</string>
-    <string name="finished_goal">最終實現了這個目標</string>
-    <string name="this_gai">該</string>
-    <string name="sb_finish_habit">完成了該習慣</string>
-    <string name="act_check_habit_detail">查看習慣詳情</string>
-    <string name="habit_detail_completion_rate">完成率</string>
-    <string name="habit_detail_persist_in">堅持時間</string>
-    <string name="habit_detail_record">最近 30 次完成情况</string>
-    <string name="habit_detail_times">完成次數</string>
-    <string name="habit_detail_title">習慣詳情</string>
-    <string name="celebration_goal_part_1">您花了</string>
-    <string name="celebration_goal_part_2">實現該目標，現在是時候慶祝了！</string>
-    <string name="celebration_goal_part_3">能伴隨您在成長、成功的道路上前行是完事兒的榮幸，祝您再接再厲。</string>
-    <string name="celebration_habit_part_1">您堅持了</string>
-    <string name="celebration_habit_part_2">，完成了</string>
-    <string name="celebration_habit_part_3">，終於養成了這個習慣，真是一段艱難卻美好的經歷！</string>
-    <string name="celebration_habit_part_4">很高興能看到一個更好的您，完事兒將始終幫您進步。</string>
-    <string name="from_everything_done">來自Android應用《完事兒》</string>
-    <string name="auto_notify">自動提醒</string>
-    <string name="auto_notify_help_info">設定一個時間，完事兒將會在您創建每件記事的相應時間後自動地提醒您。如果您創建的不是記錄，完事兒將會根據其提醒時刻，智慧地决定是否自動提醒。</string>
-    <string name="auto_notify_off">關閉</string>
-    <string name="auto_notify_set_time">設定自動提醒時間</string>
-    <string name="chooser_ringtone">選擇鈴聲</string>
-    <string name="help">幫助</string>
-    <string name="settings_group_advanced">高級</string>
-    <string name="settings_group_ringtone">鈴聲</string>
-    <string name="title_activity_about">關於</string>
-    <string name="image_or_video_attachment">圖片或視頻附件</string>
-    <string name="title_activity_settings">設定</string>
-    <string name="cd_audio_attachment">音頻附件</string>
-    <string name="cd_cancel_recording_audio">取消錄音</string>
-    <string name="cd_delete_audio_attachment">删除該音訊附件</string>
-    <string name="cd_delete_image_attachment">删除該圖片附件</string>
-    <string name="cd_image_attachment">圖片類附件</string>
-    <string name="cd_play_audio_attachment">播放音訊檔案</string>
-    <string name="cd_re_recording_audio">重新錄音</string>
-    <string name="cd_video_attachment">視頻附件</string>
+    </string-array>
 
     <string-array name="month_of_year">
         <item>一月</item>
@@ -274,52 +49,548 @@
         <item>十一月</item>
         <item>十二月</item>
     </string-array>
-    <string name="about_motto">記住事情，完成事情</string>
-    <string name="about_version">版本：</string>
-    <string name="act_feedback">建議迴響</string>
-    <string name="app_share_info">記住事情，完成事情，這對你來說算一個挑戰嗎？完事兒能够為你提醒日程活動、幫你養成習慣、督促你完成目標，你也可以在完事兒裏記下身邊的故事與風景，留下美好的回憶。\n\n遵循 Material Design 的介面設計讓你領略 Android 應用的美，在精緻的細節中享受流暢的操作。\n\n前往 Google Play、酷安網、豌豆莢、小米應用商店等蒐索“完事兒”即可下載。</string>
+
+    <string-array name="time_period">
+        <item>凌晨</item>
+        <item>早晨</item>
+        <item>上午</item>
+        <item>中午</item>
+        <item>下午</item>
+        <item>傍晚</item>
+        <item>晚上</item>
+        <item>深夜</item>
+    </string-array>
+
+    <string name="today">今天</string>
+    <string name="tomorrow">明天</string>
+    <string name="yesterday">昨天</string>
+    <string name="end_of_month">月末</string>
+
+    <string name="this_month">這個月</string>
+    <string name="this_week">這個星期</string>
+    <string name="this_year">今年</string>
+
+    <string name="later">後</string>
+    <string name="description_a">個</string>
+    <string name="every">每</string>
+    <string name="times">次</string>
+    <string name="hours">個小時</string>
+    <string name="days">天</string>
+    <string name="weeks">個星期</string>
+    <string name="months">個月</string>
+
+    <string name="from_everything_done">來自Android程式《完事兒》</string>
+
+
+
+
+
+
+    <!--——————————————————————Task descriptions——————————————————————-->
+    <string name="everythingdone">完事兒</string>
+    <string name="title_create_thing">建立記事</string>
+    <string name="title_edit_thing">編輯</string>
+
+
+
+
+
+
+    <!--——————————————————————Activity titles————————————————————————-->
+    <string name="title_activity_things_all">所有記事</string>
+    <string name="image_or_video_attachment">圖片或影片附件</string>
+    <string name="title_activity_settings">設定</string>
+    <string name="title_activity_about">關於</string>
+    <string name="title_activity_statistic">統計</string>
+    <string name="title_activity_thing_widget_configure">選擇一件記事</string>
+    <string name="title_activity_things_list_widget_configuration">選擇正在進行的記事</string>
+    <string name="title_widget_things_list">正在進行的記事</string>
+
+
+
+
+
+
+    <!--——————————————————————Drawer items———————————————————————————-->
+    <string name="underway">正在進行</string>
+    <string name="thing">記事</string>
+    <string name="all_things">所有記事</string>
+    <string name="note">記錄</string>
+    <string name="reminder">提醒</string>
+    <string name="habit">習慣</string>
+    <string name="goal">目標</string>
+    <string name="finished">已完成</string>
+    <string name="deleted">已刪除</string>
+    <string name="drawer_deleted">回收桶</string>
+    <string name="settings">設定</string>
+    <string name="help">幫助</string>
+    <string name="about">關於</string>
+
+
+
+
+
+    <!--——————————————————————Strings for Thing——————————————————————-->
+    <string name="private_thing">私密記事</string>
+
+    <!--welcomes-->
+    <string name="welcome_underway_title">歡迎使用完事兒</string>
+    <string name="welcome_underway_content">滑動以完成記事</string>
+    <string name="welcome_note_content">隨便寫點什麼，完事兒幫您永遠記住</string>
+    <string name="welcome_reminder_content">讓完事兒提醒您接下來的事情</string>
+    <string name="welcome_habit_content">養成習慣，改正缺點</string>
+    <string name="welcome_goal_content">您的夢想正在升起</string>
+
+    <!--empties-->
+    <string name="empty_underway">您已經完成了所有的記事~</string>
+    <string name="empty_note">舊的記憶隨風而逝，新的故事何時落筆？</string>
+    <string name="empty_reminder">完事兒很高興為您服務！</string>
+    <string name="empty_habit">您已經成為了一個更好的人</string>
+    <string name="empty_goal">恭喜您完成了所有的目標！別累著了，先給自己放個假吧！</string>
+    <string name="empty_finished">什麼事兒都沒完成嗎？</string>
+    <string name="empty_deleted">你有一定要清空回收桶的強迫症嗎？我也有的說…</string>
+
+    <!--Reminder-->
+    <string name="reminder_expired">已過期</string>
+    <string name="reminder_needless">已無需提醒</string>
+    <string name="reminder_reminded">已提醒</string>
+    <string name="reminder_unavailable">已失效</string>
+
+    <!--Habit-->
+    <string name="habit_last_five">最近五次完成情況:</string>
+    <string name="habit_next_reminder">下一次提醒:</string>
+
+    <string name="alert_cannot_finish_habit_first_time">請等待第一個周期的到來</string>
+    <string name="alert_cannot_finish_habit_more_times">直到下個周期前無法繼續完成</string>
+
+    <!--Goal-->
+    <string name="goal_should_finish_before">應於%1$s前達成</string>
+    <string name="goal_should_finish_in">應於%1$d天内達成</string>
+    <string name="goal_overdue">已逾期%1$d天</string>
+    <string name="goal_finished_normal">已用%1$s天達成</string>
+    <string name="goal_finished_in_advance">已用%1$s天提前達成</string>
+    <string name="goal_finished_overdue">已用%1$s天逾期達成</string>
+
+    <!--attachment-->
+    <string name="images">張圖片</string>
+    <string name="videos">個影片</string>
+    <string name="audios">段音頻</string>
+
+    <!--color-->
+    <string-array name="thing_colors_names">
+        <item>@string/blue_grey_500</item>
+        <item>@string/my_cyan</item>
+        <item>@string/blue_grey_deep_blue</item>
+        <item>@string/blue_grey_deep_grey</item>
+        <item>@string/brown</item>
+        <item>@string/blue_deep</item>
+        <item>@string/pine_green</item>
+        <item>@string/my_purple</item>
+    </string-array>
+    <string name="blue_grey_500">藍灰色</string>
+    <string name="my_cyan">淺青色</string>
+    <string name="blue_grey_deep_blue">深灰藍</string>
+    <string name="blue_grey_deep_grey">深灰色</string>
+    <string name="brown">棕色</string>
+    <string name="blue_deep">深藍色</string>
+    <string name="pine_green">鬆綠色</string>
+    <string name="my_purple">紫色</string>
+
+    <!--Sharing a Thing-->
+    <string name="share_i_work_hard_for">我努力了</string>
+    <string name="share_i_persist_in_for">我已經堅持了</string>
+    <string name="share_goal_finished">最終達成了這個目標</string>
+    <string name="share_habit_developed">養成了這個習慣</string>
+
+    <string name="this_gai">該</string>
+
+    <string name="will_remind">將提醒於</string>
+
+
+
+
+
+
+    <!--——————————————————————Drawer headers——————————————————————-->
+    <string name="completion_rate_all">所有記事完成率</string>
+    <string name="completion_rate_reminder">「提醒」完成率</string>
+    <string name="completion_rate_note">「記錄」完成率</string>
+    <string name="completion_rate_habit">「習慣」完成率</string>
+    <string name="completion_rate_goal">「目標」完成率</string>
+
+
+
+
+
+
+    <!--——————————————————————General actions——————————————————————-->
+    <string name="act_share">分享</string>
+    <string name="act_get_it">好噠</string>
+
+    <!--In dialogs-->
+    <string name="confirm">確定</string>
+    <string name="cancel">取消</string>
+
+
+
+
+
+
+    <!--——————————————————————Actions in menu, fab and notification——————————————————————-->
+    <!--ThingsActivity normal-->
+    <string name="act_search">搜尋</string>
+    <string name="act_finish_all">全部完成</string>
+    <string name="act_delete_all">全部刪除</string>
+    <string name="act_clear_now">清空回收桶</string>
+    <string name="act_sort_by_alarm">根據提醒時間排序</string>
+
+    <!--ThingsActivity searching-->
+    <string name="act_select_color">選擇顏色</string>
+
+    <!--ThingsActivity selecting-->
+    <string name="act_select_all">全選</string>
+    <string name="act_deselect_all">取消全選</string>
+    <string name="act_delete_selected">刪除選中的記事</string>
+    <string name="act_finish_selected">完成選中的記事</string>
+    <string name="act_export_to_sdcard">導出到 SD 卡</string>
+    <string name="act_restore_selected">還原選中的記事</string>
+    <string name="act_delete_selected_forever">徹底刪除選中的記事</string>
+
+    <!--DetailActivity create-->
+    <string name="act_add_attachment">增加附件</string>
+    <string name="act_enable_check_list">啟用清單</string>
+    <string name="act_disable_check_list">取消清單</string>
+    <string name="act_change_background">改變顏色</string>
+    <string name="act_undo">復原</string>
+    <string name="act_redo">重做</string>
+    <string name="act_abandon_new_thing">捨棄</string>
+
+    <!--DetailActivity underway-->
+    <string name="act_set_as_private_thing">設為私密記事</string>
+    <string name="act_cancel_private_thing">取消設定私密記事</string>
+    <string name="act_finish">完成</string>
+    <string name="act_delete">刪除</string>
+
+    <!--DetailActivity habit normal-->
+    <string name="act_check_habit_detail">查看習慣詳情</string>
+    <string name="act_finish_this_time_habit">完成這一次</string>
+    <string name="act_habit_developed">我已養成該習慣</string>
+
+    <!--DetailActivity finished-->
+    <string name="act_restore">還原</string>
+
+    <!--DetailActivity all-->
+    <string name="act_copy_content">複製記事內容</string>
+
+    <!--HelpActivity-->
+    <string name="act_feedback">建議反映</string>
+
+    <!--AboutActivity-->
     <string name="act_share_everythingdone">分享完事兒</string>
-    <string name="send_feedback_to_developer">通過 Email 發送建議、迴響給開發者</string>
+
+    <!--Reminder Receiver-->
+    <string name="act_delay_10_minutes">延遲10分鐘</string>
+
+
+
+
+
+    <!--——————————————————————Actions not in menu, fab or notification——————————————————————-->
+    <!--DetailActivity attachment-->
+    <string name="act_take_photo">拍照</string>
+    <string name="act_shoot_video">錄制影片</string>
+    <string name="act_record_audio">錄音</string>
+    <string name="act_choose_media_files">選擇媒體文件</string>
+    <string name="act_show_attachment_info">查看附件詳情</string>
+    <string name="act_delete_attachment">刪除該附件</string>
+
+    <!--DetailActivity checklist-->
+    <string name="act_move_check_list">移動清單項</string>
+    <string name="act_back_from_move_checklist">完成並返回</string>
+
+    <!--DetailActivity check habit-->
+    <string name="act_check_habit_overview">查看習慣概覽</string>
+    <string name="act_check_habit_record">查看最近 30 次完成情況</string>
+
+    <!--DetailActivity special text events-->
+    <string name="act_open_in_browser">瀏覽網頁</string>
+    <string name="act_dial">撥打</string>
+    <string name="act_send_email">發送郵件</string>
+    <string name="act_open_in_map">打開地圖</string>
+    <string name="act_edit">編輯</string>
+
+    <!--DetailActivity share-->
+    <string name="act_share_thing_text_image">文字與圖片</string>
+    <string name="act_share_thing_screenshot">長截圖</string>
+
+    <!--SettingsActivity-->
+    <string name="act_choose_image_as_drawer_header">選擇抽屜頂部圖片</string>
+
+    <!--AboutActivity-->
     <string name="act_support">支持開發者</string>
-    <string name="support_donate">向我捐贈</string>
-    <string name="support_star">去應用商店評分</string>
-    <string name="support_content">您可以點擊介面上方的分享按鈕向您的朋友分享完事兒，也可以點擊建議迴響按鈕向開發者發送您對完事兒的意見。除此之外，您還可以前往應用商店為本應用評分，或者向我捐贈。您的支持是我前進的動力。</string>
-    <string name="support_select_market">選擇應用商店</string>
-    <string name="success_clipboard">已成功帳號到剪貼板</string>
-    <string name="support_donate_clip_content">532061865@qq.com</string>
-    <string name="support_donate_clip_title">支付寶帳號</string>
-    <string name="support_donate_content">我的支付寶帳號是532061865@qq.com。您的捐贈是對我的鼓勵，謝謝！</string>
-    <string name="support_donate_copy_name">複製帳號</string>
-    <string name="auto_notify_ringtone">自動提醒鈴聲</string>
-    <string name="backup">备份</string>
-    <string name="backup_content">完事兒將會備份您創建的所有記事以及應用設置，所有的提醒、習慣或目標也都將在恢復後正常執行。但是完事兒將不會備份您在記事中添加的各類附件，若有需要，請您使用其它手段備份，附件所在文件夾為 sdcard/EverythingDone</string>
-    <string name="backup_failed_content">請重新嘗試，或者前往關於界面發送建議反饋</string>
+
+    <!--Snackbars-->
+    <string name="act_sb_undo">復原</string>
+    <string name="act_sb_undo_finish">並未完成</string>
+    <string name="act_sb_undo_underway">已完成</string>
+
+
+
+
+
+
+    <!--——————————————————————General alerts, toasts and errors——————————————————————-->
+    <string name="success_clipboard">已成功複製到剪貼板</string>
+
+    <string name="error_permission_denied">未授予相關權限，無法繼續操作</string>
+
+    <string name="please_wait">請稍等</string>
+    <string name="generating_screenshot">正在截圖...</string>
+
+    <string name="error_activity_not_found">未找到相關程式</string>
+
+
+
+
+
+
+    <!--——————————————————————Other texts appearing at UI——————————————————————-->
+    <!--ThingsActivity-->
+    <string name="a_thing">件記事</string>
+
+    <string name="empty">空</string>
+
+    <string name="sb_finish_habit">完成了該習慣</string>
+
+    <string name="press_again_to_exit">再按一次以退出</string>
+
+    <!--Wrong state of alarms found-->
+    <string name="title_incorrect_reminder_habit">提醒類記事狀態錯誤</string>
+    <string name="content_incorrect_reminder_habit">完事兒發現有些提醒、習慣或目標處於錯誤的狀態，它們沒有在正確的時間提醒您。\n請確保完事兒能夠在後台正常運行。您可以在多任務中鎖定完事兒，在電池優化類的程式中將它加入白名單，以及授予所有它申請的權限，以確保提醒功能正常。\n您還可以前往幫助頁面獲取更詳細的資訊。\n點擊\"重新設定鬧鐘\"按鈕以修復記事狀態錯誤，同時重新激活對習慣的提醒。</string>
+    <string name="act_reset_alarms">重新設定鬧鐘</string>
+
+    <!--Alerts for finishing all with Habit or Goal included in things-->
+    <string name="alert_continue">確定要繼續該操作嗎？</string>
+    <string name="alert_find_habit_goal">這些事情中包含了部分習慣或目標，您可能希望單獨、謹慎地完成或捨棄它們</string>
+    <string name="continue_get_rid_of_habit_goal">去除其中的習慣、目標並繼續</string>
+    <string name="continue_for_alert">繼續</string>
+
+    <!--Snackbar in ThingsActivity-->
+    <string name="sb_cannot_be_blank">空白記事已被捨棄</string>
+    <string name="sb_abandon_new_thing">新的記事已被捨棄</string>
+    <string name="sb_delete">已刪除</string>
+    <string name="sb_delete_forever">永久刪除了</string>
+    <string name="sb_finish">完成了</string>
+    <string name="sb_underway">還原了</string>
+
+    <!--Searching-->
+    <string name="all_color">全部顏色</string>
+    <string name="no_result">找不到對象</string>
+
+
+    <!--DetailActivity-->
+    <string name="hint_title">標題</string>
+    <string name="hint_content">內容</string>
+    <string name="hint_new_item">新增項目</string>
+
+    <string name="create_at">建立於</string>
+    <string name="update_at">更新於</string>
+    <string name="remind_me">提醒我於</string>
+
+    <string-array name="quick_remind">
+        <item>@string/after_1_year</item>
+        <item>@string/after_1_month</item>
+        <item>@string/after_1_week</item>
+        <item>@string/after_2_days</item>
+        <item>@string/after_1_day</item>
+        <item>@string/after_2_hours</item>
+        <item>@string/after_1_hour</item>
+        <item>@string/after_30_minutes</item>
+        <item>@string/after_15_minutes</item>
+        <item>@string/custom</item>
+    </string-array>
+    <string name="after_1_year">1 年</string>
+    <string name="after_1_month">1 個月</string>
+    <string name="after_1_week">1 周</string>
+    <string name="after_2_days">2 天</string>
+    <string name="after_1_day">1 天</string>
+    <string name="after_2_hours">2 小時</string>
+    <string name="after_1_hour">1 小時</string>
+    <string name="after_30_minutes">30 分鐘</string>
+    <string name="after_15_minutes">15 分鐘</string>
+    <string name="custom">自定義</string>
+
+    <string name="error_unsupported_file_type">不支持的文件類型</string>
+    <string name="error_cannot_add_from_network">無法增加網路文件</string>
+
+    <string name="alert_cannot_share_empty_thing">無法分享空白記事</string>
+
+    <!--AudioRecordDialogFragment-->
+    <string name="input_file_name">請輸入文件名</string>
+
+    <!--DateTimeDialogFragment-->
+    <string name="quick_remind_title_after">一段時間之後</string>
+    <string name="quick_remind_title_at">某個時刻</string>
+    <string name="quick_remind_title_recurrence">重複</string>
+
+    <string name="new_reminder_time_rec">新的提醒時刻</string>
+
+    <string name="error_complete_time">請完善時刻資訊</string>
+    <string name="error_later">請設定為將來的某一時刻</string>
+    <string name="error_number_too_big">過大的輸入，你一定是在逗我</string>
+    <string name="error_too_late">那是我難以觸及的永恒</string>
+    <string name="error_different">請設定不一樣的時間</string>
+
+    <!--HabitDetailDialogFragment-->
+    <string name="habit_detail_completion_rate">完成率</string>
+    <string name="habit_detail_persist_in">堅持時間</string>
+    <string name="habit_detail_total_t">總周期數</string>
+    <string name="habit_detail_record">最近 30 次完成情況</string>
+    <string name="habit_detail_record_count">記錄次數</string>
+    <string name="habit_detail_times">完成次數</string>
+    <string name="habit_detail_title">習慣詳情</string>
+
+    <!--AttachmentInfoDialogFragment-->
+    <string name="attachment_info_title">附件詳情</string>
+    <string name="audio_bitrate">比特率</string>
+    <string name="audio_duration">音頻時長</string>
+    <string name="audio_sample_rate">採樣率</string>
+    <string name="file_last_modify_time">文件最後修改時間</string>
+    <string name="file_path">文件路徑</string>
+    <string name="file_path_not_existed">永恆未知處</string>
+    <string name="file_size">文件大小</string>
+    <string name="image_create_time">圖片建立時間</string>
+    <string name="image_size">圖片寬高</string>
+    <string name="video_size">影片寬高</string>
+    <string name="video_duration">影片時長</string>
+    <string name="video_create_time">影片建立時間</string>
+
+    <!--Alerts for canceling Habit or Goal-->
+    <string name="alert_cancel_habit_title">確定要放棄這個習慣嗎？</string>
+    <string name="alert_cancel_habit_content">該操作無法復原，完事兒將無法督促、協助您養成這個習慣</string>
+    <string name="alert_cancel_goal_title">確定要放棄該目標嗎？</string>
+    <string name="alert_cancel_goal_content">該操作無法復原，完事兒將無法記錄其倒數計時，也將無法與您一同慶祝它的完成</string>
+
+
+    <!--ImageViewerActivity-->
+    <string name="alert_delete_attachment">確定要刪除該附件嗎？</string>
+
+
+    <!--SettingsActivity-->
+    <string name="settings_group_ui">界面</string>
+    <string name="settings_group_ringtone">鈴聲</string>
+    <string name="settings_group_data">數據</string>
+    <string name="settings_group_privacy">隱私</string>
+    <string name="settings_group_advanced">高級</string>
+
+    <!--group ui-->
+    <string name="change_drawer_header">抽屜頭部圖片</string>
+    <string name="default_drawer_header">預設圖片</string>
+    <string name="app_language">語言</string>
+    <string name="change_app_language">更改程式語言</string>
+    <string-array name="languages" tools:ignore="MissingTranslation">
+        <item>@string/follow_system_settings</item>
+        <item>简体中文</item>
+        <item>繁體中文(香港)</item>
+        <item>繁體中文(台灣)</item>
+        <item>English</item>
+    </string-array>
+    <string-array name="language_codes" tools:ignore="MissingTranslation">
+        <item>follow system_</item>
+        <item>zh_cn</item>
+        <item>zh_hk</item>
+        <item>zh_tw</item>
+        <item>en_</item>
+    </string-array>
+    <string name="follow_system_settings">跟隨系統設定</string>
+    <string name="toggle_checklist_thing_card">在記事卡片中調整清單項的勾選狀態</string>
+    <string name="twice_back">按兩次返回鍵退出程式</string>
+
+    <!--group ringtone-->
+    <string name="chooser_ringtone">選擇鈴聲</string>
+    <string name="ringtone_loading">正在載入鈴聲...</string>
+
+    <!--group data-->
+    <!--backup-->
+    <string name="backup">備份</string>
+    <string name="backup_content">完事兒將會備份您建立的所有記事以及程式設定，所有的提醒、習慣或目標也都將在恢復後正常執行。但是完事兒將不會備份您在記事中增加的各類附件，若有需要，請您使用其它手段備份，附件所在文件夾為 SD卡/EverythingDone</string>
+    <string name="backup_failed_content">請重新嘗試，或者前往關於界面發送建議反映</string>
     <string name="backup_failed_title">備份失敗</string>
     <string name="backup_loading_content">請稍等片刻，先去喝點好喝的吧~</string>
     <string name="backup_loading_title">正在備份</string>
     <string name="backup_start">開始備份</string>
-    <string name="backup_success_content">請前往 sdcard 根目錄下查看 EverythingDone.bak 文件</string>
+    <string name="backup_success_content">請前往 SD 卡根目錄下查看 EverythingDone.bak 文件</string>
     <string name="backup_success_title">備份已完成</string>
+    <string name="last_backup">最近一次備份:</string>
+    <string name="no_backup_before">暫無備份</string>
+    <!--restore-->
     <string name="restore">恢復</string>
-    <string name="restore_content">請將有效的 EverythingDone.bak 文件放在 sdcard 根目錄下</string>
+    <string name="restore_content">請將有效的 EverythingDone.bak 文件放在 SD 卡根目錄下</string>
     <string name="restore_failed_other">請確保 EverythingDone.bak 是有效的備份文件</string>
     <string name="restore_failed_title">恢復失敗</string>
-    <string name="restore_file_not_exist">未找到備份文件,請將有效的 EverythingDone.bak 文件放在 sdcard 根目錄下</string>
+    <string name="restore_file_not_exist">未找到備份文件，請將有效的 EverythingDone.bak 文件放在 sdcard 根目錄下</string>
     <string name="restore_loading_content">請稍等片刻，先去吃點好吃的吧~</string>
     <string name="restore_loading_title">正在恢復</string>
     <string name="restore_start">開始恢復</string>
-    <string name="restore_success_content">請等待應用重啟。為確保數據安全，請不要進行其它操作</string>
+    <string name="restore_success_content">請等待程式重啟。為確保數據安全，請不要進行其它操作</string>
     <string name="restore_success_title">恢復成功</string>
-    <string name="settings_group_data">數據</string>
+
+    <!--group privacy-->
+    <string name="set_app_password">設定程式密碼</string>
+    <string name="change_app_password">更改程式密碼</string>
+    <string name="set_app_password_detail">該密碼將用於對涉及隱私、安全的操作進行身份確認，包括查看私密記事，備份、恢復數據等</string>
+    <string name="use_fingerprint">使用指紋</string>
+
+    <!--pattern password-->
+    <string name="password_not_set">未設定程式密碼</string>
+    <string name="draw_pattern">繪制密碼圖案</string>
+    <string name="relax_finger_when_finish">完成時鬆開手指</string>
+    <string name="draw_pattern_again">再次繪制以確認</string>
+    <string name="pattern_not_same">圖案不一致</string>
+    <string name="draw_pattern_finished">圖案已記錄</string>
+    <string name="done">完成</string>
+    <string name="last">上一步</string>
+    <string name="confirm_pattern">繪製圖案以驗證</string>
+    <string name="wrong_pattern">圖案錯誤</string>
+
+    <!--fingerprint-->
+    <!--some of these strings appeared in DetailActivity, AuthenticationActivity and so on-->
+    <string name="not_support_fgprt">您的設備不支持標凖的 Android 指紋模組</string>
+    <string name="system_fgprt_not_set"><![CDATA[系統指紋模組未啟用，請前往系統設定 -> 安全 -> 指紋啟用指紋模組]]></string>
+    <string name="fgprt_not_enrolled"><![CDATA[未找到可用的指紋，請前往系統設定 -> 安全 -> 指紋錄制一個指紋]]></string>
+    <string name="check_private_thing">查看私密記事</string>
+    <string name="confirm_fingerprint">確認指紋以繼續</string>
+    <string name="touch_sensor">觸摸指紋傳感器</string>
+    <string name="use_fingerprint_to_verify">使用您預設的指紋作為驗證方式之一</string>
+    <string name="use_pattern">使用圖案</string>
+    <string name="fingerprint_error_part_1">您還可以嘗試</string>
+    <string name="fingerprint_cannot_use_to_verify">你暫時無法使用指紋驗證身份</string>
+    <string name="fingerprint_verify_success">身份驗證成功！</string>
+    <string name="warning_title_should_not_be_empty">如果您要設定該記事為私密記事，請您為它設定標題</string>
+    <string name="warning_should_set_password_first"><![CDATA[您還未設定程式密碼，請前往設定 -> 隱私 -> 設定程式密碼進行設定]]></string>
+    <string name="cannot_set_as_private_thing_title">無法設定為私密記事</string>
+
+    <!--group advanced-->
+    <!--quick create-->
+    <string name="quick_create_title">快速建立記事</string>
+    <string name="quick_create_description">顯示一個常駐通知欄的通知，作為快速建立記事的入口</string>
+    <!--automatic reminder-->
+    <string name="auto_notify">自動提醒</string>
+    <string name="auto_notify_help_info">設定一個時間，完事兒將會在您建立每件記事的相應時間後自動地提醒您。如果您建立的不是記錄，完事兒將會根據其提醒時刻，智能地決定是否自動提醒。</string>
+    <string name="auto_notify_off">關閉</string>
+    <string name="auto_notify_set_time">設定自動提醒時間</string>
+    <string name="auto_notify_ringtone">自動提醒鈴聲</string>
+
+
+    <!--StatisticActivity-->
     <string name="statistic_start_from_part_1">我從</string>
-    <string name="statistic_start_from_part_2">開始使用完事兒，在這</string>
-    <string name="statistic_start_from_part_3">天裏，我創建、完成了：</string>
-    <string name="title_activity_statistic">統計</string>
-    <string name="statistic_note_audio_count">音訊</string>
+    <string name="statistic_start_from_part_2">開始使用完事兒。在這</string>
+    <string name="statistic_start_from_part_3">天裡，我完成、建立了：</string>
+    <string name="statistic_note_audio_count">音頻</string>
     <string name="statistic_note_char_count">文字</string>
     <string name="statistic_note_image_count">圖片</string>
-    <string name="statistic_note_video_count">視頻</string>
-    <string name="statistic_note_record">在記錄裏，我記下了這些：</string>
+    <string name="statistic_note_video_count">影片</string>
+    <string name="statistic_note_record">在「記錄」裡，我記下了這些：</string>
     <string name="statistic_reminder_completion_rate">提醒完成率</string>
     <string name="statistic_reminder_finish_time">平均完成時間</string>
     <string name="statistic_reminder_in_advance">提前完成的比例</string>
@@ -330,176 +601,276 @@
     <string name="statistic_hour">小時</string>
     <string name="statistic_minute">分鐘</string>
     <string name="statistic_day">天</string>
-    <string name="statistic_habit_record">我打算養成一些「習慣」，下面是相關的統計信息：</string>
-    <string name="statistic_habit_longest_pit">最長堅持週期數</string>
     <string name="statistic_habit_completion_rate">完成率</string>
-    <string name="statistic_habit_developed_rate">習慣養成率</string>
+    <string name="statistic_habit_longest_pit">最長堅持周期數</string>
+    <string name="statistic_habit_record">我打算養成一些「習慣」，下面是相關的統計資訊：</string>
     <string name="statistic_habit_longest_finish_times">最長連續完成次數</string>
+    <string name="statistic_habit_developed_rate">習慣養成率</string>
     <string name="statistic_habit_finished_all">完成次數\n/ 總次數</string>
-    <string name="error_permission_denied">未授予相關權限，無法繼續操作</string>
     <string name="statistic_goal_record">我定下了一些「目標」，來看看我的完成情況吧：</string>
     <string name="statistic_goal_completion_rate">目標完成率</string>
     <string name="statistic_goal_notify_time">平均期限</string>
-    <string name="generating_screenshot">正在截圖…</string>
-    <string name="please_wait">請稍等</string>
-    <string name="share_statistic">分享我的使用情况</string>
-    <string name="title_create_thing">創建記事</string>
-    <string name="title_edit_thing">編輯</string>
-    <string name="alert_cannot_finish_habit_first_time">請等待第一個週期的到來</string>
-    <string name="error_number_too_big">過大的輸入，你一定是在逗我</string>
-    <string name="error_too_late">那是我難以觸及的永恒</string>
-    <string name="act_choose_image_as_drawer_header">選擇抽屜頂部圖片</string>
-    <string name="change_drawer_header">抽屜頭部圖片</string>
-    <string name="default_drawer_header">默認圖片</string>
-    <string name="settings_group_ui">介面</string>
-    <string name="content_important_reminder_permission">如果您正在使用一些系統優化類的應用(如360手機衛士)，或者您的手機自帶了這樣的應用(如華為的節電助手)，請將完事兒加入它們的白名單中，以確保完事兒能够正常地進行提醒。\n\n此外，請您在系統自帶的許可權管理中授予完事兒請求的許可權，它們是：\n(1) 開機自啟動，用於設定鬧鐘，如果您不授予完事兒該許可權，當您重啓手機後，完事兒將無法繼續提醒您的日程、習慣或目標;\n(2) 讀寫存儲空間，用於插入附件、分享使用情况時保存介面截圖等;\n(3) 錄音，用於錄製音訊檔案作為記事附件;\n(4) 使手機振動，用於更好地通知您完成記事。\n完事兒絕對不會惡意地使用這些許可權，請您放心！</string>
-    <string name="title_important_alert">這是一個很重要的提醒</string>
-    <string name="more">更多</string>
-    <string name="app_crash_send_now">現在迴響</string>
+    <string name="share_statistic">分享我的使用情況</string>
+
+
+    <!--AboutActivity-->
+    <string name="send_feedback_to_developer">通過 Email 發送建議、反映給開發者</string>
+    <string name="support_donate">向我捐贈</string>
+    <string name="support_star">去程式商店評分</string>
+    <string name="support_content">您可以點擊界面上方的分享按鈕向您的朋友分享完事兒，也可以點擊建議反映按鈕向開發者發送您對完事兒的意見。除此之外，您還可以前往程式商店為本程式評分，或者向我捐贈。您的支持是我前進的動力。</string>
+    <string name="support_select_market">選擇程式商店</string>
+    <string name="support_donate_clip_content">532061865@qq.com</string>
+    <string name="support_donate_clip_title">支付寶帳號</string>
+    <string name="support_donate_content">我的支付寶帳號是 532061865@qq.com。您的捐贈是對我的鼓勵，謝謝！</string>
+    <string name="support_donate_copy_name">複製帳號</string>
+
+    <string name="month_day">號</string>
+    <string name="about_motto">記住事情，完成事情</string>
+    <string name="about_version">版本：</string>
+    <string name="app_share_info">記住事情，完成事情，這對你來說算一個挑戰嗎？完事兒能夠為你提醒日程活動、幫你養成習慣、督促你完成目標，你也可以在完事兒裡記下身邊的故事與風景，留下美好的回憶。\n\n遵循 Material Design 的界面設計讓你領略 Android 程式的美，在精緻的細節中享受流暢的操作。\n\n前往 Google Play、酷安網、豌豆莢、小米應用商店等搜尋“完事兒”即可下載。</string>
+
+
+    <!--AppWidgets-->
+    <string name="all">全部</string>
+    <string name="app_widget_config_alpha">透明度:</string>
+    <string name="things_list_config_alpha_header">頂部欄同時透明</string>
+    <string name="things_list_config_simple_view">採用簡單的記事視圖</string>
+
+
+    <!--Notifications-->
+    <string name="notification_has_attachment">[附件]</string>
+    <string name="notification_private_thing_content">[私密記事]</string>
+
+
+    <!--App crash-->
     <string name="app_crash_title">完事兒剛剛好像爆炸了QAQ</string>
-    <string name="app_crash_content">現在您就可以向開發者發送錯誤報告，這樣就可以迫使他加班加點修復bug了。\n當然，您也可以在其它時刻前往關於介面迴響這個問題，到時只需要在您的郵件中附上 SD卡/EverythingDone/log 目錄下相應的 log 檔案（您可以根據它們名稱中的時間資訊，來選擇最合適的那個 log 檔案作為郵件附件）即可。</string>
-    <string name="attachment_info_title">附件詳情</string>
-    <string name="audio_bitrate">位元速率</string>
-    <string name="audio_duration">音訊時長</string>
-    <string name="audio_sample_rate">取樣速率</string>
-    <string name="file_last_modify_time">檔案最後修改時間</string>
-    <string name="file_path">檔案路徑</string>
-    <string name="file_path_not_existed">永恒未知處</string>
-    <string name="file_size">文件大小</string>
-    <string name="image_create_time">圖片創建時間</string>
-    <string name="image_size">圖片寬高</string>
-    <string name="video_create_time">視頻創建時間</string>
-    <string name="video_duration">視頻時長</string>
-    <string name="video_size">視頻寬高</string>
-    <string name="act_show_attachment_info">查看附件詳情</string>
-    <string name="press_again_to_exit">再按一次以退出</string>
-    <string name="twice_back">按兩次返回鍵退出應用</string>
-    <string name="cd_audio_attachment_info">查看該音訊附件詳細資訊</string>
-    <string name="act_back_from_move_checklist">完成並返回</string>
-    <string name="act_move_check_list">移動清單項</string>
-    <string name="not_support_fgprt">您的設備不支持標準的 Android 指紋模塊</string>
-    <string name="set_app_password">設定應用密碼</string>
-    <string name="settings_group_privacy">隱私</string>
-    <string name="use_fingerprint">使用指紋</string>
-    <string name="password_not_set">未設定應用密碼</string>
-    <string name="system_fgprt_not_set"><![CDATA[系統指紋模塊未啟用，請前往系統設置 -> 安全 -> 指紋啟用指紋模塊]]></string>
-    <string name="fgprt_not_enrolled"><![CDATA[未找到可用的指紋，請前往系統設置 -> 安全 -> 指紋錄製一個指紋]]></string>
-    <string name="done">完成</string>
-    <string name="draw_pattern">繪製密碼圖案</string>
-    <string name="draw_pattern_again">再次繪製以確認</string>
-    <string name="draw_pattern_finished">圖案已記錄</string>
-    <string name="last">上一步</string>
-    <string name="pattern_not_same">圖案不一致</string>
-    <string name="relax_finger_when_finish">完成時鬆開手指</string>
-    <string name="confirm_pattern">繪製圖案以驗證</string>
-    <string name="wrong_pattern">圖案錯誤</string>
-    <string name="check_private_thing">查看私密記事</string>
-    <string name="confirm_fingerprint">確認指紋以繼續</string>
-    <string name="touch_sensor">觸摸指紋傳感器</string>
-    <string name="use_fingerprint_to_verify">使用您預設的指紋作為驗證方式之一</string>
-    <string name="use_pattern">使用圖案</string>
-    <string name="act_cancel_private_thing">取消設置私密記事</string>
-    <string name="act_set_as_private_thing">設為私密記事</string>
-    <string name="fingerprint_cannot_use_to_verify">你暫時無法使用指紋驗證身份</string>
-    <string name="fingerprint_error_part_1">您還可以嘗試</string>
-    <string name="fingerprint_verify_success">身份驗證成功！</string>
-    <string name="warning_should_set_password_first"><![CDATA[您還未設定應用密碼，請前往設定 -> 隱私 -> 設定應用密碼進行設定]]></string>
-    <string name="warning_title_should_not_be_empty">如果您要設置該記事為私密記事，請您為它設置標題</string>
-    <string name="cannot_set_as_private_thing_title">無法設置為私密記事</string>
-    <string name="help_detail">幫助詳情</string>
-    <string name="act_export_to_sdcard">導出到 SD 卡</string>
-    <string name="export_failed_content">請稍後重新嘗試</string>
-    <string name="export_failed_title">導出到 SD 卡失敗</string>
+    <string name="app_crash_content">現在您就可以向開發者發送錯誤報告，這樣就可以迫使他加班加點修復 bug 了。\n當然，您也可以在其它時刻前往關於界面反映這個問題，到時只需要在您的郵件中附上 SD卡/EverythingDone/log 目錄下相應的 log 文件(您可以根據它們名稱中的時間資訊，來選擇最合適的那個 log 文件作為郵件附件)即可。</string>
+    <string name="app_crash_send_now">現在反映</string>
+
+
+    <!--Celebration for Finishing Habit or Goal-->
+    <string name="celebration_habit_part_1">您堅持了</string>
+    <string name="celebration_habit_part_2">，完成了</string>
+    <string name="celebration_habit_part_3">，終於養成了這個習慣，真是一段艱難卻美好的經歷！</string>
+    <string name="celebration_goal_part_1">您花了</string>
+    <string name="celebration_goal_part_2">實現該目標，現在是時候慶祝了！</string>
+    <string name="celebration_goal_part_3">能伴隨您在成長、成功的道路上前行是完事兒的榮幸，祝您再接再厲。</string>
+    <string name="celebration_habit_part_4">很高興能看到一個更好的您，完事兒將始終幫您進步。</string>
+
+
+    <!--Export thing-->
     <string name="export_loading_title">正在導出到 SD 卡...</string>
     <string name="export_loading_content">先去玩會兒好玩的吧~</string>
     <string name="export_success_title">成功導出到 SD 卡</string>
     <string name="export_success_content_part_1">已導出 %1$d 件記事</string>
-    <string name="export_success_content_part_2">,請前往 SD卡/Everything Done/export 目錄下查看相應的 zip 文件</string>
-    <string name="act_redo">重做</string>
-    <string name="act_undo">撤銷</string>
-    <string name="from_1_1_4_to_1_1_5_content">點擊右上角的菜單按鈕，即可看到撤銷 / 重做。藉此，您可以讓記事自由地回到過去或者未來。</string>
-    <string name="from_1_1_4_to_1_1_5_title">您現在可以使用撤銷 / 重做功能了</string>
-    <string name="act_check_habit_record">查看最近 30 次完成情況</string>
-    <string name="habit_detail_record_count">記錄次數</string>
-    <string name="habit_detail_total_t">總週期數</string>
-    <string name="act_check_habit_overview">查看習慣概覽</string>
-    <string name="act_deselect_all">取消全選</string>
-    <string name="notification_has_attachment">[附件]</string>
-    <string name="quick_create_title">快速創建記事</string>
-    <string name="quick_create_description">顯示一個常駐通知欄的通知，作為快速創建記事的入口</string>
-    <string name="last_backup">最近一次備份:</string>
-    <string name="no_backup_before">暫無備份</string>
-    <string name="title_activity_thing_widget_configure">選擇一件記事</string>
-    <string name="title_activity_things_list_widget_configuration">選擇正在進行的記事</string>
-    <string name="all">全部</string>
-    <string name="drawer_deleted">回收站</string>
-    <string name="title_widget_things_list">正在進行的記事</string>
-    <string name="app_language">語言</string>
-    <string name="change_app_language">更改應用語言</string>
-    <string name="follow_system_settings">跟隨系統設置</string>
-    <string name="set_app_password_detail">該密碼將用於對涉及隱私、安全的操作進行身份確認，包括查看私密記事，備份、恢複數據等</string>
-    <string name="ringtone_loading">正在載入鈴聲...</string>
-    <string name="change_app_password">更改應用密碼</string>
-    <string name="notification_private_thing_content">[私密記事]</string>
-    <string name="toggle_checklist_thing_card">在記事卡片中調整清單項的勾選狀態</string>
-    <string name="act_share_thing_screenshot">長截圖</string>
-    <string name="act_share_thing_text_image">文本及圖片</string>
-    <string name="act_copy_content">複製記事內容</string>
-    <string name="act_abandon_new_thing">捨棄</string>
-    <string name="sb_abandon_new_thing">新的記事已被捨棄</string>
+    <string name="export_success_content_part_2">，請前往 SD卡/EverythingDone/export 目錄下查看相應的 zip 文件</string>
+    <string name="export_failed_title">導出到 SD 卡失敗</string>
+    <string name="export_failed_content">請稍後重新嘗試</string>
+
+
+
+
+
+
+    <!--——————————————————————Content descriptions——————————————————————-->
+    <!--ThingsActivity-->
     <string name="cd_open_drawer">打開導航抽屜</string>
-    <string name="cd_drawer_header">點擊查看詳細統計信息，概述：</string>
-    <string name="cd_statistic_header">我的使用情况统计</string>
+    <string name="cd_close_drawer">關閉導航抽屜</string>
+    <string name="cd_quit_searching">離開搜尋界面</string>
+
+    <!--thing card or app widget-->
+    <string name="cd_habit_unfinished">未完成</string>
+    <string name="cd_habit_finished">完成</string>
+    <string name="cd_habit_unknown">未知</string>
+
+    <!--Drawer header and StatisticActivity-->
+    <string name="cd_drawer_header">點擊查看詳細統計資訊，概述：</string>
+    <string name="cd_statistic_header">我的使用情況統計</string>
+
+    <!--DetailActivity-->
+    <string name="cd_back_note">該記事屬於"記錄"，返回</string>
+    <string name="cd_back_reminder">該記事屬於"提醒"，返回</string>
+    <string name="cd_back_habit">該記事屬於"習慣"，返回</string>
+    <string name="cd_back_goal">該記事屬於"目標"，返回</string>
+
+    <!--Recurrence picker in DateTimeDialogFragment-->
+    <string name="cd_day">號</string>
+
+    <!--checklist item-->
+    <string name="cd_checklist_unfinished_item">未完成的清單項</string>
+    <string name="cd_checklist_finished_item">已完成的清單項</string>
+    <string name="cd_checklist_more_items">更多的清單項</string>
+    <string name="cd_checklist_unfinished_item_clickable">未完成的清單項，點擊即可完成</string>
+    <string name="cd_checklist_finished_item_clickable">已完成的清單項，點擊取消完成</string>
+    <string name="cd_checklist_move">點擊並拖曳即可移動該清單項</string>
+    <string name="cd_checklist_finished_items">下面是所有已完成的清單項</string>
+    <string name="cd_delete_checklist_item">刪除項目</string>
+
+    <!--SettingsActivity-->
+    <string name="cd_help_automatic_reminder">查看自動提醒的幫助資訊</string>
+
+    <!--ChooserDialogFragment-->
+    <string name="cd_chosen_item">已選中，</string>
+    <string name="cd_not_chosen_item">未選中，</string>
+
+    <!--PatternLockView-->
+    <string name="cd_pattern_area">九宮格圖案密碼區域</string>
+
+    <!--attachment-->
+    <!--general-->
+    <string name="cd_image_attachment">圖片類附件</string>
+    <string name="cd_video_attachment">影片附件</string>
+    <string name="cd_audio_attachment">音頻附件</string>
+
+    <!--video attachment-->
+    <string name="cd_play_video_attachment">播放影片文件</string>
+
+    <!--audio attachment-->
+    <string name="cd_play_audio_attachment">播放音頻文件</string>
+    <string name="cd_pause_play_audio_attachment">暫停音頻播放</string>
+    <string name="cd_stop_play_audio_attachment">停止播放音頻</string>
+    <string name="cd_delete_audio_attachment">刪除該音頻附件</string>
+    <string name="cd_audio_attachment_info">查看該音頻附件詳細資訊</string>
+
+    <!--record audio-->
     <string name="cd_start_record_audio">開始錄音</string>
     <string name="cd_stop_record_audio">停止錄音</string>
-    <string name="cd_save_recorded_audio_file">保存錄音文件並返回</string>
-    <string name="cd_chosen_item">已選中，</string>
-    <string name="cd_close_drawer">關閉導航抽屜</string>
-    <string name="cd_help_automatic_reminder">查看自動提醒的幫助信息</string>
-    <string name="cd_not_chosen_item">未选中，</string>
-    <string name="cd_pattern_area">九宮格圖案密碼區域</string>
-    <string name="cd_back_goal">該記事屬於"目標"，返回</string>
-    <string name="cd_back_habit">該記事屬於"習慣"，返回</string>
-    <string name="cd_back_note">该记事属于"记录"，返回</string>
-    <string name="cd_back_reminder">該記事屬於"提醒"，返回</string>
-    <string name="cd_stop_play_audio_attachment">停止播放音頻</string>
-    <string name="cd_play_video_attachment">播放視頻檔案</string>
-    <string name="cd_pause_play_audio_attachment">暫停音訊播放</string>
-    <string name="cd_delete_video_attachment">刪除該視頻附件</string>
-    <string name="cd_checklist_finished_item">已完成的清單項</string>
-    <string name="cd_checklist_finished_item_clickable">已完成的清單項，點擊取消完成</string>
-    <string name="cd_checklist_finished_items">下面是所有已完成的清單項</string>
-    <string name="cd_checklist_more_items">更多的清單項</string>
-    <string name="cd_checklist_move">點擊並拖拽即可移動該清單項</string>
-    <string name="cd_checklist_unfinished_item">未完成的清單項</string>
-    <string name="cd_checklist_unfinished_item_clickable">未完成的清單項，點擊即可完成</string>
-    <string name="cd_delete_reminder_time_day_rec">刪除該提醒時刻</string>
-    <string name="cd_reminder_time">提醒時刻</string>
-    <string name="cd_habit_finished">完成</string>
-    <string name="cd_habit_unfinished">未完成</string>
-    <string name="cd_habit_unknown">未知</string>
-    <string name="cd_quit_searching">離開搜索界面</string>
-    <string name="cd_picked">已选中，</string>
-    <string name="cd_unpicked">未选中，</string>
-    <string name="private_thing">私密記事</string>
-    <string name="cd_day">號</string>
-    <string name="act_reset_alarms">重新設置鬧鐘</string>
-    <string name="content_incorrect_reminder_habit">完事兒發現有些提醒、習慣或目標處於錯誤的狀態，它們沒有在正確的時間提醒您。\n請確保完事兒能夠在後台正常運行。您可以在多任務中鎖定完事兒，在電池優化類的應用中將它加入白名單，以及授予所有它申請的權限，以確保提醒功能正常。\n您還可以前往幫助頁面獲取更詳細的信息。\n點擊\"重新設置鬧鐘\"按鈕以修復記事狀態錯誤，同時重新激活對習慣的提醒。</string>
-    <string name="title_incorrect_reminder_habit">提醒類記事狀態錯誤</string>
-    <string name="act_sort_by_alarm">根據提醒時間排序</string>
-    <string name="app_widget_config_alpha">透明度:</string>
-    <string name="cd_app_widget_preview_background">小部件預覽背景</string>
-    <string name="cd_things_list_widget_setting">打開記事列表小部件設置</string>
-    <string name="things_list_config_simple_view">採用簡單的記事視圖</string>
-    <string name="things_list_config_alpha_header">頂部欄同時透明</string>
-    <string name="alert_cannot_share_empty_thing">無法分享空白記事</string>
+    <string name="cd_save_recorded_audio_file">儲存錄音文件並返回</string>
+    <string name="cd_re_recording_audio">重新錄音</string>
+    <string name="cd_cancel_recording_audio">取消錄音</string>
 
-    <!--Goal-->
-    <string name="goal_should_finish_before">應於%1$s前完成</string>
-    <string name="goal_should_finish_in">應於%1$d天内完成</string>
-    <string name="goal_overdue">已逾期%1$d天</string>
-    <string name="goal_finished_normal">已用%1$s天完成</string>
-    <string name="goal_finished_in_advance">已用%1$s天提前完成</string>
-    <string name="goal_finished_overdue">已用%1$s天逾期完成</string>
+    <string name="cd_delete_image_attachment">刪除該圖片附件</string>
+    <string name="cd_delete_video_attachment">刪除該影片附件</string>
+
+    <!--time of day rec item-->
+    <string name="cd_reminder_time">提醒時刻</string>
+    <string name="cd_delete_reminder_time_day_rec">刪除該提醒時刻</string>
+
+    <!--picker-->
+    <string name="cd_picked">已選中，</string>
+    <string name="cd_unpicked">未選中，</string>
+
+    <!--BaseThingWidgetConfiguration-->
+    <string name="cd_app_widget_preview_background">小工具預覽背景</string>
+
+    <!--ThingsListWidget-->
+    <string name="cd_things_list_widget_setting">打開記事列表小工具設定</string>
+
+
+
+    <!--——————————————————————HelpActivity——————————————————————-->
+    <string name="help_detail">幫助詳情</string>
+
+    <string-array name="help_titles" tools:ignore="MissingTranslation">
+        <item>為什麼會有這個頁面？</item>
+        <item>我該如何告訴開發者我的想法？</item>
+        <item>記錄、提醒、習慣和目標是如何分類的？</item>
+        <item>為什麼我無法手動設定一個記事為提醒/習慣/目標？</item>
+        <item>為什麼我無法接收到提醒？</item>
+        <item>完事兒需要哪些權限？為什麼需要這些權限？</item>
+        <!--<item>主界面背景是白色的，狀態欄裡的文字、圖示看不清楚了，該怎麼辦呢？</item>-->
+        <item>為什麼完成全部記事後還會出現一個新的記事，而且劃不掉？強迫症快哭出來了。</item>
+        <item>我能看到一些關於提醒、習慣的統計資訊嗎？</item>
+        <item>為什麼我刪掉了一個記事，完成率卻沒有改變？</item>
+        <item>為什麼習慣最多每天提醒 4 次？為什麼不能設定每幾個周期多少次這樣的提醒呢？</item>
+        <item>為什麼“記錄”的完成、建立數目會算在完成率的計算公式裡，而在每個周期裡“習慣”的完成次數卻不會？</item>
+        <item>為什麼現在還沒有同步的功能？</item>
+        <item>還會有更多的記事顏色嗎？</item>
+        <item>為什麼不支持農曆？</item>
+        <item>為什麼圖片附件縮圖裁剪的位置不恰當，而且大圖顯示不夠清晰？</item>
+        <item>為什麼我在 Google Play 無法搜尋到完事兒？</item>
+        <item>完事兒裡有沒有彩蛋？(,,• ₃ •,,)</item>
+    </string-array>
+
+    <string-array name="help_contents" formatted="false" tools:ignore="MissingTranslation">
+        <item>首先，我希望在這個頁面嘗試著答覆你在使用完事兒的過程中可能產生的疑問，盡可能快速地解決你遇到的問題。
+            \n\n其次，因為人與人是有差異的，開發者的想法和用戶可能會有許多不同，因此，我也希望在這個頁面向你解釋完事兒的某些設定中蘊含的理念，告訴你在設計那個功能的時候，我是如何思考的。這些思考可能與你所想的有所不同，有些甚至可以說很傻，但是正是這些理念形成了這個程式的獨特之處，希望你能夠理解，並且享受這種“不同”與“變化”。
+            \n\n這個界面會一直保持更新。</item>
+
+        <item>你可以：
+            \n\n1. 通過幫助、關於界面右上角的反映按鈕來向我發送電子郵件(當你遇到了這個頁面沒有提及到的問題，或者有新的建議、想法時);
+            \n\n2. 前往酷安網，在完事兒的頁面下評論(當你同時還希望聽聽其他人對你的疑問、建議有什麼想法時);
+            \n\n3. 向我捐贈的同時附上你想說的話(當你很喜歡這個程式，一定要向我表達謝意時^_^)。</item>
+
+        <item>記錄：記下某個人、某件事、某處風景等等生活中的點滴，不需要設定任何提醒。
+            \n\n提醒：完事兒會提醒你這件記事的內容，而這個提醒應該發生在記事建立後的 4 個星期(28 天)以內。
+            \n\n習慣：完事兒會重複地提醒你這件記事的內容，重複的周期可以是一天、一個星期、一個月或者一年，而重複次數根據周期的類型不同而不同。
+            \n\n目標：完事兒會提醒你這件記事的內容，而這個提醒應該至少發生在記事建立的 4 個星期之後，這件記事一般需要經過長期的努力才能完成。</item>
+
+        <item>最主要的原因是：我希望你只關注要做的事情本身，而不要花費其它時間、精力來決定一件事情究竟是什麼類型的。你只需要告訴完事兒：你希望在什麼時候讓它提醒你(提醒你要開始做這件事了，或者提醒你這件事應該完成了，我沒有區分這兩種情況，但應該不會影響這件事的性質)、希望是一次性提醒還是重複提醒，完事兒就會根據這些資訊決定這件記事的類型——提醒是短期的，習慣是重複性的，目標則是長期的。
+            \n\n另一個原因是：如果現在允許你手動更改記事的類型，那麼整個程式就會冒出大量錯誤。因此即使用戶呼籲我提供這項功能，我也需要重新設計整個程式的結構，並且重寫許多代碼。在完事兒 2.0 之前，我可能都不會希望做這件事。</item>
+
+        <item>如果你的系統是 MIUI、flyme、EMUI 等第三方 Android 系統，請授予完事兒所有需要的權限，保證完事兒能夠開機自啟、保持在後台運行、能夠後台自啟動，同時允許完事兒通知消息；如果你的手機自帶了節電助手(如 EMUI)，也請前往其設定界面，將完事兒加入到白名單中。
+            \n\n如果你使用了諸如 360 手機助手、綠色守護這樣的手機優化、清理程式，也請保證完事兒不在該程式的優化、清理範圍之內。
+            \n\n此外，你如果還安裝了一些通知管理程式，比如 Nevolution、360 通知盒子等，也請你在這些程式的白名單中增加完事兒，以防止通知“消失”。
+            \n\n如果你還無法接收到提醒，請你向我發送反映，同時注明你的手機型號、系統類型、版本號，我會與你進一步連絡。
+            \n\n現在各種 ROM(尤其是本地化做得不錯的 ROM)都希望能夠控制第三方程式的一切行為，對於流氓程式來說，這是強有力的防護手段。完事兒雖然不是流氓程式，但這些廠商不知道，也不會為我開特例，因此，完事兒的提醒功能可能或多或少都會受到一些影響，請你諒解我，也請你諒解這些廠商。</item>
+
+        <item>目前(版本號：1.2.6)，完事兒需要的權限包括：
+            \n\n1. 開機自啟動，用於設定提醒，如果你不授予完事兒該權限，當你重啟手機後，完事兒將無法繼續提醒你的日程、習慣或目標；
+            \n\n2. 讀寫儲存空間，用於插入附件、分享使用情況時儲存界面截圖等；
+            \n\n3. 錄音，用於錄制音頻文件作為記事附件；
+            \n\n4. 使手機振動，用於更好地通知您完成記事；
+            \n\n5. 在 Android 6.0 及以上需要指紋權限，用於使用指紋來解鎖私密記事。
+            \n\n在你的手機的權限管理、優化程式中，可能還會顯示完事兒需要後台自啟的權限，這也是用來保證提醒功能正常的。
+            \n\n我承諾：絕對不聲明不相干的權限，絕對不會使用已申請的權限做不對的事情。</item>
+
+        <!--<item>為什麼會有這麼一個問題呢？因為我想順帶科普下 Android 狀態欄、導航欄變色的幾種方式。身為一個 Android 開發者，還是希望做一些微小的工作的。-->
+        <!--\n\n大家都知道一個名詞，叫做“沉浸式狀態欄”，這似乎是小米先提出來的，但Google官方其實從來沒有介紹過這個概念，文檔中頂多也只有“透明狀態欄”的說法。-->
+        <!--\n\n實際上，透明狀態欄、導航欄都是在 Android 4.4 新增的，開發者可以在主題中設定一些標誌位(translucent status/navigation，透明的狀態欄/導航欄)來實現這個效果。-->
+        <!--\n\n在 Android 5.0 之後，Google 又為狀態欄、導航欄增加了新的裝飾。開發者可以在主題中設定另一些標誌位來定義狀態欄和導航欄的顏色。Google  推薦在 ActionBar 上使用值為 500 的顏色，而在狀態欄使用同種色系、但值為 700 的顏色。-->
+        <!--\n\n透明狀態欄、導航欄可以在 Android 4.4 以上使用，也就是說，為了讓狀態欄不是單調的黑色，在 Android 5.0 及以上版本，我們有兩種方式。它們所實現的效果雖然接近，但實際上有很大的不同。-->
+        <!--\n\n透明狀態欄、導航欄的實質正如其名：它可以讓狀態欄和導航欄透明化，程式的佈局不再局限於狀態欄之下、導航欄之上的這片區域，而是能夠利用整個螢幕空間來顯示，但頂部和底部都會加上一個黑色矩形作為狀態欄、導航欄的背景：在原生 Android 4.4 上，這個黑色矩形是透明的，而且透明度帶有一定的漸變，從螢幕中間向螢幕外逐漸變深（也就是逐漸不透明）；而在原生 Android 5.0 以上，這個黑色矩形的透明度各處都是 40%。-->
+        <!--\n\n相比之下，變色狀態欄、導航欄實際上針對的就只是狀態欄及導航欄，並不會影響程式的佈局範圍，即程式的主要界面仍然是在狀態欄下方、導航欄上方這個區間顯示。不過，Google 為了實現讓側滑抽屜能夠全螢幕顯示，又做了一些特殊處理，讓某些佈局能夠在狀態欄、導航欄內顯示一部分，而開發者同樣可以使用這種佈局。-->
+        <!--\n\n另一個值得一提的地方是各種第三方 ROM 對透明、變色狀態欄的適配。目前來看，無論是什麼 Android 版本，這些第三方 ROM 一般都會讓狀態欄徹底透明化，也就是每一處透明度都為100%，沒有漸變，也不是40%。但它們一般不會對變色狀態欄做自己的處理，會保持與 Material Design 的一致性。-->
+        <!--\n\n在完事兒中，我只使用了透明狀態欄這一種方式，因為我希望程式在 Android 4.4 上也能有一個比較漂亮的效果，而且在開發時，國內使用人數最多的 MIUI 也還是 Android 4.4。但我的主界面背景是偏白色的，而狀態欄裡的文字、圖示也是白色的，因此在這些把狀態欄透明度自動調整為 100% 的 ROM 裡，用戶就無法在主界面看清狀態欄裡的內容了。-->
+        <!--\n\nMIUI 提供了一種方法，可以讓狀態欄裡的圖示變成黑色，而 flyme 甚至可以根據界面顏色自動調整狀態欄圖示的顏色，因此我並沒有擔心程式在這兩個 ROM 裡的顯示效果。但很顯然，並不是所有的第三方 ROM 都考慮到了這個問題，提供了解決方案(EMUI、ZUI 就沒有)，作為程式開發者確實也無能為力，只能向他們反映這個問題。-->
+        <!--\n\n最後，在 Android 6.0 以上，開發者終於可以通過設定主題的一些標誌，改變狀態欄圖示的顏色了（當然也只局限於黑白二色），不過這個效果無法和透明狀態欄共存……所以，儘管完事兒的主界面很適合讓狀態欄圖示暗色化，但為了向前的兼容性、全平台顯示效果的最優化，也為了儘量不改變寫好的代碼的結構，我也暫時不打算將透明狀態欄改為變色狀態欄。</item>-->
+
+        <item>全部完成某種類型的記事後，應該會有一個恭喜的提示，在我的設計中，就是通過自動建立一個新的記事來實現這個功能。
+            \n\n如果沒有這個記事，界面就會顯得很空，而且因為“正在進行”等文字處於螢幕垂直方向靠中間的位置，而不是最上方，要使界面平衡就會比較困難。此外，設計空白狀態的提示是很難的，既要和程式的風格一致，又要新穎、漂亮，還要契合空白狀態的特性，比如是完成了全部記事導致的空白狀態(“正在進行”頁面)，還是一件記事都沒有完成導致的空白狀態(“已完成”頁面)……很有挑戰性，需要不少的時間。
+            \n\n最後，如果現在改動這個設定，那麼也需要大量改變程式代碼，同樣是個費力的活兒。所以，只能請各位強迫著患者理解理解了……
+            \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n其實，我也是強迫症呀！</item>
+
+        <item>當然可以，你可以打開程式抽屜，點擊頂部的圖片，即可前往統計界面。在那個界面，你能看到自己使用了多久的完事兒、寫下了多少字、平均提醒時間、習慣養成率等資訊。</item>
+
+        <item>在一般情況下，完成率的統計公式是：已完成的記事數目(不包括每個周期裡習慣的完成次數) / 建立過的記事數目，你儘管刪除了一個記事，卻沒有改變它已經被建立了的事實，因此完成率不會發生改變。</item>
+
+        <item>一開始我設想的是能讓你輸入每幾個周期提醒多少次的，但這會帶來一個重要的問題：到底在什麼時間提醒呢？是你來輸入每一次提醒的確切時間，還是完事兒來判斷在什麼時候提醒呢？
+            \n\n如果是前者，那麼你會需要輸入很多東西，而且這些輸入很難有一個標凖的形式：比如你想設定每 3 天 1 次的提醒，那麼應該在這 3 天中的哪一天、哪一個時刻提醒呢，怎麼向完事兒輸入你的預期呢？
+            \n\n如果是後者，我也無法智能地決定應該在什麼時候提醒。更何況，由於 Android 的限制，我只能把每個重複提醒的間隔設定成一樣的時間，這就意味著只能採用均分的方式得到提醒時刻，而這個提醒時刻肯定不會次次都是最恰當的那個時間。而即便不採用重複提醒的方式，而是在每一次提醒後動態地計算下一次提醒的時刻，同樣也難以決定哪個時刻是合適的。
+            \n\n因此，目前我只提供了每天/星期/月/年多少次的提醒形式，而在比較靈活的“每日”這個類型中，也限制了你最多設定 4 次提醒。那麼為什麼是 4 次呢？是因為我當時覺得 1 天最多吃 4 次藥……這個理由估計不太充分，但正如我說的，這就構成了完事兒獨特的模樣，在可見的未來應該是不會更改的。</item>
+
+        <item>有些時候，我們會隨手記下一些要做的事情，但當時並不知道應該在什麼時候做完，因此我決定把“記錄”的數目也算在完成率的計算公式裡。
+            \n\n第二個問題表現在：如果你只有一件記事，而且這個記事是一個“習慣”，那麼無論你完成了它多少次，你的總完成率都不會增加，除非你“養成了這個習慣”。其實一開始，在我的設定裡，是把每個周期“習慣”的完成次數算進完成率的計算裡的，但這樣的話，徹底養成一個習慣這麼重要的操作卻不會對完成率造成同等分量的影響，因此後來改成了現在的計算公式。
+            \n\n當然，如果你想知道習慣的真正完成率，可以在統計界面查看；如果你還想知道某個習慣的完成率，也可以在該習慣的詳情界面看到。</item>
+
+        <item>對於一個記事、提醒類程式而言，同步記事確實非常重要，但是由於開發者是一隻弱雞，因此還需要一定時間才能完成，希望你能理解。</item>
+
+        <item>設計稿裡是有柔和、冷靜兩種色調的，但光選擇“冷靜”裡應該有哪些顏色，就耗費了將近一個星期……
+            \n\n現在如果要提供更多、柔和一些的顏色，還要考慮和已有的顏色協調，字體、對話框顏色搭配，不讓界面因多種顏色而讓人眼花繚亂等等問題。
+            \n\n綠色和紫色已經在 1.2.2 版本中推出，未來可能會以多主題的方式提供更多的顏色。</item>
+
+        <item>對目前的我來說，確定某一天的農曆日期的算法實在是高深、困難；對於用戶來說，輸入某個農曆日期也是一件麻煩的事情。加入農曆是少有的、我會感覺不知道從何入手的事情，因此你可以期待這個功能在10年內能不能加入了。</item>
+
+        <item>圖片與圖片是有差異的，有些圖片的主要內容在正中央，有些則在邊角，這是程序沒辦法判斷的，因此我只能規規矩矩地將圖片正中央的那部分展現在縮圖裡。
+            \n\n大圖顯示不清晰是因為載入原圖需要消耗大量資源，Android 系統不允許一個程式消耗整個手機硬件的大部分資源，因此我只能壓縮原圖，盡可能不丟失太多的畫面細節。但這種壓縮算法是系統原生的，不像快圖瀏覽這樣的程式有自己獨特的算法，所以難以達到最優的效果。</item>
+
+        <item>因為雖然我成年了，卻沒有穩定的經濟來源(還是大學生)，無法辦理信用卡，不能注冊 Google 開發者帳號，所以不可以在 Play Store 發布程式，因此你無法在 Google Play 搜尋到完事兒。
+            \n\n實際上，我早就處理了程式的國際化問題：目前，完事兒能夠支持簡體中文、繁體中文以及英語三種語言，只要擁有了信用卡，相信可以很快發布到 Google Play。
+            \n\n不過，在幫助頁面我倒沒有處理國際化，因為內容實在太多了，翻譯不完啊……</item>
+
+        <item>我故意設置的彩蛋一共有三個，如果都找齊了，可以連絡我，我給你發獎品哦~
+            \n\n嗯，不過你是不可能找齊的哇哈哈哈哈哈哈哈。</item>
+
+    </string-array>
+
+
+    <!--App update information-->
+    <string name="title_important_alert">這是一個很重要的提醒</string>
+    <string name="content_important_reminder_permission">如果您正在使用一些系統優化類的程式(如 360 手機衛士)，或者您的手機自帶了這樣的程式(如華為的節電助手)，請將完事兒加入它們的白名單中，以確保完事兒能夠正常地進行提醒。\n\n此外，請您在系統自帶的權限管理中授予完事兒請求的權限，它們是：\n(1) 開機自啟動，用於設定鬧鐘，如果您不授予完事兒該權限，當您重啟手機後，完事兒將無法繼續提醒您的日程、習慣或目標;\n(2) 讀寫儲存空間，用於插入附件、分享使用情況時儲存界面截圖等;\n(3) 錄音，用於錄制音頻文件作為記事附件;\n(4) 使手機振動，用於更好地通知您完成記事。\n完事兒絕對不會惡意地使用這些權限，請您放心！</string>
+
+    <string name="from_1_1_4_to_1_1_5_title">您現在可以使用復原 / 重做功能了</string>
+    <string name="from_1_1_4_to_1_1_5_content">點擊右上角的選單按鈕，即可看到復原 / 重做。借此，您可以讓記事自由地回到過去或者未來。</string>
 
 </resources>
