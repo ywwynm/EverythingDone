@@ -112,6 +112,31 @@ public class Reminder {
         this.updateTime = updateTime;
     }
 
+    public int getFinishType(long thingFinishTime, boolean isGoal) {
+        if (thingFinishTime == -1L || thingFinishTime == 0L) {
+            return -1; // unfinished yet
+        }
+        if (!isGoal) {
+            if (thingFinishTime < notifyTime) {
+                return 0;
+            } else if (thingFinishTime == notifyTime) {
+                return 1;
+            } else {
+                return 2;
+            }
+        } else {
+            int finishDays = DateTimeUtil.calculateTimeGap(updateTime, thingFinishTime, Calendar.DATE);
+            int goalDays   = DateTimeUtil.calculateTimeGap(updateTime, notifyTime, Calendar.DATE);
+            if (finishDays < goalDays) {
+                return 0;
+            } else if (finishDays == goalDays) {
+                return 1;
+            } else {
+                return 2;
+            }
+        }
+    }
+
     public String getCelebrationText(Context context) {
         String part1 = context.getString(R.string.celebration_goal_part_1);
         String day = context.getString(R.string.days);
