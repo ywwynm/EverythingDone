@@ -182,12 +182,8 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
 
     private void updateCardForReminder(BaseThingViewHolder holder, Thing thing) {
         int thingType = thing.getType();
-        int thingState = thing.getState();
         Reminder reminder = mReminderDAO.getReminderById(thing.getId());
         if (reminder != null) {
-            int state = reminder.getState();
-            long notifyTime = reminder.getNotifyTime();
-
             int p = (int) (mScreenDensity * 16);
             holder.rlReminder.setVisibility(View.VISIBLE);
             holder.rlReminder.setPadding(p, p, p, 0);
@@ -200,14 +196,8 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
                 holder.ivReminder.setContentDescription(mContext.getString(R.string.reminder));
                 holder.tvReminderTime.setTextSize(12);
 
-                String timeStr = DateTimeUtil.getDateTimeStrAt(notifyTime, mContext, false);
-                if (timeStr.startsWith("on ")) {
-                    timeStr = timeStr.substring(3, timeStr.length());
-                }
-                holder.tvReminderTime.setText(timeStr);
-                if (thingState != Thing.UNDERWAY || state != Reminder.UNDERWAY) {
-                    holder.tvReminderTime.append(", " + Reminder.getStateDescription(thingState, state, mContext));
-                }
+                holder.tvReminderTime.setText(
+                        DateTimeUtil.getDateTimeStrReminder(mContext, thing, reminder));
             } else {
                 params.setMargins(0, (int) (mScreenDensity * 1.6), 0, 0);
                 holder.ivReminder.setImageResource(R.drawable.card_goal);
@@ -216,12 +206,6 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
 
                 holder.tvReminderTime.setText(
                         DateTimeUtil.getDateTimeStrGoal(mContext, thing, reminder));
-
-//                if (thingState == Reminder.UNDERWAY && state == Reminder.UNDERWAY) {
-//                    holder.tvReminderTime.setText(DateTimeUtil.getDateTimeStrGoal(notifyTime, mContext));
-//                } else {
-//                    holder.tvReminderTime.setText(Reminder.getStateDescription(thingState, state, mContext));
-//                }
             }
         } else {
             holder.rlReminder.setVisibility(View.GONE);

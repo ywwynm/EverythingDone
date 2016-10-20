@@ -42,7 +42,7 @@ public class SendInfoHelper {
 
     private SendInfoHelper() {}
 
-    public static final String EXTRA_WX_SHARE = "Kdescription";
+    private static final String EXTRA_WX_SHARE_EXPLORE_CONTENT = "Kdescription";
 
     public static void shareApp(Context context) {
         String title = context.getString(R.string.act_share_everythingdone);
@@ -167,12 +167,20 @@ public class SendInfoHelper {
         }
 
         long id = thing.getId();
-        int state = thing.getState();
-        int type = thing.getType();
-        if (Thing.isReminderType(type)) {
-            sb.append(getReminderShareInfo(context, id, state, type == Thing.GOAL)).append("\n\n");
+        @Thing.Type  int type  = thing.getType();
+        @Thing.State int state = thing.getState();
+        if (type == Thing.REMINDER) {
+            sb.append(getReminderShareInfo(context, id, state)).append("\n\n");
         } else if (type == Thing.HABIT) {
             sb.append(getHabitShareInfo(context, id, state)).append("\n\n");
+        } else if (type == Thing.GOAL) {
+            if (state != Thing.FINISHED) {
+                Reminder goal = ReminderDAO.getInstance(context).getReminderById(id);
+                if (goal != null) {
+                    String goalInfoStr = DateTimeUtil.getDateTimeStrGoal(context, thing, goal);
+                    sb.append(capFirst(goalInfoStr)).append("\n\n");
+                }
+            }
         }
 
         if (state == Thing.FINISHED && type != Thing.HABIT) {
@@ -183,7 +191,16 @@ public class SendInfoHelper {
         return sb.toString();
     }
 
-    private static String getReminderShareInfo(Context context, long id, int thingState, boolean isGoal) {
+    private static String capFirst(String s) {
+        char f = s.charAt(0);
+        if (f >= 'a' && f <= 'z') {
+            f += ('A' - 'a');
+        }
+        s = f + s.substring(1, s.length());
+        return s;
+    }
+
+    private static String getReminderShareInfo(Context context, long id, int thingState) {
         Reminder reminder = ReminderDAO.getInstance(context).getReminderById(id);
         if (reminder == null) {
             return "";
@@ -214,13 +231,8 @@ public class SendInfoHelper {
             if (thingState == Thing.UNDERWAY) {
                 sb.append(context.getString(R.string.will_remind));
                 if (!isChinese) sb.append(" ");
-                if (isGoal) {
-                    sb.append(DateTimeUtil.getDateTimeStrAfterDays(reminder.getNotifyTime(), context));
-                    //sb.append(DateTimeUtil.getDateTimeStrGoal(reminder.getNotifyTime(), context));
-                } else {
-                    sb.append(DateTimeUtil.getDateTimeStrAt(
-                            reminder.getNotifyTime(), context, true));
-                }
+                sb.append(DateTimeUtil.getDateTimeStrAt(
+                        reminder.getNotifyTime(), context, true));
             } else if (thingState == Thing.FINISHED) {
                 String notNeeded = context.getString(R.string.reminder_needless);
                 if (isChinese) {
@@ -243,7 +255,7 @@ public class SendInfoHelper {
         StringBuilder sb = new StringBuilder();
 
         sb.append(habit.getSummary(context)).append(", ")
-                .append(context.getString(R.string.i_persist_in_for)).append(" ")
+                .append(context.getString(R.string.share_i_persist_in_for)).append(" ")
                 .append(piT < 0 ? 0 : piT).append(" ")
                 .append(DateTimeUtil.getTimeTypeStr(type, context));
         if (!isChinese && piT > 1) {
@@ -258,7 +270,7 @@ public class SendInfoHelper {
         sb.append(" ").append(LocaleUtil.getTimesStr(context, finishedTimes));
 
         if (thingState == Thing.FINISHED) {
-            sb.append(", ").append(context.getString(R.string.habit_developed));
+            sb.append(", ").append(context.getString(R.string.share_habit_developed));
         }
 
         return sb.toString();
@@ -273,13 +285,19 @@ public class SendInfoHelper {
             Reminder goal = ReminderDAO.getInstance(context).getReminderById(thing.getId());
             int gap = DateTimeUtil.calculateTimeGap(
                     goal.getUpdateTime(), thing.getFinishTime(), Calendar.DATE);
-            sb.append(context.getString(R.string.i_work_hard_for)).append(" ")
-                    .append(gap).append(" ").append(context.getString(days));
+            String gapStr;
+            if (gap == 0) {
+                gapStr = "<1";
+            } else {
+                gapStr = String.valueOf(gap);
+            }
+            sb.append(context.getString(R.string.share_i_work_hard_for)).append(" ")
+                    .append(gapStr).append(" ").append(context.getString(days));
             if (!isChinese && gap > 1) {
                 sb.append("s");
             }
 
-            String achieve = context.getString(R.string.finished_goal);
+            String achieve = context.getString(R.string.share_goal_finished);
             if (isChinese) {
                 sb.append(", ").append(achieve);
             } else {
@@ -309,7 +327,7 @@ public class SendInfoHelper {
             intent.setAction(Intent.ACTION_SEND_MULTIPLE);
             if (allImage) {
                 intent.setType("image/*");
-                intent.putExtra(EXTRA_WX_SHARE, content);
+                intent.putExtra(EXTRA_WX_SHARE_EXPLORE_CONTENT, content);
             } else {
                 intent.setType("*/*");
             }

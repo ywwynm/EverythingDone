@@ -715,8 +715,9 @@ public class AppWidgetHelper {
     }
 
     private static void setState(Context context, RemoteViews remoteViews, Thing thing) {
+        @Thing.Type  int type  = thing.getType();
         @Thing.State int state = thing.getState();
-        if (thing.isPrivate() || state == Thing.UNDERWAY) {
+        if (thing.isPrivate() || state == Thing.UNDERWAY || type == Thing.GOAL) {
             remoteViews.setViewVisibility(RL_THING_STATE, View.GONE);
             return;
         }
@@ -780,16 +781,12 @@ public class AppWidgetHelper {
     }
 
     private static void setReminder(Context context, RemoteViews remoteViews, Thing thing) {
-        int thingType = thing.getType();
-        int thingState = thing.getState();
+        @Thing.Type int thingType = thing.getType();
         Reminder reminder = ReminderDAO.getInstance(context).getReminderById(thing.getId());
         if (reminder == null || thing.isPrivate()) {
             remoteViews.setViewVisibility(RL_REMINDER, View.GONE);
             return;
         }
-
-        int state = reminder.getState();
-        long notifyTime = reminder.getNotifyTime();
 
         remoteViews.setViewVisibility(RL_REMINDER, View.VISIBLE);
         remoteViews.setViewPadding(RL_REMINDER, dp12, dp12, dp12, 0);
@@ -800,15 +797,8 @@ public class AppWidgetHelper {
             remoteViews.setContentDescription(IV_REMINDER, context.getString(R.string.reminder));
             remoteViews.setTextViewTextSize(TV_REMINDER_TIME, TypedValue.COMPLEX_UNIT_SP, 12);
 
-            String timeStr = DateTimeUtil.getDateTimeStrAt(notifyTime, context, false);
-            if (timeStr.startsWith("on ")) {
-                timeStr = timeStr.substring(3, timeStr.length());
-            }
-            String textToSet = timeStr;
-            if (thingState != Thing.UNDERWAY || state != Reminder.UNDERWAY) {
-                textToSet += ", " + Reminder.getStateDescription(thingState, state, context);
-            }
-            remoteViews.setTextViewText(TV_REMINDER_TIME, textToSet);
+            remoteViews.setTextViewText(TV_REMINDER_TIME,
+                    DateTimeUtil.getDateTimeStrReminder(context, thing, reminder));
         } else {
             remoteViews.setViewPadding(IV_REMINDER, 0, (int) (screenDensity * 1.6), 0, 0);
             remoteViews.setImageViewResource(IV_REMINDER, R.drawable.card_goal);
@@ -817,13 +807,6 @@ public class AppWidgetHelper {
 
             remoteViews.setTextViewText(TV_REMINDER_TIME,
                     DateTimeUtil.getDateTimeStrGoal(context, thing, reminder));
-//            if (thingState == Reminder.UNDERWAY && state == Reminder.UNDERWAY) {
-//                remoteViews.setTextViewText(TV_REMINDER_TIME,
-//                        DateTimeUtil.getDateTimeStrGoal(notifyTime, context));
-//            } else {
-//                remoteViews.setTextViewText(TV_REMINDER_TIME,
-//                        Reminder.getStateDescription(thingState, state, context));
-//            }
         }
 
         remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);

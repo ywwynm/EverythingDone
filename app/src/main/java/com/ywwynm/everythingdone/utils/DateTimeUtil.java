@@ -122,6 +122,21 @@ public class DateTimeUtil {
         return getDateTimeStrAfter(Calendar.DATE, days, context);
     }
 
+    public static String getDateTimeStrReminder(Context context, Thing thing, Reminder reminder) {
+        @Thing.State int thingState = thing.getState();
+        int state = reminder.getState();
+        long notifyTime = reminder.getNotifyTime();
+        String timeStr = getDateTimeStrAt(notifyTime, context, false);
+        if (timeStr.startsWith("on ")) {
+            timeStr = timeStr.substring(3, timeStr.length());
+        }
+        String ret = timeStr;
+        if (thingState != Thing.UNDERWAY || state != Reminder.UNDERWAY) {
+            ret += ", " + Reminder.getStateDescription(thingState, state, context);
+        }
+        return ret;
+    }
+
     /**
      * Returned strings are as followings:
      *
@@ -144,10 +159,10 @@ public class DateTimeUtil {
         long notifyTime = goal.getNotifyTime();
         if (thingState == Thing.UNDERWAY) {
             long curTime = System.currentTimeMillis();
-            int days = calculateTimeGap(curTime, notifyTime, Calendar.DATE);
+            int days = Math.abs(calculateTimeGap(curTime, notifyTime, Calendar.DATE));
             if (days == 0) { // the alarm will ring today
                 if (curTime <= notifyTime) {
-                    // should be finished before 16:00, 应于16:00前完成
+                    // 应于16:00前完成, should be finished before 16:00,
                     String shouldBefore = context.getString(R.string.goal_should_finish_before);
                     return String.format(shouldBefore, new DateTime(notifyTime).toString("H:mm"));
                 } else {
@@ -159,8 +174,7 @@ public class DateTimeUtil {
                     }
                 }
             } else if (curTime < notifyTime) { // days >= 1
-                // should be finished in 60 days
-                // 应于60天内完成
+                // 应于60天内完成, should be finished in 60 days
                 String shouldFinishIn = context.getString(R.string.goal_should_finish_in);
                 shouldFinishIn = String.format(shouldFinishIn, days);
                 if (days == 1 && !isChinese) {
@@ -168,8 +182,7 @@ public class DateTimeUtil {
                 }
                 return shouldFinishIn;
             } else { // later than deadline while the thing isn't finished
-                // 16 days overdue
-                // 已逾期16天
+                // 已逾期16天, 16 days overdue
                 String overdue = context.getString(R.string.goal_overdue);
                 overdue = String.format(overdue, days);
                 if (days == 1 && !isChinese) {
@@ -184,18 +197,17 @@ public class DateTimeUtil {
             int goalDays = calculateTimeGap(createTime, notifyTime, Calendar.DATE);
             String finishedIn = context.getString(R.string.goal_finished_normal);
             if (finishDays < goalDays) {
+                // 已用6天提前完成, cost 6 days to finish in advance
                 finishedIn = context.getString(R.string.goal_finished_in_advance);
             } else if (finishDays > goalDays) {
+                // 已用960天逾期完成, cost 960 days to finish, overdue
                 finishedIn = context.getString(R.string.goal_finished_overdue);
-            }
+            } // else 已用36天完成, cost 36 days to finish
             String daysStr;
             if (finishDays == 0) {
-                // finished in <1 day
-                // 已用<1天完成
+                // 已用<1天提前完成, cost <1 day to finish in advance
                 daysStr = "<1";
             } else {
-                // finished in 16 days
-                // 已用16天完成
                 daysStr = String.valueOf(finishDays);
             }
             finishedIn = String.format(finishedIn, daysStr);
