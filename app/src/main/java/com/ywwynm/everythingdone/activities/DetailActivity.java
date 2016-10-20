@@ -802,11 +802,9 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             tvFinishTime.setText(String.format(
                     actionStr, DateTimeUtil.getDateTimeStrAt(mThing.getFinishTime(), mApp, true)));
         } else {
-            tvFinishTime.setText(R.string.finish_at_normal);
-            if (!isChinese) {
-                tvFinishTime.append(" ");
-            }
-            tvFinishTime.append(DateTimeUtil.getDateTimeStrAt(mThing.getFinishTime(), mApp, true));
+            tvFinishTime.setText(String.format(
+                    getString(R.string.finish_at_normal),
+                    DateTimeUtil.getDateTimeStrAt(mThing.getFinishTime(), mApp, true)));
         }
     }
 

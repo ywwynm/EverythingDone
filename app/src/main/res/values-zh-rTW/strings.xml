@@ -397,11 +397,11 @@
     <string name="update_at">更新於</string>
     <string name="remind_me">提醒我於</string>
 
-    <string name="finish_at_normal">完成於</string>
+    <string name="finish_at_normal">完成於%1$s</string>
     <string name="finish_at_in_advance">提前完成於%1$s</string>
     <string name="finish_at_overdue">逾期完成於%1$s</string>
     <string name="finish_at_habit">習慣養成於</string>
-    <string name="finish_at_goal_normal">目標達成於</string>
+    <string name="finish_at_goal_normal">目標達成於%1$s</string>
     <string name="finish_at_goal_in_advance">目標提前達成於%1$s</string>
     <string name="finish_at_goal_overdue">目標逾期達成於%1$s</string>
 
