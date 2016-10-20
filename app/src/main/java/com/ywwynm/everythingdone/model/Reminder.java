@@ -118,13 +118,18 @@ public class Reminder {
         String part2 = context.getString(R.string.celebration_goal_part_2);
         String part3 = context.getString(R.string.celebration_goal_part_3);
         int gap = DateTimeUtil.calculateTimeGap(updateTime, System.currentTimeMillis(), Calendar.DATE);
-        gap++;
+        String gapStr;
+        if (gap == 0) {
+            gapStr = "<1";
+        } else {
+            gapStr = String.valueOf(gap);
+        }
 
         boolean isChinese = LocaleUtil.isChinese(context);
         if (gap > 1 && !isChinese) {
             day += "s";
         }
-        return part1 + " " + gap + " " + day + (isChinese ? "" : " ") + part2 + "\n" + part3;
+        return part1 + " " + gapStr + " " + day + (isChinese ? "" : " ") + part2 + "\n" + part3;
     }
 
     public static boolean noUpdate(Reminder reminder, long notifyTime, int state) {
