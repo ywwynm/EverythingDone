@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <shortcut
+        android:shortcutId="create"
+        android:enabled="true"
+        android:icon="@drawable/shortcut_create"
+        android:shortcutShortLabel="@string/title_create_thing"
+        android:shortcutLongLabel="@string/title_create_thing">
+        <intent
+            android:action="com.ywwynm.everythingdone.action.shortcut.create"
+            android:targetPackage="com.ywwynm.everythingdone"
+            android:targetClass="com.ywwynm.everythingdone.activities.DetailActivity" />
+    </shortcut>
+
+</shortcuts>

@@ -368,6 +368,9 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         if (Intent.ACTION_SEND.equals(action) || Intent.ACTION_SEND_MULTIPLE.equals(action)) {
             mSenderName = "intent";
             mType = CREATE;
+        }  else if (Def.Communication.SHORTCUT_ACTION_CREATE.equals(action)) {
+            mSenderName = "shortcut";
+            mType = CREATE;
         } else {
             mSenderName = intent.getStringExtra(Def.Communication.KEY_SENDER_NAME);
             mType = intent.getIntExtra(Def.Communication.KEY_DETAIL_ACTIVITY_TYPE, UPDATE);
@@ -2516,6 +2519,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             || mSenderName.equals(HabitReceiver.TAG)
             || mSenderName.equals(AutoNotifyReceiver.TAG)
             || mSenderName.equals("intent")
+            || mSenderName.equals("shortcut")
             || mSenderName.equals(App.class.getName())
             || mSenderName.equals(CreateWidget.TAG)
             || mSenderName.equals(AppWidgetHelper.TAG);
