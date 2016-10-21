@@ -31,7 +31,7 @@ public final class Def {
 
         public static final String FEEDBACK_EMAIL = "everythingdonefeedback@gmail.com";
 
-        public static final String ROBOTO_MONO = "roboto-mono.ttf";
+        public static final String ROBOTO_MONO = "roboto-mono-min.ttf";
 
         public static final String KEY_START_USING_TIME     = "start_using_time";
         public static final String KEY_DRAWER_HEADER        = "drawer_header";
