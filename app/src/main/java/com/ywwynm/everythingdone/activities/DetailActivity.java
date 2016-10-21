@@ -786,21 +786,6 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             }
             tvFinishTime.setText(String.format(
                     actionStr, DateTimeUtil.getDateTimeStrAt(mThing.getFinishTime(), mApp, true)));
-        } else if (thingType == Thing.REMINDER) {
-            String actionStr;
-            int finishType = 1;
-            if (mReminder != null) {
-                finishType = mReminder.getFinishType(mThing.getFinishTime(), false);
-            }
-            if (finishType == 0) {
-                actionStr = getString(R.string.finish_at_in_advance);
-            } else if (finishType == 1) {
-                actionStr = getString(R.string.finish_at_normal);
-            } else { // finishType == 2
-                actionStr = getString(R.string.finish_at_overdue);
-            }
-            tvFinishTime.setText(String.format(
-                    actionStr, DateTimeUtil.getDateTimeStrAt(mThing.getFinishTime(), mApp, true)));
         } else {
             tvFinishTime.setText(String.format(
                     getString(R.string.finish_at_normal),

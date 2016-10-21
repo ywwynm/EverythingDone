@@ -401,8 +401,6 @@
     <string name="create_at">Created</string>
     <string name="update_at">Updated</string>
     <string name="finish_at_normal">Finished %1$s</string>
-    <string name="finish_at_in_advance">Finished in advance %1$s</string>
-    <string name="finish_at_overdue">Finished %1$s, overdue</string>
     <string name="finish_at_habit">Habit developed</string>
     <string name="finish_at_goal_normal">Goal achieved %1$s</string>
     <string name="finish_at_goal_in_advance">Goal achieved in advance %1$s</string>
