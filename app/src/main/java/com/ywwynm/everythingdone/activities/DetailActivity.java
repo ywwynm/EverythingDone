@@ -945,6 +945,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
     private @Thing.Type int getThingTypeAfter() {
         if (mHabitFinishedThisTime) return Thing.HABIT;
+        if (mThing.getState() != Thing.UNDERWAY) return mThing.getType();
         long time = rhParams.getReminderTime();
         if (cbQuickRemind.isChecked()) {
             if (mReminder != null && mReminder.getNotifyTime() == time) {
