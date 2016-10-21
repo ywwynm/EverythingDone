@@ -394,7 +394,7 @@
     <string name="hint_new_item">新增项目</string>
 
     <string name="create_at">创建于</string>
-    <string name="update_at">更新于</string>
+    <string name="update_at">最后更新于</string>
     <string name="remind_me">提醒我于</string>
 
     <string name="finish_at_normal">完成于%1$s</string>

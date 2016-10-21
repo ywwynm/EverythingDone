@@ -399,7 +399,7 @@
     <string name="hint_new_item">new item</string>
 
     <string name="create_at">Created</string>
-    <string name="update_at">Updated</string>
+    <string name="update_at">Lastly updated</string>
     <string name="finish_at_normal">Finished %1$s</string>
     <string name="finish_at_habit">Habit developed</string>
     <string name="finish_at_goal_normal">Goal achieved %1$s</string>
