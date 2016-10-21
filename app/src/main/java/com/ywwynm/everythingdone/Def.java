@@ -240,6 +240,8 @@ public final class Def {
 
         public static final String SHORTCUT_ACTION_CREATE =
                 PREFIX + "action.shortcut.create";
+        public static final String SHORTCUT_ACTION_CHECK_UPCOMING =
+                PREFIX + "action.shortcut.check_upcoming";
 
     }
 

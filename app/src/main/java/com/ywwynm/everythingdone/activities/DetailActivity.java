@@ -368,9 +368,12 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         if (Intent.ACTION_SEND.equals(action) || Intent.ACTION_SEND_MULTIPLE.equals(action)) {
             mSenderName = "intent";
             mType = CREATE;
-        }  else if (Def.Communication.SHORTCUT_ACTION_CREATE.equals(action)) {
+        } else if (Def.Communication.SHORTCUT_ACTION_CREATE.equals(action)) {
             mSenderName = "shortcut";
             mType = CREATE;
+        } else if (Def.Communication.SHORTCUT_ACTION_CHECK_UPCOMING.equals(action)) {
+            mSenderName = "shortcut";
+            mType = UPDATE;
         } else {
             mSenderName = intent.getStringExtra(Def.Communication.KEY_SENDER_NAME);
             mType = intent.getIntExtra(Def.Communication.KEY_DETAIL_ACTIVITY_TYPE, UPDATE);
@@ -397,24 +400,21 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 setupThingFromIntent();
             }
         } else {
-            App.getRunningDetailActivities().add(id);
-            if (mPosition == -1) {
-                updateThingAndItsPosition(id);
+            if (mSenderName.equals("shortcut")) {
+                setupThingFromShortcut(action);
+                App.getRunningDetailActivities().add(mThing.getId());
             } else {
-                List<Thing> things = thingManager.getThings();
-                if (mPosition >= things.size()) {
-                    updateThingAndItsPosition(id);
-                } else {
-                    mThing = thingManager.getThings().get(mPosition);
-                    if (mThing.getId() != id) { // something was updated specially.
-                        updateThingAndItsPosition(id);
-                    }
-                }
+                App.getRunningDetailActivities().add(id);
+                Pair<Thing, Integer> pair = App.getThingAndPosition(mApp, id, mPosition);
+                mThing = pair.first;
+                mPosition = pair.second;
             }
+
             if (mThing == null) {
                 finish();
                 return;
             }
+            id = mThing.getId();
             mReminder = ReminderDAO.getInstance(mApp).getReminderById(id);
             if (mThing.getType() == Thing.HABIT) {
                 mHabit = HabitDAO.getInstance(mApp).getHabitById(id);
@@ -491,6 +491,22 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         }
     }
 
+    private void setupThingFromShortcut(String intentAction) {
+        if (Def.Communication.SHORTCUT_ACTION_CHECK_UPCOMING.equals(intentAction)) {
+            List<Thing> things = ThingDAO.getInstance(mApp)
+                    .getThingsForDisplay(Def.LimitForGettingThings.ALL_UNDERWAY);
+            Collections.sort(things,
+                    ThingManager.getInstance(mApp).getThingComparatorForAlarmTime(true));
+            Thing thing = things.get(1); // 0 is header
+            @Thing.Type int thingType = thing.getType();
+            if (Thing.isReminderType(thingType) || thingType == Thing.HABIT) {
+                updateThingAndItsPosition(thing.getId());
+            } else {
+                mThing = null; // this will make Activity finish
+            }
+        }
+    }
+
     private void updateThingAndItsPosition(long oriId) {
         ThingManager manager = ThingManager.getInstance(mApp);
         if (mType == CREATE) {
@@ -502,21 +518,9 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             return;
         }
 
-        List<Thing> things = manager.getThings();
-        final int size = things.size();
-        int i;
-        for (i = 0; i < size; i++) {
-            Thing temp = things.get(i);
-            if (temp.getId() == oriId) {
-                mThing = temp;
-                mPosition = i;
-                break;
-            }
-        }
-        if (i == size) {
-            mThing = ThingDAO.getInstance(mApp).getThingById(oriId);
-            mPosition = -1;
-        }
+        Pair<Thing, Integer> pair = App.getThingAndPosition(mApp, oriId, -1);
+        mThing = pair.first;
+        mPosition = pair.second;
     }
 
     @Override

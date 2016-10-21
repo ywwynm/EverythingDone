@@ -87,10 +87,18 @@
     <string name="from_everything_done">from Android app EverythingDone</string>
 
 
+
+
+
+
     <!--——————————————————————Task descriptions——————————————————————-->
     <string name="everythingdone">EverythingDone</string>
-    <string name="title_create_thing">Create new thing</string> <!--also used in appwidget-->
+    <string name="title_create_thing">Create new thing</string> <!--also used in appwidget and shortcut-->
     <string name="title_edit_thing">Edit</string>
+
+
+
+
 
 
     <!--——————————————————————Activity titles————————————————————————-->
@@ -102,6 +110,10 @@
     <string name="title_activity_thing_widget_configure">Select single thing</string>
     <string name="title_activity_things_list_widget_configuration">Select underway things</string>
     <string name="title_widget_things_list">Underway things</string>
+
+
+
+
 
 
     <!--——————————————————————Drawer items———————————————————————————-->
@@ -118,6 +130,10 @@
     <string name="settings">Settings</string>
     <string name="help">Help</string>
     <string name="about">About</string>
+
+
+
+
 
 
     <!--——————————————————————Strings for Thing——————————————————————-->
@@ -197,12 +213,20 @@
     <string name="will_remind">Will be reminded</string>
 
 
+
+
+
+
     <!--——————————————————————Drawer headers——————————————————————-->
     <string name="completion_rate_all">All\'s completion rate</string>
     <string name="completion_rate_reminder">Reminder\'s completion rate</string>
     <string name="completion_rate_note">Note\'s completion rate</string>
     <string name="completion_rate_habit">Habit\'s completion rate</string>
     <string name="completion_rate_goal">Goal\'s completion rate</string>
+
+
+
+
 
 
     <!--——————————————————————General actions——————————————————————-->
@@ -212,6 +236,10 @@
     <!--In dialogs-->
     <string name="confirm">CONFIRM</string>
     <string name="cancel" tools:ignore="ButtonCase">CANCEL</string>
+
+
+
+
 
 
     <!--——————————————————————Actions in menu, fab and notification——————————————————————-->
@@ -272,6 +300,11 @@
     <!--DelayReminderActivity-->
     <string name="delay_reminder">Delay Reminder</string>
 
+
+
+
+
+
     <!--——————————————————————Actions not in menu, fab or notification——————————————————————-->
     <!--DetailActivity attachment-->
     <string name="act_take_photo">Take photo</string>
@@ -311,6 +344,14 @@
     <string name="act_sb_undo_finish">NOT YET</string>
     <string name="act_sb_undo_underway">FINISHED</string>
 
+    <!--Shortcut-->
+    <string name="act_shortcut_check_upcoming">Upcoming thing</string>
+    <string name="act_shortcut_check_sticky">Top sticky thing</string>
+
+
+
+
+
 
     <!--——————————————————————General alerts, toasts and errors——————————————————————-->
     <string name="success_clipboard">Copied to clipboard successfully</string>
@@ -321,6 +362,10 @@
     <string name="generating_screenshot">Taking screenshot...</string>
 
     <string name="error_activity_not_found">Application not found to continue operation</string>
+
+
+
+
 
 
     <!--——————————————————————Other texts appearing at UI——————————————————————-->
@@ -647,6 +692,12 @@
     <string name="export_failed_content">Please try again later</string>
 
 
+
+
+
+
+
+
     <!--——————————————————————Content descriptions——————————————————————-->
     <!--ThingsActivity-->
     <string name="cd_open_drawer">Open Navigation Drawer</string>
@@ -730,6 +781,10 @@
 
     <!--ThingsListWidget-->
     <string name="cd_things_list_widget_setting">settings for things list app widget</string>
+
+
+
+
 
 
     <!--——————————————————————HelpActivity——————————————————————-->
@@ -838,6 +893,10 @@
             \n\n嗯，不过你是不可能找齐的哇哈哈哈哈哈哈哈。</item>
 
     </string-array>
+
+
+
+
 
 
     <!--App update information-->

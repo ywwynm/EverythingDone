@@ -2,13 +2,25 @@
 <shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
 
     <shortcut
-        android:shortcutId="create"
+        android:shortcutId="create new thing"
         android:enabled="true"
         android:icon="@drawable/shortcut_create"
         android:shortcutShortLabel="@string/title_create_thing"
         android:shortcutLongLabel="@string/title_create_thing">
         <intent
             android:action="com.ywwynm.everythingdone.action.shortcut.create"
+            android:targetPackage="com.ywwynm.everythingdone"
+            android:targetClass="com.ywwynm.everythingdone.activities.DetailActivity" />
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="most urgent thing"
+        android:enabled="true"
+        android:icon="@drawable/shortcut_create"
+        android:shortcutShortLabel="@string/act_shortcut_check_upcoming"
+        android:shortcutLongLabel="@string/act_shortcut_check_upcoming">
+        <intent
+            android:action="com.ywwynm.everythingdone.action.shortcut.check_upcoming"
             android:targetPackage="com.ywwynm.everythingdone"
             android:targetClass="com.ywwynm.everythingdone.activities.DetailActivity" />
     </shortcut>

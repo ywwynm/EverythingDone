@@ -130,6 +130,7 @@
 
 
 
+
     <!--——————————————————————Strings for Thing——————————————————————-->
     <string name="private_thing">私密记事</string>
 
@@ -298,6 +299,7 @@
 
 
 
+
     <!--——————————————————————Actions not in menu, fab or notification——————————————————————-->
     <!--DetailActivity attachment-->
     <string name="act_take_photo">拍照</string>
@@ -336,6 +338,10 @@
     <string name="act_sb_undo">撤销</string>
     <string name="act_sb_undo_finish">并未完成</string>
     <string name="act_sb_undo_underway">已完成</string>
+
+    <!--Shortcut-->
+    <string name="act_shortcut_check_upcoming">即将提醒的记事</string>
+    <string name="act_shortcut_check_sticky">置顶的记事</string>
 
 
 
@@ -767,6 +773,9 @@
 
 
 
+
+
+
     <!--——————————————————————HelpActivity——————————————————————-->
     <string name="help_detail">帮助详情</string>
 
@@ -873,6 +882,10 @@
             \n\n嗯，不过你是不可能找齐的哇哈哈哈哈哈哈哈。</item>
 
     </string-array>
+
+
+
+
 
 
     <!--App update information-->
