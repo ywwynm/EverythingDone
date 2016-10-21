@@ -17,6 +17,7 @@ import com.ywwynm.everythingdone.managers.ThingManager;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.Thing;
+import com.ywwynm.everythingdone.utils.DateTimeUtil;
 
 /**
  * Created by ywwynm on 2016/9/4.
@@ -75,7 +76,7 @@ public class RemoteActionHelper {
         }
     }
 
-    public static void delay10Minutes(Context context, Thing thing, int position) {
+    public static void delay(Context context, Thing thing, int position, int type, int time) {
         ReminderDAO dao = ReminderDAO.getInstance(context);
         Reminder reminder = dao.getReminderById(thing.getId());
         int typeBefore = thing.getType();
@@ -84,14 +85,19 @@ public class RemoteActionHelper {
             return;
         }
 
+        thing.setUpdateTime(System.currentTimeMillis());
         if (position == -1) {
             ThingDAO.getInstance(context).update(typeBefore, thing, false, false);
         } else {
             ThingManager.getInstance(context).update(typeBefore, thing, position, false);
         }
-        reminder.setNotifyTime(System.currentTimeMillis() + 10 * 60 * 1000);
-        reminder.setNotifyMillis(System.currentTimeMillis() - reminder.getNotifyTime()
-                + reminder.getNotifyMillis() + 10 * 60 * 1000);
+        long addMillis = DateTimeUtil.getActualTimeAfterSomeTime(type, time)
+                - System.currentTimeMillis();
+        long oldNotifyTime   = reminder.getNotifyTime();
+        long oldNotifyMillis = reminder.getNotifyMillis();
+        reminder.setNotifyTime(System.currentTimeMillis() + addMillis);
+        reminder.setNotifyMillis(
+                System.currentTimeMillis() - oldNotifyTime + oldNotifyMillis + addMillis);
         reminder.setState(Reminder.UNDERWAY);
         reminder.setUpdateTime(System.currentTimeMillis());
         dao.update(reminder);

@@ -289,7 +289,10 @@
     <string name="act_share_everythingdone">分享完事儿</string>
 
     <!--Reminder Receiver-->
-    <string name="act_delay_10_minutes">延迟10分钟</string>
+    <string name="act_delay">延迟</string>
+
+    <!--DelayReminderActivity-->
+    <string name="delay_reminder">延迟提醒</string>
 
 
 

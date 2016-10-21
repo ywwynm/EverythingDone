@@ -86,8 +86,8 @@ public class ReminderReceiver extends BroadcastReceiver {
                     delayIntent.setAction(Def.Communication.NOTIFICATION_ACTION_DELAY);
                     delayIntent.putExtra(Def.Communication.KEY_ID, id);
                     delayIntent.putExtra(Def.Communication.KEY_POSITION, position);
-                    builder.addAction(R.drawable.act_delay_10_minutes,
-                            context.getString(R.string.act_delay_10_minutes),
+                    builder.addAction(R.drawable.act_delay,
+                            context.getString(R.string.act_delay),
                             PendingIntent.getBroadcast(context,
                                     (int) id, delayIntent, PendingIntent.FLAG_UPDATE_CURRENT));
                 }

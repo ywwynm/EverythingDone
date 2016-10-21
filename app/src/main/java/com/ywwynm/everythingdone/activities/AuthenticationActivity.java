@@ -90,8 +90,10 @@ public class AuthenticationActivity extends AppCompatActivity {
         if (Def.Communication.AUTHENTICATE_ACTION_FINISH.equals(action)) {
             actFinish(thing, position);
         } else if (Def.Communication.AUTHENTICATE_ACTION_DELAY.equals(action)) {
-            RemoteActionHelper.delay10Minutes(this, thing, position);
-        } else { // action view and others
+            Intent intent = DelayReminderActivity.getOpenIntent(
+                    this, thing.getId(), position, thing.getColor());
+            startActivity(intent);
+        } else {
             actView();
         }
         finish();

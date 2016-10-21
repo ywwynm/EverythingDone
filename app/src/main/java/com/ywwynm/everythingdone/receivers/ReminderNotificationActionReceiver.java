@@ -11,6 +11,7 @@ import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.AuthenticationActivity;
+import com.ywwynm.everythingdone.activities.DelayReminderActivity;
 import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.helpers.RemoteActionHelper;
 import com.ywwynm.everythingdone.model.Thing;
@@ -69,16 +70,18 @@ public class ReminderNotificationActionReceiver extends BroadcastReceiver {
             }
 
         } else if (action.equals(Def.Communication.NOTIFICATION_ACTION_DELAY)) {
+            Intent actionIntent;
             if (thing.isPrivate()) {
-                Intent actionIntent = AuthenticationActivity.getOpenIntent(
+                actionIntent = AuthenticationActivity.getOpenIntent(
                         context, TAG, id, position,
                         Def.Communication.AUTHENTICATE_ACTION_DELAY,
-                        context.getString(R.string.act_delay_10_minutes));
-                actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                context.startActivity(actionIntent);
+                        context.getString(R.string.act_delay));
             } else {
-                RemoteActionHelper.delay10Minutes(context, thing, position);
+                actionIntent = DelayReminderActivity.getOpenIntent(
+                        context, thing.getId(), position, thing.getColor());
             }
+            actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startActivity(actionIntent);
         }
     }
 }

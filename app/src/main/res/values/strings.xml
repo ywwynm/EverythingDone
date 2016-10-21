@@ -87,18 +87,10 @@
     <string name="from_everything_done">from Android app EverythingDone</string>
 
 
-
-
-
-
     <!--——————————————————————Task descriptions——————————————————————-->
     <string name="everythingdone">EverythingDone</string>
     <string name="title_create_thing">Create new thing</string> <!--also used in appwidget-->
     <string name="title_edit_thing">Edit</string>
-
-
-
-
 
 
     <!--——————————————————————Activity titles————————————————————————-->
@@ -110,10 +102,6 @@
     <string name="title_activity_thing_widget_configure">Select single thing</string>
     <string name="title_activity_things_list_widget_configuration">Select underway things</string>
     <string name="title_widget_things_list">Underway things</string>
-
-
-
-
 
 
     <!--——————————————————————Drawer items———————————————————————————-->
@@ -130,9 +118,6 @@
     <string name="settings">Settings</string>
     <string name="help">Help</string>
     <string name="about">About</string>
-
-
-
 
 
     <!--——————————————————————Strings for Thing——————————————————————-->
@@ -212,20 +197,12 @@
     <string name="will_remind">Will be reminded</string>
 
 
-
-
-
-
     <!--——————————————————————Drawer headers——————————————————————-->
     <string name="completion_rate_all">All\'s completion rate</string>
     <string name="completion_rate_reminder">Reminder\'s completion rate</string>
     <string name="completion_rate_note">Note\'s completion rate</string>
     <string name="completion_rate_habit">Habit\'s completion rate</string>
     <string name="completion_rate_goal">Goal\'s completion rate</string>
-
-
-
-
 
 
     <!--——————————————————————General actions——————————————————————-->
@@ -235,10 +212,6 @@
     <!--In dialogs-->
     <string name="confirm">CONFIRM</string>
     <string name="cancel" tools:ignore="ButtonCase">CANCEL</string>
-
-
-
-
 
 
     <!--——————————————————————Actions in menu, fab and notification——————————————————————-->
@@ -294,11 +267,10 @@
     <string name="act_share_everythingdone">share EverythingDone</string>
 
     <!--Reminder Receiver-->
-    <string name="act_delay_10_minutes">10 minutes later</string>
+    <string name="act_delay">Delay</string>
 
-
-
-
+    <!--DelayReminderActivity-->
+    <string name="delay_reminder">Delay Reminder</string>
 
     <!--——————————————————————Actions not in menu, fab or notification——————————————————————-->
     <!--DetailActivity attachment-->
@@ -323,11 +295,11 @@
     <string name="act_send_email">Send Email</string>
     <string name="act_open_in_map">Visit</string>
     <string name="act_edit">Edit</string>
-    
+
     <!--DetailActivity share-->
     <string name="act_share_thing_text_image"><![CDATA[Text & Image]]></string>
     <string name="act_share_thing_screenshot">Screenshot</string>
-    
+
     <!--SettingsActivity-->
     <string name="act_choose_image_as_drawer_header">Choose image as drawer header</string>
 
@@ -340,10 +312,6 @@
     <string name="act_sb_undo_underway">FINISHED</string>
 
 
-
-
-
-
     <!--——————————————————————General alerts, toasts and errors——————————————————————-->
     <string name="success_clipboard">Copied to clipboard successfully</string>
 
@@ -353,10 +321,6 @@
     <string name="generating_screenshot">Taking screenshot...</string>
 
     <string name="error_activity_not_found">Application not found to continue operation</string>
-
-
-
-
 
 
     <!--——————————————————————Other texts appearing at UI——————————————————————-->
@@ -683,10 +647,6 @@
     <string name="export_failed_content">Please try again later</string>
 
 
-
-
-
-
     <!--——————————————————————Content descriptions——————————————————————-->
     <!--ThingsActivity-->
     <string name="cd_open_drawer">Open Navigation Drawer</string>
@@ -772,7 +732,6 @@
     <string name="cd_things_list_widget_setting">settings for things list app widget</string>
 
 
-
     <!--——————————————————————HelpActivity——————————————————————-->
     <string name="help_detail">Help Detail</string>
 
@@ -831,16 +790,16 @@
             \n\n我承诺：绝对不声明不相干的权限，绝对不会使用已申请的权限做不对的事情。</item>
 
         <!--<item>为什么会有这么一个问题呢？因为我想顺带科普下 Android 状态栏、导航栏变色的几种方式。身为一个 Android 开发者，还是希望做一些微小的工作的。-->
-            <!--\n\n大家都知道一个名词，叫做“沉浸式状态栏”，这似乎是小米先提出来的，但Google官方其实从来没有介绍过这个概念，文档中顶多也只有“透明状态栏”的说法。-->
-            <!--\n\n实际上，透明状态栏、导航栏都是在 Android 4.4 新增的，开发者可以在主题中设置一些标志位(translucent status/navigation，透明的状态栏/导航栏)来实现这个效果。-->
-            <!--\n\n在 Android 5.0 之后，Google 又为状态栏、导航栏添加了新的装饰。开发者可以在主题中设置另一些标志位来定义状态栏和导航栏的颜色。Google  推荐在 ActionBar 上使用值为 500 的颜色，而在状态栏使用同种色系、但值为 700 的颜色。-->
-            <!--\n\n透明状态栏、导航栏可以在 Android 4.4 以上使用，也就是说，为了让状态栏不是单调的黑色，在 Android 5.0 及以上版本，我们有两种方式。它们所实现的效果虽然接近，但实际上有很大的不同。-->
-            <!--\n\n透明状态栏、导航栏的实质正如其名：它可以让状态栏和导航栏透明化，应用的布局不再局限于状态栏之下、导航栏之上的这片区域，而是能够利用整个屏幕空间来显示，但顶部和底部都会加上一个黑色矩形作为状态栏、导航栏的背景：在原生 Android 4.4 上，这个黑色矩形是透明的，而且透明度带有一定的渐变，从屏幕中间向屏幕外逐渐变深（也就是逐渐不透明）；而在原生 Android 5.0 以上，这个黑色矩形的透明度各处都是 40%。-->
-            <!--\n\n相比之下，变色状态栏、导航栏实际上针对的就只是状态栏及导航栏，并不会影响应用的布局范围，即应用的主要界面仍然是在状态栏下方、导航栏上方这个区间显示。不过，Google 为了实现让侧滑抽屉能够全屏显示，又做了一些特殊处理，让某些布局能够在状态栏、导航栏内显示一部分，而开发者同样可以使用这种布局。-->
-            <!--\n\n另一个值得一提的地方是各种第三方 ROM 对透明、变色状态栏的适配。目前来看，无论是什么 Android 版本，这些第三方 ROM 一般都会让状态栏彻底透明化，也就是每一处透明度都为100%，没有渐变，也不是40%。但它们一般不会对变色状态栏做自己的处理，会保持与 Material Design 的一致性。-->
-            <!--\n\n在完事儿中，我只使用了透明状态栏这一种方式，因为我希望应用在 Android 4.4 上也能有一个比较漂亮的效果，而且在开发时，国内使用人数最多的 MIUI 也还是 Android 4.4。但我的主界面背景是偏白色的，而状态栏里的文字、图标也是白色的，因此在这些把状态栏透明度自动调整为 100% 的 ROM 里，用户就无法在主界面看清状态栏里的内容了。-->
-            <!--\n\nMIUI 提供了一种方法，可以让状态栏里的图标变成黑色，而 flyme 甚至可以根据界面颜色自动调整状态栏图标的颜色，因此我并没有担心应用在这两个 ROM 里的显示效果。但很显然，并不是所有的第三方 ROM 都考虑到了这个问题，提供了解决方案(EMUI、ZUI 就没有)，作为应用开发者确实也无能为力，只能向他们反馈这个问题。-->
-            <!--\n\n最后，在 Android 6.0 以上，开发者终于可以通过设置主题的一些标志，改变状态栏图标的颜色了（当然也只局限于黑白二色），不过这个效果无法和透明状态栏共存……所以，尽管完事儿的主界面很适合让状态栏图标暗色化，但为了向前的兼容性、全平台显示效果的最优化，也为了尽量不改变写好的代码的结构，我也暂时不打算将透明状态栏改为变色状态栏。</item>-->
+        <!--\n\n大家都知道一个名词，叫做“沉浸式状态栏”，这似乎是小米先提出来的，但Google官方其实从来没有介绍过这个概念，文档中顶多也只有“透明状态栏”的说法。-->
+        <!--\n\n实际上，透明状态栏、导航栏都是在 Android 4.4 新增的，开发者可以在主题中设置一些标志位(translucent status/navigation，透明的状态栏/导航栏)来实现这个效果。-->
+        <!--\n\n在 Android 5.0 之后，Google 又为状态栏、导航栏添加了新的装饰。开发者可以在主题中设置另一些标志位来定义状态栏和导航栏的颜色。Google  推荐在 ActionBar 上使用值为 500 的颜色，而在状态栏使用同种色系、但值为 700 的颜色。-->
+        <!--\n\n透明状态栏、导航栏可以在 Android 4.4 以上使用，也就是说，为了让状态栏不是单调的黑色，在 Android 5.0 及以上版本，我们有两种方式。它们所实现的效果虽然接近，但实际上有很大的不同。-->
+        <!--\n\n透明状态栏、导航栏的实质正如其名：它可以让状态栏和导航栏透明化，应用的布局不再局限于状态栏之下、导航栏之上的这片区域，而是能够利用整个屏幕空间来显示，但顶部和底部都会加上一个黑色矩形作为状态栏、导航栏的背景：在原生 Android 4.4 上，这个黑色矩形是透明的，而且透明度带有一定的渐变，从屏幕中间向屏幕外逐渐变深（也就是逐渐不透明）；而在原生 Android 5.0 以上，这个黑色矩形的透明度各处都是 40%。-->
+        <!--\n\n相比之下，变色状态栏、导航栏实际上针对的就只是状态栏及导航栏，并不会影响应用的布局范围，即应用的主要界面仍然是在状态栏下方、导航栏上方这个区间显示。不过，Google 为了实现让侧滑抽屉能够全屏显示，又做了一些特殊处理，让某些布局能够在状态栏、导航栏内显示一部分，而开发者同样可以使用这种布局。-->
+        <!--\n\n另一个值得一提的地方是各种第三方 ROM 对透明、变色状态栏的适配。目前来看，无论是什么 Android 版本，这些第三方 ROM 一般都会让状态栏彻底透明化，也就是每一处透明度都为100%，没有渐变，也不是40%。但它们一般不会对变色状态栏做自己的处理，会保持与 Material Design 的一致性。-->
+        <!--\n\n在完事儿中，我只使用了透明状态栏这一种方式，因为我希望应用在 Android 4.4 上也能有一个比较漂亮的效果，而且在开发时，国内使用人数最多的 MIUI 也还是 Android 4.4。但我的主界面背景是偏白色的，而状态栏里的文字、图标也是白色的，因此在这些把状态栏透明度自动调整为 100% 的 ROM 里，用户就无法在主界面看清状态栏里的内容了。-->
+        <!--\n\nMIUI 提供了一种方法，可以让状态栏里的图标变成黑色，而 flyme 甚至可以根据界面颜色自动调整状态栏图标的颜色，因此我并没有担心应用在这两个 ROM 里的显示效果。但很显然，并不是所有的第三方 ROM 都考虑到了这个问题，提供了解决方案(EMUI、ZUI 就没有)，作为应用开发者确实也无能为力，只能向他们反馈这个问题。-->
+        <!--\n\n最后，在 Android 6.0 以上，开发者终于可以通过设置主题的一些标志，改变状态栏图标的颜色了（当然也只局限于黑白二色），不过这个效果无法和透明状态栏共存……所以，尽管完事儿的主界面很适合让状态栏图标暗色化，但为了向前的兼容性、全平台显示效果的最优化，也为了尽量不改变写好的代码的结构，我也暂时不打算将透明状态栏改为变色状态栏。</item>-->
 
         <item>全部完成某种类型的记事后，应该会有一个恭喜的提示，在我的设计中，就是通过自动创建一个新的记事来实现这个功能。
             \n\n如果没有这个记事，界面就会显得很空，而且因为“正在进行”等文字处于屏幕垂直方向靠中间的位置，而不是最上方，要使界面平衡就会比较困难。此外，设计空白状态的提示是很难的，既要和应用的风格一致，又要新颖、漂亮，还要契合空白状态的特性，比如是完成了全部记事导致的空白状态(“正在进行”页面)，还是一件记事都没有完成导致的空白状态(“已完成”页面)……很有挑战性，需要不少的时间。
