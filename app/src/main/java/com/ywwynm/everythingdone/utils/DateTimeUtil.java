@@ -3,9 +3,12 @@ package com.ywwynm.everythingdone.utils;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.Resources;
+import android.support.v4.util.Pair;
 import android.widget.EditText;
 
+import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.R;
+import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.Thing;
 
@@ -109,32 +112,80 @@ public class DateTimeUtil {
     }
 
     /**
-     * Used to display {@link com.ywwynm.everythingdone.model.Reminder.notifyTime}
-     * of a Reminder which belongs to a {@link com.ywwynm.everythingdone.model.Thing}
-     * object with type {@link com.ywwynm.everythingdone.model.Thing.GOAL}.
-     *
-     * Using countdown to stress importance of a GOAL.
-     *
-     * @return A string with type of "after some days" according to {@param time}.
+     * see {@link #getDateTimeStrReminder(Context, long, int, int, boolean)}
      */
-    public static String getDateTimeStrGoal(long time, Context context) {
-        int days = calculateTimeGap(System.currentTimeMillis(), time, Calendar.DATE);
-        return getDateTimeStrAfter(Calendar.DATE, days, context);
+    public static String getDateTimeStrReminder(Context context, long thingId, boolean timePeriod) {
+        Pair<Thing, Integer> pair = App.getThingAndPosition(context, thingId, -1);
+        Thing thing = pair.first;
+        if (thing == null) {
+            return "";
+        }
+        Reminder reminder = ReminderDAO.getInstance(context).getReminderById(thingId);
+        if (reminder == null) {
+            return "";
+        }
+        return getDateTimeStrReminder(context, thing, reminder, timePeriod);
     }
 
+    /**
+     * see {@link #getDateTimeStrReminder(Context, long, int, int, boolean)}
+     */
     public static String getDateTimeStrReminder(Context context, Thing thing, Reminder reminder) {
-        @Thing.State int thingState = thing.getState();
-        int state = reminder.getState();
-        long notifyTime = reminder.getNotifyTime();
-        String timeStr = getDateTimeStrAt(notifyTime, context, false);
+        return getDateTimeStrReminder(context, thing, reminder, false);
+    }
+
+    /**
+     * see {@link #getDateTimeStrReminder(Context, long, int, int, boolean)}
+     */
+    public static String getDateTimeStrReminder(
+            Context context, Thing thing, Reminder reminder, boolean timePeriod) {
+        return getDateTimeStrReminder(
+                context, reminder.getNotifyTime(), thing.getState(), reminder.getState(), timePeriod);
+    }
+
+    /**
+     * For the first part of returned string, see {@link #getDateTimeStrAt(long, Context, boolean)}.
+     *
+     * if both the Thing and the Reminder are not underway, there will be second part.
+     * For the second part, see {@link Reminder#getStateDescription(int, int, Context)}.
+     */
+    public static String getDateTimeStrReminder(
+            Context context, long notifyTime, @Thing.State int thingState, int reminderState,
+            boolean timePeriod) {
+        String timeStr = getDateTimeStrAt(notifyTime, context, timePeriod);
         if (timeStr.startsWith("on ")) {
             timeStr = timeStr.substring(3, timeStr.length());
         }
         String ret = timeStr;
-        if (thingState != Thing.UNDERWAY || state != Reminder.UNDERWAY) {
-            ret += ", " + Reminder.getStateDescription(thingState, state, context);
+        if (thingState != Thing.UNDERWAY || reminderState != Reminder.UNDERWAY) {
+            ret += ", " + Reminder.getStateDescription(thingState, reminderState, context);
         }
         return ret;
+    }
+
+    /**
+     * see {@link #getDateTimeStrGoal(Context, long, long, long, int, int)}
+     */
+    public static String getDateTimeStrGoal(Context context, long thingId) {
+        Pair<Thing, Integer> pair = App.getThingAndPosition(context, thingId, -1);
+        Thing thing = pair.first;
+        if (thing == null) {
+            return "";
+        }
+        Reminder goal = ReminderDAO.getInstance(context).getReminderById(thingId);
+        if (goal == null) {
+            return "";
+        }
+        return getDateTimeStrGoal(context, thing, goal);
+    }
+
+    /**
+     * see {@link #getDateTimeStrGoal(Context, long, long, long, int, int)}
+     */
+    public static String getDateTimeStrGoal(Context context, Thing thing, Reminder goal) {
+        return getDateTimeStrGoal(
+                context, goal.getNotifyTime(), goal.getUpdateTime(), thing.getFinishTime(),
+                thing.getState(), goal.getState());
     }
 
     /**
@@ -153,10 +204,10 @@ public class DateTimeUtil {
      * 3. if the Thing is DELETED:
      * see {@link Reminder#getStateDescription(int, int, Context)}
      */
-    public static String getDateTimeStrGoal(Context context, Thing thing, Reminder goal) {
-        @Thing.State int thingState = thing.getState();
+    public static String getDateTimeStrGoal(
+            Context context, long notifyTime, long goalCreateTime, long thingFinishTime,
+            @Thing.State int thingState, int goalState) {
         boolean isChinese = LocaleUtil.isChinese(context);
-        long notifyTime = goal.getNotifyTime();
         if (thingState == Thing.UNDERWAY) {
             long curTime = System.currentTimeMillis();
             int days = Math.abs(calculateTimeGap(curTime, notifyTime, Calendar.DATE));
@@ -191,10 +242,8 @@ public class DateTimeUtil {
                 return overdue;
             }
         } else if (thingState == Thing.FINISHED) {
-            long createTime = goal.getUpdateTime(); // in fact, this is goal's create time
-            long finishTime = thing.getFinishTime();
-            int finishDays = calculateTimeGap(createTime, finishTime, Calendar.DATE);
-            int goalDays = calculateTimeGap(createTime, notifyTime, Calendar.DATE);
+            int finishDays = calculateTimeGap(goalCreateTime, thingFinishTime, Calendar.DATE);
+            int goalDays = calculateTimeGap(goalCreateTime, notifyTime, Calendar.DATE);
             String finishedIn = context.getString(R.string.goal_finished_normal);
             if (finishDays < goalDays) {
                 // 已用6天提前完成, cost 6 days to finish in advance
@@ -216,13 +265,31 @@ public class DateTimeUtil {
             }
             return finishedIn;
         } else {
-            return Reminder.getStateDescription(thingState, goal.getState(), context);
+            return Reminder.getStateDescription(thingState, goalState, context);
         }
     }
 
-    public static String getDateTimeStrAfterDays(long time, Context context) {
-        int days = calculateTimeGap(System.currentTimeMillis(), time, Calendar.DATE);
-        return getDateTimeStrAfter(Calendar.DATE, days, context);
+    /**
+     * Returned strings are as followings:
+     *
+     * should be achieved before yesterday, 19:30 at night;
+     * should be achieved before today, 7:40 in the morning;
+     * should be achieved before tomorrow, 16:00 in the afternoon;
+     * should be achieved before Monday, 23:00 deep at night;
+     * should be achieved before Jun 6, 18:00 at dusk;
+     * should be achieved before Oct 31, 2016, 6:15 early in the morning.
+     *
+     * As you can see, this method is made for a Goal. You should not call this for other
+     * types of things.
+     */
+    public static String getShouldBeAchievedBeforeStr(
+            Context context, long notifyTime, boolean timePeriod) {
+        String shouldBefore = context.getString(R.string.goal_should_finish_before);
+        String dateTimeAtStr = getDateTimeStrAt(notifyTime, context, timePeriod);
+        if (dateTimeAtStr.startsWith("on ")) {
+            dateTimeAtStr = dateTimeAtStr.substring(3, dateTimeAtStr.length());
+        }
+        return String.format(shouldBefore, dateTimeAtStr);
     }
 
     /**

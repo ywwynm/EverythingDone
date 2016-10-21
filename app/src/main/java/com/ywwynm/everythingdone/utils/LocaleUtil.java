@@ -102,9 +102,13 @@ public class LocaleUtil {
     }
 
     public static String getTimesStr(Context context, int times) {
+        return getTimesStr(context, times, true);
+    }
+
+    public static String getTimesStr(Context context, int times, boolean shouldHasGapStr) {
         String timesStr = context.getString(R.string.times);
         if (isChinese(context)) {
-            return times + " " + timesStr;
+            return times + (shouldHasGapStr ? " " : "") + timesStr;
         } else {
             if (times == 0) {
                 return "0 time";

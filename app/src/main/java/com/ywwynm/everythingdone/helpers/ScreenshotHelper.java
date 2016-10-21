@@ -25,8 +25,10 @@ import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.adapters.AudioAttachmentAdapter;
 import com.ywwynm.everythingdone.adapters.CheckListAdapter;
 import com.ywwynm.everythingdone.adapters.ImageAttachmentAdapter;
+import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.fragments.LoadingDialogFragment;
+import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.ReminderHabitParams;
 import com.ywwynm.everythingdone.model.Thing;
@@ -34,6 +36,7 @@ import com.ywwynm.everythingdone.utils.BitmapUtil;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.FileUtil;
+import com.ywwynm.everythingdone.utils.StringUtil;
 
 import java.io.File;
 import java.lang.ref.WeakReference;
@@ -197,12 +200,20 @@ public class ScreenshotHelper {
 
     private static final float density = DisplayUtil.getScreenDensity(App.getApp());
 
+    /**
+     * 1. For Reminder:
+     * same as in thing card
+     *
+     * 2. For Habit:
+     *
+     * 3. For Goal:
+     */
     public static void showTypeInfo(
-            View layout, long thingId, @Thing.Type int type, @Thing.State int thingState,
+            View layout, long thingId, @Thing.Type int typeBefore, @Thing.Type int typeAfter, @Thing.State int thingState,
             ReminderHabitParams rhParams) {
         ImageView ivIcon = (ImageView) layout.findViewById(R.id.iv_icon_type_info);
         Context context = ivIcon.getContext();
-        @DrawableRes int iconRes = Thing.getTypeIconWhiteLarge(type);
+        @DrawableRes int iconRes = Thing.getTypeIconWhiteLarge(typeAfter);
         Drawable d1 = ContextCompat.getDrawable(ivIcon.getContext(), iconRes);
         Drawable d2 = d1.mutate();
         d2.setColorFilter(ContextCompat.getColor(context, R.color.white_66p), PorterDuff.Mode.SRC_IN);
@@ -210,36 +221,65 @@ public class ScreenshotHelper {
 
         TextView tvInfo = (TextView) layout.findViewById(R.id.tv_type_info);
         LinearLayout.LayoutParams llp = (LinearLayout.LayoutParams) tvInfo.getLayoutParams();
-        if (Thing.isReminderType(type)) {
+        if (Thing.isReminderType(typeAfter)) {
             long reminderInMillis = rhParams.getReminderInMillis();
-            if (reminderInMillis == -1) {
+            if (reminderInMillis == -1L) {
                 int[] timeAfterType = rhParams.getReminderAfterTime();
                 reminderInMillis = DateTimeUtil.getActualTimeAfterSomeTime(timeAfterType);
             }
-            String dateTimeStrAt = DateTimeUtil.getDateTimeStrAt(reminderInMillis, context, false);
-            if (dateTimeStrAt.startsWith("on ")) {
-                dateTimeStrAt = dateTimeStrAt.substring(3, dateTimeStrAt.length());
-            }
-            tvInfo.append(dateTimeStrAt);
+
+            String info;
             Reminder reminder = ReminderDAO.getInstance(context).getReminderById(thingId);
-            if (reminder != null && reminder.getState() != Reminder.UNDERWAY) {
-                tvInfo.append(", " + Reminder.getStateDescription(
-                        thingState, reminder.getState(), context));
+            if (reminder == null
+                    || (thingState == Thing.UNDERWAY
+                        && (reminder.getNotifyTime() != reminderInMillis
+                            || typeBefore != typeAfter))) {
+                if (typeAfter == Thing.REMINDER) {
+                    info = DateTimeUtil.getDateTimeStrReminder(
+                            context, reminderInMillis, Thing.UNDERWAY, Reminder.UNDERWAY, true);
+                } else {
+                    info = DateTimeUtil.getDateTimeStrGoal(context,
+                            reminderInMillis, System.currentTimeMillis(), 0,
+                            Thing.UNDERWAY, Reminder.UNDERWAY);
+                }
+            }  else {
+                if (typeAfter == Thing.REMINDER) {
+                    info = DateTimeUtil.getDateTimeStrReminder(context, thingId, true);
+                } else {
+                    if (thingState == Thing.UNDERWAY) {
+                        info = DateTimeUtil.getDateTimeStrGoal(context, thingId);
+                    } else { // thingState == Thing.FINISHED
+                        info = DateTimeUtil.getShouldBeAchievedBeforeStr(
+                                context, reminderInMillis, true);
+                    }
+                }
             }
-            if (type == Thing.REMINDER) {
+            tvInfo.append(StringUtil.lowerFirst(info));
+            if (typeAfter == Thing.REMINDER) {
                 llp.topMargin = (int) (density * 0.5);
             } else {
                 llp.topMargin = (int) (density * 1.5);
             }
-        } else if (type == Thing.HABIT) {
-            String dateTimeStrRec = DateTimeUtil.getDateTimeStrRec(
-                    context, rhParams.getHabitType(), rhParams.getHabitDetail());
-            if (dateTimeStrRec != null && dateTimeStrRec.startsWith("at ")) {
-                dateTimeStrRec = dateTimeStrRec.substring(3, dateTimeStrRec.length());
+        } else if (typeAfter == Thing.HABIT) {
+            String info;
+            Habit habit = HabitDAO.getInstance(context).getHabitById(thingId);
+            int rhHabitType = rhParams.getHabitType();
+            String rhHabitDetail = rhParams.getHabitDetail();
+            if (habit == null
+                    || (thingState == Thing.UNDERWAY
+                        && (habit.getType() != rhHabitType
+                            || !habit.getDetail().equals(rhHabitDetail)))) {
+                info = DateTimeUtil.getDateTimeStrRec(
+                    context, rhHabitType, rhHabitDetail);
+                if (info != null && info.startsWith("at ")) {
+                    info = info.substring(3, info.length());
+                }
+            } else {
+                info = SendInfoHelper.getHabitShareInfo(context, thingId, thingState);
             }
-            tvInfo.append(dateTimeStrRec);
+            tvInfo.append(StringUtil.lowerFirst(info));
             llp.topMargin = (int) (density * 0.5);
-        } else { // note
+        } else { // other types
             layout.setVisibility(View.GONE);
             return; // don't show layout
         }

@@ -23,6 +23,7 @@ import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.FileUtil;
 import com.ywwynm.everythingdone.utils.LocaleUtil;
+import com.ywwynm.everythingdone.utils.StringUtil;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
@@ -170,80 +171,37 @@ public class SendInfoHelper {
         @Thing.Type  int type  = thing.getType();
         @Thing.State int state = thing.getState();
         if (type == Thing.REMINDER) {
-            sb.append(getReminderShareInfo(context, id, state)).append("\n\n");
+            Reminder reminder = ReminderDAO.getInstance(context).getReminderById(id);
+            if (reminder != null) {
+                String reminderMe = context.getString(R.string.remind_me);
+                String reminderInfoStr = DateTimeUtil.getDateTimeStrReminder(
+                        context, thing, reminder, true);
+                sb.append(StringUtil.upperFirst(reminderMe)).append(reminderInfoStr).append("\n\n");
+            }
         } else if (type == Thing.HABIT) {
-            sb.append(getHabitShareInfo(context, id, state)).append("\n\n");
+            Habit habit = HabitDAO.getInstance(context).getHabitById(id);
+            if (habit != null) {
+                sb.append(StringUtil.upperFirst(getHabitShareInfo(context, id, state))).append("\n\n");
+            }
         } else if (type == Thing.GOAL) {
             if (state != Thing.FINISHED) {
                 Reminder goal = ReminderDAO.getInstance(context).getReminderById(id);
                 if (goal != null) {
                     String goalInfoStr = DateTimeUtil.getDateTimeStrGoal(context, thing, goal);
-                    sb.append(capFirst(goalInfoStr)).append("\n\n");
+                    sb.append(StringUtil.upperFirst(goalInfoStr)).append("\n\n");
                 }
             }
         }
 
         if (state == Thing.FINISHED && type != Thing.HABIT) {
-            sb.append(getFinishedThingInfo(context, thing)).append("\n\n");
+            sb.append(StringUtil.upperFirst(getFinishedThingInfo(context, thing))).append("\n\n");
         }
 
         sb.append(context.getString(R.string.from_everything_done));
         return sb.toString();
     }
 
-    private static String capFirst(String s) {
-        char f = s.charAt(0);
-        if (f >= 'a' && f <= 'z') {
-            f += ('A' - 'a');
-        }
-        s = f + s.substring(1, s.length());
-        return s;
-    }
-
-    private static String getReminderShareInfo(Context context, long id, int thingState) {
-        Reminder reminder = ReminderDAO.getInstance(context).getReminderById(id);
-        if (reminder == null) {
-            return "";
-        }
-
-        boolean isChinese = LocaleUtil.isChinese(context);
-        String at = context.getString(R.string.at);
-        StringBuilder sb = new StringBuilder();
-        String reminderStr = context.getString(R.string.reminder);
-        if (!isChinese) {
-            reminderStr = "Reminder ";
-        }
-        String was = "was ";
-
-        int reminderState = reminder.getState();
-        if (reminderState == Reminder.REMINDED) {
-            if (isChinese) {
-                sb.append(context.getString(R.string.reminder_reminded)).append(at);
-            } else sb.append("Reminded ");
-            sb.append(DateTimeUtil.getDateTimeStrAt(reminder.getNotifyTime(), context, true));
-        } else if (reminderState == Reminder.EXPIRED) {
-            sb.append(reminderStr);
-            if (!isChinese) {
-                sb.append(was);
-            }
-            sb.append(context.getString(R.string.reminder_expired));
-        } else {
-            if (thingState == Thing.UNDERWAY) {
-                sb.append(context.getString(R.string.will_remind));
-                if (!isChinese) sb.append(" ");
-                sb.append(DateTimeUtil.getDateTimeStrAt(
-                        reminder.getNotifyTime(), context, true));
-            } else if (thingState == Thing.FINISHED) {
-                String notNeeded = context.getString(R.string.reminder_needless);
-                if (isChinese) {
-                    sb.append(notNeeded);
-                } else sb.append(reminderStr).append(was).append(notNeeded);
-            }
-        }
-        return sb.toString();
-    }
-
-    private static String getHabitShareInfo(Context context, long id, int thingState) {
+    public static String getHabitShareInfo(Context context, long id, int thingState) {
         Habit habit = HabitDAO.getInstance(context).getHabitById(id);
         if (habit == null) {
             return "";
@@ -254,9 +212,20 @@ public class SendInfoHelper {
         boolean isChinese = LocaleUtil.isChinese(context);
         StringBuilder sb = new StringBuilder();
 
-        sb.append(habit.getSummary(context)).append(", ")
-                .append(context.getString(R.string.share_i_persist_in_for)).append(" ")
-                .append(piT < 0 ? 0 : piT).append(" ")
+        String remindMe = context.getString(R.string.remind_me);
+        String habitStr = DateTimeUtil.getDateTimeStrRec(context, habit.getType(), habit.getDetail());
+        if (habitStr == null) {
+            habitStr = habit.getSummary(context);
+        } else if (habitStr.startsWith("at ")) {
+            habitStr = habitStr.substring(3, habitStr.length());
+        }
+        String GAP;
+        if (isChinese) {
+            GAP = "";
+        } else GAP = " ";
+        sb.append(remindMe).append(habitStr).append("\n")
+                .append(context.getString(R.string.share_i_persist_in_for)).append(GAP)
+                .append(piT <= 0 ? 1 : piT).append(GAP)
                 .append(DateTimeUtil.getTimeTypeStr(type, context));
         if (!isChinese && piT > 1) {
             sb.append("s");
@@ -267,7 +236,7 @@ public class SendInfoHelper {
             sb.append("了");
         }
         int finishedTimes = habit.getFinishedTimes();
-        sb.append(" ").append(LocaleUtil.getTimesStr(context, finishedTimes));
+        sb.append(GAP).append(LocaleUtil.getTimesStr(context, finishedTimes, false));
 
         if (thingState == Thing.FINISHED) {
             sb.append(", ").append(context.getString(R.string.share_habit_developed));
@@ -279,7 +248,7 @@ public class SendInfoHelper {
     private static String getFinishedThingInfo(Context context, Thing thing) {
         boolean isChinese = LocaleUtil.isChinese(context);
         StringBuilder sb = new StringBuilder();
-        int type = thing.getType();
+        @Thing.Type int type = thing.getType();
 
         if (type == Thing.GOAL) {
             Reminder goal = ReminderDAO.getInstance(context).getReminderById(thing.getId());
@@ -291,8 +260,13 @@ public class SendInfoHelper {
             } else {
                 gapStr = String.valueOf(gap);
             }
-            sb.append(context.getString(R.string.share_i_work_hard_for)).append(" ")
-                    .append(gapStr).append(" ").append(context.getString(days));
+
+            String STRGAP;
+            if (isChinese) {
+                STRGAP = "";
+            } else STRGAP = " ";
+            sb.append(context.getString(R.string.share_i_work_hard_for)).append(STRGAP)
+                    .append(gapStr).append(STRGAP).append(context.getString(days));
             if (!isChinese && gap > 1) {
                 sb.append("s");
             }
@@ -306,13 +280,10 @@ public class SendInfoHelper {
             return sb.toString();
         }
 
-        if (isChinese) {
-            sb.append(context.getString(R.string.act_finish)).append(context.getString(R.string.at));
-        } else {
-            sb.append("Finished ");
-        }
+        // else : type isn't GOAL
+        sb.append(String.format(context.getString(R.string.finish_at_normal),
+                DateTimeUtil.getDateTimeStrAt(thing.getFinishTime(), context, true)));
 
-        sb.append(DateTimeUtil.getDateTimeStrAt(thing.getFinishTime(), context, true));
         return sb.toString();
     }
 
