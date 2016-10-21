@@ -2,6 +2,7 @@ package com.ywwynm.everythingdone.managers;
 
 import android.content.Context;
 import android.database.Cursor;
+import android.support.v4.util.LongSparseArray;
 import android.util.SparseIntArray;
 
 import com.ywwynm.everythingdone.App;
@@ -638,52 +639,7 @@ public class ThingManager {
      * created on 2016/10/10
      */
     public void updateLocationsByAlarmsTime() {
-        final ReminderDAO rDao = ReminderDAO.getInstance(mContext);
-        final HabitDAO    hDao = HabitDAO.getInstance(mContext);
-        Collections.sort(mThings, new Comparator<Thing>() {
-            @Override
-            public int compare(Thing thing1, Thing thing2) {
-                @Thing.Type int type1 = thing1.getType();
-                @Thing.Type int type2 = thing2.getType();
-                // header is on top
-                if (type1 == Thing.HEADER) return -1;
-                if (type2 == Thing.HEADER) return 1;
-
-                boolean shouldSort1 = isSpecialType(type1);
-                boolean shouldSort2 = isSpecialType(type2);
-                if (!shouldSort1 && !shouldSort2) {
-                    return 0;
-                } else if (shouldSort1 && !shouldSort2) {
-                    return -1;
-                } else if (!shouldSort1 && shouldSort2) {
-                    return 1;
-                } else {
-                    long time1 = getAlarmTime(thing1.getId(), type1);
-                    long time2 = getAlarmTime(thing2.getId(), type2);
-                    return (int) (time1 - time2);
-                }
-            }
-
-            private boolean isSpecialType(@Thing.Type int type) {
-                return Thing.isReminderType(type) || type == Thing.HABIT;
-            }
-
-            private long getAlarmTime(long id, @Thing.Type int type) {
-                long time = -1;
-                if (Thing.isReminderType(type)) {
-                    Reminder r1 = rDao.getReminderById(id);
-                    if (r1 != null && r1.getState() == Reminder.UNDERWAY) {
-                        time = r1.getNotifyTime();
-                    }
-                } else {
-                    Habit h1 = hDao.getHabitById(id);
-                    if (h1 != null) {
-                        time = h1.getMinHabitReminderTime();
-                    }
-                }
-                return time;
-            }
-        });
+        Collections.sort(mThings, getThingComparatorForAlarmTime(false));
         final int size = mThings.size();
         final Long[] ids = new Long[size];
         final Long[] locations = new Long[size];
@@ -702,6 +658,96 @@ public class ThingManager {
                 mDao.updateLocations(ids, locations);
             }
         });
+    }
+
+    public Comparator<Thing> getThingComparatorForAlarmTime(boolean ignoreSticky) {
+        final ReminderDAO rDao = ReminderDAO.getInstance(mContext);
+        final HabitDAO    hDao = HabitDAO.getInstance(mContext);
+        return new Comparator<Thing>() {
+
+            private LongSparseArray<Boolean> shouldSortMap = new LongSparseArray<>();
+            private LongSparseArray<Long> timeMap = new LongSparseArray<>();
+
+            @Override
+            public int compare(Thing thing1, Thing thing2) {
+                @Thing.Type int type1 = thing1.getType();
+                @Thing.Type int type2 = thing2.getType();
+                // header is on top
+                if (type1 == Thing.HEADER) return -1;
+                if (type2 == Thing.HEADER) return 1;
+
+                long id1 = thing1.getId();
+                Boolean shouldSort1 = shouldSort(id1, type1);
+                long id2 = thing2.getId();
+                Boolean shouldSort2 = shouldSort(id2, type2);
+
+                if (!shouldSort1 && !shouldSort2) {
+                    return compareByLocation(thing1, thing2);
+                } else if (shouldSort1 && !shouldSort2) {
+                    return -1;
+                } else if (!shouldSort1 && shouldSort2) {
+                    return 1;
+                } else {
+                    long time1 = getAlarmTime(thing1.getId(), type1);
+                    long time2 = getAlarmTime(thing2.getId(), type2);
+                    if (time1 < time2) {
+                        return -1;
+                    } else if (time1 == time2) {
+                        return 0;
+                    } else return 1;
+                }
+            }
+
+            private boolean shouldSort(long id, @Thing.Type int type) {
+                Boolean shouldSort = shouldSortMap.get(id);
+                if (shouldSort == null) {
+                    if (Thing.isReminderType(type)) {
+                        Reminder reminder = rDao.getReminderById(id);
+                        shouldSort = reminder != null && reminder.getState() == Reminder.UNDERWAY;
+                    } else if (type == Thing.HABIT) {
+                        Habit habit = hDao.getHabitById(id);
+                        shouldSort = habit != null;
+                    } else {
+                        shouldSort = false;
+                    }
+                    shouldSortMap.put(id, shouldSort);
+                }
+                return shouldSort;
+            }
+
+            private int compareByLocation(Thing thing1, Thing thing2) {
+                long location1 = thing1.getLocation();
+                long location2 = thing2.getLocation();
+                if (location1 < location2) {
+                    return 1;
+                } else if (location1 == location2) {
+                    // impossible
+                    return 0;
+                } else {
+                    return -1;
+                }
+            }
+
+            private long getAlarmTime(long id, @Thing.Type int type) {
+                Long time = timeMap.get(id);
+                if (time == null) {
+                    time = Long.MAX_VALUE;
+                    if (Thing.isReminderType(type)) {
+                        Reminder r1 = rDao.getReminderById(id);
+                        if (r1 != null && r1.getState() == Reminder.UNDERWAY) {
+                            time = r1.getNotifyTime();
+                        }
+                    } else {
+                        Habit h1 = hDao.getHabitById(id);
+                        if (h1 != null) {
+                            time = h1.getMinHabitReminderTime();
+                        }
+                    }
+                    timeMap.put(id, time);
+                }
+                return time;
+            }
+        };
     }
 
     /**
