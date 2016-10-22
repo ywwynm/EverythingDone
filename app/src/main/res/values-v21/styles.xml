@@ -35,6 +35,18 @@
         <item name="android:windowTranslucentNavigation">true</item>
     </style>
 
+    <style name="EverythingDoneTheme.TotallyTransparent" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:colorBackgroundCacheHint">@null</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="swirl_ridgeColor">@color/black_54</item>
+        <item name="swirl_errorColor">@color/error</item>
+    </style>
+
     <style name="EverythingDoneTheme.Help" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="android:statusBarColor">@color/bg_statusbar_lollipop</item>
     </style>

@@ -139,7 +139,7 @@
 
         <activity
             android:name=".activities.AuthenticationActivity"
-            android:theme="@style/EverythingDoneTheme.Authentication"/>
+            android:theme="@style/EverythingDoneTheme.TotallyTransparent"/>
         <activity
             android:name=".activities.HelpActivity"
             android:label="@string/help"
@@ -299,13 +299,12 @@
         <activity
             android:name=".activities.DelayReminderActivity"
             android:excludeFromRecents="true"
-            android:theme="@style/EverythingDoneTheme.Authentication">
+            android:theme="@style/EverythingDoneTheme.TotallyTransparent">
         </activity>
 
         <activity
             android:name=".activities.ShortcutActivity"
-            android:excludeFromRecents="true"
-            android:theme="@style/EverythingDoneTheme.Authentication">
+            android:theme="@style/EverythingDoneTheme.TotallyTransparent">
             <intent-filter>
                 <action android:name="com.ywwynm.everythingdone.action.shortcut.create" />
             </intent-filter>

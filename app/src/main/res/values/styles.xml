@@ -74,7 +74,7 @@
         <item name="colorControlNormal">#FFFFFF</item>
     </style>
 
-    <style name="EverythingDoneTheme.Authentication" parent="Theme.AppCompat.Light.NoActionBar">
+    <style name="EverythingDoneTheme.TotallyTransparent" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:colorBackgroundCacheHint">@null</item>

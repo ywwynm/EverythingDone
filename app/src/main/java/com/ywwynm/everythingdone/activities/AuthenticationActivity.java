@@ -8,7 +8,6 @@ import android.support.v7.app.AppCompatActivity;
 
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
-import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.helpers.AuthenticationHelper;
 import com.ywwynm.everythingdone.helpers.RemoteActionHelper;
 import com.ywwynm.everythingdone.model.Thing;
@@ -36,7 +35,6 @@ public class AuthenticationActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_authentication);
 
         Intent intent = getIntent();
 

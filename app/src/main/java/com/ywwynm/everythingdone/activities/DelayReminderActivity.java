@@ -56,7 +56,6 @@ public class DelayReminderActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_delay_reminder);
 
         Intent intent = getIntent();
         long id = intent.getLongExtra(Def.Communication.KEY_ID, -1);

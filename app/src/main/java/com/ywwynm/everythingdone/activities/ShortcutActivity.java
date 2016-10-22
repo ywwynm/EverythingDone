@@ -27,7 +27,6 @@ public class ShortcutActivity extends AppCompatActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_authentication);
 
         String action = getIntent().getAction();
         Intent openIntent = null;
@@ -42,7 +41,10 @@ public class ShortcutActivity extends AppCompatActivity {
             Thing thing = things.get(1); // 0 is header
             @Thing.Type int thingType = thing.getType();
             if (Thing.isReminderType(thingType) || thingType == Thing.HABIT) {
-                openIntent = DetailActivity.getOpenIntentForUpdate(this, TAG, thing.getId(), -1);
+                openIntent = AuthenticationActivity.getOpenIntent(
+                        this, TAG, thing.getId(), -1,
+                        Def.Communication.AUTHENTICATE_ACTION_VIEW,
+                        getString(R.string.check_private_thing));
             } else {
                 Toast.makeText(this, R.string.alert_shortcut_no_upcoming, Toast.LENGTH_LONG).show();
             }

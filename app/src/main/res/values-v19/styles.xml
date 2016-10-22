@@ -40,12 +40,13 @@
         <item name="android:windowTranslucentNavigation">true</item>
     </style>
 
-    <style name="EverythingDoneTheme.Authentication" parent="Theme.AppCompat.Light.NoActionBar">
+    <style name="EverythingDoneTheme.TotallyTransparent" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:colorBackgroundCacheHint">@null</item>
         <item name="android:windowIsTranslucent">true</item>
         <item name="android:windowTranslucentStatus">true</item>
+        <item name="android:windowTranslucentNavigation">true</item>
         <item name="swirl_ridgeColor">@color/black_54</item>
         <item name="swirl_errorColor">@color/error</item>
     </style>
