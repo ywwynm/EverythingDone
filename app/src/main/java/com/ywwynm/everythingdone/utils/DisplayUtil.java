@@ -23,10 +23,7 @@ import android.support.v7.widget.CardView;
 import android.util.Log;
 import android.util.SparseArray;
 import android.view.Display;
-import android.view.KeyCharacterMap;
-import android.view.KeyEvent;
 import android.view.View;
-import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
@@ -105,9 +102,12 @@ public class DisplayUtil {
     }
 
     public static boolean hasNavigationBar(Context context) {
-        boolean hasMenuKey = ViewConfiguration.get(context).hasPermanentMenuKey();
-        boolean hasBackKey = KeyCharacterMap.deviceHasKey(KeyEvent.KEYCODE_BACK);
-        return !hasMenuKey && !hasBackKey;
+//        boolean hasMenuKey = ViewConfiguration.get(context).hasPermanentMenuKey();
+//        boolean hasBackKey = KeyCharacterMap.deviceHasKey(KeyEvent.KEYCODE_BACK);
+//        return !hasMenuKey && !hasBackKey;
+        Resources resources = context.getResources();
+        int id = resources.getIdentifier("config_showNavigationBar", "bool", "android");
+        return id > 0 && resources.getBoolean(id);
     }
 
     public static int getNavigationBarHeight(Context context) {
