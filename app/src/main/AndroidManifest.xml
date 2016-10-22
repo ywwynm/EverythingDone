@@ -218,7 +218,7 @@
             android:excludeFromRecents="true"
             android:label="@string/title_activity_thing_widget_configure"
             android:screenOrientation="user"
-            android:theme="@style/EverythingDoneTheme.Help">
+            android:theme="@style/EverythingDoneTheme.ThingWidgetConfiguration">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
             </intent-filter>
@@ -229,7 +229,7 @@
             android:excludeFromRecents="true"
             android:label="@string/title_activity_thing_widget_configure"
             android:screenOrientation="user"
-            android:theme="@style/EverythingDoneTheme.Help">
+            android:theme="@style/EverythingDoneTheme.ThingWidgetConfiguration">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
             </intent-filter>
@@ -240,7 +240,7 @@
             android:excludeFromRecents="true"
             android:label="@string/title_activity_thing_widget_configure"
             android:screenOrientation="user"
-            android:theme="@style/EverythingDoneTheme.Help">
+            android:theme="@style/EverythingDoneTheme.ThingWidgetConfiguration">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
             </intent-filter>
@@ -251,7 +251,7 @@
             android:excludeFromRecents="true"
             android:label="@string/title_activity_thing_widget_configure"
             android:screenOrientation="user"
-            android:theme="@style/EverythingDoneTheme.Help">
+            android:theme="@style/EverythingDoneTheme.ThingWidgetConfiguration">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
             </intent-filter>
@@ -262,7 +262,7 @@
             android:excludeFromRecents="true"
             android:label="@string/title_activity_thing_widget_configure"
             android:screenOrientation="user"
-            android:theme="@style/EverythingDoneTheme.Help">
+            android:theme="@style/EverythingDoneTheme.ThingWidgetConfiguration">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
             </intent-filter>

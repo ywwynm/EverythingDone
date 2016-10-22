@@ -1,12 +1,14 @@
 package com.ywwynm.everythingdone.appwidgets.single;
 
 import android.Manifest;
+import android.annotation.TargetApi;
 import android.app.WallpaperManager;
 import android.appwidget.AppWidgetManager;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.ActionBar;
 import android.support.v7.widget.CardView;
@@ -17,9 +19,12 @@ import android.support.v7.widget.Toolbar;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.RemoteViews;
 import android.widget.SeekBar;
 
@@ -61,6 +66,7 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
     private int mAppWidgetId;
 
     private FrameLayout mFlPreviewAndConfig;
+    private LinearLayout mLlConfig;
     private int mWidgetAlpha = 100;
 
     @Override
@@ -114,13 +120,21 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
         mRecyclerView = f(R.id.rv_things);
 
         mFlPreviewAndConfig = f(R.id.fl_app_widget_preview_and_ui_config);
+        mLlConfig = f(R.id.ll_widget_ui_config);
     }
 
     @Override
     protected void initUI() {
+        updateStatusBarAndBottomUi(true);
         DisplayUtil.expandLayoutAboveLollipop(this);
         DisplayUtil.expandStatusBarAboveKitkat(findViewById(R.id.view_status_bar));
         DisplayUtil.darkStatusBar(this);
+
+        if (DeviceUtil.hasLollipopApi()) {
+            mLlConfig.setBackgroundColor(Color.parseColor("#66000000"));
+        } else if (DeviceUtil.hasKitKatApi()) {
+            mLlConfig.setBackgroundColor(Color.TRANSPARENT);
+        }
 
         if (!PermissionUtil.hasStoragePermission(this)
                 && PermissionUtil.shouldRequestPermissionWhenLoadingThings(mThings)) {
@@ -139,6 +153,34 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
                     Manifest.permission.WRITE_EXTERNAL_STORAGE);
         } else {
             initRecyclerView();
+        }
+    }
+
+    @TargetApi(Build.VERSION_CODES.KITKAT)
+    private void updateStatusBarAndBottomUi(boolean selecting) {
+        if (!DeviceUtil.hasKitKatApi()) {
+            return;
+        }
+
+        final Window window = getWindow();
+        FrameLayout.LayoutParams flp = (FrameLayout.LayoutParams) mLlConfig.getLayoutParams();
+
+        if (selecting) {
+            if (DeviceUtil.hasLollipopApi()) {
+                window.setStatusBarColor(ContextCompat.getColor(this, R.color.bg_statusbar_lollipop));
+            }
+            window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
+            flp.bottomMargin = 0;
+            mLlConfig.requestLayout();
+        } else {
+            if (DeviceUtil.hasLollipopApi()) {
+                window.setStatusBarColor(Color.TRANSPARENT);
+            }
+            window.addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
+            if (DisplayUtil.hasNavigationBar(this)) {
+                flp.bottomMargin = DisplayUtil.getNavigationBarHeight(this);
+                mLlConfig.requestLayout();
+            }
         }
     }
 
@@ -291,6 +333,8 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
         mFlPreviewAndConfig.setVisibility(View.GONE);
         mActionBar.setVisibility(View.VISIBLE);
         mRecyclerView.setVisibility(View.VISIBLE);
+
+        updateStatusBarAndBottomUi(true);
         DisplayUtil.darkStatusBar(this);
     }
 
@@ -362,7 +406,7 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
                 cv.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        //endSelectThing(mThings.get(getAdapterPosition()));
+                        updateStatusBarAndBottomUi(false);
                         previewAppWidget(mThings.get(getAdapterPosition()));
                     }
                 });
