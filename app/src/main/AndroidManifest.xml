@@ -302,6 +302,18 @@
             android:theme="@style/EverythingDoneTheme.Authentication">
         </activity>
 
+        <activity
+            android:name=".activities.ShortcutActivity"
+            android:excludeFromRecents="true"
+            android:theme="@style/EverythingDoneTheme.Authentication">
+            <intent-filter>
+                <action android:name="com.ywwynm.everythingdone.action.shortcut.create" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.ywwynm.everythingdone.action.shortcut.check_upcoming" />
+            </intent-filter>
+        </activity>
+
     </application>
 
 </manifest>

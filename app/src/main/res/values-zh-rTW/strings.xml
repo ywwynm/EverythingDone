@@ -340,7 +340,7 @@
     <string name="act_sb_undo_underway">已完成</string>
 
     <!--Shortcut-->
-    <string name="act_shortcut_check_upcoming">即將提醒的記事</string>
+    <string name="act_shortcut_check_upcoming">將要提醒的記事</string>
     <string name="act_shortcut_check_sticky">置頂的記事</string>
 
 
@@ -439,6 +439,8 @@
     <string name="error_cannot_add_from_network">無法增加網路文件</string>
 
     <string name="alert_cannot_share_empty_thing">無法分享空白記事</string>
+
+    <string name="alert_shortcut_no_upcoming">沒有將要提醒的記事</string>
 
     <!--AudioRecordDialogFragment-->
     <string name="input_file_name">請輸入文件名</string>

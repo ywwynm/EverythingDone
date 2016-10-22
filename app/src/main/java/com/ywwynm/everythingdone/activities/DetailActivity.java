@@ -356,6 +356,19 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         return R.layout.activity_detail;
     }
 
+    private boolean mShouldFinish = false;
+
+    @Override
+    protected void init() {
+        initMembers(); // if we found thing is null, just finish this Activity
+        if (!mShouldFinish) {
+            findViews();
+            initUI();
+            setActionbar();
+            setEvents();
+        }
+    }
+
     @Override
     protected void initMembers() {
         mApp = (App) getApplication();
@@ -368,12 +381,6 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         if (Intent.ACTION_SEND.equals(action) || Intent.ACTION_SEND_MULTIPLE.equals(action)) {
             mSenderName = "intent";
             mType = CREATE;
-        } else if (Def.Communication.SHORTCUT_ACTION_CREATE.equals(action)) {
-            mSenderName = "shortcut";
-            mType = CREATE;
-        } else if (Def.Communication.SHORTCUT_ACTION_CHECK_UPCOMING.equals(action)) {
-            mSenderName = "shortcut";
-            mType = UPDATE;
         } else {
             mSenderName = intent.getStringExtra(Def.Communication.KEY_SENDER_NAME);
             mType = intent.getIntExtra(Def.Communication.KEY_DETAIL_ACTIVITY_TYPE, UPDATE);
@@ -400,21 +407,16 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 setupThingFromIntent();
             }
         } else {
-            if (mSenderName.equals("shortcut")) {
-                setupThingFromShortcut(action);
-                App.getRunningDetailActivities().add(mThing.getId());
-            } else {
-                App.getRunningDetailActivities().add(id);
-                Pair<Thing, Integer> pair = App.getThingAndPosition(mApp, id, mPosition);
-                mThing = pair.first;
-                mPosition = pair.second;
-            }
+            updateThingAndItsPosition(id);
 
             if (mThing == null) {
+                mShouldFinish = true;
                 finish();
                 return;
             }
+
             id = mThing.getId();
+            App.getRunningDetailActivities().add(id);
             mReminder = ReminderDAO.getInstance(mApp).getReminderById(id);
             if (mThing.getType() == Thing.HABIT) {
                 mHabit = HabitDAO.getInstance(mApp).getHabitById(id);
@@ -488,22 +490,6 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         String content = intent.getStringExtra(Intent.EXTRA_TEXT);
         if (content != null) {
             mThing.setContent(content);
-        }
-    }
-
-    private void setupThingFromShortcut(String intentAction) {
-        if (Def.Communication.SHORTCUT_ACTION_CHECK_UPCOMING.equals(intentAction)) {
-            List<Thing> things = ThingDAO.getInstance(mApp)
-                    .getThingsForDisplay(Def.LimitForGettingThings.ALL_UNDERWAY);
-            Collections.sort(things,
-                    ThingManager.getInstance(mApp).getThingComparatorForAlarmTime(true));
-            Thing thing = things.get(1); // 0 is header
-            @Thing.Type int thingType = thing.getType();
-            if (Thing.isReminderType(thingType) || thingType == Thing.HABIT) {
-                updateThingAndItsPosition(thing.getId());
-            } else {
-                mThing = null; // this will make Activity finish
-            }
         }
     }
 
@@ -1101,6 +1087,11 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
     @Override
     public void finish() {
+        if (mThing == null) {
+            super.finish();
+            return;
+        }
+
         List<Long> detailActivities = App.getRunningDetailActivities();
         detailActivities.remove(mThing.getId());
         mRemoveDetailActivityInstance = true;
@@ -1578,6 +1569,9 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        if (mThing == null) {
+            return;
+        }
         if (!mRemoveDetailActivityInstance) {
             App.getRunningDetailActivities().remove(mThing.getId());
         }
@@ -2523,10 +2517,10 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             || mSenderName.equals(HabitReceiver.TAG)
             || mSenderName.equals(AutoNotifyReceiver.TAG)
             || mSenderName.equals("intent")
-            || mSenderName.equals("shortcut")
             || mSenderName.equals(App.class.getName())
             || mSenderName.equals(CreateWidget.TAG)
-            || mSenderName.equals(AppWidgetHelper.TAG);
+            || mSenderName.equals(AppWidgetHelper.TAG)
+            || mSenderName.equals(ShortcutActivity.TAG);
     }
 
     private void sendBroadCastToUpdateMainUI(Intent intent, int resultCode) {

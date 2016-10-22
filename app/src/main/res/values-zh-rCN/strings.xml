@@ -340,7 +340,7 @@
     <string name="act_sb_undo_underway">已完成</string>
 
     <!--Shortcut-->
-    <string name="act_shortcut_check_upcoming">即将提醒的记事</string>
+    <string name="act_shortcut_check_upcoming">将要提醒的记事</string>
     <string name="act_shortcut_check_sticky">置顶的记事</string>
 
 
@@ -439,6 +439,8 @@
     <string name="error_cannot_add_from_network">无法添加网络文件</string>
 
     <string name="alert_cannot_share_empty_thing">无法分享空白记事</string>
+
+    <string name="alert_shortcut_no_upcoming">没有将要提醒的记事</string>
 
     <!--AudioRecordDialogFragment-->
     <string name="input_file_name">请输入文件名</string>

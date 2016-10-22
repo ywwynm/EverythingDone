@@ -10,19 +10,19 @@
         <intent
             android:action="com.ywwynm.everythingdone.action.shortcut.create"
             android:targetPackage="com.ywwynm.everythingdone"
-            android:targetClass="com.ywwynm.everythingdone.activities.DetailActivity" />
+            android:targetClass="com.ywwynm.everythingdone.activities.ShortcutActivity" />
     </shortcut>
 
     <shortcut
         android:shortcutId="most urgent thing"
         android:enabled="true"
-        android:icon="@drawable/shortcut_create"
+        android:icon="@drawable/shortcut_check_urgent"
         android:shortcutShortLabel="@string/act_shortcut_check_upcoming"
         android:shortcutLongLabel="@string/act_shortcut_check_upcoming">
         <intent
             android:action="com.ywwynm.everythingdone.action.shortcut.check_upcoming"
             android:targetPackage="com.ywwynm.everythingdone"
-            android:targetClass="com.ywwynm.everythingdone.activities.DetailActivity" />
+            android:targetClass="com.ywwynm.everythingdone.activities.ShortcutActivity" />
     </shortcut>
 
 </shortcuts>
