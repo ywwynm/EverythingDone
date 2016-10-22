@@ -51,6 +51,9 @@ public class UriPathConverter {
      */
     @SuppressLint("NewApi")
     public static String getPathName(Context context, Uri uri) {
+        if (uri == null) {
+            return null;
+        }
 
         boolean isKitKat = DeviceUtil.hasKitKatApi();
 
