@@ -2306,6 +2306,10 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 case R.id.act_delete_selected_forever:
                     handleUpdateStates(Thing.DELETED_FOREVER);
                     break;
+                case R.id.act_sticky_on_top:
+                    int oldPosition = mThingManager.stickySelectedThingOnTop();
+                    mAdapter.notifyItemMoved(oldPosition, 1);
+                    break;
                 case R.id.act_export:
                     doWithPermissionChecked(new SimplePermissionCallback(ThingsActivity.this) {
                         @Override

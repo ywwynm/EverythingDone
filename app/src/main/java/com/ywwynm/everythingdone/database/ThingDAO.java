@@ -11,6 +11,8 @@ import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.model.ThingsCounts;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -140,7 +142,38 @@ public class ThingDAO {
             things.add(new Thing(cursor));
         }
         cursor.close();
+        Collections.sort(things, getBaseThingComparator());
         return things;
+    }
+
+    public Comparator<Thing> getBaseThingComparator() {
+        return new Comparator<Thing>() {
+            @Override
+            public int compare(Thing thing1, Thing thing2) {
+                if (thing1.getType() == Thing.HEADER) {
+                    return -1;
+                }
+                if (thing2.getType() == Thing.HEADER) {
+                    return 1;
+                }
+                long loc1 = thing1.getLocation();
+                long loc2 = thing2.getLocation();
+                if (loc1 < 0 && loc2 > 0) {
+                    return -1;
+                } else if (loc1 > 0 && loc2 < 0) {
+                    return 1;
+                } else if (loc1 > 0 && loc2 > 0) {
+                    if (loc1 > loc2)       return -1;
+                    else if (loc1 == loc2) return 0;
+                    else                   return 1;
+                } else { // both are <0, both are sticky on top
+                    // locations are -3 and -2, the -3 one will be in front of the -2 one.
+                    if (loc1 > loc2)       return 1;
+                    else if (loc1 == loc2) return 0;
+                    else                   return -1;
+                }
+            }
+        };
     }
 
     /**
@@ -353,6 +386,16 @@ public class ThingDAO {
         } finally {
             db.endTransaction();
         }
+    }
+
+    public long getMinThingLocation() {
+        Cursor cursor = db.query(Def.Database.TABLE_THINGS,
+                null, null, null, null, null, Def.Database.COLUMN_LOCATION_THINGS);
+        cursor.moveToFirst();
+        long minLocation = cursor.getLong(
+                cursor.getColumnIndex(Def.Database.COLUMN_LOCATION_THINGS));
+        cursor.close();
+        return minLocation;
     }
 
     /**

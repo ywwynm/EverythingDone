@@ -262,6 +262,8 @@
     <string name="act_restore_selected">Restore selected</string>
     <string name="act_delete_selected_forever">Delete selected forever</string>
 
+    <string name="act_sticky_on_top">Sticky on top</string>
+
     <!--DetailActivity create-->
     <string name="act_add_attachment">Add attachment</string>
     <string name="act_enable_check_list">Enable checklist</string>

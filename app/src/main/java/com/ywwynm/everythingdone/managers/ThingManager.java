@@ -660,6 +660,7 @@ public class ThingManager {
         });
     }
 
+    // added in thought of reusing code for shortcut action "checking upcoming thing" on 2016/10/22
     public Comparator<Thing> getThingComparatorForAlarmTime(boolean ignoreSticky) {
         final ReminderDAO rDao = ReminderDAO.getInstance(mContext);
         final HabitDAO    hDao = HabitDAO.getInstance(mContext);
@@ -885,6 +886,57 @@ public class ThingManager {
         if (header != null && header.getType() == Thing.HEADER) {
             header.setId(mHeaderId);
             header.setLocation(mHeaderId);
+        }
+    }
+
+
+    // added for act_sticky_on_top on 2016/10/22
+
+    /**
+     * Sticky selected thing on top of {@link #mThings}.
+     * @return old position of selected thing or -1 if no thing is selected, which should be
+     *         impossible. Callers must pay attention to this.
+     */
+    public int stickySelectedThingOnTop() {
+        final int size = mThings.size();
+        for (int i = 0; i < size; i++) {
+            Thing thing = mThings.get(i);
+            if (thing.isSelected()) {
+                stickyThingOnTop(thing, i);
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    public int getSelectedPosition() {
+        final int size = mThings.size();
+        for (int i = 0; i < size; i++) {
+            Thing thing = mThings.get(i);
+            if (thing.isSelected()) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    public void stickyThingOnTop(Thing thing, int position) {
+        long minLocation = mDao.getMinThingLocation();
+        long newLocation;
+        if (minLocation > 0) {
+            newLocation = -1;
+        } else {
+            newLocation = minLocation - 1;
+        }
+        Long[] ids = new Long[1];
+        ids[0] = thing.getId();
+        Long[] locations = new Long[1];
+        locations[0] = newLocation;
+
+        mDao.updateLocations(ids, locations);
+        if (position != -1) {
+            mThings.remove(position);
+            mThings.add(1, thing);
         }
     }
 }

@@ -257,6 +257,8 @@
     <string name="act_restore_selected">還原選中的記事</string>
     <string name="act_delete_selected_forever">徹底删除選中的記事</string>
 
+    <string name="act_sticky_on_top">置頂</string>
+
     <!--DetailActivity create-->
     <string name="act_add_attachment">添加附件</string>
     <string name="act_enable_check_list">啟用清單</string>
