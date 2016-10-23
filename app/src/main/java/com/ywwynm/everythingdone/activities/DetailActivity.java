@@ -992,7 +992,8 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 if (CheckListHelper.isCheckListStr(mThing.getContent())) {
                     toggleCheckListActionItem(menu, true);
                 }
-                togglePrivateThingActionItem(menu, !mThing.isPrivate());
+                togglePrivateThingMenuItem(menu, !mThing.isPrivate());
+                toggleStickyActionItem(menu);
             } else if (state == Thing.FINISHED) {
                 inflater.inflate(R.menu.menu_detail_finished, menu);
                 if (thingType != Thing.HABIT) {
@@ -1070,15 +1071,10 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                         Manifest.permission.WRITE_EXTERNAL_STORAGE);
                 break;
             case R.id.act_abandon_new_thing:
-                int resultCode = Def.Communication.RESULT_ABANDON_NEW_THING;
-                Intent intent = new Intent(Def.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI);
-                intent.putExtra(Def.Communication.KEY_RESULT_CODE, resultCode);
-                if (shouldSendBroadCast()) {
-                    sendBroadCastToUpdateMainUI(intent, resultCode);
-                } else {
-                    setResult(resultCode, intent);
-                }
-                finish();
+                createFailed(Def.Communication.RESULT_ABANDON_NEW_THING);
+                break;
+            case R.id.act_sticky:
+                stickyOrCancel();
                 break;
             default:break;
         }
@@ -1114,12 +1110,21 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         }
     }
 
-    private void togglePrivateThingActionItem(Menu menu, boolean set) {
+    private void togglePrivateThingMenuItem(Menu menu, boolean set) {
         MenuItem item = menu.findItem(R.id.act_set_as_private_thing);
         if (set) {
             item.setTitle(R.string.act_set_as_private_thing);
         } else {
             item.setTitle(R.string.act_cancel_private_thing);
+        }
+    }
+
+    private void toggleStickyActionItem(Menu menu) {
+        MenuItem item = menu.findItem(R.id.act_sticky);
+        if (mThing.getLocation() < 0) {
+            item.setTitle(R.string.act_cancel_sticky);
+        } else {
+            item.setTitle(R.string.act_sticky_on_top);
         }
     }
 
@@ -1219,7 +1224,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 tryToCancelPrivateThing();
             } else {
                 setAsPrivateThingUiAndAddAction();
-                togglePrivateThingActionItem(mActionbar.getMenu(), false);
+                togglePrivateThingMenuItem(mActionbar.getMenu(), false);
             }
         }
     }
@@ -1270,7 +1275,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     }
 
     private void cancelPrivateThingUiAndAddAction() {
-        togglePrivateThingActionItem(mActionbar.getMenu(), true);
+        togglePrivateThingMenuItem(mActionbar.getMenu(), true);
 
         mEtTitle.setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, 0);
 
@@ -2180,7 +2185,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         String attachment = getThingAttachment();
 
         if (mType == CREATE && title.isEmpty() && content.isEmpty() && attachment.isEmpty()) {
-            createEmptyThing();
+            createFailed(Def.Communication.RESULT_CREATE_BLANK_THING);
             return;
         }
 
@@ -2347,14 +2352,14 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         return attachment;
     }
 
-    private void createEmptyThing() {
-        int resultCode = Def.Communication.RESULT_CREATE_BLANK_THING;
-        setResult(resultCode);
+    private void createFailed(int resultCode) {
         if (App.isSomethingUpdatedSpecially()) {
             App.setShouldJustNotifyDataSetChanged(true);
         }
         if (shouldSendBroadCast()) {
             sendBroadCastToUpdateMainUI(new Intent(), resultCode);
+        } else {
+            setResult(resultCode);
         }
         finish();
     }
@@ -2510,6 +2515,34 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         }
 
         return resultCode;
+    }
+
+    private void stickyOrCancel() {
+        if (App.isSomethingUpdatedSpecially()) {
+            updateThingAndItsPosition(mThing.getId());
+            App.setShouldJustNotifyDataSetChanged(true);
+        }
+
+        if (mThing.getLocation() < 0) {
+            ThingManager.getInstance(mApp).cancelStickyThing(mThing, mPosition);
+        } else {
+            ThingManager.getInstance(mApp).stickyThingOnTop(mThing, mPosition);
+        }
+        int resultCode = Def.Communication.RESULT_STICKY_THING_OR_CANCEL;
+        Intent intent = new Intent(Def.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI);
+        intent.putExtra(Def.Communication.KEY_RESULT_CODE, resultCode);
+        intent.putExtra(Def.Communication.KEY_THING, mThing);
+        intent.putExtra(Def.Communication.KEY_POSITION, mPosition);
+        // new position can be gotten at other place
+
+        if (shouldSendBroadCast()) {
+            sendBroadCastToUpdateMainUI(intent, resultCode);
+        } else {
+            setResult(resultCode, intent);
+        }
+        AppWidgetHelper.updateSingleThingAppWidgets(this, mThing.getId());
+        AppWidgetHelper.updateThingsListAppWidgetsForType(this, mThing.getType());
+        finish();
     }
 
     private boolean shouldSendBroadCast() {

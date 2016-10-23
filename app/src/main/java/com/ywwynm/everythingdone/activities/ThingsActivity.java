@@ -648,6 +648,9 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             case Def.Communication.RESULT_UPDATE_THING_STATE_DIFFERENT:
                 updateMainUiForUpdateDifferentState(data);
                 break;
+            case Def.Communication.RESULT_STICKY_THING_OR_CANCEL:
+                updateMainUiForStickyOrCancel(data);
+                break;
             case Def.Communication.RESULT_NO_UPDATE:
             default:
                 if (mRemoteIntent == null) {
@@ -922,6 +925,44 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                         updateUIAfterStateUpdated(stateAfter,
                                 mRecyclerView.getItemAnimator().getRemoveDuration(), false);
                     }
+                }
+
+                mUpdateMainUiInOnResume = true;
+                if (mCanSeeUi) {
+                    App.setSomethingUpdatedSpecially(false);
+                }
+                mRemoteIntent = null;
+            }
+        }, 560);
+    }
+
+    private void updateMainUiForStickyOrCancel(Intent data) {
+        final Thing thing = data.getParcelableExtra(
+                Def.Communication.KEY_THING);
+        final boolean isStickyBefore = thing.getLocation() > 0; // just used for log
+        final int oldPosition = data.getIntExtra(
+                Def.Communication.KEY_POSITION, -1);
+        final int newPosition = mThingManager.getPosition(thing.getId());
+        final boolean justNotifyDataSetChanged = App.justNotifyDataSetChanged();
+        Log.i(TAG, "updateMainUiForStickyOrCancel called, "
+                + "isStickyBefore[" + isStickyBefore + "], "
+                + "oldPosition[" + oldPosition + "], "
+                + "newPosition[" + newPosition + "], "
+                + "justNotifyDataSetChanged[" + justNotifyDataSetChanged + "]");
+
+        mDrawerLayout.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if (justNotifyDataSetChanged) {
+                    justNotifyDataSetChanged();
+                } else if (oldPosition != -1 && newPosition != -1) {
+                    mAdapter.notifyItemMoved(oldPosition, newPosition);
+                    mDrawerLayout.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            mAdapter.notifyItemChanged(newPosition);
+                        }
+                    }, mRecyclerView.getItemAnimator().getMoveDuration());
                 }
 
                 mDrawerHeader.updateCompletionRate();
@@ -2325,7 +2366,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     handleUpdateStates(Thing.DELETED_FOREVER);
                     break;
                 case R.id.act_sticky:
-                    final int oldPosition = mThingManager.getSelectedPosition();
+                    final int oldPosition = mThingManager.getSingleSelectedPosition();
                     if (oldPosition == -1) break;
                     mModeManager.backNormalMode(oldPosition);
                     mRecyclerView.postDelayed(new Runnable() {

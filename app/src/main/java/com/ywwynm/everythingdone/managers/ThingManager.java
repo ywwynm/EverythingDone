@@ -2,7 +2,6 @@ package com.ywwynm.everythingdone.managers;
 
 import android.content.Context;
 import android.database.Cursor;
-import android.support.annotation.NonNull;
 import android.util.SparseIntArray;
 
 import com.ywwynm.everythingdone.App;
@@ -822,10 +821,7 @@ public class ThingManager {
         }
     }
 
-
-    // added for act_sticky_on_top on 2016/10/22
-
-    public int getSelectedPosition() {
+    public int getSingleSelectedPosition() {
         final int size = mThings.size();
         for (int i = 0; i < size; i++) {
             if (mThings.get(i).isSelected()) {
@@ -835,10 +831,12 @@ public class ThingManager {
         return -1;
     }
 
-    public void stickyThingOnTop(@NonNull Thing thing, int position) {
+    public void stickyThingOnTop(Thing thing, int position) {
+        if (thing == null) return;
+
         long minLocation = mDao.getMinThingLocation();
         long newLocation;
-        if (minLocation > 0) {
+        if (minLocation >= 0) {
             newLocation = -1;
         } else {
             newLocation = minLocation - 1;
@@ -857,7 +855,9 @@ public class ThingManager {
         }
     }
 
-    public void cancelStickyThing(@NonNull Thing thing, int position) {
+    public void cancelStickyThing(Thing thing, int position) {
+        if (thing == null) return;
+
         long maxLocation = mDao.getMaxThingLocation(); // this will always be >0
         updateHeader(2);
         mDao.updateHeader(2);

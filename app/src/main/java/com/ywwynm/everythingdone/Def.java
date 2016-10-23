@@ -202,7 +202,8 @@ public final class Def {
         public static final int RESULT_UPDATE_THING_DONE_TYPE_SAME      = 4;
         public static final int RESULT_UPDATE_THING_DONE_TYPE_DIFFERENT = 5;
         public static final int RESULT_UPDATE_THING_STATE_DIFFERENT     = 6;
-        public static final int RESULT_JUST_NOTIFY_DATASET_CHANGED      = 7;
+        public static final int RESULT_STICKY_THING_OR_CANCEL           = 7;
+        public static final int RESULT_JUST_NOTIFY_DATASET_CHANGED      = 8;
 
         public static final int RESULT_UPDATE_IMAGE_DONE = 1;
 

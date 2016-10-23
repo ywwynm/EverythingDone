@@ -28,6 +28,11 @@
         app:showAsAction="never"/>
 
     <item
+        android:id="@+id/act_sticky"
+        android:title="@string/act_sticky_on_top"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/act_undo"
         android:title="@string/act_undo"
         app:showAsAction="never"/>
