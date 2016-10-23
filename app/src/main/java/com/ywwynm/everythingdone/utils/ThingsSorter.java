@@ -51,9 +51,9 @@ public class ThingsSorter {
                     // sort by location at first(which means considering sticky), then by alarm time
                     long loc1 = thing1.getLocation();
                     long loc2 = thing2.getLocation();
-                    if (loc1 < 0 && loc2 > 0) {
+                    if (loc1 < 0 && loc2 >= 0) {
                         return -1;
-                    } else if (loc1 > 0 && loc2 < 0) {
+                    } else if (loc1 >= 0 && loc2 < 0) {
                         return 1;
                     } else {
                         return compareByAlarmTime(thing1, thing2);
@@ -126,11 +126,11 @@ public class ThingsSorter {
     }
 
     public static int compareByLocationAndSticky(long loc1, long loc2) {
-        if (loc1 < 0 && loc2 > 0) {
+        if (loc1 < 0 && loc2 >= 0) {
             return -1;
-        } else if (loc1 > 0 && loc2 < 0) {
+        } else if (loc1 >= 0 && loc2 < 0) {
             return 1;
-        } else if (loc1 > 0 && loc2 > 0) {
+        } else if (loc1 >= 0 && loc2 >= 0) {
             if (loc1 > loc2)       return -1;
             else if (loc1 == loc2) return 0;
             else                   return 1;
