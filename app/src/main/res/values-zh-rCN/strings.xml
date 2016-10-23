@@ -258,6 +258,7 @@
     <string name="act_delete_selected_forever">彻底删除选中的记事</string>
 
     <string name="act_sticky_on_top">置顶</string>
+    <string name="act_cancel_sticky">取消置顶</string>
 
     <!--DetailActivity create-->
     <string name="act_add_attachment">添加附件</string>

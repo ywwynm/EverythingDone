@@ -263,6 +263,7 @@
     <string name="act_delete_selected_forever">Delete selected forever</string>
 
     <string name="act_sticky_on_top">Sticky on top</string>
+    <string name="act_cancel_sticky">Cancel sticky</string>
 
     <!--DetailActivity create-->
     <string name="act_add_attachment">Add attachment</string>

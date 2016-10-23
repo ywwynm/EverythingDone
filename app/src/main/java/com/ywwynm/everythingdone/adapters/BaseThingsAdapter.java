@@ -76,35 +76,13 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
     @Override
     public void onBindViewHolder(BaseThingViewHolder holder, int position) {
         Thing thing = getThings().get(position);
-
         setViewAppearance(holder, thing);
         setCardAppearance(holder, thing.getColor(), thing.isSelected());
     }
 
     private void setViewAppearance(BaseThingViewHolder holder, Thing thing) {
-        String title = thing.getTitleToDisplay();
-        if (!title.isEmpty()) {
-            int p = (int) (mScreenDensity * 16);
-            holder.tvTitle.setVisibility(View.VISIBLE);
-            holder.tvTitle.setPadding(p, p, p, 0);
-            holder.tvTitle.setText(title);
-        } else {
-            holder.tvTitle.setVisibility(View.GONE);
-        }
-
-        if (thing.isPrivate()) {
-            holder.ivPrivateThing.setVisibility(View.VISIBLE);
-            holder.flImageAttachment.setVisibility(View.GONE);
-            holder.tvContent.setVisibility(View.GONE);
-            holder.rvChecklist.setVisibility(View.GONE);
-            holder.llAudioAttachment.setVisibility(View.GONE);
-            holder.rlReminder.setVisibility(View.GONE);
-            holder.rlHabit.setVisibility(View.GONE);
-            return;
-        } else {
-            holder.ivPrivateThing.setVisibility(View.GONE);
-        }
-
+        updateCardForSticky(holder, thing);
+        updateCardForTitleAndPrivate(holder, thing);
         updateCardForContent(holder, thing);
         updateCardForReminder(holder, thing);
         updateCardForHabit(holder, thing);
@@ -127,6 +105,39 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
             } else if (holder.rlHabit.getVisibility() == View.VISIBLE) {
                 holder.vHabitSeparator1.setVisibility(View.VISIBLE);
             }
+        }
+    }
+
+    private void updateCardForSticky(BaseThingViewHolder holder, Thing thing) {
+
+    }
+
+    private void updateCardForTitleAndPrivate(BaseThingViewHolder holder, Thing thing) {
+        String title = thing.getTitleToDisplay();
+        boolean isSticky = thing.getLocation() < 0;
+        if (!title.isEmpty() || isSticky) {
+            int p = (int) (mScreenDensity * 16);
+            holder.tvTitle.setVisibility(View.VISIBLE);
+            holder.tvTitle.setPadding(p, p, p, 0);
+            holder.tvTitle.setText(title);
+            if (isSticky) {
+                holder.tvTitle.append(" sticky");
+            }
+        } else {
+            holder.tvTitle.setVisibility(View.GONE);
+        }
+
+        if (thing.isPrivate()) {
+            holder.ivPrivateThing.setVisibility(View.VISIBLE);
+            holder.flImageAttachment.setVisibility(View.GONE);
+            holder.tvContent.setVisibility(View.GONE);
+            holder.rvChecklist.setVisibility(View.GONE);
+            holder.llAudioAttachment.setVisibility(View.GONE);
+            holder.rlReminder.setVisibility(View.GONE);
+            holder.rlHabit.setVisibility(View.GONE);
+            return;
+        } else {
+            holder.ivPrivateThing.setVisibility(View.GONE);
         }
     }
 

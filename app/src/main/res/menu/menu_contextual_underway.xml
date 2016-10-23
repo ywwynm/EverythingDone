@@ -11,10 +11,10 @@
         app:showAsAction="always"/>
 
     <item
-        android:id="@+id/act_delete_selected"
-        android:title="@string/act_delete_selected"
-        android:icon="@drawable/act_delete_all"
-        app:showAsAction="always"/>
+        android:id="@+id/act_sticky"
+        android:title="@string/act_sticky_on_top"
+        android:icon="@drawable/act_search"
+        app:showAsAction="always" />
 
     <item
         android:id="@+id/act_finish_selected"
@@ -23,9 +23,9 @@
         app:showAsAction="always"/>
 
     <item
-        android:id="@+id/act_sticky_on_top"
-        android:title="@string/act_sticky_on_top"
-        app:showAsAction="never" />
+        android:id="@+id/act_delete_selected"
+        android:title="@string/act_delete_selected"
+        app:showAsAction="never"/>
 
     <item
         android:id="@+id/act_export"

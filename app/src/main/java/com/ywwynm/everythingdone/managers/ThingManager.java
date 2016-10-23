@@ -2,7 +2,7 @@ package com.ywwynm.everythingdone.managers;
 
 import android.content.Context;
 import android.database.Cursor;
-import android.support.v4.util.LongSparseArray;
+import android.support.annotation.NonNull;
 import android.util.SparseIntArray;
 
 import com.ywwynm.everythingdone.App;
@@ -12,10 +12,10 @@ import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
 import com.ywwynm.everythingdone.helpers.AutoNotifyHelper;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
-import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.model.ThingsCounts;
+import com.ywwynm.everythingdone.utils.ThingsSorter;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -215,7 +215,7 @@ public class ThingManager {
         }
 
         if (addToThingsNow) {
-            mThings.add(1, thingToCreate);
+            mThings.add(getPositionToInsertNewThing(), thingToCreate);
         }
 
         if (type >= Thing.NOTE && type <= Thing.GOAL) {
@@ -638,118 +638,51 @@ public class ThingManager {
      * This method will put the thing that is related to most urgent alarm in front of things list.
      * created on 2016/10/10
      */
-    public void updateLocationsByAlarmsTime() {
-        Collections.sort(mThings, getThingComparatorForAlarmTime(false));
+    public void updateLocationsByAlarmTime() {
+        Collections.sort(mThings, ThingsSorter.getThingComparatorByAlarmTime(false));
         final int size = mThings.size();
         final Long[] ids = new Long[size];
-        final Long[] locations = new Long[size];
+        final List<Long> locationsList = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
             Thing thing = mThings.get(i);
             ids[i] = thing.getId();
-            locations[i] = thing.getLocation();
+            locationsList.add(thing.getLocation());
         }
-        Arrays.sort(locations, Collections.reverseOrder());
+
+        Collections.sort(locationsList, new Comparator<Long>() {
+            @Override
+            public int compare(Long l1, Long l2) {
+                return ThingsSorter.compareByLocationAndSticky(l1, l2);
+            }
+        });
+        // if there are sticky things, locations[0] will be <0 while first thing is header, so
+        // I should assign max location to header by myself
+        long maxLocation = Long.MIN_VALUE;
+        int maxPos = -1;
         for (int i = 0; i < size; i++) {
-            mThings.get(i).setLocation(locations[i]);
+            long location = locationsList.get(i);
+            if (location > maxLocation) {
+                maxLocation = location;
+                maxPos = i;
+            }
+        }
+        locationsList.remove(maxPos);
+        locationsList.add(0, maxLocation);
+
+        for (int i = 0; i < size; i++) {
+            mThings.get(i).setLocation(locationsList.get(i));
         }
         mExecutor.execute(new Runnable() {
             @Override
             public void run() {
-                mDao.updateLocations(ids, locations);
+                Long[] locationsArray = new Long[size];
+                locationsList.toArray(locationsArray);
+                mDao.updateLocations(ids, locationsArray);
             }
         });
     }
 
     // added in thought of reusing code for shortcut action "checking upcoming thing" on 2016/10/22
-    public Comparator<Thing> getThingComparatorForAlarmTime(boolean ignoreSticky) {
-        final ReminderDAO rDao = ReminderDAO.getInstance(mContext);
-        final HabitDAO    hDao = HabitDAO.getInstance(mContext);
-        return new Comparator<Thing>() {
-
-            private LongSparseArray<Boolean> shouldSortMap = new LongSparseArray<>();
-            private LongSparseArray<Long> timeMap = new LongSparseArray<>();
-
-            @Override
-            public int compare(Thing thing1, Thing thing2) {
-                @Thing.Type int type1 = thing1.getType();
-                @Thing.Type int type2 = thing2.getType();
-                // header is on top
-                if (type1 == Thing.HEADER) return -1;
-                if (type2 == Thing.HEADER) return 1;
-
-                long id1 = thing1.getId();
-                Boolean shouldSort1 = shouldSort(id1, type1);
-                long id2 = thing2.getId();
-                Boolean shouldSort2 = shouldSort(id2, type2);
-
-                if (!shouldSort1 && !shouldSort2) {
-                    return compareByLocation(thing1, thing2);
-                } else if (shouldSort1 && !shouldSort2) {
-                    return -1;
-                } else if (!shouldSort1 && shouldSort2) {
-                    return 1;
-                } else {
-                    long time1 = getAlarmTime(thing1.getId(), type1);
-                    long time2 = getAlarmTime(thing2.getId(), type2);
-                    if (time1 < time2) {
-                        return -1;
-                    } else if (time1 == time2) {
-                        return 0;
-                    } else return 1;
-                }
-            }
-
-            private boolean shouldSort(long id, @Thing.Type int type) {
-                Boolean shouldSort = shouldSortMap.get(id);
-                if (shouldSort == null) {
-                    if (Thing.isReminderType(type)) {
-                        Reminder reminder = rDao.getReminderById(id);
-                        shouldSort = reminder != null && reminder.getState() == Reminder.UNDERWAY;
-                    } else if (type == Thing.HABIT) {
-                        Habit habit = hDao.getHabitById(id);
-                        shouldSort = habit != null;
-                    } else {
-                        shouldSort = false;
-                    }
-                    shouldSortMap.put(id, shouldSort);
-                }
-                return shouldSort;
-            }
-
-            private int compareByLocation(Thing thing1, Thing thing2) {
-                long location1 = thing1.getLocation();
-                long location2 = thing2.getLocation();
-                if (location1 < location2) {
-                    return 1;
-                } else if (location1 == location2) {
-                    // impossible
-                    return 0;
-                } else {
-                    return -1;
-                }
-            }
-
-            private long getAlarmTime(long id, @Thing.Type int type) {
-                Long time = timeMap.get(id);
-                if (time == null) {
-                    time = Long.MAX_VALUE;
-                    if (Thing.isReminderType(type)) {
-                        Reminder r1 = rDao.getReminderById(id);
-                        if (r1 != null && r1.getState() == Reminder.UNDERWAY) {
-                            time = r1.getNotifyTime();
-                        }
-                    } else {
-                        Habit h1 = hDao.getHabitById(id);
-                        if (h1 != null) {
-                            time = h1.getMinHabitReminderTime();
-                        }
-                    }
-                    timeMap.put(id, time);
-                }
-                return time;
-            }
-        };
-    }
 
     /**
      * This method will be only called when a thing with {@param type} and {@param state}
@@ -761,7 +694,7 @@ public class ThingManager {
      * @return {@code true} if a NOTIFY_EMPTY is needed to create under current
      * limit({@link mLimit}) and we created it indeed. {@code false} otherwise.
      */
-    public boolean createNEnow(@Thing.Type int type, @Thing.State int state, boolean addToThingsNow) {
+    private boolean createNEnow(@Thing.Type int type, @Thing.State int state, boolean addToThingsNow) {
         int[] limits = Thing.getLimits(type, state);
         for (int limit : limits) {
             if (mLimit == limit) {
@@ -812,7 +745,7 @@ public class ThingManager {
      * @return {@code true} if the first thing under current limit({@link mLimit}) is a NOTIFY_EMPTY
      *          and we have already deleted it by calling this. {@code false} otherwise.
      */
-    public boolean deleteNEnow(@Thing.Type int type, @Thing.State int state) {
+    private boolean deleteNEnow(@Thing.Type int type, @Thing.State int state) {
         int[] limits = Thing.getLimits(type, state);
         for (int limit : limits) {
             if (mLimit == limit) {
@@ -885,42 +818,24 @@ public class ThingManager {
         Thing header = mThings.get(0);
         if (header != null && header.getType() == Thing.HEADER) {
             header.setId(mHeaderId);
-            header.setLocation(mHeaderId);
+            header.setLocation(mDao.getMaxThingLocation() + addSize);
         }
     }
 
 
     // added for act_sticky_on_top on 2016/10/22
 
-    /**
-     * Sticky selected thing on top of {@link #mThings}.
-     * @return old position of selected thing or -1 if no thing is selected, which should be
-     *         impossible. Callers must pay attention to this.
-     */
-    public int stickySelectedThingOnTop() {
-        final int size = mThings.size();
-        for (int i = 0; i < size; i++) {
-            Thing thing = mThings.get(i);
-            if (thing.isSelected()) {
-                stickyThingOnTop(thing, i);
-                return i;
-            }
-        }
-        return -1;
-    }
-
     public int getSelectedPosition() {
         final int size = mThings.size();
         for (int i = 0; i < size; i++) {
-            Thing thing = mThings.get(i);
-            if (thing.isSelected()) {
+            if (mThings.get(i).isSelected()) {
                 return i;
             }
         }
         return -1;
     }
 
-    public void stickyThingOnTop(Thing thing, int position) {
+    public void stickyThingOnTop(@NonNull Thing thing, int position) {
         long minLocation = mDao.getMinThingLocation();
         long newLocation;
         if (minLocation > 0) {
@@ -933,10 +848,41 @@ public class ThingManager {
         Long[] locations = new Long[1];
         locations[0] = newLocation;
 
+        thing.setLocation(newLocation);
+
         mDao.updateLocations(ids, locations);
-        if (position != -1) {
+        if (position >= 0 && position < mThings.size()) {
             mThings.remove(position);
             mThings.add(1, thing);
         }
+    }
+
+    public void cancelStickyThing(@NonNull Thing thing, int position) {
+        long maxLocation = mDao.getMaxThingLocation(); // this will always be >0
+        updateHeader(2);
+        mDao.updateHeader(2);
+        long newLocation = maxLocation + 1;
+        Long[] ids = new Long[1];
+        ids[0] = thing.getId();
+        Long[] locations = new Long[1];
+        locations[0] = newLocation;
+
+        thing.setLocation(newLocation);
+
+        mDao.updateLocations(ids, locations);
+        if (position >= 0 && position < mThings.size()) {
+            mThings.remove(position);
+            mThings.add(getPositionToInsertNewThing(), thing);
+        }
+    }
+
+    public int getPositionToInsertNewThing() {
+        final int size = mThings.size();
+        for (int i = 1; i < size; i++) {
+            if (mThings.get(i).getLocation() > 0) {
+                return i;
+            }
+        }
+        return size;
     }
 }

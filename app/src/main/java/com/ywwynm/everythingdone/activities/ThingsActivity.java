@@ -529,7 +529,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 mRecyclerView.scrollToPosition(0);
                 mActivityHeader.reset(true);
                 mFab.showFromBottom();
-                mThingManager.updateLocationsByAlarmsTime();
+                mThingManager.updateLocationsByAlarmTime();
                 mAdapter.setShouldThingsAnimWhenAppearing(true);
                 mAdapter.notifyDataSetChanged();
                 AppWidgetHelper.updateAllThingsListAppWidgets(mApp);
@@ -752,7 +752,8 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                             if (change) {
                                 mAdapter.notifyItemChanged(1);
                             } else {
-                                mAdapter.notifyItemInserted(1);
+                                mAdapter.notifyItemInserted(
+                                        mThingManager.getPositionToInsertNewThing());
                             }
                         }
                         afterUpdateMainUiForCreateDone();
@@ -2041,7 +2042,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 thing.setSelected(!thing.isSelected());
                 mAdapter.notifyItemChanged(position);
                 mModeManager.updateSelectedCount();
-                mModeManager.updateSelectAllButton();
+                mModeManager.updateMenuItems();
             }
         }
 
@@ -2110,7 +2111,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                               RecyclerView.ViewHolder viewHolder, RecyclerView.ViewHolder target) {
             final int from = viewHolder.getAdapterPosition();
             final int to = target.getAdapterPosition();
-            if (from != 0 && to != 0) {
+            if (canMove(from, to)) {
                 mThingManager.move(from, to);
                 mAdapter.notifyItemMoved(from, to);
                 if (firstMove) {
@@ -2122,6 +2123,23 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 return true;
             }
             return false;
+        }
+
+        private boolean canMove(int from, int to) {
+            List<Thing> things = mThingManager.getThings();
+            final int size = things.size();
+            if (from < 0 || from >= size || to < 0 || to >= size) {
+                return false;
+            }
+            Thing t1 = things.get(from);
+            Thing t2 = things.get(to);
+            if (t1.getType() == Thing.HEADER || t2.getType() == Thing.HEADER) {
+                return false;
+            }
+            if (t1.getLocation() < 0 || t2.getLocation() < 0) { // for sticky things
+                return false;
+            }
+            return true;
         }
 
         @Override
@@ -2292,7 +2310,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                         mThingManager.setSelectedTo(true);
                     }
                     mAdapter.notifyDataSetChanged();
-                    mModeManager.updateSelectAllButton();
+                    mModeManager.updateMenuItems();
                     break;
                 case R.id.act_delete_selected:
                     handleUpdateStates(Thing.DELETED);
@@ -2306,9 +2324,33 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 case R.id.act_delete_selected_forever:
                     handleUpdateStates(Thing.DELETED_FOREVER);
                     break;
-                case R.id.act_sticky_on_top:
-                    int oldPosition = mThingManager.stickySelectedThingOnTop();
-                    mAdapter.notifyItemMoved(oldPosition, 1);
+                case R.id.act_sticky:
+                    final int oldPosition = mThingManager.getSelectedPosition();
+                    if (oldPosition == -1) break;
+                    mModeManager.backNormalMode(oldPosition);
+                    mRecyclerView.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (oldPosition >= mThingManager.getThings().size()) return;
+                            Thing thing = mThingManager.getThings().get(oldPosition);
+                            final int newPosition;
+                            if (thing.getLocation() < 0) {
+                                mThingManager.cancelStickyThing(thing, oldPosition);
+                                newPosition = mThingManager.getPositionToInsertNewThing();
+                            } else {
+                                mThingManager.stickyThingOnTop(thing, oldPosition);
+                                newPosition = 1;
+                            }
+                            mAdapter.notifyItemMoved(oldPosition, newPosition);
+                            // notifyItemMoved will not call adapter.bindViewHolder again
+                            mRecyclerView.postDelayed(new Runnable() {
+                                @Override
+                                public void run() {
+                                    mAdapter.notifyItemChanged(newPosition);
+                                }
+                            }, mRecyclerView.getItemAnimator().getMoveDuration());
+                        }
+                    }, 160); // TODO: 2016/10/23 check if 160 is enough
                     break;
                 case R.id.act_export:
                     doWithPermissionChecked(new SimplePermissionCallback(ThingsActivity.this) {

@@ -17,6 +17,7 @@ import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.adapters.ThingsAdapter;
+import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.views.ActivityHeader;
 import com.ywwynm.everythingdone.views.FloatingActionButton;
@@ -167,7 +168,7 @@ public class ModeManager {
         }
         ((SimpleItemAnimator) rv.getItemAnimator())
                 .setSupportsChangeAnimations(false);
-        updateSelectAllButton();
+        updateMenuItems();
     }
 
     public void backNormalMode(final int position) {
@@ -253,7 +254,14 @@ public class ModeManager {
                 + (mThingManager.getThings().size() - 1));
     }
 
-    public void updateSelectAllButton() {
+    public void updateMenuItems() {
+        updateMenuItemSelectAll();
+        if (mApp.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
+            updateMenuItemStickyOnTop();
+        }
+    }
+
+    private void updateMenuItemSelectAll() {
         MenuItem item = mContextualToolbar.getMenu().findItem(R.id.act_select_all);
         if (item == null) {
             return;
@@ -264,6 +272,23 @@ public class ModeManager {
         } else {
             item.setIcon(R.drawable.act_select_all);
             item.setTitle(R.string.act_select_all);
+        }
+    }
+
+    private void updateMenuItemStickyOnTop() {
+        MenuItem item = mContextualToolbar.getMenu().findItem(R.id.act_sticky);
+        if (item == null) {
+            return;
+        }
+        if (mThingManager.getSelectedCount() != 1) {
+            item.setVisible(false);
+        } else {
+            Thing thing = mThingManager.getSelectedThings()[0];
+            if (thing.getLocation() < 0) {
+                item.setTitle(R.string.act_cancel_sticky);
+            } else {
+                item.setTitle(R.string.act_sticky_on_top);
+            }
         }
     }
 

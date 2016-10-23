@@ -10,8 +10,8 @@ import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.database.ThingDAO;
-import com.ywwynm.everythingdone.managers.ThingManager;
 import com.ywwynm.everythingdone.model.Thing;
+import com.ywwynm.everythingdone.utils.ThingsSorter;
 
 import java.util.Collections;
 import java.util.List;
@@ -36,8 +36,7 @@ public class ShortcutActivity extends AppCompatActivity {
         } else if (Def.Communication.SHORTCUT_ACTION_CHECK_UPCOMING.equals(action)) {
             List<Thing> things = ThingDAO.getInstance(this)
                     .getThingsForDisplay(Def.LimitForGettingThings.ALL_UNDERWAY);
-            Collections.sort(things,
-                    ThingManager.getInstance(this).getThingComparatorForAlarmTime(true));
+            Collections.sort(things, ThingsSorter.getThingComparatorByAlarmTime(true));
             Thing thing = things.get(1); // 0 is header
             @Thing.Type int thingType = thing.getType();
             if (Thing.isReminderType(thingType) || thingType == Thing.HABIT) {

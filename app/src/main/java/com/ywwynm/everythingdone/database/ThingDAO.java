@@ -9,6 +9,7 @@ import android.database.sqlite.SQLiteDatabase;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.model.ThingsCounts;
+import com.ywwynm.everythingdone.utils.ThingsSorter;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -142,38 +143,16 @@ public class ThingDAO {
             things.add(new Thing(cursor));
         }
         cursor.close();
-        Collections.sort(things, getBaseThingComparator());
-        return things;
-    }
-
-    public Comparator<Thing> getBaseThingComparator() {
-        return new Comparator<Thing>() {
+        Collections.sort(things, new Comparator<Thing>() {
             @Override
             public int compare(Thing thing1, Thing thing2) {
-                if (thing1.getType() == Thing.HEADER) {
-                    return -1;
-                }
-                if (thing2.getType() == Thing.HEADER) {
-                    return 1;
-                }
-                long loc1 = thing1.getLocation();
-                long loc2 = thing2.getLocation();
-                if (loc1 < 0 && loc2 > 0) {
-                    return -1;
-                } else if (loc1 > 0 && loc2 < 0) {
-                    return 1;
-                } else if (loc1 > 0 && loc2 > 0) {
-                    if (loc1 > loc2)       return -1;
-                    else if (loc1 == loc2) return 0;
-                    else                   return 1;
-                } else { // both are <0, both are sticky on top
-                    // locations are -3 and -2, the -3 one will be in front of the -2 one.
-                    if (loc1 > loc2)       return 1;
-                    else if (loc1 == loc2) return 0;
-                    else                   return -1;
-                }
+                if (thing1.getType() == Thing.HEADER) return -1;
+                if (thing2.getType() == Thing.HEADER) return 1;
+                return ThingsSorter.compareByLocationAndSticky(
+                        thing1.getLocation(), thing2.getLocation());
             }
-        };
+        });
+        return things;
     }
 
     /**
@@ -398,6 +377,16 @@ public class ThingDAO {
         return minLocation;
     }
 
+    public long getMaxThingLocation() {
+        Cursor cursor = db.query(Def.Database.TABLE_THINGS,
+                null, null, null, null, null, Def.Database.COLUMN_LOCATION_THINGS + " desc");
+        cursor.moveToFirst();
+        long maxLocation = cursor.getLong(
+                cursor.getColumnIndex(Def.Database.COLUMN_LOCATION_THINGS));
+        cursor.close();
+        return maxLocation;
+    }
+
     /**
      * A fucking method to get cursor of things for display.
      *
@@ -493,7 +482,7 @@ public class ThingDAO {
      * the new thing created by user(like a new {@link Thing.NOTE})
      * or app itself(like a new {@link Thing.NOTIFY_EMPTY_NOTE}).
      */
-    private void updateHeader(int addSize) {
+    public void updateHeader(int addSize) {
         final String SQL = "update " + Def.Database.TABLE_THINGS
                 + " set id=id+" + addSize + ",location=location+" + addSize
                 + " where type=" + Thing.HEADER;
