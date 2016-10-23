@@ -25,4 +25,16 @@
             android:targetClass="com.ywwynm.everythingdone.activities.ShortcutActivity" />
     </shortcut>
 
+    <shortcut
+        android:shortcutId="most sticky thing"
+        android:enabled="true"
+        android:icon="@drawable/shortcut_check_urgent"
+        android:shortcutShortLabel="@string/act_shortcut_check_sticky"
+        android:shortcutLongLabel="@string/act_shortcut_check_sticky">
+        <intent
+            android:action="com.ywwynm.everythingdone.action.shortcut.check_sticky"
+            android:targetPackage="com.ywwynm.everythingdone"
+            android:targetClass="com.ywwynm.everythingdone.activities.ShortcutActivity" />
+    </shortcut>
+
 </shortcuts>

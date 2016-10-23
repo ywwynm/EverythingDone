@@ -444,6 +444,7 @@
     <string name="alert_cannot_share_empty_thing">无法分享空白记事</string>
 
     <string name="alert_shortcut_no_upcoming">没有将要提醒的记事</string>
+    <string name="alert_shortcut_no_sticky">没有置顶的记事</string>
 
     <!--AudioRecordDialogFragment-->
     <string name="input_file_name">请输入文件名</string>

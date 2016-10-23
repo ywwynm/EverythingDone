@@ -448,6 +448,7 @@
     <string name="alert_cannot_share_empty_thing">Cannot share an empty thing</string>
 
     <string name="alert_shortcut_no_upcoming">No upcoming thing</string>
+    <string name="alert_shortcut_no_sticky">No sticky thing</string>
 
     <!--AudioRecordDialogFragment-->
     <string name="input_file_name">Please enter file name</string>

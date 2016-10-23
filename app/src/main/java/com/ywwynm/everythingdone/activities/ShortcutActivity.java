@@ -47,6 +47,18 @@ public class ShortcutActivity extends AppCompatActivity {
             } else {
                 Toast.makeText(this, R.string.alert_shortcut_no_upcoming, Toast.LENGTH_LONG).show();
             }
+        } else if (Def.Communication.SHORTCUT_ACTION_CHECK_STICKY.equals(action)) {
+            List<Thing> things = ThingDAO.getInstance(this)
+                    .getThingsForDisplay(Def.LimitForGettingThings.ALL_UNDERWAY);
+            Thing thing = things.get(1);
+            if (thing.getLocation() < 0) {
+                openIntent = AuthenticationActivity.getOpenIntent(
+                        this, TAG, thing.getId(), -1,
+                        Def.Communication.AUTHENTICATE_ACTION_VIEW,
+                        getString(R.string.check_private_thing));
+            } else {
+                Toast.makeText(this, R.string.alert_shortcut_no_sticky, Toast.LENGTH_LONG).show();
+            }
         }
 
         if (openIntent != null) {

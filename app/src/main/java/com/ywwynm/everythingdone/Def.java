@@ -243,6 +243,8 @@ public final class Def {
                 PREFIX + "action.shortcut.create";
         public static final String SHORTCUT_ACTION_CHECK_UPCOMING =
                 PREFIX + "action.shortcut.check_upcoming";
+        public static final String SHORTCUT_ACTION_CHECK_STICKY =
+                PREFIX + "action.shortcut.check_sticky";
 
     }
 
