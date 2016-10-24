@@ -151,62 +151,72 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/app_widget_info_create"/>
-
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
             </intent-filter>
         </receiver>
+
+        <receiver
+            android:name=".appwidgets.CheckUpcomingWidget"
+            android:label="@string/act_shortcut_check_upcoming">
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/app_widget_info_check_upcoming"/>
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+        </receiver>
+
         <receiver
             android:name=".appwidgets.single.ThingWidgetTiny"
             android:label="@string/thing">
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/app_widget_info_thing_tiny"/>
-
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
             </intent-filter>
         </receiver>
+
         <receiver
             android:name=".appwidgets.single.ThingWidgetSmall"
             android:label="@string/thing">
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/app_widget_info_thing_small"/>
-
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
             </intent-filter>
         </receiver>
+
         <receiver
             android:name=".appwidgets.single.ThingWidgetMiddle"
             android:label="@string/thing">
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/app_widget_info_thing_middle"/>
-
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
             </intent-filter>
         </receiver>
+
         <receiver
             android:name=".appwidgets.single.ThingWidgetLarge"
             android:label="@string/thing">
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/app_widget_info_thing_large"/>
-
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
             </intent-filter>
         </receiver>
+
         <receiver
             android:name=".appwidgets.list.ThingsListWidget"
             android:label="@string/title_widget_things_list">
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/app_widget_info_things_list"/>
-
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
             </intent-filter>
@@ -223,6 +233,7 @@
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
             </intent-filter>
         </activity>
+
         <activity
             android:name=".appwidgets.single.ThingWidgetConfigurationTiny"
             android:configChanges="orientation|keyboardHidden|screenSize"
@@ -234,6 +245,7 @@
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
             </intent-filter>
         </activity>
+
         <activity
             android:name=".appwidgets.single.ThingWidgetConfigurationSmall"
             android:configChanges="orientation|keyboardHidden|screenSize"
@@ -245,6 +257,7 @@
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
             </intent-filter>
         </activity>
+
         <activity
             android:name=".appwidgets.single.ThingWidgetConfigurationMiddle"
             android:configChanges="orientation|keyboardHidden|screenSize"
@@ -256,6 +269,7 @@
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
             </intent-filter>
         </activity>
+
         <activity
             android:name=".appwidgets.single.ThingWidgetConfigurationLarge"
             android:configChanges="orientation|keyboardHidden|screenSize"
@@ -267,6 +281,7 @@
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
             </intent-filter>
         </activity>
+
         <activity
             android:name=".appwidgets.list.ThingsListWidgetConfiguration"
             android:excludeFromRecents="true"
@@ -279,9 +294,11 @@
         <service
             android:name=".appwidgets.single.ChecklistWidgetService"
             android:permission="android.permission.BIND_REMOTEVIEWS"/>
+
         <service
             android:name=".appwidgets.list.ThingsListWidgetService"
             android:permission="android.permission.BIND_REMOTEVIEWS"/>
+
         <service
             android:name=".services.PullAliveJobService"
             android:permission="android.permission.BIND_JOB_SERVICE"/>

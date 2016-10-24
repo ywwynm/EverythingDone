@@ -5,5 +5,5 @@
     android:minHeight="40dp"
     android:updatePeriodMillis="2147483467"
     android:initialLayout="@layout/app_widget_simple"
-    android:previewImage="@drawable/widget_create_content"
+    android:previewImage="@drawable/widget_check_upcoming_content"
     android:resizeMode="none"/>
