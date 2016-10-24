@@ -483,7 +483,7 @@ public class AppWidgetHelper {
     private static void setSticky(RemoteViews remoteViews, Thing thing, int alpha) {
         if (thing.getLocation() < 0) {
             remoteViews.setViewVisibility(IV_STICKY, View.VISIBLE);
-            remoteViews.setInt(IV_STICKY, "setAlpha", alpha);
+            remoteViews.setInt(IV_STICKY, "setImageAlpha", alpha);
         } else {
             remoteViews.setViewVisibility(IV_STICKY, View.GONE);
         }
