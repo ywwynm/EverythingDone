@@ -444,7 +444,7 @@
 
     <string name="alert_cannot_share_empty_thing">無法分享空白記事</string>
 
-    <string name="alert_shortcut_no_upcoming">沒有將要提醒的記事</string>
+    <string name="alert_shortcut_no_upcoming">暫無將要提醒的記事</string>
     <string name="alert_shortcut_no_sticky">沒有置頂的記事</string>
 
     <!--AudioRecordDialogFragment-->
