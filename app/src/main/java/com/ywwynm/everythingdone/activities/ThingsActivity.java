@@ -2177,10 +2177,14 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             if (t1.getType() == Thing.HEADER || t2.getType() == Thing.HEADER) {
                 return false;
             }
-            if (t1.getLocation() < 0 || t2.getLocation() < 0) { // for sticky things
-                return false;
-            }
-            return true;
+
+            long loc1 = t1.getLocation();
+            long loc2 = t2.getLocation();
+            if (loc1 < 0 && loc2 < 0) { // both are sticky things
+                return true;
+            } else if (loc1 >=0 && loc2 >= 0) { // both are not sticky things
+                return true;
+            } else return false;
         }
 
         @Override

@@ -617,7 +617,12 @@ public class ThingManager {
             locations[i - start] = mThings.get(i).getLocation();
         }
 
-        Arrays.sort(locations, Collections.reverseOrder());
+        // moving between sticky things
+        if (locations[0] < 0) {
+            Arrays.sort(locations);
+        } else {
+            Arrays.sort(locations, Collections.reverseOrder());
+        }
 
         for (int i = start, j = 0; i <= end; i++, j++) {
             mThings.get(i).setLocation(locations[j]);
