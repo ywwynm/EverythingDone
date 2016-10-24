@@ -14,9 +14,9 @@
     </shortcut>
 
     <shortcut
-        android:shortcutId="most urgent thing"
+        android:shortcutId="Upcoming thing"
         android:enabled="true"
-        android:icon="@drawable/shortcut_check_urgent"
+        android:icon="@drawable/shortcut_check_upcoming"
         android:shortcutShortLabel="@string/act_shortcut_check_upcoming"
         android:shortcutLongLabel="@string/act_shortcut_check_upcoming">
         <intent
