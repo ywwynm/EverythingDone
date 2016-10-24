@@ -13,7 +13,7 @@
     <item
         android:id="@+id/act_sticky"
         android:title="@string/act_sticky_on_top"
-        android:icon="@drawable/act_search"
+        android:icon="@drawable/act_sticky_on_top"
         app:showAsAction="always" />
 
     <item

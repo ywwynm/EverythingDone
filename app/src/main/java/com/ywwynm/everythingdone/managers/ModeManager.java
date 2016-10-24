@@ -283,10 +283,13 @@ public class ModeManager {
         if (mThingManager.getSelectedCount() != 1) {
             item.setVisible(false);
         } else {
+            item.setVisible(true);
             Thing thing = mThingManager.getSelectedThings()[0];
             if (thing.getLocation() < 0) {
+                item.setIcon(R.drawable.act_cancel_sticky);
                 item.setTitle(R.string.act_cancel_sticky);
             } else {
+                item.setIcon(R.drawable.act_sticky_on_top);
                 item.setTitle(R.string.act_sticky_on_top);
             }
         }
