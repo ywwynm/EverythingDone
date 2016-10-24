@@ -133,6 +133,7 @@
 
     <!--——————————————————————Strings for Thing——————————————————————-->
     <string name="private_thing">私密記事</string>
+    <string name="sticky_thing">置頂的記事</string>
 
     <!--welcomes-->
     <string name="welcome_underway_title">歡迎使用完事兒</string>

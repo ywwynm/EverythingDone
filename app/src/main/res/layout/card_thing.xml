@@ -243,6 +243,7 @@
         android:layout_height="24dp"
         android:layout_gravity="top|end"
         android:src="@drawable/ic_sticky"
+        android:contentDescription="@string/sticky_thing"
         android:visibility="gone"/>
 
 </com.ywwynm.everythingdone.views.InterceptTouchCardView>
