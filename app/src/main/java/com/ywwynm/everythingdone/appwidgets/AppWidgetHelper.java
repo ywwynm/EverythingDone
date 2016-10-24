@@ -66,6 +66,8 @@ public class AppWidgetHelper {
 
     private static final int ROOT_WIDGET_THING        = R.id.root_widget_thing;
 
+    private static final int IV_STICKY                = R.id.iv_thing_sticky;
+
     private static final int IV_IMAGE_ATTACHMENT      = R.id.iv_thing_image;
     private static final int TV_IMAGE_COUNT           = R.id.tv_thing_image_attachment_count;
 
@@ -273,7 +275,7 @@ public class AppWidgetHelper {
                 context.getString(R.string.check_private_thing));
         PendingIntent pendingIntent = PendingIntent.getActivity(
                 context, appWidgetId, contentIntent, 0);
-        remoteViews.setOnClickPendingIntent(R.id.root_widget_thing, pendingIntent);
+        remoteViews.setOnClickPendingIntent(ROOT_WIDGET_THING, pendingIntent);
         return remoteViews;
     }
 
@@ -440,8 +442,11 @@ public class AppWidgetHelper {
         } else {
             alpha = Math.abs(alpha);
         }
+        alpha = (int) (alpha / 100f * 255);
         remoteViews.setInt(ROOT_WIDGET_THING, "setBackgroundColor",
-                DisplayUtil.getTransparentColor(thing.getColor(), (int) (alpha / 100f * 255)));
+                DisplayUtil.getTransparentColor(thing.getColor(), alpha));
+
+        setSticky(remoteViews, thing, alpha);
 
         setImageAttachment(context, remoteViews, thing, appWidgetId, clazz);
 
@@ -473,6 +478,15 @@ public class AppWidgetHelper {
         remoteViews.setViewVisibility(V_STATE_SEPARATOR,    visibility);
         remoteViews.setViewVisibility(V_REMINDER_SEPARATOR, visibility);
         remoteViews.setViewVisibility(V_HABIT_SEPARATOR_1,  visibility);
+    }
+
+    private static void setSticky(RemoteViews remoteViews, Thing thing, int alpha) {
+        if (thing.getLocation() < 0) {
+            remoteViews.setViewVisibility(IV_STICKY, View.VISIBLE);
+            remoteViews.setInt(IV_STICKY, "setAlpha", alpha);
+        } else {
+            remoteViews.setViewVisibility(IV_STICKY, View.GONE);
+        }
     }
 
     private static void setImageAttachment(
