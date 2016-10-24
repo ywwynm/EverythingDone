@@ -125,6 +125,11 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
     private void updateCardForSticky(BaseThingViewHolder holder, Thing thing) {
         if (thing.getLocation() < 0) {
             holder.ivSticky.setVisibility(View.VISIBLE);
+            if (getCurrentMode() != ModeManager.NORMAL && !thing.isSelected()) {
+                holder.ivSticky.setImageResource(R.drawable.ic_sticky_not_selected);
+            } else {
+                holder.ivSticky.setImageResource(R.drawable.ic_sticky);
+            }
         } else {
             holder.ivSticky.setVisibility(View.GONE);
         }
