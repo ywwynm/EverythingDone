@@ -82,7 +82,21 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
 
     private void setViewAppearance(BaseThingViewHolder holder, Thing thing) {
         updateCardForSticky(holder, thing);
-        updateCardForTitleAndPrivate(holder, thing);
+        updateCardForTitle(holder, thing);
+
+        if (thing.isPrivate()) {
+            holder.ivPrivateThing.setVisibility(View.VISIBLE);
+            holder.flImageAttachment.setVisibility(View.GONE);
+            holder.tvContent.setVisibility(View.GONE);
+            holder.rvChecklist.setVisibility(View.GONE);
+            holder.llAudioAttachment.setVisibility(View.GONE);
+            holder.rlReminder.setVisibility(View.GONE);
+            holder.rlHabit.setVisibility(View.GONE);
+            return;
+        } else {
+            holder.ivPrivateThing.setVisibility(View.GONE);
+        }
+
         updateCardForContent(holder, thing);
         updateCardForReminder(holder, thing);
         updateCardForHabit(holder, thing);
@@ -116,7 +130,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
         }
     }
 
-    private void updateCardForTitleAndPrivate(BaseThingViewHolder holder, Thing thing) {
+    private void updateCardForTitle(BaseThingViewHolder holder, Thing thing) {
         String title = thing.getTitleToDisplay();
         if (!title.isEmpty()) {
             int p = (int) (mScreenDensity * 16);
@@ -125,19 +139,6 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
             holder.tvTitle.setText(title);
         } else {
             holder.tvTitle.setVisibility(View.GONE);
-        }
-
-        if (thing.isPrivate()) {
-            holder.ivPrivateThing.setVisibility(View.VISIBLE);
-            holder.flImageAttachment.setVisibility(View.GONE);
-            holder.tvContent.setVisibility(View.GONE);
-            holder.rvChecklist.setVisibility(View.GONE);
-            holder.llAudioAttachment.setVisibility(View.GONE);
-            holder.rlReminder.setVisibility(View.GONE);
-            holder.rlHabit.setVisibility(View.GONE);
-            return;
-        } else {
-            holder.ivPrivateThing.setVisibility(View.GONE);
         }
     }
 
