@@ -109,20 +109,20 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
     }
 
     private void updateCardForSticky(BaseThingViewHolder holder, Thing thing) {
-
+        if (thing.getLocation() < 0) {
+            holder.ivSticky.setVisibility(View.VISIBLE);
+        } else {
+            holder.ivSticky.setVisibility(View.GONE);
+        }
     }
 
     private void updateCardForTitleAndPrivate(BaseThingViewHolder holder, Thing thing) {
         String title = thing.getTitleToDisplay();
-        boolean isSticky = thing.getLocation() < 0;
-        if (!title.isEmpty() || isSticky) {
+        if (!title.isEmpty()) {
             int p = (int) (mScreenDensity * 16);
             holder.tvTitle.setVisibility(View.VISIBLE);
             holder.tvTitle.setPadding(p, p, p, 0);
             holder.tvTitle.setText(title);
-            if (isSticky) {
-                holder.tvTitle.append(" sticky");
-            }
         } else {
             holder.tvTitle.setVisibility(View.GONE);
         }
@@ -407,6 +407,8 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
         protected final InterceptTouchCardView cv;
         protected final View vPaddingBottom;
 
+        protected final ImageView ivSticky;
+
         protected final FrameLayout flImageAttachment;
         protected final ImageView ivImageAttachment;
         protected final TextView tvImageCount;
@@ -442,6 +444,8 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
 
             cv             = f(R.id.cv_thing);
             vPaddingBottom = f(R.id.view_thing_padding_bottom);
+
+            ivSticky = f(R.id.iv_thing_sticky);
 
             flImageAttachment = f(R.id.fl_thing_image);
             ivImageAttachment = f(R.id.iv_thing_image);

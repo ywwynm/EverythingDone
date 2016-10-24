@@ -237,4 +237,12 @@
 
     </LinearLayout>
 
+    <ImageView
+        android:id="@+id/iv_thing_sticky"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_gravity="top|end"
+        android:src="@drawable/ic_sticky"
+        android:visibility="gone"/>
+
 </com.ywwynm.everythingdone.views.InterceptTouchCardView>
