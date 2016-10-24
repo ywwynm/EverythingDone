@@ -259,10 +259,15 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
                 if (cv == null) return;
                 cv.setRadius(0);
                 cv.setCardElevation(0);
+                int alpha = (int) (mWidgetAlpha / 100f * 255);
                 int alphaColor = DisplayUtil.getTransparentColor(
-                        thing.getColor(), (int) (mWidgetAlpha / 100f * 255));
+                        thing.getColor(), alpha);
                 cv.setCardBackgroundColor(alphaColor);
-                //cv.setAlpha(mWidgetAlpha / 100f);
+
+                ImageView iv = (ImageView) cv.findViewById(R.id.iv_thing_sticky);
+                if (iv != null) {
+                    iv.setImageAlpha(alpha);
+                }
             }
         };
         final RecyclerView rvPreview = f(R.id.rv_app_widget_preview);
