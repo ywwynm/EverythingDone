@@ -2275,7 +2275,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             mThing = Thing.getSameCheckStateThing(mThing, stateBefore, stateAfter);
             ThingDAO dao = ThingDAO.getInstance(mApp);
             dao.updateState(mThing, mThing.getLocation(), stateBefore, stateAfter, true, true,
-                    false, dao.getHeaderId(), true);
+                    false, true);
 
             long id = mThing.getId();
             int type = mThing.getType();

@@ -326,7 +326,7 @@ public class ThingManager {
             @Override
             public void run() {
                 mDao.updateState(thingToUpdate, location, stateBefore, stateAfter,
-                        handleNotifyEmpty, false, toUndo, headerId, true);
+                        handleNotifyEmpty, false, toUndo, true);
             }
         });
 
@@ -407,11 +407,10 @@ public class ThingManager {
             clonedThings.add(temp);
         }
 
-        final long headerId = mHeaderId;
         mExecutor.execute(new Runnable() {
             @Override
             public void run() {
-                mDao.updateStates(clonedThings, null, stateBefore, stateAfter, false, headerId);
+                mDao.updateStates(clonedThings, null, stateBefore, stateAfter, false);
             }
         });
 
@@ -519,12 +518,11 @@ public class ThingManager {
             clonedLocations.add(location);
         }
 
-        final long headerId = mHeaderId;
         mExecutor.execute(new Runnable() {
             @Override
             public void run() {
                 mDao.updateStates(clonedThings, clonedLocations, stateBefore, stateAfter,
-                        true, headerId);
+                        true);
             }
         });
 

@@ -226,7 +226,7 @@ public class ThingDAO {
     public void updateState(Thing thing, long location,
                             @Thing.State int stateBefore, @Thing.State int stateAfter,
                             boolean handleNotifyEmpty, boolean handleCurrentLimit,
-                            boolean toUndo, long headerLocation, boolean shouldUpdateHeader) {
+                            boolean toUndo, boolean shouldUpdateHeader) {
         long id = thing.getId();
         int type = thing.getType();
         ContentValues values = new ContentValues();
@@ -257,10 +257,11 @@ public class ThingDAO {
 
                 // we should keep newest finished thing at the first place in Finished page.
                 if (!toUndo) {
-                    if (shouldUpdateHeader) {
+                    long maxLocation = getMaxThingLocation();
+                    if (shouldUpdateHeader) { // this is always true if called by other classes
                         updateHeader(1);
                     }
-                    values.put(Def.Database.COLUMN_LOCATION_THINGS, headerLocation);
+                    values.put(Def.Database.COLUMN_LOCATION_THINGS, maxLocation);
                     if (stateAfter == Thing.FINISHED) {
                         values.put(Def.Database.COLUMN_FINISH_TIME_THINGS, System.currentTimeMillis());
                     }
@@ -287,21 +288,20 @@ public class ThingDAO {
 
     public void updateStates(List<Thing> things, List<Long> locations,
                              @Thing.State int stateBefore, @Thing.State int stateAfter,
-                             boolean toUndo, long headerLocation) {
+                             boolean toUndo) {
         db.beginTransaction();
         try {
-            long newHeaderLocation = headerLocation;
             int size = things.size();
             if (!toUndo) {
                 updateHeader(size);
-                for (int i = size - 1; i >= 0; i--, newHeaderLocation++) {
+                for (int i = size - 1; i >= 0; i--) {
                     updateState(things.get(i), -1, stateBefore, stateAfter, false, false,
-                            false, newHeaderLocation, false);
+                            false, false);
                 }
             } else {
-                for (int i = size - 1; i >= 0; i--, newHeaderLocation++) {
+                for (int i = size - 1; i >= 0; i--) {
                     updateState(things.get(i), locations.get(i), stateBefore, stateAfter,
-                            false, false, true, newHeaderLocation, false);
+                            false, false, true, false);
                 }
             }
 

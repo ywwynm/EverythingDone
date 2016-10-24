@@ -39,7 +39,6 @@ public class RemoteActionHelper {
                     true,  /* handleNotifyEmpty  */
                     true,  /* handleCurrentLimit */
                     false, /* toUndo             */
-                    hId,
                     true   /* shouldUpdateHeader */);
         }
         updateUiEverywhere(context, thing, position, thing.getType(),
