@@ -298,8 +298,9 @@
     <!--AboutActivity-->
     <string name="act_share_everythingdone">share EverythingDone</string>
 
-    <!--Reminder Receiver-->
+    <!--ReminderReceiver-->
     <string name="act_delay">Delay</string>
+    <string name="act_start_doing">Start</string> <!--Also used in HabitReceiver-->
 
     <!--DelayReminderActivity-->
     <string name="delay_reminder">Delay Reminder</string>

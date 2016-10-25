@@ -213,8 +213,8 @@ public final class Def {
                 PREFIX + "action.notification.finish";
         public static final String NOTIFICATION_ACTION_DELAY  =
                 PREFIX + "action.notification.delay";
-        public static final String NOTIFICATION_ACTION_GET_IT =
-                PREFIX + "action.notification.get_it";
+        public static final String NOTIFICATION_ACTION_START_DOING =
+                PREFIX + "action.notification.start_doing";
 
         // added for finish(or finish this time) action in single thing app widget
         public static final String WIDGET_ACTION_FINISH = PREFIX + "action.widget.finish";

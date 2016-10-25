@@ -90,6 +90,15 @@ public class ReminderReceiver extends BroadcastReceiver {
                             context.getString(R.string.act_delay),
                             PendingIntent.getBroadcast(context,
                                     (int) id, delayIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+
+                    Intent startIntent = new Intent(context, ReminderNotificationActionReceiver.class);
+                    startIntent.setAction(Def.Communication.NOTIFICATION_ACTION_START_DOING);
+                    startIntent.putExtra(Def.Communication.KEY_ID, id);
+                    startIntent.putExtra(Def.Communication.KEY_POSITION, position);
+                    builder.addAction(R.drawable.ic_finish_in_advance,
+                            context.getString(R.string.act_start_doing),
+                            PendingIntent.getBroadcast(context,
+                                    (int) id, startIntent, PendingIntent.FLAG_UPDATE_CURRENT));
                 }
 
                 NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);

@@ -23,7 +23,8 @@ public class ReminderNotificationActionReceiver extends BroadcastReceiver {
     private static final String[] LEGAL_ACTIONS = {
             Def.Communication.NOTIFICATION_ACTION_FINISH,
             Def.Communication.WIDGET_ACTION_FINISH,
-            Def.Communication.NOTIFICATION_ACTION_DELAY
+            Def.Communication.NOTIFICATION_ACTION_DELAY,
+            Def.Communication.NOTIFICATION_ACTION_START_DOING
     };
 
     public ReminderNotificationActionReceiver() { }
@@ -82,6 +83,8 @@ public class ReminderNotificationActionReceiver extends BroadcastReceiver {
             }
             actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             context.startActivity(actionIntent);
+        } else if (action.endsWith(Def.Communication.NOTIFICATION_ACTION_START_DOING)) {
+
         }
     }
 }

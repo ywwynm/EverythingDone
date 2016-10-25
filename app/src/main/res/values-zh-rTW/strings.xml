@@ -293,8 +293,9 @@
     <!--AboutActivity-->
     <string name="act_share_everythingdone">分享完事兒</string>
 
-    <!--Reminder Receiver-->
+    <!--ReminderReceiver-->
     <string name="act_delay">延遲</string>
+    <string name="act_start_doing">開始</string> <!--Also used in HabitReceiver-->
 
     <!--DelayReminderActivity-->
     <string name="delay_reminder">延遲提醒</string>

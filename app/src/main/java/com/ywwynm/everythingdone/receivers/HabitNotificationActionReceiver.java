@@ -56,6 +56,8 @@ public class HabitNotificationActionReceiver extends BroadcastReceiver {
             } else {
                 RemoteActionHelper.finishHabitOnce(context, thing, position, time);
             }
+        } else if (action.equals(Def.Communication.NOTIFICATION_ACTION_START_DOING)) {
+
         }
     }
 }
