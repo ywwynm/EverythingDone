@@ -882,7 +882,7 @@ public class ThingManager {
     public int getPositionToInsertNewThing() {
         final int size = mThings.size();
         for (int i = 1; i < size; i++) {
-            if (mThings.get(i).getLocation() > 0) {
+            if (mThings.get(i).getLocation() >= 0) {
                 return i;
             }
         }
