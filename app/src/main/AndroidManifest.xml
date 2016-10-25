@@ -18,6 +18,7 @@
         android:icon="@mipmap/ic_launcher"
         android:label="@string/everythingdone"
         android:supportsRtl="true">
+
         <activity
             android:name=".activities.ThingsActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
@@ -36,6 +37,7 @@
                 android:name="android.app.shortcuts"
                 android:resource="@xml/shortcuts"/>
         </activity>
+
         <activity
             android:name=".activities.DetailActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
@@ -63,6 +65,7 @@
                 <data android:mimeType="audio/*"/>
             </intent-filter>
         </activity>
+
         <activity
             android:name=".activities.ImageViewerActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
@@ -72,18 +75,23 @@
         <receiver
             android:name=".receivers.ReminderReceiver"
             android:enabled="true"/>
+
         <receiver
             android:name=".receivers.ReminderNotificationActionReceiver"
             android:enabled="true"/>
+
         <receiver
             android:name=".receivers.HabitReceiver"
             android:enabled="true"/>
+
         <receiver
             android:name=".receivers.HabitNotificationActionReceiver"
             android:enabled="true"/>
+
         <receiver
             android:name=".receivers.HabitWidgetActionReceiver"
             android:enabled="true"/>
+
         <receiver
             android:name=".receivers.BootReceiver"
             android:enabled="true"
@@ -92,9 +100,11 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
             </intent-filter>
         </receiver>
+
         <receiver
             android:name=".receivers.LocaleChangeReceiver"
             android:enabled="true"/>
+
         <receiver
             android:name=".receivers.UserPresentReceiver"
             android:enabled="true"
@@ -109,6 +119,7 @@
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:label="@string/title_activity_settings"
             android:theme="@style/EverythingDoneTheme.Settings"/>
+
         <activity
             android:name=".activities.AboutActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
@@ -142,6 +153,7 @@
         <activity
             android:name=".activities.AuthenticationActivity"
             android:theme="@style/EverythingDoneTheme.TotallyTransparent"/>
+
         <activity
             android:name=".activities.HelpActivity"
             android:label="@string/help"
