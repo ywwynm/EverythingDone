@@ -127,7 +127,9 @@
 
         <receiver
             android:name=".receivers.DailyUpdateHabitReceiver"
-            android:enabled="true"/>
+            android:enabled="true"
+            android:exported="true"/>
+
         <receiver
             android:name=".receivers.AppUpdateReceiver"
             android:enabled="true"
