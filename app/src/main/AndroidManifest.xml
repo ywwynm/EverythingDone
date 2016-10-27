@@ -344,6 +344,12 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".activities.StartDoingActivity"
+            android:excludeFromRecents="true"
+            android:theme="@style/EverythingDoneTheme.TotallyTransparent">
+        </activity>
+
     </application>
 
 </manifest>

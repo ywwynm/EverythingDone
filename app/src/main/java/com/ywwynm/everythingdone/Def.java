@@ -238,6 +238,8 @@ public final class Def {
                 PREFIX + "action.authenticate.finish";
         public static final String AUTHENTICATE_ACTION_DELAY  =
                 PREFIX + "action.authenticate.delay";
+        public static final String AUTHENTICATE_ACTION_START_DOING =
+                PREFIX + "action.authenticate.start_doing";
 
         public static final String SHORTCUT_ACTION_CREATE =
                 PREFIX + "action.shortcut.create";

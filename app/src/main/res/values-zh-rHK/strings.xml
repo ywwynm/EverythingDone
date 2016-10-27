@@ -495,6 +495,14 @@
     <string name="alert_cancel_goal_content">該操作無法撤銷，完事兒將無法記錄其倒計時，也將無法與閣下一同慶祝它的完成</string>
 
 
+    <!--StartDoingActivity-->
+    <string name="start_doing_full_title">開始做這件事</string>
+    <string name="start_doing_estimated_time">預計完成時間</string>
+    <string name="start_doing_time_not_sure">不確定</string>
+    <string name="start_doing_time_too_long">您預計的完成時間較長，無法在該習慣的下一個提醒前完成一次</string>
+    <string name="start_doing_confirm">開始做事</string>
+
+
     <!--ImageViewerActivity-->
     <string name="alert_delete_attachment">確定要删除該附件嗎？</string>
 

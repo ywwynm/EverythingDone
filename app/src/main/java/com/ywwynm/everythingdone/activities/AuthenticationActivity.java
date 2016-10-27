@@ -88,9 +88,9 @@ public class AuthenticationActivity extends AppCompatActivity {
         if (Def.Communication.AUTHENTICATE_ACTION_FINISH.equals(action)) {
             actFinish(thing, position);
         } else if (Def.Communication.AUTHENTICATE_ACTION_DELAY.equals(action)) {
-            Intent intent = DelayReminderActivity.getOpenIntent(
-                    this, thing.getId(), position, thing.getColor());
-            startActivity(intent);
+            actDelay(thing, position);
+        } else if (Def.Communication.AUTHENTICATE_ACTION_START_DOING.equals(action)) {
+            actStartDoing(thing, position);
         } else {
             actView();
         }
@@ -105,6 +105,18 @@ public class AuthenticationActivity extends AppCompatActivity {
             long time = getIntent().getLongExtra(Def.Communication.KEY_TIME, 0);
             RemoteActionHelper.finishHabitOnce(this, thing, position, time);
         }
+    }
+
+    private void actDelay(Thing thing, int position) {
+        Intent intent = DelayReminderActivity.getOpenIntent(
+                this, thing.getId(), position, thing.getColor());
+        startActivity(intent);
+    }
+
+    private void actStartDoing(Thing thing, int position) {
+        Intent intent = StartDoingActivity.getOpenIntent(
+                this, thing.getId(), position, thing.getColor());
+        startActivity(intent);
     }
 
     private void actView() {
