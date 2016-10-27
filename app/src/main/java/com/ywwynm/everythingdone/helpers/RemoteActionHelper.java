@@ -34,7 +34,6 @@ public class RemoteActionHelper {
         if (position == -1) {
             thing = Thing.getSameCheckStateThing(thing, Thing.UNDERWAY, Thing.FINISHED);
             ThingDAO thingDAO = ThingDAO.getInstance(context);
-            long hId = thingDAO.getHeaderId();
             thingDAO.updateState(thing, thing.getLocation(), Thing.UNDERWAY, Thing.FINISHED,
                     true,  /* handleNotifyEmpty  */
                     true,  /* handleCurrentLimit */
