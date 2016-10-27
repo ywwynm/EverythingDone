@@ -67,6 +67,7 @@ public class AppWidgetHelper {
     private static final int ROOT_WIDGET_THING        = R.id.root_widget_thing;
 
     private static final int IV_STICKY                = R.id.iv_thing_sticky;
+    private static final int IV_STICKY_SMALL          = R.id.iv_thing_sticky_smaller;
 
     private static final int IV_IMAGE_ATTACHMENT      = R.id.iv_thing_image;
     private static final int TV_IMAGE_COUNT           = R.id.tv_thing_image_attachment_count;
@@ -446,7 +447,7 @@ public class AppWidgetHelper {
         remoteViews.setInt(ROOT_WIDGET_THING, "setBackgroundColor",
                 DisplayUtil.getTransparentColor(thing.getColor(), alpha));
 
-        setSticky(remoteViews, thing, alpha);
+        setSticky(remoteViews, thing, alpha, clazz, style);
 
         setImageAttachment(context, remoteViews, thing, appWidgetId, clazz);
 
@@ -480,12 +481,25 @@ public class AppWidgetHelper {
         remoteViews.setViewVisibility(V_HABIT_SEPARATOR_1,  visibility);
     }
 
-    private static void setSticky(RemoteViews remoteViews, Thing thing, int alpha) {
+    private static void setSticky(RemoteViews remoteViews, Thing thing, int alpha,
+                                  Class clazz, @ThingWidgetInfo.Style int style) {
         if (thing.getLocation() < 0) {
-            remoteViews.setViewVisibility(IV_STICKY, View.VISIBLE);
-            remoteViews.setInt(IV_STICKY, "setImageAlpha", alpha);
+            if (clazz.equals(ThingsListWidget.class)) {
+                if (style == ThingWidgetInfo.STYLE_NORMAL) {
+                    remoteViews.setViewVisibility(IV_STICKY, View.VISIBLE);
+                    remoteViews.setInt(IV_STICKY, "setImageAlpha", alpha);
+                } else {
+                    remoteViews.setViewVisibility(IV_STICKY_SMALL, View.VISIBLE);
+                    remoteViews.setInt(IV_STICKY_SMALL, "setImageAlpha", alpha);
+                }
+            } else {
+                remoteViews.setViewVisibility(IV_STICKY, View.VISIBLE);
+                remoteViews.setViewVisibility(IV_STICKY_SMALL, View.GONE);
+                remoteViews.setInt(IV_STICKY, "setImageAlpha", alpha);
+            }
         } else {
             remoteViews.setViewVisibility(IV_STICKY, View.GONE);
+            remoteViews.setViewVisibility(IV_STICKY_SMALL, View.GONE);
         }
     }
 

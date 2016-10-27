@@ -324,4 +324,13 @@
         android:contentDescription="@string/sticky_thing"
         android:visibility="gone"/>
 
+    <ImageView
+        android:id="@+id/iv_thing_sticky_smaller"
+        android:layout_width="16dp"
+        android:layout_height="16dp"
+        android:layout_gravity="top|end"
+        android:src="@drawable/ic_sticky"
+        android:contentDescription="@string/sticky_thing"
+        android:visibility="gone"/>
+
 </FrameLayout>
