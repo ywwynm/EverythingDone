@@ -33,6 +33,7 @@ public class ChooserDialogFragment extends BaseDialogFragment {
 
     private int mAccentColor;
     private String mTitle;
+    private String mConfirmText;
     private List<String> mItems;
     private int mInitialIndex;
 
@@ -47,8 +48,9 @@ public class ChooserDialogFragment extends BaseDialogFragment {
     private TextView mTvCancelAsBt;
     private TextView mTvMoreAsBt;
 
-    private boolean mShouldOverScroll = false;
-    private boolean mShouldShowMore   = true;
+    private boolean mShouldOverScroll          = false;
+    private boolean mShouldShowMore            = true;
+    private boolean mShouldDismissAfterConfirm = true;
 
     private View mSeparator1;
     private View mSeparator2;
@@ -97,6 +99,9 @@ public class ChooserDialogFragment extends BaseDialogFragment {
     private void initUI() {
         mTvTitle.setTextColor(mAccentColor);
         mTvTitle.setText(mTitle);
+        if (mConfirmText != null) {
+            mTvConfirmAsBt.setText(mConfirmText);
+        }
 
         mTvConfirmAsBt.setTextColor(mAccentColor);
 
@@ -160,7 +165,9 @@ public class ChooserDialogFragment extends BaseDialogFragment {
                 if (mConfirmListener != null) {
                     mConfirmListener.onClick(v);
                 }
-                dismiss();
+                if (mShouldDismissAfterConfirm) {
+                    dismiss();
+                }
             }
         });
         if (mShouldShowMore) {
@@ -203,6 +210,10 @@ public class ChooserDialogFragment extends BaseDialogFragment {
         mTitle = title;
     }
 
+    public void setConfirmText(String confirmText) {
+        mConfirmText = confirmText;
+    }
+
     public void setItems(List<String> items) {
         mItems = items;
     }
@@ -213,6 +224,10 @@ public class ChooserDialogFragment extends BaseDialogFragment {
 
     public void setShouldShowMore(boolean shouldShowMore) {
         mShouldShowMore = shouldShowMore;
+    }
+
+    public void setShouldDismissAfterConfirm(boolean shouldDismissAfterConfirm) {
+        mShouldDismissAfterConfirm = shouldDismissAfterConfirm;
     }
 
     public void setInitialIndex(int initialIndex) {
