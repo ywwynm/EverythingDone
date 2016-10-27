@@ -20,7 +20,13 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
+/**=
+ * Created by ywwynm on 2016/10/21.
+ * An Activity used to select time to delay an alarm for Reminder
+ */
 public class DelayReminderActivity extends AppCompatActivity {
+
+    public static final String TAG = "DelayReminderActivity";
 
     public static Intent getOpenIntent(Context context, long thingId, int position, int color) {
         Intent intent = new Intent(context, DelayReminderActivity.class);
