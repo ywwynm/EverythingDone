@@ -487,9 +487,11 @@ public class AppWidgetHelper {
             if (clazz.equals(ThingsListWidget.class)) {
                 if (style == ThingWidgetInfo.STYLE_NORMAL) {
                     remoteViews.setViewVisibility(IV_STICKY, View.VISIBLE);
+                    remoteViews.setViewVisibility(IV_STICKY_SMALL, View.GONE);
                     remoteViews.setInt(IV_STICKY, "setImageAlpha", alpha);
                 } else {
                     remoteViews.setViewVisibility(IV_STICKY_SMALL, View.VISIBLE);
+                    remoteViews.setViewVisibility(IV_STICKY, View.GONE);
                     remoteViews.setInt(IV_STICKY_SMALL, "setImageAlpha", alpha);
                 }
             } else {
