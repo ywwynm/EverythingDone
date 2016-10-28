@@ -335,6 +335,9 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                         }
                     }
                 }
+                // No Reminders/Habits/Goals are in "wrong state" but maybe we should still create
+                // all alarms again since we can't know if alarms of things underway are active.
+                AlarmHelper.createAllAlarms(app, false);
             }
         }).start();
     }
