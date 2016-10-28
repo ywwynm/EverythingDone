@@ -317,8 +317,7 @@ public class Habit {
         StringBuilder sb = new StringBuilder();
         String part1 = context.getString(R.string.celebration_habit_part_1);
         int piT = getPersistInT();
-        if (piT == 0) piT++;
-        sb.append(part1).append(" ").append(piT).append(" ")
+        sb.append(part1).append(" ").append(piT < 1 ? "<1" : String.valueOf(piT)).append(" ")
                 .append(DateTimeUtil.getTimeTypeStr(type, context));
         if (piT > 1 && !LocaleUtil.isChinese(context)) {
             sb.append("s");

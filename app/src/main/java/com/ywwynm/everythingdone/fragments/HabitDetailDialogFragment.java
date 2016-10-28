@@ -106,14 +106,14 @@ public class HabitDetailDialogFragment extends BaseDialogFragment {
         Context context = App.getApp();
 
         int totalT = mHabit.getTotalT();
-        mTvTotalT.setText((totalT < 0 ? 0 : totalT) + " " +
+        mTvTotalT.setText((totalT < 1 ? "<1" : String.valueOf(totalT)) + " " +
                 DateTimeUtil.getTimeTypeStr(mHabit.getType(), context));
         if (totalT > 1 && !LocaleUtil.isChinese(context)) {
             mTvTotalT.append("s");
         }
 
         int piT = mHabit.getPersistInT();
-        mTvPiTs.setText((piT < 0 ? 0 : piT) + " " +
+        mTvPiTs.setText((piT < 1 ? "<1" : String.valueOf(piT)) + " " +
                     DateTimeUtil.getTimeTypeStr(mHabit.getType(), context));
         if (piT > 1 && !LocaleUtil.isChinese(context)) {
             mTvPiTs.append("s");

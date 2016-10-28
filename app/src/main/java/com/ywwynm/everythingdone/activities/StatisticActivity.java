@@ -419,7 +419,7 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
         strs[1] = fCount + " / " + tCount;
         strs[2] = LocaleUtil.getPercentStr(fCount, tCount);
         strs[3] = String.valueOf(maxCft);
-        strs[4] = String.valueOf(maxPit);
+        strs[4] = maxPit < 1 ? "<1" : String.valueOf(maxPit);
         return strs;
     }
 

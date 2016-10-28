@@ -225,7 +225,7 @@ public class SendInfoHelper {
         } else GAP = " ";
         sb.append(remindMe).append(habitStr).append("\n")
                 .append(context.getString(R.string.share_i_persist_in_for)).append(GAP)
-                .append(piT <= 0 ? 1 : piT).append(GAP)
+                .append(piT < 1 ? "<1" : String.valueOf(piT)).append(GAP)
                 .append(DateTimeUtil.getTimeTypeStr(type, context));
         if (!isChinese && piT > 1) {
             sb.append("s");
