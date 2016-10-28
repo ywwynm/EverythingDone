@@ -90,19 +90,27 @@ public class HabitReceiver extends BroadcastReceiver {
             finishIntent.putExtra(Def.Communication.KEY_ID, hrId);
             finishIntent.putExtra(Def.Communication.KEY_POSITION, position);
             finishIntent.putExtra(Def.Communication.KEY_TIME, habitReminder.getNotifyTime());
-
-            Intent startIntent = new Intent(context, HabitNotificationActionReceiver.class);
-            startIntent.setAction(Def.Communication.NOTIFICATION_ACTION_START_DOING);
-            startIntent.putExtra(Def.Communication.KEY_ID, hrId);
-            startIntent.putExtra(Def.Communication.KEY_POSITION, position);
-
             builder.addAction(R.drawable.act_finish, context.getString(R.string.act_finish_this_time_habit),
-                            PendingIntent.getBroadcast(context,
-                                    (int) hrId, finishIntent, PendingIntent.FLAG_UPDATE_CURRENT))
-                   .addAction(R.drawable.ic_finish_in_advance,
-                           context.getString(R.string.act_start_doing),
-                            PendingIntent.getBroadcast(context,
-                                    (int) hrId, startIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+                    PendingIntent.getBroadcast(context,
+                            (int) hrId, finishIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+
+            Intent getItIntent = new Intent(context, HabitNotificationActionReceiver.class);
+            getItIntent.setAction(Def.Communication.NOTIFICATION_ACTION_GET_IT);
+            getItIntent.putExtra(Def.Communication.KEY_ID, hrId);
+            getItIntent.putExtra(Def.Communication.KEY_POSITION, position);
+            builder.addAction(R.drawable.act_get_it,
+                    context.getString(R.string.act_get_it),
+                    PendingIntent.getBroadcast(context,
+                            (int) hrId, getItIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+
+//            Intent startIntent = new Intent(context, HabitNotificationActionReceiver.class);
+//            startIntent.setAction(Def.Communication.NOTIFICATION_ACTION_START_DOING);
+//            startIntent.putExtra(Def.Communication.KEY_ID, hrId);
+//            startIntent.putExtra(Def.Communication.KEY_POSITION, position);
+//            builder.addAction(R.drawable.ic_finish_in_advance,
+//                           context.getString(R.string.act_start_doing),
+//                            PendingIntent.getBroadcast(context,
+//                                    (int) hrId, startIntent, PendingIntent.FLAG_UPDATE_CURRENT));
 
             NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
             notificationManager.notify((int) hrId, builder.build());
