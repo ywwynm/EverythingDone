@@ -6,4 +6,8 @@ package com.ywwynm.everythingdone.appwidgets.single;
  */
 public class ThingWidgetLarge extends BaseThingWidget {
 
+    @Override
+    protected String getTag() {
+        return "ThingWidgetLarge";
+    }
 }

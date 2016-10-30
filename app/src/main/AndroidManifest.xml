@@ -190,6 +190,9 @@
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
             </intent-filter>
+            <intent-filter>
+                <action android:name="com.ywwynm.everythingdone.action.broadcast.update_checklist"/>
+            </intent-filter>
         </receiver>
 
         <receiver
@@ -200,6 +203,9 @@
                 android:resource="@xml/app_widget_info_thing_small"/>
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.ywwynm.everythingdone.action.broadcast.update_checklist"/>
             </intent-filter>
         </receiver>
 
@@ -212,6 +218,9 @@
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
             </intent-filter>
+            <intent-filter>
+                <action android:name="com.ywwynm.everythingdone.action.broadcast.update_checklist"/>
+            </intent-filter>
         </receiver>
 
         <receiver
@@ -222,6 +231,9 @@
                 android:resource="@xml/app_widget_info_thing_large"/>
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.ywwynm.everythingdone.action.broadcast.update_checklist"/>
             </intent-filter>
         </receiver>
 

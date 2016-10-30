@@ -12,6 +12,7 @@ import android.support.v4.content.ContextCompat;
 import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.style.StrikethroughSpan;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.View;
 import android.widget.RemoteViews;
@@ -150,6 +151,7 @@ public class AppWidgetHelper {
      * @param thingId this param will be used to find appwidgets from database to update
      */
     public static void updateSingleThingAppWidgets(Context context, long thingId) {
+        Log.i(TAG, "updateSingleThingAppWidgets is called, thingId[" + thingId + "]");
         AppWidgetDAO appWidgetDAO = AppWidgetDAO.getInstance(context);
         List<ThingWidgetInfo> thingWidgetInfos = appWidgetDAO.getThingWidgetInfosByThingId(thingId);
         for (ThingWidgetInfo thingWidgetInfo : thingWidgetInfos) {
@@ -167,6 +169,7 @@ public class AppWidgetHelper {
     }
 
     public static void updateThingsListAppWidget(Context context, int appWidgetId) {
+        Log.i(TAG, "updateThingsListAppWidget(context, appWidgetId) is called, appWidgetId[" + appWidgetId + "]");
         Intent intent = new Intent(context, ThingsListWidget.class);
         intent.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
         intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS,
@@ -183,6 +186,7 @@ public class AppWidgetHelper {
      * @param limit this param will be used to find appwidgets from database to update.
      */
     public static void updateThingsListAppWidgets(Context context, int limit) {
+        Log.i(TAG, "updateThingsListAppWidget(context, limit) is called, limit[" + limit + "]");
         AppWidgetDAO appWidgetDAO = AppWidgetDAO.getInstance(context);
         int storedLimit = -limit - 1;
         List<ThingWidgetInfo> thingWidgetInfos = appWidgetDAO.getThingWidgetInfosByThingId(storedLimit);
@@ -196,6 +200,7 @@ public class AppWidgetHelper {
     }
 
     public static void updateThingsListAppWidgetsForType(Context context, @Thing.Type int type) {
+        Log.i(TAG, "updateThingsListAppWidgetForType is called, type[" + type + "]");
         int[] limits = Thing.getLimits(type, Thing.UNDERWAY);
         for (int limit : limits) {
             updateThingsListAppWidgets(context, limit);
@@ -203,6 +208,7 @@ public class AppWidgetHelper {
     }
 
     public static void updateAllThingsListAppWidgets(Context context) {
+        Log.i(TAG, "updateAllThingsListAppWidgets is called");
         for (int limit = Def.LimitForGettingThings.ALL_UNDERWAY;
              limit <= Def.LimitForGettingThings.GOAL_UNDERWAY; limit++) {
             updateThingsListAppWidgets(context, limit);
@@ -210,6 +216,7 @@ public class AppWidgetHelper {
     }
 
     public static void updateAllAppWidgets(Context context) {
+        Log.i(TAG, "updateAllAppWidgets is called");
         AppWidgetDAO appWidgetDAO = AppWidgetDAO.getInstance(context);
         List<ThingWidgetInfo> thingWidgetInfos = appWidgetDAO.getAllThingWidgetInfos();
         for (ThingWidgetInfo thingWidgetInfo : thingWidgetInfos) {

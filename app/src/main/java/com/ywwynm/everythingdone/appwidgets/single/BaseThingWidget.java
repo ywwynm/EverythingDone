@@ -5,6 +5,7 @@ import android.appwidget.AppWidgetProvider;
 import android.content.Context;
 import android.content.Intent;
 import android.support.v4.util.Pair;
+import android.util.Log;
 
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
@@ -22,10 +23,13 @@ import java.util.List;
  * Created by qiizhang on 2016/8/1.
  * basic single thing widget
  */
-public class BaseThingWidget extends AppWidgetProvider {
+public abstract class BaseThingWidget extends AppWidgetProvider {
+
+    protected abstract String getTag();
 
     @Override
     public void onReceive(Context context, Intent intent) {
+        Log.i(getTag(), "onReceive(context, intent) is called, action[" + intent.getAction() + "]");
         if (Def.Communication.BROADCAST_ACTION_UPDATE_CHECKLIST.equals(intent.getAction())) {
             long id = intent.getLongExtra(Def.Communication.KEY_ID, -1);
             int itemPos = intent.getIntExtra(Def.Communication.KEY_POSITION, 0);
@@ -48,8 +52,11 @@ public class BaseThingWidget extends AppWidgetProvider {
     private void updateSingleThingAppWidget(
             ThingManager thingManager, ThingDAO thingDAO, AppWidgetDAO appWidgetDAO,
             AppWidgetManager appWidgetManager, Context context, int appWidgetId) {
+        final String TAG = getTag();
+        Log.i(TAG, "updateSingleThingAppWidget is called, appWidgetId[" + appWidgetId + "]");
         ThingWidgetInfo thingWidgetInfo = appWidgetDAO.getThingWidgetInfoById(appWidgetId);
         if (thingWidgetInfo == null) {
+            Log.e(TAG, "updateSingleThingAppWidget but thingWidgetInfo is null");
             return;
         }
 
@@ -61,6 +68,7 @@ public class BaseThingWidget extends AppWidgetProvider {
             position = -1;
             thing = thingDAO.getThingById(thingWidgetInfo.getThingId());
             if (thing == null) {
+                Log.e(TAG, "updateSingleThingAppWidget but thing is null");
                 return;
             }
         } else {
@@ -68,6 +76,7 @@ public class BaseThingWidget extends AppWidgetProvider {
             thing = pair.second;
         }
 
+        Log.e(TAG, "updateSingleThingAppWidget, thing.content[" + thing.getContent() + "]");
         appWidgetManager.updateAppWidget(appWidgetId,
                 AppWidgetHelper.createRemoteViewsForSingleThing(
                         context, thing, position, appWidgetId, getClass()));

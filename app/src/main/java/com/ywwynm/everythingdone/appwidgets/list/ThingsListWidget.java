@@ -15,6 +15,8 @@ import com.ywwynm.everythingdone.model.ThingWidgetInfo;
  */
 public class ThingsListWidget extends AppWidgetProvider {
 
+    public static final String TAG = "ThingsListWidget";
+
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
         super.onUpdate(context, appWidgetManager, appWidgetIds);

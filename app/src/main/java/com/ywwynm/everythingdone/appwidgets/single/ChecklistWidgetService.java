@@ -2,6 +2,7 @@ package com.ywwynm.everythingdone.appwidgets.single;
 
 import android.content.Context;
 import android.content.Intent;
+import android.util.Log;
 import android.widget.RemoteViews;
 import android.widget.RemoteViewsService;
 
@@ -20,6 +21,8 @@ import java.util.List;
  * adapter service for checklist in a thing
  */
 public class ChecklistWidgetService extends RemoteViewsService {
+
+    public static final String TAG = "ChecklistWidgetService";
 
     private static final int LL_CHECK_LIST = R.id.ll_check_list_tv;
 
@@ -47,6 +50,7 @@ public class ChecklistWidgetService extends RemoteViewsService {
         }
 
         private void init() {
+            Log.i(TAG, "init()");
             long id = mIntent.getLongExtra(Def.Communication.KEY_ID, -1);
             ThingManager thingManager = ThingManager.getInstance(mContext);
             mThing = thingManager.getThingById(id);
@@ -54,10 +58,12 @@ public class ChecklistWidgetService extends RemoteViewsService {
                 ThingDAO thingDAO = ThingDAO.getInstance(mContext);
                 mThing = thingDAO.getThingById(id);
                 if (mThing == null) {
+                    Log.i(TAG, "thing is null!");
                     return;
                 }
             }
 
+            Log.i(TAG, "mThing.content[" + mThing.getContent() + "]");
             mItems = CheckListHelper.toCheckListItems(mThing.getContent(), false);
             mItems.remove("2");
             mItems.remove("3");
@@ -66,6 +72,7 @@ public class ChecklistWidgetService extends RemoteViewsService {
 
         @Override
         public void onDataSetChanged() {
+            Log.i(TAG, "onDataSetChanged()");
             init();
         }
 
