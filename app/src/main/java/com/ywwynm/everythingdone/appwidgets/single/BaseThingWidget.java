@@ -76,13 +76,14 @@ public abstract class BaseThingWidget extends AppWidgetProvider {
             thing = pair.second;
         }
 
+        // This line is necessary if there is a checklist
+        // _(:3」∠)_, it seems this line should be written above next line....
+        appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetId, R.id.lv_thing_check_list);
+
         Log.e(TAG, "updateSingleThingAppWidget, thing.content[" + thing.getContent() + "]");
         appWidgetManager.updateAppWidget(appWidgetId,
                 AppWidgetHelper.createRemoteViewsForSingleThing(
                         context, thing, position, appWidgetId, getClass()));
-
-        // this line is necessary if there is a checklist
-        appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetId, R.id.lv_thing_check_list);
     }
 
     @Override

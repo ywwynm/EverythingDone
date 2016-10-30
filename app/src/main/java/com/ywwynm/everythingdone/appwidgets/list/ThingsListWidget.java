@@ -27,12 +27,14 @@ public class ThingsListWidget extends AppWidgetProvider {
                 break;
             }
 
+            // notify data set changed for things list
+            // _(:3」∠)_, it seems this line should be written above next line....
+            appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetId, R.id.lv_things_list);
+
             int limit = -1 * (int) info.getThingId() - 1;
             appWidgetManager.updateAppWidget(appWidgetId,
                     AppWidgetHelper.createRemoteViewsForThingsList(context, limit, appWidgetId));
 
-            // notify data set changed for things list
-            appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetId, R.id.lv_things_list);
         }
     }
 
