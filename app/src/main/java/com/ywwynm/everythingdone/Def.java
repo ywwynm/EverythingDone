@@ -184,8 +184,7 @@ public final class Def {
         public static final String KEY_EDITABLE       = PREFIX + "key.editable";
         public static final String KEY_TYPE_PATH_NAME = PREFIX + "key.type_path_name";
 
-        public static final String KEY_TIME      = PREFIX + "key.time";
-        public static final String KEY_TIME_TYPE = PREFIX + "key.time_type";
+        public static final String KEY_TIME = PREFIX + "key.time";
 
         public static final String KEY_HELP_TITLES   = PREFIX + "key.help_titles";
         public static final String KEY_HELP_CONTENTS = PREFIX + "key.help_contents";

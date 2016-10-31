@@ -18,4 +18,23 @@
 
     </FrameLayout>
 
+    <com.github.adnansm.timelytextview.TimelyView
+        android:id="@+id/timely_view"
+        android:layout_width="80dp"
+        android:layout_height="40dp"
+        android:layout_marginTop="120dp"
+        android:textSize="40sp"
+        android:textColor="#000000"
+        android:text="9"/>
+
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/rv_thing_doing"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="240dp"
+        android:layout_gravity="center_horizontal"
+        android:scrollbars="vertical"
+        android:fadeScrollbars="false"
+        android:theme="@style/WhiteListStyle"/>
+
 </merge>
