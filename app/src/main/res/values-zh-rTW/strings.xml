@@ -105,6 +105,7 @@
     <string name="title_activity_thing_widget_configure">選擇一件記事</string>
     <string name="title_activity_things_list_widget_configuration">選擇正在進行的記事</string>
     <string name="title_widget_things_list">正在進行的記事</string>
+    <string name="title_activity_doing">正在做的事</string>
 
 
 

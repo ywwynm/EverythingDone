@@ -17,7 +17,9 @@
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/everythingdone"
-        android:supportsRtl="true">
+        android:supportsRtl="true"
+        xmlns:tools="http://schemas.android.com/tools"
+        tools:replace="android:label">
 
         <activity
             android:name=".activities.ThingsActivity"
@@ -360,6 +362,12 @@
             android:name=".activities.StartDoingActivity"
             android:excludeFromRecents="true"
             android:theme="@style/EverythingDoneTheme.TotallyTransparent">
+        </activity>
+
+        <activity
+            android:name=".activities.DoingActivity"
+            android:label="@string/title_activity_doing"
+            android:theme="@style/EverythingDoneTheme.Doing">
         </activity>
 
     </application>

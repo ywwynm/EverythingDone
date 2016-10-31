@@ -62,7 +62,7 @@ public class StartDoingActivity extends AppCompatActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        Intent intent = getIntent();
+        final Intent intent = getIntent();
         final long id = intent.getLongExtra(Def.Communication.KEY_ID, -1);
         int pos = intent.getIntExtra(Def.Communication.KEY_POSITION, -1);
         final Pair<Thing, Integer> pair = App.getThingAndPosition(getApplicationContext(), id, pos);
@@ -85,9 +85,10 @@ public class StartDoingActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 int index = cdf.getPickedIndex();
-                boolean shouldDismiss = true;
+                boolean shouldGoToDoing = true;
+                int type, time;
                 if (index == 0) {
-
+                    type = time = -1;
                 } else {
                     index--;
                     long etc = DateTimeUtil.getActualTimeAfterSomeTime(
@@ -99,13 +100,18 @@ public class StartDoingActivity extends AppCompatActivity {
                             if (etc >= nextTime - 6 * 60 * 1000) {
                                 Toast.makeText(getApplicationContext(),
                                         R.string.start_doing_time_too_long, Toast.LENGTH_LONG).show();
-                                shouldDismiss = false;
+                                shouldGoToDoing = false;
                             }
                         }
                     }
+                    type = mTypes[index];
+                    time = mTimes[index];
                 }
-                if (shouldDismiss) {
+                if (shouldGoToDoing) {
                     cdf.dismiss();
+                    Intent intent1 = DoingActivity.getOpenIntent(
+                            StartDoingActivity.this, thing, time, type);
+                    startActivity(intent1);
                 }
             }
         });
