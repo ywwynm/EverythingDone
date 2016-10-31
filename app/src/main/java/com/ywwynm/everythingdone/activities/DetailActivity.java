@@ -555,8 +555,8 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
     @Override
     protected void initUI() {
-        DisplayUtil.expandLayoutAboveLollipop(this);
-        DisplayUtil.expandStatusBarAboveKitkat(mStatusBar);
+        DisplayUtil.expandLayoutToStatusBarAboveLollipop(this);
+        DisplayUtil.expandStatusBarViewAboveKitkat(mStatusBar);
 
         int color = mThing.getColor();
         if (mEditable) {

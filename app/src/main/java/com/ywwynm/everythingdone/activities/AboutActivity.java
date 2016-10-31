@@ -99,8 +99,8 @@ public class AboutActivity extends EverythingDoneBaseActivity {
 
     @Override
     protected void initUI() {
-        DisplayUtil.expandLayoutAboveLollipop(this);
-        DisplayUtil.expandStatusBarAboveKitkat(mStatusBar);
+        DisplayUtil.expandLayoutToStatusBarAboveLollipop(this);
+        DisplayUtil.expandStatusBarViewAboveKitkat(mStatusBar);
         DisplayUtil.darkStatusBar(this);
 
         if (DeviceUtil.hasKitKatApi()) {

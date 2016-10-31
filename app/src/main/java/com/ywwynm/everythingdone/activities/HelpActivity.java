@@ -63,8 +63,8 @@ public class HelpActivity extends EverythingDoneBaseActivity {
 
     @Override
     protected void initUI() {
-        DisplayUtil.expandLayoutAboveLollipop(this);
-        DisplayUtil.expandStatusBarAboveKitkat(f(R.id.view_status_bar));
+        DisplayUtil.expandLayoutToStatusBarAboveLollipop(this);
+        DisplayUtil.expandStatusBarViewAboveKitkat(f(R.id.view_status_bar));
         DisplayUtil.darkStatusBar(this);
 
         mRecyclerView = f(R.id.rv_help);

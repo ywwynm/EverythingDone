@@ -126,8 +126,8 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
     @Override
     protected void initUI() {
         updateStatusBarAndBottomUi(true);
-        DisplayUtil.expandLayoutAboveLollipop(this);
-        DisplayUtil.expandStatusBarAboveKitkat(findViewById(R.id.view_status_bar));
+        DisplayUtil.expandLayoutToStatusBarAboveLollipop(this);
+        DisplayUtil.expandStatusBarViewAboveKitkat(findViewById(R.id.view_status_bar));
         DisplayUtil.darkStatusBar(this);
 
         if (DeviceUtil.hasLollipopApi()) {

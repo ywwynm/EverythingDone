@@ -200,7 +200,7 @@ public class DisplayUtil {
         // ViewCompat.setBackgroundTintList(view, ColorStateList.valueOf(color));
     }
 
-    public static void expandLayoutAboveLollipop(Activity activity) {
+    public static void expandLayoutToStatusBarAboveLollipop(Activity activity) {
         if (DeviceUtil.hasLollipopApi()) {
             View decor = activity.getWindow().getDecorView();
             decor.setSystemUiVisibility(
@@ -210,7 +210,18 @@ public class DisplayUtil {
         }
     }
 
-    public static void expandStatusBarAboveKitkat(View statusBar) {
+    public static void expandLayoutToFullscreenAboveLollipop(Activity activity) {
+        if (DeviceUtil.hasLollipopApi()) {
+            View decor = activity.getWindow().getDecorView();
+            decor.setSystemUiVisibility(
+                    decor.getSystemUiVisibility()
+                            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                            | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+        }
+    }
+
+    public static void expandStatusBarViewAboveKitkat(View statusBar) {
         if (DeviceUtil.hasKitKatApi()) {
             final int height = getStatusbarHeight(statusBar.getContext());
             ViewGroup.LayoutParams vlp = statusBar.getLayoutParams();
