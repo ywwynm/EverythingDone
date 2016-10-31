@@ -5,6 +5,7 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.PorterDuff;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.util.LongSparseArray;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -37,7 +38,6 @@ import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.views.HabitRecordPresenter;
 import com.ywwynm.everythingdone.views.InterceptTouchCardView;
 
-import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -47,7 +47,7 @@ import java.util.List;
 public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsAdapter.BaseThingViewHolder> {
 
     private Context mContext;
-    private HashMap<Long, CheckListAdapter> mCheckListAdapters;
+    private LongSparseArray<CheckListAdapter> mCheckListAdapters;
 
     protected float          mScreenDensity;
     protected LayoutInflater mInflater;
@@ -56,11 +56,13 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
 
     protected abstract int getCurrentMode();
 
+    protected abstract boolean shouldShowPrivateContent();
+
     protected abstract List<Thing> getThings();
 
     public BaseThingsAdapter(Context context) {
         mContext           = context;
-        mCheckListAdapters = new HashMap<>();
+        mCheckListAdapters = new LongSparseArray<>();
 
         mScreenDensity = DisplayUtil.getScreenDensity(context);
         mInflater      = LayoutInflater.from(context);
@@ -84,7 +86,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
         updateCardForSticky(holder, thing);
         updateCardForTitle(holder, thing);
 
-        if (thing.isPrivate()) {
+        if (thing.isPrivate() && !shouldShowPrivateContent()) {
             holder.ivPrivateThing.setVisibility(View.VISIBLE);
             holder.flImageAttachment.setVisibility(View.GONE);
             holder.tvContent.setVisibility(View.GONE);
@@ -410,40 +412,40 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
 
     public static class BaseThingViewHolder extends BaseViewHolder {
 
-        protected final InterceptTouchCardView cv;
-        protected final View vPaddingBottom;
+        public final InterceptTouchCardView cv;
+        public final View vPaddingBottom;
 
-        protected final ImageView ivSticky;
+        public final ImageView ivSticky;
 
-        protected final FrameLayout flImageAttachment;
-        protected final ImageView ivImageAttachment;
-        protected final TextView tvImageCount;
-        protected final ProgressBar pbLoading;
-        protected final View vImageCover;
+        public final FrameLayout flImageAttachment;
+        public final ImageView ivImageAttachment;
+        public final TextView tvImageCount;
+        public final ProgressBar pbLoading;
+        public final View vImageCover;
 
-        protected final TextView tvTitle;
-        protected final ImageView ivPrivateThing;
+        public final TextView tvTitle;
+        public final ImageView ivPrivateThing;
 
-        protected final TextView tvContent;
-        protected final RecyclerView rvChecklist;
+        public final TextView tvContent;
+        public final RecyclerView rvChecklist;
 
-        protected final LinearLayout llAudioAttachment;
-        protected final TextView tvAudioCount;
+        public final LinearLayout llAudioAttachment;
+        public final TextView tvAudioCount;
 
-        protected final RelativeLayout rlReminder;
-        protected final View vReminderSeparator;
-        protected final ImageView ivReminder;
-        protected final TextView tvReminderTime;
+        public final RelativeLayout rlReminder;
+        public final View vReminderSeparator;
+        public final ImageView ivReminder;
+        public final TextView tvReminderTime;
 
-        protected final RelativeLayout rlHabit;
-        protected final View vHabitSeparator1;
-        protected final TextView tvHabitSummary;
-        protected final TextView tvHabitNextReminder;
-        protected final View vHabitSeparator2;
-        protected final LinearLayout llHabitRecord;
-        protected final TextView tvHabitLastFive;
-        protected final HabitRecordPresenter habitRecordPresenter;
-        protected final TextView tvHabitFinishedThisT;
+        public final RelativeLayout rlHabit;
+        public final View vHabitSeparator1;
+        public final TextView tvHabitSummary;
+        public final TextView tvHabitNextReminder;
+        public final View vHabitSeparator2;
+        public final LinearLayout llHabitRecord;
+        public final TextView tvHabitLastFive;
+        public final HabitRecordPresenter habitRecordPresenter;
+        public final TextView tvHabitFinishedThisT;
 
         public BaseThingViewHolder(View item) {
             super(item);

@@ -62,13 +62,18 @@ public class ThingsAdapter extends BaseThingsAdapter {
     }
 
     @Override
-    protected List<Thing> getThings() {
-        return mThingManager.getThings();
+    protected int getCurrentMode() {
+        return mApp.getModeManager().getCurrentMode();
     }
 
     @Override
-    protected int getCurrentMode() {
-        return mApp.getModeManager().getCurrentMode();
+    protected boolean shouldShowPrivateContent() {
+        return false;
+    }
+
+    @Override
+    protected List<Thing> getThings() {
+        return mThingManager.getThings();
     }
 
     public boolean shouldThingsAnimWhenAppearing() {

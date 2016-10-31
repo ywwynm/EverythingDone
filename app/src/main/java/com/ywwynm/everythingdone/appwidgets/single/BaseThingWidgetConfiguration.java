@@ -11,7 +11,6 @@ import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.ActionBar;
-import android.support.v7.widget.CardView;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
@@ -45,7 +44,7 @@ import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil;
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
@@ -238,6 +237,7 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
             ivBackground.setImageDrawable(wallpaper);
         }
 
+        final List<Thing> singleThing = Collections.singletonList(new Thing(thing));
         final BaseThingsAdapter adapter = new BaseThingsAdapter(this) {
 
             @Override
@@ -246,28 +246,25 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
             }
 
             @Override
+            protected boolean shouldShowPrivateContent() {
+                return false;
+            }
+
+            @Override
             protected List<Thing> getThings() {
-                List<Thing> things = new ArrayList<>(1);
-                things.add(new Thing(thing));
-                return things;
+                return singleThing;
             }
 
             @Override
             public void onBindViewHolder(BaseThingViewHolder holder, int position) {
                 super.onBindViewHolder(holder, position);
-                CardView cv = (CardView) holder.itemView;
-                if (cv == null) return;
-                cv.setRadius(0);
-                cv.setCardElevation(0);
+                holder.cv.setRadius(0);
+                holder.cv.setCardElevation(0);
                 int alpha = (int) (mWidgetAlpha / 100f * 255);
                 int alphaColor = DisplayUtil.getTransparentColor(
                         thing.getColor(), alpha);
-                cv.setCardBackgroundColor(alphaColor);
-
-                ImageView iv = (ImageView) cv.findViewById(R.id.iv_thing_sticky);
-                if (iv != null) {
-                    iv.setImageAlpha(alpha);
-                }
+                holder.cv.setCardBackgroundColor(alphaColor);
+                holder.ivSticky.setImageAlpha(alpha);
             }
         };
         final RecyclerView rvPreview = f(R.id.rv_app_widget_preview);
@@ -375,13 +372,18 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
         }
 
         @Override
-        protected List<Thing> getThings() {
-            return mThings;
+        protected int getCurrentMode() {
+            return ModeManager.NORMAL;
         }
 
         @Override
-        protected int getCurrentMode() {
-            return ModeManager.NORMAL;
+        protected boolean shouldShowPrivateContent() {
+            return false;
+        }
+
+        @Override
+        protected List<Thing> getThings() {
+            return mThings;
         }
 
         @Override
