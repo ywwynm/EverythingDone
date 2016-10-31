@@ -356,12 +356,10 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         return R.layout.activity_detail;
     }
 
-    private boolean mShouldFinish = false;
-
     @Override
     protected void init() {
         initMembers(); // if we found thing is null, just finish this Activity
-        if (!mShouldFinish) {
+        if (mThing != null) {
             findViews();
             initUI();
             setActionbar();
@@ -410,7 +408,6 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             updateThingAndItsPosition(id);
 
             if (mThing == null) {
-                mShouldFinish = true;
                 finish();
                 return;
             }
