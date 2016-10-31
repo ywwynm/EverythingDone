@@ -161,6 +161,12 @@ public class SystemNotificationUtil {
     }
 
     public static void tryToCreateQuickCreateNotification(Context context) {
+        int color = DisplayUtil.getRandomColor(context);
+        while (color == App.newThingColor) {
+            color = DisplayUtil.getRandomColor(context);
+        }
+        App.newThingColor = color;
+
         SharedPreferences sp = context.getSharedPreferences(
                 Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE);
         if (sp.getBoolean(Def.Meta.KEY_QUICK_CREATE, true)) {
@@ -172,21 +178,15 @@ public class SystemNotificationUtil {
         NotificationManagerCompat nmc = NotificationManagerCompat.from(context);
         nmc.cancel(Def.Meta.ONGOING_NOTIFICATION_ID);
 
-        int color = DisplayUtil.getRandomColor(context);
-        while (color == App.newThingColor) {
-            color = DisplayUtil.getRandomColor(context);
-        }
-        App.newThingColor = color;
-
         Intent contentIntent = DetailActivity.getOpenIntentForCreate(
-                context, App.class.getName(), color);
+                context, App.class.getName(), App.newThingColor);
         PendingIntent contentPendingIntent = PendingIntent.getActivity(context,
                 Def.Meta.ONGOING_NOTIFICATION_ID, contentIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context)
                 .setOngoing(true)
                 .setPriority(NotificationCompat.PRIORITY_MIN) /* don't show icon in status bar */
-                .setColor(color)
+                .setColor(App.newThingColor)
                 .setContentTitle(context.getString(R.string.everythingdone))
                 .setContentText(context.getString(R.string.title_create_thing))
                 .setContentIntent(contentPendingIntent)
