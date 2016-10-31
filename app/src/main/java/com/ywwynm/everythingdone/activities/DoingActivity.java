@@ -102,7 +102,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
         mTimelyView.postDelayed(new Runnable() {
             @Override
             public void run() {
-                mTimelyView.animate(6);
+                mTimelyView.animate(9, 6).setDuration(3000).start();
             }
         }, 500);
     }

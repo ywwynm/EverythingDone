@@ -23,9 +23,9 @@
         android:layout_width="80dp"
         android:layout_height="40dp"
         android:layout_marginTop="120dp"
-        android:textSize="40sp"
-        android:textColor="#000000"
-        android:text="9"/>
+        android:layout_gravity="center_horizontal"
+        android:textSize="80sp"
+        android:textColor="#FFFFFF"/>
 
     <android.support.v7.widget.RecyclerView
         android:id="@+id/rv_thing_doing"
