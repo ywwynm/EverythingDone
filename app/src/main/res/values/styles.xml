@@ -128,8 +128,8 @@
         <item name="android:background">@drawable/selectable_item_background_light</item>
     </style>
 
-    <style name="WidgetCheckListStyle" parent="Theme.AppCompat">
-        <item name="colorPrimary">@color/white_54p</item>
+    <style name="WhiteListStyle" parent="Theme.AppCompat">
+        <item name="colorPrimary">@color/control_highlight_light</item>
     </style>
 
 </resources>

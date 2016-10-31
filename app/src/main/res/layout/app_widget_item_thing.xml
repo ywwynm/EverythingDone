@@ -106,7 +106,7 @@
                 android:layout_height="wrap_content"
                 android:divider="@null"
                 android:visibility="gone"
-                android:theme="@style/WidgetCheckListStyle"/>
+                android:theme="@style/WhiteListStyle"/>
 
             <LinearLayout
                 android:id="@+id/ll_check_list_items_container"

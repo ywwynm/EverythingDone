@@ -54,8 +54,7 @@
         android:layout_height="match_parent"
         android:layout_marginTop="44dp"
         android:dividerHeight="4dp"
-        android:theme="@style/Theme.AppCompat.Light"
-        android:scrollbarSize="4dp"
-        android:scrollbarThumbVertical="@color/control_highlight_light"/>
+        android:theme="@style/WhiteListStyle"
+        android:scrollbarSize="4dp"/>
 
 </FrameLayout>
