@@ -49,22 +49,21 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
     private Context mContext;
     private LongSparseArray<CheckListAdapter> mCheckListAdapters;
 
-    protected float          mScreenDensity;
+    protected float          mDensity;
     protected LayoutInflater mInflater;
     protected ReminderDAO    mReminderDAO;
     protected HabitDAO       mHabitDAO;
 
     protected abstract int getCurrentMode();
-
     protected abstract boolean shouldShowPrivateContent();
-
+    protected abstract int getCardWidth();
     protected abstract List<Thing> getThings();
 
     public BaseThingsAdapter(Context context) {
         mContext           = context;
         mCheckListAdapters = new LongSparseArray<>();
 
-        mScreenDensity = DisplayUtil.getScreenDensity(context);
+        mDensity = DisplayUtil.getScreenDensity(context);
         mInflater      = LayoutInflater.from(context);
         mReminderDAO   = ReminderDAO.getInstance(context);
         mHabitDAO      = HabitDAO.getInstance(context);
@@ -140,7 +139,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
     private void updateCardForTitle(BaseThingViewHolder holder, Thing thing) {
         String title = thing.getTitleToDisplay();
         if (!title.isEmpty()) {
-            int p = (int) (mScreenDensity * 16);
+            int p = (int) (mDensity * 16);
             holder.tvTitle.setVisibility(View.VISIBLE);
             holder.tvTitle.setPadding(p, p, p, 0);
             holder.tvTitle.setText(title);
@@ -151,7 +150,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
 
     @SuppressLint("NewApi")
     private void updateCardForContent(BaseThingViewHolder holder, Thing thing) {
-        int p = (int) (mScreenDensity * 16);
+        int p = (int) (mDensity * 16);
         String content = thing.getContent();
         if (!content.isEmpty()) {
             if (!CheckListHelper.isCheckListStr(content)) {
@@ -185,7 +184,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
                 holder.rvChecklist.setAdapter(adapter);
                 holder.rvChecklist.setLayoutManager(new LinearLayoutManager(mContext));
 
-                int rp = (int) (mScreenDensity * 6);
+                int rp = (int) (mDensity * 6);
                 holder.rvChecklist.setPaddingRelative(rp, p, p, 0);
             }
         } else {
@@ -203,14 +202,14 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
         int thingType = thing.getType();
         Reminder reminder = mReminderDAO.getReminderById(thing.getId());
         if (reminder != null) {
-            int p = (int) (mScreenDensity * 16);
+            int p = (int) (mDensity * 16);
             holder.rlReminder.setVisibility(View.VISIBLE);
             holder.rlReminder.setPadding(p, p, p, 0);
 
             RelativeLayout.LayoutParams params = (RelativeLayout.LayoutParams)
                     holder.ivReminder.getLayoutParams();
             if (thingType == Thing.REMINDER) {
-                params.setMargins(0, (int) (mScreenDensity * 2), 0, 0);
+                params.setMargins(0, (int) (mDensity * 2), 0, 0);
                 holder.ivReminder.setImageResource(R.drawable.card_reminder);
                 holder.ivReminder.setContentDescription(mContext.getString(R.string.reminder));
                 holder.tvReminderTime.setTextSize(12);
@@ -218,7 +217,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
                 holder.tvReminderTime.setText(
                         DateTimeUtil.getDateTimeStrReminder(mContext, thing, reminder));
             } else {
-                params.setMargins(0, (int) (mScreenDensity * 1.6), 0, 0);
+                params.setMargins(0, (int) (mDensity * 1.6), 0, 0);
                 holder.ivReminder.setImageResource(R.drawable.card_goal);
                 holder.ivReminder.setContentDescription(mContext.getString(R.string.goal));
                 holder.tvReminderTime.setTextSize(16);
@@ -235,7 +234,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
     private void updateCardForHabit(BaseThingViewHolder holder, Thing thing) {
         Habit habit = mHabitDAO.getHabitById(thing.getId());
         if (habit != null) {
-            int p = (int) (mScreenDensity * 16);
+            int p = (int) (mDensity * 16);
             holder.rlHabit.setVisibility(View.VISIBLE);
             holder.rlHabit.setPadding(p, p, p, 0);
 
@@ -284,7 +283,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
         if (firstImageTypePathName != null) {
             holder.flImageAttachment.setVisibility(View.VISIBLE);
 
-            int imageW = DisplayUtil.getThingCardWidth(mContext);
+            int imageW = getCardWidth();
             int imageH = imageW * 3 / 4;
 
             // without this, the first card with an image won't display well on lollipop device
@@ -305,7 +304,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
 
             // before lollipop, set margins to negative number to remove ugly stroke
             if (!DeviceUtil.hasLollipopApi()) {
-                int m = (int) (mScreenDensity * -8);
+                int m = (int) (mDensity * -8);
                 paramsLayout.setMargins(0, m, 0, 0);
             }
 
@@ -364,7 +363,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
             holder.llAudioAttachment.setVisibility(View.GONE);
         } else {
             holder.llAudioAttachment.setVisibility(View.VISIBLE);
-            int p = (int) (mScreenDensity * 16);
+            int p = (int) (mDensity * 16);
             holder.llAudioAttachment.setPadding(p, p / 4 * 3, p, 0);
 
             holder.tvAudioCount.setText(str);
@@ -378,13 +377,13 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
             if (selected) {
                 ObjectAnimator.ofFloat(cv, "scaleX", 1.11f).setDuration(96).start();
                 ObjectAnimator.ofFloat(cv, "scaleY", 1.11f).setDuration(96).start();
-                ObjectAnimator.ofFloat(cv, "CardElevation", 12 * mScreenDensity).
+                ObjectAnimator.ofFloat(cv, "CardElevation", 12 * mDensity).
                         setDuration(96).start();
                 cv.setCardBackgroundColor(color);
             } else {
                 cv.setScaleX(1.0f);
                 cv.setScaleY(1.0f);
-                cv.setCardElevation(2 * mScreenDensity);
+                cv.setCardElevation(2 * mDensity);
                 cv.setCardBackgroundColor(
                         DisplayUtil.getLightColor(color, mContext));
             }

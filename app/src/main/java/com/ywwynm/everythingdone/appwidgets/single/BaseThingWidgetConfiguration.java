@@ -251,6 +251,11 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
             }
 
             @Override
+            protected int getCardWidth() {
+                return DisplayUtil.getThingCardWidth(getApplicationContext());
+            }
+
+            @Override
             protected List<Thing> getThings() {
                 return singleThing;
             }
@@ -382,6 +387,11 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
         }
 
         @Override
+        protected int getCardWidth() {
+            return DisplayUtil.getThingCardWidth(getApplicationContext());
+        }
+
+        @Override
         protected List<Thing> getThings() {
             return mThings;
         }
@@ -393,9 +403,9 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
 
         @Override
         public void onBindViewHolder(BaseThingViewHolder holder, int position) {
-            int m = (int) (mScreenDensity * 4);
+            int m = (int) (mDensity * 4);
             if (DeviceUtil.hasLollipopApi()) {
-                m = (int) (mScreenDensity * 6);
+                m = (int) (mDensity * 6);
             }
 
             StaggeredGridLayoutManager.LayoutParams lp =

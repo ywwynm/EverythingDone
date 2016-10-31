@@ -20,6 +20,7 @@ import com.ywwynm.everythingdone.managers.ModeManager;
 import com.ywwynm.everythingdone.managers.ThingManager;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.utils.DeviceUtil;
+import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil;
 
 import java.util.List;
@@ -72,6 +73,11 @@ public class ThingsAdapter extends BaseThingsAdapter {
     }
 
     @Override
+    protected int getCardWidth() {
+        return DisplayUtil.getThingCardWidth(mApp);
+    }
+
+    @Override
     protected List<Thing> getThings() {
         return mThingManager.getThings();
     }
@@ -100,15 +106,15 @@ public class ThingsAdapter extends BaseThingsAdapter {
     }
 
     private void distinguishHeaderAndOthers(boolean header, CardView cv) {
-        int mX = (int) (mScreenDensity * 4);
+        int mX = (int) (mDensity * 4);
         if (DeviceUtil.hasLollipopApi()) {
-            mX = (int) (mScreenDensity * 6);
+            mX = (int) (mDensity * 6);
         }
         int mY = header ? 0 : mX;
 
         int height;
         if (header) {
-            height = (int) (App.isSearching ? mScreenDensity * 6 : mScreenDensity * 102);
+            height = (int) (App.isSearching ? mDensity * 6 : mDensity * 102);
         } else {
             height = StaggeredGridLayoutManager.LayoutParams.WRAP_CONTENT;
         }
