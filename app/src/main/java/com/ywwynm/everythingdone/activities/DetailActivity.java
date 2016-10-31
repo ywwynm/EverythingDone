@@ -2166,9 +2166,9 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         int typeBefore = mThing.getType();
         int typeAfter = getThingTypeAfter();
         boolean isReminderBefore = Thing.isReminderType(typeBefore);
-        boolean isReminderAfter = Thing.isReminderType(typeAfter);
-        boolean isHabitBefore = typeBefore == Thing.HABIT;
-        boolean isHabitAfter = typeAfter == Thing.HABIT;
+        boolean isReminderAfter  = Thing.isReminderType(typeAfter);
+        boolean isHabitBefore    = typeBefore == Thing.HABIT;
+        boolean isHabitAfter     = typeAfter  == Thing.HABIT;
 
         if (cbQuickRemind.isChecked() && rhParams.getHabitDetail() == null
                 && reminderTime <= System.currentTimeMillis()) {

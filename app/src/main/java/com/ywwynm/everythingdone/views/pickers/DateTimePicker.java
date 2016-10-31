@@ -16,6 +16,7 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 
+import com.ywwynm.everythingdone.BuildConfig;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.adapters.BaseViewHolder;
@@ -51,6 +52,9 @@ public class DateTimePicker extends PopupPicker {
         if (mType == Def.PickerType.AFTER_TIME) {
             params.width = (int) (mScreenDensity * 168);
             mItems = mActivity.getResources().getStringArray(R.array.quick_remind);
+            if (BuildConfig.DEBUG) {
+                mItems[0] = "6 seconds";
+            }
         } else if (mType == Def.PickerType.TIME_TYPE_HAVE_HOUR_MINUTE) {
             params.width = (int) (mScreenDensity * 120);
             mItems = mActivity.getResources().getStringArray(R.array.time_type);
@@ -218,6 +222,10 @@ public class DateTimePicker extends PopupPicker {
         int[] type = new int[] { Calendar.YEAR, Calendar.MONTH, Calendar.WEEK_OF_YEAR,
                 Calendar.DATE, Calendar.DATE, Calendar.HOUR_OF_DAY,
                 Calendar.HOUR, Calendar.MINUTE, Calendar.MINUTE };
+        if (BuildConfig.DEBUG) {
+            time[0] = 6;
+            type[0] = Calendar.SECOND;
+        }
         return new int[] { type[index], time[index] };
     }
 
