@@ -31,7 +31,7 @@ public class NumberUtils {
             case 9:
                 return Nine.getInstance().getControlPoints();
             default:
-                throw new InvalidParameterException("Unsupported number requested");
+                throw new InvalidParameterException("Unsupported number " + start + " requested");
         }
     }
 }
