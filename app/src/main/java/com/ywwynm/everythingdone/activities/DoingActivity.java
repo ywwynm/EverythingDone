@@ -8,9 +8,12 @@ import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.os.Handler;
 import android.os.Message;
+import android.support.v4.util.Pair;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
+import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
@@ -20,9 +23,13 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.github.adnansm.timelytextview.TimelyView;
+import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.adapters.BaseThingsAdapter;
+import com.ywwynm.everythingdone.adapters.CheckListAdapter;
+import com.ywwynm.everythingdone.helpers.CheckListHelper;
+import com.ywwynm.everythingdone.helpers.RemoteActionHelper;
 import com.ywwynm.everythingdone.managers.ModeManager;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
@@ -58,6 +65,8 @@ public class DoingActivity extends EverythingDoneBaseActivity {
     private static final long HOUR_MILLIS   = 60 * 60 * 1000L;
     private static final long MINUTE_MILLIS = 60 * 1000;
 
+    private App mApp;
+
     private int mCardWidth;
     private int mRvMaxHeight;
 
@@ -84,7 +93,10 @@ public class DoingActivity extends EverythingDoneBaseActivity {
     private RecyclerView mRecyclerView;
 
     private LinearLayout mLlBottom;
+    private ImageView mIvForbidPhotoBt;
     private FloatingActionButton mFabCancel;
+
+    private int mPausedTimes = 0;
 
     @Override
     protected int getLayoutResource() {
@@ -92,8 +104,29 @@ public class DoingActivity extends EverythingDoneBaseActivity {
     }
 
     @Override
+    protected void onPause() {
+        super.onPause();
+        if (!DeviceUtil.isScreenOn(this)) {
+            Log.i(TAG, "onPause called because of closing screen");
+        } else {
+            mPausedTimes++;
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (mPausedTimes == 3) {
+            // TODO: 2016/11/1 failed at doing this thing
+        }
+    }
+
+    @Override
     protected void init() {
         initMembers();
+        if (mLeftTime < -1) {
+
+        }
         // TODO: 2016/11/1 mStartTime + mTimeInMillis < current time
         findViews();
         initUI();
@@ -103,7 +136,9 @@ public class DoingActivity extends EverythingDoneBaseActivity {
 
     @Override
     protected void initMembers() {
-        int base = DisplayUtil.getThingCardWidth(this);
+        mApp = App.getApp();
+
+        int base = DisplayUtil.getThingCardWidth(mApp);
         mCardWidth   = (int) (base * 1.2f);
         mRvMaxHeight = (int) (mCardWidth * 3 / 4f);
 
@@ -119,10 +154,14 @@ public class DoingActivity extends EverythingDoneBaseActivity {
         }
 
         mStartTime = intent.getLongExtra(KEY_START_TIME, -1L);
-        if (System.currentTimeMillis() - mStartTime < 6 * 1000L) {
-            mLeftTime = mTimeInMillis;
+        if (mTimeInMillis == -1) {
+            mLeftTime = -1;
         } else {
-            mLeftTime = (mStartTime + mTimeInMillis - System.currentTimeMillis()) / 1000L * 1000L;
+            if (System.currentTimeMillis() - mStartTime < 6 * 1000L) {
+                mLeftTime = mTimeInMillis / 1000L * 1000L;
+            } else {
+                mLeftTime = (mStartTime + mTimeInMillis - System.currentTimeMillis()) / 1000L * 1000L;
+            }
         }
 
         mTimelyHandler = new Handler(new Handler.Callback() {
@@ -131,7 +170,11 @@ public class DoingActivity extends EverythingDoneBaseActivity {
                 if (message.what == 96) {
                     playTimelyAnimation();
                     mLeftTime -= 1000;
-                    mTimelyHandler.sendEmptyMessageDelayed(96, 1000);
+                    if (mLeftTime > 0) {
+                        mTimelyHandler.sendEmptyMessageDelayed(96, 1000);
+                    } else {
+
+                    }
                     return true;
                 }
                 return false;
@@ -150,8 +193,9 @@ public class DoingActivity extends EverythingDoneBaseActivity {
 
         mRecyclerView = f(R.id.rv_thing_doing);
 
-        mLlBottom  = f(R.id.ll_bottom_buttons_doing);
-        mFabCancel = f(R.id.fab_cancel_doing);
+        mLlBottom        = f(R.id.ll_bottom_buttons_doing);
+        mIvForbidPhotoBt = f(R.id.iv_forbid_phone_as_bt_doing);
+        mFabCancel       = f(R.id.fab_cancel_doing);
     }
 
     @Override
@@ -168,7 +212,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
     }
 
     private void setBackground() {
-        WallpaperManager wm = WallpaperManager.getInstance(getApplicationContext());
+        WallpaperManager wm = WallpaperManager.getInstance(mApp);
         Drawable wallpaper = wm.getDrawable();
         if (wallpaper != null) {
             mIvBg.setImageDrawable(wallpaper);
@@ -176,7 +220,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
         mIvBg.postDelayed(new Runnable() {
             @Override
             public void run() {
-                Blurry.with(getApplicationContext())
+                Blurry.with(mApp)
                         .radius(16)
                         .sampling(4)
                         .color(Color.parseColor("#36000000"))
@@ -202,7 +246,14 @@ public class DoingActivity extends EverythingDoneBaseActivity {
             mTimelyViews[i] = f(ids[i]);
         }
 
-        float density = DisplayUtil.getScreenDensity(this);
+        setTimelyViewsVisibilities();
+
+        mLeftTime += 1000;
+        mTimelyHandler.sendEmptyMessageDelayed(96, 1000);
+    }
+
+    private void setTimelyViewsVisibilities() {
+        float density = DisplayUtil.getScreenDensity(mApp);
         if (mLeftTime < HOUR_MILLIS) {
             mLlHour.setVisibility(View.GONE);
             for (int i = 2; i < mTimelyViews.length; i++) {
@@ -211,15 +262,13 @@ public class DoingActivity extends EverythingDoneBaseActivity {
                 mTimelyViews[i].requestLayout();
             }
         } else {
+            mLlHour.setVisibility(View.VISIBLE);
             for (TimelyView mTimelyView : mTimelyViews) {
                 ViewGroup.LayoutParams vlp = mTimelyView.getLayoutParams();
                 vlp.width = (int) (density * 56);
                 mTimelyView.requestLayout();
             }
         }
-
-        mLeftTime += 1000;
-        mTimelyHandler.sendEmptyMessageDelayed(96, 1000);
     }
 
     private void calculateFromNumbers(long leftTime) {
@@ -251,7 +300,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
     }
 
     private void setRecyclerView() {
-        int p = (DisplayUtil.getScreenSize(this).x - mCardWidth) / 2;
+        int p = (DisplayUtil.getScreenSize(mApp).x - mCardWidth) / 2;
         mRecyclerView.setPadding(p, 0, p, 0);
 
         final List<Thing> singleThing = Collections.singletonList(new Thing(mThing));
@@ -287,15 +336,32 @@ public class DoingActivity extends EverythingDoneBaseActivity {
                 holder.vReminderSeparator.setVisibility(View.GONE);
                 holder.vHabitSeparator1.setVisibility(View.GONE);
             }
+
+            @Override
+            protected void onChecklistAdapterInitialized(
+                    final BaseThingViewHolder holder, final CheckListAdapter adapter, final Thing thing) {
+                super.onChecklistAdapterInitialized(holder, adapter, thing);
+                holder.cv.setShouldInterceptTouchEvent(false);
+                adapter.setTvItemClickCallback(new CheckListAdapter.TvItemClickCallback() {
+                    @Override
+                    public void onItemClick(int itemPos) {
+                        String updatedContent = CheckListHelper.toggleChecklistItem(
+                                thing.getContent(), itemPos);
+                        thing.setContent(updatedContent);
+                        notifyDataSetChanged();
+                        RemoteActionHelper.toggleChecklistItem(mApp, thing.getId(), itemPos);
+                    }
+                });
+            }
         };
         mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         mRecyclerView.setAdapter(adapter);
     }
 
     private void setBottomButtons() {
-        if (DeviceUtil.hasKitKatApi() && DisplayUtil.hasNavigationBar(this)) {
+        if (DeviceUtil.hasKitKatApi() && DisplayUtil.hasNavigationBar(mApp)) {
             FrameLayout.LayoutParams flp = (FrameLayout.LayoutParams) mLlBottom.getLayoutParams();
-            flp.bottomMargin = DisplayUtil.getNavigationBarHeight(this);
+            flp.bottomMargin = DisplayUtil.getNavigationBarHeight(mApp);
             mLlBottom.requestLayout();
         }
 
@@ -306,6 +372,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
         mTimelyHandler.postDelayed(new Runnable() {
             @Override
             public void run() {
+                mTvInfinity.animate().setDuration(1600).alpha(1);
                 f(R.id.tv_separator_1_doing).animate().setDuration(1600).alpha(1);
                 f(R.id.tv_separator_2_doing).animate().setDuration(1600).alpha(1);
                 f(R.id.tv_swipe_to_finish_doing).animate().setDuration(1600).alpha(1);
@@ -329,6 +396,8 @@ public class DoingActivity extends EverythingDoneBaseActivity {
     @Override
     protected void setEvents() {
         setRecyclerViewEvent();
+
+        helpDifferNormalPressState(mIvForbidPhotoBt, 0.86f, 0.56f);
     }
 
     private void setRecyclerViewEvent() {
@@ -349,6 +418,25 @@ public class DoingActivity extends EverythingDoneBaseActivity {
         helper.attachToRecyclerView(mRecyclerView);
     }
 
+    private void helpDifferNormalPressState(
+            View view, final float normalAlpha, final float pressedAlpha) {
+        view.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View view, MotionEvent motionEvent) {
+                switch (motionEvent.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        view.setAlpha(pressedAlpha);
+                        break;
+                    case MotionEvent.ACTION_UP:
+                    case MotionEvent.ACTION_CANCEL:
+                         view.setAlpha(normalAlpha);
+                         break;
+                }
+                return false;
+            }
+        });
+    }
+
     public void onClick(View view) {
         switch (view.getId()) {
             case R.id.fab_cancel_doing: {
@@ -356,6 +444,21 @@ public class DoingActivity extends EverythingDoneBaseActivity {
                 break;
             }
         }
+    }
+
+    @Override
+    public void onBackPressed() {
+//        AlertDialogFragment adf = new AlertDialogFragment();
+//        adf.setTitleColor(mThing.getColor());
+//        adf.setConfirmColor(mThing.getColor());
+//        adf.setConfirmListener(new AlertDialogFragment.ConfirmListener() {
+//            @Override
+//            public void onConfirm() {
+//                finish();
+//            }
+//        });
+//        adf.show(getFragmentManager(), AlertDialogFragment.TAG);
+        super.onBackPressed();
     }
 
     class CardTouchCallback extends ItemTouchHelper.Callback {
@@ -374,6 +477,12 @@ public class DoingActivity extends EverythingDoneBaseActivity {
 
         @Override
         public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
+            Pair<Thing, Integer> pair = App.getThingAndPosition(mApp, mThing.getId(), -1);
+            if (mThing.getType() == Thing.HABIT) {
+                RemoteActionHelper.finishHabitOnce(mApp, mThing, pair.second, System.currentTimeMillis());
+            } else {
+                RemoteActionHelper.finishReminder(mApp, mThing, pair.second);
+            }
             finish();
         }
 
@@ -383,7 +492,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
                                 int actionState, boolean isCurrentlyActive) {
             super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive);
             if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
-                int displayWidth = DisplayUtil.getDisplaySize(getApplicationContext()).x;
+                int displayWidth = DisplayUtil.getDisplaySize(mApp).x;
                 View v = viewHolder.itemView;
                 if (dX < 0) {
                     v.setAlpha(1.0f + dX / v.getRight());

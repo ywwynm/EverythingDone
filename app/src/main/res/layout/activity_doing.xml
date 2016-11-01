@@ -61,9 +61,10 @@
                 android:id="@+id/tv_time_infinity_doing"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="80dp"
+                android:textSize="120dp"
                 android:textColor="@android:color/white"
                 android:text="@string/infinity"
+                android:alpha="0"
                 android:visibility="gone"/>
 
             <LinearLayout
@@ -172,14 +173,29 @@
     <LinearLayout
         android:id="@+id/ll_bottom_buttons_doing"
         android:layout_width="match_parent"
-        android:layout_height="80dp"
+        android:layout_height="wrap_content"
         android:layout_gravity="bottom"
         android:gravity="center">
+
+        <ImageView
+            android:id="@+id/iv_forbid_phone_as_bt_doing"
+            android:layout_width="42dp"
+            android:layout_height="42dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="24dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginRight="16dp"
+            android:scaleType="centerCrop"
+            android:src="@drawable/ic_forbid_phone_on"
+            android:onClick="onClick"/>
 
         <com.ywwynm.everythingdone.views.FloatingActionButton
             android:id="@+id/fab_cancel_doing"
             android:layout_width="56dp"
             android:layout_height="56dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="24dp"
+            android:src="@drawable/act_cancel_white"
             android:onClick="onClick"
             app:backgroundTint="@color/error"
             app:rippleColor="@color/white_54p"
