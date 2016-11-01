@@ -110,7 +110,7 @@ public class StartDoingActivity extends AppCompatActivity {
                 if (shouldGoToDoing) {
                     cdf.dismiss();
                     Intent intent1 = DoingActivity.getOpenIntent(
-                            StartDoingActivity.this, thing, time, type);
+                            StartDoingActivity.this, thing, time, type, System.currentTimeMillis());
                     startActivity(intent1);
                 }
             }

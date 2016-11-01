@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <merge
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    tools:ignore="HardcodedText, spUsage"
+    tools:context=".activities.DoingActivity">
 
     <FrameLayout
         android:id="@+id/fl_bg_cover_doing"
@@ -18,23 +22,171 @@
 
     </FrameLayout>
 
-    <com.github.adnansm.timelytextview.TimelyView
-        android:id="@+id/timely_view"
-        android:layout_width="80dp"
-        android:layout_height="40dp"
-        android:layout_marginTop="120dp"
-        android:layout_gravity="center_horizontal"
-        android:textSize="80sp"
-        android:textColor="#FFFFFF"/>
-
-    <android.support.v7.widget.RecyclerView
-        android:id="@+id/rv_thing_doing"
+    <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="240dp"
-        android:layout_gravity="center_horizontal"
-        android:scrollbars="vertical"
-        android:fadeScrollbars="false"
-        android:theme="@style/WhiteListStyle"/>
+        android:layout_height="match_parent">
+
+        <android.support.v7.widget.RecyclerView
+            android:id="@+id/rv_thing_doing"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:translationY="-40dp"
+            android:clipToPadding="false"
+            android:overScrollMode="never"
+            android:alpha="0"
+            android:theme="@style/WhiteListStyle"/>
+
+        <TextView
+            android:id="@+id/tv_swipe_to_finish_doing"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true"
+            android:layout_below="@id/rv_thing_doing"
+            android:layout_marginTop="24dp"
+            android:translationY="-40dp"
+            android:textColor="@color/white_54p"
+            android:text="@string/welcome_underway_content"
+            android:alpha="0"/>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true"
+            android:layout_above="@id/rv_thing_doing"
+            android:layout_marginBottom="60dp"
+            android:translationY="-40dp">
+
+            <TextView
+                android:id="@+id/tv_time_infinity_doing"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="80dp"
+                android:textColor="@android:color/white"
+                android:text="@string/infinity"
+                android:visibility="gone"/>
+
+            <LinearLayout
+                android:id="@+id/ll_hour_doing"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content">
+
+                <com.github.adnansm.timelytextview.TimelyView
+                    android:id="@+id/tv_hour_1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingBottom="8dp"
+                    app:textColor="@color/white_86p"
+                    app:lineWidth="28"/>
+
+                <com.github.adnansm.timelytextview.TimelyView
+                    android:id="@+id/tv_hour_2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingBottom="8dp"
+                    android:layout_marginStart="-8dp"
+                    android:layout_marginLeft="-8dp"
+                    app:textColor="@color/white_86p"
+                    app:lineWidth="28"/>
+
+                <TextView
+                    android:id="@+id/tv_separator_1_doing"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical"
+                    android:padding="4dp"
+                    android:includeFontPadding="false"
+                    android:textSize="40dp"
+                    android:textColor="@color/white_86p"
+                    android:text=":"
+                    android:alpha="0"/>
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/ll_minute_doing"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content">
+
+                <com.github.adnansm.timelytextview.TimelyView
+                    android:id="@+id/tv_minute_1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingBottom="8dp"
+                    app:textColor="@color/white_76p"
+                    app:lineWidth="16"/>
+
+                <com.github.adnansm.timelytextview.TimelyView
+                    android:id="@+id/tv_minute_2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="-8dp"
+                    android:layout_marginLeft="-8dp"
+                    android:paddingBottom="8dp"
+                    app:textColor="@color/white_76p"
+                    app:lineWidth="16"/>
+
+                <TextView
+                    android:id="@+id/tv_separator_2_doing"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical"
+                    android:padding="4dp"
+                    android:includeFontPadding="false"
+                    android:textSize="40dp"
+                    android:textColor="@color/white_66p"
+                    android:text=":"
+                    android:alpha="0"/>
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/ll_second_doing"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content">
+
+                <com.github.adnansm.timelytextview.TimelyView
+                    android:id="@+id/tv_second_1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingBottom="8dp"
+                    app:textColor="@color/white_54p"
+                    app:lineWidth="8"/>
+
+                <com.github.adnansm.timelytextview.TimelyView
+                    android:id="@+id/tv_second_2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="-12dp"
+                    android:layout_marginLeft="-12dp"
+                    android:paddingBottom="8dp"
+                    app:textColor="@color/white_66p"
+                    app:lineWidth="8"/>
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </RelativeLayout>
+
+    <LinearLayout
+        android:id="@+id/ll_bottom_buttons_doing"
+        android:layout_width="match_parent"
+        android:layout_height="80dp"
+        android:layout_gravity="bottom"
+        android:gravity="center">
+
+        <com.ywwynm.everythingdone.views.FloatingActionButton
+            android:id="@+id/fab_cancel_doing"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:onClick="onClick"
+            app:backgroundTint="@color/error"
+            app:rippleColor="@color/white_54p"
+            app:elevation="6dp"
+            app:pressedTranslationZ="12dp"
+            app:borderWidth="0dp"/>
+
+    </LinearLayout>
 
 </merge>
