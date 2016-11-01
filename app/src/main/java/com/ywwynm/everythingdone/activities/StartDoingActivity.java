@@ -94,6 +94,7 @@ public class StartDoingActivity extends AppCompatActivity {
                     long etc = DateTimeUtil.getActualTimeAfterSomeTime(
                             mTypes[index], mTimes[index]);
                     if (thing.getType() == Thing.HABIT) {
+                        // TODO: 2016/11/1 > next T
                         Habit habit = HabitDAO.getInstance(getApplicationContext()).getHabitById(id);
                         if (habit != null) {
                             long nextTime = habit.getMinHabitReminderTime();
