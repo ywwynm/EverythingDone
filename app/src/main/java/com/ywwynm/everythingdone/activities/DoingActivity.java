@@ -17,6 +17,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
+import android.view.animation.OvershootInterpolator;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -365,6 +366,8 @@ public class DoingActivity extends EverythingDoneBaseActivity {
             mLlBottom.requestLayout();
         }
 
+        mIvForbidPhotoBt.setScaleX(0);
+        mIvForbidPhotoBt.setScaleY(0);
         mFabCancel.shrinkWithoutAnim();
     }
 
@@ -384,10 +387,12 @@ public class DoingActivity extends EverythingDoneBaseActivity {
             @Override
             public void run() {
                 mRecyclerView.smoothScrollToPosition(0);
-
+                OvershootInterpolator oi = new OvershootInterpolator();
+                mIvForbidPhotoBt.animate().setDuration(160).setInterpolator(oi).scaleX(1);
+                mIvForbidPhotoBt.animate().setDuration(160).setInterpolator(oi).scaleY(1);
                 mFabCancel.spread();
             }
-        }, 1800);
+        }, 1400);
     }
 
     @Override
@@ -397,7 +402,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
     protected void setEvents() {
         setRecyclerViewEvent();
 
-        helpDifferNormalPressState(mIvForbidPhotoBt, 0.86f, 0.56f);
+        helpDifferNormalPressState(mIvForbidPhotoBt, 1f, 0.56f);
     }
 
     private void setRecyclerViewEvent() {
