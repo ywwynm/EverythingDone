@@ -105,9 +105,14 @@ public class DateTimeUtil {
         return getActualTimeAfterSomeTime(reminderAfterTime[0], reminderAfterTime[1]);
     }
 
-    public static long getActualTimeAfterSomeTime(int type, int afterTime) {
+    public static long getActualTimeAfterSomeTime(int timeType, int afterTime) {
+        return getActualTimeAfterSomeTime(System.currentTimeMillis(), timeType, afterTime);
+    }
+
+    public static long getActualTimeAfterSomeTime(long startTime, int timeType, int afterTime) {
         GregorianCalendar calendar = new GregorianCalendar();
-        calendar.add(type, afterTime);
+        calendar.setTimeInMillis(startTime);
+        calendar.add(timeType, afterTime);
         return calendar.getTimeInMillis();
     }
 
