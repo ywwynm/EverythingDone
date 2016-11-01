@@ -98,8 +98,8 @@ public class HabitReceiver extends BroadcastReceiver {
 //            getItIntent.setAction(Def.Communication.NOTIFICATION_ACTION_GET_IT);
 //            getItIntent.putExtra(Def.Communication.KEY_ID, hrId);
 //            getItIntent.putExtra(Def.Communication.KEY_POSITION, position);
-//            builder.addAction(R.drawable.act_get_it,
-//                    context.getString(R.string.act_get_it),
+//            builder.addAction(R.drawable.act_start_doing,
+//                    context.getString(R.string.act_start_doing),
 //                    PendingIntent.getBroadcast(context,
 //                            (int) hrId, getItIntent, PendingIntent.FLAG_UPDATE_CURRENT));
 
@@ -107,7 +107,7 @@ public class HabitReceiver extends BroadcastReceiver {
             startIntent.setAction(Def.Communication.NOTIFICATION_ACTION_START_DOING);
             startIntent.putExtra(Def.Communication.KEY_ID, hrId);
             startIntent.putExtra(Def.Communication.KEY_POSITION, position);
-            builder.addAction(R.drawable.ic_finish_in_advance,
+            builder.addAction(R.drawable.act_start_doing,
                            context.getString(R.string.act_start_doing),
                             PendingIntent.getBroadcast(context,
                                     (int) hrId, startIntent, PendingIntent.FLAG_UPDATE_CURRENT));
