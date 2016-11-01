@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest package="com.ywwynm.everythingdone"
+<manifest xmlns:tools="http://schemas.android.com/tools"
+          package="com.ywwynm.everythingdone"
           xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-feature
@@ -366,7 +367,9 @@
             android:name=".activities.DoingActivity"
             android:label="@string/title_activity_doing"
             android:screenOrientation="portrait"
-            android:theme="@style/EverythingDoneTheme.Doing">
+            android:resizeableActivity="false"
+            android:theme="@style/EverythingDoneTheme.Doing"
+            tools:ignore="UnusedAttribute">
         </activity>
 
     </application>
