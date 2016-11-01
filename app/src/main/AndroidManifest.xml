@@ -365,6 +365,7 @@
         <activity
             android:name=".activities.DoingActivity"
             android:label="@string/title_activity_doing"
+            android:screenOrientation="portrait"
             android:theme="@style/EverythingDoneTheme.Doing">
         </activity>
 
