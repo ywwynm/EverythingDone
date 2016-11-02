@@ -507,7 +507,8 @@
     <string name="start_doing_full_title">Start doing this thing</string>
     <string name="start_doing_estimated_time">Estimated finish time</string>
     <string name="start_doing_time_not_sure">Not sure</string>
-    <string name="start_doing_time_too_long">Estimated time is so long that you cannot finish the Habit once before its next alarm</string>
+    <string name="start_doing_time_long_alarm">Estimated time is so long that you cannot finish the Habit once before its next alarm</string>
+    <string name="start_doing_time_long_t">Estimated time is so long that you cannot finish the Habit once in this cycle</string>
     <string name="start_doing_confirm">Start doing</string>
 
 

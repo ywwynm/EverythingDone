@@ -21,6 +21,7 @@ import com.ywwynm.everythingdone.utils.DisplayUtil;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.List;
 
 /**
@@ -94,14 +95,22 @@ public class StartDoingActivity extends AppCompatActivity {
                     long etc = DateTimeUtil.getActualTimeAfterSomeTime(
                             mTypes[index], mTimes[index]);
                     if (thing.getType() == Thing.HABIT) {
-                        // TODO: 2016/11/1 > next T
                         Habit habit = HabitDAO.getInstance(getApplicationContext()).getHabitById(id);
                         if (habit != null) {
-                            long nextTime = habit.getMinHabitReminderTime();
-                            if (etc >= nextTime - 6 * 60 * 1000) {
+                            GregorianCalendar calendar = new GregorianCalendar();
+                            int ct = calendar.get(habit.getType()); // current t
+                            calendar.setTimeInMillis(etc);
+                            if (calendar.get(habit.getType()) != ct) {
                                 Toast.makeText(getApplicationContext(),
-                                        R.string.start_doing_time_too_long, Toast.LENGTH_LONG).show();
+                                        R.string.start_doing_time_long_t, Toast.LENGTH_LONG).show();
                                 shouldGoToDoing = false;
+                            } else {
+                                long nextTime = habit.getMinHabitReminderTime();
+                                if (etc >= nextTime - 6 * 60 * 1000) {
+                                    Toast.makeText(getApplicationContext(),
+                                            R.string.start_doing_time_long_alarm, Toast.LENGTH_LONG).show();
+                                    shouldGoToDoing = false;
+                                }
                             }
                         }
                     }
@@ -110,9 +119,8 @@ public class StartDoingActivity extends AppCompatActivity {
                 }
                 if (shouldGoToDoing) {
                     cdf.dismiss();
-                    Intent intent1 = DoingActivity.getOpenIntent(
-                            StartDoingActivity.this, thing, time, type, System.currentTimeMillis());
-                    startActivity(intent1);
+                    startActivity(DoingActivity.getOpenIntent(
+                            StartDoingActivity.this, thing, time, type, System.currentTimeMillis()));
                 }
             }
         });
