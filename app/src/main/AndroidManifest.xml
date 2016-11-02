@@ -372,6 +372,10 @@
             tools:ignore="UnusedAttribute">
         </activity>
 
+        <service
+            android:name=".services.DoingService">
+        </service>
+
     </application>
 
 </manifest>
