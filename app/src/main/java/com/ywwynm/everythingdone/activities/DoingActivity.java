@@ -259,6 +259,11 @@ public class DoingActivity extends EverythingDoneBaseActivity {
             }
 
             @Override
+            protected int getChecklistMaxItemCount() {
+                return -1;
+            }
+
+            @Override
             protected int getCardWidth() {
                 return mCardWidth;
             }
@@ -273,6 +278,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
                 super.onBindViewHolder(holder, position);
                 holder.cv.setRadius(0);
                 holder.cv.setCardElevation(0);
+                holder.tvContent.setMaxLines(Integer.MAX_VALUE);
                 holder.rlReminder.setVisibility(View.GONE);
                 holder.rlHabit.setVisibility(View.GONE);
                 holder.vReminderSeparator.setVisibility(View.GONE);
