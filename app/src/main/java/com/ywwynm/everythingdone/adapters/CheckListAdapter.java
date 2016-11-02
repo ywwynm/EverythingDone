@@ -38,6 +38,8 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
     public static final int EDITTEXT_EDITABLE   = 1;
     public static final int EDITTEXT_UNEDITABLE = 2;
 
+    private int mMaxItemCount;
+
     private boolean mWatchEditTextChange = true;
     private boolean mDragging = false;
 
@@ -115,6 +117,10 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
         mTvItemClickCallback = tvItemClickCallback;
     }
 
+    public void setMaxItemCount(int maxItemCount) {
+        mMaxItemCount = maxItemCount;
+    }
+
     public void setItems(List<String> items) {
         mItems = items;
         removeItemsForTextView();
@@ -155,7 +161,7 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
         if (mType == TEXTVIEW) {
             TextViewHolder holder = (TextViewHolder) viewHolder;
             LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) holder.tv.getLayoutParams();
-            if (position == 8) {
+            if (mMaxItemCount != -1 && position == mMaxItemCount) {
                 holder.iv.setVisibility(View.GONE);
                 holder.tv.setTextSize(18);
                 holder.tv.setText("...");
@@ -184,7 +190,7 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
                 }
 
                 int size = mItems.size();
-                if (size >= 8) {
+                if ((mMaxItemCount != -1 && size >= mMaxItemCount) || size >= mMaxItemCount) {
                     holder.tv.setTextSize(14);
                     params.setMargins(0, (int) (2 * density), 0, params.bottomMargin);
                 } else {
@@ -279,7 +285,8 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
     }
 
     private void setEventForTextViewItem(final TextViewHolder holder) {
-        if (holder.getAdapterPosition() == 8 || mTvItemClickCallback == null) {
+        if ((mMaxItemCount != -1 && holder.getAdapterPosition() == mMaxItemCount)
+                || mTvItemClickCallback == null) {
             holder.itemView.setClickable(false);
             // If don't write this line, we can still get a touch feedback for whole parent
             // RecyclerView even if its touch event should be intercepted by its parent.
@@ -300,7 +307,11 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
     public int getItemCount() {
         int size = mItems.size();
         if (mType == TEXTVIEW) {
-            return size <= 8 ? size : 9;
+            if (mMaxItemCount == -1) {
+                return size;
+            } else {
+                return size <= mMaxItemCount ? size : mMaxItemCount + 1;
+            }
         } else return size;
     }
 

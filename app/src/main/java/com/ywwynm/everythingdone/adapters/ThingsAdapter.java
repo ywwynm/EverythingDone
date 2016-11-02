@@ -73,6 +73,11 @@ public class ThingsAdapter extends BaseThingsAdapter {
     }
 
     @Override
+    protected int getChecklistMaxItemCount() {
+        return 8;
+    }
+
+    @Override
     protected int getCardWidth() {
         return DisplayUtil.getThingCardWidth(mApp);
     }

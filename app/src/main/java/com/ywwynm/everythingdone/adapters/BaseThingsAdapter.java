@@ -56,6 +56,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
 
     protected abstract int getCurrentMode();
     protected abstract boolean shouldShowPrivateContent();
+    protected abstract int getChecklistMaxItemCount();
     protected abstract int getCardWidth();
     protected abstract List<Thing> getThings();
 
@@ -63,10 +64,10 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
         mContext           = context;
         mCheckListAdapters = new LongSparseArray<>();
 
-        mDensity = DisplayUtil.getScreenDensity(context);
-        mInflater      = LayoutInflater.from(context);
-        mReminderDAO   = ReminderDAO.getInstance(context);
-        mHabitDAO      = HabitDAO.getInstance(context);
+        mDensity     = DisplayUtil.getScreenDensity(context);
+        mInflater    = LayoutInflater.from(context);
+        mReminderDAO = ReminderDAO.getInstance(context);
+        mHabitDAO    = HabitDAO.getInstance(context);
     }
 
     @Override
@@ -180,6 +181,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
                 } else {
                     adapter.setItems(items);
                 }
+                adapter.setMaxItemCount(getChecklistMaxItemCount());
                 onChecklistAdapterInitialized(holder, adapter, thing);
                 holder.rvChecklist.setAdapter(adapter);
                 holder.rvChecklist.setLayoutManager(new LinearLayoutManager(mContext));

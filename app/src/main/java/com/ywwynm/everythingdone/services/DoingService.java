@@ -176,10 +176,6 @@ public class DoingService extends Service {
         if (!thingTitle.isEmpty()) {
             nTitle.append(thingTitle);
         } else {
-            if (mThing.isPrivate()) {
-                nTitle.append(getString(R.string.private_thing));
-                return nTitle.toString();
-            }
             String thingContent = mThing.getContent();
             if (!thingContent.isEmpty()) {
                 if (CheckListHelper.isCheckListStr(thingContent)) {

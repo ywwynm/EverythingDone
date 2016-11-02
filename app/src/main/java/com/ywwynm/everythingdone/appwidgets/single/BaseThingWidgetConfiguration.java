@@ -251,6 +251,11 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
             }
 
             @Override
+            protected int getChecklistMaxItemCount() {
+                return 8;
+            }
+
+            @Override
             protected int getCardWidth() {
                 return DisplayUtil.getThingCardWidth(getApplicationContext());
             }
@@ -384,6 +389,11 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
         @Override
         protected boolean shouldShowPrivateContent() {
             return false;
+        }
+
+        @Override
+        protected int getChecklistMaxItemCount() {
+            return 8;
         }
 
         @Override
