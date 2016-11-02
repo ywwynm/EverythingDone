@@ -119,6 +119,7 @@ public class StartDoingActivity extends AppCompatActivity {
                             0, mTypes[index], mTimes[index]);
                 }
                 if (shouldGoToDoing) {
+                    App.setDoingThingId(id);
                     cdf.dismiss();
                     startService(DoingService.getOpenIntent(
                             StartDoingActivity.this, thing, System.currentTimeMillis(), timeInMillis));

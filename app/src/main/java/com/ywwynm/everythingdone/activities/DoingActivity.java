@@ -438,10 +438,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
     public void onClick(View view) {
         switch (view.getId()) {
             case R.id.fab_cancel_doing: {
-                unbindService(mServiceConnection);
-                stopService(new Intent(this, DoingService.class));
-                mServiceUnbind = true;
-                finish();
+                finishWithStoppingService();
                 break;
             }
             case R.id.iv_forbid_phone_as_bt_doing: {
@@ -481,6 +478,14 @@ public class DoingActivity extends EverythingDoneBaseActivity {
 //        });
 //        adf.show(getFragmentManager(), AlertDialogFragment.TAG);
         super.onBackPressed();
+    }
+
+    private void finishWithStoppingService() {
+        App.setDoingThingId(-1L);
+        unbindService(mServiceConnection);
+        stopService(new Intent(this, DoingService.class));
+        mServiceUnbind = true;
+        finish();
     }
 
     class SlowScrollLinearLayoutManager extends LinearLayoutManager {
@@ -526,7 +531,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
             } else {
                 RemoteActionHelper.finishReminder(mApp, mThing, pair.second);
             }
-            finish();
+            finishWithStoppingService();
         }
 
         @Override

@@ -78,6 +78,8 @@ public class App extends Application {
 
     public static int newThingColor;
 
+    private static long doingThingId = -1;
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -207,6 +209,14 @@ public class App extends Application {
 
     public boolean hasDetailActivityRun() {
         return detailActivityRun;
+    }
+
+    public static long getDoingThingId() {
+        return doingThingId;
+    }
+
+    public static void setDoingThingId(long doingThingId) {
+        App.doingThingId = doingThingId;
     }
 
     public void releaseResourcesAfterDeleteForever() {
