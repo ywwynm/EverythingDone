@@ -512,6 +512,11 @@
     <string name="start_doing_confirm">Start doing</string>
 
 
+    <!--DoingService/Activity-->
+    <string name="doing_currently_doing">Currently doing -</string>
+    <string name="doing_left_time">Time left:</string>
+
+
     <!--ImageViewerActivity-->
     <string name="alert_delete_attachment">Are you sure to delete this attachment?</string>
 

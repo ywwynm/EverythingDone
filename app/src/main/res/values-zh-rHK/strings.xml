@@ -505,6 +505,11 @@
     <string name="start_doing_confirm">開始做事</string>
 
 
+    <!--DoingService/Activity-->
+    <string name="doing_currently_doing">正在做 -</string>
+    <string name="doing_left_time">剩餘時間:</string>
+
+
     <!--ImageViewerActivity-->
     <string name="alert_delete_attachment">確定要删除該附件嗎？</string>
 

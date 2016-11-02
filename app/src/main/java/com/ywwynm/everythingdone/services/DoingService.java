@@ -18,6 +18,7 @@ import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.DoingActivity;
 import com.ywwynm.everythingdone.database.HabitDAO;
+import com.ywwynm.everythingdone.helpers.AttachmentHelper;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Thing;
@@ -159,7 +160,7 @@ public class DoingService extends Service {
                 .setColor(mThing.getColor())
                 .setSmallIcon(Thing.getTypeIconWhiteLarge(thingType))
                 .setContentTitle(getNotificationTitle())
-                .setContentText(numbersToString());
+                .setContentText(getString(R.string.doing_left_time) + " " + numbersToString());
 
         Intent contentIntent = DoingActivity.getOpenIntent(this, true);
         builder.setContentIntent(PendingIntent.getActivity(
@@ -169,11 +170,16 @@ public class DoingService extends Service {
     }
 
     private String getNotificationTitle() {
-        StringBuilder nTitle = new StringBuilder("Doing-");
+        StringBuilder nTitle = new StringBuilder(getString(R.string.doing_currently_doing));
+        nTitle.append(" ");
         String thingTitle = mThing.getTitleToDisplay();
         if (!thingTitle.isEmpty()) {
             nTitle.append(thingTitle);
         } else {
+            if (mThing.isPrivate()) {
+                nTitle.append(getString(R.string.private_thing));
+                return nTitle.toString();
+            }
             String thingContent = mThing.getContent();
             if (!thingContent.isEmpty()) {
                 if (CheckListHelper.isCheckListStr(thingContent)) {
@@ -183,7 +189,17 @@ public class DoingService extends Service {
                 nTitle.append(thingContent);
             } else {
                 // there should be attachment
-
+                String attachment = mThing.getAttachment();
+                if (!attachment.isEmpty() && !"to QQ".equals(attachment)) {
+                    String imgStr = AttachmentHelper.getImageAttachmentCountStr(attachment, this);
+                    if (imgStr != null) {
+                        nTitle.append(imgStr).append(", ");
+                    }
+                    String audStr = AttachmentHelper.getAudioAttachmentCountStr(attachment, this);
+                    if (audStr != null) {
+                        nTitle.append(audStr);
+                    }
+                }
             }
         }
         return nTitle.toString();
