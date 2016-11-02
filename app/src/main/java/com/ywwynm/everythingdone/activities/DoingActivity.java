@@ -487,7 +487,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
 
         private LinearSmoothScroller mSmoothScroller;
 
-        public SlowScrollLinearLayoutManager(Context context) {
+        SlowScrollLinearLayoutManager(Context context) {
             super(context);
             mSmoothScroller = new LinearSmoothScroller(context) {
                 @Override
