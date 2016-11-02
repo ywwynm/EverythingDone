@@ -22,6 +22,7 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.github.adnansm.timelytextview.TimelyView;
 import com.ywwynm.everythingdone.App;
@@ -29,9 +30,11 @@ import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.adapters.BaseThingsAdapter;
 import com.ywwynm.everythingdone.adapters.CheckListAdapter;
+import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
 import com.ywwynm.everythingdone.helpers.RemoteActionHelper;
 import com.ywwynm.everythingdone.managers.ModeManager;
+import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.DeviceUtil;
@@ -39,6 +42,7 @@ import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.views.FloatingActionButton;
 
 import java.util.Collections;
+import java.util.GregorianCalendar;
 import java.util.List;
 
 import jp.wasabeef.blurry.Blurry;
@@ -64,7 +68,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
     }
 
     private static final long HOUR_MILLIS   = 60 * 60 * 1000L;
-    private static final long MINUTE_MILLIS = 60 * 1000;
+    private static final long MINUTE_MILLIS = 60 * 1000L;
 
     private App mApp;
 
@@ -72,6 +76,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
     private int mRvMaxHeight;
 
     private Thing mThing;
+    private Habit mHabit;
 
     // 30 minutes
     private int  mAfterTime;    // 30
@@ -94,10 +99,14 @@ public class DoingActivity extends EverythingDoneBaseActivity {
     private RecyclerView mRecyclerView;
 
     private LinearLayout mLlBottom;
-    private ImageView mIvForbidPhotoBt;
+    private ImageView mIvForbidPhoneBt;
+    private ImageView mIvAdd5MinBt;
     private FloatingActionButton mFabCancel;
 
     private int mPausedTimes = 0;
+    private boolean mForbidPhoneUsage = false;
+    private boolean mAdd5Min = false;
+
 
     @Override
     protected int getLayoutResource() {
@@ -107,6 +116,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
     @Override
     protected void onPause() {
         super.onPause();
+        Log.i(TAG, "onPause");
         if (!DeviceUtil.isScreenOn(this)) {
             Log.i(TAG, "onPause called because of closing screen");
         } else {
@@ -117,18 +127,19 @@ public class DoingActivity extends EverythingDoneBaseActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (mPausedTimes == 3) {
+        if (mPausedTimes == 3 && mForbidPhoneUsage) {
             // TODO: 2016/11/1 failed at doing this thing
+            Toast.makeText(this, "fuck", Toast.LENGTH_LONG).show();
         }
     }
 
     @Override
     protected void init() {
         initMembers();
+        // TODO: 2016/11/1 mStartTime + mTimeInMillis < current time
         if (mLeftTime < -1) {
 
         }
-        // TODO: 2016/11/1 mStartTime + mTimeInMillis < current time
         findViews();
         initUI();
         setActionbar();
@@ -147,6 +158,10 @@ public class DoingActivity extends EverythingDoneBaseActivity {
         mThing        = intent.getParcelableExtra(Def.Communication.KEY_THING);
         mAfterTime    = intent.getIntExtra(Def.Communication.KEY_TIME, -1);
         mTimeType     = intent.getIntExtra(KEY_TIME_TYPE, -1);
+
+        if (mThing.getType() == Thing.HABIT) {
+            mHabit = HabitDAO.getInstance(mApp).getHabitById(mThing.getId());
+        }
 
         if (mAfterTime != -1 && mTimeType != -1) {
             mTimeInMillis = DateTimeUtil.getActualTimeAfterSomeTime(0, mTimeType, mAfterTime);
@@ -169,6 +184,12 @@ public class DoingActivity extends EverythingDoneBaseActivity {
             @Override
             public boolean handleMessage(Message message) {
                 if (message.what == 96) {
+                    if (mAdd5Min) {
+                        mLeftTime += 5 * MINUTE_MILLIS;
+                        mTimeInMillis += 5 * MINUTE_MILLIS;
+                        setTimelyViewsVisibilities();
+                        mAdd5Min = false;
+                    }
                     playTimelyAnimation();
                     mLeftTime -= 1000;
                     if (mLeftTime > 0) {
@@ -195,7 +216,8 @@ public class DoingActivity extends EverythingDoneBaseActivity {
         mRecyclerView = f(R.id.rv_thing_doing);
 
         mLlBottom        = f(R.id.ll_bottom_buttons_doing);
-        mIvForbidPhotoBt = f(R.id.iv_forbid_phone_as_bt_doing);
+        mIvForbidPhoneBt = f(R.id.iv_forbid_phone_as_bt_doing);
+        mIvAdd5MinBt     = f(R.id.iv_add_5_min_as_bt_doing);
         mFabCancel       = f(R.id.fab_cancel_doing);
     }
 
@@ -366,8 +388,11 @@ public class DoingActivity extends EverythingDoneBaseActivity {
             mLlBottom.requestLayout();
         }
 
-        mIvForbidPhotoBt.setScaleX(0);
-        mIvForbidPhotoBt.setScaleY(0);
+        mIvForbidPhoneBt.setScaleX(0);
+        mIvForbidPhoneBt.setScaleY(0);
+        mIvAdd5MinBt.setScaleX(0);
+        mIvAdd5MinBt.setScaleY(0);
+
         mFabCancel.shrinkWithoutAnim();
     }
 
@@ -388,8 +413,10 @@ public class DoingActivity extends EverythingDoneBaseActivity {
             public void run() {
                 mRecyclerView.smoothScrollToPosition(0);
                 OvershootInterpolator oi = new OvershootInterpolator();
-                mIvForbidPhotoBt.animate().setDuration(160).setInterpolator(oi).scaleX(1);
-                mIvForbidPhotoBt.animate().setDuration(160).setInterpolator(oi).scaleY(1);
+                mIvForbidPhoneBt.animate().setDuration(160).setInterpolator(oi).scaleX(1);
+                mIvForbidPhoneBt.animate().setDuration(160).setInterpolator(oi).scaleY(1);
+                mIvAdd5MinBt.animate().setDuration(160).setInterpolator(oi).scaleX(1);
+                mIvAdd5MinBt.animate().setDuration(160).setInterpolator(oi).scaleY(1);
                 mFabCancel.spread();
             }
         }, 1400);
@@ -402,7 +429,8 @@ public class DoingActivity extends EverythingDoneBaseActivity {
     protected void setEvents() {
         setRecyclerViewEvent();
 
-        helpDifferNormalPressState(mIvForbidPhotoBt, 1f, 0.56f);
+        helpDifferNormalPressState(mIvForbidPhoneBt, 1f, 0.56f);
+        helpDifferNormalPressState(mIvAdd5MinBt,     1f, 0.56f);
     }
 
     private void setRecyclerViewEvent() {
@@ -448,7 +476,54 @@ public class DoingActivity extends EverythingDoneBaseActivity {
                 finish();
                 break;
             }
+            case R.id.iv_forbid_phone_as_bt_doing: {
+                toggleForbidPhotoUsage();
+                break;
+            }
+            case R.id.iv_add_5_min_as_bt_doing: {
+                if (canAdd5Min()) {
+                    mAdd5Min = true;
+                }
+                break;
+            }
+            default:break;
         }
+    }
+
+    private void toggleForbidPhotoUsage() {
+        if (mForbidPhoneUsage) {
+            mIvForbidPhoneBt.setImageResource(R.drawable.ic_forbid_phone_off);
+        } else {
+            mIvForbidPhoneBt.setImageResource(R.drawable.ic_forbid_phone_on);
+        }
+        mForbidPhoneUsage = !mForbidPhoneUsage;
+        mPausedTimes = 0;
+    }
+
+    private boolean canAdd5Min() {
+        if (mLeftTime <= 0) {
+            return false;
+        }
+        if (mHabit != null) {
+            long etc = mStartTime + mTimeInMillis + 5 * MINUTE_MILLIS;
+            int habitType = mHabit.getType();
+            GregorianCalendar calendar = new GregorianCalendar();
+            int ct = calendar.get(habitType); // current t
+            calendar.setTimeInMillis(etc);
+            if (calendar.get(habitType) != ct) {
+                Toast.makeText(getApplicationContext(),
+                        R.string.start_doing_time_long_t, Toast.LENGTH_LONG).show();
+                return false;
+            } else {
+                long nextTime = mHabit.getMinHabitReminderTime();
+                if (etc >= nextTime - 6 * MINUTE_MILLIS) {
+                    Toast.makeText(getApplicationContext(),
+                            R.string.start_doing_time_long_alarm, Toast.LENGTH_LONG).show();
+                }
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override
