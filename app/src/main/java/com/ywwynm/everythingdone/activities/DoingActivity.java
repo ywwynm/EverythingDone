@@ -24,7 +24,6 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.github.adnansm.timelytextview.TimelyView;
 import com.ywwynm.everythingdone.App;
@@ -100,9 +99,6 @@ public class DoingActivity extends EverythingDoneBaseActivity {
     private ImageView mIvAdd5MinBt;
     private FloatingActionButton mFabCancel;
 
-    private int mPausedTimes = 0;
-    private boolean mForbidPhoneUsage = false;
-
     private boolean mServiceUnbind = false;
 
 
@@ -117,17 +113,9 @@ public class DoingActivity extends EverythingDoneBaseActivity {
         Log.i(TAG, "onPause");
         if (!DeviceUtil.isScreenOn(this)) {
             Log.i(TAG, "onPause called because of closing screen");
-        } else {
-            mPausedTimes++;
-        }
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        if (mPausedTimes == 3 && mForbidPhoneUsage) {
-            // TODO: 2016/11/1 failed at doing this thing
-            Toast.makeText(this, "fuck", Toast.LENGTH_LONG).show();
+        } else if (mDoingBinder.isInCarefulMode()) {
+            mDoingBinder.setPlayedTimes(mDoingBinder.getPlayedTimes() + 1);
+            mDoingBinder.setStartPlayTime(System.currentTimeMillis());
         }
     }
 
@@ -314,6 +302,12 @@ public class DoingActivity extends EverythingDoneBaseActivity {
             mLlBottom.requestLayout();
         }
 
+        if (mDoingBinder.isInCarefulMode()) {
+            mIvForbidPhoneBt.setImageResource(R.drawable.ic_forbid_phone_on);
+        } else {
+            mIvForbidPhoneBt.setImageResource(R.drawable.ic_forbid_phone_off);
+        }
+
         mIvForbidPhoneBt.setScaleX(0);
         mIvForbidPhoneBt.setScaleY(0);
         mIvAdd5MinBt.setScaleX(0);
@@ -442,7 +436,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
                 break;
             }
             case R.id.iv_forbid_phone_as_bt_doing: {
-                toggleForbidPhotoUsage();
+                toggleCarefulMode();
                 break;
             }
             case R.id.iv_add_5_min_as_bt_doing: {
@@ -455,14 +449,16 @@ public class DoingActivity extends EverythingDoneBaseActivity {
         }
     }
 
-    private void toggleForbidPhotoUsage() {
-        if (mForbidPhoneUsage) {
+    private void toggleCarefulMode() {
+        boolean inCarefulMode = mDoingBinder.isInCarefulMode();
+        if (inCarefulMode) {
             mIvForbidPhoneBt.setImageResource(R.drawable.ic_forbid_phone_off);
         } else {
             mIvForbidPhoneBt.setImageResource(R.drawable.ic_forbid_phone_on);
         }
-        mForbidPhoneUsage = !mForbidPhoneUsage;
-        mPausedTimes = 0;
+        mDoingBinder.setInCarefulMode(!inCarefulMode);
+        mDoingBinder.setPlayedTimes(0);
+        mDoingBinder.setStartPlayTime(0);
     }
 
     @Override

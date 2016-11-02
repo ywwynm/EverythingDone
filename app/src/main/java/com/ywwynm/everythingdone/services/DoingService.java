@@ -67,6 +67,10 @@ public class DoingService extends Service {
 
     private int mAdd5MinTimes = 0;
 
+    private boolean mInCarefulMode = false;
+    private int mPlayedTimes = 0;
+    private long mStartPlayTime = 0;
+
     private Handler mHandler = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(Message message) {
@@ -150,8 +154,10 @@ public class DoingService extends Service {
     public void onDestroy() {
         super.onDestroy();
         Log.i(TAG, "onDestroy()");
+
         mHandler.removeMessages(96);
-        stopSelf();
+        mThing = null;
+        mHandler = null;
     }
 
     private Notification createNotification() {
@@ -230,16 +236,8 @@ public class DoingService extends Service {
         return mLeftTime;
     }
 
-    private void addLeftTime(long add) {
-        mLeftTime += add;
-    }
-
-    public long getTimeInMillis() {
+    private long getTimeInMillis() {
         return mTimeInMillis;
-    }
-
-    private void addTimeInMillis(long add) {
-        mTimeInMillis += add;
     }
 
     private void calculateTimeNumbers(long leftTime) {
@@ -257,10 +255,6 @@ public class DoingService extends Service {
         long seconds = leftTime / 1000;
         mTimeNumbers[4] = (int) (seconds / 10);
         mTimeNumbers[5] = (int) (seconds % 10);
-    }
-
-    private int[] getTimeNumbers() {
-        return mTimeNumbers;
     }
 
     private void add5Min() {
@@ -293,9 +287,33 @@ public class DoingService extends Service {
         return true;
     }
 
+    private boolean isInCarefulMode() {
+        return mInCarefulMode;
+    }
+
+    private void setInCarefulMode(boolean inCarefulMode) {
+        mInCarefulMode = inCarefulMode;
+    }
+
+    private int getPlayedTimes() {
+        return mPlayedTimes;
+    }
+
+    private void setPlayedTimes(int playedTimes) {
+        mPlayedTimes = playedTimes;
+    }
+
+    private long getStartPlayTime() {
+        return mStartPlayTime;
+    }
+
+    private void setStartPlayTime(long startPlayTime) {
+        mStartPlayTime = startPlayTime;
+    }
+
     private String numbersToString() {
         if (mTimeNumbers[0] == -1) {
-            return "-1";
+            return "00:00:00";
         } else {
             return mTimeNumbers[0] + "" + mTimeNumbers[1] + ":"
                  + mTimeNumbers[2] + "" + mTimeNumbers[3] + ":"
@@ -335,6 +353,31 @@ public class DoingService extends Service {
 
         public void add5Min() {
             DoingService.this.add5Min();
+        }
+
+        public boolean isInCarefulMode() {
+            return DoingService.this.isInCarefulMode();
+        }
+
+        public void setInCarefulMode(boolean inCarefulMode) {
+            DoingService.this.setInCarefulMode(inCarefulMode);
+        }
+
+
+        public int getPlayedTimes() {
+            return DoingService.this.getPlayedTimes();
+        }
+
+        public void setPlayedTimes(int playedTimes) {
+            DoingService.this.setPlayedTimes(playedTimes);
+        }
+
+        public long getStartPlayTime() {
+            return DoingService.this.getStartPlayTime();
+        }
+
+        public void setStartPlayTime(long startPlayTime) {
+            DoingService.this.setStartPlayTime(startPlayTime);
         }
     }
 }
