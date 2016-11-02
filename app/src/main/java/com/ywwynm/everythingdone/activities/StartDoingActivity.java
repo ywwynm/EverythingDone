@@ -16,6 +16,7 @@ import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.fragments.ChooserDialogFragment;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Thing;
+import com.ywwynm.everythingdone.services.DoingService;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 
@@ -87,9 +88,9 @@ public class StartDoingActivity extends AppCompatActivity {
             public void onClick(View view) {
                 int index = cdf.getPickedIndex();
                 boolean shouldGoToDoing = true;
-                int type, time;
+                long timeInMillis;
                 if (index == 0) {
-                    type = time = -1;
+                    timeInMillis = -1;
                 } else {
                     index--;
                     long etc = DateTimeUtil.getActualTimeAfterSomeTime(
@@ -114,13 +115,14 @@ public class StartDoingActivity extends AppCompatActivity {
                             }
                         }
                     }
-                    type = mTypes[index];
-                    time = mTimes[index];
+                    timeInMillis = DateTimeUtil.getActualTimeAfterSomeTime(
+                            0, mTypes[index], mTimes[index]);
                 }
                 if (shouldGoToDoing) {
                     cdf.dismiss();
-                    startActivity(DoingActivity.getOpenIntent(
-                            StartDoingActivity.this, thing, time, type, System.currentTimeMillis()));
+                    startService(DoingService.getOpenIntent(
+                            StartDoingActivity.this, thing, System.currentTimeMillis(), timeInMillis));
+                    startActivity(DoingActivity.getOpenIntent(StartDoingActivity.this, true));
                 }
             }
         });

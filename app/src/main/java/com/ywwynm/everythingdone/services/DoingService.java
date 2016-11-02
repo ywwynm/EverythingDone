@@ -1,12 +1,16 @@
 package com.ywwynm.everythingdone.services;
 
+import android.app.Notification;
+import android.app.PendingIntent;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.support.annotation.Nullable;
+import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -14,10 +18,10 @@ import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.DoingActivity;
 import com.ywwynm.everythingdone.database.HabitDAO;
+import com.ywwynm.everythingdone.helpers.CheckListHelper;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Thing;
-
-import org.joda.time.DateTime;
+import com.ywwynm.everythingdone.utils.SystemNotificationUtil;
 
 import java.util.GregorianCalendar;
 
@@ -29,17 +33,25 @@ public class DoingService extends Service {
 
     public static final String TAG = "DoingService";
 
-    public static final String KEY_LEFT_TIME      = "left_time";
+    public static final String KEY_START_TIME     = "start_time";
     public static final String KEY_TIME_IN_MILLIS = "time_in_millis";
 
     private static final long MINUTE_MILLIS = 60 * 1000L;
     private static final long HOUR_MILLIS   = 60 * MINUTE_MILLIS;
 
-    public interface CountdownListener {
-        void onTimeChanged(int[] from, int[] to, long leftTime);
+    public static Intent getOpenIntent(Context context, Thing thing, long startTime, long timeInMillis) {
+        return new Intent(context, DoingService.class)
+                .putExtra(Def.Communication.KEY_THING, thing)
+                .putExtra(KEY_START_TIME, startTime)
+                .putExtra(KEY_TIME_IN_MILLIS, timeInMillis);
+    }
+
+    public interface DoingListener {
+        void onLeftTimeChanged(int[] numbersFrom, int[] numbersTo, long leftTimeBefore, long leftTimeAfter);
+        void onAdd5Min(long leftTime);
         void onCountdownEnd();
     }
-    private CountdownListener mCountdownListener;
+    private DoingListener mDoingListener;
 
     private DoingBinder mBinder;
 
@@ -58,9 +70,13 @@ public class DoingService extends Service {
         @Override
         public boolean handleMessage(Message message) {
             if (message.what == 96) {
+                long leftTimeBefore = mLeftTime;
                 for (int i = 1; i <= mAdd5MinTimes; i++) {
                     mLeftTime += 5 * MINUTE_MILLIS;
                     mTimeInMillis += 5 * MINUTE_MILLIS;
+                }
+                if (mAdd5MinTimes != 0 && mDoingListener != null) {
+                    mDoingListener.onAdd5Min(mLeftTime);
                 }
                 mAdd5MinTimes = 0;
 
@@ -68,18 +84,20 @@ public class DoingService extends Service {
                 System.arraycopy(mTimeNumbers, 0, from, 0, 6);
                 mLeftTime -= 1000;
                 calculateTimeNumbers(mLeftTime);
-                if (mCountdownListener != null) {
-                    mCountdownListener.onTimeChanged(from, mTimeNumbers, mLeftTime);
+                if (mDoingListener != null) {
+                    mDoingListener.onLeftTimeChanged(from, mTimeNumbers, leftTimeBefore, mLeftTime);
                 }
 
                 Log.i(TAG, "User is doing something, counting down, left time is "
                         + numbersToString());
 
+                startForeground((int) mThing.getId(), createNotification());
+
                 if (mLeftTime > 0) {
                     mHandler.sendEmptyMessageDelayed(96, 1000);
                 } else {
-                    if (mCountdownListener != null) {
-                        mCountdownListener.onCountdownEnd();
+                    if (mDoingListener != null) {
+                        mDoingListener.onCountdownEnd();
                     }
                 }
                 return true;
@@ -91,15 +109,6 @@ public class DoingService extends Service {
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
-        mThing = intent.getParcelableExtra(Def.Communication.KEY_THING);
-        if (mThing.getType() == Thing.HABIT) {
-            mHabit = HabitDAO.getInstance(getApplicationContext()).getHabitById(mThing.getId());
-        }
-
-        mTimeInMillis = intent.getLongExtra(KEY_TIME_IN_MILLIS,           -1L);
-        mStartTime    = intent.getLongExtra(DoingActivity.KEY_START_TIME, -1L);
-        mLeftTime     = intent.getLongExtra(KEY_LEFT_TIME,                -1L);
-
         if (mBinder == null) {
             mBinder = new DoingBinder();
         }
@@ -109,32 +118,116 @@ public class DoingService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+        Log.i(TAG, "onCreate()");
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        Log.i(TAG, "onStartCommand()");
+        mThing = intent.getParcelableExtra(Def.Communication.KEY_THING);
+        if (mThing.getType() == Thing.HABIT) {
+            mHabit = HabitDAO.getInstance(getApplicationContext()).getHabitById(mThing.getId());
+        }
+
+        mTimeInMillis = intent.getLongExtra(KEY_TIME_IN_MILLIS, -1L);
+        mStartTime    = intent.getLongExtra(KEY_START_TIME, -1L);
+
+        if (mTimeInMillis == -1) {
+            mLeftTime = -1;
+        } else {
+            if (System.currentTimeMillis() - mStartTime < 6 * 1000L) {
+                mLeftTime = mTimeInMillis / 1000L * 1000L;
+            } else {
+                mLeftTime = (mStartTime + mTimeInMillis - System.currentTimeMillis()) / 1000L * 1000L;
+            }
+        }
+
         return super.onStartCommand(intent, flags, startId);
     }
 
-    private void setCountdownListener(CountdownListener listener) {
-        mCountdownListener = listener;
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        Log.i(TAG, "onDestroy()");
+        mHandler.removeMessages(96);
+        stopSelf();
     }
 
-    private void startCountDown() {
-        mLeftTime += 1000;
+    private Notification createNotification() {
+        @Thing.Type int thingType = mThing.getType();
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this)
+                .setColor(mThing.getColor())
+                .setSmallIcon(Thing.getTypeIconWhiteLarge(thingType))
+                .setContentTitle(getNotificationTitle())
+                .setContentText(numbersToString());
+
+        Intent contentIntent = DoingActivity.getOpenIntent(this, true);
+        builder.setContentIntent(PendingIntent.getActivity(
+                this, (int) mThing.getId(), contentIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+
+        return builder.build();
+    }
+
+    private String getNotificationTitle() {
+        StringBuilder nTitle = new StringBuilder("Doing-");
+        String thingTitle = mThing.getTitleToDisplay();
+        if (!thingTitle.isEmpty()) {
+            nTitle.append(thingTitle);
+        } else {
+            String thingContent = mThing.getContent();
+            if (!thingContent.isEmpty()) {
+                if (CheckListHelper.isCheckListStr(thingContent)) {
+                    thingContent = CheckListHelper.toContentStr(thingContent, "X ", "√ ");
+                    thingContent = thingContent.replaceAll("\n", "\n  ");
+                }
+                nTitle.append(thingContent);
+            } else {
+                // there should be attachment
+
+            }
+        }
+        return nTitle.toString();
+    }
+
+    private void setDoingListener(DoingListener listener) {
+        mDoingListener = listener;
+    }
+
+    private void startCountDown(boolean resume) {
+        if (resume) {
+            mHandler.removeMessages(96);
+            for (int i = 0; i < mTimeNumbers.length; i++) {
+                mTimeNumbers[i] = -1;
+            }
+        } else {
+            mLeftTime += 1000;
+        }
+        mAdd5MinTimes = 0;
         mHandler.sendEmptyMessageDelayed(96, 1000);
+    }
+
+    private Thing getThing() {
+        return mThing;
+    }
+
+    private void setThing(Thing thing) {
+        mThing = thing;
     }
 
     private long getLeftTime() {
         return mLeftTime;
     }
 
-    private void addTimeInMillis(long add) {
-        mTimeInMillis += add;
-    }
-
     private void addLeftTime(long add) {
         mLeftTime += add;
+    }
+
+    public long getTimeInMillis() {
+        return mTimeInMillis;
+    }
+
+    private void addTimeInMillis(long add) {
+        mTimeInMillis += add;
     }
 
     private void calculateTimeNumbers(long leftTime) {
@@ -200,32 +293,28 @@ public class DoingService extends Service {
 
     public class DoingBinder extends Binder {
 
-        public void setCountdownListener(CountdownListener listener) {
-            DoingService.this.setCountdownListener(listener);
+        public void setCountdownListener(DoingListener listener) {
+            DoingService.this.setDoingListener(listener);
         }
 
-        public void startCountdown() {
-            DoingService.this.startCountDown();
+        public void startCountdown(boolean resume) {
+            DoingService.this.startCountDown(resume);
+        }
+
+        public Thing getThing() {
+            return DoingService.this.getThing();
+        }
+
+        public void setThing(Thing thing) {
+            DoingService.this.setThing(thing);
         }
 
         public long getLeftTime() {
             return DoingService.this.getLeftTime();
         }
 
-        public void addLeftTime(long add) {
-            DoingService.this.addLeftTime(add);
-        }
-
-        public void addTimeInMillis(long add) {
-            DoingService.this.addTimeInMillis(add);
-        }
-
-        public void calculateTimeNumbers(long leftTime) {
-            DoingService.this.calculateTimeNumbers(leftTime);
-        }
-
-        public int[] getTimeNumbers() {
-            return DoingService.this.getTimeNumbers();
+        public long getTimeInMillis() {
+            return DoingService.this.getTimeInMillis();
         }
 
         public boolean canAdd5Min() {

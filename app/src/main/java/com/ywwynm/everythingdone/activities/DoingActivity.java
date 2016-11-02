@@ -8,11 +8,10 @@ import android.content.ServiceConnection;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
-import android.os.Handler;
 import android.os.IBinder;
-import android.os.Looper;
 import android.support.v4.util.Pair;
 import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.LinearSmoothScroller;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
 import android.util.Log;
@@ -29,7 +28,6 @@ import android.widget.Toast;
 
 import com.github.adnansm.timelytextview.TimelyView;
 import com.ywwynm.everythingdone.App;
-import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.adapters.BaseThingsAdapter;
 import com.ywwynm.everythingdone.adapters.CheckListAdapter;
@@ -38,7 +36,6 @@ import com.ywwynm.everythingdone.helpers.RemoteActionHelper;
 import com.ywwynm.everythingdone.managers.ModeManager;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.services.DoingService;
-import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.views.FloatingActionButton;
@@ -56,16 +53,10 @@ public class DoingActivity extends EverythingDoneBaseActivity {
 
     public static final String TAG = "DoingActivity";
 
-    public static final String KEY_TIME_TYPE  = "time_type";
-    public static final String KEY_START_TIME = "start_time";
+    public static final String KEY_RESUME = "resume";
 
-    public static Intent getOpenIntent(Context context, Thing thing, int time, int timeType, long startTime) {
-        Intent intent = new Intent(context, DoingActivity.class);
-        intent.putExtra(Def.Communication.KEY_THING, thing);
-        intent.putExtra(Def.Communication.KEY_TIME,  time);
-        intent.putExtra(KEY_TIME_TYPE, timeType);
-        intent.putExtra(KEY_START_TIME, startTime);
-        return intent;
+    public static Intent getOpenIntent(Context context, boolean resume) {
+        return new Intent(context, DoingActivity.class).putExtra(KEY_RESUME, resume);
     }
 
     private static final long MINUTE_MILLIS = 60 * 1000L;
@@ -76,35 +67,14 @@ public class DoingActivity extends EverythingDoneBaseActivity {
     private int mCardWidth;
     private int mRvMaxHeight;
 
-    private Thing mThing;
-
     private DoingService.DoingBinder mDoingBinder;
 
     private ServiceConnection mServiceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
             mDoingBinder = (DoingService.DoingBinder) iBinder;
-
-            mDoingBinder.setCountdownListener(new DoingService.CountdownListener() {
-                @Override
-                public void onTimeChanged(int[] from, int[] to, long leftTime) {
-                    setTimelyViewsVisibilities(leftTime);
-                    playTimelyAnimation(from, to);
-                }
-
-                @Override
-                public void onCountdownEnd() {
-
-                }
-            });
-
-            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    mDoingBinder.startCountdown();
-                    playEnterAnimations();
-                }
-            }, 1000);
+            DoingActivity.super.init();
+            startCountdownAndPlayAnimations();
         }
 
         @Override
@@ -113,9 +83,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
         }
     };
 
-    private long mTimeInMillis;
-    private long mStartTime;
-    private long mLeftTime;
+    private Thing mThing;
 
     private ImageView mIvBg;
 
@@ -124,9 +92,6 @@ public class DoingActivity extends EverythingDoneBaseActivity {
     private LinearLayout mLlMinute;
     private LinearLayout mLlSecond;
     private TimelyView[] mTimelyViews;
-
-    private int[] mTimeNumbers = { -1, -1, -1, -1, -1, -1 };
-    private Handler mTimelyHandler;
 
     private RecyclerView mRecyclerView;
 
@@ -137,6 +102,8 @@ public class DoingActivity extends EverythingDoneBaseActivity {
 
     private int mPausedTimes = 0;
     private boolean mForbidPhoneUsage = false;
+
+    private boolean mServiceUnbind = false;
 
 
     @Override
@@ -167,28 +134,15 @@ public class DoingActivity extends EverythingDoneBaseActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        unbindService(mServiceConnection);
+        if (!mServiceUnbind) {
+            unbindService(mServiceConnection);
+        }
     }
 
     @Override
     protected void init() {
-        initMembers();
-        // TODO: 2016/11/1 mStartTime + mTimeInMillis < current time
-        if (mLeftTime < -1) {
-
-        } else {
-            Intent intent = new Intent(this, DoingService.class);
-            intent.putExtra(Def.Communication.KEY_THING, mThing);
-            intent.putExtra(KEY_START_TIME, mStartTime);
-            intent.putExtra(DoingService.KEY_TIME_IN_MILLIS, mTimeInMillis);
-            intent.putExtra(DoingService.KEY_LEFT_TIME, mLeftTime);
-            bindService(intent, mServiceConnection, BIND_AUTO_CREATE);
-
-            findViews();
-            initUI();
-            setActionbar();
-            setEvents();
-        }
+        Intent intent = new Intent(this, DoingService.class);
+        bindService(intent, mServiceConnection, BIND_AUTO_CREATE);
     }
 
     @Override
@@ -199,27 +153,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
         mCardWidth   = (int) (base * 1.2f);
         mRvMaxHeight = (int) (mCardWidth * 3 / 4f);
 
-        final Intent intent = getIntent();
-        mThing  = intent.getParcelableExtra(Def.Communication.KEY_THING);
-
-        int afterTime = intent.getIntExtra(Def.Communication.KEY_TIME, -1);
-        int timeType  = intent.getIntExtra(KEY_TIME_TYPE, -1);
-        if (afterTime != -1 && timeType != -1) {
-            mTimeInMillis = DateTimeUtil.getActualTimeAfterSomeTime(0, timeType, afterTime);
-        } else {
-            mTimeInMillis = -1;
-        }
-
-        mStartTime = intent.getLongExtra(KEY_START_TIME, -1L);
-        if (mTimeInMillis == -1) {
-            mLeftTime = -1;
-        } else {
-            if (System.currentTimeMillis() - mStartTime < 6 * 1000L) {
-                mLeftTime = mTimeInMillis / 1000L * 1000L;
-            } else {
-                mLeftTime = (mStartTime + mTimeInMillis - System.currentTimeMillis()) / 1000L * 1000L;
-            }
-        }
+        mThing = mDoingBinder.getThing();
     }
 
     @Override
@@ -270,7 +204,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
     }
 
     private void setTimeViews() {
-        if (mTimeInMillis == -1) { // time is infinite
+        if (mDoingBinder.getTimeInMillis() == -1) { // time is infinite
             mTvInfinity.setVisibility(View.VISIBLE);
             mLlHour.setVisibility(View.GONE);
             mLlMinute.setVisibility(View.GONE);
@@ -285,7 +219,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
             mTimelyViews[i] = f(ids[i]);
         }
 
-        setTimelyViewsVisibilities(mLeftTime);
+        setTimelyViewsVisibilities(mDoingBinder.getLeftTime());
     }
 
     private void setTimelyViewsVisibilities(long leftTime) {
@@ -303,14 +237,6 @@ public class DoingActivity extends EverythingDoneBaseActivity {
                 ViewGroup.LayoutParams vlp = mTimelyView.getLayoutParams();
                 vlp.width = (int) (density * 56);
                 mTimelyView.requestLayout();
-            }
-        }
-    }
-
-    private void playTimelyAnimation(int[] from, int[] to) {
-        for (int i = 0; i < from.length; i++) {
-            if (from[i] != to[i]) {
-                mTimelyViews[i].animate(from[i], to[i]).start();
             }
         }
     }
@@ -364,13 +290,14 @@ public class DoingActivity extends EverythingDoneBaseActivity {
                         String updatedContent = CheckListHelper.toggleChecklistItem(
                                 thing.getContent(), itemPos);
                         thing.setContent(updatedContent);
+                        mDoingBinder.setThing(thing);
                         notifyDataSetChanged();
                         RemoteActionHelper.toggleChecklistItem(mApp, thing.getId(), itemPos);
                     }
                 });
             }
         };
-        mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        mRecyclerView.setLayoutManager(new SlowScrollLinearLayoutManager(this));
         mRecyclerView.setAdapter(adapter);
     }
 
@@ -387,33 +314,6 @@ public class DoingActivity extends EverythingDoneBaseActivity {
         mIvAdd5MinBt.setScaleY(0);
         mFabCancel.setScaleX(0);
         mFabCancel.setScaleY(0);
-    }
-
-    private void playEnterAnimations() {
-        mTimelyViews[5].postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                mTvInfinity.animate().setDuration(1600).alpha(1);
-                f(R.id.tv_separator_1_doing).animate().setDuration(1600).alpha(1);
-                f(R.id.tv_separator_2_doing).animate().setDuration(1600).alpha(1);
-                f(R.id.tv_swipe_to_finish_doing).animate().setDuration(1600).alpha(1);
-                mRecyclerView.animate().setDuration(1600).alpha(0.8f);
-                mRecyclerView.scrollBy(0, Integer.MAX_VALUE);
-            }
-        }, 160);
-        mTimelyViews[5].postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                mRecyclerView.smoothScrollToPosition(0);
-                OvershootInterpolator oi = new OvershootInterpolator();
-                mIvForbidPhoneBt.animate().setDuration(360).setInterpolator(oi).scaleX(1);
-                mIvForbidPhoneBt.animate().setDuration(360).setInterpolator(oi).scaleY(1);
-                mIvAdd5MinBt.animate().setDuration(360).setInterpolator(oi).scaleX(1);
-                mIvAdd5MinBt.animate().setDuration(360).setInterpolator(oi).scaleY(1);
-                mFabCancel.animate().setDuration(360).setInterpolator(oi).scaleX(1);
-                mFabCancel.animate().setDuration(360).setInterpolator(oi).scaleY(1);
-            }
-        }, 1200);
     }
 
     @Override
@@ -464,9 +364,77 @@ public class DoingActivity extends EverythingDoneBaseActivity {
         });
     }
 
+    private void startCountdownAndPlayAnimations() {
+        final Intent intent = getIntent();
+        final boolean resume = intent.getBooleanExtra(KEY_RESUME, false);
+        mTimelyViews[5].postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                playEnterAnimations();
+
+                mDoingBinder.setCountdownListener(new DoingService.DoingListener() {
+
+                    @Override
+                    public void onLeftTimeChanged(int[] numbersFrom, int[] numbersTo, long leftTimeBefore, long leftTimeAfter) {
+                        playTimelyAnimation(numbersFrom, numbersTo);
+                    }
+
+                    @Override
+                    public void onAdd5Min(long leftTime) {
+                        setTimelyViewsVisibilities(leftTime);
+                    }
+
+                    @Override
+                    public void onCountdownEnd() {
+
+                    }
+                });
+                mDoingBinder.startCountdown(resume);
+            }
+        }, 1000);
+    }
+
+    private void playEnterAnimations() {
+        mTimelyViews[5].postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                mTvInfinity.animate().setDuration(1600).alpha(1);
+                f(R.id.tv_swipe_to_finish_doing).animate().setDuration(1600).alpha(1);
+                mRecyclerView.animate().setDuration(1600).alpha(0.8f);
+                mRecyclerView.scrollBy(0, Integer.MAX_VALUE);
+            }
+        }, 160);
+        mTimelyViews[5].postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                f(R.id.tv_separator_1_doing).animate().setDuration(360).alpha(1);
+                f(R.id.tv_separator_2_doing).animate().setDuration(360).alpha(1);
+                mRecyclerView.smoothScrollToPosition(0);
+                OvershootInterpolator oi = new OvershootInterpolator();
+                mIvForbidPhoneBt.animate().setDuration(360).setInterpolator(oi).scaleX(1);
+                mIvForbidPhoneBt.animate().setDuration(360).setInterpolator(oi).scaleY(1);
+                mIvAdd5MinBt.animate().setDuration(360).setInterpolator(oi).scaleX(1);
+                mIvAdd5MinBt.animate().setDuration(360).setInterpolator(oi).scaleY(1);
+                mFabCancel.animate().setDuration(360).setInterpolator(oi).scaleX(1);
+                mFabCancel.animate().setDuration(360).setInterpolator(oi).scaleY(1);
+            }
+        }, 1200);
+    }
+
+    private void playTimelyAnimation(int[] from, int[] to) {
+        for (int i = 0; i < from.length; i++) {
+            if (from[i] != to[i]) {
+                mTimelyViews[i].animate(from[i], to[i]).start();
+            }
+        }
+    }
+
     public void onClick(View view) {
         switch (view.getId()) {
             case R.id.fab_cancel_doing: {
+                unbindService(mServiceConnection);
+                stopService(new Intent(this, DoingService.class));
+                mServiceUnbind = true;
                 finish();
                 break;
             }
@@ -507,6 +475,27 @@ public class DoingActivity extends EverythingDoneBaseActivity {
 //        });
 //        adf.show(getFragmentManager(), AlertDialogFragment.TAG);
         super.onBackPressed();
+    }
+
+    class SlowScrollLinearLayoutManager extends LinearLayoutManager {
+
+        private LinearSmoothScroller mSmoothScroller;
+
+        public SlowScrollLinearLayoutManager(Context context) {
+            super(context);
+            mSmoothScroller = new LinearSmoothScroller(context) {
+                @Override
+                protected int calculateTimeForScrolling(int dx) {
+                    return 360;
+                }
+            };
+        }
+
+        @Override
+        public void smoothScrollToPosition(RecyclerView recyclerView, RecyclerView.State state, int position) {
+            mSmoothScroller.setTargetPosition(position);
+            startSmoothScroll(mSmoothScroller);
+        }
     }
 
     class CardTouchCallback extends ItemTouchHelper.Callback {
