@@ -511,10 +511,11 @@
     <string name="doing_left_time">剩餘時間:</string>
     <string name="doing_failed_not_careful">你沒有認真地在做這件事，所以倒計時停止了</string>
     <string name="doing_click_to_dismiss">點擊刪除該通知</string>
-    <string name="doing_first_strict_mode_title">嚴格模式</string>
-    <string name="doing_first_strict_mode_content">您現在處於嚴格模式，完事兒將會檢測您是否在用手機做其它的事情。如果您離開了本界面（僅允許您查看通知欄、鎖定屏幕）三次或者共五分鐘以上，則倒計時將會停止，該記事將仍處於未完成狀態。</string>
-    <string name="doing_close_strict_twice_title">無法再次關閉嚴格模式</string>
-    <string name="doing_close_strict_twice_content">完事兒只允許您關閉一次嚴格模式。在一段時間內只做一件事是一個很好的習慣，請堅持下去！</string>
+    <string name="doing_alert_first_strict_mode_title">嚴格模式</string>
+    <string name="doing_alert_first_strict_mode_content">您現在處於嚴格模式，完事兒將會檢測您是否在用手機做其它的事情。如果您離開了本界面（僅允許您查看通知欄、鎖定屏幕）三次或者共五分鐘以上，則倒計時將會停止，該記事將仍處於未完成狀態。</string>
+    <string name="doing_alert_close_strict_twice_title">無法再次關閉嚴格模式</string>
+    <string name="doing_alert_close_strict_twice_content">完事兒只允許您關閉一次嚴格模式。在一段時間內只做一件事是一個很好的習慣，請堅持下去！</string>
+    <string name="doing_alert_cancel_doing_content">確定要停止做這件事嗎？</string>
 
 
     <!--ImageViewerActivity-->

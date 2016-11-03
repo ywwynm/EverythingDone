@@ -473,7 +473,16 @@ public class DoingActivity extends EverythingDoneBaseActivity {
     public void onClick(View view) {
         switch (view.getId()) {
             case R.id.fab_cancel_doing: {
-                finishWithStoppingService();
+                AlertDialogFragment adf = new AlertDialogFragment();
+                adf.setConfirmColor(mThing.getColor());
+                adf.setContent(getString(R.string.doing_alert_cancel_doing_content));
+                adf.setConfirmListener(new AlertDialogFragment.ConfirmListener() {
+                    @Override
+                    public void onConfirm() {
+                        finishWithStoppingService();
+                    }
+                });
+                adf.show(getFragmentManager(), AlertDialogFragment.TAG);
                 break;
             }
             case R.id.iv_forbid_phone_as_bt_doing: {
@@ -496,14 +505,14 @@ public class DoingActivity extends EverythingDoneBaseActivity {
             if (!mDoingBinder.hasTurnedStrictModeOff()) {
                 mIvForbidPhoneBt.setImageResource(R.drawable.ic_forbid_phone_off);
             } else {
-                showAlertDialog(R.string.doing_close_strict_twice_title,
-                        R.string.doing_close_strict_twice_content);
+                showAlertDialog(R.string.doing_alert_close_strict_twice_title,
+                        R.string.doing_alert_close_strict_twice_content);
                 return;
             }
         } else {
             if (!mDoingBinder.hasTurnedStrictModeOn()) {
-                showAlertDialog(R.string.doing_first_strict_mode_title,
-                        R.string.doing_first_strict_mode_content);
+                showAlertDialog(R.string.doing_alert_first_strict_mode_title,
+                        R.string.doing_alert_first_strict_mode_content);
             }
             mIvForbidPhoneBt.setImageResource(R.drawable.ic_forbid_phone_on);
         }
