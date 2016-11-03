@@ -367,8 +367,8 @@ public class DoingService extends Service {
                 if (etc >= nextTime - 6 * MINUTE_MILLIS) {
                     Toast.makeText(this, R.string.doing_toast_add5_time_long_alarm,
                             Toast.LENGTH_LONG).show();
+                    return false;
                 }
-                return false;
             }
         }
         return true;
