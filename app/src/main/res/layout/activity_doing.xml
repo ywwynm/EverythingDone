@@ -22,40 +22,18 @@
 
     </FrameLayout>
 
-    <RelativeLayout
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
-
-        <android.support.v7.widget.RecyclerView
-            android:id="@+id/rv_thing_doing"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_centerInParent="true"
-            android:translationY="-40dp"
-            android:clipToPadding="false"
-            android:overScrollMode="never"
-            android:alpha="0"
-            android:theme="@style/WhiteListStyle"/>
-
-        <TextView
-            android:id="@+id/tv_swipe_to_finish_doing"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_centerHorizontal="true"
-            android:layout_below="@id/rv_thing_doing"
-            android:layout_marginTop="28dp"
-            android:translationY="-40dp"
-            android:textColor="@color/white_54p"
-            android:text="@string/welcome_underway_content"
-            android:alpha="0"/>
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center_horizontal">
 
         <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_centerHorizontal="true"
-            android:layout_above="@id/rv_thing_doing"
-            android:layout_marginBottom="60dp"
-            android:translationY="-40dp">
+            android:layout_width="match_parent"
+            android:layout_height="0px"
+            android:layout_weight="3"
+            android:paddingBottom="4dp"
+            android:gravity="bottom|center_horizontal">
 
             <TextView
                 android:id="@+id/tv_time_infinity_doing"
@@ -178,75 +156,109 @@
 
         </LinearLayout>
 
-    </RelativeLayout>
-
-    <LinearLayout
-        android:id="@+id/ll_bottom_buttons_doing"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
-        android:gravity="center">
-
         <FrameLayout
-            android:id="@+id/fl_add_5_min"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="24dp"
-            android:layout_marginEnd="16dp"
-            android:layout_marginRight="16dp">
+            android:layout_width="match_parent"
+            android:layout_height="0px"
+            android:layout_weight="8">
 
-            <com.ywwynm.everythingdone.views.FloatingActionButton
-                android:id="@+id/fab_add_5_min"
-                android:layout_width="56dp"
-                android:layout_height="56dp"
-                android:onClick="onClick"
-                app:backgroundTint="#4CAF50"
-                app:rippleColor="@color/white_54p"
-                app:elevation="0dp"
-                app:pressedTranslationZ="0dp"/>
-
-            <TextView
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:includeFontPadding="false"
-                android:fontFamily="roboto"
-                android:text="+5m"
-                android:textColor="@android:color/white"
-                android:textSize="17dp"
-                android:textStyle="bold"/>
+                android:layout_marginTop="48dp"
+                android:orientation="vertical">
+
+                <android.support.v7.widget.RecyclerView
+                    android:id="@+id/rv_thing_doing"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:clipToPadding="false"
+                    android:overScrollMode="never"
+                    android:alpha="0"
+                    android:theme="@style/WhiteListStyle"/>
+
+                <TextView
+                    android:id="@+id/tv_swipe_to_finish_doing"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="28dp"
+                    android:layout_gravity="center_horizontal"
+                    android:textColor="@color/white_54p"
+                    android:text="@string/welcome_underway_content"
+                    android:alpha="0"/>
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/ll_bottom_buttons_doing"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom"
+                android:gravity="center">
+
+                <FrameLayout
+                    android:id="@+id/fl_add_5_min"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginBottom="24dp"
+                    android:layout_marginEnd="16dp"
+                    android:layout_marginRight="16dp">
+
+                    <com.ywwynm.everythingdone.views.FloatingActionButton
+                        android:id="@+id/fab_add_5_min"
+                        android:layout_width="56dp"
+                        android:layout_height="56dp"
+                        android:onClick="onClick"
+                        app:backgroundTint="#4CAF50"
+                        app:rippleColor="@color/white_54p"
+                        app:elevation="0dp"
+                        app:pressedTranslationZ="0dp"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:includeFontPadding="false"
+                        android:fontFamily="roboto"
+                        android:text="+5m"
+                        android:textColor="@android:color/white"
+                        android:textSize="17dp"
+                        android:textStyle="bold"/>
+
+                </FrameLayout>
+
+                <com.ywwynm.everythingdone.views.FloatingActionButton
+                    android:id="@+id/fab_strict_mode"
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginBottom="24dp"
+                    android:layout_marginEnd="16dp"
+                    android:layout_marginRight="16dp"
+                    android:src="@drawable/ic_doing_strict_mode_off"
+                    android:onClick="onClick"
+                    app:backgroundTint="#2196F3"
+                    app:rippleColor="@color/white_54p"
+                    app:elevation="0dp"
+                    app:pressedTranslationZ="0dp"/>
+
+                <com.ywwynm.everythingdone.views.FloatingActionButton
+                    android:id="@+id/fab_cancel_doing"
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginBottom="24dp"
+                    android:src="@drawable/act_cancel_white"
+                    android:onClick="onClick"
+                    app:backgroundTint="@color/error"
+                    app:rippleColor="@color/white_54p"
+                    app:elevation="0dp"
+                    app:pressedTranslationZ="0dp"
+                    app:borderWidth="0dp"/>
+
+            </LinearLayout>
 
         </FrameLayout>
-
-        <com.ywwynm.everythingdone.views.FloatingActionButton
-            android:id="@+id/fab_strict_mode"
-            android:layout_width="56dp"
-            android:layout_height="56dp"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="24dp"
-            android:layout_marginEnd="16dp"
-            android:layout_marginRight="16dp"
-            android:src="@drawable/ic_doing_strict_mode_off"
-            android:onClick="onClick"
-            app:backgroundTint="#2196F3"
-            app:rippleColor="@color/white_54p"
-            app:elevation="0dp"
-            app:pressedTranslationZ="0dp"/>
-
-        <com.ywwynm.everythingdone.views.FloatingActionButton
-            android:id="@+id/fab_cancel_doing"
-            android:layout_width="56dp"
-            android:layout_height="56dp"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="24dp"
-            android:src="@drawable/act_cancel_white"
-            android:onClick="onClick"
-            app:backgroundTint="@color/error"
-            app:rippleColor="@color/white_54p"
-            app:elevation="0dp"
-            app:pressedTranslationZ="0dp"
-            app:borderWidth="0dp"/>
 
     </LinearLayout>
 
