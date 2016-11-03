@@ -187,29 +187,52 @@
         android:layout_gravity="bottom"
         android:gravity="center">
 
-        <ImageView
-            android:id="@+id/iv_add_5_min_as_bt_doing"
-            android:layout_width="42dp"
-            android:layout_height="42dp"
+        <FrameLayout
+            android:id="@+id/fl_add_5_min"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:layout_marginBottom="24dp"
             android:layout_marginEnd="16dp"
-            android:layout_marginRight="16dp"
-            android:scaleType="centerCrop"
-            android:src="@drawable/ic_add_5_min"
-            android:onClick="onClick"/>
+            android:layout_marginRight="16dp">
 
-        <ImageView
-            android:id="@+id/iv_forbid_phone_as_bt_doing"
-            android:layout_width="42dp"
-            android:layout_height="42dp"
+            <com.ywwynm.everythingdone.views.FloatingActionButton
+                android:id="@+id/fab_add_5_min"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:onClick="onClick"
+                app:backgroundTint="#4CAF50"
+                app:rippleColor="@color/white_54p"
+                app:elevation="0dp"
+                app:pressedTranslationZ="0dp"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:includeFontPadding="false"
+                android:fontFamily="roboto"
+                android:text="+5m"
+                android:textColor="@android:color/white"
+                android:textSize="17dp"
+                android:textStyle="bold"/>
+
+        </FrameLayout>
+
+        <com.ywwynm.everythingdone.views.FloatingActionButton
+            android:id="@+id/fab_strict_mode"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
             android:layout_marginTop="16dp"
             android:layout_marginBottom="24dp"
             android:layout_marginEnd="16dp"
             android:layout_marginRight="16dp"
-            android:scaleType="centerCrop"
-            android:src="@drawable/ic_forbid_phone_off"
-            android:onClick="onClick"/>
+            android:src="@drawable/ic_doing_strict_mode_off"
+            android:onClick="onClick"
+            app:backgroundTint="#2196F3"
+            app:rippleColor="@color/white_54p"
+            app:elevation="0dp"
+            app:pressedTranslationZ="0dp"/>
 
         <com.ywwynm.everythingdone.views.FloatingActionButton
             android:id="@+id/fab_cancel_doing"
@@ -221,8 +244,8 @@
             android:onClick="onClick"
             app:backgroundTint="@color/error"
             app:rippleColor="@color/white_54p"
-            app:elevation="6dp"
-            app:pressedTranslationZ="12dp"
+            app:elevation="0dp"
+            app:pressedTranslationZ="0dp"
             app:borderWidth="0dp"/>
 
     </LinearLayout>

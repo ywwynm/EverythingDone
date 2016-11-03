@@ -18,7 +18,6 @@ import android.support.v7.widget.LinearSmoothScroller;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
 import android.util.Log;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
@@ -115,8 +114,9 @@ public class DoingActivity extends EverythingDoneBaseActivity {
     private RecyclerView mRecyclerView;
 
     private LinearLayout mLlBottom;
-    private ImageView mIvForbidPhoneBt;
-    private ImageView mIvAdd5MinBt;
+    private FrameLayout mFlAdd5Min;
+    private FloatingActionButton mFabAdd5Min;
+    private FloatingActionButton mFabStrictMode;
     private FloatingActionButton mFabCancel;
 
     private boolean mServiceUnbind = false;
@@ -191,10 +191,11 @@ public class DoingActivity extends EverythingDoneBaseActivity {
 
         mRecyclerView = f(R.id.rv_thing_doing);
 
-        mLlBottom        = f(R.id.ll_bottom_buttons_doing);
-        mIvForbidPhoneBt = f(R.id.iv_forbid_phone_as_bt_doing);
-        mIvAdd5MinBt     = f(R.id.iv_add_5_min_as_bt_doing);
-        mFabCancel       = f(R.id.fab_cancel_doing);
+        mLlBottom      = f(R.id.ll_bottom_buttons_doing);
+        mFlAdd5Min     = f(R.id.fl_add_5_min);
+        mFabAdd5Min    = f(R.id.fab_add_5_min);
+        mFabStrictMode = f(R.id.fab_strict_mode);
+        mFabCancel     = f(R.id.fab_cancel_doing);
     }
 
     @Override
@@ -339,15 +340,15 @@ public class DoingActivity extends EverythingDoneBaseActivity {
         }
 
         if (mDoingBinder.isInStrictMode()) {
-            mIvForbidPhoneBt.setImageResource(R.drawable.ic_forbid_phone_on);
+            mFabStrictMode.setImageResource(R.drawable.ic_doing_strict_mode_on);
         } else {
-            mIvForbidPhoneBt.setImageResource(R.drawable.ic_forbid_phone_off);
+            mFabStrictMode.setImageResource(R.drawable.ic_doing_strict_mode_off);
         }
 
-        mIvForbidPhoneBt.setScaleX(0);
-        mIvForbidPhoneBt.setScaleY(0);
-        mIvAdd5MinBt.setScaleX(0);
-        mIvAdd5MinBt.setScaleY(0);
+        mFlAdd5Min.setScaleX(0);
+        mFlAdd5Min.setScaleY(0);
+        mFabStrictMode.setScaleX(0);
+        mFabStrictMode.setScaleY(0);
         mFabCancel.setScaleX(0);
         mFabCancel.setScaleY(0);
     }
@@ -358,9 +359,6 @@ public class DoingActivity extends EverythingDoneBaseActivity {
     @Override
     protected void setEvents() {
         setRecyclerViewEvent();
-
-        helpDifferNormalPressState(mIvForbidPhoneBt, 1f, 0.56f);
-        helpDifferNormalPressState(mIvAdd5MinBt,     1f, 0.56f);
     }
 
     private void setRecyclerViewEvent() {
@@ -379,25 +377,6 @@ public class DoingActivity extends EverythingDoneBaseActivity {
                 });
         ItemTouchHelper helper = new ItemTouchHelper(new CardTouchCallback());
         helper.attachToRecyclerView(mRecyclerView);
-    }
-
-    private void helpDifferNormalPressState(
-            View view, final float normalAlpha, final float pressedAlpha) {
-        view.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View view, MotionEvent motionEvent) {
-                switch (motionEvent.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        view.setAlpha(pressedAlpha);
-                        break;
-                    case MotionEvent.ACTION_UP:
-                    case MotionEvent.ACTION_CANCEL:
-                         view.setAlpha(normalAlpha);
-                         break;
-                }
-                return false;
-            }
-        });
     }
 
     private void startCountdownAndPlayAnimations() {
@@ -452,10 +431,10 @@ public class DoingActivity extends EverythingDoneBaseActivity {
                 f(R.id.tv_separator_2_doing).animate().setDuration(360).alpha(1);
                 mRecyclerView.smoothScrollToPosition(0);
                 OvershootInterpolator oi = new OvershootInterpolator();
-                mIvForbidPhoneBt.animate().setDuration(360).setInterpolator(oi).scaleX(1);
-                mIvForbidPhoneBt.animate().setDuration(360).setInterpolator(oi).scaleY(1);
-                mIvAdd5MinBt.animate().setDuration(360).setInterpolator(oi).scaleX(1);
-                mIvAdd5MinBt.animate().setDuration(360).setInterpolator(oi).scaleY(1);
+                mFlAdd5Min.animate().setDuration(360).setInterpolator(oi).scaleX(1);
+                mFlAdd5Min.animate().setDuration(360).setInterpolator(oi).scaleY(1);
+                mFabStrictMode.animate().setDuration(360).setInterpolator(oi).scaleX(1);
+                mFabStrictMode.animate().setDuration(360).setInterpolator(oi).scaleY(1);
                 mFabCancel.animate().setDuration(360).setInterpolator(oi).scaleX(1);
                 mFabCancel.animate().setDuration(360).setInterpolator(oi).scaleY(1);
             }
@@ -472,6 +451,16 @@ public class DoingActivity extends EverythingDoneBaseActivity {
 
     public void onClick(View view) {
         switch (view.getId()) {
+            case R.id.fab_add_5_min: {
+                if (mDoingBinder.canAdd5Min()) {
+                    mDoingBinder.add5Min();
+                }
+                break;
+            }
+            case R.id.fab_strict_mode: {
+                toggleStrictMode();
+                break;
+            }
             case R.id.fab_cancel_doing: {
                 AlertDialogFragment adf = new AlertDialogFragment();
                 adf.setConfirmColor(mThing.getColor());
@@ -485,16 +474,6 @@ public class DoingActivity extends EverythingDoneBaseActivity {
                 adf.show(getFragmentManager(), AlertDialogFragment.TAG);
                 break;
             }
-            case R.id.iv_forbid_phone_as_bt_doing: {
-                toggleStrictMode();
-                break;
-            }
-            case R.id.iv_add_5_min_as_bt_doing: {
-                if (mDoingBinder.canAdd5Min()) {
-                    mDoingBinder.add5Min();
-                }
-                break;
-            }
             default:break;
         }
     }
@@ -503,7 +482,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
         boolean inStrictMode = mDoingBinder.isInStrictMode();
         if (inStrictMode) {
             if (!mDoingBinder.hasTurnedStrictModeOff()) {
-                mIvForbidPhoneBt.setImageResource(R.drawable.ic_forbid_phone_off);
+                mFabStrictMode.setImageResource(R.drawable.ic_doing_strict_mode_off);
             } else {
                 showAlertDialog(R.string.doing_alert_close_strict_twice_title,
                         R.string.doing_alert_close_strict_twice_content);
@@ -514,7 +493,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
                 showAlertDialog(R.string.doing_alert_first_strict_mode_title,
                         R.string.doing_alert_first_strict_mode_content);
             }
-            mIvForbidPhoneBt.setImageResource(R.drawable.ic_forbid_phone_on);
+            mFabStrictMode.setImageResource(R.drawable.ic_doing_strict_mode_on);
         }
         mDoingBinder.setInStrictMode(!inStrictMode);
         mDoingBinder.setPlayedTimes(0);
