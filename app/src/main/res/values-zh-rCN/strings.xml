@@ -519,6 +519,7 @@
     <string name="doing_alert_cancel_doing_content">确定要停止做这件事吗？</string>
     <string name="doing_toast_add5_time_long_alarm">如果延迟 5 分钟，您有可能无法在该习惯的下一个提醒到来前完成一次</string>
     <string name="doing_toast_add5_time_long_t">如果延迟 5 分钟，您有可能无法在本周期内完成一次该习惯</string>
+    <string name="doing_toast_add5_above99">我无法触及那片未来</string>
 
 
     <!--ImageViewerActivity-->
