@@ -508,6 +508,8 @@
     <!--DoingService/Activity-->
     <string name="doing_currently_doing">正在做 -</string>
     <string name="doing_left_time">剩余时间:</string>
+    <string name="doing_failed_not_careful">你没有认真地在做这件事，所以倒计时停止了</string>
+    <string name="doing_click_to_dismiss">点击删除该通知</string>
 
 
     <!--ImageViewerActivity-->

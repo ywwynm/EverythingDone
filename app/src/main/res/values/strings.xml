@@ -515,6 +515,8 @@
     <!--DoingService/Activity-->
     <string name="doing_currently_doing">Currently doing -</string>
     <string name="doing_left_time">Time left:</string>
+    <string name="doing_failed_not_careful">You didn\'t do this thing carefully so countdown stopped</string>
+    <string name="doing_click_to_dismiss">Click to dismiss this notification</string>
 
 
     <!--ImageViewerActivity-->

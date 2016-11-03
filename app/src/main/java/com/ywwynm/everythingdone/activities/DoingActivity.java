@@ -1,9 +1,11 @@
 package com.ywwynm.everythingdone.activities;
 
 import android.app.WallpaperManager;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -34,6 +36,7 @@ import com.ywwynm.everythingdone.helpers.CheckListHelper;
 import com.ywwynm.everythingdone.helpers.RemoteActionHelper;
 import com.ywwynm.everythingdone.managers.ModeManager;
 import com.ywwynm.everythingdone.model.Thing;
+import com.ywwynm.everythingdone.receivers.DoingNotificationActionReceiver;
 import com.ywwynm.everythingdone.services.DoingService;
 import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
@@ -52,7 +55,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
 
     public static final String TAG = "DoingActivity";
 
-    public static final String KEY_RESUME = "resume";
+    public static final String KEY_RESUME = TAG + ".resume";
 
     public static Intent getOpenIntent(Context context, boolean resume) {
         return new Intent(context, DoingActivity.class).putExtra(KEY_RESUME, resume);
@@ -82,6 +85,21 @@ public class DoingActivity extends EverythingDoneBaseActivity {
         }
     };
 
+    private BroadcastReceiver mReceiver = new BroadcastReceiver() {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (!DoingNotificationActionReceiver.ACTION_STOP_SERVICE.equals(action)
+                    && !DoingNotificationActionReceiver.ACTION_FINISH.equals(action)
+                    && !DoingNotificationActionReceiver.ACTION_CANCEL.equals(action)) {
+                return;
+            }
+
+            finish();
+        }
+    };
+
     private Thing mThing;
 
     private ImageView mIvBg;
@@ -101,7 +119,6 @@ public class DoingActivity extends EverythingDoneBaseActivity {
 
     private boolean mServiceUnbind = false;
 
-
     @Override
     protected int getLayoutResource() {
         return R.layout.activity_doing;
@@ -113,16 +130,26 @@ public class DoingActivity extends EverythingDoneBaseActivity {
         Log.i(TAG, "onPause");
         if (!DeviceUtil.isScreenOn(this)) {
             Log.i(TAG, "onPause called because of closing screen");
-        } else if (mDoingBinder.isInCarefulMode()) {
+        } else if (mDoingBinder != null && mDoingBinder.isInCarefulMode()) {
             mDoingBinder.setPlayedTimes(mDoingBinder.getPlayedTimes() + 1);
             mDoingBinder.setStartPlayTime(System.currentTimeMillis());
         }
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        if (mDoingBinder != null) {
+            mDoingBinder.setStartPlayTime(-1L);
+        }
+    }
+
+    @Override
     protected void onDestroy() {
         super.onDestroy();
+        unregisterReceiver(mReceiver);
         if (!mServiceUnbind) {
+            mDoingBinder.setCountdownListener(null);
             unbindService(mServiceConnection);
         }
     }
@@ -131,6 +158,13 @@ public class DoingActivity extends EverythingDoneBaseActivity {
     protected void init() {
         Intent intent = new Intent(this, DoingService.class);
         bindService(intent, mServiceConnection, BIND_AUTO_CREATE);
+
+        IntentFilter filter = new IntentFilter(DoingNotificationActionReceiver.ACTION_STOP_SERVICE);
+        registerReceiver(mReceiver, filter);
+        filter = new IntentFilter(DoingNotificationActionReceiver.ACTION_FINISH);
+        registerReceiver(mReceiver, filter);
+        filter = new IntentFilter(DoingNotificationActionReceiver.ACTION_CANCEL);
+        registerReceiver(mReceiver, filter);
     }
 
     @Override
@@ -385,6 +419,11 @@ public class DoingActivity extends EverythingDoneBaseActivity {
                     }
 
                     @Override
+                    public void onCountdownFailed() {
+                        finish();
+                    }
+
+                    @Override
                     public void onCountdownEnd() {
 
                     }
@@ -458,7 +497,8 @@ public class DoingActivity extends EverythingDoneBaseActivity {
         }
         mDoingBinder.setInCarefulMode(!inCarefulMode);
         mDoingBinder.setPlayedTimes(0);
-        mDoingBinder.setStartPlayTime(0);
+        mDoingBinder.setStartPlayTime(-1L);
+        mDoingBinder.setTotalPlayedTime(0);
     }
 
     @Override

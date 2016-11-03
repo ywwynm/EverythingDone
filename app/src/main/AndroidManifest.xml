@@ -377,6 +377,11 @@
             android:name=".services.DoingService">
         </service>
 
+        <receiver
+            android:name=".receivers.DoingNotificationActionReceiver"
+            android:enabled="true">
+        </receiver>
+
     </application>
 
 </manifest>

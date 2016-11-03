@@ -14,6 +14,7 @@ import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.DoingActivity;
@@ -22,7 +23,10 @@ import com.ywwynm.everythingdone.helpers.AttachmentHelper;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Thing;
-import com.ywwynm.everythingdone.utils.SystemNotificationUtil;
+import com.ywwynm.everythingdone.receivers.DoingNotificationActionReceiver;
+import com.ywwynm.everythingdone.utils.DeviceUtil;
+import com.ywwynm.everythingdone.utils.LocaleUtil;
+import com.ywwynm.everythingdone.utils.StringUtil;
 
 import java.util.GregorianCalendar;
 
@@ -50,6 +54,7 @@ public class DoingService extends Service {
     public interface DoingListener {
         void onLeftTimeChanged(int[] numbersFrom, int[] numbersTo, long leftTimeBefore, long leftTimeAfter);
         void onAdd5Min(long leftTime);
+        void onCountdownFailed();
         void onCountdownEnd();
     }
     private DoingListener mDoingListener;
@@ -69,7 +74,10 @@ public class DoingService extends Service {
 
     private boolean mInCarefulMode = false;
     private int mPlayedTimes = 0;
-    private long mStartPlayTime = 0;
+    private long mStartPlayTime = -1L;
+    private long mTotalPlayedTime = 0;
+
+    private boolean mFailureToasted = false;
 
     private Handler mHandler = new Handler(new Handler.Callback() {
         @Override
@@ -85,26 +93,42 @@ public class DoingService extends Service {
                 }
                 mAdd5MinTimes = 0;
 
-                int[] from = new int[6];
-                System.arraycopy(mTimeNumbers, 0, from, 0, 6);
-                mLeftTime -= 1000;
-                calculateTimeNumbers(mLeftTime);
-                if (mDoingListener != null) {
-                    mDoingListener.onLeftTimeChanged(from, mTimeNumbers, leftTimeBefore, mLeftTime);
+                if (mLeftTime > 0) {
+                    int[] from = new int[6];
+                    System.arraycopy(mTimeNumbers, 0, from, 0, 6);
+                    mLeftTime -= 1000;
+                    calculateTimeNumbers(mLeftTime);
+                    if (mDoingListener != null) {
+                        mDoingListener.onLeftTimeChanged(from, mTimeNumbers, leftTimeBefore, mLeftTime);
+                    }
                 }
 
                 Log.i(TAG, "User is doing something, counting down, left time is "
-                        + numbersToString());
+                        + getLeftTimeStr());
 
-                startForeground((int) mThing.getId(), createNotification());
+                if (mStartPlayTime != -1) {
+                    mTotalPlayedTime += 1000;
+                }
 
-                if (mLeftTime > 0) {
-                    mHandler.sendEmptyMessageDelayed(96, 1000);
-                } else {
+                boolean failedCon1 = mPlayedTimes >= 3;
+                boolean failedCon2 = mTotalPlayedTime >= 30000;
+                boolean failed = failedCon1 || failedCon2;
+                startForeground((int) mThing.getId(), createNotification(failed));
+                if (failed) {
+                    if (!mFailureToasted) {
+                        Toast.makeText(DoingService.this, R.string.doing_failed_not_careful,
+                                Toast.LENGTH_LONG).show();
+                        mFailureToasted = true;
+                    }
                     if (mDoingListener != null) {
-                        mDoingListener.onCountdownEnd();
+                        mDoingListener.onCountdownFailed();
                     }
                 }
+
+                if (mLeftTime <= 0 && mDoingListener != null) {
+                    mDoingListener.onCountdownEnd();
+                }
+                mHandler.sendEmptyMessageDelayed(96, 1000);
                 return true;
             }
             return false;
@@ -147,6 +171,14 @@ public class DoingService extends Service {
             }
         }
 
+        mAdd5MinTimes = 0;
+
+        mInCarefulMode = false; // TODO: 2016/11/3 read from settings
+        mPlayedTimes = 0;
+        mStartPlayTime = -1L;
+
+        mFailureToasted = false;
+
         return super.onStartCommand(intent, flags, startId);
     }
 
@@ -155,29 +187,56 @@ public class DoingService extends Service {
         super.onDestroy();
         Log.i(TAG, "onDestroy()");
 
+        App.setDoingThingId(-1L);
         mHandler.removeMessages(96);
+        stopForeground(true);
+
         mThing = null;
         mHandler = null;
     }
 
-    private Notification createNotification() {
+    private Notification createNotification(boolean failed) {
         @Thing.Type int thingType = mThing.getType();
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this)
                 .setColor(mThing.getColor())
                 .setSmallIcon(Thing.getTypeIconWhiteLarge(thingType))
-                .setContentTitle(getNotificationTitle())
-                .setContentText(getString(R.string.doing_left_time) + " " + numbersToString());
+                .setContentTitle(getNotificationTitle(failed))
+                .setContentText(getNotificationContent(failed));
 
-        Intent contentIntent = DoingActivity.getOpenIntent(this, true);
-        builder.setContentIntent(PendingIntent.getActivity(
-                this, (int) mThing.getId(), contentIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+        long thingId = mThing.getId();
+        if (!failed) {
+            Intent contentIntent = DoingActivity.getOpenIntent(this, true);
+            builder.setContentIntent(PendingIntent.getActivity(
+                    this, (int) thingId, contentIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+
+            Intent finishIntent = new Intent(this, DoingNotificationActionReceiver.class);
+            finishIntent.setAction(DoingNotificationActionReceiver.ACTION_FINISH);
+            finishIntent.putExtra(Def.Communication.KEY_ID, thingId);
+            builder.addAction(R.drawable.act_finish, getString(R.string.act_finish),
+                    PendingIntent.getBroadcast(
+                            this, (int) thingId, finishIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+
+            Intent cancelIntent = new Intent(this, DoingNotificationActionReceiver.class);
+            cancelIntent.setAction(DoingNotificationActionReceiver.ACTION_CANCEL);
+            cancelIntent.putExtra(Def.Communication.KEY_ID, thingId);
+            builder.addAction(R.drawable.act_cancel_white, StringUtil.lowerFirst(getString(R.string.cancel)),
+                    PendingIntent.getBroadcast(
+                            this, (int) thingId, cancelIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+        } else {
+            Intent contentIntent = new Intent(this, DoingNotificationActionReceiver.class);
+            contentIntent.setAction(DoingNotificationActionReceiver.ACTION_STOP_SERVICE);
+            builder.setContentIntent(PendingIntent.getBroadcast(
+                    this, (int) mThing.getId(), contentIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+        }
 
         return builder.build();
     }
 
-    private String getNotificationTitle() {
-        StringBuilder nTitle = new StringBuilder(getString(R.string.doing_currently_doing));
-        nTitle.append(" ");
+    private String getNotificationTitle(boolean failed) {
+        StringBuilder nTitle = new StringBuilder();
+        if (!failed) {
+            nTitle.append(getString(R.string.doing_currently_doing)).append(" ");
+        }
         String thingTitle = mThing.getTitleToDisplay();
         if (!thingTitle.isEmpty()) {
             nTitle.append(thingTitle);
@@ -205,6 +264,16 @@ public class DoingService extends Service {
             }
         }
         return nTitle.toString();
+    }
+
+    private String getNotificationContent(boolean failed) {
+        if (!failed) {
+            return getString(R.string.doing_left_time) + " " + getLeftTimeStr();
+        } else {
+            String between = LocaleUtil.isChinese(this) ? ", " : ". ";
+            return getString(R.string.doing_failed_not_careful) + between
+                    + getString(R.string.doing_click_to_dismiss);
+        }
     }
 
     private void setDoingListener(DoingListener listener) {
@@ -311,13 +380,21 @@ public class DoingService extends Service {
         mStartPlayTime = startPlayTime;
     }
 
-    private String numbersToString() {
-        if (mTimeNumbers[0] == -1) {
-            return "00:00:00";
+    private void setTotalPlayedTime(long totalPlayedTime) {
+        mTotalPlayedTime = totalPlayedTime;
+    }
+
+    private String getLeftTimeStr() {
+        if (mTimeInMillis == -1) {
+            return getString(R.string.infinity);
         } else {
-            return mTimeNumbers[0] + "" + mTimeNumbers[1] + ":"
-                 + mTimeNumbers[2] + "" + mTimeNumbers[3] + ":"
-                 + mTimeNumbers[4] + "" + mTimeNumbers[5];
+            if (mTimeNumbers[0] == -1) {
+                return "00:00:00";
+            } else {
+                return mTimeNumbers[0] + "" + mTimeNumbers[1] + ":"
+                        + mTimeNumbers[2] + "" + mTimeNumbers[3] + ":"
+                        + mTimeNumbers[4] + "" + mTimeNumbers[5];
+            }
         }
     }
 
@@ -378,6 +455,10 @@ public class DoingService extends Service {
 
         public void setStartPlayTime(long startPlayTime) {
             DoingService.this.setStartPlayTime(startPlayTime);
+        }
+
+        public void setTotalPlayedTime(long totalPlayedTime) {
+            DoingService.this.setTotalPlayedTime(totalPlayedTime);
         }
     }
 }
