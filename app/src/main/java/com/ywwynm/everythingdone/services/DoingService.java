@@ -75,7 +75,8 @@ public class DoingService extends Service {
     private int mPlayedTimes = 0;
     private long mStartPlayTime = -1L;
     private long mTotalPlayedTime = 0;
-    private boolean mClosedStrictModeOnce = false;
+    private boolean mhasTurnedStrictModeOn  = false;
+    private boolean mhasTurnedStrictModeOff = false;
 
     private boolean mFailureToasted = false;
 
@@ -384,8 +385,12 @@ public class DoingService extends Service {
         mTotalPlayedTime = totalPlayedTime;
     }
 
-    private boolean hasClosedStrictModeOnce() {
-        return mClosedStrictModeOnce;
+    private boolean hasTurnedStrictModeOn() {
+        return mhasTurnedStrictModeOn;
+    }
+
+    private boolean hasTurnedStrictModeOff() {
+        return mhasTurnedStrictModeOff;
     }
 
     private String getLeftTimeStr() {
@@ -442,7 +447,9 @@ public class DoingService extends Service {
 
         public void setInStrictMode(boolean inStrictMode) {
             if (!inStrictMode) {
-                mClosedStrictModeOnce = true;
+                mhasTurnedStrictModeOff = true;
+            } else {
+                mhasTurnedStrictModeOn = true;
             }
             DoingService.this.setInStrictMode(inStrictMode);
         }
@@ -467,8 +474,12 @@ public class DoingService extends Service {
             DoingService.this.setTotalPlayedTime(totalPlayedTime);
         }
 
-        public boolean hasClosedStrictModeOnce() {
-            return DoingService.this.hasClosedStrictModeOnce();
+        public boolean hasTurnedStrictModeOn() {
+            return DoingService.this.hasTurnedStrictModeOn();
+        }
+
+        public boolean hasTurnedStrictModeOff() {
+            return DoingService.this.hasTurnedStrictModeOff();
         }
     }
 }

@@ -7,7 +7,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
-import android.content.SharedPreferences;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
@@ -31,7 +30,6 @@ import android.widget.TextView;
 
 import com.github.adnansm.timelytextview.TimelyView;
 import com.ywwynm.everythingdone.App;
-import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.adapters.BaseThingsAdapter;
 import com.ywwynm.everythingdone.adapters.CheckListAdapter;
@@ -495,7 +493,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
     private void toggleStrictMode() {
         boolean inStrictMode = mDoingBinder.isInStrictMode();
         if (inStrictMode) {
-            if (!mDoingBinder.hasClosedStrictModeOnce()) {
+            if (!mDoingBinder.hasTurnedStrictModeOff()) {
                 mIvForbidPhoneBt.setImageResource(R.drawable.ic_forbid_phone_off);
             } else {
                 showAlertDialog(R.string.doing_close_strict_twice_title,
@@ -503,11 +501,9 @@ public class DoingActivity extends EverythingDoneBaseActivity {
                 return;
             }
         } else {
-            SharedPreferences sp = getSharedPreferences(Def.Meta.META_DATA_NAME, MODE_PRIVATE);
-            if (sp.getBoolean(Def.Meta.KEY_FIRST_STRICT_DOING_MODE, true)) {
+            if (!mDoingBinder.hasTurnedStrictModeOn()) {
                 showAlertDialog(R.string.doing_first_strict_mode_title,
                         R.string.doing_first_strict_mode_content);
-                sp.edit().putBoolean(Def.Meta.KEY_FIRST_STRICT_DOING_MODE, false).apply();
             }
             mIvForbidPhoneBt.setImageResource(R.drawable.ic_forbid_phone_on);
         }
