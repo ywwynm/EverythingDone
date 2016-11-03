@@ -64,6 +64,13 @@ public class StartDoingActivity extends AppCompatActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        if (App.getDoingThingId() != -1L) {
+            Toast.makeText(this,  R.string.start_doing_doing_another_thing,
+                    Toast.LENGTH_LONG).show();
+            finish();
+            return;
+        }
+
         final Intent intent = getIntent();
         final long id = intent.getLongExtra(Def.Communication.KEY_ID, -1);
         int pos = intent.getIntExtra(Def.Communication.KEY_POSITION, -1);
