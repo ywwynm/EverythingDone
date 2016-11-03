@@ -85,6 +85,11 @@ public class DoingService extends Service {
         public boolean handleMessage(Message message) {
             if (message.what == 96) {
                 long leftTimeBefore = mLeftTime;
+                if (mAdd5MinTimes != 0 && mLeftTime == 0) {
+                    // Countdown stopped but we want to add 5 more minutes. Current numbers are all 0
+                    // and we want to start from 05:00, as a result, we should add another 1 second.
+                    mLeftTime += 1000;
+                }
                 for (int i = 1; i <= mAdd5MinTimes; i++) {
                     mLeftTime += 5 * MINUTE_MILLIS;
                     mTimeInMillis += 5 * MINUTE_MILLIS;
@@ -332,11 +337,16 @@ public class DoingService extends Service {
     }
 
     private boolean canAdd5Min() {
-        if (mLeftTime <= 0) {
-            return false;
+        if (mTimeInMillis == -1) {
+            return false; // Your time is already infinite, why would you like 5 more minutes?
         }
         if (mHabit != null) {
-            long etc = mStartTime + mTimeInMillis + 5 * MINUTE_MILLIS * (mAdd5MinTimes + 1);
+            long etc;
+            if (mLeftTime == 0) { // countdown is over
+                etc = System.currentTimeMillis() + 5 * MINUTE_MILLIS * (mAdd5MinTimes + 1);
+            } else {
+                etc = mStartTime + mTimeInMillis + 5 * MINUTE_MILLIS * (mAdd5MinTimes + 1);
+            }
             int habitType = mHabit.getType();
             GregorianCalendar calendar = new GregorianCalendar();
             int ct = calendar.get(habitType); // current t
