@@ -108,8 +108,8 @@ public class HabitReceiver extends BroadcastReceiver {
 //            getItIntent.setAction(Def.Communication.NOTIFICATION_ACTION_GET_IT);
 //            getItIntent.putExtra(Def.Communication.KEY_ID, hrId);
 //            getItIntent.putExtra(Def.Communication.KEY_POSITION, position);
-//            builder.addAction(R.drawable.act_start_doing,
-//                    context.getString(R.string.act_start_doing),
+//            builder.addAction(R.drawable.act_get_it,
+//                    context.getString(R.string.act_get_it),
 //                    PendingIntent.getBroadcast(context,
 //                            (int) hrId, getItIntent, PendingIntent.FLAG_UPDATE_CURRENT));
 
