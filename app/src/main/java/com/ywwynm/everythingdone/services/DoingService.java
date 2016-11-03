@@ -317,7 +317,7 @@ public class DoingService extends Service {
 
     private void calculateTimeNumbers(long leftTime) {
         long hours = leftTime / HOUR_MILLIS;
-        if (hours > 100) hours = 99;
+        if (hours > 99) hours = 99;
         mTimeNumbers[0] = (int) (hours / 10);
         mTimeNumbers[1] = (int) (hours % 10);
 
@@ -340,6 +340,13 @@ public class DoingService extends Service {
         if (mTimeInMillis == -1) {
             return false; // Your time is already infinite, why would you like 5 more minutes?
         }
+
+        long leftTime = mLeftTime + 5 * MINUTE_MILLIS * (mAdd5MinTimes + 1);
+        if (leftTime / HOUR_MILLIS > 99) {
+            Toast.makeText(this, R.string.doing_toast_add5_above99, Toast.LENGTH_LONG).show();
+            return false;
+        }
+
         if (mHabit != null) {
             long etc;
             if (mLeftTime == 0) { // countdown is over
@@ -352,14 +359,14 @@ public class DoingService extends Service {
             int ct = calendar.get(habitType); // current t
             calendar.setTimeInMillis(etc);
             if (calendar.get(habitType) != ct) {
-                Toast.makeText(getApplicationContext(),
-                        R.string.doing_toast_add5_time_long_t, Toast.LENGTH_LONG).show();
+                Toast.makeText(this, R.string.doing_toast_add5_time_long_t,
+                        Toast.LENGTH_LONG).show();
                 return false;
             } else {
                 long nextTime = mHabit.getMinHabitReminderTime();
                 if (etc >= nextTime - 6 * MINUTE_MILLIS) {
-                    Toast.makeText(getApplicationContext(),
-                            R.string.doing_toast_add5_time_long_alarm, Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, R.string.doing_toast_add5_time_long_alarm,
+                            Toast.LENGTH_LONG).show();
                 }
                 return false;
             }
