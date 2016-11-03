@@ -188,18 +188,6 @@
         android:gravity="center">
 
         <ImageView
-            android:id="@+id/iv_forbid_phone_as_bt_doing"
-            android:layout_width="42dp"
-            android:layout_height="42dp"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="24dp"
-            android:layout_marginEnd="16dp"
-            android:layout_marginRight="16dp"
-            android:scaleType="centerCrop"
-            android:src="@drawable/ic_forbid_phone_off"
-            android:onClick="onClick"/>
-
-        <ImageView
             android:id="@+id/iv_add_5_min_as_bt_doing"
             android:layout_width="42dp"
             android:layout_height="42dp"
@@ -209,6 +197,18 @@
             android:layout_marginRight="16dp"
             android:scaleType="centerCrop"
             android:src="@drawable/ic_add_5_min"
+            android:onClick="onClick"/>
+
+        <ImageView
+            android:id="@+id/iv_forbid_phone_as_bt_doing"
+            android:layout_width="42dp"
+            android:layout_height="42dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="24dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginRight="16dp"
+            android:scaleType="centerCrop"
+            android:src="@drawable/ic_forbid_phone_off"
             android:onClick="onClick"/>
 
         <com.ywwynm.everythingdone.views.FloatingActionButton
