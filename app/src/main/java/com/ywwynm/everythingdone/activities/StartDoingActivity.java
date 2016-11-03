@@ -82,6 +82,7 @@ public class StartDoingActivity extends AppCompatActivity {
         cdf.setTitle(getString(R.string.start_doing_estimated_time));
         cdf.setItems(getItems());
         cdf.setInitialIndex(0);
+        cdf.setShouldDismissAfterConfirm(false);
         cdf.setConfirmText(getString(R.string.start_doing_confirm));
         cdf.setConfirmListener(new View.OnClickListener() {
             @Override
