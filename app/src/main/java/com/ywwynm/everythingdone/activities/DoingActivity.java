@@ -10,7 +10,9 @@ import android.content.ServiceConnection;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Message;
 import android.support.annotation.StringRes;
 import android.support.v4.util.Pair;
 import android.support.v7.widget.LinearLayoutManager;
@@ -115,9 +117,10 @@ public class DoingActivity extends EverythingDoneBaseActivity {
 
     private LinearLayout mLlBottom;
     private FrameLayout mFlAdd5Min;
-    private FloatingActionButton mFabAdd5Min;
     private FloatingActionButton mFabStrictMode;
     private FloatingActionButton mFabCancel;
+
+    private Handler mInfinityHandler;
 
     private boolean mServiceUnbind = false;
 
@@ -150,6 +153,10 @@ public class DoingActivity extends EverythingDoneBaseActivity {
     protected void onDestroy() {
         super.onDestroy();
         unregisterReceiver(mReceiver);
+        if (mInfinityHandler != null) {
+            mInfinityHandler.removeMessages(96);
+            mInfinityHandler = null;
+        }
         if (!mServiceUnbind) {
             mDoingBinder.setCountdownListener(null);
             unbindService(mServiceConnection);
@@ -178,6 +185,19 @@ public class DoingActivity extends EverythingDoneBaseActivity {
         mRvMaxHeight = (int) (mCardWidth * 3 / 4f);
 
         mThing = mDoingBinder.getThing();
+
+        if (mDoingBinder.getTimeInMillis() == -1) {
+            mInfinityHandler = new Handler(new Handler.Callback() {
+                @Override
+                public boolean handleMessage(Message message) {
+                    if (message.what == 96) {
+                        mTvInfinity.animate().setDuration(3600).alpha(1 - mTvInfinity.getAlpha());
+                        mInfinityHandler.sendEmptyMessageDelayed(96, 3600);
+                    }
+                    return false;
+                }
+            });
+        }
     }
 
     @Override
@@ -193,7 +213,6 @@ public class DoingActivity extends EverythingDoneBaseActivity {
 
         mLlBottom      = f(R.id.ll_bottom_buttons_doing);
         mFlAdd5Min     = f(R.id.fl_add_5_min);
-        mFabAdd5Min    = f(R.id.fab_add_5_min);
         mFabStrictMode = f(R.id.fab_strict_mode);
         mFabCancel     = f(R.id.fab_cancel_doing);
     }
@@ -339,6 +358,10 @@ public class DoingActivity extends EverythingDoneBaseActivity {
             mLlBottom.requestLayout();
         }
 
+        if (mDoingBinder.getTimeInMillis() == -1) {
+            mFlAdd5Min.setVisibility(View.GONE);
+        }
+
         if (mDoingBinder.isInStrictMode()) {
             mFabStrictMode.setImageResource(R.drawable.ic_doing_strict_mode_on);
         } else {
@@ -380,9 +403,10 @@ public class DoingActivity extends EverythingDoneBaseActivity {
     }
 
     private void startCountdownAndPlayAnimations() {
+        // after 1760ms, background blur animation will finish
         final Intent intent = getIntent();
         final boolean resume = intent.getBooleanExtra(KEY_RESUME, false);
-        mTimelyViews[5].postDelayed(new Runnable() {
+        mRecyclerView.postDelayed(new Runnable() {
             @Override
             public void run() {
                 playEnterAnimations();
@@ -410,26 +434,32 @@ public class DoingActivity extends EverythingDoneBaseActivity {
                     }
                 });
                 mDoingBinder.startCountdown(resume);
+
+                if (mDoingBinder.getTimeInMillis() == -1 && mInfinityHandler != null) {
+                    mInfinityHandler.sendEmptyMessageDelayed(96, 1760);
+                }
             }
         }, 1000);
     }
 
     private void playEnterAnimations() {
-        mTimelyViews[5].postDelayed(new Runnable() {
+        mRecyclerView.postDelayed(new Runnable() {
             @Override
             public void run() {
-                mTvInfinity.animate().setDuration(1600).alpha(1);
+                mTvInfinity.animate().setDuration(1600).alpha(0.76f);
                 f(R.id.tv_swipe_to_finish_doing).animate().setDuration(1600).alpha(1);
-                mRecyclerView.animate().setDuration(1600).alpha(0.8f);
+                mRecyclerView.animate().setDuration(1600).alpha(0.84f);
                 mRecyclerView.scrollBy(0, Integer.MAX_VALUE);
             }
-        }, 160);
-        mTimelyViews[5].postDelayed(new Runnable() {
+        }, 160); // executed after 1160ms, animation ends at 2760ms
+        mRecyclerView.postDelayed(new Runnable() {
             @Override
             public void run() {
-                f(R.id.tv_separator_1_doing).animate().setDuration(360).alpha(1);
-                f(R.id.tv_separator_2_doing).animate().setDuration(360).alpha(1);
+                f(R.id.tv_separator_1_doing).animate().setDuration(360).alpha(0.86f);
+                f(R.id.tv_separator_2_doing).animate().setDuration(360).alpha(0.76f);
+
                 mRecyclerView.smoothScrollToPosition(0);
+
                 OvershootInterpolator oi = new OvershootInterpolator();
                 mFlAdd5Min.animate().setDuration(360).setInterpolator(oi).scaleX(1);
                 mFlAdd5Min.animate().setDuration(360).setInterpolator(oi).scaleY(1);
@@ -438,7 +468,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
                 mFabCancel.animate().setDuration(360).setInterpolator(oi).scaleX(1);
                 mFabCancel.animate().setDuration(360).setInterpolator(oi).scaleY(1);
             }
-        }, 1200);
+        }, 1200); // executed after 1360ms, animation ends at 1720ms
     }
 
     private void playTimelyAnimation(int[] from, int[] to) {
