@@ -223,7 +223,7 @@ public class DoingService extends Service {
                             this, (int) thingId, finishIntent, PendingIntent.FLAG_UPDATE_CURRENT));
 
             Intent cancelIntent = new Intent(this, DoingNotificationActionReceiver.class);
-            cancelIntent.setAction(DoingNotificationActionReceiver.ACTION_CANCEL);
+            cancelIntent.setAction(DoingNotificationActionReceiver.ACTION_USER_CANCEL);
             cancelIntent.putExtra(Def.Communication.KEY_ID, thingId);
             builder.addAction(R.drawable.act_cancel_white, StringUtil.lowerFirst(getString(R.string.cancel)),
                     PendingIntent.getBroadcast(

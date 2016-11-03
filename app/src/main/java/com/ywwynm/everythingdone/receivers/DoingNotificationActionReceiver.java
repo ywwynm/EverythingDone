@@ -20,14 +20,14 @@ public class DoingNotificationActionReceiver extends BroadcastReceiver {
     public static final String TAG = "DoingNotificationActionReceiver";
 
     public static final String ACTION_FINISH       = TAG + ".finish";
-    public static final String ACTION_CANCEL       = TAG + ".cancel";
+    public static final String ACTION_USER_CANCEL  = TAG + ".user_cancel";
     public static final String ACTION_STOP_SERVICE = TAG + ".stop_service";
 
     @Override
     public void onReceive(Context context, Intent intent) {
         String action = intent.getAction();
         if (!ACTION_FINISH.equals(action)
-                && !ACTION_CANCEL.equals(action)
+                && !ACTION_USER_CANCEL.equals(action)
                 && !ACTION_STOP_SERVICE.equals(action)) {
             return;
         }

@@ -95,7 +95,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
             String action = intent.getAction();
             if (!DoingNotificationActionReceiver.ACTION_STOP_SERVICE.equals(action)
                     && !DoingNotificationActionReceiver.ACTION_FINISH.equals(action)
-                    && !DoingNotificationActionReceiver.ACTION_CANCEL.equals(action)) {
+                    && !DoingNotificationActionReceiver.ACTION_USER_CANCEL.equals(action)) {
                 return;
             }
 
@@ -172,7 +172,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
         registerReceiver(mReceiver, filter);
         filter = new IntentFilter(DoingNotificationActionReceiver.ACTION_FINISH);
         registerReceiver(mReceiver, filter);
-        filter = new IntentFilter(DoingNotificationActionReceiver.ACTION_CANCEL);
+        filter = new IntentFilter(DoingNotificationActionReceiver.ACTION_USER_CANCEL);
         registerReceiver(mReceiver, filter);
     }
 
