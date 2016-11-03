@@ -19,6 +19,7 @@ import com.ywwynm.everythingdone.managers.ThingManager;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.HabitReminder;
 import com.ywwynm.everythingdone.model.Thing;
+import com.ywwynm.everythingdone.services.DoingService;
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil;
 
 import java.util.List;
@@ -44,6 +45,10 @@ public class HabitReceiver extends BroadcastReceiver {
 
         long habitId = habitReminder.getHabitId();
         SystemNotificationUtil.cancelNotification(habitId, Thing.HABIT, context);
+        if (App.getDoingThingId() == habitId) {
+            context.sendBroadcast(new Intent(DoingNotificationActionReceiver.ACTION_STOP_SERVICE));
+            context.stopService(new Intent(context, DoingService.class));
+        }
 
         Pair<Thing, Integer> pair = App.getThingAndPosition(context, habitId, -1);
         Thing thing = pair.first;
