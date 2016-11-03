@@ -83,6 +83,8 @@ public class DateTimeUtil {
 
     public static String getTimeTypeStr(int type, Context context) {
         switch (type) {
+            case Calendar.SECOND:
+                return context.getString(R.string.second);
             case Calendar.MINUTE:
                 return context.getString(R.string.minute);
             case Calendar.HOUR_OF_DAY:

@@ -10,6 +10,7 @@ import android.view.View;
 import android.widget.Toast;
 
 import com.ywwynm.everythingdone.App;
+import com.ywwynm.everythingdone.BuildConfig;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.database.HabitDAO;
@@ -41,24 +42,29 @@ public class StartDoingActivity extends AppCompatActivity {
         return intent;
     }
 
-    private int[] mTypes = {
-            Calendar.MINUTE,
-            Calendar.MINUTE,
-            Calendar.HOUR_OF_DAY,
-            Calendar.MINUTE,
-            Calendar.HOUR_OF_DAY,
-            Calendar.HOUR_OF_DAY,
-            Calendar.HOUR_OF_DAY
-    };
-    private int[] mTimes = {
-            30,
-            45,
-            1,
-            90,
-            2,
-            3,
-            4
-    };
+    private List<Integer> mTypes;
+    private List<Integer> mTimes;
+
+//    private int[] mTypes = {
+//            Calendar.MINUTE,
+//            Calendar.MINUTE,
+//            Calendar.MINUTE,
+//            Calendar.HOUR_OF_DAY,
+//            Calendar.MINUTE,
+//            Calendar.HOUR_OF_DAY,
+//            Calendar.HOUR_OF_DAY,
+//            Calendar.HOUR_OF_DAY
+//    };
+//    private int[] mTimes = {
+//            15,
+//            30,
+//            45,
+//            1,
+//            90,
+//            2,
+//            3,
+//            4
+//    };
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -81,6 +87,8 @@ public class StartDoingActivity extends AppCompatActivity {
             return;
         }
 
+        initTimeMember();
+
         int color = intent.getIntExtra(Def.Communication.KEY_COLOR, DisplayUtil.getRandomColor(this));
 
         final ChooserDialogFragment cdf = new ChooserDialogFragment();
@@ -102,7 +110,7 @@ public class StartDoingActivity extends AppCompatActivity {
                 } else {
                     index--;
                     long etc = DateTimeUtil.getActualTimeAfterSomeTime(
-                            mTypes[index], mTimes[index]);
+                            mTypes.get(index), mTimes.get(index));
                     if (thing.getType() == Thing.HABIT) {
                         Habit habit = HabitDAO.getInstance(getApplicationContext()).getHabitById(id);
                         if (habit != null) {
@@ -124,14 +132,14 @@ public class StartDoingActivity extends AppCompatActivity {
                         }
                     }
                     timeInMillis = DateTimeUtil.getActualTimeAfterSomeTime(
-                            0, mTypes[index], mTimes[index]);
+                            0, mTypes.get(index), mTimes.get(index));
                 }
                 if (shouldGoToDoing) {
                     App.setDoingThingId(id);
                     cdf.dismiss();
                     startService(DoingService.getOpenIntent(
                             StartDoingActivity.this, thing, System.currentTimeMillis(), timeInMillis));
-                    startActivity(DoingActivity.getOpenIntent(StartDoingActivity.this, true));
+                    startActivity(DoingActivity.getOpenIntent(StartDoingActivity.this, false));
                 }
             }
         });
@@ -145,8 +153,37 @@ public class StartDoingActivity extends AppCompatActivity {
         cdf.show(getFragmentManager(), ChooserDialogFragment.TAG);
     }
 
+    private void initTimeMember() {
+        mTypes = new ArrayList<>();
+        mTimes = new ArrayList<>();
+
+        if (BuildConfig.DEBUG) {
+            mTypes.add(Calendar.SECOND);
+            mTimes.add(6);
+        }
+
+        mTypes.add(Calendar.MINUTE);
+        mTypes.add(Calendar.MINUTE);
+        mTypes.add(Calendar.MINUTE);
+        mTypes.add(Calendar.HOUR_OF_DAY);
+        mTypes.add(Calendar.MINUTE);
+        mTypes.add(Calendar.HOUR_OF_DAY);
+        mTypes.add(Calendar.HOUR_OF_DAY);
+        mTypes.add(Calendar.HOUR_OF_DAY);
+
+        mTimes.add(15);
+        mTimes.add(30);
+        mTimes.add(45);
+        mTimes.add(1);
+        mTimes.add(90);
+        mTimes.add(2);
+        mTimes.add(3);
+        mTimes.add(4);
+    }
+
     /**
      * Not sure
+     * 15 minutes
      * 30 minutes
      * 45 minutes
      * 1  hour
@@ -158,8 +195,9 @@ public class StartDoingActivity extends AppCompatActivity {
     private List<String> getItems() {
         List<String> items = new ArrayList<>();
         items.add(getString(R.string.start_doing_time_not_sure));
-        for (int i = 0; i < mTypes.length; i++) {
-            items.add(DateTimeUtil.getDateTimeStr(mTypes[i], mTimes[i], this));
+        final int size = mTypes.size();
+        for (int i = 0; i < size; i++) {
+            items.add(DateTimeUtil.getDateTimeStr(mTypes.get(i), mTimes.get(i), this));
         }
         return items;
     }

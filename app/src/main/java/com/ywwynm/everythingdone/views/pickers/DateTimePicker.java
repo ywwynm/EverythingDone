@@ -53,7 +53,7 @@ public class DateTimePicker extends PopupPicker {
             params.width = (int) (mScreenDensity * 168);
             mItems = mActivity.getResources().getStringArray(R.array.quick_remind);
             if (BuildConfig.DEBUG) {
-                mItems[0] = "6 seconds";
+                mItems[0] = "6 " + activity.getString(R.string.second);
             }
         } else if (mType == Def.PickerType.TIME_TYPE_HAVE_HOUR_MINUTE) {
             params.width = (int) (mScreenDensity * 120);

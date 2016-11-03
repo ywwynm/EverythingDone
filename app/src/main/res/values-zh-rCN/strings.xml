@@ -18,6 +18,7 @@
         <item>@string/month</item>
         <item>@string/year</item>
     </string-array>
+    <string name="second">秒</string>
     <string name="minute">分钟</string>
     <string name="hour">小时</string>
     <string name="day">日</string>

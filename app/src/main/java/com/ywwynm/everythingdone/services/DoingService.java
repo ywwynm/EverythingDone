@@ -112,7 +112,7 @@ public class DoingService extends Service {
                 }
 
                 boolean failedCon1 = mPlayedTimes >= 3;
-                boolean failedCon2 = mTotalPlayedTime >= 30000;
+                boolean failedCon2 = mTotalPlayedTime >= 5 * MINUTE_MILLIS;
                 boolean failed = failedCon1 || failedCon2;
                 startForeground((int) mThing.getId(), createNotification(failed));
                 if (failed) {
