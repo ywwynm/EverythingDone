@@ -292,7 +292,7 @@ public class DoingService extends Service {
             for (int i = 0; i < mTimeNumbers.length; i++) {
                 mTimeNumbers[i] = -1;
             }
-        } else {
+        } else if (mTimeInMillis != -1) {
             mLeftTime += 1000;
         }
         mAdd5MinTimes = 0;
