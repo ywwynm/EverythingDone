@@ -24,7 +24,6 @@ import com.ywwynm.everythingdone.helpers.CheckListHelper;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.receivers.DoingNotificationActionReceiver;
-import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.LocaleUtil;
 import com.ywwynm.everythingdone.utils.StringUtil;
 
@@ -72,7 +71,7 @@ public class DoingService extends Service {
 
     private int mAdd5MinTimes = 0;
 
-    private boolean mInCarefulMode = false;
+    private boolean mInStrictMode = false;
     private int mPlayedTimes = 0;
     private long mStartPlayTime = -1L;
     private long mTotalPlayedTime = 0;
@@ -173,7 +172,7 @@ public class DoingService extends Service {
 
         mAdd5MinTimes = 0;
 
-        mInCarefulMode = false; // TODO: 2016/11/3 read from settings
+        mInStrictMode = false; // TODO: 2016/11/3 read from settings
         mPlayedTimes = 0;
         mStartPlayTime = -1L;
 
@@ -356,12 +355,12 @@ public class DoingService extends Service {
         return true;
     }
 
-    private boolean isInCarefulMode() {
-        return mInCarefulMode;
+    private boolean isInStrictMode() {
+        return mInStrictMode;
     }
 
-    private void setInCarefulMode(boolean inCarefulMode) {
-        mInCarefulMode = inCarefulMode;
+    private void setInStrictMode(boolean inStrictMode) {
+        mInStrictMode = inStrictMode;
     }
 
     private int getPlayedTimes() {
@@ -432,12 +431,12 @@ public class DoingService extends Service {
             DoingService.this.add5Min();
         }
 
-        public boolean isInCarefulMode() {
-            return DoingService.this.isInCarefulMode();
+        public boolean isInStrictMode() {
+            return DoingService.this.isInStrictMode();
         }
 
-        public void setInCarefulMode(boolean inCarefulMode) {
-            DoingService.this.setInCarefulMode(inCarefulMode);
+        public void setInStrictMode(boolean inCarefulMode) {
+            DoingService.this.setInStrictMode(inCarefulMode);
         }
 
 

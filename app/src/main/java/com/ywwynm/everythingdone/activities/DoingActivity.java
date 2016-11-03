@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
@@ -29,9 +30,11 @@ import android.widget.TextView;
 
 import com.github.adnansm.timelytextview.TimelyView;
 import com.ywwynm.everythingdone.App;
+import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.adapters.BaseThingsAdapter;
 import com.ywwynm.everythingdone.adapters.CheckListAdapter;
+import com.ywwynm.everythingdone.fragments.AlertDialogFragment;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
 import com.ywwynm.everythingdone.helpers.RemoteActionHelper;
 import com.ywwynm.everythingdone.managers.ModeManager;
@@ -130,7 +133,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
         Log.i(TAG, "onPause");
         if (!DeviceUtil.isScreenOn(this)) {
             Log.i(TAG, "onPause called because of closing screen");
-        } else if (mDoingBinder != null && mDoingBinder.isInCarefulMode()) {
+        } else if (mDoingBinder != null && mDoingBinder.isInStrictMode()) {
             mDoingBinder.setPlayedTimes(mDoingBinder.getPlayedTimes() + 1);
             mDoingBinder.setStartPlayTime(System.currentTimeMillis());
         }
@@ -336,7 +339,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
             mLlBottom.requestLayout();
         }
 
-        if (mDoingBinder.isInCarefulMode()) {
+        if (mDoingBinder.isInStrictMode()) {
             mIvForbidPhoneBt.setImageResource(R.drawable.ic_forbid_phone_on);
         } else {
             mIvForbidPhoneBt.setImageResource(R.drawable.ic_forbid_phone_off);
@@ -475,7 +478,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
                 break;
             }
             case R.id.iv_forbid_phone_as_bt_doing: {
-                toggleCarefulMode();
+                toggleStrictMode();
                 break;
             }
             case R.id.iv_add_5_min_as_bt_doing: {
@@ -488,14 +491,25 @@ public class DoingActivity extends EverythingDoneBaseActivity {
         }
     }
 
-    private void toggleCarefulMode() {
-        boolean inCarefulMode = mDoingBinder.isInCarefulMode();
-        if (inCarefulMode) {
+    private void toggleStrictMode() {
+        boolean inStrictMode = mDoingBinder.isInStrictMode();
+        if (inStrictMode) {
             mIvForbidPhoneBt.setImageResource(R.drawable.ic_forbid_phone_off);
         } else {
+            SharedPreferences sp = getSharedPreferences(Def.Meta.META_DATA_NAME, MODE_PRIVATE);
+            if (sp.getBoolean(Def.Meta.KEY_FIRST_STRICT_DOING_MODE, true)) {
+                AlertDialogFragment adf = new AlertDialogFragment();
+                adf.setTitleColor(mThing.getColor());
+                adf.setConfirmColor(mThing.getColor());
+                adf.setShowCancel(false);
+                adf.setTitle(getString(R.string.doing_first_strict_mode_title));
+                adf.setContent(getString(R.string.doing_first_strict_mode_content));
+                adf.show(getFragmentManager(), AlertDialogFragment.TAG);
+                sp.edit().putBoolean(Def.Meta.KEY_FIRST_STRICT_DOING_MODE, false).apply();
+            }
             mIvForbidPhoneBt.setImageResource(R.drawable.ic_forbid_phone_on);
         }
-        mDoingBinder.setInCarefulMode(!inCarefulMode);
+        mDoingBinder.setInStrictMode(!inStrictMode);
         mDoingBinder.setPlayedTimes(0);
         mDoingBinder.setStartPlayTime(-1L);
         mDoingBinder.setTotalPlayedTime(0);
