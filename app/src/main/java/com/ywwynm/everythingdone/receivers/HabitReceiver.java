@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.util.Pair;
+import android.widget.Toast;
 
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
@@ -46,6 +47,10 @@ public class HabitReceiver extends BroadcastReceiver {
         long habitId = habitReminder.getHabitId();
         SystemNotificationUtil.cancelNotification(habitId, Thing.HABIT, context);
         if (App.getDoingThingId() == habitId) {
+            // if user is doing this Habit for the last time, now he/she cannot do it any longer
+            // since this time is coming
+            Toast.makeText(context, R.string.doing_toast_stopped_habit_next_reminder,
+                    Toast.LENGTH_LONG).show();
             context.sendBroadcast(new Intent(DoingNotificationActionReceiver.ACTION_STOP_SERVICE));
             context.stopService(new Intent(context, DoingService.class));
         }
@@ -108,16 +113,14 @@ public class HabitReceiver extends BroadcastReceiver {
 //                    PendingIntent.getBroadcast(context,
 //                            (int) hrId, getItIntent, PendingIntent.FLAG_UPDATE_CURRENT));
 
-            if (App.getDoingThingId() == -1) {
-                Intent startIntent = new Intent(context, HabitNotificationActionReceiver.class);
-                startIntent.setAction(Def.Communication.NOTIFICATION_ACTION_START_DOING);
-                startIntent.putExtra(Def.Communication.KEY_ID, hrId);
-                startIntent.putExtra(Def.Communication.KEY_POSITION, position);
-                builder.addAction(R.drawable.act_start_doing,
-                        context.getString(R.string.act_start_doing),
-                        PendingIntent.getBroadcast(context,
-                                (int) hrId, startIntent, PendingIntent.FLAG_UPDATE_CURRENT));
-            }
+            Intent startIntent = new Intent(context, HabitNotificationActionReceiver.class);
+            startIntent.setAction(Def.Communication.NOTIFICATION_ACTION_START_DOING);
+            startIntent.putExtra(Def.Communication.KEY_ID, hrId);
+            startIntent.putExtra(Def.Communication.KEY_POSITION, position);
+            builder.addAction(R.drawable.act_start_doing,
+                    context.getString(R.string.act_start_doing),
+                    PendingIntent.getBroadcast(context,
+                            (int) hrId, startIntent, PendingIntent.FLAG_UPDATE_CURRENT));
 
             NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
             notificationManager.notify((int) hrId, builder.build());
