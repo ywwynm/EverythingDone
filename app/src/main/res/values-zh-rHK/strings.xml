@@ -501,7 +501,7 @@
     <string name="start_doing_estimated_time">預計完成時間</string>
     <string name="start_doing_time_not_sure">不確定</string>
     <string name="start_doing_doing_another_thing">你正在做另一件事！</string>
-    <string name="start_doing_time_long_alarm">您預計的完成時間較長，無法在該習慣的下一個提醒前完成一次</string>
+    <string name="start_doing_time_long_alarm">您預計的完成時間較長，無法在該習慣的下一個提醒到來前完成一次</string>
     <string name="start_doing_time_long_t">您預計的完成時間較長，無法在本週期內完成一次該習慣</string>
     <string name="start_doing_confirm">開始做事</string>
 
@@ -516,6 +516,8 @@
     <string name="doing_alert_close_strict_twice_title">無法再次關閉嚴格模式</string>
     <string name="doing_alert_close_strict_twice_content">完事兒只允許您關閉一次嚴格模式。在一段時間內只做一件事是一個很好的習慣，請堅持下去！</string>
     <string name="doing_alert_cancel_doing_content">確定要停止做這件事嗎？</string>
+    <string name="doing_toast_add5_time_long_alarm">如果延遲 5 分鐘，您有可能無法在該習慣的下一個提醒到來前完成一次</string>
+    <string name="doing_toast_add5_time_long_t">如果延遲 5 分鐘，您有可能無法在本週期內完成一次該習慣</string>
 
 
     <!--ImageViewerActivity-->

@@ -343,13 +343,13 @@ public class DoingService extends Service {
             calendar.setTimeInMillis(etc);
             if (calendar.get(habitType) != ct) {
                 Toast.makeText(getApplicationContext(),
-                        R.string.start_doing_time_long_t, Toast.LENGTH_LONG).show();
+                        R.string.doing_toast_add5_time_long_t, Toast.LENGTH_LONG).show();
                 return false;
             } else {
                 long nextTime = mHabit.getMinHabitReminderTime();
                 if (etc >= nextTime - 6 * MINUTE_MILLIS) {
                     Toast.makeText(getApplicationContext(),
-                            R.string.start_doing_time_long_alarm, Toast.LENGTH_LONG).show();
+                            R.string.doing_toast_add5_time_long_alarm, Toast.LENGTH_LONG).show();
                 }
                 return false;
             }

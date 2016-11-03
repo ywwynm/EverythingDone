@@ -523,7 +523,8 @@
     <string name="doing_alert_close_strict_twice_title">Cannot turn Strict Mode off again</string>
     <string name="doing_alert_close_strict_twice_content">You are only allowed to turn Strict Mode off once. It\'s a good habit to do one thing at one time carefully so please keep going.</string>
     <string name="doing_alert_cancel_doing_content">Are you sure to cancel doing this thing?</string>
-
+    <string name="doing_toast_add5_time_long_alarm">You will not be able to finish the Habit once before its next alarm after adding 5 minutes</string>
+    <string name="doing_toast_add5_time_long_t">You will not be able to finish the Habit once in this cycle after adding 5 minutes</string>
 
     <!--ImageViewerActivity-->
     <string name="alert_delete_attachment">Are you sure to delete this attachment?</string>
