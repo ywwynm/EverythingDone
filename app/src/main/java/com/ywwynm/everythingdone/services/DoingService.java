@@ -292,6 +292,11 @@ public class DoingService extends Service {
             for (int i = 0; i < mTimeNumbers.length; i++) {
                 mTimeNumbers[i] = -1;
             }
+            if (mLeftTime == 0) {
+                // countdown stopped but we resumed DoingActivity, so at least play animation to
+                // show timely views
+                mLeftTime = 1000;
+            }
         } else if (mTimeInMillis != -1) {
             mLeftTime += 1000;
         }
