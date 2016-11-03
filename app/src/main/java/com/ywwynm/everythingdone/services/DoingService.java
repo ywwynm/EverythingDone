@@ -75,6 +75,7 @@ public class DoingService extends Service {
     private int mPlayedTimes = 0;
     private long mStartPlayTime = -1L;
     private long mTotalPlayedTime = 0;
+    private boolean mClosedStrictModeOnce = false;
 
     private boolean mFailureToasted = false;
 
@@ -383,6 +384,10 @@ public class DoingService extends Service {
         mTotalPlayedTime = totalPlayedTime;
     }
 
+    private boolean hasClosedStrictModeOnce() {
+        return mClosedStrictModeOnce;
+    }
+
     private String getLeftTimeStr() {
         if (mTimeInMillis == -1) {
             return getString(R.string.infinity);
@@ -435,10 +440,12 @@ public class DoingService extends Service {
             return DoingService.this.isInStrictMode();
         }
 
-        public void setInStrictMode(boolean inCarefulMode) {
-            DoingService.this.setInStrictMode(inCarefulMode);
+        public void setInStrictMode(boolean inStrictMode) {
+            if (!inStrictMode) {
+                mClosedStrictModeOnce = true;
+            }
+            DoingService.this.setInStrictMode(inStrictMode);
         }
-
 
         public int getPlayedTimes() {
             return DoingService.this.getPlayedTimes();
@@ -458,6 +465,10 @@ public class DoingService extends Service {
 
         public void setTotalPlayedTime(long totalPlayedTime) {
             DoingService.this.setTotalPlayedTime(totalPlayedTime);
+        }
+
+        public boolean hasClosedStrictModeOnce() {
+            return DoingService.this.hasClosedStrictModeOnce();
         }
     }
 }

@@ -513,6 +513,8 @@
     <string name="doing_click_to_dismiss">点击删除该通知</string>
     <string name="doing_first_strict_mode_title">严格模式</string>
     <string name="doing_first_strict_mode_content">您现在处于严格模式，完事儿将会检测您是否在用手机做其它的事情。如果您离开了本界面（仅允许您查看通知栏、锁定屏幕）三次或者共五分钟以上，则倒计时将会停止，该记事将仍处于未完成状态。</string>
+    <string name="doing_close_strict_twice_title">无法再次关闭严格模式</string>
+    <string name="doing_close_strict_twice_content">完事儿只允许您关闭一次严格模式。在一段时间内只做一件事是一个很好的习惯，请坚持下去！</string>
 
 
     <!--ImageViewerActivity-->

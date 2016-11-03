@@ -520,6 +520,8 @@
     <string name="doing_click_to_dismiss">Click to dismiss this notification</string>
     <string name="doing_first_strict_mode_title">Strict Mode</string>
     <string name="doing_first_strict_mode_content">You are in strict mode now. EverythingDone will detect if you are using your phone to do other stuff. If you left this page(only checking notifications and locking screen are allowed) for 3 times or totally for more than 5 minutes, the countdown will stop and the thing will remain unfinished state.</string>
+    <string name="doing_close_strict_twice_title">Cannot turn Strict Mode off again</string>
+    <string name="doing_close_strict_twice_content">You are only allowed to turn Strict Mode off once. It\'s a good habit to do one thing at one time carefully so please keep going.</string>
 
 
     <!--ImageViewerActivity-->

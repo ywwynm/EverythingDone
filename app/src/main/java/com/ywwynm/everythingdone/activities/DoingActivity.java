@@ -12,6 +12,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.os.IBinder;
+import android.support.annotation.StringRes;
 import android.support.v4.util.Pair;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.LinearSmoothScroller;
@@ -494,17 +495,18 @@ public class DoingActivity extends EverythingDoneBaseActivity {
     private void toggleStrictMode() {
         boolean inStrictMode = mDoingBinder.isInStrictMode();
         if (inStrictMode) {
-            mIvForbidPhoneBt.setImageResource(R.drawable.ic_forbid_phone_off);
+            if (!mDoingBinder.hasClosedStrictModeOnce()) {
+                mIvForbidPhoneBt.setImageResource(R.drawable.ic_forbid_phone_off);
+            } else {
+                showAlertDialog(R.string.doing_close_strict_twice_title,
+                        R.string.doing_close_strict_twice_content);
+                return;
+            }
         } else {
             SharedPreferences sp = getSharedPreferences(Def.Meta.META_DATA_NAME, MODE_PRIVATE);
             if (sp.getBoolean(Def.Meta.KEY_FIRST_STRICT_DOING_MODE, true)) {
-                AlertDialogFragment adf = new AlertDialogFragment();
-                adf.setTitleColor(mThing.getColor());
-                adf.setConfirmColor(mThing.getColor());
-                adf.setShowCancel(false);
-                adf.setTitle(getString(R.string.doing_first_strict_mode_title));
-                adf.setContent(getString(R.string.doing_first_strict_mode_content));
-                adf.show(getFragmentManager(), AlertDialogFragment.TAG);
+                showAlertDialog(R.string.doing_first_strict_mode_title,
+                        R.string.doing_first_strict_mode_content);
                 sp.edit().putBoolean(Def.Meta.KEY_FIRST_STRICT_DOING_MODE, false).apply();
             }
             mIvForbidPhoneBt.setImageResource(R.drawable.ic_forbid_phone_on);
@@ -513,6 +515,16 @@ public class DoingActivity extends EverythingDoneBaseActivity {
         mDoingBinder.setPlayedTimes(0);
         mDoingBinder.setStartPlayTime(-1L);
         mDoingBinder.setTotalPlayedTime(0);
+    }
+
+    private void showAlertDialog(@StringRes int titleRes, @StringRes int contentRes) {
+        AlertDialogFragment adf = new AlertDialogFragment();
+        adf.setTitleColor(mThing.getColor());
+        adf.setConfirmColor(mThing.getColor());
+        adf.setShowCancel(false);
+        adf.setTitle(getString(titleRes));
+        adf.setContent(getString(contentRes));
+        adf.show(getFragmentManager(), AlertDialogFragment.TAG);
     }
 
     @Override
