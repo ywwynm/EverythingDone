@@ -509,7 +509,7 @@
     <string name="start_doing_estimated_time">Estimated finish time</string>
     <string name="start_doing_time_not_sure">Not sure</string>
     <string name="start_doing_doing_another_thing">You are doing another thing!</string>
-    <string name="start_doing_time_long_alarm">Estimated time is so long that you cannot finish the Habit once before its next alarm</string>
+    <string name="start_doing_time_long_alarm">Estimated time is so long that you cannot finish the Habit for this time before its next alarm</string>
     <string name="start_doing_time_long_t">Estimated time is so long that you cannot finish the Habit once in this cycle</string>
     <string name="start_doing_confirm">Start doing</string>
 
@@ -527,6 +527,7 @@
     <string name="doing_toast_add5_time_long_alarm">You will not be able to finish the Habit once before its next alarm after adding 5 minutes</string>
     <string name="doing_toast_add5_time_long_t">You will not be able to finish the Habit once in this cycle after adding 5 minutes</string>
     <string name="doing_toast_add5_above99">I cannot touch that future</string>
+    <string name="doing_toast_stopped_habit_next_reminder">Stopped doing this thing because its next alarm is ringing</string>
 
 
     <!--ImageViewerActivity-->

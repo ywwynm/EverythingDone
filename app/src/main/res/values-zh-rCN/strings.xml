@@ -501,8 +501,8 @@
     <string name="start_doing_full_title">开始做这件事</string>
     <string name="start_doing_estimated_time">预计完成时间</string>
     <string name="start_doing_time_not_sure">不确定</string>
-    <string name="start_doing_doing_another_thing">你正在做另一件事！</string>
-    <string name="start_doing_time_long_alarm">您预计的完成时间较长，无法在该习惯的下一个提醒到来前完成一次</string>
+    <string name="start_doing_doing_another_thing">您正在做另一件事！</string>
+    <string name="start_doing_time_long_alarm">您预计的完成时间较长，无法在该习惯的下一个提醒到来前完成这一次</string>
     <string name="start_doing_time_long_t">您预计的完成时间较长，无法在本周期内完成一次该习惯</string>
     <string name="start_doing_confirm">开始做事</string>
 
@@ -510,16 +510,17 @@
     <!--DoingService/Activity-->
     <string name="doing_currently_doing">正在做 -</string>
     <string name="doing_left_time">剩余时间:</string>
-    <string name="doing_failed_not_careful">你没有认真地在做这件事, 所以倒计时停止了</string>
+    <string name="doing_failed_not_careful">您没有认真地做这件事, 已取消正在做的状态</string>
     <string name="doing_click_to_dismiss">点击删除该通知</string>
     <string name="doing_alert_first_strict_mode_title">严格模式</string>
-    <string name="doing_alert_first_strict_mode_content">您现在处于严格模式，完事儿将会检测您是否在用手机做其它的事情。如果您离开了本界面（仅允许您查看通知栏、锁定屏幕）三次或者共五分钟以上，则倒计时将会停止，该记事将仍处于未完成状态。</string>
+    <string name="doing_alert_first_strict_mode_content">您现在处于严格模式，完事儿将会检测您是否在用手机做其它的事情。如果您离开了本界面（仅允许您查看通知栏、锁定屏幕）三次或者共五分钟以上，将取消该记事正在做的状态。</string>
     <string name="doing_alert_close_strict_twice_title">无法再次关闭严格模式</string>
     <string name="doing_alert_close_strict_twice_content">完事儿只允许您关闭一次严格模式。在一段时间内只做一件事是一个很好的习惯，请坚持下去！</string>
     <string name="doing_alert_cancel_doing_content">确定要停止做这件事吗？</string>
-    <string name="doing_toast_add5_time_long_alarm">如果延迟 5 分钟，您有可能无法在该习惯的下一个提醒到来前完成一次</string>
+    <string name="doing_toast_add5_time_long_alarm">如果延迟 5 分钟，您有可能无法在该习惯的下一个提醒到来前完成这一次</string>
     <string name="doing_toast_add5_time_long_t">如果延迟 5 分钟，您有可能无法在本周期内完成一次该习惯</string>
     <string name="doing_toast_add5_above99">我无法触及那片未来</string>
+    <string name="doing_toast_stopped_habit_next_reminder">您无法完成上一次，因为该习惯的下一次提醒时刻已经到来</string>
 
 
     <!--ImageViewerActivity-->
