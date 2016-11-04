@@ -198,13 +198,17 @@ public class SystemNotificationUtil {
     }
 
     public static Notification createDoingNotification(
-            Context context, Thing thing, @DoingService.State int doingState, String leftTimeStr) {
+            Context context, Thing thing, @DoingService.State int doingState, String leftTimeStr, boolean highlight) {
         @Thing.Type int thingType = thing.getType();
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context)
                 .setColor(thing.getColor())
                 .setSmallIcon(Thing.getTypeIconWhiteLarge(thingType))
                 .setContentTitle(getDoingNotificationTitle(context, thing, doingState))
                 .setContentText(getDoingNotificationContent(context, doingState, leftTimeStr));
+        if (highlight) {
+            builder.setPriority(Notification.PRIORITY_MAX);
+            builder.setDefaults(Notification.DEFAULT_VIBRATE);
+        }
 
         long thingId = thing.getId();
         if (doingState == DoingService.STATE_DOING) {

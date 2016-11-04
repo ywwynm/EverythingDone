@@ -15,7 +15,6 @@ import android.widget.Toast;
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
-import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.helpers.RemoteActionHelper;
 import com.ywwynm.everythingdone.model.Habit;
@@ -83,7 +82,9 @@ public class DoingService extends Service {
     private boolean mHasTurnedStrictModeOn = false;
     private boolean mHasTurnedStrictModeOff = false;
 
-    private boolean mCarelessToasted = false;
+    private boolean mCarelessWarned = false;
+
+    private boolean mEndHighlighted = false;
 
     private Handler mHandler = new Handler(new Handler.Callback() {
         @Override
@@ -95,28 +96,10 @@ public class DoingService extends Service {
                         + "mTimeInMillisBefore[" + mTimeInMillis + "]");
 
                 long leftTimeBefore = mLeftTime;
-                if (mAdd5MinTimes != 0 && mLeftTime == 0) {
-                    // Countdown stopped but we want to add 5 more minutes. Current numbers are all 0
-                    // and we want to start from 05:00, as a result, we should add another 1 second.
-                    mLeftTime += 1000;
-                }
-                for (int i = 1; i <= mAdd5MinTimes; i++) {
-                    mLeftTime += 5 * MINUTE_MILLIS;
-                    mTimeInMillis += 5 * MINUTE_MILLIS;
-                }
-                if (mAdd5MinTimes != 0 && mDoingListener != null) {
-                    mDoingListener.onAdd5Min(mLeftTime);
-                }
-                mAdd5MinTimes = 0;
+                handleAdd5Min();
 
                 if (mLeftTime > 0) {
-                    int[] from = new int[6];
-                    System.arraycopy(mTimeNumbers, 0, from, 0, 6);
-                    mLeftTime -= 1000;
-                    calculateTimeNumbers(mLeftTime);
-                    if (mDoingListener != null) {
-                        mDoingListener.onLeftTimeChanged(from, mTimeNumbers, leftTimeBefore, mLeftTime);
-                    }
+                    handleLeftTimeChange(leftTimeBefore);
                 }
 
                 if (mStartPlayTime != -1) {
@@ -127,9 +110,11 @@ public class DoingService extends Service {
                 boolean carelessCon2 = mTotalPlayedTime >= 5 * MINUTE_MILLIS;
                 boolean careless = carelessCon1 || carelessCon2;
                 @State int doingState = careless ? STATE_FAILED_CARELESS : STATE_DOING;
+
                 startForeground((int) mThing.getId(),
                         SystemNotificationUtil.createDoingNotification(
-                                DoingService.this, mThing, doingState, getLeftTimeStr()));
+                                DoingService.this, mThing, doingState, getLeftTimeStr(),
+                                shouldHighlight(careless)));
 
                 Log.i(TAG, "mLeftTimeAfter[" + mLeftTime + "], "
                         + "mTimeInMillisAfter[" + mTimeInMillis + "], "
@@ -140,21 +125,11 @@ public class DoingService extends Service {
                         + "mTotalPlayedTime[" + mTotalPlayedTime + "]");
 
                 if (careless) {
-                    App.setDoingThingId(-1L);
-                    RemoteActionHelper.doingOrCancel(DoingService.this, mThing);
-
-                    if (!mCarelessToasted) {
-                        Toast.makeText(DoingService.this, R.string.doing_failed_careless,
-                                Toast.LENGTH_LONG).show();
-                        mCarelessToasted = true;
-                    }
-                    if (mDoingListener != null) {
-                        mDoingListener.onCountdownFailed();
-                    }
+                    handleCareless();
                 }
 
-                if (mLeftTime == 0 && mDoingListener != null) {
-                    mDoingListener.onCountdownEnd();
+                if (mLeftTime == 0) {
+                    handleCountdownEnd();
                 }
 
                 if (doingState == STATE_DOING) {
@@ -165,6 +140,66 @@ public class DoingService extends Service {
             return false;
         }
     });
+
+    private void handleAdd5Min() {
+        if (mAdd5MinTimes != 0 && mLeftTime == 0) {
+            // Countdown stopped but we want to add 5 more minutes. Current numbers are all 0
+            // and we want to start from 05:00, as a result, we should add another 1 second.
+            mLeftTime += 1000;
+
+            // also reset mEndHighlighted
+            mEndHighlighted = false;
+        }
+        for (int i = 1; i <= mAdd5MinTimes; i++) {
+            mLeftTime += 5 * MINUTE_MILLIS;
+            mTimeInMillis += 5 * MINUTE_MILLIS;
+        }
+        if (mAdd5MinTimes != 0 && mDoingListener != null) {
+            mDoingListener.onAdd5Min(mLeftTime);
+        }
+        mAdd5MinTimes = 0;
+    }
+
+    private void handleLeftTimeChange(long leftTimeBefore) {
+        int[] from = new int[6];
+        System.arraycopy(mTimeNumbers, 0, from, 0, 6);
+        mLeftTime -= 1000;
+        calculateTimeNumbers(mLeftTime);
+        if (mDoingListener != null) {
+            mDoingListener.onLeftTimeChanged(from, mTimeNumbers, leftTimeBefore, mLeftTime);
+        }
+    }
+
+    private void handleCareless() {
+        App.setDoingThingId(-1L);
+        RemoteActionHelper.doingOrCancel(DoingService.this, mThing);
+
+        if (!mCarelessWarned) {
+            Toast.makeText(DoingService.this, R.string.doing_failed_careless,
+                    Toast.LENGTH_LONG).show();
+            mCarelessWarned = true;
+        }
+        if (mDoingListener != null) {
+            mDoingListener.onCountdownFailed();
+        }
+    }
+
+    private void handleCountdownEnd() {
+        mEndHighlighted = true;
+        if (mDoingListener != null) {
+            mDoingListener.onCountdownEnd();
+        }
+    }
+
+    private boolean shouldHighlight(boolean careless) {
+        if (careless && !mCarelessWarned) {
+            return true;
+        }
+        if (mLeftTime == 0 && !mEndHighlighted) {
+            return true;
+        }
+        return false;
+    }
 
     @Nullable
     @Override
@@ -208,7 +243,7 @@ public class DoingService extends Service {
         mPlayedTimes = 0;
         mStartPlayTime = -1L;
 
-        mCarelessToasted = false;
+        mCarelessWarned = false;
 
         return super.onStartCommand(intent, flags, startId);
     }
