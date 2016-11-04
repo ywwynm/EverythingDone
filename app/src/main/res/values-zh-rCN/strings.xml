@@ -807,6 +807,13 @@
     <!--ThingsListWidget-->
     <string name="cd_things_list_widget_setting">打开记事列表小部件设置</string>
 
+    <!--DoingActivity-->
+    <string name="cd_doing_thing">正在做的事</string>
+    <string name="cd_doing_add_5_min">增加5分钟</string>
+    <string name="cd_doing_strict_mode_off">进入严格模式</string>
+    <string name="cd_doing_strict_mode_on">退出严格模式</string>
+    <string name="cd_doing_cancel_doing">停止做这件事</string>
+
 
 
 

@@ -818,6 +818,13 @@
     <!--ThingsListWidget-->
     <string name="cd_things_list_widget_setting">settings for things list app widget</string>
 
+    <!--DoingActivity-->
+    <string name="cd_doing_thing">Currently doing</string>
+    <string name="cd_doing_add_5_min">Add 5 minutes</string>
+    <string name="cd_doing_strict_mode_off">Enter Strict Mode</string>
+    <string name="cd_doing_strict_mode_on">Exit Strict Mode</string>
+    <string name="cd_doing_cancel_doing">Cancel doing this thing</string>
+
 
 
 

@@ -365,6 +365,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
                 super.onBindViewHolder(holder, position);
                 holder.cv.setRadius(0);
                 holder.cv.setCardElevation(0);
+                holder.tvTitle.setMaxLines(Integer.MAX_VALUE);
                 holder.tvContent.setMaxLines(Integer.MAX_VALUE);
                 holder.rlReminder.setVisibility(View.GONE);
                 holder.rlHabit.setVisibility(View.GONE);
@@ -402,8 +403,10 @@ public class DoingActivity extends EverythingDoneBaseActivity {
 
         if (mDoingBinder.isInStrictMode()) {
             mFabStrictMode.setImageResource(R.drawable.ic_doing_strict_mode_on);
+            mFabStrictMode.setContentDescription(getString(R.string.cd_doing_strict_mode_on));
         } else {
             mFabStrictMode.setImageResource(R.drawable.ic_doing_strict_mode_off);
+            mFabStrictMode.setContentDescription(getString(R.string.cd_doing_strict_mode_off));
         }
     }
 
@@ -518,6 +521,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
         if (inStrictMode) {
             if (!mDoingBinder.hasTurnedStrictModeOff()) {
                 mFabStrictMode.setImageResource(R.drawable.ic_doing_strict_mode_off);
+                mFabStrictMode.setContentDescription(getString(R.string.cd_doing_strict_mode_off));
             } else {
                 showAlertDialog(R.string.doing_alert_close_strict_twice_title,
                         R.string.doing_alert_close_strict_twice_content);
@@ -529,6 +533,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
                         R.string.doing_alert_first_strict_mode_content);
             }
             mFabStrictMode.setImageResource(R.drawable.ic_doing_strict_mode_on);
+            mFabStrictMode.setContentDescription(getString(R.string.cd_doing_strict_mode_on));
         }
         mDoingBinder.setInStrictMode(!inStrictMode);
         mDoingBinder.setPlayedTimes(0);

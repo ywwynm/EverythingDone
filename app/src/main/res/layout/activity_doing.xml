@@ -207,6 +207,7 @@
                         android:layout_height="56dp"
                         android:onClick="onClick"
                         android:layout_margin="9dp"
+                        android:contentDescription="@string/cd_doing_add_5_min"
                         app:backgroundTint="#4CAF50"
                         app:rippleColor="@color/white_54p"
                         app:elevation="4dp"
@@ -224,7 +225,8 @@
                         android:textColor="@android:color/white"
                         android:textSize="17dp"
                         android:textStyle="bold"
-                        android:elevation="6dp"/>
+                        android:elevation="6dp"
+                        tools:ignore="UnusedAttribute"/>
 
                 </FrameLayout>
 
@@ -259,6 +261,7 @@
                         android:layout_height="56dp"
                         android:layout_margin="9dp"
                         android:src="@drawable/act_cancel_white"
+                        android:contentDescription="@string/cd_doing_cancel_doing"
                         android:onClick="onClick"
                         app:backgroundTint="@color/error"
                         app:rippleColor="@color/white_54p"
