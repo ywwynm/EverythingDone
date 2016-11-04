@@ -148,10 +148,13 @@ public class DoingService extends Service {
                     }
                 }
 
-                if (mLeftTime <= 0 && mDoingListener != null) {
+                if (mLeftTime == 0 && mDoingListener != null) {
                     mDoingListener.onCountdownEnd();
                 }
-                mHandler.sendEmptyMessageDelayed(96, 1000);
+
+                if (doingState == STATE_DOING) {
+                    mHandler.sendEmptyMessageDelayed(96, 1000);
+                }
                 return true;
             }
             return false;
