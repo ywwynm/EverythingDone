@@ -370,6 +370,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
                 holder.rlHabit.setVisibility(View.GONE);
                 holder.vReminderSeparator.setVisibility(View.GONE);
                 holder.vHabitSeparator1.setVisibility(View.GONE);
+                holder.flDoing.setVisibility(View.GONE);
             }
 
             @Override
