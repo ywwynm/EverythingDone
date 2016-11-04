@@ -1188,13 +1188,14 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             adf.setContent(content);
             adf.show(getFragmentManager(), AlertDialogFragment.TAG);
 
+            Context context = SettingsActivity.this;
             if (BackupHelper.SUCCESS.equals(s)) {
                 if (App.getDoingThingId() != -1) {
-                    Toast.makeText(SettingsActivity.this, R.string.doing_failed_restore,
+                    Toast.makeText(context, R.string.doing_failed_restore,
                             Toast.LENGTH_LONG).show();
-                    stopService(new Intent(SettingsActivity.this, DoingService.class));
+                    stopService(new Intent(context, DoingService.class));
                 }
-                App.killMeAndRestart(SettingsActivity.this, null, 1200);
+                App.killMeAndRestart(context, null, 1200);
             }
         }
     }
