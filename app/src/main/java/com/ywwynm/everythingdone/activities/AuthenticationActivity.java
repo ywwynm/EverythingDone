@@ -21,15 +21,19 @@ public class AuthenticationActivity extends AppCompatActivity {
     public static Intent getOpenIntent(
             Context context, String senderName, long id, int position,
             String action, String actionTitle) {
-        final Intent intent = new Intent(context, AuthenticationActivity.class);
-        intent.setAction(action);
-        intent.putExtra(Def.Communication.KEY_SENDER_NAME, senderName);
-        intent.putExtra(Def.Communication.KEY_DETAIL_ACTIVITY_TYPE,
-                DetailActivity.UPDATE);
-        intent.putExtra(Def.Communication.KEY_ID, id);
-        intent.putExtra(Def.Communication.KEY_POSITION, position);
-        intent.putExtra(Def.Communication.KEY_TITLE, actionTitle);
-        return intent;
+        if (App.getDoingThingId() == id) {
+            return DoingActivity.getOpenIntent(context, true);
+        } else {
+            final Intent intent = new Intent(context, AuthenticationActivity.class);
+            intent.setAction(action);
+            intent.putExtra(Def.Communication.KEY_SENDER_NAME, senderName);
+            intent.putExtra(Def.Communication.KEY_DETAIL_ACTIVITY_TYPE,
+                    DetailActivity.UPDATE);
+            intent.putExtra(Def.Communication.KEY_ID, id);
+            intent.putExtra(Def.Communication.KEY_POSITION, position);
+            intent.putExtra(Def.Communication.KEY_TITLE, actionTitle);
+            return intent;
+        }
     }
 
     @Override
@@ -39,6 +43,12 @@ public class AuthenticationActivity extends AppCompatActivity {
         Intent intent = getIntent();
 
         long id = intent.getLongExtra(Def.Communication.KEY_ID, -1);
+        if (App.getDoingThingId() == id) {
+            startActivity(DoingActivity.getOpenIntent(this, true));
+            finish();
+            return;
+        }
+
         int position = intent.getIntExtra(Def.Communication.KEY_POSITION, -1);
 
         Pair<Thing, Integer> pair = App.getThingAndPosition(this, id, position);

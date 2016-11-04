@@ -13,6 +13,7 @@ import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.BuildConfig;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
+import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.fragments.ChooserDialogFragment;
 import com.ywwynm.everythingdone.model.Habit;
@@ -133,6 +134,9 @@ public class StartDoingActivity extends AppCompatActivity {
                     startService(DoingService.getOpenIntent(
                             StartDoingActivity.this, thing, System.currentTimeMillis(), timeInMillis));
                     startActivity(DoingActivity.getOpenIntent(StartDoingActivity.this, false));
+                    AppWidgetHelper.updateSingleThingAppWidgets(getApplicationContext(), id);
+                    AppWidgetHelper.updateThingsListAppWidgetsForType(
+                            getApplicationContext(), thing.getType());
                 }
             }
         });

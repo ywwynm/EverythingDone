@@ -131,13 +131,17 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
     public static Intent getOpenIntentForUpdate(
             Context context, String senderName, long id, int position) {
-        final Intent intent = new Intent(context, DetailActivity.class);
-        intent.putExtra(Def.Communication.KEY_SENDER_NAME, senderName);
-        intent.putExtra(Def.Communication.KEY_DETAIL_ACTIVITY_TYPE,
-                DetailActivity.UPDATE);
-        intent.putExtra(Def.Communication.KEY_ID, id);
-        intent.putExtra(Def.Communication.KEY_POSITION, position);
-        return intent;
+        if (App.getDoingThingId() == id) {
+            return DoingActivity.getOpenIntent(context, true);
+        } else {
+            final Intent intent = new Intent(context, DetailActivity.class);
+            intent.putExtra(Def.Communication.KEY_SENDER_NAME, senderName);
+            intent.putExtra(Def.Communication.KEY_DETAIL_ACTIVITY_TYPE,
+                    DetailActivity.UPDATE);
+            intent.putExtra(Def.Communication.KEY_ID, id);
+            intent.putExtra(Def.Communication.KEY_POSITION, position);
+            return intent;
+        }
     }
 
     private static int createActivitiesCount = 0;
