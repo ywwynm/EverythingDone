@@ -87,6 +87,11 @@ public class DoingService extends Service {
         @Override
         public boolean handleMessage(Message message) {
             if (message.what == 96) {
+                Log.i(TAG, "User is doing something, counting down, "
+                        + "mAdd5MinTimes[" + mAdd5MinTimes + "], "
+                        + "mLeftTimeBefore[" + mLeftTime + "], "
+                        + "mTimeInMillisBefore[" + mTimeInMillis + "]");
+
                 long leftTimeBefore = mLeftTime;
                 if (mAdd5MinTimes != 0 && mLeftTime == 0) {
                     // Countdown stopped but we want to add 5 more minutes. Current numbers are all 0
@@ -112,9 +117,6 @@ public class DoingService extends Service {
                     }
                 }
 
-                Log.i(TAG, "User is doing something, counting down, left time is "
-                        + getLeftTimeStr());
-
                 if (mStartPlayTime != -1) {
                     mTotalPlayedTime += 1000;
                 }
@@ -126,6 +128,15 @@ public class DoingService extends Service {
                 startForeground((int) mThing.getId(),
                         SystemNotificationUtil.createDoingNotification(
                                 DoingService.this, mThing, doingState, getLeftTimeStr()));
+
+                Log.i(TAG, "mLeftTimeAfter[" + mLeftTime + "], "
+                        + "mTimeInMillisAfter[" + mTimeInMillis + "], "
+                        + "leftTimeStr[" + getLeftTimeStr() + "], "
+                        + "doingState[" + doingState + "], "
+                        + "mStartPlayTime[" + mStartPlayTime + "], "
+                        + "mPlayedTimes[" + mPlayedTimes + "], "
+                        + "mTotalPlayedTime[" + mTotalPlayedTime + "]");
+
                 if (careless) {
                     if (!mCarelessToasted) {
                         Toast.makeText(DoingService.this, R.string.doing_failed_careless,
