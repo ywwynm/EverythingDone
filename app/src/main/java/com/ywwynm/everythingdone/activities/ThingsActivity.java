@@ -1686,12 +1686,15 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 if (Thing.isImportantType(type)) {
                     containsHabitOrGoal = true;
                 }
-                SystemNotificationUtil.cancelNotification(thing.getId(), type, mApp);
-                mUndoThings.add(thing);
-                mThingsIdsToUpdateWidget.add(thing.getId());
-                mUndoLocations.add(thing.getLocation());
-                if (stateAfter == Thing.DELETED_FOREVER) {
-                    thingsToDeleteForever.add(new Thing(thing));
+                long thingId = thing.getId();
+                if (App.getDoingThingId() != thingId) {
+                    SystemNotificationUtil.cancelNotification(thingId, type, mApp);
+                    mUndoThings.add(thing);
+                    mThingsIdsToUpdateWidget.add(thing.getId());
+                    mUndoLocations.add(thing.getLocation());
+                    if (stateAfter == Thing.DELETED_FOREVER) {
+                        thingsToDeleteForever.add(new Thing(thing));
+                    }
                 }
             }
         }
