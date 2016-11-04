@@ -510,7 +510,8 @@
     <!--DoingService/Activity-->
     <string name="doing_currently_doing">正在做 -</string>
     <string name="doing_left_time">剩餘時間:</string>
-    <string name="doing_failed_not_careful">您沒有認真地做這件事, 已取消正在做的狀態</string>
+    <string name="doing_failed_careless">您沒有認真地做這件事, 已取消正在做的狀態</string>
+    <string name="doing_failed_next_alarm">該習慣的下一次提醒時刻已經到來，已取消正在做的狀態</string>
     <string name="doing_click_to_dismiss">點擊刪除該通知</string>
     <string name="doing_alert_first_strict_mode_title">嚴格模式</string>
     <string name="doing_alert_first_strict_mode_content">您現在處於嚴格模式，完事兒將會檢測您是否在用手機做其它的事情。如果您離開了本界面（僅允許您查看通知欄、鎖定屏幕）三次或者共五分鐘以上，將取消該記事正在做的狀態。</string>
@@ -520,7 +521,6 @@
     <string name="doing_toast_add5_time_long_alarm">如果延遲 5 分鐘，您有可能無法在該習慣的下一個提醒到來前完成這一次</string>
     <string name="doing_toast_add5_time_long_t">如果延遲 5 分鐘，您有可能無法在本週期內完成一次該習慣</string>
     <string name="doing_toast_add5_above99">我無法觸及那片未來</string>
-    <string name="doing_toast_stopped_habit_next_reminder">您無法完成上一次，因為該習慣的下一次提醒時刻已經到來</string>
 
 
     <!--ImageViewerActivity-->

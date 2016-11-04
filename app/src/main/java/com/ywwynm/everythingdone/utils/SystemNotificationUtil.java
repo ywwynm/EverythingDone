@@ -21,6 +21,7 @@ import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.AuthenticationActivity;
 import com.ywwynm.everythingdone.activities.DetailActivity;
+import com.ywwynm.everythingdone.activities.DoingActivity;
 import com.ywwynm.everythingdone.activities.SettingsActivity;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.helpers.AttachmentHelper;
@@ -29,6 +30,8 @@ import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.HabitReminder;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.permission.PermissionUtil;
+import com.ywwynm.everythingdone.receivers.DoingNotificationActionReceiver;
+import com.ywwynm.everythingdone.services.DoingService;
 
 import java.io.File;
 import java.util.List;
@@ -192,6 +195,99 @@ public class SystemNotificationUtil {
                 .setContentIntent(contentPendingIntent)
                 .setSmallIcon(R.drawable.act_create_white);
         nmc.notify(Def.Meta.ONGOING_NOTIFICATION_ID, builder.build());
+    }
+
+    public static Notification createDoingNotification(
+            Context context, Thing thing, @DoingService.State int doingState, String leftTimeStr) {
+        @Thing.Type int thingType = thing.getType();
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context)
+                .setColor(thing.getColor())
+                .setSmallIcon(Thing.getTypeIconWhiteLarge(thingType))
+                .setContentTitle(getDoingNotificationTitle(context, thing, doingState))
+                .setContentText(getDoingNotificationContent(context, doingState, leftTimeStr));
+
+        long thingId = thing.getId();
+        if (doingState == DoingService.STATE_DOING) {
+            Intent contentIntent = DoingActivity.getOpenIntent(context, true);
+            builder.setContentIntent(PendingIntent.getActivity(
+                    context, (int) thingId, contentIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+
+            Intent finishIntent = new Intent(context, DoingNotificationActionReceiver.class);
+            finishIntent.setAction(DoingNotificationActionReceiver.ACTION_FINISH);
+            finishIntent.putExtra(Def.Communication.KEY_ID, thingId);
+            builder.addAction(R.drawable.act_finish, context.getString(R.string.act_finish),
+                    PendingIntent.getBroadcast(
+                            context, (int) thingId, finishIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+
+            Intent cancelIntent = new Intent(context, DoingNotificationActionReceiver.class);
+            cancelIntent.setAction(DoingNotificationActionReceiver.ACTION_USER_CANCEL);
+            cancelIntent.putExtra(Def.Communication.KEY_ID, thingId);
+            builder.addAction(R.drawable.act_cancel_white,
+                    StringUtil.lowerFirst(context.getString(R.string.cancel)),
+                    PendingIntent.getBroadcast(
+                            context, (int) thingId, cancelIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+        } else {
+            Intent contentIntent = new Intent(context, DoingNotificationActionReceiver.class);
+            if (doingState == DoingService.STATE_FAILED_CARELESS) {
+                contentIntent.setAction(DoingNotificationActionReceiver.ACTION_STOP_SERVICE);
+            } else if (doingState == DoingService.STATE_FAILED_NEXT_ALARM) {
+                builder.setAutoCancel(true);
+            }
+            builder.setContentIntent(PendingIntent.getBroadcast(
+                    context, (int) thingId, contentIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+        }
+        return builder.build();
+    }
+
+    private static String getDoingNotificationTitle(
+            Context context, Thing thing, @DoingService.State int doingState) {
+        StringBuilder nTitle = new StringBuilder();
+        if (doingState == DoingService.STATE_DOING) {
+            nTitle.append(context.getString(R.string.doing_currently_doing)).append(" ");
+        }
+        String thingTitle = thing.getTitleToDisplay();
+        if (!thingTitle.isEmpty()) {
+            nTitle.append(thingTitle);
+        } else {
+            String thingContent = thing.getContent();
+            if (!thingContent.isEmpty()) {
+                if (CheckListHelper.isCheckListStr(thingContent)) {
+                    thingContent = CheckListHelper.toContentStr(thingContent, "X ", "√ ");
+                    thingContent = thingContent.replaceAll("\n", "\n  ");
+                }
+                nTitle.append(thingContent);
+            } else {
+                // there should be attachment
+                String attachment = thing.getAttachment();
+                if (!attachment.isEmpty() && !"to QQ".equals(attachment)) {
+                    String imgStr = AttachmentHelper.getImageAttachmentCountStr(attachment, context);
+                    if (imgStr != null) {
+                        nTitle.append(imgStr).append(", ");
+                    }
+                    String audStr = AttachmentHelper.getAudioAttachmentCountStr(attachment, context);
+                    if (audStr != null) {
+                        nTitle.append(audStr);
+                    }
+                }
+            }
+        }
+        return nTitle.toString();
+    }
+
+    private static String getDoingNotificationContent(
+            Context context, @DoingService.State int doingState, String leftTimeStr) {
+        if (doingState == DoingService.STATE_DOING) {
+            return context.getString(R.string.doing_left_time) + " " + leftTimeStr;
+        } else {
+            String between = LocaleUtil.isChinese(context) ? ", " : ". ";
+            String part1 = "";
+            if (doingState == DoingService.STATE_FAILED_CARELESS) {
+                part1 = context.getString(R.string.doing_failed_careless);
+            } else if (doingState == DoingService.STATE_FAILED_NEXT_ALARM) {
+                part1 = context.getString(R.string.doing_failed_next_alarm);
+            }
+            return part1 + between + context.getString(R.string.doing_click_to_dismiss);
+        }
     }
 
     public static void cancelNotification(long thingId, int type, Context context) {

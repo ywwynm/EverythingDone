@@ -517,7 +517,8 @@
     <!--DoingService/Activity-->
     <string name="doing_currently_doing">Currently doing -</string>
     <string name="doing_left_time">Time left:</string>
-    <string name="doing_failed_not_careful">You didn\'t do this thing carefully so countdown stopped</string>
+    <string name="doing_failed_careless">You didn\'t do this thing carefully so countdown stopped</string>
+    <string name="doing_failed_next_alarm">Next alarm of this Habit is ringing so countdown stopped</string>
     <string name="doing_click_to_dismiss">Click to dismiss this notification</string>
     <string name="doing_alert_first_strict_mode_title">Strict Mode</string>
     <string name="doing_alert_first_strict_mode_content">You are in strict mode now. EverythingDone will detect if you are using your phone to do other stuff. If you left this page(only checking notifications and locking screen are allowed) for 3 times or totally for more than 5 minutes, the countdown will stop and the thing will remain unfinished state.</string>
@@ -527,7 +528,6 @@
     <string name="doing_toast_add5_time_long_alarm">You will not be able to finish the Habit once before its next alarm after adding 5 minutes</string>
     <string name="doing_toast_add5_time_long_t">You will not be able to finish the Habit once in this cycle after adding 5 minutes</string>
     <string name="doing_toast_add5_above99">I cannot touch that future</string>
-    <string name="doing_toast_stopped_habit_next_reminder">Stopped doing this thing because its next alarm is ringing</string>
 
 
     <!--ImageViewerActivity-->

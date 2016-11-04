@@ -1,5 +1,6 @@
 package com.ywwynm.everythingdone.receivers;
 
+import android.app.Notification;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -12,6 +13,7 @@ import android.widget.Toast;
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
+import com.ywwynm.everythingdone.activities.DoingActivity;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
@@ -44,23 +46,44 @@ public class HabitReceiver extends BroadcastReceiver {
             return;
         }
 
-        long habitId = habitReminder.getHabitId();
+        final long habitId = habitReminder.getHabitId();
         SystemNotificationUtil.cancelNotification(habitId, Thing.HABIT, context);
-        if (App.getDoingThingId() == habitId) {
+
+        final boolean isDoingLastTime = App.getDoingThingId() == habitId;
+        if (isDoingLastTime) {
             // if user is doing this Habit for the last time, now he/she cannot do it any longer
             // since this time is coming
-            Toast.makeText(context, R.string.doing_toast_stopped_habit_next_reminder,
+            Toast.makeText(context, R.string.doing_failed_next_alarm,
                     Toast.LENGTH_LONG).show();
-            context.sendBroadcast(new Intent(DoingNotificationActionReceiver.ACTION_STOP_SERVICE));
+            context.sendBroadcast(new Intent(DoingActivity.BROADCAST_ACTION_JUST_FINISH));
             context.stopService(new Intent(context, DoingService.class));
         }
 
         Pair<Thing, Integer> pair = App.getThingAndPosition(context, habitId, -1);
-        Thing thing = pair.first;
+        final Thing thing = pair.first;
         if (thing == null) {
             habitDAO.deleteHabit(habitId);
             return;
         }
+
+        if (isDoingLastTime) {
+            // create this notification after 1600ms, otherwise it will be cancelled because of
+            // stopping a service bound a foreground notification with same id
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        Thread.sleep(1600);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    Notification notification = SystemNotificationUtil.createDoingNotification(
+                            App.getApp(), thing, DoingService.STATE_FAILED_NEXT_ALARM, null);
+                    NotificationManagerCompat.from(App.getApp()).notify((int) habitId, notification);
+                }
+            }).start();
+        }
+
         int position = pair.second;
 
         if (thing.getState() == Thing.UNDERWAY) {
@@ -122,8 +145,8 @@ public class HabitReceiver extends BroadcastReceiver {
                     PendingIntent.getBroadcast(context,
                             (int) hrId, startIntent, PendingIntent.FLAG_UPDATE_CURRENT));
 
-            NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
-            notificationManager.notify((int) hrId, builder.build());
+            NotificationManagerCompat nm = NotificationManagerCompat.from(context);
+            nm.notify((int) hrId, builder.build());
         }
     }
 

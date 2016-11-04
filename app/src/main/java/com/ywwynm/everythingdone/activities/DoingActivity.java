@@ -39,7 +39,6 @@ import com.ywwynm.everythingdone.helpers.CheckListHelper;
 import com.ywwynm.everythingdone.helpers.RemoteActionHelper;
 import com.ywwynm.everythingdone.managers.ModeManager;
 import com.ywwynm.everythingdone.model.Thing;
-import com.ywwynm.everythingdone.receivers.DoingNotificationActionReceiver;
 import com.ywwynm.everythingdone.services.DoingService;
 import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
@@ -59,6 +58,8 @@ public class DoingActivity extends EverythingDoneBaseActivity {
     public static final String TAG = "DoingActivity";
 
     public static final String KEY_RESUME = TAG + ".resume";
+
+    public static final String BROADCAST_ACTION_JUST_FINISH = TAG + ".just_finish";
 
     public static Intent getOpenIntent(Context context, boolean resume) {
         return new Intent(context, DoingActivity.class).putExtra(KEY_RESUME, resume);
@@ -92,14 +93,9 @@ public class DoingActivity extends EverythingDoneBaseActivity {
 
         @Override
         public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
-            if (!DoingNotificationActionReceiver.ACTION_STOP_SERVICE.equals(action)
-                    && !DoingNotificationActionReceiver.ACTION_FINISH.equals(action)
-                    && !DoingNotificationActionReceiver.ACTION_USER_CANCEL.equals(action)) {
-                return;
+            if (BROADCAST_ACTION_JUST_FINISH.equals(intent.getAction())) {
+                finish();
             }
-
-            finish();
         }
     };
 
@@ -168,11 +164,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
         Intent intent = new Intent(this, DoingService.class);
         bindService(intent, mServiceConnection, BIND_AUTO_CREATE);
 
-        IntentFilter filter = new IntentFilter(DoingNotificationActionReceiver.ACTION_STOP_SERVICE);
-        registerReceiver(mReceiver, filter);
-        filter = new IntentFilter(DoingNotificationActionReceiver.ACTION_FINISH);
-        registerReceiver(mReceiver, filter);
-        filter = new IntentFilter(DoingNotificationActionReceiver.ACTION_USER_CANCEL);
+        IntentFilter filter = new IntentFilter(BROADCAST_ACTION_JUST_FINISH);
         registerReceiver(mReceiver, filter);
     }
 

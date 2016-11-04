@@ -1,7 +1,5 @@
 package com.ywwynm.everythingdone.services;
 
-import android.app.Notification;
-import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -9,24 +7,21 @@ import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
+import android.support.annotation.IntDef;
 import android.support.annotation.Nullable;
-import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 import android.widget.Toast;
 
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
-import com.ywwynm.everythingdone.activities.DoingActivity;
 import com.ywwynm.everythingdone.database.HabitDAO;
-import com.ywwynm.everythingdone.helpers.AttachmentHelper;
-import com.ywwynm.everythingdone.helpers.CheckListHelper;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Thing;
-import com.ywwynm.everythingdone.receivers.DoingNotificationActionReceiver;
-import com.ywwynm.everythingdone.utils.LocaleUtil;
-import com.ywwynm.everythingdone.utils.StringUtil;
+import com.ywwynm.everythingdone.utils.SystemNotificationUtil;
 
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.util.GregorianCalendar;
 
 /**
@@ -36,6 +31,14 @@ import java.util.GregorianCalendar;
 public class DoingService extends Service {
 
     public static final String TAG = "DoingService";
+
+    public static final int STATE_DOING             = 0;
+    public static final int STATE_FAILED_CARELESS   = 1;
+    public static final int STATE_FAILED_NEXT_ALARM = 2;
+
+    @IntDef({STATE_DOING, STATE_FAILED_CARELESS, STATE_FAILED_NEXT_ALARM})
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface State {}
 
     public static final String KEY_START_TIME     = "start_time";
     public static final String KEY_TIME_IN_MILLIS = "time_in_millis";
@@ -75,10 +78,10 @@ public class DoingService extends Service {
     private int mPlayedTimes = 0;
     private long mStartPlayTime = -1L;
     private long mTotalPlayedTime = 0;
-    private boolean mhasTurnedStrictModeOn  = false;
-    private boolean mhasTurnedStrictModeOff = false;
+    private boolean mHasTurnedStrictModeOn = false;
+    private boolean mHasTurnedStrictModeOff = false;
 
-    private boolean mFailureToasted = false;
+    private boolean mCarelessToasted = false;
 
     private Handler mHandler = new Handler(new Handler.Callback() {
         @Override
@@ -116,15 +119,18 @@ public class DoingService extends Service {
                     mTotalPlayedTime += 1000;
                 }
 
-                boolean failedCon1 = mPlayedTimes >= 3;
-                boolean failedCon2 = mTotalPlayedTime >= 5 * MINUTE_MILLIS;
-                boolean failed = failedCon1 || failedCon2;
-                startForeground((int) mThing.getId(), createNotification(failed));
-                if (failed) {
-                    if (!mFailureToasted) {
-                        Toast.makeText(DoingService.this, R.string.doing_failed_not_careful,
+                boolean carelessCon1 = mPlayedTimes >= 3;
+                boolean carelessCon2 = mTotalPlayedTime >= 5 * MINUTE_MILLIS;
+                boolean careless = carelessCon1 || carelessCon2;
+                @State int doingState = careless ? STATE_FAILED_CARELESS : STATE_DOING;
+                startForeground((int) mThing.getId(),
+                        SystemNotificationUtil.createDoingNotification(
+                                DoingService.this, mThing, doingState, getLeftTimeStr()));
+                if (careless) {
+                    if (!mCarelessToasted) {
+                        Toast.makeText(DoingService.this, R.string.doing_failed_careless,
                                 Toast.LENGTH_LONG).show();
-                        mFailureToasted = true;
+                        mCarelessToasted = true;
                     }
                     if (mDoingListener != null) {
                         mDoingListener.onCountdownFailed();
@@ -183,7 +189,7 @@ public class DoingService extends Service {
         mPlayedTimes = 0;
         mStartPlayTime = -1L;
 
-        mFailureToasted = false;
+        mCarelessToasted = false;
 
         return super.onStartCommand(intent, flags, startId);
     }
@@ -199,87 +205,6 @@ public class DoingService extends Service {
 
         mThing = null;
         mHandler = null;
-    }
-
-    private Notification createNotification(boolean failed) {
-        @Thing.Type int thingType = mThing.getType();
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this)
-                .setColor(mThing.getColor())
-                .setSmallIcon(Thing.getTypeIconWhiteLarge(thingType))
-                .setContentTitle(getNotificationTitle(failed))
-                .setContentText(getNotificationContent(failed));
-
-        long thingId = mThing.getId();
-        if (!failed) {
-            Intent contentIntent = DoingActivity.getOpenIntent(this, true);
-            builder.setContentIntent(PendingIntent.getActivity(
-                    this, (int) thingId, contentIntent, PendingIntent.FLAG_UPDATE_CURRENT));
-
-            Intent finishIntent = new Intent(this, DoingNotificationActionReceiver.class);
-            finishIntent.setAction(DoingNotificationActionReceiver.ACTION_FINISH);
-            finishIntent.putExtra(Def.Communication.KEY_ID, thingId);
-            builder.addAction(R.drawable.act_finish, getString(R.string.act_finish),
-                    PendingIntent.getBroadcast(
-                            this, (int) thingId, finishIntent, PendingIntent.FLAG_UPDATE_CURRENT));
-
-            Intent cancelIntent = new Intent(this, DoingNotificationActionReceiver.class);
-            cancelIntent.setAction(DoingNotificationActionReceiver.ACTION_USER_CANCEL);
-            cancelIntent.putExtra(Def.Communication.KEY_ID, thingId);
-            builder.addAction(R.drawable.act_cancel_white, StringUtil.lowerFirst(getString(R.string.cancel)),
-                    PendingIntent.getBroadcast(
-                            this, (int) thingId, cancelIntent, PendingIntent.FLAG_UPDATE_CURRENT));
-        } else {
-            Intent contentIntent = new Intent(this, DoingNotificationActionReceiver.class);
-            contentIntent.setAction(DoingNotificationActionReceiver.ACTION_STOP_SERVICE);
-            builder.setContentIntent(PendingIntent.getBroadcast(
-                    this, (int) mThing.getId(), contentIntent, PendingIntent.FLAG_UPDATE_CURRENT));
-        }
-
-        return builder.build();
-    }
-
-    private String getNotificationTitle(boolean failed) {
-        StringBuilder nTitle = new StringBuilder();
-        if (!failed) {
-            nTitle.append(getString(R.string.doing_currently_doing)).append(" ");
-        }
-        String thingTitle = mThing.getTitleToDisplay();
-        if (!thingTitle.isEmpty()) {
-            nTitle.append(thingTitle);
-        } else {
-            String thingContent = mThing.getContent();
-            if (!thingContent.isEmpty()) {
-                if (CheckListHelper.isCheckListStr(thingContent)) {
-                    thingContent = CheckListHelper.toContentStr(thingContent, "X ", "√ ");
-                    thingContent = thingContent.replaceAll("\n", "\n  ");
-                }
-                nTitle.append(thingContent);
-            } else {
-                // there should be attachment
-                String attachment = mThing.getAttachment();
-                if (!attachment.isEmpty() && !"to QQ".equals(attachment)) {
-                    String imgStr = AttachmentHelper.getImageAttachmentCountStr(attachment, this);
-                    if (imgStr != null) {
-                        nTitle.append(imgStr).append(", ");
-                    }
-                    String audStr = AttachmentHelper.getAudioAttachmentCountStr(attachment, this);
-                    if (audStr != null) {
-                        nTitle.append(audStr);
-                    }
-                }
-            }
-        }
-        return nTitle.toString();
-    }
-
-    private String getNotificationContent(boolean failed) {
-        if (!failed) {
-            return getString(R.string.doing_left_time) + " " + getLeftTimeStr();
-        } else {
-            String between = LocaleUtil.isChinese(this) ? ", " : ". ";
-            return getString(R.string.doing_failed_not_careful) + between
-                    + getString(R.string.doing_click_to_dismiss);
-        }
     }
 
     private void setDoingListener(DoingListener listener) {
@@ -408,11 +333,11 @@ public class DoingService extends Service {
     }
 
     private boolean hasTurnedStrictModeOn() {
-        return mhasTurnedStrictModeOn;
+        return mHasTurnedStrictModeOn;
     }
 
     private boolean hasTurnedStrictModeOff() {
-        return mhasTurnedStrictModeOff;
+        return mHasTurnedStrictModeOff;
     }
 
     private String getLeftTimeStr() {
@@ -469,9 +394,9 @@ public class DoingService extends Service {
 
         public void setInStrictMode(boolean inStrictMode) {
             if (!inStrictMode) {
-                mhasTurnedStrictModeOff = true;
+                mHasTurnedStrictModeOff = true;
             } else {
-                mhasTurnedStrictModeOn = true;
+                mHasTurnedStrictModeOn = true;
             }
             DoingService.this.setInStrictMode(inStrictMode);
         }
