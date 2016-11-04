@@ -200,11 +200,12 @@ public class SystemNotificationUtil {
     public static Notification createDoingNotification(
             Context context, Thing thing, @DoingService.State int doingState, String leftTimeStr, boolean highlight) {
         @Thing.Type int thingType = thing.getType();
+        final String contentText = getDoingNotificationContent(context, doingState, leftTimeStr);
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context)
                 .setColor(thing.getColor())
                 .setSmallIcon(Thing.getTypeIconWhiteLarge(thingType))
                 .setContentTitle(getDoingNotificationTitle(context, thing, doingState))
-                .setContentText(getDoingNotificationContent(context, doingState, leftTimeStr));
+                .setContentText(contentText);
         if (highlight) {
             builder.setPriority(Notification.PRIORITY_MAX);
             builder.setDefaults(Notification.DEFAULT_VIBRATE);
@@ -231,6 +232,7 @@ public class SystemNotificationUtil {
                     PendingIntent.getBroadcast(
                             context, (int) thingId, cancelIntent, PendingIntent.FLAG_UPDATE_CURRENT));
         } else {
+            builder.setStyle(new NotificationCompat.BigTextStyle().bigText(contentText));
             Intent contentIntent = new Intent(context, DoingNotificationActionReceiver.class);
             if (doingState == DoingService.STATE_FAILED_CARELESS) {
                 contentIntent.setAction(DoingNotificationActionReceiver.ACTION_STOP_SERVICE);
