@@ -982,7 +982,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     }
 
     private void updateMainUiForDoingOrCancel(Intent data) {
-        final long thingId = data.getLongExtra(Def.Communication.KEY_ID, -1L);
+        final Thing thing = data.getParcelableExtra(Def.Communication.KEY_THING);
         final boolean justNotifyDataSetChanged = App.justNotifyDataSetChanged();
         mDrawerLayout.postDelayed(new Runnable() {
             @Override
@@ -990,7 +990,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 if (justNotifyDataSetChanged) {
                     justNotifyDataSetChanged();
                 } else {
-                    int position = mThingManager.getPosition(thingId);
+                    int position = mThingManager.getPosition(thing.getId());
                     if (position != -1) {
                         mAdapter.notifyItemChanged(position);
                     }

@@ -133,7 +133,7 @@ public class RemoteActionHelper {
                 Def.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI);
         broadcastIntent.putExtra(Def.Communication.KEY_RESULT_CODE,
                 Def.Communication.RESULT_DOING_OR_CANCEL);
-        broadcastIntent.putExtra(Def.Communication.KEY_ID, thing.getId());
+        broadcastIntent.putExtra(Def.Communication.KEY_THING, thing);
         context.sendBroadcast(broadcastIntent);
 
         AppWidgetHelper.updateSingleThingAppWidgets(context, thing.getId());
