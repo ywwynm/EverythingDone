@@ -258,8 +258,15 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:textColor="#FFFFFF"
-            android:text="doing"/>
+            android:layout_marginStart="@dimen/tv_thing_doing_margin_start"
+            android:layout_marginLeft="@dimen/tv_thing_doing_margin_start"
+            android:gravity="center"
+            android:text="@string/cd_doing"
+            android:textColor="@android:color/white"
+            android:textSize="@dimen/tv_thing_doing_text_size"
+            android:drawableStart="@drawable/ic_doing_thing"
+            android:drawableLeft="@drawable/ic_doing_thing"
+            android:drawablePadding="12dp"/>
 
     </FrameLayout>
 

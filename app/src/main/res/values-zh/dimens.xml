@@ -13,5 +13,7 @@
     <dimen name="tv_set_app_password_detail_text_size">14sp</dimen>
 
     <dimen name="tv_thing_doing_text_size">20sp</dimen>
+    <dimen name="tv_thing_doing_margin_start">-8dp</dimen>
+    <dimen name="tv_thing_doing_margin_start_list_widget">-12dp</dimen>
 
 </resources>

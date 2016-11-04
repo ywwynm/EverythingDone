@@ -349,15 +349,19 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@color/black_69p"
-        android:foreground="@drawable/selectable_item_background_light"
         android:visibility="gone">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:textColor="#FFFFFF"
-            android:text="doing"/>
+            android:gravity="center"
+            android:text="@string/cd_doing"
+            android:textColor="@android:color/white"
+            android:textSize="@dimen/tv_thing_doing_text_size"
+            android:drawableStart="@drawable/ic_doing_thing"
+            android:drawableLeft="@drawable/ic_doing_thing"
+            android:drawablePadding="12dp"/>
 
     </FrameLayout>
 
