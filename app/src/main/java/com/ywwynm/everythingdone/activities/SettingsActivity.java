@@ -30,6 +30,7 @@ import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
@@ -51,6 +52,7 @@ import com.ywwynm.everythingdone.model.HabitReminder;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.permission.SimplePermissionCallback;
 import com.ywwynm.everythingdone.receivers.LocaleChangeReceiver;
+import com.ywwynm.everythingdone.services.DoingService;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
@@ -822,6 +824,11 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                 Context context = SettingsActivity.this;
                 mPreferences.edit().putString(Def.Meta.KEY_LANGUAGE_CODE,
                         resources.getStringArray(R.array.language_codes)[pickedIndex]).commit();
+                if (App.getDoingThingId() != -1) {
+                    Toast.makeText(context, R.string.doing_failed_change_language,
+                            Toast.LENGTH_LONG).show();
+                    stopService(new Intent(context, DoingService.class));
+                }
                 App.killMeAndRestart(context, null, 0);
 
                 Intent intent = new Intent(context, LocaleChangeReceiver.class);
@@ -1182,6 +1189,11 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             adf.show(getFragmentManager(), AlertDialogFragment.TAG);
 
             if (BackupHelper.SUCCESS.equals(s)) {
+                if (App.getDoingThingId() != -1) {
+                    Toast.makeText(SettingsActivity.this, R.string.doing_failed_restore,
+                            Toast.LENGTH_LONG).show();
+                    stopService(new Intent(SettingsActivity.this, DoingService.class));
+                }
                 App.killMeAndRestart(SettingsActivity.this, null, 1200);
             }
         }

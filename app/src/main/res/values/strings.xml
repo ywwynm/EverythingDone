@@ -517,8 +517,10 @@
     <!--DoingService/Activity-->
     <string name="doing_currently_doing">Currently doing -</string>
     <string name="doing_left_time">Time left:</string>
-    <string name="doing_failed_careless">You didn\'t do this thing carefully so countdown stopped</string>
-    <string name="doing_failed_next_alarm">Next alarm of this Habit is ringing so countdown stopped</string>
+    <string name="doing_failed_careless">You didn\'t do this thing carefully so EverythingDone cancelled doing state</string>
+    <string name="doing_failed_next_alarm">Next alarm of this Habit is ringing so EverythingDone cancelled doing state</string>
+    <string name="doing_failed_change_language">You changed app language so EverythingDone cancelled doing state</string>
+    <string name="doing_failed_restore">You restored data so EverythingDone cancelled doing state</string>
     <string name="doing_click_to_dismiss">Click to dismiss this notification</string>
     <string name="doing_alert_first_strict_mode_title">Strict Mode</string>
     <string name="doing_alert_first_strict_mode_content">You are in strict mode now. EverythingDone will detect if you are using your phone to do other stuff. If you left this page(only checking notifications and locking screen are allowed) for 3 times or totally for more than 5 minutes, the countdown will stop and the thing will remain unfinished state.</string>
@@ -819,7 +821,7 @@
     <string name="cd_things_list_widget_setting">settings for things list app widget</string>
 
     <!--DoingActivity-->
-    <string name="cd_doing_thing">Currently doing</string>
+    <string name="cd_doing">Currently\nDoing</string>
     <string name="cd_doing_add_5_min">Add 5 minutes</string>
     <string name="cd_doing_strict_mode_off">Enter Strict Mode</string>
     <string name="cd_doing_strict_mode_on">Exit Strict Mode</string>

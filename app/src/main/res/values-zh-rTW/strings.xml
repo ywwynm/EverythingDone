@@ -512,6 +512,8 @@
     <string name="doing_left_time">剩餘時間:</string>
     <string name="doing_failed_careless">您沒有認真地做這件事, 已取消正在做的狀態</string>
     <string name="doing_failed_next_alarm">該習慣的下一次提醒時刻已經到來，已取消正在做的狀態</string>
+    <string name="doing_failed_change_language">您改變了應用語言, 已取消正在做事的狀態</string>
+    <string name="doing_failed_restore">您恢復了應用數據, 已取消正在做事的狀態</string>
     <string name="doing_click_to_dismiss">點擊刪除該通知</string>
     <string name="doing_alert_first_strict_mode_title">嚴格模式</string>
     <string name="doing_alert_first_strict_mode_content">您現在已處於嚴格模式，完事兒將會檢測您是否在用手機做其它的事情。如果您離開了本界面（僅允許您查看通知欄、鎖定屏幕）三次或者共五分鐘以上，將取消該記事正在做的狀態。</string>
@@ -808,7 +810,7 @@
     <string name="cd_things_list_widget_setting">打開記事列表小工具設定</string>
 
     <!--DoingActivity-->
-    <string name="cd_doing_thing">正在做的事</string>
+    <string name="cd_doing">正在做</string>
     <string name="cd_doing_add_5_min">增加5分鐘</string>
     <string name="cd_doing_strict_mode_off">進入嚴格模式</string>
     <string name="cd_doing_strict_mode_on">退出嚴格模式</string>
