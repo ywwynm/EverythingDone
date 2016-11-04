@@ -96,6 +96,7 @@ public class StartDoingActivity extends AppCompatActivity {
         cdf.setConfirmListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                App app = App.getApp();
                 int index = cdf.getPickedIndex();
                 boolean shouldGoToDoing = true;
                 long timeInMillis;
@@ -106,19 +107,19 @@ public class StartDoingActivity extends AppCompatActivity {
                     long etc = DateTimeUtil.getActualTimeAfterSomeTime(
                             mTypes.get(index), mTimes.get(index));
                     if (thing.getType() == Thing.HABIT) {
-                        Habit habit = HabitDAO.getInstance(getApplicationContext()).getHabitById(id);
+                        Habit habit = HabitDAO.getInstance(app).getHabitById(id);
                         if (habit != null) {
                             GregorianCalendar calendar = new GregorianCalendar();
                             int ct = calendar.get(habit.getType()); // current t
                             calendar.setTimeInMillis(etc);
                             if (calendar.get(habit.getType()) != ct) {
-                                Toast.makeText(getApplicationContext(),
+                                Toast.makeText(app,
                                         R.string.start_doing_time_long_t, Toast.LENGTH_LONG).show();
                                 shouldGoToDoing = false;
                             } else {
                                 long nextTime = habit.getMinHabitReminderTime();
                                 if (etc >= nextTime - 6 * 60 * 1000) {
-                                    Toast.makeText(getApplicationContext(),
+                                    Toast.makeText(app,
                                             R.string.start_doing_time_long_alarm, Toast.LENGTH_LONG).show();
                                     shouldGoToDoing = false;
                                 }
@@ -134,9 +135,8 @@ public class StartDoingActivity extends AppCompatActivity {
                     startService(DoingService.getOpenIntent(
                             StartDoingActivity.this, thing, System.currentTimeMillis(), timeInMillis));
                     startActivity(DoingActivity.getOpenIntent(StartDoingActivity.this, false));
-                    AppWidgetHelper.updateSingleThingAppWidgets(getApplicationContext(), id);
-                    AppWidgetHelper.updateThingsListAppWidgetsForType(
-                            getApplicationContext(), thing.getType());
+                    AppWidgetHelper.updateSingleThingAppWidgets(app, id);
+                    AppWidgetHelper.updateThingsListAppWidgetsForType(app, thing.getType());
                 }
             }
         });
