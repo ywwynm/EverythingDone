@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <integer name="doing_timely_line_width_hour">28</integer>
+    <integer name="doing_timely_line_width_minute">16</integer>
+    <integer name="doing_timely_line_width_second">8</integer>
+
+</resources>

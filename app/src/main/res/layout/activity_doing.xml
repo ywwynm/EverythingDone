@@ -56,7 +56,7 @@
                     android:layout_height="wrap_content"
                     android:paddingBottom="8dp"
                     app:textColor="@color/white_86p"
-                    app:lineWidth="28"/>
+                    app:lineWidth="@integer/doing_timely_line_width_hour"/>
 
                 <com.github.adnansm.timelytextview.TimelyView
                     android:id="@+id/tv_hour_2"
@@ -66,7 +66,7 @@
                     android:layout_marginStart="-8dp"
                     android:layout_marginLeft="-8dp"
                     app:textColor="@color/white_86p"
-                    app:lineWidth="28"/>
+                    app:lineWidth="@integer/doing_timely_line_width_hour"/>
 
                 <TextView
                     android:id="@+id/tv_separator_1_doing"
@@ -98,7 +98,7 @@
                     android:layout_height="wrap_content"
                     android:paddingBottom="8dp"
                     app:textColor="@color/white_76p"
-                    app:lineWidth="16"/>
+                    app:lineWidth="@integer/doing_timely_line_width_minute"/>
 
                 <com.github.adnansm.timelytextview.TimelyView
                     android:id="@+id/tv_minute_2"
@@ -108,7 +108,7 @@
                     android:layout_marginLeft="-8dp"
                     android:paddingBottom="8dp"
                     app:textColor="@color/white_76p"
-                    app:lineWidth="16"/>
+                    app:lineWidth="@integer/doing_timely_line_width_minute"/>
 
                 <TextView
                     android:id="@+id/tv_separator_2_doing"
@@ -140,7 +140,7 @@
                     android:layout_height="wrap_content"
                     android:paddingBottom="8dp"
                     app:textColor="@color/white_66p"
-                    app:lineWidth="8"/>
+                    app:lineWidth="@integer/doing_timely_line_width_second"/>
 
                 <com.github.adnansm.timelytextview.TimelyView
                     android:id="@+id/tv_second_2"
@@ -150,7 +150,7 @@
                     android:layout_marginLeft="-12dp"
                     android:paddingBottom="8dp"
                     app:textColor="@color/white_66p"
-                    app:lineWidth="8"/>
+                    app:lineWidth="@integer/doing_timely_line_width_second"/>
 
             </LinearLayout>
 
@@ -192,69 +192,81 @@
                 android:id="@+id/ll_bottom_buttons_doing"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="15dp"
                 android:layout_gravity="bottom"
                 android:gravity="center">
 
                 <FrameLayout
                     android:id="@+id/fl_add_5_min"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:layout_marginBottom="24dp"
-                    android:layout_marginEnd="16dp"
-                    android:layout_marginRight="16dp">
+                    android:layout_height="wrap_content">
 
                     <com.ywwynm.everythingdone.views.FloatingActionButton
                         android:id="@+id/fab_add_5_min"
                         android:layout_width="56dp"
                         android:layout_height="56dp"
                         android:onClick="onClick"
+                        android:layout_margin="9dp"
                         app:backgroundTint="#4CAF50"
                         app:rippleColor="@color/white_54p"
-                        app:elevation="0dp"
-                        app:pressedTranslationZ="0dp"/>
+                        app:elevation="4dp"
+                        app:pressedTranslationZ="0dp"
+                        app:borderWidth="0dp"/>
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_gravity="center"
+                        android:layout_marginTop="0.5dp"
                         android:includeFontPadding="false"
                         android:fontFamily="roboto"
                         android:text="+5m"
                         android:textColor="@android:color/white"
                         android:textSize="17dp"
-                        android:textStyle="bold"/>
+                        android:textStyle="bold"
+                        android:elevation="6dp"/>
 
                 </FrameLayout>
 
-                <com.ywwynm.everythingdone.views.FloatingActionButton
-                    android:id="@+id/fab_strict_mode"
-                    android:layout_width="56dp"
-                    android:layout_height="56dp"
-                    android:layout_marginTop="16dp"
-                    android:layout_marginBottom="24dp"
-                    android:layout_marginEnd="16dp"
-                    android:layout_marginRight="16dp"
-                    android:src="@drawable/ic_doing_strict_mode_off"
-                    android:onClick="onClick"
-                    app:backgroundTint="#2196F3"
-                    app:rippleColor="@color/white_54p"
-                    app:elevation="0dp"
-                    app:pressedTranslationZ="0dp"/>
+                <FrameLayout
+                    android:id="@+id/fl_strict_mode"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content">
 
-                <com.ywwynm.everythingdone.views.FloatingActionButton
-                    android:id="@+id/fab_cancel_doing"
-                    android:layout_width="56dp"
-                    android:layout_height="56dp"
-                    android:layout_marginTop="16dp"
-                    android:layout_marginBottom="24dp"
-                    android:src="@drawable/act_cancel_white"
-                    android:onClick="onClick"
-                    app:backgroundTint="@color/error"
-                    app:rippleColor="@color/white_54p"
-                    app:elevation="0dp"
-                    app:pressedTranslationZ="0dp"
-                    app:borderWidth="0dp"/>
+                    <com.ywwynm.everythingdone.views.FloatingActionButton
+                        android:id="@+id/fab_strict_mode"
+                        android:layout_width="56dp"
+                        android:layout_height="56dp"
+                        android:layout_margin="9dp"
+                        android:src="@drawable/ic_doing_strict_mode_off"
+                        android:onClick="onClick"
+                        app:backgroundTint="#2196F3"
+                        app:rippleColor="@color/white_54p"
+                        app:elevation="4dp"
+                        app:pressedTranslationZ="0dp"
+                        app:borderWidth="0dp"/>
+
+                </FrameLayout>
+
+                <FrameLayout
+                    android:id="@+id/fl_cancel_doing"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content">
+
+                    <com.ywwynm.everythingdone.views.FloatingActionButton
+                        android:id="@+id/fab_cancel_doing"
+                        android:layout_width="56dp"
+                        android:layout_height="56dp"
+                        android:layout_margin="9dp"
+                        android:src="@drawable/act_cancel_white"
+                        android:onClick="onClick"
+                        app:backgroundTint="@color/error"
+                        app:rippleColor="@color/white_54p"
+                        app:elevation="4dp"
+                        app:pressedTranslationZ="0dp"
+                        app:borderWidth="0dp"/>
+
+                </FrameLayout>
 
             </LinearLayout>
 

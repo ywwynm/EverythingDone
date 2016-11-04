@@ -112,8 +112,9 @@ public class DoingActivity extends EverythingDoneBaseActivity {
 
     private LinearLayout mLlBottom;
     private FrameLayout mFlAdd5Min;
+    private FrameLayout mFlStrictMode;
     private FloatingActionButton mFabStrictMode;
-    private FloatingActionButton mFabCancel;
+    private FrameLayout mFlCancel;
 
     private Handler mInfinityHandler;
 
@@ -189,8 +190,9 @@ public class DoingActivity extends EverythingDoneBaseActivity {
 
         mLlBottom      = f(R.id.ll_bottom_buttons_doing);
         mFlAdd5Min     = f(R.id.fl_add_5_min);
+        mFlStrictMode  = f(R.id.fl_strict_mode);
         mFabStrictMode = f(R.id.fab_strict_mode);
-        mFabCancel     = f(R.id.fab_cancel_doing);
+        mFlCancel      = f(R.id.fl_cancel_doing);
 
         mTimelyViews = new TimelyView[6];
         int[] ids = { R.id.tv_hour_1, R.id.tv_hour_2, R.id.tv_minute_1, R.id.tv_minute_2,
@@ -219,16 +221,16 @@ public class DoingActivity extends EverythingDoneBaseActivity {
     private void initBottomButtons() {
         if (DeviceUtil.hasKitKatApi() && DisplayUtil.hasNavigationBar(mApp)) {
             FrameLayout.LayoutParams flp = (FrameLayout.LayoutParams) mLlBottom.getLayoutParams();
-            flp.bottomMargin = DisplayUtil.getNavigationBarHeight(mApp);
+            flp.bottomMargin += DisplayUtil.getNavigationBarHeight(mApp);
             mLlBottom.requestLayout();
         }
 
         mFlAdd5Min.setScaleX(0);
         mFlAdd5Min.setScaleY(0);
-        mFabStrictMode.setScaleX(0);
-        mFabStrictMode.setScaleY(0);
-        mFabCancel.setScaleX(0);
-        mFabCancel.setScaleY(0);
+        mFlStrictMode.setScaleX(0);
+        mFlStrictMode.setScaleY(0);
+        mFlCancel.setScaleX(0);
+        mFlCancel.setScaleY(0);
     }
 
     @Override
@@ -465,10 +467,10 @@ public class DoingActivity extends EverythingDoneBaseActivity {
                 OvershootInterpolator oi = new OvershootInterpolator();
                 mFlAdd5Min.animate().setDuration(360).setInterpolator(oi).scaleX(1);
                 mFlAdd5Min.animate().setDuration(360).setInterpolator(oi).scaleY(1);
-                mFabStrictMode.animate().setDuration(360).setInterpolator(oi).scaleX(1);
-                mFabStrictMode.animate().setDuration(360).setInterpolator(oi).scaleY(1);
-                mFabCancel.animate().setDuration(360).setInterpolator(oi).scaleX(1);
-                mFabCancel.animate().setDuration(360).setInterpolator(oi).scaleY(1);
+                mFlStrictMode.animate().setDuration(360).setInterpolator(oi).scaleX(1);
+                mFlStrictMode.animate().setDuration(360).setInterpolator(oi).scaleY(1);
+                mFlCancel.animate().setDuration(360).setInterpolator(oi).scaleX(1);
+                mFlCancel.animate().setDuration(360).setInterpolator(oi).scaleY(1);
             }
         }, 1200); // executed after 1360ms, animation ends at 1720ms
     }
