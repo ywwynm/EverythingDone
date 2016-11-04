@@ -2083,10 +2083,12 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 }
             } else {
                 Thing thing = things.get(position);
-                thing.setSelected(!thing.isSelected());
-                mAdapter.notifyItemChanged(position);
-                mModeManager.updateSelectedCount();
-                mModeManager.updateMenuItems();
+                if (App.getDoingThingId() != thing.getId()) {
+                    thing.setSelected(!thing.isSelected());
+                    mAdapter.notifyItemChanged(position);
+                    mModeManager.updateSelectedCount();
+                    mModeManager.updateMenuItems();
+                }
             }
         }
 
@@ -2112,8 +2114,10 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 return false;
             }
 
-            if (mModeManager.getCurrentMode() == ModeManager.NORMAL &&
-                    things.get(position).getType() <= Thing.NOTIFICATION_GOAL) {
+            Thing thing = things.get(position);
+            if (mModeManager.getCurrentMode() == ModeManager.NORMAL
+                    && thing.getType() <= Thing.NOTIFICATION_GOAL
+                    && App.getDoingThingId() != thing.getId()) {
                 mDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
                 if (mApp.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
                     mModeManager.toMovingMode(position);
@@ -2175,6 +2179,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             if (from < 0 || from >= size || to < 0 || to >= size) {
                 return false;
             }
+
             Thing t1 = things.get(from);
             Thing t2 = things.get(to);
             if (t1.getType() == Thing.HEADER || t2.getType() == Thing.HEADER) {
@@ -2215,8 +2220,11 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             }
 
             Thing thingToSwipe = things.get(position);
-            int thingType = thingToSwipe.getType();
-            if (thingType > Thing.NOTIFICATION_GOAL) {
+            long id = thingToSwipe.getId();
+            @Thing.Type int thingType = thingToSwipe.getType();
+            if (thingType > Thing.NOTIFICATION_GOAL || App.getDoingThingId() == id) {
+                // without this line, the item will disappear and leave a white space...
+                mAdapter.notifyItemChanged(position);
                 return;
             }
 
@@ -2230,7 +2238,6 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 }
             }
 
-            long id = thingToSwipe.getId();
             SystemNotificationUtil.cancelNotification(id, thingType, mApp);
             mThingsIdsToUpdateWidget.add(id);
 
