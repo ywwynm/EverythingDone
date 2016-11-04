@@ -654,6 +654,9 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             case Def.Communication.RESULT_STICKY_THING_OR_CANCEL:
                 updateMainUiForStickyOrCancel(data);
                 break;
+            case Def.Communication.RESULT_DOING_OR_CANCEL:
+                updateMainUiForDoingOrCancel(data);
+                break;
             case Def.Communication.RESULT_NO_UPDATE:
             default:
                 if (mRemoteIntent == null) {
@@ -974,6 +977,26 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     App.setSomethingUpdatedSpecially(false);
                 }
                 mRemoteIntent = null;
+            }
+        }, 560);
+    }
+
+    private void updateMainUiForDoingOrCancel(Intent data) {
+        final long thingId = data.getLongExtra(Def.Communication.KEY_ID, -1L);
+        final boolean justNotifyDataSetChanged = App.justNotifyDataSetChanged();
+        mDrawerLayout.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if (justNotifyDataSetChanged) {
+                    justNotifyDataSetChanged();
+                } else {
+                    int position = mThingManager.getPosition(thingId);
+                    if (position != -1) {
+                        mAdapter.notifyItemChanged(position);
+                    }
+                    mUpdateMainUiInOnResume = true;
+                    mRemoteIntent = null;
+                }
             }
         }, 560);
     }

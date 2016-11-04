@@ -16,6 +16,7 @@ import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.fragments.ChooserDialogFragment;
+import com.ywwynm.everythingdone.helpers.RemoteActionHelper;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.services.DoingService;
@@ -135,8 +136,7 @@ public class StartDoingActivity extends AppCompatActivity {
                     startService(DoingService.getOpenIntent(
                             StartDoingActivity.this, thing, System.currentTimeMillis(), timeInMillis));
                     startActivity(DoingActivity.getOpenIntent(StartDoingActivity.this, false));
-                    AppWidgetHelper.updateSingleThingAppWidgets(app, id);
-                    AppWidgetHelper.updateThingsListAppWidgetsForType(app, thing.getType());
+                    RemoteActionHelper.doingOrCancel(StartDoingActivity.this, thing);
                 }
             }
         });

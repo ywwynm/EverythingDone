@@ -123,6 +123,25 @@ public class RemoteActionHelper {
                 Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME);
     }
 
+    public static void doingOrCancel(Context context, Thing thing) {
+        if (App.isSomethingUpdatedSpecially()) {
+            App.setShouldJustNotifyDataSetChanged(true);
+        } else {
+            App.setSomethingUpdatedSpecially(true);
+        }
+        Intent broadcastIntent = new Intent(
+                Def.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI);
+        broadcastIntent.putExtra(Def.Communication.KEY_RESULT_CODE,
+                Def.Communication.RESULT_DOING_OR_CANCEL);
+        broadcastIntent.putExtra(Def.Communication.KEY_ID, thing.getId());
+        context.sendBroadcast(broadcastIntent);
+
+        AppWidgetHelper.updateSingleThingAppWidgets(context, thing.getId());
+        AppWidgetHelper.updateThingsListAppWidgetsForType(context, thing.getType());
+
+        sRemoteIntent = broadcastIntent;
+    }
+
     public static void correctIfNoReminder(
             Context context, Thing thing, int position, int typeBefore) {
         if (Thing.isReminderType(typeBefore)) {

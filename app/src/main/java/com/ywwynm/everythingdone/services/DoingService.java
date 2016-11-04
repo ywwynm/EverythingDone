@@ -15,7 +15,9 @@ import android.widget.Toast;
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
+import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper;
 import com.ywwynm.everythingdone.database.HabitDAO;
+import com.ywwynm.everythingdone.helpers.RemoteActionHelper;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil;
@@ -138,6 +140,9 @@ public class DoingService extends Service {
                         + "mTotalPlayedTime[" + mTotalPlayedTime + "]");
 
                 if (careless) {
+                    App.setDoingThingId(-1L);
+                    RemoteActionHelper.doingOrCancel(DoingService.this, mThing);
+
                     if (!mCarelessToasted) {
                         Toast.makeText(DoingService.this, R.string.doing_failed_careless,
                                 Toast.LENGTH_LONG).show();
@@ -216,6 +221,8 @@ public class DoingService extends Service {
         App.setDoingThingId(-1L);
         mHandler.removeMessages(96);
         stopForeground(true);
+
+        RemoteActionHelper.doingOrCancel(this, mThing);
 
         mThing = null;
         mHandler = null;

@@ -9,6 +9,7 @@ import android.support.v4.util.LongSparseArray;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -23,6 +24,7 @@ import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.resource.drawable.GlideDrawable;
 import com.bumptech.glide.request.RequestListener;
 import com.bumptech.glide.request.target.Target;
+import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ReminderDAO;
@@ -45,6 +47,8 @@ import java.util.List;
  * Basic things adapter for RecyclerView. Created for re-use.
  */
 public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsAdapter.BaseThingViewHolder> {
+
+    public static final String TAG = "BaseThingsAdapter";
 
     private Context mContext;
     private LongSparseArray<CheckListAdapter> mCheckListAdapters;
@@ -78,11 +82,11 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
     @Override
     public void onBindViewHolder(BaseThingViewHolder holder, int position) {
         Thing thing = getThings().get(position);
-        setViewAppearance(holder, thing);
+        setContentViewAppearance(holder, thing);
         setCardAppearance(holder, thing.getColor(), thing.isSelected());
     }
 
-    private void setViewAppearance(BaseThingViewHolder holder, Thing thing) {
+    private void setContentViewAppearance(final BaseThingViewHolder holder, Thing thing) {
         updateCardForSticky(holder, thing);
         updateCardForTitle(holder, thing);
 
@@ -122,6 +126,8 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
                 holder.vHabitSeparator1.setVisibility(View.VISIBLE);
             }
         }
+
+        updateCardForDoing(holder, thing);
     }
 
     private void updateCardForSticky(BaseThingViewHolder holder, Thing thing) {
@@ -372,6 +378,26 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
         }
     }
 
+    private void updateCardForDoing(final BaseThingViewHolder holder, Thing thing) {
+        if (App.getDoingThingId() == thing.getId()) {
+            holder.flDoing.setVisibility(View.VISIBLE);
+            holder.cv.post(new Runnable() {
+                @Override
+                public void run() {
+                    InterceptTouchCardView.LayoutParams lp = (InterceptTouchCardView.LayoutParams)
+                            holder.flDoing.getLayoutParams();
+                    lp.width  = holder.cv.getWidth();
+                    lp.height = holder.cv.getHeight();
+                    Log.i(TAG, "setting doing cover for thing card, " +
+                            "width[" + lp.width + ", height[" + lp.height + "]");
+                    holder.flDoing.requestLayout();
+                }
+            });
+        } else {
+            holder.flDoing.setVisibility(View.GONE);
+        }
+    }
+
     private void setCardAppearance(final BaseThingViewHolder holder, int color, final boolean selected) {
         final CardView cv = holder.cv;
         int currentMode = getCurrentMode();
@@ -417,6 +443,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
         public final View vPaddingBottom;
 
         public final ImageView ivSticky;
+        public final FrameLayout flDoing;
 
         public final FrameLayout flImageAttachment;
         public final ImageView ivImageAttachment;
@@ -455,6 +482,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
             vPaddingBottom = f(R.id.view_thing_padding_bottom);
 
             ivSticky = f(R.id.iv_thing_sticky);
+            flDoing  = f(R.id.fl_thing_doing_cover);
 
             flImageAttachment = f(R.id.fl_thing_image);
             ivImageAttachment = f(R.id.iv_thing_image);
