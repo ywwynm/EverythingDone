@@ -79,8 +79,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
         @Override
         public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
             mDoingBinder = (DoingService.DoingBinder) iBinder;
-            DoingActivity.super.init();
-            startCountdownAndPlayAnimations();
+            initAfterBindService();
         }
 
         @Override
@@ -160,7 +159,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
     }
 
     @Override
-    protected void init() {
+    protected void beforeInit() {
         Intent intent = new Intent(this, DoingService.class);
         bindService(intent, mServiceConnection, BIND_AUTO_CREATE);
 
@@ -175,21 +174,6 @@ public class DoingActivity extends EverythingDoneBaseActivity {
         int base = DisplayUtil.getThingCardWidth(mApp);
         mCardWidth   = (int) (base * 1.2f);
         mRvMaxHeight = (int) (mCardWidth * 3 / 4f);
-
-        mThing = mDoingBinder.getThing();
-
-        if (mDoingBinder.getTimeInMillis() == -1) {
-            mInfinityHandler = new Handler(new Handler.Callback() {
-                @Override
-                public boolean handleMessage(Message message) {
-                    if (message.what == 96) {
-                        mTvInfinity.animate().setDuration(3600).alpha(1 - mTvInfinity.getAlpha());
-                        mInfinityHandler.sendEmptyMessageDelayed(96, 3600);
-                    }
-                    return false;
-                }
-            });
-        }
     }
 
     @Override
@@ -207,25 +191,98 @@ public class DoingActivity extends EverythingDoneBaseActivity {
         mFlAdd5Min     = f(R.id.fl_add_5_min);
         mFabStrictMode = f(R.id.fab_strict_mode);
         mFabCancel     = f(R.id.fab_cancel_doing);
+
+        mTimelyViews = new TimelyView[6];
+        int[] ids = { R.id.tv_hour_1, R.id.tv_hour_2, R.id.tv_minute_1, R.id.tv_minute_2,
+                R.id.tv_second_1, R.id.tv_second_2 };
+        for (int i = 0; i < mTimelyViews.length; i++) {
+            mTimelyViews[i] = f(ids[i]);
+        }
     }
 
     @Override
     protected void initUI() {
         DisplayUtil.expandLayoutToFullscreenAboveLollipop(this);
 
-        setBackground();
-        setTimeViews();
-        setRecyclerView();
-
-        setBottomButtons();
+        initBackground();
+        initBottomButtons();
     }
 
-    private void setBackground() {
+    private void initBackground() {
         WallpaperManager wm = WallpaperManager.getInstance(mApp);
         Drawable wallpaper = wm.getDrawable();
         if (wallpaper != null) {
             mIvBg.setImageDrawable(wallpaper);
         }
+    }
+
+    private void initBottomButtons() {
+        if (DeviceUtil.hasKitKatApi() && DisplayUtil.hasNavigationBar(mApp)) {
+            FrameLayout.LayoutParams flp = (FrameLayout.LayoutParams) mLlBottom.getLayoutParams();
+            flp.bottomMargin = DisplayUtil.getNavigationBarHeight(mApp);
+            mLlBottom.requestLayout();
+        }
+
+        mFlAdd5Min.setScaleX(0);
+        mFlAdd5Min.setScaleY(0);
+        mFabStrictMode.setScaleX(0);
+        mFabStrictMode.setScaleY(0);
+        mFabCancel.setScaleX(0);
+        mFabCancel.setScaleY(0);
+    }
+
+    @Override
+    protected void setActionbar() { }
+
+    @Override
+    protected void setEvents() {
+        setRecyclerViewEvent();
+    }
+
+    private void setRecyclerViewEvent() {
+        mRecyclerView.getViewTreeObserver().addOnGlobalLayoutListener(
+                new ViewTreeObserver.OnGlobalLayoutListener() {
+
+                    @Override
+                    public void onGlobalLayout() {
+                        int height = mRecyclerView.getHeight();
+                        if (height > mRvMaxHeight) {
+                            ViewGroup.LayoutParams vlp = mRecyclerView.getLayoutParams();
+                            vlp.height = mRvMaxHeight;
+                            mRecyclerView.requestLayout();
+                        }
+                    }
+                });
+        ItemTouchHelper helper = new ItemTouchHelper(new CardTouchCallback());
+        helper.attachToRecyclerView(mRecyclerView);
+    }
+
+    private void initAfterBindService() {
+        playBackgroundAnimation();
+
+        updateTimeViews();
+
+        mThing = mDoingBinder.getThing();
+        initRecyclerView();
+        updateBottomButtons();
+
+        if (mDoingBinder.getTimeInMillis() == -1) {
+            mInfinityHandler = new Handler(new Handler.Callback() {
+                @Override
+                public boolean handleMessage(Message message) {
+                    if (message.what == 96) {
+                        mTvInfinity.animate().setDuration(3600).alpha(1 - mTvInfinity.getAlpha());
+                        mInfinityHandler.sendEmptyMessageDelayed(96, 3600);
+                    }
+                    return false;
+                }
+            });
+        }
+
+        startCountdownAndPlayAnimations();
+    }
+
+    private void playBackgroundAnimation() {
         mIvBg.postDelayed(new Runnable() {
             @Override
             public void run() {
@@ -239,23 +296,15 @@ public class DoingActivity extends EverythingDoneBaseActivity {
         }, 160);
     }
 
-    private void setTimeViews() {
+    private void updateTimeViews() {
         if (mDoingBinder.getTimeInMillis() == -1) { // time is infinite
             mTvInfinity.setVisibility(View.VISIBLE);
             mLlHour.setVisibility(View.GONE);
             mLlMinute.setVisibility(View.GONE);
             mLlSecond.setVisibility(View.GONE);
-            return;
+        } else {
+            setTimelyViewsVisibilities(mDoingBinder.getLeftTime());
         }
-
-        mTimelyViews = new TimelyView[6];
-        int[] ids = { R.id.tv_hour_1, R.id.tv_hour_2, R.id.tv_minute_1, R.id.tv_minute_2,
-                R.id.tv_second_1, R.id.tv_second_2 };
-        for (int i = 0; i < mTimelyViews.length; i++) {
-            mTimelyViews[i] = f(ids[i]);
-        }
-
-        setTimelyViewsVisibilities(mDoingBinder.getLeftTime());
     }
 
     private void setTimelyViewsVisibilities(long leftTime) {
@@ -277,7 +326,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
         }
     }
 
-    private void setRecyclerView() {
+    private void initRecyclerView() {
         int p = (DisplayUtil.getScreenSize(mApp).x - mCardWidth) / 2;
         mRecyclerView.setPadding(p, 0, p, 0);
 
@@ -343,13 +392,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
         mRecyclerView.setAdapter(adapter);
     }
 
-    private void setBottomButtons() {
-        if (DeviceUtil.hasKitKatApi() && DisplayUtil.hasNavigationBar(mApp)) {
-            FrameLayout.LayoutParams flp = (FrameLayout.LayoutParams) mLlBottom.getLayoutParams();
-            flp.bottomMargin = DisplayUtil.getNavigationBarHeight(mApp);
-            mLlBottom.requestLayout();
-        }
-
+    private void updateBottomButtons() {
         if (mDoingBinder.getTimeInMillis() == -1) {
             mFlAdd5Min.setVisibility(View.GONE);
         }
@@ -359,39 +402,6 @@ public class DoingActivity extends EverythingDoneBaseActivity {
         } else {
             mFabStrictMode.setImageResource(R.drawable.ic_doing_strict_mode_off);
         }
-
-        mFlAdd5Min.setScaleX(0);
-        mFlAdd5Min.setScaleY(0);
-        mFabStrictMode.setScaleX(0);
-        mFabStrictMode.setScaleY(0);
-        mFabCancel.setScaleX(0);
-        mFabCancel.setScaleY(0);
-    }
-
-    @Override
-    protected void setActionbar() { }
-
-    @Override
-    protected void setEvents() {
-        setRecyclerViewEvent();
-    }
-
-    private void setRecyclerViewEvent() {
-        mRecyclerView.getViewTreeObserver().addOnGlobalLayoutListener(
-                new ViewTreeObserver.OnGlobalLayoutListener() {
-
-                    @Override
-                    public void onGlobalLayout() {
-                        int height = mRecyclerView.getHeight();
-                        if (height > mRvMaxHeight) {
-                            ViewGroup.LayoutParams vlp = mRecyclerView.getLayoutParams();
-                            vlp.height = mRvMaxHeight;
-                            mRecyclerView.requestLayout();
-                        }
-                    }
-                });
-        ItemTouchHelper helper = new ItemTouchHelper(new CardTouchCallback());
-        helper.attachToRecyclerView(mRecyclerView);
     }
 
     private void startCountdownAndPlayAnimations() {
@@ -531,21 +541,6 @@ public class DoingActivity extends EverythingDoneBaseActivity {
         adf.setTitle(getString(titleRes));
         adf.setContent(getString(contentRes));
         adf.show(getFragmentManager(), AlertDialogFragment.TAG);
-    }
-
-    @Override
-    public void onBackPressed() {
-//        AlertDialogFragment adf = new AlertDialogFragment();
-//        adf.setTitleColor(mThing.getColor());
-//        adf.setConfirmColor(mThing.getColor());
-//        adf.setConfirmListener(new AlertDialogFragment.ConfirmListener() {
-//            @Override
-//            public void onConfirm() {
-//                finish();
-//            }
-//        });
-//        adf.show(getFragmentManager(), AlertDialogFragment.TAG);
-        super.onBackPressed();
     }
 
     private void finishWithStoppingService() {
