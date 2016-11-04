@@ -172,7 +172,8 @@ public class ThingsAdapter extends BaseThingsAdapter {
                 || thing.getType() <= Thing.HEADER
                 || thing.getType() >= Thing.NOTIFICATION_UNDERWAY
                 || thing.getState() != Thing.UNDERWAY
-                || getCurrentMode() != ModeManager.NORMAL) {
+                || getCurrentMode() != ModeManager.NORMAL
+                || App.getDoingThingId() == thing.getId()) {
             holder.cv.setShouldInterceptTouchEvent(true);
             adapter.setTvItemClickCallback(null);
         } else {

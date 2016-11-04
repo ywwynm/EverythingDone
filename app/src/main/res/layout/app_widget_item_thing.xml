@@ -333,4 +333,20 @@
         android:contentDescription="@string/sticky_thing"
         android:visibility="gone"/>
 
+    <FrameLayout
+        android:id="@+id/fl_thing_doing_cover"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/black_69p"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:textColor="#FFFFFF"
+            android:text="doing"/>
+
+    </FrameLayout>
+
 </FrameLayout>

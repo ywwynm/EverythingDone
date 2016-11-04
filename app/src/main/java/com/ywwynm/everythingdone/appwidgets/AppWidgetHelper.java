@@ -69,6 +69,7 @@ public class AppWidgetHelper {
 
     private static final int IV_STICKY                = R.id.iv_thing_sticky;
     private static final int IV_STICKY_SMALL          = R.id.iv_thing_sticky_smaller;
+    private static final int FL_DOING                 = R.id.fl_thing_doing_cover;
 
     private static final int IV_IMAGE_ATTACHMENT      = R.id.iv_thing_image;
     private static final int TV_IMAGE_COUNT           = R.id.tv_thing_image_attachment_count;
@@ -284,6 +285,7 @@ public class AppWidgetHelper {
         PendingIntent pendingIntent = PendingIntent.getActivity(
                 context, appWidgetId, contentIntent, 0);
         remoteViews.setOnClickPendingIntent(ROOT_WIDGET_THING, pendingIntent);
+        remoteViews.setOnClickPendingIntent(FL_DOING, pendingIntent);
         return remoteViews;
     }
 
@@ -479,6 +481,8 @@ public class AppWidgetHelper {
             remoteViews.setViewVisibility(TV_IMAGE_COUNT,      View.GONE);
             remoteViews.setViewVisibility(LL_AUDIO_ATTACHMENT, View.GONE);
         }
+
+        setDoing(remoteViews, context, thing, style);
     }
 
     private static void setSeparatorVisibilities(
@@ -932,6 +936,15 @@ public class AppWidgetHelper {
                 remoteViews.setContentDescription(ids[i],
                         context.getString(R.string.cd_habit_unknown));
             }
+        }
+    }
+
+    private static void setDoing(
+            RemoteViews remoteViews, Context context, Thing thing, @ThingWidgetInfo.Style int style) {
+        if (App.getDoingThingId() == thing.getId()) {
+            remoteViews.setViewVisibility(FL_DOING, View.VISIBLE);
+        } else {
+            remoteViews.setViewVisibility(FL_DOING, View.GONE);
         }
     }
 
