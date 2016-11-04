@@ -482,7 +482,7 @@ public class AppWidgetHelper {
             remoteViews.setViewVisibility(LL_AUDIO_ATTACHMENT, View.GONE);
         }
 
-        setDoing(remoteViews, context, thing, style);
+        setDoing(remoteViews, thing);
     }
 
     private static void setSeparatorVisibilities(
@@ -940,7 +940,7 @@ public class AppWidgetHelper {
     }
 
     private static void setDoing(
-            RemoteViews remoteViews, Context context, Thing thing, @ThingWidgetInfo.Style int style) {
+            RemoteViews remoteViews, Thing thing) {
         if (App.getDoingThingId() == thing.getId()) {
             remoteViews.setViewVisibility(FL_DOING, View.VISIBLE);
         } else {
