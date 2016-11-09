@@ -194,8 +194,9 @@ public class RemoteActionHelper {
     public static void updateUiEverywhere(
             Context context, Thing thing, int position, int typeBefore, int resultCode) {
         if (App.isSomethingUpdatedSpecially()) {
-            boolean shouldJustNotifyDataSetChanged = shouldJustNotifyDataSetChanged(thing, resultCode);
-            App.setShouldJustNotifyDataSetChanged(shouldJustNotifyDataSetChanged);
+            if (shouldJustNotifyDataSetChanged(thing, resultCode)) {
+                App.setShouldJustNotifyDataSetChanged(true);
+            }
         } else {
             App.setSomethingUpdatedSpecially(true);
         }
