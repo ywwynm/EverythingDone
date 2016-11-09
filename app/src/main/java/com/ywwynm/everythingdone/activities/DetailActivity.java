@@ -6,10 +6,12 @@ import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
 import android.app.ActivityManager;
 import android.content.ActivityNotFoundException;
+import android.content.BroadcastReceiver;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
@@ -347,6 +349,28 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     private ThingActionsList mActionList;
     public boolean shouldAddToActionList = false;
 
+    private BroadcastReceiver mReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            int resultCode = intent.getIntExtra(Def.Communication.KEY_RESULT_CODE,
+                    Def.Communication.RESULT_NO_UPDATE);
+            if (resultCode == Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME) {
+                Thing thing = intent.getParcelableExtra(Def.Communication.KEY_THING);
+                if (thing != null) {
+                    long thingId = mThing.getId();
+                    if (thing.getId() == thingId) {
+                        if (Thing.isReminderType(thing.getType())) {
+                            mReminder = ReminderDAO.getInstance(App.getApp()).getReminderById(thingId);
+                            updateBottomBarForReminder();
+                        } else if (thing.getType() == Thing.HABIT) {
+                            mHabit = HabitDAO.getInstance(App.getApp()).getHabitById(thingId);
+                        }
+                    }
+                }
+            }
+        }
+    };
+
     public ThingActionsList getActionList() {
         return mActionList;
     }
@@ -368,6 +392,10 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             initUI();
             setActionbar();
             setEvents();
+
+            IntentFilter intentFilter = new IntentFilter(
+                    Def.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI);
+            registerReceiver(mReceiver, intentFilter);
         }
     }
 
@@ -715,19 +743,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             }
 
             if (mReminder != null) {
-                cbQuickRemind.setChecked(mReminder.getState() == Reminder.UNDERWAY);
-
-                if (mEditable) {
-                    quickRemindPicker.pickForUI(9);
-                }
-
-                long reminderInMillis = mReminder.getNotifyTime();
-                tvQuickRemind.setText(DateTimeUtil.getDateTimeStrAt(reminderInMillis, this, false));
-                rhParams.setReminderInMillis(reminderInMillis);
-                int state = mReminder.getState();
-                if (state != Reminder.UNDERWAY || thingState != Thing.UNDERWAY) {
-                    tvQuickRemind.append(", " + Reminder.getStateDescription(thingState, state, this));
-                }
+                updateBottomBarForReminder();
             } else if (mHabit != null) {
                 cbQuickRemind.setChecked(mEditable);
                 if (mEditable) {
@@ -755,6 +771,25 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         }
 
         updateDescriptions(mThing.getColor());
+    }
+
+    private void updateBottomBarForReminder() {
+        if (mReminder != null) {
+            cbQuickRemind.setChecked(mReminder.getState() == Reminder.UNDERWAY);
+
+            if (mEditable) {
+                quickRemindPicker.pickForUI(9);
+            }
+
+            long reminderInMillis = mReminder.getNotifyTime();
+            tvQuickRemind.setText(DateTimeUtil.getDateTimeStrAt(reminderInMillis, this, false));
+            rhParams.setReminderInMillis(reminderInMillis);
+            int state = mReminder.getState();
+            @Thing.State int thingState = mThing.getState();
+            if (state != Reminder.UNDERWAY || thingState != Thing.UNDERWAY) {
+                tvQuickRemind.append(", " + Reminder.getStateDescription(thingState, state, this));
+            }
+        }
     }
 
     private void initAndShowTvFinishTime(TextView tvFinishTime, @Thing.Type int thingType, boolean isChinese) {
@@ -1575,6 +1610,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        unregisterReceiver(mReceiver);
         if (mThing == null) {
             return;
         }
