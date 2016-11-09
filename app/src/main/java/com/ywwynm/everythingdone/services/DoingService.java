@@ -17,6 +17,7 @@ import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.helpers.RemoteActionHelper;
+import com.ywwynm.everythingdone.model.DoingRecord;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil;
@@ -40,6 +41,8 @@ public class DoingService extends Service {
     @IntDef({STATE_DOING, STATE_FAILED_CARELESS, STATE_FAILED_NEXT_ALARM})
     @Retention(RetentionPolicy.SOURCE)
     public @interface State {}
+
+    public static @DoingRecord.StopReason int sStopReason;
 
     public static final String KEY_START_TIME     = "start_time";
     public static final String KEY_TIME_IN_MILLIS = "time_in_millis";

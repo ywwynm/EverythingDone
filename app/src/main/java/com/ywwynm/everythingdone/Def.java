@@ -20,7 +20,7 @@ public final class Def {
         public static final String RESTORE_DONE_FILE_NAME   = "restore_done.dat";
         public static final String FEEDBACK_ERROR_FILE_NAME = "feedback_error.dat";
 
-        public static final int DATABASE_VERSION = 5;
+        public static final int DATABASE_VERSION = 6;
 
         public static final int ONGOING_NOTIFICATION_ID = Integer.MAX_VALUE;
 
@@ -126,6 +126,18 @@ public final class Def {
         public static final String COLUMN_SIZE_APP_WIDGET     = "size";
         public static final String COLUMN_ALPHA_APP_WIDGET    = "alpha";
         public static final String COLUMN_STYLE_APP_WIDGET    = "style";
+
+        public static final String TABLE_DOING_RECORDS             = "doing_records";
+        public static final String COLUMN_ID_DOING                 = "id";
+        public static final String COLUMN_THING_ID_DOING           = "thing_id";
+        public static final String COLUMN_THING_TYPE_DOING         = "thing_type";
+        public static final String COLUMN_ADD5_TIMES_DOING         = "add5_times";
+        public static final String COLUMN_PLAYED_TIMES_DOING       = "played_times";
+        public static final String COLUMN_TOTAL_PLAY_TIME_DOING    = "total_play_time";
+        public static final String COLUMN_PREDICT_DOING_TIME_DOING = "predict_doing_time";
+        public static final String COLUMN_START_TIME_DOING         = "start_time";
+        public static final String COLUMN_END_TIME_DOING           = "end_time";
+        public static final String COLUMN_STOP_REASON_DOING        = "stop_reason";
 
     }
 

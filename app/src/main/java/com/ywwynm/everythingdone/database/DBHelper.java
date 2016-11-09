@@ -90,6 +90,21 @@ public class DBHelper extends SQLiteOpenHelper {
                 + ")"
             + ")";
 
+    // added on 2016/11/9
+    private static final String SQL_CREATE_TABLE_DOING_RECORDS = "create table if not exists "
+            + Def.Database.TABLE_DOING_RECORDS + " ("
+                + Def.Database.COLUMN_ID_DOING                 + " integer primary key autoincrement, "
+                + Def.Database.COLUMN_THING_ID_DOING           + " integer not null, "
+                + Def.Database.COLUMN_THING_TYPE_DOING         + " integer not null, "
+                + Def.Database.COLUMN_ADD5_TIMES_DOING         + " integer not null, "
+                + Def.Database.COLUMN_PLAYED_TIMES_DOING       + " integer not null, "
+                + Def.Database.COLUMN_TOTAL_PLAY_TIME_DOING    + " integer not null, "
+                + Def.Database.COLUMN_PREDICT_DOING_TIME_DOING + " integer not null, "
+                + Def.Database.COLUMN_START_TIME_DOING         + " integer not null, "
+                + Def.Database.COLUMN_END_TIME_DOING           + " integer not null, "
+                + Def.Database.COLUMN_STOP_REASON_DOING        + " integer not null"
+            + ")";
+
     private static final String SQL_INSERT_HEADER = "insert into "
             + Def.Database.TABLE_THINGS + " values("
             + "'7', '"
@@ -125,6 +140,9 @@ public class DBHelper extends SQLiteOpenHelper {
 
     private static final String SQL_DROP_TABLE_APP_WIDGET = "drop table if exists "
             + Def.Database.TABLE_APP_WIDGET;
+
+    private static final String SQL_DROP_TABLE_DOING_RECORDS = "drop table if exists "
+            + Def.Database.TABLE_DOING_RECORDS;
 
     private Context mContext;
 
@@ -163,6 +181,7 @@ public class DBHelper extends SQLiteOpenHelper {
         db.execSQL(SQL_CREATE_TABLE_HABIT_REMINDERS);
         db.execSQL(SQL_CREATE_TABLE_HABIT_RECORDS);
         db.execSQL(SQL_CREATE_TABLE_APP_WIDGET);
+        db.execSQL(SQL_CREATE_TABLE_DOING_RECORDS);
     }
 
     @Override
@@ -177,6 +196,7 @@ public class DBHelper extends SQLiteOpenHelper {
         if (oldVersion == 1) {
             // no table "app_widget" in first version
             db.execSQL(SQL_CREATE_TABLE_APP_WIDGET);
+            db.execSQL(SQL_CREATE_TABLE_DOING_RECORDS);
         } else if (oldVersion == 2) {
             // Only for developing. I forget to create a column that describes widget's size
             db.execSQL(SQL_DROP_TABLE_APP_WIDGET);
@@ -184,11 +204,14 @@ public class DBHelper extends SQLiteOpenHelper {
         } else if (oldVersion == 3) {
             db.execSQL(SQL_ADD_COLUMN_ALPHA_APP_WIDGET);
             db.execSQL(SQL_ADD_COLUMN_STYLE_APP_WIDGET);
+            db.execSQL(SQL_CREATE_TABLE_DOING_RECORDS);
         } else if (oldVersion == 4) {
             // Only for developing. Thing list widget now can optimize style
             db.execSQL(SQL_ADD_COLUMN_STYLE_APP_WIDGET);
+        } else if (oldVersion == 5) {
+            db.execSQL(SQL_CREATE_TABLE_DOING_RECORDS);
         }
-        // released version should be 1, 3, 5.
+        // released version should be 1, 3, 5, 6.
     }
 
     @Override
