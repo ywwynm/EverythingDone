@@ -959,6 +959,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         mDrawerLayout.postDelayed(new Runnable() {
             @Override
             public void run() {
+                Log.i(TAG, "updateMainUiForStickyOrCancel: delayed Runnable started.");
                 if (justNotifyDataSetChanged) {
                     justNotifyDataSetChanged();
                 } else if (oldPosition != -1 && newPosition != -1) {
@@ -982,11 +983,13 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     }
 
     private void updateMainUiForDoingOrCancel(Intent data) {
+        Log.i(TAG, "updateMainUiForDoingOrCancel called");
         final Thing thing = data.getParcelableExtra(Def.Communication.KEY_THING);
         final boolean justNotifyDataSetChanged = App.justNotifyDataSetChanged();
         mDrawerLayout.postDelayed(new Runnable() {
             @Override
             public void run() {
+                Log.i(TAG, "updateMainUiForDoingOrCancel: delayed Runnable started.");
                 if (justNotifyDataSetChanged) {
                     justNotifyDataSetChanged();
                 } else {
@@ -1023,6 +1026,8 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             App.setSomethingUpdatedSpecially(false);
             App.setShouldJustNotifyDataSetChanged(false);
         }
+
+        mUpdateMainUiInOnResume = true;
     }
 
     @Override

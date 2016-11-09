@@ -125,7 +125,9 @@ public class RemoteActionHelper {
 
     public static void doingOrCancel(Context context, Thing thing) {
         if (App.isSomethingUpdatedSpecially()) {
-            App.setShouldJustNotifyDataSetChanged(true);
+            if (shouldJustNotifyDataSetChanged(thing, Def.Communication.RESULT_DOING_OR_CANCEL)) {
+                App.setShouldJustNotifyDataSetChanged(true);
+            }
         } else {
             App.setSomethingUpdatedSpecially(true);
         }
