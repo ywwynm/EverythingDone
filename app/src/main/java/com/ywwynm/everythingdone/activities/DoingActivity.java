@@ -38,6 +38,7 @@ import com.ywwynm.everythingdone.fragments.AlertDialogFragment;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
 import com.ywwynm.everythingdone.helpers.RemoteActionHelper;
 import com.ywwynm.everythingdone.managers.ModeManager;
+import com.ywwynm.everythingdone.model.DoingRecord;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.services.DoingService;
 import com.ywwynm.everythingdone.utils.DeviceUtil;
@@ -506,6 +507,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
                 adf.setConfirmListener(new AlertDialogFragment.ConfirmListener() {
                     @Override
                     public void onConfirm() {
+                        DoingService.sStopReason = DoingRecord.STOP_REASON_CANCEL_USER;
                         finishWithStoppingService();
                     }
                 });
@@ -602,6 +604,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
             } else {
                 RemoteActionHelper.finishReminder(mApp, mThing, pair.second);
             }
+            DoingService.sStopReason = DoingRecord.STOP_REASON_FINISH;
             finishWithStoppingService();
         }
 

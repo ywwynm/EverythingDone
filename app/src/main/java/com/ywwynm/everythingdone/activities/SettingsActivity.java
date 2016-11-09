@@ -49,6 +49,7 @@ import com.ywwynm.everythingdone.helpers.AuthenticationHelper;
 import com.ywwynm.everythingdone.helpers.AutoNotifyHelper;
 import com.ywwynm.everythingdone.helpers.BackupHelper;
 import com.ywwynm.everythingdone.helpers.FingerprintHelper;
+import com.ywwynm.everythingdone.model.DoingRecord;
 import com.ywwynm.everythingdone.model.HabitReminder;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.permission.SimplePermissionCallback;
@@ -828,6 +829,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                 if (App.getDoingThingId() != -1) {
                     Toast.makeText(context, R.string.doing_failed_change_language,
                             Toast.LENGTH_LONG).show();
+                    DoingService.sStopReason = DoingRecord.STOP_REASON_CANCEL_OTHER;
                     stopService(new Intent(context, DoingService.class));
                 }
                 App.killMeAndRestart(context, null, 0);
@@ -1194,6 +1196,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                 if (App.getDoingThingId() != -1) {
                     Toast.makeText(context, R.string.doing_failed_restore,
                             Toast.LENGTH_LONG).show();
+                    DoingService.sStopReason = DoingRecord.STOP_REASON_CANCEL_OTHER;
                     stopService(new Intent(context, DoingService.class));
                     App.setDoingThingId(-1L);
                     AppWidgetHelper.updateAllAppWidgets(context);

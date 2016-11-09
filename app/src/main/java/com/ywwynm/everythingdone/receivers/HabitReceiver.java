@@ -19,6 +19,7 @@ import com.ywwynm.everythingdone.database.ThingDAO;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
 import com.ywwynm.everythingdone.helpers.RemoteActionHelper;
 import com.ywwynm.everythingdone.managers.ThingManager;
+import com.ywwynm.everythingdone.model.DoingRecord;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.HabitReminder;
 import com.ywwynm.everythingdone.model.Thing;
@@ -56,6 +57,7 @@ public class HabitReceiver extends BroadcastReceiver {
             Toast.makeText(context, R.string.doing_failed_next_alarm,
                     Toast.LENGTH_LONG).show();
             context.sendBroadcast(new Intent(DoingActivity.BROADCAST_ACTION_JUST_FINISH));
+            DoingService.sStopReason = DoingRecord.STOP_REASON_CANCEL_NEXT_ALARM;
             context.stopService(new Intent(context, DoingService.class));
         }
 

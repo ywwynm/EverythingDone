@@ -15,10 +15,11 @@ public class DoingRecord {
     public static final int STOP_REASON_CANCEL_CARELESS   = 0;
     public static final int STOP_REASON_CANCEL_NEXT_ALARM = 1;
     public static final int STOP_REASON_CANCEL_USER       = 2;
-    public static final int STOP_REASON_FINISH            = 3;
+    public static final int STOP_REASON_CANCEL_OTHER      = 3;
+    public static final int STOP_REASON_FINISH            = 4;
 
     @IntDef({STOP_REASON_CANCEL_CARELESS, STOP_REASON_CANCEL_NEXT_ALARM,
-            STOP_REASON_CANCEL_USER, STOP_REASON_FINISH})
+            STOP_REASON_CANCEL_USER, STOP_REASON_CANCEL_OTHER, STOP_REASON_FINISH})
     @Retention(RetentionPolicy.SOURCE)
     public @interface StopReason {}
 

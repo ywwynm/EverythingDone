@@ -15,6 +15,7 @@ import android.widget.Toast;
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
+import com.ywwynm.everythingdone.database.DoingRecordDAO;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.helpers.RemoteActionHelper;
 import com.ywwynm.everythingdone.model.DoingRecord;
@@ -42,7 +43,7 @@ public class DoingService extends Service {
     @Retention(RetentionPolicy.SOURCE)
     public @interface State {}
 
-    public static @DoingRecord.StopReason int sStopReason;
+    public static @DoingRecord.StopReason int sStopReason = DoingRecord.STOP_REASON_CANCEL_USER;
 
     public static final String KEY_START_TIME     = "start_time";
     public static final String KEY_TIME_IN_MILLIS = "time_in_millis";
@@ -71,12 +72,15 @@ public class DoingService extends Service {
     private Habit mHabit;
 
     private long mTimeInMillis;
+    private long mPredictDoingTime;
     private long mStartTime;
     private long mLeftTime;
+    private long mEndTime;
 
     private int[] mTimeNumbers = { -1, -1, -1, -1, -1, -1 };
 
     private int mAdd5MinTimes = 0;
+    private int mTotalAdd5MinTimes = 0;
 
     private boolean mInStrictMode = false;
     private int mPlayedTimes = 0;
@@ -176,6 +180,8 @@ public class DoingService extends Service {
     private void handleCareless() {
         App.setDoingThingId(-1L);
         RemoteActionHelper.doingOrCancel(DoingService.this, mThing);
+        mEndTime = System.currentTimeMillis();
+        sStopReason = DoingRecord.STOP_REASON_CANCEL_CARELESS;
 
         if (!mCarelessWarned) {
             Toast.makeText(DoingService.this, R.string.doing_failed_careless,
@@ -228,7 +234,9 @@ public class DoingService extends Service {
         }
 
         mTimeInMillis = intent.getLongExtra(KEY_TIME_IN_MILLIS, -1L);
-        mStartTime    = intent.getLongExtra(KEY_START_TIME, -1L);
+        mPredictDoingTime = mTimeInMillis;
+        mStartTime = intent.getLongExtra(KEY_START_TIME, -1L);
+        mEndTime = -1;
 
         if (mTimeInMillis == -1) {
             mLeftTime = -1;
@@ -241,12 +249,15 @@ public class DoingService extends Service {
         }
 
         mAdd5MinTimes = 0;
+        mTotalAdd5MinTimes = 0;
 
         mInStrictMode = false; // TODO: 2016/11/3 read from settings
         mPlayedTimes = 0;
         mStartPlayTime = -1L;
 
         mCarelessWarned = false;
+
+        sStopReason = DoingRecord.STOP_REASON_CANCEL_USER;
 
         return super.onStartCommand(intent, flags, startId);
     }
@@ -259,6 +270,14 @@ public class DoingService extends Service {
         App.setDoingThingId(-1L);
         mHandler.removeMessages(96);
         stopForeground(true);
+
+        if (mEndTime == -1L) {
+            mEndTime = System.currentTimeMillis();
+        }
+        DoingRecord doingRecord = new DoingRecord(-1, mThing.getId(), mThing.getType(),
+                mTotalAdd5MinTimes, mPlayedTimes, mTotalPlayedTime,
+                mPredictDoingTime, mStartTime, mEndTime, sStopReason);
+        DoingRecordDAO.getInstance(this).insert(doingRecord);
 
         RemoteActionHelper.doingOrCancel(this, mThing);
 
@@ -323,6 +342,7 @@ public class DoingService extends Service {
 
     private void add5Min() {
         mAdd5MinTimes++;
+        mTotalAdd5MinTimes++;
     }
 
     private boolean canAdd5Min() {

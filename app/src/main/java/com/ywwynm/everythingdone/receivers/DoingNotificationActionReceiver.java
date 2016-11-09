@@ -9,6 +9,7 @@ import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.activities.DoingActivity;
 import com.ywwynm.everythingdone.helpers.RemoteActionHelper;
+import com.ywwynm.everythingdone.model.DoingRecord;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.services.DoingService;
 
@@ -46,6 +47,9 @@ public class DoingNotificationActionReceiver extends BroadcastReceiver {
                     RemoteActionHelper.finishReminder(context, thing, pair.second);
                 }
             }
+            DoingService.sStopReason = DoingRecord.STOP_REASON_FINISH;
+        } else if (ACTION_USER_CANCEL.equals(action)) {
+            DoingService.sStopReason = DoingRecord.STOP_REASON_CANCEL_USER;
         }
 
         context.sendBroadcast(new Intent(DoingActivity.BROADCAST_ACTION_JUST_FINISH));
