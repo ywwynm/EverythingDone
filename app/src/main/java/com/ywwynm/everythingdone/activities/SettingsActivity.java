@@ -35,6 +35,7 @@ import android.widget.Toast;
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
+import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
 import com.ywwynm.everythingdone.fragments.AlertDialogFragment;
@@ -836,7 +837,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                 PendingIntent pendingIntent = PendingIntent.getBroadcast(context,
                         0, intent, PendingIntent.FLAG_CANCEL_CURRENT);
                 AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-                am.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 600, pendingIntent);
+                am.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 1600, pendingIntent);
             }
         });
         cdf.show(getFragmentManager(), ChooserDialogFragment.TAG);
@@ -1194,6 +1195,8 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                     Toast.makeText(context, R.string.doing_failed_restore,
                             Toast.LENGTH_LONG).show();
                     stopService(new Intent(context, DoingService.class));
+                    App.setDoingThingId(-1L);
+                    AppWidgetHelper.updateAllAppWidgets(context);
                 }
                 App.killMeAndRestart(context, null, 1200);
             }
