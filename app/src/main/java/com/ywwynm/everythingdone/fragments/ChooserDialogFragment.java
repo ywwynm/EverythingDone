@@ -21,6 +21,7 @@ import com.ywwynm.everythingdone.adapters.SingleChoiceAdapter;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -76,6 +77,10 @@ public class ChooserDialogFragment extends BaseDialogFragment {
         mSeparator2 = f(R.id.view_separator_2);
 
         mLlm = new LinearLayoutManager(getActivity());
+
+        if (mItems == null) {
+            mItems = new ArrayList<>(1);
+        }
 
         initUI();
         setEvents();
