@@ -312,7 +312,7 @@
         <activity
             android:name=".appwidgets.list.ThingsListWidgetConfiguration"
             android:excludeFromRecents="true"
-            android:theme="@style/Theme.AppCompat.Light.Dialog">
+            android:theme="@style/EverythingDoneTheme.Dialog">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
             </intent-filter>
@@ -381,6 +381,12 @@
             android:name=".receivers.DoingNotificationActionReceiver"
             android:enabled="true">
         </receiver>
+
+        <activity
+            android:name=".activities.NotableNotificationActivity"
+            android:excludeFromRecents="true"
+            android:theme="@style/EverythingDoneTheme.Dialog">
+        </activity>
 
     </application>
 
