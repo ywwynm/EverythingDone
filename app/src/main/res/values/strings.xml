@@ -563,6 +563,7 @@
         <item>en_</item>
     </string-array>
     <string name="follow_system_settings">Follow System</string>
+    <string name="notable_notification">More notable alarm notification</string>
     <string name="toggle_checklist_thing_card">Toggle checklist item on thing card</string>
     <string name="twice_back">Press Back twice to exit</string>
 

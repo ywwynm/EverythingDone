@@ -35,6 +35,7 @@ public final class Def {
 
         public static final String KEY_START_USING_TIME     = "start_using_time";
         public static final String KEY_DRAWER_HEADER        = "drawer_header";
+        public static final String KEY_NOTABLE_NOTIFICATION = "notable_notification";
         // toggle checklist item on thing card
         public static final String KEY_TOGGLE_CLI_OTC       = "toggle_cli_otc";
         public static final String KEY_TWICE_BACK           = "twice_back";

@@ -91,6 +91,9 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     private LinearLayout mLlLanguage;
     private TextView     mTvLanguage;
 
+    private RelativeLayout mRlNn; // notable notification
+    private CheckBox       mCbNn;
+
     private RelativeLayout mRlToggleCli; // toggle checklist item
     private CheckBox       mCbToggleCli;
     private boolean        mToggleCliOtc;
@@ -364,6 +367,9 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         mLlLanguage = f(R.id.ll_app_language_as_bt);
         mTvLanguage = f(R.id.tv_app_language);
 
+        mRlNn = f(R.id.rl_notable_notification_as_bt);
+        mCbNn = f(R.id.cb_notable_notification);
+
         mRlToggleCli = f(R.id.rl_toggle_checklist_as_bt);
         mCbToggleCli = f(R.id.cb_toggle_checklist);
 
@@ -437,6 +443,9 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         }
 
         mTvLanguage.setText(LocaleUtil.getLanguageDescription(LocaleUtil.getMyLanguageCode()));
+
+        boolean nn = mPreferences.getBoolean(Def.Meta.KEY_NOTABLE_NOTIFICATION, true);
+        mCbNn.setChecked(nn);
 
         mToggleCliOtc = mPreferences.getBoolean(Def.Meta.KEY_TOGGLE_CLI_OTC, false);
         mCbToggleCli.setChecked(mToggleCliOtc);
@@ -577,6 +586,13 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             @Override
             public void onClick(View v) {
                 showChooseLanguageDialog();
+            }
+        });
+
+        mRlNn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                mCbNn.setChecked(!mCbNn.isChecked());
             }
         });
 
@@ -1048,6 +1064,8 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         if (!headerBefore.equals(header)) {
             setResult(Def.Communication.RESULT_UPDATE_DRAWER_HEADER_DONE);
         }
+
+        editor.putBoolean(Def.Meta.KEY_NOTABLE_NOTIFICATION, mCbNn.isChecked());
 
         boolean toggleCliOtc = mCbToggleCli.isChecked();
         editor.putBoolean(Def.Meta.KEY_TOGGLE_CLI_OTC, toggleCliOtc);

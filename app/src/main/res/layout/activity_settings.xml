@@ -111,10 +111,40 @@
                 </LinearLayout>
 
                 <RelativeLayout
-                    android:id="@+id/rl_toggle_checklist_as_bt"
+                    android:id="@+id/rl_notable_notification_as_bt"
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
                     android:layout_marginTop="184dp"
+                    android:paddingLeft="16dp"
+                    android:paddingRight="16dp"
+                    android:background="@drawable/selectable_item_background">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerVertical="true"
+                        android:text="@string/notable_notification"
+                        android:textSize="16sp"
+                        tools:ignore="RelativeOverlap"/>
+
+                    <CheckBox
+                        android:id="@+id/cb_notable_notification"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentEnd="true"
+                        android:layout_alignParentRight="true"
+                        android:layout_centerVertical="true"
+                        android:clickable="false"
+                        android:focusable="false"
+                        android:focusableInTouchMode="false"/>
+
+                </RelativeLayout>
+
+                <RelativeLayout
+                    android:id="@+id/rl_toggle_checklist_as_bt"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginTop="240dp"
                     android:paddingLeft="16dp"
                     android:paddingRight="16dp"
                     android:background="@drawable/selectable_item_background">
@@ -144,7 +174,7 @@
                     android:id="@+id/rl_twice_back_as_bt"
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
-                    android:layout_marginTop="240dp"
+                    android:layout_marginTop="296dp"
                     android:paddingLeft="16dp"
                     android:paddingRight="16dp"
                     android:background="@drawable/selectable_item_background">
