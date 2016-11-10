@@ -3,7 +3,7 @@
     <style name="EverythingDoneTheme.Things" parent="Theme.AppCompat.NoActionBar">
         <item name="colorPrimaryDark">#FFFFFF</item>
         <item name="android:windowBackground">@color/bg_activity_things</item>
-        <item name="android:dialogTheme">@style/Theme.AppCompat.Light.Dialog</item>
+        <item name="android:dialogTheme">@style/EverythingDoneTheme.Dialog</item>
         <item name="swirl_ridgeColor">@color/black_54</item>
         <item name="swirl_errorColor">@color/error</item>
     </style>
@@ -66,7 +66,7 @@
     </style>
 
     <style name="EverythingDoneTheme.Statistic" parent="Theme.AppCompat.NoActionBar">
-        <item name="android:dialogTheme">@style/Theme.AppCompat.Light.Dialog</item>
+        <item name="android:dialogTheme">@style/EverythingDoneTheme.Dialog</item>
         <item name="android:windowBackground">@color/bg_activity_things</item>
     </style>
 
@@ -126,6 +126,10 @@
 
     <style name="SelectableItemBackgroundBorderlessLight">
         <item name="android:background">@drawable/selectable_item_background_light</item>
+    </style>
+
+    <style name="EverythingDoneTheme.Dialog" parent="Theme.AppCompat.Light.Dialog">
+        <item name="windowNoTitle">true</item>
     </style>
 
     <style name="WhiteListStyle" parent="Theme.AppCompat">

@@ -4,7 +4,7 @@
     <style name="EverythingDoneTheme.Things" parent="Theme.AppCompat.NoActionBar">
         <item name="colorPrimaryDark">#FFFFFF</item>
         <item name="android:windowBackground">@color/bg_activity_things</item>
-        <item name="android:dialogTheme">@style/Theme.AppCompat.Light.Dialog</item>
+        <item name="android:dialogTheme">@style/EverythingDoneTheme.Dialog</item>
         <item name="swirl_ridgeColor">@color/black_54</item>
         <item name="swirl_errorColor">@color/error</item>
         <item name="android:statusBarColor">@color/bg_statusbar_lollipop</item>
@@ -25,7 +25,7 @@
     </style>
 
     <style name="EverythingDoneTheme.Statistic" parent="Theme.AppCompat.NoActionBar">
-        <item name="android:dialogTheme">@style/Theme.AppCompat.Light.Dialog</item>
+        <item name="android:dialogTheme">@style/EverythingDoneTheme.Dialog</item>
         <item name="android:windowBackground">@color/bg_activity_things</item>
         <item name="android:statusBarColor">@color/bg_statusbar_lollipop</item>
     </style>
