@@ -5,6 +5,7 @@ import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.util.Pair;
@@ -14,6 +15,7 @@ import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.DoingActivity;
+import com.ywwynm.everythingdone.activities.NotableNotificationActivity;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
@@ -24,6 +26,7 @@ import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.HabitReminder;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.services.DoingService;
+import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil;
 
 import java.util.List;
@@ -49,6 +52,10 @@ public class HabitReceiver extends BroadcastReceiver {
 
         final long habitId = habitReminder.getHabitId();
         SystemNotificationUtil.cancelNotification(habitId, Thing.HABIT, context);
+        // remove existed notification for same Habit
+        context.sendBroadcast(
+                new Intent(NotableNotificationActivity.BROADCAST_ACTION_JUST_FINISH)
+                        .putExtra(Def.Communication.KEY_ID, habitId));
 
         final boolean isDoingLastTime = App.getDoingThingId() == habitId;
         if (isDoingLastTime) {
@@ -117,38 +124,7 @@ public class HabitReceiver extends BroadcastReceiver {
                     context, thing, position, thing.getType(),
                     Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME);
 
-            NotificationCompat.Builder builder = SystemNotificationUtil
-                    .newGeneralNotificationBuilder(context, TAG, habitId, position, thing, false);
-
-            Intent finishIntent = new Intent(context, HabitNotificationActionReceiver.class);
-            finishIntent.setAction(Def.Communication.NOTIFICATION_ACTION_FINISH);
-            finishIntent.putExtra(Def.Communication.KEY_ID, hrId);
-            finishIntent.putExtra(Def.Communication.KEY_POSITION, position);
-            finishIntent.putExtra(Def.Communication.KEY_TIME, habitReminder.getNotifyTime());
-            builder.addAction(R.drawable.act_finish, context.getString(R.string.act_finish_this_time_habit),
-                    PendingIntent.getBroadcast(context,
-                            (int) hrId, finishIntent, PendingIntent.FLAG_UPDATE_CURRENT));
-
-//            Intent getItIntent = new Intent(context, HabitNotificationActionReceiver.class);
-//            getItIntent.setAction(Def.Communication.NOTIFICATION_ACTION_GET_IT);
-//            getItIntent.putExtra(Def.Communication.KEY_ID, hrId);
-//            getItIntent.putExtra(Def.Communication.KEY_POSITION, position);
-//            builder.addAction(R.drawable.act_get_it,
-//                    context.getString(R.string.act_get_it),
-//                    PendingIntent.getBroadcast(context,
-//                            (int) hrId, getItIntent, PendingIntent.FLAG_UPDATE_CURRENT));
-
-            Intent startIntent = new Intent(context, HabitNotificationActionReceiver.class);
-            startIntent.setAction(Def.Communication.NOTIFICATION_ACTION_START_DOING);
-            startIntent.putExtra(Def.Communication.KEY_ID, hrId);
-            startIntent.putExtra(Def.Communication.KEY_POSITION, position);
-            builder.addAction(R.drawable.act_start_doing,
-                    context.getString(R.string.act_start_doing),
-                    PendingIntent.getBroadcast(context,
-                            (int) hrId, startIntent, PendingIntent.FLAG_UPDATE_CURRENT));
-
-            NotificationManagerCompat nm = NotificationManagerCompat.from(context);
-            nm.notify((int) hrId, builder.build());
+            notifyUser(context, habitId, hrId, position, thing, habitReminder);
         }
     }
 
@@ -179,5 +155,62 @@ public class HabitReceiver extends BroadcastReceiver {
             // At the same time, we can see previous finishes as finishes after notifications.
             habitDAO.updateHabitRemindedTimes(habitId, recordTimes + 1);
         }
+    }
+
+    private void notifyUser(
+            Context context, long habitId, long hrId, int position,
+            Thing thing, HabitReminder habitReminder) {
+        SharedPreferences sp = context.getSharedPreferences(
+                Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE);
+        boolean moreNotable = sp.getBoolean(Def.Meta.KEY_NOTABLE_NOTIFICATION, true);
+        notifyUserBySystemNotification(context, habitId, hrId, position,
+                thing, habitReminder, moreNotable);
+        if (moreNotable) {
+            Intent intent = NotableNotificationActivity.getOpenIntentForHabit(
+                    context, hrId, position, habitReminder.getNotifyTime());
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startActivity(intent);
+        }
+    }
+
+    private void notifyUserBySystemNotification(
+            Context context, long habitId, long hrId, int position,
+            Thing thing, HabitReminder habitReminder, boolean moreNotable) {
+        NotificationCompat.Builder builder = SystemNotificationUtil
+                .newGeneralNotificationBuilder(context, TAG, habitId, position, thing, false);
+        if (moreNotable && DeviceUtil.hasLollipopApi()) {
+            // if we use a dialog to notify this alarm, we don't need to show heads-up notification
+            builder.setPriority(NotificationCompat.PRIORITY_DEFAULT);
+        }
+
+        Intent finishIntent = new Intent(context, HabitNotificationActionReceiver.class);
+        finishIntent.setAction(Def.Communication.NOTIFICATION_ACTION_FINISH);
+        finishIntent.putExtra(Def.Communication.KEY_ID, hrId);
+        finishIntent.putExtra(Def.Communication.KEY_POSITION, position);
+        finishIntent.putExtra(Def.Communication.KEY_TIME, habitReminder.getNotifyTime());
+        builder.addAction(R.drawable.act_finish, context.getString(R.string.act_finish_this_time_habit),
+                PendingIntent.getBroadcast(context,
+                        (int) hrId, finishIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+
+//            Intent getItIntent = new Intent(context, HabitNotificationActionReceiver.class);
+//            getItIntent.setAction(Def.Communication.NOTIFICATION_ACTION_GET_IT);
+//            getItIntent.putExtra(Def.Communication.KEY_ID, hrId);
+//            getItIntent.putExtra(Def.Communication.KEY_POSITION, position);
+//            builder.addAction(R.drawable.act_get_it,
+//                    context.getString(R.string.act_get_it),
+//                    PendingIntent.getBroadcast(context,
+//                            (int) hrId, getItIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+
+        Intent startIntent = new Intent(context, HabitNotificationActionReceiver.class);
+        startIntent.setAction(Def.Communication.NOTIFICATION_ACTION_START_DOING);
+        startIntent.putExtra(Def.Communication.KEY_ID, hrId);
+        startIntent.putExtra(Def.Communication.KEY_POSITION, position);
+        builder.addAction(R.drawable.act_start_doing,
+                context.getString(R.string.act_start_doing),
+                PendingIntent.getBroadcast(context,
+                        (int) hrId, startIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+
+        NotificationManagerCompat nm = NotificationManagerCompat.from(context);
+        nm.notify((int) hrId, builder.build());
     }
 }

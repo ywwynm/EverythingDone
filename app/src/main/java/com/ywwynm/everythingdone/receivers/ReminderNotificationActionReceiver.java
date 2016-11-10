@@ -13,6 +13,7 @@ import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.AuthenticationActivity;
 import com.ywwynm.everythingdone.activities.DelayReminderActivity;
+import com.ywwynm.everythingdone.activities.NotableNotificationActivity;
 import com.ywwynm.everythingdone.activities.StartDoingActivity;
 import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.helpers.RemoteActionHelper;
@@ -38,6 +39,9 @@ public class ReminderNotificationActionReceiver extends BroadcastReceiver {
         long id = intent.getLongExtra(Def.Communication.KEY_ID, 0);
         NotificationManagerCompat nmc = NotificationManagerCompat.from(context);
         nmc.cancel((int) id);
+        context.sendBroadcast(
+                new Intent(NotableNotificationActivity.BROADCAST_ACTION_JUST_FINISH)
+                        .putExtra(Def.Communication.KEY_ID, id));
 
         boolean matched = false;
         for (String legalAction : LEGAL_ACTIONS) {

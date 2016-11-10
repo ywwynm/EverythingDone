@@ -17,6 +17,7 @@ import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.helpers.RemoteActionHelper;
 import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.Thing;
+import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil;
 
 import java.util.List;
@@ -84,18 +85,22 @@ public class ReminderReceiver extends BroadcastReceiver {
         SharedPreferences sp = context.getSharedPreferences(
                 Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE);
         boolean moreNotable = sp.getBoolean(Def.Meta.KEY_NOTABLE_NOTIFICATION, true);
+        notifyUserBySystemNotification(context, id, position, thing, moreNotable);
         if (moreNotable) {
             Intent intent = NotableNotificationActivity.getOpenIntentForReminder(context, id, position);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             context.startActivity(intent);
-        } else {
-            notifyUserBySystemNotification(context, id, position, thing);
         }
     }
 
-    private void notifyUserBySystemNotification(Context context, long id, int position, Thing thing) {
+    private void notifyUserBySystemNotification(
+            Context context, long id, int position, Thing thing, boolean moreNotable) {
         NotificationCompat.Builder builder = SystemNotificationUtil
                 .newGeneralNotificationBuilder(context, TAG, id, position, thing, false);
+        if (moreNotable && DeviceUtil.hasLollipopApi()) {
+            // if we use a dialog to notify this alarm, we don't need to show heads-up notification
+            builder.setPriority(NotificationCompat.PRIORITY_DEFAULT);
+        }
 
         Intent finishIntent = new Intent(context, ReminderNotificationActionReceiver.class);
         finishIntent.setAction(Def.Communication.NOTIFICATION_ACTION_FINISH);
