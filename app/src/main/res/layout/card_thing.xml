@@ -98,9 +98,12 @@
             tools:ignore="UseCompoundDrawables">
 
             <ImageView
+                android:id="@+id/iv_thing_audio_attachment_count"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_vertical"
+                android:scaleType="centerCrop"
+                android:adjustViewBounds="true"
                 android:contentDescription="@string/cd_audio_attachment"
                 android:src="@drawable/card_audio_attachment"/>
 

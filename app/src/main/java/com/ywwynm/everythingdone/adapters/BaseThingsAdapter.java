@@ -4,6 +4,7 @@ import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.PorterDuff;
+import android.os.Build;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.util.LongSparseArray;
 import android.support.v7.widget.CardView;
@@ -109,23 +110,9 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
         updateCardForAudioAttachment(holder, thing);
         updateCardForImageAttachment(holder, thing);
 
-        if (holder.flImageAttachment.getVisibility() == View.VISIBLE
-                && holder.tvTitle.getVisibility() == View.GONE
-                && holder.tvContent.getVisibility() == View.GONE
-                && holder.rvChecklist.getVisibility() == View.GONE
-                && holder.llAudioAttachment.getVisibility() == View.GONE) {
-            if (holder.rlReminder.getVisibility() == View.VISIBLE) {
-                holder.vReminderSeparator.setVisibility(View.GONE);
-            } else if (holder.rlHabit.getVisibility() == View.VISIBLE) {
-                holder.vHabitSeparator1.setVisibility(View.GONE);
-            }
-        } else {
-            if (holder.rlReminder.getVisibility() == View.VISIBLE) {
-                holder.vReminderSeparator.setVisibility(View.VISIBLE);
-            } else if (holder.rlHabit.getVisibility() == View.VISIBLE) {
-                holder.vHabitSeparator1.setVisibility(View.VISIBLE);
-            }
-        }
+        updateCardSeparatorsIfNeeded(holder);
+
+        enlargeAudioLayoutIfNeeded(holder);
 
         updateCardForDoing(holder, thing);
     }
@@ -378,6 +365,68 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
         }
     }
 
+    private void updateCardSeparatorsIfNeeded(BaseThingViewHolder holder) {
+        if (holder.flImageAttachment.getVisibility() == View.VISIBLE
+                && holder.tvTitle.getVisibility() == View.GONE
+                && holder.tvContent.getVisibility() == View.GONE
+                && holder.rvChecklist.getVisibility() == View.GONE
+                && holder.llAudioAttachment.getVisibility() == View.GONE) {
+            if (holder.rlReminder.getVisibility() == View.VISIBLE) {
+                holder.vReminderSeparator.setVisibility(View.GONE);
+            } else if (holder.rlHabit.getVisibility() == View.VISIBLE) {
+                holder.vHabitSeparator1.setVisibility(View.GONE);
+            }
+        } else {
+            if (holder.rlReminder.getVisibility() == View.VISIBLE) {
+                holder.vReminderSeparator.setVisibility(View.VISIBLE);
+            } else if (holder.rlHabit.getVisibility() == View.VISIBLE) {
+                holder.vHabitSeparator1.setVisibility(View.VISIBLE);
+            }
+        }
+    }
+
+    private void enlargeAudioLayoutIfNeeded(BaseThingViewHolder holder) {
+        if (holder.llAudioAttachment.getVisibility() != View.VISIBLE) {
+            return;
+        }
+
+        LinearLayout.LayoutParams llp1 = (LinearLayout.LayoutParams)
+                holder.ivAudioCount.getLayoutParams();
+        LinearLayout.LayoutParams llp2 = (LinearLayout.LayoutParams)
+                holder.tvAudioCount.getLayoutParams();
+        int dp1  = (int) (mDensity * 1);
+        int dp8  = (int) (mDensity * 8);
+        int dp12 = (int) (mDensity * 12);
+        int dp16 = (int) (mDensity * 16);
+        if (holder.flImageAttachment.getVisibility() == View.GONE
+                && holder.tvTitle.getVisibility() == View.GONE
+                && holder.tvContent.getVisibility() == View.GONE
+                && holder.rvChecklist.getVisibility() == View.GONE) {
+            llp1.height = (int) (mDensity * 16);
+            llp1.topMargin = dp1;
+            holder.tvAudioCount.setTextSize(18);
+
+            llp2.setMargins(dp12, llp2.topMargin, llp2.rightMargin, llp2.bottomMargin);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+                llp2.setMarginStart(dp12);
+            }
+
+            holder.llAudioAttachment.setPadding(dp16, dp16, dp16, 0);
+        } else {
+            llp1.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+            llp1.topMargin = 0;
+            holder.tvAudioCount.setTextSize(11);
+
+            llp2.setMargins(dp8, llp2.topMargin, llp2.rightMargin, llp2.bottomMargin);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+                llp2.setMarginStart(dp8);
+            }
+
+            holder.llAudioAttachment.setPadding(dp16, dp16 / 4 * 3, dp16, 0);
+        }
+        holder.ivAudioCount.requestLayout();
+    }
+
     private void updateCardForDoing(final BaseThingViewHolder holder, Thing thing) {
         if (App.getDoingThingId() == thing.getId()) {
             holder.flDoing.setVisibility(View.VISIBLE);
@@ -442,38 +491,39 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
         public final InterceptTouchCardView cv;
         public final View vPaddingBottom;
 
-        public final ImageView ivSticky;
+        public final ImageView   ivSticky;
         public final FrameLayout flDoing;
 
         public final FrameLayout flImageAttachment;
-        public final ImageView ivImageAttachment;
-        public final TextView tvImageCount;
+        public final ImageView   ivImageAttachment;
+        public final TextView    tvImageCount;
         public final ProgressBar pbLoading;
-        public final View vImageCover;
+        public final View        vImageCover;
 
-        public final TextView tvTitle;
+        public final TextView  tvTitle;
         public final ImageView ivPrivateThing;
 
-        public final TextView tvContent;
+        public final TextView     tvContent;
         public final RecyclerView rvChecklist;
 
         public final LinearLayout llAudioAttachment;
-        public final TextView tvAudioCount;
+        public final ImageView    ivAudioCount;
+        public final TextView     tvAudioCount;
 
         public final RelativeLayout rlReminder;
-        public final View vReminderSeparator;
-        public final ImageView ivReminder;
-        public final TextView tvReminderTime;
+        public final View           vReminderSeparator;
+        public final ImageView      ivReminder;
+        public final TextView       tvReminderTime;
 
-        public final RelativeLayout rlHabit;
-        public final View vHabitSeparator1;
-        public final TextView tvHabitSummary;
-        public final TextView tvHabitNextReminder;
-        public final View vHabitSeparator2;
-        public final LinearLayout llHabitRecord;
-        public final TextView tvHabitLastFive;
+        public final RelativeLayout       rlHabit;
+        public final View                 vHabitSeparator1;
+        public final TextView             tvHabitSummary;
+        public final TextView             tvHabitNextReminder;
+        public final View                 vHabitSeparator2;
+        public final LinearLayout         llHabitRecord;
+        public final TextView             tvHabitLastFive;
         public final HabitRecordPresenter habitRecordPresenter;
-        public final TextView tvHabitFinishedThisT;
+        public final TextView             tvHabitFinishedThisT;
 
         public BaseThingViewHolder(View item) {
             super(item);
@@ -497,6 +547,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
             rvChecklist  = f(R.id.rv_check_list);
 
             llAudioAttachment = f(R.id.ll_thing_audio_attachment);
+            ivAudioCount      = f(R.id.iv_thing_audio_attachment_count);
             tvAudioCount      = f(R.id.tv_thing_audio_attachment_count);
 
             rlReminder         = f(R.id.rl_thing_reminder);
