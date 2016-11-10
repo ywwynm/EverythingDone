@@ -183,6 +183,15 @@ public class HabitReceiver extends BroadcastReceiver {
             builder.setPriority(NotificationCompat.PRIORITY_DEFAULT);
         }
 
+        Intent startIntent = new Intent(context, HabitNotificationActionReceiver.class);
+        startIntent.setAction(Def.Communication.NOTIFICATION_ACTION_START_DOING);
+        startIntent.putExtra(Def.Communication.KEY_ID, hrId);
+        startIntent.putExtra(Def.Communication.KEY_POSITION, position);
+        builder.addAction(R.drawable.act_start_doing,
+                context.getString(R.string.act_start_doing),
+                PendingIntent.getBroadcast(context,
+                        (int) hrId, startIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+
         Intent finishIntent = new Intent(context, HabitNotificationActionReceiver.class);
         finishIntent.setAction(Def.Communication.NOTIFICATION_ACTION_FINISH);
         finishIntent.putExtra(Def.Communication.KEY_ID, hrId);
@@ -200,15 +209,6 @@ public class HabitReceiver extends BroadcastReceiver {
 //                    context.getString(R.string.act_get_it),
 //                    PendingIntent.getBroadcast(context,
 //                            (int) hrId, getItIntent, PendingIntent.FLAG_UPDATE_CURRENT));
-
-        Intent startIntent = new Intent(context, HabitNotificationActionReceiver.class);
-        startIntent.setAction(Def.Communication.NOTIFICATION_ACTION_START_DOING);
-        startIntent.putExtra(Def.Communication.KEY_ID, hrId);
-        startIntent.putExtra(Def.Communication.KEY_POSITION, position);
-        builder.addAction(R.drawable.act_start_doing,
-                context.getString(R.string.act_start_doing),
-                PendingIntent.getBroadcast(context,
-                        (int) hrId, startIntent, PendingIntent.FLAG_UPDATE_CURRENT));
 
         NotificationManagerCompat nm = NotificationManagerCompat.from(context);
         nm.notify((int) hrId, builder.build());
