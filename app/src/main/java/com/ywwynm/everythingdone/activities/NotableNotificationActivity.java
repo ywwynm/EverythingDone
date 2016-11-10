@@ -31,7 +31,9 @@ import com.ywwynm.everythingdone.model.HabitReminder;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.receivers.HabitNotificationActionReceiver;
 import com.ywwynm.everythingdone.receivers.ReminderNotificationActionReceiver;
+import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
+import com.ywwynm.everythingdone.utils.EdgeEffectUtil;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -377,5 +379,19 @@ public class NotableNotificationActivity extends EverythingDoneBaseActivity {
                         }
                     }
                 });
+
+        if (!DeviceUtil.hasLollipopApi()) {
+            mRvThing.addOnScrollListener(new RecyclerView.OnScrollListener() {
+
+                final int edgeColor = ContextCompat.getColor(
+                        getApplicationContext(), R.color.control_highlight_light);
+
+                @Override
+                public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
+                    super.onScrollStateChanged(recyclerView, newState);
+                    EdgeEffectUtil.forRecyclerView(mRvThing, edgeColor);
+                }
+            });
+        }
     }
 }
