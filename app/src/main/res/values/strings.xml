@@ -544,9 +544,9 @@
     <string name="settings_group_advanced">Advanced</string>
 
     <!--group ui-->
-    <string name="change_drawer_header">Drawer Header Image</string>
+    <string name="settings_change_drawer_header">Drawer Header Image</string>
     <string name="default_drawer_header">Default</string>
-    <string name="app_language">Language</string>
+    <string name="settings_app_language">Language</string>
     <string name="change_app_language">Change App Language</string>
     <string-array name="languages" tools:ignore="MissingTranslation">
         <item>@string/follow_system_settings</item>
@@ -563,10 +563,10 @@
         <item>en_</item>
     </string-array>
     <string name="follow_system_settings">Follow System</string>
-    <string name="noticeable_notification">More noticeable alarm notification</string>
-    <string name="toggle_checklist_thing_card">Toggle checklist item on thing card</string>
-    <string name="enable_auto_link">Automatically link phone number, web page and more when checking a thing</string>
-    <string name="twice_back">Press Back twice to exit</string>
+    <string name="settings_noticeable_notification">More noticeable alarm notification</string>
+    <string name="settings_toggle_checklist_thing_card">Toggle checklist item on thing card</string>
+    <string name="settings_auto_link">Automatically link phone number, web page and more when checking a thing</string>
+    <string name="settings_twice_back">Press Back twice to exit</string>
 
     <!--group ringtone-->
     <string name="chooser_ringtone">Select Ringtone</string>

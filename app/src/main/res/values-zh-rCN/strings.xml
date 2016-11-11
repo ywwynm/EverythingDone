@@ -537,9 +537,9 @@
     <string name="settings_group_advanced">高级</string>
 
     <!--group ui-->
-    <string name="change_drawer_header">抽屉头部图片</string>
+    <string name="settings_change_drawer_header">抽屉头部图片</string>
     <string name="default_drawer_header">默认图片</string>
-    <string name="app_language">语言</string>
+    <string name="settings_app_language">语言</string>
     <string name="change_app_language">更改应用语言</string>
     <string-array name="languages" tools:ignore="MissingTranslation">
         <item>@string/follow_system_settings</item>
@@ -556,10 +556,10 @@
         <item>en_</item>
     </string-array>
     <string name="follow_system_settings">跟随系统设置</string>
-    <string name="noticeable_notification">更突出的记事提醒通知</string>
-    <string name="toggle_checklist_thing_card">在记事卡片中调整清单项的勾选状态</string>
-    <string name="enable_auto_link">查看记事时，自动为电话号码、网页地址等添加链接</string>
-    <string name="twice_back">按两次返回键退出应用</string>
+    <string name="settings_noticeable_notification">更突出的记事提醒通知</string>
+    <string name="settings_toggle_checklist_thing_card">在记事卡片中调整清单项的勾选状态</string>
+    <string name="settings_auto_link">查看记事时，自动为电话号码、网页地址等添加链接</string>
+    <string name="settings_twice_back">按两次返回键退出应用</string>
 
     <!--group ringtone-->
     <string name="chooser_ringtone">选择铃声</string>

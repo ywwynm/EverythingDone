@@ -537,9 +537,9 @@
     <string name="settings_group_advanced">高級</string>
 
     <!--group ui-->
-    <string name="change_drawer_header">抽屜頭部圖片</string>
+    <string name="settings_change_drawer_header">抽屜頭部圖片</string>
     <string name="default_drawer_header">預設圖片</string>
-    <string name="app_language">語言</string>
+    <string name="settings_app_language">語言</string>
     <string name="change_app_language">更改程式語言</string>
     <string-array name="languages" tools:ignore="MissingTranslation">
         <item>@string/follow_system_settings</item>
@@ -556,10 +556,10 @@
         <item>en_</item>
     </string-array>
     <string name="follow_system_settings">跟隨系統設定</string>
-    <string name="noticeable_notification">更突出的記事提醒通知</string>
-    <string name="toggle_checklist_thing_card">在記事卡片中調整清單項的勾選狀態</string>
-    <string name="enable_auto_link">查看記事時，自動為電話號碼、網頁地址等添加鏈接</string>
-    <string name="twice_back">按兩次返回鍵退出程式</string>
+    <string name="settings_noticeable_notification">更突出的記事提醒通知</string>
+    <string name="settings_toggle_checklist_thing_card">在記事卡片中調整清單項的勾選狀態</string>
+    <string name="settings_auto_link">查看記事時，自動為電話號碼、網頁地址等添加鏈接</string>
+    <string name="settings_twice_back">按兩次返回鍵退出程式</string>
 
     <!--group ringtone-->
     <string name="chooser_ringtone">選擇鈴聲</string>

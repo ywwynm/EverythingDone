@@ -72,7 +72,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/change_drawer_header"
+                        android:text="@string/settings_change_drawer_header"
                         android:textSize="16sp"/>
 
                     <TextView
@@ -98,7 +98,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/app_language"
+                        android:text="@string/settings_app_language"
                         android:textSize="16sp"/>
 
                     <TextView
@@ -123,7 +123,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_centerVertical="true"
-                        android:text="@string/noticeable_notification"
+                        android:text="@string/settings_noticeable_notification"
                         android:textSize="16sp"
                         tools:ignore="RelativeOverlap"/>
 
@@ -152,7 +152,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/toggle_checklist_thing_card"
+                        android:text="@string/settings_toggle_checklist_thing_card"
                         android:textSize="16sp"
                         tools:ignore="RelativeOverlap"
                         android:layout_centerVertical="true"/>
@@ -198,7 +198,7 @@
                         android:layout_alignParentLeft="true"
                         android:layout_toStartOf="@id/cb_auto_link"
                         android:layout_toLeftOf="@id/cb_auto_link"
-                        android:text="@string/enable_auto_link"
+                        android:text="@string/settings_auto_link"
                         android:textSize="16sp"
                         tools:ignore="RelativeOverlap"/>
 
@@ -216,7 +216,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/twice_back"
+                        android:text="@string/settings_twice_back"
                         android:textSize="16sp"
                         tools:ignore="RelativeOverlap"
                         android:layout_centerVertical="true"/>
