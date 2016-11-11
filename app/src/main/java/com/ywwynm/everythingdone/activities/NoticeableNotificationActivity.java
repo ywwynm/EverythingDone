@@ -4,8 +4,6 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.res.ColorStateList;
-import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
 import android.support.design.widget.FloatingActionButton;
@@ -19,7 +17,6 @@ import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.view.WindowManager;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
@@ -81,6 +78,8 @@ public class NoticeableNotificationActivity extends EverythingDoneBaseActivity {
 
     private RecyclerView mRvThing;
 
+    private FloatingActionButton[] mFabs;
+
     private BroadcastReceiver mReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -128,7 +127,7 @@ public class NoticeableNotificationActivity extends EverythingDoneBaseActivity {
 
     @Override
     protected void initMembers() {
-        mDialogWidth = (int) (DisplayUtil.getScreenDensity(this) * 280);
+        mDialogWidth = (int) (DisplayUtil.getScreenDensity(this) * 300);
 
         Intent intent = getIntent();
         mIsHabit = intent.getBooleanExtra(KEY_IS_HABIT, false);
@@ -243,6 +242,11 @@ public class NoticeableNotificationActivity extends EverythingDoneBaseActivity {
     @Override
     protected void findViews() {
         mRvThing = f(R.id.rv_thing_noticeable_notification);
+
+        mFabs = new FloatingActionButton[3];
+        mFabs[0] = f(R.id.fab_1_noticeable_notification);
+        mFabs[1] = f(R.id.fab_2_noticeable_notification);
+        mFabs[2] = f(R.id.fab_3_noticeable_notification);
     }
 
     @Override
@@ -315,47 +319,23 @@ public class NoticeableNotificationActivity extends EverythingDoneBaseActivity {
     }
 
     private void initActionsUI() {
-        float density = DisplayUtil.getScreenDensity(this);
-        int dp40 = (int) (density * 40);
-        int dp8 = (int) (density * 8);
-        int dp2 = (int) (density * 2);
-        int accentColor = ContextCompat.getColor(this, R.color.app_accent);
-        int black_26p = ContextCompat.getColor(this, R.color.black_26p);
         int black_54p = ContextCompat.getColor(this, R.color.black_54p);
         final int size = mActions.size();
-        LinearLayout ll = f(R.id.ll_actions_noticeable_notification);
         for (int i = 0; i < size; i++) {
-//            TextView tvAsBt = new TextView(this);
-//            tvAsBt.setPaddingRelative(p12, p8, p12, p8);
-//            tvAsBt.setText(mActionsTexts.get(i));
-//            tvAsBt.setTextColor(textColor);
-//            tvAsBt.setOnClickListener(mActions.get(i));
-//            tvAsBt.setBackgroundResource(R.drawable.selectable_item_background_light);
-//            ll.addView(tvAsBt);
-
-            FloatingActionButton fab = new FloatingActionButton(this);
-            if (i == 0) {
-                fab.setBackgroundTintList(ColorStateList.valueOf(accentColor));
-            } else {
-                fab.setBackgroundTintList(ColorStateList.valueOf(Color.WHITE));
-            }
-            fab.setRippleColor(black_26p);
-
-            fab.setCompatElevation(dp2);
+            mFabs[i].setVisibility(View.VISIBLE);
 
             Drawable drawable = ContextCompat.getDrawable(this, mActionsIcons.get(i));
             drawable = drawable.mutate();
             drawable.setColorFilter(black_54p, PorterDuff.Mode.SRC_ATOP);
-            fab.setScaleType(ImageView.ScaleType.CENTER);
-            fab.setImageDrawable(drawable);
+            mFabs[i].setScaleType(ImageView.ScaleType.CENTER);
+            mFabs[i].setImageDrawable(drawable);
 
-            fab.setOnClickListener(mActions.get(i));
+            mFabs[i].setOnClickListener(mActions.get(i));
+            mFabs[i].setContentDescription(getString(mActionsTexts.get(i)));
+        }
 
-            fab.setContentDescription(getString(mActionsTexts.get(i)));
-
-            LinearLayout.LayoutParams llp = new LinearLayout.LayoutParams(dp40, dp40);
-            llp.setMargins(dp8, dp8, dp8, dp8);
-            ll.addView(fab, llp);
+        for (int i = size; i < 3; i++) {
+            mFabs[i].setVisibility(View.GONE);
         }
     }
 

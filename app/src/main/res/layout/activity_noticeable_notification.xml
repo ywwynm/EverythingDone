@@ -18,12 +18,53 @@
         <!--android:layout_height="1dp"-->
         <!--android:background="#42FFFFFF"/>-->
 
-    <LinearLayout
-        android:id="@+id/ll_actions_noticeable_notification"
+    <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="60dp"
+        android:layout_height="56dp"
         android:layout_margin="8dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"/>
+        android:orientation="horizontal"
+        xmlns:app="http://schemas.android.com/apk/res-auto">
+
+        <android.support.design.widget.FloatingActionButton
+            android:id="@+id/fab_1_noticeable_notification"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_margin="8dp"
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentRight="true"
+            android:layout_centerVertical="true"
+            app:backgroundTint="@color/app_accent"
+            app:rippleColor="@color/control_highlight_light"
+            app:elevation="2dp"
+            app:pressedTranslationZ="2dp"
+            app:borderWidth="0dp"/>
+
+        <android.support.design.widget.FloatingActionButton
+            android:id="@+id/fab_2_noticeable_notification"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_margin="8dp"
+            android:layout_centerVertical="true"
+            app:backgroundTint="@android:color/white"
+            app:rippleColor="@color/black_54p"
+            app:elevation="2dp"
+            app:pressedTranslationZ="2dp"
+            app:borderWidth="0dp"/>
+
+        <android.support.design.widget.FloatingActionButton
+            android:id="@+id/fab_3_noticeable_notification"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_margin="8dp"
+            android:layout_toEndOf="@id/fab_2_noticeable_notification"
+            android:layout_toRightOf="@id/fab_2_noticeable_notification"
+            android:layout_centerVertical="true"
+            app:backgroundTint="@android:color/white"
+            app:rippleColor="@color/black_54p"
+            app:elevation="2dp"
+            app:pressedTranslationZ="2dp"
+            app:borderWidth="0dp"/>
+
+    </RelativeLayout>
 
 </LinearLayout>
