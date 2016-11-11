@@ -12,7 +12,7 @@ import android.support.v4.util.Pair;
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
-import com.ywwynm.everythingdone.activities.NotableNotificationActivity;
+import com.ywwynm.everythingdone.activities.NoticeableNotificationActivity;
 import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.helpers.RemoteActionHelper;
 import com.ywwynm.everythingdone.model.Reminder;
@@ -84,20 +84,20 @@ public class ReminderReceiver extends BroadcastReceiver {
     private void notifyUser(Context context, long id, int position, Thing thing) {
         SharedPreferences sp = context.getSharedPreferences(
                 Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE);
-        boolean moreNotable = sp.getBoolean(Def.Meta.KEY_NOTABLE_NOTIFICATION, true);
-        notifyUserBySystemNotification(context, id, position, thing, moreNotable);
-        if (moreNotable) {
-            Intent intent = NotableNotificationActivity.getOpenIntentForReminder(context, id, position);
+        boolean moreNoticeable = sp.getBoolean(Def.Meta.KEY_NOTICEABLE_NOTIFICATION, true);
+        notifyUserBySystemNotification(context, id, position, thing, moreNoticeable);
+        if (moreNoticeable) {
+            Intent intent = NoticeableNotificationActivity.getOpenIntentForReminder(context, id, position);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             context.startActivity(intent);
         }
     }
 
     private void notifyUserBySystemNotification(
-            Context context, long id, int position, Thing thing, boolean moreNotable) {
+            Context context, long id, int position, Thing thing, boolean moreNoticeable) {
         NotificationCompat.Builder builder = SystemNotificationUtil
                 .newGeneralNotificationBuilder(context, TAG, id, position, thing, false);
-        if (moreNotable && DeviceUtil.hasLollipopApi()) {
+        if (moreNoticeable && DeviceUtil.hasLollipopApi()) {
             // if we use a dialog to notify this alarm, we don't need to show heads-up notification
             builder.setPriority(NotificationCompat.PRIORITY_DEFAULT);
         }

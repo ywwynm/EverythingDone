@@ -15,7 +15,7 @@ import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.DoingActivity;
-import com.ywwynm.everythingdone.activities.NotableNotificationActivity;
+import com.ywwynm.everythingdone.activities.NoticeableNotificationActivity;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
@@ -54,7 +54,7 @@ public class HabitReceiver extends BroadcastReceiver {
         SystemNotificationUtil.cancelNotification(habitId, Thing.HABIT, context);
         // remove existed notification for same Habit
         context.sendBroadcast(
-                new Intent(NotableNotificationActivity.BROADCAST_ACTION_JUST_FINISH)
+                new Intent(NoticeableNotificationActivity.BROADCAST_ACTION_JUST_FINISH)
                         .putExtra(Def.Communication.KEY_ID, habitId));
 
         final boolean isDoingLastTime = App.getDoingThingId() == habitId;
@@ -162,11 +162,11 @@ public class HabitReceiver extends BroadcastReceiver {
             Thing thing, HabitReminder habitReminder) {
         SharedPreferences sp = context.getSharedPreferences(
                 Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE);
-        boolean moreNotable = sp.getBoolean(Def.Meta.KEY_NOTABLE_NOTIFICATION, true);
+        boolean moreNoticeable = sp.getBoolean(Def.Meta.KEY_NOTICEABLE_NOTIFICATION, true);
         notifyUserBySystemNotification(context, habitId, hrId, position,
-                thing, habitReminder, moreNotable);
-        if (moreNotable) {
-            Intent intent = NotableNotificationActivity.getOpenIntentForHabit(
+                thing, habitReminder, moreNoticeable);
+        if (moreNoticeable) {
+            Intent intent = NoticeableNotificationActivity.getOpenIntentForHabit(
                     context, hrId, position, habitReminder.getNotifyTime());
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             context.startActivity(intent);
@@ -175,10 +175,10 @@ public class HabitReceiver extends BroadcastReceiver {
 
     private void notifyUserBySystemNotification(
             Context context, long habitId, long hrId, int position,
-            Thing thing, HabitReminder habitReminder, boolean moreNotable) {
+            Thing thing, HabitReminder habitReminder, boolean moreNoticeable) {
         NotificationCompat.Builder builder = SystemNotificationUtil
                 .newGeneralNotificationBuilder(context, TAG, habitId, position, thing, false);
-        if (moreNotable && DeviceUtil.hasLollipopApi()) {
+        if (moreNoticeable && DeviceUtil.hasLollipopApi()) {
             // if we use a dialog to notify this alarm, we don't need to show heads-up notification
             builder.setPriority(NotificationCompat.PRIORITY_DEFAULT);
         }

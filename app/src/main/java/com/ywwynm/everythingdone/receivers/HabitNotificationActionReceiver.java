@@ -11,7 +11,7 @@ import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.AuthenticationActivity;
-import com.ywwynm.everythingdone.activities.NotableNotificationActivity;
+import com.ywwynm.everythingdone.activities.NoticeableNotificationActivity;
 import com.ywwynm.everythingdone.activities.StartDoingActivity;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.helpers.RemoteActionHelper;
@@ -47,7 +47,7 @@ public class HabitNotificationActionReceiver extends BroadcastReceiver {
         position = pair.second;
 
         context.sendBroadcast(
-                new Intent(NotableNotificationActivity.BROADCAST_ACTION_JUST_FINISH)
+                new Intent(NoticeableNotificationActivity.BROADCAST_ACTION_JUST_FINISH)
                         .putExtra(Def.Communication.KEY_ID, thing.getId()));
 
         if (action.equals(Def.Communication.NOTIFICATION_ACTION_FINISH)) {

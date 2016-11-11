@@ -41,18 +41,16 @@ import java.util.List;
 
 /**
  * Created by qiizhang on 2016/11/10.
- * An Activity to provide more noticeable(this word is longer than notable so I decided not to use
- * it as part of class name. Another reason is that I didn't find most appropriate word to translate
- * "<b>突出的</b>提醒" due to my poor English...) notification for Reminders/Habits
+ * An Activity to provide more noticeable notification for Reminders/Habits
  */
-public class NotableNotificationActivity extends EverythingDoneBaseActivity {
+public class NoticeableNotificationActivity extends EverythingDoneBaseActivity {
 
-    public static final String TAG = "NotableNotificationActivity";
+    public static final String TAG = "NoticeableNotificationActivity";
 
     public static final String BROADCAST_ACTION_JUST_FINISH = TAG + ".action.just_finish";
 
     public static Intent getOpenIntentForReminder(Context context, long thingId, int position) {
-        return new Intent(context, NotableNotificationActivity.class)
+        return new Intent(context, NoticeableNotificationActivity.class)
                 .putExtra(Def.Communication.KEY_ID, thingId)
                 .putExtra(Def.Communication.KEY_POSITION, position);
     }
@@ -60,7 +58,7 @@ public class NotableNotificationActivity extends EverythingDoneBaseActivity {
     private static final String KEY_IS_HABIT = TAG + ".key.is_habit";
 
     public static Intent getOpenIntentForHabit(Context context, long hrId, int position, long hrTime) {
-        return new Intent(context, NotableNotificationActivity.class)
+        return new Intent(context, NoticeableNotificationActivity.class)
                 .putExtra(Def.Communication.KEY_ID, hrId)
                 .putExtra(Def.Communication.KEY_POSITION, position)
                 .putExtra(Def.Communication.KEY_TIME, hrTime)
@@ -125,7 +123,7 @@ public class NotableNotificationActivity extends EverythingDoneBaseActivity {
 
     @Override
     protected int getLayoutResource() {
-        return R.layout.activity_notable_notification;
+        return R.layout.activity_noticeable_notification;
     }
 
     @Override
@@ -206,7 +204,7 @@ public class NotableNotificationActivity extends EverythingDoneBaseActivity {
         mActions.add(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent intent = new Intent(NotableNotificationActivity.this,
+                Intent intent = new Intent(NoticeableNotificationActivity.this,
                         HabitNotificationActionReceiver.class);
                 intent.setAction(Def.Communication.NOTIFICATION_ACTION_START_DOING);
                 intent.putExtra(Def.Communication.KEY_ID, mHrId);
@@ -221,7 +219,7 @@ public class NotableNotificationActivity extends EverythingDoneBaseActivity {
         mActions.add(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent intent = new Intent(NotableNotificationActivity.this,
+                Intent intent = new Intent(NoticeableNotificationActivity.this,
                         HabitNotificationActionReceiver.class);
                 intent.setAction(Def.Communication.NOTIFICATION_ACTION_FINISH);
                 intent.putExtra(Def.Communication.KEY_ID, mHrId);
@@ -244,7 +242,7 @@ public class NotableNotificationActivity extends EverythingDoneBaseActivity {
 
     @Override
     protected void findViews() {
-        mRvThing = f(R.id.rv_thing_notable_notification);
+        mRvThing = f(R.id.rv_thing_noticeable_notification);
     }
 
     @Override
@@ -253,7 +251,7 @@ public class NotableNotificationActivity extends EverythingDoneBaseActivity {
         wlp.width = mDialogWidth;
         getWindow().setAttributes(wlp);
 
-        f(R.id.ll_root_notable_notification).setBackgroundColor(mThing.getColor());
+        f(R.id.ll_root_noticeable_notification).setBackgroundColor(mThing.getColor());
 
         initRvThing();
         initActionsUI();
@@ -304,7 +302,7 @@ public class NotableNotificationActivity extends EverythingDoneBaseActivity {
                     @Override
                     public void onClick(View view) {
                         final Intent intent = DetailActivity.getOpenIntentForUpdate(
-                                NotableNotificationActivity.this, NotableNotificationActivity.TAG,
+                                NoticeableNotificationActivity.this, NoticeableNotificationActivity.TAG,
                                 mThing.getId(), mPosition);
                         startActivity(intent);
                         finish();
@@ -325,7 +323,7 @@ public class NotableNotificationActivity extends EverythingDoneBaseActivity {
         int black_26p = ContextCompat.getColor(this, R.color.black_26p);
         int black_54p = ContextCompat.getColor(this, R.color.black_54p);
         final int size = mActions.size();
-        LinearLayout ll = f(R.id.ll_actions_notable_notification);
+        LinearLayout ll = f(R.id.ll_actions_noticeable_notification);
         for (int i = 0; i < size; i++) {
 //            TextView tvAsBt = new TextView(this);
 //            tvAsBt.setPaddingRelative(p12, p8, p12, p8);

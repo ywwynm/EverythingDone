@@ -2591,7 +2591,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             || mSenderName.equals(CreateWidget.TAG)
             || mSenderName.equals(AppWidgetHelper.TAG)
             || mSenderName.equals(ShortcutActivity.TAG)
-            || mSenderName.equals(NotableNotificationActivity.TAG);
+            || mSenderName.equals(NoticeableNotificationActivity.TAG);
     }
 
     private void sendBroadCastToUpdateMainUI(Intent intent, int resultCode) {

@@ -383,7 +383,7 @@
         </receiver>
 
         <activity
-            android:name=".activities.NotableNotificationActivity"
+            android:name=".activities.NoticeableNotificationActivity"
             android:excludeFromRecents="true"
             android:theme="@style/EverythingDoneTheme.Dialog">
         </activity>

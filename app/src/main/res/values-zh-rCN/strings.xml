@@ -556,7 +556,7 @@
         <item>en_</item>
     </string-array>
     <string name="follow_system_settings">跟随系统设置</string>
-    <string name="notable_notification">更突出的记事提醒通知</string>
+    <string name="noticeable_notification">更突出的记事提醒通知</string>
     <string name="toggle_checklist_thing_card">在记事卡片中调整清单项的勾选状态</string>
     <string name="twice_back">按两次返回键退出应用</string>
 

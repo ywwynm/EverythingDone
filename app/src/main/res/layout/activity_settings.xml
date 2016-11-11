@@ -111,7 +111,7 @@
                 </LinearLayout>
 
                 <RelativeLayout
-                    android:id="@+id/rl_notable_notification_as_bt"
+                    android:id="@+id/rl_noticeable_notification_as_bt"
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
                     android:layout_marginTop="184dp"
@@ -123,12 +123,12 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_centerVertical="true"
-                        android:text="@string/notable_notification"
+                        android:text="@string/noticeable_notification"
                         android:textSize="16sp"
                         tools:ignore="RelativeOverlap"/>
 
                     <CheckBox
-                        android:id="@+id/cb_notable_notification"
+                        android:id="@+id/cb_noticeable_notification"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_alignParentEnd="true"

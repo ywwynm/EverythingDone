@@ -91,7 +91,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     private LinearLayout mLlLanguage;
     private TextView     mTvLanguage;
 
-    private RelativeLayout mRlNn; // notable notification
+    private RelativeLayout mRlNn; // noticeable notification
     private CheckBox       mCbNn;
 
     private RelativeLayout mRlToggleCli; // toggle checklist item
@@ -367,8 +367,8 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         mLlLanguage = f(R.id.ll_app_language_as_bt);
         mTvLanguage = f(R.id.tv_app_language);
 
-        mRlNn = f(R.id.rl_notable_notification_as_bt);
-        mCbNn = f(R.id.cb_notable_notification);
+        mRlNn = f(R.id.rl_noticeable_notification_as_bt);
+        mCbNn = f(R.id.cb_noticeable_notification);
 
         mRlToggleCli = f(R.id.rl_toggle_checklist_as_bt);
         mCbToggleCli = f(R.id.cb_toggle_checklist);
@@ -444,7 +444,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
         mTvLanguage.setText(LocaleUtil.getLanguageDescription(LocaleUtil.getMyLanguageCode()));
 
-        boolean nn = mPreferences.getBoolean(Def.Meta.KEY_NOTABLE_NOTIFICATION, true);
+        boolean nn = mPreferences.getBoolean(Def.Meta.KEY_NOTICEABLE_NOTIFICATION, true);
         mCbNn.setChecked(nn);
 
         mToggleCliOtc = mPreferences.getBoolean(Def.Meta.KEY_TOGGLE_CLI_OTC, false);
@@ -1065,7 +1065,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             setResult(Def.Communication.RESULT_UPDATE_DRAWER_HEADER_DONE);
         }
 
-        editor.putBoolean(Def.Meta.KEY_NOTABLE_NOTIFICATION, mCbNn.isChecked());
+        editor.putBoolean(Def.Meta.KEY_NOTICEABLE_NOTIFICATION, mCbNn.isChecked());
 
         boolean toggleCliOtc = mCbToggleCli.isChecked();
         editor.putBoolean(Def.Meta.KEY_TOGGLE_CLI_OTC, toggleCliOtc);
