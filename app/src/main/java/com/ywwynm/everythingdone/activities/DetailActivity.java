@@ -41,6 +41,7 @@ import android.text.Spannable;
 import android.text.TextWatcher;
 import android.text.style.ClickableSpan;
 import android.text.style.URLSpan;
+import android.text.util.Linkify;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -219,132 +220,19 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     private boolean mRemoveDetailActivityInstance = false;
     private boolean mMinusCreateActivitiesCount   = false;
 
-    private HashMap<View, Integer> mTouchMovedCountMap = new HashMap<>();
-    private HashMap<View, Boolean> mOnLongClickedMap   = new HashMap<>();
+    private HashMap<View, Integer> mTouchMovedCountMap;
+    private HashMap<View, Boolean> mOnLongClickedMap;
+
+    private boolean mShouldAutoLink;
 
     /**
      * This {@link android.view.View.OnTouchListener} will listen to click events that should
      * be handled by link/phoneNum/email/maps in {@link mEtContent} and other {@link EditText}s
      * so that we can handle them with different intents and not lose ability to edit them.
      */
-    View.OnTouchListener mSpannableTouchListener = new View.OnTouchListener() {
-
-        @Override
-        public boolean onTouch(View v, MotionEvent event) {
-            int action = event.getAction();
-            Boolean onLongClicked = mOnLongClickedMap.get(v);
-            if (onLongClicked != null && onLongClicked) {
-                return false;
-            }
-
-            Log.d(TAG, "action: " + action);
-            if (action == MotionEvent.ACTION_UP) {
-                Integer touchMovedCount = mTouchMovedCountMap.get(v);
-                if (touchMovedCount != null && touchMovedCount >= 3) {
-                    Log.d(TAG, "touchMoved: " + touchMovedCount);
-                    mTouchMovedCountMap.put(v, 0);
-                    return false;
-                }
-
-                final EditText et = (EditText) v;
-                final Spannable sContent = Spannable.Factory.getInstance()
-                        .newSpannable(et.getText());
-
-                int x = (int) event.getX();
-                int y = (int) event.getY();
-
-                x -= et.getTotalPaddingLeft();
-                y -= et.getTotalPaddingTop();
-                x += et.getScrollX();
-                y += et.getScrollY();
-
-                Layout layout = et.getLayout();
-                int line = layout.getLineForVertical(y);
-                int offset = layout.getOffsetForHorizontal(line, x);
-
-                // place cursor of EditText to correct position.
-                et.requestFocus();
-                if (offset > 0) {
-                    if (x > layout.getLineMax(line)) {
-                        et.setSelection(offset);
-                    } else et.setSelection(offset - 1);
-                }
-
-                ClickableSpan[] link = sContent.getSpans(offset, offset, ClickableSpan.class);
-                if (link.length != 0) {
-                    final URLSpan urlSpan = (URLSpan) link[0];
-
-                    if (!mEditable) {
-                        urlSpan.onClick(et);
-                        return true;
-                    }
-
-                    String url = urlSpan.getURL();
-                    final TwoOptionsDialogFragment df = new TwoOptionsDialogFragment();
-                    df.setViewToFocusAfterDismiss(et);
-
-                    View.OnClickListener startListener = new View.OnClickListener() {
-                        @Override
-                        public void onClick(View v) {
-                            df.dismiss();
-                            KeyboardUtil.hideKeyboard(getWindow());
-                            try {
-                                urlSpan.onClick(et);
-                            } catch (ActivityNotFoundException e) {
-                                mNormalSnackbar.setMessage(R.string.error_activity_not_found);
-                                mFlRoot.postDelayed(mShowNormalSnackbar,
-                                        KeyboardUtil.HIDE_DELAY);
-                            }
-                        }
-                    };
-                    View.OnClickListener endListener = new View.OnClickListener() {
-                        @Override
-                        public void onClick(View v1) {
-                            df.setShouldShowKeyboardAfterDismiss(true);
-                            df.dismiss();
-                        }
-                    };
-
-                    if (url.startsWith("tel")) {
-                        df.setStartAction(R.drawable.act_dial, R.string.act_dial,
-                                startListener);
-                    } else if (url.startsWith("mailto")) {
-                        df.setStartAction(R.drawable.act_send_email,
-                                R.string.act_send_email, startListener);
-                    } else if (url.startsWith("http") || url.startsWith("https")) {
-                        df.setStartAction(R.drawable.act_open_in_browser,
-                                R.string.act_open_in_browser, startListener);
-                    } else if (url.startsWith("map")) {
-                        df.setStartAction(R.drawable.act_open_in_map,
-                                R.string.act_open_in_map, startListener);
-                    }
-                    df.setEndAction(R.drawable.act_edit, R.string.act_edit, endListener);
-                    df.show(getFragmentManager(), TwoOptionsDialogFragment.TAG);
-                    return true;
-                }
-            } else if (action == MotionEvent.ACTION_MOVE) {
-                Integer touchMovedCount = mTouchMovedCountMap.get(v);
-                mTouchMovedCountMap.put(v, touchMovedCount == null ? 1 : touchMovedCount + 1);
-            }
-            return false;
-        }
-    };
-
-    private View.OnClickListener mEtContentClickListener = new View.OnClickListener() {
-        @Override
-        public void onClick(View v) {
-            mTouchMovedCountMap.put(v, 0);
-            mOnLongClickedMap.put(v, false);
-        }
-    };
-    private View.OnLongClickListener mEtContentLongClickListener = new View.OnLongClickListener() {
-        @Override
-        public boolean onLongClick(View v) {
-            mTouchMovedCountMap.put(v, 0);
-            mOnLongClickedMap.put(v, true);
-            return false;
-        }
-    };
+    View.OnTouchListener mSpannableTouchListener;
+    private View.OnClickListener mEtContentClickListener;
+    private View.OnLongClickListener mEtContentLongClickListener;
 
     private ThingActionsList mActionList;
     public boolean shouldAddToActionList = false;
@@ -483,6 +371,8 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 updateUndoRedoActionButtonState();
             }
         });
+
+        initAutoLink();
     }
 
     private void setupThingFromIntent() {
@@ -536,6 +426,132 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         Pair<Thing, Integer> pair = App.getThingAndPosition(mApp, oriId, -1);
         mThing = pair.first;
         mPosition = pair.second;
+    }
+
+    private void initAutoLink() {
+        SharedPreferences sp = getSharedPreferences(Def.Meta.PREFERENCES_NAME, MODE_PRIVATE);
+        mShouldAutoLink = sp.getBoolean(Def.Meta.KEY_AUTO_LINK, true);
+        if (mShouldAutoLink) {
+            mTouchMovedCountMap = new HashMap<>();
+            mOnLongClickedMap   = new HashMap<>();
+            mSpannableTouchListener = new View.OnTouchListener() {
+
+                @Override
+                public boolean onTouch(View v, MotionEvent event) {
+                    int action = event.getAction();
+                    Boolean onLongClicked = mOnLongClickedMap.get(v);
+                    if (onLongClicked != null && onLongClicked) {
+                        return false;
+                    }
+
+                    Log.d(TAG, "action: " + action);
+                    if (action == MotionEvent.ACTION_UP) {
+                        Integer touchMovedCount = mTouchMovedCountMap.get(v);
+                        if (touchMovedCount != null && touchMovedCount >= 3) {
+                            Log.d(TAG, "touchMoved: " + touchMovedCount);
+                            mTouchMovedCountMap.put(v, 0);
+                            return false;
+                        }
+
+                        final EditText et = (EditText) v;
+                        final Spannable sContent = Spannable.Factory.getInstance()
+                                .newSpannable(et.getText());
+
+                        int x = (int) event.getX();
+                        int y = (int) event.getY();
+
+                        x -= et.getTotalPaddingLeft();
+                        y -= et.getTotalPaddingTop();
+                        x += et.getScrollX();
+                        y += et.getScrollY();
+
+                        Layout layout = et.getLayout();
+                        int line = layout.getLineForVertical(y);
+                        int offset = layout.getOffsetForHorizontal(line, x);
+
+                        // place cursor of EditText to correct position.
+                        et.requestFocus();
+                        if (offset > 0) {
+                            if (x > layout.getLineMax(line)) {
+                                et.setSelection(offset);
+                            } else et.setSelection(offset - 1);
+                        }
+
+                        ClickableSpan[] link = sContent.getSpans(offset, offset, ClickableSpan.class);
+                        if (link.length != 0) {
+                            final URLSpan urlSpan = (URLSpan) link[0];
+
+                            if (!mEditable) {
+                                urlSpan.onClick(et);
+                                return true;
+                            }
+
+                            String url = urlSpan.getURL();
+                            final TwoOptionsDialogFragment df = new TwoOptionsDialogFragment();
+                            df.setViewToFocusAfterDismiss(et);
+
+                            View.OnClickListener startListener = new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    df.dismiss();
+                                    KeyboardUtil.hideKeyboard(getWindow());
+                                    try {
+                                        urlSpan.onClick(et);
+                                    } catch (ActivityNotFoundException e) {
+                                        mNormalSnackbar.setMessage(R.string.error_activity_not_found);
+                                        mFlRoot.postDelayed(mShowNormalSnackbar,
+                                                KeyboardUtil.HIDE_DELAY);
+                                    }
+                                }
+                            };
+                            View.OnClickListener endListener = new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v1) {
+                                    df.setShouldShowKeyboardAfterDismiss(true);
+                                    df.dismiss();
+                                }
+                            };
+
+                            if (url.startsWith("tel")) {
+                                df.setStartAction(R.drawable.act_dial, R.string.act_dial,
+                                        startListener);
+                            } else if (url.startsWith("mailto")) {
+                                df.setStartAction(R.drawable.act_send_email,
+                                        R.string.act_send_email, startListener);
+                            } else if (url.startsWith("http") || url.startsWith("https")) {
+                                df.setStartAction(R.drawable.act_open_in_browser,
+                                        R.string.act_open_in_browser, startListener);
+                            } else if (url.startsWith("map")) {
+                                df.setStartAction(R.drawable.act_open_in_map,
+                                        R.string.act_open_in_map, startListener);
+                            }
+                            df.setEndAction(R.drawable.act_edit, R.string.act_edit, endListener);
+                            df.show(getFragmentManager(), TwoOptionsDialogFragment.TAG);
+                            return true;
+                        }
+                    } else if (action == MotionEvent.ACTION_MOVE) {
+                        Integer touchMovedCount = mTouchMovedCountMap.get(v);
+                        mTouchMovedCountMap.put(v, touchMovedCount == null ? 1 : touchMovedCount + 1);
+                    }
+                    return false;
+                }
+            };
+            mEtContentClickListener = new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    mTouchMovedCountMap.put(v, 0);
+                    mOnLongClickedMap.put(v, false);
+                }
+            };
+            mEtContentLongClickListener = new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View v) {
+                    mTouchMovedCountMap.put(v, 0);
+                    mOnLongClickedMap.put(v, true);
+                    return false;
+                }
+            };
+        }
     }
 
     @Override
@@ -632,6 +648,12 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             setAsPrivateThingUiAndAddAction();
         }
 
+        if (mShouldAutoLink) {
+            mEtContent.setAutoLinkMask(Linkify.ALL);
+        } else {
+            mEtContent.setAutoLinkMask(0);
+        }
+
         String content = mThing.getContent();
         if (mType == CREATE) {
             mEtContent.requestFocus();
@@ -662,12 +684,15 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 } else {
                     mCheckListAdapter = new CheckListAdapter(
                             this, CheckListAdapter.EDITTEXT_EDITABLE, items);
-                    mCheckListAdapter.setEtTouchListener(mSpannableTouchListener);
-                    mCheckListAdapter.setEtClickListener(mEtContentClickListener);
-                    mCheckListAdapter.setEtLongClickListener(mEtContentLongClickListener);
+                    if (mShouldAutoLink) {
+                        mCheckListAdapter.setEtTouchListener(mSpannableTouchListener);
+                        mCheckListAdapter.setEtClickListener(mEtContentClickListener);
+                        mCheckListAdapter.setEtLongClickListener(mEtContentLongClickListener);
+                    }
                     mCheckListAdapter.setItemsChangeCallback(new CheckListItemsChangeCallback());
                     mCheckListAdapter.setActionCallback(new CheckListActionCallback());
                 }
+                mCheckListAdapter.setShouldAutoLink(mShouldAutoLink);
 
                 setMoveChecklistEvent();
 
@@ -878,9 +903,11 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             }
         }
 
-        mEtContent.setOnClickListener(mEtContentClickListener);
-        mEtContent.setOnLongClickListener(mEtContentLongClickListener);
-        mEtContent.setOnTouchListener(mSpannableTouchListener);
+        if (mShouldAutoLink) {
+            mEtContent.setOnTouchListener(mSpannableTouchListener);
+            mEtContent.setOnClickListener(mEtContentClickListener);
+            mEtContent.setOnLongClickListener(mEtContentLongClickListener);
+        }
 
         if (mEditable) {
             setEditTextWatchers();
@@ -1207,15 +1234,18 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             if (mCheckListAdapter == null) {
                 mCheckListAdapter = new CheckListAdapter(
                         this, CheckListAdapter.EDITTEXT_EDITABLE, items);
-                mCheckListAdapter.setEtTouchListener(mSpannableTouchListener);
-                mCheckListAdapter.setEtClickListener(mEtContentClickListener);
-                mCheckListAdapter.setEtLongClickListener(mEtContentLongClickListener);
+                if (mShouldAutoLink) {
+                    mCheckListAdapter.setEtTouchListener(mSpannableTouchListener);
+                    mCheckListAdapter.setEtClickListener(mEtContentClickListener);
+                    mCheckListAdapter.setEtLongClickListener(mEtContentLongClickListener);
+                }
                 mLlmCheckList = new LinearLayoutManager(this);
                 mCheckListAdapter.setItemsChangeCallback(new CheckListItemsChangeCallback());
                 mCheckListAdapter.setActionCallback(new CheckListActionCallback());
             } else {
                 mCheckListAdapter.setItems(items);
             }
+            mCheckListAdapter.setShouldAutoLink(mShouldAutoLink);
             mRvCheckList.setAdapter(mCheckListAdapter);
             mRvCheckList.setLayoutManager(mLlmCheckList);
 

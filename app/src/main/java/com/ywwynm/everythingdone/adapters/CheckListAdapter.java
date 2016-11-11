@@ -7,6 +7,7 @@ import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.RecyclerView;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.text.util.Linkify;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -76,6 +77,8 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
 
     private List<String> mItems;
 
+    private boolean mShouldAutoLink;
+
     public CheckListAdapter(Context context, int type, List<String> items) {
         mContext = context;
         mInflater = LayoutInflater.from(context);
@@ -133,6 +136,10 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
 
     public void setItemsChangeCallback(ItemsChangeCallback itemsChangeCallback) {
         mItemsChangeCallback = itemsChangeCallback;
+    }
+
+    public void setShouldAutoLink(boolean shouldAutoLink) {
+        mShouldAutoLink = shouldAutoLink;
     }
 
     private void removeItemsForTextView() {
@@ -348,6 +355,12 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
                 setupEtListeners();
             } else {
                 et.setKeyListener(null);
+            }
+
+            if (mShouldAutoLink) {
+                et.setAutoLinkMask(Linkify.ALL);
+            } else {
+                et.setAutoLinkMask(0);
             }
         }
 

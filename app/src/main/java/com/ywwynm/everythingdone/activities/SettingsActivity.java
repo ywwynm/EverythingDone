@@ -98,6 +98,9 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     private CheckBox       mCbToggleCli;
     private boolean        mToggleCliOtc;
 
+    private RelativeLayout mRlAutoLink;
+    private CheckBox       mCbAutoLink;
+
     private RelativeLayout mRlTwiceBackAsBt;
     private CheckBox       mCbTwiceBack;
 
@@ -373,6 +376,9 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         mRlToggleCli = f(R.id.rl_toggle_checklist_as_bt);
         mCbToggleCli = f(R.id.cb_toggle_checklist);
 
+        mRlAutoLink = f(R.id.rl_auto_link_as_bt);
+        mCbAutoLink = f(R.id.cb_auto_link);
+
         mRlTwiceBackAsBt = f(R.id.rl_twice_back_as_bt);
         mCbTwiceBack     = f(R.id.cb_twice_back);
 
@@ -449,6 +455,9 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
         mToggleCliOtc = mPreferences.getBoolean(Def.Meta.KEY_TOGGLE_CLI_OTC, false);
         mCbToggleCli.setChecked(mToggleCliOtc);
+
+        boolean autoLink = mPreferences.getBoolean(Def.Meta.KEY_AUTO_LINK, true);
+        mCbAutoLink.setChecked(autoLink);
 
         boolean twiceBack = mPreferences.getBoolean(Def.Meta.KEY_TWICE_BACK, false);
         mCbTwiceBack.setChecked(twiceBack);
@@ -600,6 +609,13 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             @Override
             public void onClick(View v) {
                 mCbToggleCli.setChecked(!mCbToggleCli.isChecked());
+            }
+        });
+
+        mRlAutoLink.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                mCbAutoLink.setChecked(!mCbAutoLink.isChecked());
             }
         });
 
@@ -1073,6 +1089,8 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             // set or unset Checklist items listeners for ThingsAdapter in ThingsActivity
             App.setShouldJustNotifyDataSetChanged(true);
         }
+
+        editor.putBoolean(Def.Meta.KEY_AUTO_LINK, mCbAutoLink.isChecked());
 
         editor.putBoolean(Def.Meta.KEY_TWICE_BACK, mCbTwiceBack.isChecked());
 

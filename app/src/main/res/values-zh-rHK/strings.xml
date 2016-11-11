@@ -558,6 +558,7 @@
     <string name="follow_system_settings">跟隨系統設置</string>
     <string name="noticeable_notification">更突出的記事提醒通知</string>
     <string name="toggle_checklist_thing_card">在記事卡片中調整清單項的勾選狀態</string>
+    <string name="enable_auto_link">查看記事時，自動為電話號碼、網頁地址等添加鏈接</string>
     <string name="twice_back">按兩次返回鍵退出應用</string>
 
     <!--group ringtone-->
