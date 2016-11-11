@@ -20,7 +20,6 @@ import com.ywwynm.everythingdone.managers.ModeManager;
 import com.ywwynm.everythingdone.managers.ThingManager;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.utils.DeviceUtil;
-import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil;
 
 import java.util.List;
@@ -65,21 +64,6 @@ public class ThingsAdapter extends BaseThingsAdapter {
     @Override
     protected int getCurrentMode() {
         return mApp.getModeManager().getCurrentMode();
-    }
-
-    @Override
-    protected boolean shouldShowPrivateContent() {
-        return false;
-    }
-
-    @Override
-    protected int getChecklistMaxItemCount() {
-        return 8;
-    }
-
-    @Override
-    protected int getCardWidth() {
-        return DisplayUtil.getThingCardWidth(mApp);
     }
 
     @Override

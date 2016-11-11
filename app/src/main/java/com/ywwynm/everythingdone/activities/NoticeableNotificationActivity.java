@@ -270,21 +270,6 @@ public class NoticeableNotificationActivity extends EverythingDoneBaseActivity {
             }
 
             @Override
-            protected boolean shouldShowPrivateContent() {
-                return false;
-            }
-
-            @Override
-            protected int getChecklistMaxItemCount() {
-                return -1;
-            }
-
-            @Override
-            protected int getCardWidth() {
-                return mDialogWidth;
-            }
-
-            @Override
             protected List<Thing> getThings() {
                 return singleThing;
             }
@@ -314,6 +299,9 @@ public class NoticeableNotificationActivity extends EverythingDoneBaseActivity {
                 });
             }
         };
+        adapter.setCardWidth(mDialogWidth);
+        adapter.setStyle(BaseThingsAdapter.STYLE_BLACK);
+        adapter.setChecklistMaxItemCount(-1);
         mRvThing.setLayoutManager(new LinearLayoutManager(this));
         mRvThing.setAdapter(adapter);
     }

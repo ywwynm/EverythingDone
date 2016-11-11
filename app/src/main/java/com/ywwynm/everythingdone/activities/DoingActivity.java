@@ -342,21 +342,6 @@ public class DoingActivity extends EverythingDoneBaseActivity {
             }
 
             @Override
-            protected boolean shouldShowPrivateContent() {
-                return true;
-            }
-
-            @Override
-            protected int getChecklistMaxItemCount() {
-                return -1;
-            }
-
-            @Override
-            protected int getCardWidth() {
-                return mCardWidth;
-            }
-
-            @Override
             protected List<Thing> getThings() {
                 return singleThing;
             }
@@ -393,6 +378,9 @@ public class DoingActivity extends EverythingDoneBaseActivity {
                 });
             }
         };
+        adapter.setCardWidth(mCardWidth);
+        adapter.setShouldShowPrivateContent(true);
+        adapter.setChecklistMaxItemCount(-1);
         mRecyclerView.setLayoutManager(new SlowScrollLinearLayoutManager(this));
         mRecyclerView.setAdapter(adapter);
     }

@@ -5,6 +5,7 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.PorterDuff;
 import android.os.Build;
+import android.support.annotation.IntDef;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.util.LongSparseArray;
 import android.support.v7.widget.CardView;
@@ -41,6 +42,8 @@ import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.views.HabitRecordPresenter;
 import com.ywwynm.everythingdone.views.InterceptTouchCardView;
 
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.util.List;
 
 /**
@@ -51,28 +54,59 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
 
     public static final String TAG = "BaseThingsAdapter";
 
+    public static final int STYLE_WHITE = 0;
+    public static final int STYLE_BLACK = 1;
+
+    @IntDef({STYLE_WHITE, STYLE_BLACK})
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface Style {}
+
+    protected LayoutInflater mInflater;
+    protected float mDensity;
+
     private Context mContext;
+
     private LongSparseArray<CheckListAdapter> mCheckListAdapters;
 
-    protected float          mDensity;
-    protected LayoutInflater mInflater;
-    protected ReminderDAO    mReminderDAO;
-    protected HabitDAO       mHabitDAO;
+    private ReminderDAO mReminderDAO;
+    private HabitDAO    mHabitDAO;
+
+    private int mCardWidth;
+    protected @Style int mStyle = STYLE_WHITE;
+    private boolean mShouldShowPrivateContent = false;
+    private int mChecklistMaxItemCount = 8;
 
     protected abstract int getCurrentMode();
-    protected abstract boolean shouldShowPrivateContent();
-    protected abstract int getChecklistMaxItemCount();
-    protected abstract int getCardWidth();
     protected abstract List<Thing> getThings();
 
     public BaseThingsAdapter(Context context) {
-        mContext           = context;
+        mInflater = LayoutInflater.from(context);
+        mDensity = DisplayUtil.getScreenDensity(context);
+
+        mContext = context;
+
         mCheckListAdapters = new LongSparseArray<>();
 
-        mDensity     = DisplayUtil.getScreenDensity(context);
-        mInflater    = LayoutInflater.from(context);
         mReminderDAO = ReminderDAO.getInstance(context);
         mHabitDAO    = HabitDAO.getInstance(context);
+
+        mCardWidth = DisplayUtil.getThingCardWidth(context);
+    }
+
+    public void setCardWidth(int cardWidth) {
+        mCardWidth = cardWidth;
+    }
+
+    public void setStyle(int style) {
+        mStyle = style;
+    }
+
+    public void setShouldShowPrivateContent(boolean shouldShowPrivateContent) {
+        mShouldShowPrivateContent = shouldShowPrivateContent;
+    }
+
+    public void setChecklistMaxItemCount(int checklistMaxItemCount) {
+        mChecklistMaxItemCount = checklistMaxItemCount;
     }
 
     @Override
@@ -91,7 +125,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
         updateCardForSticky(holder, thing);
         updateCardForTitle(holder, thing);
 
-        if (thing.isPrivate() && !shouldShowPrivateContent()) {
+        if (thing.isPrivate() && !mShouldShowPrivateContent) {
             holder.ivPrivateThing.setVisibility(View.VISIBLE);
             holder.flImageAttachment.setVisibility(View.GONE);
             holder.tvContent.setVisibility(View.GONE);
@@ -174,7 +208,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
                 } else {
                     adapter.setItems(items);
                 }
-                adapter.setMaxItemCount(getChecklistMaxItemCount());
+                adapter.setMaxItemCount(mChecklistMaxItemCount);
                 onChecklistAdapterInitialized(holder, adapter, thing);
                 holder.rvChecklist.setAdapter(adapter);
                 holder.rvChecklist.setLayoutManager(new LinearLayoutManager(mContext));
@@ -278,7 +312,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
         if (firstImageTypePathName != null) {
             holder.flImageAttachment.setVisibility(View.VISIBLE);
 
-            int imageW = getCardWidth();
+            int imageW = mCardWidth;
             int imageH = imageW * 3 / 4;
 
             // without this, the first card with an image won't display well on lollipop device

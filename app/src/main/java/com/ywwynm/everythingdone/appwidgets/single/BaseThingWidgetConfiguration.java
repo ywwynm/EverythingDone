@@ -246,21 +246,6 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
             }
 
             @Override
-            protected boolean shouldShowPrivateContent() {
-                return false;
-            }
-
-            @Override
-            protected int getChecklistMaxItemCount() {
-                return 8;
-            }
-
-            @Override
-            protected int getCardWidth() {
-                return DisplayUtil.getThingCardWidth(getApplicationContext());
-            }
-
-            @Override
             protected List<Thing> getThings() {
                 return singleThing;
             }
@@ -384,21 +369,6 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
         @Override
         protected int getCurrentMode() {
             return ModeManager.NORMAL;
-        }
-
-        @Override
-        protected boolean shouldShowPrivateContent() {
-            return false;
-        }
-
-        @Override
-        protected int getChecklistMaxItemCount() {
-            return 8;
-        }
-
-        @Override
-        protected int getCardWidth() {
-            return DisplayUtil.getThingCardWidth(getApplicationContext());
         }
 
         @Override
