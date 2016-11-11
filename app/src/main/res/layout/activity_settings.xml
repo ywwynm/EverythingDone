@@ -198,6 +198,8 @@
                         android:layout_alignParentLeft="true"
                         android:layout_toStartOf="@id/cb_auto_link"
                         android:layout_toLeftOf="@id/cb_auto_link"
+                        android:layout_marginEnd="8dp"
+                        android:layout_marginRight="8dp"
                         android:text="@string/settings_auto_link"
                         android:textSize="16sp"
                         tools:ignore="RelativeOverlap"/>
