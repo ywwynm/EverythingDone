@@ -468,6 +468,13 @@ public class AttachmentHelper {
         return !attachment.contains(SIGNAL + VIDEO) && !attachment.contains(SIGNAL + AUDIO);
     }
 
+    public static boolean isAllAudio(String attachment) {
+        if (attachment == null || attachment.isEmpty()) {
+            return false;
+        }
+        return !attachment.contains(SIGNAL + IMAGE) && !attachment.contains(SIGNAL + VIDEO);
+    }
+
     private static boolean isInsideArray(String[] array, String value) {
         for (String s : array) {
             if (value.equals(s)) {

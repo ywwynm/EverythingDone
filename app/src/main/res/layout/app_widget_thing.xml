@@ -331,6 +331,37 @@
 
         </LinearLayout>
 
+        <LinearLayout
+            android:id="@+id/ll_thing_audio_attachment_large"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:visibility="gone"
+            tools:ignore="UseCompoundDrawables">
+
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="16dp"
+                android:layout_marginTop="1dp"
+                android:scaleType="centerCrop"
+                android:adjustViewBounds="true"
+                android:layout_gravity="center_vertical"
+                android:contentDescription="@string/cd_audio_attachment"
+                android:src="@drawable/card_audio_attachment"/>
+
+            <TextView
+                android:id="@+id/tv_thing_audio_attachment_count_large"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:layout_marginStart="12dp"
+                android:layout_marginLeft="12dp"
+                android:textColor="@color/white_66p"
+                android:textSize="18sp"
+                tools:ignore="SmallSp"/>
+
+        </LinearLayout>
+
     </LinearLayout>
 
     <ImageView

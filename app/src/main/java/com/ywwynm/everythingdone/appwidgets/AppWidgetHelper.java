@@ -65,58 +65,60 @@ public class AppWidgetHelper {
 
     private static final int dp12 = (int) (screenDensity * 12);
 
-    private static final int ROOT_WIDGET_THING        = R.id.root_widget_thing;
+    private static final int ROOT_WIDGET_THING         = R.id.root_widget_thing;
 
-    private static final int IV_STICKY                = R.id.iv_thing_sticky;
-    private static final int IV_STICKY_SMALL          = R.id.iv_thing_sticky_smaller;
-    private static final int FL_DOING                 = R.id.fl_thing_doing_cover;
+    private static final int IV_STICKY                 = R.id.iv_thing_sticky;
+    private static final int IV_STICKY_SMALL           = R.id.iv_thing_sticky_smaller;
+    private static final int FL_DOING                  = R.id.fl_thing_doing_cover;
 
-    private static final int IV_IMAGE_ATTACHMENT      = R.id.iv_thing_image;
-    private static final int TV_IMAGE_COUNT           = R.id.tv_thing_image_attachment_count;
+    private static final int IV_IMAGE_ATTACHMENT       = R.id.iv_thing_image;
+    private static final int TV_IMAGE_COUNT            = R.id.tv_thing_image_attachment_count;
 
-    private static final int TV_TITLE                 = R.id.tv_thing_title;
-    private static final int IV_PRIVATE_THING         = R.id.iv_private_thing;
+    private static final int TV_TITLE                  = R.id.tv_thing_title;
+    private static final int IV_PRIVATE_THING          = R.id.iv_private_thing;
 
-    private static final int TV_CONTENT               = R.id.tv_thing_content;
+    private static final int TV_CONTENT                = R.id.tv_thing_content;
 
-    private static final int LV_CHECKLIST             = R.id.lv_thing_check_list;
-    private static final int LL_CHECK_LIST_ITEMS      = R.id.ll_check_list_items_container;
-    private static final int LL_CHECK_LIST_ITEM_ROOT  = R.id.ll_check_list_tv;
-    private static final int IV_STATE_CHECK_LIST      = R.id.iv_check_list_state;
-    private static final int TV_CONTENT_CHECK_LIST    = R.id.tv_check_list;
+    private static final int LV_CHECKLIST              = R.id.lv_thing_check_list;
+    private static final int LL_CHECK_LIST_ITEMS       = R.id.ll_check_list_items_container;
+    private static final int LL_CHECK_LIST_ITEM_ROOT   = R.id.ll_check_list_tv;
+    private static final int IV_STATE_CHECK_LIST       = R.id.iv_check_list_state;
+    private static final int TV_CONTENT_CHECK_LIST     = R.id.tv_check_list;
 
-    private static final int LL_AUDIO_ATTACHMENT      = R.id.ll_thing_audio_attachment;
-    private static final int TV_AUDIO_COUNT           = R.id.tv_thing_audio_attachment_count;
+    private static final int LL_AUDIO_ATTACHMENT       = R.id.ll_thing_audio_attachment;
+    private static final int TV_AUDIO_COUNT            = R.id.tv_thing_audio_attachment_count;
+    private static final int LL_AUDIO_ATTACHMENT_LARGE = R.id.ll_thing_audio_attachment_large;
+    private static final int TV_AUDIO_COUNT_LARGE      = R.id.tv_thing_audio_attachment_count_large;
 
-    private static final int RL_REMINDER              = R.id.rl_thing_reminder;
-    private static final int V_REMINDER_SEPARATOR     = R.id.view_reminder_separator;
-    private static final int IV_REMINDER              = R.id.iv_thing_reminder;
-    private static final int TV_REMINDER_TIME         = R.id.tv_thing_reminder_time;
+    private static final int RL_REMINDER               = R.id.rl_thing_reminder;
+    private static final int V_REMINDER_SEPARATOR      = R.id.view_reminder_separator;
+    private static final int IV_REMINDER               = R.id.iv_thing_reminder;
+    private static final int TV_REMINDER_TIME          = R.id.tv_thing_reminder_time;
 
-    private static final int RL_HABIT                 = R.id.rl_thing_habit;
-    private static final int V_HABIT_SEPARATOR_1      = R.id.view_habit_separator_1;
-    private static final int TV_HABIT_SUMMARY         = R.id.tv_thing_habit_summary;
-    private static final int TV_HABIT_NEXT_REMINDER   = R.id.tv_thing_habit_next_reminder;
-    private static final int V_HABIT_SEPARATOR_2      = R.id.view_habit_separator_2;
-    private static final int LL_HABIT_RECORD          = R.id.ll_thing_habit_record;
-    private static final int TV_HABIT_LAST_FIVE       = R.id.tv_thing_habit_last_five_record;
-    private static final int TV_HABIT_FINISHED_THIS_T = R.id.tv_thing_habit_finished_this_t;
+    private static final int RL_HABIT                  = R.id.rl_thing_habit;
+    private static final int V_HABIT_SEPARATOR_1       = R.id.view_habit_separator_1;
+    private static final int TV_HABIT_SUMMARY          = R.id.tv_thing_habit_summary;
+    private static final int TV_HABIT_NEXT_REMINDER    = R.id.tv_thing_habit_next_reminder;
+    private static final int V_HABIT_SEPARATOR_2       = R.id.view_habit_separator_2;
+    private static final int LL_HABIT_RECORD           = R.id.ll_thing_habit_record;
+    private static final int TV_HABIT_LAST_FIVE        = R.id.tv_thing_habit_last_five_record;
+    private static final int TV_HABIT_FINISHED_THIS_T  = R.id.tv_thing_habit_finished_this_t;
 
-    private static final int RL_THING_STATE           = R.id.rl_thing_state;
-    private static final int V_STATE_SEPARATOR        = R.id.view_state_separator;
-    private static final int TV_THING_STATE           = R.id.tv_thing_state;
-    private static final int IV_THING_STATE           = R.id.iv_thing_state;
+    private static final int RL_THING_STATE            = R.id.rl_thing_state;
+    private static final int V_STATE_SEPARATOR         = R.id.view_state_separator;
+    private static final int TV_THING_STATE            = R.id.tv_thing_state;
+    private static final int IV_THING_STATE            = R.id.iv_thing_state;
 
-    private static final int LL_THING_ACTION          = R.id.ll_thing_action;
-    private static final int TV_THING_ACTION          = R.id.tv_thing_action;
+    private static final int LL_THING_ACTION           = R.id.ll_thing_action;
+    private static final int TV_THING_ACTION           = R.id.tv_thing_action;
 
-    private static final int V_PADDING_BOTTOM         = R.id.view_thing_padding_bottom;
+    private static final int V_PADDING_BOTTOM          = R.id.view_thing_padding_bottom;
 
-    private static final int LV_THINGS_LIST           = R.id.lv_things_list;
-    private static final int LL_THINGS_LIST_HEADER    = R.id.ll_things_list_header;
-    private static final int TV_THINGS_LIST_TITLE     = R.id.tv_things_list_title;
-    private static final int IV_THINGS_LIST_SETTING   = R.id.iv_things_list_setting;
-    private static final int IV_THINGS_LIST_CREATE    = R.id.iv_things_list_create;
+    private static final int LV_THINGS_LIST            = R.id.lv_things_list;
+    private static final int LL_THINGS_LIST_HEADER     = R.id.ll_things_list_header;
+    private static final int TV_THINGS_LIST_TITLE      = R.id.tv_things_list_title;
+    private static final int IV_THINGS_LIST_SETTING    = R.id.iv_things_list_setting;
+    private static final int IV_THINGS_LIST_CREATE     = R.id.iv_things_list_create;
 
     private AppWidgetHelper() {}
 
@@ -473,13 +475,14 @@ public class AppWidgetHelper {
         setHabit(context, remoteViews, thing, style);
 
         if (style == ThingWidgetInfo.STYLE_SIMPLE && getTitleToDisplayForSimpleStyle(thing) != null) {
-            remoteViews.setViewVisibility(LV_CHECKLIST,        View.GONE);
-            remoteViews.setViewVisibility(LL_CHECK_LIST_ITEMS, View.GONE);
-            remoteViews.setViewVisibility(TV_CONTENT,          View.GONE);
+            remoteViews.setViewVisibility(LV_CHECKLIST,              View.GONE);
+            remoteViews.setViewVisibility(LL_CHECK_LIST_ITEMS,       View.GONE);
+            remoteViews.setViewVisibility(TV_CONTENT,                View.GONE);
 
-            remoteViews.setViewVisibility(IV_IMAGE_ATTACHMENT, View.GONE);
-            remoteViews.setViewVisibility(TV_IMAGE_COUNT,      View.GONE);
-            remoteViews.setViewVisibility(LL_AUDIO_ATTACHMENT, View.GONE);
+            remoteViews.setViewVisibility(IV_IMAGE_ATTACHMENT,       View.GONE);
+            remoteViews.setViewVisibility(TV_IMAGE_COUNT,            View.GONE);
+            remoteViews.setViewVisibility(LL_AUDIO_ATTACHMENT,       View.GONE);
+            remoteViews.setViewVisibility(LL_AUDIO_ATTACHMENT_LARGE, View.GONE);
         }
 
         setDoing(remoteViews, thing);
@@ -744,12 +747,23 @@ public class AppWidgetHelper {
         String str = AttachmentHelper.getAudioAttachmentCountStr(attachment, context);
         if (str == null || thing.isPrivate()) {
             remoteViews.setViewVisibility(LL_AUDIO_ATTACHMENT, View.GONE);
+            remoteViews.setViewVisibility(LL_AUDIO_ATTACHMENT_LARGE, View.GONE);
             return;
         }
 
-        remoteViews.setViewVisibility(LL_AUDIO_ATTACHMENT, View.VISIBLE);
-        remoteViews.setViewPadding(LL_AUDIO_ATTACHMENT, dp12, (int) (screenDensity * 9), dp12, 0);
-        remoteViews.setTextViewText(TV_AUDIO_COUNT, str);
+        if (thing.getTitleToDisplay().isEmpty()
+                && thing.getContent().isEmpty()
+                && AttachmentHelper.isAllAudio(thing.getAttachment())) {
+            remoteViews.setViewVisibility(LL_AUDIO_ATTACHMENT, View.GONE);
+            remoteViews.setViewVisibility(LL_AUDIO_ATTACHMENT_LARGE, View.VISIBLE);
+            remoteViews.setViewPadding(LL_AUDIO_ATTACHMENT_LARGE, dp12, dp12, dp12, 0);
+            remoteViews.setTextViewText(TV_AUDIO_COUNT_LARGE, str);
+        } else {
+            remoteViews.setViewVisibility(LL_AUDIO_ATTACHMENT_LARGE, View.GONE);
+            remoteViews.setViewVisibility(LL_AUDIO_ATTACHMENT, View.VISIBLE);
+            remoteViews.setViewPadding(LL_AUDIO_ATTACHMENT, dp12, (int) (screenDensity * 9), dp12, 0);
+            remoteViews.setTextViewText(TV_AUDIO_COUNT, str);
+        }
 
         remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);
         setSeparatorVisibilities(remoteViews, View.VISIBLE);
