@@ -6,6 +6,11 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
+    <TextView
+        android:id="@+id/tv_noticeable_notification_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"/>
+
     <android.support.v7.widget.RecyclerView
         android:id="@+id/rv_thing_noticeable_notification"
         android:layout_width="match_parent"

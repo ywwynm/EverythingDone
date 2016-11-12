@@ -1,7 +1,6 @@
 package com.ywwynm.everythingdone.adapters;
 
 import android.content.Context;
-import android.graphics.Color;
 import android.graphics.Paint;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.RecyclerView;
@@ -20,6 +19,7 @@ import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
@@ -38,6 +38,21 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
     public static final int TEXTVIEW            = 0;
     public static final int EDITTEXT_EDITABLE   = 1;
     public static final int EDITTEXT_UNEDITABLE = 2;
+
+    private static int white_76p;
+    private static int white_50p;
+    private static int black_76p;
+    private static int black_50p;
+    private static float density;
+
+    static {
+        Context context = App.getApp();
+        white_76p = ContextCompat.getColor(context, R.color.white_76p);
+        white_50p = ContextCompat.getColor(context, R.color.white_50p);
+        black_76p = ContextCompat.getColor(context, R.color.black_76p);
+        black_50p = ContextCompat.getColor(context, R.color.black_50p);
+        density = DisplayUtil.getScreenDensity(context);
+    }
 
     private int mMaxItemCount;
 
@@ -167,9 +182,6 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
 
     @Override
     public void onBindViewHolder(BaseViewHolder viewHolder, int position) {
-        int white_76 = ContextCompat.getColor(mContext, R.color.white_76p);
-        int white_50 = Color.parseColor("#80FFFFFF");
-        float density = DisplayUtil.getScreenDensity(mContext);
 
         if (mType == TEXTVIEW) {
             TextViewHolder holder = (TextViewHolder) viewHolder;
@@ -177,6 +189,11 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
             if (mMaxItemCount != -1 && position == mMaxItemCount) {
                 holder.iv.setVisibility(View.GONE);
                 holder.tv.setTextSize(18);
+                if (mStyle == BaseThingsAdapter.STYLE_WHITE) {
+                    holder.tv.setTextColor(white_76p);
+                } else {
+                    holder.tv.setTextColor(black_76p);
+                }
                 holder.tv.setText("...");
                 holder.tv.setContentDescription(mContext.getString(R.string.cd_checklist_more_items));
                 params.setMargins((int) (density * 8), 0, 0, params.bottomMargin);
@@ -192,13 +209,21 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
                     holder.iv.setImageResource(R.drawable.checklist_unchecked_card);
                     holder.iv.setContentDescription(
                             mContext.getString(R.string.cd_checklist_unfinished_item));
-                    holder.tv.setTextColor(white_76);
+                    if (mStyle == BaseThingsAdapter.STYLE_WHITE) {
+                        holder.tv.setTextColor(white_76p);
+                    } else {
+                        holder.tv.setTextColor(black_76p);
+                    }
                     holder.tv.setPaintFlags(flag & ~Paint.STRIKE_THRU_TEXT_FLAG);
                 } else if (state == '1') {
                     holder.iv.setImageResource(R.drawable.checklist_checked_card);
                     holder.iv.setContentDescription(
                             mContext.getString(R.string.cd_checklist_finished_item));
-                    holder.tv.setTextColor(white_50);
+                    if (mStyle == BaseThingsAdapter.STYLE_WHITE) {
+                        holder.tv.setTextColor(white_50p);
+                    } else {
+                        holder.tv.setTextColor(black_50p);
+                    }
                     holder.tv.setPaintFlags(flag | Paint.STRIKE_THRU_TEXT_FLAG);
                 }
 
@@ -252,7 +277,7 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
                     holder.ivState.setContentDescription(
                             mContext.getString(R.string.cd_checklist_move));
                 }
-                holder.et.setTextColor(white_76);
+                holder.et.setTextColor(white_76p);
                 holder.et.setText(stateContent.substring(1, stateContent.length()));
             } else if (state == '1') {
                 if (!mDragging) {
@@ -264,7 +289,7 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
                     holder.ivState.setContentDescription(
                             mContext.getString(R.string.cd_checklist_move));
                 }
-                holder.et.setTextColor(white_50);
+                holder.et.setTextColor(white_50p);
                 holder.et.setPaintFlags(flags | Paint.STRIKE_THRU_TEXT_FLAG);
                 holder.et.setText(stateContent.substring(1, stateContent.length()));
             } else if (state == '2') {
@@ -287,7 +312,7 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
                         mContext.getString(R.string.cd_checklist_finished_items));
                 holder.et.setEnabled(false);
                 holder.et.setText(mContext.getString(R.string.finished));
-                holder.et.setTextColor(white_50);
+                holder.et.setTextColor(white_50p);
                 holder.et.setTextSize(16);
                 holder.et.getPaint().setTextSkewX(-0.20f);
                 holder.et.setContentDescription(

@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
 import android.support.design.widget.FloatingActionButton;
@@ -255,8 +256,6 @@ public class NoticeableNotificationActivity extends EverythingDoneBaseActivity {
         wlp.width = mDialogWidth;
         getWindow().setAttributes(wlp);
 
-        f(R.id.ll_root_noticeable_notification).setBackgroundColor(mThing.getColor());
-
         initRvThing();
         initActionsUI();
     }
@@ -277,6 +276,7 @@ public class NoticeableNotificationActivity extends EverythingDoneBaseActivity {
             @Override
             public void onBindViewHolder(BaseThingViewHolder holder, int position) {
                 super.onBindViewHolder(holder, position);
+                holder.cv.setCardBackgroundColor(Color.WHITE);
                 holder.cv.setRadius(0);
                 holder.cv.setCardElevation(0);
                 holder.tvTitle.setMaxLines(Integer.MAX_VALUE);

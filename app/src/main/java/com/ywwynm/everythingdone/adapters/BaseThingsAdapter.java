@@ -61,6 +61,23 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
     @Retention(RetentionPolicy.SOURCE)
     public @interface Style {}
 
+    private static int white_86p;
+    private static int white_76p;
+    private static int white_66p;
+    private static int black_86p;
+    private static int black_76p;
+    private static int black_66p;
+
+    static {
+        Context context = App.getApp();
+        white_86p = ContextCompat.getColor(context, R.color.white_86p);
+        white_76p = ContextCompat.getColor(context, R.color.white_76p);
+        white_66p = ContextCompat.getColor(context, R.color.white_66p);
+        black_86p = ContextCompat.getColor(context, R.color.black_86p);
+        black_76p = ContextCompat.getColor(context, R.color.black_76p);
+        black_66p = ContextCompat.getColor(context, R.color.black_66p);
+    }
+
     protected LayoutInflater mInflater;
     protected float mDensity;
 
@@ -171,6 +188,11 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
             holder.tvTitle.setVisibility(View.VISIBLE);
             holder.tvTitle.setPadding(p, p, p, 0);
             holder.tvTitle.setText(title);
+            if (mStyle == STYLE_WHITE) {
+                holder.tvTitle.setTextColor(white_86p);
+            } else {
+                holder.tvTitle.setTextColor(black_86p);
+            }
         } else {
             holder.tvTitle.setVisibility(View.GONE);
         }
@@ -194,6 +216,11 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
 
                 holder.tvContent.setPadding(p, p, p, 0);
                 holder.tvContent.setText(content);
+                if (mStyle == STYLE_WHITE) {
+                    holder.tvContent.setTextColor(white_76p);
+                } else {
+                    holder.tvContent.setTextColor(black_76p);
+                }
             } else {
                 holder.tvContent.setVisibility(View.GONE);
                 holder.rvChecklist.setVisibility(View.VISIBLE);
@@ -397,6 +424,12 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
             holder.llAudioAttachment.setPadding(p, p / 4 * 3, p, 0);
 
             holder.tvAudioCount.setText(str);
+
+            if (mStyle == STYLE_WHITE) {
+                holder.tvAudioCount.setTextColor(white_66p);
+            } else {
+                holder.tvAudioCount.setTextColor(black_66p);
+            }
         }
     }
 

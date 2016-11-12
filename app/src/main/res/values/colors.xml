@@ -46,9 +46,13 @@
     <color name="app_accent">#FFEB3B</color>
 
     <color name="black_87p">#DE000000</color>
-    <color name="black_69p">#B0000000</color> <!-- 69% 黑色 -->
+    <color name="black_86p">#DB000000</color>
+    <color name="black_76p">#C4000000</color>
+    <color name="black_69p">#B0000000</color>
+    <color name="black_66p">#A8000000</color>
     <color name="black_54">#6D6D6D</color>
     <color name="black_54p">#8A000000</color>
+    <color name="black_50p">#80000000</color>
     <color name="black_26p">#42000000</color>
     <color name="black_14p">#24000000</color>
     <color name="black_10p">#1A000000</color>
@@ -57,6 +61,7 @@
     <color name="white_76p">#C4FFFFFF</color>
     <color name="white_66p">#A8FFFFFF</color>
     <color name="white_54p">#89FFFFFF</color>
+    <color name="white_50p">#80FFFFFF</color>
 
     <color name="control_highlight_light">#66FFFFFF</color>
 
