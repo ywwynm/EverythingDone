@@ -208,6 +208,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
                 } else {
                     adapter.setItems(items);
                 }
+                adapter.setStyle(mStyle);
                 adapter.setMaxItemCount(mChecklistMaxItemCount);
                 onChecklistAdapterInitialized(holder, adapter, thing);
                 holder.rvChecklist.setAdapter(adapter);

@@ -79,6 +79,8 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
 
     private boolean mShouldAutoLink;
 
+    private @BaseThingsAdapter.Style int mStyle = BaseThingsAdapter.STYLE_WHITE;
+
     public CheckListAdapter(Context context, int type, List<String> items) {
         mContext = context;
         mInflater = LayoutInflater.from(context);
@@ -140,6 +142,10 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
 
     public void setShouldAutoLink(boolean shouldAutoLink) {
         mShouldAutoLink = shouldAutoLink;
+    }
+
+    public void setStyle(int style) {
+        mStyle = style;
     }
 
     private void removeItemsForTextView() {
