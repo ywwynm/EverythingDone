@@ -136,4 +136,8 @@
         <item name="colorPrimary">@color/control_highlight_light</item>
     </style>
 
+    <style name="BlackListStyle" parent="Theme.AppCompat.Light">
+        <item name="colorPrimary">@color/black_26p</item>
+    </style>
+
 </resources>

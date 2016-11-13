@@ -1,74 +1,143 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/ll_root_noticeable_notification"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    tools:ignore="ContentDescription">
 
-    <TextView
-        android:id="@+id/tv_noticeable_notification_title"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"/>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:paddingLeft="16dp"
+        android:paddingRight="16dp"
+        android:gravity="center_vertical"
+        tools:ignore="UseCompoundDrawables">
+
+        <ImageView
+            android:id="@+id/iv_noticeable_notification_title"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:scaleType="centerInside"/>
+
+        <TextView
+            android:id="@+id/tv_noticeable_notification_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginLeft="8dp"
+            android:textSize="14sp"
+            android:textStyle="bold"/>
+
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0.5dp"
+        android:background="@color/black_10p"/>
 
     <android.support.v7.widget.RecyclerView
         android:id="@+id/rv_thing_noticeable_notification"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:scrollbars="vertical"
-        android:theme="@style/WhiteListStyle"/>
+        android:fadeScrollbars="false"
+        android:theme="@style/BlackListStyle"/>
 
-    <!--<View-->
-        <!--android:layout_width="match_parent"-->
-        <!--android:layout_height="1dp"-->
-        <!--android:background="#42FFFFFF"/>-->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0.5dp"
+        android:background="@color/black_10p"/>
 
     <RelativeLayout
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="56dp"
-        android:layout_margin="8dp"
-        android:orientation="horizontal"
-        xmlns:app="http://schemas.android.com/apk/res-auto">
+        android:padding="8dp">
 
-        <android.support.design.widget.FloatingActionButton
-            android:id="@+id/fab_1_noticeable_notification"
+        <FrameLayout
+            android:id="@+id/fl_1_noticeable_notification_as_bt"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:layout_margin="8dp"
-            android:layout_alignParentEnd="true"
-            android:layout_alignParentRight="true"
             android:layout_centerVertical="true"
-            app:backgroundTint="@color/app_accent"
-            app:rippleColor="@color/control_highlight_light"
-            app:elevation="2dp"
-            app:pressedTranslationZ="2dp"
-            app:borderWidth="0dp"/>
+            android:background="@drawable/selectable_item_background"
+            android:visibility="gone">
 
-        <android.support.design.widget.FloatingActionButton
-            android:id="@+id/fab_2_noticeable_notification"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:layout_margin="8dp"
-            android:layout_centerVertical="true"
-            app:backgroundTint="@android:color/white"
-            app:rippleColor="@color/black_54p"
-            app:elevation="2dp"
-            app:pressedTranslationZ="2dp"
-            app:borderWidth="0dp"/>
+            <ImageView
+                android:id="@+id/iv_1_noticeable_notification_as_bt"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center"
+                android:scaleType="fitCenter"/>
 
-        <android.support.design.widget.FloatingActionButton
-            android:id="@+id/fab_3_noticeable_notification"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:layout_margin="8dp"
-            android:layout_toEndOf="@id/fab_2_noticeable_notification"
-            android:layout_toRightOf="@id/fab_2_noticeable_notification"
+        </FrameLayout>
+
+        <FrameLayout
+            android:id="@+id/fl_2_noticeable_notification_as_bt"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:layout_centerVertical="true"
-            app:backgroundTint="@android:color/white"
-            app:rippleColor="@color/black_54p"
-            app:elevation="2dp"
-            app:pressedTranslationZ="2dp"
-            app:borderWidth="0dp"/>
+            android:layout_toEndOf="@id/fl_1_noticeable_notification_as_bt"
+            android:layout_toRightOf="@id/fl_1_noticeable_notification_as_bt"
+            android:background="@drawable/selectable_item_background"
+            android:visibility="gone">
+
+            <ImageView
+                android:id="@+id/iv_2_noticeable_notification_as_bt"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center"
+                android:scaleType="fitCenter"/>
+
+        </FrameLayout>
+
+        <FrameLayout
+            android:id="@+id/fl_3_noticeable_notification_as_bt"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_centerVertical="true"
+            android:layout_toEndOf="@id/fl_2_noticeable_notification_as_bt"
+            android:layout_toRightOf="@id/fl_2_noticeable_notification_as_bt"
+            android:layout_marginStart="4dp"
+            android:layout_marginLeft="4dp"
+            android:background="@drawable/selectable_item_background"
+            android:visibility="gone">
+
+            <ImageView
+                android:id="@+id/iv_3_noticeable_notification_as_bt"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center"
+                android:scaleType="fitCenter"/>
+
+        </FrameLayout>
+
+        <!--<android.support.design.widget.FloatingActionButton-->
+            <!--android:id="@+id/fab_2_noticeable_notification"-->
+            <!--android:layout_width="36dp"-->
+            <!--android:layout_height="36dp"-->
+            <!--android:layout_margin="8dp"-->
+            <!--android:layout_centerVertical="true"-->
+            <!--app:backgroundTint="#FFFFFF"-->
+            <!--app:rippleColor="@color/black_26p"-->
+            <!--app:elevation="2dp"-->
+            <!--app:pressedTranslationZ="2dp"-->
+            <!--app:borderWidth="0dp"/>-->
+
+        <!--<android.support.design.widget.FloatingActionButton-->
+            <!--android:id="@+id/fab_3_noticeable_notification"-->
+            <!--android:layout_width="36dp"-->
+            <!--android:layout_height="36dp"-->
+            <!--android:layout_margin="8dp"-->
+            <!--android:layout_toEndOf="@id/fab_2_noticeable_notification"-->
+            <!--android:layout_toRightOf="@id/fab_2_noticeable_notification"-->
+            <!--android:layout_centerVertical="true"-->
+            <!--app:backgroundTint="#FFFFFF"-->
+            <!--app:rippleColor="@color/black_26p"-->
+            <!--app:elevation="2dp"-->
+            <!--app:pressedTranslationZ="2dp"-->
+            <!--app:borderWidth="0dp"/>-->
 
     </RelativeLayout>
 
