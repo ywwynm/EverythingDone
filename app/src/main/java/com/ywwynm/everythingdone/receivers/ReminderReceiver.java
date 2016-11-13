@@ -102,17 +102,6 @@ public class ReminderReceiver extends BroadcastReceiver {
             builder.setPriority(NotificationCompat.PRIORITY_DEFAULT);
         }
 
-        if (thing.getType() == Thing.REMINDER) {
-            Intent startIntent = new Intent(context, ReminderNotificationActionReceiver.class);
-            startIntent.setAction(Def.Communication.NOTIFICATION_ACTION_START_DOING);
-            startIntent.putExtra(Def.Communication.KEY_ID, id);
-            startIntent.putExtra(Def.Communication.KEY_POSITION, position);
-            builder.addAction(R.drawable.act_start_doing,
-                    context.getString(R.string.act_start_doing),
-                    PendingIntent.getBroadcast(context,
-                            (int) id, startIntent, PendingIntent.FLAG_UPDATE_CURRENT));
-        }
-
         Intent finishIntent = new Intent(context, ReminderNotificationActionReceiver.class);
         finishIntent.setAction(Def.Communication.NOTIFICATION_ACTION_FINISH);
         finishIntent.putExtra(Def.Communication.KEY_ID, id);
@@ -122,6 +111,15 @@ public class ReminderReceiver extends BroadcastReceiver {
                         (int) id, finishIntent, PendingIntent.FLAG_UPDATE_CURRENT));
 
         if (thing.getType() == Thing.REMINDER) {
+            Intent startIntent = new Intent(context, ReminderNotificationActionReceiver.class);
+            startIntent.setAction(Def.Communication.NOTIFICATION_ACTION_START_DOING);
+            startIntent.putExtra(Def.Communication.KEY_ID, id);
+            startIntent.putExtra(Def.Communication.KEY_POSITION, position);
+            builder.addAction(R.drawable.act_start_doing,
+                    context.getString(R.string.act_start_doing),
+                    PendingIntent.getBroadcast(context,
+                            (int) id, startIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+
             Intent delayIntent = new Intent(context, ReminderNotificationActionReceiver.class);
             delayIntent.setAction(Def.Communication.NOTIFICATION_ACTION_DELAY);
             delayIntent.putExtra(Def.Communication.KEY_ID, id);
