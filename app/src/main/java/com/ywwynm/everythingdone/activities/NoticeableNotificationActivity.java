@@ -371,7 +371,7 @@ public class NoticeableNotificationActivity extends EverythingDoneBaseActivity {
     protected void setEvents() {
         mRvThing.getViewTreeObserver().addOnGlobalLayoutListener(
                 new ViewTreeObserver.OnGlobalLayoutListener() {
-
+                    boolean shrunk = false;
                     @Override
                     public void onGlobalLayout() {
                         int height = mRvThing.getHeight();
@@ -379,6 +379,10 @@ public class NoticeableNotificationActivity extends EverythingDoneBaseActivity {
                             ViewGroup.LayoutParams vlp = mRvThing.getLayoutParams();
                             vlp.height = (int) (mDialogWidth * 1.2f);
                             mRvThing.requestLayout();
+                            mRvThing.setOverScrollMode(View.OVER_SCROLL_ALWAYS);
+                            shrunk = true;
+                        } else if (!shrunk) {
+                            mRvThing.setOverScrollMode(View.OVER_SCROLL_NEVER);
                         }
                     }
                 });
