@@ -19,7 +19,6 @@ import android.text.style.ForegroundColorSpan;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
-import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -139,7 +138,7 @@ public class NoticeableNotificationActivity extends EverythingDoneBaseActivity {
 
     @Override
     protected void initMembers() {
-        mDialogWidth = (int) (DisplayUtil.getScreenDensity(this) * 300);
+        mDialogWidth = (int) (DisplayUtil.getScreenDensity(this) * 280);
 
         Intent intent = getIntent();
         mIsHabit = intent.getBooleanExtra(KEY_IS_HABIT, false);
@@ -269,13 +268,20 @@ public class NoticeableNotificationActivity extends EverythingDoneBaseActivity {
 
     @Override
     protected void initUI() {
-        WindowManager.LayoutParams wlp = getWindow().getAttributes();
-        wlp.width = mDialogWidth;
-        getWindow().setAttributes(wlp);
+//        WindowManager.LayoutParams wlp = getWindow().getAttributes();
+//        wlp.width = mDialogWidth;
+//        getWindow().setAttributes(wlp);
 
         initTitleUI();
         initRvThing();
         initActionsUI();
+
+        mRvThing.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                System.out.println(getWindow().getDecorView().getWidth());
+            }
+        }, 2000);
     }
 
     @SuppressLint("SetTextI18n")
@@ -317,7 +323,13 @@ public class NoticeableNotificationActivity extends EverythingDoneBaseActivity {
             @Override
             public void onBindViewHolder(BaseThingViewHolder holder, int position) {
                 super.onBindViewHolder(holder, position);
-                holder.cv.setCardBackgroundColor(Color.parseColor("#F6F6F6"));
+
+                int color = DisplayUtil.getTransparentColor(mThing.getColor(), 16);
+                if (!DeviceUtil.hasLollipopApi()) {
+                    holder.cv.setBackgroundColor(color);
+                } else {
+                    holder.cv.setCardBackgroundColor(color);
+                }
                 holder.cv.setRadius(0);
                 holder.cv.setCardElevation(0);
 
@@ -350,14 +362,15 @@ public class NoticeableNotificationActivity extends EverythingDoneBaseActivity {
     }
 
     private void initActionsUI() {
-        int iconColor = DisplayUtil.getTransparentColor(mThing.getColor(), 224);
+//        int actionColor = DisplayUtil.getTransparentColor(mThing.getColor(), 224);
+        int actionColor = ContextCompat.getColor(this, R.color.black_54p);
 //        int iconColor = mThing.getColor();
         final int size = mActions.size();
         for (int i = 0; i < size; i++) {
             mFlActions[i].setVisibility(View.VISIBLE);
             Drawable drawable = ContextCompat.getDrawable(this, mActionsIcons.get(i));
             drawable = drawable.mutate();
-            drawable.setColorFilter(iconColor, PorterDuff.Mode.SRC_ATOP);
+            drawable.setColorFilter(actionColor, PorterDuff.Mode.SRC_ATOP);
             mIvActions[i].setImageDrawable(drawable);
             mFlActions[i].setOnClickListener(mActions.get(i));
             mIvActions[i].setContentDescription(getString(mActionsTexts.get(i)));
@@ -391,7 +404,7 @@ public class NoticeableNotificationActivity extends EverythingDoneBaseActivity {
             mRvThing.addOnScrollListener(new RecyclerView.OnScrollListener() {
 
                 final int edgeColor = ContextCompat.getColor(
-                        getApplicationContext(), R.color.control_highlight_light);
+                        getApplicationContext(), R.color.black_26p);
 
                 @Override
                 public void onScrollStateChanged(RecyclerView recyclerView, int newState) {

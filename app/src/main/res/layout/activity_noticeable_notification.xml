@@ -3,7 +3,7 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/ll_root_noticeable_notification"
-    android:layout_width="match_parent"
+    android:layout_width="280dp"
     android:layout_height="match_parent"
     android:orientation="vertical"
     tools:ignore="ContentDescription">
@@ -34,10 +34,10 @@
 
     </LinearLayout>
 
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="0.5dp"
-        android:background="@color/black_10p"/>
+    <!--<View-->
+        <!--android:layout_width="match_parent"-->
+        <!--android:layout_height="0.5dp"-->
+        <!--android:background="@color/black_10p"/>-->
 
     <android.support.v7.widget.RecyclerView
         android:id="@+id/rv_thing_noticeable_notification"
@@ -47,10 +47,10 @@
         android:fadeScrollbars="false"
         android:theme="@style/BlackListStyle"/>
 
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="0.5dp"
-        android:background="@color/black_10p"/>
+    <!--<View-->
+        <!--android:layout_width="match_parent"-->
+        <!--android:layout_height="0.5dp"-->
+        <!--android:background="@color/black_10p"/>-->
 
     <RelativeLayout
         android:layout_width="wrap_content"
@@ -81,6 +81,8 @@
             android:layout_centerVertical="true"
             android:layout_toEndOf="@id/fl_1_noticeable_notification_as_bt"
             android:layout_toRightOf="@id/fl_1_noticeable_notification_as_bt"
+            android:layout_marginStart="6dp"
+            android:layout_marginLeft="6dp"
             android:background="@drawable/selectable_item_background"
             android:visibility="gone">
 
@@ -100,8 +102,8 @@
             android:layout_centerVertical="true"
             android:layout_toEndOf="@id/fl_2_noticeable_notification_as_bt"
             android:layout_toRightOf="@id/fl_2_noticeable_notification_as_bt"
-            android:layout_marginStart="4dp"
-            android:layout_marginLeft="4dp"
+            android:layout_marginStart="6dp"
+            android:layout_marginLeft="6dp"
             android:background="@drawable/selectable_item_background"
             android:visibility="gone">
 
@@ -113,32 +115,6 @@
                 android:scaleType="fitCenter"/>
 
         </FrameLayout>
-
-        <!--<android.support.design.widget.FloatingActionButton-->
-            <!--android:id="@+id/fab_2_noticeable_notification"-->
-            <!--android:layout_width="36dp"-->
-            <!--android:layout_height="36dp"-->
-            <!--android:layout_margin="8dp"-->
-            <!--android:layout_centerVertical="true"-->
-            <!--app:backgroundTint="#FFFFFF"-->
-            <!--app:rippleColor="@color/black_26p"-->
-            <!--app:elevation="2dp"-->
-            <!--app:pressedTranslationZ="2dp"-->
-            <!--app:borderWidth="0dp"/>-->
-
-        <!--<android.support.design.widget.FloatingActionButton-->
-            <!--android:id="@+id/fab_3_noticeable_notification"-->
-            <!--android:layout_width="36dp"-->
-            <!--android:layout_height="36dp"-->
-            <!--android:layout_margin="8dp"-->
-            <!--android:layout_toEndOf="@id/fab_2_noticeable_notification"-->
-            <!--android:layout_toRightOf="@id/fab_2_noticeable_notification"-->
-            <!--android:layout_centerVertical="true"-->
-            <!--app:backgroundTint="#FFFFFF"-->
-            <!--app:rippleColor="@color/black_26p"-->
-            <!--app:elevation="2dp"-->
-            <!--app:pressedTranslationZ="2dp"-->
-            <!--app:borderWidth="0dp"/>-->
 
     </RelativeLayout>
 
