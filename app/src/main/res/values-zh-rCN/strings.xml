@@ -942,4 +942,7 @@
     <string name="from_1_1_4_to_1_1_5_title">您现在可以使用撤销 / 重做功能了</string>
     <string name="from_1_1_4_to_1_1_5_content">点击右上角的菜单按钮，即可看到撤销 / 重做。借此，您可以让记事自由地回到过去或者未来。</string>
 
+    <string name="from_1_2_7_to_1_3_0_title">Todo? Do!</string>
+    <string name="from_1_2_7_to_1_3_0_content">现在，当记事的提醒时刻到来时，将会有更突出的通知。而你如果已经准备好了，可以在通知出现后点击开始做事，完事儿将会协助你认真地完成它。</string>
+
 </resources>

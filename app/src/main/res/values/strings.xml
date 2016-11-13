@@ -953,4 +953,7 @@
     <string name="from_1_1_4_to_1_1_5_title">Undo/Redo are now supported</string>
     <string name="from_1_1_4_to_1_1_5_content">Click menu button, you will see Undo and Redo there. Now you can let your things back to past or future at any time if you want.</string>
 
+    <string name="from_1_2_7_to_1_3_0_title">Todo? Do!</string>
+    <string name="from_1_2_7_to_1_3_0_content">There will be more noticeable notification for things\' alarms. If you are ready, you can start doing the thing directly after the notification, EverythingDone will help you finish it carefully.</string>
+
 </resources>
