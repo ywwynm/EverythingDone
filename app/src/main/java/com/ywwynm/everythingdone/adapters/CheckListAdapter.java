@@ -182,7 +182,6 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
 
     @Override
     public void onBindViewHolder(BaseViewHolder viewHolder, int position) {
-
         if (mType == TEXTVIEW) {
             TextViewHolder holder = (TextViewHolder) viewHolder;
             LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) holder.tv.getLayoutParams();
@@ -206,7 +205,11 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
                 String stateContent = mItems.get(position);
                 char state = stateContent.charAt(0);
                 if (state == '0') {
-                    holder.iv.setImageResource(R.drawable.checklist_unchecked_card);
+                    if (mStyle == BaseThingsAdapter.STYLE_WHITE) {
+                        holder.iv.setImageResource(R.drawable.checklist_unchecked_card);
+                    } else {
+                        holder.iv.setImageResource(R.drawable.checklist_unchecked_card_black);
+                    }
                     holder.iv.setContentDescription(
                             mContext.getString(R.string.cd_checklist_unfinished_item));
                     if (mStyle == BaseThingsAdapter.STYLE_WHITE) {
@@ -216,7 +219,11 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
                     }
                     holder.tv.setPaintFlags(flag & ~Paint.STRIKE_THRU_TEXT_FLAG);
                 } else if (state == '1') {
-                    holder.iv.setImageResource(R.drawable.checklist_checked_card);
+                    if (mStyle == BaseThingsAdapter.STYLE_WHITE) {
+                        holder.iv.setImageResource(R.drawable.checklist_checked_card);
+                    } else {
+                        holder.iv.setImageResource(R.drawable.checklist_checked_card_black);
+                    }
                     holder.iv.setContentDescription(
                             mContext.getString(R.string.cd_checklist_finished_item));
                     if (mStyle == BaseThingsAdapter.STYLE_WHITE) {

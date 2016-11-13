@@ -426,8 +426,10 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
             holder.tvAudioCount.setText(str);
 
             if (mStyle == STYLE_WHITE) {
+                holder.ivAudioCount.setImageResource(R.drawable.card_audio_attachment);
                 holder.tvAudioCount.setTextColor(white_66p);
             } else {
+                holder.ivAudioCount.setImageResource(R.drawable.card_audio_attachment_black);
                 holder.tvAudioCount.setTextColor(black_66p);
             }
         }
