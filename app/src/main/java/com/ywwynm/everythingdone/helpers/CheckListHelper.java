@@ -92,11 +92,18 @@ public class CheckListHelper {
         return SIGNAL + 0 + content.replaceAll("\n", SIGNAL + 0);
     }
 
-    public static String toggleChecklistItem(String content, int itemPos) {
-        List<String> items = toCheckListItems(content, false);
+    public static String toggleChecklistItem(String checklistStr, int itemPos) {
+        if (itemPos < 0) {
+            return checklistStr;
+        }
+        List<String> items = toCheckListItems(checklistStr, false);
         items.remove("2");
         items.remove("3");
         items.remove("4");
+        if (itemPos > items.size() - 1) {
+            return checklistStr;
+        }
+
         String oldItem = items.get(itemPos);
         items.remove(itemPos);
         if (oldItem.startsWith("0")) { // unfinished to finished
