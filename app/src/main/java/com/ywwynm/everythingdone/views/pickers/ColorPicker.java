@@ -237,7 +237,7 @@ public class ColorPicker extends PopupPicker {
                     break;
                 default:break;
             }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+            if (DeviceUtil.hasJellyBeanMR1Api()) {
                 params.setMarginStart(params.leftMargin);
                 params.setMarginEnd(params.rightMargin);
             }

@@ -22,7 +22,6 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.media.MediaPlayer;
 import android.net.Uri;
-import android.os.Build;
 import android.support.annotation.StringRes;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.ActivityOptionsCompat;
@@ -934,10 +933,9 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             @Override
             public void onClick(View v) {
                 boolean isDragging = mCheckListAdapter.isDragging();
-                boolean above17 = Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1;
                 if (!isDragging) {
                     mTvMoveChecklistAsBt.setText(R.string.act_back_from_move_checklist);
-                    if (above17) {
+                    if (DeviceUtil.hasJellyBeanMR1Api()) {
                         mTvMoveChecklistAsBt.setCompoundDrawablesRelativeWithIntrinsicBounds(
                                 R.drawable.act_back_from_move_checklist, 0, 0, 0);
                     } else {
@@ -948,7 +946,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                     mChecklistTouchHelper.attachToRecyclerView(mRvCheckList);
                 } else {
                     mTvMoveChecklistAsBt.setText(R.string.act_move_check_list);
-                    if (above17) {
+                    if (DeviceUtil.hasJellyBeanMR1Api()) {
                         mTvMoveChecklistAsBt.setCompoundDrawablesRelativeWithIntrinsicBounds(
                                 R.drawable.act_move_checklist, 0, 0, 0);
                     } else {

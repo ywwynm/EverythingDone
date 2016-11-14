@@ -40,7 +40,7 @@ public class StatisticAdapter extends RecyclerView.Adapter<StatisticAdapter.Stat
 
     @Override
     public void onBindViewHolder(StatisticHolder holder, int position) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+        if (DeviceUtil.hasJellyBeanMR1Api()) {
             holder.tvFirst.setCompoundDrawablesRelativeWithIntrinsicBounds(
                     mIconRes[position], 0, 0, 0);
         } else {

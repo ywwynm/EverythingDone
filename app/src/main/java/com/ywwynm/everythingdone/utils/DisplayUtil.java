@@ -72,7 +72,7 @@ public class DisplayUtil {
         Point realScreen = new Point();
         Display display = ((WindowManager) context.getSystemService(Context.WINDOW_SERVICE))
                 .getDefaultDisplay();
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN_MR1) {
+        if (!DeviceUtil.hasJellyBeanMR1Api()) {
             try {
                 Method mGetRawH = Display.class.getMethod("getRawHeight");
                 Method mGetRawW = Display.class.getMethod("getRawWidth");

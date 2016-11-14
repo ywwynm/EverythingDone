@@ -477,7 +477,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
             holder.tvAudioCount.setTextSize(18);
 
             llp2.setMargins(dp12, llp2.topMargin, llp2.rightMargin, llp2.bottomMargin);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+            if (DeviceUtil.hasJellyBeanMR1Api()) {
                 llp2.setMarginStart(dp12);
             }
 
@@ -488,7 +488,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
             holder.tvAudioCount.setTextSize(11);
 
             llp2.setMargins(dp8, llp2.topMargin, llp2.rightMargin, llp2.bottomMargin);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+            if (DeviceUtil.hasJellyBeanMR1Api()) {
                 llp2.setMarginStart(dp8);
             }
 

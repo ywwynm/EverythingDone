@@ -20,6 +20,10 @@ public class DeviceUtil {
 
     private DeviceUtil() {}
 
+    public static boolean hasJellyBeanMR1Api() {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1;
+    }
+
     public static boolean hasKitKatApi() {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT;
     }
