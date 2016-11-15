@@ -235,7 +235,7 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
                 }
 
                 int size = mItems.size();
-                if ((mMaxItemCount != -1 && size >= mMaxItemCount) || size >= mMaxItemCount) {
+                if ((mMaxItemCount != -1 && size >= mMaxItemCount) || mMaxItemCount == -1) {
                     holder.tv.setTextSize(14);
                     params.setMargins(0, (int) (2 * density), 0, params.bottomMargin);
                 } else {
