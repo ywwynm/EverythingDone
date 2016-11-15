@@ -78,7 +78,7 @@ public class ThingManager {
     private List<Reminder> mUndoGoals;
 
     private ThingManager(Context context) {
-        mContext = context;
+        mContext = context.getApplicationContext();
         mDao = ThingDAO.getInstance(context);
         mThingsCounts = ThingsCounts.getInstance(context);
         mExecutor = Executors.newSingleThreadExecutor();
@@ -321,7 +321,6 @@ public class ThingManager {
             thingToUpdate = Thing.getSameCheckStateThing(thing, stateBefore, stateAfter);
         } else thingToUpdate = thing;
 
-        final long headerId = mHeaderId;
         mExecutor.execute(new Runnable() {
             @Override
             public void run() {

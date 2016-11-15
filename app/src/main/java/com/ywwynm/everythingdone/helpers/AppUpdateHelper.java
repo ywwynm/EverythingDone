@@ -35,7 +35,7 @@ public class AppUpdateHelper {
         if (sInstance == null) {
             synchronized (AppUpdateHelper.class) {
                 if (sInstance == null) {
-                    sInstance = new AppUpdateHelper(context);
+                    sInstance = new AppUpdateHelper(context.getApplicationContext());
                 }
             }
         }

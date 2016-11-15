@@ -67,7 +67,7 @@ public class FingerprintHelper extends FingerprintManager.AuthenticationCallback
     }
 
     private FingerprintHelper(Context context) {
-        mContext = context;
+        mContext = context.getApplicationContext();
         if (DeviceUtil.hasMarshmallowApi()) {
             mFingerprintManager = (FingerprintManager) context.getSystemService(
                     Context.FINGERPRINT_SERVICE);

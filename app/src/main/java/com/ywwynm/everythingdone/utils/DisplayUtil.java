@@ -14,7 +14,6 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.RippleDrawable;
 import android.graphics.drawable.StateListDrawable;
-import android.os.Build;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.graphics.drawable.DrawerArrowDrawable;
 import android.support.v7.widget.AppCompatCheckBox;
@@ -72,7 +71,9 @@ public class DisplayUtil {
         Point realScreen = new Point();
         Display display = ((WindowManager) context.getSystemService(Context.WINDOW_SERVICE))
                 .getDefaultDisplay();
-        if (!DeviceUtil.hasJellyBeanMR1Api()) {
+        if (DeviceUtil.hasJellyBeanMR1Api()) {
+            display.getRealSize(realScreen);
+        } else {
             try {
                 Method mGetRawH = Display.class.getMethod("getRawHeight");
                 Method mGetRawW = Display.class.getMethod("getRawWidth");
@@ -83,8 +84,6 @@ public class DisplayUtil {
                 Log.e(TAG, "Cannot use reflection to get real screen size. " +
                         "Returned size may be wrong.");
             }
-        } else {
-            display.getRealSize(realScreen);
         }
         return realScreen;
     }

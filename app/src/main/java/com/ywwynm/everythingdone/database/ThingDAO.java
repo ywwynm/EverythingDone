@@ -36,7 +36,7 @@ public class ThingDAO {
     private SQLiteDatabase db;
 
     private ThingDAO(Context context) {
-        mContext = context;
+        mContext = context.getApplicationContext();
         mLimit = Def.LimitForGettingThings.ALL_UNDERWAY;
         DBHelper helper = new DBHelper(context);
         db = helper.getWritableDatabase();

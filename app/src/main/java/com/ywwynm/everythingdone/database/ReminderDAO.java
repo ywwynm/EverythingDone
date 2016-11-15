@@ -25,7 +25,7 @@ public class ReminderDAO {
     private static ReminderDAO sReminderDAO;
 
     private ReminderDAO(Context context) {
-        mContext = context;
+        mContext = context.getApplicationContext();
         DBHelper helper = new DBHelper(context);
         db = helper.getWritableDatabase();
     }

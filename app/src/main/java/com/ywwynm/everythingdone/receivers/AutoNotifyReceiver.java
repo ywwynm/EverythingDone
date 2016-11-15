@@ -12,11 +12,7 @@ import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.model.Thing;
-import com.ywwynm.everythingdone.database.ThingDAO;
-import com.ywwynm.everythingdone.managers.ThingManager;
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil;
-
-import java.util.List;
 
 public class AutoNotifyReceiver extends BroadcastReceiver {
 
