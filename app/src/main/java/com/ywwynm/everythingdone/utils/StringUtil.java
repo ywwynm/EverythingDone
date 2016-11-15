@@ -28,4 +28,11 @@ public class StringUtil {
         return first.toLowerCase() + s.substring(1, s.length());
     }
 
+    public static String replaceChineseBrackets(String s) {
+        if (TextUtils.isEmpty(s)) {
+            return "";
+        }
+        return s.replaceAll("（", "(").replaceAll("）", ")");
+    }
+
 }

@@ -61,6 +61,7 @@ import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil;
 import com.ywwynm.everythingdone.utils.FileUtil;
 import com.ywwynm.everythingdone.utils.LocaleUtil;
+import com.ywwynm.everythingdone.utils.StringUtil;
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil;
 import com.ywwynm.everythingdone.utils.UriPathConverter;
 
@@ -166,7 +167,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                 Ringtone dr = RingtoneManager.getRingtone(
                         context, Settings.System.DEFAULT_NOTIFICATION_URI);
                 sRingtoneUriList.add(Settings.System.DEFAULT_NOTIFICATION_URI);
-                sRingtoneTitleList.add(dr.getTitle(context));
+                sRingtoneTitleList.add(StringUtil.replaceChineseBrackets(dr.getTitle(context)));
 
                 SharedPreferences preferences = context.getSharedPreferences(
                         Def.Meta.PREFERENCES_NAME, MODE_PRIVATE);
@@ -196,7 +197,8 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                 int count = cursor.getCount();
                 for (int i = 0; i < count; i++) {
                     sRingtoneUriList.add(manager.getRingtoneUri(i));
-                    sRingtoneTitleList.add(manager.getRingtone(i).getTitle(context));
+                    sRingtoneTitleList.add(StringUtil.replaceChineseBrackets(
+                            manager.getRingtone(i).getTitle(context)));
                 }
                 cursor.close();
 
@@ -215,10 +217,10 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     private static String getRingtoneTitle(Context context, RingtoneManager ringtoneManager, Uri uri) {
         if (isFileRingtone(ringtoneManager, uri)) {
             String pathName = UriPathConverter.getLocalPathName(context, uri);
-            return FileUtil.getNameWithoutPostfix(pathName);
+            return StringUtil.replaceChineseBrackets(FileUtil.getNameWithoutPostfix(pathName));
         } else {
             Ringtone ringtone = RingtoneManager.getRingtone(context, uri);
-            return ringtone.getTitle(context);
+            return StringUtil.replaceChineseBrackets(ringtone.getTitle(context));
         }
     }
 
