@@ -999,6 +999,9 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     }
                     mUpdateMainUiInOnResume = true;
                     mRemoteIntent = null;
+                    if (mCanSeeUi) {
+                        App.setSomethingUpdatedSpecially(false);
+                    }
                 }
             }
         }, 560);
