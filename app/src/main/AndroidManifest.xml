@@ -25,6 +25,7 @@
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:label="@string/everythingdone"
             android:launchMode="singleTask"
+            android:taskAffinity="com.ywwynm.everythingdone.task_things"
             android:screenOrientation="user"
             android:theme="@style/EverythingDoneTheme.Things"
             android:windowSoftInputMode="adjustResize">
