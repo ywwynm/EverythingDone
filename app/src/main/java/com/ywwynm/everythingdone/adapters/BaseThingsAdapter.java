@@ -22,6 +22,7 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.RequestManager;
 import com.bumptech.glide.load.resource.drawable.GlideDrawable;
 import com.bumptech.glide.request.RequestListener;
 import com.bumptech.glide.request.target.Target;
@@ -87,6 +88,8 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
     private ReminderDAO mReminderDAO;
     private HabitDAO    mHabitDAO;
 
+    private RequestManager mImageRequestManager;
+
     private int mCardWidth;
     protected @Style int mStyle = STYLE_WHITE;
     private boolean mShouldShowPrivateContent = false;
@@ -105,6 +108,8 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
 
         mReminderDAO = ReminderDAO.getInstance(context);
         mHabitDAO    = HabitDAO.getInstance(context);
+
+        mImageRequestManager = Glide.with(context);
 
         mCardWidth = DisplayUtil.getThingCardWidth(context);
     }
@@ -256,80 +261,92 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
 
     private void updateCardForReminder(BaseThingViewHolder holder, Thing thing) {
         int thingType = thing.getType();
-        Reminder reminder = mReminderDAO.getReminderById(thing.getId());
-        if (reminder != null) {
-            int p = (int) (mDensity * 16);
-            holder.rlReminder.setVisibility(View.VISIBLE);
-            holder.rlReminder.setPadding(p, p, p, 0);
-
-            RelativeLayout.LayoutParams params = (RelativeLayout.LayoutParams)
-                    holder.ivReminder.getLayoutParams();
-            if (thingType == Thing.REMINDER) {
-                params.setMargins(0, (int) (mDensity * 2), 0, 0);
-                holder.ivReminder.setImageResource(R.drawable.card_reminder);
-                holder.ivReminder.setContentDescription(mContext.getString(R.string.reminder));
-                holder.tvReminderTime.setTextSize(12);
-
-                holder.tvReminderTime.setText(
-                        DateTimeUtil.getDateTimeStrReminder(mContext, thing, reminder));
-            } else {
-                params.setMargins(0, (int) (mDensity * 1.6), 0, 0);
-                holder.ivReminder.setImageResource(R.drawable.card_goal);
-                holder.ivReminder.setContentDescription(mContext.getString(R.string.goal));
-                holder.tvReminderTime.setTextSize(16);
-
-                holder.tvReminderTime.setText(
-                        DateTimeUtil.getDateTimeStrGoal(mContext, thing, reminder));
-            }
-        } else {
+        if (!Thing.isReminderType(thingType)) {
             holder.rlReminder.setVisibility(View.GONE);
+            return;
+        }
+
+        Reminder reminder = mReminderDAO.getReminderById(thing.getId());
+        if (reminder == null) {
+            holder.rlReminder.setVisibility(View.GONE);
+            return;
+        }
+
+        int p = (int) (mDensity * 16);
+        holder.rlReminder.setVisibility(View.VISIBLE);
+        holder.rlReminder.setPadding(p, p, p, 0);
+
+        RelativeLayout.LayoutParams params = (RelativeLayout.LayoutParams)
+                holder.ivReminder.getLayoutParams();
+        if (thingType == Thing.REMINDER) {
+            params.setMargins(0, (int) (mDensity * 2), 0, 0);
+            holder.ivReminder.setImageResource(R.drawable.card_reminder);
+            holder.ivReminder.setContentDescription(mContext.getString(R.string.reminder));
+            holder.tvReminderTime.setTextSize(12);
+
+            holder.tvReminderTime.setText(
+                    DateTimeUtil.getDateTimeStrReminder(mContext, thing, reminder));
+        } else {
+            params.setMargins(0, (int) (mDensity * 1.6), 0, 0);
+            holder.ivReminder.setImageResource(R.drawable.card_goal);
+            holder.ivReminder.setContentDescription(mContext.getString(R.string.goal));
+            holder.tvReminderTime.setTextSize(16);
+
+            holder.tvReminderTime.setText(
+                    DateTimeUtil.getDateTimeStrGoal(mContext, thing, reminder));
         }
     }
 
     @SuppressLint("SetTextI18n")
     private void updateCardForHabit(BaseThingViewHolder holder, Thing thing) {
-        Habit habit = mHabitDAO.getHabitById(thing.getId());
-        if (habit != null) {
-            int p = (int) (mDensity * 16);
-            holder.rlHabit.setVisibility(View.VISIBLE);
-            holder.rlHabit.setPadding(p, p, p, 0);
-
-            holder.tvHabitSummary.setText(habit.getSummary(mContext));
-
-            if (thing.getState() == Thing.UNDERWAY) {
-                holder.tvHabitNextReminder.setVisibility(View.VISIBLE);
-                holder.vHabitSeparator2.setVisibility(View.VISIBLE);
-                holder.tvHabitLastFive.setVisibility(View.VISIBLE);
-                holder.llHabitRecord.setVisibility(View.VISIBLE);
-                holder.tvHabitFinishedThisT.setVisibility(View.VISIBLE);
-
-                String next = mContext.getString(R.string.habit_next_reminder);
-                holder.tvHabitNextReminder.setText(
-                        next + " " + habit.getNextReminderDescription(mContext));
-
-                String record = habit.getRecord();
-                StringBuilder lastFive;
-                int len = record.length();
-                if (len >= 5) {
-                    lastFive = new StringBuilder(record.substring(len - 5, len));
-                } else {
-                    lastFive = new StringBuilder(record);
-                    for (int i = 0; i < 5 - len; i++) {
-                        lastFive.append("?");
-                    }
-                }
-                holder.habitRecordPresenter.setRecord(lastFive.toString());
-
-                holder.tvHabitFinishedThisT.setText(habit.getFinishedTimesThisTStr(mContext));
-            } else {
-                holder.tvHabitNextReminder.setVisibility(View.GONE);
-                holder.vHabitSeparator2.setVisibility(View.GONE);
-                holder.tvHabitLastFive.setVisibility(View.GONE);
-                holder.llHabitRecord.setVisibility(View.GONE);
-                holder.tvHabitFinishedThisT.setVisibility(View.GONE);
-            }
-        } else {
+        if (thing.getType() != Thing.HABIT) {
             holder.rlHabit.setVisibility(View.GONE);
+            return;
+        }
+
+        Habit habit = mHabitDAO.getHabitById(thing.getId());
+        if (habit == null) {
+            holder.rlHabit.setVisibility(View.GONE);
+            return;
+        }
+
+        int p = (int) (mDensity * 16);
+        holder.rlHabit.setVisibility(View.VISIBLE);
+        holder.rlHabit.setPadding(p, p, p, 0);
+
+        holder.tvHabitSummary.setText(habit.getSummary(mContext));
+
+        if (thing.getState() == Thing.UNDERWAY) {
+            holder.tvHabitNextReminder.setVisibility(View.VISIBLE);
+            holder.vHabitSeparator2.setVisibility(View.VISIBLE);
+            holder.tvHabitLastFive.setVisibility(View.VISIBLE);
+            holder.llHabitRecord.setVisibility(View.VISIBLE);
+            holder.tvHabitFinishedThisT.setVisibility(View.VISIBLE);
+
+            String next = mContext.getString(R.string.habit_next_reminder);
+            holder.tvHabitNextReminder.setText(
+                    next + " " + habit.getNextReminderDescription(mContext));
+
+            String record = habit.getRecord();
+            StringBuilder lastFive;
+            int len = record.length();
+            if (len >= 5) {
+                lastFive = new StringBuilder(record.substring(len - 5, len));
+            } else {
+                lastFive = new StringBuilder(record);
+                for (int i = 0; i < 5 - len; i++) {
+                    lastFive.append("?");
+                }
+            }
+            holder.habitRecordPresenter.setRecord(lastFive.toString());
+
+            holder.tvHabitFinishedThisT.setText(habit.getFinishedTimesThisTStr(mContext));
+        } else {
+            holder.tvHabitNextReminder.setVisibility(View.GONE);
+            holder.vHabitSeparator2.setVisibility(View.GONE);
+            holder.tvHabitLastFive.setVisibility(View.GONE);
+            holder.llHabitRecord.setVisibility(View.GONE);
+            holder.tvHabitFinishedThisT.setVisibility(View.GONE);
         }
     }
 
@@ -365,7 +382,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
             }
 
             String pathName = firstImageTypePathName.substring(1, firstImageTypePathName.length());
-            Glide.with(mContext)
+            mImageRequestManager
                     .load(pathName)
                     .listener(new RequestListener<String, GlideDrawable>() {
                         @Override
