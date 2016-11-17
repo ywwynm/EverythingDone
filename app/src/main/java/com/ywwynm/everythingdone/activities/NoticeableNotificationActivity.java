@@ -268,20 +268,9 @@ public class NoticeableNotificationActivity extends EverythingDoneBaseActivity {
 
     @Override
     protected void initUI() {
-//        WindowManager.LayoutParams wlp = getWindow().getAttributes();
-//        wlp.width = mDialogWidth;
-//        getWindow().setAttributes(wlp);
-
         initTitleUI();
         initRvThing();
         initActionsUI();
-
-        mRvThing.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                System.out.println(getWindow().getDecorView().getWidth());
-            }
-        }, 2000);
     }
 
     @SuppressLint("SetTextI18n")
