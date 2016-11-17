@@ -181,9 +181,15 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     private BroadcastReceiver mUpdateUiReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, final Intent intent) {
+            String mRemoteIntentInfo = "mRemoteIntent[null]";
+            if (mRemoteIntent != null) {
+                mRemoteIntentInfo = "mRemoteIntent.resultCode[" +
+                        mRemoteIntent.getIntExtra(Def.Communication.KEY_RESULT_CODE,
+                                Def.Communication.RESULT_NO_UPDATE) + "]";
+            }
             Log.i(TAG, "UPDATE_MAIN_UI broadcast received, "
                     + "canSeeThingsActivity[" + mCanSeeUi + "], "
-                    + "mRemoteIntent[" + mRemoteIntent + "]");
+                    + mRemoteIntentInfo);
             if (!mCanSeeUi) {
                 if (mRemoteIntent != null) {
                     updateMainUi(mRemoteIntent);
@@ -404,9 +410,16 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         super.onResume();
         updateTaskDescription();
 
+        String mRemoteIntentInfo = "mRemoteIntent[null]";
+        if (mRemoteIntent != null) {
+            mRemoteIntentInfo = "mRemoteIntent.resultCode[" +
+                    mRemoteIntent.getIntExtra(Def.Communication.KEY_RESULT_CODE,
+                            Def.Communication.RESULT_NO_UPDATE) + "]";
+        }
         Log.i(TAG, "onResume called, mUpdateMainUiInOnResume[" + mUpdateMainUiInOnResume + "], "
                 + "justNotifyDataSetChanged[" + App.justNotifyDataSetChanged() + "], "
-                + "mRemoteIntent[" + mRemoteIntent + "]");
+                + mRemoteIntentInfo);
+
         if (mUpdateMainUiInOnResume) {
             if (App.justNotifyDataSetChanged()) {
                 mRecyclerView.postDelayed(new Runnable() {
@@ -669,6 +682,16 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     int mRemoteIntentResultCode = mRemoteIntent.getIntExtra(
                             Def.Communication.KEY_RESULT_CODE, Def.Communication.RESULT_NO_UPDATE);
                     if (mRemoteIntentResultCode == Def.Communication.RESULT_NO_UPDATE) {
+                        // TODO: 2016/11/17 App.justNotifyDataSetChanged here?
+                        if (App.isSomethingUpdatedSpecially()) {
+                            mRecyclerView.postDelayed(new Runnable() {
+                                @Override
+                                public void run() {
+                                    justNotifyDataSetChanged();
+                                    mRemoteIntent = null;
+                                }
+                            }, 540);
+                        }
                         mRemoteIntent = null;
                     } else {
                         updateMainUi(mRemoteIntent, mRemoteIntentResultCode);
