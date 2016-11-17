@@ -1642,6 +1642,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         if (mThing == null) {
             return;
         }
+        Log.i(TAG, "onDestroy() called, id[" + mThing.getId() + "]");
         if (!mRemoveDetailActivityInstance) {
             App.getRunningDetailActivities().remove(mThing.getId());
         }
