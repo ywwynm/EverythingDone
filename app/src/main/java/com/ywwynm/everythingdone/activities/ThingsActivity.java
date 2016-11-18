@@ -682,17 +682,17 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     int mRemoteIntentResultCode = mRemoteIntent.getIntExtra(
                             Def.Communication.KEY_RESULT_CODE, Def.Communication.RESULT_NO_UPDATE);
                     if (mRemoteIntentResultCode == Def.Communication.RESULT_NO_UPDATE) {
-                        // TODO: 2016/11/17 App.justNotifyDataSetChanged here?
-                        if (App.isSomethingUpdatedSpecially()) {
-                            mRecyclerView.postDelayed(new Runnable() {
-                                @Override
-                                public void run() {
-                                    justNotifyDataSetChanged();
-                                    mRemoteIntent = null;
+                        mRecyclerView.postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                mAdapter.tryToNotify();
+                                mUpdateMainUiInOnResume = true;
+                                if (mCanSeeUi) {
+                                    App.setSomethingUpdatedSpecially(false);
                                 }
-                            }, 540);
-                        }
-                        mRemoteIntent = null;
+                                mRemoteIntent = null;
+                            }
+                        }, 540);
                     } else {
                         updateMainUi(mRemoteIntent, mRemoteIntentResultCode);
                     }
