@@ -331,6 +331,17 @@ public class NoticeableNotificationActivity extends EverythingDoneBaseActivity {
                 holder.flDoing.setVisibility(View.GONE);
                 holder.ivSticky.setVisibility(View.GONE);
 
+                if (holder.ivPrivateThing.getVisibility() == View.VISIBLE) {
+                    holder.ivPrivateThing.setVisibility(View.GONE);
+                    holder.tvContent.setVisibility(View.VISIBLE);
+                    holder.tvContent.setText(R.string.notification_private_thing_content);
+                    holder.tvContent.setTextSize(20);
+                    holder.tvContent.setTextColor(ContextCompat.getColor(
+                            getApplicationContext(), R.color.black_76p));
+                    int p = (int) (mDensity * 16);
+                    holder.tvContent.setPadding(p, p, p, 0);
+                }
+
                 holder.cv.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
