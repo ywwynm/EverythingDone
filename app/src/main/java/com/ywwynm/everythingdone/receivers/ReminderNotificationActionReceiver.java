@@ -70,7 +70,7 @@ public class ReminderNotificationActionReceiver extends BroadcastReceiver {
                         context, TAG, id, position,
                         Def.Communication.AUTHENTICATE_ACTION_FINISH,
                         context.getString(R.string.act_finish));
-                actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
                 context.startActivity(actionIntent);
             } else {
                 RemoteActionHelper.finishReminder(context, thing, position);
@@ -87,7 +87,7 @@ public class ReminderNotificationActionReceiver extends BroadcastReceiver {
                 actionIntent = DelayReminderActivity.getOpenIntent(
                         context, thing.getId(), position, thing.getColor());
             }
-            actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
             context.startActivity(actionIntent);
         } else if (action.endsWith(Def.Communication.NOTIFICATION_ACTION_START_DOING)) {
             if (App.getDoingThingId() != -1L) {
@@ -105,7 +105,7 @@ public class ReminderNotificationActionReceiver extends BroadcastReceiver {
                 actionIntent = StartDoingActivity.getOpenIntent(
                         context, thing.getId(), position, thing.getColor());
             }
-            actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
             context.startActivity(actionIntent);
         }
     }

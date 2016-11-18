@@ -168,7 +168,7 @@ public class HabitReceiver extends BroadcastReceiver {
         if (moreNoticeable) {
             Intent intent = NoticeableNotificationActivity.getOpenIntentForHabit(
                     context, hrId, position, habitReminder.getNotifyTime());
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
             context.startActivity(intent);
         }
     }

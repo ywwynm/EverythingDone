@@ -57,7 +57,7 @@ public class HabitNotificationActionReceiver extends BroadcastReceiver {
                         context, TAG, id, position,
                         Def.Communication.AUTHENTICATE_ACTION_FINISH,
                         context.getString(R.string.act_finish));
-                actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
                 actionIntent.putExtra(Def.Communication.KEY_TIME, time);
                 context.startActivity(actionIntent);
             } else {
@@ -79,7 +79,7 @@ public class HabitNotificationActionReceiver extends BroadcastReceiver {
                 actionIntent = StartDoingActivity.getOpenIntent(
                         context, thing.getId(), position, thing.getColor());
             }
-            actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
             context.startActivity(actionIntent);
         }
     }

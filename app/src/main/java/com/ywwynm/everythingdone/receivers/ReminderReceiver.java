@@ -88,7 +88,7 @@ public class ReminderReceiver extends BroadcastReceiver {
         notifyUserBySystemNotification(context, id, position, thing, moreNoticeable);
         if (moreNoticeable) {
             Intent intent = NoticeableNotificationActivity.getOpenIntentForReminder(context, id, position);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
             context.startActivity(intent);
         }
     }
