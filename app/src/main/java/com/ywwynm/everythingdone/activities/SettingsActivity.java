@@ -1089,7 +1089,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         editor.putBoolean(Def.Meta.KEY_TOGGLE_CLI_OTC, toggleCliOtc);
         if (toggleCliOtc != mToggleCliOtc) {
             // set or unset Checklist items listeners for ThingsAdapter in ThingsActivity
-            App.setShouldJustNotifyDataSetChanged(true);
+            App.setJustNotifyAll(true);
         }
 
         editor.putBoolean(Def.Meta.KEY_AUTO_LINK, mCbAutoLink.isChecked());

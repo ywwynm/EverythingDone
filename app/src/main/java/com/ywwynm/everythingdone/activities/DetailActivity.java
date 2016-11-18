@@ -2271,7 +2271,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
         Integer resultCode = createOrUpdateThing(title, content, attachment,
                 typeBefore, typeAfter, color, reminderUpdated, habitUpdated, intent);
-        if (resultCode == null) {
+        if (resultCode == null) { // create empty thing
             return;
         }
 
@@ -2306,12 +2306,16 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     private void afterCreateOrUpdateThing(Intent intent, int resultCode) {
         if (App.isSomethingUpdatedSpecially()
                 && resultCode != Def.Communication.RESULT_NO_UPDATE) {
-            App.setShouldJustNotifyDataSetChanged(true);
+            App.tryToSetNotifyAllToTrue(mThing, resultCode);
         }
 
         if (shouldSendBroadCast()) {
             sendBroadCastToUpdateMainUI(intent, resultCode);
         }
+
+        intent.putExtra(Def.Communication.KEY_THING, mThing);
+        App.setLastUpdateUiIntent(intent);
+
         AppWidgetHelper.updateSingleThingAppWidgets(this, mThing.getId());
         AppWidgetHelper.updateThingsListAppWidgetsForType(this, mThing.getType());
 
@@ -2326,11 +2330,10 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
         ThingManager manager = ThingManager.getInstance(mApp);
         Intent intent = new Intent();
-        intent.putExtra(Def.Communication.KEY_THING, mThing);
 
         if (App.isSomethingUpdatedSpecially()) {
             updateThingAndItsPosition(mThing.getId());
-            App.setShouldJustNotifyDataSetChanged(true);
+            App.setJustNotifyAll(true);
         }
 
         intent.putExtra(Def.Communication.KEY_POSITION, mPosition);
@@ -2368,12 +2371,16 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                             mThing.getState(), stateAfter, false, true));
         }
 
+        intent.putExtra(Def.Communication.KEY_THING, mThing);
+
         int resultCode = Def.Communication.RESULT_UPDATE_THING_STATE_DIFFERENT;
         if (shouldSendBroadCast()) {
             sendBroadCastToUpdateMainUI(intent, resultCode);
         } else {
             setResult(resultCode, intent);
         }
+        App.setLastUpdateUiIntent(intent);
+
         AppWidgetHelper.updateSingleThingAppWidgets(this, mThing.getId());
         AppWidgetHelper.updateThingsListAppWidgetsForType(this, mThing.getType());
         finish();
@@ -2420,13 +2427,17 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
     private void createFailed(int resultCode) {
         if (App.isSomethingUpdatedSpecially()) {
-            App.setShouldJustNotifyDataSetChanged(true);
+            App.setJustNotifyAll(true);
         }
+
+        Intent intent = new Intent();
         if (shouldSendBroadCast()) {
-            sendBroadCastToUpdateMainUI(new Intent(), resultCode);
+            sendBroadCastToUpdateMainUI(intent, resultCode);
         } else {
             setResult(resultCode);
         }
+        App.setLastUpdateUiIntent(intent);
+
         finish();
     }
 
@@ -2586,7 +2597,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     private void stickyOrCancel() {
         if (App.isSomethingUpdatedSpecially()) {
             updateThingAndItsPosition(mThing.getId());
-            App.setShouldJustNotifyDataSetChanged(true);
+            App.setJustNotifyAll(true);
         }
 
         if (mThing.getLocation() < 0) {
@@ -2606,6 +2617,8 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         } else {
             setResult(resultCode, intent);
         }
+        App.setLastUpdateUiIntent(intent);
+
         AppWidgetHelper.updateSingleThingAppWidgets(this, mThing.getId());
         AppWidgetHelper.updateThingsListAppWidgetsForType(this, mThing.getType());
         finish();

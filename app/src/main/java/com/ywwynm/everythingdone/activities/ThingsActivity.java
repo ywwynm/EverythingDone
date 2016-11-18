@@ -238,7 +238,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         // this will be only called in onCreate(), which means this Activity has unregistered
         // receiver. So these two boolean values are useless now.
         App.setSomethingUpdatedSpecially(false);
-        App.setShouldJustNotifyDataSetChanged(false);
+        App.setJustNotifyAll(false);
         if (App.isSearching) {
             App.isSearching = false; // maybe we searched in multi-window mode and quit it later
         }
@@ -417,15 +417,15 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                             Def.Communication.RESULT_NO_UPDATE) + "]";
         }
         Log.i(TAG, "onResume called, mUpdateMainUiInOnResume[" + mUpdateMainUiInOnResume + "], "
-                + "justNotifyDataSetChanged[" + App.justNotifyDataSetChanged() + "], "
+                + "justNotifyAll[" + App.justNotifyAll() + "], "
                 + mRemoteIntentInfo);
 
         if (mUpdateMainUiInOnResume) {
-            if (App.justNotifyDataSetChanged()) {
+            if (App.justNotifyAll()) {
                 mRecyclerView.postDelayed(new Runnable() {
                     @Override
                     public void run() {
-                        justNotifyDataSetChanged();
+                        justNotifyAll();
                         mRemoteIntent = null;
                     }
                 }, 540);
@@ -618,7 +618,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 mDrawerLayout.postDelayed(new Runnable() {
                     @Override
                     public void run() {
-                        justNotifyDataSetChanged();
+                        justNotifyAll();
                         mUpdateMainUiInOnResume = true;
                         mRemoteIntent = null;
                     }
@@ -676,7 +676,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     mUpdateMainUiInOnResume = true;
                     if (mCanSeeUi) {
                         App.setSomethingUpdatedSpecially(false);
-                        App.setShouldJustNotifyDataSetChanged(false);
+                        App.setJustNotifyAll(false);
                     }
                 } else {
                     int mRemoteIntentResultCode = mRemoteIntent.getIntExtra(
@@ -723,8 +723,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
         final boolean createdDone = data.getBooleanExtra(
                 Def.Communication.KEY_CREATED_DONE, false);
-        final boolean justNotifyDataSetChanged =
-                App.justNotifyDataSetChanged();
+        final boolean justNotifyAll = App.justNotifyAll();
         final Thing thingToCreate = data.getParcelableExtra(
                 Def.Communication.KEY_THING);
 
@@ -732,7 +731,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 //            mRecyclerView.postDelayed(new Runnable() {
 //                @Override
 //                public void run() {
-//                    justNotifyDataSetChanged();
+//                    justNotifyAll();
 //                    afterUpdateMainUiForCreateDone();
 //                }
 //            }, 560);
@@ -749,13 +748,13 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
          * was called without any delay, and if {@link App#mLimit} is not
          * {@link Def.LimitForGettingThings.ALL_UNDERWAY}, we will call
          * {@link ThingsAdapter#notifyDataSetChanged()} very early(see code above, head part of this
-         * function) so all created things will display before {@link justNotifyDataSetChanged()}
+         * function) so all created things will display before {@link #justNotifyAll()}
          * (I don't know why a thing can display because of notifyDataSetChanged called before its
-         * creation). In this case, since we should call {@link justNotifyDataSetChanged()} indeed,
+         * creation). In this case, since we should call {@link #justNotifyAll()} indeed,
          * we can see {@link mRecyclerView} refreshes twice but without any visible change of things.
          *
          * If the inside one was removed and merged with outside one into a postDelayed(Runnable, 600),
-         * since {@link justNotifyDataSetChanged()} called {@link ThingManager#loadThings()},
+         * since {@link #justNotifyAll()} called {@link ThingManager#loadThings()},
          * which get all things from database, and {@link ThingManager#create(Thing, boolean, boolean)}
          * will create a new thread to write a thing to database, which is not very reliable at
          * time/order, sometimes we cannot see all things even after
@@ -763,7 +762,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
          *
          * Sometimes I may think that I can remove outside postDelay and add a flag for that if we
          * have already called notifyDataSetChanged at head(If the flag is true, we won't call
-         * justNotifyDataSetChanged later). But we need item add animation of RecyclerView
+         * justNotifyAll later). But we need item add animation of RecyclerView
          * ({@link ThingsAdapter#notifyItemInserted(int)}), as a result, I give up that thought.
          */
         mDrawerLayout.postDelayed(new Runnable() {
@@ -778,8 +777,8 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 mRecyclerView.postDelayed(new Runnable() {
                     @Override
                     public void run() {
-                        if (justNotifyDataSetChanged) {
-                            justNotifyDataSetChanged();
+                        if (justNotifyAll) {
+                            justNotifyAll();
                         } else {
                             if (change) {
                                 mAdapter.notifyItemChanged(1);
@@ -811,16 +810,16 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     private void updateMainUiForUpdateSameType(final Intent data) {
         @Thing.Type final int typeBefore = data.getIntExtra(
                 Def.Communication.KEY_TYPE_BEFORE, Thing.NOTE);
-        final boolean justNotifyDataSetChanged = App.justNotifyDataSetChanged();
+        final boolean justNotifyAll = App.justNotifyAll();
         Log.i(TAG, "updateMainUiForUpdateSameType called, "
                 + "typeBefore[" + typeBefore + "], "
-                + "justNotifyDataSetChanged[" + justNotifyDataSetChanged + "]");
+                + "justNotifyAll[" + justNotifyAll + "]");
         mDrawerLayout.postDelayed(new Runnable() {
             @Override
             public void run() {
                 Log.i(TAG, "updateMainUiForUpdateSameType: delayed Runnable started.");
-                if (justNotifyDataSetChanged) {
-                    justNotifyDataSetChanged();
+                if (justNotifyAll) {
+                    justNotifyAll();
                 } else if (Thing.isTypeStateMatchLimit(typeBefore,
                         Thing.UNDERWAY, mApp.getLimit())) {
                     int pos = data.getIntExtra(
@@ -865,7 +864,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         @Thing.Type final int typeBefore = data.getIntExtra(
                 Def.Communication.KEY_TYPE_BEFORE, Thing.NOTE);
 
-        final boolean justNotifyDataSetChanged = App.justNotifyDataSetChanged();
+        final boolean justNotifyAll = App.justNotifyAll();
         mDrawerLayout.postDelayed(new Runnable() {
             @Override
             public void run() {
@@ -873,8 +872,8 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 final int curLimit = mApp.getLimit();
                 boolean limitMatched = Thing.isTypeStateMatchLimit(type, Thing.UNDERWAY, curLimit);
 
-                if (justNotifyDataSetChanged || limitMatched) {
-                    justNotifyDataSetChanged();
+                if (justNotifyAll || limitMatched) {
+                    justNotifyAll();
                 } else if (Thing.isTypeStateMatchLimit(typeBefore, Thing.UNDERWAY, curLimit)) {
                     if (App.isSearching) {
                         mAdapter.notifyItemRemoved(data.getIntExtra(
@@ -914,12 +913,12 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 Def.Communication.KEY_POSITION, 1);
         final boolean changed = data.getBooleanExtra(
                 Def.Communication.KEY_CALL_CHANGE, false);
-        final boolean justNotifyDataSetChanged = App.justNotifyDataSetChanged();
+        final boolean justNotifyAll = App.justNotifyAll();
         Log.i(TAG, "updateMainUiForUpdateDifferentState called, "
                 + "stateAfter[" + stateAfter + "], "
                 + "position[" + position + "], "
                 + "call change[" + changed + "], "
-                + "justNotifyDataSetChanged[" + justNotifyDataSetChanged + "]");
+                + "justNotifyAll[" + justNotifyAll + "]");
 
         if (mStateToUndoFrom != stateAfter) {
             dismissSnackbars();
@@ -937,8 +936,8 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 Log.i(TAG, "type[" + type + "], "
                         + "curLimit[" + curLimit + "], "
                         + "limitMatched[" + limitMatched + "]");
-                if (justNotifyDataSetChanged || limitMatched) {
-                    justNotifyDataSetChanged();
+                if (justNotifyAll || limitMatched) {
+                    justNotifyAll();
                 } else if (Thing.isTypeStateMatchLimit(type, thing.getState(), curLimit)) {
                     mUndoThings.add(thing);
                     mThingsIdsToUpdateWidget.add(thing.getId());
@@ -972,19 +971,19 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         final int oldPosition = data.getIntExtra(
                 Def.Communication.KEY_POSITION, -1);
         final int newPosition = mThingManager.getPosition(thing.getId());
-        final boolean justNotifyDataSetChanged = App.justNotifyDataSetChanged();
+        final boolean justNotifyAll = App.justNotifyAll();
         Log.i(TAG, "updateMainUiForStickyOrCancel called, "
                 + "isStickyBefore[" + isStickyBefore + "], "
                 + "oldPosition[" + oldPosition + "], "
                 + "newPosition[" + newPosition + "], "
-                + "justNotifyDataSetChanged[" + justNotifyDataSetChanged + "]");
+                + "justNotifyAll[" + justNotifyAll + "]");
 
         mDrawerLayout.postDelayed(new Runnable() {
             @Override
             public void run() {
                 Log.i(TAG, "updateMainUiForStickyOrCancel: delayed Runnable started.");
-                if (justNotifyDataSetChanged) {
-                    justNotifyDataSetChanged();
+                if (justNotifyAll) {
+                    justNotifyAll();
                 } else if (oldPosition != -1 && newPosition != -1) {
                     mAdapter.notifyItemMoved(oldPosition, newPosition);
                     mDrawerLayout.postDelayed(new Runnable() {
@@ -1008,13 +1007,13 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     private void updateMainUiForDoingOrCancel(Intent data) {
         Log.i(TAG, "updateMainUiForDoingOrCancel called");
         final Thing thing = data.getParcelableExtra(Def.Communication.KEY_THING);
-        final boolean justNotifyDataSetChanged = App.justNotifyDataSetChanged();
+        final boolean justNotifyAll = App.justNotifyAll();
         mDrawerLayout.postDelayed(new Runnable() {
             @Override
             public void run() {
                 Log.i(TAG, "updateMainUiForDoingOrCancel: delayed Runnable started.");
-                if (justNotifyDataSetChanged) {
-                    justNotifyDataSetChanged();
+                if (justNotifyAll) {
+                    justNotifyAll();
                 } else {
                     int position = mThingManager.getPosition(thing.getId());
                     if (position != -1) {
@@ -1030,7 +1029,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         }, 560);
     }
 
-    private void justNotifyDataSetChanged() {
+    private void justNotifyAll() {
         if (App.isSearching) {
             mThingManager.searchThings(mEtSearch.getText().toString(), mColorPicker.getPickedColor());
             handleSearchResults();
@@ -1050,7 +1049,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
         if (mCanSeeUi) {
             App.setSomethingUpdatedSpecially(false);
-            App.setShouldJustNotifyDataSetChanged(false);
+            App.setJustNotifyAll(false);
         }
 
         mUpdateMainUiInOnResume = true;

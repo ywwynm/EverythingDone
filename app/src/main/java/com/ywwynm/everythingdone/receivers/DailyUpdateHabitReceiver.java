@@ -40,7 +40,7 @@ public class DailyUpdateHabitReceiver extends BroadcastReceiver {
     }
 
     private void sendBroadcastToMainUI(Context context) {
-        App.setShouldJustNotifyDataSetChanged(true);
+        App.setJustNotifyAll(true);
         Intent broadcastIntent = new Intent(
                 Def.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI);
         broadcastIntent.putExtra(Def.Communication.KEY_RESULT_CODE,

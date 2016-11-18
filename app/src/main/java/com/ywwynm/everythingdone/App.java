@@ -15,6 +15,7 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.v4.util.Pair;
+import android.util.Log;
 
 import com.bumptech.glide.Glide;
 import com.ywwynm.everythingdone.database.ReminderDAO;
@@ -74,7 +75,7 @@ public class App extends Application {
     private boolean detailActivityRun = false;
 
     private static boolean somethingUpdatedSpecially = false;
-    private static boolean justNotifyDataSetChanged = false;
+    private static boolean justNotifyAll = false;
 
     public static int newThingColor;
 
@@ -195,12 +196,57 @@ public class App extends Application {
         App.somethingUpdatedSpecially = somethingUpdatedSpecially;
     }
 
-    public static boolean justNotifyDataSetChanged() {
-        return justNotifyDataSetChanged;
+    public static boolean justNotifyAll() {
+        return justNotifyAll;
     }
 
-    public static void setShouldJustNotifyDataSetChanged(boolean justNotifyDataSetChanged) {
-        App.justNotifyDataSetChanged = justNotifyDataSetChanged;
+    public static void setJustNotifyAll(boolean justNotifyAll) {
+        App.justNotifyAll = justNotifyAll;
+    }
+
+    private static Intent sLastUpdateUiIntent;
+
+    public static void setLastUpdateUiIntent(Intent lastUpdateUiIntent) {
+        App.sLastUpdateUiIntent = lastUpdateUiIntent;
+    }
+
+    public static void tryToSetNotifyAllToTrue(Thing thing, int resultCode) {
+        if (shouldSetNotifyAllToTrue(thing, resultCode)) {
+            justNotifyAll = true;
+        }
+    }
+
+    private static boolean shouldSetNotifyAllToTrue(Thing thing, int resultCode) {
+        if (sLastUpdateUiIntent == null) {
+            Log.i(TAG, "should set notifyAll to true because sLastUpdateUiIntent is null");
+            return true;
+        }
+
+        Thing thingBefore = sLastUpdateUiIntent.getParcelableExtra(Def.Communication.KEY_THING);
+        if (thingBefore == null) {
+            Log.i(TAG, "should set notifyAll to true because thingBefore is null");
+            return true;
+        }
+
+        if (thingBefore.getId() != thing.getId()) {
+            Log.i(TAG, "should set notifyAll to true because ids are different");
+            return true;
+        }
+
+        int resultCodeBefore = sLastUpdateUiIntent.getIntExtra(
+                Def.Communication.KEY_RESULT_CODE, Def.Communication.RESULT_NO_UPDATE);
+        if (resultCode == resultCodeBefore) {
+            Log.i(TAG, "should not set notifyAll to true because resultCodes are same");
+            return false;
+        }
+
+        if (resultCodeBefore == Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME) {
+            Log.i(TAG, "should not set notifyAll to true because resultCodeBefore is UPDATE_TYPE_SAME");
+            return false;
+        }
+
+        Log.i(TAG, "should set notifyAll to true");
+        return true;
     }
 
     public void setDetailActivityRun(boolean detailActivityRun) {

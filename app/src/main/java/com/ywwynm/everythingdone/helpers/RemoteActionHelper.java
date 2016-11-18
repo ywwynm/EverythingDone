@@ -125,9 +125,7 @@ public class RemoteActionHelper {
 
     public static void doingOrCancel(Context context, Thing thing) {
         if (App.isSomethingUpdatedSpecially()) {
-            if (shouldJustNotifyDataSetChanged(thing, Def.Communication.RESULT_DOING_OR_CANCEL)) {
-                App.setShouldJustNotifyDataSetChanged(true);
-            }
+            App.tryToSetNotifyAllToTrue(thing, Def.Communication.RESULT_DOING_OR_CANCEL);
         } else {
             App.setSomethingUpdatedSpecially(true);
         }
@@ -141,7 +139,7 @@ public class RemoteActionHelper {
         AppWidgetHelper.updateSingleThingAppWidgets(context, thing.getId());
         AppWidgetHelper.updateThingsListAppWidgetsForType(context, thing.getType());
 
-        sRemoteIntent = broadcastIntent;
+        App.setLastUpdateUiIntent(broadcastIntent);
     }
 
     public static void correctIfNoReminder(
@@ -198,10 +196,7 @@ public class RemoteActionHelper {
         Log.i(TAG, "updateUiEverywhere called");
         if (App.isSomethingUpdatedSpecially()) {
             Log.i(TAG, "App.isSomethingUpdatedSpecially is already true");
-            if (shouldJustNotifyDataSetChanged(thing, resultCode)) {
-                Log.i(TAG, "set App.shouldJustNotifyDataSetChanged to true, resultCode[" + resultCode + "]");
-                App.setShouldJustNotifyDataSetChanged(true);
-            }
+            App.tryToSetNotifyAllToTrue(thing, resultCode);
         } else {
             Log.i(TAG, "App.isSomethingUpdatedSpecially is false, set to true");
             App.setSomethingUpdatedSpecially(true);
@@ -241,31 +236,7 @@ public class RemoteActionHelper {
             AppWidgetHelper.updateThingsListAppWidgetsForType(context, typeAfter);
         }
 
-        sRemoteIntent = broadcastIntent;
-    }
-
-    private static Intent sRemoteIntent = null;
-
-    private static boolean shouldJustNotifyDataSetChanged(Thing thing, int resultCode) {
-        if (sRemoteIntent == null) {
-            return true;
-        }
-        // sRemoteIntent != null
-        Thing thingBefore = sRemoteIntent.getParcelableExtra(Def.Communication.KEY_THING);
-        if (thingBefore.getId() != thing.getId()) {
-            return true;
-        }
-        // handling same thing
-        int resultCodeBefore = sRemoteIntent.getIntExtra(
-                Def.Communication.KEY_RESULT_CODE, Def.Communication.RESULT_NO_UPDATE);
-        if (resultCode == resultCodeBefore) {
-            return false;
-        }
-        // different resultCode, which means different action
-        if (resultCodeBefore == Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME) {
-            return false;
-        }
-        return true;
+        App.setLastUpdateUiIntent(broadcastIntent);
     }
 
 }
