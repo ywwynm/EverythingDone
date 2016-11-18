@@ -130,6 +130,12 @@ public class ReminderReceiver extends BroadcastReceiver {
                             (int) id, delayIntent, PendingIntent.FLAG_UPDATE_CURRENT));
         }
 
+        Intent deleteIntent = new Intent(context, ReminderNotificationActionReceiver.class);
+        deleteIntent.setAction(Def.Communication.NOTIFICATION_ACTION_CANCEL);
+        deleteIntent.putExtra(Def.Communication.KEY_ID, id);
+        builder.setDeleteIntent(PendingIntent.getBroadcast(
+                context, (int) id, deleteIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
         notificationManager.notify((int) id, builder.build());
     }

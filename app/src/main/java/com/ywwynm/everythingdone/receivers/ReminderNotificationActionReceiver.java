@@ -27,7 +27,8 @@ public class ReminderNotificationActionReceiver extends BroadcastReceiver {
             Def.Communication.NOTIFICATION_ACTION_FINISH,
             Def.Communication.WIDGET_ACTION_FINISH,
             Def.Communication.NOTIFICATION_ACTION_DELAY,
-            Def.Communication.NOTIFICATION_ACTION_START_DOING
+            Def.Communication.NOTIFICATION_ACTION_START_DOING,
+            Def.Communication.NOTIFICATION_ACTION_CANCEL
     };
 
     public ReminderNotificationActionReceiver() { }

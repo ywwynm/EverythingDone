@@ -232,6 +232,8 @@ public final class Def {
                 PREFIX + "action.notification.start_doing";
         public static final String NOTIFICATION_ACTION_GET_IT =
                 PREFIX + "action.notification.get_it";
+        public static final String NOTIFICATION_ACTION_CANCEL =
+                PREFIX + "action.notification.cancel";
 
         // added for finish(or finish this time) action in single thing app widget
         public static final String WIDGET_ACTION_FINISH = PREFIX + "action.widget.finish";

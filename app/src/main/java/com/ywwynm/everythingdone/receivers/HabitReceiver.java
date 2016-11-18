@@ -210,6 +210,12 @@ public class HabitReceiver extends BroadcastReceiver {
 //                    PendingIntent.getBroadcast(context,
 //                            (int) hrId, getItIntent, PendingIntent.FLAG_UPDATE_CURRENT));
 
+        Intent deleteIntent = new Intent(context, HabitNotificationActionReceiver.class);
+        deleteIntent.setAction(Def.Communication.NOTIFICATION_ACTION_CANCEL);
+        deleteIntent.putExtra(Def.Communication.KEY_ID, hrId);
+        builder.setDeleteIntent(PendingIntent.getBroadcast(
+                context, (int) hrId, deleteIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+
         NotificationManagerCompat nm = NotificationManagerCompat.from(context);
         nm.notify((int) hrId, builder.build());
     }
