@@ -89,7 +89,7 @@ public class ReminderNotificationActionReceiver extends BroadcastReceiver {
             }
             actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
             context.startActivity(actionIntent);
-        } else if (action.endsWith(Def.Communication.NOTIFICATION_ACTION_START_DOING)) {
+        } else if (action.equals(Def.Communication.NOTIFICATION_ACTION_START_DOING)) {
             if (App.getDoingThingId() != -1L) {
                 Toast.makeText(context,  R.string.start_doing_doing_another_thing,
                         Toast.LENGTH_LONG).show();
