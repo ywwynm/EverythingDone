@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:tools="http://schemas.android.com/tools"
-          package="com.ywwynm.everythingdone"
-          xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.ywwynm.everythingdone">
 
     <uses-feature
         android:name="android.hardware.camera"
@@ -25,7 +26,6 @@
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:label="@string/everythingdone"
             android:launchMode="singleTask"
-            android:taskAffinity="com.ywwynm.everythingdone.task_things"
             android:screenOrientation="user"
             android:theme="@style/EverythingDoneTheme.Things"
             android:windowSoftInputMode="adjustResize">
@@ -154,6 +154,8 @@
 
         <activity
             android:name=".activities.AuthenticationActivity"
+            android:taskAffinity="com.ywwynm.everythingdone.task.authentication"
+            android:excludeFromRecents="true"
             android:theme="@style/EverythingDoneTheme.TotallyTransparent"/>
 
         <activity
@@ -189,6 +191,7 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/app_widget_info_thing_tiny"/>
+
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
             </intent-filter>
@@ -203,6 +206,7 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/app_widget_info_thing_small"/>
+
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
             </intent-filter>
@@ -217,6 +221,7 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/app_widget_info_thing_middle"/>
+
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
             </intent-filter>
@@ -231,6 +236,7 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/app_widget_info_thing_large"/>
+
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
             </intent-filter>
@@ -312,6 +318,7 @@
 
         <activity
             android:name=".appwidgets.list.ThingsListWidgetConfiguration"
+            android:taskAffinity="com.ywwynm.everythingdone.task.thing_list_widget_config"
             android:excludeFromRecents="true"
             android:theme="@style/EverythingDoneTheme.Dialog">
             <intent-filter>
@@ -343,6 +350,7 @@
 
         <activity
             android:name=".activities.DelayReminderActivity"
+            android:taskAffinity="com.ywwynm.everythingdone.task.delay_reminder"
             android:excludeFromRecents="true"
             android:theme="@style/EverythingDoneTheme.TotallyTransparent">
         </activity>
@@ -351,15 +359,16 @@
             android:name=".activities.ShortcutActivity"
             android:theme="@style/EverythingDoneTheme.TotallyTransparent">
             <intent-filter>
-                <action android:name="com.ywwynm.everythingdone.action.shortcut.create" />
+                <action android:name="com.ywwynm.everythingdone.action.shortcut.create"/>
             </intent-filter>
             <intent-filter>
-                <action android:name="com.ywwynm.everythingdone.action.shortcut.check_upcoming" />
+                <action android:name="com.ywwynm.everythingdone.action.shortcut.check_upcoming"/>
             </intent-filter>
         </activity>
 
         <activity
             android:name=".activities.StartDoingActivity"
+            android:taskAffinity="com.ywwynm.everythingdone.task.doing"
             android:excludeFromRecents="true"
             android:theme="@style/EverythingDoneTheme.TotallyTransparent">
         </activity>
@@ -368,8 +377,8 @@
             android:name=".activities.DoingActivity"
             android:label="@string/title_activity_doing"
             android:launchMode="singleTask"
-            android:screenOrientation="portrait"
             android:resizeableActivity="false"
+            android:screenOrientation="portrait"
             android:theme="@style/EverythingDoneTheme.Doing"
             tools:ignore="UnusedAttribute">
         </activity>
@@ -385,6 +394,7 @@
 
         <activity
             android:name=".activities.NoticeableNotificationActivity"
+            android:taskAffinity="com.ywwynm.everythingdone.task.noticeable_notification"
             android:excludeFromRecents="true"
             android:theme="@style/EverythingDoneTheme.Dialog">
         </activity>
