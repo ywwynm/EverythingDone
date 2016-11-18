@@ -195,11 +195,15 @@ public class RemoteActionHelper {
      */
     public static void updateUiEverywhere(
             Context context, Thing thing, int position, int typeBefore, int resultCode) {
+        Log.i(TAG, "updateUiEverywhere called");
         if (App.isSomethingUpdatedSpecially()) {
+            Log.i(TAG, "App.isSomethingUpdatedSpecially is already true");
             if (shouldJustNotifyDataSetChanged(thing, resultCode)) {
+                Log.i(TAG, "set App.shouldJustNotifyDataSetChanged to true, resultCode[" + resultCode + "]");
                 App.setShouldJustNotifyDataSetChanged(true);
             }
         } else {
+            Log.i(TAG, "App.isSomethingUpdatedSpecially is false, set to true");
             App.setSomethingUpdatedSpecially(true);
         }
 
