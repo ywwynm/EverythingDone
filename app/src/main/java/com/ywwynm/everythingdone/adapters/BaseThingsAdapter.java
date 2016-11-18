@@ -157,17 +157,17 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
             return;
         } else {
             holder.ivPrivateThing.setVisibility(View.GONE);
+
+            updateCardForContent(holder, thing);
+            updateCardForReminder(holder, thing);
+            updateCardForHabit(holder, thing);
+            updateCardForAudioAttachment(holder, thing);
+            updateCardForImageAttachment(holder, thing);
+
+            updateCardSeparatorsIfNeeded(holder);
+
+            enlargeAudioLayoutIfNeeded(holder);
         }
-
-        updateCardForContent(holder, thing);
-        updateCardForReminder(holder, thing);
-        updateCardForHabit(holder, thing);
-        updateCardForAudioAttachment(holder, thing);
-        updateCardForImageAttachment(holder, thing);
-
-        updateCardSeparatorsIfNeeded(holder);
-
-        enlargeAudioLayoutIfNeeded(holder);
 
         updateCardForDoing(holder, thing);
     }
