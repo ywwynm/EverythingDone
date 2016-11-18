@@ -154,7 +154,6 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
             holder.llAudioAttachment.setVisibility(View.GONE);
             holder.rlReminder.setVisibility(View.GONE);
             holder.rlHabit.setVisibility(View.GONE);
-            return;
         } else {
             holder.ivPrivateThing.setVisibility(View.GONE);
 
