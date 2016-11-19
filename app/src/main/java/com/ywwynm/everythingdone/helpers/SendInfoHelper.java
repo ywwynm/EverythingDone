@@ -49,13 +49,9 @@ public class SendInfoHelper {
         String title = context.getString(R.string.act_share_everythingdone);
         String content = context.getString(R.string.app_share_info);
 
-        File file = new File(FileUtil.TEMP_PATH, "app.jpeg");
-        if (!file.exists()) {
-            Bitmap bm = ((BitmapDrawable) ContextCompat.getDrawable(
-                    context, R.drawable.ic_launcher_ori)).getBitmap();
-            file = BitmapUtil.saveBitmapToStorage(FileUtil.TEMP_PATH, "app.jpeg", bm);
-        }
-
+        Bitmap bm = ((BitmapDrawable) ContextCompat.getDrawable(
+                context, R.drawable.ic_launcher_ori)).getBitmap();
+        File file = BitmapUtil.saveBitmapToStorage(FileUtil.TEMP_PATH, "app.jpeg", bm);
         Uri uri = Uri.fromFile(file);
         ArrayList<Uri> list = new ArrayList<>();
         list.add(uri);
