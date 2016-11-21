@@ -396,7 +396,7 @@
             android:name=".activities.NoticeableNotificationActivity"
             android:taskAffinity="com.ywwynm.everythingdone.task.noticeable_notification"
             android:excludeFromRecents="true"
-            android:theme="@style/EverythingDoneTheme.Dialog">
+            android:theme="@style/EverythingDoneTheme.NoticeableNotification">
         </activity>
 
     </application>

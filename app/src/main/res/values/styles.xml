@@ -132,6 +132,10 @@
         <item name="windowNoTitle">true</item>
     </style>
 
+    <style name="EverythingDoneTheme.NoticeableNotification" parent="EverythingDoneTheme.Dialog">
+        <item name="android:windowCloseOnTouchOutside">false</item>
+    </style>
+
     <style name="WhiteListStyle" parent="Theme.AppCompat">
         <item name="colorPrimary">@color/control_highlight_light</item>
     </style>

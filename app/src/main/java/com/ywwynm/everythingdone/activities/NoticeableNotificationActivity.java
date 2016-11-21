@@ -397,6 +397,7 @@ public class NoticeableNotificationActivity extends EverythingDoneBaseActivity {
                         } else if (!shrunk) {
                             mRvThing.setOverScrollMode(View.OVER_SCROLL_NEVER);
                         }
+                        setFinishOnTouchOutside(true);
                     }
                 });
 
