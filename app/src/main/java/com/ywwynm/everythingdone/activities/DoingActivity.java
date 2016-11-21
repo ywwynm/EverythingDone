@@ -28,6 +28,7 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.github.adnansm.timelytextview.TimelyView;
 import com.ywwynm.everythingdone.App;
@@ -261,11 +262,18 @@ public class DoingActivity extends EverythingDoneBaseActivity {
     }
 
     private void initAfterBindService() {
+        mThing = mDoingBinder.getThing();
+        if (mThing == null) {
+            Toast.makeText(this, R.string.doing_toast_pass_data_error, Toast.LENGTH_LONG).show();
+            DoingService.sStopReason = DoingRecord.STOP_REASON_INIT_FAILED;
+            finishWithStoppingService();
+            return;
+        }
+
         playBackgroundAnimation();
 
         updateTimeViews();
 
-        mThing = mDoingBinder.getThing();
         initRecyclerView();
         updateBottomButtons();
 
@@ -333,7 +341,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
         int p = (DisplayUtil.getScreenSize(mApp).x - mCardWidth) / 2;
         mRecyclerView.setPadding(p, 0, p, 0);
 
-        final List<Thing> singleThing = Collections.singletonList(new Thing(mThing));
+        final List<Thing> singleThing = Collections.singletonList(mThing);
         final BaseThingsAdapter adapter = new BaseThingsAdapter(this) {
 
             @Override

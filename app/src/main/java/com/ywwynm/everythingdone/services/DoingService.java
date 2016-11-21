@@ -228,7 +228,19 @@ public class DoingService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.i(TAG, "onStartCommand()");
-        mThing = intent.getParcelableExtra(Def.Communication.KEY_THING);
+        if (intent == null) {
+            stopSelf(startId);
+            return super.onStartCommand(null, flags, startId);
+        }
+
+        Thing thing = intent.getParcelableExtra(Def.Communication.KEY_THING);
+        if (thing == null) {
+            stopSelf(startId);
+            return super.onStartCommand(null, flags, startId);
+        }
+
+        mThing = new Thing(thing);
+
         if (mThing.getType() == Thing.HABIT) {
             mHabit = HabitDAO.getInstance(getApplicationContext()).getHabitById(mThing.getId());
         }
@@ -274,12 +286,15 @@ public class DoingService extends Service {
         if (mEndTime == -1L) {
             mEndTime = System.currentTimeMillis();
         }
-        DoingRecord doingRecord = new DoingRecord(-1, mThing.getId(), mThing.getType(),
-                mTotalAdd5MinTimes, mPlayedTimes, mTotalPlayedTime,
-                mPredictDoingTime, mStartTime, mEndTime, sStopReason);
-        DoingRecordDAO.getInstance(this).insert(doingRecord);
 
-        RemoteActionHelper.doingOrCancel(this, mThing);
+        if (mThing != null) {
+            DoingRecord doingRecord = new DoingRecord(-1, mThing.getId(), mThing.getType(),
+                    mTotalAdd5MinTimes, mPlayedTimes, mTotalPlayedTime,
+                    mPredictDoingTime, mStartTime, mEndTime, sStopReason);
+            DoingRecordDAO.getInstance(this).insert(doingRecord);
+
+            RemoteActionHelper.doingOrCancel(this, mThing);
+        }
 
         mThing = null;
         mHandler = null;

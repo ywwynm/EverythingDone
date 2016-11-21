@@ -523,6 +523,7 @@
     <string name="doing_toast_add5_time_long_alarm">如果延迟 5 分钟，您有可能无法在该习惯的下一个提醒到来前完成这一次</string>
     <string name="doing_toast_add5_time_long_t">如果延迟 5 分钟，您有可能无法在本周期内完成一次该习惯</string>
     <string name="doing_toast_add5_above99">我无法触及那片未来</string>
+    <string name="doing_toast_pass_data_error">无法开始做事，因为组件间数据传递时发生了错误</string>
 
 
     <!--ImageViewerActivity-->
