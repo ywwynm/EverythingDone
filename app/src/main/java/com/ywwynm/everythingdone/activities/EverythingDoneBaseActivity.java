@@ -31,6 +31,8 @@ public abstract class EverythingDoneBaseActivity extends AppCompatActivity {
         // Call this before setContentView so that NavigationView can update its language correctly.
         LocaleUtil.changeLanguage();
 
+        beforeSetContentView();
+
         setContentView(getLayoutResource());
 
         beforeInit();
@@ -46,6 +48,8 @@ public abstract class EverythingDoneBaseActivity extends AppCompatActivity {
     protected final <T extends View> T f(View v, @IdRes int id) {
         return (T) v.findViewById(id);
     }
+
+    protected void beforeSetContentView() {}
 
     protected abstract @LayoutRes int getLayoutResource();
 
