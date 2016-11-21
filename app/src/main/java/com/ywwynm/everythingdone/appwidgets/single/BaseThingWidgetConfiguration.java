@@ -87,6 +87,10 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
             mRecyclerView.scrollToPosition(0);
         }
         mAdapter.notifyDataSetChanged();
+
+        if (DeviceUtil.hasKitKatApi()) {
+            updateBottomUiMarginForNavBar((FrameLayout.LayoutParams) mLlConfig.getLayoutParams());
+        }
     }
 
     @Override
@@ -176,10 +180,20 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
                 window.setStatusBarColor(Color.TRANSPARENT);
             }
             window.addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
-            if (DisplayUtil.hasNavigationBar(this)) {
+            updateBottomUiMarginForNavBar(flp);
+        }
+    }
+
+    private void updateBottomUiMarginForNavBar(FrameLayout.LayoutParams flp) {
+        if (DisplayUtil.hasNavigationBar(this)) {
+            if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
+                flp.rightMargin  = 0;
                 flp.bottomMargin = DisplayUtil.getNavigationBarHeight(this);
-                mLlConfig.requestLayout();
+            } else {
+                flp.rightMargin  = DisplayUtil.getNavigationBarHeight(this);
+                flp.bottomMargin = 0;
             }
+            mLlConfig.requestLayout();
         }
     }
 
