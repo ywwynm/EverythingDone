@@ -6,6 +6,8 @@ import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.AppCompatCheckBox;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.view.View;
 import android.widget.RemoteViews;
 import android.widget.SeekBar;
@@ -14,10 +16,15 @@ import android.widget.TextView;
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
+import com.ywwynm.everythingdone.adapters.BaseViewHolder;
+import com.ywwynm.everythingdone.adapters.RadioChooserAdapter;
 import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper;
 import com.ywwynm.everythingdone.database.AppWidgetDAO;
 import com.ywwynm.everythingdone.model.ThingWidgetInfo;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by qiizhang on 2016/8/10.
@@ -26,6 +33,8 @@ import com.ywwynm.everythingdone.utils.DisplayUtil;
 public class ThingsListWidgetConfiguration extends AppCompatActivity {
 
     public static final String TAG = "ThingsListWidgetConfiguration";
+
+    private RadioChooserAdapter mAdapter;
 
     private SeekBar mSbAlpha;
     private AppCompatCheckBox mCbAlphaHeader;
@@ -45,6 +54,30 @@ public class ThingsListWidgetConfiguration extends AppCompatActivity {
         if (tvTitle != null) {
             tvTitle.setTextColor(color);
         }
+        TextView tvConfirm = (TextView) findViewById(R.id.tv_confirm_as_bt_things_list_config);
+        if (tvConfirm != null) {
+            tvConfirm.setTextColor(color);
+        }
+
+        List<String> items = new ArrayList<>(5);
+        items.add(getString(R.string.all));
+        items.add(getString(R.string.note));
+        items.add(getString(R.string.reminder));
+        items.add(getString(R.string.habit));
+        items.add(getString(R.string.goal));
+
+        final int p = (int) (DisplayUtil.getScreenDensity(this) * 8);
+        RecyclerView rv = (RecyclerView) findViewById(R.id.rv_types_list_things_list_widget_config);
+        mAdapter = new RadioChooserAdapter(this, items, color) {
+            @Override
+            public void onBindViewHolder(BaseViewHolder holder, int position) {
+                super.onBindViewHolder(holder, position);
+                holder.itemView.setPadding(p, 0, p, 0);
+            }
+        };
+        mAdapter.pick(0);
+        rv.setAdapter(mAdapter);
+        rv.setLayoutManager(new LinearLayoutManager(this));
 
         mSbAlpha = (SeekBar) findViewById(R.id.sb_app_widget_alpha);
         mSbAlpha.setMax(100);
@@ -101,26 +134,8 @@ public class ThingsListWidgetConfiguration extends AppCompatActivity {
         }
     }
 
-    public void onClick(View view) {
-        int limit = 0;
-        switch (view.getId()) {
-            case R.id.tv_underway_widget_config:
-                limit = 0;
-                break;
-            case R.id.tv_note_widget_config:
-                limit = 1;
-                break;
-            case R.id.tv_reminder_widget_config:
-                limit = 2;
-                break;
-            case R.id.tv_habit_widget_config:
-                limit = 3;
-                break;
-            case R.id.tv_goal_widget_config:
-                limit = 4;
-                break;
-            default:break;
-        }
+    public void onConfirmClicked(View view) {
+        int limit = mAdapter.getPickedPosition();
         App app = App.getApp();
         AppWidgetDAO appWidgetDAO = AppWidgetDAO.getInstance(app);
         if (mIsSetting) {

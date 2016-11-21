@@ -5,7 +5,6 @@
     android:layout_height="wrap_content"
     xmlns:tools="http://schemas.android.com/tools"
     android:paddingTop="16dp"
-    android:paddingBottom="6dp"
     android:orientation="vertical">
 
     <TextView
@@ -20,75 +19,11 @@
         android:textStyle="bold"
         android:text="@string/title_activity_things_list_widget_configuration"/>
 
-    <TextView
-        android:id="@+id/tv_underway_widget_config"
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/rv_types_list_things_list_widget_config"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:gravity="center_vertical"
-        android:paddingLeft="16dp"
-        android:paddingRight="16dp"
-        android:drawableStart="@drawable/drawer_all"
-        android:drawableLeft="@drawable/drawer_all"
-        android:drawablePadding="16dp"
-        android:text="@string/all"
-        android:onClick="onClick"
-        android:background="@drawable/selectable_item_background"/>
-
-    <TextView
-        android:id="@+id/tv_note_widget_config"
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:gravity="center_vertical"
-        android:paddingLeft="16dp"
-        android:paddingRight="16dp"
-        android:drawableStart="@drawable/drawer_note"
-        android:drawableLeft="@drawable/drawer_note"
-        android:drawablePadding="16dp"
-        android:text="@string/note"
-        android:onClick="onClick"
-        android:background="@drawable/selectable_item_background"/>
-
-    <TextView
-        android:id="@+id/tv_reminder_widget_config"
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:gravity="center_vertical"
-        android:paddingLeft="16dp"
-        android:paddingRight="16dp"
-        android:drawableStart="@drawable/drawer_reminder"
-        android:drawableLeft="@drawable/drawer_reminder"
-        android:drawablePadding="16dp"
-        android:text="@string/reminder"
-        android:onClick="onClick"
-        android:background="@drawable/selectable_item_background"/>
-
-    <TextView
-        android:id="@+id/tv_habit_widget_config"
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:gravity="center_vertical"
-        android:paddingLeft="16dp"
-        android:paddingRight="16dp"
-        android:drawableStart="@drawable/drawer_habit"
-        android:drawableLeft="@drawable/drawer_habit"
-        android:drawablePadding="16dp"
-        android:text="@string/habit"
-        android:onClick="onClick"
-        android:background="@drawable/selectable_item_background"/>
-
-    <TextView
-        android:id="@+id/tv_goal_widget_config"
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:gravity="center_vertical"
-        android:paddingLeft="16dp"
-        android:paddingRight="16dp"
-        android:drawableStart="@drawable/drawer_goal"
-        android:drawableLeft="@drawable/drawer_goal"
-        android:drawablePadding="16dp"
-        android:text="@string/goal"
-        android:onClick="onClick"
-        android:background="@drawable/selectable_item_background"/>
+        android:layout_height="wrap_content"
+        android:overScrollMode="never"/>
 
     <View
         android:layout_width="match_parent"
@@ -177,5 +112,24 @@
             android:focusableInTouchMode="false"/>
 
     </RelativeLayout>
+
+    <TextView
+        android:id="@+id/tv_confirm_as_bt_things_list_config"
+        android:layout_width="wrap_content"
+        android:layout_height="36dp"
+        android:layout_gravity="end"
+        android:paddingLeft="12dp"
+        android:paddingTop="8dp"
+        android:paddingRight="12dp"
+        android:paddingBottom="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginRight="8dp"
+        android:layout_marginBottom="8dp"
+        android:textStyle="bold"
+        android:text="@string/confirm"
+        android:textAllCaps="true"
+        android:background="@drawable/selectable_item_background"
+        android:onClick="onConfirmClicked"/>
 
 </LinearLayout>

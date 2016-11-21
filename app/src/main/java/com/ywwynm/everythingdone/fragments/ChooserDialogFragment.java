@@ -1,11 +1,7 @@
 package com.ywwynm.everythingdone.fragments;
 
-import android.content.Context;
 import android.content.DialogInterface;
-import android.graphics.PorterDuff;
-import android.graphics.drawable.Drawable;
 import android.os.Bundle;
-import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
@@ -16,8 +12,7 @@ import android.widget.TextView;
 
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.R;
-import com.ywwynm.everythingdone.adapters.BaseViewHolder;
-import com.ywwynm.everythingdone.adapters.SingleChoiceAdapter;
+import com.ywwynm.everythingdone.adapters.RadioChooserAdapter;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil;
 
@@ -44,7 +39,7 @@ public class ChooserDialogFragment extends BaseDialogFragment {
     private TextView mTvTitle;
     private RecyclerView mRecyclerView;
     private LinearLayoutManager mLlm;
-    private ChooserFragmentAdapter mAdapter;
+    private RadioChooserAdapter mAdapter;
     private TextView mTvConfirmAsBt;
     private TextView mTvCancelAsBt;
     private TextView mTvMoreAsBt;
@@ -132,7 +127,8 @@ public class ChooserDialogFragment extends BaseDialogFragment {
             mRecyclerView.setOverScrollMode(View.OVER_SCROLL_NEVER);
         }
 
-        mAdapter = new ChooserFragmentAdapter(getActivity(), mItems);
+        mAdapter = new RadioChooserAdapter(getActivity(), mItems, mAccentColor);
+        mAdapter.setOnItemClickListener(mOnItemClickListener);
         mRecyclerView.setAdapter(mAdapter);
         mRecyclerView.setLayoutManager(mLlm);
         mAdapter.pick(mInitialIndex);
@@ -265,77 +261,6 @@ public class ChooserDialogFragment extends BaseDialogFragment {
         } else {
             mSeparator1.setVisibility(View.VISIBLE);
             mSeparator2.setVisibility(View.VISIBLE);
-        }
-    }
-
-    class ChooserFragmentAdapter extends SingleChoiceAdapter {
-
-        public static final String TAG = "ChooserFragmentAdapter";
-
-        private LayoutInflater mInflater;
-        private List<String> mItems;
-
-        ChooserFragmentAdapter(Context context, List<String> items) {
-            mInflater = LayoutInflater.from(context);
-            mItems = items;
-        }
-
-        @Override
-        public void pick(int position) {
-            notifyItemChanged(mPickedPosition);
-            mPickedPosition = position;
-        }
-
-        @Override
-        public BaseViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-            return new ChoiceHolder(mInflater.inflate(R.layout.rv_fragment_chooser, parent, false));
-        }
-
-        @Override
-        public void onBindViewHolder(BaseViewHolder viewHolder, int position) {
-            ChoiceHolder holder = (ChoiceHolder) viewHolder;
-            String item = mItems.get(position);
-            holder.tv.setText(item);
-            Context context = holder.tv.getContext();
-            int uncheckedColor = ContextCompat.getColor(context, R.color.black_54);
-            Drawable d;
-            if (mPickedPosition == position) { // -15310698
-                d = ContextCompat.getDrawable(context, R.drawable.ic_radiobutton_checked);
-                d.mutate().setColorFilter(mAccentColor, PorterDuff.Mode.SRC_ATOP);
-                holder.tv.setContentDescription(context.getString(R.string.cd_chosen_item) + item);
-            } else {
-                d = ContextCompat.getDrawable(context, R.drawable.ic_radiobutton_unchecked);
-                d.mutate().setColorFilter(uncheckedColor, PorterDuff.Mode.SRC_ATOP);
-                holder.tv.setContentDescription(context.getString(R.string.cd_not_chosen_item) + item);
-            }
-            holder.tv.setCompoundDrawablesWithIntrinsicBounds(d, null, null, null);
-        }
-
-        @Override
-        public int getItemCount() {
-            return mItems.size();
-        }
-
-        class ChoiceHolder extends BaseViewHolder {
-
-            final TextView tv;
-
-            ChoiceHolder(View itemView) {
-                super(itemView);
-
-                tv = f(R.id.tv_rv_chooser_fragment);
-
-                tv.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        pick(getAdapterPosition());
-                        notifyItemChanged(mPickedPosition);
-                        if (mOnItemClickListener != null) {
-                            mOnItemClickListener.onClick(v);
-                        }
-                    }
-                });
-            }
         }
     }
 }
