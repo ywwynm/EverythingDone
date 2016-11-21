@@ -22,7 +22,10 @@ import android.support.v7.widget.CardView;
 import android.util.Log;
 import android.util.SparseArray;
 import android.view.Display;
+import android.view.KeyCharacterMap;
+import android.view.KeyEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
@@ -101,20 +104,50 @@ public class DisplayUtil {
     }
 
     public static boolean hasNavigationBar(Context context) {
-//        boolean hasMenuKey = ViewConfiguration.get(context).hasPermanentMenuKey();
-//        boolean hasBackKey = KeyCharacterMap.deviceHasKey(KeyEvent.KEYCODE_BACK);
-//        return !hasMenuKey && !hasBackKey;
+        boolean hasMenuKey = ViewConfiguration.get(context).hasPermanentMenuKey();
+        boolean hasBackKey = KeyCharacterMap.deviceHasKey(KeyEvent.KEYCODE_BACK);
+        boolean con1 = !hasMenuKey && !hasBackKey;
+
         Resources resources = context.getResources();
         int id = resources.getIdentifier("config_showNavigationBar", "bool", "android");
-        return id > 0 && resources.getBoolean(id);
+        boolean con2 = id > 0 && resources.getBoolean(id);
+
+        boolean con3;
+        Point displaySize = new Point();
+        Display display = ((WindowManager) context.getSystemService(Context.WINDOW_SERVICE))
+                .getDefaultDisplay();
+        display.getSize(displaySize);
+        Point screenSize = getScreenSize(context);
+        if (context.getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
+            con3 = displaySize.y != screenSize.y;
+        } else {
+            con3 = displaySize.x != screenSize.x;
+        }
+
+        return con1 || con2 || con3;
     }
 
     public static int getNavigationBarHeight(Context context) {
+        int res1 = 0;
         Resources resources = context.getResources();
         int resourceId = resources.getIdentifier("navigation_bar_height", "dimen", "android");
         if (resourceId > 0) {
-            return resources.getDimensionPixelSize(resourceId);
-        } else return 0;
+            res1 = resources.getDimensionPixelSize(resourceId);
+        }
+
+        int res2;
+        Point displaySize = new Point();
+        Display display = ((WindowManager) context.getSystemService(Context.WINDOW_SERVICE))
+                .getDefaultDisplay();
+        display.getSize(displaySize);
+        Point screenSize = getScreenSize(context);
+        if (context.getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
+            res2 = screenSize.y - displaySize.y;
+        } else {
+            res2 = screenSize.x - displaySize.x;
+        }
+
+        return Math.max(res1, res2);
     }
 
     public static int getRandomColor(Context context) {
