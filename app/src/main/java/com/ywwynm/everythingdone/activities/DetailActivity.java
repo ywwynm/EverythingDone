@@ -1638,10 +1638,11 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        unregisterReceiver(mReceiver);
         if (mThing == null) {
             return;
         }
+
+        unregisterReceiver(mReceiver);
         Log.i(TAG, "onDestroy() called, id[" + mThing.getId() + "]");
         if (!mRemoveDetailActivityInstance) {
             App.getRunningDetailActivities().remove(mThing.getId());
