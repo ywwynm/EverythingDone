@@ -45,7 +45,9 @@ public class PullAliveJobService extends JobService {
                 }
             });
         }
-        mThread.start();
+        if (!mThread.isAlive()) {
+            mThread.start();
+        }
         return true;
     }
 
