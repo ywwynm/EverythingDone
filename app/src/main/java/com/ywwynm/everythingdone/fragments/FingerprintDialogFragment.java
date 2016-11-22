@@ -75,6 +75,7 @@ public class FingerprintDialogFragment extends BaseDialogFragment {
         if (!mAuthenticated && mAuthenticationCallback != null) {
             mAuthenticationCallback.onCancel();
         }
+        mFingerprintHelper.setFingerprintCallback(null);
     }
 
     @Nullable
