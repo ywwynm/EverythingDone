@@ -535,6 +535,7 @@
     <string name="settings_group_ringtone">铃声</string>
     <string name="settings_group_data">数据</string>
     <string name="settings_group_privacy">隐私</string>
+    <string name="settings_group_start_doing">开始做事</string>
     <string name="settings_group_advanced">高级</string>
 
     <!--group ui-->
@@ -625,6 +626,15 @@
     <string name="warning_title_should_not_be_empty">如果您要设置该记事为私密记事，请您为它设置标题</string>
     <string name="warning_should_set_password_first"><![CDATA[您还未设置应用密码，请前往设置 -> 隐私 -> 设置应用密码进行设置]]></string>
     <string name="cannot_set_as_private_thing_title">无法设置为私密记事</string>
+
+    <!--group start doing-->
+    <string name="auto_start_doing_title">提醒到来时自动开始做事</string>
+    <string-array name="auto_start_doing_options">
+        <item>关闭</item>
+        <item>仅对于提醒启用</item>
+        <item>仅对于习惯启用</item>
+        <item>对提醒与习惯启用</item>
+    </string-array>
 
     <!--group advanced-->
     <!--quick create-->

@@ -542,6 +542,7 @@
     <string name="settings_group_ringtone">Ringtone</string>
     <string name="settings_group_data">Data</string>
     <string name="settings_group_privacy">Privacy</string>
+    <string name="settings_group_start_doing">Start doing</string>
     <string name="settings_group_advanced">Advanced</string>
 
     <!--group ui-->
@@ -633,6 +634,15 @@
     <string name="warning_should_set_password_first"><![CDATA[You have not set password for EverythingDone. Please go to Settings -> Privacy -> Set password for EverythingDone and set a pattern at first.]]></string>
     <string name="cannot_set_as_private_thing_title">Cannot set as private thing</string>
 
+    <!--group start doing-->
+    <string name="auto_start_doing_title">Start doing when alarm ring</string>
+    <string-array name="auto_start_doing_options">
+        <item>Disabled</item>
+        <item>Enabled for Reminder</item>
+        <item>Enabled for Habit</item>
+        <item>Enabled for both</item>
+    </string-array>
+
     <!--group advanced-->
     <!--quick create-->
     <string name="quick_create_title">Create new thing quickly</string>
@@ -640,7 +650,7 @@
     <!--automatic reminder-->
     <string name="auto_notify">Automatic Reminder</string>
     <string name="auto_notify_help_info">EverythingDone will automatically remind you after a new thing is created. If you didn\'t create a Record, EverythingDone will decide if automatic reminder should be set according to the thing\'s remind time.</string>
-    <string name="auto_notify_off">Off</string>
+    <string name="auto_notify_off">Disabled</string>
     <string name="auto_notify_set_time">Set Automatic Reminder Time</string>
     <string name="auto_notify_ringtone">Automatic Reminder\nRingtone</string>
 

@@ -535,6 +535,7 @@
     <string name="settings_group_ringtone">鈴聲</string>
     <string name="settings_group_data">數據</string>
     <string name="settings_group_privacy">隱私</string>
+    <string name="settings_group_start_doing">開始做事</string>
     <string name="settings_group_advanced">高級</string>
 
     <!--group ui-->
@@ -625,6 +626,15 @@
     <string name="warning_title_should_not_be_empty">如果閣下要設置該記事為私密記事，請您為它設置標題</string>
     <string name="warning_should_set_password_first"><![CDATA[閣下還未設定應用密碼，請前往設置 -> 隱私 -> 設定應用密碼進行設定]]></string>
     <string name="cannot_set_as_private_thing_title">無法設置為私密記事</string>
+
+    <!--group start doing-->
+    <string name="auto_start_doing_title">提醒到來時自動開始做事</string>
+    <string-array name="auto_start_doing_options">
+        <item>關閉</item>
+        <item>僅對於提醒啟用</item>
+        <item>僅對於習慣啟用</item>
+        <item>對提醒與習慣啟用</item>
+    </string-array>
 
     <!--group advanced-->
     <!--quick create-->

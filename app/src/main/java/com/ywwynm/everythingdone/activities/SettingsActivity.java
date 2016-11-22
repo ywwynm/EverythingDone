@@ -9,6 +9,8 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.database.Cursor;
+import android.graphics.PorterDuff;
+import android.graphics.drawable.Drawable;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
@@ -138,6 +140,11 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     private TextView       mTvFgprtTitle;
     private TextView       mTvFgprtDscrpt;
     private CheckBox       mCbFgprt;
+
+    // group start doing
+    private LinearLayout mLlASD; // auto start doing
+    private TextView     mTvASD;
+    private int          mASDPicked;
 
     // group advanced
     private RelativeLayout mRlQuickCreateAsBt;
@@ -408,6 +415,10 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         mTvFgprtDscrpt     = f(R.id.tv_use_fingerprint_description);
         mCbFgprt           = f(R.id.cb_use_fingerprint);
 
+        // start doing
+        mLlASD = f(R.id.ll_auto_start_doing_as_bt);
+        mTvASD = f(R.id.tv_auto_start_doing);
+
         // advanced
         mRlQuickCreateAsBt = f(R.id.rl_quick_create_as_bt);
         mCbQuickCreate     = f(R.id.cb_quick_create);
@@ -436,6 +447,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         initUiUserInterface();
         initUiRingtone();
         updateUiRestore();
+        initUiStartDoing();
         initUiAdvanced();
     }
 
@@ -529,6 +541,26 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         mCbFgprt.setChecked(useFingerprint);
     }
 
+    private void initUiStartDoing() {
+        initStartDoingTitle();
+
+        mASDPicked = mPreferences.getInt(Def.Meta.KEY_AUTO_START_DOING, 0);
+        String[] options = getResources().getStringArray(R.array.auto_start_doing_options);
+        mTvASD.setText(options[mASDPicked]);
+    }
+
+    private void initStartDoingTitle() {
+        TextView tvTitle = f(R.id.tv_title_group_start_doing_settings);
+        Drawable d1 = ContextCompat.getDrawable(this, R.drawable.act_start_doing);
+        Drawable d2 = d1.mutate();
+        d2.setColorFilter(mAccentColor, PorterDuff.Mode.SRC_ATOP);
+        if (DeviceUtil.hasJellyBeanMR1Api()) {
+            tvTitle.setCompoundDrawablesRelativeWithIntrinsicBounds(d2, null, null, null);
+        } else {
+            tvTitle.setCompoundDrawablesWithIntrinsicBounds(d2, null, null, null);
+        }
+    }
+
     private void initUiAdvanced() {
         // quick create
         boolean qc = mPreferences.getBoolean(Def.Meta.KEY_QUICK_CREATE, true);
@@ -582,6 +614,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         setRingtoneEvents();
         setDataEvents();
         setPrivacyEvents();
+        setStartDoingEvents();
         setAdvancedEvents();
     }
 
@@ -747,6 +780,33 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             }
         });
         pldf.show(getFragmentManager(), PatternLockDialogFragment.TAG);
+    }
+
+    private void setStartDoingEvents() {
+        mLlASD.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                showAutoStartDoingDialog();
+            }
+        });
+    }
+
+    private void showAutoStartDoingDialog() {
+        final ChooserDialogFragment cdf = new ChooserDialogFragment();
+        cdf.setAccentColor(mAccentColor);
+        cdf.setShouldShowMore(false);
+        cdf.setTitle(getString(R.string.auto_start_doing_title));
+        final String[] options = getResources().getStringArray(R.array.auto_start_doing_options);
+        cdf.setItems(Arrays.asList(options));
+        cdf.setInitialIndex(mASDPicked);
+        cdf.setConfirmListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                mASDPicked = cdf.getPickedIndex();
+                mTvASD.setText(options[mASDPicked]);
+            }
+        });
+        cdf.show(getFragmentManager(), ChooserDialogFragment.TAG);
     }
 
     private void setAdvancedEvents() {
@@ -1071,6 +1131,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     private void storeConfiguration() {
         SharedPreferences.Editor editor = mPreferences.edit();
 
+        // ui
         String headerBefore = mPreferences.getString(
                 Def.Meta.KEY_DRAWER_HEADER, DEFAULT_DRAWER_HEADER);
         String header = DEFAULT_DRAWER_HEADER;
@@ -1096,19 +1157,26 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
         editor.putBoolean(Def.Meta.KEY_TWICE_BACK, mCbTwiceBack.isChecked());
 
+        // ringtone
         for (int i = 0; i < mChosenRingtoneUris.length; i++) {
             editor.putString(sKeysRingtone[i], mChosenRingtoneUris[i].toString());
         }
 
+        // privacy
         boolean isChecked = mCbFgprt.isChecked();
         if (isChecked) {
             FingerprintHelper.getInstance().createFingerprintKeyForEverythingDone();
         }
         editor.putBoolean(Def.Meta.KEY_USE_FINGERPRINT, isChecked);
 
+        // start doing
+        editor.putInt(Def.Meta.KEY_AUTO_START_DOING, mASDPicked);
+
+        // advanced
         editor.putBoolean(Def.Meta.KEY_QUICK_CREATE, mCbQuickCreate.isChecked());
 
         editor.putInt(Def.Meta.KEY_AUTO_NOTIFY, mANPicked);
+
         editor.commit();
     }
 
