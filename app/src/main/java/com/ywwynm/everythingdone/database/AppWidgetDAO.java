@@ -32,7 +32,7 @@ public class AppWidgetDAO {
         if (sAppWidgetDAO == null) {
             synchronized (AppWidgetDAO.class) {
                 if (sAppWidgetDAO == null) {
-                    sAppWidgetDAO = new AppWidgetDAO(context);
+                    sAppWidgetDAO = new AppWidgetDAO(context.getApplicationContext());
                 }
             }
         }

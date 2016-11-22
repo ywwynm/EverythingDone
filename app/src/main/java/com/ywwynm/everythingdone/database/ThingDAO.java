@@ -48,7 +48,7 @@ public class ThingDAO {
         if (sThingDAO == null) {
             synchronized (ThingDAO.class) {
                 if (sThingDAO == null) {
-                    sThingDAO = new ThingDAO(context);
+                    sThingDAO = new ThingDAO(context.getApplicationContext());
                 }
             }
         }

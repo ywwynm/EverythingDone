@@ -61,7 +61,7 @@ public class HabitDAO {
         if (sHabitDAO == null) {
             synchronized (ReminderDAO.class) {
                 if (sHabitDAO == null) {
-                    sHabitDAO = new HabitDAO(context);
+                    sHabitDAO = new HabitDAO(context.getApplicationContext());
                 }
             }
         }

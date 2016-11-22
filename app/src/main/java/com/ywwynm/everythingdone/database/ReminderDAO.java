@@ -34,7 +34,7 @@ public class ReminderDAO {
         if (sReminderDAO == null) {
             synchronized (ReminderDAO.class) {
                 if (sReminderDAO == null) {
-                    sReminderDAO = new ReminderDAO(context);
+                    sReminderDAO = new ReminderDAO(context.getApplicationContext());
                 }
             }
         }

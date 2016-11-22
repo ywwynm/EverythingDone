@@ -95,7 +95,7 @@ public class ThingManager {
         if (sThingManager == null) {
             synchronized (ThingManager.class) {
                 if (sThingManager == null) {
-                    sThingManager = new ThingManager(context);
+                    sThingManager = new ThingManager(context.getApplicationContext());
                 }
             }
         }

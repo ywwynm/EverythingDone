@@ -58,7 +58,7 @@ public class ThingsCounts {
         if (sThingsCounts == null) {
             synchronized (ThingsCounts.class) {
                 if (sThingsCounts == null) {
-                    sThingsCounts = new ThingsCounts(context);
+                    sThingsCounts = new ThingsCounts(context.getApplicationContext());
                 }
             }
         }

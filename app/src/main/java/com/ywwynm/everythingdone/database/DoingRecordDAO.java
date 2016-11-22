@@ -21,7 +21,7 @@ public class DoingRecordDAO {
         if (sDoingRecordDAO == null) {
             synchronized (DoingRecordDAO.class) {
                 if (sDoingRecordDAO == null) {
-                    sDoingRecordDAO = new DoingRecordDAO(context);
+                    sDoingRecordDAO = new DoingRecordDAO(context.getApplicationContext());
                 }
             }
         }
