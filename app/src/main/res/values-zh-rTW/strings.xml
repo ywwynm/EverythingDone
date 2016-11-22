@@ -635,6 +635,7 @@
         <item>僅對於習慣啟用</item>
         <item>對提醒與習慣啟用</item>
     </string-array>
+    <string name="auto_strict_mode_title">開始做事後，自動進入嚴格模式</string>
 
     <!--group advanced-->
     <!--quick create-->

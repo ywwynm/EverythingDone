@@ -642,6 +642,7 @@
         <item>Enabled for Habit</item>
         <item>Enabled for both</item>
     </string-array>
+    <string name="auto_strict_mode_title">Enter strict mode when start doing</string>
 
     <!--group advanced-->
     <!--quick create-->

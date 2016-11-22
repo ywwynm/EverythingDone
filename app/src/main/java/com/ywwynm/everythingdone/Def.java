@@ -52,6 +52,7 @@ public final class Def {
         public static final String KEY_USE_FINGERPRINT         = "use_fingerprint";
 
         public static final String KEY_AUTO_START_DOING        = "auto_start_doing";
+        public static final String KEY_AUTO_STRICT_MODE        = "auto_strict_mode";
 
         public static final String KEY_QUICK_CREATE            = "quick_create";
         public static final String KEY_AUTO_NOTIFY             = "auto_notify";

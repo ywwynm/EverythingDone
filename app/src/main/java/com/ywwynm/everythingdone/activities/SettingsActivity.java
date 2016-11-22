@@ -146,6 +146,10 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     private TextView     mTvASD;
     private int          mASDPicked;
 
+    private LinearLayout mLlASM; // auto strict mode
+    private TextView     mTvASM;
+    private int          mASMPicked;
+
     // group advanced
     private RelativeLayout mRlQuickCreateAsBt;
     private CheckBox       mCbQuickCreate;
@@ -419,6 +423,9 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         mLlASD = f(R.id.ll_auto_start_doing_as_bt);
         mTvASD = f(R.id.tv_auto_start_doing);
 
+        mLlASM = f(R.id.ll_auto_strict_mode_as_bt);
+        mTvASM = f(R.id.tv_auto_strict_mode);
+
         // advanced
         mRlQuickCreateAsBt = f(R.id.rl_quick_create_as_bt);
         mCbQuickCreate     = f(R.id.cb_quick_create);
@@ -547,6 +554,9 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         mASDPicked = mPreferences.getInt(Def.Meta.KEY_AUTO_START_DOING, 0);
         String[] options = getResources().getStringArray(R.array.auto_start_doing_options);
         mTvASD.setText(options[mASDPicked]);
+
+        mASMPicked = mPreferences.getInt(Def.Meta.KEY_AUTO_STRICT_MODE, 0);
+        mTvASM.setText(options[mASMPicked]);
     }
 
     private void initStartDoingTitle() {
@@ -789,15 +799,18 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                 showAutoStartDoingDialog();
             }
         });
+        mLlASM.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                showAutoStrictModeDialog();
+            }
+        });
     }
 
     private void showAutoStartDoingDialog() {
-        final ChooserDialogFragment cdf = new ChooserDialogFragment();
-        cdf.setAccentColor(mAccentColor);
-        cdf.setShouldShowMore(false);
+        final ChooserDialogFragment cdf = createChooserDialogForStartDoing();
         cdf.setTitle(getString(R.string.auto_start_doing_title));
         final String[] options = getResources().getStringArray(R.array.auto_start_doing_options);
-        cdf.setItems(Arrays.asList(options));
         cdf.setInitialIndex(mASDPicked);
         cdf.setConfirmListener(new View.OnClickListener() {
             @Override
@@ -807,6 +820,30 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             }
         });
         cdf.show(getFragmentManager(), ChooserDialogFragment.TAG);
+    }
+
+    private void showAutoStrictModeDialog() {
+        final ChooserDialogFragment cdf = createChooserDialogForStartDoing();
+        cdf.setTitle(getString(R.string.auto_strict_mode_title));
+        final String[] options = getResources().getStringArray(R.array.auto_start_doing_options);
+        cdf.setInitialIndex(mASMPicked);
+        cdf.setConfirmListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                mASMPicked = cdf.getPickedIndex();
+                mTvASM.setText(options[mASMPicked]);
+            }
+        });
+        cdf.show(getFragmentManager(), ChooserDialogFragment.TAG);
+    }
+
+    private ChooserDialogFragment createChooserDialogForStartDoing() {
+        ChooserDialogFragment cdf = new ChooserDialogFragment();
+        cdf.setAccentColor(mAccentColor);
+        cdf.setShouldShowMore(false);
+        String[] options = getResources().getStringArray(R.array.auto_start_doing_options);
+        cdf.setItems(Arrays.asList(options));
+        return cdf;
     }
 
     private void setAdvancedEvents() {
@@ -1060,11 +1097,6 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                         Manifest.permission.WRITE_EXTERNAL_STORAGE);
             }
         });
-//        if (!DeviceUtil.hasNougatApi()) {
-//
-//        } else { // TODO: 2016/9/2 cannot set audio file as ringtone above N
-//            cdf.setShouldShowMore(false);
-//        }
         cdf.setOnItemClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -1171,6 +1203,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
         // start doing
         editor.putInt(Def.Meta.KEY_AUTO_START_DOING, mASDPicked);
+        editor.putInt(Def.Meta.KEY_AUTO_STRICT_MODE, mASMPicked);
 
         // advanced
         editor.putBoolean(Def.Meta.KEY_QUICK_CREATE, mCbQuickCreate.isChecked());

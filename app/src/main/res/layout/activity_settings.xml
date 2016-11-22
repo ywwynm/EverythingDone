@@ -520,10 +520,10 @@
                     android:layout_width="wrap_content"
                     android:layout_height="20dp"
                     android:layout_marginTop="12dp"
-                    android:layout_marginLeft="16dp"
-                    android:layout_marginRight="16dp"
+                    android:layout_marginLeft="14dp"
+                    android:layout_marginRight="14dp"
                     android:gravity="center_vertical"
-                    android:drawablePadding="12dp"
+                    android:drawablePadding="14dp"
                     android:textColor="@color/blue_deep"
                     android:textSize="14sp"
                     android:text="@string/settings_group_start_doing"/>
@@ -547,6 +547,32 @@
 
                     <TextView
                         android:id="@+id/tv_auto_start_doing"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/black_26p"
+                        android:textSize="14sp"/>
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/ll_auto_strict_mode_as_bt"
+                    android:layout_width="match_parent"
+                    android:layout_height="72dp"
+                    android:layout_marginTop="112dp"
+                    android:paddingLeft="16dp"
+                    android:paddingRight="16dp"
+                    android:orientation="vertical"
+                    android:gravity="center_vertical"
+                    android:background="@drawable/selectable_item_background">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/auto_strict_mode_title"
+                        android:textSize="16sp"/>
+
+                    <TextView
+                        android:id="@+id/tv_auto_strict_mode"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:textColor="@color/black_26p"
