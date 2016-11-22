@@ -1111,7 +1111,8 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         mModeManager = new ModeManager(mApp, mDrawerLayout, mFab, mActivityHeader,
                 rlContextualToolbar, contextualToolbar, new OnNavigationIconClickedListener(),
                 new OnContextualMenuClickedListener(), mRecyclerView, adapter);
-        mApp.setModeManager(mModeManager);
+        adapter.setModeManager(mModeManager);
+        mActivityHeader.setModeManager(mModeManager);
     }
 
     @Override

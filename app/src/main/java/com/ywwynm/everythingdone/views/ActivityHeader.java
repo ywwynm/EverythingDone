@@ -41,6 +41,8 @@ public class ActivityHeader {
 
     private RecyclerView mBindingRecyclerView;
 
+    private ModeManager mModeManager;
+
     public ActivityHeader(App app, RecyclerView recyclerView,
                           View actionbarShadow, RelativeLayout relativeLayout, TextView title,
                           TextView subtitle) {
@@ -56,6 +58,10 @@ public class ActivityHeader {
 
         mBindingRecyclerView = recyclerView;
         updateSubtitle();
+    }
+
+    public void setModeManager(ModeManager modeManager) {
+        mModeManager = modeManager;
     }
 
     public void computeFactors(Toolbar actionbar) {
@@ -132,7 +138,7 @@ public class ActivityHeader {
             updateHeader((int) (90 * mScreenDensity), anim);
             actionbarShadowAlphaAfter = 1.0f;
         }
-        if (mApp.getModeManager().getCurrentMode() != ModeManager.SELECTING) {
+        if (mModeManager.getCurrentMode() != ModeManager.SELECTING) {
             if (anim) {
                 mActionbarShadow.animate().alpha(actionbarShadowAlphaAfter).withLayer().setDuration(160);
             } else {

@@ -40,6 +40,8 @@ public class ThingsAdapter extends BaseThingsAdapter {
     // decrease memory usage as much as possible.
     private View.OnTouchListener mOnTouchListener;
 
+    private ModeManager mModeManager;
+
     private boolean mShouldThingsAnimWhenAppearing = true;
 
     private Handler mAnimHandler;
@@ -61,9 +63,13 @@ public class ThingsAdapter extends BaseThingsAdapter {
         mAnimHandler = new Handler();
     }
 
+    public void setModeManager(ModeManager modeManager) {
+        mModeManager = modeManager;
+    }
+
     @Override
     protected int getCurrentMode() {
-        return mApp.getModeManager().getCurrentMode();
+        return mModeManager.getCurrentMode();
     }
 
     @Override

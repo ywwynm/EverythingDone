@@ -28,7 +28,6 @@ import com.ywwynm.everythingdone.helpers.AppUpdateHelper;
 import com.ywwynm.everythingdone.helpers.AttachmentHelper;
 import com.ywwynm.everythingdone.helpers.CrashHelper;
 import com.ywwynm.everythingdone.helpers.FingerprintHelper;
-import com.ywwynm.everythingdone.managers.ModeManager;
 import com.ywwynm.everythingdone.managers.ThingManager;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.services.PullAliveJobService;
@@ -69,7 +68,6 @@ public class App extends Application {
      */
     private int mLimit;
 
-    private ModeManager mModeManager;
     public static boolean isSearching = false;
 
     private ExecutorService mExecutor;
@@ -184,14 +182,6 @@ public class App extends Application {
     public void setLimit(int limit, boolean loadThingsNow) {
         this.mLimit = limit;
         mThingManager.setLimit(limit, loadThingsNow);
-    }
-
-    public ModeManager getModeManager() {
-        return mModeManager;
-    }
-
-    public void setModeManager(ModeManager modeManager) {
-        this.mModeManager = modeManager;
     }
 
     public static List<Long> getRunningDetailActivities() {
