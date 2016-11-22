@@ -20,7 +20,7 @@
         android:id="@+id/view_separator_1"
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="12dp"
         android:background="@color/black_10p"/>
 
     <android.support.v7.widget.RecyclerView
