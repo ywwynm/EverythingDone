@@ -26,15 +26,20 @@ public class UserPresentReceiver extends BroadcastReceiver {
         if (Intent.ACTION_USER_PRESENT.equals(intent.getAction())) {
             Log.i(TAG, "Screen is on, EverythingDone is responding...");
 
-            AlarmHelper.createAllAlarms(context, false);
-            Log.i(TAG, "Alarms set.");
+            final Context appContext = context.getApplicationContext();
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    AlarmHelper.createAllAlarms(appContext, false);
+                    Log.i(TAG, "Alarms set.");
 
-            SystemNotificationUtil.tryToCreateQuickCreateNotification(context);
-            Log.i(TAG, "Quick Create Notification created.");
+                    SystemNotificationUtil.tryToCreateQuickCreateNotification(appContext);
+                    Log.i(TAG, "Quick Create Notification created.");
 
-            // TODO: 2016/9/15 should we update widgets here?
+                    Log.i(TAG, "Everything Done after screen was on.");
+                }
+            }).start();
 
-            Log.i(TAG, "Everything Done after screen was on.");
         }
     }
 }
