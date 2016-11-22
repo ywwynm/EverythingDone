@@ -17,6 +17,7 @@ public final class Def {
         public static final String META_DATA_NAME           = "EverythingDone_metadata";
         public static final String PREFERENCES_NAME         = "EverythingDone_preferences";
         public static final String THINGS_COUNTS_NAME       = "EverythingDone_things_counts";
+        public static final String DOING_STRATEGY_NAME      = "EverythingDone_doing_strategy"; // added on 2016/11/22
         public static final String RESTORE_DONE_FILE_NAME   = "restore_done.dat";
         public static final String FEEDBACK_ERROR_FILE_NAME = "feedback_error.dat";
 
@@ -51,6 +52,7 @@ public final class Def {
         public static final String KEY_PRIVATE_PASSWORD        = "private_password";
         public static final String KEY_USE_FINGERPRINT         = "use_fingerprint";
 
+        // added on 2016/11/22
         public static final String KEY_AUTO_START_DOING        = "auto_start_doing";
         public static final String KEY_AUTO_STRICT_MODE        = "auto_strict_mode";
 
