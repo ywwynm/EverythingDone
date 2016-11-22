@@ -103,7 +103,7 @@ public class DisplayUtil {
         } else return 0;
     }
 
-    public static boolean hasNavigationBar(Context context) {
+    public static boolean hasNavigationBar(Context context) { // improved on 2016/11/21
         boolean hasMenuKey = ViewConfiguration.get(context).hasPermanentMenuKey();
         boolean hasBackKey = KeyCharacterMap.deviceHasKey(KeyEvent.KEYCODE_BACK);
         boolean con1 = !hasMenuKey && !hasBackKey;
@@ -127,7 +127,7 @@ public class DisplayUtil {
         return con1 || con2 || con3;
     }
 
-    public static int getNavigationBarHeight(Context context) {
+    public static int getNavigationBarHeight(Context context) { // improved on 2016/11/21
         int res1 = 0;
         Resources resources = context.getResources();
         int resourceId = resources.getIdentifier("navigation_bar_height", "dimen", "android");
