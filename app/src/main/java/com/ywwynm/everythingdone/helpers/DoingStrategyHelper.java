@@ -4,7 +4,6 @@ import android.content.Context;
 import android.content.SharedPreferences;
 
 import com.ywwynm.everythingdone.Def;
-import com.ywwynm.everythingdone.database.ThingDAO;
 import com.ywwynm.everythingdone.model.Thing;
 
 /**
@@ -39,11 +38,15 @@ public class DoingStrategyHelper {
     public static int SYS_AUTO_STRICT_MODE_STRATEGY_ALL         = 3;
 
     private Context mContext;
+    private Thing mThing;
+
     private SharedPreferences mSpStartDoing;
     private SharedPreferences mSpSettings;
 
-    public DoingStrategyHelper(Context context) {
+    public DoingStrategyHelper(Context context, Thing thing) {
         mContext = context;
+        mThing = thing;
+
         mSpStartDoing = context.getSharedPreferences(
                 Def.Meta.DOING_STRATEGY_NAME, Context.MODE_PRIVATE);
         mSpSettings = context.getSharedPreferences(
@@ -58,8 +61,8 @@ public class DoingStrategyHelper {
      *      {@link #AUTO_START_DOING_STRATEGY_DISABLED},
      *      {@link #AUTO_START_DOING_STRATEGY_ENABLED}.
      */
-    public int getAutoStartDoingStrategy(long thingId) {
-        String key = thingId + "_" + KEY_INDEX_AUTO_START_DOING;
+    public int getAutoStartDoingStrategy() {
+        String key = mThing.getId() + "_" + KEY_INDEX_AUTO_START_DOING;
         return mSpStartDoing.getInt(key, AUTO_START_DOING_STRATEGY_FOLLOW_SETTINGS);
     }
 
@@ -70,8 +73,8 @@ public class DoingStrategyHelper {
      * @return {@code true} if user should start doing the thing when its alarm ring.
      *         {@code false} otherwise.
      */
-    public boolean shouldAutoStartDoing(long thingId) {
-        int strategy = getAutoStartDoingStrategy(thingId);
+    public boolean shouldAutoStartDoing() {
+        int strategy = getAutoStartDoingStrategy();
         if (strategy == AUTO_START_DOING_STRATEGY_FOLLOW_SETTINGS) {
             int sysStrategy = mSpSettings.getInt(Def.Meta.KEY_AUTO_START_DOING,
                     SYS_AUTO_START_DOING_STRATEGY_DISABLED);
@@ -81,11 +84,10 @@ public class DoingStrategyHelper {
                 // suppose that this method will only be called for Reminder or Habit
                 return true;
             } else {
-                Thing thing = ThingDAO.getInstance(mContext).getThingById(thingId);
-                if (thing == null) {
+                if (mThing == null) {
                     return false;
                 }
-                @Thing.Type int thingType = thing.getType();
+                @Thing.Type int thingType = mThing.getType();
                 if (thingType == Thing.REMINDER && sysStrategy == SYS_AUTO_START_DOING_STRATEGY_REMINDER) {
                     return true;
                 } else if (thingType == Thing.HABIT && sysStrategy == SYS_AUTO_START_DOING_STRATEGY_HABIT) {
@@ -108,8 +110,8 @@ public class DoingStrategyHelper {
      *      {@link #AUTO_STRICT_MODE_STRATEGY_DISABLED},
      *      {@link #AUTO_STRICT_MODE_STRATEGY_ENABLED}.
      */
-    public int getAutoStrictModeStrategy(long thingId) {
-        String key = thingId + "_" + KEY_INDEX_AUTO_STRICT_MODE;
+    public int getAutoStrictModeStrategy() {
+        String key = mThing.getId() + "_" + KEY_INDEX_AUTO_STRICT_MODE;
         return mSpStartDoing.getInt(key, AUTO_STRICT_MODE_STRATEGY_FOLLOW_SETTINGS);
     }
 
@@ -121,8 +123,8 @@ public class DoingStrategyHelper {
      * @return {@code true} if strict mode should be turned on automatically when user starts doing
      *         the thing. {@code false} otherwise.
      */
-    public boolean shouldAutoStrictMode(long thingId) {
-        int strategy = getAutoStrictModeStrategy(thingId);
+    public boolean shouldAutoStrictMode() {
+        int strategy = getAutoStrictModeStrategy();
         if (strategy == AUTO_STRICT_MODE_STRATEGY_FOLLOW_SETTINGS) {
             int sysStrategy = mSpSettings.getInt(Def.Meta.KEY_AUTO_STRICT_MODE,
                     SYS_AUTO_STRICT_MODE_STRATEGY_DISABLED);
@@ -132,11 +134,10 @@ public class DoingStrategyHelper {
                 // suppose that this method will only be called for Reminder or Habit
                 return true;
             } else {
-                Thing thing = ThingDAO.getInstance(mContext).getThingById(thingId);
-                if (thing == null) {
+                if (mThing == null) {
                     return false;
                 }
-                @Thing.Type int thingType = thing.getType();
+                @Thing.Type int thingType = mThing.getType();
                 if (thingType == Thing.REMINDER && sysStrategy == SYS_AUTO_STRICT_MODE_STRATEGY_REMINDER) {
                     return true;
                 } else if (thingType == Thing.HABIT && sysStrategy == SYS_AUTO_STRICT_MODE_STRATEGY_HABIT) {
@@ -150,7 +151,7 @@ public class DoingStrategyHelper {
         }
     }
 
-    public long getAutoDoingTime(long thingId) {
+    public long getAutoDoingTime() {
         throw new UnsupportedOperationException();
     }
 
