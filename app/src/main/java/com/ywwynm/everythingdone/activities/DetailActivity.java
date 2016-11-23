@@ -16,6 +16,7 @@ import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.graphics.PorterDuff;
 import android.graphics.Rect;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ColorDrawable;
@@ -54,6 +55,7 @@ import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -635,20 +637,10 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             setAsPrivateThingUiAndAddAction();
         }
 
-        if (mShouldAutoLink) {
-            mEtContent.setAutoLinkMask(Linkify.ALL);
-        } else {
-            mEtContent.setAutoLinkMask(0);
-        }
-
         initUiForThingContent();
         initUiForThingAttachment();
 
-        mTvUpdateTime.getPaint().setTextSkewX(-0.25f);
-        TextView tvFinishTime = f(R.id.tv_finish_time);
-        tvFinishTime.getPaint().setTextSkewX(-0.25f);
-
-        initUiTvUpdateFinish(thingType, thingState, tvFinishTime);
+        initUiTvUpdateFinish(thingType, thingState);
 
         initUiBottomBar();
 
@@ -672,6 +664,12 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     }
 
     private void initUiForThingContent() {
+        if (mShouldAutoLink) {
+            mEtContent.setAutoLinkMask(Linkify.ALL);
+        } else {
+            mEtContent.setAutoLinkMask(0);
+        }
+
         String content = mThing.getContent();
         if (mType == CREATE) {
             mEtContent.requestFocus();
@@ -762,7 +760,10 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         }
     }
 
-    private void initUiTvUpdateFinish(int thingType, int thingState, TextView tvFinishTime) {
+    private void initUiTvUpdateFinish(int thingType, int thingState) {
+        mTvUpdateTime.getPaint().setTextSkewX(-0.25f);
+        TextView tvFinishTime = f(R.id.tv_finish_time);
+        tvFinishTime.getPaint().setTextSkewX(-0.25f);
         if (mType == CREATE) {
             mTvUpdateTime.setText("");
             tvFinishTime.setVisibility(View.GONE);
@@ -781,59 +782,6 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             // finish time
             if (thingState == Thing.FINISHED) {
                 initAndShowTvFinishTime(tvFinishTime, thingType, isChinese);
-            }
-        }
-    }
-
-    private void initUiBottomBar() {
-        if (mType == CREATE) {
-            quickRemindPicker.pickForUI(8);
-            rhParams.setReminderAfterTime(quickRemindPicker.getPickedTimeAfter());
-        } else {
-            if (mReminder != null) {
-                updateBottomBarForReminder();
-            } else if (mHabit != null) {
-                cbQuickRemind.setChecked(mEditable);
-                if (mEditable) {
-                    quickRemindPicker.pickForUI(9);
-                }
-                int habitType = mHabit.getType();
-                String habitDetail = mHabit.getDetail();
-                tvQuickRemind.setText(DateTimeUtil.getDateTimeStrRec(
-                        mApp, habitType, habitDetail));
-                rhParams.setHabitType(habitType);
-                rhParams.setHabitDetail(habitDetail);
-            } else {
-                if (mEditable) {
-                    quickRemindPicker.pickForUI(8);
-                    rhParams.setReminderAfterTime(quickRemindPicker.getPickedTimeAfter());
-                } else {
-                    f(R.id.ll_quick_remind).setVisibility(View.GONE);
-                    FrameLayout.LayoutParams params = (FrameLayout.LayoutParams)
-                            mScrollView.getLayoutParams();
-                    params.setMargins(0, params.topMargin, 0, 0);
-                }
-            }
-            cbQuickRemind.setContentDescription(
-                    getString(R.string.remind_me) + tvQuickRemind.getText());
-        }
-    }
-
-    private void updateBottomBarForReminder() {
-        if (mReminder != null) {
-            cbQuickRemind.setChecked(mReminder.getState() == Reminder.UNDERWAY);
-
-            if (mEditable) {
-                quickRemindPicker.pickForUI(9);
-            }
-
-            long reminderInMillis = mReminder.getNotifyTime();
-            tvQuickRemind.setText(DateTimeUtil.getDateTimeStrAt(reminderInMillis, this, false));
-            rhParams.setReminderInMillis(reminderInMillis);
-            int state = mReminder.getState();
-            @Thing.State int thingState = mThing.getState();
-            if (state != Reminder.UNDERWAY || thingState != Thing.UNDERWAY) {
-                tvQuickRemind.append(", " + Reminder.getStateDescription(thingState, state, this));
             }
         }
     }
@@ -868,6 +816,82 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         }
     }
 
+    private void initUiBottomBar() {
+        if (mType == CREATE) {
+            quickRemindPicker.pickForUI(8);
+            rhParams.setReminderAfterTime(quickRemindPicker.getPickedTimeAfter());
+        } else {
+            if (mReminder != null) {
+                updateBottomBarForReminder();
+            } else if (mHabit != null) {
+                cbQuickRemind.setChecked(mEditable);
+                if (mEditable) {
+                    quickRemindPicker.pickForUI(9);
+                }
+                int habitType = mHabit.getType();
+                String habitDetail = mHabit.getDetail();
+                tvQuickRemind.setText(DateTimeUtil.getDateTimeStrRec(
+                        mApp, habitType, habitDetail));
+                rhParams.setHabitType(habitType);
+                rhParams.setHabitDetail(habitDetail);
+            } else {
+                if (mEditable) {
+                    quickRemindPicker.pickForUI(8);
+                    rhParams.setReminderAfterTime(quickRemindPicker.getPickedTimeAfter());
+                } else {
+                    f(R.id.ll_bottom_bar_detail).setVisibility(View.GONE);
+                    FrameLayout.LayoutParams params = (FrameLayout.LayoutParams)
+                            mScrollView.getLayoutParams();
+                    params.setMargins(0, params.topMargin, 0, 0);
+                }
+            }
+            cbQuickRemind.setContentDescription(
+                    getString(R.string.remind_me) + tvQuickRemind.getText());
+        }
+
+        initUiStartDoing();
+    }
+
+    private void updateBottomBarForReminder() {
+        if (mReminder != null) {
+            cbQuickRemind.setChecked(mReminder.getState() == Reminder.UNDERWAY);
+
+            if (mEditable) {
+                quickRemindPicker.pickForUI(9);
+            }
+
+            long reminderInMillis = mReminder.getNotifyTime();
+            tvQuickRemind.setText(DateTimeUtil.getDateTimeStrAt(reminderInMillis, this, false));
+            rhParams.setReminderInMillis(reminderInMillis);
+            int state = mReminder.getState();
+            @Thing.State int thingState = mThing.getState();
+            if (state != Reminder.UNDERWAY || thingState != Thing.UNDERWAY) {
+                tvQuickRemind.append(", " + Reminder.getStateDescription(thingState, state, this));
+            }
+        }
+    }
+
+    private void initUiStartDoing() {
+        @Thing.Type int thingType = mThing.getType();
+        FrameLayout fl = f(R.id.fl_doing_detail_as_bt);
+        if (mEditable && thingType >= Thing.NOTE && thingType <= Thing.GOAL) {
+            fl.setVisibility(View.VISIBLE);
+            fl.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+
+                }
+            });
+
+            Drawable d1 = ContextCompat.getDrawable(this, R.drawable.act_start_doing);
+            Drawable d2 = d1.mutate();
+            d2.setColorFilter(ContextCompat.getColor(this, R.color.app_accent),
+                    PorterDuff.Mode.SRC_ATOP);
+            ImageView iv = f(R.id.iv_doing_detail);
+            iv.setImageDrawable(d2);
+        }
+    }
+
     @Override
     protected void setActionbar() {
         setSupportActionBar(mActionbar);
@@ -893,12 +917,12 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             KeyboardUtil.addKeyboardCallback(window, new KeyboardUtil.KeyboardCallback() {
                 @Override
                 public void onKeyboardShow(int keyboardHeight) {
-                    updateQuickRemindShadow();
+                    updateBottomBarShadow();
                 }
 
                 @Override
                 public void onKeyboardHide() {
-                    updateQuickRemindShadow();
+                    updateBottomBarShadow();
                     quickRemindPicker.dismiss();
                 }
             });
@@ -1991,50 +2015,50 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             }
         });
 
-        if (f(R.id.ll_quick_remind).getVisibility() == View.VISIBLE) {
+        if (f(R.id.ll_bottom_bar_detail).getVisibility() == View.VISIBLE) {
             ViewTreeObserver observer = mScrollView.getViewTreeObserver();
             observer.addOnScrollChangedListener(new ViewTreeObserver.OnScrollChangedListener() {
                 @Override
                 public void onScrollChanged() {
-                    updateQuickRemindShadow();
+                    updateBottomBarShadow();
                 }
             });
             observer.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
                 @Override
                 public void onGlobalLayout() {
-                    updateQuickRemindShadow();
+                    updateBottomBarShadow();
                 }
             });
         }
     }
 
-    private void updateQuickRemindShadow() {
+    private void updateBottomBarShadow() {
         Rect windowRect = new Rect();
         getWindow().getDecorView().getWindowVisibleDisplayFrame(windowRect);
 
-        final View quickRemindShadow = f(R.id.quick_remind_shadow);
-        final int quickRemindHeight = (int) (screenDensity * 56);
+        final View bottomBarShadow = f(R.id.bottom_bar_shadow);
+        final int bottomBarHeight = (int) (screenDensity * 56);
         final int statusBarHeight = DisplayUtil.getStatusbarHeight(this);
 
         int scrollY = mScrollView.getScrollY();
         int childHeight = mScrollView.getChildAt(0).getHeight();
         int marginTop = statusBarHeight;
         if (mRvImageAttachment.getVisibility() != View.VISIBLE) {
-            marginTop += quickRemindHeight;
+            marginTop += bottomBarHeight;
         } else if (DeviceUtil.hasKitKatApi()) {
             marginTop -= statusBarHeight;
         }
 
         float aY = childHeight - windowRect.bottom
-                + quickRemindHeight + marginTop - screenDensity * 40;
+                + bottomBarHeight + marginTop - screenDensity * 40;
         float tY = aY + screenDensity * 24;
         if (scrollY <= aY) {
-            quickRemindShadow.setAlpha(1.0f);
+            bottomBarShadow.setAlpha(1.0f);
         } else if (scrollY >= tY) {
-            quickRemindShadow.setAlpha(0);
+            bottomBarShadow.setAlpha(0);
         } else {
             float progress = tY - scrollY;
-            quickRemindShadow.setAlpha(progress / (tY - aY));
+            bottomBarShadow.setAlpha(progress / (tY - aY));
         }
     }
 
