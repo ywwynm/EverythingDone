@@ -610,19 +610,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         @Thing.Type  int thingType  = mThing.getType();
         @Thing.State int thingState = mThing.getState();
 
-        if (thingType == Thing.REMINDER || thingType == Thing.WELCOME_REMINDER) {
-            mIbBack.setImageResource(R.drawable.act_back_reminder);
-            mIbBack.setContentDescription(getString(R.string.cd_back_reminder));
-        } else if (thingType == Thing.HABIT || thingType == Thing.WELCOME_HABIT) {
-            mIbBack.setImageResource(R.drawable.act_back_habit);
-            mIbBack.setContentDescription(getString(R.string.cd_back_habit));
-        } else if (thingType == Thing.GOAL || thingType == Thing.WELCOME_GOAL) {
-            mIbBack.setImageResource(R.drawable.act_back_goal);
-            mIbBack.setContentDescription(getString(R.string.cd_back_goal));
-        } else {
-            mIbBack.setImageResource(R.drawable.act_back_note);
-            mIbBack.setContentDescription(getString(R.string.cd_back_note));
-        }
+        initBackButton(thingType);
 
         mFlRoot.setBackgroundColor(color);
 
@@ -653,6 +641,37 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             mEtContent.setAutoLinkMask(0);
         }
 
+        initUiForThingContent();
+        initUiForThingAttachment();
+
+        mTvUpdateTime.getPaint().setTextSkewX(-0.25f);
+        TextView tvFinishTime = f(R.id.tv_finish_time);
+        tvFinishTime.getPaint().setTextSkewX(-0.25f);
+
+        initUiTvUpdateFinish(thingType, thingState, tvFinishTime);
+
+        initUiBottomBar();
+
+        updateDescriptions(mThing.getColor());
+    }
+
+    private void initBackButton(@Thing.Type int thingType) {
+        if (thingType == Thing.REMINDER || thingType == Thing.WELCOME_REMINDER) {
+            mIbBack.setImageResource(R.drawable.act_back_reminder);
+            mIbBack.setContentDescription(getString(R.string.cd_back_reminder));
+        } else if (thingType == Thing.HABIT || thingType == Thing.WELCOME_HABIT) {
+            mIbBack.setImageResource(R.drawable.act_back_habit);
+            mIbBack.setContentDescription(getString(R.string.cd_back_habit));
+        } else if (thingType == Thing.GOAL || thingType == Thing.WELCOME_GOAL) {
+            mIbBack.setImageResource(R.drawable.act_back_goal);
+            mIbBack.setContentDescription(getString(R.string.cd_back_goal));
+        } else {
+            mIbBack.setImageResource(R.drawable.act_back_note);
+            mIbBack.setContentDescription(getString(R.string.cd_back_note));
+        }
+    }
+
+    private void initUiForThingContent() {
         String content = mThing.getContent();
         if (mType == CREATE) {
             mEtContent.requestFocus();
@@ -703,7 +722,9 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 mEtContent.setText(content);
             }
         }
+    }
 
+    private void initUiForThingAttachment() {
         final String attachment = mThing.getAttachment();
         if (AttachmentHelper.isValidForm(attachment)) {
             if (!PermissionUtil.hasStoragePermission(this)) {
@@ -739,16 +760,12 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         } else {
             setScrollViewMarginTop(true);
         }
+    }
 
-        mTvUpdateTime.getPaint().setTextSkewX(-0.25f);
-        TextView tvFinishTime = f(R.id.tv_finish_time);
-        tvFinishTime.getPaint().setTextSkewX(-0.25f);
-
+    private void initUiTvUpdateFinish(int thingType, int thingState, TextView tvFinishTime) {
         if (mType == CREATE) {
             mTvUpdateTime.setText("");
             tvFinishTime.setVisibility(View.GONE);
-            quickRemindPicker.pickForUI(8);
-            rhParams.setReminderAfterTime(quickRemindPicker.getPickedTimeAfter());
         } else {
             boolean isChinese = LocaleUtil.isChinese(this);
             if (mThing.getCreateTime() == mThing.getUpdateTime()) {
@@ -765,7 +782,14 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             if (thingState == Thing.FINISHED) {
                 initAndShowTvFinishTime(tvFinishTime, thingType, isChinese);
             }
+        }
+    }
 
+    private void initUiBottomBar() {
+        if (mType == CREATE) {
+            quickRemindPicker.pickForUI(8);
+            rhParams.setReminderAfterTime(quickRemindPicker.getPickedTimeAfter());
+        } else {
             if (mReminder != null) {
                 updateBottomBarForReminder();
             } else if (mHabit != null) {
@@ -793,8 +817,6 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             cbQuickRemind.setContentDescription(
                     getString(R.string.remind_me) + tvQuickRemind.getText());
         }
-
-        updateDescriptions(mThing.getColor());
     }
 
     private void updateBottomBarForReminder() {
@@ -1504,7 +1526,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             quickRemindPicker.pickForUI(pickedAfter);
         }
         updateDescriptions(getAccentColor());
-        updateBackImage();
+        updateBackButton();
     }
 
     private void chooseHowToShareThing() {
@@ -2071,7 +2093,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 updateDescriptions(getAccentColor());
-                updateBackImage();
+                updateBackButton();
                 cbQuickRemind.setContentDescription(
                         getString(R.string.remind_me) + tvQuickRemind.getText());
                 if (shouldAddToActionList) {
@@ -2104,7 +2126,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                     rhParams.setReminderAfterTime(quickRemindPicker.getPickedTimeAfter());
                     if (cbQuickRemind.isChecked()) {
                         updateDescriptions(getAccentColor());
-                        updateBackImage();
+                        updateBackButton();
                     } else {
                         boolean temp = shouldAddToActionList;
                         shouldAddToActionList = false;
@@ -2650,7 +2672,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         sendBroadcast(intent);
     }
 
-    public void updateBackImage() {
+    public void updateBackButton() {
         if (cbQuickRemind.isChecked()) {
             if (rhParams.getHabitDetail() != null) {
                 mIbBack.setImageResource(R.drawable.act_back_habit);
