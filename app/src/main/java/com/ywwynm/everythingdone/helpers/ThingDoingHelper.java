@@ -3,16 +3,19 @@ package com.ywwynm.everythingdone.helpers;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
+import com.ywwynm.everythingdone.activities.DoingActivity;
 import com.ywwynm.everythingdone.model.Thing;
+import com.ywwynm.everythingdone.services.DoingService;
 
 /**
  * Created by ywwynm on 2016/11/22.
  * A helper class to restore and get thing's doing strategy
  */
-public class DoingStrategyHelper {
+public class ThingDoingHelper {
 
-    public static final String TAG = "DoingStrategyHelper";
+    public static final String TAG = "ThingDoingHelper";
 
     public static int KEY_INDEX_AUTO_START_DOING                = 0;
 
@@ -43,7 +46,7 @@ public class DoingStrategyHelper {
     private SharedPreferences mSpStartDoing;
     private SharedPreferences mSpSettings;
 
-    public DoingStrategyHelper(Context context, Thing thing) {
+    public ThingDoingHelper(Context context, Thing thing) {
         mContext = context;
         mThing = thing;
 
@@ -51,6 +54,31 @@ public class DoingStrategyHelper {
                 Def.Meta.DOING_STRATEGY_NAME, Context.MODE_PRIVATE);
         mSpSettings = context.getSharedPreferences(
                 Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE);
+    }
+
+    public void startDoing(long timeInMillis, @DoingService.StartType int startType) {
+        if (mThing == null) {
+            return;
+        }
+        App.setDoingThingId(mThing.getId());
+        mContext.startService(DoingService.getOpenIntent(
+                mContext, mThing, System.currentTimeMillis(), timeInMillis, startType));
+        mContext.startActivity(DoingActivity.getOpenIntent(mContext, false));
+        RemoteActionHelper.doingOrCancel(mContext, mThing);
+    }
+
+    public void startDoingAlarm(long timeInMillis) {
+        startDoing(timeInMillis, DoingService.START_TYPE_ALARM);
+    }
+
+    public void startDoingAuto() {
+        long timeInMillis = 0;
+        startDoing(timeInMillis, DoingService.START_TYPE_AUTO);
+    }
+
+    public void startDoingUser() {
+        long timeInMillis = 0;
+        startDoing(timeInMillis, DoingService.START_TYPE_USER);
     }
 
     /**

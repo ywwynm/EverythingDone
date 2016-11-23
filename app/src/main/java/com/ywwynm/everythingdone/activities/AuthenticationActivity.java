@@ -11,6 +11,7 @@ import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.helpers.AuthenticationHelper;
 import com.ywwynm.everythingdone.helpers.RemoteActionHelper;
 import com.ywwynm.everythingdone.model.Thing;
+import com.ywwynm.everythingdone.services.DoingService;
 
 /**
  * Created by ywwynm on 2016/6/21
@@ -125,7 +126,7 @@ public class AuthenticationActivity extends AppCompatActivity {
 
     private void actStartDoing(Thing thing, int position) {
         Intent intent = StartDoingActivity.getOpenIntent(
-                this, thing.getId(), position, thing.getColor());
+                this, thing.getId(), position, thing.getColor(), DoingService.START_TYPE_ALARM);
         startActivity(intent);
     }
 

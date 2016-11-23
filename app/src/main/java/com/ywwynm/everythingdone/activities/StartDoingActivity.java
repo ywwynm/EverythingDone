@@ -15,7 +15,7 @@ import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.fragments.ChooserDialogFragment;
-import com.ywwynm.everythingdone.helpers.RemoteActionHelper;
+import com.ywwynm.everythingdone.helpers.ThingDoingHelper;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.services.DoingService;
@@ -35,37 +35,22 @@ public class StartDoingActivity extends AppCompatActivity {
 
     public static final String TAG = "StartDoingActivity";
 
-    public static Intent getOpenIntent(Context context, long thingId, int position, int color) {
+    public static Intent getOpenIntent(
+            Context context, long thingId, int position, int color,
+            @DoingService.StartType int startType) {
         Intent intent = new Intent(context, StartDoingActivity.class);
         intent.putExtra(Def.Communication.KEY_ID, thingId);
         intent.putExtra(Def.Communication.KEY_POSITION, position);
         intent.putExtra(Def.Communication.KEY_COLOR, color);
+        intent.putExtra(DoingService.KEY_START_TYPE, startType);
         return intent;
     }
 
+    private Thing mThing;
+    private @DoingService.StartType int mStartType;
+
     private List<Integer> mTypes;
     private List<Integer> mTimes;
-
-//    private int[] mTypes = {
-//            Calendar.MINUTE,
-//            Calendar.MINUTE,
-//            Calendar.MINUTE,
-//            Calendar.HOUR_OF_DAY,
-//            Calendar.MINUTE,
-//            Calendar.HOUR_OF_DAY,
-//            Calendar.HOUR_OF_DAY,
-//            Calendar.HOUR_OF_DAY
-//    };
-//    private int[] mTimes = {
-//            15,
-//            30,
-//            45,
-//            1,
-//            90,
-//            2,
-//            3,
-//            4
-//    };
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -73,18 +58,18 @@ public class StartDoingActivity extends AppCompatActivity {
 
         final Intent intent = getIntent();
         final long id = intent.getLongExtra(Def.Communication.KEY_ID, -1);
-        int pos = intent.getIntExtra(Def.Communication.KEY_POSITION, -1);
+        final int pos = intent.getIntExtra(Def.Communication.KEY_POSITION, -1);
         final Pair<Thing, Integer> pair = App.getThingAndPosition(getApplicationContext(), id, pos);
-        final Thing thing = pair.first;
-        if (thing == null) {
+        mThing = pair.first;
+        if (mThing == null) {
             finish();
             return;
         }
+        mStartType = intent.getIntExtra(DoingService.KEY_START_TYPE, DoingService.START_TYPE_ALARM);
 
         initTimeMember();
 
         int color = intent.getIntExtra(Def.Communication.KEY_COLOR, DisplayUtil.getRandomColor(this));
-
         final ChooserDialogFragment cdf = new ChooserDialogFragment();
         cdf.setAccentColor(color);
         cdf.setShouldShowMore(false);
@@ -96,47 +81,7 @@ public class StartDoingActivity extends AppCompatActivity {
         cdf.setConfirmListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                App app = App.getApp();
-                int index = cdf.getPickedIndex();
-                boolean shouldGoToDoing = true;
-                long timeInMillis;
-                if (index == 0) {
-                    timeInMillis = -1;
-                } else {
-                    index--;
-                    long etc = DateTimeUtil.getActualTimeAfterSomeTime(
-                            mTypes.get(index), mTimes.get(index));
-                    if (thing.getType() == Thing.HABIT) {
-                        Habit habit = HabitDAO.getInstance(app).getHabitById(id);
-                        if (habit != null) {
-                            GregorianCalendar calendar = new GregorianCalendar();
-                            int ct = calendar.get(habit.getType()); // current t
-                            calendar.setTimeInMillis(etc);
-                            if (calendar.get(habit.getType()) != ct) {
-                                Toast.makeText(app,
-                                        R.string.start_doing_time_long_t, Toast.LENGTH_LONG).show();
-                                shouldGoToDoing = false;
-                            } else {
-                                long nextTime = habit.getMinHabitReminderTime();
-                                if (etc >= nextTime - 6 * 60 * 1000) {
-                                    Toast.makeText(app,
-                                            R.string.start_doing_time_long_alarm, Toast.LENGTH_LONG).show();
-                                    shouldGoToDoing = false;
-                                }
-                            }
-                        }
-                    }
-                    timeInMillis = DateTimeUtil.getActualTimeAfterSomeTime(
-                            0, mTypes.get(index), mTimes.get(index));
-                }
-                if (shouldGoToDoing) {
-                    App.setDoingThingId(id);
-                    cdf.dismiss();
-                    startService(DoingService.getOpenIntent(
-                            StartDoingActivity.this, thing, System.currentTimeMillis(), timeInMillis));
-                    startActivity(DoingActivity.getOpenIntent(StartDoingActivity.this, false));
-                    RemoteActionHelper.doingOrCancel(StartDoingActivity.this, thing);
-                }
+                tryToStartDoing(cdf);
             }
         });
         cdf.setOnDismissListener(new ChooserDialogFragment.OnDismissListener() {
@@ -147,6 +92,58 @@ public class StartDoingActivity extends AppCompatActivity {
             }
         });
         cdf.show(getFragmentManager(), ChooserDialogFragment.TAG);
+    }
+
+    private void tryToStartDoing(final ChooserDialogFragment cdf) {
+        if (mStartType == DoingService.START_TYPE_ALARM) {
+            tryToStartDoingAlarm(cdf);
+        } else if (mStartType == DoingService.START_TYPE_USER) {
+            tryToStartDoingUser(cdf);
+        }
+    }
+
+    private void tryToStartDoingAlarm(final ChooserDialogFragment cdf) {
+        int index = cdf.getPickedIndex();
+        boolean canStartDoing = true;
+        long timeInMillis;
+        if (index == 0) {
+            timeInMillis = -1;
+        } else {
+            index--;
+            long etc = DateTimeUtil.getActualTimeAfterSomeTime(
+                    mTypes.get(index), mTimes.get(index));
+            if (mThing.getType() == Thing.HABIT) {
+                Habit habit = HabitDAO.getInstance(this).getHabitById(mThing.getId());
+                if (habit != null) {
+                    GregorianCalendar calendar = new GregorianCalendar();
+                    int ct = calendar.get(habit.getType()); // current t
+                    calendar.setTimeInMillis(etc);
+                    if (calendar.get(habit.getType()) != ct) {
+                        Toast.makeText(this,
+                                R.string.start_doing_time_long_t, Toast.LENGTH_LONG).show();
+                        canStartDoing = false;
+                    } else {
+                        long nextTime = habit.getMinHabitReminderTime();
+                        if (etc >= nextTime - 6 * 60 * 1000) {
+                            Toast.makeText(this,
+                                    R.string.start_doing_time_long_alarm, Toast.LENGTH_LONG).show();
+                            canStartDoing = false;
+                        }
+                    }
+                }
+            }
+            timeInMillis = DateTimeUtil.getActualTimeAfterSomeTime(
+                    0, mTypes.get(index), mTimes.get(index));
+        }
+        if (canStartDoing) {
+            cdf.dismiss();
+            ThingDoingHelper helper = new ThingDoingHelper(StartDoingActivity.this, mThing);
+            helper.startDoingAlarm(timeInMillis);
+        }
+    }
+
+    private void tryToStartDoingUser(final ChooserDialogFragment cdf) {
+
     }
 
     private void initTimeMember() {

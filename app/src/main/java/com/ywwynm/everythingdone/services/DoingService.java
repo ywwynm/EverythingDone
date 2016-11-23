@@ -17,7 +17,7 @@ import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.database.DoingRecordDAO;
 import com.ywwynm.everythingdone.database.HabitDAO;
-import com.ywwynm.everythingdone.helpers.DoingStrategyHelper;
+import com.ywwynm.everythingdone.helpers.ThingDoingHelper;
 import com.ywwynm.everythingdone.helpers.RemoteActionHelper;
 import com.ywwynm.everythingdone.model.DoingRecord;
 import com.ywwynm.everythingdone.model.Habit;
@@ -48,15 +48,27 @@ public class DoingService extends Service {
 
     public static final String KEY_START_TIME     = "start_time";
     public static final String KEY_TIME_IN_MILLIS = "time_in_millis";
+    public static final String KEY_START_TYPE     = "start_type";
+
+    public static final int START_TYPE_ALARM = 0;
+    public static final int START_TYPE_AUTO  = 1;
+    public static final int START_TYPE_USER  = 2;
+
+    @IntDef({START_TYPE_ALARM, START_TYPE_AUTO, START_TYPE_USER})
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface StartType {}
 
     private static final long MINUTE_MILLIS = 60 * 1000L;
     private static final long HOUR_MILLIS   = 60 * MINUTE_MILLIS;
 
-    public static Intent getOpenIntent(Context context, Thing thing, long startTime, long timeInMillis) {
+    public static Intent getOpenIntent(
+            Context context, Thing thing, long startTime, long timeInMillis,
+            @StartType int startType) {
         return new Intent(context, DoingService.class)
                 .putExtra(Def.Communication.KEY_THING, thing)
                 .putExtra(KEY_START_TIME, startTime)
-                .putExtra(KEY_TIME_IN_MILLIS, timeInMillis);
+                .putExtra(KEY_TIME_IN_MILLIS, timeInMillis)
+                .putExtra(KEY_START_TYPE, startTime);
     }
 
     public interface DoingListener {
@@ -69,7 +81,7 @@ public class DoingService extends Service {
 
     private DoingBinder mBinder;
 
-    private boolean mIsAutoStartDoing;
+    private @StartType int mStartType;
     private boolean mShouldAutoStrictMode;
 
     private Thing mThing;
@@ -273,8 +285,8 @@ public class DoingService extends Service {
         mAdd5MinTimes = 0;
         mTotalAdd5MinTimes = 0;
 
-        DoingStrategyHelper helper = new DoingStrategyHelper(this, mThing);
-
+        mStartType = intent.getIntExtra(KEY_START_TYPE, START_TYPE_ALARM);
+        ThingDoingHelper helper = new ThingDoingHelper(this, mThing);
         mShouldAutoStrictMode = helper.shouldAutoStrictMode();
 
         mInStrictMode = mShouldAutoStrictMode;

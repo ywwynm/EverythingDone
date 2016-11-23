@@ -18,6 +18,7 @@ import com.ywwynm.everythingdone.activities.StartDoingActivity;
 import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.helpers.RemoteActionHelper;
 import com.ywwynm.everythingdone.model.Thing;
+import com.ywwynm.everythingdone.services.DoingService;
 
 public class ReminderNotificationActionReceiver extends BroadcastReceiver {
 
@@ -104,7 +105,7 @@ public class ReminderNotificationActionReceiver extends BroadcastReceiver {
                         context.getString(R.string.start_doing_full_title));
             } else {
                 actionIntent = StartDoingActivity.getOpenIntent(
-                        context, thing.getId(), position, thing.getColor());
+                        context, thing.getId(), position, thing.getColor(), DoingService.START_TYPE_ALARM);
             }
             actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
             context.startActivity(actionIntent);
