@@ -885,7 +885,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
             Drawable d1 = ContextCompat.getDrawable(this, R.drawable.act_start_doing);
             Drawable d2 = d1.mutate();
-            d2.setColorFilter(ContextCompat.getColor(this, R.color.app_accent),
+            d2.setColorFilter(ContextCompat.getColor(this, R.color.black_54p),
                     PorterDuff.Mode.SRC_ATOP);
             ImageView iv = f(R.id.iv_doing_detail);
             iv.setImageDrawable(d2);
