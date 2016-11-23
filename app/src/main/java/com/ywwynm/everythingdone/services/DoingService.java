@@ -224,6 +224,12 @@ public class DoingService extends Service {
     }
 
     @Override
+    public boolean onUnbind(Intent intent) {
+        mDoingListener = null;
+        return super.onUnbind(intent);
+    }
+
+    @Override
     public void onCreate() {
         super.onCreate();
         Log.i(TAG, "onCreate()");
@@ -306,6 +312,7 @@ public class DoingService extends Service {
 
         mThing = null;
         mHandler = null;
+        mDoingListener = null;
     }
 
     private void setDoingListener(DoingListener listener) {
