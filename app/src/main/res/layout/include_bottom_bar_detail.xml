@@ -59,13 +59,14 @@
         android:id="@+id/fl_doing_detail_as_bt"
         android:layout_width="56dp"
         android:layout_height="56dp"
-        android:foreground="@drawable/selectable_item_background_light"
+        android:foreground="@drawable/selectable_item_background"
+        android:background="@color/app_accent"
         android:visibility="gone">
 
         <ImageView
             android:id="@+id/iv_doing_detail"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
+            android:layout_width="26dp"
+            android:layout_height="26dp"
             android:layout_gravity="center"
             android:scaleType="centerCrop"/>
 
