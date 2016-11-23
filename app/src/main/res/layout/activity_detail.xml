@@ -194,14 +194,14 @@
     <include layout="@layout/include_actionbar_detail"/>
 
     <View
-        android:id="@+id/quick_remind_shadow"
+        android:id="@+id/bottom_bar_shadow"
         android:layout_width="match_parent"
         android:layout_height="6dp"
         android:layout_gravity="bottom"
         android:layout_marginBottom="56dp"
         android:alpha="0.0"
-        android:background="@drawable/quick_remind_shadow"/>
+        android:background="@drawable/bottom_bar_detail_shadow"/>
 
-    <include layout="@layout/include_quick_remind_detail"/>
+    <include layout="@layout/include_bottom_bar_detail"/>
 
 </FrameLayout>
