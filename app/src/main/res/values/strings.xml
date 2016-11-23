@@ -531,6 +531,7 @@
     <string name="doing_toast_add5_time_long_t">You will not be able to finish the Habit once in this cycle after adding 5 minutes</string>
     <string name="doing_toast_add5_above99">I cannot touch that future</string>
     <string name="doing_toast_pass_data_error">Cannot start doing because something bad happened during passing data between app components</string>
+    <string name="doing_toast_already_strict_mode">You are in strict mode</string>
 
 
     <!--ImageViewerActivity-->

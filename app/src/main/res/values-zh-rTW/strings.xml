@@ -524,6 +524,7 @@
     <string name="doing_toast_add5_time_long_t">如果延遲 5 分鐘，您有可能無法在本週期內完成一次該習慣</string>
     <string name="doing_toast_add5_above99">我無法觸及那片未來</string>
     <string name="doing_toast_pass_data_error">無法開始做事，因為組件間數據傳遞時發生了錯誤</string>
+    <string name="doing_toast_already_strict_mode">已處於嚴格模式</string>
 
 
     <!--ImageViewerActivity-->

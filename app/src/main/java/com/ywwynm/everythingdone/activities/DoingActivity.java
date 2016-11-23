@@ -270,6 +270,10 @@ public class DoingActivity extends EverythingDoneBaseActivity {
             return;
         }
 
+        if (mDoingBinder.isInStrictMode()) {
+            Toast.makeText(this, R.string.doing_toast_already_strict_mode, Toast.LENGTH_LONG).show();
+        }
+
         playBackgroundAnimation();
 
         updateTimeViews();

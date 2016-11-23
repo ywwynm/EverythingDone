@@ -17,6 +17,7 @@ import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.database.DoingRecordDAO;
 import com.ywwynm.everythingdone.database.HabitDAO;
+import com.ywwynm.everythingdone.helpers.DoingStrategyHelper;
 import com.ywwynm.everythingdone.helpers.RemoteActionHelper;
 import com.ywwynm.everythingdone.model.DoingRecord;
 import com.ywwynm.everythingdone.model.Habit;
@@ -67,6 +68,9 @@ public class DoingService extends Service {
     private DoingListener mDoingListener;
 
     private DoingBinder mBinder;
+
+    private boolean mIsAutoStartDoing;
+    private boolean mShouldAutoStrictMode;
 
     private Thing mThing;
     private Habit mHabit;
@@ -263,7 +267,11 @@ public class DoingService extends Service {
         mAdd5MinTimes = 0;
         mTotalAdd5MinTimes = 0;
 
-        mInStrictMode = false; // TODO: 2016/11/3 read from settings
+        DoingStrategyHelper helper = new DoingStrategyHelper(this, mThing);
+
+        mShouldAutoStrictMode = helper.shouldAutoStrictMode();
+
+        mInStrictMode = mShouldAutoStrictMode;
         mPlayedTimes = 0;
         mStartPlayTime = -1L;
 
