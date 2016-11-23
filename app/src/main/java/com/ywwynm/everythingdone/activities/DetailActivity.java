@@ -77,6 +77,7 @@ import com.ywwynm.everythingdone.fragments.AlertDialogFragment;
 import com.ywwynm.everythingdone.fragments.DateTimeDialogFragment;
 import com.ywwynm.everythingdone.fragments.HabitDetailDialogFragment;
 import com.ywwynm.everythingdone.fragments.LoadingDialogFragment;
+import com.ywwynm.everythingdone.fragments.ThingDoingDialogFragment;
 import com.ywwynm.everythingdone.fragments.TwoOptionsDialogFragment;
 import com.ywwynm.everythingdone.helpers.AppUpdateHelper;
 import com.ywwynm.everythingdone.helpers.AttachmentHelper;
@@ -879,7 +880,9 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             fl.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-
+                    ThingDoingDialogFragment tddf = new ThingDoingDialogFragment();
+                    tddf.setThing(mThing);
+                    tddf.show(getFragmentManager(), ThingDoingDialogFragment.TAG);
                 }
             });
 
