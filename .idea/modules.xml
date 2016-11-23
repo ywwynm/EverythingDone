@@ -4,6 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/EverythingDone.iml" filepath="$PROJECT_DIR$/EverythingDone.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/swirl/swirl.iml" filepath="$PROJECT_DIR$/swirl/swirl.iml" />
       <module fileurl="file://$PROJECT_DIR$/timelytextview/timelytextview.iml" filepath="$PROJECT_DIR$/timelytextview/timelytextview.iml" />
     </modules>
   </component>

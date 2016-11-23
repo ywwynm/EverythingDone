@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <public name="swirl_ridgeColor" type="attr"/>
+  <public name="swirl_errorColor" type="attr"/>
+  <public name="swirl_state" type="attr"/>
+</resources>

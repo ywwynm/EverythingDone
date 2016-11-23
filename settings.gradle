@@ -1,1 +1,1 @@
-include ':app', ':timelytextview'
+include ':app', ':timelytextview', ':swirl'
