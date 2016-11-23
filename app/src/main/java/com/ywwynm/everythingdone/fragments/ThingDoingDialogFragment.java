@@ -68,13 +68,13 @@ public class ThingDoingDialogFragment extends BaseDialogFragment {
     private void stimulateFeedbackForUserTouch(final CardView cv) {
         final float density = DisplayUtil.getScreenDensity(mActivity);
         final int dp2 = (int) (density * 2);
-        final int dp4 = (int) (density * 3);
+        final int dp3 = (int) (density * 3);
         cv.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View view, MotionEvent motionEvent) {
                 int action = motionEvent.getAction();
                 if (action == MotionEvent.ACTION_DOWN) {
-                    cv.setCardElevation(dp4);
+                    cv.setCardElevation(dp3);
                 } else if (action == MotionEvent.ACTION_UP) {
                     cv.setCardElevation(dp2);
                 }
