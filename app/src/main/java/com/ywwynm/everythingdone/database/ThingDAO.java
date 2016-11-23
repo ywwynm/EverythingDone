@@ -70,7 +70,9 @@ public class ThingDAO {
         cursor.close();
 
         db.delete(Def.Database.TABLE_THINGS, "type=" + Thing.HEADER, null);
-        createHeader(maxId + 1, maxLocation + 1);
+
+        long idAndLocation = Math.max(maxId, maxLocation) + 1;
+        createHeader(idAndLocation);
 
 //        cursor = db.query(Def.Database.TABLE_THINGS, null,
 //                "type=" + Thing.HEADER, null, null, null, null);
@@ -90,16 +92,16 @@ public class ThingDAO {
 //        }
     }
 
-    private void createHeader(long id, long location) {
+    private void createHeader(long idAndLocation) {
         ContentValues values = new ContentValues();
-        values.put(Def.Database.COLUMN_ID_THINGS, id);
+        values.put(Def.Database.COLUMN_ID_THINGS, idAndLocation);
         values.put(Def.Database.COLUMN_TYPE_THINGS, Thing.HEADER);
         values.put(Def.Database.COLUMN_STATE_THINGS, Thing.UNDERWAY);
         values.put(Def.Database.COLUMN_COLOR_THINGS, -14784871);
         values.put(Def.Database.COLUMN_TITLE_THINGS, "Let this be my last words");
         values.put(Def.Database.COLUMN_CONTENT_THINGS, "I trust thy love");
         values.put(Def.Database.COLUMN_ATTACHMENT_THINGS, "to QQ");
-        values.put(Def.Database.COLUMN_LOCATION_THINGS, location);
+        values.put(Def.Database.COLUMN_LOCATION_THINGS, idAndLocation);
         values.put(Def.Database.COLUMN_CREATE_TIME_THINGS, System.currentTimeMillis());
         values.put(Def.Database.COLUMN_UPDATE_TIME_THINGS, System.currentTimeMillis());
         values.put(Def.Database.COLUMN_FINISH_TIME_THINGS, 0);
