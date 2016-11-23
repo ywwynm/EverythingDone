@@ -1,14 +1,21 @@
-buildscript {
-    dependencies {
-        classpath 'com.android.tools.build:gradle:2.2.2'
-    }
-}
-
 apply plugin: 'com.android.library'
 
 android {
     compileSdkVersion 25
     buildToolsVersion '25.0.0'
+
+    defaultConfig {
+        minSdkVersion 16
+        targetSdkVersion 25
+        versionCode 1
+        versionName "1.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
 
     resourcePrefix 'swirl_'
 }
