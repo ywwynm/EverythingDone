@@ -114,9 +114,7 @@ public class FingerprintDialogFragment extends BaseDialogFragment {
                 } else {
                     tryTimes--;
                     String warning = getString(R.string.fingerprint_error_part_1);
-                    if (!LocaleUtil.isChinese(context)) {
-                        warning += " ";
-                    }
+                    warning += " ";
                     warning += LocaleUtil.getTimesStr(context, tryTimes);
                     mTvState.setText(warning);
                 }
@@ -158,7 +156,9 @@ public class FingerprintDialogFragment extends BaseDialogFragment {
         mSwirlView.postDelayed(new Runnable() {
             @Override
             public void run() {
-                mSwirlView.setState(SwirlView.State.ON);
+                if (mSwirlView.getState() == SwirlView.State.OFF) {
+                    mSwirlView.setState(SwirlView.State.ON);
+                }
             }
         }, 200);
 
