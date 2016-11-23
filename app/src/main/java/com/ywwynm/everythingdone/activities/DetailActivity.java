@@ -874,7 +874,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     private void initUiStartDoing() {
         @Thing.Type int thingType = mThing.getType();
         FrameLayout fl = f(R.id.fl_doing_detail_as_bt);
-        if (mEditable && thingType >= Thing.NOTE && thingType <= Thing.GOAL) {
+        if (mType == UPDATE && mEditable && thingType >= Thing.NOTE && thingType <= Thing.GOAL) {
             fl.setVisibility(View.VISIBLE);
             fl.setOnClickListener(new View.OnClickListener() {
                 @Override
