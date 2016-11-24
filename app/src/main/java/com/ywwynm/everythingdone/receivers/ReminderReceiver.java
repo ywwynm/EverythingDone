@@ -75,8 +75,8 @@ public class ReminderReceiver extends BroadcastReceiver {
                         typeBefore, Reminder.REMINDED);
                 notifyUser(context, id, position, thing);
             } else {
-                reminder.setState(Reminder.EXPIRED);
-                reminderDAO.update(reminder);
+                updateReminderState(reminder, reminderDAO, context, thing, position,
+                        typeBefore, Reminder.EXPIRED);
             }
         }
     }

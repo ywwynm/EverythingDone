@@ -2619,6 +2619,8 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         mThing.setUpdateTime(System.currentTimeMillis());
 
         intent.putExtra(Def.Communication.KEY_TYPE_BEFORE, typeBefore);
+        intent.putExtra(Def.Communication.KEY_THING, mThing);
+
         boolean sameType = mApp.getLimit() ==
                 Def.LimitForGettingThings.ALL_UNDERWAY
                 || Thing.sameType(typeBefore, typeAfter);
@@ -2626,7 +2628,6 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         if (sameType) {
             resultCode = Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME;
         } else {
-            intent.putExtra(Def.Communication.KEY_THING, mThing);
             resultCode = Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_DIFFERENT;
         }
 

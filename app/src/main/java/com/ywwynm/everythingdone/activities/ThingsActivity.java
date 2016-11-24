@@ -810,6 +810,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     private void updateMainUiForUpdateSameType(final Intent data) {
         @Thing.Type final int typeBefore = data.getIntExtra(
                 Def.Communication.KEY_TYPE_BEFORE, Thing.NOTE);
+        final Thing contentUpdatedThing = data.getParcelableExtra(Def.Communication.KEY_THING);
         final boolean justNotifyAll = App.justNotifyAll();
         Log.i(TAG, "updateMainUiForUpdateSameType called, "
                 + "typeBefore[" + typeBefore + "], "
@@ -818,10 +819,14 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             @Override
             public void run() {
                 Log.i(TAG, "updateMainUiForUpdateSameType: delayed Runnable started.");
+                @Thing.State int thingState = Thing.UNDERWAY;
+                if (contentUpdatedThing != null) {
+                    // update a finished thing is also possible -> update Reminder's state
+                    thingState = contentUpdatedThing.getState();
+                }
                 if (justNotifyAll) {
                     justNotifyAll();
-                } else if (Thing.isTypeStateMatchLimit(typeBefore,
-                        Thing.UNDERWAY, mApp.getLimit())) {
+                } else if (Thing.isTypeStateMatchLimit(typeBefore, thingState, mApp.getLimit())) {
                     int pos = data.getIntExtra(
                             Def.Communication.KEY_POSITION, 1);
                     Log.i(TAG, "type and state match current limit, "
