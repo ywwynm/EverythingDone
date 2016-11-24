@@ -278,6 +278,22 @@ public class Habit {
         return ct == t && record.length() == remindedTimes - 1;
     }
 
+    /**
+     * Check if user can finish Habit once now for a Habit reminder which was reminded at given time.
+     *
+     * This method may be called to check if user can finish Habit once when he presses "finished
+     * this time" action button when corresponding notification comes. Without this check, user can
+     * leave that notification forever and can finish the Habit once at any time. As a result, we
+     * should check if the Habit reminder's notifyTime and current time is in same Habit cycle.
+     *
+     * Considering user can create a Habit that will remind him 4 times a day, this method cannot
+     * work if user can ignore the notification until next notification comes. However, we will not
+     * allow user to see two notifications for one Habit, as a result, he cannot finish the Habit
+     * once at wrong time for a certain Habit reminder.
+     *
+     * @param notifyTime the Habit reminder's alarm time
+     * @return {@code true} if user can finish Habit once now. {@code false} otherwise.
+     */
     public boolean allowFinish(long notifyTime) {
         DateTime dt = new DateTime();
         DateTimeFieldType jodaType = DateTimeUtil.getJodaType(type);
