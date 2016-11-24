@@ -81,7 +81,7 @@ public class StartDoingActivity extends AppCompatActivity {
         cdf.setConfirmListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                tryToStartDoing(cdf);
+                tryToStartDoingAlarmUser(cdf);
             }
         });
         cdf.setOnDismissListener(new ChooserDialogFragment.OnDismissListener() {
@@ -94,15 +94,7 @@ public class StartDoingActivity extends AppCompatActivity {
         cdf.show(getFragmentManager(), ChooserDialogFragment.TAG);
     }
 
-    private void tryToStartDoing(final ChooserDialogFragment cdf) {
-        if (mStartType == DoingService.START_TYPE_ALARM) {
-            tryToStartDoingAlarm(cdf);
-        } else if (mStartType == DoingService.START_TYPE_USER) {
-            tryToStartDoingUser(cdf);
-        }
-    }
-
-    private void tryToStartDoingAlarm(final ChooserDialogFragment cdf) {
+    private void tryToStartDoingAlarmUser(final ChooserDialogFragment cdf) {
         int index = cdf.getPickedIndex();
         boolean canStartDoing = true;
         long timeInMillis;
@@ -138,30 +130,11 @@ public class StartDoingActivity extends AppCompatActivity {
         if (canStartDoing) {
             cdf.dismiss();
             ThingDoingHelper helper = new ThingDoingHelper(this, mThing);
-            helper.startDoingAlarm(timeInMillis);
-        }
-    }
-
-    private void tryToStartDoingUser(final ChooserDialogFragment cdf) {
-        boolean canGoToDoing = true;
-        int index = cdf.getPickedIndex();
-        long timeInMillis;
-        if (index == 0) {
-            timeInMillis = -1;
-        } else {
-            index--;
-            timeInMillis = DateTimeUtil.getActualTimeAfterSomeTime(
-                    0, mTypes.get(index), mTimes.get(index));
-        }
-
-        if (mThing.getType() == Thing.HABIT) {
-            canGoToDoing = false;
-        }
-
-        if (canGoToDoing) {
-            cdf.dismiss();
-            ThingDoingHelper helper = new ThingDoingHelper(this, mThing);
-            helper.startDoingUser(timeInMillis);
+            if (mStartType == DoingService.START_TYPE_ALARM) {
+                helper.startDoingAlarm(timeInMillis);
+            } else {
+                helper.startDoingUser(timeInMillis);
+            }
         }
     }
 
