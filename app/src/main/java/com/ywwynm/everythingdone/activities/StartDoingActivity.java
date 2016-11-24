@@ -116,7 +116,7 @@ public class StartDoingActivity extends AppCompatActivity {
                         canStartDoing = false;
                     } else {
                         long nextTime = habit.getMinHabitReminderTime();
-                        if (etc >= nextTime - 6 * 60 * 1000) {
+                        if (etc >= nextTime - ThingDoingHelper.TIME_BEFORE_NEXT_HABIT_REMINDER) {
                             Toast.makeText(this,
                                     R.string.start_doing_time_long_alarm, Toast.LENGTH_LONG).show();
                             canStartDoing = false;

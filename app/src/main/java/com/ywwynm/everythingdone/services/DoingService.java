@@ -415,7 +415,7 @@ public class DoingService extends Service {
                 return false;
             } else {
                 long nextTime = mHabit.getMinHabitReminderTime();
-                if (etc >= nextTime - 6 * MINUTE_MILLIS) {
+                if (etc >= nextTime - ThingDoingHelper.TIME_BEFORE_NEXT_HABIT_REMINDER) {
                     Toast.makeText(this, R.string.doing_toast_add5_time_long_alarm,
                             Toast.LENGTH_LONG).show();
                     return false;

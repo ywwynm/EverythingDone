@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 
 import com.ywwynm.everythingdone.App;
+import com.ywwynm.everythingdone.BuildConfig;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.activities.DoingActivity;
 import com.ywwynm.everythingdone.model.Thing;
@@ -16,6 +17,9 @@ import com.ywwynm.everythingdone.services.DoingService;
 public class ThingDoingHelper {
 
     public static final String TAG = "ThingDoingHelper";
+
+    public static final long TIME_BEFORE_NEXT_HABIT_REMINDER
+            = BuildConfig.DEBUG ? 0 : 5 * 60 * 1000L;
 
     public static int KEY_INDEX_AUTO_START_DOING                = 0;
 
