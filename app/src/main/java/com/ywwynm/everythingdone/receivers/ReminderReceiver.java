@@ -56,29 +56,40 @@ public class ReminderReceiver extends BroadcastReceiver {
             List<Long> runningDetailActivities = App.getRunningDetailActivities();
             for (Long thingId : runningDetailActivities) {
                 if (thingId == id) {
-                    reminder.setState(thing.getState() == Thing.UNDERWAY ?
-                            Reminder.REMINDED : Reminder.EXPIRED);
-                    reminderDAO.update(reminder);
-                    RemoteActionHelper.updateUiEverywhere(
-                            context, thing, position, typeBefore,
-                            Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME);
+                    int reminderStateAfter = thing.getState() == Thing.UNDERWAY ?
+                            Reminder.REMINDED : Reminder.EXPIRED;
+                    updateReminderState(reminder, reminderDAO, context, thing, position,
+                            typeBefore, reminderStateAfter);
                     return;
                 }
             }
 
-            if (thing.getState() == Thing.UNDERWAY) {
-                reminder.setState(Reminder.REMINDED);
-                reminderDAO.update(reminder);
-                RemoteActionHelper.updateUiEverywhere(
-                        context, thing, position, typeBefore,
-                        Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME);
+            if (App.getDoingThingId() == thing.getId()) {
+                // user start doing this thing
+                updateReminderState(reminder, reminderDAO, context, thing, position,
+                        typeBefore, Reminder.EXPIRED);
+            }
 
+            if (thing.getState() == Thing.UNDERWAY) {
+                updateReminderState(reminder, reminderDAO, context, thing, position,
+                        typeBefore, Reminder.REMINDED);
                 notifyUser(context, id, position, thing);
             } else {
                 reminder.setState(Reminder.EXPIRED);
                 reminderDAO.update(reminder);
             }
         }
+    }
+
+    private void updateReminderState(
+            Reminder reminder, ReminderDAO reminderDAO,
+            Context context, Thing thing, int position,
+            @Thing.Type int typeBefore, int reminderStateAfter) {
+        reminder.setState(reminderStateAfter);
+        reminderDAO.update(reminder);
+        RemoteActionHelper.updateUiEverywhere(
+                context, thing, position, typeBefore,
+                Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME);
     }
 
     private void notifyUser(Context context, long id, int position, Thing thing) {

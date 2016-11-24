@@ -137,13 +137,32 @@ public class StartDoingActivity extends AppCompatActivity {
         }
         if (canStartDoing) {
             cdf.dismiss();
-            ThingDoingHelper helper = new ThingDoingHelper(StartDoingActivity.this, mThing);
+            ThingDoingHelper helper = new ThingDoingHelper(this, mThing);
             helper.startDoingAlarm(timeInMillis);
         }
     }
 
     private void tryToStartDoingUser(final ChooserDialogFragment cdf) {
+        boolean canGoToDoing = true;
+        int index = cdf.getPickedIndex();
+        long timeInMillis;
+        if (index == 0) {
+            timeInMillis = -1;
+        } else {
+            index--;
+            timeInMillis = DateTimeUtil.getActualTimeAfterSomeTime(
+                    0, mTypes.get(index), mTimes.get(index));
+        }
 
+        if (mThing.getType() == Thing.HABIT) {
+            canGoToDoing = false;
+        }
+
+        if (canGoToDoing) {
+            cdf.dismiss();
+            ThingDoingHelper helper = new ThingDoingHelper(this, mThing);
+            helper.startDoingUser(timeInMillis);
+        }
     }
 
     private void initTimeMember() {

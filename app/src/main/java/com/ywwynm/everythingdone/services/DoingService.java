@@ -68,7 +68,7 @@ public class DoingService extends Service {
                 .putExtra(Def.Communication.KEY_THING, thing)
                 .putExtra(KEY_START_TIME, startTime)
                 .putExtra(KEY_TIME_IN_MILLIS, timeInMillis)
-                .putExtra(KEY_START_TYPE, startTime);
+                .putExtra(KEY_START_TYPE, startType);
     }
 
     public interface DoingListener {

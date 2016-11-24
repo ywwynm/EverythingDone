@@ -10,7 +10,9 @@ import android.view.ViewGroup;
 
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.DetailActivity;
+import com.ywwynm.everythingdone.activities.StartDoingActivity;
 import com.ywwynm.everythingdone.model.Thing;
+import com.ywwynm.everythingdone.services.DoingService;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 
 /**
@@ -60,7 +62,9 @@ public class ThingDoingDialogFragment extends BaseDialogFragment {
         mCvStartAsBt.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-
+                mActivity.startActivity(StartDoingActivity.getOpenIntent(
+                        mActivity, mThing.getId(), -1, mThing.getColor(),
+                        DoingService.START_TYPE_USER));
             }
         });
     }

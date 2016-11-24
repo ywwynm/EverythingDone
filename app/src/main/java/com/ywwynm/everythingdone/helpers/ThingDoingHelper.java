@@ -76,8 +76,7 @@ public class ThingDoingHelper {
         startDoing(timeInMillis, DoingService.START_TYPE_AUTO);
     }
 
-    public void startDoingUser() {
-        long timeInMillis = 0;
+    public void startDoingUser(long timeInMillis) {
         startDoing(timeInMillis, DoingService.START_TYPE_USER);
     }
 

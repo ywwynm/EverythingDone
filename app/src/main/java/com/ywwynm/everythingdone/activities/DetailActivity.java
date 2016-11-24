@@ -257,6 +257,10 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                         }
                     }
                 }
+            } else if (resultCode == Def.Communication.RESULT_DOING_OR_CANCEL) {
+                if (mThing.getId() == App.getDoingThingId()) { // user start doing
+                    finish();
+                }
             }
         }
     };
