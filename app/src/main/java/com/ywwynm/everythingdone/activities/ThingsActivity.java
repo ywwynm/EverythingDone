@@ -53,6 +53,7 @@ import com.bumptech.glide.Glide;
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
+import com.ywwynm.everythingdone.adapters.BaseThingsAdapter;
 import com.ywwynm.everythingdone.adapters.ThingsAdapter;
 import com.ywwynm.everythingdone.adapters.ThingsAdapterWrapper;
 import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper;
@@ -66,6 +67,7 @@ import com.ywwynm.everythingdone.helpers.AppUpdateHelper;
 import com.ywwynm.everythingdone.helpers.AuthenticationHelper;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
 import com.ywwynm.everythingdone.helpers.SendInfoHelper;
+import com.ywwynm.everythingdone.helpers.ThingDoingHelper;
 import com.ywwynm.everythingdone.helpers.ThingExporter;
 import com.ywwynm.everythingdone.managers.ModeManager;
 import com.ywwynm.everythingdone.managers.ThingManager;
@@ -86,6 +88,7 @@ import com.ywwynm.everythingdone.utils.SystemNotificationUtil;
 import com.ywwynm.everythingdone.views.ActivityHeader;
 import com.ywwynm.everythingdone.views.DrawerHeader;
 import com.ywwynm.everythingdone.views.FloatingActionButton;
+import com.ywwynm.everythingdone.views.InterceptTouchCardView;
 import com.ywwynm.everythingdone.views.Snackbar;
 import com.ywwynm.everythingdone.views.ThingsStaggeredLayoutManager;
 import com.ywwynm.everythingdone.views.pickers.ColorPicker;
@@ -2290,89 +2293,20 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 return;
             }
 
-            if (mNormalSnackbar.isShowing()) {
-                mNormalSnackbar.dismiss();
-            }
+            prepareBeforeSwipingThing(id, thingType);
 
-            if (mUndoSnackbar.isShowing()) {
-                if (mStateToUndoFrom != Thing.FINISHED || thingType == Thing.HABIT) {
-                    dismissSnackbars();
+            if (direction == ItemTouchHelper.START) {
+                if (thingType == Thing.HABIT) {
+                    tryToFinishHabitOnceBySwiping(thingToSwipe, position);
+                } else {
+                    tryToFinishOtherBySwiping(thingToSwipe, position);
                 }
-            }
-
-            SystemNotificationUtil.cancelNotification(id, thingType, mApp);
-            mThingsIdsToUpdateWidget.add(id);
-
-            if (thingType == Thing.HABIT) {
-                HabitDAO habitDAO = HabitDAO.getInstance(mApp);
-                Habit habit = habitDAO.getHabitById(id);
-                if (habit != null) {
-                    if (habit.allowFinish()) {
-                        if (!mUndoHabitRecords.isEmpty()) {
-                            HabitRecord hr = mUndoHabitRecords.get(mUndoHabitRecords.size() - 1);
-                            if (hr.getHabitId() != id) {
-                                dismissSnackbars();
-                            }
-                        }
-                        String thingContent = thingToSwipe.getContent();
-                        if (CheckListHelper.isCheckListStr(thingContent)) {
-                            mUndoThings.add(thingToSwipe);
-                            Thing thing = new Thing(thingToSwipe);
-                            thing.setContent(thingContent.replaceAll(
-                                    CheckListHelper.SIGNAL + "1",
-                                    CheckListHelper.SIGNAL + "0"));
-                            mThingManager.update(thingType, thing, position, false);
-                            things.set(position, thing);
-                        }
-                        mUndoHabitRecords.add(habitDAO.finishOneTime(habit));
-                        mUndoPositions.add(position);
-                        showHabitSnackbar();
-                    } else {
-                        dismissSnackbars();
-                        if (habit.getRecord().isEmpty() && habit.getRemindedTimes() == 0) {
-                            mNormalSnackbar.setMessage(R.string.alert_cannot_finish_habit_first_time);
-                        } else {
-                            mNormalSnackbar.setMessage(R.string.alert_cannot_finish_habit_more_times);
-                        }
-                        mNormalSnackbar.show();
-                    }
-                }
+            } else if (App.getDoingThingId() != id) {
                 mAdapter.notifyItemChanged(position);
-                mDrawerHeader.updateCompletionRate();
-                return;
+                ThingDoingHelper helper = new ThingDoingHelper(ThingsActivity.this, thingToSwipe);
+                helper.openStartDoingActivityUser();
             }
 
-            if (mHabitSnackbar.isShowing()) {
-                dismissSnackbars();
-            }
-
-            int state = thingToSwipe.getState();
-            long location = thingToSwipe.getLocation();
-            mUndoThings.add(thingToSwipe);
-            mUndoPositions.add(position);
-            mUndoLocations.add(location);
-            mStateToUndoFrom = Thing.FINISHED;
-
-            boolean changed = mThingManager.updateState(thingToSwipe, position, location,
-                    state, Thing.FINISHED, false, true);
-            mScrollCausedByFinger = false;
-
-            if (App.isSearching) {
-                if (things.size() == 1) {
-                    handleSearchResults();
-                }
-            }
-
-            celebrateHabitGoalFinish(thingToSwipe, state, Thing.FINISHED);
-            if (changed) {
-                mAdapter.notifyItemChanged(position);
-                updateUIAfterStateUpdated(Thing.FINISHED,
-                        mRecyclerView.getItemAnimator().getChangeDuration(), true);
-            } else {
-                mAdapter.notifyItemRemoved(position);
-                updateUIAfterStateUpdated(Thing.FINISHED,
-                        mRecyclerView.getItemAnimator().getRemoveDuration(), true);
-            }
             swiped = true;
         }
 
@@ -2396,7 +2330,10 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     swiped = false;
                 }
             }
+            hasSwipedRight = false;
         }
+
+        boolean hasSwipedRight = false;
 
         @Override
         public void onChildDraw(Canvas c, RecyclerView recyclerView,
@@ -2406,13 +2343,134 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
                 int displayWidth = DisplayUtil.getDisplaySize(mApp).x;
                 View v = viewHolder.itemView;
+                final BaseThingsAdapter.BaseThingViewHolder holder =
+                        (BaseThingsAdapter.BaseThingViewHolder) viewHolder;
+                int position = viewHolder.getAdapterPosition();
+                List<Thing> things = mThingManager.getThings();
+                if (position < 0 || position >= things.size()) {
+                    return;
+                }
+
+                Thing thing = things.get(position);
                 if (dX < 0) {
                     v.setAlpha(1.0f + dX / v.getRight());
+                } else if (dX > 0) {
+                    if (App.getDoingThingId() == thing.getId()) {
+                        swiped = true;
+                        return;
+                    }
+
+                    if (!hasSwipedRight) {
+                        holder.flDoing.setVisibility(View.VISIBLE);
+                        InterceptTouchCardView.LayoutParams lp = (InterceptTouchCardView.LayoutParams)
+                                holder.flDoing.getLayoutParams();
+                        lp.width  = holder.cv.getWidth();
+                        lp.height = holder.cv.getHeight();
+                        holder.flDoing.requestLayout();
+                        hasSwipedRight = true;
+                    }
+
+                    float alpha = dX / (displayWidth - v.getLeft()) * 2;
+                    if (alpha > 1.0f) alpha = 1.0f;
+                    holder.flDoing.setAlpha(alpha);
                 } else {
-                    v.setAlpha(1.0f - dX / (displayWidth - v.getLeft()));
+                    v.setAlpha(1.0f);
+                    holder.flDoing.setAlpha(1.0f);
+                    if (App.getDoingThingId() != thing.getId()) {
+                        holder.flDoing.setVisibility(View.GONE);
+                    }
                 }
                 swiped = dX != 0;
             }
+        }
+    }
+
+    private void prepareBeforeSwipingThing(long id, @Thing.Type int thingType) {
+        if (mNormalSnackbar.isShowing()) {
+            mNormalSnackbar.dismiss();
+        }
+
+        if (mUndoSnackbar.isShowing()) {
+            if (mStateToUndoFrom != Thing.FINISHED || thingType == Thing.HABIT) {
+                dismissSnackbars();
+            }
+        }
+
+        SystemNotificationUtil.cancelNotification(id, thingType, mApp);
+        mThingsIdsToUpdateWidget.add(id);
+    }
+
+    private void tryToFinishHabitOnceBySwiping(Thing thingToSwipe, int position) {
+        long id = thingToSwipe.getId();
+        @Thing.Type int thingType = thingToSwipe.getType();
+        HabitDAO habitDAO = HabitDAO.getInstance(mApp);
+        Habit habit = habitDAO.getHabitById(id);
+        if (habit != null) {
+            if (habit.allowFinish()) {
+                if (!mUndoHabitRecords.isEmpty()) {
+                    HabitRecord hr = mUndoHabitRecords.get(mUndoHabitRecords.size() - 1);
+                    if (hr.getHabitId() != id) {
+                        dismissSnackbars();
+                    }
+                }
+                String thingContent = thingToSwipe.getContent();
+                if (CheckListHelper.isCheckListStr(thingContent)) {
+                    mUndoThings.add(thingToSwipe);
+                    Thing thing = new Thing(thingToSwipe);
+                    thing.setContent(thingContent.replaceAll(
+                            CheckListHelper.SIGNAL + "1",
+                            CheckListHelper.SIGNAL + "0"));
+                    mThingManager.update(thingType, thing, position, false);
+                    mThingManager.getThings().set(position, thing);
+                }
+                mUndoHabitRecords.add(habitDAO.finishOneTime(habit));
+                mUndoPositions.add(position);
+                showHabitSnackbar();
+            } else {
+                dismissSnackbars();
+                if (habit.getRecord().isEmpty() && habit.getRemindedTimes() == 0) {
+                    mNormalSnackbar.setMessage(R.string.alert_cannot_finish_habit_first_time);
+                } else {
+                    mNormalSnackbar.setMessage(R.string.alert_cannot_finish_habit_more_times);
+                }
+                mNormalSnackbar.show();
+            }
+        }
+        mAdapter.notifyItemChanged(position);
+        mDrawerHeader.updateCompletionRate();
+    }
+
+    private void tryToFinishOtherBySwiping(Thing thingToSwipe, int position) {
+        if (mHabitSnackbar.isShowing()) {
+            dismissSnackbars();
+        }
+
+        @Thing.State int state = thingToSwipe.getState();
+        long location = thingToSwipe.getLocation();
+        mUndoThings.add(thingToSwipe);
+        mUndoPositions.add(position);
+        mUndoLocations.add(location);
+        mStateToUndoFrom = Thing.FINISHED;
+
+        boolean changed = mThingManager.updateState(thingToSwipe, position, location,
+                state, Thing.FINISHED, false, true);
+        mScrollCausedByFinger = false;
+
+        if (App.isSearching) {
+            if (mThingManager.getThings().size() == 1) {
+                handleSearchResults();
+            }
+        }
+
+        celebrateHabitGoalFinish(thingToSwipe, state, Thing.FINISHED);
+        if (changed) {
+            mAdapter.notifyItemChanged(position);
+            updateUIAfterStateUpdated(Thing.FINISHED,
+                    mRecyclerView.getItemAnimator().getChangeDuration(), true);
+        } else {
+            mAdapter.notifyItemRemoved(position);
+            updateUIAfterStateUpdated(Thing.FINISHED,
+                    mRecyclerView.getItemAnimator().getRemoveDuration(), true);
         }
     }
 
