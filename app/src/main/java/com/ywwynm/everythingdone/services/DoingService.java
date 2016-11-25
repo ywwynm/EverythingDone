@@ -50,6 +50,8 @@ public class DoingService extends Service {
 
     public static @DoingRecord.StopReason int sStopReason = DoingRecord.STOP_REASON_CANCEL_USER;
 
+    public static boolean sSendBroadcastToUpdateMainUi = true;
+
     public static final String KEY_START_TIME     = "start_time";
     public static final String KEY_TIME_IN_MILLIS = "time_in_millis";
     public static final String KEY_START_TYPE     = "start_type";
@@ -306,6 +308,7 @@ public class DoingService extends Service {
         mCarelessWarned = false;
 
         sStopReason = DoingRecord.STOP_REASON_CANCEL_USER;
+        sSendBroadcastToUpdateMainUi = true;
 
         return super.onStartCommand(intent, flags, startId);
     }
@@ -329,7 +332,9 @@ public class DoingService extends Service {
                     mPredictDoingTime, mStartTime, mEndTime, sStopReason);
             DoingRecordDAO.getInstance(this).insert(doingRecord);
 
-            RemoteActionHelper.doingOrCancel(this, mThing);
+            if (sSendBroadcastToUpdateMainUi) {
+                RemoteActionHelper.doingOrCancel(this, mThing);
+            }
         }
 
         sHrTime = -1;

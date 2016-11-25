@@ -71,6 +71,7 @@ import com.ywwynm.everythingdone.helpers.ThingDoingHelper;
 import com.ywwynm.everythingdone.helpers.ThingExporter;
 import com.ywwynm.everythingdone.managers.ModeManager;
 import com.ywwynm.everythingdone.managers.ThingManager;
+import com.ywwynm.everythingdone.model.DoingRecord;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.HabitRecord;
 import com.ywwynm.everythingdone.model.Reminder;
@@ -78,6 +79,7 @@ import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.model.ThingsCounts;
 import com.ywwynm.everythingdone.permission.PermissionUtil;
 import com.ywwynm.everythingdone.permission.SimplePermissionCallback;
+import com.ywwynm.everythingdone.services.DoingService;
 import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil;
@@ -2287,7 +2289,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             Thing thingToSwipe = things.get(position);
             long id = thingToSwipe.getId();
             @Thing.Type int thingType = thingToSwipe.getType();
-            if (thingType > Thing.NOTIFICATION_GOAL || App.getDoingThingId() == id) {
+            if (thingType > Thing.NOTIFICATION_GOAL) {
                 // without this line, the item will disappear and leave a white space...
                 mAdapter.notifyItemChanged(position);
                 return;
@@ -2296,6 +2298,9 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             prepareBeforeSwipingThing(id, thingType);
 
             if (direction == ItemTouchHelper.START) {
+                if (App.getDoingThingId() == id) {
+                    DoingService.sSendBroadcastToUpdateMainUi = false;
+                }
                 if (thingType == Thing.HABIT) {
                     tryToFinishHabitOnceBySwiping(thingToSwipe, position);
                 } else {
@@ -2402,6 +2407,10 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
     private void tryToFinishHabitOnceBySwiping(Thing thingToSwipe, int position) {
         long id = thingToSwipe.getId();
+        if (App.getDoingThingId() == id) {
+            DoingService.sStopReason = DoingRecord.STOP_REASON_FINISH;
+        }
+
         @Thing.Type int thingType = thingToSwipe.getType();
         HabitDAO habitDAO = HabitDAO.getInstance(mApp);
         Habit habit = habitDAO.getHabitById(id);
@@ -2434,8 +2443,18 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     mNormalSnackbar.setMessage(R.string.alert_cannot_finish_habit_more_times);
                 }
                 mNormalSnackbar.show();
+                if (App.getDoingThingId() == id) {
+                    DoingService.sStopReason = DoingRecord.STOP_REASON_CANCEL_USER;
+                }
             }
         }
+
+        if (App.getDoingThingId() == id) {
+            sendBroadcast(new Intent(DoingActivity.BROADCAST_ACTION_JUST_FINISH));
+            stopService(new Intent(ThingsActivity.this, DoingService.class));
+            App.setDoingThingId(-1L);
+        }
+
         mAdapter.notifyItemChanged(position);
         mDrawerHeader.updateCompletionRate();
     }
@@ -2451,6 +2470,13 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         mUndoPositions.add(position);
         mUndoLocations.add(location);
         mStateToUndoFrom = Thing.FINISHED;
+
+        if (App.getDoingThingId() == thingToSwipe.getId()) {
+            DoingService.sStopReason = DoingRecord.STOP_REASON_FINISH;
+            sendBroadcast(new Intent(DoingActivity.BROADCAST_ACTION_JUST_FINISH));
+            stopService(new Intent(ThingsActivity.this, DoingService.class));
+            App.setDoingThingId(-1L);
+        }
 
         boolean changed = mThingManager.updateState(thingToSwipe, position, location,
                 state, Thing.FINISHED, false, true);
