@@ -128,22 +128,22 @@ public class DoingActivity extends EverythingDoneBaseActivity {
     }
 
     @Override
-    protected void onPause() {
-        super.onPause();
-        Log.i(TAG, "onPause");
-        if (!DeviceUtil.isScreenOn(this)) {
-            Log.i(TAG, "onPause called because of closing screen");
-        } else if (mDoingBinder != null && mDoingBinder.isInStrictMode()) {
-            mDoingBinder.setPlayedTimes(mDoingBinder.getPlayedTimes() + 1);
-            mDoingBinder.setStartPlayTime(System.currentTimeMillis());
+    protected void onStart() {
+        super.onStart();
+        if (mDoingBinder != null) {
+            mDoingBinder.setStartPlayTime(-1L);
         }
     }
 
     @Override
-    protected void onResume() {
-        super.onResume();
-        if (mDoingBinder != null) {
-            mDoingBinder.setStartPlayTime(-1L);
+    protected void onStop() {
+        super.onStop();
+        Log.i(TAG, "onStop");
+        if (!DeviceUtil.isScreenOn(this)) {
+            Log.i(TAG, "onStop called because of closing screen");
+        } else if (mDoingBinder != null && mDoingBinder.isInStrictMode()) {
+            mDoingBinder.setPlayedTimes(mDoingBinder.getPlayedTimes() + 1);
+            mDoingBinder.setStartPlayTime(System.currentTimeMillis());
         }
     }
 
