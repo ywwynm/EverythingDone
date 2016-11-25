@@ -599,12 +599,15 @@ public class DoingActivity extends EverythingDoneBaseActivity {
         @Override
         public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
             Pair<Thing, Integer> pair = App.getThingAndPosition(mApp, mThing.getId(), -1);
+            DoingService.sStopReason = DoingRecord.STOP_REASON_FINISH;
             if (mThing.getType() == Thing.HABIT) {
-                RemoteActionHelper.finishHabitOnce(mApp, mThing, pair.second, DoingService.sHrTime);
+                if (!RemoteActionHelper.finishHabitOnce(
+                        mApp, mThing, pair.second, DoingService.sHrTime)) {
+                    DoingService.sStopReason = DoingRecord.STOP_REASON_CANCEL_USER;
+                }
             } else {
                 RemoteActionHelper.finishReminder(mApp, mThing, pair.second);
             }
-            DoingService.sStopReason = DoingRecord.STOP_REASON_FINISH;
             finishWithStoppingService();
         }
 

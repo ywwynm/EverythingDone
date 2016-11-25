@@ -44,14 +44,14 @@ public class RemoteActionHelper {
                 Def.Communication.RESULT_UPDATE_THING_STATE_DIFFERENT);
     }
 
-    public static void finishHabitOnce(
+    public static boolean finishHabitOnce(
             Context context, Thing thing, int position, long hrTime) {
         HabitDAO habitDAO = HabitDAO.getInstance(context);
         Habit habit = habitDAO.getHabitById(thing.getId());
         int typeBefore = thing.getType();
         if (habit == null) {
             correctIfNoHabit(context, thing, position, typeBefore);
-            return;
+            return false;
         }
 
         boolean allowFinish;
@@ -64,6 +64,7 @@ public class RemoteActionHelper {
             habitDAO.finishOneTime(habit);
             updateUiEverywhere(context, thing, position, typeBefore,
                     Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME);
+            return true;
         } else {
             if (habit.getRecord().isEmpty() && habit.getRemindedTimes() == 0) {
                 Toast.makeText(context, R.string.alert_cannot_finish_habit_first_time,
@@ -72,6 +73,7 @@ public class RemoteActionHelper {
                 Toast.makeText(context, R.string.alert_cannot_finish_habit_more_times,
                         Toast.LENGTH_LONG).show();
             }
+            return false;
         }
     }
 

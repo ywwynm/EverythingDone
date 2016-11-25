@@ -35,6 +35,7 @@ public class DoingNotificationActionReceiver extends BroadcastReceiver {
         }
 
         if (ACTION_FINISH.equals(action)) {
+            DoingService.sStopReason = DoingRecord.STOP_REASON_FINISH;
             long thingId = intent.getLongExtra(Def.Communication.KEY_ID, -1L);
             Pair<Thing, Integer> pair = App.getThingAndPosition(context, thingId, -1);
             Thing thing = pair.first;
@@ -42,12 +43,13 @@ public class DoingNotificationActionReceiver extends BroadcastReceiver {
                 @Thing.Type int thingType = thing.getType();
                 if (thingType == Thing.HABIT) {
                     long hrTime = intent.getLongExtra(Def.Communication.KEY_TIME, -1);
-                    RemoteActionHelper.finishHabitOnce(context, thing, pair.second, hrTime);
+                    if (!RemoteActionHelper.finishHabitOnce(context, thing, pair.second, hrTime)) {
+                        DoingService.sStopReason = DoingRecord.STOP_REASON_CANCEL_USER;
+                    }
                 } else {
                     RemoteActionHelper.finishReminder(context, thing, pair.second);
                 }
             }
-            DoingService.sStopReason = DoingRecord.STOP_REASON_FINISH;
         } else if (ACTION_USER_CANCEL.equals(action)) {
             DoingService.sStopReason = DoingRecord.STOP_REASON_CANCEL_USER;
         }
