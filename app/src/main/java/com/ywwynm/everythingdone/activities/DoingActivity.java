@@ -600,7 +600,8 @@ public class DoingActivity extends EverythingDoneBaseActivity {
         public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
             Pair<Thing, Integer> pair = App.getThingAndPosition(mApp, mThing.getId(), -1);
             if (mThing.getType() == Thing.HABIT) {
-                RemoteActionHelper.finishHabitOnce(mApp, mThing, pair.second, System.currentTimeMillis());
+                long hrTime = mDoingBinder.getHrTime();
+                RemoteActionHelper.finishHabitOnce(mApp, mThing, pair.second, hrTime);
             } else {
                 RemoteActionHelper.finishReminder(mApp, mThing, pair.second);
             }

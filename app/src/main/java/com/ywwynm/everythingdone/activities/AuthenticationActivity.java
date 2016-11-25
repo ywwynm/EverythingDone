@@ -125,8 +125,10 @@ public class AuthenticationActivity extends AppCompatActivity {
     }
 
     private void actStartDoing(Thing thing, int position) {
+        long hrTime = getIntent().getLongExtra(Def.Communication.KEY_TIME, -1);
         Intent intent = StartDoingActivity.getOpenIntent(
-                this, thing.getId(), position, thing.getColor(), DoingService.START_TYPE_ALARM);
+                this, thing.getId(), position, thing.getColor(), DoingService.START_TYPE_ALARM,
+                hrTime);
         startActivity(intent);
     }
 

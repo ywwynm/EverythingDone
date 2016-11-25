@@ -7,8 +7,12 @@ import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.BuildConfig;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.activities.DoingActivity;
+import com.ywwynm.everythingdone.activities.StartDoingActivity;
+import com.ywwynm.everythingdone.database.HabitDAO;
+import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.services.DoingService;
+import com.ywwynm.everythingdone.utils.DateTimeUtil;
 
 /**
  * Created by ywwynm on 2016/11/22.
@@ -60,28 +64,55 @@ public class ThingDoingHelper {
                 Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE);
     }
 
-    public void startDoing(long timeInMillis, @DoingService.StartType int startType) {
+    public void startDoing(long timeInMillis, @DoingService.StartType int startType, long hrTime) {
         if (mThing == null) {
             return;
         }
         App.setDoingThingId(mThing.getId());
         mContext.startService(DoingService.getOpenIntent(
-                mContext, mThing, System.currentTimeMillis(), timeInMillis, startType));
+                mContext, mThing, System.currentTimeMillis(), timeInMillis, startType, hrTime));
         mContext.startActivity(DoingActivity.getOpenIntent(mContext, false));
         RemoteActionHelper.doingOrCancel(mContext, mThing);
     }
 
-    public void startDoingAlarm(long timeInMillis) {
-        startDoing(timeInMillis, DoingService.START_TYPE_ALARM);
+    public void openStartDoingActivityUser() {
+        long hrTime = -1;
+        if (mThing.getType() == Thing.HABIT) {
+            Habit habit = HabitDAO.getInstance(mContext).getHabitById(mThing.getId());
+            if (habit != null) {
+                int remindedTimes = habit.getRemindedTimes();
+                int recordedTimes = habit.getRecord().length();
+                if (remindedTimes == recordedTimes) {
+                    // user want to do this thing for upcoming habit reminder.
+                    hrTime = habit.getMinHabitReminderTime();
+                } else if (remindedTimes > recordedTimes) {
+                    // habit reminder is notified but user hasn't finished it yet.
+                    long maxTime = habit.getFinalHabitReminder().getNotifyTime();
+                    hrTime = DateTimeUtil.getHabitReminderTime(habit.getType(), maxTime, -1);
+                } else { // remindedTimes < recordedTimes
+                    // user finished habit some times in advance, now he decided to enlarge
+                    // the advantage
+                    hrTime = habit.getMinHabitReminderTime();
+                }
+            }
+        }
+
+        mContext.startActivity(StartDoingActivity.getOpenIntent(
+                mContext, mThing.getId(), -1, mThing.getColor(),
+                DoingService.START_TYPE_USER, hrTime));
     }
 
-    public void startDoingAuto() {
-        long timeInMillis = 0;
-        startDoing(timeInMillis, DoingService.START_TYPE_AUTO);
+    public void startDoingAlarm(long timeInMillis, long hrTime) {
+        startDoing(timeInMillis, DoingService.START_TYPE_ALARM, hrTime);
     }
 
-    public void startDoingUser(long timeInMillis) {
-        startDoing(timeInMillis, DoingService.START_TYPE_USER);
+    public void startDoingAuto(long hrTime) {
+//        long timeInMillis = 0;
+//        startDoing(timeInMillis, DoingService.START_TYPE_AUTO, hrTime);
+    }
+
+    public void startDoingUser(long timeInMillis, long hrTime) {
+        startDoing(timeInMillis, DoingService.START_TYPE_USER, hrTime);
     }
 
     /**

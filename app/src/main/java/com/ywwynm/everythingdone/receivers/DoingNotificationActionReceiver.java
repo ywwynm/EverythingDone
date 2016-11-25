@@ -41,8 +41,8 @@ public class DoingNotificationActionReceiver extends BroadcastReceiver {
             if (thing != null) {
                 @Thing.Type int thingType = thing.getType();
                 if (thingType == Thing.HABIT) {
-                    RemoteActionHelper.finishHabitOnce(
-                            context, thing, pair.second, System.currentTimeMillis());
+                    long hrTime = intent.getLongExtra(Def.Communication.KEY_TIME, -1);
+                    RemoteActionHelper.finishHabitOnce(context, thing, pair.second, hrTime);
                 } else {
                     RemoteActionHelper.finishReminder(context, thing, pair.second);
                 }

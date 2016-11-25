@@ -1,5 +1,6 @@
 package com.ywwynm.everythingdone.services;
 
+import android.app.Notification;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -17,12 +18,15 @@ import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.database.DoingRecordDAO;
 import com.ywwynm.everythingdone.database.HabitDAO;
-import com.ywwynm.everythingdone.helpers.ThingDoingHelper;
 import com.ywwynm.everythingdone.helpers.RemoteActionHelper;
+import com.ywwynm.everythingdone.helpers.ThingDoingHelper;
 import com.ywwynm.everythingdone.model.DoingRecord;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Thing;
+import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil;
+
+import org.joda.time.DateTime;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -63,12 +67,13 @@ public class DoingService extends Service {
 
     public static Intent getOpenIntent(
             Context context, Thing thing, long startTime, long timeInMillis,
-            @StartType int startType) {
+            @StartType int startType, long hrTime) {
         return new Intent(context, DoingService.class)
                 .putExtra(Def.Communication.KEY_THING, thing)
                 .putExtra(KEY_START_TIME, startTime)
                 .putExtra(KEY_TIME_IN_MILLIS, timeInMillis)
-                .putExtra(KEY_START_TYPE, startType);
+                .putExtra(KEY_START_TYPE, startType)
+                .putExtra(Def.Communication.KEY_TIME, hrTime);
     }
 
     public interface DoingListener {
@@ -92,6 +97,7 @@ public class DoingService extends Service {
     private long mStartTime;
     private long mLeftTime;
     private long mEndTime;
+    private long mHrTime;
 
     private int[] mTimeNumbers = { -1, -1, -1, -1, -1, -1 };
 
@@ -134,16 +140,16 @@ public class DoingService extends Service {
                 boolean careless = carelessCon1 || carelessCon2;
                 @State int doingState = careless ? STATE_FAILED_CARELESS : STATE_DOING;
 
-                startForeground((int) mThing.getId(),
-                        SystemNotificationUtil.createDoingNotification(
-                                DoingService.this, mThing, doingState, getLeftTimeStr(),
-                                shouldHighlight(careless)));
+                Notification notification = SystemNotificationUtil.createDoingNotification(
+                        DoingService.this, mThing, doingState, getLeftTimeStr(), mHrTime,
+                        shouldHighlight(careless));
+                startForeground((int) mThing.getId(), notification);
 
                 Log.i(TAG, "mLeftTimeAfter[" + mLeftTime + "], "
                         + "mTimeInMillisAfter[" + mTimeInMillis + "], "
                         + "leftTimeStr[" + getLeftTimeStr() + "], "
                         + "doingState[" + doingState + "], "
-                        + "mStartPlayTime[" + mStartPlayTime + "], "
+                        + "mStartPlayTime[" + DateTimeUtil.getGeneralDateTimeStr(DoingService.this, mStartPlayTime) + "], "
                         + "mPlayedTimes[" + mPlayedTimes + "], "
                         + "mTotalPlayedTime[" + mTotalPlayedTime + "]");
 
@@ -242,12 +248,6 @@ public class DoingService extends Service {
     }
 
     @Override
-    public void onCreate() {
-        super.onCreate();
-        Log.i(TAG, "onCreate()");
-    }
-
-    @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.i(TAG, "onStartCommand()");
         if (intent == null) {
@@ -282,12 +282,21 @@ public class DoingService extends Service {
             }
         }
 
+        mHrTime = intent.getLongExtra(Def.Communication.KEY_TIME, -1L);
+
         mAdd5MinTimes = 0;
         mTotalAdd5MinTimes = 0;
 
         mStartType = intent.getIntExtra(KEY_START_TYPE, START_TYPE_ALARM);
         ThingDoingHelper helper = new ThingDoingHelper(this, mThing);
         mShouldAutoStrictMode = helper.shouldAutoStrictMode();
+
+        Log.i(TAG, "start counting down, mPredictDoingTime[" + mPredictDoingTime + "], "
+                + "mStartTime[" + DateTimeUtil.getGeneralDateTimeStr(this, mHrTime) + "], "
+                + "mThing.type[" + mThing.getType() + "], "
+                + "mHrTime[" + DateTimeUtil.getGeneralDateTimeStr(this, mHrTime) + "], "
+                + "mStartType[" + mStartType + "], "
+                + "mShouldAutoStrictMode[" + mShouldAutoStrictMode + "]");
 
         mInStrictMode = mShouldAutoStrictMode;
         mPlayedTimes = 0;
@@ -361,6 +370,10 @@ public class DoingService extends Service {
         return mLeftTime;
     }
 
+    private long getHrTime() {
+        return mHrTime;
+    }
+
     private long getTimeInMillis() {
         return mTimeInMillis;
     }
@@ -414,7 +427,7 @@ public class DoingService extends Service {
                         Toast.LENGTH_LONG).show();
                 return false;
             } else {
-                long nextTime = mHabit.getMinHabitReminderTime();
+                long nextTime = mHabit.getDoingEndLimitTime();
                 if (etc >= nextTime - ThingDoingHelper.TIME_BEFORE_NEXT_HABIT_REMINDER) {
                     Toast.makeText(this, R.string.doing_toast_add5_time_long_alarm,
                             Toast.LENGTH_LONG).show();
@@ -499,6 +512,10 @@ public class DoingService extends Service {
 
         public long getTimeInMillis() {
             return DoingService.this.getTimeInMillis();
+        }
+
+        public long getHrTime() {
+            return DoingService.this.getHrTime();
         }
 
         public boolean canAdd5Min() {

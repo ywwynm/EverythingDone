@@ -37,12 +37,13 @@ public class StartDoingActivity extends AppCompatActivity {
 
     public static Intent getOpenIntent(
             Context context, long thingId, int position, int color,
-            @DoingService.StartType int startType) {
+            @DoingService.StartType int startType, long hrTime) {
         Intent intent = new Intent(context, StartDoingActivity.class);
         intent.putExtra(Def.Communication.KEY_ID, thingId);
         intent.putExtra(Def.Communication.KEY_POSITION, position);
         intent.putExtra(Def.Communication.KEY_COLOR, color);
         intent.putExtra(DoingService.KEY_START_TYPE, startType);
+        intent.putExtra(Def.Communication.KEY_TIME, hrTime);
         return intent;
     }
 
@@ -115,7 +116,7 @@ public class StartDoingActivity extends AppCompatActivity {
                                 R.string.start_doing_time_long_t, Toast.LENGTH_LONG).show();
                         canStartDoing = false;
                     } else {
-                        long nextTime = habit.getMinHabitReminderTime();
+                        long nextTime = habit.getDoingEndLimitTime();
                         if (etc >= nextTime - ThingDoingHelper.TIME_BEFORE_NEXT_HABIT_REMINDER) {
                             Toast.makeText(this,
                                     R.string.start_doing_time_long_alarm, Toast.LENGTH_LONG).show();
@@ -130,10 +131,11 @@ public class StartDoingActivity extends AppCompatActivity {
         if (canStartDoing) {
             cdf.dismiss();
             ThingDoingHelper helper = new ThingDoingHelper(this, mThing);
+            long hrTime = getIntent().getLongExtra(Def.Communication.KEY_TIME, -1L);
             if (mStartType == DoingService.START_TYPE_ALARM) {
-                helper.startDoingAlarm(timeInMillis);
+                helper.startDoingAlarm(timeInMillis, hrTime);
             } else {
-                helper.startDoingUser(timeInMillis);
+                helper.startDoingUser(timeInMillis, hrTime);
             }
         }
     }

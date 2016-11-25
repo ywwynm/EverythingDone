@@ -87,7 +87,7 @@ public class HabitReceiver extends BroadcastReceiver {
                         e.printStackTrace();
                     }
                     Notification notification = SystemNotificationUtil.createDoingNotification(
-                            App.getApp(), thing, DoingService.STATE_FAILED_NEXT_ALARM, null, true);
+                            App.getApp(), thing, DoingService.STATE_FAILED_NEXT_ALARM, null, -1, true);
                     NotificationManagerCompat.from(App.getApp()).notify((int) habitId, notification);
                 }
             }).start();
@@ -196,6 +196,7 @@ public class HabitReceiver extends BroadcastReceiver {
         startIntent.setAction(Def.Communication.NOTIFICATION_ACTION_START_DOING);
         startIntent.putExtra(Def.Communication.KEY_ID, hrId);
         startIntent.putExtra(Def.Communication.KEY_POSITION, position);
+        finishIntent.putExtra(Def.Communication.KEY_TIME, habitReminder.getNotifyTime());
         builder.addAction(R.drawable.act_start_doing,
                 context.getString(R.string.act_start_doing),
                 PendingIntent.getBroadcast(context,

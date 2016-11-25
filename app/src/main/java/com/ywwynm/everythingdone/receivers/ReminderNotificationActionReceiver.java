@@ -105,7 +105,8 @@ public class ReminderNotificationActionReceiver extends BroadcastReceiver {
                         context.getString(R.string.start_doing_full_title));
             } else {
                 actionIntent = StartDoingActivity.getOpenIntent(
-                        context, thing.getId(), position, thing.getColor(), DoingService.START_TYPE_ALARM);
+                        context, thing.getId(), position, thing.getColor(),
+                        DoingService.START_TYPE_ALARM, -1);
             }
             actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
             context.startActivity(actionIntent);

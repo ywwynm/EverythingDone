@@ -198,7 +198,8 @@ public class SystemNotificationUtil {
     }
 
     public static Notification createDoingNotification(
-            Context context, Thing thing, @DoingService.State int doingState, String leftTimeStr, boolean highlight) {
+            Context context, Thing thing, @DoingService.State int doingState,
+            String leftTimeStr, long hrTime, boolean highlight) {
         @Thing.Type int thingType = thing.getType();
         final String contentText = getDoingNotificationContent(context, doingState, leftTimeStr);
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context)
@@ -220,6 +221,7 @@ public class SystemNotificationUtil {
             Intent finishIntent = new Intent(context, DoingNotificationActionReceiver.class);
             finishIntent.setAction(DoingNotificationActionReceiver.ACTION_FINISH);
             finishIntent.putExtra(Def.Communication.KEY_ID, thingId);
+            finishIntent.putExtra(Def.Communication.KEY_TIME, hrTime);
             builder.addAction(R.drawable.act_finish, context.getString(R.string.act_finish),
                     PendingIntent.getBroadcast(
                             context, (int) thingId, finishIntent, PendingIntent.FLAG_UPDATE_CURRENT));

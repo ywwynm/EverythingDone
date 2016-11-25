@@ -14,6 +14,8 @@ import org.joda.time.DateTimeFieldType;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -346,6 +348,44 @@ public class Habit {
                 .append("\n")
                 .append(context.getString(R.string.celebration_habit_part_4));
         return sb.toString();
+    }
+
+    public long getDoingEndLimitTime() {
+        int recordedTimes = record.length();
+        if (remindedTimes > recordedTimes) {
+            return getMinHabitReminderTime();
+        } else {
+            if (mHabitReminders.size() < 2) {
+                // Once a month, you finish it in advance and now still want to do that thing?
+                // Ok, you can do it until end of next month.
+                long end = Long.MAX_VALUE;
+                DateTime dt = new DateTime();
+                dt = dt.withHourOfDay(23).withMinuteOfHour(59).withSecondOfMinute(59).withMillisOfSecond(999);
+                if (type == Calendar.DATE) {
+                    end = dt.plusDays(1).getMillis();
+                } else if (type == Calendar.WEEK_OF_YEAR) {
+                    end = dt.plusWeeks(1).withDayOfWeek(7).getMillis();
+                } else if (type == Calendar.MONTH) {
+                    end = dt.plusMonths(1).withDayOfMonth(31).getMillis();
+                } else if (type == Calendar.YEAR) {
+                    end = dt.plusYears(1).withMonthOfYear(12).withDayOfMonth(31).getMillis();
+                }
+                return end;
+            }
+
+            List<HabitReminder> newHrs = new ArrayList<>(mHabitReminders);
+            Collections.sort(newHrs, new Comparator<HabitReminder>() {
+                @Override
+                public int compare(HabitReminder hr1, HabitReminder hr2) {
+                    long hrTime1 = hr1.getNotifyTime();
+                    long hrTime2 = hr2.getNotifyTime();
+                    if (hrTime1 == hrTime2) return 0;
+                    else if (hrTime1 < hrTime2) return -1;
+                    else return 1;
+                }
+            });
+            return newHrs.get(1).getNotifyTime();
+        }
     }
 
     public static boolean noUpdate(Habit habit, int type, String detail) {

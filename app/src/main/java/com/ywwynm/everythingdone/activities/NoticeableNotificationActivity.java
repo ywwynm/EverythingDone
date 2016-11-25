@@ -233,6 +233,7 @@ public class NoticeableNotificationActivity extends EverythingDoneBaseActivity {
                 intent.setAction(Def.Communication.NOTIFICATION_ACTION_START_DOING);
                 intent.putExtra(Def.Communication.KEY_ID, mHrId);
                 intent.putExtra(Def.Communication.KEY_POSITION, mPosition);
+                intent.putExtra(Def.Communication.KEY_TIME, mHrTime);
                 sendBroadcast(intent);
                 finish();
             }

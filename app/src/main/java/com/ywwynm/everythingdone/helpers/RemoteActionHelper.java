@@ -45,7 +45,7 @@ public class RemoteActionHelper {
     }
 
     public static void finishHabitOnce(
-            Context context, Thing thing, int position, long habitReminderNotifyTime) {
+            Context context, Thing thing, int position, long hrTime) {
         HabitDAO habitDAO = HabitDAO.getInstance(context);
         Habit habit = habitDAO.getHabitById(thing.getId());
         int typeBefore = thing.getType();
@@ -55,10 +55,10 @@ public class RemoteActionHelper {
         }
 
         boolean allowFinish;
-        if (habitReminderNotifyTime == -1) {
+        if (hrTime == -1) {
             allowFinish = habit.allowFinish();
         } else {
-            allowFinish = habit.allowFinish(habitReminderNotifyTime);
+            allowFinish = habit.allowFinish(hrTime);
         }
         if (allowFinish) {
             habitDAO.finishOneTime(habit);

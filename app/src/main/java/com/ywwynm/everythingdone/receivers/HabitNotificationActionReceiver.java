@@ -51,18 +51,18 @@ public class HabitNotificationActionReceiver extends BroadcastReceiver {
                 new Intent(NoticeableNotificationActivity.BROADCAST_ACTION_JUST_FINISH)
                         .putExtra(Def.Communication.KEY_ID, thing.getId()));
 
+        long hrTime = intent.getLongExtra(Def.Communication.KEY_TIME, -1);
         if (action.equals(Def.Communication.NOTIFICATION_ACTION_FINISH)) {
-            long time = intent.getLongExtra(Def.Communication.KEY_TIME, -1);
             if (thing.isPrivate()) {
                 Intent actionIntent = AuthenticationActivity.getOpenIntent(
                         context, TAG, id, position,
                         Def.Communication.AUTHENTICATE_ACTION_FINISH,
                         context.getString(R.string.act_finish));
                 actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
-                actionIntent.putExtra(Def.Communication.KEY_TIME, time);
+                actionIntent.putExtra(Def.Communication.KEY_TIME, hrTime);
                 context.startActivity(actionIntent);
             } else {
-                RemoteActionHelper.finishHabitOnce(context, thing, position, time);
+                RemoteActionHelper.finishHabitOnce(context, thing, position, hrTime);
             }
         } else if (action.equals(Def.Communication.NOTIFICATION_ACTION_START_DOING)) {
             if (App.getDoingThingId() != -1L) {
@@ -76,9 +76,11 @@ public class HabitNotificationActionReceiver extends BroadcastReceiver {
                         context, TAG, id, position,
                         Def.Communication.AUTHENTICATE_ACTION_START_DOING,
                         context.getString(R.string.start_doing_full_title));
+                actionIntent.putExtra(Def.Communication.KEY_TIME, hrTime);
             } else {
                 actionIntent = StartDoingActivity.getOpenIntent(
-                        context, thing.getId(), position, thing.getColor(), DoingService.START_TYPE_ALARM);
+                        context, thing.getId(), position, thing.getColor(),
+                        DoingService.START_TYPE_ALARM, hrTime);
             }
             actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
             context.startActivity(actionIntent);
