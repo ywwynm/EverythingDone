@@ -50,15 +50,15 @@ public class HabitReceiver extends BroadcastReceiver {
             return;
         }
 
+        long hrTime = habitReminder.getNotifyTime();
         final long habitId = habitReminder.getHabitId();
-        SystemNotificationUtil.cancelNotification(habitId, Thing.HABIT, context);
         // remove existed notification for same Habit
+        SystemNotificationUtil.cancelNotification(habitId, Thing.HABIT, context);
         context.sendBroadcast(
                 new Intent(NoticeableNotificationActivity.BROADCAST_ACTION_JUST_FINISH)
                         .putExtra(Def.Communication.KEY_ID, habitId));
 
-        final boolean isDoingLastTime = App.getDoingThingId() == habitId;
-        if (isDoingLastTime) {
+        if (App.getDoingThingId() == habitId && hrTime > DoingService.sHrTime) {
             // if user is doing this Habit for the last time, now he/she cannot do it any longer
             // since this time is coming
             Toast.makeText(context, R.string.doing_failed_next_alarm,
@@ -75,7 +75,7 @@ public class HabitReceiver extends BroadcastReceiver {
             return;
         }
 
-        if (isDoingLastTime) {
+        if (App.getDoingThingId() == habitId && hrTime > DoingService.sHrTime) {
             // create this notification after 1600ms, otherwise it will be cancelled because of
             // stopping a service bound a foreground notification with same id
             new Thread(new Runnable() {
@@ -94,6 +94,14 @@ public class HabitReceiver extends BroadcastReceiver {
         }
 
         int position = pair.second;
+
+        if (App.getDoingThingId() == habitId && hrTime <= DoingService.sHrTime) {
+            updateHabitRecordTimes(context, hrId);
+            RemoteActionHelper.updateUiEverywhere(
+                    context, thing, position, thing.getType(),
+                    Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME);
+            return;
+        }
 
         if (thing.getState() == Thing.UNDERWAY) {
             List<Long> runningDetailActivities = App.getRunningDetailActivities();

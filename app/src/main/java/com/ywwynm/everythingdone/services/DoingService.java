@@ -97,7 +97,8 @@ public class DoingService extends Service {
     private long mStartTime;
     private long mLeftTime;
     private long mEndTime;
-    private long mHrTime;
+
+    public static long sHrTime = -1;
 
     private int[] mTimeNumbers = { -1, -1, -1, -1, -1, -1 };
 
@@ -141,7 +142,7 @@ public class DoingService extends Service {
                 @State int doingState = careless ? STATE_FAILED_CARELESS : STATE_DOING;
 
                 Notification notification = SystemNotificationUtil.createDoingNotification(
-                        DoingService.this, mThing, doingState, getLeftTimeStr(), mHrTime,
+                        DoingService.this, mThing, doingState, getLeftTimeStr(), sHrTime,
                         shouldHighlight(careless));
                 startForeground((int) mThing.getId(), notification);
 
@@ -282,7 +283,7 @@ public class DoingService extends Service {
             }
         }
 
-        mHrTime = intent.getLongExtra(Def.Communication.KEY_TIME, -1L);
+        sHrTime = intent.getLongExtra(Def.Communication.KEY_TIME, -1L);
 
         mAdd5MinTimes = 0;
         mTotalAdd5MinTimes = 0;
@@ -292,9 +293,9 @@ public class DoingService extends Service {
         mShouldAutoStrictMode = helper.shouldAutoStrictMode();
 
         Log.i(TAG, "start counting down, mPredictDoingTime[" + mPredictDoingTime + "], "
-                + "mStartTime[" + DateTimeUtil.getGeneralDateTimeStr(this, mHrTime) + "], "
+                + "mStartTime[" + DateTimeUtil.getGeneralDateTimeStr(this, sHrTime) + "], "
                 + "mThing.type[" + mThing.getType() + "], "
-                + "mHrTime[" + DateTimeUtil.getGeneralDateTimeStr(this, mHrTime) + "], "
+                + "mHrTime[" + DateTimeUtil.getGeneralDateTimeStr(this, sHrTime) + "], "
                 + "mStartType[" + mStartType + "], "
                 + "mShouldAutoStrictMode[" + mShouldAutoStrictMode + "]");
 
@@ -330,6 +331,8 @@ public class DoingService extends Service {
 
             RemoteActionHelper.doingOrCancel(this, mThing);
         }
+
+        sHrTime = -1;
 
         mThing = null;
         mHandler = null;
@@ -368,10 +371,6 @@ public class DoingService extends Service {
 
     private long getLeftTime() {
         return mLeftTime;
-    }
-
-    private long getHrTime() {
-        return mHrTime;
     }
 
     private long getTimeInMillis() {
@@ -512,10 +511,6 @@ public class DoingService extends Service {
 
         public long getTimeInMillis() {
             return DoingService.this.getTimeInMillis();
-        }
-
-        public long getHrTime() {
-            return DoingService.this.getHrTime();
         }
 
         public boolean canAdd5Min() {
