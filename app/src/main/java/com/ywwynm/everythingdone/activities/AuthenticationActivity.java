@@ -113,7 +113,7 @@ public class AuthenticationActivity extends AppCompatActivity {
         if (thing.getType() != Thing.HABIT) { // reminder or goal
             RemoteActionHelper.finishReminder(this, thing, position);
         } else {
-            long time = getIntent().getLongExtra(Def.Communication.KEY_TIME, 0);
+            long time = getIntent().getLongExtra(Def.Communication.KEY_TIME, -1);
             RemoteActionHelper.finishHabitOnce(this, thing, position, time);
         }
     }

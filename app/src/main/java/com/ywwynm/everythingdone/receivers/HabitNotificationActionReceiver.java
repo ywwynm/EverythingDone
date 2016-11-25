@@ -52,7 +52,7 @@ public class HabitNotificationActionReceiver extends BroadcastReceiver {
                         .putExtra(Def.Communication.KEY_ID, thing.getId()));
 
         if (action.equals(Def.Communication.NOTIFICATION_ACTION_FINISH)) {
-            long time = intent.getLongExtra(Def.Communication.KEY_TIME, 0);
+            long time = intent.getLongExtra(Def.Communication.KEY_TIME, -1);
             if (thing.isPrivate()) {
                 Intent actionIntent = AuthenticationActivity.getOpenIntent(
                         context, TAG, id, position,
