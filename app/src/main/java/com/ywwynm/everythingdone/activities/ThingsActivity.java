@@ -2358,6 +2358,10 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
                 Thing thing = things.get(position);
                 if (dX < 0) {
+                    holder.flDoing.setAlpha(1.0f);
+                    if (App.getDoingThingId() != thing.getId()) {
+                        holder.flDoing.setVisibility(View.GONE);
+                    }
                     v.setAlpha(1.0f + dX / v.getRight());
                 } else if (dX > 0) {
                     if (App.getDoingThingId() == thing.getId()) {
@@ -2365,8 +2369,8 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                         return;
                     }
 
+                    holder.flDoing.setVisibility(View.VISIBLE);
                     if (!hasSwipedRight) {
-                        holder.flDoing.setVisibility(View.VISIBLE);
                         InterceptTouchCardView.LayoutParams lp = (InterceptTouchCardView.LayoutParams)
                                 holder.flDoing.getLayoutParams();
                         lp.width  = holder.cv.getWidth();
