@@ -2,7 +2,6 @@ package com.ywwynm.everythingdone.helpers;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.support.annotation.StringRes;
 import android.support.v4.util.Pair;
 import android.text.TextUtils;
 
@@ -13,7 +12,6 @@ import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.DoingActivity;
 import com.ywwynm.everythingdone.activities.StartDoingActivity;
 import com.ywwynm.everythingdone.database.HabitDAO;
-import com.ywwynm.everythingdone.fragments.ChooserDialogFragment;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.services.DoingService;
@@ -158,16 +156,6 @@ public class ThingDoingHelper {
             int index, boolean hasFollowGeneral) {
         Pair<List<Integer>, List<Integer>> pair = getStartDoingTypeTimes(hasFollowGeneral);
         return pair.first.get(index) + "," + pair.second.get(index);
-    }
-
-    public static ChooserDialogFragment createStartDoingTimeChooser(
-            Context context, int color, @StringRes int titleRes) {
-        final ChooserDialogFragment cdf = new ChooserDialogFragment();
-        cdf.setAccentColor(color);
-        cdf.setShouldShowMore(false);
-        cdf.setTitle(context.getString(titleRes));
-        cdf.setItems(getStartDoingTimeItems(context));
-        return cdf;
     }
 
     public void startDoing(long timeInMillis, @DoingService.StartType int startType, long hrTime) {

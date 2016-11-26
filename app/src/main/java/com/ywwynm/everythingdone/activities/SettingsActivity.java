@@ -851,8 +851,13 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     }
 
     private void showAutoStartDoingTimeDialog(final int index) {
-        final ChooserDialogFragment cdf = ThingDoingHelper.createStartDoingTimeChooser(
-                this, mAccentColor, R.string.title_activity_about);
+        final ChooserDialogFragment cdf = new ChooserDialogFragment();
+        cdf.setAccentColor(mAccentColor);
+        cdf.setShouldShowMore(false);
+        @StringRes int titleRes = index == 0 ? R.string.auto_start_doing_time_reminder_title
+                : R.string.auto_start_doing_time_habit_title;
+        cdf.setTitle(getString(titleRes));
+        cdf.setItems(ThingDoingHelper.getStartDoingTimeItems(this));
         cdf.setInitialIndex(mASDTimesPicked[index]);
         cdf.setConfirmListener(new View.OnClickListener() {
             @Override

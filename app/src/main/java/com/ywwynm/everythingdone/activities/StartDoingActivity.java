@@ -63,8 +63,11 @@ public class StartDoingActivity extends AppCompatActivity {
         mStartType = intent.getIntExtra(DoingService.KEY_START_TYPE, DoingService.START_TYPE_ALARM);
 
         int color = intent.getIntExtra(Def.Communication.KEY_COLOR, DisplayUtil.getRandomColor(this));
-        final ChooserDialogFragment cdf = ThingDoingHelper.createStartDoingTimeChooser(
-                this, color, R.string.start_doing_estimated_time);
+        final ChooserDialogFragment cdf = new ChooserDialogFragment();
+        cdf.setAccentColor(color);
+        cdf.setShouldShowMore(false);
+        cdf.setTitle(getString(R.string.start_doing_estimated_time));
+        cdf.setItems(ThingDoingHelper.getStartDoingTimeItems(this));
         cdf.setInitialIndex(0);
         cdf.setShouldDismissAfterConfirm(false);
         cdf.setConfirmText(getString(R.string.start_doing_confirm));
