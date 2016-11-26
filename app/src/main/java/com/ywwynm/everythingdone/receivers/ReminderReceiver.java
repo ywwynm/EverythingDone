@@ -58,11 +58,8 @@ public class ReminderReceiver extends BroadcastReceiver {
 
             ThingDoingHelper helper = new ThingDoingHelper(context, thing);
             if (thing.getState() == Thing.UNDERWAY
-                    && App.getDoingThingId() != id
+                    && App.getDoingThingId() == -1
                     && helper.shouldAutoStartDoing()) {
-                if (App.getDoingThingId() != -1) {
-
-                }
                 updateReminderState(reminder, reminderDAO, context, thing, position,
                         typeBefore, Reminder.EXPIRED);
                 helper.startDoingAuto(-1, -1);
@@ -80,17 +77,12 @@ public class ReminderReceiver extends BroadcastReceiver {
                 }
             }
 
-            if (App.getDoingThingId() == id) {
-                // user start doing this thing
-                updateReminderState(reminder, reminderDAO, context, thing, position,
-                        typeBefore, Reminder.EXPIRED);
-                return;
-            }
-
             if (thing.getState() == Thing.UNDERWAY) {
                 updateReminderState(reminder, reminderDAO, context, thing, position,
-                        typeBefore, Reminder.REMINDED);
-                notifyUser(context, id, position, thing);
+                        typeBefore, App.getDoingThingId() == id ? Reminder.EXPIRED : Reminder.REMINDED);
+                if (App.getDoingThingId() != id) {
+                    notifyUser(context, id, position, thing);
+                }
             } else {
                 updateReminderState(reminder, reminderDAO, context, thing, position,
                         typeBefore, Reminder.EXPIRED);
