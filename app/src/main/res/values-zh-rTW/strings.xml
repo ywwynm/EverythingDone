@@ -637,6 +637,7 @@
         <item>對提醒與習慣啟用</item>
     </string-array>
     <string name="auto_strict_mode_title">開始做事後，自動進入嚴格模式</string>
+    <string name="auto_strict_mode_help_content">當您開始做事，並且開啟嚴格模式後，完事兒將會檢測您是否在用手機做其它的事情。如果您離開了正在做事的界面（僅允許您查看通知欄、鎖定屏幕）三次或者共五分鐘以上，將取消該記事正在做的狀態。</string>
 
     <!--group advanced-->
     <!--quick create-->
@@ -775,6 +776,7 @@
     <string name="cd_delete_checklist_item">刪除項目</string>
 
     <!--SettingsActivity-->
+    <string name="cd_help_auto_strict_mode">查看自動進入嚴格模式的幫助信息</string>
     <string name="cd_help_automatic_reminder">查看自動提醒的幫助資訊</string>
 
     <!--ChooserDialogFragment-->

@@ -644,6 +644,7 @@
         <item>Enabled for both</item>
     </string-array>
     <string name="auto_strict_mode_title">Enter strict mode when start doing</string>
+    <string name="auto_strict_mode_help_content">When you start doing a thing and enable strict mode, EverythingDone will detect if you are using your phone to do other stuff. If you left the countdown page (only checking notifications and locking screen are allowed) for 3 times or totally for more than 5 minutes, the countdown will stop and the thing will remain unfinished state.</string>
 
     <!--group advanced-->
     <!--quick create-->
@@ -786,6 +787,7 @@
     <string name="cd_delete_checklist_item">delete item</string>
 
     <!--SettingsActivity-->
+    <string name="cd_help_auto_strict_mode">Help for auto strict mode</string>
     <string name="cd_help_automatic_reminder">Help for Automatic Reminder</string>
 
     <!--ChooserDialogFragment-->

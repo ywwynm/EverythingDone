@@ -27,7 +27,6 @@ import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.ScrollView;
@@ -88,24 +87,18 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
     // group ui
     public static final String DEFAULT_DRAWER_HEADER = "default_drawer_header";
-    private LinearLayout mLlDrawerHeader;
-    private TextView     mTvDrawerHeader;
+    private TextView mTvDrawerHeader;
 
-    private LinearLayout mLlLanguage;
-    private TextView     mTvLanguage;
+    private TextView mTvLanguage;
 
-    private RelativeLayout mRlNn; // noticeable notification
-    private CheckBox       mCbNn;
+    private CheckBox mCbNn; // noticeable notification
 
-    private RelativeLayout mRlToggleCli; // toggle checklist item
-    private CheckBox       mCbToggleCli;
-    private boolean        mToggleCliOtc;
+    private CheckBox mCbToggleCli; // toggle checklist item
+    private boolean  mToggleCliOtc;
 
-    private RelativeLayout mRlAutoLink;
-    private CheckBox       mCbAutoLink;
+    private CheckBox mCbAutoLink;
 
-    private RelativeLayout mRlTwiceBackAsBt;
-    private CheckBox       mCbTwiceBack;
+    private CheckBox mCbTwiceBack;
 
     // group ringtone
     private static String[] sKeysRingtone = {
@@ -127,38 +120,27 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     private ChooserDialogFragment[] mCdfsRingtone;
 
     // group data
-    private TextView              mTvBackupAsBt;
-    private LinearLayout          mLlRestoreAsBt;
-    private TextView              mTvRestoreLastInfo;
+    private TextView mTvRestoreLastInfo;
     private LoadingDialogFragment mLdfBackup;
     private LoadingDialogFragment mLdfRestore;
 
     // group privacy
-    private LinearLayout   mLlSetPasswordAsBt;
-    private TextView       mTvSetPassword;
     private RelativeLayout mRlFgprtAsBt;
-    private TextView       mTvFgprtTitle;
-    private TextView       mTvFgprtDscrpt;
     private CheckBox       mCbFgprt;
 
     // group start doing
-    private LinearLayout mLlASD; // auto start doing
-    private TextView     mTvASD;
-    private int          mASDPicked;
+    private TextView mTvASD; // auto start doing
+    private int      mASDPicked;
 
-    private LinearLayout mLlASM; // auto strict mode
-    private TextView     mTvASM;
-    private int          mASMPicked;
+    private TextView mTvASM; // auto strict mode
+    private int      mASMPicked;
 
     // group advanced
-    private RelativeLayout mRlQuickCreateAsBt;
-    private CheckBox       mCbQuickCreate;
+    private CheckBox mCbQuickCreate;
 
     private static List<String>   sANItems;
     private int                   mANPicked;
-    private LinearLayout          mLlANAsBt;
     private TextView              mTvAN;
-    private ImageView             mIvANAsBt;
     private ChooserDialogFragment mCdfAN;
 
     private LinearLayout mLlANRingtoneAsBt;
@@ -377,23 +359,17 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     @Override
     protected void findViews() {
         // ui
-        mLlDrawerHeader = f(R.id.ll_change_drawer_header_as_bt);
         mTvDrawerHeader = f(R.id.tv_drawer_header_path);
 
-        mLlLanguage = f(R.id.ll_app_language_as_bt);
         mTvLanguage = f(R.id.tv_app_language);
 
-        mRlNn = f(R.id.rl_noticeable_notification_as_bt);
         mCbNn = f(R.id.cb_noticeable_notification);
 
-        mRlToggleCli = f(R.id.rl_toggle_checklist_as_bt);
         mCbToggleCli = f(R.id.cb_toggle_checklist);
 
-        mRlAutoLink = f(R.id.rl_auto_link_as_bt);
         mCbAutoLink = f(R.id.cb_auto_link);
 
-        mRlTwiceBackAsBt = f(R.id.rl_twice_back_as_bt);
-        mCbTwiceBack     = f(R.id.cb_twice_back);
+        mCbTwiceBack = f(R.id.cb_twice_back);
 
         // ringtone
         mLlsRingtone    = new LinearLayout[4];
@@ -407,32 +383,21 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         mTvsRingtone[2] = f(R.id.tv_ringtone_goal);
 
         // data
-        mTvBackupAsBt      = f(R.id.tv_backup_as_bt);
-        mLlRestoreAsBt     = f(R.id.ll_restore_as_bt);
         mTvRestoreLastInfo = f(R.id.tv_restore_last_info);
 
         // privacy
-        mLlSetPasswordAsBt = f(R.id.ll_set_password_as_bt);
-        mTvSetPassword     = f(R.id.tv_set_password_title);
-        mRlFgprtAsBt       = f(R.id.rl_use_fingerprint_as_bt);
-        mTvFgprtTitle      = f(R.id.tv_use_fingerprint_title);
-        mTvFgprtDscrpt     = f(R.id.tv_use_fingerprint_description);
-        mCbFgprt           = f(R.id.cb_use_fingerprint);
+        mRlFgprtAsBt = f(R.id.rl_use_fingerprint_as_bt);
+        mCbFgprt     = f(R.id.cb_use_fingerprint);
 
         // start doing
-        mLlASD = f(R.id.ll_auto_start_doing_as_bt);
         mTvASD = f(R.id.tv_auto_start_doing);
 
-        mLlASM = f(R.id.ll_auto_strict_mode_as_bt);
         mTvASM = f(R.id.tv_auto_strict_mode);
 
         // advanced
-        mRlQuickCreateAsBt = f(R.id.rl_quick_create_as_bt);
         mCbQuickCreate     = f(R.id.cb_quick_create);
 
-        mLlANAsBt = f(R.id.ll_advanced_auto_notify_as_bt);
         mTvAN     = f(R.id.tv_advanced_auto_notify_time);
-        mIvANAsBt = f(R.id.iv_auto_notify_help_as_bt);
 
         mLlANRingtoneAsBt  = f(R.id.ll_ringtone_auto_notify_as_bt);
         mTvANRingtoneTitle = f(R.id.tv_ringtone_auto_notify_title);
@@ -496,23 +461,27 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
     private void initUiPrivacy() {
         String password = mPreferences.getString(Def.Meta.KEY_PRIVATE_PASSWORD, null);
+        TextView tv = f(R.id.tv_set_password_title);
         if (password == null) {
-            mTvSetPassword.setText(R.string.set_app_password);
+            tv.setText(R.string.set_app_password);
         } else {
-            mTvSetPassword.setText(R.string.change_app_password);
+            tv.setText(R.string.change_app_password);
         }
 
         initUiFingerprint();
     }
 
     private void initUiFingerprint() {
+        TextView tvTitle  = f(R.id.tv_use_fingerprint_title);
+        TextView tvDscrpt = f(R.id.tv_use_fingerprint_description);
+
         if (!DeviceUtil.hasMarshmallowApi()) {
             mRlFgprtAsBt.setEnabled(false);
             mCbFgprt.setEnabled(false);
             mCbFgprt.setChecked(false);
-            mTvFgprtTitle.setTextColor(ContextCompat.getColor(this, R.color.black_14p));
-            mTvFgprtDscrpt.setTextColor(ContextCompat.getColor(this, R.color.black_10p));
-            mTvFgprtDscrpt.setText(R.string.not_support_fgprt);
+            tvTitle.setTextColor(ContextCompat.getColor(this, R.color.black_14p));
+            tvDscrpt.setTextColor(ContextCompat.getColor(this, R.color.black_10p));
+            tvDscrpt.setText(R.string.not_support_fgprt);
             return;
         }
 
@@ -521,27 +490,27 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         if (password == null || !fph.isFingerprintReady()) {
             mRlFgprtAsBt.setEnabled(false);
             mCbFgprt.setEnabled(false);
-            mTvFgprtTitle.setTextColor(ContextCompat.getColor(this, R.color.black_14p));
-            mTvFgprtDscrpt.setTextColor(ContextCompat.getColor(this, R.color.black_10p));
+            tvTitle.setTextColor(ContextCompat.getColor(this, R.color.black_14p));
+            tvDscrpt.setTextColor(ContextCompat.getColor(this, R.color.black_10p));
 
             if (password == null) {
-                mTvFgprtDscrpt.setText(R.string.password_not_set);
+                tvDscrpt.setText(R.string.password_not_set);
             } else {
-                mTvFgprtDscrpt.setTextSize(LocaleUtil.isChinese(this) ? 14 : 12);
+                tvDscrpt.setTextSize(LocaleUtil.isChinese(this) ? 14 : 12);
                 if (!fph.supportFingerprint()) {
-                    mTvFgprtDscrpt.setText(R.string.not_support_fgprt);
+                    tvDscrpt.setText(R.string.not_support_fgprt);
                 } else if (!fph.hasSystemFingerprintSet()) {
-                    mTvFgprtDscrpt.setText(R.string.system_fgprt_not_set);
+                    tvDscrpt.setText(R.string.system_fgprt_not_set);
                 } else if (!fph.hasFingerprintRegistered()) {
-                    mTvFgprtDscrpt.setText(R.string.fgprt_not_enrolled);
+                    tvDscrpt.setText(R.string.fgprt_not_enrolled);
                 }
             }
         } else {
             mRlFgprtAsBt.setEnabled(true);
             mCbFgprt.setEnabled(true);
-            mTvFgprtTitle.setTextColor(ContextCompat.getColor(this, R.color.black_54p));
-            mTvFgprtDscrpt.setTextColor(ContextCompat.getColor(this, R.color.black_26p));
-            mTvFgprtDscrpt.setText(R.string.use_fingerprint_to_verify);
+            tvTitle.setTextColor(ContextCompat.getColor(this, R.color.black_54p));
+            tvDscrpt.setTextColor(ContextCompat.getColor(this, R.color.black_26p));
+            tvDscrpt.setText(R.string.use_fingerprint_to_verify);
         }
 
         boolean useFingerprint = mPreferences.getBoolean(Def.Meta.KEY_USE_FINGERPRINT, false);
@@ -629,42 +598,42 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     }
 
     private void setUiEvents() {
-        mLlDrawerHeader.setOnClickListener(new View.OnClickListener() {
+        f(R.id.ll_change_drawer_header_as_bt).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 showChangeDrawerHeaderDialog();
             }
         });
 
-        mLlLanguage.setOnClickListener(new View.OnClickListener() {
+        f(R.id.ll_app_language_as_bt).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 showChooseLanguageDialog();
             }
         });
 
-        mRlNn.setOnClickListener(new View.OnClickListener() {
+        f(R.id.rl_noticeable_notification_as_bt).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 mCbNn.setChecked(!mCbNn.isChecked());
             }
         });
 
-        mRlToggleCli.setOnClickListener(new View.OnClickListener() {
+        f(R.id.rl_toggle_checklist_as_bt).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 mCbToggleCli.setChecked(!mCbToggleCli.isChecked());
             }
         });
 
-        mRlAutoLink.setOnClickListener(new View.OnClickListener() {
+        f(R.id.rl_auto_link_as_bt).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 mCbAutoLink.setChecked(!mCbAutoLink.isChecked());
             }
         });
 
-        mRlTwiceBackAsBt.setOnClickListener(new View.OnClickListener() {
+        f(R.id.rl_twice_back_as_bt).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 mCbTwiceBack.setChecked(!mCbTwiceBack.isChecked());
@@ -700,13 +669,13 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     }
 
     private void setDataEvents() {
-        mTvBackupAsBt.setOnClickListener(new View.OnClickListener() {
+        f(R.id.tv_backup_as_bt).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 showBackupDialog();
             }
         });
-        mLlRestoreAsBt.setOnClickListener(new View.OnClickListener() {
+        f(R.id.ll_restore_as_bt).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 showRestoreDialog();
@@ -715,7 +684,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     }
 
     private void setPrivacyEvents() {
-        mLlSetPasswordAsBt.setOnClickListener(new View.OnClickListener() {
+        f(R.id.ll_set_password_as_bt).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 String passwordBefore = mPreferences.getString(
@@ -793,16 +762,25 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     }
 
     private void setStartDoingEvents() {
-        mLlASD.setOnClickListener(new View.OnClickListener() {
+        f(R.id.ll_auto_start_doing_as_bt).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 showAutoStartDoingDialog();
             }
         });
-        mLlASM.setOnClickListener(new View.OnClickListener() {
+        f(R.id.rl_auto_strict_mode_as_bt).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 showAutoStrictModeDialog();
+            }
+        });
+        f(R.id.iv_auto_strict_mode_help_as_bt).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                final AlertDialogFragment adf = createAlertDialog(
+                        false, R.string.doing_alert_first_strict_mode_title,
+                        R.string.auto_strict_mode_help_content);
+                adf.show(getFragmentManager(), AlertDialogFragment.TAG);
             }
         });
     }
@@ -849,7 +827,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     private void setAdvancedEvents() {
         setQuickCreateEvents();
 
-        mLlANAsBt.setOnClickListener(new View.OnClickListener() {
+        f(R.id.ll_ringtone_auto_notify_as_bt).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (mCdfAN == null) {
@@ -859,7 +837,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             }
         });
 
-        mIvANAsBt.setOnClickListener(new View.OnClickListener() {
+        f(R.id.iv_auto_notify_help_as_bt).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 final AlertDialogFragment adf = createAlertDialog(
@@ -870,7 +848,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     }
 
     private void setQuickCreateEvents() {
-        mRlQuickCreateAsBt.setOnClickListener(new View.OnClickListener() {
+        f(R.id.rl_quick_create_as_bt).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 mCbQuickCreate.toggle();
