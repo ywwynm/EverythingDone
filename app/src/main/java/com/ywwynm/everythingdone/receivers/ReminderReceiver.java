@@ -15,6 +15,7 @@ import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.NoticeableNotificationActivity;
 import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.helpers.RemoteActionHelper;
+import com.ywwynm.everythingdone.helpers.ThingDoingHelper;
 import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.utils.DeviceUtil;
@@ -54,6 +55,20 @@ public class ReminderReceiver extends BroadcastReceiver {
         }
 
         if (reminder.getState() == Reminder.UNDERWAY) {
+
+            ThingDoingHelper helper = new ThingDoingHelper(context, thing);
+            if (thing.getState() == Thing.UNDERWAY
+                    && App.getDoingThingId() != id
+                    && helper.shouldAutoStartDoing()) {
+                if (App.getDoingThingId() != -1) {
+
+                }
+                updateReminderState(reminder, reminderDAO, context, thing, position,
+                        typeBefore, Reminder.EXPIRED);
+                helper.startDoingAuto(-1, -1);
+                return;
+            }
+
             List<Long> runningDetailActivities = App.getRunningDetailActivities();
             for (Long thingId : runningDetailActivities) {
                 if (thingId == id) {
