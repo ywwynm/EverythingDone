@@ -44,7 +44,8 @@ public class ReminderReceiver extends BroadcastReceiver {
             return;
         }
         int position = pair.second;
-        int typeBefore = thing.getType();
+
+        @Thing.Type int typeBefore = thing.getType();
 
         Reminder reminder = reminderDAO.getReminderById(id);
         if (reminder == null) {
@@ -64,10 +65,11 @@ public class ReminderReceiver extends BroadcastReceiver {
                 }
             }
 
-            if (App.getDoingThingId() == thing.getId()) {
+            if (App.getDoingThingId() == id) {
                 // user start doing this thing
                 updateReminderState(reminder, reminderDAO, context, thing, position,
                         typeBefore, Reminder.EXPIRED);
+                return;
             }
 
             if (thing.getState() == Thing.UNDERWAY) {
