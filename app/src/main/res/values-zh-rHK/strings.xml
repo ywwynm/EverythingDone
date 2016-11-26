@@ -501,6 +501,7 @@
     <string name="start_doing_full_title">開始做這件事</string>
     <string name="start_doing_estimated_time">預計完成時間</string>
     <string name="start_doing_time_not_sure">不確定</string>
+    <string name="start_doing_doing_this_thing">您正在做這件事！</string>
     <string name="start_doing_doing_another_thing">您正在做另一件事！</string>
     <string name="start_doing_time_long_alarm">您預計的完成時間較長，無法在該習慣的下一個提醒到來前完成這一次</string>
     <string name="start_doing_time_long_t">您預計的完成時間較長，無法在本週期內完成一次該習慣</string>

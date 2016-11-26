@@ -888,7 +888,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                     @Thing.Type int thingType = mThing.getType();
                     if (thingType != Thing.REMINDER && thingType != Thing.HABIT) {
                         ThingDoingHelper helper = new ThingDoingHelper(DetailActivity.this, mThing);
-                        helper.openStartDoingActivityUser();
+                        helper.tryToOpenStartDoingActivityUser();
                     } else {
                         ThingDoingDialogFragment tddf = new ThingDoingDialogFragment();
                         tddf.setThing(mThing);

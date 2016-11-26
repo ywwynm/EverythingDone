@@ -62,7 +62,7 @@ public class ThingDoingDialogFragment extends BaseDialogFragment {
             @Override
             public void onClick(View view) {
                 ThingDoingHelper helper = new ThingDoingHelper(mActivity, mThing);
-                helper.openStartDoingActivityUser();
+                helper.tryToOpenStartDoingActivityUser();
             }
         });
     }

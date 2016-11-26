@@ -2,8 +2,10 @@ package com.ywwynm.everythingdone.helpers;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.support.annotation.StringRes;
 import android.support.v4.util.Pair;
 import android.text.TextUtils;
+import android.widget.Toast;
 
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.BuildConfig;
@@ -173,7 +175,16 @@ public class ThingDoingHelper {
         RemoteActionHelper.doingOrCancel(mContext, mThing);
     }
 
-    public void openStartDoingActivityUser() {
+    public void tryToOpenStartDoingActivityUser() {
+        if (App.getDoingThingId() != -1) {
+            @StringRes int res = R.string.start_doing_doing_another_thing;
+            if (App.getDoingThingId() == mThing.getId()) {
+                res = R.string.start_doing_doing_this_thing;
+            }
+            Toast.makeText(mContext, res, Toast.LENGTH_LONG).show();
+            return;
+        }
+
         long hrTime = -1;
         if (mThing.getType() == Thing.HABIT) {
             Habit habit = HabitDAO.getInstance(mContext).getHabitById(mThing.getId());

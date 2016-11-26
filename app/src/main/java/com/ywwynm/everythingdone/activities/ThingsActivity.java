@@ -2308,10 +2308,8 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 }
             } else {
                 mAdapter.notifyItemChanged(position);
-                if (App.getDoingThingId() != id) {
-                    ThingDoingHelper helper = new ThingDoingHelper(ThingsActivity.this, thingToSwipe);
-                    helper.openStartDoingActivityUser();
-                }
+                ThingDoingHelper helper = new ThingDoingHelper(ThingsActivity.this, thingToSwipe);
+                helper.tryToOpenStartDoingActivityUser();
             }
 
             swiped = true;
