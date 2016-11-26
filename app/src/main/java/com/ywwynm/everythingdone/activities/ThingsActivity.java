@@ -2306,10 +2306,12 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 } else {
                     tryToFinishOtherBySwiping(thingToSwipe, position);
                 }
-            } else if (App.getDoingThingId() != id) {
+            } else {
                 mAdapter.notifyItemChanged(position);
-                ThingDoingHelper helper = new ThingDoingHelper(ThingsActivity.this, thingToSwipe);
-                helper.openStartDoingActivityUser();
+                if (App.getDoingThingId() != id) {
+                    ThingDoingHelper helper = new ThingDoingHelper(ThingsActivity.this, thingToSwipe);
+                    helper.openStartDoingActivityUser();
+                }
             }
 
             swiped = true;
