@@ -32,28 +32,32 @@ public class ThingDoingHelper {
     public static final long TIME_BEFORE_NEXT_HABIT_REMINDER
             = BuildConfig.DEBUG ? 0 : 5 * 60 * 1000L;
 
-    public static int KEY_INDEX_AUTO_START_DOING                = 0;
+    public static int KEY_INDEX_AUTO_START_DOING               = 0;
 
-    public static int AUTO_START_DOING_STRATEGY_FOLLOW_SETTINGS = 0;
-    public static int AUTO_START_DOING_STRATEGY_ENABLED         = 1;
-    public static int AUTO_START_DOING_STRATEGY_DISABLED        = 2;
+    public static int AUTO_START_DOING_STRATEGY_FOLLOW_GENERAL = 0;
+    public static int AUTO_START_DOING_STRATEGY_ENABLED        = 1;
+    public static int AUTO_START_DOING_STRATEGY_DISABLED       = 2;
 
-    public static int SYS_AUTO_START_DOING_STRATEGY_DISABLED    = 0;
-    public static int SYS_AUTO_START_DOING_STRATEGY_REMINDER    = 1;
-    public static int SYS_AUTO_START_DOING_STRATEGY_HABIT       = 2;
-    public static int SYS_AUTO_START_DOING_STRATEGY_ALL         = 3;
+    public static int SYS_AUTO_START_DOING_STRATEGY_DISABLED   = 0;
+    public static int SYS_AUTO_START_DOING_STRATEGY_REMINDER   = 1;
+    public static int SYS_AUTO_START_DOING_STRATEGY_HABIT      = 2;
+    public static int SYS_AUTO_START_DOING_STRATEGY_ALL        = 3;
 
 
-    public static int KEY_INDEX_AUTO_STRICT_MODE                = 1;
+    public static int KEY_INDEX_AUTO_STRICT_MODE               = 1;
 
-    public static int AUTO_STRICT_MODE_STRATEGY_FOLLOW_SETTINGS = 0;
-    public static int AUTO_STRICT_MODE_STRATEGY_ENABLED         = 1;
-    public static int AUTO_STRICT_MODE_STRATEGY_DISABLED        = 2;
+    public static int AUTO_STRICT_MODE_STRATEGY_FOLLOW_GENERAL = 0;
+    public static int AUTO_STRICT_MODE_STRATEGY_ENABLED        = 1;
+    public static int AUTO_STRICT_MODE_STRATEGY_DISABLED       = 2;
 
-    public static int SYS_AUTO_STRICT_MODE_STRATEGY_DISABLED    = 0;
-    public static int SYS_AUTO_STRICT_MODE_STRATEGY_REMINDER    = 1;
-    public static int SYS_AUTO_STRICT_MODE_STRATEGY_HABIT       = 2;
-    public static int SYS_AUTO_STRICT_MODE_STRATEGY_ALL         = 3;
+    public static int SYS_AUTO_STRICT_MODE_STRATEGY_DISABLED   = 0;
+    public static int SYS_AUTO_STRICT_MODE_STRATEGY_REMINDER   = 1;
+    public static int SYS_AUTO_STRICT_MODE_STRATEGY_HABIT      = 2;
+    public static int SYS_AUTO_STRICT_MODE_STRATEGY_ALL        = 3;
+
+
+    public static int KEY_INDEX_AUTO_START_DOING_TIME          = 2;
+
 
     public static final String START_DOING_TIME_FOLLOW_GENERAL_PICKED = "-2,-2";
     public static final String START_DOING_TIME_NOT_SURE_PICKED       = "-1,-1";
@@ -200,9 +204,8 @@ public class ThingDoingHelper {
         startDoing(timeInMillis, DoingService.START_TYPE_ALARM, hrTime);
     }
 
-    public void startDoingAuto(long hrTime) {
-//        long timeInMillis = 0;
-//        startDoing(timeInMillis, DoingService.START_TYPE_AUTO, hrTime);
+    public void startDoingAuto(long shouldEndTime, long hrTime) {
+        startDoing(getAutoDoingTime(shouldEndTime), DoingService.START_TYPE_AUTO, hrTime);
     }
 
     public void startDoingUser(long timeInMillis, long hrTime) {
@@ -213,13 +216,13 @@ public class ThingDoingHelper {
      * Get auto start doing strategy for a thing with given id
      * @param thingId thing's id
      * @return auto start doing strategy for this thing, should be one of:
-     *      {@link #AUTO_START_DOING_STRATEGY_FOLLOW_SETTINGS},
+     *      {@link #AUTO_START_DOING_STRATEGY_FOLLOW_GENERAL},
      *      {@link #AUTO_START_DOING_STRATEGY_DISABLED},
      *      {@link #AUTO_START_DOING_STRATEGY_ENABLED}.
      */
     public int getAutoStartDoingStrategy() {
         String key = mThing.getId() + "_" + KEY_INDEX_AUTO_START_DOING;
-        return mSpStartDoing.getInt(key, AUTO_START_DOING_STRATEGY_FOLLOW_SETTINGS);
+        return mSpStartDoing.getInt(key, AUTO_START_DOING_STRATEGY_FOLLOW_GENERAL);
     }
 
     /**
@@ -231,7 +234,7 @@ public class ThingDoingHelper {
      */
     public boolean shouldAutoStartDoing() {
         int strategy = getAutoStartDoingStrategy();
-        if (strategy == AUTO_START_DOING_STRATEGY_FOLLOW_SETTINGS) {
+        if (strategy == AUTO_START_DOING_STRATEGY_FOLLOW_GENERAL) {
             int sysStrategy = mSpSettings.getInt(Def.Meta.KEY_AUTO_START_DOING,
                     SYS_AUTO_START_DOING_STRATEGY_DISABLED);
             if (sysStrategy == SYS_AUTO_START_DOING_STRATEGY_DISABLED) {
@@ -262,13 +265,13 @@ public class ThingDoingHelper {
      * Get auto strict mode strategy for the thing with given id
      * @param thingId thing's id
      * @return auto start doing strategy for this thing, should be one of:
-     *      {@link #AUTO_STRICT_MODE_STRATEGY_FOLLOW_SETTINGS},
+     *      {@link #AUTO_STRICT_MODE_STRATEGY_FOLLOW_GENERAL},
      *      {@link #AUTO_STRICT_MODE_STRATEGY_DISABLED},
      *      {@link #AUTO_STRICT_MODE_STRATEGY_ENABLED}.
      */
     public int getAutoStrictModeStrategy() {
         String key = mThing.getId() + "_" + KEY_INDEX_AUTO_STRICT_MODE;
-        return mSpStartDoing.getInt(key, AUTO_STRICT_MODE_STRATEGY_FOLLOW_SETTINGS);
+        return mSpStartDoing.getInt(key, AUTO_STRICT_MODE_STRATEGY_FOLLOW_GENERAL);
     }
 
 
@@ -281,7 +284,7 @@ public class ThingDoingHelper {
      */
     public boolean shouldAutoStrictMode() {
         int strategy = getAutoStrictModeStrategy();
-        if (strategy == AUTO_STRICT_MODE_STRATEGY_FOLLOW_SETTINGS) {
+        if (strategy == AUTO_STRICT_MODE_STRATEGY_FOLLOW_GENERAL) {
             int sysStrategy = mSpSettings.getInt(Def.Meta.KEY_AUTO_STRICT_MODE,
                     SYS_AUTO_STRICT_MODE_STRATEGY_DISABLED);
             if (sysStrategy == SYS_AUTO_STRICT_MODE_STRATEGY_DISABLED) {
@@ -307,8 +310,38 @@ public class ThingDoingHelper {
         }
     }
 
-    public long getAutoDoingTime() {
-        throw new UnsupportedOperationException();
+    public long getAutoDoingTime(long shouldEndTime) {
+        String key = mThing.getId() + "_" + KEY_INDEX_AUTO_START_DOING_TIME;
+        String doingTimeStr = mSpStartDoing.getString(
+                key, START_DOING_TIME_FOLLOW_GENERAL_PICKED);
+        if (START_DOING_TIME_FOLLOW_GENERAL_PICKED.equals(doingTimeStr)) {
+            if (mThing.getType() == Thing.REMINDER) {
+                key = Def.Meta.KEY_ASD_TIME_REMINDER;
+            } else {
+                key = Def.Meta.KEY_ASD_TIME_HABIT;
+            }
+            doingTimeStr = mSpSettings.getString(key, START_DOING_TIME_NOT_SURE_PICKED);
+        }
+
+        if (START_DOING_TIME_NOT_SURE_PICKED.equals(doingTimeStr)) {
+            return -1;
+        }
+
+        String[] arr = doingTimeStr.split(",");
+        int type = Integer.parseInt(arr[0]);
+        int time = Integer.parseInt(arr[1]);
+        long doingTime = DateTimeUtil.getActualTimeAfterSomeTime(0, type, time);
+        if (shouldEndTime != -1 && mThing.getType() == Thing.HABIT) {
+            while (System.currentTimeMillis() + doingTime + TIME_BEFORE_NEXT_HABIT_REMINDER
+                    > shouldEndTime) {
+                doingTime -= 5 * 60 * 1000L;
+            }
+            if (doingTime < 5 * 60 * 1000L) {
+                doingTime = -1;
+            }
+        }
+
+        return doingTime;
     }
 
 }
