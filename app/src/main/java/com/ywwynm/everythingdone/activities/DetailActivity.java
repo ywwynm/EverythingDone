@@ -85,6 +85,7 @@ import com.ywwynm.everythingdone.helpers.AuthenticationHelper;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
 import com.ywwynm.everythingdone.helpers.ScreenshotHelper;
 import com.ywwynm.everythingdone.helpers.SendInfoHelper;
+import com.ywwynm.everythingdone.helpers.ThingDoingHelper;
 import com.ywwynm.everythingdone.helpers.ThingExporter;
 import com.ywwynm.everythingdone.managers.ThingManager;
 import com.ywwynm.everythingdone.model.Habit;
@@ -884,9 +885,15 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             fl.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    ThingDoingDialogFragment tddf = new ThingDoingDialogFragment();
-                    tddf.setThing(mThing);
-                    tddf.show(getFragmentManager(), ThingDoingDialogFragment.TAG);
+                    @Thing.Type int thingType = mThing.getType();
+                    if (thingType != Thing.REMINDER && thingType != Thing.HABIT) {
+                        ThingDoingHelper helper = new ThingDoingHelper(DetailActivity.this, mThing);
+                        helper.openStartDoingActivityUser();
+                    } else {
+                        ThingDoingDialogFragment tddf = new ThingDoingDialogFragment();
+                        tddf.setThing(mThing);
+                        tddf.show(getFragmentManager(), ThingDoingDialogFragment.TAG);
+                    }
                 }
             });
 
