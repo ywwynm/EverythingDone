@@ -554,11 +554,65 @@
 
                 </LinearLayout>
 
+                <LinearLayout
+                    android:id="@+id/ll_asd_time_reminder_as_bt"
+                    android:layout_width="match_parent"
+                    android:layout_height="72dp"
+                    android:layout_marginTop="112dp"
+                    android:paddingLeft="16dp"
+                    android:paddingRight="16dp"
+                    android:orientation="vertical"
+                    android:gravity="center_vertical"
+                    android:background="@drawable/selectable_item_background">
+
+                    <TextView
+                        android:id="@+id/tv_asd_time_reminder_title"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/auto_start_doing_time_reminder_title"
+                        android:textSize="16sp"/>
+
+                    <TextView
+                        android:id="@+id/tv_asd_time_reminder"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/black_26p"
+                        android:textSize="14sp"/>
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/ll_asd_time_habit_as_bt"
+                    android:layout_width="match_parent"
+                    android:layout_height="72dp"
+                    android:layout_marginTop="184dp"
+                    android:paddingLeft="16dp"
+                    android:paddingRight="16dp"
+                    android:orientation="vertical"
+                    android:gravity="center_vertical"
+                    android:background="@drawable/selectable_item_background">
+
+                    <TextView
+                        android:id="@+id/tv_asd_time_habit_title"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/auto_start_doing_time_habit_title"
+                        android:textSize="16sp"/>
+
+                    <TextView
+                        android:id="@+id/tv_asd_time_habit"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/black_26p"
+                        android:textSize="14sp"/>
+
+                </LinearLayout>
+
                 <RelativeLayout
                     android:id="@+id/rl_auto_strict_mode_as_bt"
                     android:layout_width="match_parent"
                     android:layout_height="72dp"
-                    android:layout_marginTop="112dp"
+                    android:layout_marginTop="256dp"
                     android:paddingStart="16dp"
                     android:paddingLeft="16dp"
                     android:paddingEnd="8dp"
@@ -571,7 +625,8 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/auto_strict_mode_title"
-                        android:textSize="16sp"/>
+                        android:textSize="16sp"
+                        tools:ignore="RelativeOverlap"/>
 
                     <TextView
                         android:id="@+id/tv_auto_strict_mode"

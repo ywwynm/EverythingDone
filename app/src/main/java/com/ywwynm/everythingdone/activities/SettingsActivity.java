@@ -50,6 +50,7 @@ import com.ywwynm.everythingdone.helpers.AuthenticationHelper;
 import com.ywwynm.everythingdone.helpers.AutoNotifyHelper;
 import com.ywwynm.everythingdone.helpers.BackupHelper;
 import com.ywwynm.everythingdone.helpers.FingerprintHelper;
+import com.ywwynm.everythingdone.helpers.ThingDoingHelper;
 import com.ywwynm.everythingdone.model.DoingRecord;
 import com.ywwynm.everythingdone.model.HabitReminder;
 import com.ywwynm.everythingdone.model.Thing;
@@ -131,6 +132,11 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     // group start doing
     private TextView mTvASD; // auto start doing
     private int      mASDPicked;
+
+    private LinearLayout[] mLlASDTimes;
+    private TextView[]     mTvASDTimeTitles;
+    private TextView[]     mTvASDTimes;
+    private int[]          mASDTimesPicked;
 
     private TextView mTvASM; // auto strict mode
     private int      mASMPicked;
@@ -326,6 +332,8 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         mAccentColor = ContextCompat.getColor(this, R.color.blue_deep);
 
         initMembersRingtone();
+
+        mASDTimesPicked = new int[2];
     }
 
     private void initMembersRingtone() {
@@ -392,12 +400,24 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         // start doing
         mTvASD = f(R.id.tv_auto_start_doing);
 
+        mLlASDTimes    = new LinearLayout[2];
+        mLlASDTimes[0] = f(R.id.ll_asd_time_reminder_as_bt);
+        mLlASDTimes[1] = f(R.id.ll_asd_time_habit_as_bt);
+
+        mTvASDTimeTitles = new TextView[2];
+        mTvASDTimeTitles[0] = f(R.id.tv_asd_time_reminder_title);
+        mTvASDTimeTitles[1] = f(R.id.tv_asd_time_habit_title);
+
+        mTvASDTimes    = new TextView[2];
+        mTvASDTimes[0] = f(R.id.tv_asd_time_reminder);
+        mTvASDTimes[1] = f(R.id.tv_asd_time_habit);
+
         mTvASM = f(R.id.tv_auto_strict_mode);
 
         // advanced
-        mCbQuickCreate     = f(R.id.cb_quick_create);
+        mCbQuickCreate = f(R.id.cb_quick_create);
 
-        mTvAN     = f(R.id.tv_advanced_auto_notify_time);
+        mTvAN = f(R.id.tv_advanced_auto_notify_time);
 
         mLlANRingtoneAsBt  = f(R.id.ll_ringtone_auto_notify_as_bt);
         mTvANRingtoneTitle = f(R.id.tv_ringtone_auto_notify_title);
@@ -524,8 +544,42 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         String[] options = getResources().getStringArray(R.array.auto_start_doing_options);
         mTvASD.setText(options[mASDPicked]);
 
+        enableOrDisableASDTimesUi();
+
+        String[] pickedStr = new String[2];
+        pickedStr[0] = mPreferences.getString(Def.Meta.KEY_ASD_TIME_REMINDER,
+                ThingDoingHelper.START_DOING_TIME_FOLLOW_GENERAL_PICKED);
+        pickedStr[1] = mPreferences.getString(Def.Meta.KEY_ASD_TIME_HABIT,
+                ThingDoingHelper.START_DOING_TIME_FOLLOW_GENERAL_PICKED);
+        mASDTimesPicked[0] = ThingDoingHelper.getStartDoingTimeIndex(pickedStr[0], false);
+        mASDTimesPicked[1] = ThingDoingHelper.getStartDoingTimeIndex(pickedStr[1], false);
+
+        List<String> items = ThingDoingHelper.getStartDoingTimeItems(this);
+        mTvASDTimes[0].setText(items.get(mASDTimesPicked[0]));
+        mTvASDTimes[1].setText(items.get(mASDTimesPicked[1]));
+
         mASMPicked = mPreferences.getInt(Def.Meta.KEY_AUTO_STRICT_MODE, 0);
         mTvASM.setText(options[mASMPicked]);
+    }
+
+    private void enableOrDisableASDTimesUi() {
+        int black_54p = ContextCompat.getColor(this, R.color.black_54p);
+        int black_26p = ContextCompat.getColor(this, R.color.black_26p);
+        int black_14p = ContextCompat.getColor(this, R.color.black_14p);
+        int black_10p = ContextCompat.getColor(this, R.color.black_10p);
+
+        boolean[] enabled = { mASDPicked % 2 != 0, mASDPicked >= 2 };
+        for (int i = 0; i < enabled.length; i++) {
+            if (enabled[i]) {
+                mLlASDTimes[i].setEnabled(true);
+                mTvASDTimeTitles[i].setTextColor(black_54p);
+                mTvASDTimes[i].setTextColor(black_26p);
+            } else {
+                mLlASDTimes[i].setEnabled(false);
+                mTvASDTimeTitles[i].setTextColor(black_14p);
+                mTvASDTimes[i].setTextColor(black_10p);
+            }
+        }
     }
 
     private void initStartDoingTitle() {
@@ -768,6 +822,17 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                 showAutoStartDoingDialog();
             }
         });
+
+        for (int i = 0; i < mLlASDTimes.length; i++) {
+            final int index = i;
+            mLlASDTimes[i].setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    showAutoStartDoingTimeDialog(index);
+                }
+            });
+        }
+
         f(R.id.rl_auto_strict_mode_as_bt).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -785,6 +850,22 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         });
     }
 
+    private void showAutoStartDoingTimeDialog(final int index) {
+        final ChooserDialogFragment cdf = ThingDoingHelper.createStartDoingTimeChooser(
+                this, mAccentColor, R.string.title_activity_about);
+        cdf.setInitialIndex(mASDTimesPicked[index]);
+        cdf.setConfirmListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                int picked = cdf.getPickedIndex();
+                mASDTimesPicked[index] = picked;
+                List<String> items = ThingDoingHelper.getStartDoingTimeItems(getApplicationContext());
+                mTvASDTimes[index].setText(items.get(picked));
+            }
+        });
+        cdf.show(getFragmentManager(), ChooserDialogFragment.TAG);
+    }
+
     private void showAutoStartDoingDialog() {
         final ChooserDialogFragment cdf = createChooserDialogForStartDoing();
         cdf.setTitle(getString(R.string.auto_start_doing_title));
@@ -795,6 +876,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             public void onClick(View view) {
                 mASDPicked = cdf.getPickedIndex();
                 mTvASD.setText(options[mASDPicked]);
+                enableOrDisableASDTimesUi();
             }
         });
         cdf.show(getFragmentManager(), ChooserDialogFragment.TAG);
@@ -827,7 +909,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     private void setAdvancedEvents() {
         setQuickCreateEvents();
 
-        f(R.id.ll_ringtone_auto_notify_as_bt).setOnClickListener(new View.OnClickListener() {
+        f(R.id.ll_advanced_auto_notify_as_bt).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (mCdfAN == null) {
@@ -1181,6 +1263,10 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
         // start doing
         editor.putInt(Def.Meta.KEY_AUTO_START_DOING, mASDPicked);
+        editor.putString(Def.Meta.KEY_ASD_TIME_REMINDER,
+                ThingDoingHelper.getStartDoingTimePickedStr(mASDTimesPicked[0], false));
+        editor.putString(Def.Meta.KEY_ASD_TIME_HABIT,
+                ThingDoingHelper.getStartDoingTimePickedStr(mASDTimesPicked[1], false));
         editor.putInt(Def.Meta.KEY_AUTO_STRICT_MODE, mASMPicked);
 
         // advanced

@@ -2,17 +2,26 @@ package com.ywwynm.everythingdone.helpers;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.support.annotation.StringRes;
+import android.support.v4.util.Pair;
+import android.text.TextUtils;
 
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.BuildConfig;
 import com.ywwynm.everythingdone.Def;
+import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.DoingActivity;
 import com.ywwynm.everythingdone.activities.StartDoingActivity;
 import com.ywwynm.everythingdone.database.HabitDAO;
+import com.ywwynm.everythingdone.fragments.ChooserDialogFragment;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.services.DoingService;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
+
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.List;
 
 /**
  * Created by ywwynm on 2016/11/22.
@@ -48,6 +57,9 @@ public class ThingDoingHelper {
     public static int SYS_AUTO_STRICT_MODE_STRATEGY_HABIT       = 2;
     public static int SYS_AUTO_STRICT_MODE_STRATEGY_ALL         = 3;
 
+    public static final String START_DOING_TIME_FOLLOW_GENERAL_PICKED = "-2,-2";
+    public static final String START_DOING_TIME_NOT_SURE_PICKED       = "-1,-1";
+
     private Context mContext;
     private Thing mThing;
 
@@ -62,6 +74,100 @@ public class ThingDoingHelper {
                 Def.Meta.DOING_STRATEGY_NAME, Context.MODE_PRIVATE);
         mSpSettings = context.getSharedPreferences(
                 Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE);
+    }
+
+    public static Pair<List<Integer>, List<Integer>> getStartDoingTypeTimes(
+            boolean addFollowGeneral) {
+        List<Integer> types = new ArrayList<>();
+        List<Integer> times = new ArrayList<>();
+
+        if (addFollowGeneral) {
+            types.add(-2);
+            types.add(-2);
+        }
+
+        types.add(-1);
+        times.add(-1);
+
+        if (BuildConfig.DEBUG) {
+            types.add(Calendar.SECOND);
+            times.add(6);
+        }
+
+        types.add(Calendar.MINUTE);
+        types.add(Calendar.MINUTE);
+        types.add(Calendar.MINUTE);
+        types.add(Calendar.HOUR_OF_DAY);
+        types.add(Calendar.MINUTE);
+        types.add(Calendar.HOUR_OF_DAY);
+        types.add(Calendar.HOUR_OF_DAY);
+        types.add(Calendar.HOUR_OF_DAY);
+
+        times.add(15);
+        times.add(30);
+        times.add(45);
+        times.add(1);
+        times.add(90);
+        times.add(2);
+        times.add(3);
+        times.add(4);
+
+        return new Pair<>(types, times);
+    }
+
+    /**
+     * Not sure
+     * 6  seconds(DEBUG)
+     * 15 minutes
+     * 30 minutes
+     * 45 minutes
+     * 1  hour
+     * 90 minutes
+     * 2  hours
+     * 3  hours
+     * 4  hours
+     */
+    public static List<String> getStartDoingTimeItems(Context context) {
+        Pair<List<Integer>, List<Integer>> typeTimes = getStartDoingTypeTimes(false);
+        List<String> items = new ArrayList<>();
+        items.add(context.getString(R.string.start_doing_time_not_sure));
+        final int size = typeTimes.first.size();
+        for (int i = 1; i < size; i++) {
+            items.add(DateTimeUtil.getDateTimeStr(
+                    typeTimes.first.get(i), typeTimes.second.get(i), context));
+        }
+        return items;
+    }
+
+    public static int getStartDoingTimeIndex(String picked, boolean hasFollowGeneral) {
+        if (TextUtils.isEmpty(picked)) {
+            return 0;
+        }
+        Pair<List<Integer>, List<Integer>> pair = getStartDoingTypeTimes(hasFollowGeneral);
+        final int size = pair.first.size();
+        for (int i = 0; i < size; i++) {
+            String str = pair.first.get(i) + "," + pair.second.get(i);
+            if (str.equals(picked)) {
+                return i;
+            }
+        }
+        return 0;
+    }
+
+    public static String getStartDoingTimePickedStr(
+            int index, boolean hasFollowGeneral) {
+        Pair<List<Integer>, List<Integer>> pair = getStartDoingTypeTimes(hasFollowGeneral);
+        return pair.first.get(index) + "," + pair.second.get(index);
+    }
+
+    public static ChooserDialogFragment createStartDoingTimeChooser(
+            Context context, int color, @StringRes int titleRes) {
+        final ChooserDialogFragment cdf = new ChooserDialogFragment();
+        cdf.setAccentColor(color);
+        cdf.setShouldShowMore(false);
+        cdf.setTitle(context.getString(titleRes));
+        cdf.setItems(getStartDoingTimeItems(context));
+        return cdf;
     }
 
     public void startDoing(long timeInMillis, @DoingService.StartType int startType, long hrTime) {

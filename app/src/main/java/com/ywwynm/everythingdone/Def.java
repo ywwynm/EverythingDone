@@ -55,6 +55,9 @@ public final class Def {
         // added on 2016/11/22
         public static final String KEY_AUTO_START_DOING        = "auto_start_doing";
         public static final String KEY_AUTO_STRICT_MODE        = "auto_strict_mode";
+        // added on 2016/11/26
+        public static final String KEY_ASD_TIME_REMINDER       = "asd_time_reminder";
+        public static final String KEY_ASD_TIME_HABIT          = "asd_time_habit";
 
         public static final String KEY_QUICK_CREATE            = "quick_create";
         public static final String KEY_AUTO_NOTIFY             = "auto_notify";

@@ -10,7 +10,6 @@ import android.view.View;
 import android.widget.Toast;
 
 import com.ywwynm.everythingdone.App;
-import com.ywwynm.everythingdone.BuildConfig;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.database.HabitDAO;
@@ -22,8 +21,6 @@ import com.ywwynm.everythingdone.services.DoingService;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 
-import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.List;
 
@@ -50,9 +47,6 @@ public class StartDoingActivity extends AppCompatActivity {
     private Thing mThing;
     private @DoingService.StartType int mStartType;
 
-    private List<Integer> mTypes;
-    private List<Integer> mTimes;
-
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -68,14 +62,9 @@ public class StartDoingActivity extends AppCompatActivity {
         }
         mStartType = intent.getIntExtra(DoingService.KEY_START_TYPE, DoingService.START_TYPE_ALARM);
 
-        initTimeMember();
-
         int color = intent.getIntExtra(Def.Communication.KEY_COLOR, DisplayUtil.getRandomColor(this));
-        final ChooserDialogFragment cdf = new ChooserDialogFragment();
-        cdf.setAccentColor(color);
-        cdf.setShouldShowMore(false);
-        cdf.setTitle(getString(R.string.start_doing_estimated_time));
-        cdf.setItems(getItems());
+        final ChooserDialogFragment cdf = ThingDoingHelper.createStartDoingTimeChooser(
+                this, color, R.string.start_doing_estimated_time);
         cdf.setInitialIndex(0);
         cdf.setShouldDismissAfterConfirm(false);
         cdf.setConfirmText(getString(R.string.start_doing_confirm));
@@ -102,9 +91,10 @@ public class StartDoingActivity extends AppCompatActivity {
         if (index == 0) {
             timeInMillis = -1;
         } else {
-            index--;
+            Pair<List<Integer>, List<Integer>> typeTimes =
+                    ThingDoingHelper.getStartDoingTypeTimes(false);
             long etc = DateTimeUtil.getActualTimeAfterSomeTime(
-                    mTypes.get(index), mTimes.get(index));
+                    typeTimes.first.get(index), typeTimes.second.get(index));
             if (mThing.getType() == Thing.HABIT) {
                 Habit habit = HabitDAO.getInstance(this).getHabitById(mThing.getId());
                 if (habit != null) {
@@ -126,7 +116,7 @@ public class StartDoingActivity extends AppCompatActivity {
                 }
             }
             timeInMillis = DateTimeUtil.getActualTimeAfterSomeTime(
-                    0, mTypes.get(index), mTimes.get(index));
+                    0, typeTimes.first.get(index), typeTimes.second.get(index));
         }
         if (canStartDoing) {
             cdf.dismiss();
@@ -138,54 +128,5 @@ public class StartDoingActivity extends AppCompatActivity {
                 helper.startDoingUser(timeInMillis, hrTime);
             }
         }
-    }
-
-    private void initTimeMember() {
-        mTypes = new ArrayList<>();
-        mTimes = new ArrayList<>();
-
-        if (BuildConfig.DEBUG) {
-            mTypes.add(Calendar.SECOND);
-            mTimes.add(6);
-        }
-
-        mTypes.add(Calendar.MINUTE);
-        mTypes.add(Calendar.MINUTE);
-        mTypes.add(Calendar.MINUTE);
-        mTypes.add(Calendar.HOUR_OF_DAY);
-        mTypes.add(Calendar.MINUTE);
-        mTypes.add(Calendar.HOUR_OF_DAY);
-        mTypes.add(Calendar.HOUR_OF_DAY);
-        mTypes.add(Calendar.HOUR_OF_DAY);
-
-        mTimes.add(15);
-        mTimes.add(30);
-        mTimes.add(45);
-        mTimes.add(1);
-        mTimes.add(90);
-        mTimes.add(2);
-        mTimes.add(3);
-        mTimes.add(4);
-    }
-
-    /**
-     * Not sure
-     * 15 minutes
-     * 30 minutes
-     * 45 minutes
-     * 1  hour
-     * 90 minutes
-     * 2  hours
-     * 3  hours
-     * 4  hours
-     */
-    private List<String> getItems() {
-        List<String> items = new ArrayList<>();
-        items.add(getString(R.string.start_doing_time_not_sure));
-        final int size = mTypes.size();
-        for (int i = 0; i < size; i++) {
-            items.add(DateTimeUtil.getDateTimeStr(mTypes.get(i), mTimes.get(i), this));
-        }
-        return items;
     }
 }

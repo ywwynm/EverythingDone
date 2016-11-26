@@ -632,10 +632,12 @@
     <string name="auto_start_doing_title">提醒到來時自動開始做事</string>
     <string-array name="auto_start_doing_options">
         <item>關閉</item>
-        <item>僅對於提醒啟用</item>
-        <item>僅對於習慣啟用</item>
-        <item>對提醒與習慣啟用</item>
+        <item>僅對於「提醒」啟用</item>
+        <item>僅對於「習慣」啟用</item>
+        <item>對「提醒」與「習慣」啟用</item>
     </string-array>
+    <string name="auto_start_doing_time_reminder_title">自動做事時間 -「提醒」</string>
+    <string name="auto_start_doing_time_habit_title">自動做事時間 -「習慣」</string>
     <string name="auto_strict_mode_title">開始做事後，自動進入嚴格模式</string>
     <string name="auto_strict_mode_help_content">當您開始做事，並且開啟嚴格模式後，完事兒將會檢測您是否在用手機做其它的事情。如果您離開了正在做事的界面（僅允許您查看通知欄、鎖定屏幕）三次或者共五分鐘以上，將取消該記事正在做的狀態。</string>
 
