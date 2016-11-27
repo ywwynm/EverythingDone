@@ -527,6 +527,11 @@
     <string name="doing_toast_pass_data_error">無法開始做事，因為組件間數據傳遞時發生了錯誤</string>
     <string name="doing_toast_already_strict_mode">已處於嚴格模式</string>
 
+    <string name="doing_notification_toast_doing_this">一件事的提醒時刻剛剛過去，而您正在做這件事</string>
+    <string name="doing_notification_toast_doing_another">無法自動開始做這件事，因為您正在做另一件事</string>
+
+    <string name="auto_start_doing_start">自動開始做事</string>
+
 
     <!--ImageViewerActivity-->
     <string name="alert_delete_attachment">確定要删除該附件嗎？</string>

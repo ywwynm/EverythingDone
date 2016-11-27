@@ -199,7 +199,7 @@ public class SystemNotificationUtil {
 
     public static Notification createDoingNotification(
             Context context, Thing thing, @DoingService.State int doingState,
-            String leftTimeStr, long hrTime, boolean highlight) {
+            String leftTimeStr, long hrTime, int highlightStrategy) {
         @Thing.Type int thingType = thing.getType();
         final String contentText = getDoingNotificationContent(context, doingState, leftTimeStr);
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context)
@@ -207,9 +207,13 @@ public class SystemNotificationUtil {
                 .setSmallIcon(Thing.getTypeIconWhiteLarge(thingType))
                 .setContentTitle(getDoingNotificationTitle(context, thing, doingState))
                 .setContentText(contentText);
-        if (highlight) {
-            builder.setPriority(Notification.PRIORITY_MAX);
-            builder.setDefaults(Notification.DEFAULT_VIBRATE);
+        if (highlightStrategy != 0) {
+            if (highlightStrategy >= 1) {
+                builder.setDefaults(Notification.DEFAULT_VIBRATE);
+            }
+            if (highlightStrategy >= 2) {
+                builder.setPriority(Notification.PRIORITY_MAX);
+            }
         }
 
         long thingId = thing.getId();

@@ -87,7 +87,7 @@ public class HabitReceiver extends BroadcastReceiver {
                         e.printStackTrace();
                     }
                     Notification notification = SystemNotificationUtil.createDoingNotification(
-                            App.getApp(), thing, DoingService.STATE_FAILED_NEXT_ALARM, null, -1, true);
+                            App.getApp(), thing, DoingService.STATE_FAILED_NEXT_ALARM, null, -1, 2);
                     NotificationManagerCompat.from(App.getApp()).notify((int) habitId, notification);
                 }
             }).start();

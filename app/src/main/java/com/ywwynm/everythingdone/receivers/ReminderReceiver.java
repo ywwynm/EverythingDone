@@ -8,6 +8,7 @@ import android.content.SharedPreferences;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.util.Pair;
+import android.widget.Toast;
 
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
@@ -57,9 +58,9 @@ public class ReminderReceiver extends BroadcastReceiver {
         if (reminder.getState() == Reminder.UNDERWAY) {
 
             ThingDoingHelper helper = new ThingDoingHelper(context, thing);
+            boolean shouldAutoStartDoing = helper.shouldAutoStartDoing();
             if (thing.getState() == Thing.UNDERWAY
-                    && App.getDoingThingId() == -1
-                    && helper.shouldAutoStartDoing()) {
+                    && App.getDoingThingId() == -1 && shouldAutoStartDoing) {
                 updateReminderState(reminder, reminderDAO, context, thing, position,
                         typeBefore, Reminder.EXPIRED);
                 helper.startDoingAuto(-1, -1);
@@ -80,8 +81,15 @@ public class ReminderReceiver extends BroadcastReceiver {
             if (thing.getState() == Thing.UNDERWAY) {
                 updateReminderState(reminder, reminderDAO, context, thing, position,
                         typeBefore, App.getDoingThingId() == id ? Reminder.EXPIRED : Reminder.REMINDED);
-                if (App.getDoingThingId() != id) {
+                if (App.getDoingThingId() != id) { // doing another thing
+                    if (shouldAutoStartDoing) {
+                        Toast.makeText(context, R.string.doing_notification_toast_doing_another,
+                                Toast.LENGTH_LONG).show();
+                    }
                     notifyUser(context, id, position, thing);
+                } else { // doing this thing
+                    Toast.makeText(context, R.string.doing_notification_toast_doing_this,
+                            Toast.LENGTH_LONG).show();
                 }
             } else {
                 updateReminderState(reminder, reminderDAO, context, thing, position,

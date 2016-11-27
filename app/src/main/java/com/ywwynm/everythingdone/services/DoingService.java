@@ -26,8 +26,6 @@ import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil;
 
-import org.joda.time.DateTime;
-
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.GregorianCalendar;
@@ -116,6 +114,7 @@ public class DoingService extends Service {
 
     private boolean mCarelessWarned = false;
 
+    private boolean mStartHighlighted = false;
     private boolean mEndHighlighted = false;
 
     private Handler mHandler = new Handler(new Handler.Callback() {
@@ -145,7 +144,8 @@ public class DoingService extends Service {
 
                 Notification notification = SystemNotificationUtil.createDoingNotification(
                         DoingService.this, mThing, doingState, getLeftTimeStr(), sHrTime,
-                        shouldHighlight(careless));
+                        getHighlightStrategy(careless));
+                mStartHighlighted = true;
                 startForeground((int) mThing.getId(), notification);
 
                 Log.i(TAG, "mLeftTimeAfter[" + mLeftTime + "], "
@@ -225,14 +225,17 @@ public class DoingService extends Service {
         }
     }
 
-    private boolean shouldHighlight(boolean careless) {
+    private int getHighlightStrategy(boolean careless) {
+        if (mStartType == START_TYPE_AUTO && !mStartHighlighted) {
+            return 1;
+        }
         if (careless && !mCarelessWarned) {
-            return true;
+            return 2;
         }
         if (mLeftTime == 0 && !mEndHighlighted) {
-            return true;
+            return 2;
         }
-        return false;
+        return 0;
     }
 
     @Nullable

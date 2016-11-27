@@ -216,6 +216,7 @@ public class ThingDoingHelper {
     }
 
     public void startDoingAuto(long shouldEndTime, long hrTime) {
+        Toast.makeText(mContext, R.string.auto_start_doing_start, Toast.LENGTH_LONG).show();
         startDoing(getAutoDoingTime(shouldEndTime), DoingService.START_TYPE_AUTO, hrTime);
     }
 
