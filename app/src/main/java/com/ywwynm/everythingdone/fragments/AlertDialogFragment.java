@@ -30,6 +30,7 @@ public class AlertDialogFragment extends BaseDialogFragment {
     private String mContent;
 
     private String mConfirmText;
+    private String mCancelText;
 
     private boolean mShowCancel = true;
     private ConfirmListener mConfirmListener;
@@ -66,10 +67,9 @@ public class AlertDialogFragment extends BaseDialogFragment {
         }
 
         tvConfirmAsBt.setTextColor(mColors[2]);
-        if (mConfirmText == null) {
-            mConfirmText = activity.getString(R.string.confirm);
+        if (mConfirmText != null) {
+            tvConfirmAsBt.setText(mConfirmText);
         }
-        tvConfirmAsBt.setText(mConfirmText);
         tvConfirmAsBt.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -82,6 +82,9 @@ public class AlertDialogFragment extends BaseDialogFragment {
         });
 
         if (mShowCancel) {
+            if (mCancelText != null) {
+                tvCancelAsBt.setText(mCancelText);
+            }
             tvCancelAsBt.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -145,6 +148,10 @@ public class AlertDialogFragment extends BaseDialogFragment {
 
     public void setConfirmListener(ConfirmListener listener) {
         mConfirmListener = listener;
+    }
+
+    public void setCancelText(String cancelText) {
+        mCancelText = cancelText;
     }
 
     public void setCancelListener(CancelListener listener) {
