@@ -5,7 +5,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.util.Pair;
-import android.widget.Toast;
 
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
@@ -65,11 +64,6 @@ public class HabitNotificationActionReceiver extends BroadcastReceiver {
                 RemoteActionHelper.finishHabitOnce(context, thing, position, hrTime);
             }
         } else if (action.equals(Def.Communication.NOTIFICATION_ACTION_START_DOING)) {
-            if (App.getDoingThingId() != -1L) {
-                Toast.makeText(context,  R.string.start_doing_doing_another_thing,
-                        Toast.LENGTH_LONG).show();
-                return;
-            }
             Intent actionIntent;
             if (thing.isPrivate()) {
                 actionIntent = AuthenticationActivity.getOpenIntent(

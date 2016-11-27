@@ -13,8 +13,10 @@ import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.database.HabitDAO;
+import com.ywwynm.everythingdone.fragments.AlertDialogFragment;
 import com.ywwynm.everythingdone.fragments.ChooserDialogFragment;
 import com.ywwynm.everythingdone.helpers.ThingDoingHelper;
+import com.ywwynm.everythingdone.model.DoingRecord;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.services.DoingService;
@@ -74,7 +76,15 @@ public class StartDoingActivity extends AppCompatActivity {
         cdf.setConfirmListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                tryToStartDoingAlarmUser(cdf);
+                long doingId = App.getDoingThingId();
+                if (doingId == -1) {
+                    tryToStartDoingAlarmUser(cdf);
+                } else if (doingId != mThing.getId()) {
+                    // doing another thing
+                    tryToStopAnotherDoing(cdf);
+                } else {
+                    // TODO: 2016/11/27 is doing this thing impossible here?
+                }
             }
         });
         cdf.setOnDismissListener(new ChooserDialogFragment.OnDismissListener() {
@@ -85,6 +95,23 @@ public class StartDoingActivity extends AppCompatActivity {
             }
         });
         cdf.show(getFragmentManager(), ChooserDialogFragment.TAG);
+    }
+
+    private void tryToStopAnotherDoing(final ChooserDialogFragment cdf) {
+        AlertDialogFragment adf = new AlertDialogFragment();
+        adf.setTitleColor(mThing.getColor());
+        adf.setConfirmColor(mThing.getColor());
+        adf.setTitle(getString(R.string.start_doing_stop_another_title));
+        adf.setContent(getString(R.string.start_doing_stop_another_content));
+        adf.setConfirmText(getString(R.string.yes));
+        adf.setCancelText(getString(R.string.no));
+        adf.setConfirmListener(new AlertDialogFragment.ConfirmListener() {
+            @Override
+            public void onConfirm() {
+                tryToStartDoingAlarmUser(cdf);
+            }
+        });
+        adf.show(getFragmentManager(), AlertDialogFragment.TAG);
     }
 
     private void tryToStartDoingAlarmUser(final ChooserDialogFragment cdf) {
@@ -123,6 +150,12 @@ public class StartDoingActivity extends AppCompatActivity {
         }
         if (canStartDoing) {
             cdf.dismiss();
+            long doingId = App.getDoingThingId();
+            if (doingId != -1 && doingId != mThing.getId()) {
+                DoingService.sResetDoingIdInOnDestroy = false;
+                ThingDoingHelper.stopDoing(this, DoingRecord.STOP_REASON_CANCEL_USER);
+            }
+
             ThingDoingHelper helper = new ThingDoingHelper(this, mThing);
             long hrTime = getIntent().getLongExtra(Def.Communication.KEY_TIME, -1L);
             if (mStartType == DoingService.START_TYPE_ALARM) {

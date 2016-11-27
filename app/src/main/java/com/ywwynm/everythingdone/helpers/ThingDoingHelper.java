@@ -1,8 +1,8 @@
 package com.ywwynm.everythingdone.helpers;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
-import android.support.annotation.StringRes;
 import android.support.v4.util.Pair;
 import android.text.TextUtils;
 import android.widget.Toast;
@@ -14,6 +14,7 @@ import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.DoingActivity;
 import com.ywwynm.everythingdone.activities.StartDoingActivity;
 import com.ywwynm.everythingdone.database.HabitDAO;
+import com.ywwynm.everythingdone.model.DoingRecord;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.services.DoingService;
@@ -164,6 +165,12 @@ public class ThingDoingHelper {
         return pair.first.get(index) + "," + pair.second.get(index);
     }
 
+    public static void stopDoing(Context context, @DoingRecord.StopReason int stopReason) {
+        context.sendBroadcast(new Intent(DoingActivity.BROADCAST_ACTION_JUST_FINISH));
+        DoingService.sStopReason = stopReason;
+        context.stopService(new Intent(context, DoingService.class));
+    }
+
     public void startDoing(long timeInMillis, @DoingService.StartType int startType, long hrTime) {
         if (mThing == null) {
             return;
@@ -176,15 +183,6 @@ public class ThingDoingHelper {
     }
 
     public void tryToOpenStartDoingActivityUser() {
-        if (App.getDoingThingId() != -1) {
-            @StringRes int res = R.string.start_doing_doing_another_thing;
-            if (App.getDoingThingId() == mThing.getId()) {
-                res = R.string.start_doing_doing_this_thing;
-            }
-            Toast.makeText(mContext, res, Toast.LENGTH_LONG).show();
-            return;
-        }
-
         long hrTime = -1;
         if (mThing.getType() == Thing.HABIT) {
             Habit habit = HabitDAO.getInstance(mContext).getHabitById(mThing.getId());

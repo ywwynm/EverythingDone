@@ -10,6 +10,8 @@
 
 
     <!--——————————————————————General strings——————————————————————-->
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
     <string name="more">More</string>
     <string name="after">after</string>
     <string name="at">at</string>
@@ -514,6 +516,11 @@
     <string name="start_doing_time_long_t">Estimated time is so long that you cannot finish the Habit once in this cycle</string>
     <string name="start_doing_confirm">Start doing</string>
 
+    <string name="start_doing_notification_toast_doing_this">A thing\'s alarm has come just now but you have already been doing that thing</string>
+
+    <string name="start_doing_stop_another_title">You are doing another thing</string>
+    <string name="start_doing_stop_another_content">Would you want to stop doing that thing and start doing this thing?</string>
+
 
     <!--DoingService/Activity-->
     <string name="doing_currently_doing">Currently doing -</string>
@@ -534,10 +541,8 @@
     <string name="doing_toast_pass_data_error">Cannot start doing because something bad happened during passing data between app components</string>
     <string name="doing_toast_already_strict_mode">You are in strict mode</string>
 
-    <string name="doing_notification_toast_doing_this">A thing's alarm has come just now but you have already been doing that thing</string>
-    <string name="doing_notification_toast_doing_another">Try to auto start doing this thing but failed because you are doing another thing</string>
-
     <string name="auto_start_doing_start">Auto start doing</string>
+    <string name="auto_start_doing_notification_toast_doing_another">Try to auto start doing this thing but failed because you are doing another thing</string>
 
 
     <!--ImageViewerActivity-->

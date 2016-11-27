@@ -5,6 +5,8 @@
 
 
     <!--——————————————————————General strings——————————————————————-->
+    <string name="yes">是</string>
+    <string name="no">否</string>
     <string name="more">更多</string>
     <string name="after">後</string>
     <string name="at">於</string>
@@ -507,6 +509,11 @@
     <string name="start_doing_time_long_t">您預計的完成時間較長，無法在本週期內完成一次該習慣</string>
     <string name="start_doing_confirm">開始做事</string>
 
+    <string name="start_doing_notification_toast_doing_this">一件事的提醒時刻剛剛過去，而您正在做這件事</string>
+
+    <string name="start_doing_stop_another_title">您正在做另一件事</string>
+    <string name="start_doing_stop_another_content">是否停止做另一件事，並開始做這件事？</string>
+
 
     <!--DoingService/Activity-->
     <string name="doing_currently_doing">正在做 -</string>
@@ -527,10 +534,8 @@
     <string name="doing_toast_pass_data_error">無法開始做事，因為組件間數據傳遞時發生了錯誤</string>
     <string name="doing_toast_already_strict_mode">已處於嚴格模式</string>
 
-    <string name="doing_notification_toast_doing_this">一件事的提醒時刻剛剛過去，而您正在做這件事</string>
-    <string name="doing_notification_toast_doing_another">無法自動開始做這件事，因為您正在做另一件事</string>
-
     <string name="auto_start_doing_start">自動開始做事</string>
+    <string name="auto_start_doing_notification_toast_doing_another">無法自動開始做這件事，因為您正在做另一件事</string>
 
 
     <!--ImageViewerActivity-->

@@ -83,12 +83,12 @@ public class ReminderReceiver extends BroadcastReceiver {
                         typeBefore, App.getDoingThingId() == id ? Reminder.EXPIRED : Reminder.REMINDED);
                 if (App.getDoingThingId() != id) { // doing another thing
                     if (shouldAutoStartDoing) {
-                        Toast.makeText(context, R.string.doing_notification_toast_doing_another,
+                        Toast.makeText(context, R.string.auto_start_doing_notification_toast_doing_another,
                                 Toast.LENGTH_LONG).show();
                     }
                     notifyUser(context, id, position, thing);
                 } else { // doing this thing
-                    Toast.makeText(context, R.string.doing_notification_toast_doing_this,
+                    Toast.makeText(context, R.string.start_doing_notification_toast_doing_this,
                             Toast.LENGTH_LONG).show();
                 }
             } else {

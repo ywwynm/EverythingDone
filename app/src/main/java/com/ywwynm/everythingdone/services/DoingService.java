@@ -50,6 +50,8 @@ public class DoingService extends Service {
 
     public static boolean sSendBroadcastToUpdateMainUi = true;
 
+    public static boolean sResetDoingIdInOnDestroy = true;
+
     public static final String KEY_START_TIME     = "start_time";
     public static final String KEY_TIME_IN_MILLIS = "time_in_millis";
     public static final String KEY_START_TYPE     = "start_type";
@@ -255,7 +257,7 @@ public class DoingService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.i(TAG, "onStartCommand()");
+        Log.i(TAG, "onStartCommand() start");
         if (intent == null) {
             stopSelf(startId);
             return super.onStartCommand(null, flags, startId);
@@ -312,6 +314,9 @@ public class DoingService extends Service {
 
         sStopReason = DoingRecord.STOP_REASON_CANCEL_USER;
         sSendBroadcastToUpdateMainUi = true;
+        sResetDoingIdInOnDestroy = true;
+
+        Log.i(TAG, "onStartCommand() end");
 
         return super.onStartCommand(intent, flags, startId);
     }
@@ -319,9 +324,11 @@ public class DoingService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        Log.i(TAG, "onDestroy()");
+        Log.i(TAG, "onDestroy() start");
 
-        App.setDoingThingId(-1L);
+        if (sResetDoingIdInOnDestroy) {
+            App.setDoingThingId(-1L);
+        }
         mHandler.removeMessages(96);
         stopForeground(true);
 
@@ -345,6 +352,8 @@ public class DoingService extends Service {
         mThing = null;
         mHandler = null;
         mDoingListener = null;
+
+        Log.i(TAG, "onDestroy() end");
     }
 
     private void setDoingListener(DoingListener listener) {

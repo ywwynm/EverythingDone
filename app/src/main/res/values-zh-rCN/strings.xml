@@ -5,6 +5,8 @@
 
 
     <!--——————————————————————General strings——————————————————————-->
+    <string name="yes">是</string>
+    <string name="no">否</string>
     <string name="more">更多</string>
     <string name="after">后</string>
     <string name="at">于</string>
@@ -507,6 +509,11 @@
     <string name="start_doing_time_long_t">您预计的完成时间较长，无法在本周期内完成一次该习惯</string>
     <string name="start_doing_confirm">开始做事</string>
 
+    <string name="start_doing_notification_toast_doing_this">一件事的提醒时刻刚刚过去，而您正在做这件事</string>
+
+    <string name="start_doing_stop_another_title">您正在做另一件事</string>
+    <string name="start_doing_stop_another_content">是否停止做另一件事，并开始做这件事？</string>
+
 
     <!--DoingService/Activity-->
     <string name="doing_currently_doing">正在做 -</string>
@@ -527,10 +534,8 @@
     <string name="doing_toast_pass_data_error">无法开始做事，因为组件间数据传递时发生了错误</string>
     <string name="doing_toast_already_strict_mode">已处于严格模式</string>
 
-    <string name="doing_notification_toast_doing_this">一件事的提醒时刻刚刚过去，而您正在做这件事</string>
-    <string name="doing_notification_toast_doing_another">无法自动开始做这件事，因为您正在做另一件事</string>
-
     <string name="auto_start_doing_start">自动开始做事</string>
+    <string name="auto_start_doing_notification_toast_doing_another">无法自动开始做这件事，因为您正在做另一件事</string>
 
 
     <!--ImageViewerActivity-->
