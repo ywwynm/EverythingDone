@@ -298,9 +298,9 @@ public class DoingService extends Service {
         mShouldAutoStrictMode = helper.shouldAutoStrictMode();
 
         Log.i(TAG, "start counting down, mPredictDoingTime[" + mPredictDoingTime + "], "
-                + "mStartTime[" + DateTimeUtil.getGeneralDateTimeStr(this, sHrTime) + "], "
+                + "mStartTime[" + DateTimeUtil.getGeneralDateTimeStr(this, mStartTime) + "], "
                 + "mThing.type[" + mThing.getType() + "], "
-                + "mHrTime[" + DateTimeUtil.getGeneralDateTimeStr(this, sHrTime) + "], "
+                + "sHrTime[" + DateTimeUtil.getGeneralDateTimeStr(this, sHrTime) + "], "
                 + "mStartType[" + mStartType + "], "
                 + "mShouldAutoStrictMode[" + mShouldAutoStrictMode + "]");
 
