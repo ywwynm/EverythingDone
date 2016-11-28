@@ -1070,8 +1070,11 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 } else return Reminder.getType(rhParams.getReminderTime(), System.currentTimeMillis());
             }
         } else {
-            int typeBefore = mThing.getType();
+            @Thing.Type int typeBefore = mThing.getType();
             if (typeBefore == Thing.REMINDER || typeBefore == Thing.GOAL) {
+                if (mReminder == null) {
+                    return typeBefore;
+                }
                 int reminderState = mReminder.getState();
                 if ((reminderState == Reminder.REMINDED || reminderState == Reminder.EXPIRED)
                         && mReminder.getNotifyTime() == time) {
@@ -2293,12 +2296,12 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
         long reminderTime = rhParams.getReminderTime();
 
-        int typeBefore = mThing.getType();
-        int typeAfter = getThingTypeAfter();
-        boolean isReminderBefore = Thing.isReminderType(typeBefore);
-        boolean isReminderAfter  = Thing.isReminderType(typeAfter);
-        boolean isHabitBefore    = typeBefore == Thing.HABIT;
-        boolean isHabitAfter     = typeAfter  == Thing.HABIT;
+        @Thing.Type int typeBefore = mThing.getType();
+        @Thing.Type int typeAfter  = getThingTypeAfter();
+        boolean isReminderBefore   = Thing.isReminderType(typeBefore);
+        boolean isReminderAfter    = Thing.isReminderType(typeAfter);
+        boolean isHabitBefore      = typeBefore == Thing.HABIT;
+        boolean isHabitAfter       = typeAfter  == Thing.HABIT;
 
         if (cbQuickRemind.isChecked() && rhParams.getHabitDetail() == null
                 && reminderTime <= System.currentTimeMillis()) {
