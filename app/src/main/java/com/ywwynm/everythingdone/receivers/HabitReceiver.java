@@ -14,12 +14,12 @@ import android.widget.Toast;
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
-import com.ywwynm.everythingdone.activities.DoingActivity;
 import com.ywwynm.everythingdone.activities.NoticeableNotificationActivity;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
 import com.ywwynm.everythingdone.helpers.RemoteActionHelper;
+import com.ywwynm.everythingdone.helpers.ThingDoingHelper;
 import com.ywwynm.everythingdone.managers.ThingManager;
 import com.ywwynm.everythingdone.model.DoingRecord;
 import com.ywwynm.everythingdone.model.Habit;
@@ -58,14 +58,11 @@ public class HabitReceiver extends BroadcastReceiver {
                 new Intent(NoticeableNotificationActivity.BROADCAST_ACTION_JUST_FINISH)
                         .putExtra(Def.Communication.KEY_ID, habitId));
 
-        if (App.getDoingThingId() == habitId && hrTime > DoingService.sHrTime) {
+        long curDoingId = App.getDoingThingId();
+        if (curDoingId == habitId && hrTime > DoingService.sHrTime) {
             // if user is doing this Habit for the last time, now he/she cannot do it any longer
             // since this time is coming
-            Toast.makeText(context, R.string.doing_failed_next_alarm,
-                    Toast.LENGTH_LONG).show();
-            context.sendBroadcast(new Intent(DoingActivity.BROADCAST_ACTION_JUST_FINISH));
-            DoingService.sStopReason = DoingRecord.STOP_REASON_CANCEL_NEXT_ALARM;
-            context.stopService(new Intent(context, DoingService.class));
+            ThingDoingHelper.stopDoing(context, DoingRecord.STOP_REASON_CANCEL_NEXT_ALARM);
         }
 
         Pair<Thing, Integer> pair = App.getThingAndPosition(context, habitId, -1);
@@ -75,7 +72,9 @@ public class HabitReceiver extends BroadcastReceiver {
             return;
         }
 
-        if (App.getDoingThingId() == habitId && hrTime > DoingService.sHrTime) {
+        if (curDoingId == habitId && hrTime > DoingService.sHrTime) {
+            Toast.makeText(context, R.string.doing_failed_next_alarm,
+                    Toast.LENGTH_LONG).show();
             // create this notification after 1600ms, otherwise it will be cancelled because of
             // stopping a service bound a foreground notification with same id
             new Thread(new Runnable() {
@@ -95,7 +94,9 @@ public class HabitReceiver extends BroadcastReceiver {
 
         int position = pair.second;
 
-        if (App.getDoingThingId() == habitId && hrTime <= DoingService.sHrTime) {
+        if (curDoingId == habitId && hrTime <= DoingService.sHrTime) {
+            Toast.makeText(context, R.string.start_doing_notification_toast_doing_this_habit,
+                    Toast.LENGTH_LONG).show();
             updateHabitRecordTimes(context, hrId);
             RemoteActionHelper.updateUiEverywhere(
                     context, thing, position, thing.getType(),
@@ -104,13 +105,19 @@ public class HabitReceiver extends BroadcastReceiver {
         }
 
         if (thing.getState() == Thing.UNDERWAY) {
+
+            ThingDoingHelper helper = new ThingDoingHelper(context, thing);
+            boolean shouldAutoStartDoing = helper.shouldAutoStartDoing();
+            if (curDoingId == -1 && shouldAutoStartDoing) {
+                updateHabitRecordTimesAndUi(context, hrId, thing, position);
+                helper.startDoingAuto(-1, -1);
+                return;
+            }
+
             List<Long> runningDetailActivities = App.getRunningDetailActivities();
             for (Long rThingId : runningDetailActivities) {
                 if (rThingId == habitId) {
-                    updateHabitRecordTimes(context, hrId);
-                    RemoteActionHelper.updateUiEverywhere(
-                            context, thing, position, thing.getType(),
-                            Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME);
+                    updateHabitRecordTimesAndUi(context, hrId, thing, position);
                     return;
                 }
             }
@@ -127,13 +134,31 @@ public class HabitReceiver extends BroadcastReceiver {
                 }
             }
 
-            updateHabitRecordTimes(context, hrId);
-            RemoteActionHelper.updateUiEverywhere(
-                    context, thing, position, thing.getType(),
-                    Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME);
+            updateHabitRecordTimesAndUi(context, hrId, thing, position);
 
+            // possible conditions when logic goes here(or):
+            // curDoingId == habitId && hrTime > DoingService.sHrTime
+            // curDoingId == -1 && !shouldAutoStartDoing
+            // curDoingId == another thing's id
+
+            if (shouldAutoStartDoing) {
+                if (curDoingId == habitId) {
+                    Toast.makeText(context, R.string.auto_start_doing_notification_toast_doing_this,
+                            Toast.LENGTH_LONG).show();
+                } else {
+                    Toast.makeText(context, R.string.auto_start_doing_notification_toast_doing_another,
+                            Toast.LENGTH_LONG).show();
+                }
+            }
             notifyUser(context, habitId, hrId, position, thing, habitReminder);
         }
+    }
+
+    private void updateHabitRecordTimesAndUi(Context context, long hrId, Thing thing, int position) {
+        updateHabitRecordTimes(context, hrId);
+        RemoteActionHelper.updateUiEverywhere(
+                context, thing, position, thing.getType(),
+                Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME);
     }
 
     private void updateHabitRecordTimes(Context context, long hrId) {

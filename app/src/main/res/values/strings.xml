@@ -517,6 +517,7 @@
     <string name="start_doing_confirm">Start doing</string>
 
     <string name="start_doing_notification_toast_doing_this">A thing\'s alarm has come just now but you have already been doing that thing</string>
+    <string name="start_doing_notification_toast_doing_this_habit">A Habit\'s alarm has come just now but you have already been doing for that time</string>
 
     <string name="start_doing_stop_another_title">You are doing another thing</string>
     <string name="start_doing_stop_another_content">Would you want to stop doing that thing and start doing this thing?</string>
@@ -543,6 +544,7 @@
 
     <string name="auto_start_doing_start">Auto start doing</string>
     <string name="auto_start_doing_notification_toast_doing_another">Try to auto start doing this thing but failed because you are doing another thing</string>
+    <string name="auto_start_doing_notification_toast_doing_this">Try to auto start doing Habit for this time but failed because you were doing it for last time just now</string>
 
 
     <!--ImageViewerActivity-->

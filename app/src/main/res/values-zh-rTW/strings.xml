@@ -510,6 +510,7 @@
     <string name="start_doing_confirm">開始做事</string>
 
     <string name="start_doing_notification_toast_doing_this">一件事的提醒時刻剛剛過去，而您正在做這件事</string>
+    <string name="start_doing_notification_toast_doing_this_habit">該習慣的一次提醒時刻剛剛過去，而您正在完成那一次</string>
 
     <string name="start_doing_stop_another_title">您正在做另一件事</string>
     <string name="start_doing_stop_another_content">是否停止做另一件事，並開始做這件事？</string>
@@ -536,6 +537,7 @@
 
     <string name="auto_start_doing_start">自動開始做事</string>
     <string name="auto_start_doing_notification_toast_doing_another">無法自動開始做這件事，因為您正在做另一件事</string>
+    <string name="auto_start_doing_notification_toast_doing_this">無法為這個習慣自動開始做這一次，因為您剛剛正在完成上一次</string>
 
 
     <!--ImageViewerActivity-->
