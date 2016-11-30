@@ -145,7 +145,7 @@
 
     <!--welcomes-->
     <string name="welcome_underway_title">歡迎使用完事兒</string>
-    <string name="welcome_underway_content">滑動以完成記事</string>
+    <string name="welcome_underway_content">左滑完成記事，右滑開始做事</string>
     <string name="welcome_note_content">隨便寫點什麼，完事兒幫您永遠記住</string>
     <string name="welcome_reminder_content">讓完事兒提醒您接下來的事情</string>
     <string name="welcome_habit_content">養成習慣，改正缺點</string>

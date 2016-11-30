@@ -145,7 +145,7 @@
 
     <!--welcomes-->
     <string name="welcome_underway_title">欢迎使用完事儿</string>
-    <string name="welcome_underway_content">滑动以完成记事</string>
+    <string name="welcome_underway_content">左滑完成记事，右滑开始做事</string>
     <string name="welcome_note_content">随便写点什么，完事儿帮您永远记住</string>
     <string name="welcome_reminder_content">让完事儿提醒您接下来的事情</string>
     <string name="welcome_habit_content">养成习惯，改正缺点</string>

@@ -150,7 +150,7 @@
 
     <!--welcomes-->
     <string name="welcome_underway_title">Welcome </string>
-    <string name="welcome_underway_content">Swipe to finish </string>
+    <string name="welcome_underway_content">Swipe left to finish, right to start doing</string>
     <string name="welcome_note_content">Write something and I will remember it forever</string>
     <string name="welcome_reminder_content">Let me remind you everything</string>
     <string name="welcome_habit_content">Develop habits and correct shortcomings </string>
