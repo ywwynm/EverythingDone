@@ -315,7 +315,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     private void initStaticVariables() {
         if (sANItems == null) {
             sANItems = new ArrayList<>();
-            sANItems.add(getString(R.string.auto_notify_off));
+            sANItems.add(getString(R.string.disable));
             for (int i = 0; i < AutoNotifyHelper.AUTO_NOTIFY_TIMES.length; i++) {
                 sANItems.add(DateTimeUtil.getDateTimeStr(
                         AutoNotifyHelper.AUTO_NOTIFY_TYPES[i],
@@ -541,7 +541,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         initStartDoingTitle();
 
         mASDPicked = mPreferences.getInt(Def.Meta.KEY_AUTO_START_DOING, 0);
-        String[] options = getResources().getStringArray(R.array.auto_start_doing_options);
+        String[] options = getResources().getStringArray(R.array.auto_start_doing_states);
         mTvASD.setText(options[mASDPicked]);
 
         enableOrDisableASDTimesUi();
@@ -602,7 +602,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         // auto notify
         int index = mPreferences.getInt(Def.Meta.KEY_AUTO_NOTIFY, 0);
         if (index == 0) {
-            mTvAN.setText(getString(R.string.auto_notify_off));
+            mTvAN.setText(getString(R.string.disabled));
         } else {
             mTvAN.setText(
                     DateTimeUtil.getDateTimeStr(
@@ -874,13 +874,13 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     private void showAutoStartDoingDialog() {
         final ChooserDialogFragment cdf = createChooserDialogForStartDoing();
         cdf.setTitle(getString(R.string.auto_start_doing_title));
-        final String[] options = getResources().getStringArray(R.array.auto_start_doing_options);
         cdf.setInitialIndex(mASDPicked);
         cdf.setConfirmListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 mASDPicked = cdf.getPickedIndex();
-                mTvASD.setText(options[mASDPicked]);
+                final String[] states = getResources().getStringArray(R.array.auto_start_doing_states);
+                mTvASD.setText(states[mASDPicked]);
                 enableOrDisableASDTimesUi();
             }
         });
@@ -890,13 +890,13 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     private void showAutoStrictModeDialog() {
         final ChooserDialogFragment cdf = createChooserDialogForStartDoing();
         cdf.setTitle(getString(R.string.auto_strict_mode_title));
-        final String[] options = getResources().getStringArray(R.array.auto_start_doing_options);
         cdf.setInitialIndex(mASMPicked);
         cdf.setConfirmListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                final String[] states = getResources().getStringArray(R.array.auto_start_doing_states);
                 mASMPicked = cdf.getPickedIndex();
-                mTvASM.setText(options[mASMPicked]);
+                mTvASM.setText(states[mASMPicked]);
             }
         });
         cdf.show(getFragmentManager(), ChooserDialogFragment.TAG);
@@ -1218,7 +1218,11 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             public void onClick(View v) {
                 int index = mCdfAN.getPickedIndex();
                 mCdfAN.setInitialIndex(index);
-                mTvAN.setText(sANItems.get(index));
+                if (index == 0) {
+                    mTvAN.setText(R.string.disabled);
+                } else {
+                    mTvAN.setText(sANItems.get(index));
+                }
                 mANPicked = index;
                 updateUiAutoNotifyRingtone(index != 0);
             }

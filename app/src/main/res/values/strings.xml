@@ -660,6 +660,12 @@
     <!--group start doing-->
     <string name="auto_start_doing_title">Start doing when alarm ring</string>
     <string-array name="auto_start_doing_options">
+        <item>Disable</item>
+        <item>Enable for Reminder</item>
+        <item>Enable for Habit</item>
+        <item>Enable for both</item>
+    </string-array>
+    <string-array name="auto_start_doing_states">
         <item>Disabled</item>
         <item>Enabled for Reminder</item>
         <item>Enabled for Habit</item>
@@ -677,7 +683,6 @@
     <!--automatic reminder-->
     <string name="auto_notify">Automatic Reminder</string>
     <string name="auto_notify_help_info">EverythingDone will automatically remind you after a new thing is created. If you didn\'t create a Record, EverythingDone will decide if automatic reminder should be set according to the thing\'s remind time.</string>
-    <string name="auto_notify_off">Disabled</string>
     <string name="auto_notify_set_time">Set Automatic Reminder Time</string>
     <string name="auto_notify_ringtone">Automatic Reminder\nRingtone</string>
 

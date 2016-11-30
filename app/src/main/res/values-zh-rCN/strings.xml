@@ -12,9 +12,9 @@
     <string name="at">于</string>
     <string name="congratulations">恭喜！</string>
     <string name="enable">启用</string>
-    <string name="disable">关闭</string>
+    <string name="disable">停用</string>
     <string name="enabled">已启用</string>
-    <string name="disabled">未启用</string>
+    <string name="disabled">已停用</string>
 
     <string-array name="time_type">
         <item>@string/minute</item>
@@ -653,10 +653,16 @@
     <!--group start doing-->
     <string name="auto_start_doing_title">提醒到来时自动开始做事</string>
     <string-array name="auto_start_doing_options">
-        <item>关闭</item>
+        <item>停用</item>
         <item>仅对于「提醒」启用</item>
         <item>仅对于「习惯」启用</item>
         <item>对「提醒」与「习惯」启用</item>
+    </string-array>
+    <string-array name="auto_start_doing_states">
+        <item>已停用</item>
+        <item>仅对于「提醒」已启用</item>
+        <item>仅对于「习惯」已启用</item>
+        <item>对「提醒」与「习惯」已启用</item>
     </string-array>
     <string name="auto_start_doing_time_reminder_title">自动做事时间 -「提醒」</string>
     <string name="auto_start_doing_time_habit_title">自动做事时间 -「习惯」</string>
@@ -670,7 +676,6 @@
     <!--automatic reminder-->
     <string name="auto_notify">自动提醒</string>
     <string name="auto_notify_help_info">设置一个时间，完事儿将会在您创建每件记事的相应时间后自动地提醒您。如果您创建的不是记录，完事儿将会根据其提醒时刻，智能地决定是否自动提醒。</string>
-    <string name="auto_notify_off">关闭</string>
     <string name="auto_notify_set_time">设置自动提醒时间</string>
     <string name="auto_notify_ringtone">自动提醒铃声</string>
 
