@@ -21,7 +21,7 @@ public final class Def {
         public static final String RESTORE_DONE_FILE_NAME   = "restore_done.dat";
         public static final String FEEDBACK_ERROR_FILE_NAME = "feedback_error.dat";
 
-        public static final int DATABASE_VERSION = 6;
+        public static final int DATABASE_VERSION = 7;
 
         public static final int ONGOING_NOTIFICATION_ID = Integer.MAX_VALUE;
 
@@ -153,6 +153,8 @@ public final class Def {
         public static final String COLUMN_START_TIME_DOING         = "start_time";
         public static final String COLUMN_END_TIME_DOING           = "end_time";
         public static final String COLUMN_STOP_REASON_DOING        = "stop_reason";
+        public static final String COLUMN_START_TYPE_DOING         = "start_type";
+        public static final String COLUMN_SHOULD_ASM_DOING         = "should_asm";
 
     }
 

@@ -3,6 +3,8 @@ package com.ywwynm.everythingdone.model;
 import android.database.Cursor;
 import android.support.annotation.IntDef;
 
+import com.ywwynm.everythingdone.services.DoingService;
+
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
@@ -37,14 +39,19 @@ public class DoingRecord {
     private long predictDoingTime;
     private long startTime;
     private long endTime;
-    private @DoingRecord.StopReason int stopReason;
+    private @StopReason int stopReason;
+
+    private @DoingService.StartType int startType;
+    private boolean shouldAutoStrictMode;
 
     public DoingRecord(long id,
                        long thingId, int thingType,
                        int add5Times,
                        int playedTimes, long totalPlayTime,
                        long predictDoingTime, long startTime, long endTime,
-                       int stopReason) {
+                       @StopReason int stopReason,
+                       @DoingService.StartType int startType,
+                       boolean shouldAutoStrictMode) {
         this.id = id;
         this.thingId = thingId;
         this.thingType = thingType;
@@ -55,6 +62,8 @@ public class DoingRecord {
         this.startTime = startTime;
         this.endTime = endTime;
         this.stopReason = stopReason;
+        this.startType = startType;
+        this.shouldAutoStrictMode = shouldAutoStrictMode;
     }
 
     public DoingRecord(Cursor cursor) {
@@ -67,7 +76,9 @@ public class DoingRecord {
                 cursor.getLong(6),
                 cursor.getLong(7),
                 cursor.getLong(8),
-                cursor.getInt(9));
+                cursor.getInt(9),
+                cursor.getInt(10),
+                cursor.getInt(11) != 0);
     }
 
     public long getId() {
@@ -142,11 +153,27 @@ public class DoingRecord {
         this.endTime = endTime;
     }
 
-    public int getStopReason() {
+    public @StopReason int getStopReason() {
         return stopReason;
     }
 
-    public void setStopReason(int stopReason) {
+    public void setStopReason(@StopReason int stopReason) {
         this.stopReason = stopReason;
+    }
+
+    public @DoingService.StartType int getStartType() {
+        return startType;
+    }
+
+    public void setStartType(@DoingService.StartType int startType) {
+        this.startType = startType;
+    }
+
+    public boolean shouldAutoStrictMode() {
+        return shouldAutoStrictMode;
+    }
+
+    public void setShouldAutoStrictMode(boolean shouldAutoStrictMode) {
+        this.shouldAutoStrictMode = shouldAutoStrictMode;
     }
 }

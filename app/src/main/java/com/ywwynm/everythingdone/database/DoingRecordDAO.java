@@ -46,6 +46,8 @@ public class DoingRecordDAO {
         values.put(Def.Database.COLUMN_START_TIME_DOING,         doingRecord.getStartTime());
         values.put(Def.Database.COLUMN_END_TIME_DOING,           doingRecord.getEndTime());
         values.put(Def.Database.COLUMN_STOP_REASON_DOING,        doingRecord.getStopReason());
+        values.put(Def.Database.COLUMN_START_TYPE_DOING,         doingRecord.getStartType());
+        values.put(Def.Database.COLUMN_SHOULD_ASM_DOING,         doingRecord.shouldAutoStrictMode() ? 1 : 0);
         return db.insert(Def.Database.TABLE_DOING_RECORDS, null, values) != -1;
     }
 

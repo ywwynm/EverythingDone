@@ -102,7 +102,9 @@ public class DBHelper extends SQLiteOpenHelper {
                 + Def.Database.COLUMN_PREDICT_DOING_TIME_DOING + " integer not null, "
                 + Def.Database.COLUMN_START_TIME_DOING         + " integer not null, "
                 + Def.Database.COLUMN_END_TIME_DOING           + " integer not null, "
-                + Def.Database.COLUMN_STOP_REASON_DOING        + " integer not null"
+                + Def.Database.COLUMN_STOP_REASON_DOING        + " integer not null, "
+                + Def.Database.COLUMN_START_TYPE_DOING         + " integer not null default 0, "
+                + Def.Database.COLUMN_SHOULD_ASM_DOING         + " integer not null default 0"
             + ")";
 
     private static final String SQL_INSERT_HEADER = "insert into "
@@ -122,6 +124,14 @@ public class DBHelper extends SQLiteOpenHelper {
     private static final String SQL_ADD_COLUMN_STYLE_APP_WIDGET = "alter table "
             + Def.Database.TABLE_APP_WIDGET
             + " add column " + Def.Database.COLUMN_STYLE_APP_WIDGET + " integer not null default 0";
+
+    private static final String SQL_ADD_COLUMN_START_TYPE_DOING_RECORD = "alter table "
+            + Def.Database.TABLE_DOING_RECORDS
+            + " add column " + Def.Database.COLUMN_START_TYPE_DOING + " integer not null default 0";
+
+    private static final String SQL_ADD_COLUMN_SHOULD_ASM_DOING_RECORD = "alter table "
+            + Def.Database.TABLE_DOING_RECORDS
+            + " add column " + Def.Database.COLUMN_SHOULD_ASM_DOING + " integer not null default 0";
 
     private static final String SQL_DROP_TABLE_THINGS = "drop table if exists "
             + Def.Database.TABLE_THINGS;
@@ -210,8 +220,11 @@ public class DBHelper extends SQLiteOpenHelper {
             db.execSQL(SQL_ADD_COLUMN_STYLE_APP_WIDGET);
         } else if (oldVersion == 5) {
             db.execSQL(SQL_CREATE_TABLE_DOING_RECORDS);
+        } else if (oldVersion == 6) {
+            db.execSQL(SQL_ADD_COLUMN_START_TYPE_DOING_RECORD);
+            db.execSQL(SQL_ADD_COLUMN_SHOULD_ASM_DOING_RECORD);
         }
-        // released version should be 1, 3, 5, 6.
+        // released version should be 1, 3, 5, 6, 7.
     }
 
     @Override

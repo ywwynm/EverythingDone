@@ -339,7 +339,8 @@ public class DoingService extends Service {
         if (mThing != null) {
             DoingRecord doingRecord = new DoingRecord(-1, mThing.getId(), mThing.getType(),
                     mTotalAdd5MinTimes, mPlayedTimes, mTotalPlayedTime,
-                    mPredictDoingTime, mStartTime, mEndTime, sStopReason);
+                    mPredictDoingTime, mStartTime, mEndTime, sStopReason,
+                    mStartType, mShouldAutoStrictMode);
             DoingRecordDAO.getInstance(this).insert(doingRecord);
 
             if (sSendBroadcastToUpdateMainUi) {
