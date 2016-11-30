@@ -989,4 +989,7 @@
     <string name="from_1_2_7_to_1_3_0_title">Todo? Do!</string>
     <string name="from_1_2_7_to_1_3_0_content">現在，當記事的提醒時刻到來時，將會有更突出的通知。而你如果已經準備好了，可以在通知出現後點擊開始做事，完事兒將會協助你認真地完成它。</string>
 
+    <string name="from_1_3_0_to_1_3_1_title">主動/自動開始做事</string>
+    <string name="from_1_3_0_to_1_3_1_content">現在，在主界面右滑記事卡片，即可開始做事，隨時隨心。\n\n此外，我們還增加了提醒到來時，自動開始做事的功能，配合同樣新增的自動進入嚴格模式，相信完事兒能夠幫你防範拖延症。</string>
+
 </resources>

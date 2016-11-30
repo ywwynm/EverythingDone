@@ -66,6 +66,7 @@ public final class Def {
         public static final String KEY_1_0_4_TO_1_0_5          = "1.0.4_to_1.0.5";
         public static final String KEY_1_1_4_TO_1_1_5          = "1.1.4_to_1.1.5";
         public static final String KEY_1_2_7_TO_1_3_0          = "1.2.7_to_1.3.0";
+        public static final String KEY_1_3_0_TO_1_3_1          = "1.3.0_to_1.3.1";
 
         public static final String KEY_NOTIFY_KEEP_ALARMS      = "notify_keep_alarms";
 

@@ -1000,4 +1000,7 @@
     <string name="from_1_2_7_to_1_3_0_title">Todo? Do!</string>
     <string name="from_1_2_7_to_1_3_0_content">There will be more noticeable notification for things\' alarms. If you are ready, you can start doing the thing directly after the notification, EverythingDone will help you finish it carefully.</string>
 
+    <string name="from_1_3_0_to_1_3_1_title">Start doing something at any time, or automatically</string>
+    <string name="from_1_3_0_to_1_3_1_content">Now, you can swipe a thing card to right to start doing that thing at any time.\n\nBesides, now you can also enable auto starting doing the thing when its reminder is coming, with another new function, auto entering strict mode, EverythingDone can help you stop saying \"do it later\" any more.</string>
+
 </resources>

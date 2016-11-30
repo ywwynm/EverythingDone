@@ -19,6 +19,7 @@ import static com.ywwynm.everythingdone.Def.Meta.KEY_1_0_3_TO_1_0_4;
 import static com.ywwynm.everythingdone.Def.Meta.KEY_1_0_4_TO_1_0_5;
 import static com.ywwynm.everythingdone.Def.Meta.KEY_1_1_4_TO_1_1_5;
 import static com.ywwynm.everythingdone.Def.Meta.KEY_1_2_7_TO_1_3_0;
+import static com.ywwynm.everythingdone.Def.Meta.KEY_1_3_0_TO_1_3_1;
 import static com.ywwynm.everythingdone.Def.Meta.META_DATA_NAME;
 
 /**
@@ -59,7 +60,7 @@ public class AppUpdateHelper {
         SharedPreferences sp = mContext.getSharedPreferences(
                 META_DATA_NAME, Context.MODE_PRIVATE);
 
-        showFrom1_2_7To1_3_0(sp, activity);
+        showFrom1_3_0To1_3_1(sp, activity);
     }
 
     private void updateFrom1_0_3To1_0_4(SharedPreferences sp) {
@@ -114,6 +115,20 @@ public class AppUpdateHelper {
         return true;
     }
 
+    private boolean showFrom1_3_0To1_3_1(SharedPreferences sp, Activity activity) {
+        boolean updated = sp.getBoolean(KEY_1_3_0_TO_1_3_1, false);
+        if (updated) {
+            return false;
+        }
+
+        AlertDialogFragment ltdf = createDialog(
+                R.string.from_1_3_0_to_1_3_1_title, R.string.from_1_3_0_to_1_3_1_content);
+        ltdf.show(activity.getFragmentManager(), AlertDialogFragment.TAG);
+
+        sp.edit().putBoolean(KEY_1_3_0_TO_1_3_1, true).apply();
+        return true;
+    }
+
     public static boolean updateFrom1_1_4To1_1_5(Activity activity, int color) {
         SharedPreferences sp = activity.getSharedPreferences(
                 META_DATA_NAME, Context.MODE_PRIVATE);
@@ -143,6 +158,8 @@ public class AppUpdateHelper {
         adf.setShowCancel(false);
         adf.setTitle(mContext.getString(titleRes));
         adf.setContent(mContext.getString(contentRes));
+        adf.setConfirmText(mContext.getString(R.string.act_get_it));
+
         return adf;
     }
 

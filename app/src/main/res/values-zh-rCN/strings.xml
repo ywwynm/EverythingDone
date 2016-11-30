@@ -989,4 +989,7 @@
     <string name="from_1_2_7_to_1_3_0_title">Todo? Do!</string>
     <string name="from_1_2_7_to_1_3_0_content">现在，当记事的提醒时刻到来时，将会有更突出的通知。而你如果已经准备好了，可以在通知出现后点击开始做事，完事儿将会协助你认真地完成它。</string>
 
+    <string name="from_1_3_0_to_1_3_1_title">主动/自动开始做事</string>
+    <string name="from_1_3_0_to_1_3_1_content">现在，在主界面右滑记事卡片，即可开始做事，随时随心。\n\n此外，我们还增加了提醒到来时，自动开始做事的功能，配合同样新增的自动进入严格模式，相信完事儿能够帮你防范拖延症。</string>
+
 </resources>
