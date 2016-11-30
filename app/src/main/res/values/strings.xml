@@ -16,6 +16,10 @@
     <string name="after">after</string>
     <string name="at">at</string>
     <string name="congratulations">Congratulations</string>
+    <string name="enable">Enable</string>
+    <string name="disable">Disable</string>
+    <string name="enabled">Enabled</string>
+    <string name="disabled">Disabled</string>
 
     <string-array name="time_type">
         <item>@string/minute</item>
@@ -455,6 +459,11 @@
 
     <string name="alert_shortcut_no_upcoming">No upcoming thing</string>
     <string name="alert_shortcut_no_sticky">No sticky thing</string>
+
+    <!--ThingDoingDialogFragment-->
+    <string name="thing_doing_dialog_title">Change auto start doing settings for this thing</string>
+    <string name="auto_start_doing_time_title">Auto start doing time</string>
+    <string name="auto_start_doing_follow_general">Follow general settings</string>
 
     <!--AudioRecordDialogFragment-->
     <string name="input_file_name">Please enter file name</string>

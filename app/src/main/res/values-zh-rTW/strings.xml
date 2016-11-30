@@ -11,6 +11,10 @@
     <string name="after">後</string>
     <string name="at">於</string>
     <string name="congratulations">恭喜！</string>
+    <string name="enable">啟用</string>
+    <string name="disable">關閉</string>
+    <string name="enabled">已啟用</string>
+    <string name="disabled">未啟用</string>
 
     <string-array name="time_type">
         <item>@string/minute</item>
@@ -451,6 +455,11 @@
 
     <string name="alert_shortcut_no_upcoming">暫無將要提醒的記事</string>
     <string name="alert_shortcut_no_sticky">沒有置頂的記事</string>
+
+    <!--ThingDoingDialogFragment-->
+    <string name="thing_doing_dialog_title">為該記事更改自動開始做事的設置</string>
+    <string name="auto_start_doing_time_title">自動做事時間</string>
+    <string name="auto_start_doing_follow_general">跟隨通用設置</string>
 
     <!--AudioRecordDialogFragment-->
     <string name="input_file_name">請輸入文件名</string>

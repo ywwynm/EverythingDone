@@ -11,6 +11,10 @@
     <string name="after">后</string>
     <string name="at">于</string>
     <string name="congratulations">恭喜！</string>
+    <string name="enable">启用</string>
+    <string name="disable">关闭</string>
+    <string name="enabled">已启用</string>
+    <string name="disabled">未启用</string>
 
     <string-array name="time_type">
         <item>@string/minute</item>
@@ -451,6 +455,11 @@
 
     <string name="alert_shortcut_no_upcoming">暂无将要提醒的记事</string>
     <string name="alert_shortcut_no_sticky">没有置顶的记事</string>
+
+    <!--ThingDoingDialogFragment-->
+    <string name="thing_doing_dialog_title">为该记事更改自动开始做事的设置</string>
+    <string name="auto_start_doing_time_title">自动做事时间</string>
+    <string name="auto_start_doing_follow_general">跟随通用设置</string>
 
     <!--AudioRecordDialogFragment-->
     <string name="input_file_name">请输入文件名</string>

@@ -88,7 +88,7 @@ public class ThingDoingHelper {
 
         if (addFollowGeneral) {
             types.add(-2);
-            types.add(-2);
+            times.add(-2);
         }
 
         types.add(-1);
@@ -215,7 +215,7 @@ public class ThingDoingHelper {
 
     public void startDoingAuto(long shouldEndTime, long hrTime) {
         Toast.makeText(mContext, R.string.auto_start_doing_start, Toast.LENGTH_LONG).show();
-        startDoing(getAutoDoingTime(shouldEndTime), DoingService.START_TYPE_AUTO, hrTime);
+        startDoing(getAutoStartDoingTime(shouldEndTime), DoingService.START_TYPE_AUTO, hrTime);
     }
 
     public void startDoingUser(long timeInMillis, long hrTime) {
@@ -233,6 +233,11 @@ public class ThingDoingHelper {
     public int getAutoStartDoingStrategy() {
         String key = mThing.getId() + "_" + KEY_INDEX_AUTO_START_DOING;
         return mSpStartDoing.getInt(key, AUTO_START_DOING_STRATEGY_FOLLOW_GENERAL);
+    }
+
+    public void setAutoStartDoingStrategy(int strategy) {
+        String key = mThing.getId() + "_" + KEY_INDEX_AUTO_START_DOING;
+        mSpStartDoing.edit().putInt(key, strategy).apply();
     }
 
     /**
@@ -270,6 +275,17 @@ public class ThingDoingHelper {
         }
     }
 
+    public String getAutoStartDoingDesc() {
+        int strategy = getAutoStartDoingStrategy();
+        if (strategy == AUTO_START_DOING_STRATEGY_FOLLOW_GENERAL) {
+            return getAutoStartDoingFollowGeneralStr();
+        } else if (strategy == AUTO_START_DOING_STRATEGY_ENABLED) {
+            return mContext.getString(R.string.enabled);
+        } else {
+            return mContext.getString(R.string.disabled);
+        }
+    }
+
 
     /**
      * Get auto strict mode strategy for the thing with given id
@@ -284,6 +300,10 @@ public class ThingDoingHelper {
         return mSpStartDoing.getInt(key, AUTO_STRICT_MODE_STRATEGY_FOLLOW_GENERAL);
     }
 
+    public void setAutoStrictModeStrategy(int strategy) {
+        String key = mThing.getId() + "_" + KEY_INDEX_AUTO_STRICT_MODE;
+        mSpStartDoing.edit().putInt(key, strategy).apply();
+    }
 
     /**
      * Judge if strict mode should be turned on automatically when user starts doing the thing.
@@ -320,7 +340,45 @@ public class ThingDoingHelper {
         }
     }
 
-    public long getAutoDoingTime(long shouldEndTime) {
+    public String getAutoStrictModeDesc() {
+        int strategy = getAutoStrictModeStrategy();
+        if (strategy == AUTO_STRICT_MODE_STRATEGY_FOLLOW_GENERAL) {
+            return getAutoStrictModeFollowGeneralStr();
+        } else if (strategy == AUTO_STRICT_MODE_STRATEGY_ENABLED) {
+            return mContext.getString(R.string.enabled);
+        } else {
+            return mContext.getString(R.string.disabled);
+        }
+    }
+
+
+    public String getAutoDoingTimeStrategy() {
+        String key = mThing.getId() + "_" + KEY_INDEX_AUTO_START_DOING_TIME;
+        return mSpStartDoing.getString(key, START_DOING_TIME_FOLLOW_GENERAL_PICKED);
+    }
+
+    public void setAutoDoingTimeStrategy(int index) {
+        String key = mThing.getId() + "_" + KEY_INDEX_AUTO_START_DOING_TIME;
+        Pair<List<Integer>, List<Integer>> pair = getStartDoingTypeTimes(true);
+        String strategy = pair.first.get(index) + "," + pair.second.get(index);
+        mSpStartDoing.edit().putString(key, strategy).apply();
+    }
+
+    public String getAutoDoingTimeDesc() {
+        String doingTimeStr = getAutoDoingTimeStrategy();
+        if (START_DOING_TIME_FOLLOW_GENERAL_PICKED.equals(doingTimeStr)) {
+            return getAutoStartDoingTimeFollowGeneralStr();
+        } else if (START_DOING_TIME_NOT_SURE_PICKED.equals(doingTimeStr)) {
+            return mContext.getString(R.string.start_doing_time_not_sure);
+        } else {
+            String[] arr = doingTimeStr.split(",");
+            int type = Integer.parseInt(arr[0]);
+            int time = Integer.parseInt(arr[1]);
+            return DateTimeUtil.getDateTimeStr(type, time, mContext);
+        }
+    }
+
+    public long getAutoStartDoingTime(long shouldEndTime) {
         String key = mThing.getId() + "_" + KEY_INDEX_AUTO_START_DOING_TIME;
         String doingTimeStr = mSpStartDoing.getString(
                 key, START_DOING_TIME_FOLLOW_GENERAL_PICKED);
@@ -352,6 +410,79 @@ public class ThingDoingHelper {
         }
 
         return doingTime;
+    }
+
+    public String getAutoStartDoingFollowGeneralStr() {
+        String part1 = mContext.getString(R.string.auto_start_doing_follow_general);
+        String part2;
+        String enabled = mContext.getString(R.string.enabled);
+        String disabled = mContext.getString(R.string.disabled);
+        int sysStrategy = mSpSettings.getInt(Def.Meta.KEY_AUTO_START_DOING,
+                SYS_AUTO_START_DOING_STRATEGY_DISABLED);
+        if (sysStrategy == SYS_AUTO_START_DOING_STRATEGY_DISABLED) {
+            part2 = disabled;
+        } else if (sysStrategy == SYS_AUTO_START_DOING_STRATEGY_ALL) {
+            part2 = enabled;
+        } else {
+            if (mThing == null) {
+                part2 = disabled;
+            } else {
+                @Thing.Type int thingType = mThing.getType();
+                if (thingType == Thing.REMINDER && sysStrategy == SYS_AUTO_START_DOING_STRATEGY_REMINDER) {
+                    part2 = enabled;
+                } else if (thingType == Thing.HABIT && sysStrategy == SYS_AUTO_START_DOING_STRATEGY_HABIT) {
+                    part2 = enabled;
+                } else part2 = disabled;
+            }
+        }
+        return part1 + " (" + part2 + ")";
+    }
+
+    public String getAutoStartDoingTimeFollowGeneralStr() {
+        String part1 = mContext.getString(R.string.auto_start_doing_follow_general);
+        String part2;
+        String key;
+        if (mThing.getType() == Thing.REMINDER) {
+            key = Def.Meta.KEY_ASD_TIME_REMINDER;
+        } else {
+            key = Def.Meta.KEY_ASD_TIME_HABIT;
+        }
+        String doingTimeStr = mSpSettings.getString(key, START_DOING_TIME_NOT_SURE_PICKED);
+        if (START_DOING_TIME_NOT_SURE_PICKED.equals(doingTimeStr)) {
+            part2 = mContext.getString(R.string.start_doing_time_not_sure);
+        } else {
+            String[] arr = doingTimeStr.split(",");
+            int type = Integer.parseInt(arr[0]);
+            int time = Integer.parseInt(arr[1]);
+            part2 = DateTimeUtil.getDateTimeStr(type, time, mContext);
+        }
+        return part1 + " (" + part2 + ")";
+    }
+
+    public String getAutoStrictModeFollowGeneralStr() {
+        String part1 = mContext.getString(R.string.auto_start_doing_follow_general);
+        String part2;
+        String enabled = mContext.getString(R.string.enabled);
+        String disabled = mContext.getString(R.string.disabled);
+        int sysStrategy = mSpSettings.getInt(Def.Meta.KEY_AUTO_STRICT_MODE,
+                SYS_AUTO_STRICT_MODE_STRATEGY_DISABLED);
+        if (sysStrategy == SYS_AUTO_STRICT_MODE_STRATEGY_DISABLED) {
+            part2 = disabled;
+        } else if (sysStrategy == SYS_AUTO_STRICT_MODE_STRATEGY_ALL) {
+            part2 = enabled;
+        } else {
+            if (mThing == null) {
+                part2 = disabled;
+            } else {
+                @Thing.Type int thingType = mThing.getType();
+                if (thingType == Thing.REMINDER && sysStrategy == SYS_AUTO_STRICT_MODE_STRATEGY_REMINDER) {
+                    part2 = enabled;
+                } else if (thingType == Thing.HABIT && sysStrategy == SYS_AUTO_STRICT_MODE_STRATEGY_HABIT) {
+                    part2 = enabled;
+                } else part2 = disabled;
+            }
+        }
+        return part1 + " (" + part2 + ")";
     }
 
 }
