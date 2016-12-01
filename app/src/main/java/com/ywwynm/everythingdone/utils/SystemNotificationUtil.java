@@ -209,7 +209,7 @@ public class SystemNotificationUtil {
                 .setContentText(contentText);
         if (highlightStrategy != 0) {
             if (highlightStrategy >= 1) {
-                builder.setDefaults(Notification.DEFAULT_VIBRATE);
+                builder.setDefaults(Notification.DEFAULT_ALL);
             }
             if (highlightStrategy >= 2) {
                 builder.setPriority(Notification.PRIORITY_MAX);
@@ -233,8 +233,7 @@ public class SystemNotificationUtil {
             Intent cancelIntent = new Intent(context, DoingNotificationActionReceiver.class);
             cancelIntent.setAction(DoingNotificationActionReceiver.ACTION_USER_CANCEL);
             cancelIntent.putExtra(Def.Communication.KEY_ID, thingId);
-            builder.addAction(R.drawable.act_cancel_white,
-                    StringUtil.lowerFirst(context.getString(R.string.cancel)),
+            builder.addAction(R.drawable.act_cancel_white, context.getString(R.string.cancel),
                     PendingIntent.getBroadcast(
                             context, (int) thingId, cancelIntent, PendingIntent.FLAG_UPDATE_CURRENT));
         } else {
