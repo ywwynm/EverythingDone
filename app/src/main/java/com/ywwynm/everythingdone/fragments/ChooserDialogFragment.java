@@ -93,6 +93,12 @@ public class ChooserDialogFragment extends BaseDialogFragment {
         if (mOnDismissListener != null) {
             mOnDismissListener.onDismiss();
         }
+
+        mConfirmListener = null;
+        mOnDismissListener = null;
+        mMoreListener = null;
+        mOnItemClickListener = null;
+
         super.onDismiss(dialog);
     }
 
