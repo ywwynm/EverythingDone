@@ -183,7 +183,7 @@
                     android:layout_marginTop="28dp"
                     android:layout_gravity="center_horizontal"
                     android:textColor="@color/white_54p"
-                    android:text="@string/welcome_underway_content"
+                    android:text="@string/doing_swipe_to_finish"
                     android:alpha="0"/>
 
             </LinearLayout>

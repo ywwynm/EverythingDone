@@ -533,6 +533,7 @@
 
 
     <!--DoingService/Activity-->
+    <string name="doing_swipe_to_finish">Swipe to finish</string>
     <string name="doing_currently_doing">Currently doing -</string>
     <string name="doing_left_time">Time left:</string>
     <string name="doing_failed_careless">You didn\'t do this thing carefully so EverythingDone cancelled doing state</string>
