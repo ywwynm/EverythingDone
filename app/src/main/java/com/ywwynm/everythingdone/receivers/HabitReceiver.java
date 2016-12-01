@@ -114,7 +114,7 @@ public class HabitReceiver extends BroadcastReceiver {
                 if (habit == null) {
                     helper.startDoingAuto(-1, hrTime);
                 } else {
-                    helper.startDoingAuto(habit.getDoingEndLimitTime(), hrTime);
+                    helper.startDoingAuto(habit.getMinHabitReminderTime(), hrTime);
                 }
                 return;
             }
