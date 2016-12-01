@@ -503,7 +503,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
             case R.id.fab_cancel_doing: {
                 AlertDialogFragment adf = new AlertDialogFragment();
                 adf.setConfirmColor(mThing.getColor());
-                adf.setContent(getString(R.string.doing_alert_cancel_doing_content));
+                adf.setContent(getString(R.string.doing_alert_stop_doing_content));
                 adf.setConfirmListener(new AlertDialogFragment.ConfirmListener() {
                     @Override
                     public void onConfirm() {

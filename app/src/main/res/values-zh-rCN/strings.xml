@@ -538,7 +538,7 @@
     <string name="doing_alert_first_strict_mode_content">您现在已处于严格模式，完事儿将会检测您是否在用手机做其它的事情。如果您离开了本界面（仅允许您查看通知栏、锁定屏幕）三次或者共五分钟以上，将取消该记事正在做的状态。</string>
     <string name="doing_alert_close_strict_twice_title">无法再次关闭严格模式</string>
     <string name="doing_alert_close_strict_twice_content">完事儿只允许您关闭一次严格模式。在一段时间内只做一件事是一个很好的习惯，请坚持下去！</string>
-    <string name="doing_alert_cancel_doing_content">确定要停止做这件事吗？</string>
+    <string name="doing_alert_stop_doing_content">确定要停止做这件事吗？</string>
     <string name="doing_toast_add5_time_long_alarm">如果延迟 5 分钟，您有可能无法在该习惯的下一个提醒到来前完成这一次</string>
     <string name="doing_toast_add5_time_long_t">如果延迟 5 分钟，您有可能无法在本周期内完成一次该习惯</string>
     <string name="doing_toast_add5_above99">我无法触及那片未来</string>

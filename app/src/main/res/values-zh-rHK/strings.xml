@@ -538,7 +538,7 @@
     <string name="doing_alert_first_strict_mode_content">您現在已處於嚴格模式，完事兒將會檢測您是否在用手機做其它的事情。如果您離開了本界面（僅允許您查看通知欄、鎖定屏幕）三次或者共五分鐘以上，將取消該記事正在做的狀態。</string>
     <string name="doing_alert_close_strict_twice_title">無法再次關閉嚴格模式</string>
     <string name="doing_alert_close_strict_twice_content">完事兒只允許您關閉一次嚴格模式。在一段時間內只做一件事是一個很好的習慣，請堅持下去！</string>
-    <string name="doing_alert_cancel_doing_content">確定要停止做這件事嗎？</string>
+    <string name="doing_alert_stop_doing_content">確定要停止做這件事嗎？</string>
     <string name="doing_toast_add5_time_long_alarm">如果延遲 5 分鐘，您有可能無法在該習慣的下一個提醒到來前完成這一次</string>
     <string name="doing_toast_add5_time_long_t">如果延遲 5 分鐘，您有可能無法在本週期內完成一次該習慣</string>
     <string name="doing_toast_add5_above99">我無法觸及那片未來</string>

@@ -545,7 +545,7 @@
     <string name="doing_alert_first_strict_mode_content">You are in strict mode now. EverythingDone will detect if you are using your phone to do other stuff. If you left this page(only checking notifications and locking screen are allowed) for 3 times or totally for more than 5 minutes, the countdown will stop and the thing will remain unfinished state.</string>
     <string name="doing_alert_close_strict_twice_title">Cannot turn Strict Mode off again</string>
     <string name="doing_alert_close_strict_twice_content">You are only allowed to turn Strict Mode off once. It\'s a good habit to do one thing at one time carefully so please keep going.</string>
-    <string name="doing_alert_cancel_doing_content">Are you sure to cancel doing this thing?</string>
+    <string name="doing_alert_stop_doing_content">Are you sure to stop doing this thing?</string>
     <string name="doing_toast_add5_time_long_alarm">You will not be able to finish the Habit once before its next alarm after adding 5 minutes</string>
     <string name="doing_toast_add5_time_long_t">You will not be able to finish the Habit once in this cycle after adding 5 minutes</string>
     <string name="doing_toast_add5_above99">I cannot touch that future</string>
