@@ -20,6 +20,9 @@ import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.services.DoingService;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeFieldType;
+
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -378,7 +381,7 @@ public class ThingDoingHelper {
         }
     }
 
-    public long getAutoStartDoingTime(long shouldEndTime) {
+    public long getAutoStartDoingTime(long endTimeForNextHabitReminder) {
         String key = mThing.getId() + "_" + KEY_INDEX_AUTO_START_DOING_TIME;
         String doingTimeStr = mSpStartDoing.getString(
                 key, START_DOING_TIME_FOLLOW_GENERAL_PICKED);
@@ -399,11 +402,27 @@ public class ThingDoingHelper {
         int type = Integer.parseInt(arr[0]);
         int time = Integer.parseInt(arr[1]);
         long doingTime = DateTimeUtil.getActualTimeAfterSomeTime(0, type, time);
-        if (shouldEndTime != -1 && mThing.getType() == Thing.HABIT) {
-            while (System.currentTimeMillis() + doingTime + TIME_BEFORE_NEXT_HABIT_REMINDER
-                    > shouldEndTime) {
-                doingTime -= 5 * 60 * 1000L;
+        if (mThing.getType() == Thing.HABIT) {
+            Habit habit = HabitDAO.getInstance(mContext).getHabitById(mThing.getId());
+            if (habit != null) {
+                DateTimeFieldType ft = DateTimeUtil.getJodaType(habit.getType());
+                int ct = new DateTime().get(ft);
+                DateTime dt = new DateTime(System.currentTimeMillis() + doingTime
+                        + TIME_BEFORE_NEXT_HABIT_REMINDER);
+                while (ct < dt.get(ft)) {
+                    doingTime -= 5 * 60 * 1000L;
+                    dt = dt.withMillis(System.currentTimeMillis() + doingTime
+                            + TIME_BEFORE_NEXT_HABIT_REMINDER);
+                }
             }
+
+            if (endTimeForNextHabitReminder != -1) {
+                while (System.currentTimeMillis() + doingTime + TIME_BEFORE_NEXT_HABIT_REMINDER
+                        > endTimeForNextHabitReminder) {
+                    doingTime -= 5 * 60 * 1000L;
+                }
+            }
+
             if (doingTime < 5 * 60 * 1000L) {
                 doingTime = -1;
             }
