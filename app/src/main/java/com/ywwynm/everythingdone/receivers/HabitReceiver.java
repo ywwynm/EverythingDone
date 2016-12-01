@@ -110,7 +110,12 @@ public class HabitReceiver extends BroadcastReceiver {
             boolean shouldAutoStartDoing = helper.shouldAutoStartDoing();
             if (curDoingId == -1 && shouldAutoStartDoing) {
                 updateHabitRecordTimesAndUi(context, hrId, thing, position);
-                helper.startDoingAuto(-1, -1);
+                Habit habit = habitDAO.getHabitById(habitId);
+                if (habit == null) {
+                    helper.startDoingAuto(-1, hrTime);
+                } else {
+                    helper.startDoingAuto(habit.getDoingEndLimitTime(), hrTime);
+                }
                 return;
             }
 
