@@ -526,7 +526,7 @@
 
 
     <!--DoingService/Activity-->
-    <string name="doing_swipe_to_finish">滑动以完成记事</string>
+    <string name="doing_swipe_to_finish">滑动以完成</string>
     <string name="doing_currently_doing">正在做 -</string>
     <string name="doing_left_time">剩余时间:</string>
     <string name="doing_failed_careless">您没有认真地做这件事, 已取消正在做的状态</string>
