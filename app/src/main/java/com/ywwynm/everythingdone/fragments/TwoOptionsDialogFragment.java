@@ -83,6 +83,8 @@ public class TwoOptionsDialogFragment extends BaseDialogFragment {
                 }
             }, 60);
         }
+        mListenerStart = null;
+        mListenerEnd   = null;
         super.onDismiss(dialog);
     }
 }

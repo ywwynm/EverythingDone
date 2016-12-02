@@ -139,6 +139,7 @@ public class ThreeActionsAlertDialogFragment extends BaseDialogFragment {
         if (!mContinued && mOnClickListener != null) {
             mOnClickListener.onThirdClicked();
         }
+        mOnClickListener = null;
         super.onDismiss(dialog);
     }
 

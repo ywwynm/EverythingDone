@@ -129,7 +129,8 @@ public class LongTextDialogFragment extends BaseDialogFragment {
         if (!mConfirmed && mCancelListener != null) {
             mCancelListener.onClick(f(R.id.tv_cancel_as_bt_long_text));
         }
-
+        mConfirmListener = null;
+        mCancelListener  = null;
         super.onDismiss(dialog);
     }
 

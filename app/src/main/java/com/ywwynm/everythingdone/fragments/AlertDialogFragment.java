@@ -118,7 +118,8 @@ public class AlertDialogFragment extends BaseDialogFragment {
         if (!mConfirmed && mCancelListener != null) {
             mCancelListener.onCancel();
         }
-
+        mConfirmListener = null;
+        mCancelListener  = null;
         super.onDismiss(dialog);
     }
 

@@ -69,6 +69,8 @@ public class PatternLockDialogFragment extends BaseDialogFragment {
         if (mType == TYPE_VALIDATE && !mValidated && mAuthenticationCallback != null) {
             mAuthenticationCallback.onCancel();
         }
+        mPasswordSetDoneListener = null;
+        mAuthenticationCallback  = null;
     }
 
     private void findViews() {

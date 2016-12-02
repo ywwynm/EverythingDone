@@ -67,6 +67,10 @@ public class FingerprintDialogFragment extends BaseDialogFragment {
             mShouldUpdateToErrorState = false;
         }
         mFingerprintHelper.stopListening();
+
+        mCryptoObject           = null;
+        mFingerprintHelper      = null;
+        mAuthenticationCallback = null;
     }
 
     @Override
