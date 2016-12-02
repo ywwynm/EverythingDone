@@ -81,7 +81,7 @@ public class StartDoingActivity extends AppCompatActivity {
                     tryToStartDoingAlarmUser(cdf);
                 } else if (doingId != mThing.getId()) {
                     // doing another thing
-                    tryToStopAnotherDoing(cdf);
+                    tryToStopAnotherDoingAndStartThis(cdf);
                 } else {
                     // TODO: 2016/11/27 is doing this thing impossible here?
                 }
@@ -97,7 +97,7 @@ public class StartDoingActivity extends AppCompatActivity {
         cdf.show(getFragmentManager(), ChooserDialogFragment.TAG);
     }
 
-    private void tryToStopAnotherDoing(final ChooserDialogFragment cdf) {
+    private void tryToStopAnotherDoingAndStartThis(final ChooserDialogFragment cdf) {
         AlertDialogFragment adf = new AlertDialogFragment();
         adf.setTitleColor(mThing.getColor());
         adf.setConfirmColor(mThing.getColor());
