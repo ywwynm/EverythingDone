@@ -70,7 +70,8 @@
             android:layout_width="26dp"
             android:layout_height="26dp"
             android:layout_gravity="center"
-            android:scaleType="centerCrop"/>
+            android:scaleType="centerCrop"
+            android:contentDescription="@string/start_doing_full_title"/>
 
     </FrameLayout>
 
