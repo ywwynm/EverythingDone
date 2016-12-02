@@ -379,6 +379,7 @@
             android:launchMode="singleTask"
             android:resizeableActivity="false"
             android:screenOrientation="portrait"
+            android:excludeFromRecents="true"
             android:theme="@style/EverythingDoneTheme.Doing"
             tools:ignore="UnusedAttribute">
         </activity>
