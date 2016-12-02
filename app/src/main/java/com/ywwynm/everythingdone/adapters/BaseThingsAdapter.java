@@ -28,6 +28,7 @@ import com.bumptech.glide.request.RequestListener;
 import com.bumptech.glide.request.target.Target;
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.R;
+import com.ywwynm.everythingdone.activities.NoticeableNotificationActivity;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.helpers.AttachmentHelper;
@@ -558,6 +559,15 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
             }
         } else {
             cv.setCardBackgroundColor(color);
+        }
+
+        // Wrong warning here since FrameLayout#setForeground(Drawable) was provided on API 1
+        if (mStyle == STYLE_BLACK) {
+            holder.cv.setForeground(ContextCompat.getDrawable(
+                    mContext, R.drawable.selectable_item_background));
+        } else {
+            holder.cv.setForeground(ContextCompat.getDrawable(
+                    mContext, R.drawable.selectable_item_background_light));
         }
     }
 
