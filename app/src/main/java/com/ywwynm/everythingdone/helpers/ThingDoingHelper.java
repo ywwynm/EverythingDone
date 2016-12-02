@@ -1,5 +1,6 @@
 package com.ywwynm.everythingdone.helpers;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -178,14 +179,21 @@ public class ThingDoingHelper {
         context.stopService(new Intent(context, DoingService.class));
     }
 
-    public void startDoing(long timeInMillis, @DoingService.StartType int startType, long hrTime) {
+    public void startDoing(long timeInMillis, @DoingService.StartType int startType, long hrTime,
+                           boolean outsideActivity) {
         if (mThing == null) {
             return;
         }
         App.setDoingThingId(mThing.getId());
         mContext.startService(DoingService.getOpenIntent(
                 mContext, mThing, System.currentTimeMillis(), timeInMillis, startType, hrTime));
-        mContext.startActivity(DoingActivity.getOpenIntent(mContext, false));
+
+        Intent activityIntent = DoingActivity.getOpenIntent(mContext, false);
+        if (outsideActivity || !(mContext instanceof Activity)) {
+            activityIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        }
+        mContext.startActivity(activityIntent);
+
         RemoteActionHelper.doingOrCancel(mContext, mThing);
     }
 
@@ -217,16 +225,16 @@ public class ThingDoingHelper {
     }
 
     public void startDoingAlarm(long timeInMillis, long hrTime) {
-        startDoing(timeInMillis, DoingService.START_TYPE_ALARM, hrTime);
+        startDoing(timeInMillis, DoingService.START_TYPE_ALARM, hrTime, false);
     }
 
     public void startDoingAuto(long shouldEndTime, long hrTime) {
         Toast.makeText(mContext, R.string.auto_start_doing_start, Toast.LENGTH_LONG).show();
-        startDoing(getAutoStartDoingTime(shouldEndTime), DoingService.START_TYPE_AUTO, hrTime);
+        startDoing(getAutoStartDoingTime(shouldEndTime), DoingService.START_TYPE_AUTO, hrTime, true);
     }
 
     public void startDoingUser(long timeInMillis, long hrTime) {
-        startDoing(timeInMillis, DoingService.START_TYPE_USER, hrTime);
+        startDoing(timeInMillis, DoingService.START_TYPE_USER, hrTime, false);
     }
 
     /**
