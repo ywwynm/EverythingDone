@@ -130,7 +130,7 @@ public class StartDoingActivity extends AppCompatActivity {
                 if (habit != null) {
                     GregorianCalendar calendar = new GregorianCalendar();
                     int ct = calendar.get(habit.getType()); // current t
-                    calendar.setTimeInMillis(etc);
+                    calendar.setTimeInMillis(etc + ThingDoingHelper.TIME_BEFORE_NEXT_T);
                     if (calendar.get(habit.getType()) != ct) {
                         Toast.makeText(this,
                                 R.string.start_doing_time_long_t, Toast.LENGTH_LONG).show();

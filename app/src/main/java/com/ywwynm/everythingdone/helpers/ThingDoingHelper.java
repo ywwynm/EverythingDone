@@ -25,6 +25,7 @@ import org.joda.time.DateTimeFieldType;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.List;
 
 /**
@@ -37,6 +38,9 @@ public class ThingDoingHelper {
 
     public static final long TIME_BEFORE_NEXT_HABIT_REMINDER
             = BuildConfig.DEBUG ? 0 : 5 * 60 * 1000L;
+    public static final long TIME_BEFORE_NEXT_T = BuildConfig.DEBUG ? 0 : 5 * 60 * 1000L;
+    public static final long TUNING_TIME_STEP = 5 * 60 * 1000L;
+    public static final long MIN_DOING_TIME = 5 * 60 * 1000L;
 
     public static int KEY_INDEX_AUTO_START_DOING               = 0;
 
@@ -405,25 +409,26 @@ public class ThingDoingHelper {
         if (mThing.getType() == Thing.HABIT) {
             Habit habit = HabitDAO.getInstance(mContext).getHabitById(mThing.getId());
             if (habit != null) {
-                DateTimeFieldType ft = DateTimeUtil.getJodaType(habit.getType());
-                int ct = new DateTime().get(ft);
-                DateTime dt = new DateTime(System.currentTimeMillis() + doingTime
-                        + TIME_BEFORE_NEXT_HABIT_REMINDER);
-                while (ct < dt.get(ft)) {
-                    doingTime -= 5 * 60 * 1000L;
-                    dt = dt.withMillis(System.currentTimeMillis() + doingTime
-                            + TIME_BEFORE_NEXT_HABIT_REMINDER);
+                GregorianCalendar calendar = new GregorianCalendar();
+                int habitType = habit.getType();
+                int ct = calendar.get(habitType);
+                calendar.setTimeInMillis(System.currentTimeMillis() + doingTime
+                        + TIME_BEFORE_NEXT_T);
+                while (ct < calendar.get(habitType)) {
+                    doingTime -= TUNING_TIME_STEP;
+                    calendar.setTimeInMillis(System.currentTimeMillis() + doingTime
+                            + TIME_BEFORE_NEXT_T);
                 }
             }
 
             if (endTimeForNextHabitReminder != -1) {
                 while (System.currentTimeMillis() + doingTime + TIME_BEFORE_NEXT_HABIT_REMINDER
                         > endTimeForNextHabitReminder) {
-                    doingTime -= 5 * 60 * 1000L;
+                    doingTime -= TUNING_TIME_STEP;
                 }
             }
 
-            if (doingTime < 5 * 60 * 1000L) {
+            if (doingTime < MIN_DOING_TIME) {
                 doingTime = -1;
             }
         }
