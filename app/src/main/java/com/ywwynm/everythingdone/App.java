@@ -397,4 +397,60 @@ public class App extends Application {
         return new Pair<>(thing, correctPos);
     }
 
+    // Added on 2016/12/3
+    public static void updateNewThingColor() {
+        int color;
+        do {
+            color = DisplayUtil.getRandomColor(app);
+        } while (color == App.newThingColor);
+
+        while (ThingManager.isTotallyInitialized() && app.mThingManager != null
+                && app.mLimit == Def.LimitForGettingThings.ALL_UNDERWAY) {
+            List<Thing> things = app.mThingManager.getThings();
+            if (things == null) {
+                break;
+            }
+
+            final int size = things.size();
+            if (size <= 1) {
+                break;
+            }
+
+            int index = app.mThingManager.getPositionToInsertNewThing();
+            int[] existedColors = new int[4];
+            int start = index - 2, end = index + 1;
+            while (start < 1) {
+                start++;
+                end++;
+            }
+            if (start >= 1 && start < size ){
+                for (int i = start, j = 0; i <= end; i++) {
+                    if (i < size) {
+                        Thing temp = things.get(i);
+                        if (temp != null) {
+                            existedColors[j++] = temp.getColor();
+                        }
+                    }
+                }
+            }
+
+            while (isInside(existedColors, color) || color == App.newThingColor) {
+                color = DisplayUtil.getRandomColor(app);
+            }
+
+            break;
+        }
+
+        App.newThingColor = color;
+    }
+
+    private static boolean isInside(int[] arr, int value) {
+        for (int elem : arr) {
+            if (elem == value) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 }

@@ -91,6 +91,17 @@ public class ThingManager {
         mHeaderId = mThings.get(0).getId();
     }
 
+    public static boolean isTotallyInitialized() {
+        if (sThingManager != null) {
+            if (sThingManager.mThings != null) {
+                if (sThingManager.mThings.size() > 1) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     public static ThingManager getInstance(Context context) {
         if (sThingManager == null) {
             synchronized (ThingManager.class) {
