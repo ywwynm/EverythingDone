@@ -402,7 +402,7 @@ public class App extends Application {
         int color;
         do {
             color = DisplayUtil.getRandomColor(app);
-        } while (color == App.newThingColor);
+        } while (color == newThingColor);
 
         while (ThingManager.isTotallyInitialized() && app.mThingManager != null
                 && app.mLimit == Def.LimitForGettingThings.ALL_UNDERWAY) {
@@ -423,7 +423,7 @@ public class App extends Application {
                 start++;
                 end++;
             }
-            if (start >= 1 && start < size ){
+            if (start >= 1 && start < size) {
                 for (int i = start, j = 0; i <= end; i++) {
                     if (i < size) {
                         Thing temp = things.get(i);
@@ -434,7 +434,7 @@ public class App extends Application {
                 }
             }
 
-            while (isInside(existedColors, color) || color == App.newThingColor) {
+            while (isInside(existedColors, color) || color == newThingColor) {
                 color = DisplayUtil.getRandomColor(app);
             }
 
