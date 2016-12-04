@@ -150,12 +150,11 @@ public class DisplayUtil {
         return Math.max(res1, res2);
     }
 
+    // This method has a sexy history~
+    // Someday if you see this code again, wish that your dream had come true
     public static int getRandomColor(Context context) {
-        // instead of 5 or 8 times, 6 sounds better~
-        int[] mlTimesWithQQPerNight = { 1, 1, 2, 2, 3, 3, 4, 4, 5, 6, 6, 7, 7, 8 };
-        Random r = new Random();
-        int decision = r.nextInt(mlTimesWithQQPerNight.length);
-        return context.getResources().getIntArray(R.array.thing)[mlTimesWithQQPerNight[decision] - 1];
+        int[] colors = context.getResources().getIntArray(R.array.thing);
+        return colors[new Random().nextInt(colors.length)];
     }
 
     public static int getColorIndex(int color, Context context) {
