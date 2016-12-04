@@ -164,12 +164,6 @@ public class SystemNotificationUtil {
     }
 
     public static void tryToCreateQuickCreateNotification(Context context) {
-        int color = DisplayUtil.getRandomColor(context);
-        while (color == App.newThingColor) {
-            color = DisplayUtil.getRandomColor(context);
-        }
-        App.newThingColor = color;
-
         SharedPreferences sp = context.getSharedPreferences(
                 Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE);
         if (sp.getBoolean(Def.Meta.KEY_QUICK_CREATE, true)) {
