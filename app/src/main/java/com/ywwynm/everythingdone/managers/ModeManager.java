@@ -22,6 +22,8 @@ import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.views.ActivityHeader;
 import com.ywwynm.everythingdone.views.FloatingActionButton;
 
+import java.util.List;
+
 /**
  * Created by ywwynm on 2015/7/17.
  * A manager class for changing mode in ThingsActivity
@@ -205,7 +207,10 @@ public class ModeManager {
 
     private void notifyThingsSelected(final int position) {
         mFab.shrink();
-        mThingManager.getThings().get(position).setSelected(true);
+        List<Thing> things = mThingManager.getThings();
+        if (position >= 0 && position < things.size()) {
+            things.get(position).setSelected(true);
+        }
         mAdapter.notifyDataSetChanged();
     }
 
