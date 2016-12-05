@@ -579,6 +579,7 @@ public class AppWidgetHelper {
                 Glide.with(context)
                         .load(pathName)
                         .asBitmap()
+                        .override(width, height)
                         .centerCrop();
         FutureTarget futureTarget = builder.into(width, height);
         try {
