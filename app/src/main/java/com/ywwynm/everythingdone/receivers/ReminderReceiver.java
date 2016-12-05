@@ -130,33 +130,8 @@ public class ReminderReceiver extends BroadcastReceiver {
             builder.setPriority(NotificationCompat.PRIORITY_DEFAULT);
         }
 
-        Intent finishIntent = new Intent(context, ReminderNotificationActionReceiver.class);
-        finishIntent.setAction(Def.Communication.NOTIFICATION_ACTION_FINISH);
-        finishIntent.putExtra(Def.Communication.KEY_ID, id);
-        finishIntent.putExtra(Def.Communication.KEY_POSITION, position);
-        builder.addAction(R.drawable.act_finish, context.getString(R.string.act_finish),
-                PendingIntent.getBroadcast(context,
-                        (int) id, finishIntent, PendingIntent.FLAG_UPDATE_CURRENT));
-
-        if (thing.getType() == Thing.REMINDER) {
-            Intent startIntent = new Intent(context, ReminderNotificationActionReceiver.class);
-            startIntent.setAction(Def.Communication.NOTIFICATION_ACTION_START_DOING);
-            startIntent.putExtra(Def.Communication.KEY_ID, id);
-            startIntent.putExtra(Def.Communication.KEY_POSITION, position);
-            builder.addAction(R.drawable.act_start_doing,
-                    context.getString(R.string.act_start_doing),
-                    PendingIntent.getBroadcast(context,
-                            (int) id, startIntent, PendingIntent.FLAG_UPDATE_CURRENT));
-
-            Intent delayIntent = new Intent(context, ReminderNotificationActionReceiver.class);
-            delayIntent.setAction(Def.Communication.NOTIFICATION_ACTION_DELAY);
-            delayIntent.putExtra(Def.Communication.KEY_ID, id);
-            delayIntent.putExtra(Def.Communication.KEY_POSITION, position);
-            builder.addAction(R.drawable.act_delay,
-                    context.getString(R.string.act_delay),
-                    PendingIntent.getBroadcast(context,
-                            (int) id, delayIntent, PendingIntent.FLAG_UPDATE_CURRENT));
-        }
+        SystemNotificationUtil.addActionsForReminderNotification(
+                builder, context, id, position, thing.getType());
 
         Intent deleteIntent = new Intent(context, ReminderNotificationActionReceiver.class);
         deleteIntent.setAction(Def.Communication.NOTIFICATION_ACTION_CANCEL);

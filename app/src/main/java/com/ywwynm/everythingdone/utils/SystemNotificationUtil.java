@@ -31,6 +31,7 @@ import com.ywwynm.everythingdone.model.HabitReminder;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.permission.PermissionUtil;
 import com.ywwynm.everythingdone.receivers.DoingNotificationActionReceiver;
+import com.ywwynm.everythingdone.receivers.ReminderNotificationActionReceiver;
 import com.ywwynm.everythingdone.services.DoingService;
 
 import java.io.File;
@@ -163,6 +164,36 @@ public class SystemNotificationUtil {
         return builder;
     }
 
+    public static void addActionsForReminderNotification(NotificationCompat.Builder builder, Context context, long id, int position, @Thing.Type int type) {
+        Intent finishIntent = new Intent(context, ReminderNotificationActionReceiver.class);
+        finishIntent.setAction(Def.Communication.NOTIFICATION_ACTION_FINISH);
+        finishIntent.putExtra(Def.Communication.KEY_ID, id);
+        finishIntent.putExtra(Def.Communication.KEY_POSITION, position);
+        builder.addAction(R.drawable.act_finish, context.getString(R.string.act_finish),
+                PendingIntent.getBroadcast(context,
+                        (int) id, finishIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+
+        if (type == Thing.REMINDER) {
+            Intent startIntent = new Intent(context, ReminderNotificationActionReceiver.class);
+            startIntent.setAction(Def.Communication.NOTIFICATION_ACTION_START_DOING);
+            startIntent.putExtra(Def.Communication.KEY_ID, id);
+            startIntent.putExtra(Def.Communication.KEY_POSITION, position);
+            builder.addAction(R.drawable.act_start_doing,
+                    context.getString(R.string.act_start_doing),
+                    PendingIntent.getBroadcast(context,
+                            (int) id, startIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+
+            Intent delayIntent = new Intent(context, ReminderNotificationActionReceiver.class);
+            delayIntent.setAction(Def.Communication.NOTIFICATION_ACTION_DELAY);
+            delayIntent.putExtra(Def.Communication.KEY_ID, id);
+            delayIntent.putExtra(Def.Communication.KEY_POSITION, position);
+            builder.addAction(R.drawable.act_delay,
+                    context.getString(R.string.act_delay),
+                    PendingIntent.getBroadcast(context,
+                            (int) id, delayIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+        }
+    }
+
     public static void tryToCreateQuickCreateNotification(Context context) {
         SharedPreferences sp = context.getSharedPreferences(
                 Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE);
@@ -293,6 +324,31 @@ public class SystemNotificationUtil {
             }
             return part1 + between + context.getString(R.string.doing_click_to_dismiss);
         }
+    }
+
+    public static void createThingOngoingNotification(Context context, long id, Thing thing) {
+        NotificationCompat.Builder builder = newGeneralNotificationBuilder(
+                context, App.class.getName(), id, -1, thing, false);
+        builder.setPriority(Notification.PRIORITY_HIGH);
+        builder.setSound(null);
+        builder.setDefaults(0);
+
+        @Thing.Type int thingType = thing.getType();
+        if (Thing.isReminderType(thingType)) {
+            addActionsForReminderNotification(builder, context, id, -1, thingType);
+        } else if (thingType == Thing.HABIT) {
+
+        }
+
+        int idToNotify = (int) id;
+        idToNotify *= -1;
+        NotificationManagerCompat.from(context).notify(idToNotify, builder.build());
+    }
+
+    public static void cancelThingOngoingNotification(Context context, long id) {
+        int idToCancel = (int) id;
+        idToCancel *= -1;
+        NotificationManagerCompat.from(context).cancel(idToCancel);
     }
 
     public static void cancelNotification(long thingId, int type, Context context) {
