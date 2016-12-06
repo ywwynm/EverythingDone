@@ -35,12 +35,20 @@ public class TwoOptionsDialogFragment extends BaseDialogFragment {
         TextView tvStart = f(R.id.tv_action_start);
         TextView tvEnd   = f(R.id.tv_action_end);
 
-        tvStart.setCompoundDrawablesWithIntrinsicBounds(0, mIconResStart, 0, 0);
-        tvStart.setText(mActionResStart);
+        if (mIconResStart != 0) {
+            tvStart.setCompoundDrawablesWithIntrinsicBounds(0, mIconResStart, 0, 0);
+        }
+        if (mActionResStart != 0) {
+            tvStart.setText(mActionResStart);
+        }
         tvStart.setOnClickListener(mListenerStart);
 
-        tvEnd.setCompoundDrawablesWithIntrinsicBounds(0, mIconResEnd, 0, 0);
-        tvEnd.setText(mActionResEnd);
+        if (mIconResEnd != 0) {
+            tvEnd.setCompoundDrawablesWithIntrinsicBounds(0, mIconResEnd, 0, 0);
+        }
+        if (mActionResEnd != 0) {
+            tvEnd.setText(mActionResEnd);
+        }
         tvEnd.setOnClickListener(mListenerEnd);
 
         return mContentView;
