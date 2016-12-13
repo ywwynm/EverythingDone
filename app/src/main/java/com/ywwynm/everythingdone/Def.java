@@ -62,6 +62,8 @@ public final class Def {
         public static final String KEY_QUICK_CREATE            = "quick_create";
         public static final String KEY_AUTO_NOTIFY             = "auto_notify";
 
+        public static final String KEY_ONGOING_THING_ID        = "ongoing_thing_id";
+
         public static final String KEY_1_0_3_TO_1_0_4          = "1.0.3_to_1.0.4";
         public static final String KEY_1_0_4_TO_1_0_5          = "1.0.4_to_1.0.5";
         public static final String KEY_1_1_4_TO_1_1_5          = "1.1.4_to_1.1.5";

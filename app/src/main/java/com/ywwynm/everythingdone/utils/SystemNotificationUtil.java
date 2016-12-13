@@ -372,12 +372,41 @@ public class SystemNotificationUtil {
         builder.setPriority(Notification.PRIORITY_HIGH);
         builder.setSound(null);
         builder.setDefaults(0);
+        builder.setOngoing(true);
 
         @Thing.Type int thingType = thing.getType();
         if (Thing.isReminderType(thingType)) {
             addActionsForReminderNotification(builder, context, id, -1, thingType);
+            if (thingType == Thing.GOAL) {
+                // also add start doing action for Goal
+                Intent startIntent = new Intent(context, ReminderNotificationActionReceiver.class);
+                startIntent.setAction(Def.Communication.NOTIFICATION_ACTION_START_DOING);
+                startIntent.putExtra(Def.Communication.KEY_ID, id);
+                startIntent.putExtra(Def.Communication.KEY_POSITION, -1);
+                builder.addAction(R.drawable.act_start_doing,
+                        context.getString(R.string.act_start_doing),
+                        PendingIntent.getBroadcast(context,
+                                (int) id, startIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+            }
         } else if (thingType == Thing.HABIT) {
+            Intent finishIntent = new Intent(context, HabitNotificationActionReceiver.class);
+            finishIntent.setAction(Def.Communication.NOTIFICATION_ACTION_FINISH);
+            finishIntent.putExtra(Def.Communication.KEY_ID, -1);
+            finishIntent.putExtra(Def.Communication.KEY_POSITION, -1);
+            finishIntent.putExtra(Def.Communication.KEY_TIME, -1);
+            builder.addAction(R.drawable.act_finish, context.getString(R.string.act_finish_once_habit),
+                    PendingIntent.getBroadcast(context,
+                            (int) id, finishIntent, PendingIntent.FLAG_UPDATE_CURRENT));
 
+            Intent startIntent = new Intent(context, HabitNotificationActionReceiver.class);
+            startIntent.setAction(Def.Communication.NOTIFICATION_ACTION_START_DOING);
+            startIntent.putExtra(Def.Communication.KEY_ID, -1);
+            startIntent.putExtra(Def.Communication.KEY_POSITION, -1);
+            finishIntent.putExtra(Def.Communication.KEY_TIME, -1);
+            builder.addAction(R.drawable.act_start_doing,
+                    context.getString(R.string.act_start_doing),
+                    PendingIntent.getBroadcast(context,
+                            (int) id, startIntent, PendingIntent.FLAG_UPDATE_CURRENT));
         }
 
         int idToNotify = (int) id;

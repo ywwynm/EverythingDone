@@ -291,6 +291,7 @@
 
     <!--DetailActivity habit normal-->
     <string name="act_check_habit_detail">Check habit detail</string>
+    <string name="act_finish_once_habit">Finish once</string>
     <string name="act_finish_this_time_habit">Finish this time</string>
     <string name="act_habit_developed">I\'ve developed this habit</string>
 

@@ -27,9 +27,17 @@ public class HabitNotificationActionReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         String action = intent.getAction();
-        long hrId = intent.getLongExtra(Def.Communication.KEY_ID, 0);
-        NotificationManagerCompat nmc = NotificationManagerCompat.from(context);
-        nmc.cancel((int) hrId);
+        long hrId = intent.getLongExtra(Def.Communication.KEY_ID, -1);
+
+        long ongoingThingId = context.getSharedPreferences(
+                Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE).getLong(
+                Def.Meta.KEY_ONGOING_THING_ID, -1);
+        if (hrId == -1) hrId = ongoingThingId;
+
+        if (ongoingThingId != hrId) {
+            NotificationManagerCompat nmc = NotificationManagerCompat.from(context);
+            nmc.cancel((int) hrId);
+        }
 
         int position = intent.getIntExtra(Def.Communication.KEY_POSITION, -1);
         HabitDAO habitDAO = HabitDAO.getInstance(context);
