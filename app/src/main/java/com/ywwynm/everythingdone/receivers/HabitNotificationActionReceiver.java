@@ -44,6 +44,7 @@ public class HabitNotificationActionReceiver extends BroadcastReceiver {
         HabitReminder habitReminder = habitDAO.getHabitReminderById(hrId);
         long id = habitReminder.getHabitId();
         for (Long dId : App.getRunningDetailActivities()) if (dId == id) {
+            // TODO: 2016/12/13 toast user
             return;
         }
 
