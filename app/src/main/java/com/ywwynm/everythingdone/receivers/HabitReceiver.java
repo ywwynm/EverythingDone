@@ -1,7 +1,6 @@
 package com.ywwynm.everythingdone.receivers;
 
 import android.app.Notification;
-import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -221,39 +220,8 @@ public class HabitReceiver extends BroadcastReceiver {
             builder.setPriority(NotificationCompat.PRIORITY_DEFAULT);
         }
 
-        Intent finishIntent = new Intent(context, HabitNotificationActionReceiver.class);
-        finishIntent.setAction(Def.Communication.NOTIFICATION_ACTION_FINISH);
-        finishIntent.putExtra(Def.Communication.KEY_ID, hrId);
-        finishIntent.putExtra(Def.Communication.KEY_POSITION, position);
-        finishIntent.putExtra(Def.Communication.KEY_TIME, habitReminder.getNotifyTime());
-        builder.addAction(R.drawable.act_finish, context.getString(R.string.act_finish_this_time_habit),
-                PendingIntent.getBroadcast(context,
-                        (int) hrId, finishIntent, PendingIntent.FLAG_UPDATE_CURRENT));
-
-        Intent startIntent = new Intent(context, HabitNotificationActionReceiver.class);
-        startIntent.setAction(Def.Communication.NOTIFICATION_ACTION_START_DOING);
-        startIntent.putExtra(Def.Communication.KEY_ID, hrId);
-        startIntent.putExtra(Def.Communication.KEY_POSITION, position);
-        finishIntent.putExtra(Def.Communication.KEY_TIME, habitReminder.getNotifyTime());
-        builder.addAction(R.drawable.act_start_doing,
-                context.getString(R.string.act_start_doing),
-                PendingIntent.getBroadcast(context,
-                        (int) hrId, startIntent, PendingIntent.FLAG_UPDATE_CURRENT));
-
-//            Intent getItIntent = new Intent(context, HabitNotificationActionReceiver.class);
-//            getItIntent.setAction(Def.Communication.NOTIFICATION_ACTION_GET_IT);
-//            getItIntent.putExtra(Def.Communication.KEY_ID, hrId);
-//            getItIntent.putExtra(Def.Communication.KEY_POSITION, position);
-//            builder.addAction(R.drawable.act_get_it,
-//                    context.getString(R.string.act_get_it),
-//                    PendingIntent.getBroadcast(context,
-//                            (int) hrId, getItIntent, PendingIntent.FLAG_UPDATE_CURRENT));
-
-        Intent deleteIntent = new Intent(context, HabitNotificationActionReceiver.class);
-        deleteIntent.setAction(Def.Communication.NOTIFICATION_ACTION_CANCEL);
-        deleteIntent.putExtra(Def.Communication.KEY_ID, hrId);
-        builder.setDeleteIntent(PendingIntent.getBroadcast(
-                context, (int) hrId, deleteIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+        SystemNotificationUtil.addActionsForHabitNotification(
+                context, builder, hrId, position, habitReminder.getNotifyTime());
 
         NotificationManagerCompat nm = NotificationManagerCompat.from(context);
         nm.notify((int) hrId, builder.build());

@@ -31,6 +31,7 @@ import com.ywwynm.everythingdone.model.HabitReminder;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.permission.PermissionUtil;
 import com.ywwynm.everythingdone.receivers.DoingNotificationActionReceiver;
+import com.ywwynm.everythingdone.receivers.HabitNotificationActionReceiver;
 import com.ywwynm.everythingdone.receivers.ReminderNotificationActionReceiver;
 import com.ywwynm.everythingdone.services.DoingService;
 
@@ -164,7 +165,9 @@ public class SystemNotificationUtil {
         return builder;
     }
 
-    public static void addActionsForReminderNotification(NotificationCompat.Builder builder, Context context, long id, int position, @Thing.Type int type) {
+    public static void addActionsForReminderNotification(
+            NotificationCompat.Builder builder, Context context, long id, int position,
+            @Thing.Type int type) {
         Intent finishIntent = new Intent(context, ReminderNotificationActionReceiver.class);
         finishIntent.setAction(Def.Communication.NOTIFICATION_ACTION_FINISH);
         finishIntent.putExtra(Def.Communication.KEY_ID, id);
@@ -192,6 +195,43 @@ public class SystemNotificationUtil {
                     PendingIntent.getBroadcast(context,
                             (int) id, delayIntent, PendingIntent.FLAG_UPDATE_CURRENT));
         }
+    }
+
+    public static void addActionsForHabitNotification(
+            Context context, NotificationCompat.Builder builder, long hrId, int position, long hrTime) {
+        Intent finishIntent = new Intent(context, HabitNotificationActionReceiver.class);
+        finishIntent.setAction(Def.Communication.NOTIFICATION_ACTION_FINISH);
+        finishIntent.putExtra(Def.Communication.KEY_ID, hrId);
+        finishIntent.putExtra(Def.Communication.KEY_POSITION, position);
+        finishIntent.putExtra(Def.Communication.KEY_TIME, hrTime);
+        builder.addAction(R.drawable.act_finish, context.getString(R.string.act_finish_this_time_habit),
+                PendingIntent.getBroadcast(context,
+                        (int) hrId, finishIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+
+        Intent startIntent = new Intent(context, HabitNotificationActionReceiver.class);
+        startIntent.setAction(Def.Communication.NOTIFICATION_ACTION_START_DOING);
+        startIntent.putExtra(Def.Communication.KEY_ID, hrId);
+        startIntent.putExtra(Def.Communication.KEY_POSITION, position);
+        finishIntent.putExtra(Def.Communication.KEY_TIME, hrTime);
+        builder.addAction(R.drawable.act_start_doing,
+                context.getString(R.string.act_start_doing),
+                PendingIntent.getBroadcast(context,
+                        (int) hrId, startIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+
+//            Intent getItIntent = new Intent(context, HabitNotificationActionReceiver.class);
+//            getItIntent.setAction(Def.Communication.NOTIFICATION_ACTION_GET_IT);
+//            getItIntent.putExtra(Def.Communication.KEY_ID, hrId);
+//            getItIntent.putExtra(Def.Communication.KEY_POSITION, position);
+//            builder.addAction(R.drawable.act_get_it,
+//                    context.getString(R.string.act_get_it),
+//                    PendingIntent.getBroadcast(context,
+//                            (int) hrId, getItIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+
+        Intent deleteIntent = new Intent(context, HabitNotificationActionReceiver.class);
+        deleteIntent.setAction(Def.Communication.NOTIFICATION_ACTION_CANCEL);
+        deleteIntent.putExtra(Def.Communication.KEY_ID, hrId);
+        builder.setDeleteIntent(PendingIntent.getBroadcast(
+                context, (int) hrId, deleteIntent, PendingIntent.FLAG_UPDATE_CURRENT));
     }
 
     public static void tryToCreateQuickCreateNotification(Context context) {
