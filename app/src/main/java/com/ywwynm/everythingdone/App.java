@@ -97,8 +97,6 @@ public class App extends Application {
 
         CrashHelper.getInstance().init(this);
 
-        newThingColor = DisplayUtil.getRandomColor(this);
-
         firstLaunch();
 
         AppUpdateHelper.getInstance(this).handleAppUpdate();
@@ -137,6 +135,8 @@ public class App extends Application {
         mAttachmentsToDeleteFile = new ArrayList<>();
 
         mLimit = Def.LimitForGettingThings.ALL_UNDERWAY;
+
+        updateNewThingColor();
 
         mExecutor = Executors.newSingleThreadExecutor();
 
