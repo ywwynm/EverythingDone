@@ -33,6 +33,11 @@
         app:showAsAction="never" />
 
     <item
+        android:id="@+id/act_ongoing_thing"
+        android:title="@string/act_set_thing_as_ongoing"
+        app:showAsAction="never"/>
+
+    <item
         android:id="@+id/act_undo"
         android:title="@string/act_undo"
         app:showAsAction="never"/>

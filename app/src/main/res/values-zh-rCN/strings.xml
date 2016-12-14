@@ -281,6 +281,8 @@
     <!--DetailActivity underway-->
     <string name="act_set_as_private_thing">设为私密记事</string>
     <string name="act_cancel_private_thing">取消设置私密记事</string>
+    <string name="act_set_thing_as_ongoing">在通知栏中显示</string>
+    <string name="act_cancel_set_thing_as_ongoing">取消在通知栏中显示</string>
     <string name="act_finish">完成</string>
     <string name="act_delete">删除</string>
 
