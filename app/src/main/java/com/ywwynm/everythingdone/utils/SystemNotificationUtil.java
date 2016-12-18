@@ -370,8 +370,7 @@ public class SystemNotificationUtil {
         long id = thing.getId();
         NotificationCompat.Builder builder = newGeneralNotificationBuilder(
                 context, App.class.getName(), id, -1, thing, false);
-        builder.setPriority(Notification.PRIORITY_HIGH);
-        builder.setSmallIcon(0);
+        builder.setPriority(Notification.PRIORITY_MIN);
         builder.setSound(null);
         builder.setDefaults(0);
         builder.setOngoing(true);
