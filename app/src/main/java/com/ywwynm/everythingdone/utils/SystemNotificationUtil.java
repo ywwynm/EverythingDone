@@ -366,7 +366,8 @@ public class SystemNotificationUtil {
         }
     }
 
-    public static void createThingOngoingNotification(Context context, long id, Thing thing) {
+    public static void createThingOngoingNotification(Context context, Thing thing) {
+        long id = thing.getId();
         NotificationCompat.Builder builder = newGeneralNotificationBuilder(
                 context, App.class.getName(), id, -1, thing, false);
         builder.setPriority(Notification.PRIORITY_HIGH);
@@ -391,9 +392,9 @@ public class SystemNotificationUtil {
         } else if (thingType == Thing.HABIT) {
             Intent finishIntent = new Intent(context, HabitNotificationActionReceiver.class);
             finishIntent.setAction(Def.Communication.NOTIFICATION_ACTION_FINISH);
-            finishIntent.putExtra(Def.Communication.KEY_ID, -1);
+            finishIntent.putExtra(Def.Communication.KEY_ID, -1); // hrId -> -1
             finishIntent.putExtra(Def.Communication.KEY_POSITION, -1);
-            finishIntent.putExtra(Def.Communication.KEY_TIME, -1);
+            finishIntent.putExtra(Def.Communication.KEY_TIME, -1); // hrTime -> -1
             builder.addAction(R.drawable.act_finish, context.getString(R.string.act_finish_once_habit),
                     PendingIntent.getBroadcast(context,
                             (int) id, finishIntent, PendingIntent.FLAG_UPDATE_CURRENT));

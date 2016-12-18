@@ -21,9 +21,6 @@ import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.services.DoingService;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeFieldType;
-
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
@@ -184,6 +181,9 @@ public class ThingDoingHelper {
         if (mThing == null) {
             return;
         }
+
+        if (hrTime == -1) hrTime = calculateHrTimeForHabit();
+
         App.setDoingThingId(mThing.getId());
         mContext.startService(DoingService.getOpenIntent(
                 mContext, mThing, System.currentTimeMillis(), timeInMillis, startType, hrTime));
@@ -197,7 +197,7 @@ public class ThingDoingHelper {
         RemoteActionHelper.doingOrCancel(mContext, mThing);
     }
 
-    public void tryToOpenStartDoingActivityUser() {
+    private long calculateHrTimeForHabit() {
         long hrTime = -1;
         if (mThing.getType() == Thing.HABIT) {
             Habit habit = HabitDAO.getInstance(mContext).getHabitById(mThing.getId());
@@ -218,7 +218,11 @@ public class ThingDoingHelper {
                 }
             }
         }
+        return hrTime;
+    }
 
+    public void tryToOpenStartDoingActivityUser() {
+        long hrTime = calculateHrTimeForHabit();
         mContext.startActivity(StartDoingActivity.getOpenIntent(
                 mContext, mThing.getId(), -1, mThing.getColor(),
                 DoingService.START_TYPE_USER, hrTime));
