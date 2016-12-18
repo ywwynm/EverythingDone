@@ -18,6 +18,8 @@ import com.ywwynm.everythingdone.model.HabitReminder;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.services.DoingService;
 
+import static android.R.attr.id;
+
 public class HabitNotificationActionReceiver extends BroadcastReceiver {
 
     public static final String TAG = "HabitNotificationActionReceiver";
@@ -28,27 +30,27 @@ public class HabitNotificationActionReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         String action = intent.getAction();
         long hrId = intent.getLongExtra(Def.Communication.KEY_ID, -1);
-
-        long ongoingThingId = context.getSharedPreferences(
-                Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE).getLong(
-                Def.Meta.KEY_ONGOING_THING_ID, -1);
-        if (hrId == -1) hrId = ongoingThingId;
-
-        if (ongoingThingId != hrId) {
+        long thingId;
+        if (hrId == -1) { // ongoing Habit
+            thingId = context.getSharedPreferences(
+                    Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE).getLong(
+                    Def.Meta.KEY_ONGOING_THING_ID, -1);
+        } else {
+            HabitDAO habitDAO = HabitDAO.getInstance(context);
+            HabitReminder hr = habitDAO.getHabitReminderById(hrId);
+            thingId = hr.getHabitId();
+            
             NotificationManagerCompat nmc = NotificationManagerCompat.from(context);
             nmc.cancel((int) hrId);
         }
 
         int position = intent.getIntExtra(Def.Communication.KEY_POSITION, -1);
-        HabitDAO habitDAO = HabitDAO.getInstance(context);
-        HabitReminder habitReminder = habitDAO.getHabitReminderById(hrId);
-        long id = habitReminder.getHabitId();
         for (Long dId : App.getRunningDetailActivities()) if (dId == id) {
             // TODO: 2016/12/13 toast user
             return;
         }
 
-        Pair<Thing, Integer> pair = App.getThingAndPosition(context, id, position);
+        Pair<Thing, Integer> pair = App.getThingAndPosition(context, thingId, position);
         Thing thing = pair.first;
         if (thing == null) {
             return;
@@ -63,7 +65,7 @@ public class HabitNotificationActionReceiver extends BroadcastReceiver {
         if (action.equals(Def.Communication.NOTIFICATION_ACTION_FINISH)) {
             if (thing.isPrivate()) {
                 Intent actionIntent = AuthenticationActivity.getOpenIntent(
-                        context, TAG, id, position,
+                        context, TAG, thingId, position,
                         Def.Communication.AUTHENTICATE_ACTION_FINISH,
                         context.getString(R.string.act_finish));
                 actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
@@ -76,7 +78,7 @@ public class HabitNotificationActionReceiver extends BroadcastReceiver {
             Intent actionIntent;
             if (thing.isPrivate()) {
                 actionIntent = AuthenticationActivity.getOpenIntent(
-                        context, TAG, id, position,
+                        context, TAG, thingId, position,
                         Def.Communication.AUTHENTICATE_ACTION_START_DOING,
                         context.getString(R.string.start_doing_full_title));
                 actionIntent.putExtra(Def.Communication.KEY_TIME, hrTime);
