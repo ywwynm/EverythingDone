@@ -39,7 +39,7 @@ public class HabitNotificationActionReceiver extends BroadcastReceiver {
             HabitDAO habitDAO = HabitDAO.getInstance(context);
             HabitReminder hr = habitDAO.getHabitReminderById(hrId);
             thingId = hr.getHabitId();
-            
+
             NotificationManagerCompat nmc = NotificationManagerCompat.from(context);
             nmc.cancel((int) hrId);
         }
