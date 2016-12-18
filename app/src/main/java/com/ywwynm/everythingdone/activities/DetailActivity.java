@@ -1116,8 +1116,9 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 if (CheckListHelper.isCheckListStr(mThing.getContent())) {
                     toggleCheckListActionItem(menu, true);
                 }
-                togglePrivateThingMenuItem(menu, !mThing.isPrivate());
+                togglePrivateThingActionItem(menu, !mThing.isPrivate());
                 toggleStickyActionItem(menu);
+                toggleOngoingActionItem(menu);
             } else if (state == Thing.FINISHED) {
                 inflater.inflate(R.menu.menu_detail_finished, menu);
                 if (thingType != Thing.HABIT) {
@@ -1200,6 +1201,9 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             case R.id.act_sticky:
                 stickyOrCancel();
                 break;
+            case R.id.act_ongoing_thing:
+                ongoingOrCancel();
+                break;
             default:break;
         }
         return super.onOptionsItemSelected(item);
@@ -1234,7 +1238,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         }
     }
 
-    private void togglePrivateThingMenuItem(Menu menu, boolean set) {
+    private void togglePrivateThingActionItem(Menu menu, boolean set) {
         MenuItem item = menu.findItem(R.id.act_set_as_private_thing);
         if (set) {
             item.setTitle(R.string.act_set_as_private_thing);
@@ -1249,6 +1253,19 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             item.setTitle(R.string.act_cancel_sticky);
         } else {
             item.setTitle(R.string.act_sticky_on_top);
+        }
+    }
+
+    private void toggleOngoingActionItem(Menu menu) {
+        if (mThing == null) return;
+        long ongoingId = getSharedPreferences(
+                Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE).getLong(
+                Def.Meta.KEY_ONGOING_THING_ID, -1);
+        MenuItem item = menu.findItem(R.id.act_ongoing_thing);
+        if (ongoingId == mThing.getId()) {
+            item.setTitle(R.string.act_cancel_set_thing_as_ongoing);
+        } else {
+            item.setTitle(R.string.act_set_thing_as_ongoing);
         }
     }
 
@@ -1351,7 +1368,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 tryToCancelPrivateThing();
             } else {
                 setAsPrivateThingUiAndAddAction();
-                togglePrivateThingMenuItem(mActionbar.getMenu(), false);
+                togglePrivateThingActionItem(mActionbar.getMenu(), false);
             }
         }
     }
@@ -1402,7 +1419,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     }
 
     private void cancelPrivateThingUiAndAddAction() {
-        togglePrivateThingMenuItem(mActionbar.getMenu(), true);
+        togglePrivateThingActionItem(mActionbar.getMenu(), true);
 
         mEtTitle.setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, 0);
 
@@ -2687,6 +2704,25 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         AppWidgetHelper.updateSingleThingAppWidgets(this, mThing.getId());
         AppWidgetHelper.updateThingsListAppWidgetsForType(this, mThing.getType());
         finish();
+    }
+
+    private void ongoingOrCancel() {
+        SharedPreferences sp = getSharedPreferences(
+                Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE);
+        long ongoingBefore = sp.getLong(Def.Meta.KEY_ONGOING_THING_ID, -1);
+        if (ongoingBefore != -1) {
+            SystemNotificationUtil.cancelThingOngoingNotification(this, ongoingBefore);
+        }
+
+        long ongoingAfter;
+        if (ongoingBefore == mThing.getId()) {
+            ongoingAfter = -1;
+        } else {
+            ongoingAfter = mThing.getId();
+            SystemNotificationUtil.createThingOngoingNotification(this, mThing);
+        }
+        sp.edit().putLong(Def.Meta.KEY_ONGOING_THING_ID, ongoingAfter).apply();
+        toggleOngoingActionItem(mActionbar.getMenu());
     }
 
     private boolean shouldSendBroadCast() {
