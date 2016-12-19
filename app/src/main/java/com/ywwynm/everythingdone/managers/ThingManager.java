@@ -1,6 +1,7 @@
 package com.ywwynm.everythingdone.managers;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.util.SparseIntArray;
 
@@ -14,6 +15,7 @@ import com.ywwynm.everythingdone.helpers.CheckListHelper;
 import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.model.ThingsCounts;
+import com.ywwynm.everythingdone.utils.SystemNotificationUtil;
 import com.ywwynm.everythingdone.utils.ThingsSorter;
 
 import java.util.ArrayList;
@@ -322,8 +324,12 @@ public class ThingManager {
     public boolean updateState(final Thing thing, int position, final long location,
                                @Thing.State final int stateBefore, @Thing.State final int stateAfter,
                                final boolean toUndo, final boolean handleNotifyEmpty) {
+        long thingId = thing.getId();
+        Thing.tryToCancelOngoing(mContext, thingId);
+
+        int thingType = thing.getType();
         if (handleNotifyEmpty &&
-                willCreateNEforOtherLimit(thing.getId(), thing.getType(), stateBefore, true)) {
+                willCreateNEforOtherLimit(thingId, thingType, stateBefore, true)) {
             updateHeader(1);
         }
 
@@ -340,10 +346,9 @@ public class ThingManager {
             }
         });
 
-        int type = thing.getType();
         boolean deletedNEnow = false;
         if (handleNotifyEmpty && !App.isSearching) {
-            deletedNEnow = deleteNEnow(type, stateAfter);
+            deletedNEnow = deleteNEnow(thingType, stateAfter);
         }
 
         if (toUndo) {
@@ -358,11 +363,10 @@ public class ThingManager {
             }
         }
 
-        long id = thing.getId();
-        if (type == Thing.GOAL) {
+        if (thingType == Thing.GOAL) {
             ReminderDAO rDao = ReminderDAO.getInstance(mContext);
             if (!toUndo && stateAfter == Thing.UNDERWAY) {
-                Reminder goal = rDao.getReminderById(id);
+                Reminder goal = rDao.getReminderById(thingId);
                 mUndoGoals.add(goal);
                 rDao.resetGoal(goal);
             } else if (toUndo && stateBefore == Thing.UNDERWAY) {
@@ -371,26 +375,26 @@ public class ThingManager {
                 mIsHandlingUndo = false;
             }
         }
-        if (type == Thing.HABIT) {
+        if (thingType == Thing.HABIT) {
             HabitDAO habitDAO = HabitDAO.getInstance(mContext);
             if (!toUndo) {
                 long curTime = System.currentTimeMillis();
                 if (stateAfter == Thing.UNDERWAY) {
-                    habitDAO.updateHabitToLatest(id, true, true);
-                    habitDAO.addHabitIntervalInfo(id, curTime + ";");
+                    habitDAO.updateHabitToLatest(thingId, true, true);
+                    habitDAO.addHabitIntervalInfo(thingId, curTime + ";");
                 } else {
-                    habitDAO.addHabitIntervalInfo(id, curTime + ",");
+                    habitDAO.addHabitIntervalInfo(thingId, curTime + ",");
                 }
             } else {
-                habitDAO.removeLastHabitIntervalInfo(id);
+                habitDAO.removeLastHabitIntervalInfo(thingId);
             }
         }
 
-        mThingsCounts.handleUpdate(type, stateBefore, type, stateAfter, 1);
+        mThingsCounts.handleUpdate(thingType, stateBefore, thingType, stateAfter, 1);
 
         boolean createdNEnow = false;
         if (handleNotifyEmpty) {
-            createdNEnow = createNEnow(type, stateBefore, !App.isSearching);
+            createdNEnow = createNEnow(thingType, stateBefore, !App.isSearching);
         }
         return deletedNEnow || createdNEnow;
     }
@@ -410,11 +414,24 @@ public class ThingManager {
      */
     public List<Integer> updateStates(
             List<Thing> things, @Thing.State final int stateBefore, @Thing.State final int stateAfter) {
+        SharedPreferences sp = mContext.getSharedPreferences(
+                Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE);
+        long curOngoingId = sp.getLong(Def.Meta.KEY_ONGOING_THING_ID, -1);
+        boolean shouldCancelOngoing = false;
+
         final List<Thing> clonedThings = new ArrayList<>();
         Thing temp;
         for (Thing thing : things) {
+            if (thing.getId() == curOngoingId) {
+                shouldCancelOngoing = true;
+            }
             temp = Thing.getSameCheckStateThing(thing, stateBefore, stateAfter);
             clonedThings.add(temp);
+        }
+
+        if (shouldCancelOngoing) {
+            SystemNotificationUtil.cancelThingOngoingNotification(mContext, curOngoingId);
+            sp.edit().putLong(Def.Meta.KEY_ONGOING_THING_ID, -1).apply();
         }
 
         mExecutor.execute(new Runnable() {

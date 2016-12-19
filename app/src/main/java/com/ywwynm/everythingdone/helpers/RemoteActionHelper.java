@@ -39,6 +39,7 @@ public class RemoteActionHelper {
                     true,  /* handleCurrentLimit */
                     false, /* toUndo             */
                     true   /* shouldUpdateHeader */);
+            Thing.tryToCancelOngoing(context, thing.getId());
         }
         updateUiEverywhere(context, thing, position, thing.getType(),
                 Def.Communication.RESULT_UPDATE_THING_STATE_DIFFERENT);

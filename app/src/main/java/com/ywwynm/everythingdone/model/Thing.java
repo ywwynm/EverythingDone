@@ -1,6 +1,7 @@
 package com.ywwynm.everythingdone.model;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.os.Parcel;
 import android.os.Parcelable;
@@ -12,6 +13,7 @@ import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
+import com.ywwynm.everythingdone.utils.SystemNotificationUtil;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -480,6 +482,16 @@ public class Thing implements Parcelable {
             return true;
         }
         return false;
+    }
+
+    public static void tryToCancelOngoing(Context context, long thingId) {
+        SharedPreferences sp = context.getSharedPreferences(
+                Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE);
+        long curOngoingId = sp.getLong(Def.Meta.KEY_ONGOING_THING_ID, -1);
+        if (curOngoingId == thingId) {
+            SystemNotificationUtil.cancelThingOngoingNotification(context, thingId);
+            sp.edit().putLong(Def.Meta.KEY_ONGOING_THING_ID, -1).apply();
+        }
     }
 
     public boolean matchSearchRequirement(String keyword, int color) {

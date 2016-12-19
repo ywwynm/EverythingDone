@@ -2427,11 +2427,13 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             dao.updateState(mThing, mThing.getLocation(), stateBefore, stateAfter, true, true,
                     false, true);
 
-            long id = mThing.getId();
+            long thingId = mThing.getId();
+            Thing.tryToCancelOngoing(this, thingId);
+
             int type = mThing.getType();
             if (type == Thing.GOAL && stateAfter == Thing.UNDERWAY) {
                 ReminderDAO reminderDAO = ReminderDAO.getInstance(mApp);
-                Reminder goal = reminderDAO.getReminderById(id);
+                Reminder goal = reminderDAO.getReminderById(thingId);
                 ThingManager.getInstance(mApp).getUndoGoals().add(goal);
                 reminderDAO.resetGoal(goal);
             }
@@ -2439,10 +2441,10 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 HabitDAO habitDAO = HabitDAO.getInstance(mApp);
                 long curTime = System.currentTimeMillis();
                 if (stateAfter == Thing.UNDERWAY) {
-                    habitDAO.updateHabitToLatest(id, true, true);
-                    habitDAO.addHabitIntervalInfo(id, curTime + ";");
+                    habitDAO.updateHabitToLatest(thingId, true, true);
+                    habitDAO.addHabitIntervalInfo(thingId, curTime + ";");
                 } else {
-                    habitDAO.addHabitIntervalInfo(id, curTime + ",");
+                    habitDAO.addHabitIntervalInfo(thingId, curTime + ",");
                 }
             }
         } else {
