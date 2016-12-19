@@ -376,19 +376,23 @@ public class SystemNotificationUtil {
         builder.setOngoing(true);
 
         @Thing.Type int thingType = thing.getType();
-        if (Thing.isReminderType(thingType)) {
-            addActionsForReminderNotification(builder, context, id, -1, thingType);
-            if (thingType == Thing.GOAL) {
-                // also add start doing action for Goal
-                Intent startIntent = new Intent(context, ReminderNotificationActionReceiver.class);
-                startIntent.setAction(Def.Communication.NOTIFICATION_ACTION_START_DOING);
-                startIntent.putExtra(Def.Communication.KEY_ID, id);
-                startIntent.putExtra(Def.Communication.KEY_POSITION, -1);
-                builder.addAction(R.drawable.act_start_doing,
-                        context.getString(R.string.act_start_doing),
-                        PendingIntent.getBroadcast(context,
-                                (int) id, startIntent, PendingIntent.FLAG_UPDATE_CURRENT));
-            }
+        if (Thing.isReminderType(thingType) || thingType == Thing.NOTE) {
+            Intent finishIntent = new Intent(context, ReminderNotificationActionReceiver.class);
+            finishIntent.setAction(Def.Communication.NOTIFICATION_ACTION_FINISH);
+            finishIntent.putExtra(Def.Communication.KEY_ID, id);
+            finishIntent.putExtra(Def.Communication.KEY_POSITION, -1);
+            builder.addAction(R.drawable.act_finish, context.getString(R.string.act_finish),
+                    PendingIntent.getBroadcast(context,
+                            (int) id, finishIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+
+            Intent startIntent = new Intent(context, ReminderNotificationActionReceiver.class);
+            startIntent.setAction(Def.Communication.NOTIFICATION_ACTION_START_DOING);
+            startIntent.putExtra(Def.Communication.KEY_ID, id);
+            startIntent.putExtra(Def.Communication.KEY_POSITION, -1);
+            builder.addAction(R.drawable.act_start_doing,
+                    context.getString(R.string.act_start_doing),
+                    PendingIntent.getBroadcast(context,
+                            (int) id, startIntent, PendingIntent.FLAG_UPDATE_CURRENT));
         } else if (thingType == Thing.HABIT) {
             Intent finishIntent = new Intent(context, HabitNotificationActionReceiver.class);
             finishIntent.setAction(Def.Communication.NOTIFICATION_ACTION_FINISH);
