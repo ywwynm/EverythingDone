@@ -398,7 +398,7 @@ public class NoticeableNotificationActivity extends EverythingDoneBaseActivity {
                         } else if (!shrunk) {
                             mRvThing.setOverScrollMode(View.OVER_SCROLL_NEVER);
                         }
-                        setFinishOnTouchOutside(true);
+                        // setFinishOnTouchOutside(true);
                     }
                 });
 
@@ -415,5 +415,12 @@ public class NoticeableNotificationActivity extends EverythingDoneBaseActivity {
                 }
             });
         }
+
+        f(R.id.fl_noticeable_notification_cancel_as_bt).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                finish();
+            }
+        });
     }
 }

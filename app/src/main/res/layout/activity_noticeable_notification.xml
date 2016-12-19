@@ -8,31 +8,55 @@
     android:orientation="vertical"
     tools:ignore="ContentDescription">
 
-    <LinearLayout
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="50dp"
+        android:paddingStart="16dp"
         android:paddingLeft="16dp"
-        android:paddingRight="16dp"
-        android:gravity="center_vertical"
-        tools:ignore="UseCompoundDrawables">
+        android:paddingEnd="4dp"
+        android:paddingRight="4dp">
 
         <ImageView
             android:id="@+id/iv_noticeable_notification_title"
             android:layout_width="18dp"
             android:layout_height="18dp"
             android:layout_marginTop="2dp"
+            android:layout_centerVertical="true"
             android:scaleType="centerInside"/>
 
         <TextView
             android:id="@+id/tv_noticeable_notification_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_toEndOf="@id/iv_noticeable_notification_title"
+            android:layout_toRightOf="@id/iv_noticeable_notification_title"
             android:layout_marginStart="8dp"
             android:layout_marginLeft="8dp"
             android:layout_marginTop="2dp"
-            android:textSize="14sp"/>
+            android:layout_centerVertical="true"
+            android:textSize="14sp"
+            tools:ignore="RelativeOverlap"/>
 
-    </LinearLayout>
+        <FrameLayout
+            android:id="@+id/fl_noticeable_notification_cancel_as_bt"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentRight="true"
+            android:layout_centerVertical="true"
+            android:background="@drawable/selectable_item_background">
+
+            <ImageView
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_gravity="center"
+                android:scaleType="centerInside"
+                android:src="@drawable/act_cancel_recording_audio"
+                android:contentDescription="@string/cd_cancel_noticeable_notification"/>
+
+        </FrameLayout>
+
+    </RelativeLayout>
 
     <!--<View-->
         <!--android:layout_width="match_parent"-->

@@ -865,6 +865,9 @@
     <string name="cd_doing_strict_mode_on">退出严格模式</string>
     <string name="cd_doing_cancel_doing">停止做这件事</string>
 
+    <!--NoticeableNotificationActivity-->
+    <string name="cd_cancel_noticeable_notification">关闭该通知</string>
+
 
 
 

@@ -876,6 +876,9 @@
     <string name="cd_doing_strict_mode_on">Exit Strict Mode</string>
     <string name="cd_doing_cancel_doing">Cancel doing this thing</string>
 
+    <!--NoticeableNotificationActivity-->
+    <string name="cd_cancel_noticeable_notification">Cancel this notification</string>
+
 
 
 
