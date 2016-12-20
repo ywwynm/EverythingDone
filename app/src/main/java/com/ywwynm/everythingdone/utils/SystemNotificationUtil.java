@@ -366,6 +366,18 @@ public class SystemNotificationUtil {
         }
     }
 
+    public static void tryToCreateThingOngoingNotification(Context context) {
+        SharedPreferences sp = context.getSharedPreferences(
+                Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE);
+        long curOngoingId = sp.getLong(Def.Meta.KEY_ONGOING_THING_ID, -1);
+        if (curOngoingId != -1) {
+            Thing thing = App.getThingAndPosition(context, curOngoingId, -1).first;
+            if (thing != null) {
+                createThingOngoingNotification(context, thing);
+            }
+        }
+    }
+
     public static void createThingOngoingNotification(Context context, Thing thing) {
         long id = thing.getId();
         NotificationCompat.Builder builder = newGeneralNotificationBuilder(

@@ -31,6 +31,8 @@ public class AppUpdateReceiver extends BroadcastReceiver {
                     SystemNotificationUtil.tryToCreateQuickCreateNotification(appContext);
                     Log.i(TAG, "Quick Create Notification created.");
 
+                    SystemNotificationUtil.tryToCreateThingOngoingNotification(appContext);
+
                     AppWidgetHelper.updateAllAppWidgets(appContext);
                     Log.i(TAG, "App widgets updated.");
 

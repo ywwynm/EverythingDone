@@ -130,6 +130,7 @@ public class App extends Application {
         mThingManager = ThingManager.getInstance(this);
 
         SystemNotificationUtil.tryToCreateQuickCreateNotification(this);
+        SystemNotificationUtil.tryToCreateThingOngoingNotification(this);
 
         mThingsToDeleteForever   = new ArrayList<>();
         mAttachmentsToDeleteFile = new ArrayList<>();
