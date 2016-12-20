@@ -370,10 +370,11 @@ public class SystemNotificationUtil {
         long id = thing.getId();
         NotificationCompat.Builder builder = newGeneralNotificationBuilder(
                 context, App.class.getName(), id, -1, thing, false);
-        builder.setPriority(Notification.PRIORITY_MIN);
-        builder.setSound(null);
-        builder.setDefaults(0);
-        builder.setOngoing(true);
+        builder.setPriority(Notification.PRIORITY_MIN)
+                .setSound(null)
+                .setDefaults(0)
+                .setOngoing(true)
+                .setAutoCancel(false);
 
         @Thing.Type int thingType = thing.getType();
         if (Thing.isReminderType(thingType) || thingType == Thing.NOTE) {
