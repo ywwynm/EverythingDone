@@ -2724,7 +2724,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             SystemNotificationUtil.createThingOngoingNotification(this, mThing);
         }
         sp.edit().putLong(Def.Meta.KEY_ONGOING_THING_ID, ongoingAfter).apply();
-        toggleOngoingActionItem(mActionbar.getMenu());
+        finish();
     }
 
     private boolean shouldSendBroadCast() {
