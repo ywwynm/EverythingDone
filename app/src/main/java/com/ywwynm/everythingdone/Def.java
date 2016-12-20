@@ -259,6 +259,9 @@ public final class Def {
         public static final String BROADCAST_ACTION_UPDATE_MAIN_UI     =
                 PREFIX + "action.broadcast.update_main_ui";
 
+        public static final String BROADCAST_ACTION_FINISH_DETAILACTIVITY =
+                PREFIX + "action.broadcast.finish_detailactivity";
+
         // added for update checklist in single thing app widget
         public static final String BROADCAST_ACTION_UPDATE_CHECKLIST   =
                 PREFIX + "action.broadcast.update_checklist";

@@ -243,23 +243,31 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     private BroadcastReceiver mReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            int resultCode = intent.getIntExtra(Def.Communication.KEY_RESULT_CODE,
-                    Def.Communication.RESULT_NO_UPDATE);
-            if (resultCode == Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME) {
-                Thing thing = intent.getParcelableExtra(Def.Communication.KEY_THING);
-                if (thing != null) {
-                    long thingId = mThing.getId();
-                    if (thing.getId() == thingId) {
-                        if (Thing.isReminderType(thing.getType())) {
-                            mReminder = ReminderDAO.getInstance(App.getApp()).getReminderById(thingId);
-                            updateBottomBarForReminder();
-                        } else if (thing.getType() == Thing.HABIT) {
-                            mHabit = HabitDAO.getInstance(App.getApp()).getHabitById(thingId);
+            String action = intent.getAction();
+            if (Def.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI.equals(action)) {
+                int resultCode = intent.getIntExtra(Def.Communication.KEY_RESULT_CODE,
+                        Def.Communication.RESULT_NO_UPDATE);
+                if (resultCode == Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME) {
+                    Thing thing = intent.getParcelableExtra(Def.Communication.KEY_THING);
+                    if (thing != null) {
+                        long thingId = mThing.getId();
+                        if (thing.getId() == thingId) {
+                            if (Thing.isReminderType(thing.getType())) {
+                                mReminder = ReminderDAO.getInstance(App.getApp()).getReminderById(thingId);
+                                updateBottomBarForReminder();
+                            } else if (thing.getType() == Thing.HABIT) {
+                                mHabit = HabitDAO.getInstance(App.getApp()).getHabitById(thingId);
+                            }
                         }
                     }
+                } else if (resultCode == Def.Communication.RESULT_DOING_OR_CANCEL) {
+                    if (mThing.getId() == App.getDoingThingId()) { // user start doing
+                        finish();
+                    }
                 }
-            } else if (resultCode == Def.Communication.RESULT_DOING_OR_CANCEL) {
-                if (mThing.getId() == App.getDoingThingId()) { // user start doing
+            } else if (Def.Communication.BROADCAST_ACTION_FINISH_DETAILACTIVITY.equals(action)) {
+                long id = intent.getLongExtra(Def.Communication.KEY_ID, -1);
+                if (mThing != null && mThing.getId() == id) {
                     finish();
                 }
             }
@@ -290,6 +298,10 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
             IntentFilter intentFilter = new IntentFilter(
                     Def.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI);
+            registerReceiver(mReceiver, intentFilter);
+
+            intentFilter = new IntentFilter(
+                    Def.Communication.BROADCAST_ACTION_FINISH_DETAILACTIVITY);
             registerReceiver(mReceiver, intentFilter);
         }
     }

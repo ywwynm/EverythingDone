@@ -134,6 +134,11 @@ public class AuthenticationActivity extends AppCompatActivity {
 
     private void actView() {
         Intent intent = getIntent();
+        long id = intent.getLongExtra(Def.Communication.KEY_ID, -1);
+        sendBroadcast(
+                new Intent(Def.Communication.BROADCAST_ACTION_FINISH_DETAILACTIVITY)
+                        .putExtra(Def.Communication.KEY_ID, id));
+
         intent.setClass(this, DetailActivity.class);
         startActivity(intent);
     }
