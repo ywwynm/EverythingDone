@@ -9,14 +9,17 @@ import android.widget.Toast;
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
+import com.ywwynm.everythingdone.activities.DoingActivity;
 import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
 import com.ywwynm.everythingdone.managers.ThingManager;
+import com.ywwynm.everythingdone.model.DoingRecord;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.Thing;
+import com.ywwynm.everythingdone.services.DoingService;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 
 /**
@@ -31,6 +34,13 @@ public class RemoteActionHelper {
     private RemoteActionHelper() {}
 
     public static void finishReminder(Context context, Thing thing, int position) {
+        if (App.getDoingThingId() == thing.getId()) {
+            DoingService.sStopReason = DoingRecord.STOP_REASON_FINISH;
+            context.sendBroadcast(new Intent(DoingActivity.BROADCAST_ACTION_JUST_FINISH));
+            context.stopService(new Intent(context, DoingService.class));
+            App.setDoingThingId(-1L);
+        }
+
         if (position == -1) {
             thing = Thing.getSameCheckStateThing(thing, Thing.UNDERWAY, Thing.FINISHED);
             ThingDAO thingDAO = ThingDAO.getInstance(context);
@@ -53,6 +63,13 @@ public class RemoteActionHelper {
         if (habit == null) {
             correctIfNoHabit(context, thing, position, typeBefore);
             return false;
+        }
+
+        if (App.getDoingThingId() == thing.getId()) {
+            DoingService.sStopReason = DoingRecord.STOP_REASON_FINISH;
+            context.sendBroadcast(new Intent(DoingActivity.BROADCAST_ACTION_JUST_FINISH));
+            context.stopService(new Intent(context, DoingService.class));
+            App.setDoingThingId(-1L);
         }
 
         boolean allowFinish;
