@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.util.Pair;
+import android.widget.Toast;
 
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
@@ -37,12 +38,12 @@ public class ReminderNotificationActionReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         String action = intent.getAction();
-        long id = intent.getLongExtra(Def.Communication.KEY_ID, 0);
+        long thingId = intent.getLongExtra(Def.Communication.KEY_ID, 0);
         NotificationManagerCompat nmc = NotificationManagerCompat.from(context);
-        nmc.cancel((int) id);
+        nmc.cancel((int) thingId);
         context.sendBroadcast(
                 new Intent(NoticeableNotificationActivity.BROADCAST_ACTION_JUST_FINISH)
-                        .putExtra(Def.Communication.KEY_ID, id));
+                        .putExtra(Def.Communication.KEY_ID, thingId));
 
         boolean matched = false;
         for (String legalAction : LEGAL_ACTIONS) {
@@ -56,54 +57,65 @@ public class ReminderNotificationActionReceiver extends BroadcastReceiver {
         }
 
         int position = intent.getIntExtra(Def.Communication.KEY_POSITION, -1);
-        Pair<Thing, Integer> pair = App.getThingAndPosition(context, id, position);
+        Pair<Thing, Integer> pair = App.getThingAndPosition(context, thingId, position);
         Thing thing = pair.first;
         if (thing == null) {
-            ReminderDAO.getInstance(context).delete(id);
+            ReminderDAO.getInstance(context).delete(thingId);
             return;
         }
         position = pair.second;
 
-        if (action.equals(Def.Communication.NOTIFICATION_ACTION_FINISH)
-                || action.equals(Def.Communication.WIDGET_ACTION_FINISH)) {
-            if (thing.isPrivate()) {
-                Intent actionIntent = AuthenticationActivity.getOpenIntent(
-                        context, TAG, id, position,
-                        Def.Communication.AUTHENTICATE_ACTION_FINISH,
-                        context.getString(R.string.act_finish));
+        switch (action) {
+            case Def.Communication.NOTIFICATION_ACTION_FINISH:
+            case Def.Communication.WIDGET_ACTION_FINISH:
+                if (thing.isPrivate()) {
+                    Intent actionIntent = AuthenticationActivity.getOpenIntent(
+                            context, TAG, thingId, position,
+                            Def.Communication.AUTHENTICATE_ACTION_FINISH,
+                            context.getString(R.string.act_finish));
+                    actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
+                    context.startActivity(actionIntent);
+                } else {
+                    RemoteActionHelper.finishReminder(context, thing, position);
+                }
+                break;
+            case Def.Communication.NOTIFICATION_ACTION_DELAY: {
+                Intent actionIntent;
+                if (thing.isPrivate()) {
+                    actionIntent = AuthenticationActivity.getOpenIntent(
+                            context, TAG, thingId, position,
+                            Def.Communication.AUTHENTICATE_ACTION_DELAY,
+                            context.getString(R.string.act_delay));
+                } else {
+                    actionIntent = DelayReminderActivity.getOpenIntent(
+                            context, thing.getId(), position, thing.getColor());
+                }
                 actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
                 context.startActivity(actionIntent);
-            } else {
-                RemoteActionHelper.finishReminder(context, thing, position);
+                break;
             }
+            case Def.Communication.NOTIFICATION_ACTION_START_DOING: {
+                if (thingId == App.getDoingThingId()) {
+                    Toast.makeText(context, R.string.start_doing_doing_this_thing,
+                            Toast.LENGTH_LONG).show();
+                    return;
+                }
 
-        } else if (action.equals(Def.Communication.NOTIFICATION_ACTION_DELAY)) {
-            Intent actionIntent;
-            if (thing.isPrivate()) {
-                actionIntent = AuthenticationActivity.getOpenIntent(
-                        context, TAG, id, position,
-                        Def.Communication.AUTHENTICATE_ACTION_DELAY,
-                        context.getString(R.string.act_delay));
-            } else {
-                actionIntent = DelayReminderActivity.getOpenIntent(
-                        context, thing.getId(), position, thing.getColor());
+                Intent actionIntent;
+                if (thing.isPrivate()) {
+                    actionIntent = AuthenticationActivity.getOpenIntent(
+                            context, TAG, thingId, position,
+                            Def.Communication.AUTHENTICATE_ACTION_START_DOING,
+                            context.getString(R.string.start_doing_full_title));
+                } else {
+                    actionIntent = StartDoingActivity.getOpenIntent(
+                            context, thing.getId(), position, thing.getColor(),
+                            DoingService.START_TYPE_ALARM, -1);
+                }
+                actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
+                context.startActivity(actionIntent);
+                break;
             }
-            actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
-            context.startActivity(actionIntent);
-        } else if (action.equals(Def.Communication.NOTIFICATION_ACTION_START_DOING)) {
-            Intent actionIntent;
-            if (thing.isPrivate()) {
-                actionIntent = AuthenticationActivity.getOpenIntent(
-                        context, TAG, id, position,
-                        Def.Communication.AUTHENTICATE_ACTION_START_DOING,
-                        context.getString(R.string.start_doing_full_title));
-            } else {
-                actionIntent = StartDoingActivity.getOpenIntent(
-                        context, thing.getId(), position, thing.getColor(),
-                        DoingService.START_TYPE_ALARM, -1);
-            }
-            actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
-            context.startActivity(actionIntent);
         }
     }
 }
