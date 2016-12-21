@@ -249,7 +249,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                         Def.Communication.RESULT_NO_UPDATE);
                 if (resultCode == Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME) {
                     Thing thing = intent.getParcelableExtra(Def.Communication.KEY_THING);
-                    if (thing != null) {
+                    if (thing != null && mThing != null) {
                         long thingId = mThing.getId();
                         if (thing.getId() == thingId) {
                             if (Thing.isReminderType(thing.getType())) {
@@ -261,7 +261,12 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                         }
                     }
                 } else if (resultCode == Def.Communication.RESULT_DOING_OR_CANCEL) {
-                    if (mThing.getId() == App.getDoingThingId()) { // user start doing
+                    if (mThing != null && mThing.getId() == App.getDoingThingId()) { // user start doing
+                        finish();
+                    }
+                } else if (resultCode == Def.Communication.RESULT_UPDATE_THING_STATE_DIFFERENT) {
+                    Thing thing = intent.getParcelableExtra(Def.Communication.KEY_THING);
+                    if (thing != null && mThing != null && thing.getId() == mThing.getId()) {
                         finish();
                     }
                 }
