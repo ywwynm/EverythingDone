@@ -149,7 +149,7 @@ public class HabitReceiver extends BroadcastReceiver {
 
             if (shouldAutoStartDoing) {
                 if (curDoingId == habitId) {
-                    Toast.makeText(context, R.string.auto_start_doing_notification_toast_doing_this,
+                    Toast.makeText(context, R.string.auto_start_doing_notification_toast_doing_habit_this,
                             Toast.LENGTH_LONG).show();
                 } else {
                     Toast.makeText(context, R.string.auto_start_doing_notification_toast_doing_another,
