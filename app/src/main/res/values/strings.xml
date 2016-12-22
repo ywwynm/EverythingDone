@@ -527,8 +527,8 @@
     <string name="start_doing_time_long_t">Estimated time is so long that you cannot finish the Habit once in this cycle</string>
     <string name="start_doing_confirm">Start doing</string>
 
-    <string name="start_doing_notification_toast_doing_this">A thing\'s alarm has come just now but you have already been doing that thing</string>
-    <string name="start_doing_notification_toast_doing_this_habit">A Habit\'s alarm has come just now but you have already been doing for that time</string>
+    <string name="start_doing_notification_toast_doing_this">EverythingDone: A thing\'s alarm has come just now but you have already been doing that thing</string>
+    <string name="start_doing_notification_toast_doing_this_habit">EverythingDone: A Habit\'s alarm has come just now but you have already been doing for that time</string>
 
     <string name="start_doing_stop_another_title">You are doing another thing</string>
     <string name="start_doing_stop_another_content">Would you want to stop doing that thing and start doing this thing?</string>
@@ -555,8 +555,8 @@
     <string name="doing_toast_already_strict_mode">You are in strict mode</string>
 
     <string name="auto_start_doing_start">Auto start doing</string>
-    <string name="auto_start_doing_notification_toast_doing_another">Try to auto start doing this thing but failed because you are doing another thing</string>
-    <string name="auto_start_doing_notification_toast_doing_this">Try to auto start doing Habit for this time but failed because you were doing it for last time just now</string>
+    <string name="auto_start_doing_notification_toast_doing_another">EverythingDone: A thing's alarm has come just now, try to auto start doing that thing but failed because you are doing another thing</string>
+    <string name="auto_start_doing_notification_toast_doing_habit_this">EverythingDone: A Habit's alarm has come just now, try to auto start doing that Habit for this time but failed because you are doing it for last time</string>
 
 
     <!--ImageViewerActivity-->
@@ -751,7 +751,7 @@
     <string name="notification_has_attachment">[Attachment]</string>
     <string name="notification_private_thing_content">[Private Thing]</string>
 
-    <string name="notification_toast_checking_when_alarm_comes">EverythingDone: A thing's alarm is coming while you are checking it</string>
+    <string name="notification_toast_checking_when_alarm_comes">EverythingDone: A thing's alarm has come just now while you are checking it</string>
     <string name="notification_toast_checking_action">You are checking this thing</string>
 
 

@@ -520,8 +520,8 @@
     <string name="start_doing_time_long_t">您預計的完成時間較長，無法在本週期內完成一次該習慣</string>
     <string name="start_doing_confirm">開始做事</string>
 
-    <string name="start_doing_notification_toast_doing_this">一件事的提醒時刻剛剛過去，而您正在做這件事</string>
-    <string name="start_doing_notification_toast_doing_this_habit">該習慣的一次提醒時刻剛剛過去，而您正在完成那一次</string>
+    <string name="start_doing_notification_toast_doing_this">完事兒：一件事的提醒時刻剛剛過去，而您正在做這件事</string>
+    <string name="start_doing_notification_toast_doing_this_habit">完事兒：該習慣的一次提醒時刻剛剛過去，而您正在完成那一次</string>
 
     <string name="start_doing_stop_another_title">您正在做另一件事</string>
     <string name="start_doing_stop_another_content">是否停止做另一件事，並開始做這件事？</string>
@@ -548,8 +548,8 @@
     <string name="doing_toast_already_strict_mode">已處於嚴格模式</string>
 
     <string name="auto_start_doing_start">自動開始做事</string>
-    <string name="auto_start_doing_notification_toast_doing_another">無法自動開始做這件事，因為您正在做另一件事</string>
-    <string name="auto_start_doing_notification_toast_doing_this">無法為這個習慣自動開始做這一次，因為您剛剛正在完成上一次</string>
+    <string name="auto_start_doing_notification_toast_doing_another">完事兒：一件事的提醒時刻剛剛過去，無法自動開始做這件事，因為您正在做另一件事</string>
+    <string name="auto_start_doing_notification_toast_doing_habit_this">完事兒：一個習慣的提醒時刻剛剛過去，無法為這個習慣自動開始做這一次，因為您剛剛正在完成上一次</string>
 
 
     <!--ImageViewerActivity-->
@@ -742,7 +742,7 @@
     <string name="notification_has_attachment">[附件]</string>
     <string name="notification_private_thing_content">[私密記事]</string>
 
-    <string name="notification_toast_checking_when_alarm_comes">完事兒：一件記事的提醒時刻已經到來，但您正在查看或編輯它</string>
+    <string name="notification_toast_checking_when_alarm_comes">完事兒：一件事的提醒時刻剛剛過去，但您正在查看或編輯它</string>
     <string name="notification_toast_checking_action">您正在查看或編輯該記事</string>
 
 

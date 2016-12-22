@@ -520,8 +520,8 @@
     <string name="start_doing_time_long_t">您预计的完成时间较长，无法在本周期内完成一次该习惯</string>
     <string name="start_doing_confirm">开始做事</string>
 
-    <string name="start_doing_notification_toast_doing_this">一件事的提醒时刻刚刚过去，而您正在做这件事</string>
-    <string name="start_doing_notification_toast_doing_this_habit">该习惯的一次提醒时刻刚刚过去，而您正在完成那一次</string>
+    <string name="start_doing_notification_toast_doing_this">完事儿：一件事的提醒时刻刚刚过去，而您正在做这件事</string>
+    <string name="start_doing_notification_toast_doing_this_habit">完事儿：该习惯的一次提醒时刻刚刚过去，而您正在完成那一次</string>
 
     <string name="start_doing_stop_another_title">您正在做另一件事</string>
     <string name="start_doing_stop_another_content">是否停止做另一件事，并开始做这件事？</string>
@@ -548,8 +548,8 @@
     <string name="doing_toast_already_strict_mode">已处于严格模式</string>
 
     <string name="auto_start_doing_start">自动开始做事</string>
-    <string name="auto_start_doing_notification_toast_doing_another">无法自动开始做这件事，因为您正在做另一件事</string>
-    <string name="auto_start_doing_notification_toast_doing_this">无法为这个习惯自动开始做这一次，因为您刚刚正在完成上一次</string>
+    <string name="auto_start_doing_notification_toast_doing_another">完事儿：一件事的提醒时刻刚刚过去，无法自动开始做这件事，因为您正在做另一件事</string>
+    <string name="auto_start_doing_notification_toast_doing_habit_this">完事儿：一个习惯的提醒时刻刚刚过去，无法为这个习惯自动开始做这一次，因为您刚刚正在完成上一次</string>
 
 
     <!--ImageViewerActivity-->
@@ -742,7 +742,7 @@
     <string name="notification_has_attachment">[附件]</string>
     <string name="notification_private_thing_content">[私密记事]</string>
 
-    <string name="notification_toast_checking_when_alarm_comes">完事儿：一件记事的提醒时刻已经到来，但您正在查看或编辑它</string>
+    <string name="notification_toast_checking_when_alarm_comes">完事儿：一件事的提醒时刻刚刚过去，但您正在查看或编辑它</string>
     <string name="notification_toast_checking_action">您正在查看或编辑该记事</string>
 
 
