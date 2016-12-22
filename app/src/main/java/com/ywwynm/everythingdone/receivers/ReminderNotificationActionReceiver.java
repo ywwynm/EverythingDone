@@ -56,6 +56,12 @@ public class ReminderNotificationActionReceiver extends BroadcastReceiver {
             return;
         }
 
+        for (Long dId : App.getRunningDetailActivities()) if (dId == thingId) {
+            Toast.makeText(context, R.string.notification_toast_checking_action,
+                    Toast.LENGTH_LONG).show();
+            return;
+        }
+
         int position = intent.getIntExtra(Def.Communication.KEY_POSITION, -1);
         Pair<Thing, Integer> pair = App.getThingAndPosition(context, thingId, position);
         Thing thing = pair.first;

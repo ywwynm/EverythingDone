@@ -122,6 +122,8 @@ public class HabitReceiver extends BroadcastReceiver {
             for (Long rThingId : runningDetailActivities) {
                 if (rThingId == habitId) {
                     updateHabitRecordTimesAndUi(context, hrId, thing, position);
+                    Toast.makeText(context, R.string.notification_toast_checking_when_alarm_comes,
+                            Toast.LENGTH_LONG).show();
                     return;
                 }
             }

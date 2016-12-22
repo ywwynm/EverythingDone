@@ -45,12 +45,13 @@ public class HabitNotificationActionReceiver extends BroadcastReceiver {
             nmc.cancel((int) hrId);
         }
 
-        int position = intent.getIntExtra(Def.Communication.KEY_POSITION, -1);
-        for (Long dId : App.getRunningDetailActivities()) if (dId == id) {
-            // TODO: 2016/12/13 toast user
+        for (Long dId : App.getRunningDetailActivities()) if (dId == thingId) {
+            Toast.makeText(context, R.string.notification_toast_checking_action,
+                    Toast.LENGTH_LONG).show();
             return;
         }
 
+        int position = intent.getIntExtra(Def.Communication.KEY_POSITION, -1);
         Pair<Thing, Integer> pair = App.getThingAndPosition(context, thingId, position);
         Thing thing = pair.first;
         if (thing == null) {

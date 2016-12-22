@@ -742,6 +742,9 @@
     <string name="notification_has_attachment">[附件]</string>
     <string name="notification_private_thing_content">[私密记事]</string>
 
+    <string name="notification_toast_checking_when_alarm_comes">完事儿：一件记事的提醒时刻已经到来，但您正在查看或编辑它</string>
+    <string name="notification_toast_checking_action">您正在查看或编辑该记事</string>
+
 
     <!--App crash-->
     <string name="app_crash_title">完事儿刚刚好像爆炸了QAQ</string>

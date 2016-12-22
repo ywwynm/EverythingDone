@@ -751,6 +751,9 @@
     <string name="notification_has_attachment">[Attachment]</string>
     <string name="notification_private_thing_content">[Private Thing]</string>
 
+    <string name="notification_toast_checking_when_alarm_comes">EverythingDone: A thing's alarm is coming while you are checking it</string>
+    <string name="notification_toast_checking_action">You are checking this thing</string>
+
 
     <!--App crash-->
     <string name="app_crash_title">Crash detected</string>

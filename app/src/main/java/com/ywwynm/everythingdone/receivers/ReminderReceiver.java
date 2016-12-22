@@ -74,6 +74,8 @@ public class ReminderReceiver extends BroadcastReceiver {
                             Reminder.REMINDED : Reminder.EXPIRED;
                     updateReminderState(reminder, reminderDAO, context, thing, position,
                             typeBefore, reminderStateAfter);
+                    Toast.makeText(context, R.string.notification_toast_checking_when_alarm_comes,
+                            Toast.LENGTH_LONG).show();
                     return;
                 }
             }
