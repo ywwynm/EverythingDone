@@ -8,6 +8,7 @@ import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
+import android.os.PowerManager;
 import android.support.annotation.IntDef;
 import android.support.annotation.Nullable;
 import android.util.Log;
@@ -119,6 +120,8 @@ public class DoingService extends Service {
     private boolean mStartHighlighted = false;
     private boolean mEndHighlighted = false;
 
+    private PowerManager.WakeLock mWakeLock;
+
     private Handler mHandler = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(Message message) {
@@ -168,6 +171,11 @@ public class DoingService extends Service {
 
                 if (doingState == STATE_DOING) {
                     mHandler.sendEmptyMessageDelayed(96, 1000);
+                    if (mWakeLock != null && !mWakeLock.isHeld()) {
+                        mWakeLock.acquire();
+                    }
+                } else if (mWakeLock != null && mWakeLock.isHeld()) {
+                    mWakeLock.release();
                 }
                 return true;
             }
@@ -269,6 +277,9 @@ public class DoingService extends Service {
             return super.onStartCommand(null, flags, startId);
         }
 
+        PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
+        mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
+
         mThing = new Thing(thing);
 
         if (mThing.getType() == Thing.HABIT) {
@@ -353,6 +364,11 @@ public class DoingService extends Service {
         mThing = null;
         mHandler = null;
         mDoingListener = null;
+
+        if (mWakeLock != null && mWakeLock.isHeld()) {
+            mWakeLock.release();
+        }
+        mWakeLock = null;
 
         Log.i(TAG, "onDestroy() end");
     }
