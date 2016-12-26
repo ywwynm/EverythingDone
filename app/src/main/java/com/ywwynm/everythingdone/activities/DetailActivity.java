@@ -2417,6 +2417,11 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         AppWidgetHelper.updateSingleThingAppWidgets(this, mThing.getId());
         AppWidgetHelper.updateThingsListAppWidgetsForType(this, mThing.getType());
 
+        if (resultCode == Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME
+                || resultCode == Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_DIFFERENT) {
+            SystemNotificationUtil.tryToCreateThingOngoingNotification(this);
+        }
+
         finish();
     }
 
