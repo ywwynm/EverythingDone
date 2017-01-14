@@ -22,12 +22,14 @@
     <color name="my_purple">#665696</color>
 
     <array name="thing_dark">
-        <item>#3A4B53</item> <!-- blue_grey_500 -->
-        <item>#006A77</item> <!-- my_cyan -->
-        <item>#203D50</item> <!-- blue_grey_deep_blue -->
-        <item>#202A34</item> <!-- blue_grey_deep_grey -->
-        <item>#5A4740</item> <!-- brown -->
-        <item>#123D5C</item> <!-- blue_deep -->
+        <item>#526B77</item> <!-- blue_grey_500 -->
+        <item>#0098AA</item> <!-- my_cyan -->
+        <item>#2E5873</item> <!-- blue_grey_deep_blue -->
+        <item>#2E3C4A</item> <!-- blue_grey_deep_grey -->
+        <item>#81655C</item> <!-- brown -->
+        <item>#135281</item> <!-- blue_deep -->
+        <item>#1C8F64</item> <!-- pine_green -->
+        <item>#584A81</item> <!-- my_purple -->
     </array>
 
     <array name="thing_light">
@@ -37,7 +39,7 @@
         <item>#C0C4C8</item> <!-- blue_grey_deep_grey -->
         <item>#D8D0CD</item> <!-- brown -->
         <item>#B8CAD8</item> <!-- blue_deep -->
-        <item>#C6E8DB</item> <!-- pine green -->
+        <item>#C6E8DB</item> <!-- pine_green -->
         <item>#D7D3E4</item> <!-- my_purple -->
     </array>
 
