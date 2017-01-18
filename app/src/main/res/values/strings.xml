@@ -191,6 +191,9 @@
     <string name="videos">video</string>
     <string name="audios">audio</string>
 
+    <!--checklist-->
+    <string name="some_checklist_items_finished">%1$d items finished</string>
+
     <!--color-->
     <string-array name="thing_colors_names">
         <item>@string/blue_grey_500</item>
@@ -684,6 +687,8 @@
     <!--quick create-->
     <string name="quick_create_title">Create new thing quickly</string>
     <string name="quick_create_description">Show an ongoing notification to provide quick-create access</string>
+    <!--noticeable notification-->
+    <string name="close_notification_later">Don\'t allow closing noticeable notification until 2 seconds after it showed</string>
     <!--automatic reminder-->
     <string name="auto_notify">Automatic Reminder</string>
     <string name="auto_notify_help_info">EverythingDone will automatically remind you after a new thing is created. If you didn\'t create a Record, EverythingDone will decide if automatic reminder should be set according to the thing\'s remind time.</string>

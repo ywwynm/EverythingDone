@@ -187,7 +187,7 @@
     <string name="audios">段音频</string>
 
     <!--checklist-->
-    <string name="some_checklist_items_finished" translatable="false">已完成%1$d项</string>
+    <string name="some_checklist_items_finished">已完成%1$d项</string>
 
     <!--color-->
     <string-array name="thing_colors_names">
@@ -680,6 +680,8 @@
     <!--quick create-->
     <string name="quick_create_title">快速创建记事</string>
     <string name="quick_create_description">显示一个常驻通知栏的通知，作为快速创建记事的入口</string>
+    <!--noticeable notification-->
+    <string name="close_notification_later">启用更突出的提醒时，两秒后才允许关闭提醒</string>
     <!--automatic reminder-->
     <string name="auto_notify">自动提醒</string>
     <string name="auto_notify_help_info">设置一个时间，完事儿将会在您创建每件记事的相应时间后自动地提醒您。如果您创建的不是记录，完事儿将会根据其提醒时刻，智能地决定是否自动提醒。</string>

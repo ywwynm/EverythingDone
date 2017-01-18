@@ -47,6 +47,9 @@ public class FrequentSettings {
         boolean twiceBack = sp.getBoolean(Def.Meta.KEY_TWICE_BACK, false);
         settingsMap.put(Def.Meta.KEY_TWICE_BACK, twiceBack);
 
+        boolean closeLater = sp.getBoolean(Def.Meta.KEY_CLOSE_NOTIFICATION_LATER, false);
+        settingsMap.put(Def.Meta.KEY_CLOSE_NOTIFICATION_LATER, closeLater);
+
         long curOngoingId = sp.getLong(Def.Meta.KEY_ONGOING_THING_ID, -1);
         settingsMap.put(Def.Meta.KEY_ONGOING_THING_ID, curOngoingId);
     }

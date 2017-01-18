@@ -148,6 +148,8 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     // group advanced
     private CheckBox mCbQuickCreate;
 
+    private CheckBox mCbCloseNotificationLater;
+
     private static List<String>   sANItems;
     private int                   mANPicked;
     private TextView              mTvAN;
@@ -421,6 +423,8 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
         // advanced
         mCbQuickCreate = f(R.id.cb_quick_create);
+
+        mCbCloseNotificationLater = f(R.id.cb_close_notification_later);
 
         mTvAN = f(R.id.tv_advanced_auto_notify_time);
 
@@ -931,6 +935,13 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     private void setAdvancedEvents() {
         setQuickCreateEvents();
 
+        f(R.id.rl_close_notification_later_as_bt).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mCbCloseNotificationLater.setChecked(!mCbCloseNotificationLater.isChecked());
+            }
+        });
+
         f(R.id.ll_advanced_auto_notify_as_bt).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -1310,6 +1321,10 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
         // advanced
         editor.putBoolean(Def.Meta.KEY_QUICK_CREATE, mCbQuickCreate.isChecked());
+
+        boolean closeLater = mCbCloseNotificationLater.isChecked();
+        FrequentSettings.put(Def.Meta.KEY_CLOSE_NOTIFICATION_LATER, closeLater);
+        editor.putBoolean(Def.Meta.KEY_CLOSE_NOTIFICATION_LATER, closeLater);
 
         editor.putInt(Def.Meta.KEY_AUTO_NOTIFY, mANPicked);
 
