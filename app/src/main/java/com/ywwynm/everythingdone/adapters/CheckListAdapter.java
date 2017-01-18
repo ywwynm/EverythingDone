@@ -20,7 +20,7 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.ywwynm.everythingdone.App;
-import com.ywwynm.everythingdone.AppSettings;
+import com.ywwynm.everythingdone.FrequentSettings;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
@@ -174,7 +174,7 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
             mItems.remove("3");
             mItems.remove("4");
 
-            if (AppSettings.getBoolean(Def.Meta.KEY_SIMPLE_FCLI)) {
+            if (FrequentSettings.getBoolean(Def.Meta.KEY_SIMPLE_FCLI)) {
                 int firstFinishedIndex = -1, size = mItems.size();
                 for (int i = 0; i < size; i++) {
                     if (mItems.get(i).startsWith("1")) {
@@ -262,7 +262,7 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
                     } else {
                         holder.tv.setTextColor(black_50p);
                     }
-                    if (AppSettings.getBoolean(Def.Meta.KEY_SIMPLE_FCLI)) {
+                    if (FrequentSettings.getBoolean(Def.Meta.KEY_SIMPLE_FCLI)) {
                         holder.tv.setPaintFlags(flag & ~Paint.STRIKE_THRU_TEXT_FLAG);
                     } else {
                         holder.tv.setPaintFlags(flag | Paint.STRIKE_THRU_TEXT_FLAG);

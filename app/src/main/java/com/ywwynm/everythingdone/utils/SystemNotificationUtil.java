@@ -18,6 +18,7 @@ import android.support.v4.content.FileProvider;
 
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
+import com.ywwynm.everythingdone.FrequentSettings;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.AuthenticationActivity;
 import com.ywwynm.everythingdone.activities.DetailActivity;
@@ -367,9 +368,7 @@ public class SystemNotificationUtil {
     }
 
     public static void tryToCreateThingOngoingNotification(Context context) {
-        SharedPreferences sp = context.getSharedPreferences(
-                Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE);
-        long curOngoingId = sp.getLong(Def.Meta.KEY_ONGOING_THING_ID, -1);
+        long curOngoingId = FrequentSettings.getLong(Def.Meta.KEY_ONGOING_THING_ID);
         if (curOngoingId != -1) {
             Thing thing = App.getThingAndPosition(context, curOngoingId, -1).first;
             if (thing != null) {

@@ -35,6 +35,7 @@ import android.widget.Toast;
 
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
+import com.ywwynm.everythingdone.FrequentSettings;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper;
 import com.ywwynm.everythingdone.database.HabitDAO;
@@ -458,7 +459,9 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             mTvDrawerHeader.setText(header);
         }
 
-        mTvLanguage.setText(LocaleUtil.getLanguageDescription(LocaleUtil.getMyLanguageCode()));
+        String languageCode = FrequentSettings.getString(
+                Def.Meta.KEY_LANGUAGE_CODE, LocaleUtil.LANGUAGE_CODE_FOLLOW_SYSTEM + "_");
+        mTvLanguage.setText(LocaleUtil.getLanguageDescription(languageCode));
 
         boolean nn = mPreferences.getBoolean(Def.Meta.KEY_NOTICEABLE_NOTIFICATION, true);
         mCbNn.setChecked(nn);
@@ -1034,8 +1037,9 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                     return;
                 }
                 Context context = SettingsActivity.this;
-                mPreferences.edit().putString(Def.Meta.KEY_LANGUAGE_CODE,
-                        resources.getStringArray(R.array.language_codes)[pickedIndex]).commit();
+                String newLanguageCode = resources.getStringArray(R.array.language_codes)[pickedIndex];
+                FrequentSettings.put(Def.Meta.KEY_LANGUAGE_CODE, newLanguageCode);
+                mPreferences.edit().putString(Def.Meta.KEY_LANGUAGE_CODE, newLanguageCode).commit();
                 if (App.getDoingThingId() != -1) {
                     Toast.makeText(context, R.string.doing_failed_change_language,
                             Toast.LENGTH_LONG).show();
@@ -1263,6 +1267,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
         boolean toggleCliOtc = mCbToggleCli.isChecked();
         editor.putBoolean(Def.Meta.KEY_TOGGLE_CLI_OTC, toggleCliOtc);
+        FrequentSettings.put(Def.Meta.KEY_TOGGLE_CLI_OTC, toggleCliOtc);
         if (toggleCliOtc != mToggleCliOtc) {
             // set or unset Checklist items listeners for ThingsAdapter in ThingsActivity
             App.setJustNotifyAll(true);
@@ -1270,13 +1275,18 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
         boolean simpleFCli = mCbSimpleFCli.isChecked();
         editor.putBoolean(Def.Meta.KEY_SIMPLE_FCLI, simpleFCli);
+        FrequentSettings.put(Def.Meta.KEY_SIMPLE_FCLI, simpleFCli);
         if (simpleFCli != mSimpleFCli) {
             App.setJustNotifyAll(true);
         }
 
-        editor.putBoolean(Def.Meta.KEY_AUTO_LINK, mCbAutoLink.isChecked());
+        boolean autoLink = mCbAutoLink.isChecked();
+        FrequentSettings.put(Def.Meta.KEY_AUTO_LINK, autoLink);
+        editor.putBoolean(Def.Meta.KEY_AUTO_LINK, autoLink);
 
-        editor.putBoolean(Def.Meta.KEY_TWICE_BACK, mCbTwiceBack.isChecked());
+        boolean twiceBack = mCbTwiceBack.isChecked();
+        FrequentSettings.put(Def.Meta.KEY_TWICE_BACK, twiceBack);
+        editor.putBoolean(Def.Meta.KEY_TWICE_BACK, twiceBack);
 
         // ringtone
         for (int i = 0; i < mChosenRingtoneUris.length; i++) {
