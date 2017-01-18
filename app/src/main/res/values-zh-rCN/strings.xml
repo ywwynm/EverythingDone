@@ -186,6 +186,9 @@
     <string name="videos">个视频</string>
     <string name="audios">段音频</string>
 
+    <!--checklist-->
+    <string name="some_checklist_items_finished" translatable="false">已完成%1$d项</string>
+
     <!--color-->
     <string-array name="thing_colors_names">
         <item>@string/blue_grey_500</item>
@@ -586,6 +589,7 @@
     <string name="follow_system_settings">跟随系统设置</string>
     <string name="settings_noticeable_notification">更突出的记事提醒通知</string>
     <string name="settings_toggle_checklist_thing_card">在记事卡片中调整清单项的勾选状态</string>
+    <string name="settings_simple_finished_checklist">在正在进行的记事卡片中折叠已完成的清单项</string>
     <string name="settings_auto_link">查看记事时，自动为电话号码、网页地址等添加链接</string>
     <string name="settings_twice_back">按两次返回键退出应用</string>
 

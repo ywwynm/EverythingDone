@@ -171,8 +171,22 @@ public class ThingsAdapter extends BaseThingsAdapter {
             adapter.setTvItemClickCallback(new CheckListAdapter.TvItemClickCallback() {
                 @Override
                 public void onItemClick(int itemPos) {
-                    String updatedContent = CheckListHelper.toggleChecklistItem(
-                            thing.getContent(), itemPos);
+                    SharedPreferences sp = mApp.getSharedPreferences(
+                            Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE);
+                    boolean simpleFCli = sp.getBoolean(Def.Meta.KEY_SIMPLE_FCLI, false);
+                    String content = thing.getContent();
+                    if (simpleFCli) {
+                        List<String> items = CheckListHelper.toCheckListItems(content, false);
+                        items.remove("2");
+                        items.remove("3");
+                        items.remove("4");
+                        if (itemPos < 0 || itemPos >= items.size()
+                                || items.get(itemPos).startsWith("1")) {
+                            return;
+                        }
+                    }
+
+                    String updatedContent = CheckListHelper.toggleChecklistItem(content, itemPos);
                     thing.setContent(updatedContent);
                     int typeBefore = thing.getType();
                     int thingPos = holder.getAdapterPosition();

@@ -97,6 +97,9 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     private CheckBox mCbToggleCli; // toggle checklist item
     private boolean  mToggleCliOtc;
 
+    private CheckBox mCbSimpleFCli; // simple finished checklist item
+    private boolean  mSimpleFCli;
+
     private CheckBox mCbAutoLink;
 
     private CheckBox mCbTwiceBack;
@@ -373,7 +376,8 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
         mCbNn = f(R.id.cb_noticeable_notification);
 
-        mCbToggleCli = f(R.id.cb_toggle_checklist);
+        mCbToggleCli  = f(R.id.cb_toggle_checklist);
+        mCbSimpleFCli = f(R.id.cb_simple_finished_checklist);
 
         mCbAutoLink = f(R.id.cb_auto_link);
 
@@ -461,6 +465,9 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
         mToggleCliOtc = mPreferences.getBoolean(Def.Meta.KEY_TOGGLE_CLI_OTC, false);
         mCbToggleCli.setChecked(mToggleCliOtc);
+
+        mSimpleFCli = mPreferences.getBoolean(Def.Meta.KEY_SIMPLE_FCLI, false);
+        mCbSimpleFCli.setChecked(mSimpleFCli);
 
         boolean autoLink = mPreferences.getBoolean(Def.Meta.KEY_AUTO_LINK, true);
         mCbAutoLink.setChecked(autoLink);
@@ -677,6 +684,13 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             @Override
             public void onClick(View v) {
                 mCbToggleCli.setChecked(!mCbToggleCli.isChecked());
+            }
+        });
+
+        f(R.id.rl_simple_finished_checklist_as_bt).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mCbSimpleFCli.setChecked(!mCbSimpleFCli.isChecked());
             }
         });
 
@@ -1251,6 +1265,12 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         editor.putBoolean(Def.Meta.KEY_TOGGLE_CLI_OTC, toggleCliOtc);
         if (toggleCliOtc != mToggleCliOtc) {
             // set or unset Checklist items listeners for ThingsAdapter in ThingsActivity
+            App.setJustNotifyAll(true);
+        }
+
+        boolean simpleFCli = mCbSimpleFCli.isChecked();
+        editor.putBoolean(Def.Meta.KEY_SIMPLE_FCLI, simpleFCli);
+        if (simpleFCli != mSimpleFCli) {
             App.setJustNotifyAll(true);
         }
 

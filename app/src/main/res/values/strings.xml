@@ -593,6 +593,7 @@
     <string name="follow_system_settings">Follow System</string>
     <string name="settings_noticeable_notification">More noticeable alarm notification</string>
     <string name="settings_toggle_checklist_thing_card">Toggle checklist item on thing card</string>
+    <string name="settings_simple_finished_checklist">Fold finished checklist items on underway thing card</string>
     <string name="settings_auto_link">Automatically link phone number, web page and more when checking a thing</string>
     <string name="settings_twice_back">Press Back twice to exit</string>
 

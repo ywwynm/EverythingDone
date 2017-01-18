@@ -186,6 +186,9 @@
     <string name="videos">個影片</string>
     <string name="audios">段音頻</string>
 
+    <!--checklist-->
+    <string name="some_checklist_items_finished" translatable="false">已完成%1$d項</string>
+
     <!--color-->
     <string-array name="thing_colors_names">
         <item>@string/blue_grey_500</item>
@@ -586,6 +589,7 @@
     <string name="follow_system_settings">跟隨系統設定</string>
     <string name="settings_noticeable_notification">更突出的記事提醒通知</string>
     <string name="settings_toggle_checklist_thing_card">在記事卡片中調整清單項的勾選狀態</string>
+    <string name="settings_simple_finished_checklist">在正在進行的記事卡片中折疊已完成的清單項</string>
     <string name="settings_auto_link">查看記事時，自動為電話號碼、網頁地址等添加鏈接</string>
     <string name="settings_twice_back">按兩次返回鍵退出程式</string>
 

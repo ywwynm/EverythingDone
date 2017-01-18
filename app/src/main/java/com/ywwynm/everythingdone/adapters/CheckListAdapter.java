@@ -20,12 +20,17 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.ywwynm.everythingdone.App;
+import com.ywwynm.everythingdone.AppSettings;
+import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.KeyboardUtil;
+import com.ywwynm.everythingdone.utils.LocaleUtil;
 
 import java.util.List;
+
+import static com.ywwynm.everythingdone.R.string.finished;
 
 /**
  * Created by ywwynm on 2015/9/17.
@@ -168,6 +173,32 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
             mItems.remove("2");
             mItems.remove("3");
             mItems.remove("4");
+
+            if (AppSettings.getBoolean(Def.Meta.KEY_SIMPLE_FCLI)) {
+                int firstFinishedIndex = -1, size = mItems.size();
+                for (int i = 0; i < size; i++) {
+                    if (mItems.get(i).startsWith("1")) {
+                        firstFinishedIndex = i;
+                        break;
+                    }
+                }
+                if (firstFinishedIndex != -1) {
+                    int finishedCount = size - firstFinishedIndex;
+                    for (int i = firstFinishedIndex; i < size; i++) {
+                        mItems.remove(firstFinishedIndex);
+                    }
+                    String newItem = "1";
+                    if (LocaleUtil.isChinese(mContext)) {
+                        String str = mContext.getString(R.string.some_checklist_items_finished);
+                        newItem += String.format(str, finishedCount);
+                    } else {
+                        newItem += finishedCount + " item";
+                        if (finishedCount > 1) newItem += "s";
+                        newItem += " finished";
+                    }
+                    mItems.add(newItem);
+                }
+            }
         }
     }
 
@@ -231,7 +262,11 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
                     } else {
                         holder.tv.setTextColor(black_50p);
                     }
-                    holder.tv.setPaintFlags(flag | Paint.STRIKE_THRU_TEXT_FLAG);
+                    if (AppSettings.getBoolean(Def.Meta.KEY_SIMPLE_FCLI)) {
+                        holder.tv.setPaintFlags(flag & ~Paint.STRIKE_THRU_TEXT_FLAG);
+                    } else {
+                        holder.tv.setPaintFlags(flag | Paint.STRIKE_THRU_TEXT_FLAG);
+                    }
                 }
 
                 int size = mItems.size();
@@ -318,7 +353,7 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
                 holder.ivState.setContentDescription(
                         mContext.getString(R.string.cd_checklist_finished_items));
                 holder.et.setEnabled(false);
-                holder.et.setText(mContext.getString(R.string.finished));
+                holder.et.setText(mContext.getString(finished));
                 holder.et.setTextColor(white_50p);
                 holder.et.setTextSize(16);
                 holder.et.getPaint().setTextSkewX(-0.20f);

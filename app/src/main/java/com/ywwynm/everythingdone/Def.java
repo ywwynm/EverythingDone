@@ -40,6 +40,7 @@ public final class Def {
         public static final String KEY_NOTICEABLE_NOTIFICATION = "noticeable_notification"; // 2016/11/9
         // toggle checklist item on thing card
         public static final String KEY_TOGGLE_CLI_OTC          = "toggle_cli_otc";
+        public static final String KEY_SIMPLE_FCLI             = "simple_fcli";
         public static final String KEY_AUTO_LINK               = "auto_link"; // 2016/11/11
         public static final String KEY_TWICE_BACK              = "twice_back";
         public static final String KEY_LANGUAGE_CODE           = "language_code";
