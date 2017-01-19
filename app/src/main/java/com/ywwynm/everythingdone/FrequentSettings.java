@@ -66,7 +66,9 @@ public class FrequentSettings {
         if (settingsMap.containsKey(key)) {
             return (boolean) settingsMap.get(key);
         } else {
-            return getBooleanFromSp(key, defValue);
+            boolean value = getBooleanFromSp(key, defValue);
+            put(key, value);
+            return value;
         }
     }
 
@@ -78,7 +80,9 @@ public class FrequentSettings {
         if (settingsMap.containsKey(key)) {
             return (Long) settingsMap.get(key);
         } else {
-            return getLongFromSp(key, defValue);
+            long value = getLongFromSp(key, defValue);
+            put(key, value);
+            return value;
         }
     }
 
@@ -86,7 +90,9 @@ public class FrequentSettings {
         if (settingsMap.containsKey(key)) {
             return (String) settingsMap.get(key);
         } else {
-            return getStringFromSp(key, defValue);
+            String value = getStringFromSp(key, defValue);
+            put(key, value);
+            return value;
         }
     }
 
