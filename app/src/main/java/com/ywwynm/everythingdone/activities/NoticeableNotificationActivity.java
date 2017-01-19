@@ -390,17 +390,37 @@ public class NoticeableNotificationActivity extends EverythingDoneBaseActivity {
             mFlCancelAsBt.setAlpha(0);
             mFlCancelAsBt.setVisibility(View.GONE);
 
-            mTvTitle.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    for (int i = 0; i < size; i++) {
-                        mFlActions[i].setVisibility(View.VISIBLE);
-                        mFlActions[i].animate().alpha(1).setDuration(360).start();
-                    }
-                    mFlCancelAsBt.setVisibility(View.VISIBLE);
-                    mFlCancelAsBt.animate().alpha(1).setDuration(360).start();
+            if (DeviceUtil.isScreenOn(this)) {
+                animateActionsVisible();
+            } else {
+                mShouldShowActionsInOnResume = true;
+            }
+        }
+    }
+
+    private void animateActionsVisible() {
+        mTvTitle.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                for (int i = 0; i < mActions.size(); i++) {
+                    mFlActions[i].setVisibility(View.VISIBLE);
+                    mFlActions[i].animate().alpha(1).setDuration(360).start();
                 }
-            }, 3000);
+                mFlCancelAsBt.setVisibility(View.VISIBLE);
+                mFlCancelAsBt.animate().alpha(1).setDuration(360).start();
+            }
+        }, 3000);
+    }
+
+    private boolean mShouldShowActionsInOnResume = false;
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        if (DeviceUtil.isScreenOn(this) && mShouldShowActionsInOnResume) {
+            animateActionsVisible();
+            mShouldShowActionsInOnResume = false;
         }
     }
 
