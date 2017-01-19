@@ -409,7 +409,7 @@ public class NoticeableNotificationActivity extends EverythingDoneBaseActivity {
                 mFlCancelAsBt.setVisibility(View.VISIBLE);
                 mFlCancelAsBt.animate().alpha(1).setDuration(360).start();
             }
-        }, 3000);
+        }, 2000);
     }
 
     private boolean mShouldShowActionsInOnResume = false;
