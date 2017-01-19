@@ -613,6 +613,9 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         boolean qc = mPreferences.getBoolean(Def.Meta.KEY_QUICK_CREATE, true);
         mCbQuickCreate.setChecked(qc);
 
+        boolean closeLater = mPreferences.getBoolean(Def.Meta.KEY_CLOSE_NOTIFICATION_LATER, false);
+        mCbCloseNotificationLater.setChecked(closeLater);
+
         // auto notify
         int index = mPreferences.getInt(Def.Meta.KEY_AUTO_NOTIFY, 0);
         if (index == 0) {
