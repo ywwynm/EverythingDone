@@ -681,7 +681,7 @@
     <string name="quick_create_title">快速建立記事</string>
     <string name="quick_create_description">顯示一個常駐通知欄的通知，作為快速建立記事的入口</string>
     <!--noticeable notification-->
-    <string name="close_notification_later">啟用更突出的提醒時，兩秒後才允許關閉提醒</string>
+    <string name="close_notification_later">啟用更突出的提醒時，三秒後才允許關閉提醒</string>
     <!--automatic reminder-->
     <string name="auto_notify">自動提醒</string>
     <string name="auto_notify_help_info">設定一個時間，完事兒將會在您建立每件記事的相應時間後自動地提醒您。如果您建立的不是記錄，完事兒將會根據其提醒時刻，智能地決定是否自動提醒。</string>
