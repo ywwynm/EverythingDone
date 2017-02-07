@@ -35,6 +35,7 @@ import android.widget.Toast;
 
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
+import com.ywwynm.everythingdone.FrequentSettings;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper;
 import com.ywwynm.everythingdone.database.HabitDAO;
@@ -97,6 +98,9 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     private CheckBox mCbToggleCli; // toggle checklist item
     private boolean  mToggleCliOtc;
 
+    private CheckBox mCbSimpleFCli; // simple finished checklist item
+    private boolean  mSimpleFCli;
+
     private CheckBox mCbAutoLink;
 
     private CheckBox mCbTwiceBack;
@@ -143,6 +147,8 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
     // group advanced
     private CheckBox mCbQuickCreate;
+
+    private CheckBox mCbCloseNotificationLater;
 
     private static List<String>   sANItems;
     private int                   mANPicked;
@@ -373,7 +379,8 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
         mCbNn = f(R.id.cb_noticeable_notification);
 
-        mCbToggleCli = f(R.id.cb_toggle_checklist);
+        mCbToggleCli  = f(R.id.cb_toggle_checklist);
+        mCbSimpleFCli = f(R.id.cb_simple_finished_checklist);
 
         mCbAutoLink = f(R.id.cb_auto_link);
 
@@ -417,6 +424,8 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         // advanced
         mCbQuickCreate = f(R.id.cb_quick_create);
 
+        mCbCloseNotificationLater = f(R.id.cb_close_notification_later);
+
         mTvAN = f(R.id.tv_advanced_auto_notify_time);
 
         mLlANRingtoneAsBt  = f(R.id.ll_ringtone_auto_notify_as_bt);
@@ -454,13 +463,18 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             mTvDrawerHeader.setText(header);
         }
 
-        mTvLanguage.setText(LocaleUtil.getLanguageDescription(LocaleUtil.getMyLanguageCode()));
+        String languageCode = FrequentSettings.getString(
+                Def.Meta.KEY_LANGUAGE_CODE, LocaleUtil.LANGUAGE_CODE_FOLLOW_SYSTEM + "_");
+        mTvLanguage.setText(LocaleUtil.getLanguageDescription(languageCode));
 
         boolean nn = mPreferences.getBoolean(Def.Meta.KEY_NOTICEABLE_NOTIFICATION, true);
         mCbNn.setChecked(nn);
 
         mToggleCliOtc = mPreferences.getBoolean(Def.Meta.KEY_TOGGLE_CLI_OTC, false);
         mCbToggleCli.setChecked(mToggleCliOtc);
+
+        mSimpleFCli = mPreferences.getBoolean(Def.Meta.KEY_SIMPLE_FCLI, false);
+        mCbSimpleFCli.setChecked(mSimpleFCli);
 
         boolean autoLink = mPreferences.getBoolean(Def.Meta.KEY_AUTO_LINK, true);
         mCbAutoLink.setChecked(autoLink);
@@ -599,6 +613,9 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         boolean qc = mPreferences.getBoolean(Def.Meta.KEY_QUICK_CREATE, true);
         mCbQuickCreate.setChecked(qc);
 
+        boolean closeLater = mPreferences.getBoolean(Def.Meta.KEY_CLOSE_NOTIFICATION_LATER, false);
+        mCbCloseNotificationLater.setChecked(closeLater);
+
         // auto notify
         int index = mPreferences.getInt(Def.Meta.KEY_AUTO_NOTIFY, 0);
         if (index == 0) {
@@ -677,6 +694,13 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             @Override
             public void onClick(View v) {
                 mCbToggleCli.setChecked(!mCbToggleCli.isChecked());
+            }
+        });
+
+        f(R.id.rl_simple_finished_checklist_as_bt).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mCbSimpleFCli.setChecked(!mCbSimpleFCli.isChecked());
             }
         });
 
@@ -914,6 +938,13 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     private void setAdvancedEvents() {
         setQuickCreateEvents();
 
+        f(R.id.rl_close_notification_later_as_bt).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mCbCloseNotificationLater.setChecked(!mCbCloseNotificationLater.isChecked());
+            }
+        });
+
         f(R.id.ll_advanced_auto_notify_as_bt).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -1020,8 +1051,9 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                     return;
                 }
                 Context context = SettingsActivity.this;
-                mPreferences.edit().putString(Def.Meta.KEY_LANGUAGE_CODE,
-                        resources.getStringArray(R.array.language_codes)[pickedIndex]).commit();
+                String newLanguageCode = resources.getStringArray(R.array.language_codes)[pickedIndex];
+                FrequentSettings.put(Def.Meta.KEY_LANGUAGE_CODE, newLanguageCode);
+                mPreferences.edit().putString(Def.Meta.KEY_LANGUAGE_CODE, newLanguageCode).commit();
                 if (App.getDoingThingId() != -1) {
                     Toast.makeText(context, R.string.doing_failed_change_language,
                             Toast.LENGTH_LONG).show();
@@ -1249,14 +1281,26 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
         boolean toggleCliOtc = mCbToggleCli.isChecked();
         editor.putBoolean(Def.Meta.KEY_TOGGLE_CLI_OTC, toggleCliOtc);
+        FrequentSettings.put(Def.Meta.KEY_TOGGLE_CLI_OTC, toggleCliOtc);
         if (toggleCliOtc != mToggleCliOtc) {
             // set or unset Checklist items listeners for ThingsAdapter in ThingsActivity
             App.setJustNotifyAll(true);
         }
 
-        editor.putBoolean(Def.Meta.KEY_AUTO_LINK, mCbAutoLink.isChecked());
+        boolean simpleFCli = mCbSimpleFCli.isChecked();
+        editor.putBoolean(Def.Meta.KEY_SIMPLE_FCLI, simpleFCli);
+        FrequentSettings.put(Def.Meta.KEY_SIMPLE_FCLI, simpleFCli);
+        if (simpleFCli != mSimpleFCli) {
+            App.setJustNotifyAll(true);
+        }
 
-        editor.putBoolean(Def.Meta.KEY_TWICE_BACK, mCbTwiceBack.isChecked());
+        boolean autoLink = mCbAutoLink.isChecked();
+        FrequentSettings.put(Def.Meta.KEY_AUTO_LINK, autoLink);
+        editor.putBoolean(Def.Meta.KEY_AUTO_LINK, autoLink);
+
+        boolean twiceBack = mCbTwiceBack.isChecked();
+        FrequentSettings.put(Def.Meta.KEY_TWICE_BACK, twiceBack);
+        editor.putBoolean(Def.Meta.KEY_TWICE_BACK, twiceBack);
 
         // ringtone
         for (int i = 0; i < mChosenRingtoneUris.length; i++) {
@@ -1280,6 +1324,10 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
         // advanced
         editor.putBoolean(Def.Meta.KEY_QUICK_CREATE, mCbQuickCreate.isChecked());
+
+        boolean closeLater = mCbCloseNotificationLater.isChecked();
+        FrequentSettings.put(Def.Meta.KEY_CLOSE_NOTIFICATION_LATER, closeLater);
+        editor.putBoolean(Def.Meta.KEY_CLOSE_NOTIFICATION_LATER, closeLater);
 
         editor.putInt(Def.Meta.KEY_AUTO_NOTIFY, mANPicked);
 

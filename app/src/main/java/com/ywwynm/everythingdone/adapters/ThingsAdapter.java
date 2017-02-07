@@ -1,7 +1,5 @@
 package com.ywwynm.everythingdone.adapters;
 
-import android.content.Context;
-import android.content.SharedPreferences;
 import android.os.Handler;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
@@ -13,6 +11,7 @@ import android.view.animation.AnimationUtils;
 
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
+import com.ywwynm.everythingdone.FrequentSettings;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
@@ -155,9 +154,7 @@ public class ThingsAdapter extends BaseThingsAdapter {
     protected void onChecklistAdapterInitialized(
             final BaseThingViewHolder holder, CheckListAdapter adapter, final Thing thing) {
         super.onChecklistAdapterInitialized(holder, adapter, thing);
-        SharedPreferences sp = mApp.getSharedPreferences(
-                Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE);
-        boolean toggleCliOtc = sp.getBoolean(Def.Meta.KEY_TOGGLE_CLI_OTC, false);
+        boolean toggleCliOtc = FrequentSettings.getBoolean(Def.Meta.KEY_TOGGLE_CLI_OTC);
         if (!toggleCliOtc
                 || thing.getType() <= Thing.HEADER
                 || thing.getType() >= Thing.NOTIFICATION_UNDERWAY
@@ -171,8 +168,20 @@ public class ThingsAdapter extends BaseThingsAdapter {
             adapter.setTvItemClickCallback(new CheckListAdapter.TvItemClickCallback() {
                 @Override
                 public void onItemClick(int itemPos) {
-                    String updatedContent = CheckListHelper.toggleChecklistItem(
-                            thing.getContent(), itemPos);
+                    boolean simpleFCli = FrequentSettings.getBoolean(Def.Meta.KEY_SIMPLE_FCLI);
+                    String content = thing.getContent();
+                    if (simpleFCli) {
+                        List<String> items = CheckListHelper.toCheckListItems(content, false);
+                        items.remove("2");
+                        items.remove("3");
+                        items.remove("4");
+                        if (itemPos < 0 || itemPos >= items.size()
+                                || items.get(itemPos).startsWith("1")) {
+                            return;
+                        }
+                    }
+
+                    String updatedContent = CheckListHelper.toggleChecklistItem(content, itemPos);
                     thing.setContent(updatedContent);
                     int typeBefore = thing.getType();
                     int thingPos = holder.getAdapterPosition();

@@ -179,10 +179,40 @@
                 </RelativeLayout>
 
                 <RelativeLayout
-                    android:id="@+id/rl_auto_link_as_bt"
+                    android:id="@+id/rl_simple_finished_checklist_as_bt"
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
                     android:layout_marginTop="296dp"
+                    android:paddingLeft="16dp"
+                    android:paddingRight="16dp"
+                    android:background="@drawable/selectable_item_background">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_simple_finished_checklist"
+                        android:textSize="16sp"
+                        tools:ignore="RelativeOverlap"
+                        android:layout_centerVertical="true"/>
+
+                    <CheckBox
+                        android:id="@+id/cb_simple_finished_checklist"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentEnd="true"
+                        android:layout_alignParentRight="true"
+                        android:layout_centerVertical="true"
+                        android:clickable="false"
+                        android:focusable="false"
+                        android:focusableInTouchMode="false"/>
+
+                </RelativeLayout>
+
+                <RelativeLayout
+                    android:id="@+id/rl_auto_link_as_bt"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginTop="352dp"
                     android:paddingLeft="16dp"
                     android:paddingRight="16dp"
                     android:background="@drawable/selectable_item_background">
@@ -218,7 +248,7 @@
                     android:id="@+id/rl_twice_back_as_bt"
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
-                    android:layout_marginTop="352dp"
+                    android:layout_marginTop="408dp"
                     android:paddingLeft="16dp"
                     android:paddingRight="16dp"
                     android:background="@drawable/selectable_item_background">
@@ -734,10 +764,40 @@
 
                 </RelativeLayout>
 
+                <RelativeLayout
+                    android:id="@+id/rl_close_notification_later_as_bt"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginTop="112dp"
+                    android:paddingLeft="16dp"
+                    android:paddingRight="16dp"
+                    android:background="@drawable/selectable_item_background">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/close_notification_later"
+                        android:textSize="16sp"
+                        tools:ignore="RelativeOverlap"
+                        android:layout_centerVertical="true"/>
+
+                    <CheckBox
+                        android:id="@+id/cb_close_notification_later"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentEnd="true"
+                        android:layout_alignParentRight="true"
+                        android:layout_centerVertical="true"
+                        android:clickable="false"
+                        android:focusable="false"
+                        android:focusableInTouchMode="false"/>
+
+                </RelativeLayout>
+
                 <FrameLayout
                     android:layout_width="match_parent"
                     android:layout_height="72dp"
-                    android:layout_marginTop="112dp">
+                    android:layout_marginTop="168dp">
 
                     <LinearLayout
                         android:id="@+id/ll_advanced_auto_notify_as_bt"
@@ -782,7 +842,7 @@
                     android:id="@+id/ll_ringtone_auto_notify_as_bt"
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
-                    android:layout_marginTop="184dp"
+                    android:layout_marginTop="240dp"
                     android:paddingLeft="16dp"
                     android:paddingRight="16dp"
                     android:gravity="center_vertical"

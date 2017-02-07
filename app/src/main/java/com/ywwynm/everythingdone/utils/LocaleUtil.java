@@ -1,7 +1,6 @@
 package com.ywwynm.everythingdone.utils;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.support.annotation.NonNull;
@@ -9,6 +8,7 @@ import android.util.DisplayMetrics;
 
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
+import com.ywwynm.everythingdone.FrequentSettings;
 import com.ywwynm.everythingdone.R;
 
 import java.text.NumberFormat;
@@ -56,13 +56,7 @@ public class LocaleUtil {
                 .equals(Locale.TRADITIONAL_CHINESE.getLanguage());
     }
 
-    private static final String LANGUAGE_CODE_FOLLOW_SYSTEM = "follow system";
-
-    public static String getMyLanguageCode() {
-        SharedPreferences sp = App.getApp().getSharedPreferences(
-                Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE);
-        return sp.getString(Def.Meta.KEY_LANGUAGE_CODE, LANGUAGE_CODE_FOLLOW_SYSTEM + "_");
-    }
+    public static final String LANGUAGE_CODE_FOLLOW_SYSTEM = "follow system";
 
     public static String getLanguageDescription(String languageCode) {
         Resources res = App.getApp().getResources();
@@ -78,7 +72,8 @@ public class LocaleUtil {
     }
 
     public static void changeLanguage() {
-        String languageCode = getMyLanguageCode();
+        String languageCode = FrequentSettings.getString(
+                Def.Meta.KEY_LANGUAGE_CODE, LANGUAGE_CODE_FOLLOW_SYSTEM + "_");
         String[] lanCon = languageCode.split("_");
         if (lanCon.length == 1) {
             String lan = lanCon[0];

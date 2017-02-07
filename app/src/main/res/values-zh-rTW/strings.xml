@@ -186,6 +186,9 @@
     <string name="videos">個影片</string>
     <string name="audios">段音頻</string>
 
+    <!--checklist-->
+    <string name="some_checklist_items_finished">已完成%1$d項</string>
+
     <!--color-->
     <string-array name="thing_colors_names">
         <item>@string/blue_grey_500</item>
@@ -586,6 +589,7 @@
     <string name="follow_system_settings">跟隨系統設定</string>
     <string name="settings_noticeable_notification">更突出的記事提醒通知</string>
     <string name="settings_toggle_checklist_thing_card">在記事卡片中調整清單項的勾選狀態</string>
+    <string name="settings_simple_finished_checklist">在正在進行的記事卡片中折疊已完成的清單項</string>
     <string name="settings_auto_link">查看記事時，自動為電話號碼、網頁地址等添加鏈接</string>
     <string name="settings_twice_back">按兩次返回鍵退出程式</string>
 
@@ -676,6 +680,8 @@
     <!--quick create-->
     <string name="quick_create_title">快速建立記事</string>
     <string name="quick_create_description">顯示一個常駐通知欄的通知，作為快速建立記事的入口</string>
+    <!--noticeable notification-->
+    <string name="close_notification_later">啟用更突出的提醒時，兩秒後才允許關閉提醒</string>
     <!--automatic reminder-->
     <string name="auto_notify">自動提醒</string>
     <string name="auto_notify_help_info">設定一個時間，完事兒將會在您建立每件記事的相應時間後自動地提醒您。如果您建立的不是記錄，完事兒將會根據其提醒時刻，智能地決定是否自動提醒。</string>
@@ -924,7 +930,7 @@
             \n\n如果你還無法接收到提醒，請你向我發送反映，同時注明你的手機型號、系統類型、版本號，我會與你進一步連絡。
             \n\n現在各種 ROM(尤其是本地化做得不錯的 ROM)都希望能夠控制第三方程式的一切行為，對於流氓程式來說，這是強有力的防護手段。完事兒雖然不是流氓程式，但這些廠商不知道，也不會為我開特例，因此，完事兒的提醒功能可能或多或少都會受到一些影響，請你諒解我，也請你諒解這些廠商。</item>
 
-        <item>目前(版本號：1.3.2)，完事兒需要的權限包括：
+        <item>目前(版本號：1.3.3)，完事兒需要的權限包括：
             \n\n1. 開機自啟動，用於設定提醒，如果你不授予完事兒該權限，當你重啟手機後，完事兒將無法繼續提醒你的日程、習慣或目標；
             \n\n2. 讀寫儲存空間，用於插入附件、分享使用情況時儲存界面截圖等；
             \n\n3. 錄音，用於錄制音頻文件作為記事附件；

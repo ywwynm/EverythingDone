@@ -25,6 +25,7 @@ import android.widget.TextView;
 
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
+import com.ywwynm.everythingdone.FrequentSettings;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.adapters.BaseThingsAdapter;
 import com.ywwynm.everythingdone.database.HabitDAO;
@@ -90,6 +91,8 @@ public class NoticeableNotificationActivity extends EverythingDoneBaseActivity {
 
     private FrameLayout[] mFlActions;
     private ImageView[] mIvActions;
+
+    private FrameLayout mFlCancelAsBt;
 
     private BroadcastReceiver mReceiver = new BroadcastReceiver() {
         @Override
@@ -265,6 +268,8 @@ public class NoticeableNotificationActivity extends EverythingDoneBaseActivity {
         mIvActions[0] = f(R.id.iv_1_noticeable_notification_as_bt);
         mIvActions[1] = f(R.id.iv_2_noticeable_notification_as_bt);
         mIvActions[2] = f(R.id.iv_3_noticeable_notification_as_bt);
+
+        mFlCancelAsBt = f(R.id.fl_noticeable_notification_cancel_as_bt);
     }
 
     @Override
@@ -376,6 +381,47 @@ public class NoticeableNotificationActivity extends EverythingDoneBaseActivity {
             mFlActions[i].setOnClickListener(mActions.get(i));
             mIvActions[i].setContentDescription(getString(mActionsTexts.get(i)));
         }
+
+        if (FrequentSettings.getBoolean(Def.Meta.KEY_CLOSE_NOTIFICATION_LATER)) {
+            for (int i = 0; i < size; i++) {
+                mFlActions[i].setAlpha(0);
+                mFlActions[i].setVisibility(View.GONE);
+            }
+            mFlCancelAsBt.setAlpha(0);
+            mFlCancelAsBt.setVisibility(View.GONE);
+
+            if (DeviceUtil.isScreenOn(this)) {
+                animateActionsVisible();
+            } else {
+                mShouldShowActionsInOnResume = true;
+            }
+        }
+    }
+
+    private void animateActionsVisible() {
+        mTvTitle.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                for (int i = 0; i < mActions.size(); i++) {
+                    mFlActions[i].setVisibility(View.VISIBLE);
+                    mFlActions[i].animate().alpha(1).setDuration(360).start();
+                }
+                mFlCancelAsBt.setVisibility(View.VISIBLE);
+                mFlCancelAsBt.animate().alpha(1).setDuration(360).start();
+            }
+        }, 2000);
+    }
+
+    private boolean mShouldShowActionsInOnResume = false;
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        if (DeviceUtil.isScreenOn(this) && mShouldShowActionsInOnResume) {
+            animateActionsVisible();
+            mShouldShowActionsInOnResume = false;
+        }
     }
 
     @Override
@@ -416,7 +462,7 @@ public class NoticeableNotificationActivity extends EverythingDoneBaseActivity {
             });
         }
 
-        f(R.id.fl_noticeable_notification_cancel_as_bt).setOnClickListener(new View.OnClickListener() {
+        mFlCancelAsBt.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 finish();

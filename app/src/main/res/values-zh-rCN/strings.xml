@@ -186,6 +186,9 @@
     <string name="videos">个视频</string>
     <string name="audios">段音频</string>
 
+    <!--checklist-->
+    <string name="some_checklist_items_finished">已完成%1$d项</string>
+
     <!--color-->
     <string-array name="thing_colors_names">
         <item>@string/blue_grey_500</item>
@@ -586,6 +589,7 @@
     <string name="follow_system_settings">跟随系统设置</string>
     <string name="settings_noticeable_notification">更突出的记事提醒通知</string>
     <string name="settings_toggle_checklist_thing_card">在记事卡片中调整清单项的勾选状态</string>
+    <string name="settings_simple_finished_checklist">在正在进行的记事卡片中折叠已完成的清单项</string>
     <string name="settings_auto_link">查看记事时，自动为电话号码、网页地址等添加链接</string>
     <string name="settings_twice_back">按两次返回键退出应用</string>
 
@@ -676,6 +680,8 @@
     <!--quick create-->
     <string name="quick_create_title">快速创建记事</string>
     <string name="quick_create_description">显示一个常驻通知栏的通知，作为快速创建记事的入口</string>
+    <!--noticeable notification-->
+    <string name="close_notification_later">启用更突出的提醒时，两秒后才允许关闭提醒</string>
     <!--automatic reminder-->
     <string name="auto_notify">自动提醒</string>
     <string name="auto_notify_help_info">设置一个时间，完事儿将会在您创建每件记事的相应时间后自动地提醒您。如果您创建的不是记录，完事儿将会根据其提醒时刻，智能地决定是否自动提醒。</string>
@@ -924,7 +930,7 @@
             \n\n如果你还无法接收到提醒，请你向我发送反馈，同时注明你的手机型号、系统类型、版本号，我会与你进一步联系。
             \n\n现在各种 ROM(尤其是本地化做得不错的 ROM)都希望能够控制第三方应用的一切行为，对于流氓应用来说，这是强有力的防护手段。完事儿虽然不是流氓应用，但这些厂商不知道，也不会为我开特例，因此，完事儿的提醒功能可能或多或少都会受到一些影响，请你谅解我，也请你谅解这些厂商。</item>
 
-        <item>目前(版本号：1.3.2)，完事儿需要的权限包括：
+        <item>目前(版本号：1.3.3)，完事儿需要的权限包括：
             \n\n1. 开机自启动，用于设定提醒，如果你不授予完事儿该权限，当你重启手机后，完事儿将无法继续提醒你的日程、习惯或目标；
             \n\n2. 读写存储空间，用于插入附件、分享使用情况时保存界面截图等；
             \n\n3. 录音，用于录制音频文件作为记事附件；

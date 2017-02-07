@@ -52,6 +52,7 @@ import android.widget.Toast;
 import com.bumptech.glide.Glide;
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
+import com.ywwynm.everythingdone.FrequentSettings;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.adapters.BaseThingsAdapter;
 import com.ywwynm.everythingdone.adapters.ThingsAdapter;
@@ -579,9 +580,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 return;
             }
 
-            SharedPreferences sp = getSharedPreferences(Def.Meta.PREFERENCES_NAME, MODE_PRIVATE);
-            boolean twiceBack = sp.getBoolean(Def.Meta.KEY_TWICE_BACK, false);
-            if (!twiceBack) {
+            if (!FrequentSettings.getBoolean(Def.Meta.KEY_TWICE_BACK)) {
                 mApp.setLimit(Def.LimitForGettingThings.ALL_UNDERWAY, true);
                 super.onBackPressed();
             } else {

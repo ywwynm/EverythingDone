@@ -34,43 +34,45 @@ public final class Def {
 
         public static final String ROBOTO_MONO = "roboto-mono-min.ttf";
 
-        public static final String KEY_START_USING_TIME        = "start_using_time";
+        public static final String KEY_START_USING_TIME         = "start_using_time";
 
-        public static final String KEY_DRAWER_HEADER           = "drawer_header";
-        public static final String KEY_NOTICEABLE_NOTIFICATION = "noticeable_notification"; // 2016/11/9
+        public static final String KEY_DRAWER_HEADER            = "drawer_header";
+        public static final String KEY_NOTICEABLE_NOTIFICATION  = "noticeable_notification"; // 2016/11/9
         // toggle checklist item on thing card
-        public static final String KEY_TOGGLE_CLI_OTC          = "toggle_cli_otc";
-        public static final String KEY_AUTO_LINK               = "auto_link"; // 2016/11/11
-        public static final String KEY_TWICE_BACK              = "twice_back";
-        public static final String KEY_LANGUAGE_CODE           = "language_code";
+        public static final String KEY_TOGGLE_CLI_OTC           = "toggle_cli_otc";
+        public static final String KEY_SIMPLE_FCLI              = "simple_fcli";
+        public static final String KEY_AUTO_LINK                = "auto_link"; // 2016/11/11
+        public static final String KEY_TWICE_BACK               = "twice_back";
+        public static final String KEY_LANGUAGE_CODE            = "language_code";
 
-        public static final String KEY_RINGTONE_REMINDER       = "ringtone_reminder";
-        public static final String KEY_RINGTONE_HABIT          = "ringtone_habit";
-        public static final String KEY_RINGTONE_GOAL           = "ringtone_goal";
-        public static final String KEY_RINGTONE_AUTO_NOTIFY    = "ringtone_auto_notify";
+        public static final String KEY_RINGTONE_REMINDER        = "ringtone_reminder";
+        public static final String KEY_RINGTONE_HABIT           = "ringtone_habit";
+        public static final String KEY_RINGTONE_GOAL            = "ringtone_goal";
+        public static final String KEY_RINGTONE_AUTO_NOTIFY     = "ringtone_auto_notify";
 
-        public static final String KEY_PRIVATE_PASSWORD        = "private_password";
-        public static final String KEY_USE_FINGERPRINT         = "use_fingerprint";
+        public static final String KEY_PRIVATE_PASSWORD         = "private_password";
+        public static final String KEY_USE_FINGERPRINT          = "use_fingerprint";
 
         // added on 2016/11/22
-        public static final String KEY_AUTO_START_DOING        = "auto_start_doing";
-        public static final String KEY_AUTO_STRICT_MODE        = "auto_strict_mode";
+        public static final String KEY_AUTO_START_DOING         = "auto_start_doing";
+        public static final String KEY_AUTO_STRICT_MODE         = "auto_strict_mode";
         // added on 2016/11/26
-        public static final String KEY_ASD_TIME_REMINDER       = "asd_time_reminder";
-        public static final String KEY_ASD_TIME_HABIT          = "asd_time_habit";
+        public static final String KEY_ASD_TIME_REMINDER        = "asd_time_reminder";
+        public static final String KEY_ASD_TIME_HABIT           = "asd_time_habit";
 
-        public static final String KEY_QUICK_CREATE            = "quick_create";
-        public static final String KEY_AUTO_NOTIFY             = "auto_notify";
+        public static final String KEY_QUICK_CREATE             = "quick_create";
+        public static final String KEY_CLOSE_NOTIFICATION_LATER = "close_notification_later"; // 2017/1/18
+        public static final String KEY_AUTO_NOTIFY              = "auto_notify";
 
-        public static final String KEY_ONGOING_THING_ID        = "ongoing_thing_id";
+        public static final String KEY_ONGOING_THING_ID         = "ongoing_thing_id";
 
-        public static final String KEY_1_0_3_TO_1_0_4          = "1.0.3_to_1.0.4";
-        public static final String KEY_1_0_4_TO_1_0_5          = "1.0.4_to_1.0.5";
-        public static final String KEY_1_1_4_TO_1_1_5          = "1.1.4_to_1.1.5";
-        public static final String KEY_1_2_7_TO_1_3_0          = "1.2.7_to_1.3.0";
-        public static final String KEY_1_3_0_TO_1_3_1          = "1.3.0_to_1.3.1";
+        public static final String KEY_1_0_3_TO_1_0_4           = "1.0.3_to_1.0.4";
+        public static final String KEY_1_0_4_TO_1_0_5           = "1.0.4_to_1.0.5";
+        public static final String KEY_1_1_4_TO_1_1_5           = "1.1.4_to_1.1.5";
+        public static final String KEY_1_2_7_TO_1_3_0           = "1.2.7_to_1.3.0";
+        public static final String KEY_1_3_0_TO_1_3_1           = "1.3.0_to_1.3.1";
 
-        public static final String KEY_NOTIFY_KEEP_ALARMS      = "notify_keep_alarms";
+        public static final String KEY_NOTIFY_KEEP_ALARMS       = "notify_keep_alarms";
 
     }
 

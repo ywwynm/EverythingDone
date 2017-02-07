@@ -62,6 +62,7 @@ import android.widget.Toast;
 
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
+import com.ywwynm.everythingdone.FrequentSettings;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.adapters.AudioAttachmentAdapter;
 import com.ywwynm.everythingdone.adapters.CheckListAdapter;
@@ -453,8 +454,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     }
 
     private void initAutoLink() {
-        SharedPreferences sp = getSharedPreferences(Def.Meta.PREFERENCES_NAME, MODE_PRIVATE);
-        mShouldAutoLink = sp.getBoolean(Def.Meta.KEY_AUTO_LINK, true);
+        mShouldAutoLink = FrequentSettings.getBoolean(Def.Meta.KEY_AUTO_LINK);
         if (mShouldAutoLink) {
             mTouchMovedCountMap = new HashMap<>();
             mOnLongClickedMap   = new HashMap<>();
@@ -1275,9 +1275,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
     private void toggleOngoingActionItem(Menu menu) {
         if (mThing == null) return;
-        long ongoingId = getSharedPreferences(
-                Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE).getLong(
-                Def.Meta.KEY_ONGOING_THING_ID, -1);
+        long ongoingId = FrequentSettings.getLong(Def.Meta.KEY_ONGOING_THING_ID);
         MenuItem item = menu.findItem(R.id.act_ongoing_thing);
         if (ongoingId == mThing.getId()) {
             item.setTitle(R.string.act_cancel_set_thing_as_ongoing);
@@ -2731,9 +2729,8 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     }
 
     private void ongoingOrCancel() {
-        SharedPreferences sp = getSharedPreferences(
-                Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE);
-        long ongoingBefore = sp.getLong(Def.Meta.KEY_ONGOING_THING_ID, -1);
+        final String K = Def.Meta.KEY_ONGOING_THING_ID;
+        long ongoingBefore = FrequentSettings.getLong(K);
         if (ongoingBefore != -1) {
             SystemNotificationUtil.cancelThingOngoingNotification(this, ongoingBefore);
         }
@@ -2745,7 +2742,9 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             ongoingAfter = mThing.getId();
             SystemNotificationUtil.createThingOngoingNotification(this, mThing);
         }
-        sp.edit().putLong(Def.Meta.KEY_ONGOING_THING_ID, ongoingAfter).apply();
+        getSharedPreferences(Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE)
+                .edit().putLong(K, ongoingAfter).apply();
+        FrequentSettings.put(K, ongoingAfter);
         finish();
     }
 

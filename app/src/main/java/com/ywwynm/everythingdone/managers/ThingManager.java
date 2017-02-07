@@ -1,12 +1,12 @@
 package com.ywwynm.everythingdone.managers;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.util.SparseIntArray;
 
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
+import com.ywwynm.everythingdone.FrequentSettings;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
@@ -414,9 +414,8 @@ public class ThingManager {
      */
     public List<Integer> updateStates(
             List<Thing> things, @Thing.State final int stateBefore, @Thing.State final int stateAfter) {
-        SharedPreferences sp = mContext.getSharedPreferences(
-                Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE);
-        long curOngoingId = sp.getLong(Def.Meta.KEY_ONGOING_THING_ID, -1);
+        final String ONGOING_K = Def.Meta.KEY_ONGOING_THING_ID;
+        long curOngoingId = FrequentSettings.getLong(ONGOING_K);
         boolean shouldCancelOngoing = false;
 
         final List<Thing> clonedThings = new ArrayList<>();
@@ -431,7 +430,9 @@ public class ThingManager {
 
         if (shouldCancelOngoing) {
             SystemNotificationUtil.cancelThingOngoingNotification(mContext, curOngoingId);
-            sp.edit().putLong(Def.Meta.KEY_ONGOING_THING_ID, -1).apply();
+            mContext.getSharedPreferences(Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE)
+                    .edit().putLong(ONGOING_K, -1).apply();
+            FrequentSettings.put(ONGOING_K, -1);
         }
 
         mExecutor.execute(new Runnable() {

@@ -10,6 +10,7 @@ import android.support.annotation.IntDef;
 
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
+import com.ywwynm.everythingdone.FrequentSettings;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
@@ -485,12 +486,13 @@ public class Thing implements Parcelable {
     }
 
     public static void tryToCancelOngoing(Context context, long thingId) {
-        SharedPreferences sp = context.getSharedPreferences(
-                Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE);
-        long curOngoingId = sp.getLong(Def.Meta.KEY_ONGOING_THING_ID, -1);
+        final String K = Def.Meta.KEY_ONGOING_THING_ID;
+        long curOngoingId = FrequentSettings.getLong(K);
         if (curOngoingId == thingId) {
             SystemNotificationUtil.cancelThingOngoingNotification(context, thingId);
-            sp.edit().putLong(Def.Meta.KEY_ONGOING_THING_ID, -1).apply();
+            context.getSharedPreferences(Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE)
+                    .edit().putLong(K, -1).apply();
+            FrequentSettings.put(K, -1);
         }
     }
 
