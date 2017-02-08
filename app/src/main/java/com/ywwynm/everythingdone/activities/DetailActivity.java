@@ -1737,9 +1737,54 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             mExecutor.execute(new Runnable() {
                 @Override
                 public void run() {
-                    // only update color, title, content, attachment and update time now
+                    saveAfterOnPause();
                 }
             });
+        }
+    }
+
+    private boolean firstSaveAfterOnPause = true;
+
+    private void saveAfterOnPause() {
+        String title      = getThingTitle();
+        String content    = getThingContent();
+        String attachment = getThingAttachment();
+        if (title.isEmpty() && content.isEmpty() && attachment.isEmpty()) {
+            return;
+        }
+
+        mThing.setTitle(title);
+        mThing.setContent(content);
+        mThing.setAttachment(attachment);
+        mThing.setColor(mChangeColorTo != 0 ? mChangeColorTo : getAccentColor());
+
+        long currentTime = System.currentTimeMillis();
+        mThing.setUpdateTime(currentTime);
+
+        Intent intent = new Intent();
+        intent.putExtra(Def.Communication.KEY_THING, mThing);
+//        int resultCode = Def.Communication.RESULT_CREATE_THING_DONE;
+//
+//        // Create thing here directly to database. Solve the problem that if ThingsActivity
+//        // is destroyed while user share something from other apps to EverythingDone. In that
+//        // case, ThingsActivity won't receive broadcast to handle creation and that thing
+//        // will be missed.
+//        // Another case is that there are more than 1 create-type DetailActivity instance.
+//        if (shouldSendBroadCast() || createActivitiesCount > 1) {
+//            boolean change = ThingManager.getInstance(mApp).create(mThing, true, true);
+//            intent.putExtra(Def.Communication.KEY_CALL_CHANGE,  change);
+//            intent.putExtra(Def.Communication.KEY_CREATED_DONE, true);
+//        } else {
+//            setResult(resultCode, intent);
+//        }
+
+        if (mType == CREATE && firstSaveAfterOnPause) {
+            firstSaveAfterOnPause = false;
+
+            mThing.setType(getThingTypeAfter());
+            mThing.setCreateTime(currentTime);
+        } else {
+            // only update color, title, content, attachment and update time now
         }
     }
 
