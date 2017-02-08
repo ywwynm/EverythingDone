@@ -213,11 +213,11 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
     private FrameLayout mFlQuickRemindAsBt;
 
-    private Snackbar      mNormalSnackbar;
+    private Snackbar mNormalSnackbar;
+
+    private int mChangeColorTo = 0;
 
     private ExecutorService mExecutor;
-
-    private boolean changingColor = false;
 
     private Runnable mShowNormalSnackbar;
 
@@ -2143,7 +2143,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     }
 
     private void changeColor(int colorTo) {
-        changingColor = true;
+        mChangeColorTo = colorTo;
 
         int colorFrom = ((ColorDrawable) mFlRoot.getBackground()).getColor();
         quickRemindPicker.setAccentColor(colorTo);
@@ -2160,18 +2160,6 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 new ArgbEvaluator(), colorFrom, colorTo).setDuration(600).start();
         ObjectAnimator.ofObject(mStatusBar, "backgroundColor",
                 new ArgbEvaluator(), colorFrom, colorTo).setDuration(600).start();
-
-        mExecutor.execute(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Thread.sleep(666);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                changingColor = false;
-            }
-        });
     }
 
     private void setQuickRemindEvents() {
@@ -2307,8 +2295,6 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     }
 
     private boolean prepareForReturnNormally() {
-        if (changingColor) return false;
-
         if (mAudioAttachmentAdapter != null && mAudioAttachmentAdapter.getPlayingIndex() != -1) {
             mAudioAttachmentAdapter.stopPlaying();
         }
@@ -2375,7 +2361,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             return;
         }
 
-        int color = getAccentColor();
+        int color = mChangeColorTo != 0 ? mChangeColorTo : getAccentColor();
         Intent intent = new Intent();
 
         Integer resultCode = createOrUpdateThing(title, content, attachment,
