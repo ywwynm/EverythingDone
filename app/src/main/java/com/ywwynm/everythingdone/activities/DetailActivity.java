@@ -1731,6 +1731,19 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     }
 
     @Override
+    protected void onPause() {
+        super.onPause();
+        if (mEditable && mExecutor != null) {
+            mExecutor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    // only update color, title, content, attachment and update time now
+                }
+            });
+        }
+    }
+
+    @Override
     protected void onDestroy() {
         super.onDestroy();
         if (mThing == null) {
