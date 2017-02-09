@@ -599,7 +599,8 @@
 
     <!--group data-->
     <string name="auto_save_edits_title">在编辑记事时，自动保存数据</string>
-    <string name="auto_save_edits_help_info"></string>
+    <string name="auto_save_edits_help_info">当创建或更新记事时，只要离开编辑界面，完事儿就将自动保存更新后的记事数据。
+        \n\n注意：完事儿不会自动保存提醒、习惯或目标的创建与变更。例如，你更改了某个记事的提醒时刻，这不会被自动保存。</string>
     <!--backup-->
     <string name="backup">备份</string>
     <string name="backup_content">完事儿将会备份您创建的所有记事以及应用设置，所有的提醒、习惯或目标也都将在恢复后正常执行。但是完事儿将不会备份您在记事中添加的各类附件，若有需要，请您使用其它手段备份，附件所在文件夹为 SD卡/EverythingDone</string>

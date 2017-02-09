@@ -599,7 +599,8 @@
 
     <!--group data-->
     <string name="auto_save_edits_title">在編輯記事時，自動保存數據</string>
-    <string name="auto_save_edits_help_info"></string>
+    <string name="auto_save_edits_help_info">當創建或更新記事時，只要離開編輯界面，完事兒就將自動保存更新後的記事數據。
+        \n\n注意：完事兒不會自動保存提醒、習慣或目標的創建與變更。例如，你更改了某個記事的提醒時刻，這不會被自動保存。</string>
     <!--backup-->
     <string name="backup">备份</string>
     <string name="backup_content">完事兒將會備份您創建的所有記事以及應用設置，所有的提醒、習慣或目標也都將在恢復後正常執行。但是完事兒將不會備份您在記事中添加的各類附件，若有需要，請您使用其它手段備份，附件所在文件夾為 sdcard/EverythingDone</string>

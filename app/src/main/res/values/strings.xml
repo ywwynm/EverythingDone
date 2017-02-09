@@ -606,7 +606,8 @@
 
     <!--group data-->
     <string name="auto_save_edits_title">Save data automatically when editing a Thing</string>
-    <string name="auto_save_edits_help_info"></string>
+    <string name="auto_save_edits_help_info">If you\'re creating or updating a Thing and you leave the interface, EverythingDone will save your edits about Thing\'s content automatically.
+        \n\nNotice: EverythingDone will not save edits about Reminder, Habit or Goal. For example, if you change a Thing\'s alarm time, it won\'t be saved automatically.</string>
     <!--backup-->
     <string name="backup">Back up</string>
     <string name="backup_content">Your things and preferences will be backed up. After backup, EverythingDone will keep reminding you every reminders, habits and goals. However, we will not backup attachments. If they are necessary, please backup them by yourself. The attachment files are located in sdcard/EverythingDone.</string>
