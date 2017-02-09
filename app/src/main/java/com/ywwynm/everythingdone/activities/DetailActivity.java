@@ -1738,10 +1738,12 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         super.onPause();
         if (mEditable && mExecutor != null && !dontSaveAfterOnPause
                 && FrequentSettings.getBoolean(Def.Meta.KEY_AUTO_SAVE_EDITS)) {
+            final boolean hasSavedAfterOnPause = savedAfterOnPause;
+            savedAfterOnPause = true;
             mExecutor.execute(new Runnable() {
                 @Override
                 public void run() {
-                    saveAfterOnPause();
+                    saveAfterOnPause(hasSavedAfterOnPause);
                 }
             });
         }
@@ -1749,7 +1751,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
     private boolean savedAfterOnPause = false;
 
-    private void saveAfterOnPause() {
+    private void saveAfterOnPause(boolean hasSavedAfterOnPause) {
         // will not create or update reminder or habit
 
         String title      = getThingTitle();
@@ -1771,9 +1773,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         intent.putExtra(Def.Communication.KEY_THING, mThing);
 
         int resultCode;
-        if (mType == CREATE && !savedAfterOnPause) {
-            savedAfterOnPause = true;
-
+        if (mType == CREATE && !hasSavedAfterOnPause) {
             mThing.setType(Thing.NOTE);
             mThing.setCreateTime(currentTime);
 
@@ -1810,7 +1810,6 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 sendBroadCastToUpdateMainUI(intent, resultCode);
             }
         }
-        savedAfterOnPause = true;
     }
 
     @Override
@@ -2607,6 +2606,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     }
 
     private void createFailed(int resultCode) {
+        ThingManager tm = ThingManager.getInstance(mApp);
         if (App.isSomethingUpdatedSpecially()) {
             App.setJustNotifyAll(true);
         }
