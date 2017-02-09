@@ -1241,6 +1241,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             createActivitiesCount--;
             mMinusCreateActivitiesCount = true;
         }
+        dontSaveAfterOnPause = true;
         super.finish();
     }
 
@@ -1730,10 +1731,13 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         }
     }
 
+    private boolean dontSaveAfterOnPause = false;
+
     @Override
     protected void onPause() {
         super.onPause();
-        if (mEditable && mExecutor != null) {
+        if (mEditable && mExecutor != null && !dontSaveAfterOnPause
+                && FrequentSettings.getBoolean(Def.Meta.KEY_AUTO_SAVE_EDITS)) {
             mExecutor.execute(new Runnable() {
                 @Override
                 public void run() {
@@ -1743,9 +1747,11 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         }
     }
 
-    private boolean firstSaveAfterOnPause = true;
+    private boolean savedAfterOnPause = false;
 
     private void saveAfterOnPause() {
+        // will not create or update reminder or habit
+
         String title      = getThingTitle();
         String content    = getThingContent();
         String attachment = getThingAttachment();
@@ -1763,29 +1769,48 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
         Intent intent = new Intent();
         intent.putExtra(Def.Communication.KEY_THING, mThing);
-//        int resultCode = Def.Communication.RESULT_CREATE_THING_DONE;
-//
-//        // Create thing here directly to database. Solve the problem that if ThingsActivity
-//        // is destroyed while user share something from other apps to EverythingDone. In that
-//        // case, ThingsActivity won't receive broadcast to handle creation and that thing
-//        // will be missed.
-//        // Another case is that there are more than 1 create-type DetailActivity instance.
-//        if (shouldSendBroadCast() || createActivitiesCount > 1) {
-//            boolean change = ThingManager.getInstance(mApp).create(mThing, true, true);
-//            intent.putExtra(Def.Communication.KEY_CALL_CHANGE,  change);
-//            intent.putExtra(Def.Communication.KEY_CREATED_DONE, true);
-//        } else {
-//            setResult(resultCode, intent);
-//        }
 
-        if (mType == CREATE && firstSaveAfterOnPause) {
-            firstSaveAfterOnPause = false;
+        int resultCode;
+        if (mType == CREATE && !savedAfterOnPause) {
+            savedAfterOnPause = true;
 
-            mThing.setType(getThingTypeAfter());
+            mThing.setType(Thing.NOTE);
             mThing.setCreateTime(currentTime);
+
+            resultCode = Def.Communication.RESULT_CREATE_THING_DONE;
+            intent.putExtra(Def.Communication.KEY_RESULT_CODE, resultCode);
+
+            boolean change = ThingManager.getInstance(mApp).create(mThing, true, true);
+            intent.putExtra(Def.Communication.KEY_CALL_CHANGE,  change);
+            intent.putExtra(Def.Communication.KEY_CREATED_DONE, true);
+
+            sendBroadCastToUpdateMainUI(intent, resultCode);
         } else {
             // only update color, title, content, attachment and update time now
+            if (mType == CREATE) {
+                mPosition = App.getThingAndPosition(mApp, mThing.getId(), -1).second;
+            }
+            @Thing.Type int typeBefore = mThing.getType();
+            int updateResult = -1;
+            if (mPosition != -1) {
+                intent.putExtra(Def.Communication.KEY_POSITION, mPosition);
+                updateResult = ThingManager.getInstance(mApp).update(
+                        typeBefore, mThing, mPosition, true);
+            } else {
+                ThingDAO.getInstance(mApp).update(typeBefore, mThing, true, true);
+            }
+            if (mType == UPDATE) {
+                intent.putExtra(Def.Communication.KEY_TYPE_BEFORE, typeBefore);
+                if (updateResult > 0) {
+                    intent.putExtra(Def.Communication.KEY_CALL_CHANGE, updateResult == 1);
+                }
+
+                resultCode = Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME;
+                intent.putExtra(Def.Communication.KEY_RESULT_CODE, resultCode);
+                sendBroadCastToUpdateMainUI(intent, resultCode);
+            }
         }
+        savedAfterOnPause = true;
     }
 
     @Override
@@ -2391,6 +2416,11 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         String attachment = getThingAttachment();
 
         if (mType == CREATE && title.isEmpty() && content.isEmpty() && attachment.isEmpty()) {
+            if (savedAfterOnPause) {
+                ThingManager.getInstance(mApp).updateState(
+                        mThing, mPosition, mThing.getLocation(),
+                        Thing.UNDERWAY, Thing.DELETED_FOREVER, false, true);
+            }
             createFailed(Def.Communication.RESULT_CREATE_BLANK_THING);
             return;
         }
@@ -2423,7 +2453,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             @Thing.Type int typeBefore, @Thing.Type int typeAfter, int color,
             boolean reminderUpdated, boolean habitUpdated, Intent intent) {
         Integer resultCode = Def.Communication.RESULT_NO_UPDATE;
-        if (mType == CREATE) {
+        if (mType == CREATE && !savedAfterOnPause) {
             resultCode = createThing(title, content, attachment, typeAfter, color, intent);
         } else {
             boolean noUpdate = Thing.noUpdate(mThing, title, content, attachment, typeAfter, color)
@@ -2444,12 +2474,16 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     }
 
     private void afterCreateOrUpdateThing(Intent intent, int resultCode) {
+        if (mType == CREATE && savedAfterOnPause) {
+            App.setJustNotifyAll(true);
+        }
+
         if (App.isSomethingUpdatedSpecially()
                 && resultCode != Def.Communication.RESULT_NO_UPDATE) {
             App.tryToSetNotifyAllToTrue(mThing, resultCode);
         }
 
-        if (shouldSendBroadCast()) {
+        if (shouldSendBroadCast() && !savedAfterOnPause) {
             sendBroadCastToUpdateMainUI(intent, resultCode);
         }
 
