@@ -50,6 +50,9 @@ public class FrequentSettings {
         boolean closeLater = sp.getBoolean(Def.Meta.KEY_CLOSE_NOTIFICATION_LATER, false);
         settingsMap.put(Def.Meta.KEY_CLOSE_NOTIFICATION_LATER, closeLater);
 
+        boolean autoSaveEdits = sp.getBoolean(Def.Meta.KEY_AUTO_SAVE_EDITS, false);
+        settingsMap.put(Def.Meta.KEY_AUTO_SAVE_EDITS, autoSaveEdits);
+
         long curOngoingId = sp.getLong(Def.Meta.KEY_ONGOING_THING_ID, -1);
         settingsMap.put(Def.Meta.KEY_ONGOING_THING_ID, curOngoingId);
     }

@@ -50,6 +50,8 @@ public final class Def {
         public static final String KEY_RINGTONE_GOAL            = "ringtone_goal";
         public static final String KEY_RINGTONE_AUTO_NOTIFY     = "ringtone_auto_notify";
 
+        public static final String KEY_AUTO_SAVE_EDITS          = "auto_save_edits";
+
         public static final String KEY_PRIVATE_PASSWORD         = "private_password";
         public static final String KEY_USE_FINGERPRINT          = "use_fingerprint";
 

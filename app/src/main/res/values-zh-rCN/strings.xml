@@ -598,6 +598,8 @@
     <string name="ringtone_loading">正在载入铃声...</string>
 
     <!--group data-->
+    <string name="auto_save_edits_title">在编辑记事时，自动保存数据</string>
+    <string name="auto_save_edits_help_info"></string>
     <!--backup-->
     <string name="backup">备份</string>
     <string name="backup_content">完事儿将会备份您创建的所有记事以及应用设置，所有的提醒、习惯或目标也都将在恢复后正常执行。但是完事儿将不会备份您在记事中添加的各类附件，若有需要，请您使用其它手段备份，附件所在文件夹为 SD卡/EverythingDone</string>

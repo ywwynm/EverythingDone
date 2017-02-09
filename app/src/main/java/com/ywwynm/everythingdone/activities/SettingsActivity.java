@@ -73,6 +73,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static com.ywwynm.everythingdone.Def.Communication.REQUEST_CHOOSE_AUDIO_FILE;
@@ -125,6 +126,9 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     private ChooserDialogFragment[] mCdfsRingtone;
 
     // group data
+    private TextView mTvASE; // auto save edits
+    private boolean mAutoSaveEdits;
+
     private TextView mTvRestoreLastInfo;
     private LoadingDialogFragment mLdfBackup;
     private LoadingDialogFragment mLdfRestore;
@@ -398,6 +402,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         mTvsRingtone[2] = f(R.id.tv_ringtone_goal);
 
         // data
+        mTvASE             = f(R.id.tv_auto_save_edits);
         mTvRestoreLastInfo = f(R.id.tv_restore_last_info);
 
         // privacy
@@ -447,7 +452,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
         initUiUserInterface();
         initUiRingtone();
-        updateUiRestore();
+        initUiData();
         initUiStartDoing();
         initUiAdvanced();
     }
@@ -487,6 +492,13 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         for (int i = 0; i < 3; i++) {
             mTvsRingtone[i].setText(mChosenRingtoneTitles[i]);
         }
+    }
+
+    private void initUiData() {
+        mAutoSaveEdits = FrequentSettings.getBoolean(Def.Meta.KEY_AUTO_SAVE_EDITS);
+        mTvASE.setText(mAutoSaveEdits ? R.string.enabled : R.string.disabled);
+
+        updateUiRestore();
     }
 
     private void updateUiRestore() {
@@ -747,6 +759,36 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     }
 
     private void setDataEvents() {
+        f(R.id.rl_auto_save_edits_as_bt).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                final ChooserDialogFragment cdf = new ChooserDialogFragment();
+                cdf.setAccentColor(mAccentColor);
+                cdf.setTitle(getString(R.string.auto_save_edits_title));
+                List<String> items = Arrays.asList(getString(R.string.enable), getString(R.string.disable));
+                cdf.setItems(items);
+                cdf.setShouldShowMore(false);
+                cdf.setInitialIndex(mAutoSaveEdits ? 0 : 1);
+                cdf.setConfirmListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        int picked = cdf.getPickedIndex();
+                        mAutoSaveEdits = picked == 0;
+                        mTvASE.setText(mAutoSaveEdits ? R.string.enabled : R.string.disabled);
+                    }
+                });
+                cdf.show(getFragmentManager(), ChooserDialogFragment.TAG);
+            }
+        });
+        f(R.id.iv_auto_save_edits_help_as_bt).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                createAlertDialog(false,
+                        R.string.auto_save_edits_title, R.string.auto_save_edits_help_info)
+                        .show(getFragmentManager(), AlertDialogFragment.TAG);
+            }
+        });
+
         f(R.id.tv_backup_as_bt).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -1306,6 +1348,10 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         for (int i = 0; i < mChosenRingtoneUris.length; i++) {
             editor.putString(sKeysRingtone[i], mChosenRingtoneUris[i].toString());
         }
+
+        // data
+        FrequentSettings.put(Def.Meta.KEY_AUTO_SAVE_EDITS, mAutoSaveEdits);
+        editor.putBoolean(Def.Meta.KEY_AUTO_SAVE_EDITS, mAutoSaveEdits);
 
         // privacy
         boolean isChecked = mCbFgprt.isChecked();
