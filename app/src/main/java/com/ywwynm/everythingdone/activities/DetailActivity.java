@@ -2606,7 +2606,6 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     }
 
     private void createFailed(int resultCode) {
-        ThingManager tm = ThingManager.getInstance(mApp);
         if (App.isSomethingUpdatedSpecially()) {
             App.setJustNotifyAll(true);
         }
