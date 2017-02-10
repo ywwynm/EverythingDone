@@ -35,7 +35,7 @@ public class HabitNotificationActionReceiver extends BroadcastReceiver {
         if (hrId == -1) { // ongoing Habit
             thingId = context.getSharedPreferences(
                     Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE).getLong(
-                    Def.Meta.KEY_ONGOING_THING_ID, -1);
+                    Def.Meta.KEY_ONGOING_THING_ID, -1L);
         } else {
             HabitDAO habitDAO = HabitDAO.getInstance(context);
             HabitReminder hr = habitDAO.getHabitReminderById(hrId);

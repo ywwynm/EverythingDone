@@ -53,7 +53,7 @@ public class FrequentSettings {
         boolean autoSaveEdits = sp.getBoolean(Def.Meta.KEY_AUTO_SAVE_EDITS, false);
         settingsMap.put(Def.Meta.KEY_AUTO_SAVE_EDITS, autoSaveEdits);
 
-        long curOngoingId = sp.getLong(Def.Meta.KEY_ONGOING_THING_ID, -1);
+        long curOngoingId = sp.getLong(Def.Meta.KEY_ONGOING_THING_ID, -1L);
         settingsMap.put(Def.Meta.KEY_ONGOING_THING_ID, curOngoingId);
     }
 

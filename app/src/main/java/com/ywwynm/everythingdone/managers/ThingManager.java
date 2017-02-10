@@ -431,8 +431,8 @@ public class ThingManager {
         if (shouldCancelOngoing) {
             SystemNotificationUtil.cancelThingOngoingNotification(mContext, curOngoingId);
             mContext.getSharedPreferences(Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE)
-                    .edit().putLong(ONGOING_K, -1).apply();
-            FrequentSettings.put(ONGOING_K, -1);
+                    .edit().putLong(ONGOING_K, -1L).apply();
+            FrequentSettings.put(ONGOING_K, -1L);
         }
 
         mExecutor.execute(new Runnable() {

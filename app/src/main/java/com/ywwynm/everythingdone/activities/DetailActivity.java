@@ -2809,13 +2809,13 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     private void ongoingOrCancel() {
         final String K = Def.Meta.KEY_ONGOING_THING_ID;
         long ongoingBefore = FrequentSettings.getLong(K);
-        if (ongoingBefore != -1) {
+        if (ongoingBefore != -1L) {
             SystemNotificationUtil.cancelThingOngoingNotification(this, ongoingBefore);
         }
 
         long ongoingAfter;
         if (ongoingBefore == mThing.getId()) {
-            ongoingAfter = -1;
+            ongoingAfter = -1L;
         } else {
             ongoingAfter = mThing.getId();
             SystemNotificationUtil.createThingOngoingNotification(this, mThing);

@@ -491,8 +491,8 @@ public class Thing implements Parcelable {
         if (curOngoingId == thingId) {
             SystemNotificationUtil.cancelThingOngoingNotification(context, thingId);
             context.getSharedPreferences(Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE)
-                    .edit().putLong(K, -1).apply();
-            FrequentSettings.put(K, -1);
+                    .edit().putLong(K, -1L).apply();
+            FrequentSettings.put(K, -1L);
         }
     }
 
