@@ -19,10 +19,23 @@ public class HabitRecordAdapter extends RecyclerView.Adapter<HabitRecordAdapter.
 
     private LayoutInflater mInflater;
     private String mRecord;
+    private String mOriRecord;
 
-    public HabitRecordAdapter(Context context, String record) {
+    private boolean mEditable;
+
+    public HabitRecordAdapter(Context context, String record, boolean editable) {
         mInflater = LayoutInflater.from(context);
         mRecord = record;
+        mOriRecord = record;
+        mEditable = editable;
+    }
+
+    public String getRecord() {
+        return mRecord;
+    }
+
+    public boolean hasRecordEdited() {
+        return !mRecord.equals(mOriRecord);
     }
 
     @Override
@@ -31,20 +44,48 @@ public class HabitRecordAdapter extends RecyclerView.Adapter<HabitRecordAdapter.
     }
 
     @Override
-    public void onBindViewHolder(ImageViewHolder holder, int position) {
-        char s = mRecord.charAt(position);
-        if (s == '0') {
-            holder.iv.setImageResource(R.drawable.ic_habit_record_unfinished);
-        } else if (s == '1') {
-            holder.iv.setImageResource(R.drawable.ic_habit_record_finished);
+    public void onBindViewHolder(final ImageViewHolder holder, int position) {
+        final int len = mRecord.length();
+        final int correctPos;
+        if (len <= 30) {
+            correctPos = position;
         } else {
+            correctPos = len - 30;
+        }
+
+        if (correctPos >= len) {
             holder.iv.setImageResource(R.drawable.ic_habit_record_unknown);
+            holder.iv.setOnClickListener(null);
+        } else {
+            char s = mRecord.charAt(correctPos);
+            if (s == '0') {
+                holder.iv.setImageResource(R.drawable.ic_habit_record_unfinished);
+            } else if (s == '1') {
+                holder.iv.setImageResource(R.drawable.ic_habit_record_finished);
+            }
+
+            if (mEditable && (len - correctPos <= 6) && (s == '0' || s == '1')) {
+                holder.iv.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        char s = mRecord.charAt(correctPos);
+                        StringBuilder sb = new StringBuilder(mRecord);
+                        if (s == '0') {
+                            sb.setCharAt(correctPos, '1');
+                        } else if (s == '1') {
+                            sb.setCharAt(correctPos, '0');
+                        }
+                        mRecord = sb.toString();
+                        notifyItemChanged(holder.getAdapterPosition());
+                    }
+                });
+            }
         }
     }
 
     @Override
     public int getItemCount() {
-        return mRecord.length();
+        return 30;
     }
 
     static class ImageViewHolder extends BaseViewHolder {

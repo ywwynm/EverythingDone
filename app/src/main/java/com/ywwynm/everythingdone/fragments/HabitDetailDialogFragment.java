@@ -3,6 +3,7 @@ package com.ywwynm.everythingdone.fragments;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -16,6 +17,7 @@ import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.DetailActivity;
 import com.ywwynm.everythingdone.adapters.HabitRecordAdapter;
+import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.LocaleUtil;
@@ -28,6 +30,7 @@ public class HabitDetailDialogFragment extends BaseDialogFragment {
 
     public static final String TAG = "HabitDetailDialogFragment";
     private Habit mHabit;
+    private boolean mEditable;
 
     private LinearLayout mLlDetail;
     private LinearLayout mLlRecord;
@@ -37,7 +40,9 @@ public class HabitDetailDialogFragment extends BaseDialogFragment {
     private TextView     mTvPiTs;            // 坚持的周期数
     private TextView     mTvRecordCount;
     private TextView     mTvFinishedTimes;
+
     private RecyclerView mRvRecord;
+    private HabitRecordAdapter mHabitRecordAdapter;
 
     private TextView mTvToggleAsBt;
 
@@ -48,8 +53,15 @@ public class HabitDetailDialogFragment extends BaseDialogFragment {
         return fragment;
     }
 
+    // not good practice but I'm so lazy that I don't want to make Habit class parcelable~
     public void setHabit(Habit habit) {
         mHabit = habit;
+    }
+
+    // not good practice, either. But I'm so lazy that I just want to use same way as above to do
+    // this stuff~ on 2017/2/10
+    public void setEditable(boolean editable) {
+        mEditable = editable;
     }
 
     @Override
@@ -123,23 +135,46 @@ public class HabitDetailDialogFragment extends BaseDialogFragment {
         mTvFinishedTimes.setText("" + mHabit.getFinishedTimes());
 
         String record = mHabit.getRecord();
-        int len = record.length();
-        if (len < 30) {
-            StringBuilder sb = new StringBuilder(record);
-            int add = 30 - len;
-            for (int i = 0; i < add; i++) {
-                sb.append("?");
-            }
-            record = sb.toString();
-        } else {
-            record = record.substring(len - 30, len);
-        }
+//        int len = record.length();
+//        if (len < 30) {
+//            StringBuilder sb = new StringBuilder(record);
+//            int add = 30 - len;
+//            for (int i = 0; i < add; i++) {
+//                sb.append("?");
+//            }
+//            record = sb.toString();
+//        } else {
+//            record = record.substring(len - 30, len);
+//        }
 
         Activity activity = getActivity();
-        HabitRecordAdapter habitRecordAdapter = new HabitRecordAdapter(activity, record);
-        mRvRecord.setAdapter(habitRecordAdapter);
+        mHabitRecordAdapter = new HabitRecordAdapter(activity, record, mEditable);
+        mRvRecord.setAdapter(mHabitRecordAdapter);
         GridLayoutManager glm = new GridLayoutManager(activity, 6);
         mRvRecord.setLayoutManager(glm);
+    }
+
+    @Override
+    public void onDismiss(DialogInterface dialog) {
+        if (mHabitRecordAdapter.hasRecordEdited()) {
+            String record = mHabitRecordAdapter.getRecord();
+            DetailActivity activity = (DetailActivity) getActivity();
+            HabitDAO habitDAO = HabitDAO.getInstance(activity);
+            long habitId = mHabit.getId();
+            Habit habit = habitDAO.getHabitById(habitId);
+            if (habit != null) {
+                String latestRecord = habit.getRecord(), finalRecord = record;
+                final int len1 = latestRecord.length(), len2 = record.length();
+                if (len1 > len2) { // alarm time passed~
+                    finalRecord = latestRecord.substring(0, len1 - len2) + record;
+                }
+                habit.setRecord(finalRecord);
+                habitDAO.updateRecordOfHabit(habitId, record);
+            }
+
+            activity.setHabitRecordEdited(true);
+        }
+        super.onDismiss(dialog);
     }
 
     private void toggle() {

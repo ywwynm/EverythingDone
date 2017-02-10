@@ -178,6 +178,13 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
     private boolean mHabitFinishedThisTime = false;
 
+    // added on 2017/2/10 used to know if user has changed a habit's finishing records
+    private boolean mHabitRecordEdited = false;
+
+    public void setHabitRecordEdited(boolean habitRecordEdited) {
+        mHabitRecordEdited = habitRecordEdited;
+    }
+
     private int mMaxSpanImage;
     private int mSpanAudio;
 
@@ -1177,6 +1184,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             case R.id.act_check_habit_detail:
                 HabitDetailDialogFragment hddf = HabitDetailDialogFragment.newInstance();
                 hddf.setHabit(mHabit);
+                hddf.setEditable(mEditable);
                 hddf.show(getFragmentManager(), HabitDetailDialogFragment.TAG);
                 break;
             case R.id.act_share:
@@ -2456,7 +2464,8 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             resultCode = createThing(title, content, attachment, typeAfter, color, intent);
         } else {
             boolean noUpdate = Thing.noUpdate(mThing, title, content, attachment, typeAfter, color)
-                    && !reminderUpdated && !habitUpdated && !mHabitFinishedThisTime;
+                    && !reminderUpdated && !habitUpdated && !mHabitFinishedThisTime
+                    && !mHabitRecordEdited;
             if (noUpdate) {
                 setResult(resultCode);
             } else {
@@ -2721,14 +2730,6 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         } else {
             setResult(resultCode, intent);
         }
-
-//        WeakReference<ThingsActivity> wr = App.thingsActivityWR;
-//        if (wr == null || wr.get() == null || createActivitiesCount > 1) {
-//            ThingManager.getInstance(mApp).create(mThing, true, true);
-//            intent.putExtra(Def.Communication.KEY_CREATED_DONE, true);
-//        } else if (!shouldSendBroadCast()) {
-//            setResult(resultCode, intent);
-//        }
 
         return resultCode;
     }
