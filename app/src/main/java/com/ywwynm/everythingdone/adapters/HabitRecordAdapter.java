@@ -50,7 +50,7 @@ public class HabitRecordAdapter extends RecyclerView.Adapter<HabitRecordAdapter.
         if (len <= 30) {
             correctPos = position;
         } else {
-            correctPos = len - 30;
+            correctPos = len - 30 + position;
         }
 
         if (correctPos >= len) {
