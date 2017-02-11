@@ -152,7 +152,7 @@ public class ThingsAdapter extends BaseThingsAdapter {
 
     @Override
     protected void onChecklistAdapterInitialized(
-            final BaseThingViewHolder holder, CheckListAdapter adapter, final Thing thing) {
+            final BaseThingViewHolder holder, final CheckListAdapter adapter, final Thing thing) {
         super.onChecklistAdapterInitialized(holder, adapter, thing);
         boolean toggleCliOtc = FrequentSettings.getBoolean(Def.Meta.KEY_TOGGLE_CLI_OTC);
         if (!toggleCliOtc
@@ -193,6 +193,13 @@ public class ThingsAdapter extends BaseThingsAdapter {
                     AppWidgetHelper.updateSingleThingAppWidgets(mApp, thingId);
                     AppWidgetHelper.updateThingsListAppWidgetsForType(mApp, thingType);
                     SystemNotificationUtil.cancelNotification(thingId, thingType, mApp);
+                }
+
+                @Override
+                public void onItemSpaceClick(View v) {
+                    if (mOnItemTouchedListener != null) {
+                        mOnItemTouchedListener.onItemClick(v, holder.getAdapterPosition());
+                    }
                 }
             });
         }

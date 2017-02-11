@@ -387,6 +387,9 @@ public class DoingActivity extends EverythingDoneBaseActivity {
                         notifyDataSetChanged();
                         RemoteActionHelper.toggleChecklistItem(mApp, thing.getId(), itemPos);
                     }
+
+                    @Override
+                    public void onItemSpaceClick(View v) {}
                 });
             }
         };

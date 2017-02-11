@@ -20,8 +20,8 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.ywwynm.everythingdone.App;
-import com.ywwynm.everythingdone.FrequentSettings;
 import com.ywwynm.everythingdone.Def;
+import com.ywwynm.everythingdone.FrequentSettings;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
@@ -86,6 +86,7 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
 
     public interface TvItemClickCallback {
         void onItemClick(int itemPos);
+        void onItemSpaceClick(View v); // added on 2017/2/11
     }
     private TvItemClickCallback mTvItemClickCallback;
 
@@ -227,9 +228,7 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
                 holder.tv.setText("...");
                 holder.tv.setContentDescription(mContext.getString(R.string.cd_checklist_more_items));
                 params.setMargins((int) (density * 8), 0, 0, params.bottomMargin);
-                holder.itemView.setClickable(false);
-                holder.itemView.setBackgroundResource(0);
-                holder.itemView.setOnClickListener(null);
+                setEventForTextViewItemMore(holder);
             } else {
                 holder.iv.setVisibility(View.VISIBLE);
                 int flag = holder.tv.getPaintFlags();
@@ -365,22 +364,47 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
     }
 
     private void setEventForTextViewItem(final TextViewHolder holder) {
-        if ((mMaxItemCount != -1 && holder.getAdapterPosition() == mMaxItemCount)
-                || mTvItemClickCallback == null) {
-            holder.itemView.setClickable(false);
+        if (mTvItemClickCallback == null) {
+            holder.llClickable.setClickable(false);
+            holder.spaceClickable.setClickable(false);
             // If don't write this line, we can still get a touch feedback for whole parent
             // RecyclerView even if its touch event should be intercepted by its parent.
-            holder.itemView.setBackgroundResource(0);
+            holder.llClickable.setBackgroundResource(0);
         } else {
-            holder.itemView.setClickable(true);
-            holder.itemView.setBackgroundResource(R.drawable.selectable_item_background_light);
-            holder.itemView.setOnClickListener(new View.OnClickListener() {
+            holder.llClickable.setClickable(true);
+            holder.llClickable.setBackgroundResource(R.drawable.selectable_item_background_light);
+            holder.llClickable.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     mTvItemClickCallback.onItemClick(holder.getAdapterPosition());
                 }
             });
+            holder.spaceClickable.setClickable(true);
+            holder.spaceClickable.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    mTvItemClickCallback.onItemSpaceClick(v);
+                }
+            });
         }
+    }
+
+    private void setEventForTextViewItemMore(final TextViewHolder holder) {
+        holder.llClickable.setClickable(true);
+        holder.llClickable.setBackgroundResource(0);
+        holder.llClickable.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mTvItemClickCallback.onItemSpaceClick(v);
+            }
+        });
+        holder.spaceClickable.setClickable(true);
+        holder.spaceClickable.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mTvItemClickCallback.onItemSpaceClick(v);
+            }
+        });
     }
 
     @Override
@@ -397,11 +421,15 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
 
     static class TextViewHolder extends BaseViewHolder {
 
+        final LinearLayout llClickable;
+        final View spaceClickable;
         final ImageView iv;
         final TextView  tv;
 
         TextViewHolder(View itemView) {
             super(itemView);
+            llClickable = f(R.id.ll_check_list_tv);
+            spaceClickable = f(R.id.space_checklist_item_tv);
             iv = f(R.id.iv_check_list_state);
             tv = f(R.id.tv_check_list);
         }
