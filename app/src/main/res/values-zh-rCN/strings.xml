@@ -334,7 +334,7 @@
 
     <!--DetailActivity check habit-->
     <string name="act_check_habit_overview">查看习惯概览</string>
-    <string name="act_check_habit_record">查看最近 30 次完成情况</string>
+    <string name="act_check_habit_record">查看、修改最近 30 次完成记录</string>
 
     <!--DetailActivity special text events-->
     <string name="act_open_in_browser">访问网页</string>
@@ -487,7 +487,7 @@
     <string name="habit_detail_completion_rate">完成率</string>
     <string name="habit_detail_persist_in">坚持时间</string>
     <string name="habit_detail_total_t">总周期数</string>
-    <string name="habit_detail_record">最近 30 次完成情况</string>
+    <string name="habit_detail_record">最近 30 次完成情况，你可以更改最新的 6 条记录（最后 6 项）</string>
     <string name="habit_detail_record_count">记录次数</string>
     <string name="habit_detail_times">完成次数</string>
     <string name="habit_detail_title">习惯详情</string>

@@ -339,7 +339,7 @@
 
     <!--DetailActivity check habit-->
     <string name="act_check_habit_overview">Check habit overview</string>
-    <string name="act_check_habit_record">Check Last 30 Records</string>
+    <string name="act_check_habit_record"><![CDATA[Check&Update Last 30 Records]]></string>
 
     <!--DetailActivity special text events-->
     <string name="act_open_in_browser">Browse</string>
@@ -491,7 +491,7 @@
     <string name="habit_detail_completion_rate">Completion Rate</string>
     <string name="habit_detail_persist_in">Persistent Cycle</string>
     <string name="habit_detail_total_t">Total Cycle</string>
-    <string name="habit_detail_record">Last 30 Records</string>
+    <string name="habit_detail_record">Last 30 records, you can change latest 6 of them(last 6 items on bottom)</string>
     <string name="habit_detail_record_count">Record Count</string>
     <string name="habit_detail_times">Finished Times</string>
     <string name="habit_detail_title">Habit detail</string>
