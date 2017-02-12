@@ -1746,20 +1746,14 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         super.onPause();
         if (mEditable && mExecutor != null && !dontSaveAfterOnPause
                 && FrequentSettings.getBoolean(Def.Meta.KEY_AUTO_SAVE_EDITS)) {
-            final boolean hasSavedAfterOnPause = savedAfterOnPause;
+            saveAfterOnPause();
             savedAfterOnPause = true;
-            mExecutor.execute(new Runnable() {
-                @Override
-                public void run() {
-                    saveAfterOnPause(hasSavedAfterOnPause);
-                }
-            });
         }
     }
 
     private boolean savedAfterOnPause = false;
 
-    private void saveAfterOnPause(boolean hasSavedAfterOnPause) {
+    private void saveAfterOnPause() {
         // will not create or update reminder or habit
 
         String title      = getThingTitle();
@@ -1780,7 +1774,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         Intent intent = new Intent();
 
         int resultCode = Def.Communication.RESULT_NO_UPDATE;
-        if (mType == CREATE && !hasSavedAfterOnPause) {
+        if (mType == CREATE && !savedAfterOnPause) {
             mThing.setType(Thing.NOTE);
             mThing.setCreateTime(currentTime);
             intent.putExtra(Def.Communication.KEY_THING, mThing);
@@ -2454,6 +2448,10 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 typeBefore, typeAfter, color, reminderUpdated, habitUpdated, intent);
         if (resultCode == null) { // create empty thing
             return;
+        }
+
+        if (mType == CREATE && savedAfterOnPause) {
+            App.setJustNotifyAll(true);
         }
 
         afterCreateOrUpdateThing(intent, resultCode);
