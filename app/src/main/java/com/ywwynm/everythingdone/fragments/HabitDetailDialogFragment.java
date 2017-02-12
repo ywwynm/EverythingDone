@@ -166,7 +166,9 @@ public class HabitDetailDialogFragment extends BaseDialogFragment {
                 String latestRecord = habit.getRecord(), finalRecord = record;
                 final int len1 = latestRecord.length(), len2 = record.length();
                 if (len1 > len2) { // alarm time passed~
-                    finalRecord = latestRecord.substring(0, len1 - len2) + record;
+                    int gap = len1 - len2;
+                    final int latestLen = latestRecord.length();
+                    finalRecord = record + latestRecord.substring(latestLen - gap, latestLen);
                 }
                 habit.setRecord(finalRecord);
                 habitDAO.updateRecordOfHabit(habitId, record);
