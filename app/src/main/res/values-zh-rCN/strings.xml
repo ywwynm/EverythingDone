@@ -334,7 +334,7 @@
 
     <!--DetailActivity check habit-->
     <string name="act_check_habit_overview">查看习惯概览</string>
-    <string name="act_check_habit_record">查看、修改最近 30 次完成记录</string>
+    <string name="act_check_habit_record">查看、调整最近 30 次完成记录</string>
 
     <!--DetailActivity special text events-->
     <string name="act_open_in_browser">访问网页</string>
@@ -1010,5 +1010,9 @@
 
     <string name="from_1_3_0_to_1_3_1_title">主动/自动开始做事</string>
     <string name="from_1_3_0_to_1_3_1_content">现在，在主界面右滑记事卡片，即可开始做事，随时随心。\n\n此外，我们还增加了提醒到来时，自动开始做事的功能，配合同样新增的自动进入严格模式，相信完事儿能够帮你防范拖延症。</string>
+
+    <string name="from_1_3_3_to_1_3_4_title">自动保存编辑与调整习惯完成记录</string>
+    <string name="from_1_3_3_to_1_3_4_content">现在，你能够启用在创建或更新记事时，自动保存编辑的功能。
+    \n\n你也能够调整最近的习惯完成记录，弥补忘记点击完成的遗憾。请前往查看记事的页面，打开菜单，点击“查看习惯详情”，即可看到相应的操作。</string>
 
 </resources>

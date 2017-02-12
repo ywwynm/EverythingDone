@@ -334,7 +334,7 @@
 
     <!--DetailActivity check habit-->
     <string name="act_check_habit_overview">查看習慣概覽</string>
-    <string name="act_check_habit_record">查看、修改最近 30 次完成記錄</string>
+    <string name="act_check_habit_record">查看、調整最近 30 次完成記錄</string>
 
     <!--DetailActivity special text events-->
     <string name="act_open_in_browser">瀏覽網頁</string>
@@ -1010,5 +1010,9 @@
 
     <string name="from_1_3_0_to_1_3_1_title">主動/自動開始做事</string>
     <string name="from_1_3_0_to_1_3_1_content">現在，在主界面右滑記事卡片，即可開始做事，隨時隨心。\n\n此外，我們還增加了提醒到來時，自動開始做事的功能，配合同樣新增的自動進入嚴格模式，相信完事兒能夠幫你防範拖延症。</string>
+
+    <string name="from_1_3_3_to_1_3_4_title">自動保存編輯與調整習慣完成記錄</string>
+    <string name="from_1_3_3_to_1_3_4_content">現在，你能夠啟用在創建或更新記事時，自動保存編輯的功能。
+    \n\n你也能夠調整最近的習慣完成記錄，彌補忘記點擊完成的遺憾。請前往查看記事的頁面，打開菜單，點擊“查看習慣詳情”，即可看到相應的操作。</string>
 
 </resources>
