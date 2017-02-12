@@ -28,7 +28,7 @@
 
     </LinearLayout>
 
-    <View
+    <TextView
         android:id="@+id/space_checklist_item_tv"
         android:layout_width="0dp"
         android:layout_height="match_parent"
