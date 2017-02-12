@@ -1778,12 +1778,12 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         mThing.setUpdateTime(currentTime);
 
         Intent intent = new Intent();
-        intent.putExtra(Def.Communication.KEY_THING, mThing);
 
-        int resultCode;
+        int resultCode = Def.Communication.RESULT_NO_UPDATE;
         if (mType == CREATE && !hasSavedAfterOnPause) {
             mThing.setType(Thing.NOTE);
             mThing.setCreateTime(currentTime);
+            intent.putExtra(Def.Communication.KEY_THING, mThing);
 
             resultCode = Def.Communication.RESULT_CREATE_THING_DONE;
             intent.putExtra(Def.Communication.KEY_RESULT_CODE, resultCode);
@@ -1807,6 +1807,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             } else {
                 ThingDAO.getInstance(mApp).update(typeBefore, mThing, true, true);
             }
+            intent.putExtra(Def.Communication.KEY_THING, mThing);
             if (mType == UPDATE) {
                 intent.putExtra(Def.Communication.KEY_TYPE_BEFORE, typeBefore);
                 if (updateResult > 0) {
@@ -1818,6 +1819,9 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 sendBroadCastToUpdateMainUI(intent, resultCode);
             }
         }
+
+        // sendBroadcast inside won't be executed
+        afterCreateOrUpdateThing(intent, resultCode);
     }
 
     @Override
@@ -2453,6 +2457,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         }
 
         afterCreateOrUpdateThing(intent, resultCode);
+        finish();
     }
 
     private Integer createOrUpdateThing(
@@ -2482,10 +2487,6 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     }
 
     private void afterCreateOrUpdateThing(Intent intent, int resultCode) {
-        if (mType == CREATE && savedAfterOnPause) {
-            App.setJustNotifyAll(true);
-        }
-
         if (App.isSomethingUpdatedSpecially()
                 && resultCode != Def.Communication.RESULT_NO_UPDATE) {
             App.tryToSetNotifyAllToTrue(mThing, resultCode);
@@ -2505,8 +2506,6 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 || resultCode == Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_DIFFERENT) {
             SystemNotificationUtil.tryToCreateThingOngoingNotification(this);
         }
-
-        finish();
     }
 
     private void returnToThingsActivity(int stateAfter) {
