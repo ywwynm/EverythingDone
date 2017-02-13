@@ -394,7 +394,7 @@ public class AppWidgetHelper {
 
     public static RemoteViews createRemoteViewsForChecklistItem(
             Context context, String item, int itemsSize, boolean isSingleThingWidget) {
-        RemoteViews rv = new RemoteViews(context.getPackageName(), R.layout.check_list_tv);
+        RemoteViews rv = new RemoteViews(context.getPackageName(), R.layout.check_list_tv_app_widget);
 
         if (!isSingleThingWidget) {
             rv.setInt(LL_CHECK_LIST_ITEM_ROOT, "setBackgroundResource", 0);
@@ -732,7 +732,7 @@ public class AppWidgetHelper {
         }
 
         if (size > 8) {
-            RemoteViews rvItem = new RemoteViews(context.getPackageName(), R.layout.check_list_tv);
+            RemoteViews rvItem = new RemoteViews(context.getPackageName(), R.layout.check_list_tv_app_widget);
             rvItem.setViewVisibility(IV_STATE_CHECK_LIST, View.GONE);
             rvItem.setTextViewText(TV_CONTENT_CHECK_LIST, "...");
             rvItem.setContentDescription(TV_CONTENT_CHECK_LIST,
