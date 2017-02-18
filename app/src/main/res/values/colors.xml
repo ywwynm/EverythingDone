@@ -10,6 +10,7 @@
         <item>@color/blue_deep</item>
         <item>@color/pine_green</item>
         <item>@color/my_purple</item>
+        <item>@color/my_orange</item>
     </array>
 
     <color name="my_cyan">#00B1C6</color>
@@ -20,8 +21,9 @@
     <color name="blue_deep">#166096</color>
     <color name="brown">#96766B</color>
     <color name="my_purple">#665696</color>
+    <color name="my_orange">#D28656</color> <!-- Don't forget #D96D37 -->
 
-    <array name="thing_dark">
+    <array name="thing_dark"> <!-- overlap a 66% alpha white block -->
         <item>#526B77</item> <!-- blue_grey_500 -->
         <item>#0098AA</item> <!-- my_cyan -->
         <item>#2E5873</item> <!-- blue_grey_deep_blue -->
@@ -30,9 +32,10 @@
         <item>#135281</item> <!-- blue_deep -->
         <item>#1C8F64</item> <!-- pine_green -->
         <item>#584A81</item> <!-- my_purple -->
+        <item>#865637</item> <!-- my orange -->
     </array>
 
-    <array name="thing_light">
+    <array name="thing_light"> <!-- overlap a 36% alpha black block -->
         <item>#CAD2D5</item> <!-- blue_grey_500 -->
         <item>#B2DFE4</item> <!-- my_cyan -->
         <item>#C0CCD4</item> <!-- blue_grey_deep_blue -->
@@ -41,6 +44,7 @@
         <item>#B8CAD8</item> <!-- blue_deep -->
         <item>#C6E8DB</item> <!-- pine_green -->
         <item>#D7D3E4</item> <!-- my_purple -->
+        <item>#F0D6C5</item> <!-- my orange -->
     </array>
 
     <color name="bg_activity_things">#EEEEEE</color>

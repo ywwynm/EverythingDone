@@ -47,10 +47,11 @@ public class ColorPicker extends PopupPicker {
         ViewGroup.LayoutParams params = mRecyclerView.getLayoutParams();
         params.width = (int) (mScreenDensity * 128);
         if (mType == Def.PickerType.COLOR_HAVE_ALL) {
-            params.height = (int) (mScreenDensity * 256);
+            params.height = (int) (mScreenDensity * 304);
         } else if (mType == Def.PickerType.COLOR_NO_ALL) {
-            params.height = (int) (mScreenDensity * 216);
+            params.height = (int) (mScreenDensity * 264);
         }
+        // For every 2 new colors you want to add, you should also add 48 dp to picker's height.
         mRecyclerView.setOverScrollMode(View.OVER_SCROLL_NEVER);
         mRecyclerView.setHasFixedSize(true);
         GridLayoutManager layoutManager = new GridLayoutManager(this.mActivity, 2);
@@ -229,9 +230,15 @@ public class ColorPicker extends PopupPicker {
                     params.setMargins(m8, m4, m16, m4);
                     break;
                 case 6:
-                    params.setMargins(m16, m4, m8, m16);
+                    params.setMargins(m16, m4, m8, m4);
                     break;
                 case 7:
+                    params.setMargins(m8, m4, m16, m4);
+                    break;
+                case 8:
+                    params.setMargins(m16, m4, m8, m16);
+                    break;
+                case 9:
                     params.setMargins(m8, m4, m16, m16);
                     break;
                 default:break;
