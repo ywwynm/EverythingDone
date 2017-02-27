@@ -22,6 +22,7 @@
     <color name="brown">#96766B</color>
     <color name="my_purple">#665696</color>
     <color name="my_orange">#D28656</color> <!-- Don't forget #D96D37 -->
+    <color name="my_red">#AE6060</color>
 
     <array name="thing_dark"> <!-- overlap a 66% alpha white block -->
         <item>#526B77</item> <!-- blue_grey_500 -->
@@ -33,6 +34,7 @@
         <item>#1C8F64</item> <!-- pine_green -->
         <item>#584A81</item> <!-- my_purple -->
         <item>#865637</item> <!-- my orange -->
+        <item>#6F2323</item> <!-- my red -->
     </array>
 
     <array name="thing_light"> <!-- overlap a 36% alpha black block -->
@@ -45,6 +47,7 @@
         <item>#C6E8DB</item> <!-- pine_green -->
         <item>#D7D3E4</item> <!-- my_purple -->
         <item>#F0D6C5</item> <!-- my orange -->
+        <item>#6F2323</item> <!-- my red -->
     </array>
 
     <color name="bg_activity_things">#EEEEEE</color>

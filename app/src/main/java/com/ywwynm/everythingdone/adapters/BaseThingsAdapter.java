@@ -534,6 +534,9 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
     }
 
     private void setCardAppearance(final BaseThingViewHolder holder, int color, final boolean selected) {
+        if (color == ContextCompat.getColor(mContext, R.color.pine_green)) {
+            color = ContextCompat.getColor(mContext, R.color.my_red);
+        }
         final CardView cv = holder.cv;
         int currentMode = getCurrentMode();
         if (currentMode == ModeManager.MOVING) {
