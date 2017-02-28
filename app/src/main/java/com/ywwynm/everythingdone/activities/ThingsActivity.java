@@ -1221,20 +1221,14 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         }
 
         mRecyclerView.setVisibility(View.INVISIBLE);
-        mRecyclerView.postDelayed(new Runnable() {
-            // if we don't use postDelayed, RevealLayout will show at a completely wrong hierarchy
-            @Override
-            public void run() {
-                mAdapter.setShouldThingsAnimWhenAppearing(true);
-                mRecyclerView.setVisibility(View.VISIBLE);
-                computeSpanCount();
-                mStaggeredGridLayoutManager.setSpanCount(mSpan);
-                if (mThingManager.getThings().size() > 1) {
-                    mRecyclerView.scrollToPosition(0);
-                }
-                mAdapter.notifyDataSetChanged();
-            }
-        }, 360);
+        mAdapter.setShouldThingsAnimWhenAppearing(true);
+        mRecyclerView.setVisibility(View.VISIBLE);
+        computeSpanCount();
+        mStaggeredGridLayoutManager.setSpanCount(mSpan);
+        if (mThingManager.getThings().size() > 1) {
+            mRecyclerView.scrollToPosition(0);
+        }
+        mAdapter.notifyDataSetChanged();
 
         mModeManager.updateTitleTextSize();
         if (mModeManager.getCurrentMode() != ModeManager.SELECTING && !App.isSearching
