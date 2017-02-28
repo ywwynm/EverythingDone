@@ -205,7 +205,7 @@
         <item>@string/pine_green</item>
         <item>@string/my_purple</item>
         <item>@string/elegant_orange</item>
-        <item>@string/aein_red</item>
+        <item>@string/Aein_red</item>
     </string-array>
     <string name="blue_grey_500">blue grey</string>
     <string name="my_cyan">cyan</string>
@@ -216,7 +216,7 @@
     <string name="pine_green">pine green</string>
     <string name="my_purple">grey purple</string>
     <string name="elegant_orange">elegant orange</string>
-    <string name="aein_red">Aein red</string>
+    <string name="Aein_red">Aein red</string>
 
     <!--Sharing a Thing-->
     <string name="share_i_work_hard_for">I work hard for</string>

@@ -200,7 +200,7 @@
         <item>@string/pine_green</item>
         <item>@string/my_purple</item>
         <item>@string/elegant_orange</item>
-        <item>@string/aein_red</item>
+        <item>@string/Aein_red</item>
     </string-array>
     <string name="blue_grey_500">藍灰色</string>
     <string name="my_cyan">淺青色</string>
@@ -211,7 +211,7 @@
     <string name="pine_green">松綠色</string>
     <string name="my_purple">紫色</string>
     <string name="elegant_orange">淡雅橙</string>
-    <string name="aein_red">女神紅</string>
+    <string name="Aein_red">女神紅</string>
 
     <!--Sharing a Thing-->
     <string name="share_i_work_hard_for">我努力了</string>

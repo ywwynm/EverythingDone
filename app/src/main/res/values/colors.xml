@@ -11,7 +11,7 @@
         <item>@color/pine_green</item>
         <item>@color/my_purple</item>
         <item>@color/elegant_orange</item>
-        <item>@color/aein_red</item>
+        <item>@color/Aein_red</item>
     </array>
 
     <color name="my_cyan">#00B1C6</color>
@@ -23,7 +23,7 @@
     <color name="brown">#96766B</color>
     <color name="my_purple">#665696</color>
     <color name="elegant_orange">#D28656</color> <!-- Don't forget #D96D37 -->
-    <color name="aein_red">#AE6060</color>
+    <color name="Aein_red">#AE6060</color>
 
     <array name="thing_dark"> <!-- overlap a 36% alpha black block -->
         <item>#526B77</item> <!-- blue_grey_500 -->
