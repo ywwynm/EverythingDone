@@ -204,7 +204,8 @@
         <item>@string/blue_deep</item>
         <item>@string/pine_green</item>
         <item>@string/my_purple</item>
-        <item>@string/my_orange</item>
+        <item>@string/elegant_orange</item>
+        <item>@string/aein_red</item>
     </string-array>
     <string name="blue_grey_500">blue grey</string>
     <string name="my_cyan">cyan</string>
@@ -214,7 +215,8 @@
     <string name="blue_deep">deep blue</string>
     <string name="pine_green">pine green</string>
     <string name="my_purple">grey purple</string>
-    <string name="my_orange">grey orange</string>
+    <string name="elegant_orange">elegant orange</string>
+    <string name="aein_red">Aein red</string>
 
     <!--Sharing a Thing-->
     <string name="share_i_work_hard_for">I work hard for</string>
@@ -990,7 +992,7 @@
 
         <item>设计稿里是有柔和、冷静两种色调的，但光选择“冷静”里应该有哪些颜色，就耗费了将近一个星期……
             \n\n现在如果要提供更多、柔和一些的颜色，还要考虑和已有的颜色协调，字体、对话框颜色搭配，不让界面因多种颜色而让人眼花缭乱等等问题。
-            \n\n绿色和紫色已经在 1.2.2 版本中推出，未来可能会以多主题的方式提供更多的颜色。</item>
+            \n\n绿色和紫色在 1.2.2 版本中推出，橙色和红色在 1.3.5 版本中推出，未来可能会以多主题的方式提供更多的颜色。</item>
 
         <item>对目前的我来说，确定某一天的农历日期的算法实在是高深、困难；对于用户来说，输入某个农历日期也是一件麻烦的事情。加入农历是少有的、我会感觉不知道从何入手的事情，因此你可以期待这个功能在10年内能不能加入了。</item>
 

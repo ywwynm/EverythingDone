@@ -199,7 +199,8 @@
         <item>@string/blue_deep</item>
         <item>@string/pine_green</item>
         <item>@string/my_purple</item>
-        <item>@string/my_orange</item>
+        <item>@string/elegant_orange</item>
+        <item>@string/aein_red</item>
     </string-array>
     <string name="blue_grey_500">藍灰色</string>
     <string name="my_cyan">淺青色</string>
@@ -209,7 +210,8 @@
     <string name="blue_deep">深藍色</string>
     <string name="pine_green">鬆綠色</string>
     <string name="my_purple">紫色</string>
-    <string name="my_orange">淺灰橙色</string>
+    <string name="elegant_orange">淡雅橙</string>
+    <string name="aein_red">女神紅</string>
 
     <!--Sharing a Thing-->
     <string name="share_i_work_hard_for">我努力了</string>
@@ -979,7 +981,7 @@
 
         <item>設計稿裡是有柔和、冷靜兩種色調的，但光選擇“冷靜”裡應該有哪些顏色，就耗費了將近一個星期……
             \n\n現在如果要提供更多、柔和一些的顏色，還要考慮和已有的顏色協調，字體、對話框顏色搭配，不讓界面因多種顏色而讓人眼花繚亂等等問題。
-            \n\n綠色和紫色已經在 1.2.2 版本中推出，未來可能會以多主題的方式提供更多的顏色。</item>
+            \n\n綠色和紫色已經在 1.2.2 版本中推出，橙色和紅色在 1.3.5 版本中推出，未來可能會以多主題的方式提供更多的顏色。</item>
 
         <item>對目前的我來說，確定某一天的農曆日期的算法實在是高深、困難；對於用戶來說，輸入某個農曆日期也是一件麻煩的事情。加入農曆是少有的、我會感覺不知道從何入手的事情，因此你可以期待這個功能在10年內能不能加入了。</item>
 
