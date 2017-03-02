@@ -167,6 +167,20 @@ public class HabitDAO {
         return habitRecord;
     }
 
+    // added on 2017/3/2, version should be 1.3.6(38)
+    public void pause(long habitId) {
+        Habit habit = getHabitById(habitId);
+        if (habit == null || habit.isPaused()) return;
+        addHabitIntervalInfo(habitId, System.currentTimeMillis() + ",");
+    }
+
+    public void resume(long habitId) {
+        Habit habit = getHabitById(habitId);
+        if (habit == null || !habit.isPaused()) return;
+        addHabitIntervalInfo(habitId, System.currentTimeMillis() + ";");
+    }
+    // added end
+
     public void dailyUpdate(long habitId) {
         Habit habit = getHabitById(habitId);
         String record = habit.getRecord();
