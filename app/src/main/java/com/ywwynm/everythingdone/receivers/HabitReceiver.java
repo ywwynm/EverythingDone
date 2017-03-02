@@ -49,8 +49,14 @@ public class HabitReceiver extends BroadcastReceiver {
             return;
         }
 
-        long hrTime = habitReminder.getNotifyTime();
         final long habitId = habitReminder.getHabitId();
+        Habit habit = habitDAO.getHabitById(habitId);
+        if (habit != null && habit.isPaused()) {
+            // Don't keep alarms(updateHabitReminderToNext). Resume alarms when resume the Habit.
+            return;
+        }
+
+        long hrTime = habitReminder.getNotifyTime();
         // remove existed notification for same Habit
         SystemNotificationUtil.cancelNotification(habitId, Thing.HABIT, context);
         context.sendBroadcast(
@@ -109,7 +115,7 @@ public class HabitReceiver extends BroadcastReceiver {
             boolean shouldAutoStartDoing = helper.shouldAutoStartDoing();
             if (curDoingId == -1 && shouldAutoStartDoing) {
                 updateHabitRecordTimesAndUi(context, hrId, thing, position);
-                Habit habit = habitDAO.getHabitById(habitId);
+                habit = habitDAO.getHabitById(habitId);
                 if (habit == null) {
                     helper.startDoingAuto(-1, hrTime);
                 } else {
