@@ -142,6 +142,11 @@ public class Habit {
         mHabitRecords = habitRecords;
     }
 
+    // added on 2017/3/2, version should be 1.3.6(38)
+    public boolean isPaused() {
+        return intervalInfo.endsWith(",");
+    }
+
     public long getMinHabitReminderTime() {
         return getClosestHabitReminder().getNotifyTime();
     }
