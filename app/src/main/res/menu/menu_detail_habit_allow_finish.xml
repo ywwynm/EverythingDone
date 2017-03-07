@@ -48,6 +48,11 @@
         app:showAsAction="never"/>
 
     <item
+        android:id="@+id/act_pause_continue_habit"
+        android:title="@string/act_pause_habit"
+        app:showAsAction="never"/>
+
+    <item
         android:id="@+id/act_check_habit_detail"
         android:title="@string/act_check_habit_detail"
         app:showAsAction="never"/>

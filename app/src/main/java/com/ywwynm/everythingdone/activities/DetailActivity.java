@@ -1143,6 +1143,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 togglePrivateThingActionItem(menu, !mThing.isPrivate());
                 toggleStickyActionItem(menu);
                 toggleOngoingActionItem(menu);
+                togglePauseContinueHabitActionItem(menu);
             } else if (state == Thing.FINISHED) {
                 inflater.inflate(R.menu.menu_detail_finished, menu);
                 if (thingType != Thing.HABIT) {
@@ -1290,6 +1291,16 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             item.setTitle(R.string.act_cancel_set_thing_as_ongoing);
         } else {
             item.setTitle(R.string.act_set_thing_as_ongoing);
+        }
+    }
+
+    private void togglePauseContinueHabitActionItem(Menu menu) {
+        if (mHabit == null) return;
+        MenuItem item = menu.findItem(R.id.act_pause_continue_habit);
+        if (mHabit.isPaused()) {
+            item.setTitle(R.string.act_continue_habit);
+        } else {
+            item.setTitle(R.string.act_pause_habit);
         }
     }
 
