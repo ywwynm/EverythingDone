@@ -181,6 +181,22 @@ public class HabitDAO {
     }
     // added end
 
+    public boolean isPaused(long habitId) {
+        Cursor cursor = db.query(
+                Def.Database.TABLE_HABITS,
+                new String[] { Def.Database.COLUMN_INTERVAL_INFO_HABITS },
+                Def.Database.COLUMN_ID_HABITS + "=" + habitId,
+                null, null, null, null
+        );
+        boolean paused = false;
+        if (cursor.moveToFirst()) {
+            String intervalInfo = cursor.getString(0);
+            paused = intervalInfo.endsWith(",");
+        }
+        cursor.close();
+        return paused;
+    }
+
     public void dailyUpdate(long habitId) {
         Habit habit = getHabitById(habitId);
         String record = habit.getRecord();
