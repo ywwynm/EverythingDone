@@ -179,6 +179,7 @@
 
     <string name="alert_cannot_finish_habit_first_time">Please wait for the first cycle</string>
     <string name="alert_cannot_finish_habit_more_times">Cannot finish more times until next cycle</string>
+    <string name="alert_cannot_finish_habit_paused">This Habit is paused</string>
 
     <!--Goal-->
     <string name="goal_should_finish_before">should be achieved before %1$s</string>

@@ -2,7 +2,6 @@ package com.ywwynm.everythingdone.model;
 
 import android.content.Context;
 import android.database.Cursor;
-import android.support.v4.content.ContextCompat;
 
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.database.HabitDAO;
@@ -265,6 +264,7 @@ public class Habit {
     }
 
     public boolean allowFinish() {
+        if (isPaused()) return false;
         DateTime dt = new DateTime();
         DateTimeFieldType jodaType = DateTimeUtil.getJodaType(type);
         int ct = dt.get(jodaType), t;
@@ -303,6 +303,7 @@ public class Habit {
      * @return {@code true} if user can finish Habit once now. {@code false} otherwise.
      */
     public boolean allowFinish(long notifyTime) {
+        if (isPaused()) return false;
         DateTime dt = new DateTime();
         DateTimeFieldType jodaType = DateTimeUtil.getJodaType(type);
         return dt.get(jodaType) == dt.withMillis(notifyTime).get(jodaType);

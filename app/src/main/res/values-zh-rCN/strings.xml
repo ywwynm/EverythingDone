@@ -174,6 +174,7 @@
 
     <string name="alert_cannot_finish_habit_first_time">请等待第一个周期的到来</string>
     <string name="alert_cannot_finish_habit_more_times">直到下个周期前无法继续完成</string>
+    <string name="alert_cannot_finish_habit_paused">该习惯已被暂停</string>
 
     <!--Goal-->
     <string name="goal_should_finish_before">应于%1$s前达成</string>

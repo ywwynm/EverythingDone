@@ -2439,7 +2439,9 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 showHabitSnackbar();
             } else {
                 dismissSnackbars();
-                if (habit.getRecord().isEmpty() && habit.getRemindedTimes() == 0) {
+                if (habit.isPaused()) {
+                    mNormalSnackbar.setMessage(R.string.alert_cannot_finish_habit_paused);
+                } else if (habit.getRecord().isEmpty() && habit.getRemindedTimes() == 0) {
                     mNormalSnackbar.setMessage(R.string.alert_cannot_finish_habit_first_time);
                 } else {
                     mNormalSnackbar.setMessage(R.string.alert_cannot_finish_habit_more_times);
