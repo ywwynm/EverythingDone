@@ -314,9 +314,13 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
         holder.rlHabit.setVisibility(View.VISIBLE);
         holder.rlHabit.setPadding(p, p, p, 0);
 
-        holder.tvHabitSummary.setText(habit.getSummary(mContext));
+        String summary = habit.getSummary(mContext);
+        if (thing.getState() == Thing.UNDERWAY && habit.isPaused()) {
+            summary += ", " + habit.getStateDescription(mContext);
+        }
+        holder.tvHabitSummary.setText(summary);
 
-        if (thing.getState() == Thing.UNDERWAY) {
+        if (thing.getState() == Thing.UNDERWAY && !habit.isPaused()) {
             holder.tvHabitNextReminder.setVisibility(View.VISIBLE);
             holder.vHabitSeparator2.setVisibility(View.VISIBLE);
             holder.tvHabitLastFive.setVisibility(View.VISIBLE);

@@ -167,6 +167,8 @@
     <string name="reminder_unavailable">已失效</string>
 
     <!--Habit-->
+    <string name="habit_paused">已暫停</string>
+
     <string name="habit_last_five">最近五次完成情況:</string>
     <string name="habit_next_reminder">下一次提醒:</string>
 

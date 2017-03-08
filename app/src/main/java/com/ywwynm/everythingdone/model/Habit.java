@@ -2,6 +2,7 @@ package com.ywwynm.everythingdone.model;
 
 import android.content.Context;
 import android.database.Cursor;
+import android.support.v4.content.ContextCompat;
 
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.database.HabitDAO;
@@ -334,6 +335,15 @@ public class Habit {
         } else {
             return LocaleUtil.getTimesStr(context, timesEveryT) + " a " + timeTypeEveryT;
         }
+    }
+
+    /**
+     * Precondition: Habit should be in underway.
+     */
+    public String getStateDescription(Context context) {
+        if (isPaused()) {
+            return context.getString(R.string.habit_paused);
+        } else return "";
     }
 
     public String getCelebrationText(Context context) {

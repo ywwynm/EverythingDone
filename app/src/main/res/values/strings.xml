@@ -172,6 +172,8 @@
     <string name="reminder_unavailable">unavailable</string>
 
     <!--Habit-->
+    <string name="habit_paused">paused</string>
+
     <string name="habit_last_five">Last five times:</string>
     <string name="habit_next_reminder">Next reminder:</string>
 
