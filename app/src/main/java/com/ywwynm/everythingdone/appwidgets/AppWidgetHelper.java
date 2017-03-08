@@ -796,6 +796,14 @@ public class AppWidgetHelper {
 
     private static void setAction(Context context, RemoteViews remoteViews, Thing thing, Class clazz) {
         @Thing.Type int type = thing.getType();
+        if (type == Thing.HABIT) {
+            Habit habit = HabitDAO.getInstance(context).getHabitById(thing.getId());
+            if (habit != null && habit.isPaused()) {
+                remoteViews.setViewVisibility(LL_THING_ACTION, View.GONE);
+                return;
+            }
+        }
+
         if (thing.isPrivate() || thing.getState() != Thing.UNDERWAY
                 || (type != Thing.REMINDER && type != Thing.GOAL && type != Thing.HABIT)
                 || !clazz.getSuperclass().equals(BaseThingWidget.class)) {
@@ -880,9 +888,13 @@ public class AppWidgetHelper {
         remoteViews.setViewVisibility(RL_HABIT, View.VISIBLE);
         remoteViews.setViewPadding(RL_HABIT, dp12, dp12, dp12, 0);
 
-        remoteViews.setTextViewText(TV_HABIT_SUMMARY, habit.getSummary(context));
+        String summary = habit.getSummary(context);
+        if (thing.getState() == Thing.UNDERWAY && habit.isPaused()) {
+            summary += ", " + habit.getStateDescription(context);
+        }
+        remoteViews.setTextViewText(TV_HABIT_SUMMARY, summary);
 
-        if (thing.getState() == Thing.UNDERWAY) {
+        if (thing.getState() == Thing.UNDERWAY && !habit.isPaused()) {
             remoteViews.setViewVisibility(TV_HABIT_NEXT_REMINDER, View.VISIBLE);
             String next = context.getString(R.string.habit_next_reminder);
             remoteViews.setTextViewText(TV_HABIT_NEXT_REMINDER,
