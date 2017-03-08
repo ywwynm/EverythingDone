@@ -383,6 +383,9 @@ public class ThingManager {
                     habitDAO.updateHabitToLatest(thingId, true, true);
                     habitDAO.addHabitIntervalInfo(thingId, curTime + ";");
                 } else {
+                    if (habitDAO.isPaused(thingId)) {
+                        habitDAO.addHabitIntervalInfo(thingId, curTime + ";");
+                    }
                     habitDAO.addHabitIntervalInfo(thingId, curTime + ",");
                 }
             } else {
@@ -507,6 +510,9 @@ public class ThingManager {
                     }
                 } else {
                     for (Long habitId : mUndoHabits) {
+                        if (habitDAO.isPaused(habitId)) {
+                            habitDAO.addHabitIntervalInfo(habitId, curTime + ";");
+                        }
                         habitDAO.addHabitIntervalInfo(habitId, curTime + ",");
                     }
                 }
