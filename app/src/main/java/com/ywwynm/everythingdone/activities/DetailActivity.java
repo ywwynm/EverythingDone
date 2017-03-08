@@ -80,6 +80,7 @@ import com.ywwynm.everythingdone.fragments.HabitDetailDialogFragment;
 import com.ywwynm.everythingdone.fragments.LoadingDialogFragment;
 import com.ywwynm.everythingdone.fragments.ThingDoingDialogFragment;
 import com.ywwynm.everythingdone.fragments.TwoOptionsDialogFragment;
+import com.ywwynm.everythingdone.helpers.AlarmHelper;
 import com.ywwynm.everythingdone.helpers.AppUpdateHelper;
 import com.ywwynm.everythingdone.helpers.AttachmentHelper;
 import com.ywwynm.everythingdone.helpers.AuthenticationHelper;
@@ -1229,6 +1230,9 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 break;
             case R.id.act_ongoing_thing:
                 ongoingOrCancel();
+                break;
+            case R.id.act_pause_continue_habit:
+                pauseOrContinueHabit();
                 break;
             default:break;
         }
@@ -2571,16 +2575,8 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         intent.putExtra(Def.Communication.KEY_THING, mThing);
 
         int resultCode = Def.Communication.RESULT_UPDATE_THING_STATE_DIFFERENT;
-        if (shouldSendBroadCast()) {
-            sendBroadCastToUpdateMainUI(intent, resultCode);
-        } else {
-            setResult(resultCode, intent);
-        }
-        App.setLastUpdateUiIntent(intent);
 
-        AppWidgetHelper.updateSingleThingAppWidgets(this, mThing.getId());
-        AppWidgetHelper.updateThingsListAppWidgetsForType(this, mThing.getType());
-        finish();
+        updateUiEverywhereAndFinish(intent, resultCode);
     }
 
     private String getThingTitle() {
@@ -2802,16 +2798,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         intent.putExtra(Def.Communication.KEY_POSITION, mPosition);
         // new position can be gotten at other place
 
-        if (shouldSendBroadCast()) {
-            sendBroadCastToUpdateMainUI(intent, resultCode);
-        } else {
-            setResult(resultCode, intent);
-        }
-        App.setLastUpdateUiIntent(intent);
-
-        AppWidgetHelper.updateSingleThingAppWidgets(this, mThing.getId());
-        AppWidgetHelper.updateThingsListAppWidgetsForType(this, mThing.getType());
-        finish();
+        updateUiEverywhereAndFinish(intent, resultCode);
     }
 
     private void ongoingOrCancel() {
@@ -2831,6 +2818,43 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         getSharedPreferences(Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE)
                 .edit().putLong(K, ongoingAfter).apply();
         FrequentSettings.put(K, ongoingAfter);
+        finish();
+    }
+
+    private void pauseOrContinueHabit() {
+        if (mHabit == null) return;
+        if (App.isSomethingUpdatedSpecially()) {
+            updateThingAndItsPosition(mThing.getId());
+            App.setJustNotifyAll(true);
+        }
+
+        HabitDAO dao = HabitDAO.getInstance(this);
+        long habitId = mHabit.getId();
+        if (mHabit.isPaused()) {
+            dao.resume(habitId);
+            dao.updateHabitToLatest(habitId, false, false);
+        } else {
+            dao.pause(habitId);
+        }
+        int resultCode = Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME;
+        Intent intent = new Intent();
+        intent.putExtra(Def.Communication.KEY_THING, mThing);
+        intent.putExtra(Def.Communication.KEY_POSITION, mPosition);
+        intent.putExtra(Def.Communication.KEY_RESULT_CODE, resultCode);
+        intent.putExtra(Def.Communication.KEY_TYPE_BEFORE, Thing.HABIT);
+        updateUiEverywhereAndFinish(intent, resultCode);
+    }
+
+    private void updateUiEverywhereAndFinish(Intent intent, int resultCode) {
+        if (shouldSendBroadCast()) {
+            sendBroadCastToUpdateMainUI(intent, resultCode);
+        } else {
+            setResult(resultCode, intent);
+        }
+        App.setLastUpdateUiIntent(intent);
+
+        AppWidgetHelper.updateSingleThingAppWidgets(this, mThing.getId());
+        AppWidgetHelper.updateThingsListAppWidgetsForType(this, mThing.getType());
         finish();
     }
 
