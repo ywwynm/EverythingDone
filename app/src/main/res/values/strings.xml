@@ -302,7 +302,7 @@
 
     <!--DetailActivity habit normal-->
     <string name="act_pause_habit">Pause habit\'s reminders</string>
-    <string name="act_continue_habit">Continue habit\'s reminders</string>
+    <string name="act_resume_habit">Resume habit\'s reminders</string>
     <string name="act_check_habit_detail">Check habit detail</string>
     <string name="act_finish_once_habit">Finish once</string>
     <string name="act_finish_this_time_habit">Finish this time</string>

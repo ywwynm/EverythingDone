@@ -297,7 +297,7 @@
 
     <!--DetailActivity habit normal-->
     <string name="act_pause_habit">暫停習慣提醒</string>
-    <string name="act_continue_habit">恢復習慣提醒</string>
+    <string name="act_resume_habit">恢復習慣提醒</string>
     <string name="act_check_habit_detail">查看習慣詳情</string>
     <string name="act_finish_once_habit">完成一次</string>
     <string name="act_finish_this_time_habit">完成這一次</string>

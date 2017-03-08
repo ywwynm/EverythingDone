@@ -48,7 +48,7 @@
         app:showAsAction="never"/>
 
     <item
-        android:id="@+id/act_pause_continue_habit"
+        android:id="@+id/act_pause_resume_habit"
         android:title="@string/act_pause_habit"
         app:showAsAction="never"/>
 

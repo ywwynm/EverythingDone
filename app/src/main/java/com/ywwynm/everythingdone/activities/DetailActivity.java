@@ -80,7 +80,6 @@ import com.ywwynm.everythingdone.fragments.HabitDetailDialogFragment;
 import com.ywwynm.everythingdone.fragments.LoadingDialogFragment;
 import com.ywwynm.everythingdone.fragments.ThingDoingDialogFragment;
 import com.ywwynm.everythingdone.fragments.TwoOptionsDialogFragment;
-import com.ywwynm.everythingdone.helpers.AlarmHelper;
 import com.ywwynm.everythingdone.helpers.AppUpdateHelper;
 import com.ywwynm.everythingdone.helpers.AttachmentHelper;
 import com.ywwynm.everythingdone.helpers.AuthenticationHelper;
@@ -1144,7 +1143,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 togglePrivateThingActionItem(menu, !mThing.isPrivate());
                 toggleStickyActionItem(menu);
                 toggleOngoingActionItem(menu);
-                togglePauseContinueHabitActionItem(menu);
+                togglePauseResumeHabitActionItem(menu);
             } else if (state == Thing.FINISHED) {
                 inflater.inflate(R.menu.menu_detail_finished, menu);
                 if (thingType != Thing.HABIT) {
@@ -1231,8 +1230,8 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             case R.id.act_ongoing_thing:
                 ongoingOrCancel();
                 break;
-            case R.id.act_pause_continue_habit:
-                pauseOrContinueHabit();
+            case R.id.act_pause_resume_habit:
+                pauseOrResumeHabit();
                 break;
             default:break;
         }
@@ -1298,11 +1297,11 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         }
     }
 
-    private void togglePauseContinueHabitActionItem(Menu menu) {
+    private void togglePauseResumeHabitActionItem(Menu menu) {
         if (mHabit == null) return;
-        MenuItem item = menu.findItem(R.id.act_pause_continue_habit);
+        MenuItem item = menu.findItem(R.id.act_pause_resume_habit);
         if (mHabit.isPaused()) {
-            item.setTitle(R.string.act_continue_habit);
+            item.setTitle(R.string.act_resume_habit);
         } else {
             item.setTitle(R.string.act_pause_habit);
         }
@@ -2821,7 +2820,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         finish();
     }
 
-    private void pauseOrContinueHabit() {
+    private void pauseOrResumeHabit() {
         if (mHabit == null) return;
         if (App.isSomethingUpdatedSpecially()) {
             updateThingAndItsPosition(mThing.getId());
