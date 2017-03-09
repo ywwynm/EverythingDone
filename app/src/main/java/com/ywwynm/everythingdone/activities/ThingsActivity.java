@@ -2300,6 +2300,14 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     tryToFinishOtherBySwiping(thingToSwipe, position);
                 }
             } else {
+                if (thingType == Thing.HABIT) {
+                    Habit habit = HabitDAO.getInstance(mApp).getHabitById(id);
+                    if (habit != null && habit.isPaused()) {
+                        mNormalSnackbar.setMessage(R.string.alert_habit_paused);
+                        mNormalSnackbar.show();
+                        return;
+                    }
+                }
                 mAdapter.notifyItemChanged(position);
                 if (App.getDoingThingId() == thingToSwipe.getId()) {
                     Toast.makeText(ThingsActivity.this, R.string.start_doing_doing_this_thing,
@@ -2440,7 +2448,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             } else {
                 dismissSnackbars();
                 if (habit.isPaused()) {
-                    mNormalSnackbar.setMessage(R.string.alert_cannot_finish_habit_paused);
+                    mNormalSnackbar.setMessage(R.string.alert_habit_paused);
                 } else if (habit.getRecord().isEmpty() && habit.getRemindedTimes() == 0) {
                     mNormalSnackbar.setMessage(R.string.alert_cannot_finish_habit_first_time);
                 } else {
