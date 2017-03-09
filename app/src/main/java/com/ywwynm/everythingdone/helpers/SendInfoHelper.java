@@ -215,6 +215,9 @@ public class SendInfoHelper {
         } else if (habitStr.startsWith("at ")) {
             habitStr = habitStr.substring(3, habitStr.length());
         }
+        if (habit.isPaused()) {
+            habitStr += ", " + habit.getStateDescription(context);
+        }
         String GAP;
         if (isChinese) {
             GAP = "";
