@@ -2562,6 +2562,9 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                     habitDAO.updateHabitToLatest(thingId, true, true);
                     habitDAO.addHabitIntervalInfo(thingId, curTime + ";");
                 } else {
+                    if (habitDAO.isPaused(thingId)) {
+                        habitDAO.addHabitIntervalInfo(thingId, curTime + ";");
+                    }
                     habitDAO.addHabitIntervalInfo(thingId, curTime + ",");
                 }
             }
