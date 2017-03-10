@@ -77,6 +77,7 @@ import com.ywwynm.everythingdone.fragments.AddAttachmentDialogFragment;
 import com.ywwynm.everythingdone.fragments.AlertDialogFragment;
 import com.ywwynm.everythingdone.fragments.DateTimeDialogFragment;
 import com.ywwynm.everythingdone.fragments.HabitDetailDialogFragment;
+import com.ywwynm.everythingdone.fragments.HabitRecordDialogFragment;
 import com.ywwynm.everythingdone.fragments.LoadingDialogFragment;
 import com.ywwynm.everythingdone.fragments.ThingDoingDialogFragment;
 import com.ywwynm.everythingdone.fragments.TwoOptionsDialogFragment;
@@ -1186,8 +1187,13 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             case R.id.act_check_habit_detail:
                 HabitDetailDialogFragment hddf = HabitDetailDialogFragment.newInstance();
                 hddf.setHabit(mHabit);
-                hddf.setEditable(mEditable);
                 hddf.show(getFragmentManager(), HabitDetailDialogFragment.TAG);
+                break;
+            case R.id.act_check_update_habit_record:
+                HabitRecordDialogFragment hrdf = new HabitRecordDialogFragment();
+                hrdf.setHabit(mHabit);
+                hrdf.setEditable(mEditable);
+                hrdf.show(getFragmentManager(), HabitRecordDialogFragment.TAG);
                 break;
             case R.id.act_share:
                 chooseHowToShareThing();

@@ -17,150 +17,100 @@
         android:textStyle="bold"
         android:textAllCaps="true"/>
 
-    <LinearLayout
-        android:id="@+id/ll_habit_detail"
-        android:layout_width="280dp"
+    <TextView
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:paddingBottom="12dp"
-        android:orientation="vertical">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:layout_marginLeft="24dp"
-            android:layout_marginRight="24dp"
-            android:textColor="@color/black_26p"
-            android:text="@string/habit_detail_completion_rate"/>
-
-        <TextView
-            android:id="@+id/tv_habit_detail_completion_rate"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginLeft="24dp"
-            android:layout_marginRight="24dp"
-            android:textColor="@color/black_54p"
-            android:textSize="16sp"/>
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:layout_marginLeft="24dp"
-            android:layout_marginRight="24dp"
-            android:textColor="@color/black_26p"
-            android:text="@string/habit_detail_total_t"/>
-
-        <TextView
-            android:id="@+id/tv_habit_detail_total_t"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginLeft="24dp"
-            android:layout_marginRight="24dp"
-            android:textColor="@color/black_54p"
-            android:textSize="16sp"/>
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:layout_marginLeft="24dp"
-            android:layout_marginRight="24dp"
-            android:textColor="@color/black_26p"
-            android:text="@string/habit_detail_persist_in"/>
-
-        <TextView
-            android:id="@+id/tv_habit_detail_persist_in"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginLeft="24dp"
-            android:layout_marginRight="24dp"
-            android:textColor="@color/black_54p"
-            android:textSize="16sp"/>
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:layout_marginLeft="24dp"
-            android:layout_marginRight="24dp"
-            android:textColor="@color/black_26p"
-            android:text="@string/habit_detail_record_count"/>
-
-        <TextView
-            android:id="@+id/tv_habit_detail_record_count"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginLeft="24dp"
-            android:layout_marginRight="24dp"
-            android:textColor="@color/black_54p"
-            android:textSize="16sp"/>
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:layout_marginLeft="24dp"
-            android:layout_marginRight="24dp"
-            android:textColor="@color/black_26p"
-            android:text="@string/habit_detail_times"/>
-
-        <TextView
-            android:id="@+id/tv_habit_detail_times"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginLeft="24dp"
-            android:layout_marginRight="24dp"
-            android:textColor="@color/black_54p"
-            android:textSize="16sp"/>
-
-    </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/ll_habit_record"
-        android:layout_width="280dp"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:paddingBottom="12dp"
-        android:visibility="gone">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:layout_marginLeft="24dp"
-            android:layout_marginRight="24dp"
-            android:layout_marginBottom="8dp"
-            android:textColor="@color/black_26p"
-            android:text="@string/habit_detail_record"/>
-
-        <android.support.v7.widget.RecyclerView
-            android:id="@+id/rv_habit_detail_record"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:layout_marginLeft="12dp"
-            android:layout_marginEnd="16dp"
-            android:layout_marginRight="16dp"
-            android:overScrollMode="never"/>
-
-    </LinearLayout>
+        android:layout_marginTop="16dp"
+        android:layout_marginLeft="24dp"
+        android:layout_marginRight="24dp"
+        android:textColor="@color/black_26p"
+        android:text="@string/habit_detail_completion_rate"/>
 
     <TextView
-        android:id="@+id/tv_toggle_check_habit_detail_as_bt"
-        android:layout_width="match_parent"
+        android:id="@+id/tv_habit_detail_completion_rate"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:minHeight="48dp"
-        android:paddingLeft="20dp"
-        android:paddingRight="20dp"
-        android:gravity="center_vertical|end"
-        android:text="@string/act_check_habit_record"
-        android:background="@drawable/selectable_item_background"
-        android:textAllCaps="true"/>
+        android:layout_marginLeft="24dp"
+        android:layout_marginRight="24dp"
+        android:textColor="@color/black_54p"
+        android:textSize="16sp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:layout_marginLeft="24dp"
+        android:layout_marginRight="24dp"
+        android:textColor="@color/black_26p"
+        android:text="@string/habit_detail_total_t"/>
+
+    <TextView
+        android:id="@+id/tv_habit_detail_total_t"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="24dp"
+        android:layout_marginRight="24dp"
+        android:textColor="@color/black_54p"
+        android:textSize="16sp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:layout_marginLeft="24dp"
+        android:layout_marginRight="24dp"
+        android:textColor="@color/black_26p"
+        android:text="@string/habit_detail_persist_in"/>
+
+    <TextView
+        android:id="@+id/tv_habit_detail_persist_in"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="24dp"
+        android:layout_marginRight="24dp"
+        android:textColor="@color/black_54p"
+        android:textSize="16sp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:layout_marginLeft="24dp"
+        android:layout_marginRight="24dp"
+        android:textColor="@color/black_26p"
+        android:text="@string/habit_detail_record_count"/>
+
+    <TextView
+        android:id="@+id/tv_habit_detail_record_count"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="24dp"
+        android:layout_marginRight="24dp"
+        android:textColor="@color/black_54p"
+        android:textSize="16sp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:layout_marginLeft="24dp"
+        android:layout_marginRight="24dp"
+        android:textColor="@color/black_26p"
+        android:text="@string/habit_detail_times"/>
+
+    <TextView
+        android:id="@+id/tv_habit_detail_times"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="24dp"
+        android:layout_marginRight="24dp"
+        android:layout_marginBottom="12dp"
+        android:textColor="@color/black_54p"
+        android:textSize="16sp"/>
 
     <TextView
         android:id="@+id/tv_get_it_as_bt"
-        android:layout_width="match_parent"
+        android:layout_width="280dp"
         android:layout_height="wrap_content"
         android:minHeight="48dp"
         android:paddingLeft="20dp"

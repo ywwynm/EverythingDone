@@ -58,6 +58,11 @@
         app:showAsAction="never"/>
 
     <item
+        android:id="@+id/act_check_update_habit_record"
+        android:title="@string/act_check_update_habit_record"
+        app:showAsAction="never"/>
+
+    <item
         android:id="@+id/act_share"
         android:title="@string/act_share"
         app:showAsAction="never"/>

@@ -342,8 +342,7 @@
     <string name="act_back_from_move_checklist">完成並返回</string>
 
     <!--DetailActivity check habit-->
-    <string name="act_check_habit_overview">查看習慣概覽</string>
-    <string name="act_check_habit_record">查看、調整最近 30 次完成記錄</string>
+    <string name="act_check_update_habit_record">查看、調整習慣完成記錄</string>
 
     <!--DetailActivity special text events-->
     <string name="act_open_in_browser">訪問網頁</string>
@@ -496,10 +495,12 @@
     <string name="habit_detail_completion_rate">完成率</string>
     <string name="habit_detail_persist_in">堅持時間</string>
     <string name="habit_detail_total_t">總週期數</string>
-    <string name="habit_detail_record">最近 30 次完成情况，你可以更改最新的 6 條記錄（最後 6 項）</string>
     <string name="habit_detail_record_count">記錄次數</string>
     <string name="habit_detail_times">完成次數</string>
     <string name="habit_detail_title">習慣詳情</string>
+
+    <!--HabitRecordDialogFragment-->
+    <string name="habit_record_last_30_change_6">最近 30 次完成情况，你可以更改最新的 6 條記錄（最後 6 項）</string>
 
     <!--AttachmentInfoDialogFragment-->
     <string name="attachment_info_title">附件詳情</string>

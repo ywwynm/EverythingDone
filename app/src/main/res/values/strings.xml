@@ -347,8 +347,7 @@
     <string name="act_back_from_move_checklist"><![CDATA[Finish & Back]]></string>
 
     <!--DetailActivity check habit-->
-    <string name="act_check_habit_overview">Check habit overview</string>
-    <string name="act_check_habit_record"><![CDATA[Check&Update Last 30 Records]]></string>
+    <string name="act_check_update_habit_record"><![CDATA[Check&Update Habit records]]></string>
 
     <!--DetailActivity special text events-->
     <string name="act_open_in_browser">Browse</string>
@@ -500,10 +499,13 @@
     <string name="habit_detail_completion_rate">Completion Rate</string>
     <string name="habit_detail_persist_in">Persistent Cycle</string>
     <string name="habit_detail_total_t">Total Cycle</string>
-    <string name="habit_detail_record">Last 30 records, you can change latest 6 of them(last 6 items)</string>
     <string name="habit_detail_record_count">Record Count</string>
     <string name="habit_detail_times">Finished Times</string>
     <string name="habit_detail_title">Habit detail</string>
+
+    <!--HabitRecordDialogFragment-->
+    <string name="habit_record_title">Check</string>
+    <string name="habit_record_last_30_change_6">Last 30 records, you can change latest 6 of them(last 6 items)</string>
 
     <!--AttachmentInfoDialogFragment-->
     <string name="attachment_info_title">Attachment Detail</string>

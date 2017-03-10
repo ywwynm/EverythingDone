@@ -10,6 +10,6 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:contentDescription="@string/habit_detail_record"/>
+        android:contentDescription="@string/habit_record_last_30_change_6"/>
 
 </FrameLayout>
