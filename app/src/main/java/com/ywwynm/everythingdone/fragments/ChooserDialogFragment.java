@@ -38,7 +38,6 @@ public class ChooserDialogFragment extends BaseDialogFragment {
 
     private TextView mTvTitle;
     private RecyclerView mRecyclerView;
-    private LinearLayoutManager mLlm;
     private RadioChooserAdapter mAdapter;
     private TextView mTvConfirmAsBt;
     private TextView mTvCancelAsBt;
@@ -70,8 +69,6 @@ public class ChooserDialogFragment extends BaseDialogFragment {
 
         mSeparator1 = f(R.id.view_separator_1);
         mSeparator2 = f(R.id.view_separator_2);
-
-        mLlm = new LinearLayoutManager(getActivity());
 
         if (mItems == null) {
             mItems = new ArrayList<>(1);
@@ -136,7 +133,7 @@ public class ChooserDialogFragment extends BaseDialogFragment {
         mAdapter = new RadioChooserAdapter(getActivity(), mItems, mAccentColor);
         mAdapter.setOnItemClickListener(mOnItemClickListener);
         mRecyclerView.setAdapter(mAdapter);
-        mRecyclerView.setLayoutManager(mLlm);
+        mRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
         mAdapter.pick(mInitialIndex);
 
         if (mItems.size() > 9) {
@@ -258,10 +255,10 @@ public class ChooserDialogFragment extends BaseDialogFragment {
     }
 
     private void updateSeparators() {
-        if (mLlm.findFirstCompletelyVisibleItemPosition() == 0) {
+        if (!mRecyclerView.canScrollVertically(-1)) {
             mSeparator1.setVisibility(View.INVISIBLE);
             mSeparator2.setVisibility(View.VISIBLE);
-        } else if (mLlm.findLastCompletelyVisibleItemPosition() == mItems.size() - 1) {
+        } else if (!mRecyclerView.canScrollVertically(1)) {
             mSeparator1.setVisibility(View.VISIBLE);
             mSeparator2.setVisibility(View.INVISIBLE);
         } else {
