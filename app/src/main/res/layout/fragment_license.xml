@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="320dp"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/tv_title_license"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="20dp"
+        android:layout_marginTop="20dp"
+        android:layout_marginRight="20dp"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:text="@string/about_license"/>
+
+    <View
+        android:id="@+id/view_separator_1"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="12dp"
+        android:background="@color/black_26p"
+        android:visibility="invisible"/>
+
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/rv_licenses"
+        android:layout_width="320dp"
+        android:layout_height="400dp"/>
+
+    <View
+        android:id="@+id/view_separator_2"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/black_26p"/>
+
+    <TextView
+        android:id="@+id/tv_get_it_as_bt_license"
+        android:layout_width="wrap_content"
+        android:layout_height="36dp"
+        android:layout_gravity="end"
+        android:layout_marginLeft="8dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginRight="8dp"
+        android:layout_marginBottom="8dp"
+        android:paddingTop="8dp"
+        android:paddingLeft="12dp"
+        android:paddingRight="12dp"
+        android:paddingBottom="8dp"
+        android:textStyle="bold"
+        android:text="@string/act_get_it"
+        android:textAllCaps="true"
+        android:background="@drawable/selectable_item_background"/>
+
+</LinearLayout>

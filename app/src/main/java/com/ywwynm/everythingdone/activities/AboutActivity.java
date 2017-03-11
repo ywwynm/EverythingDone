@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.content.ContextCompat;
@@ -20,6 +21,7 @@ import com.ywwynm.everythingdone.BuildConfig;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.fragments.AlertDialogFragment;
+import com.ywwynm.everythingdone.fragments.LicenseDialogFragment;
 import com.ywwynm.everythingdone.fragments.ThreeActionsAlertDialogFragment;
 import com.ywwynm.everythingdone.helpers.SendInfoHelper;
 import com.ywwynm.everythingdone.permission.SimplePermissionCallback;
@@ -118,6 +120,10 @@ public class AboutActivity extends EverythingDoneBaseActivity {
         mTvEverythingDone.setTypeface(tf);
 
         mTvVersion.append(" " + BuildConfig.VERSION_NAME);
+
+        TextView tvLicense = f(R.id.tv_license_as_bt);
+        Paint paint = tvLicense.getPaint();
+        paint.setFlags(paint.getFlags() | Paint.UNDERLINE_TEXT_FLAG);
     }
 
     @Override
@@ -219,5 +225,10 @@ public class AboutActivity extends EverythingDoneBaseActivity {
                         Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    public void showLicenseDialog(View view) {
+        LicenseDialogFragment ldf = new LicenseDialogFragment();
+        ldf.show(getFragmentManager(), LicenseDialogFragment.TAG);
     }
 }

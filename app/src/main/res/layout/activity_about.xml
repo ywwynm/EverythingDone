@@ -94,6 +94,15 @@
                     android:text="@string/about_version"
                     android:textColor="@color/white_54p"/>
 
+                <TextView
+                    android:id="@+id/tv_license_as_bt"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="28dp"
+                    android:text="@string/about_license"
+                    android:textColor="@color/white_50p"
+                    android:onClick="showLicenseDialog"/>
+
             </LinearLayout>
 
             <View
