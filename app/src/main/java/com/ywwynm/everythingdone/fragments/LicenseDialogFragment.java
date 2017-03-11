@@ -14,6 +14,7 @@ import android.widget.TextView;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.adapters.BaseViewHolder;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
+import com.ywwynm.everythingdone.utils.EdgeEffectUtil;
 
 import java.util.Arrays;
 import java.util.List;
@@ -68,6 +69,12 @@ public class LicenseDialogFragment extends BaseDialogFragment {
                     vTop.setVisibility(View.VISIBLE);
                     vBottom.setVisibility(View.VISIBLE);
                 }
+            }
+
+            @Override
+            public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
+                super.onScrollStateChanged(recyclerView, newState);
+                EdgeEffectUtil.forRecyclerView(recyclerView, mAccentColor);
             }
         });
 
