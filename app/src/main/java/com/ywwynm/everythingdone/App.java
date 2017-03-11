@@ -18,9 +18,6 @@ import android.support.v4.util.Pair;
 import android.util.Log;
 
 import com.bumptech.glide.Glide;
-import com.github.moduth.blockcanary.BlockCanary;
-import com.github.moduth.blockcanary.BlockCanaryContext;
-import com.squareup.leakcanary.LeakCanary;
 import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
 import com.ywwynm.everythingdone.helpers.AlarmHelper;
@@ -86,12 +83,12 @@ public class App extends Application {
     public void onCreate() {
         super.onCreate();
 
-        if (LeakCanary.isInAnalyzerProcess(this)) {
-            return;
-        }
-        LeakCanary.install(this);
-
-        BlockCanary.install(this, new BlockCanaryContext()).start();
+//        if (LeakCanary.isInAnalyzerProcess(this)) {
+//            return;
+//        }
+//        LeakCanary.install(this);
+//
+//        BlockCanary.install(this, new BlockCanaryContext()).start();
 
         app = this;
 
