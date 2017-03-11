@@ -14,6 +14,9 @@ public final class Def {
 
         private Meta() {}
 
+        public static final String DISTRIBUTE_EDITION = "GENERAL";
+//        public static final String DISTRIBUTE_EDITION = "GOOGLE PLAY";
+
         public static final String META_DATA_NAME           = "EverythingDone_metadata";
         public static final String PREFERENCES_NAME         = "EverythingDone_preferences";
         public static final String THINGS_COUNTS_NAME       = "EverythingDone_things_counts";
