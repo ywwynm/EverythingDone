@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <TextView
+        android:id="@+id/tv_every_rec"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:layout_marginLeft="12dp"
+        android:layout_centerVertical="true"
+        android:textSize="16sp"
+        android:text="@string/every"/>
+
+    <TextView
+        android:id="@+id/tv_time_as_bt_recurrence"
+        android:layout_width="wrap_content"
+        android:layout_height="48dp"
+        android:gravity="center_vertical"
+        android:drawableEnd="@drawable/ic_dropdown"
+        android:drawableRight="@drawable/ic_dropdown"
+        android:layout_toEndOf="@id/tv_every_rec"
+        android:layout_toRightOf="@id/tv_every_rec"
+        android:layout_centerVertical="true"
+        android:textSize="16sp"
+        android:background="@drawable/selectable_item_background"/>
+
+    <TextView
+        android:id="@+id/tv_times_l_recurrence"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="4dp"
+        android:layout_marginRight="4dp"
+        android:layout_toEndOf="@id/tv_time_as_bt_recurrence"
+        android:layout_toRightOf="@id/tv_time_as_bt_recurrence"
+        android:layout_centerVertical="true"
+        android:textSize="16sp"
+        android:text="0"
+        tools:ignore="HardcodedText"/>
+
+    <TextView
+        android:id="@+id/tv_times_r_recurrence"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_toEndOf="@id/tv_times_l_recurrence"
+        android:layout_toRightOf="@id/tv_times_l_recurrence"
+        android:layout_centerVertical="true"
+        android:textSize="16sp"
+        android:text="@string/times"
+        tools:ignore="RelativeOverlap"/>
+
+    <ImageView
+        android:id="@+id/iv_pick_all_as_bt_rec"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentRight="true"
+        android:layout_centerVertical="true"
+        android:layout_marginEnd="2dp"
+        android:layout_marginRight="2dp"
+        android:scaleType="center"
+        android:src="@drawable/act_select_all"
+        android:contentDescription="@string/act_select_all"
+        android:background="@drawable/selectable_item_background"/>
+
+</RelativeLayout>

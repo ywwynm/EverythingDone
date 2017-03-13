@@ -1,0 +1,19 @@
+<resources>
+
+    <dimen name="il_et_day_width_rec">56dp</dimen>
+
+    <dimen name="tv_end_of_month_rec_text_size">14sp</dimen>
+
+    <dimen name="tv_as_bt_datetime_tab_after_margin_top">6dp</dimen>
+
+    <dimen name="tv_auto_notify_text_size">16sp</dimen>
+
+    <dimen name="move_checklist_dashed_line_length">120dp</dimen>
+
+    <dimen name="tv_set_app_password_detail_text_size">14sp</dimen>
+
+    <dimen name="tv_thing_doing_text_size">20sp</dimen>
+    <dimen name="tv_thing_doing_margin_start">-8dp</dimen>
+    <dimen name="tv_thing_doing_margin_start_list_widget">-12dp</dimen>
+
+</resources>
