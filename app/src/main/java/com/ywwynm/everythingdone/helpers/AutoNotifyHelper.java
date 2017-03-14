@@ -28,10 +28,10 @@ public class AutoNotifyHelper {
     private AutoNotifyHelper() {}
 
     public static int[] AUTO_NOTIFY_TIMES = {
-            15, 30, 1, 2, 6, 1, 3, 1
+            10, 15, 30, 1, 2, 6, 1, 3, 1
     };
     public static int[] AUTO_NOTIFY_TYPES = {
-            Calendar.MINUTE, Calendar.MINUTE, Calendar.HOUR_OF_DAY,
+            Calendar.SECOND, Calendar.MINUTE, Calendar.MINUTE, Calendar.HOUR_OF_DAY,
             Calendar.HOUR_OF_DAY, Calendar.HOUR_OF_DAY, Calendar.DATE,
             Calendar.DATE, Calendar.WEEK_OF_YEAR
     };
