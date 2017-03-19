@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 
+import com.ywwynm.everythingdone.BuildConfig;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Reminder;
@@ -28,13 +29,26 @@ public class AutoNotifyHelper {
     private AutoNotifyHelper() {}
 
     public static int[] AUTO_NOTIFY_TIMES = {
-            10, 15, 30, 1, 2, 6, 1, 3, 1
+            15, 30, 1, 2, 6, 1, 3, 1
     };
     public static int[] AUTO_NOTIFY_TYPES = {
-            Calendar.SECOND, Calendar.MINUTE, Calendar.MINUTE, Calendar.HOUR_OF_DAY,
+            Calendar.MINUTE, Calendar.MINUTE, Calendar.HOUR_OF_DAY,
             Calendar.HOUR_OF_DAY, Calendar.HOUR_OF_DAY, Calendar.DATE,
             Calendar.DATE, Calendar.WEEK_OF_YEAR
     };
+
+    static {
+        if (BuildConfig.DEBUG) {
+            AUTO_NOTIFY_TIMES = new int[] {
+                    10, 15, 30, 1, 2, 6, 1, 3, 1
+            };
+            AUTO_NOTIFY_TYPES = new int[] {
+                    Calendar.SECOND, Calendar.MINUTE, Calendar.MINUTE, Calendar.HOUR_OF_DAY,
+                    Calendar.HOUR_OF_DAY, Calendar.HOUR_OF_DAY, Calendar.DATE,
+                    Calendar.DATE, Calendar.WEEK_OF_YEAR
+            };
+        }
+    }
 
     public static void createAutoNotify(Thing thing, Context context) {
         if (!shouldCreateAutoNotify(thing, context)) {
