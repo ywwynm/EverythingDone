@@ -1224,7 +1224,9 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         mAdapter.setShouldThingsAnimWhenAppearing(true);
         mRecyclerView.setVisibility(View.VISIBLE);
         computeSpanCount();
-        mStaggeredGridLayoutManager.setSpanCount(mSpan);
+        if (mStaggeredGridLayoutManager != null) {
+            mStaggeredGridLayoutManager.setSpanCount(mSpan);
+        }
         if (mThingManager.getThings().size() > 1) {
             mRecyclerView.scrollToPosition(0);
         }
