@@ -58,6 +58,7 @@
                 android:layout_marginTop="20dp"
                 android:autoLink="all"
                 android:background="@null"
+                android:lineSpacingExtra="4dp"
                 android:hint="@string/hint_content"
                 android:paddingLeft="20dp"
                 android:paddingRight="20dp"
