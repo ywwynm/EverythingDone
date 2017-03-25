@@ -210,12 +210,13 @@ public class ThingManager {
     public boolean create(final Thing thingToCreate, boolean handleNotifyEmpty, boolean addToThingsNow) {
         // create in database at first
         thingToCreate.setId(mHeaderId);
-        mExecutor.execute(new Runnable() {
-            @Override
-            public void run() {
-                mDao.create(thingToCreate, true, false);
-            }
-        });
+        mDao.create(thingToCreate, true, false);
+//        mExecutor.execute(new Runnable() {
+//            @Override
+//            public void run() {
+//                mDao.create(thingToCreate, true, false);
+//            }
+//        });
 
         updateHeader(1);
 
