@@ -2628,6 +2628,13 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     }
 
     private void createFailed(int resultCode) {
+        if (savedAfterOnPause) {
+            mPosition = App.getThingAndPosition(mApp, mThing.getId(), -1).second;
+            ThingManager.getInstance(mApp).updateState(
+                    mThing, mPosition, mThing.getLocation(), Thing.UNDERWAY, Thing.DELETED_FOREVER,
+                    false, true);
+        }
+
         if (App.isSomethingUpdatedSpecially()) {
             App.setJustNotifyAll(true);
         }
