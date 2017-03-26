@@ -45,7 +45,7 @@ public class HabitRecord {
 
     public HabitRecord(Cursor c) {
         this(c.getLong(0), c.getLong(1), c.getLong(2), c.getLong(3),
-                c.getInt(3), c.getInt(4), c.getInt(5), c.getInt(6));
+                c.getInt(4), c.getInt(5), c.getInt(6), c.getInt(7));
     }
 
     public long getId() {
