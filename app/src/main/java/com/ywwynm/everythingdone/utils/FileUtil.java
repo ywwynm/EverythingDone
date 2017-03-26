@@ -18,8 +18,10 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintWriter;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -557,6 +559,20 @@ public class FileUtil {
         ret.add("/storage/");
 
         return ret;
+    }
+
+    public static boolean writeToFile(String str, File file) {
+        PrintWriter writer = null;
+        try {
+            writer = new PrintWriter(new FileWriter(file));
+            writer.write(str);
+            return true;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        } finally {
+            if (writer != null) writer.close();
+        }
     }
 
     private static boolean isInArray(String str, String... arr) {
