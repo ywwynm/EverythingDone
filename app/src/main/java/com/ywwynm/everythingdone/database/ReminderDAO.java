@@ -9,6 +9,9 @@ import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.helpers.AlarmHelper;
 import com.ywwynm.everythingdone.model.Reminder;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Created by ywwynm on 2015/5/22.
  * Updated by ywwynm on 2015/9/6, from EverythingDoneDAO to {@link ReminderDAO}.
@@ -39,6 +42,16 @@ public class ReminderDAO {
             }
         }
         return sReminderDAO;
+    }
+
+    public List<Reminder> getAllReminders() {
+        List<Reminder> reminders = new ArrayList<>();
+        Cursor cursor = db.query(Def.Database.TABLE_REMINDERS, null, null, null, null, null, null);
+        while (cursor.moveToNext()) {
+            reminders.add(new Reminder(cursor));
+        }
+        cursor.close();
+        return reminders;
     }
 
     public Reminder getReminderById(long id) {

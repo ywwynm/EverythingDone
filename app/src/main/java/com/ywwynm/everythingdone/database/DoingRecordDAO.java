@@ -2,10 +2,14 @@ package com.ywwynm.everythingdone.database;
 
 import android.content.ContentValues;
 import android.content.Context;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.model.DoingRecord;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by ywwynm on 2016/11/9.
@@ -33,6 +37,16 @@ public class DoingRecordDAO {
     private DoingRecordDAO(Context context) {
         DBHelper helper = new DBHelper(context);
         db = helper.getWritableDatabase();
+    }
+
+    public List<DoingRecord> getAllDoingRecords() {
+        List<DoingRecord> reminders = new ArrayList<>();
+        Cursor cursor = db.query(Def.Database.TABLE_DOING_RECORDS, null, null, null, null, null, null);
+        while (cursor.moveToNext()) {
+            reminders.add(new DoingRecord(cursor));
+        }
+        cursor.close();
+        return reminders;
     }
 
     public boolean insert(DoingRecord doingRecord) {

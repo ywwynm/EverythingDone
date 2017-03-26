@@ -68,6 +68,36 @@ public class HabitDAO {
         return sHabitDAO;
     }
 
+    public List<Habit> getAllHabits() {
+        List<Habit> habits = new ArrayList<>();
+        Cursor cursor = db.query(Def.Database.TABLE_HABITS, null, null, null, null, null, null);
+        while (cursor.moveToNext()) {
+            habits.add(new Habit(cursor));
+        }
+        cursor.close();
+        return habits;
+    }
+
+    public List<HabitReminder> getAllHabitReminders() {
+        List<HabitReminder> hrs = new ArrayList<>();
+        Cursor cursor = db.query(Def.Database.TABLE_HABIT_REMINDERS, null, null, null, null, null, null);
+        while (cursor.moveToNext()) {
+            hrs.add(new HabitReminder(cursor));
+        }
+        cursor.close();
+        return hrs;
+    }
+
+    public List<HabitRecord> getAllHabitRecords() {
+        List<HabitRecord> hrs = new ArrayList<>();
+        Cursor cursor = db.query(Def.Database.TABLE_HABIT_RECORDS, null, null, null, null, null, null);
+        while (cursor.moveToNext()) {
+            hrs.add(new HabitRecord(cursor));
+        }
+        cursor.close();
+        return hrs;
+    }
+
     public Habit getHabitById(long id) {
         Cursor c = db.query(Def.Database.TABLE_HABITS, null,
                 "id=" + id, null, null, null, null);
