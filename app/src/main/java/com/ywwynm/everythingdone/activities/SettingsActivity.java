@@ -73,7 +73,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 import static com.ywwynm.everythingdone.Def.Communication.REQUEST_CHOOSE_AUDIO_FILE;
@@ -1410,7 +1409,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
         @Override
         protected Boolean doInBackground(Object... params) {
-            return BackupHelper.backup(SettingsActivity.this);
+            return BackupHelper.backup2(SettingsActivity.this);
         }
 
         @Override
