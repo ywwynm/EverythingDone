@@ -134,8 +134,8 @@ public class BackupHelper {
         sp.edit().putLong(Def.Meta.KEY_LAST_BACKUP_TIME, curTime).apply();
 
         Gson gson = new Gson();
-        if (!backup2Database(context, backupDir, gson)) return false;
-        if (!backup2SharedPreferences(context, backupDir, gson)) return false;
+        if (!backup2Db(context, backupDir, gson)) return false;
+        if (!backup2Sp(context, backupDir, gson)) return false;
 
         File backupFile = new File(Def.Meta.APP_FILE_DIR + BACKUP2_DIR + "/"
                 + backupDirName + BACKUP2_FILE_NAME_POSTFIX);
@@ -147,16 +147,33 @@ public class BackupHelper {
         }
     }
 
-    private static boolean backup2Database(Context context, File backupDir, Gson gson) {
-        if (!backup2DatabaseThings      (context, backupDir, gson)) return false;
-        if (!backup2DatabaseReminders   (context, backupDir, gson)) return false;
-        if (!backup2DatabaseHabits      (context, backupDir, gson)) return false;
-        if (!backup2DatabaseDoingRecords(context, backupDir, gson)) return false;
+    public static boolean restore2(Context context, File backupFile) {
+        backup2(context); // backup at first for data safety
+
+        long curTime = System.currentTimeMillis();
+        String unzippedDirName = Def.Meta.APP_FILE_DIR + BACKUP2_DIR + "/" + curTime;
+        boolean unzipResult = FileUtil.unzip(backupFile.getAbsolutePath(), unzippedDirName);
+        if (!unzipResult) return false;
+
+        File unzippedDir = new File(unzippedDirName);
+        if (!unzippedDir.exists()) return false;
+
+        Gson gson = new Gson();
+        if (!restore2Db(context, unzippedDir, gson)) return false;
 
         return true;
     }
 
-    private static boolean backup2DatabaseThings(Context context, File backupDir, Gson gson) {
+    private static boolean backup2Db(Context context, File backupDir, Gson gson) {
+        if (!backup2DbThings      (context, backupDir, gson)) return false;
+        if (!backup2DbReminders   (context, backupDir, gson)) return false;
+        if (!backup2DbHabits      (context, backupDir, gson)) return false;
+        if (!backup2DbDoingRecords(context, backupDir, gson)) return false;
+
+        return true;
+    }
+
+    private static boolean backup2DbThings(Context context, File backupDir, Gson gson) {
         ThingDAO dao = ThingDAO.getInstance(context);
         Cursor cursor = dao.getAllThingsCursor();
         List<Thing> things = new ArrayList<>();
@@ -171,7 +188,7 @@ public class BackupHelper {
         return FileUtil.writeToFile(json, file);
     }
 
-    private static boolean backup2DatabaseReminders(Context context, File backupDir, Gson gson) {
+    private static boolean backup2DbReminders(Context context, File backupDir, Gson gson) {
         ReminderDAO dao = ReminderDAO.getInstance(context);
         List<Reminder> reminders = dao.getAllReminders();
         String json = gson.toJson(reminders);
@@ -180,7 +197,7 @@ public class BackupHelper {
         return FileUtil.writeToFile(json, file);
     }
 
-    private static boolean backup2DatabaseHabits(Context context, File backupDir, Gson gson) {
+    private static boolean backup2DbHabits(Context context, File backupDir, Gson gson) {
         HabitDAO dao = HabitDAO.getInstance(context);
         List<Habit> habits = dao.getAllHabits();
         String json = gson.toJson(habits);
@@ -205,7 +222,7 @@ public class BackupHelper {
         return FileUtil.writeToFile(json, file);
     }
 
-    private static boolean backup2DatabaseDoingRecords(Context context, File backupDir, Gson gson) {
+    private static boolean backup2DbDoingRecords(Context context, File backupDir, Gson gson) {
         DoingRecordDAO dao = DoingRecordDAO.getInstance(context);
         List<DoingRecord> doingRecords = dao.getAllDoingRecords();
         String json = gson.toJson(doingRecords);
@@ -214,7 +231,7 @@ public class BackupHelper {
         return FileUtil.writeToFile(json, file);
     }
 
-    private static boolean backup2SharedPreferences(Context context, File backupDir, Gson gson) {
+    private static boolean backup2Sp(Context context, File backupDir, Gson gson) {
         if (!backup2Sp(context, backupDir, gson, Def.Meta.META_DATA_NAME, NAME_METADATA_JSON))
             return false;
 
@@ -237,6 +254,23 @@ public class BackupHelper {
         if (shouldLogJson) Logger.json(json);
         File file = new File(backupDir, fileName);
         return FileUtil.writeToFile(json, file);
+    }
+
+    private static boolean restore2Db(Context context, File unzippedDir, Gson gson) {
+        if (!restore2DbThings(context, unzippedDir, gson)) return false;
+
+        return true;
+    }
+
+    private static boolean restore2DbThings(Context context, File unzippedDir, Gson gson) {
+        File thingsJsonFile = new File(unzippedDir, NAME_THINGS_JSON);
+        if (!thingsJsonFile.exists()) return false;
+
+        return true;
+    }
+
+    private static boolean restore2Sp(Context context, File unzippedDir, Gson gson) {
+        return true;
     }
 
     private static String[] getExcludePaths(Context context) {
