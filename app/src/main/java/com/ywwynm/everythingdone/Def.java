@@ -38,6 +38,7 @@ public final class Def {
         public static final String ROBOTO_MONO = "roboto-mono-min.ttf";
 
         public static final String KEY_START_USING_TIME         = "start_using_time";
+        public static final String KEY_LAST_BACKUP_TIME         = "last_backup_time";
 
         public static final String KEY_DRAWER_HEADER            = "drawer_header";
         public static final String KEY_NOTICEABLE_NOTIFICATION  = "noticeable_notification"; // 2016/11/9

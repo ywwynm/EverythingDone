@@ -97,14 +97,21 @@ public class BackupHelper {
     }
 
     public static String getLastBackupTimeString() {
-        File backupFile = new File(
-                Environment.getExternalStorageDirectory(), BACKUP_FILE_NAME);
         Context context = App.getApp();
-        if (backupFile.exists()) {
-            StringBuilder sb = new StringBuilder(context.getString(R.string.last_backup));
-            long time = backupFile.lastModified();
-            sb.append(" ").append(DateTimeUtil.getDateTimeStrAt(time, context, false));
-            return sb.toString();
+        SharedPreferences sp = context.getSharedPreferences(
+                Def.Meta.META_DATA_NAME, Context.MODE_PRIVATE);
+        long time = sp.getLong(Def.Meta.KEY_LAST_BACKUP_TIME, -1L);
+        if (time == -1L) {
+            File backupFile = new File(
+                    Environment.getExternalStorageDirectory(), BACKUP_FILE_NAME);
+            if (backupFile.exists()) {
+                time = backupFile.lastModified();
+            }
+        }
+
+        if (time != -1L) {
+            return context.getString(R.string.last_backup) + " "
+                    + DateTimeUtil.getDateTimeStrAt(time, context, false);
         } else {
             return context.getString(R.string.no_backup_before);
         }
@@ -122,13 +129,22 @@ public class BackupHelper {
             }
         }
 
+        SharedPreferences sp = context.getSharedPreferences(
+                Def.Meta.META_DATA_NAME, Context.MODE_PRIVATE);
+        sp.edit().putLong(Def.Meta.KEY_LAST_BACKUP_TIME, curTime).apply();
+
         Gson gson = new Gson();
         if (!backup2Database(context, backupDir, gson)) return false;
         if (!backup2SharedPreferences(context, backupDir, gson)) return false;
 
         File backupFile = new File(Def.Meta.APP_FILE_DIR + BACKUP2_DIR + "/"
                 + backupDirName + BACKUP2_FILE_NAME_POSTFIX);
-        return FileUtil.zipDirectory(backupDir, backupFile) && FileUtil.deleteDirectory(backupDir);
+        if (FileUtil.zipDirectory(backupDir, backupFile) && FileUtil.deleteDirectory(backupDir)) {
+            return true;
+        } else {
+            sp.edit().putLong(Def.Meta.KEY_LAST_BACKUP_TIME, -1L).apply();
+            return false;
+        }
     }
 
     private static boolean backup2Database(Context context, File backupDir, Gson gson) {
