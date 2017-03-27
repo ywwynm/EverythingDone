@@ -58,7 +58,7 @@
         android:background="@null"
         android:textSize="20sp"
         android:autoLink="all"
-        android:textCursorDrawable="@drawable/cursor_et_content"
+        android:textCursorDrawable="@drawable/cursor_et_content_checklist"
         android:theme="@style/EverythingDoneTheme.Detail.EditText"
         tools:ignore="TextFields"/>
 
