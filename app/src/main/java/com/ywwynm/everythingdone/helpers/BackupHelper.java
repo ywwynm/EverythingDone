@@ -6,6 +6,7 @@ import android.database.Cursor;
 import android.os.Environment;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import com.orhanobut.logger.Logger;
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
@@ -185,7 +186,7 @@ public class BackupHelper {
         String json = gson.toJson(things);
         if (shouldLogJson) Logger.json(json);
         File file = new File(backupDir, NAME_THINGS_JSON);
-        return FileUtil.writeToFile(json, file);
+        return FileUtil.writeStringToFile(json, file);
     }
 
     private static boolean backup2DbReminders(Context context, File backupDir, Gson gson) {
@@ -194,7 +195,7 @@ public class BackupHelper {
         String json = gson.toJson(reminders);
         if (shouldLogJson) Logger.json(json);
         File file = new File(backupDir, NAME_REMINDERS_JSON);
-        return FileUtil.writeToFile(json, file);
+        return FileUtil.writeStringToFile(json, file);
     }
 
     private static boolean backup2DbHabits(Context context, File backupDir, Gson gson) {
@@ -203,7 +204,7 @@ public class BackupHelper {
         String json = gson.toJson(habits);
         if (shouldLogJson) Logger.json(json);
         File file = new File(backupDir, NAME_HABITS_JSON);
-        if (!FileUtil.writeToFile(json, file)) {
+        if (!FileUtil.writeStringToFile(json, file)) {
             return false;
         }
 
@@ -211,7 +212,7 @@ public class BackupHelper {
         json = gson.toJson(habitReminders);
         if (shouldLogJson) Logger.json(json);
         file = new File(backupDir, NAME_HABIT_REMINDERS_JSON);
-        if (!FileUtil.writeToFile(json, file)) {
+        if (!FileUtil.writeStringToFile(json, file)) {
             return false;
         }
 
@@ -219,7 +220,7 @@ public class BackupHelper {
         json = gson.toJson(habitRecords);
         if (shouldLogJson) Logger.json(json);
         file = new File(backupDir, NAME_HABIT_RECORDS_JSON);
-        return FileUtil.writeToFile(json, file);
+        return FileUtil.writeStringToFile(json, file);
     }
 
     private static boolean backup2DbDoingRecords(Context context, File backupDir, Gson gson) {
@@ -228,7 +229,7 @@ public class BackupHelper {
         String json = gson.toJson(doingRecords);
         if (shouldLogJson) Logger.json(json);
         File file = new File(backupDir, NAME_DOING_RECORDS_JSON);
-        return FileUtil.writeToFile(json, file);
+        return FileUtil.writeStringToFile(json, file);
     }
 
     private static boolean backup2Sp(Context context, File backupDir, Gson gson) {
@@ -253,7 +254,7 @@ public class BackupHelper {
         String json = gson.toJson(map);
         if (shouldLogJson) Logger.json(json);
         File file = new File(backupDir, fileName);
-        return FileUtil.writeToFile(json, file);
+        return FileUtil.writeStringToFile(json, file);
     }
 
     private static boolean restore2Db(Context context, File unzippedDir, Gson gson) {
@@ -266,7 +267,20 @@ public class BackupHelper {
         File thingsJsonFile = new File(unzippedDir, NAME_THINGS_JSON);
         if (!thingsJsonFile.exists()) return false;
 
-        return true;
+        String json = FileUtil.readStringFromFile(thingsJsonFile);
+        if (json == null) return false;
+
+        ArrayList<Thing> things;
+        try {
+            things = gson.fromJson(json,
+                    (Class<ArrayList<Thing>>) ((Class) ArrayList.class));
+        } catch (JsonSyntaxException e) {
+            Logger.e(e, e.getMessage());
+            return false;
+        }
+
+        ThingDAO dao = ThingDAO.getInstance(context);
+        return dao.insertAll(things);
     }
 
     private static boolean restore2Sp(Context context, File unzippedDir, Gson gson) {
