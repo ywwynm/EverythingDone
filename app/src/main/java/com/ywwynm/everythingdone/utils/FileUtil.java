@@ -563,7 +563,8 @@ public class FileUtil {
         return ret;
     }
 
-    public static boolean writeToFile(String str, File file) {
+    public static boolean writeStringToFile(String str, File file) {
+        if (file == null) return false;
         PrintWriter writer = null;
         try {
             writer = new PrintWriter(new FileWriter(file));
@@ -577,7 +578,8 @@ public class FileUtil {
         }
     }
 
-    public static String readFromFile(File file) {
+    public static String readStringFromFile(File file) {
+        if (file == null) return null;
         BufferedReader reader = null;
         try {
             reader = new BufferedReader(new FileReader(file));
