@@ -207,6 +207,9 @@ public final class Def {
         // permission, so we request it directly before SettingsActivity's init.
         public static final int REQUEST_PERMISSION_OPEN_SETTINGS       = 16;
 
+        // added on 2017/3/28 to implement restore2
+        public static final int REQUEST_CHOOSE_BACKUP_FILE             = 17;
+
         public static final String KEY_SENDER_NAME          = PREFIX + "key.sender_name";
         public static final String KEY_DETAIL_ACTIVITY_TYPE = PREFIX + "key.detail_activity_type";
 

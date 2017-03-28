@@ -76,6 +76,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static com.ywwynm.everythingdone.Def.Communication.REQUEST_CHOOSE_AUDIO_FILE;
+import static com.ywwynm.everythingdone.Def.Communication.REQUEST_CHOOSE_BACKUP_FILE;
 import static com.ywwynm.everythingdone.Def.Communication.REQUEST_CHOOSE_IMAGE_FILE;
 
 @SuppressLint("CommitPrefEdits")
@@ -244,17 +245,13 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             String pathName = UriPathConverter.getLocalPathName(this, uri);
             View root = f(R.id.rl_settings_root);
             if (pathName == null) {
-                Snackbar.make(root, R.string.error_cannot_add_from_network,
+                Snackbar.make(root, R.string.error_cannot_add_from_network, // TODO: 2017/3/28 not attachment
                         Snackbar.LENGTH_SHORT).show();
                 return;
             }
 
             String postfix = FileUtil.getPostfix(pathName);
-            if ((requestCode == REQUEST_CHOOSE_IMAGE_FILE
-                    && !AttachmentHelper.isImageFile(postfix))
-                ||
-                (requestCode == REQUEST_CHOOSE_AUDIO_FILE
-                        && !AttachmentHelper.isAudioFile(postfix))) {
+            if (!isSupportedFilePostfix(requestCode, postfix)) {
                 Snackbar.make(root, R.string.error_unsupported_file_type,
                         Snackbar.LENGTH_SHORT).show();
                 return;
@@ -264,42 +261,59 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                 mTvDrawerHeader.setTextSize(12);
                 mTvDrawerHeader.setText(pathName);
             } else if (requestCode == REQUEST_CHOOSE_AUDIO_FILE) {
-                String audioName = FileUtil.getNameWithoutPostfix(pathName);
-                File srcFile = new File(pathName);
-                if (!DeviceUtil.hasNougatApi()) {
-                    uri = Uri.fromFile(srcFile);
-                } else {
-                    File dstFile = FileUtil.createFile(Def.Meta.APP_FILE_DIR + "/ringtone",
-                            srcFile.getName());
-                    try {
-                        FileUtil.copyFile(srcFile, dstFile);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        // ignore this for the time being
-                    }
-                    uri = Uri.fromFile(dstFile);
-                }
-                if (!sRingtoneUriList.contains(uri)) {
-                    sRingtoneTitleList.add(1, audioName);
-                    sRingtoneUriList.add(1, uri);
-                }
-                mCdfsRingtone[mChoosingIndex].pick(1);
-                mCdfsRingtone[mChoosingIndex].notifyDataSetChanged();
-
-                final Ringtone ringtone = RingtoneManager.getRingtone(this, uri);
-                ringtone.play();
-                mPlayingRingtone = ringtone;
-                root.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (ringtone.isPlaying()) {
-                            ringtone.stop();
-                        }
-                    }
-                }, 6000);
-
+                setFileRingtone(pathName);
+            } else if (requestCode == REQUEST_CHOOSE_BACKUP_FILE) {
+                startToRestore2(pathName);
             }
         }
+    }
+
+    private boolean isSupportedFilePostfix(int requestCode, String postfix) {
+        if (requestCode == REQUEST_CHOOSE_IMAGE_FILE) {
+            return AttachmentHelper.isImageFile(postfix);
+        } else if (requestCode == REQUEST_CHOOSE_AUDIO_FILE) {
+            return AttachmentHelper.isAudioFile(postfix);
+        } else if (requestCode == REQUEST_CHOOSE_BACKUP_FILE) {
+            return BackupHelper.isSupportedBackupFilePostfix(postfix);
+        }
+        return false;
+    }
+
+    private void setFileRingtone(String pathName) {
+        String audioName = FileUtil.getNameWithoutPostfix(pathName);
+        File srcFile = new File(pathName);
+        Uri uri;
+        if (!DeviceUtil.hasNougatApi()) {
+            uri = Uri.fromFile(srcFile);
+        } else {
+            File dstFile = FileUtil.createFile(Def.Meta.APP_FILE_DIR + "/ringtone",
+                    srcFile.getName());
+            try {
+                FileUtil.copyFile(srcFile, dstFile);
+            } catch (IOException e) {
+                e.printStackTrace();
+                // ignore this for the time being
+            }
+            uri = Uri.fromFile(dstFile);
+        }
+        if (!sRingtoneUriList.contains(uri)) {
+            sRingtoneTitleList.add(1, audioName);
+            sRingtoneUriList.add(1, uri);
+        }
+        mCdfsRingtone[mChoosingIndex].pick(1);
+        mCdfsRingtone[mChoosingIndex].notifyDataSetChanged();
+
+        final Ringtone ringtone = RingtoneManager.getRingtone(this, uri);
+        ringtone.play();
+        mPlayingRingtone = ringtone;
+        f(R.id.rl_settings_root).postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if (ringtone.isPlaying()) {
+                    ringtone.stop();
+                }
+            }
+        }, 6000);
     }
 
     @Override
@@ -1181,8 +1195,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                                 new SimplePermissionCallback(SettingsActivity.this) {
                                     @Override
                                     public void onGranted() {
-                                        showRestoreLoadingDialog();
-                                        new RestoreTask().execute();
+                                        startChooseBackupFile();
                                     }
                                 },
                                 Def.Communication.REQUEST_PERMISSION_RESTORE,
@@ -1192,6 +1205,19 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                     @Override
                     public void onCancel() { }
                 });
+    }
+
+    private void startChooseBackupFile() {
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.setType("*/*");
+        startActivityForResult(
+                Intent.createChooser(intent, getString(R.string.act_choose_media_files)),
+                Def.Communication.REQUEST_CHOOSE_BACKUP_FILE);
+    }
+
+    private void startToRestore2(String pathName) {
+        showRestoreLoadingDialog();
+        new RestoreTask().execute(pathName);
     }
 
     private void showRestoreLoadingDialog() {
@@ -1405,7 +1431,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         return ldf;
     }
 
-    class BackupTask extends AsyncTask<Object, Object, Boolean> {
+    private class BackupTask extends AsyncTask<Object, Object, Boolean> {
 
         @Override
         protected Boolean doInBackground(Object... params) {
@@ -1429,10 +1455,10 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         }
     }
 
-    class RestoreTask extends AsyncTask<Object, Object, String> {
+    private class RestoreTask extends AsyncTask<Object, Object, Boolean> {
 
         @Override
-        protected String doInBackground(Object... params) {
+        protected Boolean doInBackground(Object... params) {
             List<Long> thingIds = new ArrayList<>();
             List<Long> reminderIds = new ArrayList<>();
             List<Long> habitReminderIds = new ArrayList<>();
@@ -1462,31 +1488,31 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             }
             cursor.close();
 
-            String result = BackupHelper.restore(context);
-            if (BackupHelper.SUCCESS.equals(result)) {
+            String backupFilePathName = (String) params[0];
+            if (BackupHelper.restore2(context, new File(backupFilePathName))) {
                 AlarmHelper.cancelAlarms(context, thingIds, reminderIds, habitReminderIds);
                 try {
                     FileOutputStream fos = SettingsActivity.this.openFileOutput(
                             Def.Meta.RESTORE_DONE_FILE_NAME, MODE_PRIVATE);
                     fos.write(getString(R.string.qq_my_love).getBytes());
+                    return true;
                 } catch (IOException e) {
                     e.printStackTrace();
-                    result = getString(R.string.restore_failed_other);
                 }
             }
-            return result;
+            return false;
         }
 
         @Override
-        protected void onPostExecute(String s) {
+        protected void onPostExecute(Boolean restoreSuccessfully) {
             mLdfRestore.dismiss();
             String title, content;
-            if (BackupHelper.SUCCESS.equals(s)) {
+            if (restoreSuccessfully) {
                 title = getString(R.string.restore_success_title);
                 content = getString(R.string.restore_success_content);
             } else {
                 title = getString(R.string.restore_failed_title);
-                content = s;
+                content = getString(R.string.restore_failed_other);
             }
             final AlertDialogFragment adf = new AlertDialogFragment();
             adf.setShowCancel(false);
@@ -1497,7 +1523,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             adf.show(getFragmentManager(), AlertDialogFragment.TAG);
 
             Context context = SettingsActivity.this;
-            if (BackupHelper.SUCCESS.equals(s)) {
+            if (restoreSuccessfully) {
                 if (App.getDoingThingId() != -1) {
                     Toast.makeText(context, R.string.doing_failed_restore,
                             Toast.LENGTH_LONG).show();

@@ -7,6 +7,7 @@ import android.os.Environment;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
+import com.google.gson.reflect.TypeToken;
 import com.orhanobut.logger.Logger;
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
@@ -28,6 +29,7 @@ import org.joda.time.DateTime;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -44,12 +46,15 @@ public class BackupHelper {
 
     private static final boolean shouldLogJson = false;
 
-    private static final String BACKUP_FILE_NAME   = "EverythingDone.bak";
-    private static final String BACKUP_FOLDER_NAME = "EverythingDoneBackup";
+    private static final String BACKUP_FILE_NAME    = "EverythingDone.bak";
+    private static final String BACKUP_FOLDER_NAME  = "EverythingDoneBackup";
+    private static final String BACKUP_FILE_POSTFIX = "bak";
 
     private static final String BACKUP2_DIR = "/backup";
     private static final String BACKUP2_FILE_NAME_PREFIX  = "ED_Backup_";
-    private static final String BACKUP2_FILE_NAME_POSTFIX = ".bak2";
+    private static final String BACKUP2_FILE_NAME_POSTFIX = "bak2";
+
+    private static final String BACKUP2_BEFORE_RESTORE2_DIR = "/backupsBeforeRestore";
 
     private static final String NAME_THINGS_JSON          = "things.json";
     private static final String NAME_REMINDERS_JSON       = "reminders.json";
@@ -119,11 +124,21 @@ public class BackupHelper {
     }
 
     public static boolean backup2(Context context) {
+        return backup2(context, false);
+    }
+
+    private static boolean backup2(Context context, boolean backup2BeforeRestore2) {
         long curTime = System.currentTimeMillis();
         DateTime dt = new DateTime(curTime);
         String timeStr = dt.toString("yyyyMMddHHmmss");
         String backupDirName = BACKUP2_FILE_NAME_PREFIX + timeStr;
-        File backupDir = new File(Def.Meta.APP_FILE_DIR + BACKUP2_DIR + "/" + backupDirName);
+        String parentDir;
+        if (backup2BeforeRestore2) {
+            parentDir = BACKUP2_BEFORE_RESTORE2_DIR;
+        } else {
+            parentDir = BACKUP2_DIR;
+        }
+        File backupDir = new File(Def.Meta.APP_FILE_DIR + parentDir + "/" + backupDirName);
         if (!backupDir.exists()) {
             if (!backupDir.mkdirs()) {
                 return false;
@@ -132,37 +147,42 @@ public class BackupHelper {
 
         SharedPreferences sp = context.getSharedPreferences(
                 Def.Meta.META_DATA_NAME, Context.MODE_PRIVATE);
-        sp.edit().putLong(Def.Meta.KEY_LAST_BACKUP_TIME, curTime).apply();
+        if (!backup2BeforeRestore2) sp.edit().putLong(Def.Meta.KEY_LAST_BACKUP_TIME, curTime).apply();
 
         Gson gson = new Gson();
         if (!backup2Db(context, backupDir, gson)) return false;
         if (!backup2Sp(context, backupDir, gson)) return false;
 
-        File backupFile = new File(Def.Meta.APP_FILE_DIR + BACKUP2_DIR + "/"
-                + backupDirName + BACKUP2_FILE_NAME_POSTFIX);
+        File backupFile = new File(Def.Meta.APP_FILE_DIR + parentDir + "/"
+                + backupDirName + "." + BACKUP2_FILE_NAME_POSTFIX);
         if (FileUtil.zipDirectory(backupDir, backupFile) && FileUtil.deleteDirectory(backupDir)) {
             return true;
         } else {
-            sp.edit().putLong(Def.Meta.KEY_LAST_BACKUP_TIME, -1L).apply();
+            if (!backup2BeforeRestore2) sp.edit().putLong(Def.Meta.KEY_LAST_BACKUP_TIME, -1L).apply();
             return false;
         }
     }
 
     public static boolean restore2(Context context, File backupFile) {
-        backup2(context); // backup at first for data safety
+        backup2(context, true); // backup at first for data safety
 
         long curTime = System.currentTimeMillis();
-        String unzippedDirName = Def.Meta.APP_FILE_DIR + BACKUP2_DIR + "/" + curTime;
-        boolean unzipResult = FileUtil.unzip(backupFile.getAbsolutePath(), unzippedDirName);
+        String unzippedDirPathName = Def.Meta.APP_FILE_DIR + BACKUP2_DIR + "/" + curTime;
+        boolean unzipResult = FileUtil.unzip(backupFile.getAbsolutePath(), unzippedDirPathName);
         if (!unzipResult) return false;
 
-        File unzippedDir = new File(unzippedDirName);
+        File unzippedDir = new File(unzippedDirPathName);
         if (!unzippedDir.exists()) return false;
 
         Gson gson = new Gson();
         if (!restore2Db(context, unzippedDir, gson)) return false;
 
+        FileUtil.deleteDirectory(unzippedDirPathName);
         return true;
+    }
+
+    public static boolean isSupportedBackupFilePostfix(String postfix) {
+        return postfix.equals(BACKUP_FILE_POSTFIX) || postfix.equals(BACKUP2_FILE_NAME_POSTFIX);
     }
 
     private static boolean backup2Db(Context context, File backupDir, Gson gson) {
@@ -272,8 +292,8 @@ public class BackupHelper {
 
         ArrayList<Thing> things;
         try {
-            things = gson.fromJson(json,
-                    (Class<ArrayList<Thing>>) ((Class) ArrayList.class));
+            Type listType = new TypeToken<ArrayList<Thing>>(){}.getType();
+            things = gson.fromJson(json, listType);
         } catch (JsonSyntaxException e) {
             Logger.e(e, e.getMessage());
             return false;
