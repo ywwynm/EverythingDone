@@ -189,13 +189,13 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
                     String pathName = UriPathConverter.getLocalPathName(context, uri);
                     if (pathName == null) {
-                        preferences.edit().putString(key, FOLLOW_SYSTEM).commit();
+                        preferences.edit().putString(key, FOLLOW_SYSTEM).apply();
                         continue;
                     }
 
                     File file = new File(pathName);
                     if (!file.exists()) {
-                        preferences.edit().putString(key, FOLLOW_SYSTEM).commit();
+                        preferences.edit().putString(key, FOLLOW_SYSTEM).apply();
                     } else if (!sRingtoneUriList.contains(uri)) {
                         sRingtoneUriList.add(uri);
                         sRingtoneTitleList.add(getRingtoneTitle(context, manager, uri));
@@ -1402,7 +1402,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
         editor.putInt(Def.Meta.KEY_AUTO_NOTIFY, mANPicked);
 
-        editor.commit();
+        editor.apply();
     }
 
     @Override
