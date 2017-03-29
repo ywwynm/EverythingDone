@@ -18,7 +18,6 @@ public class DBHelper extends SQLiteOpenHelper {
 
     public static final String TAG = "DBHelper";
 
-    private static final String DATABASE_NAME = "EverythingDoneData.db";
     private static final String SQL_CREATE_TABLE_THINGS = "create table if not exists "
             + Def.Database.TABLE_THINGS + " ("
                 + Def.Database.COLUMN_ID_THINGS          + " integer primary key, "
@@ -157,7 +156,7 @@ public class DBHelper extends SQLiteOpenHelper {
     private Context mContext;
 
     public DBHelper(Context context) {
-        super(context, DATABASE_NAME, null, Def.Meta.DATABASE_VERSION);
+        super(context, Def.Meta.DATABASE_NAME, null, Def.Meta.DATABASE_VERSION);
         mContext = context;
     }
 

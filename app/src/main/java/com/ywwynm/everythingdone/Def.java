@@ -24,6 +24,7 @@ public final class Def {
         public static final String RESTORE_DONE_FILE_NAME   = "restore_done.dat";
         public static final String FEEDBACK_ERROR_FILE_NAME = "feedback_error.dat";
 
+        public static final String DATABASE_NAME = "EverythingDoneData.db";
         public static final int DATABASE_VERSION = 7;
 
         public static final int ONGOING_NOTIFICATION_ID = Integer.MAX_VALUE;
