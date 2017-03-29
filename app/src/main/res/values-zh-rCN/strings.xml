@@ -619,19 +619,18 @@
     <string name="backup_loading_content">请稍等片刻，先去喝点好喝的吧~</string>
     <string name="backup_loading_title">正在备份</string>
     <string name="backup_start">开始备份</string>
-    <string name="backup_success_content">请前往 SD 卡根目录下查看 EverythingDone.bak 文件</string>
+    <string name="backup_success_content">备份文件位于 sdcard/EverythingDone/backup 文件夹下，以 \"ED_backup_\" 开头，后缀名为 \".bak\"</string>
     <string name="backup_success_title">备份已完成</string>
     <string name="last_backup">最近一次备份:</string>
     <string name="no_backup_before">暂无备份</string>
     <!--restore-->
     <string name="restore">恢复</string>
-    <string name="restore_content">请将有效的 EverythingDone.bak 文件放在 SD 卡根目录下</string>
-    <string name="restore_failed_other">请确保 EverythingDone.bak 是有效的备份文件</string>
+    <string name="restore_content">请选择有效的完事儿备份文件，后缀名为 \".bak\"。默认的备份文件储存位置是 sdcard/EverythingDone/backup</string>
+    <string name="restore_failed_other">请确保该备份文件有效</string>
     <string name="restore_failed_title">恢复失败</string>
-    <string name="restore_file_not_exist">未找到备份文件，请将有效的 EverythingDone.bak 文件放在 sdcard 根目录下</string>
     <string name="restore_loading_content">请稍等片刻，先去吃点好吃的吧~</string>
     <string name="restore_loading_title">正在恢复</string>
-    <string name="restore_start">开始恢复</string>
+    <string name="restore_choose_backup_file">选择备份文件</string>
     <string name="restore_success_content">请等待应用重启。为确保数据安全，请不要进行其它操作</string>
     <string name="restore_success_title">恢复成功</string>
 

@@ -305,7 +305,7 @@ public class FileUtil {
         bos.close();
     }
 
-    public static void copyDirectory(String sourceDir, String targetDir) throws IOException {
+    public static void copyFilesInDirTo(String sourceDir, String targetDir) throws IOException {
         File[] files = new File(sourceDir).listFiles();
         for (File file : files) {
             if (file.isFile()) {
@@ -320,20 +320,32 @@ public class FileUtil {
             } else {
                 String dir1 = sourceDir + "/" + file.getName();
                 String dir2 = targetDir + "/" + file.getName();
-                copyDirectory(dir1, dir2);
+                copyFilesInDirTo(dir1, dir2);
             }
         }
     }
 
     public static boolean zipDirectory(File src, File dst, String... exclude) {
+        return zipDirectory(src, dst, true, exclude);
+    }
+
+    /**
+     * 压缩文件夹
+     * @param src 需要压缩的文件夹
+     * @param dst 压缩后的文件
+     * @param exclude {@param pathNames}是否指的是源文件夹中不需要压缩、添加的文件路径
+     * @param pathNames 一些源文件夹中文件的路径
+     * @return 压缩结果，成功返回{@code true}，否则返回{@code false}
+     */
+    public static boolean zipDirectory(File src, File dst, boolean exclude, String... pathNames) {
         ZipOutputStream zout = null;
         try {
             zout = new ZipOutputStream(new FileOutputStream(dst));
             File[] files = src.listFiles();
             for (File file : files) {
-                if (!isInArray(file.getAbsolutePath(), exclude)) {
+                if (file.isDirectory() || isInArray(file.getAbsolutePath(), pathNames) != exclude) {
                     // 递归压缩，更新curPaths
-                    zipFileOrDirectory(zout, file, "", exclude);
+                    zipFileOrDirectory(zout, file, "", exclude, pathNames);
                 }
             }
             return true;
@@ -345,13 +357,13 @@ public class FileUtil {
         }
     }
 
-    public static void zipFileOrDirectory(
-            ZipOutputStream zout, File src, String curPath, String... exclude) {
-        //从文件中读取字节的输入流
+    private static void zipFileOrDirectory(
+            ZipOutputStream zout, File src, String curPath, boolean exclude, String... pathNames) {
         FileInputStream in = null;
         try {
             if (!src.isDirectory()) { // zip a file
-                if (isInArray(src.getAbsolutePath(), exclude)) {
+                boolean isInArr = isInArray(src.getAbsolutePath(), pathNames);
+                if (isInArr == exclude) {
                     return;
                 }
                 byte[] buffer = new byte[4096];
@@ -368,9 +380,11 @@ public class FileUtil {
             } else { // zip a directory
                 File[] entries = src.listFiles();
                 for (File entry : entries) {
-                    if (!isInArray(entry.getAbsolutePath(), exclude)) {
+                    if (entry.isDirectory() ||
+                            isInArray(entry.getAbsolutePath(), pathNames) != exclude) {
                         // 递归压缩，更新curPaths
-                        zipFileOrDirectory(zout, entry, curPath + src.getName() + File.separator, exclude);
+                        zipFileOrDirectory(zout, entry, curPath + src.getName() + File.separator,
+                                exclude, pathNames);
                     }
                 }
             }

@@ -263,7 +263,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             } else if (requestCode == REQUEST_CHOOSE_AUDIO_FILE) {
                 setFileRingtone(pathName);
             } else if (requestCode == REQUEST_CHOOSE_BACKUP_FILE) {
-                startToRestore2(pathName);
+                startToRestore(pathName);
             }
         }
     }
@@ -1175,7 +1175,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     private void showRestoreDialog() {
         final AlertDialogFragment adf = createAlertDialog(
                 true, R.string.restore, R.string.restore_content);
-        adf.setConfirmText(getString(R.string.restore_start));
+        adf.setConfirmText(getString(R.string.restore_choose_backup_file));
         adf.setConfirmListener(new AlertDialogFragment.ConfirmListener() {
             @Override
             public void onConfirm() {
@@ -1187,7 +1187,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
     private void authenticateToRestore() {
         String password = mPreferences.getString(Def.Meta.KEY_PRIVATE_PASSWORD, null);
-        AuthenticationHelper.authenticate(this, mAccentColor, getString(R.string.restore_start), password,
+        AuthenticationHelper.authenticate(this, mAccentColor, getString(R.string.restore_choose_backup_file), password,
                 new AuthenticationHelper.AuthenticationCallback() {
                     @Override
                     public void onAuthenticated() {
@@ -1211,11 +1211,11 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         intent.setType("*/*");
         startActivityForResult(
-                Intent.createChooser(intent, getString(R.string.act_choose_media_files)),
+                Intent.createChooser(intent, getString(R.string.restore_choose_backup_file)),
                 Def.Communication.REQUEST_CHOOSE_BACKUP_FILE);
     }
 
-    private void startToRestore2(String pathName) {
+    private void startToRestore(String pathName) {
         showRestoreLoadingDialog();
         new RestoreTask().execute(pathName);
     }
@@ -1435,7 +1435,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
         @Override
         protected Boolean doInBackground(Object... params) {
-            return BackupHelper.backup2(SettingsActivity.this);
+            return BackupHelper.backup(SettingsActivity.this);
         }
 
         @Override
@@ -1489,7 +1489,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             cursor.close();
 
             String backupFilePathName = (String) params[0];
-            if (BackupHelper.restore2(context, new File(backupFilePathName))) {
+            if (BackupHelper.restore(context, new File(backupFilePathName))) {
                 AlarmHelper.cancelAlarms(context, thingIds, reminderIds, habitReminderIds);
                 try {
                     FileOutputStream fos = SettingsActivity.this.openFileOutput(

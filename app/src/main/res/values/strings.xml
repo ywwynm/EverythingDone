@@ -626,19 +626,18 @@
     <string name="backup_loading_content">Please wait for a while. Maybe you can drink something.</string>
     <string name="backup_loading_title">Backing up</string>
     <string name="backup_start">Start backup</string>
-    <string name="backup_success_content">Please check file EverythingDone.bak in sdcard root directory.</string>
+    <string name="backup_success_content">The backup file is located at sdcard/EverythingDone/backup whose name starts with \"ED_backup_\" and postfix is \".bak\"</string>
     <string name="backup_success_title">Back up successfully</string>
     <string name="last_backup">Last backup:</string>
     <string name="no_backup_before">No backup before</string>
     <!--restore-->
     <string name="restore">Restore</string>
-    <string name="restore_content">Please place a valid EverythingDone.bak in sdcard root directory.</string>
-    <string name="restore_failed_other">Please make sure that EverythingDone.bak is valid.</string>
+    <string name="restore_content">Please choose a valid EverythingDone backup file, whose postfix should be \".bak\". The default location of backups is sdcard/EverythingDone/backup.</string>
+    <string name="restore_failed_other">Please make sure that the backup file is valid.</string>
     <string name="restore_failed_title">Restore failed</string>
-    <string name="restore_file_not_exist">EverythingDone.bak not found. Please place it in sdcard root directory.</string>
     <string name="restore_loading_content">Please wait for a while. How about eating something?</string>
     <string name="restore_loading_title">Restoring</string>
-    <string name="restore_start">Start Restore</string>
+    <string name="restore_choose_backup_file">Choose backup file</string>
     <string name="restore_success_content">Please wait for app restarting. Do not do anything until app is completely restarted to keep your data safe.</string>
     <string name="restore_success_title">Restore successfully</string>
 
