@@ -477,8 +477,8 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                         return false;
                     }
 
-                    if (action == MotionEvent.ACTION_DOWN) {
-                        DisplayUtil.updateCursorDrawable((EditText) v, (int) event.getY(),
+                    if (action == MotionEvent.ACTION_DOWN && DeviceUtil.hasLollipopApi()) {
+                        DisplayUtil.updateCursorForLastLine((EditText) v, (int) event.getY(),
                                 R.drawable.cursor_et_content, R.drawable.cursor_et_content_last_line);
                     } else if (action == MotionEvent.ACTION_UP) {
                         Integer touchMovedCount = mTouchMovedCountMap.get(v);
@@ -738,7 +738,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                         mCheckListAdapter.setEtTouchListener(mSpannableTouchListener);
                         mCheckListAdapter.setEtClickListener(mEtContentClickListener);
                         mCheckListAdapter.setEtLongClickListener(mEtContentLongClickListener);
-                    } else {
+                    } else if ((DeviceUtil.hasLollipopApi())) {
                         mCheckListAdapter.setEtTouchListener(
                                 helperForEditTextLastLineCursor(R.drawable.cursor_et_content_checklist));
                     }
@@ -998,9 +998,10 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             mEtContent.setOnTouchListener(mSpannableTouchListener);
             mEtContent.setOnClickListener(mEtContentClickListener);
             mEtContent.setOnLongClickListener(mEtContentLongClickListener);
-        } else {
+        } else if (DeviceUtil.hasLollipopApi()) {
             mEtContent.setOnTouchListener(
                     helperForEditTextLastLineCursor(R.drawable.cursor_et_content));
+            DisplayUtil.helpEditTextNewLineCorrectSpacing(mEtContent);
         }
 
         if (mEditable) {
@@ -1017,7 +1018,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                    DisplayUtil.updateCursorDrawable((EditText) v, (int) event.getY(),
+                    DisplayUtil.updateCursorForLastLine((EditText) v, (int) event.getY(),
                             normalCursorRes, R.drawable.cursor_et_content_last_line);
                     return true;
                 }
@@ -1384,7 +1385,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                     mCheckListAdapter.setEtTouchListener(mSpannableTouchListener);
                     mCheckListAdapter.setEtClickListener(mEtContentClickListener);
                     mCheckListAdapter.setEtLongClickListener(mEtContentLongClickListener);
-                } else {
+                } else if ((DeviceUtil.hasLollipopApi())) {
                     mCheckListAdapter.setEtTouchListener(
                             helperForEditTextLastLineCursor(R.drawable.cursor_et_content_checklist));
                 }

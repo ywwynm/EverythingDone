@@ -20,6 +20,8 @@ import android.support.v7.graphics.drawable.DrawerArrowDrawable;
 import android.support.v7.widget.AppCompatCheckBox;
 import android.support.v7.widget.AppCompatDrawableManager;
 import android.support.v7.widget.CardView;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.util.SparseArray;
 import android.view.Display;
@@ -441,7 +443,41 @@ public class DisplayUtil {
         checkBox.setSupportButtonTintList(colorStateList);
     }
 
-    public static void updateCursorDrawable(
+    /**
+     * Even if we changed line spacing of an EditText, it won't work when we press enter and
+     * start a new line. At this situation, the line above last(newly added) will keep original
+     * line height, which is a bug above Lollipop.
+     * {@see http://stackoverflow.com/questions/36075205/android-textview-edittext-new-line-spacing}
+     *
+     * This workaround is copied from https://code.google.com/p/android/issues/detail?id=78706#c17
+     *
+     * added on 2017/3/30
+     */
+    public static void helpEditTextNewLineCorrectSpacing(final EditText et) {
+        et.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override
+            public void afterTextChanged(Editable s) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                float add = et.getLineSpacingExtra();
+                float mul = et.getLineSpacingMultiplier();
+                et.setLineSpacing(0f, 1f);
+                et.setLineSpacing(add, mul);
+            }
+        });
+
+    }
+
+    /**
+     * There are a lot of bugs in Android. I'm angry =。=
+     * {@see http://stackoverflow.com/questions/20045796/edittext-linespacing-extra-and-cursor-position-issue/43117004#43117004}
+     *
+     * added on 2017/3/30
+     */
+    public static void updateCursorForLastLine(
             EditText et, int touchY, @DrawableRes int normalCursorRes,
             @DrawableRes int lastLineCursorRes) {
         // lineSpacingExtra's unit is px.
