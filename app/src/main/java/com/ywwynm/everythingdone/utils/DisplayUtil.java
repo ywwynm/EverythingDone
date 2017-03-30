@@ -14,6 +14,7 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.RippleDrawable;
 import android.graphics.drawable.StateListDrawable;
+import android.support.annotation.DrawableRes;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.graphics.drawable.DrawerArrowDrawable;
 import android.support.v7.widget.AppCompatCheckBox;
@@ -438,5 +439,26 @@ public class DisplayUtil {
                 }
         );
         checkBox.setSupportButtonTintList(colorStateList);
+    }
+
+    public static void updateCursorDrawable(
+            EditText et, int touchY, @DrawableRes int normalCursorRes,
+            @DrawableRes int lastLineCursorRes) {
+        // lineSpacingExtra's unit is px.
+        int lastLineHeight = (int) (et.getLineHeight() - et.getLineSpacingExtra());
+        if (et.getHeight() - touchY <= lastLineHeight) {
+            setTextCursorDrawable(et, lastLineCursorRes);
+        } else {
+            setTextCursorDrawable(et, normalCursorRes);
+        }
+    }
+
+    public static void setTextCursorDrawable(EditText et, @DrawableRes int res) {
+        try {
+            Field f = TextView.class.getDeclaredField("mCursorDrawableRes");
+            f.setAccessible(true);
+            f.set(et, res);
+        } catch (Exception ignored) {
+        }
     }
 }
