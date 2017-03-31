@@ -157,32 +157,6 @@ public class ThingDAO {
         return things;
     }
 
-    public boolean insert(Thing thing) {
-        return insert(new ContentValues(11), thing);
-    }
-
-    // well, designed for saving memory in some cases when we should insert a lot of things
-    public boolean insert(ContentValues values, Thing thing) {
-        values.put(Def.Database.COLUMN_ID_THINGS,          thing.getId());
-        values.put(Def.Database.COLUMN_TYPE_THINGS,        thing.getType());
-        values.put(Def.Database.COLUMN_STATE_THINGS,       thing.getState());
-        values.put(Def.Database.COLUMN_COLOR_THINGS,       thing.getColor());
-        values.put(Def.Database.COLUMN_TITLE_THINGS,       thing.getTitle());
-        values.put(Def.Database.COLUMN_CONTENT_THINGS,     thing.getContent());
-        values.put(Def.Database.COLUMN_ATTACHMENT_THINGS,  thing.getAttachment());
-        values.put(Def.Database.COLUMN_LOCATION_THINGS,    thing.getLocation());
-        values.put(Def.Database.COLUMN_CREATE_TIME_THINGS, thing.getCreateTime());
-        values.put(Def.Database.COLUMN_UPDATE_TIME_THINGS, thing.getUpdateTime());
-        values.put(Def.Database.COLUMN_FINISH_TIME_THINGS, thing.getFinishTime());
-        return db.insert(Def.Database.TABLE_THINGS, null, values) != -1;
-    }
-
-    public boolean insertAll(List<Thing> things) {
-        ContentValues values = new ContentValues(11);
-        for (Thing thing : things) if (!insert(values, thing)) return false;
-        return true;
-    }
-
     /**
      * @return {@code true} if there was a SQLiteConstraintException thrown.
      */
@@ -256,7 +230,7 @@ public class ThingDAO {
                             boolean handleNotifyEmpty, boolean handleCurrentLimit,
                             boolean toUndo, boolean shouldUpdateHeader) {
         long id = thing.getId();
-        int type = thing.getType();
+        @Thing.Type int type = thing.getType();
         ContentValues values = new ContentValues();
 
         if (stateBefore == Thing.DELETED_FOREVER) {
@@ -301,6 +275,11 @@ public class ThingDAO {
                 values.put(Def.Database.COLUMN_STATE_THINGS, stateAfter);
                 db.update(Def.Database.TABLE_THINGS, values, "id=" + id, null);
             } else {
+                // never give a chance to delete header
+                if (type == Thing.HEADER) return;
+                Thing temp = getThingById(id);
+                if (temp != null && temp.getType() == Thing.HEADER) return;
+
                 db.delete(Def.Database.TABLE_THINGS, "id=" + id, null);
             }
 
