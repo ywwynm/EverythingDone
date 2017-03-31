@@ -826,7 +826,8 @@
     <string name="cd_checklist_unfinished_item_clickable">未完成的清单项，点击即可完成</string>
     <string name="cd_checklist_finished_item_clickable">已完成的清单项，点击取消完成</string>
     <string name="cd_checklist_move">点击并拖拽即可移动该清单项</string>
-    <string name="cd_checklist_finished_items">下面是所有已完成的清单项</string>
+    <string name="cd_checklist_expand_finished_items">展开已完成的清单项</string>
+    <string name="cd_checklist_shrink_finished_items">收缩已完成的清单项</string>
     <string name="cd_delete_checklist_item">删除项目</string>
 
     <!--SettingsActivity-->

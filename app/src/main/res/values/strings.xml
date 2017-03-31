@@ -837,7 +837,8 @@
     <string name="cd_checklist_unfinished_item_clickable">Unfinished item, click to finish</string>
     <string name="cd_checklist_finished_item_clickable">Finished item, click to unfinish</string>
     <string name="cd_checklist_move">click and drag to move this item</string>
-    <string name="cd_checklist_finished_items">Finished items are as followings</string>
+    <string name="cd_checklist_expand_finished_items">Expand finished checklist items</string>
+    <string name="cd_checklist_shrink_finished_items">Shrink finished checklist items</string>
     <string name="cd_delete_checklist_item">delete item</string>
 
     <!--SettingsActivity-->

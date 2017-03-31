@@ -370,8 +370,12 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
                 holder.ivExpandShrink.setRotation(0);
                 if (mExpanded) {
                     holder.ivExpandShrink.setImageResource(R.drawable.act_shrink_checklist_finished_items);
+                    holder.ivExpandShrink.setContentDescription(
+                            mContext.getString(R.string.cd_checklist_shrink_finished_items));
                 } else {
                     holder.ivExpandShrink.setImageResource(R.drawable.act_expand_checklist_finished_items);
+                    holder.ivExpandShrink.setContentDescription(
+                            mContext.getString(R.string.cd_checklist_expand_finished_items));
                 }
                 holder.ivExpandShrink.setVisibility(View.VISIBLE);
 
@@ -380,8 +384,6 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
                 holder.et.setTextColor(white_50p);
                 holder.et.setTextSize(16);
                 holder.et.getPaint().setTextSkewX(-0.20f);
-                holder.et.setContentDescription(
-                        mContext.getString(R.string.cd_checklist_finished_items));
             }
             mWatchEditTextChange = true;
         }
@@ -605,6 +607,13 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
                                 .setDuration(160).start();
                         mExpandShrinkCallback.updateChecklistHeight(!mExpanded, mItems);
                         mExpanded = !mExpanded;
+                        if (mExpanded) {
+                            ivExpandShrink.setContentDescription(
+                                    mContext.getString(R.string.cd_checklist_shrink_finished_items));
+                        } else {
+                            ivExpandShrink.setContentDescription(
+                                    mContext.getString(R.string.cd_checklist_expand_finished_items));
+                        }
                     }
                 }
             });
