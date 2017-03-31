@@ -19,6 +19,9 @@
 -optimizationpasses 5
 #混淆时不会产生形形色色的类名
 -dontusemixedcaseclassnames
+#保留行号
+-renamesourcefileattribute Secret
+-keepattributes SourceFile,LineNumberTable
 #指定不去忽略非公共的类库
 -dontskipnonpubliclibraryclasses
 #不进行预校验
