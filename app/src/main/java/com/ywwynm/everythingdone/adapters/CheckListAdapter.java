@@ -2,6 +2,7 @@ package com.ywwynm.everythingdone.adapters;
 
 import android.content.Context;
 import android.graphics.Paint;
+import android.graphics.drawable.Drawable;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.RecyclerView;
 import android.text.Editable;
@@ -595,7 +596,13 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
                 @Override
                 public void onClick(View v) {
                     if (mExpandShrinkCallback != null) {
-                        ivExpandShrink.animate().rotation(mExpanded ? 0 : 180).setDuration(160).start();
+                        Drawable expandDrawable = ContextCompat.getDrawable(
+                                mContext, R.drawable.act_expand_checklist_finished_items);
+                        boolean isExpandDrawableAttaching = expandDrawable.getConstantState()
+                                == ivExpandShrink.getDrawable().getConstantState();
+                        ivExpandShrink.animate()
+                                .rotation(isExpandDrawableAttaching == mExpanded ? 0 : 180)
+                                .setDuration(160).start();
                         mExpandShrinkCallback.updateChecklistHeight(!mExpanded, mItems);
                         mExpanded = !mExpanded;
                     }
