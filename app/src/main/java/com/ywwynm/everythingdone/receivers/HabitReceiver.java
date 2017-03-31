@@ -162,7 +162,7 @@ public class HabitReceiver extends BroadcastReceiver {
                             Toast.LENGTH_LONG).show();
                 }
             }
-            notifyUser(context, habitId, hrId, position, thing, habitReminder);
+            notifyUser(context, habitId, hrId, hrTime, position, thing);
         }
     }
 
@@ -203,24 +203,23 @@ public class HabitReceiver extends BroadcastReceiver {
     }
 
     private void notifyUser(
-            Context context, long habitId, long hrId, int position,
-            Thing thing, HabitReminder habitReminder) {
+            Context context, long habitId, long hrId, long hrTime, int position, Thing thing) {
         SharedPreferences sp = context.getSharedPreferences(
                 Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE);
         boolean moreNoticeable = sp.getBoolean(Def.Meta.KEY_NOTICEABLE_NOTIFICATION, true);
-        notifyUserBySystemNotification(context, habitId, hrId, position,
-                thing, habitReminder, moreNoticeable);
+        notifyUserBySystemNotification(context, habitId, hrId, hrTime, position,
+                thing, moreNoticeable);
         if (moreNoticeable) {
             Intent intent = NoticeableNotificationActivity.getOpenIntentForHabit(
-                    context, hrId, position, habitReminder.getNotifyTime());
+                    context, hrId, position, hrTime);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
             context.startActivity(intent);
         }
     }
 
     private void notifyUserBySystemNotification(
-            Context context, long habitId, long hrId, int position,
-            Thing thing, HabitReminder habitReminder, boolean moreNoticeable) {
+            Context context, long habitId, long hrId, long hrTime, int position,
+            Thing thing, boolean moreNoticeable) {
         NotificationCompat.Builder builder = SystemNotificationUtil
                 .newGeneralNotificationBuilder(context, TAG, habitId, position, thing, false);
         if (moreNoticeable && DeviceUtil.hasLollipopApi()) {
@@ -229,7 +228,7 @@ public class HabitReceiver extends BroadcastReceiver {
         }
 
         SystemNotificationUtil.addActionsForHabitNotification(
-                context, builder, hrId, position, habitReminder.getNotifyTime());
+                context, builder, hrId, position, hrTime);
 
         NotificationManagerCompat nm = NotificationManagerCompat.from(context);
         nm.notify((int) hrId, builder.build());
