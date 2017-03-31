@@ -72,8 +72,6 @@
             android:id="@+id/iv_check_list_expand_shrink"
             android:layout_width="36dp"
             android:layout_height="36dp"
-            android:layout_marginStart="8dp"
-            android:layout_marginLeft="8dp"
             android:scaleType="center"
             android:background="@drawable/selectable_item_background_light"
             android:src="@drawable/act_add_attachment"
