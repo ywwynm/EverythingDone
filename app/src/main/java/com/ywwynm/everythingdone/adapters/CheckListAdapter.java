@@ -80,6 +80,12 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
     }
     private ActionCallback mActionCallback;
 
+    public interface ExpandShrinkCallback {
+        void expandOrShrink(boolean expand);
+    }
+    private ExpandShrinkCallback mExpandShrinkCallback;
+    private boolean mExpand = true;
+
     private View.OnTouchListener mEtTouchListener;
     private View.OnClickListener mEtClickListener;
     private View.OnLongClickListener mEtLongClickListener;
@@ -141,6 +147,10 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
 
     public void setTvItemClickCallback(TvItemClickCallback tvItemClickCallback) {
         mTvItemClickCallback = tvItemClickCallback;
+    }
+
+    public void setExpandShrinkCallback(ExpandShrinkCallback expandShrinkCallback) {
+        mExpandShrinkCallback = expandShrinkCallback;
     }
 
     public void setMaxItemCount(int maxItemCount) {
@@ -351,6 +361,7 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
                 holder.ivState.setClickable(false);
                 holder.ivState.setContentDescription(
                         mContext.getString(R.string.cd_checklist_finished_items));
+                holder.ivDelete.setVisibility(View.VISIBLE);
                 holder.et.setEnabled(false);
                 holder.et.setText(mContext.getString(finished));
                 holder.et.setTextColor(white_50p);
@@ -545,7 +556,17 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
             ivDelete.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    removeItem(v, getAdapterPosition(), true);
+                    int pos = getAdapterPosition();
+                    String stateContent = mItems.get(pos);
+                    if (stateContent.charAt(0) == '4') {
+                        // expand/shrink finished items
+                        if (mExpandShrinkCallback != null) {
+                            mExpandShrinkCallback.expandOrShrink(!mExpand);
+                            mExpand = !mExpand;
+                        }
+                    } else {
+                        removeItem(v, getAdapterPosition(), true);
+                    }
                 }
             });
         }

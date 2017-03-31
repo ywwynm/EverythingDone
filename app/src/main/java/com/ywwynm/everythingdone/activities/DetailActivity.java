@@ -49,6 +49,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.view.Window;
 import android.widget.CheckBox;
@@ -746,6 +747,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                     mCheckListAdapter.setActionCallback(new CheckListActionCallback());
                 }
                 mCheckListAdapter.setShouldAutoLink(mShouldAutoLink);
+                setChecklistExpandShrinkEvent();
 
                 setMoveChecklistEvent();
 
@@ -1030,6 +1032,40 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     private void setEditTextWatchers() {
         mEtTitle.addTextChangedListener(new ActionTextWatcher(ThingAction.UPDATE_TITLE));
         mEtContent.addTextChangedListener(new ActionTextWatcher(ThingAction.UPDATE_CONTENT));
+    }
+
+    private void setChecklistExpandShrinkEvent() {
+        mCheckListAdapter.setExpandShrinkCallback(new CheckListAdapter.ExpandShrinkCallback() {
+            @Override
+            public void expandOrShrink(boolean expand) {
+                expandOrShrinkChecklistFinishedItems(expand);
+            }
+        });
+    }
+
+    private void expandOrShrinkChecklistFinishedItems(boolean expand) {
+        ViewGroup.LayoutParams vlp = mRvCheckList.getLayoutParams();
+        vlp.height = getChecklistItemsHeight(expand);
+        mRvCheckList.requestLayout();
+    }
+
+    private int getChecklistItemsHeight(boolean expand) {
+        if (expand) {
+            return ViewGroup.LayoutParams.WRAP_CONTENT;
+        }
+        List<String> items = mCheckListAdapter.getItems();
+        int unfinishedHeight = 0;
+        for (int i = 0; i < items.size(); i++) {
+            String item = items.get(i);
+            char state = item.charAt(0);
+            RecyclerView.ViewHolder holder = mRvCheckList.findViewHolderForAdapterPosition(i);
+            if (holder != null) {
+                if (state != '1') {
+                    unfinishedHeight += holder.itemView.getHeight();
+                } else break;
+            }
+        }
+        return unfinishedHeight;
     }
 
     private void setMoveChecklistEvent() {
@@ -1396,6 +1432,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 mCheckListAdapter.setItems(items);
             }
             mCheckListAdapter.setShouldAutoLink(mShouldAutoLink);
+            setChecklistExpandShrinkEvent();
             mRvCheckList.setAdapter(mCheckListAdapter);
             mRvCheckList.setLayoutManager(mLlmCheckList);
 
