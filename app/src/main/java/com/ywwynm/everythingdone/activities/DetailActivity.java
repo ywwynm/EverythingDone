@@ -212,7 +212,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
     private RecyclerView        mRvCheckList;
     private CheckListAdapter    mCheckListAdapter;
-    private LinearLayoutManager mLlmCheckList;
+    private CannotScrollLinearLayoutManager mLlmCheckList;
     private LinearLayout        mLlMoveChecklist;
     private TextView            mTvMoveChecklistAsBt;
     private ItemTouchHelper     mChecklistTouchHelper;
@@ -751,9 +751,23 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
                 setMoveChecklistEvent();
 
-                mLlmCheckList = new LinearLayoutManager(this);
+                mLlmCheckList = new CannotScrollLinearLayoutManager(this);
                 mRvCheckList.setAdapter(mCheckListAdapter);
                 mRvCheckList.setLayoutManager(mLlmCheckList);
+                if (mEditable) {
+                    mCheckListAdapter.setExpanded(false);
+                    mRvCheckList.getViewTreeObserver().addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
+                        @Override
+                        public boolean onPreDraw() {
+                            expandOrShrinkChecklistFinishedItems(false, mCheckListAdapter.getItems());
+                            ViewTreeObserver observer = mRvCheckList.getViewTreeObserver();
+                            if (observer.isAlive()) {
+                                observer.removeOnPreDrawListener(this);
+                            }
+                            return true;
+                        }
+                    });
+                }
             } else {
                 mEtContent.setVisibility(View.VISIBLE);
                 mEtContent.setText(content);
@@ -1037,33 +1051,43 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     private void setChecklistExpandShrinkEvent() {
         mCheckListAdapter.setExpandShrinkCallback(new CheckListAdapter.ExpandShrinkCallback() {
             @Override
-            public void expandOrShrink(boolean expand) {
-                expandOrShrinkChecklistFinishedItems(expand);
+            public void updateChecklistHeight(boolean expand, List<String> items) {
+                expandOrShrinkChecklistFinishedItems(expand, items);
             }
         });
     }
 
-    private void expandOrShrinkChecklistFinishedItems(boolean expand) {
+    private void expandOrShrinkChecklistFinishedItems(boolean expand, List<String> items) {
         ViewGroup.LayoutParams vlp = mRvCheckList.getLayoutParams();
-        vlp.height = getChecklistItemsHeight(expand);
+        vlp.height = getChecklistItemsHeight(expand, items);
         mRvCheckList.requestLayout();
     }
 
-    private int getChecklistItemsHeight(boolean expand) {
+    private int getChecklistItemsHeight(boolean expand, List<String> items) {
         if (expand) {
             return ViewGroup.LayoutParams.WRAP_CONTENT;
         }
-        List<String> items = mCheckListAdapter.getItems();
         int unfinishedHeight = 0;
         for (int i = 0; i < items.size(); i++) {
             String item = items.get(i);
             char state = item.charAt(0);
-            RecyclerView.ViewHolder holder = mRvCheckList.findViewHolderForAdapterPosition(i);
-            if (holder != null) {
-                if (state != '1') {
+            if (state != '1') {
+                RecyclerView.ViewHolder holder = mRvCheckList.findViewHolderForAdapterPosition(i);
+                if (holder != null) {
                     unfinishedHeight += holder.itemView.getHeight();
-                } else break;
-            }
+                }
+                /*
+                    if user inserts a new item and if the checklist finished items are shrank,
+                    the "finished" item will disappear temporarily, thus the holder will be
+                    null. But we still need the height of that item, so we recorded its height
+                    at the beginning and add it now because its height never change.
+                 */
+                else if (state == '3') {
+                    unfinishedHeight += 48 * screenDensity;
+                } else if (state == '4') {
+                    unfinishedHeight += 36 * screenDensity;
+                }
+            } else break;
         }
         return unfinishedHeight;
     }
@@ -1425,7 +1449,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                     mCheckListAdapter.setEtTouchListener(
                             helperForEditTextLastLineCursor(R.drawable.cursor_et_content_checklist));
                 }
-                mLlmCheckList = new LinearLayoutManager(this);
+                mLlmCheckList = new CannotScrollLinearLayoutManager(this);
                 mCheckListAdapter.setItemsChangeCallback(new CheckListItemsChangeCallback());
                 mCheckListAdapter.setActionCallback(new CheckListActionCallback());
             } else {
@@ -1592,6 +1616,14 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             }
             case ThingAction.UPDATE_CHECKLIST:
                 mCheckListAdapter.setItems(CheckListHelper.toCheckListItems((String) to, false));
+                if (!mCheckListAdapter.isExpanded()) {
+                    mRvCheckList.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            expandOrShrinkChecklistFinishedItems(false, mCheckListAdapter.getItems());
+                        }
+                    });
+                }
                 break;
             case ThingAction.MOVE_CHECKLIST: {
                 Object from = undo ? action.getAfter() : action.getBefore();
@@ -2996,7 +3028,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         }
     }
 
-    class ActionTextWatcher implements TextWatcher {
+    private class ActionTextWatcher implements TextWatcher {
 
         private int mActionType;
 
@@ -3032,7 +3064,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         }
     }
 
-    class CheckListActionCallback implements CheckListAdapter.ActionCallback {
+    private class CheckListActionCallback implements CheckListAdapter.ActionCallback {
 
         @Override
         public void onAction(String before, String after) {
@@ -3043,7 +3075,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         }
     }
 
-    class CheckListItemsChangeCallback implements CheckListAdapter.ItemsChangeCallback {
+    private class CheckListItemsChangeCallback implements CheckListAdapter.ItemsChangeCallback {
 
         @Override
         public void onInsert(int position) {
@@ -3072,7 +3104,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         }
     }
 
-    class ImageAttachmentClickCallback implements ImageAttachmentAdapter.ClickCallback {
+    private class ImageAttachmentClickCallback implements ImageAttachmentAdapter.ClickCallback {
 
         @Override
         public void onClick(View v, int pos) {
@@ -3099,7 +3131,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         }
     }
 
-    class ImageAttachmentRemoveCallback implements ImageAttachmentAdapter.RemoveCallback {
+    private class ImageAttachmentRemoveCallback implements ImageAttachmentAdapter.RemoveCallback {
 
         @Override
         public void onRemove(int pos) {
@@ -3115,7 +3147,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         }
     }
 
-    class AudioAttachmentRemoveCallback implements AudioAttachmentAdapter.RemoveCallback {
+    private class AudioAttachmentRemoveCallback implements AudioAttachmentAdapter.RemoveCallback {
 
         @Override
         public void onRemoved(int pos) {
@@ -3168,7 +3200,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         return true;
     }
 
-    class CheckListTouchCallback extends ItemTouchHelper.Callback {
+    private class CheckListTouchCallback extends ItemTouchHelper.Callback {
 
         @Override
         public int getMovementFlags(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder) {
@@ -3226,7 +3258,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         }
     }
 
-    class AttachmentTouchCallback extends ItemTouchHelper.Callback {
+    private class AttachmentTouchCallback extends ItemTouchHelper.Callback {
 
         boolean isImageAttachmentAdapter;
 
@@ -3266,6 +3298,18 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             } else {
                 return mAudioAttachmentAdapter.getItemCount() > 1;
             }
+        }
+    }
+
+    private class CannotScrollLinearLayoutManager extends LinearLayoutManager {
+
+        public CannotScrollLinearLayoutManager(Context context) {
+            super(context);
+        }
+
+        @Override
+        public boolean canScrollVertically() {
+            return false;
         }
     }
 }

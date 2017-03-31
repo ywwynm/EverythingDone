@@ -16,7 +16,6 @@ import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.ywwynm.everythingdone.App;
@@ -29,8 +28,6 @@ import com.ywwynm.everythingdone.utils.KeyboardUtil;
 import com.ywwynm.everythingdone.utils.LocaleUtil;
 
 import java.util.List;
-
-import static com.ywwynm.everythingdone.R.string.finished;
 
 /**
  * Created by ywwynm on 2015/9/17.
@@ -81,10 +78,10 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
     private ActionCallback mActionCallback;
 
     public interface ExpandShrinkCallback {
-        void expandOrShrink(boolean expand);
+        void updateChecklistHeight(boolean expand, List<String> items);
     }
     private ExpandShrinkCallback mExpandShrinkCallback;
-    private boolean mExpand = true;
+    private boolean mExpanded = true;
 
     private View.OnTouchListener mEtTouchListener;
     private View.OnClickListener mEtClickListener;
@@ -153,6 +150,14 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
         mExpandShrinkCallback = expandShrinkCallback;
     }
 
+    public void setExpanded(boolean expanded) {
+        mExpanded = expanded;
+    }
+
+    public boolean isExpanded() {
+        return mExpanded;
+    }
+
     public void setMaxItemCount(int maxItemCount) {
         mMaxItemCount = maxItemCount;
     }
@@ -198,15 +203,7 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
                     for (int i = firstFinishedIndex; i < size; i++) {
                         mItems.remove(firstFinishedIndex);
                     }
-                    String newItem = "1";
-                    if (LocaleUtil.isChinese(mContext)) {
-                        String str = mContext.getString(R.string.some_checklist_items_finished);
-                        newItem += String.format(str, finishedCount);
-                    } else {
-                        newItem += finishedCount + " item";
-                        if (finishedCount > 1) newItem += "s";
-                        newItem += " finished";
-                    }
+                    String newItem = "1" + getFinishedItemsCountStr(finishedCount);
                     mItems.add(newItem);
                 }
             }
@@ -300,6 +297,7 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
             holder.ivState.setVisibility(View.VISIBLE);
             holder.ivState.setClickable(true);
             holder.ivDelete.setVisibility(View.INVISIBLE);
+            holder.ivExpandShrink.setVisibility(View.GONE);
 
             holder.et.setEnabled(true);
             holder.et.setVisibility(View.VISIBLE);
@@ -311,8 +309,9 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
             holder.et.setTextSize(20);
             holder.et.setHint("");
 
-            RelativeLayout.LayoutParams params = (RelativeLayout.LayoutParams)
+            LinearLayout.LayoutParams params = (LinearLayout.LayoutParams)
                     holder.et.getLayoutParams();
+            params.width = LinearLayout.LayoutParams.MATCH_PARENT;
             params.topMargin = (int) (density * 3);
 
             mWatchEditTextChange = false;
@@ -359,11 +358,24 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
                 params.topMargin = (int) (density * 6);
                 holder.ivState.setImageResource(R.drawable.checklist_finished);
                 holder.ivState.setClickable(false);
-                holder.ivState.setContentDescription(
-                        mContext.getString(R.string.cd_checklist_finished_items));
-                holder.ivDelete.setVisibility(View.VISIBLE);
+
+                int finishedCount = 0;
+                for (String item : mItems) if (item.charAt(0) == '1') finishedCount++;
+                String finishedItemsCountStr = getFinishedItemsCountStr(finishedCount) + " ";
+                // last space is used to forbid being cut in EditText because text is italic
+                holder.ivState.setContentDescription(finishedItemsCountStr);
+                params.width = LinearLayout.LayoutParams.WRAP_CONTENT;
+
+                holder.ivExpandShrink.setRotation(0);
+                if (mExpanded) {
+                    holder.ivExpandShrink.setImageResource(R.drawable.act_shrink_checklist_finished_items);
+                } else {
+                    holder.ivExpandShrink.setImageResource(R.drawable.act_expand_checklist_finished_items);
+                }
+                holder.ivExpandShrink.setVisibility(View.VISIBLE);
+
                 holder.et.setEnabled(false);
-                holder.et.setText(mContext.getString(finished));
+                holder.et.setText(finishedItemsCountStr);
                 holder.et.setTextColor(white_50p);
                 holder.et.setTextSize(16);
                 holder.et.getPaint().setTextSkewX(-0.20f);
@@ -371,6 +383,17 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
                         mContext.getString(R.string.cd_checklist_finished_items));
             }
             mWatchEditTextChange = true;
+        }
+    }
+
+    private String getFinishedItemsCountStr(int finishedCount) {
+        if (LocaleUtil.isChinese(mContext)) {
+            String str = mContext.getString(R.string.some_checklist_items_finished);
+            return String.format(str, finishedCount);
+        } else {
+            String str = finishedCount + " item";
+            if (finishedCount > 1) str += "s";
+            return str + " finished";
         }
     }
 
@@ -430,7 +453,7 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
         } else return size;
     }
 
-    static class TextViewHolder extends BaseViewHolder {
+    private static class TextViewHolder extends BaseViewHolder {
 
         final LinearLayout llClickable;
         final View spaceClickable;
@@ -448,17 +471,19 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
 
     public class EditTextHolder extends BaseViewHolder {
 
-        public final FrameLayout flSeparator;
-        public final ImageView   ivState;
-        public final EditText    et;
-        public final ImageView   ivDelete;
+        final FrameLayout     flSeparator;
+        final ImageView       ivState;
+        public final EditText et;
+        final ImageView       ivDelete;
+        final ImageView       ivExpandShrink;
 
         EditTextHolder(View itemView) {
             super(itemView);
-            flSeparator = f(R.id.fl_check_list_separator);
-            ivState     = f(R.id.iv_check_list_state);
-            et          = f(R.id.et_check_list);
-            ivDelete    = f(R.id.iv_check_list_delete);
+            flSeparator    = f(R.id.fl_check_list_separator);
+            ivState        = f(R.id.iv_check_list_state);
+            et             = f(R.id.et_check_list);
+            ivDelete       = f(R.id.iv_check_list_delete);
+            ivExpandShrink = f(R.id.iv_check_list_expand_shrink);
 
             if (mType == EDITTEXT_EDITABLE) {
                 DisplayUtil.setSelectionHandlersColor(et, ContextCompat.getColor(
@@ -546,9 +571,15 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
                     notifyItemInserted(posAfter);
                     mWatchEditTextChange = true;
 
+                    notifyItemChanged(mItems.indexOf("4"));
+
                     if (mActionCallback != null) {
                         mActionCallback.onAction(
                                 before, CheckListHelper.toCheckListStr(mItems));
+                    }
+
+                    if (!mExpanded && mExpandShrinkCallback != null) {
+                        mExpandShrinkCallback.updateChecklistHeight(false, mItems);
                     }
                 }
             });
@@ -556,16 +587,17 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
             ivDelete.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    int pos = getAdapterPosition();
-                    String stateContent = mItems.get(pos);
-                    if (stateContent.charAt(0) == '4') {
-                        // expand/shrink finished items
-                        if (mExpandShrinkCallback != null) {
-                            mExpandShrinkCallback.expandOrShrink(!mExpand);
-                            mExpand = !mExpand;
-                        }
-                    } else {
-                        removeItem(v, getAdapterPosition(), true);
+                    removeItem(v, getAdapterPosition(), true);
+                }
+            });
+
+            ivExpandShrink.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (mExpandShrinkCallback != null) {
+                        ivExpandShrink.animate().rotation(mExpanded ? 0 : 180).setDuration(160).start();
+                        mExpandShrinkCallback.updateChecklistHeight(!mExpanded, mItems);
+                        mExpanded = !mExpanded;
                     }
                 }
             });
@@ -604,6 +636,10 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
                     if (mActionCallback != null) {
                         mActionCallback.onAction(
                                 mBefore, CheckListHelper.toCheckListStr(mItems));
+                    }
+
+                    if (!mExpanded && mExpandShrinkCallback != null) {
+                        mExpandShrinkCallback.updateChecklistHeight(false, mItems);
                     }
                 }
             });
@@ -693,6 +729,15 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
                 mActionCallback.onAction(
                         before, CheckListHelper.toCheckListStr(mItems));
             }
+
+            if (!mExpanded && mExpandShrinkCallback != null) {
+                v.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        mExpandShrinkCallback.updateChecklistHeight(false, mItems);
+                    }
+                });
+            }
         }
 
         private void removeItem(View v, int pos, boolean deleteByClick) {
@@ -777,6 +822,15 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
             if (mActionCallback != null) {
                 mActionCallback.onAction(
                         before, CheckListHelper.toCheckListStr(mItems));
+            }
+
+            if (!mExpanded && mExpandShrinkCallback != null) {
+                v.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        mExpandShrinkCallback.updateChecklistHeight(false, mItems);
+                    }
+                });
             }
         }
     }

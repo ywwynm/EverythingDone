@@ -42,25 +42,45 @@
         android:visibility="invisible"
         android:clickable="false"/>
 
-    <EditText
-        android:id="@+id/et_check_list"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_toEndOf="@id/iv_check_list_state"
         android:layout_toRightOf="@id/iv_check_list_state"
         android:layout_toStartOf="@id/iv_check_list_delete"
         android:layout_toLeftOf="@id/iv_check_list_delete"
-        android:layout_marginTop="3dp"
-        android:layout_marginStart="8dp"
-        android:layout_marginLeft="8dp"
-        android:textColorHint="#5CFFFFFF"
-        android:textColor="@color/white_76p"
-        android:background="@null"
-        android:textSize="20sp"
-        android:autoLink="all"
-        android:lineSpacingExtra="2dp"
-        android:textCursorDrawable="@drawable/cursor_et_content_checklist"
-        android:theme="@style/EverythingDoneTheme.Detail.EditText"
-        tools:ignore="TextFields"/>
+        android:orientation="horizontal">
+
+        <EditText
+            android:id="@+id/et_check_list"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:layout_marginStart="8dp"
+            android:layout_marginLeft="8dp"
+            android:textColorHint="#5CFFFFFF"
+            android:textColor="@color/white_76p"
+            android:background="@null"
+            android:textSize="20sp"
+            android:autoLink="all"
+            android:lineSpacingExtra="2dp"
+            android:textCursorDrawable="@drawable/cursor_et_content_checklist"
+            android:theme="@style/EverythingDoneTheme.Detail.EditText"
+            tools:ignore="TextFields"/>
+
+        <ImageView
+            android:id="@+id/iv_check_list_expand_shrink"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="8dp"
+            android:layout_marginLeft="8dp"
+            android:scaleType="center"
+            android:background="@drawable/selectable_item_background_light"
+            android:src="@drawable/act_add_attachment"
+            android:visibility="gone"
+            android:alpha="0.56"
+            tools:ignore="ContentDescription"/>
+
+    </LinearLayout>
 
 </RelativeLayout>
