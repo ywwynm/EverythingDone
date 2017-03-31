@@ -6,6 +6,7 @@ import android.support.v4.util.Pair;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.google.gson.Gson;
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
@@ -65,7 +66,8 @@ public class RemoteActionHelper {
             return false;
         }
 
-        if (App.getDoingThingId() == thing.getId()) {
+        boolean doing = App.getDoingThingId() == thing.getId();
+        if (doing) {
             DoingService.sStopReason = DoingRecord.STOP_REASON_FINISH;
             context.sendBroadcast(new Intent(DoingActivity.BROADCAST_ACTION_JUST_FINISH));
             context.stopService(new Intent(context, DoingService.class));
@@ -84,6 +86,9 @@ public class RemoteActionHelper {
                     Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME);
             return true;
         } else {
+            PossibleMistakeHelper.outputNewMistakeInBackground(
+                    possibleMistakeInfoForFinishingHabitOnce(thing, position, hrTime, doing, habit));
+
             if (habit.getRecord().isEmpty() && habit.getRemindedTimes() == 0) {
                 Toast.makeText(context, R.string.alert_cannot_finish_habit_first_time,
                         Toast.LENGTH_LONG).show();
@@ -93,6 +98,16 @@ public class RemoteActionHelper {
             }
             return false;
         }
+    }
+
+    private static String possibleMistakeInfoForFinishingHabitOnce(
+            Thing thing, int position, long hrTime, boolean doing, Habit habit) {
+        Gson gson = new Gson();
+        return  "thing: "          + gson.toJson(thing) + "\n\n" +
+                "position: "       + position           + "\n\n" +
+                "hrTime: "         + hrTime             + "\n\n" +
+                "doingThisThing: " + doing              + "\n\n" +
+                "habit: "          + gson.toJson(habit) + "\n\n";
     }
 
     public static void delay(Context context, Thing thing, int position, int type, int time) {
