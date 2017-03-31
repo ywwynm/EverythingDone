@@ -173,9 +173,9 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                 RingtoneManager manager = new RingtoneManager(context);
                 manager.setType(RingtoneManager.TYPE_NOTIFICATION);
 
-                Ringtone dr = RingtoneManager.getRingtone(
-                        context, Settings.System.DEFAULT_NOTIFICATION_URI);
-                sRingtoneUriList.add(Settings.System.DEFAULT_NOTIFICATION_URI);
+                Uri defaultUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+                Ringtone dr = RingtoneManager.getRingtone(context, defaultUri);
+                sRingtoneUriList.add(defaultUri);
                 sRingtoneTitleList.add(StringUtil.replaceChineseBrackets(dr.getTitle(context)));
 
                 SharedPreferences preferences = context.getSharedPreferences(
@@ -234,7 +234,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     }
 
     private static boolean isFileRingtone(RingtoneManager ringtoneManager, Uri uri) {
-        return uri != Settings.System.DEFAULT_NOTIFICATION_URI
+        return uri != RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
                 && ringtoneManager.getRingtonePosition(uri) == -1;
     }
 
@@ -367,17 +367,18 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         mChosenRingtoneTitles = new String[4];
         mCdfsRingtone         = new ChooserDialogFragment[4];
 
+        Uri defaultUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
         for (int i = 0; i < mChosenRingtoneUris.length; i++) {
             String value = mPreferences.getString(sKeysRingtone[i], FOLLOW_SYSTEM);
             if (FOLLOW_SYSTEM.equals(value)) {
-                mChosenRingtoneUris[i] = Settings.System.DEFAULT_NOTIFICATION_URI;
+                mChosenRingtoneUris[i] = defaultUri;
             } else {
                 Uri uri = Uri.parse(value);
                 mChosenRingtoneUris[i] = uri;
                 if (isFileRingtone(mRingtoneManager, uri)) {
                     String pathName = UriPathConverter.getLocalPathName(this, uri);
                     if (pathName == null || !new File(pathName).exists()) {
-                        mChosenRingtoneUris[i] = Settings.System.DEFAULT_NOTIFICATION_URI;
+                        mChosenRingtoneUris[i] = defaultUri;
                     }
                 }
             }

@@ -484,18 +484,19 @@ public class SystemNotificationUtil {
             }
         }
         String uriStr = preferences.getString(key, fs);
+        Uri defaultUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
         if (uriStr.equals(fs)) {
-            return Settings.System.DEFAULT_NOTIFICATION_URI;
+            return defaultUri;
         } else {
             Uri uri = Uri.parse(Uri.decode(uriStr));
             RingtoneManager rm = new RingtoneManager(context);
             rm.setType(RingtoneManager.TYPE_NOTIFICATION);
-            if (uri != Settings.System.DEFAULT_NOTIFICATION_URI
+            if (uri != defaultUri
                     && rm.getRingtonePosition(uri) == -1) { // user's ringtone
                 String pathName = UriPathConverter.getLocalPathName(context, uri);
                 if (pathName == null || !new File(pathName).exists()) {
                     preferences.edit().putString(key, fs).apply();
-                    return Settings.System.DEFAULT_NOTIFICATION_URI;
+                    return defaultUri;
                 } else if (DeviceUtil.hasNougatApi()) {
                     uri = FileProvider.getUriForFile(
                             context, Def.Meta.APP_AUTHORITY, new File(pathName));
