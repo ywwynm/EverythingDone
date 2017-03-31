@@ -23,6 +23,8 @@ import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.services.DoingService;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 
+import org.joda.time.DateTime;
+
 /**
  * Created by ywwynm on 2016/9/4.
  * Helper class for execute actions that happen not in ThingsActivity or DetailActivity.
@@ -103,11 +105,31 @@ public class RemoteActionHelper {
     private static String possibleMistakeInfoForFinishingHabitOnce(
             Thing thing, int position, long hrTime, boolean doing, Habit habit) {
         Gson gson = new Gson();
-        return  "thing: "          + gson.toJson(thing) + "\n\n" +
-                "position: "       + position           + "\n\n" +
-                "hrTime: "         + hrTime             + "\n\n" +
-                "doingThisThing: " + doing              + "\n\n" +
-                "habit: "          + gson.toJson(habit) + "\n\n";
+        DateTime dt = new DateTime();
+        String curTimeStr = dt.toString("yyyyMMddHHmmss");
+        String hrTimeStr = "";
+        if (hrTime != -1) {
+            dt = dt.withMillis(hrTime);
+            hrTimeStr = dt.toString("yyyyMMddHHmmss");
+        }
+        int recordLength = habit.getRecord().length();
+        int remindedTimes = habit.getRemindedTimes();
+        return "thing: " + gson.toJson(thing) + "\n\n" +
+
+                "position: " + position + "\n\n" +
+
+                "hrTime: " + hrTime + "\n" +
+                "hrTimeStr: " + hrTimeStr + "\n\n" +
+
+                "curTime: " + System.currentTimeMillis() + "\n" +
+                "curTimeStr: " + curTimeStr + "\n\n" +
+
+                "habit.type: " + habit.getType() + "\n" +
+                "habit.isPaused: " + habit.isPaused() + "\n" +
+                "habit.recordLength: " + recordLength + "\n" +
+                "habit.remindedTimes: " + remindedTimes + "\n\n" +
+
+                "doingThisThing: " + doing;
     }
 
     public static void delay(Context context, Thing thing, int position, int type, int time) {
