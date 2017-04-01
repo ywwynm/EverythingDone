@@ -273,7 +273,7 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
                 int alphaColor = DisplayUtil.getTransparentColor(
                         thing.getColor(), alpha);
                 holder.cv.setCardBackgroundColor(alphaColor);
-                holder.ivSticky.setImageAlpha(alpha);
+                holder.ivStickyOngoing.setImageAlpha(alpha);
             }
         };
         final RecyclerView rvPreview = f(R.id.rv_app_widget_preview);

@@ -365,7 +365,7 @@
     </LinearLayout>
 
     <ImageView
-        android:id="@+id/iv_thing_sticky"
+        android:id="@+id/iv_thing_sticky_ongoing"
         android:layout_width="24dp"
         android:layout_height="24dp"
         android:layout_alignParentTop="true"

@@ -2916,6 +2916,11 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     }
 
     private void ongoingOrCancel() {
+        if (App.isSomethingUpdatedSpecially()) {
+            updateThingAndItsPosition(mThing.getId());
+            App.setJustNotifyAll(true);
+        }
+
         final String K = Def.Meta.KEY_ONGOING_THING_ID;
         long ongoingBefore = FrequentSettings.getLong(K);
         if (ongoingBefore != -1L) {
@@ -2932,7 +2937,8 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         getSharedPreferences(Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE)
                 .edit().putLong(K, ongoingAfter).apply();
         FrequentSettings.put(K, ongoingAfter);
-        finish();
+
+        updateUiEverywhereForItemChangeAndFinish();
     }
 
     private void pauseOrResumeHabit() {
@@ -2950,6 +2956,10 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         } else {
             dao.pause(habitId);
         }
+        updateUiEverywhereForItemChangeAndFinish();
+    }
+
+    private void updateUiEverywhereForItemChangeAndFinish() {
         int resultCode = Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME;
         Intent intent = new Intent();
         intent.putExtra(Def.Communication.KEY_THING, mThing);

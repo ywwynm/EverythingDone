@@ -335,7 +335,7 @@ public class NoticeableNotificationActivity extends EverythingDoneBaseActivity {
                 holder.vReminderSeparator.setVisibility(View.GONE);
                 holder.vHabitSeparator1.setVisibility(View.GONE);
                 holder.flDoing.setVisibility(View.GONE);
-                holder.ivSticky.setVisibility(View.GONE);
+                holder.ivStickyOngoing.setVisibility(View.GONE);
 
                 if (holder.ivPrivateThing.getVisibility() == View.VISIBLE) {
                     holder.ivPrivateThing.setVisibility(View.GONE);

@@ -27,8 +27,9 @@ import com.bumptech.glide.load.resource.drawable.GlideDrawable;
 import com.bumptech.glide.request.RequestListener;
 import com.bumptech.glide.request.target.Target;
 import com.ywwynm.everythingdone.App;
+import com.ywwynm.everythingdone.Def;
+import com.ywwynm.everythingdone.FrequentSettings;
 import com.ywwynm.everythingdone.R;
-import com.ywwynm.everythingdone.activities.NoticeableNotificationActivity;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.helpers.AttachmentHelper;
@@ -144,7 +145,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
     }
 
     private void setContentViewAppearance(final BaseThingViewHolder holder, Thing thing) {
-        updateCardForSticky(holder, thing);
+        updateCardForStickyOrOngoingNotification(holder, thing);
         updateCardForTitle(holder, thing);
 
         if (thing.isPrivate() && !mShouldShowPrivateContent) {
@@ -172,16 +173,20 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
         updateCardForDoing(holder, thing);
     }
 
-    private void updateCardForSticky(BaseThingViewHolder holder, Thing thing) {
-        if (thing.getLocation() < 0) {
-            holder.ivSticky.setVisibility(View.VISIBLE);
-            if (getCurrentMode() != ModeManager.NORMAL && !thing.isSelected()) {
-                holder.ivSticky.setImageResource(R.drawable.ic_sticky_not_selected);
-            } else {
-                holder.ivSticky.setImageResource(R.drawable.ic_sticky);
-            }
+    private void updateCardForStickyOrOngoingNotification(BaseThingViewHolder holder, Thing thing) {
+        boolean sticky = thing.getLocation() < 0;
+        boolean ongoing = FrequentSettings.getLong(Def.Meta.KEY_ONGOING_THING_ID) == thing.getId();
+        if (!sticky && !ongoing) {
+            holder.ivStickyOngoing.setVisibility(View.GONE);
         } else {
-            holder.ivSticky.setVisibility(View.GONE);
+            holder.ivStickyOngoing.setVisibility(View.VISIBLE);
+            if (getCurrentMode() != ModeManager.NORMAL && !thing.isSelected()) {
+                holder.ivStickyOngoing.setImageResource(sticky ?
+                        R.drawable.ic_sticky_not_selected : R.drawable.ic_ongoing_notication_not_selected);
+            } else {
+                holder.ivStickyOngoing.setImageResource(sticky ?
+                        R.drawable.ic_sticky : R.drawable.ic_ongoing_notication);
+            }
         }
     }
 
@@ -593,7 +598,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
         public final InterceptTouchCardView cv;
         public final View vPaddingBottom;
 
-        public final ImageView   ivSticky;
+        public final ImageView   ivStickyOngoing;
         public final FrameLayout flDoing;
 
         public final FrameLayout flImageAttachment;
@@ -633,8 +638,8 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
             cv             = f(R.id.cv_thing);
             vPaddingBottom = f(R.id.view_thing_padding_bottom);
 
-            ivSticky = f(R.id.iv_thing_sticky);
-            flDoing  = f(R.id.fl_thing_doing_cover);
+            ivStickyOngoing = f(R.id.iv_thing_sticky_ongoing);
+            flDoing         = f(R.id.fl_thing_doing_cover);
 
             flImageAttachment = f(R.id.fl_thing_image);
             ivImageAttachment = f(R.id.iv_thing_image);

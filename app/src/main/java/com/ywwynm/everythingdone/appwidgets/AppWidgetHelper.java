@@ -67,8 +67,8 @@ public class AppWidgetHelper {
 
     private static final int ROOT_WIDGET_THING         = R.id.root_widget_thing;
 
-    private static final int IV_STICKY                 = R.id.iv_thing_sticky;
-    private static final int IV_STICKY_SMALL           = R.id.iv_thing_sticky_smaller;
+    private static final int IV_STICKY                 = R.id.iv_thing_sticky_ongoing;
+    private static final int IV_STICKY_SMALL           = R.id.iv_thing_sticky_ongoing_smaller;
     private static final int FL_DOING                  = R.id.fl_thing_doing_cover;
 
     private static final int IV_IMAGE_ATTACHMENT       = R.id.iv_thing_image;
