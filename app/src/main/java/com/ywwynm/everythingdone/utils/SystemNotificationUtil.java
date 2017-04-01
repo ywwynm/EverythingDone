@@ -10,7 +10,6 @@ import android.graphics.Point;
 import android.graphics.drawable.BitmapDrawable;
 import android.media.RingtoneManager;
 import android.net.Uri;
-import android.provider.Settings;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.content.ContextCompat;
@@ -381,7 +380,8 @@ public class SystemNotificationUtil {
         long id = thing.getId();
         NotificationCompat.Builder builder = newGeneralNotificationBuilder(
                 context, App.class.getName(), id, -1, thing, false);
-        builder.setPriority(Notification.PRIORITY_MIN)
+        boolean showOnLockscreen = FrequentSettings.getBoolean(Def.Meta.KEY_ONGOING_LOCKSCREEN);
+        builder.setPriority(showOnLockscreen ? Notification.PRIORITY_DEFAULT : Notification.PRIORITY_MIN)
                 .setSound(null)
                 .setDefaults(0)
                 .setOngoing(true)

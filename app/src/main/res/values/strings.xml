@@ -700,6 +700,7 @@
     <!--quick create-->
     <string name="quick_create_title">Create new thing quickly</string>
     <string name="quick_create_description">Show an ongoing notification to provide quick-create access</string>
+    <string name="ongoing_lockscreen">Show thing\'s ongoing notification also on lockscreen</string>
     <!--noticeable notification-->
     <string name="close_notification_later">Don\'t allow closing noticeable notification until 2 seconds after it showed</string>
     <!--automatic reminder-->

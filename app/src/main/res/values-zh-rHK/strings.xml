@@ -693,6 +693,7 @@
     <!--quick create-->
     <string name="quick_create_title">快速創建記事</string>
     <string name="quick_create_description">顯示一個常駐通知欄的通知，作為快速創建記事的入口</string>
+    <string name="ongoing_lockscreen">在鎖屏界面也顯示常駐通知欄的記事</string>
     <!--noticeable notification-->
     <string name="close_notification_later">啟用更突出的提醒時，兩秒後才允許關閉提醒</string>
     <!--automatic reminder-->

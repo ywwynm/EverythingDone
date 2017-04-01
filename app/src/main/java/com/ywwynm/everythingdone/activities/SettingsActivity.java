@@ -17,7 +17,6 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Looper;
-import android.provider.Settings;
 import android.support.annotation.StringRes;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.NotificationManagerCompat;
@@ -151,8 +150,8 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
     // group advanced
     private CheckBox mCbQuickCreate;
-
     private CheckBox mCbCloseNotificationLater;
+    private CheckBox mCbOngoingLockscreen;
 
     private static List<String>   sANItems;
     private int                   mANPicked;
@@ -442,8 +441,8 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
         // advanced
         mCbQuickCreate = f(R.id.cb_quick_create);
-
         mCbCloseNotificationLater = f(R.id.cb_close_notification_later);
+        mCbOngoingLockscreen = f(R.id.cb_ongoing_lockscreen);
 
         mTvAN = f(R.id.tv_advanced_auto_notify_time);
 
@@ -641,6 +640,9 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
         boolean closeLater = mPreferences.getBoolean(Def.Meta.KEY_CLOSE_NOTIFICATION_LATER, false);
         mCbCloseNotificationLater.setChecked(closeLater);
+
+        boolean ongoingLockscreen = FrequentSettings.getBoolean(Def.Meta.KEY_ONGOING_LOCKSCREEN);
+        mCbOngoingLockscreen.setChecked(ongoingLockscreen);
 
         // auto notify
         int index = mPreferences.getInt(Def.Meta.KEY_AUTO_NOTIFY, 0);
@@ -1000,6 +1002,15 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                 mCbCloseNotificationLater.setChecked(!mCbCloseNotificationLater.isChecked());
             }
         });
+        f(R.id.rl_ongoing_lockscreen_as_bt).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                boolean ongoingLockscreen = !mCbOngoingLockscreen.isChecked();
+                mCbOngoingLockscreen.setChecked(ongoingLockscreen);
+                FrequentSettings.put(Def.Meta.KEY_ONGOING_LOCKSCREEN, ongoingLockscreen);
+                SystemNotificationUtil.tryToCreateThingOngoingNotification(App.getApp());
+            }
+        });
 
         f(R.id.ll_advanced_auto_notify_as_bt).setOnClickListener(new View.OnClickListener() {
             @Override
@@ -1100,6 +1111,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         final int initialIndex = index;
         cdf.setInitialIndex(initialIndex);
         cdf.setConfirmListener(new View.OnClickListener() {
+            @SuppressLint("ApplySharedPref")
             @Override
             public void onClick(View v) {
                 int pickedIndex = cdf.getPickedIndex();
@@ -1400,6 +1412,9 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         boolean closeLater = mCbCloseNotificationLater.isChecked();
         FrequentSettings.put(Def.Meta.KEY_CLOSE_NOTIFICATION_LATER, closeLater);
         editor.putBoolean(Def.Meta.KEY_CLOSE_NOTIFICATION_LATER, closeLater);
+
+        boolean ongoingLockscreen = mCbOngoingLockscreen.isChecked();
+        editor.putBoolean(Def.Meta.KEY_ONGOING_LOCKSCREEN, ongoingLockscreen);
 
         editor.putInt(Def.Meta.KEY_AUTO_NOTIFY, mANPicked);
 

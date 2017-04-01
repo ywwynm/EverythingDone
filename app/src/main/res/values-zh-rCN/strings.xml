@@ -693,6 +693,7 @@
     <!--quick create-->
     <string name="quick_create_title">快速创建记事</string>
     <string name="quick_create_description">显示一个常驻通知栏的通知，作为快速创建记事的入口</string>
+    <string name="ongoing_lockscreen">在锁屏界面也显示常驻通知栏的记事</string>
     <!--noticeable notification-->
     <string name="close_notification_later">启用更突出的提醒时，两秒后才允许关闭提醒</string>
     <!--automatic reminder-->
