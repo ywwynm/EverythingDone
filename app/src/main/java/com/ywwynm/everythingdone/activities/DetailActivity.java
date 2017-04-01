@@ -759,7 +759,8 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                     mRvCheckList.getViewTreeObserver().addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
                         @Override
                         public boolean onPreDraw() {
-                            expandOrShrinkChecklistFinishedItems(false, mCheckListAdapter.getItems());
+                            expandOrShrinkChecklistFinishedItems(
+                                    false, mCheckListAdapter.getItems(), false);
                             ViewTreeObserver observer = mRvCheckList.getViewTreeObserver();
                             if (observer.isAlive()) {
                                 observer.removeOnPreDrawListener(this);
@@ -1051,15 +1052,19 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     private void setChecklistExpandShrinkEvent() {
         mCheckListAdapter.setExpandShrinkCallback(new CheckListAdapter.ExpandShrinkCallback() {
             @Override
-            public void updateChecklistHeight(boolean expand, List<String> items) {
-                expandOrShrinkChecklistFinishedItems(expand, items);
+            public void updateChecklistHeight(
+                    boolean expand, List<String> items, boolean isClickingExpandOrShrink) {
+                expandOrShrinkChecklistFinishedItems(expand, items, isClickingExpandOrShrink);
             }
         });
     }
 
-    private void expandOrShrinkChecklistFinishedItems(boolean expand, List<String> items) {
-        View focus = getCurrentFocus();
-        if (focus != null) focus.clearFocus();
+    private void expandOrShrinkChecklistFinishedItems(
+            boolean expand, List<String> items, boolean isClickingExpandOrShrink) {
+        if (isClickingExpandOrShrink) {
+            View focus = getCurrentFocus();
+            if (focus != null) focus.clearFocus();
+        }
         ViewGroup.LayoutParams vlp = mRvCheckList.getLayoutParams();
         vlp.height = getChecklistItemsHeight(expand, items);
         mRvCheckList.requestLayout();
@@ -1622,7 +1627,8 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                     mRvCheckList.post(new Runnable() {
                         @Override
                         public void run() {
-                            expandOrShrinkChecklistFinishedItems(false, mCheckListAdapter.getItems());
+                            expandOrShrinkChecklistFinishedItems(
+                                    false, mCheckListAdapter.getItems(), false);
                         }
                     });
                 }

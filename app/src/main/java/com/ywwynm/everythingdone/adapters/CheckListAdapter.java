@@ -79,7 +79,7 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
     private ActionCallback mActionCallback;
 
     public interface ExpandShrinkCallback {
-        void updateChecklistHeight(boolean expand, List<String> items);
+        void updateChecklistHeight(boolean expand, List<String> items, boolean isClickingExpandOrShrink);
     }
     private ExpandShrinkCallback mExpandShrinkCallback;
     private boolean mExpanded = true;
@@ -582,7 +582,7 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
                     }
 
                     if (!mExpanded && mExpandShrinkCallback != null) {
-                        mExpandShrinkCallback.updateChecklistHeight(false, mItems);
+                        mExpandShrinkCallback.updateChecklistHeight(false, mItems, false);
                     }
                 }
             });
@@ -605,7 +605,7 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
                         ivExpandShrink.animate()
                                 .rotation(isExpandDrawableAttaching == mExpanded ? 0 : 180)
                                 .setDuration(160).start();
-                        mExpandShrinkCallback.updateChecklistHeight(!mExpanded, mItems);
+                        mExpandShrinkCallback.updateChecklistHeight(!mExpanded, mItems, true);
                         mExpanded = !mExpanded;
                         if (mExpanded) {
                             ivExpandShrink.setContentDescription(
@@ -655,7 +655,7 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
                     }
 
                     if (!mExpanded && mExpandShrinkCallback != null) {
-                        mExpandShrinkCallback.updateChecklistHeight(false, mItems);
+                        mExpandShrinkCallback.updateChecklistHeight(false, mItems, false);
                     }
                 }
             });
@@ -750,7 +750,7 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
                 v.post(new Runnable() {
                     @Override
                     public void run() {
-                        mExpandShrinkCallback.updateChecklistHeight(false, mItems);
+                        mExpandShrinkCallback.updateChecklistHeight(false, mItems, false);
                     }
                 });
             }
@@ -844,7 +844,7 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
                 v.post(new Runnable() {
                     @Override
                     public void run() {
-                        mExpandShrinkCallback.updateChecklistHeight(false, mItems);
+                        mExpandShrinkCallback.updateChecklistHeight(false, mItems, false);
                     }
                 });
             }
