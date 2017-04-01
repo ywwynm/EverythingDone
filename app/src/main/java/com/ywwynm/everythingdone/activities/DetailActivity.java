@@ -1058,6 +1058,8 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     }
 
     private void expandOrShrinkChecklistFinishedItems(boolean expand, List<String> items) {
+        View focus = getCurrentFocus();
+        if (focus != null) focus.clearFocus();
         ViewGroup.LayoutParams vlp = mRvCheckList.getLayoutParams();
         vlp.height = getChecklistItemsHeight(expand, items);
         mRvCheckList.requestLayout();
