@@ -214,12 +214,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         }
     };
 
-    private Runnable mCloseDrawerRunnable = new Runnable() {
-        @Override
-        public void run() {
-            mDrawerLayout.closeDrawer(GravityCompat.START);
-        }
-    };
+    private boolean mShouldCloseDrawer = false;
 
     private boolean mDontPickSearchColor = true;
 
@@ -463,6 +458,10 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         mCanSeeUi = false;
         mAdapter.setShouldWaitNotify(true);
         mApp.deleteAttachmentFiles();
+        if (mShouldCloseDrawer) {
+            mDrawerLayout.closeDrawer(GravityCompat.START, false);
+            mShouldCloseDrawer = false;
+        }
     }
 
     @Override
@@ -1280,7 +1279,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             public void onClick(View v) {
                 Intent intent = new Intent(ThingsActivity.this, StatisticActivity.class);
                 startActivity(intent);
-                mRecyclerView.postDelayed(mCloseDrawerRunnable, 600);
+                mShouldCloseDrawer = true;
             }
         });
 
@@ -1631,7 +1630,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                         } else if (id == R.id.drawer_about) {
                             startActivity(new Intent(ThingsActivity.this, AboutActivity.class));
                         }
-                        mRecyclerView.postDelayed(mCloseDrawerRunnable, 600);
+                        mShouldCloseDrawer = true;
                         return true;
                     }
 
