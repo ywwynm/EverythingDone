@@ -147,6 +147,7 @@
     <!--——————————————————————Strings for Thing——————————————————————-->
     <string name="private_thing">private thing</string>
     <string name="sticky_thing">Sticky thing</string>
+    <string name="ongoing_thing">Ongoing thing</string>
 
     <!--welcomes-->
     <string name="welcome_underway_title">Welcome </string>

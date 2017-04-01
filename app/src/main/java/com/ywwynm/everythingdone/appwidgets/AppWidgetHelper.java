@@ -8,6 +8,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.net.Uri;
+import android.support.annotation.DrawableRes;
 import android.support.v4.content.ContextCompat;
 import android.text.SpannableString;
 import android.text.Spanned;
@@ -459,7 +460,7 @@ public class AppWidgetHelper {
         remoteViews.setInt(ROOT_WIDGET_THING, "setBackgroundColor",
                 DisplayUtil.getTransparentColor(thing.getColor(), alpha));
 
-        setStickyOrOngoing(remoteViews, thing, alpha, clazz, style);
+        setStickyOrOngoing(context, remoteViews, thing, alpha, clazz, style);
 
         setImageAttachment(context, remoteViews, thing, appWidgetId, clazz);
 
@@ -496,25 +497,28 @@ public class AppWidgetHelper {
         remoteViews.setViewVisibility(V_HABIT_SEPARATOR_1,  visibility);
     }
 
-    private static void setStickyOrOngoing(RemoteViews remoteViews, Thing thing, int alpha,
-                                           Class clazz, @ThingWidgetInfo.Style int style) {
+    private static void setStickyOrOngoing(Context context, RemoteViews remoteViews, Thing thing,
+                                           int alpha, Class clazz, @ThingWidgetInfo.Style int style) {
         boolean sticky = thing.getLocation() < 0;
         boolean ongoing = FrequentSettings.getLong(Def.Meta.KEY_ONGOING_THING_ID) == thing.getId();
         if (!sticky && !ongoing) {
             remoteViews.setViewVisibility(IV_STICKY_ONGOING, View.GONE);
             remoteViews.setViewVisibility(IV_STICKY_ONGOING_SMALL, View.GONE);
         } else {
-            int ivRes = sticky ? R.drawable.ic_sticky : R.drawable.ic_ongoing_notication;
+            @DrawableRes int ivRes = sticky ? R.drawable.ic_sticky : R.drawable.ic_ongoing_notication;
+            String cd = context.getString(sticky ? R.string.sticky_thing : R.string.ongoing_thing);
             if (clazz.equals(ThingsListWidget.class) && style == ThingWidgetInfo.STYLE_SIMPLE) {
                 remoteViews.setViewVisibility(IV_STICKY_ONGOING, View.GONE);
                 remoteViews.setViewVisibility(IV_STICKY_ONGOING_SMALL, View.VISIBLE);
                 remoteViews.setInt(IV_STICKY_ONGOING_SMALL, "setImageAlpha", alpha);
                 remoteViews.setImageViewResource(IV_STICKY_ONGOING_SMALL, ivRes);
+                remoteViews.setContentDescription(IV_STICKY_ONGOING_SMALL, cd);
             } else {
                 remoteViews.setViewVisibility(IV_STICKY_ONGOING, View.VISIBLE);
                 remoteViews.setViewVisibility(IV_STICKY_ONGOING_SMALL, View.GONE);
                 remoteViews.setInt(IV_STICKY_ONGOING, "setImageAlpha", alpha);
                 remoteViews.setImageViewResource(IV_STICKY_ONGOING, ivRes);
+                remoteViews.setContentDescription(IV_STICKY_ONGOING, cd);
             }
         }
     }

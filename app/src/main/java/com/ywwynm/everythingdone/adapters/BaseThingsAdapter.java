@@ -4,7 +4,9 @@ import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.PorterDuff;
+import android.support.annotation.DrawableRes;
 import android.support.annotation.IntDef;
+import android.support.annotation.StringRes;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.util.LongSparseArray;
 import android.support.v7.widget.CardView;
@@ -187,6 +189,8 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
                 holder.ivStickyOngoing.setImageResource(sticky ?
                         R.drawable.ic_sticky : R.drawable.ic_ongoing_notication);
             }
+            @StringRes int cdRes = sticky ? R.string.sticky_thing : R.string.ongoing_thing;
+            holder.ivStickyOngoing.setContentDescription(mContext.getString(cdRes));
         }
     }
 

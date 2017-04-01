@@ -142,6 +142,7 @@
     <!--——————————————————————Strings for Thing——————————————————————-->
     <string name="private_thing">私密记事</string>
     <string name="sticky_thing">置顶的记事</string>
+    <string name="ongoing_thing">在通知栏中显示的记事</string>
 
     <!--welcomes-->
     <string name="welcome_underway_title">欢迎使用完事儿</string>
