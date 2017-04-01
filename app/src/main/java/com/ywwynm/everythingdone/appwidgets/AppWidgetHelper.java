@@ -23,6 +23,7 @@ import com.bumptech.glide.request.FutureTarget;
 import com.bumptech.glide.request.target.AppWidgetTarget;
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
+import com.ywwynm.everythingdone.FrequentSettings;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.AuthenticationActivity;
 import com.ywwynm.everythingdone.activities.DetailActivity;
@@ -67,8 +68,8 @@ public class AppWidgetHelper {
 
     private static final int ROOT_WIDGET_THING         = R.id.root_widget_thing;
 
-    private static final int IV_STICKY                 = R.id.iv_thing_sticky_ongoing;
-    private static final int IV_STICKY_SMALL           = R.id.iv_thing_sticky_ongoing_smaller;
+    private static final int IV_STICKY_ONGOING         = R.id.iv_thing_sticky_ongoing;
+    private static final int IV_STICKY_ONGOING_SMALL   = R.id.iv_thing_sticky_ongoing_smaller;
     private static final int FL_DOING                  = R.id.fl_thing_doing_cover;
 
     private static final int IV_IMAGE_ATTACHMENT       = R.id.iv_thing_image;
@@ -458,7 +459,7 @@ public class AppWidgetHelper {
         remoteViews.setInt(ROOT_WIDGET_THING, "setBackgroundColor",
                 DisplayUtil.getTransparentColor(thing.getColor(), alpha));
 
-        setSticky(remoteViews, thing, alpha, clazz, style);
+        setStickyOrOngoing(remoteViews, thing, alpha, clazz, style);
 
         setImageAttachment(context, remoteViews, thing, appWidgetId, clazz);
 
@@ -495,27 +496,26 @@ public class AppWidgetHelper {
         remoteViews.setViewVisibility(V_HABIT_SEPARATOR_1,  visibility);
     }
 
-    private static void setSticky(RemoteViews remoteViews, Thing thing, int alpha,
-                                  Class clazz, @ThingWidgetInfo.Style int style) {
-        if (thing.getLocation() < 0) {
-            if (clazz.equals(ThingsListWidget.class)) {
-                if (style == ThingWidgetInfo.STYLE_NORMAL) {
-                    remoteViews.setViewVisibility(IV_STICKY, View.VISIBLE);
-                    remoteViews.setViewVisibility(IV_STICKY_SMALL, View.GONE);
-                    remoteViews.setInt(IV_STICKY, "setImageAlpha", alpha);
-                } else {
-                    remoteViews.setViewVisibility(IV_STICKY_SMALL, View.VISIBLE);
-                    remoteViews.setViewVisibility(IV_STICKY, View.GONE);
-                    remoteViews.setInt(IV_STICKY_SMALL, "setImageAlpha", alpha);
-                }
-            } else {
-                remoteViews.setViewVisibility(IV_STICKY, View.VISIBLE);
-                remoteViews.setViewVisibility(IV_STICKY_SMALL, View.GONE);
-                remoteViews.setInt(IV_STICKY, "setImageAlpha", alpha);
-            }
+    private static void setStickyOrOngoing(RemoteViews remoteViews, Thing thing, int alpha,
+                                           Class clazz, @ThingWidgetInfo.Style int style) {
+        boolean sticky = thing.getLocation() < 0;
+        boolean ongoing = FrequentSettings.getLong(Def.Meta.KEY_ONGOING_THING_ID) == thing.getId();
+        if (!sticky && !ongoing) {
+            remoteViews.setViewVisibility(IV_STICKY_ONGOING, View.GONE);
+            remoteViews.setViewVisibility(IV_STICKY_ONGOING_SMALL, View.GONE);
         } else {
-            remoteViews.setViewVisibility(IV_STICKY, View.GONE);
-            remoteViews.setViewVisibility(IV_STICKY_SMALL, View.GONE);
+            int ivRes = sticky ? R.drawable.ic_sticky : R.drawable.ic_ongoing_notication;
+            if (clazz.equals(ThingsListWidget.class) && style == ThingWidgetInfo.STYLE_SIMPLE) {
+                remoteViews.setViewVisibility(IV_STICKY_ONGOING, View.GONE);
+                remoteViews.setViewVisibility(IV_STICKY_ONGOING_SMALL, View.VISIBLE);
+                remoteViews.setInt(IV_STICKY_ONGOING_SMALL, "setImageAlpha", alpha);
+                remoteViews.setImageViewResource(IV_STICKY_ONGOING_SMALL, ivRes);
+            } else {
+                remoteViews.setViewVisibility(IV_STICKY_ONGOING, View.VISIBLE);
+                remoteViews.setViewVisibility(IV_STICKY_ONGOING_SMALL, View.GONE);
+                remoteViews.setInt(IV_STICKY_ONGOING, "setImageAlpha", alpha);
+                remoteViews.setImageViewResource(IV_STICKY_ONGOING, ivRes);
+            }
         }
     }
 
