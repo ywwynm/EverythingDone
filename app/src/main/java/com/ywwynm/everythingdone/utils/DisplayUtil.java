@@ -480,9 +480,9 @@ public class DisplayUtil {
     public static void updateCursorForLastLine(
             EditText et, int touchY, @DrawableRes int normalCursorRes,
             @DrawableRes int lastLineCursorRes) {
-        // lineSpacingExtra's unit is px.
-        int lastLineHeight = (int) (et.getLineHeight() - et.getLineSpacingExtra());
-        if (et.getHeight() - touchY <= lastLineHeight) {
+        int lineHeight = et.getLineHeight();
+        int etHeight = et.getHeight();
+        if (etHeight - touchY <= lineHeight) {
             setTextCursorDrawable(et, lastLineCursorRes);
         } else {
             setTextCursorDrawable(et, normalCursorRes);
