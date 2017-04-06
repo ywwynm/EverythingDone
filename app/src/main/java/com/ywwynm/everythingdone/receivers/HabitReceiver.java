@@ -25,6 +25,7 @@ import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.HabitReminder;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.services.DoingService;
+import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil;
 
@@ -51,18 +52,18 @@ public class HabitReceiver extends BroadcastReceiver {
 
         final long habitId = habitReminder.getHabitId();
         Habit habit = habitDAO.getHabitById(habitId);
-        if (habit != null && habit.isPaused()) {
+        if (habit == null || habit.isPaused()) {
             // Don't keep alarms(updateHabitReminderToNext). Resume alarms when resume the Habit.
             return;
         }
 
-        long hrTime = habitReminder.getNotifyTime();
         // remove existed notification for same Habit
         SystemNotificationUtil.cancelNotification(habitId, Thing.HABIT, context);
         context.sendBroadcast(
                 new Intent(NoticeableNotificationActivity.BROADCAST_ACTION_JUST_FINISH)
                         .putExtra(Def.Communication.KEY_ID, habitId));
 
+        long hrTime = habitReminder.getNotifyTime();
         long curDoingId = App.getDoingThingId();
         if (curDoingId == habitId && hrTime > DoingService.sHrTime) {
             // if user is doing this Habit for the last time, now he/she cannot do it any longer
@@ -161,6 +162,11 @@ public class HabitReceiver extends BroadcastReceiver {
                     Toast.makeText(context, R.string.auto_start_doing_notification_toast_doing_another,
                             Toast.LENGTH_LONG).show();
                 }
+            }
+
+            if (hrTime > System.currentTimeMillis()) {
+                // this should be impossible
+                hrTime = DateTimeUtil.getHabitReminderTime(habit.getType(), hrTime, -1);
             }
             notifyUser(context, habitId, hrId, hrTime, position, thing);
         }
