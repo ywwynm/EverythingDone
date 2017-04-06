@@ -1018,10 +1018,10 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         } else if (DeviceUtil.hasLollipopApi()) {
             mEtContent.setOnTouchListener(
                     helperForEditTextLastLineCursor(R.drawable.cursor_et_content));
-            DisplayUtil.helpEditTextNewLineCorrectSpacing(mEtContent);
         }
 
         if (mEditable) {
+            DisplayUtil.helpEditTextNewLineCorrectSpacing(mEtContent);
             setEditTextWatchers();
             setColorPickerEvent();
             setQuickRemindEvents();
