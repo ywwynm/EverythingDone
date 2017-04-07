@@ -58,15 +58,16 @@
                 android:layout_marginTop="20dp"
                 android:autoLink="all"
                 android:background="@null"
-                android:lineSpacingExtra="4dp"
+                android:lineSpacingMultiplier="0"
+                android:lineSpacingExtra="28dp"
                 android:hint="@string/hint_content"
                 android:paddingLeft="20dp"
                 android:paddingRight="20dp"
                 android:textColor="@color/white_76p"
                 android:textColorHint="@color/white_76p"
-                android:textCursorDrawable="@drawable/cursor_et_content"
-                android:textSize="20sp"
-                android:theme="@style/EverythingDoneTheme.Detail.EditText"/>
+                android:textSize="20dp"
+                android:theme="@style/EverythingDoneTheme.Detail.EditText"
+                tools:ignore="SpUsage"/>
 
             <android.support.v7.widget.RecyclerView
                 android:id="@+id/rv_check_list"
