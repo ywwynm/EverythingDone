@@ -23,7 +23,6 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.media.MediaPlayer;
 import android.net.Uri;
-import android.support.annotation.DrawableRes;
 import android.support.annotation.StringRes;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.ActivityOptionsCompat;
@@ -87,6 +86,7 @@ import com.ywwynm.everythingdone.helpers.AppUpdateHelper;
 import com.ywwynm.everythingdone.helpers.AttachmentHelper;
 import com.ywwynm.everythingdone.helpers.AuthenticationHelper;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
+import com.ywwynm.everythingdone.helpers.LineSpacingHelper;
 import com.ywwynm.everythingdone.helpers.ScreenshotHelper;
 import com.ywwynm.everythingdone.helpers.SendInfoHelper;
 import com.ywwynm.everythingdone.helpers.ThingDoingHelper;
@@ -478,10 +478,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                         return false;
                     }
 
-                    if (action == MotionEvent.ACTION_DOWN && DeviceUtil.hasLollipopApi()) {
-                        DisplayUtil.updateCursorForLastLine((EditText) v, (int) event.getY(),
-                                R.drawable.cursor_et_content, R.drawable.cursor_et_content_last_line);
-                    } else if (action == MotionEvent.ACTION_UP) {
+                    if (action == MotionEvent.ACTION_UP) {
                         Integer touchMovedCount = mTouchMovedCountMap.get(v);
                         if (touchMovedCount != null && touchMovedCount >= 3) {
                             Log.d(TAG, "touchMoved: " + touchMovedCount);
@@ -739,9 +736,6 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                         mCheckListAdapter.setEtTouchListener(mSpannableTouchListener);
                         mCheckListAdapter.setEtClickListener(mEtContentClickListener);
                         mCheckListAdapter.setEtLongClickListener(mEtContentLongClickListener);
-                    } else if ((DeviceUtil.hasLollipopApi())) {
-                        mCheckListAdapter.setEtTouchListener(
-                                helperForEditTextLastLineCursor(R.drawable.cursor_et_content_checklist));
                     }
                     mCheckListAdapter.setItemsChangeCallback(new CheckListItemsChangeCallback());
                     mCheckListAdapter.setActionCallback(new CheckListActionCallback());
@@ -1015,33 +1009,21 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             mEtContent.setOnTouchListener(mSpannableTouchListener);
             mEtContent.setOnClickListener(mEtContentClickListener);
             mEtContent.setOnLongClickListener(mEtContentLongClickListener);
-        } else if (DeviceUtil.hasLollipopApi()) {
-            mEtContent.setOnTouchListener(
-                    helperForEditTextLastLineCursor(R.drawable.cursor_et_content));
         }
 
+        int cursorColor = ContextCompat.getColor(this, R.color.app_accent);
+        int cursorWidth = 6;
+        int cursorHeight = 0;
+        LineSpacingHelper.setTextCursorDrawable(mEtContent, cursorColor, cursorWidth, cursorHeight);
+
         if (mEditable) {
-            DisplayUtil.helpEditTextNewLineCorrectSpacing(mEtContent);
+            LineSpacingHelper.helpCorrectSpacingForNewLine(mEtContent);
             setEditTextWatchers();
             setColorPickerEvent();
             setQuickRemindEvents();
         }
 
         shouldAddToActionList = true;
-    }
-
-    private View.OnTouchListener helperForEditTextLastLineCursor(final @DrawableRes int normalCursorRes) {
-        return new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                    DisplayUtil.updateCursorForLastLine((EditText) v, (int) event.getY(),
-                            normalCursorRes, R.drawable.cursor_et_content_last_line);
-                    return true;
-                }
-                return false;
-            }
-        };
     }
 
     private void setEditTextWatchers() {
@@ -1452,9 +1434,6 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                     mCheckListAdapter.setEtTouchListener(mSpannableTouchListener);
                     mCheckListAdapter.setEtClickListener(mEtContentClickListener);
                     mCheckListAdapter.setEtLongClickListener(mEtContentLongClickListener);
-                } else if ((DeviceUtil.hasLollipopApi())) {
-                    mCheckListAdapter.setEtTouchListener(
-                            helperForEditTextLastLineCursor(R.drawable.cursor_et_content_checklist));
                 }
                 mLlmCheckList = new CannotScrollLinearLayoutManager(this);
                 mCheckListAdapter.setItemsChangeCallback(new CheckListItemsChangeCallback());
@@ -3321,7 +3300,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
     private class CannotScrollLinearLayoutManager extends LinearLayoutManager {
 
-        public CannotScrollLinearLayoutManager(Context context) {
+        CannotScrollLinearLayoutManager(Context context) {
             super(context);
         }
 
