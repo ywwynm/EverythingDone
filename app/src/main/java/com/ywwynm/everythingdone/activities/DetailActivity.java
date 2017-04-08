@@ -1011,13 +1011,23 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             mEtContent.setOnLongClickListener(mEtContentLongClickListener);
         }
 
-        int cursorColor = ContextCompat.getColor(this, R.color.app_accent);
-        int cursorWidth = 6;
-        int cursorHeight = 0;
-        LineSpacingHelper.setTextCursorDrawable(mEtContent, cursorColor, cursorWidth, cursorHeight);
-
         if (mEditable) {
             LineSpacingHelper.helpCorrectSpacingForNewLine(mEtContent);
+            if (!DeviceUtil.isFlyme()) {
+                int appAccent = ContextCompat.getColor(this, R.color.app_accent);
+                int cursorWidth = (int) (1.5 * screenDensity);
+                int normalLineCursorHeightVary = (int) (-4 * screenDensity);
+                int lastLineCursorHeightVary;
+                if (DeviceUtil.hasLollipopApi()) {
+                    lastLineCursorHeightVary = (int) (-1 * screenDensity);
+                } else {
+                    lastLineCursorHeightVary = normalLineCursorHeightVary;
+                }
+                LineSpacingHelper.setTextCursorDrawable(
+                        mEtContent, appAccent, cursorWidth,
+                        normalLineCursorHeightVary, lastLineCursorHeightVary);
+            }
+
             setEditTextWatchers();
             setColorPickerEvent();
             setQuickRemindEvents();

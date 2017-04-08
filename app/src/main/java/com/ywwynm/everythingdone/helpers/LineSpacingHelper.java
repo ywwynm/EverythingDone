@@ -1,17 +1,15 @@
 package com.ywwynm.everythingdone.helpers;
 
-import android.graphics.Rect;
+import android.graphics.drawable.Drawable;
 import android.graphics.drawable.ShapeDrawable;
-import android.support.annotation.ColorRes;
-import android.support.annotation.NonNull;
 import android.text.Editable;
+import android.text.Layout;
 import android.text.TextWatcher;
 import android.widget.EditText;
 import android.widget.TextView;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 /**
@@ -41,13 +39,15 @@ public class LineSpacingHelper {
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 float add = et.getLineSpacingExtra();
                 float mul = et.getLineSpacingMultiplier();
-                et.setLineSpacing(0f, 0f);
+                et.setLineSpacing(0f, 1f);
                 et.setLineSpacing(add, mul);
             }
         });
     }
 
-    public static void setTextCursorDrawable(EditText et, int cursorColor, int cursorWidth, int cursorHeight) {
+    public static void setTextCursorDrawable(
+            EditText et, int cursorColor, int cursorWidth,
+            int normalLineCursorHeightVary, int lastLineCursorHeightVary) {
         try {
             Method method = TextView.class.getDeclaredMethod("createEditorIfNeeded");
             method.setAccessible(true);
@@ -57,25 +57,41 @@ public class LineSpacingHelper {
             field1.setAccessible(true);
             field2.setAccessible(true);
             Object arr = field2.get(field1.get(et));
-            Array.set(arr, 0, new LineSpacingCursorDrawable(cursorColor, cursorWidth, cursorHeight));
-            Array.set(arr, 1, new LineSpacingCursorDrawable(cursorColor, cursorWidth, cursorHeight));
+            Drawable d = new LineSpacingCursorDrawable(
+                    et, cursorColor, cursorWidth,
+                    normalLineCursorHeightVary, lastLineCursorHeightVary);
+            Array.set(arr, 0, d);
+            Array.set(arr, 1, d);
         } catch (Exception ignored) {}
     }
 
     private static class LineSpacingCursorDrawable extends ShapeDrawable {
 
-        private int mHeight;
+        private EditText mEditText;
 
-        LineSpacingCursorDrawable(int color, int width, int height) {
+        private int mNormalLineHeightVary;
+        private int mLastLineHeightVary;
+
+        LineSpacingCursorDrawable(
+                EditText editText, int color, int width,
+                int normalLineHeightVary, int lastLineHeightVary) {
+            mEditText = editText;
             setDither(false);
             getPaint().setColor(color);
             setIntrinsicWidth(width);
-            mHeight = height;
+            mNormalLineHeightVary = normalLineHeightVary;
+            mLastLineHeightVary = lastLineHeightVary;
         }
 
         @Override
         public void setBounds(int left, int top, int right, int bottom) {
-            super.setBounds(left, top, right, bottom + mHeight);
+            int pos = mEditText.getSelectionStart();
+            Layout layout = mEditText.getLayout();
+            int cursorLine = layout.getLineForOffset(pos);
+            int lineCount = mEditText.getLineCount();
+            int heightVary = cursorLine != lineCount - 1 ?
+                    mNormalLineHeightVary : mLastLineHeightVary;
+            super.setBounds(left, top, right, bottom + heightVary);
         }
     }
 }

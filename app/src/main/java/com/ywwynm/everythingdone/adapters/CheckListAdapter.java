@@ -24,6 +24,8 @@ import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.FrequentSettings;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
+import com.ywwynm.everythingdone.helpers.LineSpacingHelper;
+import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.KeyboardUtil;
 import com.ywwynm.everythingdone.utils.LocaleUtil;
@@ -48,6 +50,11 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
     private static int black_50p;
     private static float density;
 
+    private static int appAccent;
+    private static int cursorWidth;
+    private static int normalLineCursorHeightVary;
+    private static int lastLineCursorHeightVary;
+
     static {
         Context context = App.getApp();
         white_76p = ContextCompat.getColor(context, R.color.white_76p);
@@ -55,6 +62,15 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
         black_76p = ContextCompat.getColor(context, R.color.black_76p);
         black_50p = ContextCompat.getColor(context, R.color.black_50p);
         density = DisplayUtil.getScreenDensity(context);
+
+        appAccent = ContextCompat.getColor(App.getApp(), R.color.app_accent);
+        cursorWidth = (int) (1.5 * density);
+        normalLineCursorHeightVary = (int) (-2 * density);
+        if (DeviceUtil.hasLollipopApi()) {
+            lastLineCursorHeightVary = (int) (-1 * density);
+        } else {
+            lastLineCursorHeightVary = normalLineCursorHeightVary;
+        }
     }
 
     private int mMaxItemCount;
@@ -493,6 +509,11 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
                         mContext, R.color.app_accent));
                 setupIvListeners();
                 setupEtListeners();
+                if (!DeviceUtil.isFlyme()) {
+                    LineSpacingHelper.setTextCursorDrawable(
+                            et, appAccent, cursorWidth,
+                            normalLineCursorHeightVary, lastLineCursorHeightVary);
+                }
             } else {
                 et.setKeyListener(null);
             }

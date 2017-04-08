@@ -64,7 +64,6 @@
             android:textSize="20sp"
             android:autoLink="all"
             android:lineSpacingExtra="2dp"
-            android:textCursorDrawable="@drawable/cursor_et_content_checklist"
             android:theme="@style/EverythingDoneTheme.Detail.EditText"
             tools:ignore="TextFields"/>
 
