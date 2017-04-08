@@ -73,6 +73,10 @@ public class DeviceUtil {
         return getProperty("ro.build.version.emui") != null;
     }
 
+    public static boolean isFlyme() {
+        return Build.MANUFACTURER.equalsIgnoreCase("meizu");
+    }
+
     private static String getProperty(String key) {
         FileInputStream fis = null;
         try {
