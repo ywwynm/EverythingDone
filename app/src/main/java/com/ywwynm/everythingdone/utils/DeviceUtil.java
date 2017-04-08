@@ -69,8 +69,13 @@ public class DeviceUtil {
 
     public static boolean isEMUI() {
         // ro.build.version.emui
-        // ro.miui.ui.version.name
         return getProperty("ro.build.version.emui") != null;
+    }
+
+    public static boolean isMiuiButNotV5() {
+        // ro.miui.ui.version.name
+        String prop = getProperty("ro.miui.ui.version.name");
+        return prop != null && !prop.equalsIgnoreCase("v5");
     }
 
     public static boolean isFlyme() {

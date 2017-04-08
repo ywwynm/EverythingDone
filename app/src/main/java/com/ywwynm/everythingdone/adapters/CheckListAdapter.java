@@ -505,8 +505,10 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
             ivExpandShrink = f(R.id.iv_check_list_expand_shrink);
 
             if (mType == EDITTEXT_EDITABLE) {
-                DisplayUtil.setSelectionHandlersColor(et, ContextCompat.getColor(
-                        mContext, R.color.app_accent));
+                if (!DeviceUtil.isMiuiButNotV5()) {
+                    DisplayUtil.setSelectionHandlersColor(et, ContextCompat.getColor(
+                            mContext, R.color.app_accent));
+                }
                 setupIvListeners();
                 setupEtListeners();
                 if (!DeviceUtil.isFlyme()) {
