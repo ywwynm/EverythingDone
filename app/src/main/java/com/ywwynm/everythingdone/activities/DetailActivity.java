@@ -1006,7 +1006,6 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                                         mScrollView.scrollTo(0, fToScroll - screenHeightDivide6);
                                     }
                                 });
-
                             }
                         }
                     }
