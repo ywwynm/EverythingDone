@@ -25,6 +25,36 @@ public class PossibleMistakeHelper {
     public static final String TAG = "PossibleMistakeHelper";
 
     private PossibleMistakeHelper() {}
+    
+    public static void outputNewMistakeInBackground(final Exception e) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                outputNewMistake(e);
+            }
+        }).start();
+    }
+
+    public static void outputNewMistake(Exception exception) {
+        File file = createNewLogFile();
+        if (file == null) {
+            return;
+        }
+
+        try {
+            PrintWriter writer = new PrintWriter(new FileWriter(file));
+            writer.println(System.currentTimeMillis());
+            writer.print("APP Version:  ");
+            writer.println(BuildConfig.VERSION_NAME + "_" + BuildConfig.VERSION_CODE);
+            writer.println(DeviceUtil.getDeviceInfo());
+            writer.println();
+            exception.printStackTrace(writer);
+            writer.println();
+            writer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
     public static void outputNewMistakeInBackground(final String possibleMistakeInfo) {
         final StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
@@ -37,17 +67,14 @@ public class PossibleMistakeHelper {
     }
 
     public static void outputNewMistake(String possibleMistakeInfo, StackTraceElement[] stackTraceElements) {
-        String path = Def.Meta.APP_FILE_DIR + "/log";
-        String time = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
-        String name = "possible_mistake_" + time + ".info";
-        File file = FileUtil.createFile(path, name);
+        File file = createNewLogFile();
         if (file == null) {
             return;
         }
 
         try {
             PrintWriter writer = new PrintWriter(new FileWriter(file));
-            writer.println(time);
+            writer.println(System.currentTimeMillis());
             writer.print("APP Version:  ");
             writer.println(BuildConfig.VERSION_NAME + "_" + BuildConfig.VERSION_CODE);
             writer.println(DeviceUtil.getDeviceInfo());
@@ -61,6 +88,13 @@ public class PossibleMistakeHelper {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private static File createNewLogFile() {
+        String path = Def.Meta.APP_FILE_DIR + "/log";
+        String time = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
+        String name = "possible_mistake_" + time + ".info";
+        return FileUtil.createFile(path, name);
     }
 
 }
