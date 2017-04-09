@@ -25,7 +25,7 @@ public final class Def {
         public static final String FEEDBACK_ERROR_FILE_NAME = "feedback_error.dat";
 
         public static final String DATABASE_NAME = "EverythingDoneData.db";
-        public static final int DATABASE_VERSION = 7;
+        public static final int DATABASE_VERSION = 8;
 
         public static final int ONGOING_NOTIFICATION_ID = Integer.MAX_VALUE;
 
@@ -148,6 +148,7 @@ public final class Def {
         public static final String COLUMN_RECORD_MONTH_HABIT_RECORDS = "record_month";
         public static final String COLUMN_RECORD_WEEK_HABIT_RECORDS  = "record_week";
         public static final String COLUMN_RECORD_DAY_HABIT_RECORDS   = "record_day";
+        public static final String COLUMN_TYPE_HABIT_RECORDS         = "type";
 
         public static final String TABLE_APP_WIDGET           = "app_widget";
         public static final String COLUMN_ID_APP_WIDGET       = "id";

@@ -1267,17 +1267,23 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             case R.id.act_redo:
                 undoOrRedo(mActionList.redo(), false);
                 break;
-            case R.id.act_check_habit_detail:
+            case R.id.act_check_habit_detail: {
+                if (mHabit == null) break;
                 HabitDetailDialogFragment hddf = HabitDetailDialogFragment.newInstance();
+                mHabit = HabitDAO.getInstance(this).getHabitById(mHabit.getId());
                 hddf.setHabit(mHabit);
                 hddf.show(getFragmentManager(), HabitDetailDialogFragment.TAG);
                 break;
-            case R.id.act_check_update_habit_record:
+            }
+            case R.id.act_check_update_habit_record: {
+                if (mHabit == null) break;
                 HabitRecordDialogFragment hrdf = new HabitRecordDialogFragment();
+                mHabit = HabitDAO.getInstance(this).getHabitById(mHabit.getId());
                 hrdf.setHabit(mHabit);
                 hrdf.setEditable(mEditable);
                 hrdf.show(getFragmentManager(), HabitRecordDialogFragment.TAG);
                 break;
+            }
             case R.id.act_share:
                 chooseHowToShareThing();
                 break;

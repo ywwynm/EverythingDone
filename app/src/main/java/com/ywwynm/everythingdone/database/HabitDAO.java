@@ -136,7 +136,8 @@ public class HabitDAO {
     public List<HabitRecord> getHabitRecordsByHabitId(long habitId) {
         List<HabitRecord> habitRecords = new ArrayList<>();
         Cursor c = db.query(Def.Database.TABLE_HABIT_RECORDS, null,
-                "habit_id=" + habitId, null, null, null, null);
+                "habit_id=" + habitId, null, null, null,
+                Def.Database.COLUMN_RECORD_TIME_HABIT_RECORDS + " asc");
         while (c.moveToNext()) {
             habitRecords.add(new HabitRecord(c));
         }
@@ -183,8 +184,17 @@ public class HabitDAO {
 
     public HabitRecord createHabitRecord(HabitRecord habitRecord) {
         mHabitRecordId++;
+        ContentValues values = getContentValuesFromHabitRecord(habitRecord, true);
+        db.insert(Def.Database.TABLE_HABIT_RECORDS, null, values);
+        habitRecord.setId(mHabitRecordId);
+        return habitRecord;
+    }
+
+    private ContentValues getContentValuesFromHabitRecord(HabitRecord habitRecord, boolean putId) {
         ContentValues values = new ContentValues();
-        values.put(Def.Database.COLUMN_ID_HABIT_RECORDS, mHabitRecordId);
+        if (putId) {
+            values.put(Def.Database.COLUMN_ID_HABIT_RECORDS, mHabitRecordId);
+        }
         values.put(Def.Database.COLUMN_HABIT_ID_HABIT_RECORDS, habitRecord.getHabitId());
         values.put(Def.Database.COLUMN_HR_ID_HABIT_RECORDS, habitRecord.getHabitReminderId());
         values.put(Def.Database.COLUMN_RECORD_TIME_HABIT_RECORDS, habitRecord.getRecordTime());
@@ -192,9 +202,8 @@ public class HabitDAO {
         values.put(Def.Database.COLUMN_RECORD_MONTH_HABIT_RECORDS, habitRecord.getRecordMonth());
         values.put(Def.Database.COLUMN_RECORD_WEEK_HABIT_RECORDS, habitRecord.getRecordWeek());
         values.put(Def.Database.COLUMN_RECORD_DAY_HABIT_RECORDS, habitRecord.getRecordDay());
-        db.insert(Def.Database.TABLE_HABIT_RECORDS, null, values);
-        habitRecord.setId(mHabitRecordId);
-        return habitRecord;
+        values.put(Def.Database.COLUMN_TYPE_HABIT_RECORDS, habitRecord.getType());
+        return values;
     }
 
     // added on 2017/3/2, version should be 1.3.6(38)
@@ -280,7 +289,7 @@ public class HabitDAO {
             }
         }
         updateRecordOfHabit(habitId, record + "1");
-        return createHabitRecord(new HabitRecord(0, habitId, habitReminderId));
+        return createHabitRecord(new HabitRecord(habitId, habitReminderId));
     }
 
     public void undoFinishOneTime(HabitRecord habitRecord) {
@@ -311,14 +320,25 @@ public class HabitDAO {
         return 0;
     }
 
+    private Cursor getFinishedHabitRecordCursor(long habitId, int limitCount) {
+        String condition = Def.Database.COLUMN_HABIT_ID_HABIT_RECORDS + "=" + habitId
+                + " and (" +
+                Def.Database.COLUMN_TYPE_HABIT_RECORDS + "=" + HabitRecord.TYPE_FINISHED
+                + " or " +
+                Def.Database.COLUMN_TYPE_HABIT_RECORDS + "=" + HabitRecord.TYPE_FAKE_FINISHED
+                + ")";
+        String orderBy = Def.Database.COLUMN_RECORD_TIME_HABIT_RECORDS + " desc";
+        return db.query(Def.Database.TABLE_HABIT_RECORDS, null,
+                condition, null, null, null, orderBy, String.valueOf(limitCount));
+    }
+
     private int getFinishedTimesToday(long habitId) {
         DateTime dt  = new DateTime();
         int curYear  = dt.getYear();
         int curMonth = dt.getMonthOfYear();
         int curDay   = dt.getDayOfMonth();
         int times    = 0;
-        Cursor c = db.query(Def.Database.TABLE_HABIT_RECORDS, null,
-                "habit_id=" + habitId, null, null, null, "id desc");
+        Cursor c = getFinishedHabitRecordCursor(habitId, 4);
         while (c.moveToNext()) {
             int year = c.getInt(c.getColumnIndex(
                     Def.Database.COLUMN_RECORD_YEAR_HABIT_RECORDS));
@@ -339,8 +359,7 @@ public class HabitDAO {
         int curYear = dt.getYear();
         int curWeek = dt.getWeekOfWeekyear();
         int times   = 0;
-        Cursor c = db.query(Def.Database.TABLE_HABIT_RECORDS, null,
-                "habit_id=" + habitId, null, null, null, "id desc");
+        Cursor c = getFinishedHabitRecordCursor(habitId, 7);
         while (c.moveToNext()) {
             int year = c.getInt(c.getColumnIndex(
                     Def.Database.COLUMN_RECORD_YEAR_HABIT_RECORDS));
@@ -359,8 +378,7 @@ public class HabitDAO {
         int curYear  = dt.getYear();
         int curMonth = dt.getMonthOfYear();
         int times    = 0;
-        Cursor c = db.query(Def.Database.TABLE_HABIT_RECORDS, null,
-                "habit_id=" + habitId, null, null, null, "id desc");
+        Cursor c = getFinishedHabitRecordCursor(habitId, 31);
         while (c.moveToNext()) {
             int year = c.getInt(c.getColumnIndex(
                     Def.Database.COLUMN_RECORD_YEAR_HABIT_RECORDS));
@@ -378,8 +396,7 @@ public class HabitDAO {
         DateTime dt = new DateTime();
         int curYear = dt.getYear();
         int times   = 0;
-        Cursor c = db.query(Def.Database.TABLE_HABIT_RECORDS, null,
-                "habit_id=" + habitId, null, null, null, "id desc");
+        Cursor c = getFinishedHabitRecordCursor(habitId, 12);
         while (c.moveToNext()) {
             int year = c.getInt(c.getColumnIndex(
                     Def.Database.COLUMN_RECORD_YEAR_HABIT_RECORDS));
@@ -478,6 +495,114 @@ public class HabitDAO {
                 updateHabitRemindedTimes(id, recordTimes);
             }
         }
+    }
+
+    public void changeHabitRecordsByUser(Habit habit, String recordBefore, String recordAfter) throws Exception {
+        char[] arrBefore = recordBefore.toCharArray();
+        char[] arrAfter  = recordAfter.toCharArray();
+        long habitId = habit.getId();
+        habit = getHabitById(habitId);
+        final int len = arrBefore.length;
+        if (len == 0) return;
+        boolean recordEndWith0 = arrBefore[len - 1] == '0';
+        for (int i = len - 1; i >= 0; i--) {
+            if (arrBefore[i] != arrAfter[i]) {
+                if (arrBefore[i] == '0') {
+                    createFakeFinishedHabitRecord(
+                            habit, len, len - i, recordEndWith0);
+                } else {
+                    int indexFromLast = indexFromLast(recordBefore, arrBefore[i], i);
+                    cancelFinishHabitRecord(habitId, indexFromLast);
+                }
+            }
+        }
+    }
+
+    private void createFakeFinishedHabitRecord(Habit habit, int recordTimes, int indexFromLast, boolean recordEndWith0) throws Exception {
+        long habitId = habit.getId();
+        List<HabitReminder> habitReminders = getHabitRemindersByHabitId(habitId);
+        final int timesEachT = habitReminders.size();
+
+        long curTime = System.currentTimeMillis();
+        int nextRemindIndex = timesEachT; // 找出下一个提醒时刻所对应的下标，如果为timesEachT，则说明下一个提醒时刻在下个周期
+        for (int i = 0; i < timesEachT; i++) if (habitReminders.get(i).getNotifyTime() < curTime) {
+            nextRemindIndex = i;
+            break;
+        }
+        int backFrom; // 从哪一个HabitReminder开始回溯，找到我们需要伪造HabitRecord的对应的HabitReminder
+        int preVary = 0;
+        if (nextRemindIndex == 0) {
+            backFrom = timesEachT - 1;
+        } else if (!recordEndWith0 && recordTimes == habit.getRemindedTimes()) {
+            backFrom = nextRemindIndex - 1;
+        } else {
+            backFrom = nextRemindIndex - 2;
+            if (backFrom < 0) {
+                backFrom += timesEachT;
+            }
+            preVary--;
+        }
+
+        int indexToPreVary = backFrom + 1;
+        if (indexToPreVary >= timesEachT) {
+            indexToPreVary -= timesEachT;
+        }
+        HabitReminder hr = habitReminders.get(indexToPreVary);
+        int habitType = habit.getType();
+        hr.setNotifyTime(DateTimeUtil.getHabitReminderTime(habitType, hr.getNotifyTime(), preVary));
+
+        int i, j;
+        for (i = backFrom, j = 1; j <= indexFromLast; j++) {
+            hr = habitReminders.get(i);
+            hr.setNotifyTime(DateTimeUtil.getHabitReminderTime(habitType, hr.getNotifyTime(), -1));
+            i--;
+            if (i < 0) {
+                i += timesEachT;
+            }
+        }
+        i++;
+        if (i >= timesEachT) {
+            i -= timesEachT;
+        }
+        hr = habitReminders.get(i);
+        HabitRecord fakeFinishedHabitRecord = new HabitRecord(
+                habitId, hr.getId(), hr.getNotifyTime() + 6000);
+        fakeFinishedHabitRecord.setType(HabitRecord.TYPE_FAKE_FINISHED);
+        createHabitRecord(fakeFinishedHabitRecord);
+    }
+
+    /**
+     * 给定一个位置的某一字符，得到它是字符串从后往前数的第几个该字符
+     * 比如：字符串是011011010，c为1，index为2，那么c就是从后往前数的第4个1
+     */
+    private int indexFromLast(String src, char c, int index) {
+        int lastN = 0;
+        char[] arr = src.toCharArray();
+        for (int i = arr.length - 1; i >= index; i--) if (arr[i] == c) lastN++;
+        return lastN;
+    }
+
+    private void cancelFinishHabitRecord(long habitId, int indexFromLast) {
+        List<HabitRecord> habitRecords = getHabitRecordsByHabitId(habitId);
+        final int size = habitRecords.size();
+        for (int j = size - 1; j >= 0; j--) {
+            if (size - j == indexFromLast) {
+                HabitRecord hr = habitRecords.get(j);
+                @HabitRecord.Type int type = hr.getType();
+                if (type == HabitRecord.TYPE_FINISHED) {
+                    hr.setType(HabitRecord.TYPE_CANCEL_FINISHED);
+                } else if (type == HabitRecord.TYPE_FAKE_FINISHED) {
+                    hr.setType(HabitRecord.TYPE_FAKE_CANCEL_FINISHED);
+                }
+                updateHabitRecord(hr);
+            }
+        }
+    }
+
+    public void updateHabitRecord(HabitRecord updatedHabitRecord) {
+        ContentValues values = getContentValuesFromHabitRecord(updatedHabitRecord, false);
+        db.update(Def.Database.TABLE_HABIT_RECORDS, values,
+                Def.Database.COLUMN_ID_HABIT_RECORDS + "=" + updatedHabitRecord.getId(), null);
     }
 
     public void updateRecordOfHabit(long id, String record) {

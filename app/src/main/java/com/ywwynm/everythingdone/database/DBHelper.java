@@ -71,7 +71,8 @@ public class DBHelper extends SQLiteOpenHelper {
                 + Def.Database.COLUMN_RECORD_YEAR_HABIT_RECORDS  + " integer, "
                 + Def.Database.COLUMN_RECORD_MONTH_HABIT_RECORDS + " integer, "
                 + Def.Database.COLUMN_RECORD_WEEK_HABIT_RECORDS  + " integer, "
-                + Def.Database.COLUMN_RECORD_DAY_HABIT_RECORDS   + " integer"
+                + Def.Database.COLUMN_RECORD_DAY_HABIT_RECORDS   + " integer, "
+                + Def.Database.COLUMN_TYPE_HABIT_RECORDS + " integer not null default 0"
             +")";
 
     private static final String SQL_CREATE_TABLE_APP_WIDGET = "create table if not exists "
@@ -131,6 +132,10 @@ public class DBHelper extends SQLiteOpenHelper {
     private static final String SQL_ADD_COLUMN_SHOULD_ASM_DOING_RECORD = "alter table "
             + Def.Database.TABLE_DOING_RECORDS
             + " add column " + Def.Database.COLUMN_SHOULD_ASM_DOING + " integer not null default 0";
+
+    private static final String SQL_ADD_COLUMN_TYPE_HABIT_RECORD = "alter table "
+            + Def.Database.TABLE_HABIT_RECORDS
+            + " add column " + Def.Database.COLUMN_TYPE_HABIT_RECORDS + " integer not null default 0";
 
     private static final String SQL_DROP_TABLE_THINGS = "drop table if exists "
             + Def.Database.TABLE_THINGS;
@@ -206,6 +211,7 @@ public class DBHelper extends SQLiteOpenHelper {
             // no table "app_widget" in first version
             db.execSQL(SQL_CREATE_TABLE_APP_WIDGET);
             db.execSQL(SQL_CREATE_TABLE_DOING_RECORDS);
+            db.execSQL(SQL_ADD_COLUMN_TYPE_HABIT_RECORD);
         } else if (oldVersion == 2) {
             // Only for developing. I forget to create a column that describes widget's size
             db.execSQL(SQL_DROP_TABLE_APP_WIDGET);
@@ -214,16 +220,21 @@ public class DBHelper extends SQLiteOpenHelper {
             db.execSQL(SQL_ADD_COLUMN_ALPHA_APP_WIDGET);
             db.execSQL(SQL_ADD_COLUMN_STYLE_APP_WIDGET);
             db.execSQL(SQL_CREATE_TABLE_DOING_RECORDS);
+            db.execSQL(SQL_ADD_COLUMN_TYPE_HABIT_RECORD);
         } else if (oldVersion == 4) {
             // Only for developing. Thing list widget now can optimize style
             db.execSQL(SQL_ADD_COLUMN_STYLE_APP_WIDGET);
         } else if (oldVersion == 5) {
             db.execSQL(SQL_CREATE_TABLE_DOING_RECORDS);
+            db.execSQL(SQL_ADD_COLUMN_TYPE_HABIT_RECORD);
         } else if (oldVersion == 6) {
             db.execSQL(SQL_ADD_COLUMN_START_TYPE_DOING_RECORD);
             db.execSQL(SQL_ADD_COLUMN_SHOULD_ASM_DOING_RECORD);
+            db.execSQL(SQL_ADD_COLUMN_TYPE_HABIT_RECORD);
+        } else if (oldVersion == 7) {
+            db.execSQL(SQL_ADD_COLUMN_TYPE_HABIT_RECORD);
         }
-        // released version should be 1, 3, 5, 6, 7.
+        // released version should be 1, 3, 5, 6, 7, 8.
     }
 
     @Override

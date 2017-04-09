@@ -25,7 +25,7 @@ public class PossibleMistakeHelper {
     public static final String TAG = "PossibleMistakeHelper";
 
     private PossibleMistakeHelper() {}
-    
+
     public static void outputNewMistakeInBackground(final Exception e) {
         new Thread(new Runnable() {
             @Override

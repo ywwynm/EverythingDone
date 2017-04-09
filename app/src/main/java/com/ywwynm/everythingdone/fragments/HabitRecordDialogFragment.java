@@ -1,6 +1,5 @@
 package com.ywwynm.everythingdone.fragments;
 
-import android.app.Activity;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
@@ -15,6 +14,7 @@ import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.DetailActivity;
 import com.ywwynm.everythingdone.adapters.HabitRecordAdapter;
 import com.ywwynm.everythingdone.database.HabitDAO;
+import com.ywwynm.everythingdone.helpers.PossibleMistakeHelper;
 import com.ywwynm.everythingdone.model.Habit;
 
 /**
@@ -107,14 +107,19 @@ public class HabitRecordDialogFragment extends BaseDialogFragment {
             long habitId = mHabit.getId();
             Habit habit = habitDAO.getHabitById(habitId);
             if (habit != null) {
-                String latestRecord = habit.getRecord(), finalRecord = record;
-                final int len1 = latestRecord.length(), len2 = record.length();
+                String recordBefore = habit.getRecord(), recordAfter = record;
+                final int len1 = recordBefore.length(), len2 = record.length();
                 if (len1 > len2) { // alarm time passed~
                     int gap = len1 - len2;
-                    final int latestLen = latestRecord.length();
-                    finalRecord = record + latestRecord.substring(latestLen - gap, latestLen);
+                    final int latestLen = recordBefore.length();
+                    recordAfter = record + recordBefore.substring(latestLen - gap, latestLen);
                 }
-                habit.setRecord(finalRecord);
+                habit.setRecord(recordAfter);
+                try {
+                    habitDAO.changeHabitRecordsByUser(habit, recordBefore, recordAfter);
+                } catch (Exception e) {
+                    PossibleMistakeHelper.outputNewMistakeInBackground(e);
+                }
                 habitDAO.updateRecordOfHabit(habitId, record);
             }
 
