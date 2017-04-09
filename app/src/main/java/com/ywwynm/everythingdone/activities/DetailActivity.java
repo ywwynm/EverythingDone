@@ -986,11 +986,28 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             if (DeviceUtil.hasKitKatApi()) {
                 KeyboardUtil.addKeyboardCallback(window, new KeyboardUtil.KeyboardCallback() {
 
+                    final int screenHeightDivide6 = DisplayUtil.getScreenSize(mApp).y / 6;
+
                     @Override
                     public void onKeyboardShow(int keyboardHeight) {
                         if (mFlRoot.getPaddingBottom() == 0) {
                             //set the padding of the contentView for the keyboard
                             mFlRoot.setPadding(0, 0, 0, keyboardHeight);
+                            if (mRvCheckList == null || mRvCheckList.getVisibility() != View.VISIBLE) {
+                                int toScroll = DisplayUtil.getCursorY(mEtContent);
+                                toScroll += mEtTitle.getHeight();
+                                if (mRvImageAttachment != null && mRvImageAttachment.getVisibility() == View.VISIBLE) {
+                                    toScroll += mRvImageAttachment.getHeight();
+                                }
+                                final int fToScroll = toScroll;
+                                mScrollView.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        mScrollView.scrollTo(0, fToScroll - screenHeightDivide6);
+                                    }
+                                });
+
+                            }
                         }
                     }
 

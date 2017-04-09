@@ -14,14 +14,12 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.RippleDrawable;
 import android.graphics.drawable.StateListDrawable;
-import android.support.annotation.DrawableRes;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.graphics.drawable.DrawerArrowDrawable;
 import android.support.v7.widget.AppCompatCheckBox;
 import android.support.v7.widget.AppCompatDrawableManager;
 import android.support.v7.widget.CardView;
-import android.text.Editable;
-import android.text.TextWatcher;
+import android.text.Layout;
 import android.util.Log;
 import android.util.SparseArray;
 import android.view.Display;
@@ -441,5 +439,14 @@ public class DisplayUtil {
                 }
         );
         checkBox.setSupportButtonTintList(colorStateList);
+    }
+
+    public static int getCursorY(EditText et) {
+        int pos = et.getSelectionStart();
+        Layout layout = et.getLayout();
+        int line = layout.getLineForOffset(pos);
+        int baseline = layout.getLineBaseline(line);
+        int ascent = layout.getLineAscent(line);
+        return baseline + ascent;
     }
 }
