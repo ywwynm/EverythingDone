@@ -135,8 +135,14 @@ public class HabitDAO {
 
     public List<HabitRecord> getHabitRecordsByHabitId(long habitId) {
         List<HabitRecord> habitRecords = new ArrayList<>();
+        String condition = Def.Database.COLUMN_HABIT_ID_HABIT_RECORDS + "=" + habitId
+                + " and (" +
+                    Def.Database.COLUMN_TYPE_HABIT_RECORDS + "=" + HabitRecord.TYPE_FINISHED
+                        + " or " +
+                    Def.Database.COLUMN_TYPE_HABIT_RECORDS + "=" + HabitRecord.TYPE_FAKE_FINISHED
+                + ")";
         Cursor c = db.query(Def.Database.TABLE_HABIT_RECORDS, null,
-                "habit_id=" + habitId, null, null, null,
+                condition, null, null, null,
                 Def.Database.COLUMN_RECORD_TIME_HABIT_RECORDS + " asc");
         while (c.moveToNext()) {
             habitRecords.add(new HabitRecord(c));
@@ -505,6 +511,7 @@ public class HabitDAO {
         final int len = arrBefore.length;
         if (len == 0) return;
         boolean recordEndWith0 = arrBefore[len - 1] == '0';
+        List<HabitRecord> habitRecords = getHabitRecordsByHabitId(habitId);
         for (int i = len - 1; i >= 0; i--) {
             if (arrBefore[i] != arrAfter[i]) {
                 if (arrBefore[i] == '0') {
@@ -512,7 +519,7 @@ public class HabitDAO {
                             habit, len, len - i, recordEndWith0);
                 } else {
                     int indexFromLast = indexFromLast(recordBefore, arrBefore[i], i);
-                    cancelFinishHabitRecord(habitId, indexFromLast);
+                    cancelFinishHabitRecord(habitRecords, indexFromLast);
                 }
             }
         }
@@ -582,8 +589,7 @@ public class HabitDAO {
         return lastN;
     }
 
-    private void cancelFinishHabitRecord(long habitId, int indexFromLast) {
-        List<HabitRecord> habitRecords = getHabitRecordsByHabitId(habitId);
+    private void cancelFinishHabitRecord(List<HabitRecord> habitRecords, int indexFromLast) {
         final int size = habitRecords.size();
         for (int j = size - 1; j >= 0; j--) {
             if (size - j == indexFromLast) {
