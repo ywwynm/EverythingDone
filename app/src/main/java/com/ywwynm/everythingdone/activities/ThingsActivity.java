@@ -2280,7 +2280,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 return;
             }
 
-            Thing thingToSwipe = things.get(position);
+            final Thing thingToSwipe = things.get(position);
             long id = thingToSwipe.getId();
             @Thing.Type int thingType = thingToSwipe.getType();
             if (thingType > Thing.NOTIFICATION_GOAL) {
@@ -2314,8 +2314,21 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     Toast.makeText(ThingsActivity.this, R.string.start_doing_doing_this_thing,
                             Toast.LENGTH_LONG).show();
                 } else {
-                    ThingDoingHelper helper = new ThingDoingHelper(ThingsActivity.this, thingToSwipe);
-                    helper.tryToOpenStartDoingActivityUser();
+                    String cp = getSharedPreferences(Def.Meta.PREFERENCES_NAME, MODE_PRIVATE)
+                            .getString(Def.Meta.KEY_PRIVATE_PASSWORD, null);
+                    AuthenticationHelper.authenticate(ThingsActivity.this, thingToSwipe.getColor(),
+                            getString(R.string.start_doing_full_title), cp,
+                            new AuthenticationHelper.AuthenticationCallback() {
+                                @Override
+                                public void onAuthenticated() {
+                                    ThingDoingHelper helper = new ThingDoingHelper(
+                                            ThingsActivity.this, thingToSwipe);
+                                    helper.tryToOpenStartDoingActivityUser();
+                                }
+
+                                @Override
+                                public void onCancel() {}
+                            });
                 }
             }
 
