@@ -678,7 +678,12 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
                     }
 
                     if (!mExpanded && mExpandShrinkCallback != null) {
-                        mExpandShrinkCallback.updateChecklistHeight(false, mItems, false);
+                        et.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                mExpandShrinkCallback.updateChecklistHeight(false, mItems, false);
+                            }
+                        });
                     }
                 }
             });
