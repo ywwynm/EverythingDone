@@ -43,6 +43,7 @@ import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.helpers.AttachmentHelper;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
+import com.ywwynm.everythingdone.helpers.PossibleMistakeHelper;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.Thing;
@@ -53,7 +54,6 @@ import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 
 /**
  * Created by ywwynm on 2016/7/27.
@@ -588,8 +588,10 @@ public class AppWidgetHelper {
         FutureTarget futureTarget = builder.into(width, height);
         try {
             remoteViews.setImageViewBitmap(IV_IMAGE_ATTACHMENT, (Bitmap) futureTarget.get());
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (Exception e) {
+            // TODO: 2017/4/16 RemoteViews for widget update exceeds maximum bitmap memory usage
             e.printStackTrace();
+            PossibleMistakeHelper.outputNewMistakeInBackground(e);
         }
     }
 
