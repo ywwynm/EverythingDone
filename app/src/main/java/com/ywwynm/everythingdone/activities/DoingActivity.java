@@ -621,7 +621,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
             super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive);
             if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
                 int displayWidth = DisplayUtil.getDisplaySize(mApp).x;
-                View v = viewHolder.itemView;
+                View v = mRecyclerView;
                 if (dX < 0) {
                     v.setAlpha(1.0f + dX / v.getRight());
                 } else {
