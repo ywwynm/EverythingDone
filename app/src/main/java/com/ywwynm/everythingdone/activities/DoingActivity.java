@@ -564,7 +564,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
         finish();
     }
 
-    class SlowScrollLinearLayoutManager extends LinearLayoutManager {
+    private class SlowScrollLinearLayoutManager extends LinearLayoutManager {
 
         private LinearSmoothScroller mSmoothScroller;
 
@@ -585,7 +585,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
         }
     }
 
-    class CardTouchCallback extends ItemTouchHelper.Callback {
+    private class CardTouchCallback extends ItemTouchHelper.Callback {
 
         @Override
         public int getMovementFlags(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder) {
