@@ -7,7 +7,7 @@ import android.view.MotionEvent;
 
 /**
  * Created by ywwynm on 2015/10/11.
- * A subclass of {@link ViewPager} for {@link uk.co.senab.photoview.PhotoView}
+ * A subclass of {@link ViewPager} for {@link com.github.chrisbanes.photoview.PhotoView}
  */
 public class HackyViewPager extends ViewPager {
 

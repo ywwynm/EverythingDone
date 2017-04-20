@@ -24,6 +24,8 @@ import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.resource.drawable.GlideDrawable;
 import com.bumptech.glide.request.RequestListener;
 import com.bumptech.glide.request.target.Target;
+import com.github.chrisbanes.photoview.OnPhotoTapListener;
+import com.github.chrisbanes.photoview.PhotoViewAttacher;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.adapters.ImageViewerPagerAdapter;
@@ -37,8 +39,6 @@ import com.ywwynm.everythingdone.utils.FileUtil;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-
-import uk.co.senab.photoview.PhotoViewAttacher;
 
 import static com.ywwynm.everythingdone.helpers.AttachmentHelper.IMAGE;
 import static com.ywwynm.everythingdone.helpers.AttachmentHelper.VIDEO;
@@ -103,7 +103,7 @@ public class ImageViewerActivity extends EverythingDoneBaseActivity {
         EdgeEffectUtil.forViewPager(mVpImage, appAccent);
 
         int[] size = getImageSize();
-        PhotoViewAttacher.OnViewTapListener imageListener = getImageListener();
+        OnPhotoTapListener imageListener = getImageListener();
         View.OnClickListener videoListener = getVideoListener();
 
         LayoutInflater inflater = LayoutInflater.from(this);
@@ -134,7 +134,7 @@ public class ImageViewerActivity extends EverythingDoneBaseActivity {
             loadImage(pathName, iv, attacher, pb, size);
 
             if (type == 0) {
-                attacher.setOnViewTapListener(imageListener);
+                attacher.setOnPhotoTapListener(imageListener);
             } else {
                 videoSignal.setOnClickListener(videoListener);
                 attacher.setZoomable(false);
@@ -165,10 +165,10 @@ public class ImageViewerActivity extends EverythingDoneBaseActivity {
         return new int[] { width, height };
     }
 
-    private PhotoViewAttacher.OnViewTapListener getImageListener() {
-        return new PhotoViewAttacher.OnViewTapListener() {
+    private OnPhotoTapListener getImageListener() {
+        return new OnPhotoTapListener() {
             @Override
-            public void onViewTap(View view, float x, float y) {
+            public void onPhotoTap(ImageView view, float x, float y) {
                 toggleSystemUI();
             }
         };
