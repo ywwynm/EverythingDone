@@ -122,7 +122,7 @@ public class SendInfoHelper {
             String maxName = "";
             for (File file : files) {
                 String name = file.getName();
-                if (name.compareTo(maxName) > 0) {
+                if (name.endsWith(".log") && name.compareTo(maxName) > 0) {
                     maxName = name;
                     max = file;
                 }
