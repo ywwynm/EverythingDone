@@ -128,10 +128,14 @@ public class ThingDAO {
     public long getHeaderId() {
         Cursor cursor = db.query(Def.Database.TABLE_THINGS, null,
                 "type=" + Thing.HEADER, null, null, null, null);
-        cursor.moveToFirst();
-        long id = cursor.getLong(0);
-        cursor.close();
-        return id;
+        if (cursor.moveToFirst()) {
+            long id = cursor.getLong(0);
+            cursor.close();
+            return id;
+        } else {
+            recreateHeader();
+            return getHeaderId();
+        }
     }
 
     public List<Thing> getThingsForDisplay(int limit) {
