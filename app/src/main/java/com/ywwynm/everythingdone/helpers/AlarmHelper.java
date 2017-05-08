@@ -13,6 +13,7 @@ import com.ywwynm.everythingdone.database.ThingDAO;
 import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.receivers.AutoNotifyReceiver;
+import com.ywwynm.everythingdone.receivers.DailyCreateTodoReceiver;
 import com.ywwynm.everythingdone.receivers.DailyUpdateHabitReceiver;
 import com.ywwynm.everythingdone.receivers.HabitReceiver;
 import com.ywwynm.everythingdone.receivers.ReminderReceiver;
@@ -175,6 +176,15 @@ public class AlarmHelper {
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
                 context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
         DateTime dt = new DateTime().plusDays(1).withTime(0, 0, 0, 0);
+        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, dt.getMillis(), 86400000, pendingIntent);
+    }
+
+    public static void createDailyTodoAlarm(Context context) {
+        Intent intent = new Intent(context, DailyCreateTodoReceiver.class);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        DateTime dt = new DateTime().plusDays(1).withTime(8, 30, 0, 0);
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, dt.getMillis(), 86400000, pendingIntent);
     }

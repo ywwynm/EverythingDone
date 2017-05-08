@@ -100,6 +100,7 @@ import com.ywwynm.everythingdone.model.ThingAction;
 import com.ywwynm.everythingdone.permission.PermissionUtil;
 import com.ywwynm.everythingdone.permission.SimplePermissionCallback;
 import com.ywwynm.everythingdone.receivers.AutoNotifyReceiver;
+import com.ywwynm.everythingdone.receivers.DailyCreateTodoReceiver;
 import com.ywwynm.everythingdone.receivers.HabitReceiver;
 import com.ywwynm.everythingdone.receivers.ReminderReceiver;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
@@ -360,6 +361,8 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
             if ("intent".equals(mSenderName)) {
                 setupThingFromIntent();
+            } else if (DailyCreateTodoReceiver.TAG.equals(mSenderName)) {
+                mThing.setTitle(getDailyTodoTitle());
             }
         } else {
             updateThingAndItsPosition(id);
@@ -446,6 +449,16 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         String content = intent.getStringExtra(Intent.EXTRA_TEXT);
         if (content != null) {
             mThing.setContent(content);
+        }
+    }
+
+    private String getDailyTodoTitle() {
+        String dateStr = DateTimeUtil.getGeneralDateStr(mApp, System.currentTimeMillis());
+        String restPart = getString(R.string.daily_todo_title_rest_part);
+        if (LocaleUtil.isChinese(mApp)) {
+            return dateStr + restPart;
+        } else {
+            return restPart + " " + dateStr;
         }
     }
 
@@ -2559,13 +2572,18 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         String attachment = getThingAttachment();
 
         if (mType == CREATE && title.isEmpty() && content.isEmpty() && attachment.isEmpty()) {
-            if (savedAfterOnPause) {
-                ThingManager.getInstance(mApp).updateState(
-                        mThing, mPosition, mThing.getLocation(),
-                        Thing.UNDERWAY, Thing.DELETED_FOREVER, false, true);
+            boolean contentEmpty = content.isEmpty() && attachment.isEmpty();
+            boolean b1 = DailyCreateTodoReceiver.TAG.equals(mSenderName) && contentEmpty;
+            boolean b2 = title.isEmpty() && contentEmpty;
+            if (b1 || b2) {
+                if (savedAfterOnPause) {
+                    ThingManager.getInstance(mApp).updateState(
+                            mThing, mPosition, mThing.getLocation(),
+                            Thing.UNDERWAY, Thing.DELETED_FOREVER, false, true);
+                }
+                createFailed(Def.Communication.RESULT_CREATE_BLANK_THING);
+                return;
             }
-            createFailed(Def.Communication.RESULT_CREATE_BLANK_THING);
-            return;
         }
 
         Boolean reminderUpdated = setOrUpdateReminder(isReminderBefore, isReminderAfter,
@@ -3010,7 +3028,8 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             || mSenderName.equals(CreateWidget.TAG)
             || mSenderName.equals(AppWidgetHelper.TAG)
             || mSenderName.equals(ShortcutActivity.TAG)
-            || mSenderName.equals(NoticeableNotificationActivity.TAG);
+            || mSenderName.equals(NoticeableNotificationActivity.TAG)
+            || mSenderName.equals(DailyCreateTodoReceiver.TAG);
     }
 
     private void sendBroadCastToUpdateMainUI(Intent intent, int resultCode) {

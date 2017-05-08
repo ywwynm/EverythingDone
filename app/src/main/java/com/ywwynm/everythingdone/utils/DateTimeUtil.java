@@ -35,8 +35,23 @@ public class DateTimeUtil {
 
     private DateTimeUtil() {}
 
+    public static String getGeneralDateStr(Context context, long time) {
+        return new DateTime(time).toString(getGeneralDateFormatPattern(context));
+    }
+
     public static String getGeneralDateTimeStr(Context context, long time) {
         return new DateTime(time).toString(getGeneralDateTimeFormatPattern(context));
+    }
+
+    public static String getGeneralDateFormatPattern(Context context) {
+        if (LocaleUtil.isChinese(context)) {
+            String year  = context.getString(R.string.year);
+            String month = context.getString(R.string.month);
+            String day   = context.getString(R.string.day);
+            return "yyyy" + year + "M" + month + "d" + day;
+        } else {
+            return "MMM d, yyyy";
+        }
     }
 
     public static String getGeneralDateTimeFormatPattern(Context context) {
