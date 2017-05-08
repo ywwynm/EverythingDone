@@ -169,6 +169,7 @@ public class AlarmHelper {
         cursor.close();
 
         createDailyUpdateHabitAlarm(context);
+        tryToCreateDailyTodoAlarm(context);
     }
 
     public static void createDailyUpdateHabitAlarm(Context context) {
@@ -180,13 +181,24 @@ public class AlarmHelper {
         alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, dt.getMillis(), 86400000, pendingIntent);
     }
 
-    public static void createDailyTodoAlarm(Context context) {
+    public static void tryToCreateDailyTodoAlarm(Context context) {
         Intent intent = new Intent(context, DailyCreateTodoReceiver.class);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
                 context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-        DateTime dt = new DateTime().plusDays(1).withTime(8, 30, 0, 0);
+        DateTime dt = new DateTime().withTime(17, 10, 0, 0);
+        if (dt.getMillis() - System.currentTimeMillis() < 6 * 60 * 1000) {
+            dt = dt.plusDays(1);
+        }
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, dt.getMillis(), 86400000, pendingIntent);
+    }
+
+    public static void cancelDailyTodoAlarm(Context context) {
+        AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        Intent intent = new Intent(context, DailyCreateTodoReceiver.class);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        am.cancel(pendingIntent);
     }
 
 }

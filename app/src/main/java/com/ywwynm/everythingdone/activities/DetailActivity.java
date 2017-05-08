@@ -2571,7 +2571,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         String content    = getThingContent();
         String attachment = getThingAttachment();
 
-        if (mType == CREATE && title.isEmpty() && content.isEmpty() && attachment.isEmpty()) {
+        if (mType == CREATE) {
             boolean contentEmpty = content.isEmpty() && attachment.isEmpty();
             boolean b1 = DailyCreateTodoReceiver.TAG.equals(mSenderName) && contentEmpty;
             boolean b2 = title.isEmpty() && contentEmpty;
