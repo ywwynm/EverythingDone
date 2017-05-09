@@ -1449,9 +1449,8 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         editor.putBoolean(Def.Meta.KEY_ONGOING_LOCKSCREEN, ongoingLockscreen);
 
         editor.putInt(Def.Meta.KEY_DAILY_TODO, mDTPicked);
-        if (mDTPicked == 0) {
-            AlarmHelper.cancelDailyTodoAlarm(this);
-        } else {
+        AlarmHelper.cancelDailyTodoAlarm(this);
+        if (mDTPicked != 0) {
             AlarmHelper.tryToCreateDailyTodoAlarm(this);
         }
 

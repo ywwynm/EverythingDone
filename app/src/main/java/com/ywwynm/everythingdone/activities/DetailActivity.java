@@ -1910,7 +1910,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         String title      = getThingTitle();
         String content    = getThingContent();
         String attachment = getThingAttachment();
-        if (title.isEmpty() && content.isEmpty() && attachment.isEmpty()) {
+        if (willBeEmptyThing(title, content, attachment)) {
             return;
         }
 
@@ -2541,6 +2541,13 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         return true;
     }
 
+    private boolean willBeEmptyThing(String title, String content, String attachment) {
+        boolean contentEmpty = content.isEmpty() && attachment.isEmpty();
+        boolean b1 = DailyCreateTodoReceiver.TAG.equals(mSenderName) && contentEmpty;
+        boolean b2 = title.isEmpty() && contentEmpty;
+        return b1 || b2;
+    }
+
     private void returnToThingsActivity(boolean alertForPrivateThing, boolean alertForCancelling) {
         if (!prepareForReturnNormally()) {
             return;
@@ -2571,19 +2578,14 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         String content    = getThingContent();
         String attachment = getThingAttachment();
 
-        if (mType == CREATE) {
-            boolean contentEmpty = content.isEmpty() && attachment.isEmpty();
-            boolean b1 = DailyCreateTodoReceiver.TAG.equals(mSenderName) && contentEmpty;
-            boolean b2 = title.isEmpty() && contentEmpty;
-            if (b1 || b2) {
-                if (savedAfterOnPause) {
-                    ThingManager.getInstance(mApp).updateState(
-                            mThing, mPosition, mThing.getLocation(),
-                            Thing.UNDERWAY, Thing.DELETED_FOREVER, false, true);
-                }
-                createFailed(Def.Communication.RESULT_CREATE_BLANK_THING);
-                return;
+        if (mType == CREATE && willBeEmptyThing(title, content, attachment)) {
+            if (savedAfterOnPause) {
+                ThingManager.getInstance(mApp).updateState(
+                        mThing, mPosition, mThing.getLocation(),
+                        Thing.UNDERWAY, Thing.DELETED_FOREVER, false, true);
             }
+            createFailed(Def.Communication.RESULT_CREATE_BLANK_THING);
+            return;
         }
 
         Boolean reminderUpdated = setOrUpdateReminder(isReminderBefore, isReminderAfter,
