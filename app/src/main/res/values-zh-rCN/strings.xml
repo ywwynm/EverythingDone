@@ -698,6 +698,8 @@
     <string name="ongoing_lockscreen">在锁屏界面也显示常驻通知栏的记事</string>
     <!--noticeable notification-->
     <string name="close_notification_later">启用更突出的提醒时，两秒后才允许关闭提醒</string>
+    <!--create daily to-do-->
+    <string name="create_daily_todo_automatically">每天早晨自动创建今日待办记事</string>
     <!--automatic reminder-->
     <string name="auto_notify">自动提醒</string>
     <string name="auto_notify_help_info">设置一个时间，完事儿将会在您创建每件记事的相应时间后自动地提醒您。如果您创建的不是记录，完事儿将会根据其提醒时刻，智能地决定是否自动提醒。</string>

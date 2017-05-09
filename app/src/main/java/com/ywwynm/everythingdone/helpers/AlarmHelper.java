@@ -4,7 +4,9 @@ import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.Cursor;
+import android.support.v4.util.Pair;
 
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.database.HabitDAO;
@@ -182,13 +184,23 @@ public class AlarmHelper {
     }
 
     public static void tryToCreateDailyTodoAlarm(Context context) {
+        SharedPreferences sp = context.getSharedPreferences(
+                Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE);
+        int index = sp.getInt(Def.Meta.KEY_DAILY_TODO, 0);
+        if (index == 0) {
+            return;
+        }
+
+        List<Pair<Integer, Integer>> dailyTodoPairs = DailyTodoHelper.getDailyTodoTimePairs();
+        Pair<Integer, Integer> pair = dailyTodoPairs.get(index);
+
         Intent intent = new Intent(context, DailyCreateTodoReceiver.class);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
                 context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-        DateTime dt = new DateTime().withTime(17, 10, 0, 0);
-        if (dt.getMillis() - System.currentTimeMillis() < 6 * 60 * 1000) {
-            dt = dt.plusDays(1);
-        }
+        DateTime dt = new DateTime().withTime(16, 15, 0, 0);
+//        if (dt.getMillis() - System.currentTimeMillis() < 6 * 60 * 1000) {
+//            dt = dt.plusDays(1);
+//        }
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, dt.getMillis(), 86400000, pendingIntent);
     }

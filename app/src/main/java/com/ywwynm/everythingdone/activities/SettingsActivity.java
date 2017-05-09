@@ -49,6 +49,7 @@ import com.ywwynm.everythingdone.helpers.AttachmentHelper;
 import com.ywwynm.everythingdone.helpers.AuthenticationHelper;
 import com.ywwynm.everythingdone.helpers.AutoNotifyHelper;
 import com.ywwynm.everythingdone.helpers.BackupHelper;
+import com.ywwynm.everythingdone.helpers.DailyTodoHelper;
 import com.ywwynm.everythingdone.helpers.FingerprintHelper;
 import com.ywwynm.everythingdone.helpers.ThingDoingHelper;
 import com.ywwynm.everythingdone.model.DoingRecord;
@@ -152,6 +153,10 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     private CheckBox mCbQuickCreate;
     private CheckBox mCbCloseNotificationLater;
     private CheckBox mCbOngoingLockscreen;
+
+    private static List<String> sDTItems; // daily to-do
+    private int                 mDTPicked;
+    private TextView            mTvDT;
 
     private static List<String>   sANItems;
     private int                   mANPicked;
@@ -334,18 +339,6 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         }
     }
 
-    private void initStaticVariables() {
-        if (sANItems == null) {
-            sANItems = new ArrayList<>();
-            sANItems.add(getString(R.string.disable));
-            for (int i = 0; i < AutoNotifyHelper.AUTO_NOTIFY_TIMES.length; i++) {
-                sANItems.add(DateTimeUtil.getDateTimeStr(
-                        AutoNotifyHelper.AUTO_NOTIFY_TYPES[i],
-                        AutoNotifyHelper.AUTO_NOTIFY_TIMES[i], this));
-            }
-        }
-    }
-
     @Override
     protected void initMembers() {
         initStaticVariables();
@@ -356,6 +349,22 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         initMembersRingtone();
 
         mASDTimesPicked = new int[2];
+    }
+
+    private void initStaticVariables() {
+        if (sANItems == null) {
+            sANItems = new ArrayList<>();
+            sANItems.add(getString(R.string.disable));
+            for (int i = 0; i < AutoNotifyHelper.AUTO_NOTIFY_TIMES.length; i++) {
+                sANItems.add(DateTimeUtil.getDateTimeStr(
+                        AutoNotifyHelper.AUTO_NOTIFY_TYPES[i],
+                        AutoNotifyHelper.AUTO_NOTIFY_TIMES[i], this));
+            }
+        }
+
+        if (sDTItems == null) {
+            sDTItems = DailyTodoHelper.getDailyTodoItems(this);
+        }
     }
 
     private void initMembersRingtone() {
@@ -444,6 +453,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         mCbCloseNotificationLater = f(R.id.cb_close_notification_later);
         mCbOngoingLockscreen = f(R.id.cb_ongoing_lockscreen);
 
+        mTvDT = f(R.id.tv_daily_todo);
         mTvAN = f(R.id.tv_advanced_auto_notify_time);
 
         mLlANRingtoneAsBt  = f(R.id.ll_ringtone_auto_notify_as_bt);
@@ -644,29 +654,34 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         boolean ongoingLockscreen = FrequentSettings.getBoolean(Def.Meta.KEY_ONGOING_LOCKSCREEN);
         mCbOngoingLockscreen.setChecked(ongoingLockscreen);
 
+        // daily todo
+        mDTPicked = mPreferences.getInt(Def.Meta.KEY_DAILY_TODO, 0);
+        updateUiDailyTodo();
+
         // auto notify
-        int index = mPreferences.getInt(Def.Meta.KEY_AUTO_NOTIFY, 0);
-        if (index == 0) {
-            mTvAN.setText(getString(R.string.disabled));
-        } else {
-            mTvAN.setText(
-                    DateTimeUtil.getDateTimeStr(
-                            AutoNotifyHelper.AUTO_NOTIFY_TYPES[index - 1],
-                            AutoNotifyHelper.AUTO_NOTIFY_TIMES[index - 1], this));
-        }
-        mANPicked = index;
-        updateUiAutoNotifyRingtone(index != 0);
+        mANPicked = mPreferences.getInt(Def.Meta.KEY_AUTO_NOTIFY, 0);
+        updateUiAutoNotifyRingtone();
     }
 
-    private void updateUiAutoNotifyRingtone(boolean enable) {
-        if (enable) {
-            mLlANRingtoneAsBt.setEnabled(true);
-            mTvANRingtoneTitle.setTextColor(ContextCompat.getColor(this, R.color.black_54p));
-            mTvANRingtone.setText(mChosenRingtoneTitles[mChosenRingtoneTitles.length - 1]);
+    private void updateUiDailyTodo() {
+        if (mDTPicked == 0) {
+            mTvDT.setText(R.string.disabled);
         } else {
+            mTvDT.setText(sDTItems.get(mDTPicked));
+        }
+    }
+
+    private void updateUiAutoNotifyRingtone() {
+        if (mANPicked == 0) {
+            mTvAN.setText(R.string.disabled);
             mLlANRingtoneAsBt.setEnabled(false);
             mTvANRingtoneTitle.setTextColor(ContextCompat.getColor(this, R.color.black_14p));
             mTvANRingtone.setText("");
+        } else {
+            mTvAN.setText(sANItems.get(mANPicked - 1));
+            mLlANRingtoneAsBt.setEnabled(true);
+            mTvANRingtoneTitle.setTextColor(ContextCompat.getColor(this, R.color.black_54p));
+            mTvANRingtone.setText(mChosenRingtoneTitles[mChosenRingtoneTitles.length - 1]);
         }
     }
 
@@ -1012,6 +1027,13 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             }
         });
 
+        f(R.id.ll_daily_todo_as_bt).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showDailyTodoFragment();
+            }
+        });
+
         f(R.id.ll_advanced_auto_notify_as_bt).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -1030,6 +1052,23 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                 adf.show(getFragmentManager(), AlertDialogFragment.TAG);
             }
         });
+    }
+
+    private void showDailyTodoFragment() {
+        final ChooserDialogFragment cdf = new ChooserDialogFragment();
+        cdf.setAccentColor(mAccentColor);
+        cdf.setShouldShowMore(false);
+        cdf.setTitle(getString(R.string.auto_notify_set_time));
+        cdf.setItems(sDTItems);
+        cdf.setInitialIndex(mDTPicked);
+        cdf.setConfirmListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mDTPicked = cdf.getPickedIndex();
+                updateUiDailyTodo();
+            }
+        });
+        cdf.show(getFragmentManager(), ChooserDialogFragment.TAG);
     }
 
     private void setQuickCreateEvents() {
@@ -1328,15 +1367,8 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         mCdfAN.setConfirmListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                int index = mCdfAN.getPickedIndex();
-                mCdfAN.setInitialIndex(index);
-                if (index == 0) {
-                    mTvAN.setText(R.string.disabled);
-                } else {
-                    mTvAN.setText(sANItems.get(index));
-                }
-                mANPicked = index;
-                updateUiAutoNotifyRingtone(index != 0);
+                mANPicked = mCdfAN.getPickedIndex();
+                updateUiAutoNotifyRingtone();
             }
         });
     }
@@ -1415,6 +1447,13 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
         boolean ongoingLockscreen = mCbOngoingLockscreen.isChecked();
         editor.putBoolean(Def.Meta.KEY_ONGOING_LOCKSCREEN, ongoingLockscreen);
+
+        editor.putInt(Def.Meta.KEY_DAILY_TODO, mDTPicked);
+        if (mDTPicked == 0) {
+            AlarmHelper.cancelDailyTodoAlarm(this);
+        } else {
+            AlarmHelper.tryToCreateDailyTodoAlarm(this);
+        }
 
         editor.putInt(Def.Meta.KEY_AUTO_NOTIFY, mANPicked);
 

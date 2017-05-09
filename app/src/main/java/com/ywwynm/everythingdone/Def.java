@@ -70,6 +70,7 @@ public final class Def {
         public static final String KEY_QUICK_CREATE             = "quick_create";
         public static final String KEY_CLOSE_NOTIFICATION_LATER = "close_notification_later"; // 2017/1/18
         public static final String KEY_ONGOING_LOCKSCREEN       = "ongoing_lockscreen";
+        public static final String KEY_DAILY_TODO               = "daily_todo"; // 2017/5/9
         public static final String KEY_AUTO_NOTIFY              = "auto_notify";
 
         public static final String KEY_ONGOING_THING_ID         = "ongoing_thing_id";

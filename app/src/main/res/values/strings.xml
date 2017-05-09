@@ -705,6 +705,8 @@
     <string name="ongoing_lockscreen">Show thing\'s ongoing notification also on lockscreen</string>
     <!--noticeable notification-->
     <string name="close_notification_later">Don\'t allow closing noticeable notification until 2 seconds after it showed</string>
+    <!--create daily to-do-->
+    <string name="create_daily_todo_automatically">Create daily TODO in every morning</string>
     <!--automatic reminder-->
     <string name="auto_notify">Automatic Reminder</string>
     <string name="auto_notify_help_info">EverythingDone will automatically remind you after a new thing is created. If you didn\'t create a Record, EverythingDone will decide if automatic reminder should be set according to the thing\'s remind time.</string>

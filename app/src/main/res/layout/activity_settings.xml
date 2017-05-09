@@ -905,6 +905,50 @@
                     android:layout_marginTop="224dp">
 
                     <LinearLayout
+                        android:id="@+id/ll_daily_todo_as_bt"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:orientation="vertical"
+                        android:gravity="center_vertical"
+                        android:background="@drawable/selectable_item_background">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/create_daily_todo_automatically"
+                            android:textSize="16sp"/>
+
+                        <TextView
+                            android:id="@+id/tv_daily_todo"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textColor="@color/black_26p"
+                            android:textSize="14sp"/>
+
+                    </LinearLayout>
+
+                    <ImageView
+                        android:id="@+id/iv_daily_todo_help_as_bt"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:layout_marginEnd="8dp"
+                        android:layout_marginRight="8dp"
+                        android:layout_gravity="end|center_vertical"
+                        android:scaleType="center"
+                        android:contentDescription="@string/cd_help_automatic_reminder"
+                        android:src="@drawable/act_show_help_info"
+                        android:background="@drawable/selectable_item_background"/>
+
+                </FrameLayout>
+
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="72dp"
+                    android:layout_marginTop="296dp">
+
+                    <LinearLayout
                         android:id="@+id/ll_advanced_auto_notify_as_bt"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
@@ -947,7 +991,7 @@
                     android:id="@+id/ll_ringtone_auto_notify_as_bt"
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
-                    android:layout_marginTop="296dp"
+                    android:layout_marginTop="368dp"
                     android:paddingLeft="16dp"
                     android:paddingRight="16dp"
                     android:gravity="center_vertical"

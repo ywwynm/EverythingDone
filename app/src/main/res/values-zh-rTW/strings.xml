@@ -698,6 +698,8 @@
     <string name="ongoing_lockscreen">在鎖屏界面也顯示常駐通知欄的記事</string>
     <!--noticeable notification-->
     <string name="close_notification_later">啟用更突出的提醒時，兩秒後才允許關閉提醒</string>
+    <!--create daily to-do-->
+    <string name="create_daily_todo_automatically">每天早晨自動創建今日待辦記事</string>
     <!--automatic reminder-->
     <string name="auto_notify">自動提醒</string>
     <string name="auto_notify_help_info">設定一個時間，完事兒將會在您建立每件記事的相應時間後自動地提醒您。如果您建立的不是記錄，完事兒將會根據其提醒時刻，智能地決定是否自動提醒。</string>
