@@ -235,6 +235,8 @@ public class ThingDAO {
                             boolean toUndo, boolean shouldUpdateHeader) {
         long id = thing.getId();
         @Thing.Type int type = thing.getType();
+        // never give a chance to update header's state
+        if (type == Thing.HEADER) return;
         ContentValues values = new ContentValues();
 
         if (stateBefore == Thing.DELETED_FOREVER) {
@@ -279,8 +281,6 @@ public class ThingDAO {
                 values.put(Def.Database.COLUMN_STATE_THINGS, stateAfter);
                 db.update(Def.Database.TABLE_THINGS, values, "id=" + id, null);
             } else {
-                // never give a chance to delete header
-                if (type == Thing.HEADER) return;
                 Thing temp = getThingById(id);
                 if (temp != null && temp.getType() == Thing.HEADER) return;
 
