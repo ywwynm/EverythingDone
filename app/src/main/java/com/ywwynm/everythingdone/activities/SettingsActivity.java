@@ -815,7 +815,8 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             @Override
             public void onClick(View v) {
                 createAlertDialog(false,
-                        R.string.auto_save_edits_title, R.string.auto_save_edits_help_info)
+                        R.string.auto_save_edits_title, R.string.auto_save_edits_help_info,
+                        R.string.act_get_it)
                         .show(getFragmentManager(), AlertDialogFragment.TAG);
             }
         });
@@ -941,7 +942,8 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             public void onClick(View view) {
                 final AlertDialogFragment adf = createAlertDialog(
                         false, R.string.doing_alert_first_strict_mode_title,
-                        R.string.auto_strict_mode_help_content);
+                        R.string.auto_strict_mode_help_content,
+                        R.string.act_get_it);
                 adf.show(getFragmentManager(), AlertDialogFragment.TAG);
             }
         });
@@ -1033,6 +1035,15 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                 showDailyTodoFragment();
             }
         });
+        f(R.id.iv_daily_todo_help_as_bt).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                final AlertDialogFragment adf = createAlertDialog(
+                        false, R.string.create_daily_todo_automatically, R.string.create_daily_todo_help_info,
+                        R.string.act_get_it);
+                adf.show(getFragmentManager(), AlertDialogFragment.TAG);
+            }
+        });
 
         f(R.id.ll_advanced_auto_notify_as_bt).setOnClickListener(new View.OnClickListener() {
             @Override
@@ -1043,12 +1054,11 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                 mCdfAN.show(getFragmentManager(), ChooserDialogFragment.TAG);
             }
         });
-
         f(R.id.iv_auto_notify_help_as_bt).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 final AlertDialogFragment adf = createAlertDialog(
-                        false, R.string.auto_notify, R.string.auto_notify_help_info);
+                        false, R.string.auto_notify, R.string.auto_notify_help_info, R.string.act_get_it);
                 adf.show(getFragmentManager(), AlertDialogFragment.TAG);
             }
         });
@@ -1468,12 +1478,18 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
     private AlertDialogFragment createAlertDialog(
             boolean showCancel, @StringRes int titleRes, @StringRes int contentRes) {
+        return createAlertDialog(showCancel, titleRes, contentRes, R.string.confirm);
+    }
+
+    private AlertDialogFragment createAlertDialog(
+            boolean showCancel, @StringRes int titleRes, @StringRes int contentRes, @StringRes int confirmRes) {
         final AlertDialogFragment adf = new AlertDialogFragment();
         adf.setShowCancel(showCancel);
         adf.setTitleColor(mAccentColor);
         adf.setConfirmColor(mAccentColor);
         adf.setTitle(getString(titleRes));
         adf.setContent(getString(contentRes));
+        adf.setConfirmText(getString(confirmRes));
         return adf;
     }
 
