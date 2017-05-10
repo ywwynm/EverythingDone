@@ -328,7 +328,9 @@ public class ThingManager {
         long thingId = thing.getId();
         Thing.tryToCancelOngoing(mContext, thingId);
 
-        int thingType = thing.getType();
+        @Thing.Type int thingType = thing.getType();
+        if (thingType == Thing.HEADER) return false;
+
         if (handleNotifyEmpty &&
                 willCreateNEforOtherLimit(thingId, thingType, stateBefore, true)) {
             updateHeader(1);
