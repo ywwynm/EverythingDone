@@ -198,7 +198,7 @@ public class AlarmHelper {
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
                 context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
         DateTime dt = new DateTime().withTime(pair.first, pair.second, 0, 0);
-        if (dt.getMillis() - System.currentTimeMillis() < 0) {
+        if (dt.getMillis() < System.currentTimeMillis()) {
             dt = dt.plusDays(1);
         }
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
