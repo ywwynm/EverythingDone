@@ -707,6 +707,8 @@
     <string name="close_notification_later">Don\'t allow closing noticeable notification until 2 seconds after it showed</string>
     <!--create daily to-do-->
     <string name="create_daily_todo_automatically">Create daily TODO in every morning</string>
+    <string name="create_daily_todo_help_info">EverythingDone will create a thing of which title will be \"Things to do on MM d, yyyy\" automatically in every morning, and you can decide its content(If you don\'t and leave both content and attachment empty, then the thing will not be created).
+        \n\nWe will also set a reminder to this thing at 2:00 in the afternoon because you may want to be reminded of finishing your plans and TODOs.</string>
     <!--automatic reminder-->
     <string name="auto_notify">Automatic Reminder</string>
     <string name="auto_notify_help_info">EverythingDone will automatically remind you after a new thing is created. If you didn\'t create a Record, EverythingDone will decide if automatic reminder should be set according to the thing\'s remind time.</string>
