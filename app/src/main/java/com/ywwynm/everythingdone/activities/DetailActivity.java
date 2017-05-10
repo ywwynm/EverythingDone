@@ -1897,21 +1897,23 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         super.onPause();
         if (mEditable && mExecutor != null && !dontSaveAfterOnPause
                 && FrequentSettings.getBoolean(Def.Meta.KEY_AUTO_SAVE_EDITS)) {
-            saveAfterOnPause();
-            savedAfterOnPause = true;
+            boolean b = saveAfterOnPause();
+            if (!savedAfterOnPause) {
+                savedAfterOnPause = b;
+            }
         }
     }
 
     private boolean savedAfterOnPause = false;
 
-    private void saveAfterOnPause() {
+    private boolean saveAfterOnPause() {
         // will not create or update reminder or habit
 
         String title      = getThingTitle();
         String content    = getThingContent();
         String attachment = getThingAttachment();
         if (willBeEmptyThing(title, content, attachment)) {
-            return;
+            return false;
         }
 
         mThing.setTitle(title);
@@ -1967,6 +1969,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
         // sendBroadcast inside won't be executed
         afterCreateOrUpdateThing(intent, resultCode);
+        return true;
     }
 
     @Override
@@ -2579,11 +2582,6 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         String attachment = getThingAttachment();
 
         if (mType == CREATE && willBeEmptyThing(title, content, attachment)) {
-            if (savedAfterOnPause) {
-                ThingManager.getInstance(mApp).updateState(
-                        mThing, mPosition, mThing.getLocation(),
-                        Thing.UNDERWAY, Thing.DELETED_FOREVER, false, true);
-            }
             createFailed(Def.Communication.RESULT_CREATE_BLANK_THING);
             return;
         }
