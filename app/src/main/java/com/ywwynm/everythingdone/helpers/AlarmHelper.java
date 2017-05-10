@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.support.v4.util.Pair;
+import android.util.Log;
 
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.database.HabitDAO;
@@ -203,6 +204,7 @@ public class AlarmHelper {
         }
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, dt.getMillis(), 86400000, pendingIntent);
+        Log.d(TAG, "daily todo alarm is created");
     }
 
     public static void cancelDailyTodoAlarm(Context context) {

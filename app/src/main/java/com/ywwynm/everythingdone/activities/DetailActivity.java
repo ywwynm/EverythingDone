@@ -115,6 +115,8 @@ import com.ywwynm.everythingdone.views.Snackbar;
 import com.ywwynm.everythingdone.views.pickers.ColorPicker;
 import com.ywwynm.everythingdone.views.pickers.DateTimePicker;
 
+import org.joda.time.DateTime;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -363,6 +365,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 setupThingFromIntent();
             } else if (DailyCreateTodoReceiver.TAG.equals(mSenderName)) {
                 mThing.setTitle(getDailyTodoTitle());
+                mThing.setType(Thing.REMINDER);
             }
         } else {
             updateThingAndItsPosition(id);
@@ -881,8 +884,16 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
     private void initUiBottomBar() {
         if (mType == CREATE) {
-            quickRemindPicker.pickForUI(8);
-            rhParams.setReminderAfterTime(quickRemindPicker.getPickedTimeAfter());
+            if (!DailyCreateTodoReceiver.TAG.equals(mSenderName)) {
+                quickRemindPicker.pickForUI(8);
+                rhParams.setReminderAfterTime(quickRemindPicker.getPickedTimeAfter());
+            } else {
+                quickRemindPicker.pickForUI(9);
+                cbQuickRemind.setChecked(true);
+                long reminderInMillis = new DateTime().withTime(14, 0, 0, 0).getMillis();
+                tvQuickRemind.setText(DateTimeUtil.getDateTimeStrAt(reminderInMillis, this, false));
+                rhParams.setReminderInMillis(reminderInMillis);
+            }
         } else {
             if (mReminder != null) {
                 updateBottomBarForReminder();
