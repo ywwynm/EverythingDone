@@ -27,7 +27,7 @@
         android:textColor="@color/black_26p"
         android:text="@string/habit_record_last_30_change_6"/>
 
-    <android.support.v7.widget.RecyclerView
+    <com.ywwynm.everythingdone.views.StablerRecyclerView
         android:id="@+id/rv_habit_record"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

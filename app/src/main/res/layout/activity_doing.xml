@@ -167,7 +167,7 @@
                 android:layout_marginTop="48dp"
                 android:orientation="vertical">
 
-                <android.support.v7.widget.RecyclerView
+                <com.ywwynm.everythingdone.views.StablerRecyclerView
                     android:id="@+id/rv_thing_doing"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"

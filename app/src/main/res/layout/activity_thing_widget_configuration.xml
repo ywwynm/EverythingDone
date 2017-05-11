@@ -22,7 +22,7 @@
         app:contentInsetStart="72dp"
         app:titleTextColor="@color/black_54p"/>
 
-    <android.support.v7.widget.RecyclerView
+    <com.ywwynm.everythingdone.views.StablerRecyclerView
         android:id="@+id/rv_things"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -55,7 +55,7 @@
             android:scaleType="centerCrop"
             android:contentDescription="@string/cd_app_widget_preview_background"/>
 
-        <android.support.v7.widget.RecyclerView
+        <com.ywwynm.everythingdone.views.StablerRecyclerView
             android:id="@+id/rv_app_widget_preview"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

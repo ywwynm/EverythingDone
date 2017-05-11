@@ -85,7 +85,7 @@
             android:maxLines="9"
             android:textColor="@color/white_76p"/>
 
-        <android.support.v7.widget.RecyclerView
+        <com.ywwynm.everythingdone.views.StablerRecyclerView
             android:id="@+id/rv_check_list"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"/>

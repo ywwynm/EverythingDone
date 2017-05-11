@@ -63,7 +63,7 @@
         <!--android:layout_height="0.5dp"-->
         <!--android:background="@color/black_10p"/>-->
 
-    <android.support.v7.widget.RecyclerView
+    <com.ywwynm.everythingdone.views.StablerRecyclerView
         android:id="@+id/rv_thing_noticeable_notification"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

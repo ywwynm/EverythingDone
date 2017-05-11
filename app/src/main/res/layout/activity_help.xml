@@ -22,7 +22,7 @@
         app:contentInsetStart="72dp"
         app:titleTextColor="@color/black_54p"/>
 
-    <android.support.v7.widget.RecyclerView
+    <com.ywwynm.everythingdone.views.StablerRecyclerView
         android:id="@+id/rv_help"
         android:layout_width="match_parent"
         android:layout_height="match_parent"

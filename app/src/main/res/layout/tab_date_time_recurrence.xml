@@ -10,7 +10,7 @@
         android:id="@+id/include_recurrence_detail"
         layout="@layout/include_recurrence_detail"/>
 
-    <android.support.v7.widget.RecyclerView
+    <com.ywwynm.everythingdone.views.StablerRecyclerView
         android:id="@+id/rv_time_of_day"
         android:layout_width="match_parent"
         android:layout_height="96dp"

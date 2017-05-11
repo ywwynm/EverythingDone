@@ -25,7 +25,7 @@
             android:orientation="vertical"
             android:paddingBottom="20dp">
 
-            <android.support.v7.widget.RecyclerView
+            <com.ywwynm.everythingdone.views.StablerRecyclerView
                 android:id="@+id/rv_image_attachment"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -68,7 +68,7 @@
                 android:theme="@style/EverythingDoneTheme.Detail.EditText"
                 tools:ignore="SpUsage"/>
 
-            <android.support.v7.widget.RecyclerView
+            <com.ywwynm.everythingdone.views.StablerRecyclerView
                 android:id="@+id/rv_check_list"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -117,7 +117,7 @@
 
             </LinearLayout>
 
-            <android.support.v7.widget.RecyclerView
+            <com.ywwynm.everythingdone.views.StablerRecyclerView
                 android:id="@+id/rv_audio_attachment"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

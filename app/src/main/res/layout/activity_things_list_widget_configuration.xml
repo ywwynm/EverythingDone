@@ -19,7 +19,7 @@
         android:textStyle="bold"
         android:text="@string/title_activity_things_list_widget_configuration"/>
 
-    <android.support.v7.widget.RecyclerView
+    <com.ywwynm.everythingdone.views.StablerRecyclerView
         android:id="@+id/rv_types_list_things_list_widget_config"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

@@ -17,7 +17,7 @@
         android:textAllCaps="true"
         android:text="@string/attachment_info_title"/>
 
-    <android.support.v7.widget.RecyclerView
+    <com.ywwynm.everythingdone.views.StablerRecyclerView
         android:id="@+id/rv_attachment_info"
         android:layout_width="280dp"
         android:layout_height="wrap_content"
