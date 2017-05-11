@@ -178,9 +178,13 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                 manager.setType(RingtoneManager.TYPE_NOTIFICATION);
 
                 Uri defaultUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-                Ringtone dr = RingtoneManager.getRingtone(context, defaultUri);
-                sRingtoneUriList.add(defaultUri);
-                sRingtoneTitleList.add(StringUtil.replaceChineseBrackets(dr.getTitle(context)));
+                if (defaultUri != null) {
+                    Ringtone dr = RingtoneManager.getRingtone(context, defaultUri);
+                    if (dr != null) {
+                        sRingtoneUriList.add(defaultUri);
+                        sRingtoneTitleList.add(StringUtil.replaceChineseBrackets(dr.getTitle(context)));
+                    }
+                }
 
                 SharedPreferences preferences = context.getSharedPreferences(
                         Def.Meta.PREFERENCES_NAME, MODE_PRIVATE);
@@ -376,6 +380,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         mCdfsRingtone         = new ChooserDialogFragment[4];
 
         Uri defaultUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+        if (defaultUri == null) defaultUri = sRingtoneUriList.get(0);
         for (int i = 0; i < mChosenRingtoneUris.length; i++) {
             String value = mPreferences.getString(sKeysRingtone[i], FOLLOW_SYSTEM);
             if (FOLLOW_SYSTEM.equals(value)) {

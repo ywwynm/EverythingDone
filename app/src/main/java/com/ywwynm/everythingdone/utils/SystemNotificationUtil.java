@@ -484,15 +484,17 @@ public class SystemNotificationUtil {
             }
         }
         String uriStr = preferences.getString(key, fs);
+        RingtoneManager rm = new RingtoneManager(context);
+        rm.setType(RingtoneManager.TYPE_NOTIFICATION);
         Uri defaultUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+        if (defaultUri == null) {
+            defaultUri = rm.getRingtoneUri(0);
+        }
         if (uriStr.equals(fs)) {
             return defaultUri;
         } else {
             Uri uri = Uri.parse(Uri.decode(uriStr));
-            RingtoneManager rm = new RingtoneManager(context);
-            rm.setType(RingtoneManager.TYPE_NOTIFICATION);
-            if (uri != defaultUri
-                    && rm.getRingtonePosition(uri) == -1) { // user's ringtone
+            if (uri != defaultUri && rm.getRingtonePosition(uri) == -1) { // user's ringtone
                 String pathName = UriPathConverter.getLocalPathName(context, uri);
                 if (pathName == null || !new File(pathName).exists()) {
                     preferences.edit().putString(key, fs).apply();
