@@ -62,6 +62,17 @@ public class Habit {
                 c.getLong(6), c.getLong(7));
     }
 
+    public Habit(Habit habit) {
+        id = habit.id;
+        type = habit.type;
+        remindedTimes = habit.remindedTimes;
+        detail = habit.detail;
+        record = habit.record;
+        intervalInfo = habit.intervalInfo;
+        createTime = habit.createTime;
+        firstTime = habit.firstTime;
+    }
+
     public long getId() {
         return id;
     }
@@ -406,6 +417,10 @@ public class Habit {
 
     public static boolean noUpdate(Habit habit, int type, String detail) {
         return habit.getType() == type && habit.getDetail().equals(detail);
+    }
+
+    public static boolean noTypeUpdate(Habit habit, int type) {
+        return habit.getType() == type;
     }
 
     public static String generateDetailTimeOfDay(List<Integer> times) {

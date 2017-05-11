@@ -522,7 +522,9 @@
 
     <!--Alerts for canceling Habit or Goal-->
     <string name="alert_cancel_habit_title">確定要放棄這個習慣嗎？</string>
-    <string name="alert_cancel_habit_content">該操作無法復原，完事兒將無法督促、協助您養成這個習慣</string>
+    <string name="alert_cancel_habit_content">該操作無法復原，完事兒將無法督促、協助您養成這個習慣。</string>
+    <string name="alert_update_habit_title">確定要更新這個習慣嗎？</string>
+    <string name="alert_update_habit_content">您正準備修改這個習慣的提醒時刻，以前的習慣完成記錄將不會被刪除，完事兒會繼續幫助您養成它。</string>
     <string name="alert_cancel_goal_title">確定要放棄該目標嗎？</string>
     <string name="alert_cancel_goal_content">該操作無法復原，完事兒將無法記錄其倒數計時，也將無法與您一同慶祝它的完成</string>
 

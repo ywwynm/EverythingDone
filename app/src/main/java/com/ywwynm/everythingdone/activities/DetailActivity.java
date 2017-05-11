@@ -93,6 +93,7 @@ import com.ywwynm.everythingdone.helpers.ThingDoingHelper;
 import com.ywwynm.everythingdone.helpers.ThingExporter;
 import com.ywwynm.everythingdone.managers.ThingManager;
 import com.ywwynm.everythingdone.model.Habit;
+import com.ywwynm.everythingdone.model.HabitReminder;
 import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.ReminderHabitParams;
 import com.ywwynm.everythingdone.model.Thing;
@@ -2489,8 +2490,16 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         adf.show(getFragmentManager(), AlertDialogFragment.TAG);
     }
 
-    private void alertForCancellingHabit() {
-        alertCancel(R.string.alert_cancel_habit_title, R.string.alert_cancel_habit_content,
+    private void alertForChangingHabit(boolean updateHabit) {
+        @StringRes int titleRes, contentRes;
+        if (updateHabit) {
+            titleRes = R.string.alert_update_habit_title;
+            contentRes = R.string.alert_update_habit_content;
+        } else {
+            titleRes = R.string.alert_cancel_habit_title;
+            contentRes = R.string.alert_cancel_habit_content;
+        }
+        alertCancel(titleRes, contentRes,
                 new AlertDialogFragment.CancelListener() {
                     @Override
                     public void onCancel() {
@@ -2562,7 +2571,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         return b1 || b2;
     }
 
-    private void returnToThingsActivity(boolean alertForPrivateThing, boolean alertForCancelling) {
+    private void returnToThingsActivity(boolean alertForPrivateThing, boolean alertForChangingAlarms) {
         if (!prepareForReturnNormally()) {
             return;
         }
@@ -2598,12 +2607,12 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         }
 
         Boolean reminderUpdated = setOrUpdateReminder(isReminderBefore, isReminderAfter,
-                isHabitBefore, alertForCancelling, reminderTime, typeBefore, typeAfter);
+                isHabitBefore, alertForChangingAlarms, reminderTime, typeBefore, typeAfter);
         if (reminderUpdated == null) {
             return;
         }
 
-        Boolean habitUpdated = setOrUpdateHabit(isHabitBefore, isHabitAfter, alertForCancelling);
+        Boolean habitUpdated = setOrUpdateHabit(isHabitBefore, isHabitAfter, alertForChangingAlarms);
         if (habitUpdated == null) {
             return;
         }
@@ -2835,15 +2844,15 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     }
 
     private Boolean setOrUpdateHabit(
-            boolean isHabitBefore, boolean isHabitAfter, boolean alertForCancelling) {
+            boolean isHabitBefore, boolean isHabitAfter, boolean alertForChanging) {
         HabitDAO hDao = HabitDAO.getInstance(mApp);
         Boolean habitUpdated = true;
         long id = mThing.getId();
         if (!isHabitBefore && isHabitAfter) {
             createHabit(id, hDao);
         } else if (isHabitBefore && !isHabitAfter) {
-            if (alertForCancelling) {
-                alertForCancellingHabit();
+            if (alertForChanging) {
+                alertForChangingHabit(false);
                 habitUpdated = null;
             } else {
                 hDao.deleteHabit(id);
@@ -2852,9 +2861,20 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             if (Habit.noUpdate(mHabit, rhParams.getHabitType(), rhParams.getHabitDetail())) {
                 habitUpdated = false;
             } else {
-                if (alertForCancelling) {
-                    alertForCancellingHabit();
+                boolean noTypeUpdate = Habit.noTypeUpdate(mHabit, rhParams.getHabitType());
+                if (alertForChanging) {
+                    alertForChangingHabit(noTypeUpdate);
                     habitUpdated = null;
+                } else if (noTypeUpdate) {
+                    Habit habit = new Habit(mHabit);
+                    habit.setDetail(rhParams.getHabitDetail());
+                    habit.setRemindedTimes(habit.getRecord().length());
+                    hDao.updateHabit(habit);
+                    hDao.deleteHabitReminders(habit.getId());
+                    habit.initHabitReminders();
+                    for (HabitReminder habitReminder : habit.getHabitReminders()) {
+                        hDao.createHabitReminder(habitReminder);
+                    }
                 } else {
                     for (;;) if (hDao.deleteHabit(id)) {
                         // ensure the old habit is deleted successfully

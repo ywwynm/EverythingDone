@@ -476,7 +476,7 @@ public class HabitDAO {
         List<HabitRecord> habitRecordsThisT = habit.getHabitRecordsThisT();
         for (HabitRecord habitRecord : habitRecordsThisT) {
             HabitReminder hr = getHabitReminderById(habitRecord.getHabitReminderId());
-            if (DateTimeUtil.calculateTimeGap(
+            if (hr != null && DateTimeUtil.calculateTimeGap(
                     System.currentTimeMillis(), hr.getNotifyTime(), habitType) == 0) {
                 updateHabitReminderToNext(hr.getId());
             }
@@ -666,6 +666,17 @@ public class HabitDAO {
         long time = habitReminder.getNotifyTime();
         updateHabitReminder(habitReminder.getId(),
                 DateTimeUtil.getHabitReminderTime(type, time, -1));
+    }
+
+    public boolean updateHabit(Habit updatedHabit) {
+        ContentValues values = new ContentValues();
+        values.put(Def.Database.COLUMN_TYPE_HABITS, updatedHabit.getType());
+        values.put(Def.Database.COLUMN_REMINDED_TIMES_HABITS, updatedHabit.getRemindedTimes());
+        values.put(Def.Database.COLUMN_DETAIL_HABITS, updatedHabit.getDetail());
+        values.put(Def.Database.COLUMN_RECORD_HABITS, updatedHabit.getRecord());
+        values.put(Def.Database.COLUMN_INTERVAL_INFO_HABITS, updatedHabit.getIntervalInfo());
+        return db.update(Def.Database.TABLE_HABITS, values,
+                Def.Database.COLUMN_ID_HABITS + "=" + updatedHabit.getId(), null) == 1;
     }
 
     public boolean deleteHabit(long id) {

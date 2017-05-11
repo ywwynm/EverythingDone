@@ -524,10 +524,12 @@
     <string name="video_duration">Video Duration</string>
     <string name="video_create_time">Video Create Time</string>
 
-    <!--Alerts for canceling Habit or Goal-->
+    <!--Alerts for canceling/updating Habit or Goal-->
     <string name="alert_cancel_habit_title">Are you sure to give up this habit?</string>
     <string name="alert_cancel_habit_content">This action cannot be undone.
         EverythingDone will not supervise or help you to develop this habit any longer.</string>
+    <string name="alert_update_habit_title">Are you sure to update this habit?</string>
+    <string name="alert_update_habit_content">You are changing times at which EverythingDone will remind you of developing this habit. Your records will not be deleted and we will keep helping you improve yourself.</string>
     <string name="alert_cancel_goal_title">Are you sure to give up this goal?</string>
     <string name="alert_cancel_goal_content">This action cannot be undone.
         EverythingDone will not only lose the ability to count days down,
