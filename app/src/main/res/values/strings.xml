@@ -535,6 +535,10 @@
         EverythingDone will not only lose the ability to count days down,
         but also lack the opportunity to celebrate its accomplishment with you.</string>
 
+    <!--Alerts for not creating daily to-do-->
+    <string name="alert_cancel_create_daily_todo_title">Are you sure not to create TODO today?</string>
+    <string name="alert_cancel_create_daily_todo_content">We suggest you persisting in developing this habit. Deciding what things to do in advance will help you arrange and use time in a more efficient way.</string>
+
 
     <!--StartDoingActivity-->
     <string name="start_doing_full_title">Start doing this thing</string>

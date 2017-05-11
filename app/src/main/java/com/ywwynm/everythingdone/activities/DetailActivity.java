@@ -2474,18 +2474,24 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
     private void alertCancel(@StringRes int titleRes, @StringRes int contentRes,
                              AlertDialogFragment.CancelListener cancelListener) {
+        alert(titleRes, contentRes, new AlertDialogFragment.ConfirmListener() {
+            @Override
+            public void onConfirm() {
+                returnToThingsActivity(true, false);
+            }
+        }, cancelListener);
+    }
+
+    private void alert(@StringRes int titleRes, @StringRes int contentRes,
+                       AlertDialogFragment.ConfirmListener confirmListener,
+                       AlertDialogFragment.CancelListener cancelListener) {
         final AlertDialogFragment adf = new AlertDialogFragment();
         int color = getAccentColor();
         adf.setTitleColor(color);
         adf.setConfirmColor(color);
         adf.setTitle(getString(titleRes));
         adf.setContent(getString(contentRes));
-        adf.setConfirmListener(new AlertDialogFragment.ConfirmListener() {
-            @Override
-            public void onConfirm() {
-                returnToThingsActivity(true, false);
-            }
-        });
+        adf.setConfirmListener(confirmListener);
         adf.setCancelListener(cancelListener);
         adf.show(getFragmentManager(), AlertDialogFragment.TAG);
     }
@@ -2571,6 +2577,21 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         return b1 || b2;
     }
 
+    private boolean shouldAlertForNotCreateDailyTodo = true;
+
+    private void alertForNotCreateDailyTodo() {
+        AlertDialogFragment.ConfirmListener confirmListener = new AlertDialogFragment.ConfirmListener() {
+            @Override
+            public void onConfirm() {
+                shouldAlertForNotCreateDailyTodo = false;
+                returnToThingsActivity(true, true);
+            }
+        };
+        alert(R.string.alert_cancel_create_daily_todo_title,
+                R.string.alert_cancel_create_daily_todo_content,
+                confirmListener, null);
+    }
+
     private void returnToThingsActivity(boolean alertForPrivateThing, boolean alertForChangingAlarms) {
         if (!prepareForReturnNormally()) {
             return;
@@ -2602,7 +2623,11 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         String attachment = getThingAttachment();
 
         if (mType == CREATE && willBeEmptyThing(title, content, attachment)) {
-            createFailed(Def.Communication.RESULT_CREATE_BLANK_THING);
+            if (shouldAlertForNotCreateDailyTodo && DailyCreateTodoReceiver.TAG.equals(mSenderName)) {
+                alertForNotCreateDailyTodo();
+            } else {
+                createFailed(Def.Communication.RESULT_CREATE_BLANK_THING);
+            }
             return;
         }
 

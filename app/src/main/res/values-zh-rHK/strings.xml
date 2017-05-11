@@ -528,6 +528,10 @@
     <string name="alert_cancel_goal_title">確定要放棄該目標嗎？</string>
     <string name="alert_cancel_goal_content">該操作無法撤銷，完事兒將無法記錄其倒計時，也將無法與閣下一同慶祝它的完成</string>
 
+    <!--Alerts for not creating daily to-do-->
+    <string name="alert_cancel_create_daily_todo_title">確定要取消創建今日待辦記事嗎？</string>
+    <string name="alert_cancel_create_daily_todo_content">完事兒建議您堅持這個習慣。提前想好要做的事情能讓您有目的性地利用時間，這樣您每天都可以過得更充實。</string>
+
 
     <!--StartDoingActivity-->
     <string name="start_doing_full_title">開始做這件事</string>
