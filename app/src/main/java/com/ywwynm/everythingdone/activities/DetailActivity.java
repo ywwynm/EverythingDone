@@ -366,7 +366,6 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 setupThingFromIntent();
             } else if (DailyCreateTodoReceiver.TAG.equals(mSenderName)) {
                 mThing.setTitle(getDailyTodoTitle());
-                mThing.setType(Thing.REMINDER);
             }
         } else {
             updateThingAndItsPosition(id);
@@ -663,7 +662,11 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         @Thing.Type  int thingType  = mThing.getType();
         @Thing.State int thingState = mThing.getState();
 
-        initBackButton(thingType);
+        if (DailyCreateTodoReceiver.TAG.equals(mSenderName)) {
+            initBackButton(Thing.REMINDER);
+        } else {
+            initBackButton(thingType);
+        }
 
         mFlRoot.setBackgroundColor(color);
 
