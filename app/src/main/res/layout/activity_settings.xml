@@ -44,563 +44,244 @@
                 app:contentPaddingBottom="2dp"
                 app:cardElevation="2dp">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="20dp"
-                    android:layout_marginLeft="18dp"
-                    android:layout_marginRight="18dp"
-                    android:layout_marginTop="12dp"
-                    android:gravity="center_vertical"
-                    android:drawableStart="@drawable/ic_user_interface_settings"
-                    android:drawableLeft="@drawable/ic_user_interface_settings"
-                    android:drawablePadding="16dp"
-                    android:textColor="@color/blue_deep"
-                    android:textSize="14sp"
-                    android:text="@string/settings_group_ui"/>
-
                 <LinearLayout
-                    android:id="@+id/ll_change_drawer_header_as_bt"
                     android:layout_width="match_parent"
-                    android:layout_height="72dp"
-                    android:layout_marginTop="40dp"
-                    android:paddingLeft="16dp"
-                    android:paddingRight="16dp"
-                    android:orientation="vertical"
-                    android:gravity="center_vertical"
-                    android:background="@drawable/selectable_item_background">
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
 
                     <TextView
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/settings_change_drawer_header"
-                        android:textSize="16sp"/>
-
-                    <TextView
-                        android:id="@+id/tv_drawer_header_path"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textColor="@color/black_26p"
-                        android:textSize="14sp"/>
-
-                </LinearLayout>
-
-                <LinearLayout
-                    android:id="@+id/ll_app_language_as_bt"
-                    android:layout_width="match_parent"
-                    android:layout_height="72dp"
-                    android:layout_marginTop="112dp"
-                    android:paddingLeft="16dp"
-                    android:paddingRight="16dp"
-                    android:orientation="vertical"
-                    android:gravity="center_vertical"
-                    android:background="@drawable/selectable_item_background">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/settings_app_language"
-                        android:textSize="16sp"/>
-
-                    <TextView
-                        android:id="@+id/tv_app_language"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textColor="@color/black_26p"
-                        android:textSize="14sp"/>
-
-                </LinearLayout>
-
-                <RelativeLayout
-                    android:id="@+id/rl_noticeable_notification_as_bt"
-                    android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:layout_marginTop="184dp"
-                    android:paddingLeft="16dp"
-                    android:paddingRight="16dp"
-                    android:background="@drawable/selectable_item_background">
-
-                    <CheckBox
-                        android:id="@+id/cb_noticeable_notification"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentEnd="true"
-                        android:layout_alignParentRight="true"
-                        android:layout_centerVertical="true"
-                        android:clickable="false"
-                        android:focusable="false"
-                        android:focusableInTouchMode="false"/>
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentStart="true"
-                        android:layout_alignParentLeft="true"
-                        android:layout_centerVertical="true"
-                        android:layout_toStartOf="@id/cb_noticeable_notification"
-                        android:layout_toLeftOf="@id/cb_noticeable_notification"
-                        android:text="@string/settings_noticeable_notification"
-                        android:textSize="16sp"
-                        tools:ignore="RelativeOverlap"/>
-
-                </RelativeLayout>
-
-                <RelativeLayout
-                    android:id="@+id/rl_toggle_checklist_as_bt"
-                    android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:layout_marginTop="240dp"
-                    android:paddingLeft="16dp"
-                    android:paddingRight="16dp"
-                    android:background="@drawable/selectable_item_background">
-
-                    <CheckBox
-                        android:id="@+id/cb_toggle_checklist"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentEnd="true"
-                        android:layout_alignParentRight="true"
-                        android:layout_centerVertical="true"
-                        android:clickable="false"
-                        android:focusable="false"
-                        android:focusableInTouchMode="false"/>
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentStart="true"
-                        android:layout_alignParentLeft="true"
-                        android:layout_toStartOf="@id/cb_toggle_checklist"
-                        android:layout_toLeftOf="@id/cb_toggle_checklist"
-                        android:text="@string/settings_toggle_checklist_thing_card"
-                        android:textSize="16sp"
-                        tools:ignore="RelativeOverlap"
-                        android:layout_centerVertical="true"/>
-
-                </RelativeLayout>
-
-                <RelativeLayout
-                    android:id="@+id/rl_simple_finished_checklist_as_bt"
-                    android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:layout_marginTop="296dp"
-                    android:paddingLeft="16dp"
-                    android:paddingRight="16dp"
-                    android:background="@drawable/selectable_item_background">
-
-                    <CheckBox
-                        android:id="@+id/cb_simple_finished_checklist"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentEnd="true"
-                        android:layout_alignParentRight="true"
-                        android:layout_centerVertical="true"
-                        android:clickable="false"
-                        android:focusable="false"
-                        android:focusableInTouchMode="false"/>
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentStart="true"
-                        android:layout_alignParentLeft="true"
-                        android:layout_toStartOf="@id/cb_simple_finished_checklist"
-                        android:layout_toLeftOf="@id/cb_simple_finished_checklist"
-                        android:text="@string/settings_simple_finished_checklist"
-                        android:textSize="16sp"
-                        tools:ignore="RelativeOverlap"
-                        android:layout_centerVertical="true"/>
-
-                </RelativeLayout>
-
-                <RelativeLayout
-                    android:id="@+id/rl_auto_link_as_bt"
-                    android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:layout_marginTop="352dp"
-                    android:paddingLeft="16dp"
-                    android:paddingRight="16dp"
-                    android:background="@drawable/selectable_item_background">
-
-                    <CheckBox
-                        android:id="@+id/cb_auto_link"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentEnd="true"
-                        android:layout_alignParentRight="true"
-                        android:layout_centerVertical="true"
-                        android:clickable="false"
-                        android:focusable="false"
-                        android:focusableInTouchMode="false"/>
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_centerVertical="true"
-                        android:layout_alignParentStart="true"
-                        android:layout_alignParentLeft="true"
-                        android:layout_toStartOf="@id/cb_auto_link"
-                        android:layout_toLeftOf="@id/cb_auto_link"
-                        android:layout_marginEnd="8dp"
-                        android:layout_marginRight="8dp"
-                        android:text="@string/settings_auto_link"
-                        android:textSize="16sp"
-                        tools:ignore="RelativeOverlap"/>
-
-                </RelativeLayout>
-
-                <RelativeLayout
-                    android:id="@+id/rl_twice_back_as_bt"
-                    android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:layout_marginTop="408dp"
-                    android:paddingLeft="16dp"
-                    android:paddingRight="16dp"
-                    android:background="@drawable/selectable_item_background">
-
-                    <CheckBox
-                        android:id="@+id/cb_twice_back"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentEnd="true"
-                        android:layout_alignParentRight="true"
-                        android:layout_centerVertical="true"
-                        android:clickable="false"
-                        android:focusable="false"
-                        android:focusableInTouchMode="false"/>
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentStart="true"
-                        android:layout_alignParentLeft="true"
-                        android:layout_toStartOf="@id/cb_twice_back"
-                        android:layout_toLeftOf="@id/cb_twice_back"
-                        android:text="@string/settings_twice_back"
-                        android:textSize="16sp"
-                        tools:ignore="RelativeOverlap"
-                        android:layout_centerVertical="true"/>
-
-                </RelativeLayout>
-
-            </android.support.v7.widget.CardView>
-
-            <android.support.v7.widget.CardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginLeft="@dimen/settings_card_margin_side"
-                android:layout_marginRight="@dimen/settings_card_margin_side"
-                android:layout_marginTop="@dimen/settings_card_margin_top"
-                app:contentPaddingBottom="2dp"
-                app:cardElevation="2dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="20dp"
-                    android:layout_marginTop="12dp"
-                    android:layout_marginLeft="18dp"
-                    android:layout_marginRight="18dp"
-                    android:gravity="center_vertical"
-                    android:drawableStart="@drawable/ic_ringtone_settings"
-                    android:drawableLeft="@drawable/ic_ringtone_settings"
-                    android:drawablePadding="16dp"
-                    android:textColor="@color/blue_deep"
-                    android:textSize="14sp"
-                    android:text="@string/settings_group_ringtone"/>
-
-                <LinearLayout
-                    android:id="@+id/ll_ringtone_reminder_as_bt"
-                    android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:layout_marginTop="40dp"
-                    android:paddingLeft="16dp"
-                    android:paddingRight="16dp"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:background="@drawable/selectable_item_background">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textSize="16sp"
-                        android:text="@string/reminder"/>
-
-                    <TextView
-                        android:id="@+id/tv_ringtone_reminder"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="end"
-                        android:textColor="@color/black_26p"/>
-
-                </LinearLayout>
-
-                <LinearLayout
-                    android:id="@+id/ll_ringtone_habit_as_bt"
-                    android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:layout_marginTop="96dp"
-                    android:paddingLeft="16dp"
-                    android:paddingRight="16dp"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:background="@drawable/selectable_item_background">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/habit"
-                        android:textSize="16sp"/>
-
-                    <TextView
-                        android:id="@+id/tv_ringtone_habit"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="end"
-                        android:textColor="@color/black_26p"/>
-
-                </LinearLayout>
-
-                <LinearLayout
-                    android:id="@+id/ll_ringtone_goal_as_bt"
-                    android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:layout_marginTop="152dp"
-                    android:paddingLeft="16dp"
-                    android:paddingRight="16dp"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:background="@drawable/selectable_item_background">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/goal"
-                        android:textSize="16sp"/>
-
-                    <TextView
-                        android:id="@+id/tv_ringtone_goal"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="end"
-                        android:textColor="@color/black_26p"/>
-
-                </LinearLayout>
-
-            </android.support.v7.widget.CardView>
-
-            <android.support.v7.widget.CardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginLeft="@dimen/settings_card_margin_side"
-                android:layout_marginRight="@dimen/settings_card_margin_side"
-                android:layout_marginTop="@dimen/settings_card_margin_top"
-                app:contentPaddingBottom="2dp"
-                app:cardElevation="2dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="20dp"
-                    android:layout_marginTop="12dp"
-                    android:layout_marginLeft="18dp"
-                    android:layout_marginRight="18dp"
-                    android:gravity="center_vertical"
-                    android:drawableStart="@drawable/ic_data_settings"
-                    android:drawableLeft="@drawable/ic_data_settings"
-                    android:drawablePadding="16dp"
-                    android:textColor="@color/blue_deep"
-                    android:textSize="14sp"
-                    android:text="@string/settings_group_data"/>
-
-                <RelativeLayout
-                    android:id="@+id/rl_auto_save_edits_as_bt"
-                    android:layout_width="match_parent"
-                    android:layout_height="72dp"
-                    android:layout_marginTop="40dp"
-                    android:paddingStart="16dp"
-                    android:paddingLeft="16dp"
-                    android:paddingEnd="8dp"
-                    android:paddingRight="8dp"
-                    android:background="@drawable/selectable_item_background">
-
-                    <ImageView
-                        android:id="@+id/iv_auto_save_edits_help_as_bt"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
-                        android:layout_alignParentEnd="true"
-                        android:layout_alignParentRight="true"
-                        android:layout_centerVertical="true"
-                        android:scaleType="center"
-                        android:src="@drawable/act_show_help_info"
-                        android:contentDescription="@string/cd_help_auto_strict_mode"
-                        android:background="@drawable/selectable_item_background"/>
-
-                    <LinearLayout
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_centerVertical="true"
-                        android:layout_alignParentStart="true"
-                        android:layout_alignParentLeft="true"
-                        android:layout_toStartOf="@id/iv_auto_save_edits_help_as_bt"
-                        android:layout_toLeftOf="@id/iv_auto_save_edits_help_as_bt"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:id="@+id/tv_auto_save_edits_title"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/auto_save_edits_title"
-                            android:textSize="16sp"
-                            tools:ignore="RelativeOverlap"/>
-
-                        <TextView
-                            android:id="@+id/tv_auto_save_edits"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:textColor="@color/black_26p"
-                            android:textSize="14sp"/>
-
-                    </LinearLayout>
-
-                </RelativeLayout>
-
-                <TextView
-                    android:id="@+id/tv_backup_as_bt"
-                    android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:layout_marginTop="112dp"
-                    android:paddingLeft="16dp"
-                    android:paddingRight="16dp"
-                    android:gravity="center_vertical"
-                    android:text="@string/backup"
-                    android:textSize="16sp"
-                    android:background="@drawable/selectable_item_background"/>
-
-                <LinearLayout
-                    android:id="@+id/ll_restore_as_bt"
-                    android:layout_width="match_parent"
-                    android:layout_height="72dp"
-                    android:paddingLeft="16dp"
-                    android:paddingRight="16dp"
-                    android:layout_marginTop="168dp"
-                    android:gravity="center_vertical"
-                    android:orientation="vertical"
-                    android:background="@drawable/selectable_item_background">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/restore"
-                        android:textSize="16sp"/>
-
-                    <TextView
-                        android:id="@+id/tv_restore_last_info"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textSize="14sp"
-                        android:textColor="@color/black_26p"/>
-
-                </LinearLayout>
-
-            </android.support.v7.widget.CardView>
-
-            <android.support.v7.widget.CardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginLeft="@dimen/settings_card_margin_side"
-                android:layout_marginRight="@dimen/settings_card_margin_side"
-                android:layout_marginTop="@dimen/settings_card_margin_top"
-                app:contentPaddingBottom="2dp"
-                app:cardElevation="2dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="20dp"
-                    android:layout_marginTop="12dp"
-                    android:layout_marginLeft="18dp"
-                    android:layout_marginRight="18dp"
-                    android:gravity="center_vertical"
-                    android:drawableStart="@drawable/ic_privacy_settings"
-                    android:drawableLeft="@drawable/ic_privacy_settings"
-                    android:drawablePadding="16dp"
-                    android:textColor="@color/blue_deep"
-                    android:textSize="14sp"
-                    android:text="@string/settings_group_privacy"/>
-
-                <LinearLayout
-                    android:id="@+id/ll_set_password_as_bt"
-                    android:layout_width="match_parent"
-                    android:layout_height="72dp"
-                    android:layout_marginTop="40dp"
-                    android:paddingLeft="16dp"
-                    android:paddingRight="16dp"
-                    android:gravity="center_vertical"
-                    android:orientation="vertical"
-                    android:background="@drawable/selectable_item_background">
-
-                    <TextView
-                        android:id="@+id/tv_set_password_title"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
+                        android:layout_height="20dp"
+                        android:layout_marginLeft="18dp"
+                        android:layout_marginRight="18dp"
+                        android:layout_marginTop="12dp"
+                        android:layout_marginBottom="8dp"
                         android:gravity="center_vertical"
-                        android:text="@string/set_app_password"
-                        android:textSize="16sp"/>
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/set_app_password_detail"
-                        android:textColor="@color/black_26p"
-                        android:textSize="@dimen/tv_set_app_password_detail_text_size"/>
-
-                </LinearLayout>
-
-                <RelativeLayout
-                    android:id="@+id/rl_use_fingerprint_as_bt"
-                    android:layout_width="match_parent"
-                    android:layout_height="72dp"
-                    android:layout_marginTop="112dp"
-                    android:paddingLeft="16dp"
-                    android:paddingRight="16dp"
-                    android:background="@drawable/selectable_item_background">
-
-                    <CheckBox
-                        android:id="@+id/cb_use_fingerprint"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentEnd="true"
-                        android:layout_alignParentRight="true"
-                        android:layout_centerVertical="true"
-                        android:clickable="false"
-                        android:focusable="false"
-                        android:focusableInTouchMode="false"/>
+                        android:drawableStart="@drawable/ic_user_interface_settings"
+                        android:drawableLeft="@drawable/ic_user_interface_settings"
+                        android:drawablePadding="16dp"
+                        android:textColor="@color/blue_deep"
+                        android:textSize="14sp"
+                        android:text="@string/settings_group_ui"/>
 
                     <LinearLayout
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentStart="true"
-                        android:layout_alignParentLeft="true"
-                        android:layout_centerVertical="true"
-                        android:layout_toStartOf="@id/cb_use_fingerprint"
-                        android:layout_toLeftOf="@id/cb_use_fingerprint"
-                        android:orientation="vertical">
+                        android:id="@+id/ll_change_drawer_header_as_bt"
+                        android:layout_width="match_parent"
+                        android:layout_height="72dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:orientation="vertical"
+                        android:gravity="center_vertical"
+                        android:background="@drawable/selectable_item_background">
 
                         <TextView
-                            android:id="@+id/tv_use_fingerprint_title"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/use_fingerprint"
+                            android:text="@string/settings_change_drawer_header"
                             android:textSize="16sp"/>
 
                         <TextView
-                            android:id="@+id/tv_use_fingerprint_description"
+                            android:id="@+id/tv_drawer_header_path"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/use_fingerprint_to_verify"
                             android:textColor="@color/black_26p"
                             android:textSize="14sp"/>
 
                     </LinearLayout>
 
-                </RelativeLayout>
+                    <LinearLayout
+                        android:id="@+id/ll_app_language_as_bt"
+                        android:layout_width="match_parent"
+                        android:layout_height="72dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:orientation="vertical"
+                        android:gravity="center_vertical"
+                        android:background="@drawable/selectable_item_background">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/settings_app_language"
+                            android:textSize="16sp"/>
+
+                        <TextView
+                            android:id="@+id/tv_app_language"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textColor="@color/black_26p"
+                            android:textSize="14sp"/>
+
+                    </LinearLayout>
+
+                    <RelativeLayout
+                        android:id="@+id/rl_noticeable_notification_as_bt"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:background="@drawable/selectable_item_background">
+
+                        <CheckBox
+                            android:id="@+id/cb_noticeable_notification"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentEnd="true"
+                            android:layout_alignParentRight="true"
+                            android:layout_centerVertical="true"
+                            android:clickable="false"
+                            android:focusable="false"
+                            android:focusableInTouchMode="false"/>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentStart="true"
+                            android:layout_alignParentLeft="true"
+                            android:layout_centerVertical="true"
+                            android:layout_toStartOf="@id/cb_noticeable_notification"
+                            android:layout_toLeftOf="@id/cb_noticeable_notification"
+                            android:text="@string/settings_noticeable_notification"
+                            android:textSize="16sp"
+                            tools:ignore="RelativeOverlap"/>
+
+                    </RelativeLayout>
+
+                    <RelativeLayout
+                        android:id="@+id/rl_toggle_checklist_as_bt"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:background="@drawable/selectable_item_background">
+
+                        <CheckBox
+                            android:id="@+id/cb_toggle_checklist"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentEnd="true"
+                            android:layout_alignParentRight="true"
+                            android:layout_centerVertical="true"
+                            android:clickable="false"
+                            android:focusable="false"
+                            android:focusableInTouchMode="false"/>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentStart="true"
+                            android:layout_alignParentLeft="true"
+                            android:layout_toStartOf="@id/cb_toggle_checklist"
+                            android:layout_toLeftOf="@id/cb_toggle_checklist"
+                            android:text="@string/settings_toggle_checklist_thing_card"
+                            android:textSize="16sp"
+                            tools:ignore="RelativeOverlap"
+                            android:layout_centerVertical="true"/>
+
+                    </RelativeLayout>
+
+                    <RelativeLayout
+                        android:id="@+id/rl_simple_finished_checklist_as_bt"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:background="@drawable/selectable_item_background">
+
+                        <CheckBox
+                            android:id="@+id/cb_simple_finished_checklist"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentEnd="true"
+                            android:layout_alignParentRight="true"
+                            android:layout_centerVertical="true"
+                            android:clickable="false"
+                            android:focusable="false"
+                            android:focusableInTouchMode="false"/>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentStart="true"
+                            android:layout_alignParentLeft="true"
+                            android:layout_toStartOf="@id/cb_simple_finished_checklist"
+                            android:layout_toLeftOf="@id/cb_simple_finished_checklist"
+                            android:text="@string/settings_simple_finished_checklist"
+                            android:textSize="16sp"
+                            tools:ignore="RelativeOverlap"
+                            android:layout_centerVertical="true"/>
+
+                    </RelativeLayout>
+
+                    <RelativeLayout
+                        android:id="@+id/rl_auto_link_as_bt"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:background="@drawable/selectable_item_background">
+
+                        <CheckBox
+                            android:id="@+id/cb_auto_link"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentEnd="true"
+                            android:layout_alignParentRight="true"
+                            android:layout_centerVertical="true"
+                            android:clickable="false"
+                            android:focusable="false"
+                            android:focusableInTouchMode="false"/>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_centerVertical="true"
+                            android:layout_alignParentStart="true"
+                            android:layout_alignParentLeft="true"
+                            android:layout_toStartOf="@id/cb_auto_link"
+                            android:layout_toLeftOf="@id/cb_auto_link"
+                            android:layout_marginEnd="8dp"
+                            android:layout_marginRight="8dp"
+                            android:text="@string/settings_auto_link"
+                            android:textSize="16sp"
+                            tools:ignore="RelativeOverlap"/>
+
+                    </RelativeLayout>
+
+                    <RelativeLayout
+                        android:id="@+id/rl_twice_back_as_bt"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:background="@drawable/selectable_item_background">
+
+                        <CheckBox
+                            android:id="@+id/cb_twice_back"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentEnd="true"
+                            android:layout_alignParentRight="true"
+                            android:layout_centerVertical="true"
+                            android:clickable="false"
+                            android:focusable="false"
+                            android:focusableInTouchMode="false"/>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentStart="true"
+                            android:layout_alignParentLeft="true"
+                            android:layout_toStartOf="@id/cb_twice_back"
+                            android:layout_toLeftOf="@id/cb_twice_back"
+                            android:text="@string/settings_twice_back"
+                            android:textSize="16sp"
+                            tools:ignore="RelativeOverlap"
+                            android:layout_centerVertical="true"/>
+
+                    </RelativeLayout>
+
+                </LinearLayout>
 
             </android.support.v7.widget.CardView>
 
@@ -613,142 +294,379 @@
                 app:contentPaddingBottom="2dp"
                 app:cardElevation="2dp">
 
-                <TextView
-                    android:id="@+id/tv_title_group_start_doing_settings"
-                    android:layout_width="wrap_content"
-                    android:layout_height="20dp"
-                    android:layout_marginTop="12dp"
-                    android:layout_marginLeft="14dp"
-                    android:layout_marginRight="14dp"
-                    android:gravity="center_vertical"
-                    android:drawablePadding="14dp"
-                    android:textColor="@color/blue_deep"
-                    android:textSize="14sp"
-                    android:text="@string/settings_group_start_doing"/>
-
                 <LinearLayout
-                    android:id="@+id/ll_auto_start_doing_as_bt"
                     android:layout_width="match_parent"
-                    android:layout_height="72dp"
-                    android:layout_marginTop="40dp"
-                    android:paddingLeft="16dp"
-                    android:paddingRight="16dp"
-                    android:orientation="vertical"
-                    android:gravity="center_vertical"
-                    android:background="@drawable/selectable_item_background">
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
 
                     <TextView
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/auto_start_doing_title"
-                        android:textSize="16sp"/>
+                        android:layout_height="20dp"
+                        android:layout_marginTop="12dp"
+                        android:layout_marginLeft="18dp"
+                        android:layout_marginRight="18dp"
+                        android:layout_marginBottom="8dp"
+                        android:gravity="center_vertical"
+                        android:drawableStart="@drawable/ic_ringtone_settings"
+                        android:drawableLeft="@drawable/ic_ringtone_settings"
+                        android:drawablePadding="16dp"
+                        android:textColor="@color/blue_deep"
+                        android:textSize="14sp"
+                        android:text="@string/settings_group_ringtone"/>
 
-                    <TextView
-                        android:id="@+id/tv_auto_start_doing"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textColor="@color/black_26p"
-                        android:textSize="14sp"/>
+                    <LinearLayout
+                        android:id="@+id/ll_ringtone_reminder_as_bt"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:background="@drawable/selectable_item_background">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textSize="16sp"
+                            android:text="@string/reminder"/>
+
+                        <TextView
+                            android:id="@+id/tv_ringtone_reminder"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="end"
+                            android:textColor="@color/black_26p"/>
+
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/ll_ringtone_habit_as_bt"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:background="@drawable/selectable_item_background">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/habit"
+                            android:textSize="16sp"/>
+
+                        <TextView
+                            android:id="@+id/tv_ringtone_habit"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="end"
+                            android:textColor="@color/black_26p"/>
+
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/ll_ringtone_goal_as_bt"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:background="@drawable/selectable_item_background">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/goal"
+                            android:textSize="16sp"/>
+
+                        <TextView
+                            android:id="@+id/tv_ringtone_goal"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="end"
+                            android:textColor="@color/black_26p"/>
+
+                    </LinearLayout>
 
                 </LinearLayout>
 
-                <LinearLayout
-                    android:id="@+id/ll_asd_time_reminder_as_bt"
-                    android:layout_width="match_parent"
-                    android:layout_height="72dp"
-                    android:layout_marginTop="112dp"
-                    android:paddingLeft="16dp"
-                    android:paddingRight="16dp"
-                    android:orientation="vertical"
-                    android:gravity="center_vertical"
-                    android:background="@drawable/selectable_item_background">
+            </android.support.v7.widget.CardView>
 
-                    <TextView
-                        android:id="@+id/tv_asd_time_reminder_title"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/auto_start_doing_time_reminder_title"
-                        android:textSize="16sp"/>
-
-                    <TextView
-                        android:id="@+id/tv_asd_time_reminder"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textColor="@color/black_26p"
-                        android:textSize="14sp"/>
-
-                </LinearLayout>
+            <android.support.v7.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="@dimen/settings_card_margin_side"
+                android:layout_marginRight="@dimen/settings_card_margin_side"
+                android:layout_marginTop="@dimen/settings_card_margin_top"
+                app:contentPaddingBottom="2dp"
+                app:cardElevation="2dp">
 
                 <LinearLayout
-                    android:id="@+id/ll_asd_time_habit_as_bt"
                     android:layout_width="match_parent"
-                    android:layout_height="72dp"
-                    android:layout_marginTop="184dp"
-                    android:paddingLeft="16dp"
-                    android:paddingRight="16dp"
-                    android:orientation="vertical"
-                    android:gravity="center_vertical"
-                    android:background="@drawable/selectable_item_background">
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
 
                     <TextView
-                        android:id="@+id/tv_asd_time_habit_title"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/auto_start_doing_time_habit_title"
-                        android:textSize="16sp"/>
+                        android:layout_height="20dp"
+                        android:layout_marginTop="12dp"
+                        android:layout_marginLeft="18dp"
+                        android:layout_marginRight="18dp"
+                        android:layout_marginBottom="8dp"
+                        android:gravity="center_vertical"
+                        android:drawableStart="@drawable/ic_data_settings"
+                        android:drawableLeft="@drawable/ic_data_settings"
+                        android:drawablePadding="16dp"
+                        android:textColor="@color/blue_deep"
+                        android:textSize="14sp"
+                        android:text="@string/settings_group_data"/>
+
+                    <RelativeLayout
+                        android:id="@+id/rl_auto_save_edits_as_bt"
+                        android:layout_width="match_parent"
+                        android:layout_height="72dp"
+                        android:paddingStart="16dp"
+                        android:paddingLeft="16dp"
+                        android:paddingEnd="8dp"
+                        android:paddingRight="8dp"
+                        android:background="@drawable/selectable_item_background">
+
+                        <ImageView
+                            android:id="@+id/iv_auto_save_edits_help_as_bt"
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            android:layout_alignParentEnd="true"
+                            android:layout_alignParentRight="true"
+                            android:layout_centerVertical="true"
+                            android:scaleType="center"
+                            android:src="@drawable/act_show_help_info"
+                            android:contentDescription="@string/cd_help_auto_strict_mode"
+                            android:background="@drawable/selectable_item_background"/>
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_centerVertical="true"
+                            android:layout_alignParentStart="true"
+                            android:layout_alignParentLeft="true"
+                            android:layout_toStartOf="@id/iv_auto_save_edits_help_as_bt"
+                            android:layout_toLeftOf="@id/iv_auto_save_edits_help_as_bt"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/tv_auto_save_edits_title"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/auto_save_edits_title"
+                                android:textSize="16sp"
+                                tools:ignore="RelativeOverlap"/>
+
+                            <TextView
+                                android:id="@+id/tv_auto_save_edits"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:textColor="@color/black_26p"
+                                android:textSize="14sp"/>
+
+                        </LinearLayout>
+
+                    </RelativeLayout>
 
                     <TextView
-                        android:id="@+id/tv_asd_time_habit"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textColor="@color/black_26p"
-                        android:textSize="14sp"/>
-
-                </LinearLayout>
-
-                <RelativeLayout
-                    android:id="@+id/rl_auto_strict_mode_as_bt"
-                    android:layout_width="match_parent"
-                    android:layout_height="72dp"
-                    android:layout_marginTop="256dp"
-                    android:paddingStart="16dp"
-                    android:paddingLeft="16dp"
-                    android:paddingEnd="8dp"
-                    android:paddingRight="8dp"
-                    android:background="@drawable/selectable_item_background">
-
-                    <ImageView
-                        android:id="@+id/iv_auto_strict_mode_help_as_bt"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
-                        android:layout_alignParentEnd="true"
-                        android:layout_alignParentRight="true"
-                        android:layout_centerVertical="true"
-                        android:scaleType="center"
-                        android:src="@drawable/act_show_help_info"
-                        android:contentDescription="@string/cd_help_auto_strict_mode"
+                        android:id="@+id/tv_backup_as_bt"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:gravity="center_vertical"
+                        android:text="@string/backup"
+                        android:textSize="16sp"
                         android:background="@drawable/selectable_item_background"/>
 
                     <LinearLayout
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_centerVertical="true"
-                        android:layout_alignParentStart="true"
-                        android:layout_alignParentLeft="true"
-                        android:layout_toStartOf="@id/iv_auto_strict_mode_help_as_bt"
-                        android:layout_toLeftOf="@id/iv_auto_strict_mode_help_as_bt"
-                        android:orientation="vertical">
+                        android:id="@+id/ll_restore_as_bt"
+                        android:layout_width="match_parent"
+                        android:layout_height="72dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:gravity="center_vertical"
+                        android:orientation="vertical"
+                        android:background="@drawable/selectable_item_background">
 
                         <TextView
-                            android:id="@+id/tv_auto_strict_mode_title"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/auto_strict_mode_title"
-                            android:textSize="16sp"
-                            tools:ignore="RelativeOverlap"/>
+                            android:text="@string/restore"
+                            android:textSize="16sp"/>
 
                         <TextView
-                            android:id="@+id/tv_auto_strict_mode"
+                            android:id="@+id/tv_restore_last_info"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textSize="14sp"
+                            android:textColor="@color/black_26p"/>
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+            </android.support.v7.widget.CardView>
+
+            <android.support.v7.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="@dimen/settings_card_margin_side"
+                android:layout_marginRight="@dimen/settings_card_margin_side"
+                android:layout_marginTop="@dimen/settings_card_margin_top"
+                app:contentPaddingBottom="2dp"
+                app:cardElevation="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="20dp"
+                        android:layout_marginTop="12dp"
+                        android:layout_marginLeft="18dp"
+                        android:layout_marginRight="18dp"
+                        android:layout_marginBottom="8dp"
+                        android:gravity="center_vertical"
+                        android:drawableStart="@drawable/ic_privacy_settings"
+                        android:drawableLeft="@drawable/ic_privacy_settings"
+                        android:drawablePadding="16dp"
+                        android:textColor="@color/blue_deep"
+                        android:textSize="14sp"
+                        android:text="@string/settings_group_privacy"/>
+
+                    <LinearLayout
+                        android:id="@+id/ll_set_password_as_bt"
+                        android:layout_width="match_parent"
+                        android:layout_height="72dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:gravity="center_vertical"
+                        android:orientation="vertical"
+                        android:background="@drawable/selectable_item_background">
+
+                        <TextView
+                            android:id="@+id/tv_set_password_title"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:text="@string/set_app_password"
+                            android:textSize="16sp"/>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/set_app_password_detail"
+                            android:textColor="@color/black_26p"
+                            android:textSize="@dimen/tv_set_app_password_detail_text_size"/>
+
+                    </LinearLayout>
+
+                    <RelativeLayout
+                        android:id="@+id/rl_use_fingerprint_as_bt"
+                        android:layout_width="match_parent"
+                        android:layout_height="72dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:background="@drawable/selectable_item_background">
+
+                        <CheckBox
+                            android:id="@+id/cb_use_fingerprint"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentEnd="true"
+                            android:layout_alignParentRight="true"
+                            android:layout_centerVertical="true"
+                            android:clickable="false"
+                            android:focusable="false"
+                            android:focusableInTouchMode="false"/>
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentStart="true"
+                            android:layout_alignParentLeft="true"
+                            android:layout_centerVertical="true"
+                            android:layout_toStartOf="@id/cb_use_fingerprint"
+                            android:layout_toLeftOf="@id/cb_use_fingerprint"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/tv_use_fingerprint_title"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/use_fingerprint"
+                                android:textSize="16sp"/>
+
+                            <TextView
+                                android:id="@+id/tv_use_fingerprint_description"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/use_fingerprint_to_verify"
+                                android:textColor="@color/black_26p"
+                                android:textSize="14sp"/>
+
+                        </LinearLayout>
+
+                    </RelativeLayout>
+
+                </LinearLayout>
+
+            </android.support.v7.widget.CardView>
+
+            <android.support.v7.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="@dimen/settings_card_margin_side"
+                android:layout_marginRight="@dimen/settings_card_margin_side"
+                android:layout_marginTop="@dimen/settings_card_margin_top"
+                app:contentPaddingBottom="2dp"
+                app:cardElevation="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tv_title_group_start_doing_settings"
+                        android:layout_width="wrap_content"
+                        android:layout_height="20dp"
+                        android:layout_marginTop="12dp"
+                        android:layout_marginLeft="14dp"
+                        android:layout_marginRight="14dp"
+                        android:layout_marginBottom="8dp"
+                        android:gravity="center_vertical"
+                        android:drawablePadding="14dp"
+                        android:textColor="@color/blue_deep"
+                        android:textSize="14sp"
+                        android:text="@string/settings_group_start_doing"/>
+
+                    <LinearLayout
+                        android:id="@+id/ll_auto_start_doing_as_bt"
+                        android:layout_width="match_parent"
+                        android:layout_height="72dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:orientation="vertical"
+                        android:gravity="center_vertical"
+                        android:background="@drawable/selectable_item_background">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/auto_start_doing_title"
+                            android:textSize="16sp"/>
+
+                        <TextView
+                            android:id="@+id/tv_auto_start_doing"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:textColor="@color/black_26p"
@@ -756,7 +674,110 @@
 
                     </LinearLayout>
 
-                </RelativeLayout>
+                    <LinearLayout
+                        android:id="@+id/ll_asd_time_reminder_as_bt"
+                        android:layout_width="match_parent"
+                        android:layout_height="72dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:orientation="vertical"
+                        android:gravity="center_vertical"
+                        android:background="@drawable/selectable_item_background">
+
+                        <TextView
+                            android:id="@+id/tv_asd_time_reminder_title"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/auto_start_doing_time_reminder_title"
+                            android:textSize="16sp"/>
+
+                        <TextView
+                            android:id="@+id/tv_asd_time_reminder"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textColor="@color/black_26p"
+                            android:textSize="14sp"/>
+
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/ll_asd_time_habit_as_bt"
+                        android:layout_width="match_parent"
+                        android:layout_height="72dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:orientation="vertical"
+                        android:gravity="center_vertical"
+                        android:background="@drawable/selectable_item_background">
+
+                        <TextView
+                            android:id="@+id/tv_asd_time_habit_title"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/auto_start_doing_time_habit_title"
+                            android:textSize="16sp"/>
+
+                        <TextView
+                            android:id="@+id/tv_asd_time_habit"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textColor="@color/black_26p"
+                            android:textSize="14sp"/>
+
+                    </LinearLayout>
+
+                    <RelativeLayout
+                        android:id="@+id/rl_auto_strict_mode_as_bt"
+                        android:layout_width="match_parent"
+                        android:layout_height="72dp"
+                        android:paddingStart="16dp"
+                        android:paddingLeft="16dp"
+                        android:paddingEnd="8dp"
+                        android:paddingRight="8dp"
+                        android:background="@drawable/selectable_item_background">
+
+                        <ImageView
+                            android:id="@+id/iv_auto_strict_mode_help_as_bt"
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            android:layout_alignParentEnd="true"
+                            android:layout_alignParentRight="true"
+                            android:layout_centerVertical="true"
+                            android:scaleType="center"
+                            android:src="@drawable/act_show_help_info"
+                            android:contentDescription="@string/cd_help_auto_strict_mode"
+                            android:background="@drawable/selectable_item_background"/>
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_centerVertical="true"
+                            android:layout_alignParentStart="true"
+                            android:layout_alignParentLeft="true"
+                            android:layout_toStartOf="@id/iv_auto_strict_mode_help_as_bt"
+                            android:layout_toLeftOf="@id/iv_auto_strict_mode_help_as_bt"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/tv_auto_strict_mode_title"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/auto_strict_mode_title"
+                                android:textSize="16sp"
+                                tools:ignore="RelativeOverlap"/>
+
+                            <TextView
+                                android:id="@+id/tv_auto_strict_mode"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:textColor="@color/black_26p"
+                                android:textSize="14sp"/>
+
+                        </LinearLayout>
+
+                    </RelativeLayout>
+
+                </LinearLayout>
 
             </android.support.v7.widget.CardView>
 
@@ -770,247 +791,249 @@
                 app:contentPaddingBottom="2dp"
                 app:cardElevation="2dp">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="20dp"
-                    android:layout_marginTop="12dp"
-                    android:layout_marginLeft="18dp"
-                    android:layout_marginRight="18dp"
-                    android:gravity="center_vertical"
-                    android:drawableStart="@drawable/ic_advanced_settings"
-                    android:drawableLeft="@drawable/ic_advanced_settings"
-                    android:drawablePadding="16dp"
-                    android:textColor="@color/blue_deep"
-                    android:textSize="14sp"
-                    android:text="@string/settings_group_advanced"/>
-
-                <RelativeLayout
-                    android:id="@+id/rl_quick_create_as_bt"
-                    android:layout_width="match_parent"
-                    android:layout_height="72dp"
-                    android:layout_marginTop="40dp"
-                    android:paddingLeft="16dp"
-                    android:paddingRight="16dp"
-                    android:background="@drawable/selectable_item_background">
-
-                    <CheckBox
-                        android:id="@+id/cb_quick_create"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentEnd="true"
-                        android:layout_alignParentRight="true"
-                        android:layout_centerVertical="true"
-                        android:clickable="false"
-                        android:focusable="false"
-                        android:focusableInTouchMode="false"/>
-
-                    <LinearLayout
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentStart="true"
-                        android:layout_alignParentLeft="true"
-                        android:layout_centerVertical="true"
-                        android:layout_toStartOf="@id/cb_quick_create"
-                        android:layout_toLeftOf="@id/cb_quick_create"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/quick_create_title"
-                            android:textSize="16sp"/>
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/quick_create_description"
-                            android:textColor="@color/black_26p"
-                            android:textSize="14sp"/>
-
-                    </LinearLayout>
-
-                </RelativeLayout>
-
-                <RelativeLayout
-                    android:id="@+id/rl_ongoing_lockscreen_as_bt"
-                    android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:layout_marginTop="112dp"
-                    android:paddingLeft="16dp"
-                    android:paddingRight="16dp"
-                    android:background="@drawable/selectable_item_background">
-
-                    <CheckBox
-                        android:id="@+id/cb_ongoing_lockscreen"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentEnd="true"
-                        android:layout_alignParentRight="true"
-                        android:layout_centerVertical="true"
-                        android:clickable="false"
-                        android:focusable="false"
-                        android:focusableInTouchMode="false"/>
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentStart="true"
-                        android:layout_alignParentLeft="true"
-                        android:layout_toStartOf="@id/cb_ongoing_lockscreen"
-                        android:layout_toLeftOf="@id/cb_ongoing_lockscreen"
-                        android:text="@string/ongoing_lockscreen"
-                        android:textSize="16sp"
-                        tools:ignore="RelativeOverlap"
-                        android:layout_centerVertical="true"/>
-
-                </RelativeLayout>
-
-                <RelativeLayout
-                    android:id="@+id/rl_close_notification_later_as_bt"
-                    android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:layout_marginTop="168dp"
-                    android:paddingLeft="16dp"
-                    android:paddingRight="16dp"
-                    android:background="@drawable/selectable_item_background">
-
-                    <CheckBox
-                        android:id="@+id/cb_close_notification_later"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentEnd="true"
-                        android:layout_alignParentRight="true"
-                        android:layout_centerVertical="true"
-                        android:clickable="false"
-                        android:focusable="false"
-                        android:focusableInTouchMode="false"/>
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentStart="true"
-                        android:layout_alignParentLeft="true"
-                        android:layout_toStartOf="@id/cb_close_notification_later"
-                        android:layout_toLeftOf="@id/cb_close_notification_later"
-                        android:text="@string/close_notification_later"
-                        android:textSize="16sp"
-                        tools:ignore="RelativeOverlap"
-                        android:layout_centerVertical="true"/>
-
-                </RelativeLayout>
-
-                <FrameLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="72dp"
-                    android:layout_marginTop="224dp">
-
-                    <LinearLayout
-                        android:id="@+id/ll_daily_todo_as_bt"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:paddingLeft="16dp"
-                        android:paddingRight="16dp"
-                        android:orientation="vertical"
-                        android:gravity="center_vertical"
-                        android:background="@drawable/selectable_item_background">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/create_daily_todo_automatically"
-                            android:textSize="16sp"/>
-
-                        <TextView
-                            android:id="@+id/tv_daily_todo"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:textColor="@color/black_26p"
-                            android:textSize="14sp"/>
-
-                    </LinearLayout>
-
-                    <ImageView
-                        android:id="@+id/iv_daily_todo_help_as_bt"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
-                        android:layout_marginEnd="8dp"
-                        android:layout_marginRight="8dp"
-                        android:layout_gravity="end|center_vertical"
-                        android:scaleType="center"
-                        android:contentDescription="@string/cd_help_automatic_reminder"
-                        android:src="@drawable/act_show_help_info"
-                        android:background="@drawable/selectable_item_background"/>
-
-                </FrameLayout>
-
-                <FrameLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="72dp"
-                    android:layout_marginTop="296dp">
-
-                    <LinearLayout
-                        android:id="@+id/ll_advanced_auto_notify_as_bt"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:paddingLeft="16dp"
-                        android:paddingRight="16dp"
-                        android:orientation="vertical"
-                        android:gravity="center_vertical"
-                        android:background="@drawable/selectable_item_background">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/auto_notify"
-                            android:textSize="16sp"/>
-
-                        <TextView
-                            android:id="@+id/tv_advanced_auto_notify_time"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:textColor="@color/black_26p"
-                            android:textSize="14sp"/>
-
-                    </LinearLayout>
-
-                    <ImageView
-                        android:id="@+id/iv_auto_notify_help_as_bt"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
-                        android:layout_marginEnd="8dp"
-                        android:layout_marginRight="8dp"
-                        android:layout_gravity="end|center_vertical"
-                        android:scaleType="center"
-                        android:contentDescription="@string/cd_help_automatic_reminder"
-                        android:src="@drawable/act_show_help_info"
-                        android:background="@drawable/selectable_item_background"/>
-
-                </FrameLayout>
-
                 <LinearLayout
-                    android:id="@+id/ll_ringtone_auto_notify_as_bt"
                     android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:layout_marginTop="368dp"
-                    android:paddingLeft="16dp"
-                    android:paddingRight="16dp"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:background="@drawable/selectable_item_background">
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
 
                     <TextView
-                        android:id="@+id/tv_ringtone_auto_notify_title"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/auto_notify_ringtone"
-                        android:textSize="@dimen/tv_auto_notify_text_size"/>
+                        android:layout_height="20dp"
+                        android:layout_marginTop="12dp"
+                        android:layout_marginLeft="18dp"
+                        android:layout_marginRight="18dp"
+                        android:layout_marginBottom="8dp"
+                        android:gravity="center_vertical"
+                        android:drawableStart="@drawable/ic_advanced_settings"
+                        android:drawableLeft="@drawable/ic_advanced_settings"
+                        android:drawablePadding="16dp"
+                        android:textColor="@color/blue_deep"
+                        android:textSize="14sp"
+                        android:text="@string/settings_group_advanced"/>
 
-                    <TextView
-                        android:id="@+id/tv_ringtone_auto_notify"
+                    <RelativeLayout
+                        android:id="@+id/rl_quick_create_as_bt"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="end"
-                        android:textColor="@color/black_26p"/>
+                        android:layout_height="72dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:background="@drawable/selectable_item_background">
+
+                        <CheckBox
+                            android:id="@+id/cb_quick_create"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentEnd="true"
+                            android:layout_alignParentRight="true"
+                            android:layout_centerVertical="true"
+                            android:clickable="false"
+                            android:focusable="false"
+                            android:focusableInTouchMode="false"/>
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentStart="true"
+                            android:layout_alignParentLeft="true"
+                            android:layout_centerVertical="true"
+                            android:layout_toStartOf="@id/cb_quick_create"
+                            android:layout_toLeftOf="@id/cb_quick_create"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/quick_create_title"
+                                android:textSize="16sp"/>
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/quick_create_description"
+                                android:textColor="@color/black_26p"
+                                android:textSize="14sp"/>
+
+                        </LinearLayout>
+
+                    </RelativeLayout>
+
+                    <RelativeLayout
+                        android:id="@+id/rl_ongoing_lockscreen_as_bt"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:background="@drawable/selectable_item_background">
+
+                        <CheckBox
+                            android:id="@+id/cb_ongoing_lockscreen"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentEnd="true"
+                            android:layout_alignParentRight="true"
+                            android:layout_centerVertical="true"
+                            android:clickable="false"
+                            android:focusable="false"
+                            android:focusableInTouchMode="false"/>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentStart="true"
+                            android:layout_alignParentLeft="true"
+                            android:layout_toStartOf="@id/cb_ongoing_lockscreen"
+                            android:layout_toLeftOf="@id/cb_ongoing_lockscreen"
+                            android:text="@string/ongoing_lockscreen"
+                            android:textSize="16sp"
+                            tools:ignore="RelativeOverlap"
+                            android:layout_centerVertical="true"/>
+
+                    </RelativeLayout>
+
+                    <RelativeLayout
+                        android:id="@+id/rl_close_notification_later_as_bt"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:background="@drawable/selectable_item_background">
+
+                        <CheckBox
+                            android:id="@+id/cb_close_notification_later"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentEnd="true"
+                            android:layout_alignParentRight="true"
+                            android:layout_centerVertical="true"
+                            android:clickable="false"
+                            android:focusable="false"
+                            android:focusableInTouchMode="false"/>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentStart="true"
+                            android:layout_alignParentLeft="true"
+                            android:layout_toStartOf="@id/cb_close_notification_later"
+                            android:layout_toLeftOf="@id/cb_close_notification_later"
+                            android:text="@string/close_notification_later"
+                            android:textSize="16sp"
+                            tools:ignore="RelativeOverlap"
+                            android:layout_centerVertical="true"/>
+
+                    </RelativeLayout>
+
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="72dp">
+
+                        <LinearLayout
+                            android:id="@+id/ll_daily_todo_as_bt"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:paddingLeft="16dp"
+                            android:paddingRight="16dp"
+                            android:orientation="vertical"
+                            android:gravity="center_vertical"
+                            android:background="@drawable/selectable_item_background">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/create_daily_todo_automatically"
+                                android:textSize="16sp"/>
+
+                            <TextView
+                                android:id="@+id/tv_daily_todo"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:textColor="@color/black_26p"
+                                android:textSize="14sp"/>
+
+                        </LinearLayout>
+
+                        <ImageView
+                            android:id="@+id/iv_daily_todo_help_as_bt"
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            android:layout_marginEnd="8dp"
+                            android:layout_marginRight="8dp"
+                            android:layout_gravity="end|center_vertical"
+                            android:scaleType="center"
+                            android:contentDescription="@string/cd_help_automatic_reminder"
+                            android:src="@drawable/act_show_help_info"
+                            android:background="@drawable/selectable_item_background"/>
+
+                    </FrameLayout>
+
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="72dp">
+
+                        <LinearLayout
+                            android:id="@+id/ll_advanced_auto_notify_as_bt"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:paddingLeft="16dp"
+                            android:paddingRight="16dp"
+                            android:orientation="vertical"
+                            android:gravity="center_vertical"
+                            android:background="@drawable/selectable_item_background">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/auto_notify"
+                                android:textSize="16sp"/>
+
+                            <TextView
+                                android:id="@+id/tv_advanced_auto_notify_time"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:textColor="@color/black_26p"
+                                android:textSize="14sp"/>
+
+                        </LinearLayout>
+
+                        <ImageView
+                            android:id="@+id/iv_auto_notify_help_as_bt"
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            android:layout_marginEnd="8dp"
+                            android:layout_marginRight="8dp"
+                            android:layout_gravity="end|center_vertical"
+                            android:scaleType="center"
+                            android:contentDescription="@string/cd_help_automatic_reminder"
+                            android:src="@drawable/act_show_help_info"
+                            android:background="@drawable/selectable_item_background"/>
+
+                    </FrameLayout>
+
+                    <LinearLayout
+                        android:id="@+id/ll_ringtone_auto_notify_as_bt"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:background="@drawable/selectable_item_background">
+
+                        <TextView
+                            android:id="@+id/tv_ringtone_auto_notify_title"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/auto_notify_ringtone"
+                            android:textSize="@dimen/tv_auto_notify_text_size"/>
+
+                        <TextView
+                            android:id="@+id/tv_ringtone_auto_notify"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="end"
+                            android:textColor="@color/black_26p"/>
+
+                    </LinearLayout>
 
                 </LinearLayout>
 
