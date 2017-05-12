@@ -1465,13 +1465,14 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
         editor.putInt(Def.Meta.KEY_DAILY_TODO, mDTPicked);
         AlarmHelper.cancelDailyTodoAlarm(this);
-        if (mDTPicked != 0) {
-            AlarmHelper.tryToCreateDailyTodoAlarm(this);
-        }
 
         editor.putInt(Def.Meta.KEY_AUTO_NOTIFY, mANPicked);
 
         editor.apply();
+
+        if (mDTPicked != 0) {
+            AlarmHelper.tryToCreateDailyTodoAlarm(this);
+        }
     }
 
     @Override
