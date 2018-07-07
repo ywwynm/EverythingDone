@@ -88,3 +88,5 @@ exit /b 1
 if "%OS%"=="Windows_NT" endlocal
 
 :omega
+
+echo "Good luck, EverythingDone v1"
