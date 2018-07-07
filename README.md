@@ -1,6 +1,8 @@
-# EverythingDone
+# EverythingDone - 完事儿
 
 EverythingDone, an Android app to help you remember things, and finish them!
+
+Download app on [Google Play](https://play.google.com/store/apps/details?id=com.ywwynm.everythingdone) or [酷安](https://www.coolapk.com/apk/com.ywwynm.everythingdone)
 
 ## Introduction
 
@@ -8,6 +10,10 @@ Is it hard for you to remember everything and finish them?
 EverythingDone can remind you all activities, help you develop habits and achieve goals, beginning from stopping saying "later" or "tomorrow". You can also write stories and record daily life here, EverythingDone will keep them for a long long time.
 
 Following Material Design, we provide elegant user interface and experience so that you can enjoy the beauty of a real Android app. Let EverythingDone help you to store memory and improve yourself!
+
+## Score
+
+Achieved above 30K downloads on Chinese Android app markets~
 
 ## Screenshots
 
@@ -21,7 +27,7 @@ Personally I like my design very much, and I'm going to show that to you now:
 
 <img src="https://lh3.googleusercontent.com/huP57e8gVM1WLgtX_5SzLmmVCdZ0dAfr3KUlomivBaHWti_QAdj2pDCt6KrKyQ84iuMv=w3414-h1786-rw" width="270" />
 
-<img src="https://lh3.googleusercontent.com/QSYm3qOm4h6jpkT2uY8fg2KMEFMGUkzqhVDtZtVMQmd1VQPK1NLCZQyjyz5BCbhfiQ=w3414-h1786-rww" width="270" />
+<img src="https://lh3.googleusercontent.com/QSYm3qOm4h6jpkT2uY8fg2KMEFMGUkzqhVDtZtVMQmd1VQPK1NLCZQyjyz5BCbhfiQ=w3414-h1786-rw" width="270" />
 
 <img src="https://lh3.googleusercontent.com/5MAZQL5neb3oFXbDSL66CujLUvNbhMwnds8rH9zJuJnr9bAtLihKaDDgaMKm_0NEdLo=w3414-h1786-rw" width="270" />
 
@@ -49,7 +55,7 @@ Personally I like my design very much, and I'm going to show that to you now:
 
 <img src="https://lh3.googleusercontent.com/OGqSr9jwbE7Cxgm4sWgq2N6dIH3PzKlxlOA_x3Tw9uaS977sWo0myZYXv-RXlpoYU2wJ=w3414-h1786-rw" width="540" />
 
-## Functionalities
+## App functionalities
 
 - Write notes and insert images, audios and videos
 - Undo/redo when typing
@@ -71,11 +77,13 @@ Personally I like my design very much, and I'm going to show that to you now:
 - local data backup and restore
 - More...
 
-## Attractive parts
+## Personal project analysis
+
+### Attractive parts
 
 **Beautiful design and details, and the method to implement them**
 
-## Weak points
+### Weak points
 
 - Complicated code and logic somewhere, especially in `Activity` classes
 - Relatively out-of-date project structure, no kotlin, no MVVM, no Rx, no Jetpack...
@@ -83,7 +91,7 @@ Personally I like my design very much, and I'm going to show that to you now:
 - You may have some different ideas about UI or functionality design
 - **Code will not be updated any longer. I'm so sorry about this.**
 
-Please forgive me about them. I'm not a professional Android developer. I wrote this app only to meet my own demands and find some fun for myself. Now I even don't use an Android phone and have no time to better this app.
+Please forgive me about them. I'm not a professional Android developer. I wrote this app only to meet my own demands and find some fun for myself 3 years ago when I just learned to code for 1 year. Now I even don't use an Android phone and have no time to better this app.
 
 ## Build instructions
 
@@ -93,7 +101,7 @@ Import in Android studio, and make project. Maybe Android Studio will require so
 
 ## More to say
 
-- This is the first time I open-sourced a project. If you have any suggestions, please tell me directly on issues page
+- This is the first time I open-sourced a project that has been developed for quite a few time and makes me satisfied. If you have any suggestions, please tell me directly on issues page
 - I really enjoy myself when developing an app like this, so EverythingDone v2 is under developing now
 
 ## Licence
