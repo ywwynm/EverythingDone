@@ -1,8 +1,12 @@
 # 完事儿 - EverythingDone
 
+## **是什么在紛飛？是谁在浅唱？**
+
+<img src="https://lh3.googleusercontent.com/1l1oxzz6PnZzZYqQ4wEtcuD8lz0RAdXcre2HSiUgBDopyoZzHxoF_Cw91vBReA_lww=s360-rw" width="96" /> 
+
 完事儿，一个 Android 应用，帮你记住事情、完成事情！
 
-前往 [Google Play](https://play.google.com/store/apps/details?id=com.ywwynm.everythingdone) 或 [酷安](https://www.coolapk.com/apk/com.ywwynm.everythingdone) 下载应用
+前往 [Google Play](https://play.google.com/store/apps/details?id=com.ywwynm.everythingdone) 或 [酷安](https://www.coolapk.com/apk/com.ywwynm.everythingdone) 下载本应用
 
 ## 介绍
 
@@ -12,9 +16,7 @@
 
 遵循 Material Design 的界面、交互设计让你领略 Android 应用的美，在精致的细节中享受流畅的操作，一切尽在完事儿中。
 
-## 成绩
-
-30W 以上下载安装量~
+**已经获得 30W 以上下载量~**
 
 ## 界面截图
 

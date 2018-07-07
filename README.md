@@ -1,8 +1,14 @@
 # EverythingDone - 完事儿
 
+## **是什么在紛飛？是谁在浅唱？**
+
+<img src="https://lh3.googleusercontent.com/1l1oxzz6PnZzZYqQ4wEtcuD8lz0RAdXcre2HSiUgBDopyoZzHxoF_Cw91vBReA_lww=s360-rw" width="96" /> 
+
 EverythingDone, an Android app to help you remember things, and finish them!
 
-Download app on [Google Play](https://play.google.com/store/apps/details?id=com.ywwynm.everythingdone) or [酷安](https://www.coolapk.com/apk/com.ywwynm.everythingdone)
+Download this app on [Google Play](https://play.google.com/store/apps/details?id=com.ywwynm.everythingdone) or [酷安](https://www.coolapk.com/apk/com.ywwynm.everythingdone)
+
+[中文说明](https://github.com/ywwynm/EverythingDone/blob/master/README-Chinese.md)
 
 ## Introduction
 
@@ -11,9 +17,7 @@ EverythingDone can remind you all activities, help you develop habits and achiev
 
 Following Material Design, we provide elegant user interface and experience so that you can enjoy the beauty of a real Android app. Let EverythingDone help you to store memory and improve yourself!
 
-## Score
-
-Achieved above 30K downloads on Chinese Android app markets~
+**Achieved above 30K downloads on Chinese Android app markets~**
 
 ## Screenshots
 
