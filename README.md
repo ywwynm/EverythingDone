@@ -18,7 +18,7 @@ EverythingDone can remind you all activities, help you develop habits and achiev
 
 Following Material Design, we provide elegant user interface and experience so that you can enjoy the beauty of a real Android app. Let EverythingDone help you to store memory and improve yourself!
 
-**Achieved above 30K downloads on Chinese Android app markets~**
+**Achieved above 300K downloads on Chinese Android app markets~**
 
 ## Screenshots
 
