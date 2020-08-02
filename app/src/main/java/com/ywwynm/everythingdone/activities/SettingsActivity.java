@@ -242,7 +242,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     }
 
     private static boolean isFileRingtone(RingtoneManager ringtoneManager, Uri uri) {
-        return uri != RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+        return !uri.equals(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
                 && ringtoneManager.getRingtonePosition(uri) == -1;
     }
 
