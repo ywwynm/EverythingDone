@@ -92,7 +92,7 @@
                 android:background="@drawable/selectable_item_background"
                 android:alpha="0"/>
 
-            <android.support.design.widget.FloatingActionButton
+            <com.google.android.material.floatingactionbutton.FloatingActionButton
                 android:id="@+id/fab_record_main"
                 android:layout_width="56dp"
                 android:layout_height="56dp"

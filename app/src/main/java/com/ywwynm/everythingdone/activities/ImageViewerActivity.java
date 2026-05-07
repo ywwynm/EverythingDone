@@ -3,15 +3,17 @@ package com.ywwynm.everythingdone.activities;
 import android.annotation.SuppressLint;
 import android.content.ContentValues;
 import android.content.Intent;
+import androidx.activity.OnBackPressedCallback;
 import android.content.res.Configuration;
 import android.graphics.Point;
 import android.graphics.PorterDuff;
 import android.net.Uri;
 import android.provider.MediaStore;
-import android.support.v4.content.ContextCompat;
-import android.support.v4.view.ViewPager;
-import android.support.v7.app.ActionBar;
-import android.support.v7.widget.Toolbar;
+import androidx.core.content.FileProvider;
+import androidx.core.content.ContextCompat;
+import androidx.viewpager.widget.ViewPager;
+import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.widget.Toolbar;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -21,11 +23,13 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 
 import com.bumptech.glide.Glide;
-import com.bumptech.glide.load.resource.drawable.GlideDrawable;
+import android.graphics.drawable.Drawable;
+import com.bumptech.glide.load.DataSource;
+import com.bumptech.glide.load.engine.GlideException;
 import com.bumptech.glide.request.RequestListener;
 import com.bumptech.glide.request.target.Target;
 import com.github.chrisbanes.photoview.OnPhotoTapListener;
-import com.github.chrisbanes.photoview.PhotoViewAttacher;
+import com.github.chrisbanes.photoview.PhotoView;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.adapters.ImageViewerPagerAdapter;
@@ -65,11 +69,6 @@ public class ImageViewerActivity extends EverythingDoneBaseActivity {
     @Override
     protected int getLayoutResource() {
         return R.layout.activity_image_viewer;
-    }
-
-    @Override
-    public void onBackPressed() {
-        returnToDetailActivity();
     }
 
     @Override
@@ -115,30 +114,25 @@ public class ImageViewerActivity extends EverythingDoneBaseActivity {
             String pathName = typePathName.substring(1, typePathName.length());
 
             ProgressBar pb          = f(tab, R.id.pb_image_attachment);
-            ImageView   iv          = f(tab, R.id.iv_image_attachment);
+            PhotoView   iv          = f(tab, R.id.iv_image_attachment);
             ImageView   videoSignal = f(tab, R.id.iv_video_signal);
 
             pb.getIndeterminateDrawable().setColorFilter(appAccent, PorterDuff.Mode.SRC_IN);
 
-            final PhotoViewAttacher attacher = new PhotoViewAttacher(iv);
-            attacher.setScaleLevels(1.0f, 3.0f, 6.0f);
+            iv.setScaleLevels(1.0f, 3.0f, 6.0f);
 
             if (type == 0) {
                 iv.setContentDescription(getString(R.string.cd_image_attachment));
                 videoSignal.setVisibility(View.GONE);
+                iv.setOnPhotoTapListener(imageListener);
             } else {
                 iv.setContentDescription(getString(R.string.cd_video_attachment));
                 videoSignal.setVisibility(View.VISIBLE);
-            }
-
-            loadImage(pathName, iv, attacher, pb, size);
-
-            if (type == 0) {
-                attacher.setOnPhotoTapListener(imageListener);
-            } else {
                 videoSignal.setOnClickListener(videoListener);
-                attacher.setZoomable(false);
+                iv.setZoomable(false);
             }
+
+            loadImage(pathName, iv, pb, size);
 
             mTabs.add(tab);
         }
@@ -153,15 +147,6 @@ public class ImageViewerActivity extends EverythingDoneBaseActivity {
         Point screen = DisplayUtil.getScreenSize(this);
         int width  = screen.x;
         int height = screen.y;
-        if (!DeviceUtil.hasKitKatApi() && DisplayUtil.hasNavigationBar(this)) {
-            int navigationBarHeight = DisplayUtil.getNavigationBarHeight(this);
-            if (getResources().getConfiguration().orientation
-                    == Configuration.ORIENTATION_LANDSCAPE) {
-                width -= navigationBarHeight;
-            } else {
-                height -= navigationBarHeight;
-            }
-        }
         return new int[] { width, height };
     }
 
@@ -184,15 +169,9 @@ public class ImageViewerActivity extends EverythingDoneBaseActivity {
                 File file = new File(pathName);
 
                 Intent intent = new Intent(Intent.ACTION_VIEW);
-                Uri uri;
-                if (DeviceUtil.hasNougatApi()) {
-                    ContentValues contentValues = new ContentValues(1);
-                    contentValues.put(MediaStore.Video.Media.DATA, file.getAbsolutePath());
-                    uri = getContentResolver()
-                            .insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, contentValues);
-                } else {
-                    uri = Uri.fromFile(file);
-                }
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                Uri uri = FileProvider.getUriForFile(ImageViewerActivity.this,
+                        "com.ywwynm.everythingdone", file);
                 intent.setDataAndType(uri,
                         "video/" + FileUtil.getPostfix(pathName));
                 startActivity(intent);
@@ -201,24 +180,23 @@ public class ImageViewerActivity extends EverythingDoneBaseActivity {
     }
 
     private void loadImage(
-            String pathName, final ImageView iv, final PhotoViewAttacher attacher,
+            String pathName, final PhotoView iv,
             final ProgressBar pb, int[] size) {
         Glide.with(this)
                 .load(pathName)
-                .listener(new RequestListener<String, GlideDrawable>() {
+                .listener(new RequestListener<Drawable>() {
                     @Override
-                    public boolean onException(
-                            Exception e, String model, Target<GlideDrawable> target,
+                    public boolean onLoadFailed(
+                            GlideException e, Object model, Target<Drawable> target,
                             boolean isFirstResource) {
                         return false;
                     }
 
                     @Override
                     public boolean onResourceReady(
-                            GlideDrawable resource, String model, Target<GlideDrawable> target,
-                            boolean isFromMemoryCache, boolean isFirstResource) {
+                            Drawable resource, Object model, Target<Drawable> target,
+                            DataSource dataSource, boolean isFirstResource) {
                         iv.setImageDrawable(resource);
-                        attacher.update();
                         pb.setVisibility(View.GONE);
                         return true;
                     }
@@ -290,6 +268,13 @@ public class ImageViewerActivity extends EverythingDoneBaseActivity {
 
     @Override
     protected void setEvents() {
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                returnToDetailActivity();
+            }
+        });
+
         mVpImage.addOnPageChangeListener(new ViewPager.SimpleOnPageChangeListener() {
             @Override
             public void onPageSelected(int position) {
@@ -311,28 +296,16 @@ public class ImageViewerActivity extends EverythingDoneBaseActivity {
         View decorView = getWindow().getDecorView();
         int visibility = decorView.getSystemUiVisibility();
         if (mSystemUiVisible) {
-            if (DeviceUtil.hasKitKatApi()) {
-                decorView.setSystemUiVisibility(visibility
-                        | View.SYSTEM_UI_FLAG_FULLSCREEN
-                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                        | View.SYSTEM_UI_FLAG_IMMERSIVE);
-            } else {
-                decorView.setSystemUiVisibility(visibility
-                        | View.SYSTEM_UI_FLAG_FULLSCREEN
-                        | View.SYSTEM_UI_FLAG_LOW_PROFILE);
-            }
+            decorView.setSystemUiVisibility(visibility
+                    | View.SYSTEM_UI_FLAG_FULLSCREEN
+                    | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                    | View.SYSTEM_UI_FLAG_IMMERSIVE);
             mActionbar.setVisibility(View.GONE);
         } else {
-            if (DeviceUtil.hasKitKatApi()) {
-                decorView.setSystemUiVisibility(visibility
-                        & ~View.SYSTEM_UI_FLAG_FULLSCREEN
-                        & ~View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                        & ~View.SYSTEM_UI_FLAG_IMMERSIVE);
-            } else {
-                decorView.setSystemUiVisibility(visibility
-                        & ~View.SYSTEM_UI_FLAG_FULLSCREEN
-                        & ~View.SYSTEM_UI_FLAG_LOW_PROFILE);
-            }
+            decorView.setSystemUiVisibility(visibility
+                    & ~View.SYSTEM_UI_FLAG_FULLSCREEN
+                    & ~View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                    & ~View.SYSTEM_UI_FLAG_IMMERSIVE);
             mActionbar.setVisibility(View.VISIBLE);
         }
         mSystemUiVisible = !mSystemUiVisible;

@@ -1,6 +1,6 @@
 package com.ywwynm.everythingdone;
 
-import android.os.Environment;
+import android.content.Context;
 
 /**
  * Created by ywwynm on 2015/5/21.
@@ -9,6 +9,14 @@ import android.os.Environment;
 public final class Def {
 
     private Def() { }
+
+    /**
+     * Get app-private external files directory for storing attachments, ringtones, etc.
+     * Uses getExternalFilesDir on API 29+, falls back to legacy path on older devices.
+     */
+    public static String getAppFileDir(Context context) {
+        return context.getExternalFilesDir(null).getAbsolutePath();
+    }
 
     public static final class Meta {
 
@@ -31,15 +39,13 @@ public final class Def {
 
         public static final String APP_AUTHORITY = "com.ywwynm.everythingdone";
 
-        public static final String APP_FILE_DIR =
-                Environment.getExternalStorageDirectory().getAbsolutePath() + "/EverythingDone";
-
         public static final String FEEDBACK_EMAIL = "everythingdonefeedback@gmail.com";
 
         public static final String ROBOTO_MONO = "roboto-mono-min.ttf";
 
         public static final String KEY_START_USING_TIME         = "start_using_time";
         public static final String KEY_LAST_BACKUP_TIME         = "last_backup_time";
+        public static final String KEY_LAST_ALARM_REBUILD       = "last_alarm_rebuild";
 
         public static final String KEY_DRAWER_HEADER            = "drawer_header";
         public static final String KEY_NOTICEABLE_NOTIFICATION  = "noticeable_notification"; // 2016/11/9
@@ -213,6 +219,9 @@ public final class Def {
 
         // added on 2017/3/28 to implement restore2
         public static final int REQUEST_CHOOSE_BACKUP_FILE             = 17;
+        public static final int REQUEST_CREATE_BACKUP_FILE            = 19;
+
+        public static final int REQUEST_PERMISSION_NOTIFICATION        = 20;
 
         public static final String KEY_SENDER_NAME          = PREFIX + "key.sender_name";
         public static final String KEY_DETAIL_ACTIVITY_TYPE = PREFIX + "key.detail_activity_type";

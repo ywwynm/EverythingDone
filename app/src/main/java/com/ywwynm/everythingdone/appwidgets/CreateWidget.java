@@ -31,7 +31,7 @@ public class CreateWidget extends AppWidgetProvider {
 
             Intent contentIntent = DetailActivity.getOpenIntentForCreate(context, TAG, App.newThingColor);
             PendingIntent pendingIntent = PendingIntent.getActivity(context,
-                    appWidgetId, contentIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+                    appWidgetId, contentIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
             remoteViews.setOnClickPendingIntent(R.id.iv_widget_simple, pendingIntent);
             appWidgetManager.updateAppWidget(appWidgetId, remoteViews);
         }

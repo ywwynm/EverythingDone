@@ -3,6 +3,7 @@ package com.ywwynm.everythingdone.activities;
 import android.Manifest;
 import android.animation.ArgbEvaluator;
 import android.animation.ObjectAnimator;
+import androidx.activity.OnBackPressedCallback;
 import android.annotation.SuppressLint;
 import android.app.ActivityManager;
 import android.content.ActivityNotFoundException;
@@ -13,6 +14,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.Color;
@@ -23,18 +25,20 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.media.MediaPlayer;
 import android.net.Uri;
-import android.support.annotation.StringRes;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.app.ActivityOptionsCompat;
-import android.support.v4.content.ContextCompat;
-import android.support.v4.util.Pair;
-import android.support.v4.widget.NestedScrollView;
-import android.support.v7.widget.GridLayoutManager;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.SimpleItemAnimator;
-import android.support.v7.widget.Toolbar;
-import android.support.v7.widget.helper.ItemTouchHelper;
+import android.os.Build;
+import androidx.annotation.StringRes;
+import androidx.core.content.FileProvider;
+import androidx.core.app.ActivityCompat;
+import androidx.core.app.ActivityOptionsCompat;
+import androidx.core.content.ContextCompat;
+import androidx.core.util.Pair;
+import androidx.core.widget.NestedScrollView;
+import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.SimpleItemAnimator;
+import androidx.appcompat.widget.Toolbar;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import android.text.Editable;
 import android.text.Layout;
 import android.text.Spannable;
@@ -164,6 +168,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
     // type + path + name of attachment to add
     public String attachmentTypePathName;
+    public Uri cameraOutputUri;
 
     public ReminderHabitParams rhParams = new ReminderHabitParams();
 
@@ -318,11 +323,13 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
             IntentFilter intentFilter = new IntentFilter(
                     Def.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI);
-            registerReceiver(mReceiver, intentFilter);
+            ContextCompat.registerReceiver(this, mReceiver, intentFilter,
+                    ContextCompat.RECEIVER_NOT_EXPORTED);
 
             intentFilter = new IntentFilter(
                     Def.Communication.BROADCAST_ACTION_FINISH_DETAILACTIVITY);
-            registerReceiver(mReceiver, intentFilter);
+            ContextCompat.registerReceiver(this, mReceiver, intentFilter,
+                    ContextCompat.RECEIVER_NOT_EXPORTED);
         }
     }
 
@@ -428,7 +435,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 Uri data = intent.getParcelableExtra(Intent.EXTRA_STREAM);
                 String pathName = UriPathConverter.getLocalPathName(this, data);
                 if (pathName != null) {
-                    mThing.setAttachment(AttachmentHelper.SIGNAL + getTypePathName(pathName));
+                    mThing.setAttachment(AttachmentHelper.SIGNAL + getTypePathName(pathName, null));
                 }
             }
         } else if (Intent.ACTION_SEND_MULTIPLE.equals(action)) {
@@ -437,7 +444,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             for (Uri data : datas) {
                 String pathName = UriPathConverter.getLocalPathName(this, data);
                 if (pathName != null) {
-                    String typePathName = getTypePathName(pathName);
+                    String typePathName = getTypePathName(pathName, null);
                     if (typePathName != null) {
                         sb.append(AttachmentHelper.SIGNAL).append(typePathName);
                     }
@@ -653,6 +660,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     protected void initUI() {
         DisplayUtil.expandLayoutToStatusBarAboveLollipop(this);
         DisplayUtil.expandStatusBarViewAboveKitkat(mStatusBar);
+        DisplayUtil.applyBottomInsetAsPadding(mFlRoot);
 
         int color = mThing.getColor();
         if (mEditable) {
@@ -669,14 +677,6 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         }
 
         mFlRoot.setBackgroundColor(color);
-
-        if (!DeviceUtil.hasLollipopApi()) {
-            if (mEditable) {
-                int appAccentColor = ContextCompat.getColor(this, R.color.app_accent);
-                DisplayUtil.setSelectionHandlersColor(mEtTitle, appAccentColor);
-                DisplayUtil.setSelectionHandlersColor(mEtContent, appAccentColor);
-            }
-        }
 
         if (!mEditable) {
             mEtTitle.setKeyListener(null);
@@ -823,7 +823,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
                     },
                     Def.Communication.REQUEST_PERMISSION_LOAD_THING,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE);
+                    PermissionUtil.getStoragePermissions());
 
         } else {
             setScrollViewMarginTop(true);
@@ -995,6 +995,13 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
     @Override
     protected void setEvents() {
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                returnToThingsActivity(true, true);
+            }
+        });
+
         setScrollEvents();
 
         final Window window = getWindow();
@@ -1013,8 +1020,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                     quickRemindPicker.dismiss();
                 }
             });
-            if (DeviceUtil.hasKitKatApi()) {
-                KeyboardUtil.addKeyboardCallback(window, new KeyboardUtil.KeyboardCallback() {
+            KeyboardUtil.addKeyboardCallback(window, new KeyboardUtil.KeyboardCallback() {
 
                     final int screenHeightDivide6 = DisplayUtil.getScreenSize(mApp).y / 6;
 
@@ -1048,7 +1054,6 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                         }
                     }
                 });
-            }
         }
 
         if (mShouldAutoLink) {
@@ -1062,16 +1067,10 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             if (!DeviceUtil.isFlyme()) {
                 int appAccent = ContextCompat.getColor(this, R.color.app_accent);
                 int cursorWidth = (int) (1.5 * screenDensity);
-                int normalLineCursorHeightVary = (int) (-4 * screenDensity);
-                int lastLineCursorHeightVary;
-                if (DeviceUtil.hasLollipopApi()) {
-                    lastLineCursorHeightVary = (int) (-1 * screenDensity);
-                } else {
-                    lastLineCursorHeightVary = normalLineCursorHeightVary;
-                }
+                int lastLineCursorHeightVary = (int) (-1 * screenDensity);
                 LineSpacingHelper.setTextCursorDrawable(
                         mEtContent, appAccent, cursorWidth,
-                        normalLineCursorHeightVary, lastLineCursorHeightVary);
+                        (int) (-4 * screenDensity), lastLineCursorHeightVary);
             }
 
             setEditTextWatchers();
@@ -1200,14 +1199,12 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             title += Thing.getTypeStr(getThingTypeAfter(), mApp);
         }
         mFlRoot.setContentDescription(title);
-        if (DeviceUtil.hasLollipopApi()) {
-            BitmapDrawable bmd = (BitmapDrawable) getDrawable(R.mipmap.ic_launcher);
-            if (bmd != null) {
-                Bitmap bm = bmd.getBitmap();
-                try {
-                    setTaskDescription(new ActivityManager.TaskDescription(title, bm, color));
-                } catch (Exception ignored) {
-                }
+        BitmapDrawable bmd = (BitmapDrawable) getDrawable(R.mipmap.ic_launcher);
+        if (bmd != null) {
+            Bitmap bm = bmd.getBitmap();
+            try {
+                setTaskDescription(new ActivityManager.TaskDescription(title, bm, color));
+            } catch (Exception ignored) {
             }
         }
     }
@@ -1293,89 +1290,69 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.act_add_attachment:
-                AddAttachmentDialogFragment.newInstance().show(getFragmentManager(),
-                        AddAttachmentDialogFragment.TAG);
-                break;
-            case R.id.act_check_list:
-                toggleCheckList();
-                break;
-            case R.id.act_change_color:
-                mColorPicker.show();
-                break;
-            case R.id.act_set_as_private_thing:
-                togglePrivateThing();
-                break;
-            case R.id.act_undo:
-                undoOrRedo(mActionList.undo(), true);
-                break;
-            case R.id.act_redo:
-                undoOrRedo(mActionList.redo(), false);
-                break;
-            case R.id.act_check_habit_detail: {
-                if (mHabit == null) break;
+        int itemId = item.getItemId();
+        if (itemId == R.id.act_add_attachment) {
+            AddAttachmentDialogFragment.newInstance().show(getFragmentManager(),
+                    AddAttachmentDialogFragment.TAG);
+        } else if (itemId == R.id.act_check_list) {
+            toggleCheckList();
+        } else if (itemId == R.id.act_change_color) {
+            mColorPicker.show();
+        } else if (itemId == R.id.act_set_as_private_thing) {
+            togglePrivateThing();
+        } else if (itemId == R.id.act_undo) {
+            undoOrRedo(mActionList.undo(), true);
+        } else if (itemId == R.id.act_redo) {
+            undoOrRedo(mActionList.redo(), false);
+        } else if (itemId == R.id.act_check_habit_detail) {
+            if (mHabit != null) {
                 HabitDetailDialogFragment hddf = HabitDetailDialogFragment.newInstance();
                 mHabit = HabitDAO.getInstance(this).getHabitById(mHabit.getId());
                 hddf.setHabit(mHabit);
                 hddf.show(getFragmentManager(), HabitDetailDialogFragment.TAG);
-                break;
             }
-            case R.id.act_check_update_habit_record: {
-                if (mHabit == null) break;
+        } else if (itemId == R.id.act_check_update_habit_record) {
+            if (mHabit != null) {
                 HabitRecordDialogFragment hrdf = new HabitRecordDialogFragment();
                 mHabit = HabitDAO.getInstance(this).getHabitById(mHabit.getId());
                 hrdf.setHabit(mHabit);
                 hrdf.setEditable(mEditable);
                 hrdf.show(getFragmentManager(), HabitRecordDialogFragment.TAG);
-                break;
             }
-            case R.id.act_share:
-                chooseHowToShareThing();
-                break;
-            case R.id.act_finish_this_time_habit:
-                HabitDAO.getInstance(mApp).finishOneTime(mHabit);
-                mHabitFinishedThisTime = true;
-                rhParams.setHabitType(mHabit.getType());
-                rhParams.setHabitDetail(mHabit.getDetail());
-                returnToThingsActivity(true, false);
-                break;
-            case R.id.act_finish:
-                returnToThingsActivity(Thing.FINISHED);
-                break;
-            case R.id.act_delete:
-                returnToThingsActivity(Thing.DELETED);
-                break;
-            case R.id.act_restore:
-                returnToThingsActivity(Thing.UNDERWAY);
-                break;
-            case R.id.act_copy_content:
-                copyContent();
-                break;
-            case R.id.act_export:
-                doWithPermissionChecked(
-                        new SimplePermissionCallback(DetailActivity.this) {
-                            @Override
-                            public void onGranted() {
-                                ThingExporter.startExporting(
-                                        DetailActivity.this, getAccentColor(), mThing);
-                            }
-                        }, Def.Communication.REQUEST_PERMISSION_EXPORT_DETAIL,
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE);
-                break;
-            case R.id.act_abandon_new_thing:
-                createFailed(Def.Communication.RESULT_ABANDON_NEW_THING);
-                break;
-            case R.id.act_sticky:
-                stickyOrCancel();
-                break;
-            case R.id.act_ongoing_thing:
-                ongoingOrCancel();
-                break;
-            case R.id.act_pause_resume_habit:
-                pauseOrResumeHabit();
-                break;
-            default:break;
+        } else if (itemId == R.id.act_share) {
+            chooseHowToShareThing();
+        } else if (itemId == R.id.act_finish_this_time_habit) {
+            HabitDAO.getInstance(mApp).finishOneTime(mHabit);
+            mHabitFinishedThisTime = true;
+            rhParams.setHabitType(mHabit.getType());
+            rhParams.setHabitDetail(mHabit.getDetail());
+            returnToThingsActivity(true, false);
+        } else if (itemId == R.id.act_finish) {
+            returnToThingsActivity(Thing.FINISHED);
+        } else if (itemId == R.id.act_delete) {
+            returnToThingsActivity(Thing.DELETED);
+        } else if (itemId == R.id.act_restore) {
+            returnToThingsActivity(Thing.UNDERWAY);
+        } else if (itemId == R.id.act_copy_content) {
+            copyContent();
+        } else if (itemId == R.id.act_export) {
+            doWithPermissionChecked(
+                    new SimplePermissionCallback(DetailActivity.this) {
+                        @Override
+                        public void onGranted() {
+                            ThingExporter.startExporting(
+                                    DetailActivity.this, getAccentColor(), mThing);
+                        }
+                    }, Def.Communication.REQUEST_PERMISSION_EXPORT_DETAIL,
+                    PermissionUtil.getStoragePermissions());
+        } else if (itemId == R.id.act_abandon_new_thing) {
+            createFailed(Def.Communication.RESULT_ABANDON_NEW_THING);
+        } else if (itemId == R.id.act_sticky) {
+            stickyOrCancel();
+        } else if (itemId == R.id.act_ongoing_thing) {
+            ongoingOrCancel();
+        } else if (itemId == R.id.act_pause_resume_habit) {
+            pauseOrResumeHabit();
         }
         return super.onOptionsItemSelected(item);
     }
@@ -2018,18 +1995,47 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
             if (requestCode == Def.Communication.REQUEST_CHOOSE_MEDIA_FILE) {
-                String pathName = UriPathConverter.getLocalPathName(this, data.getData());
+                Uri uri = data.getData();
+                Log.d(TAG, "chooseMediaFile uri=" + uri + " scheme=" + (uri != null ? uri.getScheme() : "null"));
+                String pathName = UriPathConverter.getLocalPathName(this, uri);
+                Log.d(TAG, "chooseMediaFile getLocalPathName=" + pathName);
+                String mimeFallback = null;
                 if (pathName == null) {
+                    String mimeType = getContentResolver().getType(uri);
+                    Log.d(TAG, "chooseMediaFile mimeType=" + mimeType);
+                    String postfix = FileUtil.getPostfixFromMimeType(this, uri);
+                    Log.d(TAG, "chooseMediaFile postfixFromMime=" + postfix);
+                    if (postfix != null) {
+                        pathName = FileUtil.copyUriToFile(this, uri, postfix);
+                        Log.d(TAG, "chooseMediaFile copied to=" + pathName);
+                        mimeFallback = postfix;
+                    }
+                }
+                if (pathName == null) {
+                    Log.w(TAG, "chooseMediaFile pathName is null, showing error");
                     mNormalSnackbar.setMessage(R.string.error_cannot_add_from_network);
                     mFlRoot.postDelayed(mShowNormalSnackbar, KeyboardUtil.HIDE_DELAY);
                     return;
                 }
-                attachmentTypePathName = getTypePathName(pathName);
+                Log.d(TAG, "chooseMediaFile pathName=" + pathName + " postfix=" + FileUtil.getPostfix(pathName) + " mimeFallback=" + mimeFallback);
+                attachmentTypePathName = getTypePathName(pathName, mimeFallback);
+                Log.d(TAG, "chooseMediaFile attachmentTypePathName=" + attachmentTypePathName);
                 if (attachmentTypePathName == null) {
+                    Log.w(TAG, "chooseMediaFile getTypePathName returned null, showing error");
                     mNormalSnackbar.setMessage(R.string.error_unsupported_file_type);
                     mFlRoot.postDelayed(mShowNormalSnackbar, KeyboardUtil.HIDE_DELAY);
                     return;
                 }
+            }
+            // For camera/video capture, copy from MediaStore URI to our local file
+            if (cameraOutputUri != null && attachmentTypePathName != null) {
+                String localPath = attachmentTypePathName.substring(1); // remove type prefix
+                try {
+                    FileUtil.copyUriToExistingFile(this, cameraOutputUri, localPath);
+                } catch (Exception e) {
+                    Log.e(TAG, "Failed to copy camera output to local file", e);
+                }
+                cameraOutputUri = null;
             }
             addAttachment(0);
         } else if (resultCode == Def.Communication.RESULT_UPDATE_IMAGE_DONE) {
@@ -2050,33 +2056,37 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         }
     }
 
-    @Override
-    public void onBackPressed() {
-        returnToThingsActivity(true, true);
-    }
-
     public void showNormalSnackbar(int stringRes) {
         mNormalSnackbar.setMessage(stringRes);
         mNormalSnackbar.show();
     }
 
-    private String getTypePathName(String pathName) {
+    private String getTypePathName(String pathName, String mimePostfix) {
         String postfix = FileUtil.getPostfix(pathName);
-        if (AttachmentHelper.isImageFile(postfix)) {
+        if (AttachmentHelper.isImageFile(postfix)
+                || (mimePostfix != null && AttachmentHelper.isImageFile(
+                        mimePostfix.startsWith(".") ? mimePostfix.substring(1) : mimePostfix))) {
             return AttachmentHelper.IMAGE + pathName;
-        } else if (AttachmentHelper.isVideoFile(postfix)) {
+        } else if (AttachmentHelper.isVideoFile(postfix)
+                || (mimePostfix != null && AttachmentHelper.isVideoFile(
+                        mimePostfix.startsWith(".") ? mimePostfix.substring(1) : mimePostfix))) {
             File file = new File(pathName);
-            MediaPlayer player = MediaPlayer.create(this, Uri.fromFile(file));
+            MediaPlayer player = MediaPlayer.create(this,
+                    FileProvider.getUriForFile(this, "com.ywwynm.everythingdone", file));
             String ret = null;
             if (player.getVideoHeight() != 0) {
                 ret = AttachmentHelper.VIDEO + pathName;
-            } else if (AttachmentHelper.isAudioFile(postfix)) {
+            } else if (AttachmentHelper.isAudioFile(postfix)
+                    || (mimePostfix != null && AttachmentHelper.isAudioFile(
+                            mimePostfix.startsWith(".") ? mimePostfix.substring(1) : mimePostfix))) {
                 ret = AttachmentHelper.AUDIO + pathName;
             }
             player.reset();
             player.release();
             return ret;
-        } else if (AttachmentHelper.isAudioFile(postfix)) {
+        } else if (AttachmentHelper.isAudioFile(postfix)
+                || (mimePostfix != null && AttachmentHelper.isAudioFile(
+                        mimePostfix.startsWith(".") ? mimePostfix.substring(1) : mimePostfix))) {
             return AttachmentHelper.AUDIO + pathName;
         }
         return null;
@@ -2114,10 +2124,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     private void setScrollViewMarginTop(boolean hasMarginTop) {
         FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) mScrollView.getLayoutParams();
         if (hasMarginTop) {
-            float mt = screenDensity * 56;
-            if (DeviceUtil.hasKitKatApi()) {
-                mt += DisplayUtil.getStatusbarHeight(this);
-            }
+            float mt = screenDensity * 56 + DisplayUtil.getStatusbarHeight(this);
             params.setMargins(0, (int) mt, 0, params.bottomMargin);
         } else {
             params.setMargins(0, 0, 0, params.bottomMargin);
@@ -2243,10 +2250,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
     private void setImageCover() {
         FrameLayout.LayoutParams fl = (FrameLayout.LayoutParams) mImageCover.getLayoutParams();
-        fl.height = (int) (66 * screenDensity);
-        if (DeviceUtil.hasKitKatApi()) {
-            fl.height += DisplayUtil.getStatusbarHeight(this);
-        }
+        fl.height = (int) (66 * screenDensity) + DisplayUtil.getStatusbarHeight(this);
         mImageCover.setVisibility(View.VISIBLE);
     }
 
@@ -2265,12 +2269,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         final int barsHeight = (int) (screenDensity * 56);
         final int statusBarHeight = DisplayUtil.getStatusbarHeight(this);
 
-        final int statusBarOffset; // if is in translucent mode, we should also consider height of status bar.
-        if (!DeviceUtil.hasKitKatApi()) {
-            statusBarOffset = 0;
-        } else {
-            statusBarOffset = statusBarHeight;
-        }
+        final int statusBarOffset = statusBarHeight; // if is in translucent mode, we should also consider height of status bar.
 
         mScrollView.setOnScrollChangeListener(new NestedScrollView.OnScrollChangeListener() {
             @Override
@@ -2351,7 +2350,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         int marginTop = statusBarHeight;
         if (mRvImageAttachment.getVisibility() != View.VISIBLE) {
             marginTop += bottomBarHeight;
-        } else if (DeviceUtil.hasKitKatApi()) {
+        } else {
             marginTop -= statusBarHeight;
         }
 
@@ -2708,6 +2707,40 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 || resultCode == Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_DIFFERENT) {
             SystemNotificationUtil.tryToCreateThingOngoingNotification(this);
         }
+
+        maybeRequestNotificationPermission();
+    }
+
+    /**
+     * Ask for POST_NOTIFICATIONS the moment the user finishes creating an
+     * alarm-bearing thing (reminder / habit / goal). This is a much better
+     * moment than asking on first launch — the user just defined a thing they
+     * expect to be notified about, so the request is contextual. Android 13+
+     * silently rejects after the user has permanently denied, so calling this
+     * on every create is safe.
+     */
+    private void maybeRequestNotificationPermission() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return;
+        if (mThing == null) return;
+
+        @Thing.Type int type = mThing.getType();
+        boolean alarmBearing = type == Thing.REMINDER || type == Thing.WELCOME_REMINDER
+                || type == Thing.HABIT || type == Thing.WELCOME_HABIT
+                || type == Thing.GOAL  || type == Thing.WELCOME_GOAL;
+        if (!alarmBearing) return;
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                == PackageManager.PERMISSION_GRANTED) return;
+
+        doWithPermissionChecked(new SimplePermissionCallback(this) {
+            @Override
+            public void onDenied() {
+                // No-op: don't override the parent's snackbar — alarm + receiver
+                // logic still runs, the notification just won't be visible.
+                // Settings → Reminder reliability surfaces the disabled state.
+            }
+        }, Def.Communication.REQUEST_PERMISSION_NOTIFICATION,
+                Manifest.permission.POST_NOTIFICATIONS);
     }
 
     private void returnToThingsActivity(int stateAfter) {
@@ -3101,6 +3134,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
         intent.putExtra(Def.Communication.KEY_RESULT_CODE, resultCode);
         intent.setAction(Def.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI);
+        intent.setPackage(getPackageName());
         sendBroadcast(intent);
     }
 

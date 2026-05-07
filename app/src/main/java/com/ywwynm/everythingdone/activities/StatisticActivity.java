@@ -2,14 +2,15 @@ package com.ywwynm.everythingdone.activities;
 
 import android.Manifest;
 import android.content.SharedPreferences;
+import com.ywwynm.everythingdone.permission.PermissionUtil;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.os.AsyncTask;
-import android.support.v4.content.ContextCompat;
-import android.support.v7.app.ActionBar;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.Toolbar;
+import androidx.core.content.ContextCompat;
+import androidx.appcompat.app.ActionBar;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.appcompat.widget.Toolbar;
 import android.view.View;
 import android.view.ViewTreeObserver;
 import android.widget.FrameLayout;
@@ -146,9 +147,6 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
         mIvHeader.requestLayout();
 
         float mt = mHeaderHeight - mScreenDensity * 28;
-        if (!DeviceUtil.hasLollipopApi()) {
-            mt -= mScreenDensity * 28;
-        }
         FrameLayout.LayoutParams flp = (FrameLayout.LayoutParams) mFab.getLayoutParams();
         flp.topMargin = (int) mt;
         mFab.requestLayout();
@@ -276,7 +274,7 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
                         }
                     },
                     Def.Communication.REQUEST_PERMISSION_SCREENSHOT,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE);
+                    PermissionUtil.getStoragePermissions());
             }
         });
     }
@@ -307,8 +305,7 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
     }
 
     private void updateFabState() {
-        int statusbarSize = DeviceUtil.hasKitKatApi() ?
-            DisplayUtil.getStatusbarHeight(StatisticActivity.this) : 0;
+        int statusbarSize = DisplayUtil.getStatusbarHeight(StatisticActivity.this);
         int scrollY = mScrollView.getScrollY();
         int actionbarSize = mActionbar.getHeight();
         float fabY = mHeaderHeight - statusbarSize - actionbarSize - actionbarSize;
@@ -320,8 +317,7 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
     }
 
     private void updateActionbarState() {
-        int statusbarSize = DeviceUtil.hasKitKatApi() ?
-                DisplayUtil.getStatusbarHeight(mApp) : 0;
+        int statusbarSize = DisplayUtil.getStatusbarHeight(mApp);
         int scrollY = mScrollView.getScrollY();
         int color = ContextCompat.getColor(mApp, R.color.blue_grey_deep_grey);
         int actionbarSize = mActionbar.getHeight();

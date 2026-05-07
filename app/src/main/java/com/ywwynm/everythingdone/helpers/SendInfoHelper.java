@@ -7,7 +7,8 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
-import android.support.v4.content.ContextCompat;
+import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 import android.widget.Toast;
 
 import com.ywwynm.everythingdone.BuildConfig;
@@ -51,8 +52,9 @@ public class SendInfoHelper {
 
         Bitmap bm = ((BitmapDrawable) ContextCompat.getDrawable(
                 context, R.drawable.ic_launcher_ori)).getBitmap();
-        File file = BitmapUtil.saveBitmapToStorage(FileUtil.TEMP_PATH, "app.jpeg", bm);
-        Uri uri = Uri.fromFile(file);
+        File file = BitmapUtil.saveBitmapToStorage(FileUtil.getTempPath(context), "app.jpeg", bm);
+        Uri uri = FileProvider.getUriForFile(context,
+                "com.ywwynm.everythingdone", file);
         ArrayList<Uri> list = new ArrayList<>();
         list.add(uri);
 
@@ -99,8 +101,9 @@ public class SendInfoHelper {
         } else {
             intent.setAction(Intent.ACTION_SEND);
             intent.setType("message/rfc822");
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             intent.putExtra(Intent.EXTRA_EMAIL, new String[] { email });
-            intent.putExtra(Intent.EXTRA_STREAM, getLatestLogUri());
+            intent.putExtra(Intent.EXTRA_STREAM, getLatestLogUri(context));
         }
 
         try {
@@ -112,8 +115,8 @@ public class SendInfoHelper {
         }
     }
 
-    private static Uri getLatestLogUri() {
-        String dirPath = Def.Meta.APP_FILE_DIR + "/log";
+    private static Uri getLatestLogUri(Context context) {
+        String dirPath = Def.getAppFileDir(context) + "/log";
         File dir = new File(dirPath);
         if (dir.exists()) {
             File[] files = dir.listFiles();
@@ -127,7 +130,8 @@ public class SendInfoHelper {
                     max = file;
                 }
             }
-            return Uri.fromFile(max);
+            return FileProvider.getUriForFile(context,
+                    "com.ywwynm.everythingdone", max);
         }
         return null;
     }
@@ -295,6 +299,7 @@ public class SendInfoHelper {
             intent.putExtra(Intent.EXTRA_TEXT, content);
         } else {
             intent.setAction(Intent.ACTION_SEND_MULTIPLE);
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             if (allImage) {
                 intent.setType("image/*");
                 intent.putExtra(EXTRA_WX_SHARE_EXPLORE_CONTENT, content);

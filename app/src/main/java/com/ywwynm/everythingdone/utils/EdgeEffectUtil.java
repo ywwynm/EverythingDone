@@ -3,8 +3,8 @@ package com.ywwynm.everythingdone.utils;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
-import android.support.v4.view.ViewPager;
-import android.support.v7.widget.RecyclerView;
+import androidx.viewpager.widget.ViewPager;
+import androidx.recyclerview.widget.RecyclerView;
 import android.widget.EdgeEffect;
 import android.widget.ScrollView;
 
@@ -23,11 +23,7 @@ public class EdgeEffectUtil {
     private EdgeEffectUtil() {}
 
     public static int getEdgeColorDark() {
-        if (DeviceUtil.hasLollipopApi()) {
-            return Color.parseColor("#40000000");
-        } else {
-            return Color.parseColor("#80000000");
-        }
+        return Color.parseColor("#40000000");
     }
 
     public static void forScrollView(ScrollView sv, int color) {
@@ -78,20 +74,7 @@ public class EdgeEffectUtil {
 
     private static void setEdgeEffectColor(EdgeEffect edgeEffect, int color) {
         try {
-            if (DeviceUtil.hasLollipopApi()) {
-                edgeEffect.setColor(color);
-                return;
-            }
-            Field edgeField = EdgeEffect.class.getDeclaredField("mEdge");
-            Field glowField = EdgeEffect.class.getDeclaredField("mGlow");
-            edgeField.setAccessible(true);
-            glowField.setAccessible(true);
-            Drawable dEdge = ((Drawable) edgeField.get(edgeEffect)).mutate();
-            Drawable dGlow = ((Drawable) glowField.get(edgeEffect)).mutate();
-            dEdge.setColorFilter(color, PorterDuff.Mode.SRC_IN);
-            dGlow.setColorFilter(color, PorterDuff.Mode.SRC_IN);
-            dEdge.setCallback(null); // free up any references
-            dGlow.setCallback(null);
+            edgeEffect.setColor(color);
         } catch (Exception ignored) { }
     }
 

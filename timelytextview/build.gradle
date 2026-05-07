@@ -1,12 +1,12 @@
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 25
-    buildToolsVersion '25.0.2'
+    namespace 'com.github.adnansm.timelytextview'
+    compileSdk 36
 
     defaultConfig {
-        minSdkVersion 16
-        targetSdkVersion 25
+        minSdk 23
+        targetSdk 36
         versionCode 1
         versionName "1.0"
     }
@@ -15,5 +15,10 @@ android {
         release {
             minifyEnabled false
         }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
 }

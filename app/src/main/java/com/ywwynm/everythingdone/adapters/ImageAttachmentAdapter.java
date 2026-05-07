@@ -2,9 +2,9 @@ package com.ywwynm.everythingdone.adapters;
 
 import android.content.Context;
 import android.graphics.PorterDuff;
-import android.support.v4.content.ContextCompat;
-import android.support.v7.widget.GridLayoutManager;
-import android.support.v7.widget.RecyclerView;
+import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,7 +13,9 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 
 import com.bumptech.glide.Glide;
-import com.bumptech.glide.load.resource.drawable.GlideDrawable;
+import android.graphics.drawable.Drawable;
+import com.bumptech.glide.load.DataSource;
+import com.bumptech.glide.load.engine.GlideException;
 import com.bumptech.glide.request.RequestListener;
 import com.bumptech.glide.request.target.Target;
 import com.ywwynm.everythingdone.R;
@@ -110,18 +112,18 @@ public class ImageAttachmentAdapter extends RecyclerView.Adapter<ImageAttachment
         Glide.with(holder.ivImage.getContext())
                 .load(pathName)
                 .centerCrop()
-                .listener(new RequestListener<String, GlideDrawable>() {
+                .listener(new RequestListener<Drawable>() {
                     @Override
-                    public boolean onException(
-                            Exception e, String model, Target<GlideDrawable> target,
+                    public boolean onLoadFailed(
+                            GlideException e, Object model, Target<Drawable> target,
                             boolean isFirstResource) {
                         return false;
                     }
 
                     @Override
                     public boolean onResourceReady(
-                            GlideDrawable resource, String model, Target<GlideDrawable> target,
-                            boolean isFromMemoryCache, boolean isFirstResource) {
+                            Drawable resource, Object model, Target<Drawable> target,
+                            DataSource dataSource, boolean isFirstResource) {
                         holder.ivDelete.setVisibility(View.VISIBLE);
                         holder.pbLoading.setVisibility(View.GONE);
                         return false;

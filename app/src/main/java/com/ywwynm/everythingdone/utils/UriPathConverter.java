@@ -55,10 +55,8 @@ public class UriPathConverter {
             return null;
         }
 
-        boolean isKitKat = DeviceUtil.hasKitKatApi();
-
         // DocumentProvider
-        if (isKitKat && DocumentsContract.isDocumentUri(context, uri)) {
+        if (DocumentsContract.isDocumentUri(context, uri)) {
             // ExternalStorageProvider
             if (isExternalStorageDocument(uri)) {
                 String docId = DocumentsContract.getDocumentId(uri);

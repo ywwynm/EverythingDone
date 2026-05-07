@@ -23,11 +23,6 @@ public class AuthenticationHelper {
             return;
         }
 
-        if (!DeviceUtil.hasMarshmallowApi()) {
-            authenticateByPattern(activity, accentColor, title, correctPassword, callback);
-            return;
-        }
-
         FingerprintHelper.getInstance()
                 .tryToAuthenticatingByFingerprint(
                         activity, accentColor, title, correctPassword, callback);

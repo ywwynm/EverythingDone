@@ -5,8 +5,8 @@ import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.SystemClock;
-import android.support.design.widget.FloatingActionButton;
-import android.support.v4.content.ContextCompat;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import androidx.core.content.ContextCompat;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -125,7 +125,7 @@ public class AudioRecordDialogFragment extends BaseDialogFragment {
         }
         mRecorder.release();
 
-        FileUtil.deleteDirectory(FileUtil.TEMP_PATH + "/audio_raw");
+        FileUtil.deleteDirectory(FileUtil.getTempPath(mActivity) + "/audio_raw");
 
         super.onDismiss(dialog);
     }

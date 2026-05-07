@@ -8,10 +8,11 @@ import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.AsyncTask;
-import android.support.annotation.DrawableRes;
-import android.support.v4.content.ContextCompat;
-import android.support.v4.widget.NestedScrollView;
-import android.support.v7.widget.RecyclerView;
+import androidx.core.content.FileProvider;
+import androidx.annotation.DrawableRes;
+import androidx.core.content.ContextCompat;
+import androidx.core.widget.NestedScrollView;
+import androidx.recyclerview.widget.RecyclerView;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.FrameLayout;
@@ -88,7 +89,9 @@ public class ScreenshotHelper {
 
             Intent intent = new Intent(Intent.ACTION_SEND);
             intent.setType("image/jpeg");
-            intent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(file));
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            intent.putExtra(Intent.EXTRA_STREAM,
+                    FileProvider.getUriForFile(context, "com.ywwynm.everythingdone", file));
             context.startActivity(Intent.createChooser(intent, mShareTitle));
         }
     }
@@ -152,7 +155,7 @@ public class ScreenshotHelper {
         String name = "screenshot_";
         name += new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
         name += ".jpeg";
-        return BitmapUtil.saveBitmapToStorage(FileUtil.TEMP_PATH, name, bitmap);
+        return BitmapUtil.saveBitmapToStorage(FileUtil.getTempPath(scrollView.getContext()), name, bitmap);
     }
 
     private static class ScreenshotTask extends AsyncTask<Object, Object, File> {

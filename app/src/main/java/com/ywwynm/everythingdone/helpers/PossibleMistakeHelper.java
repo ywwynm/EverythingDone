@@ -1,5 +1,6 @@
 package com.ywwynm.everythingdone.helpers;
 
+import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.BuildConfig;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.utils.DeviceUtil;
@@ -91,7 +92,7 @@ public class PossibleMistakeHelper {
     }
 
     private static File createNewLogFile() {
-        String path = Def.Meta.APP_FILE_DIR + "/log";
+        String path = Def.getAppFileDir(App.getApp()) + "/log";
         String time = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
         String name = "possible_mistake_" + time + ".info";
         return FileUtil.createFile(path, name);

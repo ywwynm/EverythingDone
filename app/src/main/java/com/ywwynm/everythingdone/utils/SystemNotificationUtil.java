@@ -10,19 +10,21 @@ import android.graphics.Point;
 import android.graphics.drawable.BitmapDrawable;
 import android.media.RingtoneManager;
 import android.net.Uri;
-import android.support.v4.app.NotificationCompat;
-import android.support.v4.app.NotificationManagerCompat;
-import android.support.v4.content.ContextCompat;
-import android.support.v4.content.FileProvider;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
+import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.FrequentSettings;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.AuthenticationActivity;
+import com.ywwynm.everythingdone.activities.DelayReminderActivity;
 import com.ywwynm.everythingdone.activities.DetailActivity;
 import com.ywwynm.everythingdone.activities.DoingActivity;
 import com.ywwynm.everythingdone.activities.SettingsActivity;
+import com.ywwynm.everythingdone.activities.StartDoingActivity;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.helpers.AttachmentHelper;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
@@ -72,10 +74,10 @@ public class SystemNotificationUtil {
         int type  = thing.getType();
         int color = thing.getColor();
         PendingIntent contentPendingIntent = PendingIntent.getActivity(context,
-                (int) id, contentIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+                (int) id, contentIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
         int defaults = Notification.DEFAULT_LIGHTS;
-        if (!DeviceUtil.isScreenOn(context) || !DeviceUtil.hasLollipopApi()) {
+        if (!DeviceUtil.isScreenOn(context)) {
             defaults |= Notification.DEFAULT_VIBRATE;
         }
         /*
@@ -93,7 +95,10 @@ public class SystemNotificationUtil {
                     Intent.FLAG_GRANT_READ_URI_PERMISSION);
         }
 
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(context)
+        String channelId = autoNotify ? "auto_notify"
+                : type == Thing.REMINDER ? "reminder"
+                : type == Thing.HABIT ? "habit" : "goal";
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, channelId)
                 .setColor(color)
                 .setDefaults(defaults)
                 .setPriority(NotificationCompat.PRIORITY_MAX)
@@ -167,56 +172,113 @@ public class SystemNotificationUtil {
 
     public static void addActionsForReminderNotification(
             NotificationCompat.Builder builder, Context context, long id, int position,
-            @Thing.Type int type) {
-        Intent finishIntent = new Intent(context, ReminderNotificationActionReceiver.class);
-        finishIntent.setAction(Def.Communication.NOTIFICATION_ACTION_FINISH);
-        finishIntent.putExtra(Def.Communication.KEY_ID, id);
-        finishIntent.putExtra(Def.Communication.KEY_POSITION, position);
-        builder.addAction(R.drawable.act_finish, context.getString(R.string.act_finish),
-                PendingIntent.getBroadcast(context,
-                        (int) id, finishIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+            @Thing.Type int type, boolean isPrivate, int color) {
+        if (isPrivate) {
+            Intent finishIntent = AuthenticationActivity.getOpenIntent(
+                    context, "SystemNotificationUtil", id, position,
+                    Def.Communication.AUTHENTICATE_ACTION_FINISH,
+                    context.getString(R.string.act_finish));
+            finishIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            builder.addAction(R.drawable.act_finish, context.getString(R.string.act_finish),
+                    PendingIntent.getActivity(context,
+                            (int) id, finishIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
+        } else {
+            Intent finishIntent = new Intent(context, ReminderNotificationActionReceiver.class);
+            finishIntent.setAction(Def.Communication.NOTIFICATION_ACTION_FINISH);
+            finishIntent.putExtra(Def.Communication.KEY_ID, id);
+            finishIntent.putExtra(Def.Communication.KEY_POSITION, position);
+            builder.addAction(R.drawable.act_finish, context.getString(R.string.act_finish),
+                    PendingIntent.getBroadcast(context,
+                            (int) id, finishIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
+        }
 
         if (type == Thing.REMINDER) {
-            Intent startIntent = new Intent(context, ReminderNotificationActionReceiver.class);
-            startIntent.setAction(Def.Communication.NOTIFICATION_ACTION_START_DOING);
-            startIntent.putExtra(Def.Communication.KEY_ID, id);
-            startIntent.putExtra(Def.Communication.KEY_POSITION, position);
-            builder.addAction(R.drawable.act_start_doing,
-                    context.getString(R.string.act_start_doing),
-                    PendingIntent.getBroadcast(context,
-                            (int) id, startIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+            if (isPrivate) {
+                Intent startIntent = AuthenticationActivity.getOpenIntent(
+                        context, "SystemNotificationUtil", id, position,
+                        Def.Communication.AUTHENTICATE_ACTION_START_DOING,
+                        context.getString(R.string.act_start_doing));
+                startIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                builder.addAction(R.drawable.act_start_doing,
+                        context.getString(R.string.act_start_doing),
+                        PendingIntent.getActivity(context,
+                                (int) id, startIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
 
-            Intent delayIntent = new Intent(context, ReminderNotificationActionReceiver.class);
-            delayIntent.setAction(Def.Communication.NOTIFICATION_ACTION_DELAY);
-            delayIntent.putExtra(Def.Communication.KEY_ID, id);
-            delayIntent.putExtra(Def.Communication.KEY_POSITION, position);
-            builder.addAction(R.drawable.act_delay,
-                    context.getString(R.string.act_delay),
-                    PendingIntent.getBroadcast(context,
-                            (int) id, delayIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+                Intent delayIntent = AuthenticationActivity.getOpenIntent(
+                        context, "SystemNotificationUtil", id, position,
+                        Def.Communication.AUTHENTICATE_ACTION_DELAY,
+                        context.getString(R.string.act_delay));
+                delayIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                builder.addAction(R.drawable.act_delay,
+                        context.getString(R.string.act_delay),
+                        PendingIntent.getActivity(context,
+                                (int) id, delayIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
+            } else {
+                Intent startIntent = StartDoingActivity.getOpenIntent(
+                        context, id, position, color,
+                        DoingService.START_TYPE_ALARM, -1);
+                startIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                builder.addAction(R.drawable.act_start_doing,
+                        context.getString(R.string.act_start_doing),
+                        PendingIntent.getActivity(context,
+                                (int) id, startIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
+
+                Intent delayIntent = DelayReminderActivity.getOpenIntent(
+                        context, id, position, color);
+                delayIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                builder.addAction(R.drawable.act_delay,
+                        context.getString(R.string.act_delay),
+                        PendingIntent.getActivity(context,
+                                (int) id, delayIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
+            }
         }
     }
 
     public static void addActionsForHabitNotification(
-            Context context, NotificationCompat.Builder builder, long hrId, int position, long hrTime) {
-        Intent finishIntent = new Intent(context, HabitNotificationActionReceiver.class);
-        finishIntent.setAction(Def.Communication.NOTIFICATION_ACTION_FINISH);
-        finishIntent.putExtra(Def.Communication.KEY_ID, hrId);
-        finishIntent.putExtra(Def.Communication.KEY_POSITION, position);
-        finishIntent.putExtra(Def.Communication.KEY_TIME, hrTime);
-        builder.addAction(R.drawable.act_finish, context.getString(R.string.act_finish_this_time_habit),
-                PendingIntent.getBroadcast(context,
-                        (int) hrId, finishIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+            Context context, NotificationCompat.Builder builder, long hrId, int position, long hrTime,
+            boolean isPrivate, long thingId, int color) {
+        if (isPrivate) {
+            Intent finishIntent = AuthenticationActivity.getOpenIntent(
+                    context, "SystemNotificationUtil", thingId, position,
+                    Def.Communication.AUTHENTICATE_ACTION_FINISH,
+                    context.getString(R.string.act_finish_this_time_habit));
+            finishIntent.putExtra(Def.Communication.KEY_TIME, hrTime);
+            finishIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            builder.addAction(R.drawable.act_finish, context.getString(R.string.act_finish_this_time_habit),
+                    PendingIntent.getActivity(context,
+                            (int) hrId, finishIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
+        } else {
+            Intent finishIntent = new Intent(context, HabitNotificationActionReceiver.class);
+            finishIntent.setAction(Def.Communication.NOTIFICATION_ACTION_FINISH);
+            finishIntent.putExtra(Def.Communication.KEY_ID, hrId);
+            finishIntent.putExtra(Def.Communication.KEY_POSITION, position);
+            finishIntent.putExtra(Def.Communication.KEY_TIME, hrTime);
+            builder.addAction(R.drawable.act_finish, context.getString(R.string.act_finish_this_time_habit),
+                    PendingIntent.getBroadcast(context,
+                            (int) hrId, finishIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
+        }
 
-        Intent startIntent = new Intent(context, HabitNotificationActionReceiver.class);
-        startIntent.setAction(Def.Communication.NOTIFICATION_ACTION_START_DOING);
-        startIntent.putExtra(Def.Communication.KEY_ID, hrId);
-        startIntent.putExtra(Def.Communication.KEY_POSITION, position);
-        finishIntent.putExtra(Def.Communication.KEY_TIME, hrTime);
-        builder.addAction(R.drawable.act_start_doing,
-                context.getString(R.string.act_start_doing),
-                PendingIntent.getBroadcast(context,
-                        (int) hrId, startIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+        if (isPrivate) {
+            Intent startIntent = AuthenticationActivity.getOpenIntent(
+                    context, "SystemNotificationUtil", thingId, position,
+                    Def.Communication.AUTHENTICATE_ACTION_START_DOING,
+                    context.getString(R.string.act_start_doing));
+            startIntent.putExtra(Def.Communication.KEY_TIME, hrTime);
+            startIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            builder.addAction(R.drawable.act_start_doing,
+                    context.getString(R.string.act_start_doing),
+                    PendingIntent.getActivity(context,
+                            (int) hrId, startIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
+        } else {
+            Intent startIntent = StartDoingActivity.getOpenIntent(
+                    context, thingId, position, color,
+                    DoingService.START_TYPE_ALARM, hrTime);
+            startIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            builder.addAction(R.drawable.act_start_doing,
+                    context.getString(R.string.act_start_doing),
+                    PendingIntent.getActivity(context,
+                            (int) hrId, startIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
+        }
 
 //            Intent getItIntent = new Intent(context, HabitNotificationActionReceiver.class);
 //            getItIntent.setAction(Def.Communication.NOTIFICATION_ACTION_GET_IT);
@@ -225,19 +287,19 @@ public class SystemNotificationUtil {
 //            builder.addAction(R.drawable.act_get_it,
 //                    context.getString(R.string.act_get_it),
 //                    PendingIntent.getBroadcast(context,
-//                            (int) hrId, getItIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+//                            (int) hrId, getItIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
 
         Intent deleteIntent = new Intent(context, HabitNotificationActionReceiver.class);
         deleteIntent.setAction(Def.Communication.NOTIFICATION_ACTION_CANCEL);
         deleteIntent.putExtra(Def.Communication.KEY_ID, hrId);
         builder.setDeleteIntent(PendingIntent.getBroadcast(
-                context, (int) hrId, deleteIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+                context, (int) hrId, deleteIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
     }
 
     public static void tryToCreateQuickCreateNotification(Context context) {
         SharedPreferences sp = context.getSharedPreferences(
                 Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE);
-        if (sp.getBoolean(Def.Meta.KEY_QUICK_CREATE, true)) {
+        if (sp.getBoolean(Def.Meta.KEY_QUICK_CREATE, false)) {
             createQuickCreateNotification(context);
         }
     }
@@ -249,9 +311,9 @@ public class SystemNotificationUtil {
         Intent contentIntent = DetailActivity.getOpenIntentForCreate(
                 context, App.class.getName(), App.newThingColor);
         PendingIntent contentPendingIntent = PendingIntent.getActivity(context,
-                Def.Meta.ONGOING_NOTIFICATION_ID, contentIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+                Def.Meta.ONGOING_NOTIFICATION_ID, contentIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(context)
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, "quick_create")
                 .setOngoing(true)
                 .setPriority(NotificationCompat.PRIORITY_MIN) /* don't show icon in status bar */
                 .setColor(App.newThingColor)
@@ -267,7 +329,7 @@ public class SystemNotificationUtil {
             String leftTimeStr, long hrTime, int highlightStrategy) {
         @Thing.Type int thingType = thing.getType();
         final String contentText = getDoingNotificationContent(context, doingState, leftTimeStr);
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(context)
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, "doing")
                 .setColor(thing.getColor())
                 .setSmallIcon(Thing.getTypeIconWhiteLarge(thingType))
                 .setContentTitle(getDoingNotificationTitle(context, thing, doingState))
@@ -285,7 +347,7 @@ public class SystemNotificationUtil {
         if (doingState == DoingService.STATE_DOING) {
             Intent contentIntent = DoingActivity.getOpenIntent(context, true);
             builder.setContentIntent(PendingIntent.getActivity(
-                    context, (int) thingId, contentIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+                    context, (int) thingId, contentIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
 
             Intent finishIntent = new Intent(context, DoingNotificationActionReceiver.class);
             finishIntent.setAction(DoingNotificationActionReceiver.ACTION_FINISH);
@@ -293,14 +355,14 @@ public class SystemNotificationUtil {
             finishIntent.putExtra(Def.Communication.KEY_TIME, hrTime);
             builder.addAction(R.drawable.act_finish, context.getString(R.string.act_finish),
                     PendingIntent.getBroadcast(
-                            context, (int) thingId, finishIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+                            context, (int) thingId, finishIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
 
             Intent cancelIntent = new Intent(context, DoingNotificationActionReceiver.class);
             cancelIntent.setAction(DoingNotificationActionReceiver.ACTION_USER_CANCEL);
             cancelIntent.putExtra(Def.Communication.KEY_ID, thingId);
             builder.addAction(R.drawable.act_cancel_white, context.getString(R.string.cancel),
                     PendingIntent.getBroadcast(
-                            context, (int) thingId, cancelIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+                            context, (int) thingId, cancelIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
         } else {
             builder.setStyle(new NotificationCompat.BigTextStyle().bigText(contentText));
             Intent contentIntent = new Intent(context, DoingNotificationActionReceiver.class);
@@ -310,7 +372,7 @@ public class SystemNotificationUtil {
                 builder.setAutoCancel(true);
             }
             builder.setContentIntent(PendingIntent.getBroadcast(
-                    context, (int) thingId, contentIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+                    context, (int) thingId, contentIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
         }
         return builder.build();
     }
@@ -388,42 +450,91 @@ public class SystemNotificationUtil {
                 .setAutoCancel(false);
 
         @Thing.Type int thingType = thing.getType();
+        boolean isPrivate = thing.isPrivate();
+        int color = thing.getColor();
         if (Thing.isReminderType(thingType) || thingType == Thing.NOTE) {
-            Intent finishIntent = new Intent(context, ReminderNotificationActionReceiver.class);
-            finishIntent.setAction(Def.Communication.NOTIFICATION_ACTION_FINISH);
-            finishIntent.putExtra(Def.Communication.KEY_ID, id);
-            finishIntent.putExtra(Def.Communication.KEY_POSITION, -1);
-            builder.addAction(R.drawable.act_finish, context.getString(R.string.act_finish),
-                    PendingIntent.getBroadcast(context,
-                            (int) id, finishIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+            if (isPrivate) {
+                Intent finishIntent = AuthenticationActivity.getOpenIntent(
+                        context, App.class.getName(), id, -1,
+                        Def.Communication.AUTHENTICATE_ACTION_FINISH,
+                        context.getString(R.string.act_finish));
+                finishIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                builder.addAction(R.drawable.act_finish, context.getString(R.string.act_finish),
+                        PendingIntent.getActivity(context,
+                                (int) id, finishIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
+            } else {
+                Intent finishIntent = new Intent(context, ReminderNotificationActionReceiver.class);
+                finishIntent.setAction(Def.Communication.NOTIFICATION_ACTION_FINISH);
+                finishIntent.putExtra(Def.Communication.KEY_ID, id);
+                finishIntent.putExtra(Def.Communication.KEY_POSITION, -1);
+                builder.addAction(R.drawable.act_finish, context.getString(R.string.act_finish),
+                        PendingIntent.getBroadcast(context,
+                                (int) id, finishIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
+            }
 
-            Intent startIntent = new Intent(context, ReminderNotificationActionReceiver.class);
-            startIntent.setAction(Def.Communication.NOTIFICATION_ACTION_START_DOING);
-            startIntent.putExtra(Def.Communication.KEY_ID, id);
-            startIntent.putExtra(Def.Communication.KEY_POSITION, -1);
-            builder.addAction(R.drawable.act_start_doing,
-                    context.getString(R.string.act_start_doing),
-                    PendingIntent.getBroadcast(context,
-                            (int) id, startIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+            if (isPrivate) {
+                Intent startIntent = AuthenticationActivity.getOpenIntent(
+                        context, App.class.getName(), id, -1,
+                        Def.Communication.AUTHENTICATE_ACTION_START_DOING,
+                        context.getString(R.string.act_start_doing));
+                startIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                builder.addAction(R.drawable.act_start_doing,
+                        context.getString(R.string.act_start_doing),
+                        PendingIntent.getActivity(context,
+                                (int) id, startIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
+            } else {
+                Intent startIntent = StartDoingActivity.getOpenIntent(
+                        context, id, -1, color,
+                        DoingService.START_TYPE_ALARM, -1);
+                startIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                builder.addAction(R.drawable.act_start_doing,
+                        context.getString(R.string.act_start_doing),
+                        PendingIntent.getActivity(context,
+                                (int) id, startIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
+            }
         } else if (thingType == Thing.HABIT) {
-            Intent finishIntent = new Intent(context, HabitNotificationActionReceiver.class);
-            finishIntent.setAction(Def.Communication.NOTIFICATION_ACTION_FINISH);
-            finishIntent.putExtra(Def.Communication.KEY_ID, -1); // hrId -> -1
-            finishIntent.putExtra(Def.Communication.KEY_POSITION, -1);
-            finishIntent.putExtra(Def.Communication.KEY_TIME, -1); // hrTime -> -1
-            builder.addAction(R.drawable.act_finish, context.getString(R.string.act_finish_once_habit),
-                    PendingIntent.getBroadcast(context,
-                            (int) id, finishIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+            if (isPrivate) {
+                Intent finishIntent = AuthenticationActivity.getOpenIntent(
+                        context, App.class.getName(), id, -1,
+                        Def.Communication.AUTHENTICATE_ACTION_FINISH,
+                        context.getString(R.string.act_finish_once_habit));
+                finishIntent.putExtra(Def.Communication.KEY_TIME, -1L);
+                finishIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                builder.addAction(R.drawable.act_finish, context.getString(R.string.act_finish_once_habit),
+                        PendingIntent.getActivity(context,
+                                (int) id, finishIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
+            } else {
+                Intent finishIntent = new Intent(context, HabitNotificationActionReceiver.class);
+                finishIntent.setAction(Def.Communication.NOTIFICATION_ACTION_FINISH);
+                finishIntent.putExtra(Def.Communication.KEY_ID, -1); // hrId -> -1
+                finishIntent.putExtra(Def.Communication.KEY_POSITION, -1);
+                finishIntent.putExtra(Def.Communication.KEY_TIME, -1); // hrTime -> -1
+                builder.addAction(R.drawable.act_finish, context.getString(R.string.act_finish_once_habit),
+                        PendingIntent.getBroadcast(context,
+                                (int) id, finishIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
+            }
 
-            Intent startIntent = new Intent(context, HabitNotificationActionReceiver.class);
-            startIntent.setAction(Def.Communication.NOTIFICATION_ACTION_START_DOING);
-            startIntent.putExtra(Def.Communication.KEY_ID, -1);
-            startIntent.putExtra(Def.Communication.KEY_POSITION, -1);
-            finishIntent.putExtra(Def.Communication.KEY_TIME, -1);
-            builder.addAction(R.drawable.act_start_doing,
-                    context.getString(R.string.act_start_doing),
-                    PendingIntent.getBroadcast(context,
-                            (int) id, startIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+            if (isPrivate) {
+                Intent startIntent = AuthenticationActivity.getOpenIntent(
+                        context, App.class.getName(), id, -1,
+                        Def.Communication.AUTHENTICATE_ACTION_START_DOING,
+                        context.getString(R.string.act_start_doing));
+                startIntent.putExtra(Def.Communication.KEY_TIME, -1L);
+                startIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                builder.addAction(R.drawable.act_start_doing,
+                        context.getString(R.string.act_start_doing),
+                        PendingIntent.getActivity(context,
+                                (int) id, startIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
+            } else {
+                Intent startIntent = StartDoingActivity.getOpenIntent(
+                        context, id, -1, color,
+                        DoingService.START_TYPE_ALARM, -1);
+                startIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                builder.addAction(R.drawable.act_start_doing,
+                        context.getString(R.string.act_start_doing),
+                        PendingIntent.getActivity(context,
+                                (int) id, startIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
+            }
         }
 
         int idToNotify = (int) id;

@@ -3,8 +3,8 @@ package com.ywwynm.everythingdone.receivers;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.support.v4.app.NotificationManagerCompat;
-import android.support.v4.util.Pair;
+import androidx.core.app.NotificationManagerCompat;
+import androidx.core.util.Pair;
 import android.widget.Toast;
 
 import com.ywwynm.everythingdone.App;
@@ -18,8 +18,6 @@ import com.ywwynm.everythingdone.helpers.RemoteActionHelper;
 import com.ywwynm.everythingdone.model.HabitReminder;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.services.DoingService;
-
-import static android.R.attr.id;
 
 public class HabitNotificationActionReceiver extends BroadcastReceiver {
 
@@ -39,10 +37,25 @@ public class HabitNotificationActionReceiver extends BroadcastReceiver {
         } else {
             HabitDAO habitDAO = HabitDAO.getInstance(context);
             HabitReminder hr = habitDAO.getHabitReminderById(hrId);
+            if (hr == null) {
+                return;
+            }
             thingId = hr.getHabitId();
 
             NotificationManagerCompat nmc = NotificationManagerCompat.from(context);
             nmc.cancel((int) hrId);
+        }
+
+        // NOTIFICATION_ACTION_CANCEL is used as the delete intent; just cancel notification
+        if (Def.Communication.NOTIFICATION_ACTION_CANCEL.equals(action)) {
+            return;
+        }
+
+        // Only NOTIFICATION_ACTION_FINISH and NOTIFICATION_ACTION_START_DOING are handled here
+        // (dispatched from NoticeableNotificationActivity, not from notification PendingIntents)
+        if (!Def.Communication.NOTIFICATION_ACTION_FINISH.equals(action)
+                && !Def.Communication.NOTIFICATION_ACTION_START_DOING.equals(action)) {
+            return;
         }
 
         for (Long dId : App.getRunningDetailActivities()) if (dId == thingId) {
@@ -64,7 +77,7 @@ public class HabitNotificationActionReceiver extends BroadcastReceiver {
                         .putExtra(Def.Communication.KEY_ID, thing.getId()));
 
         long hrTime = intent.getLongExtra(Def.Communication.KEY_TIME, -1);
-        if (action.equals(Def.Communication.NOTIFICATION_ACTION_FINISH)) {
+        if (Def.Communication.NOTIFICATION_ACTION_FINISH.equals(action)) {
             if (thing.isPrivate()) {
                 Intent actionIntent = AuthenticationActivity.getOpenIntent(
                         context, TAG, thingId, position,
@@ -76,9 +89,8 @@ public class HabitNotificationActionReceiver extends BroadcastReceiver {
             } else {
                 RemoteActionHelper.finishHabitOnce(context, thing, position, hrTime);
             }
-        } else if (action.equals(Def.Communication.NOTIFICATION_ACTION_START_DOING)) {
+        } else if (Def.Communication.NOTIFICATION_ACTION_START_DOING.equals(action)) {
             if (thingId == App.getDoingThingId()) {
-                // this only influences actions clicked from a thing ongoing notification
                 Toast.makeText(context, R.string.start_doing_doing_this_thing,
                         Toast.LENGTH_LONG).show();
                 return;

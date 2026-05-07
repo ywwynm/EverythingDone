@@ -5,6 +5,7 @@ import android.content.ContentValues;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import androidx.core.content.FileProvider;
 import android.provider.MediaStore;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -66,6 +67,9 @@ public class AddAttachmentDialogFragment extends BaseDialogFragment {
     }
 
     private void setEvents() {
+        // Camera capture writes to MediaStore (API 24+) or our own FileProvider, neither of
+        // which requires READ_MEDIA_* on Android 13+. SAF picking via ACTION_OPEN_DOCUMENT
+        // also needs no read permission. Only audio recording still needs RECORD_AUDIO.
         mTvTakePhotoAsBt.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -75,16 +79,7 @@ public class AddAttachmentDialogFragment extends BaseDialogFragment {
                     dismiss();
                     return;
                 }
-
-                mActivity.doWithPermissionChecked(
-                        new SimplePermissionCallback(mActivity) {
-                            @Override
-                            public void onGranted() {
-                                startTakePhoto();
-                            }
-                        },
-                        Def.Communication.REQUEST_PERMISSION_TAKE_PHOTO,
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE);
+                startTakePhoto();
             }
         });
 
@@ -97,16 +92,7 @@ public class AddAttachmentDialogFragment extends BaseDialogFragment {
                     dismiss();
                     return;
                 }
-
-                mActivity.doWithPermissionChecked(
-                        new SimplePermissionCallback(mActivity) {
-                            @Override
-                            public void onGranted() {
-                                startShootVideo();
-                            }
-                        },
-                        Def.Communication.REQUEST_PERMISSION_SHOOT_VIDEO,
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE);
+                startShootVideo();
             }
         });
 
@@ -121,23 +107,14 @@ public class AddAttachmentDialogFragment extends BaseDialogFragment {
                             }
                         },
                         Def.Communication.REQUEST_PERMISSION_RECORD_AUDIO,
-                        Manifest.permission.RECORD_AUDIO,
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE);
+                        Manifest.permission.RECORD_AUDIO);
             }
         });
 
         mTvChooseMediaFilesAsBt.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                mActivity.doWithPermissionChecked(
-                        new SimplePermissionCallback(mActivity) {
-                            @Override
-                            public void onGranted() {
-                                startChooseMediaFile();
-                            }
-                        },
-                        Def.Communication.REQUEST_PERMISSION_CHOOSE_MEDIA_FILE,
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE);
+                startChooseMediaFile();
             }
         });
     }
@@ -147,13 +124,19 @@ public class AddAttachmentDialogFragment extends BaseDialogFragment {
         File file = AttachmentHelper.createAttachmentFile(AttachmentHelper.IMAGE);
         if (file != null) {
             mActivity.attachmentTypePathName = AttachmentHelper.IMAGE + file.getAbsolutePath();
+            mActivity.cameraOutputUri = null;
             if (DeviceUtil.hasNougatApi()) {
-                ContentValues contentValues = new ContentValues(1);
-                contentValues.put(MediaStore.Images.Media.DATA, file.getAbsolutePath());
-                intent.putExtra(MediaStore.EXTRA_OUTPUT, mActivity.getContentResolver()
-                        .insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues));
+                ContentValues contentValues = new ContentValues();
+                contentValues.put(MediaStore.Images.Media.DISPLAY_NAME, file.getName());
+                contentValues.put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/EverythingDone");
+                Uri imageUri = mActivity.getContentResolver()
+                        .insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues);
+                intent.putExtra(MediaStore.EXTRA_OUTPUT, imageUri);
+                mActivity.cameraOutputUri = imageUri;
             } else {
-                intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(file));
+                intent.putExtra(MediaStore.EXTRA_OUTPUT,
+                        FileProvider.getUriForFile(mActivity,
+                                "com.ywwynm.everythingdone", file));
             }
             mActivity.startActivityForResult(intent,
                     Def.Communication.REQUEST_TAKE_PHOTO);
@@ -166,13 +149,19 @@ public class AddAttachmentDialogFragment extends BaseDialogFragment {
         File file = AttachmentHelper.createAttachmentFile(AttachmentHelper.VIDEO);
         if (file != null) {
             mActivity.attachmentTypePathName = AttachmentHelper.VIDEO + file.getAbsolutePath();
+            mActivity.cameraOutputUri = null;
             if (DeviceUtil.hasNougatApi()) {
-                ContentValues contentValues = new ContentValues(1);
-                contentValues.put(MediaStore.Video.Media.DATA, file.getAbsolutePath());
-                intent.putExtra(MediaStore.EXTRA_OUTPUT, mActivity.getContentResolver()
-                        .insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, contentValues));
+                ContentValues contentValues = new ContentValues();
+                contentValues.put(MediaStore.Video.Media.DISPLAY_NAME, file.getName());
+                contentValues.put(MediaStore.Video.Media.RELATIVE_PATH, "Movies/EverythingDone");
+                Uri videoUri = mActivity.getContentResolver()
+                        .insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, contentValues);
+                intent.putExtra(MediaStore.EXTRA_OUTPUT, videoUri);
+                mActivity.cameraOutputUri = videoUri;
             } else {
-                intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(file));
+                intent.putExtra(MediaStore.EXTRA_OUTPUT,
+                        FileProvider.getUriForFile(mActivity,
+                                "com.ywwynm.everythingdone", file));
             }
             mActivity.startActivityForResult(intent,
                     Def.Communication.REQUEST_CAPTURE_VIDEO);
@@ -188,10 +177,21 @@ public class AddAttachmentDialogFragment extends BaseDialogFragment {
     }
 
     public void startChooseMediaFile() {
+        // Use ACTION_GET_CONTENT + an explicit chooser so the user can pick
+        // their preferred gallery app — vendor galleries (OPPO 相册, MIUI 相册,
+        // Samsung Gallery, ...) expose "Favorites" / "我喜欢" folders that the
+        // system Photo Picker / SAF DocumentsUI does not. ACTION_GET_CONTENT
+        // returns a content:// URI without any storage/media permission, and
+        // DetailActivity.onActivityResult already copies the bytes into app-
+        // private storage via FileUtil.copyUriToFile.
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("*/*");
+        intent.putExtra(Intent.EXTRA_MIME_TYPES,
+                new String[] { "image/*", "video/*", "audio/*" });
         mActivity.startActivityForResult(
-                Intent.createChooser(intent, mActivity.getString(R.string.act_choose_media_files)),
+                Intent.createChooser(intent,
+                        mActivity.getString(R.string.act_choose_media_files)),
                 Def.Communication.REQUEST_CHOOSE_MEDIA_FILE);
         dismiss();
     }

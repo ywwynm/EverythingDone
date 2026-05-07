@@ -3,18 +3,19 @@ package com.ywwynm.everythingdone.appwidgets.single;
 import android.Manifest;
 import android.annotation.TargetApi;
 import android.app.WallpaperManager;
+import androidx.activity.OnBackPressedCallback;
 import android.appwidget.AppWidgetManager;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
-import android.support.v4.content.ContextCompat;
-import android.support.v7.app.ActionBar;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.StaggeredGridLayoutManager;
-import android.support.v7.widget.Toolbar;
+import androidx.core.content.ContextCompat;
+import androidx.appcompat.app.ActionBar;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.StaggeredGridLayoutManager;
+import androidx.appcompat.widget.Toolbar;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -88,9 +89,7 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
         }
         mAdapter.notifyDataSetChanged();
 
-        if (DeviceUtil.hasKitKatApi()) {
-            updateBottomUiMarginForNavBar((FrameLayout.LayoutParams) mLlConfig.getLayoutParams());
-        }
+        DisplayUtil.applyBottomInsetAsMargin(mLlConfig);
     }
 
     @Override
@@ -133,11 +132,7 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
         DisplayUtil.expandStatusBarViewAboveKitkat(findViewById(R.id.view_status_bar));
         DisplayUtil.darkStatusBar(this);
 
-        if (DeviceUtil.hasLollipopApi()) {
-            mLlConfig.setBackgroundColor(Color.parseColor("#66000000"));
-        } else if (DeviceUtil.hasKitKatApi()) {
-            mLlConfig.setBackgroundColor(Color.TRANSPARENT);
-        }
+        mLlConfig.setBackgroundColor(Color.parseColor("#66000000"));
 
         if (!PermissionUtil.hasStoragePermission(this)
                 && PermissionUtil.shouldRequestPermissionWhenLoadingThings(mThings)) {
@@ -153,47 +148,26 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
                     finish();
                 }
             }, Def.Communication.REQUEST_PERMISSION_LOAD_THINGS_2,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE);
+                    PermissionUtil.getStoragePermissions());
         } else {
             initRecyclerView();
         }
     }
 
-    @TargetApi(Build.VERSION_CODES.KITKAT)
     private void updateStatusBarAndBottomUi(boolean selecting) {
-        if (!DeviceUtil.hasKitKatApi()) {
-            return;
-        }
-
         final Window window = getWindow();
         FrameLayout.LayoutParams flp = (FrameLayout.LayoutParams) mLlConfig.getLayoutParams();
 
         if (selecting) {
-            if (DeviceUtil.hasLollipopApi()) {
-                window.setStatusBarColor(ContextCompat.getColor(this, R.color.bg_statusbar_lollipop));
-            }
+            window.setStatusBarColor(ContextCompat.getColor(this, R.color.bg_statusbar_lollipop));
             window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
             flp.bottomMargin = 0;
+            flp.rightMargin = 0;
             mLlConfig.requestLayout();
         } else {
-            if (DeviceUtil.hasLollipopApi()) {
-                window.setStatusBarColor(Color.TRANSPARENT);
-            }
+            window.setStatusBarColor(Color.TRANSPARENT);
             window.addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
-            updateBottomUiMarginForNavBar(flp);
-        }
-    }
-
-    private void updateBottomUiMarginForNavBar(FrameLayout.LayoutParams flp) {
-        if (DisplayUtil.hasNavigationBar(this)) {
-            if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
-                flp.rightMargin  = 0;
-                flp.bottomMargin = DisplayUtil.getNavigationBarHeight(this);
-            } else {
-                flp.rightMargin  = DisplayUtil.getNavigationBarHeight(this);
-                flp.bottomMargin = 0;
-            }
-            mLlConfig.requestLayout();
+            DisplayUtil.applyBottomInsetAsMargin(mLlConfig);
         }
     }
 
@@ -222,6 +196,18 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
 
     @Override
     protected void setEvents() {
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (mFlPreviewAndConfig.getVisibility() == View.VISIBLE) {
+                    endPreviewAppWidget();
+                } else {
+                    setEnabled(false);
+                    getOnBackPressedDispatcher().onBackPressed();
+                }
+            }
+        });
+
         mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
 
             final int edgeColor = EdgeEffectUtil.getEdgeColorDark();
@@ -245,10 +231,14 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
         DisplayUtil.cancelDarkStatusBar(this);
 
         ImageView ivBackground = f(R.id.iv_app_widget_preview_background);
-        WallpaperManager wm = WallpaperManager.getInstance(getApplicationContext());
-        Drawable wallpaper = wm.getDrawable();
-        if (wallpaper != null) {
-            ivBackground.setImageDrawable(wallpaper);
+        try {
+            WallpaperManager wm = WallpaperManager.getInstance(getApplicationContext());
+            Drawable wallpaper = wm.getDrawable();
+            if (wallpaper != null) {
+                ivBackground.setImageDrawable(wallpaper);
+            }
+        } catch (SecurityException e) {
+            ivBackground.setBackgroundColor(0xCC000000);
         }
 
         final List<Thing> singleThing = Collections.singletonList(new Thing(thing));
@@ -365,15 +355,6 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
         finish();
     }
 
-    @Override
-    public void onBackPressed() {
-        if (mFlPreviewAndConfig.getVisibility() == View.VISIBLE) {
-            endPreviewAppWidget();
-        } else {
-            super.onBackPressed();
-        }
-    }
-
     class ThingsAdapter extends BaseThingsAdapter {
 
         ThingsAdapter() {
@@ -397,10 +378,7 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
 
         @Override
         public void onBindViewHolder(BaseThingViewHolder holder, int position) {
-            int m = (int) (mDensity * 4);
-            if (DeviceUtil.hasLollipopApi()) {
-                m = (int) (mDensity * 6);
-            }
+            int m = (int) (mDensity * 6);
 
             StaggeredGridLayoutManager.LayoutParams lp =
                     (StaggeredGridLayoutManager.LayoutParams) holder.itemView.getLayoutParams();

@@ -3,8 +3,8 @@ package com.ywwynm.everythingdone.adapters;
 import android.content.Context;
 import android.graphics.Paint;
 import android.graphics.drawable.Drawable;
-import android.support.v4.content.ContextCompat;
-import android.support.v7.widget.RecyclerView;
+import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.RecyclerView;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.text.util.Linkify;
@@ -66,11 +66,7 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
         appAccent = ContextCompat.getColor(App.getApp(), R.color.app_accent);
         cursorWidth = (int) (1.5 * density);
         normalLineCursorHeightVary = (int) (-2 * density);
-        if (DeviceUtil.hasLollipopApi()) {
-            lastLineCursorHeightVary = (int) (-1 * density);
-        } else {
-            lastLineCursorHeightVary = normalLineCursorHeightVary;
-        }
+        lastLineCursorHeightVary = (int) (-1 * density);
     }
 
     private int mMaxItemCount;

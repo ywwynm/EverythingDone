@@ -1,13 +1,16 @@
 package com.ywwynm.everythingdone.utils;
 
 import android.annotation.SuppressLint;
+import android.content.Context;
 import android.graphics.BitmapFactory;
 import android.media.ExifInterface;
 import android.media.MediaExtractor;
 import android.media.MediaFormat;
 import android.media.MediaMetadataRetriever;
+import android.net.Uri;
 import android.os.Environment;
 
+import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 
 import org.joda.time.DateTime;
@@ -31,6 +34,7 @@ import java.util.Date;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Scanner;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -46,10 +50,12 @@ public class FileUtil {
 
     private FileUtil() {}
 
-    public static final String TEMP_PATH = Def.Meta.APP_FILE_DIR + "/temp";
+    public static String getTempPath(Context context) {
+        return Def.getAppFileDir(context) + "/temp";
+    }
 
     public static File createTempAudioFile(String postfix) {
-        File dir = new File(TEMP_PATH + "/audio_raw");
+        File dir = new File(Def.getAppFileDir(App.getApp()) + "/temp/audio_raw");
         if (!dir.exists()) {
             boolean parentCreated = dir.mkdirs();
             if (!parentCreated) {
@@ -60,6 +66,62 @@ public class FileUtil {
         @SuppressLint("SimpleDateFormat")
         String timeStamp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
         return new File(dir, timeStamp + postfix);
+    }
+
+    public static String copyUriToFile(Context context, Uri uri, String postfix) {
+        String folderPath = Def.getAppFileDir(context) + "/temp";
+        File dir = new File(folderPath);
+        if (!dir.exists() && !dir.mkdirs()) {
+            return null;
+        }
+        @SuppressLint("SimpleDateFormat")
+        String timeStamp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
+        File dst = new File(dir, "media_" + timeStamp + postfix);
+        try (InputStream in = context.getContentResolver().openInputStream(uri);
+             java.io.FileOutputStream out = new java.io.FileOutputStream(dst)) {
+            if (in == null) return null;
+            byte[] buf = new byte[8192];
+            int len;
+            while ((len = in.read(buf)) > 0) {
+                out.write(buf, 0, len);
+            }
+            return dst.getAbsolutePath();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public static void copyUriToExistingFile(Context context, Uri uri, String dstPath) throws IOException {
+        File dst = new File(dstPath);
+        try (InputStream in = context.getContentResolver().openInputStream(uri);
+             FileOutputStream out = new FileOutputStream(dst)) {
+            if (in == null) throw new IOException("Cannot open input stream");
+            byte[] buf = new byte[8192];
+            int len;
+            while ((len = in.read(buf)) > 0) {
+                out.write(buf, 0, len);
+            }
+        }
+    }
+
+    public static String getPostfixFromMimeType(Context context, Uri uri) {
+        String mimeType = context.getContentResolver().getType(uri);
+        if (mimeType == null) return null;
+        if (mimeType.startsWith("image/")) {
+            if (mimeType.equals("image/jpeg") || mimeType.equals("image/jpg")) return ".jpg";
+            if (mimeType.equals("image/png")) return ".png";
+            if (mimeType.equals("image/gif")) return ".gif";
+            if (mimeType.equals("image/webp")) return ".webp";
+            return ".jpg";
+        } else if (mimeType.startsWith("video/")) {
+            return ".mp4";
+        } else if (mimeType.startsWith("audio/")) {
+            if (mimeType.equals("audio/mpeg")) return ".mp3";
+            if (mimeType.equals("audio/wav")) return ".wav";
+            return ".mp3";
+        }
+        return null;
     }
 
     public static boolean isAppropriateAsFileName(String str) {
@@ -130,7 +192,7 @@ public class FileUtil {
         if (index == -1) {
             return "";
         } else {
-            return pathName.substring(index + 1, pathName.length());
+            return pathName.substring(index + 1).toLowerCase(Locale.US);
         }
     }
 
@@ -187,7 +249,11 @@ public class FileUtil {
             e.printStackTrace();
             return null;
         } finally {
-            retriever.release();
+            try {
+                retriever.release();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -202,7 +268,11 @@ public class FileUtil {
             e.printStackTrace();
             return -1;
         } finally {
-            retriever.release();
+            try {
+                retriever.release();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -247,7 +317,11 @@ public class FileUtil {
             e.printStackTrace();
             return null;
         } finally {
-            retriever.release();
+            try {
+                retriever.release();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -262,7 +336,11 @@ public class FileUtil {
             e.printStackTrace();
             return -1;
         } finally {
-            retriever.release();
+            try {
+                retriever.release();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 

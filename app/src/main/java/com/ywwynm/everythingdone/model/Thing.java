@@ -5,8 +5,8 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.os.Parcel;
 import android.os.Parcelable;
-import android.support.annotation.DrawableRes;
-import android.support.annotation.IntDef;
+import androidx.annotation.DrawableRes;
+import androidx.annotation.IntDef;
 
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;

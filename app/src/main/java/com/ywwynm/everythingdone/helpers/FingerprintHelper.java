@@ -1,22 +1,22 @@
 package com.ywwynm.everythingdone.helpers;
 
-import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.KeyguardManager;
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.hardware.fingerprint.FingerprintManager;
-import android.os.Build;
-import android.os.CancellationSignal;
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyPermanentlyInvalidatedException;
 import android.security.keystore.KeyProperties;
 
+import androidx.biometric.BiometricManager;
+import androidx.biometric.BiometricPrompt;
+import androidx.core.content.ContextCompat;
+import androidx.fragment.app.FragmentActivity;
+
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
-import com.ywwynm.everythingdone.fragments.FingerprintDialogFragment;
+import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.fragments.PatternLockDialogFragment;
-import com.ywwynm.everythingdone.utils.DeviceUtil;
 
 import java.io.IOException;
 import java.security.InvalidKeyException;
@@ -25,17 +25,13 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
+import java.util.concurrent.Executor;
 
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 
-/**
- * Created by ywwynm on 2016/4/29.
- * helper for fingerprint
- */
-@TargetApi(Build.VERSION_CODES.M)
-public class FingerprintHelper extends FingerprintManager.AuthenticationCallback {
+public class FingerprintHelper {
 
     public static final String TAG = "FingerprintHelper";
 
@@ -47,43 +43,25 @@ public class FingerprintHelper extends FingerprintManager.AuthenticationCallback
 
     private Context mContext;
 
-    private FingerprintManager mFingerprintManager;
     private KeyguardManager mKeyguardManager;
     private KeyStore mKeyStore;
     private KeyGenerator mKeyGenerator;
     private Cipher mCipher;
 
-    private FingerprintCallback mFingerprintCallback;
-    private CancellationSignal mCancellationSignal;
-
-    public interface FingerprintCallback {
-        void onAuthenticated();
-        void onFailed();
-        void onError();
-    }
-
-    public void setFingerprintCallback(FingerprintCallback fingerprintCallback) {
-        mFingerprintCallback = fingerprintCallback;
-    }
-
     private FingerprintHelper(Context context) {
         mContext = context.getApplicationContext();
-        if (DeviceUtil.hasMarshmallowApi()) {
-            mFingerprintManager = (FingerprintManager) context.getSystemService(
-                    Context.FINGERPRINT_SERVICE);
-            mKeyguardManager = (KeyguardManager) context.getSystemService(
-                    Context.KEYGUARD_SERVICE);
-            try {
-                mKeyStore = KeyStore.getInstance(ANDROID_KEYSTORE);
-                mKeyGenerator = KeyGenerator.getInstance(
-                        KeyProperties.KEY_ALGORITHM_AES, ANDROID_KEYSTORE);
-                mCipher = Cipher.getInstance(
-                        KeyProperties.KEY_ALGORITHM_AES + "/"
-                        + KeyProperties.BLOCK_MODE_CBC + "/"
-                        + KeyProperties.ENCRYPTION_PADDING_PKCS7);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+        mKeyguardManager = (KeyguardManager) context.getSystemService(
+                Context.KEYGUARD_SERVICE);
+        try {
+            mKeyStore = KeyStore.getInstance(ANDROID_KEYSTORE);
+            mKeyGenerator = KeyGenerator.getInstance(
+                    KeyProperties.KEY_ALGORITHM_AES, ANDROID_KEYSTORE);
+            mCipher = Cipher.getInstance(
+                    KeyProperties.KEY_ALGORITHM_AES + "/"
+                    + KeyProperties.BLOCK_MODE_CBC + "/"
+                    + KeyProperties.ENCRYPTION_PADDING_PKCS7);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -99,7 +77,9 @@ public class FingerprintHelper extends FingerprintManager.AuthenticationCallback
     }
 
     public boolean supportFingerprint() {
-        return mFingerprintManager != null && mFingerprintManager.isHardwareDetected();
+        BiometricManager bm = BiometricManager.from(mContext);
+        return bm.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG)
+                == BiometricManager.BIOMETRIC_SUCCESS;
     }
 
     public boolean hasSystemFingerprintSet() {
@@ -107,11 +87,13 @@ public class FingerprintHelper extends FingerprintManager.AuthenticationCallback
     }
 
     public boolean hasFingerprintRegistered() {
-        return mFingerprintManager != null && mFingerprintManager.hasEnrolledFingerprints();
+        BiometricManager bm = BiometricManager.from(mContext);
+        int result = bm.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG);
+        return result == BiometricManager.BIOMETRIC_SUCCESS;
     }
 
     public boolean isFingerprintReady() {
-        return supportFingerprint() && hasSystemFingerprintSet() && hasFingerprintRegistered();
+        return supportFingerprint() && hasSystemFingerprintSet();
     }
 
     public boolean isFingerprintEnabledInEverythingDone() {
@@ -120,21 +102,13 @@ public class FingerprintHelper extends FingerprintManager.AuthenticationCallback
         return sp.getBoolean(Def.Meta.KEY_USE_FINGERPRINT, false);
     }
 
-    @TargetApi(Build.VERSION_CODES.M)
     public void createFingerprintKeyForEverythingDone() {
-        // The enrolling flow for fingerprint. This is where you ask the user to set up fingerprint
-        // for your flow. Use of keys is necessary if you need to know if the set of
-        // enrolled fingerprints has changed.
         try {
             mKeyStore.load(null);
-            // Set the alias of the entry in Android KeyStore where the key will appear
-            // and the constrains (purposes) in the constructor of the Builder
             mKeyGenerator.init(new KeyGenParameterSpec.Builder(FINGERPRINT_KEY_NAME,
                     KeyProperties.PURPOSE_ENCRYPT |
                             KeyProperties.PURPOSE_DECRYPT)
                     .setBlockModes(KeyProperties.BLOCK_MODE_CBC)
-                    // Require the user to authenticate with a fingerprint to authorize every use
-                    // of the key
                     .setUserAuthenticationRequired(true)
                     .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_PKCS7)
                     .build());
@@ -145,13 +119,10 @@ public class FingerprintHelper extends FingerprintManager.AuthenticationCallback
     }
 
     private boolean initFingerprintCipher() {
-        if (!DeviceUtil.hasMarshmallowApi()) {
-            return false;
-        }
         try {
             mKeyStore.load(null);
             SecretKey key = (SecretKey) mKeyStore.getKey(FINGERPRINT_KEY_NAME, null);
-            if (key == null) { // Fingerprint? What is that?
+            if (key == null) {
                 return false;
             }
             mCipher.init(Cipher.ENCRYPT_MODE, key);
@@ -167,63 +138,57 @@ public class FingerprintHelper extends FingerprintManager.AuthenticationCallback
     public void tryToAuthenticatingByFingerprint(
             Activity activity, int accentColor, String title, String correctPassword,
             AuthenticationHelper.AuthenticationCallback callback) {
-        // Set up the crypto object for later. The object will be authenticated by use
-        // of the fingerprint.
         if (isFingerprintReady() && isFingerprintEnabledInEverythingDone() && initFingerprintCipher()) {
-            final FingerprintDialogFragment adf = new FingerprintDialogFragment();
-            adf.setAccentColor(accentColor);
-            adf.setTitle(title);
-            adf.setCryptoObject(new FingerprintManager.CryptoObject(mCipher));
-            adf.setAuthenticationCallback(callback);
-            // Show the fingerprint dialog. The user has the option to use the fingerprint with
-            // crypto, or you can fall back to using a pattern.
-            adf.show(activity.getFragmentManager(), FingerprintDialogFragment.TAG);
+            authenticateWithBiometricPrompt(activity, title, callback);
         } else {
-            // This happens if the lock screen has been disabled or or a fingerprint got
-            // enrolled. Thus show the dialog to authenticate with their pattern.
-            final PatternLockDialogFragment pldf = new PatternLockDialogFragment();
-            pldf.setAccentColor(accentColor);
-            pldf.setType(PatternLockDialogFragment.TYPE_VALIDATE);
-            pldf.setValidateTitle(title);
-            pldf.setCorrectPassword(correctPassword);
-            pldf.setAuthenticationCallback(callback);
-            pldf.show(activity.getFragmentManager(), PatternLockDialogFragment.TAG);
+            showPatternLock(activity, accentColor, title, correctPassword, callback);
         }
     }
 
-    public void startListening(FingerprintManager.CryptoObject cryptoObject) {
-        if (!isFingerprintReady()) {
-            return;
-        }
-        mCancellationSignal = new CancellationSignal();
-        mFingerprintManager.authenticate(cryptoObject, mCancellationSignal, 0, this, null);
+    private void authenticateWithBiometricPrompt(
+            Activity activity, String title,
+            AuthenticationHelper.AuthenticationCallback callback) {
+        Executor executor = ContextCompat.getMainExecutor(mContext);
+        BiometricPrompt.PromptInfo promptInfo = new BiometricPrompt.PromptInfo.Builder()
+                .setTitle(title)
+                .setNegativeButtonText(mContext.getString(android.R.string.cancel))
+                .build();
+
+        BiometricPrompt prompt = new BiometricPrompt((FragmentActivity) activity, executor,
+                new BiometricPrompt.AuthenticationCallback() {
+                    @Override
+                    public void onAuthenticationSucceeded(
+                            BiometricPrompt.AuthenticationResult result) {
+                        callback.onAuthenticated();
+                    }
+
+                    @Override
+                    public void onAuthenticationFailed() {
+                    }
+
+                    @Override
+                    public void onAuthenticationError(int errorCode, CharSequence errString) {
+                        if (errorCode != BiometricPrompt.ERROR_NEGATIVE_BUTTON
+                                && errorCode != BiometricPrompt.ERROR_USER_CANCELED) {
+                            showPatternLock(activity, ContextCompat.getColor(activity,
+                                    R.color.blue_deep), title, "", callback);
+                        }
+                    }
+                });
+
+        prompt.authenticate(promptInfo,
+                new BiometricPrompt.CryptoObject(mCipher));
     }
 
-    public void stopListening() {
-        if (mCancellationSignal != null) {
-            mCancellationSignal.cancel();
-            mCancellationSignal = null;
-        }
-    }
-
-    @Override
-    public void onAuthenticationSucceeded(FingerprintManager.AuthenticationResult result) {
-        if (mFingerprintCallback != null) {
-            mFingerprintCallback.onAuthenticated();
-        }
-    }
-
-    @Override
-    public void onAuthenticationFailed() {
-        if (mFingerprintCallback != null) {
-            mFingerprintCallback.onFailed();
-        }
-    }
-
-    @Override
-    public void onAuthenticationError(int errorCode, CharSequence errString) {
-        if (mFingerprintCallback != null) {
-            mFingerprintCallback.onError();
-        }
+    private void showPatternLock(
+            Activity activity, int accentColor, String title,
+            String correctPassword, AuthenticationHelper.AuthenticationCallback callback) {
+        final PatternLockDialogFragment pldf = new PatternLockDialogFragment();
+        pldf.setAccentColor(accentColor);
+        pldf.setType(PatternLockDialogFragment.TYPE_VALIDATE);
+        pldf.setValidateTitle(title);
+        pldf.setCorrectPassword(correctPassword);
+        pldf.setAuthenticationCallback(callback);
+        pldf.show(activity.getFragmentManager(), PatternLockDialogFragment.TAG);
     }
 }

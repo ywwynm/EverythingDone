@@ -4,7 +4,8 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.support.v4.util.Pair;
+import android.os.Build;
+import androidx.core.util.Pair;
 import android.text.TextUtils;
 import android.widget.Toast;
 
@@ -171,7 +172,9 @@ public class ThingDoingHelper {
     }
 
     public static void stopDoing(Context context, @DoingRecord.StopReason int stopReason) {
-        context.sendBroadcast(new Intent(DoingActivity.BROADCAST_ACTION_JUST_FINISH));
+        Intent intent = new Intent(DoingActivity.BROADCAST_ACTION_JUST_FINISH);
+        intent.setPackage(context.getPackageName());
+        context.sendBroadcast(intent);
         DoingService.sStopReason = stopReason;
         context.stopService(new Intent(context, DoingService.class));
     }
@@ -185,8 +188,13 @@ public class ThingDoingHelper {
         if (hrTime == -1) hrTime = calculateHrTimeForHabit();
 
         App.setDoingThingId(mThing.getId());
-        mContext.startService(DoingService.getOpenIntent(
-                mContext, mThing, System.currentTimeMillis(), timeInMillis, startType, hrTime));
+        Intent serviceIntent = DoingService.getOpenIntent(
+                mContext, mThing, System.currentTimeMillis(), timeInMillis, startType, hrTime);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            mContext.startForegroundService(serviceIntent);
+        } else {
+            mContext.startService(serviceIntent);
+        }
 
         Intent activityIntent = DoingActivity.getOpenIntent(mContext, false);
         if (outsideActivity || !(mContext instanceof Activity)) {

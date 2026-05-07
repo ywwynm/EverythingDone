@@ -1,24 +1,26 @@
 package com.ywwynm.everythingdone.activities;
 
-import android.app.WallpaperManager;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import androidx.core.content.ContextCompat;
 import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.drawable.Drawable;
+import android.graphics.PixelFormat;
+import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
-import android.support.annotation.StringRes;
-import android.support.v4.util.Pair;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.LinearSmoothScroller;
-import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.helper.ItemTouchHelper;
+import android.view.WindowManager;
+import androidx.annotation.StringRes;
+import androidx.core.util.Pair;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.LinearSmoothScroller;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
@@ -162,12 +164,44 @@ public class DoingActivity extends EverythingDoneBaseActivity {
     }
 
     @Override
+    protected void beforeSetContentView() {
+        // FLAG_SHOW_WALLPAPER must be set on the window BEFORE the content view
+        // is created — once the decor view has been laid out as opaque, the
+        // wallpaper layer is no longer composited behind it. The theme also
+        // declares windowShowWallpaper=true; setting the flag in code is a
+        // belt-and-suspenders that survives any other window manipulations
+        // done later (e.g. setDecorFitsSystemWindows for edge-to-edge).
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER);
+        getWindow().setFormat(PixelFormat.TRANSLUCENT);
+        getWindow().setBackgroundDrawable(null);
+    }
+
+    /**
+     * AppCompat wraps the user's content view inside a "sub-decor" view that has
+     * its own opaque background (driven by {@code ?attr/colorBackground}). Even
+     * when {@code android:windowBackground} is transparent, that sub-decor stays
+     * opaque and hides the wallpaper layer behind the activity. Walk up from
+     * {@code android.R.id.content} to the decor view and force every level to
+     * transparent so the wallpaper is actually visible.
+     */
+    private void clearOpaqueAncestorBackgrounds() {
+        View v = findViewById(android.R.id.content);
+        View decor = getWindow().getDecorView();
+        while (v != null) {
+            v.setBackground(null);
+            if (v == decor || !(v.getParent() instanceof View)) break;
+            v = (View) v.getParent();
+        }
+    }
+
+    @Override
     protected void beforeInit() {
         Intent intent = new Intent(this, DoingService.class);
         bindService(intent, mServiceConnection, BIND_AUTO_CREATE);
 
         IntentFilter filter = new IntentFilter(BROADCAST_ACTION_JUST_FINISH);
-        registerReceiver(mReceiver, filter);
+        ContextCompat.registerReceiver(this, mReceiver, filter,
+                ContextCompat.RECEIVER_NOT_EXPORTED);
     }
 
     @Override
@@ -213,19 +247,19 @@ public class DoingActivity extends EverythingDoneBaseActivity {
     }
 
     private void initBackground() {
-        WallpaperManager wm = WallpaperManager.getInstance(mApp);
-        Drawable wallpaper = wm.getDrawable();
-        if (wallpaper != null) {
-            mIvBg.setImageDrawable(wallpaper);
+        clearOpaqueAncestorBackgrounds();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            getWindow().getAttributes().setWallpaperTouchEventsEnabled(false);
         }
+        // Dim overlay so timer/text stay readable against bright wallpapers.
+        // 0x66 = 40% black. Increase to 0x99 (60%) if text is hard to read on
+        // light wallpapers; drop to 0x33 (20%) if you'd rather see the
+        // wallpaper crisply.
+        mIvBg.setBackgroundColor(0x66000000);
     }
 
     private void initBottomButtons() {
-        if (DeviceUtil.hasKitKatApi() && DisplayUtil.hasNavigationBar(mApp)) {
-            FrameLayout.LayoutParams flp = (FrameLayout.LayoutParams) mLlBottom.getLayoutParams();
-            flp.bottomMargin += DisplayUtil.getNavigationBarHeight(mApp);
-            mLlBottom.requestLayout();
-        }
+        DisplayUtil.applyBottomInsetAsMargin(mLlBottom);
 
         mFlAdd5Min.setScaleX(0);
         mFlAdd5Min.setScaleY(0);
@@ -492,32 +526,25 @@ public class DoingActivity extends EverythingDoneBaseActivity {
     }
 
     public void onClick(View view) {
-        switch (view.getId()) {
-            case R.id.fab_add_5_min: {
-                if (mDoingBinder.canAdd5Min()) {
-                    mDoingBinder.add5Min();
+        int id = view.getId();
+        if (id == R.id.fab_add_5_min) {
+            if (mDoingBinder.canAdd5Min()) {
+                mDoingBinder.add5Min();
+            }
+        } else if (id == R.id.fab_strict_mode) {
+            toggleStrictMode();
+        } else if (id == R.id.fab_cancel_doing) {
+            AlertDialogFragment adf = new AlertDialogFragment();
+            adf.setConfirmColor(mThing.getColor());
+            adf.setContent(getString(R.string.doing_alert_stop_doing_content));
+            adf.setConfirmListener(new AlertDialogFragment.ConfirmListener() {
+                @Override
+                public void onConfirm() {
+                    DoingService.sStopReason = DoingRecord.STOP_REASON_CANCEL_USER;
+                    finishWithStoppingService();
                 }
-                break;
-            }
-            case R.id.fab_strict_mode: {
-                toggleStrictMode();
-                break;
-            }
-            case R.id.fab_cancel_doing: {
-                AlertDialogFragment adf = new AlertDialogFragment();
-                adf.setConfirmColor(mThing.getColor());
-                adf.setContent(getString(R.string.doing_alert_stop_doing_content));
-                adf.setConfirmListener(new AlertDialogFragment.ConfirmListener() {
-                    @Override
-                    public void onConfirm() {
-                        DoingService.sStopReason = DoingRecord.STOP_REASON_CANCEL_USER;
-                        finishWithStoppingService();
-                    }
-                });
-                adf.show(getFragmentManager(), AlertDialogFragment.TAG);
-                break;
-            }
-            default:break;
+            });
+            adf.show(getFragmentManager(), AlertDialogFragment.TAG);
         }
     }
 

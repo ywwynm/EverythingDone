@@ -6,6 +6,7 @@ import android.content.Intent;
 
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.activities.DetailActivity;
+import com.ywwynm.everythingdone.helpers.AlarmHelper;
 
 /**
  * Created by ywwynm on 2017/4/23.
@@ -21,6 +22,7 @@ public class DailyCreateTodoReceiver extends BroadcastReceiver {
         Intent openIntent = DetailActivity.getOpenIntentForCreate(context, TAG, App.newThingColor);
         openIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
         context.startActivity(openIntent);
+        AlarmHelper.tryToCreateDailyTodoAlarm(context);
     }
 
 }

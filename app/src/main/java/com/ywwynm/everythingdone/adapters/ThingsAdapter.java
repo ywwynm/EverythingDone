@@ -1,8 +1,8 @@
 package com.ywwynm.everythingdone.adapters;
 
 import android.os.Handler;
-import android.support.v7.widget.CardView;
-import android.support.v7.widget.StaggeredGridLayoutManager;
+import androidx.cardview.widget.CardView;
+import androidx.recyclerview.widget.StaggeredGridLayoutManager;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -100,10 +100,7 @@ public class ThingsAdapter extends BaseThingsAdapter {
     }
 
     private void distinguishHeaderAndOthers(boolean header, CardView cv) {
-        int mX = (int) (mDensity * 4);
-        if (DeviceUtil.hasLollipopApi()) {
-            mX = (int) (mDensity * 6);
-        }
+        int mX = (int) (mDensity * 6);
         int mY = header ? 0 : mX;
 
         int height;

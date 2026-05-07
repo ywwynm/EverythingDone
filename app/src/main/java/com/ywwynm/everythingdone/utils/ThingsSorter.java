@@ -1,6 +1,6 @@
 package com.ywwynm.everythingdone.utils;
 
-import android.support.v4.util.LongSparseArray;
+import androidx.collection.LongSparseArray;
 
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.database.HabitDAO;

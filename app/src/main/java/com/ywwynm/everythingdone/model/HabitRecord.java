@@ -1,7 +1,7 @@
 package com.ywwynm.everythingdone.model;
 
 import android.database.Cursor;
-import android.support.annotation.IntDef;
+import androidx.annotation.IntDef;
 
 import org.joda.time.DateTime;
 

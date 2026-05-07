@@ -5,7 +5,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:context="com.ywwynm.everythingdone.activities.ThingsActivity">
 
-    <android.support.v4.widget.DrawerLayout
+    <androidx.drawerlayout.widget.DrawerLayout
         android:id="@+id/drawer_layout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -22,7 +22,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
 
-            <android.support.v7.widget.Toolbar
+            <androidx.appcompat.widget.Toolbar
                 android:id="@+id/actionbar"
                 android:layout_width="match_parent"
                 android:layout_height="?attr/actionBarSize"
@@ -52,7 +52,7 @@
                     android:textCursorDrawable="@null"
                     android:theme="@style/EverythingDoneTheme.Things.Search"/>
 
-            </android.support.v7.widget.Toolbar>
+            </androidx.appcompat.widget.Toolbar>
 
             <include layout="@layout/include_activity_header_things" />
 
@@ -93,7 +93,7 @@
 
         </FrameLayout>
 
-        <android.support.design.widget.NavigationView
+        <com.google.android.material.navigation.NavigationView
             android:id="@+id/drawer"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
@@ -103,7 +103,7 @@
             app:menu="@menu/menu_drawer"
             app:itemIconTint="#000000"/>
 
-    </android.support.v4.widget.DrawerLayout>
+    </androidx.drawerlayout.widget.DrawerLayout>
 
     <include layout="@layout/include_contextual_toolbar_things" />
 

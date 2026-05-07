@@ -2,7 +2,7 @@ package com.ywwynm.everythingdone.helpers;
 
 import android.content.Context;
 import android.content.Intent;
-import android.support.v4.util.Pair;
+import androidx.core.util.Pair;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -39,7 +39,9 @@ public class RemoteActionHelper {
     public static void finishReminder(Context context, Thing thing, int position) {
         if (App.getDoingThingId() == thing.getId()) {
             DoingService.sStopReason = DoingRecord.STOP_REASON_FINISH;
-            context.sendBroadcast(new Intent(DoingActivity.BROADCAST_ACTION_JUST_FINISH));
+            Intent intentJustFinish1 = new Intent(DoingActivity.BROADCAST_ACTION_JUST_FINISH);
+            intentJustFinish1.setPackage(context.getPackageName());
+            context.sendBroadcast(intentJustFinish1);
             context.stopService(new Intent(context, DoingService.class));
             App.setDoingThingId(-1L);
         }
@@ -71,7 +73,9 @@ public class RemoteActionHelper {
         boolean doing = App.getDoingThingId() == thing.getId();
         if (doing) {
             DoingService.sStopReason = DoingRecord.STOP_REASON_FINISH;
-            context.sendBroadcast(new Intent(DoingActivity.BROADCAST_ACTION_JUST_FINISH));
+            Intent intentJustFinish2 = new Intent(DoingActivity.BROADCAST_ACTION_JUST_FINISH);
+            intentJustFinish2.setPackage(context.getPackageName());
+            context.sendBroadcast(intentJustFinish2);
             context.stopService(new Intent(context, DoingService.class));
             App.setDoingThingId(-1L);
         }
@@ -192,6 +196,7 @@ public class RemoteActionHelper {
         broadcastIntent.putExtra(Def.Communication.KEY_RESULT_CODE,
                 Def.Communication.RESULT_DOING_OR_CANCEL);
         broadcastIntent.putExtra(Def.Communication.KEY_THING, thing);
+        broadcastIntent.setPackage(context.getPackageName());
         context.sendBroadcast(broadcastIntent);
 
         AppWidgetHelper.updateSingleThingAppWidgets(context, thing.getId());
@@ -285,6 +290,7 @@ public class RemoteActionHelper {
                 broadcastIntent.putExtra(Def.Communication.KEY_CALL_CHANGE, shouldCallChange);
             }
         }
+        broadcastIntent.setPackage(context.getPackageName());
         context.sendBroadcast(broadcastIntent);
 
         AppWidgetHelper.updateSingleThingAppWidgets(context, thing.getId());

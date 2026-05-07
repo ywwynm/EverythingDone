@@ -1,6 +1,6 @@
 package com.ywwynm.everythingdone.views;
 
-import android.support.annotation.StringRes;
+import androidx.annotation.StringRes;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -21,7 +21,7 @@ import com.ywwynm.everythingdone.R;
  * Change the implementation to {@link ViewGroup#addView(View, ViewGroup.LayoutParams)} instead
  * of PopupWindow, fixed problems when there is a NavigationBar and window has translucent flags.
  * Besides, this implementation will also be compatible with multi-window announced in Android Nougat.
- * Now, the animation and behavior is like official {@link android.support.design.widget.Snackbar},
+ * Now, the animation and behavior is like official {@link com.google.android.material.snackbar.Snackbar},
  * but this one suits Material Design better than that.
  */
 public class Snackbar {

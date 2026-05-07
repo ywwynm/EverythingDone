@@ -20,20 +20,11 @@ public class DeviceUtil {
 
     private DeviceUtil() {}
 
-    public static boolean hasJellyBeanMR1Api() {
-        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1;
-    }
-
-    public static boolean hasKitKatApi() {
-        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT;
-    }
-    public static boolean hasLollipopApi() {
-        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP;
-    }
-
-    public static boolean hasMarshmallowApi() {
-        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.M;
-    }
+    // minSdk is 23 (Marshmallow), these are always true
+    public static boolean hasJellyBeanMR1Api() { return true; }
+    public static boolean hasKitKatApi() { return true; }
+    public static boolean hasLollipopApi() { return true; }
+    public static boolean hasMarshmallowApi() { return true; }
 
     public static boolean hasNougatApi() {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.N;
@@ -57,14 +48,9 @@ public class DeviceUtil {
         return Build.MODEL;
     }
 
-    @SuppressWarnings("deprecation")
     public static boolean isScreenOn(Context context) {
         PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT_WATCH) {
-            return pm.isInteractive();
-        } else {
-            return pm.isScreenOn();
-        }
+        return pm.isInteractive();
     }
 
     public static boolean isEMUI() {

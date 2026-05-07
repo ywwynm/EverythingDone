@@ -2,7 +2,7 @@ package com.ywwynm.everythingdone.adapters;
 
 import android.content.Context;
 import android.content.res.Resources;
-import android.support.v4.view.PagerAdapter;
+import androidx.viewpager.widget.PagerAdapter;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -12,7 +12,7 @@ import java.util.List;
 
 /**
  * Created by ywwynm on 2015/8/14.
- * A subclass of {@link PagerAdapter} for {@link android.support.v4.view.ViewPager}
+ * A subclass of {@link PagerAdapter} for {@link androidx.viewpager.widget.ViewPager}
  * in {@link com.ywwynm.everythingdone.fragments.DateTimeDialogFragment}
  */
 public class DateTimePagerAdapter extends PagerAdapter {

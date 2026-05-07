@@ -2,10 +2,11 @@ package com.ywwynm.everythingdone.activities;
 
 import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
-import android.support.annotation.Nullable;
-import android.support.v4.util.Pair;
-import android.support.v7.app.AppCompatActivity;
+import androidx.annotation.Nullable;
+import androidx.core.util.Pair;
+import androidx.appcompat.app.AppCompatActivity;
 import android.view.View;
 import android.widget.Toast;
 
@@ -91,7 +92,11 @@ public class StartDoingActivity extends AppCompatActivity {
             @Override
             public void onDismiss() {
                 finish();
-                overridePendingTransition(0, 0);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    overrideActivityTransition(OVERRIDE_TRANSITION_OPEN, 0, 0);
+                } else {
+                    overridePendingTransition(0, 0);
+                }
             }
         });
         cdf.show(getFragmentManager(), ChooserDialogFragment.TAG);

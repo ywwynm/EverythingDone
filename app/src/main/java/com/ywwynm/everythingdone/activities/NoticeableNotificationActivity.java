@@ -8,11 +8,11 @@ import android.content.IntentFilter;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
-import android.support.v4.app.NotificationManagerCompat;
-import android.support.v4.content.ContextCompat;
-import android.support.v4.util.Pair;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
+import androidx.core.app.NotificationManagerCompat;
+import androidx.core.content.ContextCompat;
+import androidx.core.util.Pair;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.style.ForegroundColorSpan;
@@ -109,7 +109,8 @@ public class NoticeableNotificationActivity extends EverythingDoneBaseActivity {
     @Override
     protected void init() {
         IntentFilter intentFilter = new IntentFilter(BROADCAST_ACTION_JUST_FINISH);
-        registerReceiver(mReceiver, intentFilter);
+        ContextCompat.registerReceiver(this, mReceiver, intentFilter,
+                ContextCompat.RECEIVER_NOT_EXPORTED);
 
         initMembers();
         if (mThing != null) {
@@ -320,11 +321,7 @@ public class NoticeableNotificationActivity extends EverythingDoneBaseActivity {
                 super.onBindViewHolder(holder, position);
 
                 int color = DisplayUtil.getTransparentColor(mThing.getColor(), 16);
-                if (!DeviceUtil.hasLollipopApi()) {
-                    holder.cv.setBackgroundColor(color);
-                } else {
-                    holder.cv.setCardBackgroundColor(color);
-                }
+                holder.cv.setCardBackgroundColor(color);
                 holder.cv.setRadius(0);
                 holder.cv.setCardElevation(0);
 
@@ -447,20 +444,6 @@ public class NoticeableNotificationActivity extends EverythingDoneBaseActivity {
                         // setFinishOnTouchOutside(true);
                     }
                 });
-
-        if (!DeviceUtil.hasLollipopApi()) {
-            mRvThing.addOnScrollListener(new RecyclerView.OnScrollListener() {
-
-                final int edgeColor = ContextCompat.getColor(
-                        getApplicationContext(), R.color.black_26p);
-
-                @Override
-                public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
-                    super.onScrollStateChanged(recyclerView, newState);
-                    EdgeEffectUtil.forRecyclerView(mRvThing, edgeColor);
-                }
-            });
-        }
 
         mFlCancelAsBt.setOnClickListener(new View.OnClickListener() {
             @Override

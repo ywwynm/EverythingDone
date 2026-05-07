@@ -2,9 +2,10 @@ package com.ywwynm.everythingdone.activities;
 
 import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
-import android.support.v4.util.Pair;
-import android.support.v7.app.AppCompatActivity;
+import androidx.core.util.Pair;
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
@@ -87,7 +88,11 @@ public class AuthenticationActivity extends AppCompatActivity {
                         @Override
                         public void onCancel() {
                             finish();
-                            overridePendingTransition(0, 0);
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                                overrideActivityTransition(OVERRIDE_TRANSITION_OPEN, 0, 0);
+                            } else {
+                                overridePendingTransition(0, 0);
+                            }
                         }
                     });
         } else {
@@ -106,7 +111,11 @@ public class AuthenticationActivity extends AppCompatActivity {
             actView();
         }
         finish();
-        overridePendingTransition(0, 0);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            overrideActivityTransition(OVERRIDE_TRANSITION_OPEN, 0, 0);
+        } else {
+            overridePendingTransition(0, 0);
+        }
     }
 
     private void actFinish(Thing thing, int position) {
@@ -135,9 +144,10 @@ public class AuthenticationActivity extends AppCompatActivity {
     private void actView() {
         Intent intent = getIntent();
         long id = intent.getLongExtra(Def.Communication.KEY_ID, -1);
-        sendBroadcast(
-                new Intent(Def.Communication.BROADCAST_ACTION_FINISH_DETAILACTIVITY)
-                        .putExtra(Def.Communication.KEY_ID, id));
+        Intent broadcastIntent = new Intent(Def.Communication.BROADCAST_ACTION_FINISH_DETAILACTIVITY);
+        broadcastIntent.putExtra(Def.Communication.KEY_ID, id);
+        broadcastIntent.setPackage(getPackageName());
+        sendBroadcast(broadcastIntent);
 
         intent.setClass(this, DetailActivity.class);
         startActivity(intent);

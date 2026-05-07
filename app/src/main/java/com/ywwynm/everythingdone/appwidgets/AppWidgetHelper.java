@@ -8,8 +8,8 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.net.Uri;
-import android.support.annotation.DrawableRes;
-import android.support.v4.content.ContextCompat;
+import androidx.annotation.DrawableRes;
+import androidx.core.content.ContextCompat;
 import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.style.StrikethroughSpan;
@@ -18,8 +18,8 @@ import android.util.TypedValue;
 import android.view.View;
 import android.widget.RemoteViews;
 
-import com.bumptech.glide.BitmapRequestBuilder;
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.RequestBuilder;
 import com.bumptech.glide.request.FutureTarget;
 import com.bumptech.glide.request.target.AppWidgetTarget;
 import com.ywwynm.everythingdone.App;
@@ -287,7 +287,8 @@ public class AppWidgetHelper {
                 Def.Communication.AUTHENTICATE_ACTION_VIEW,
                 context.getString(R.string.check_private_thing));
         PendingIntent pendingIntent = PendingIntent.getActivity(
-                context, appWidgetId, contentIntent, 0);
+                context, appWidgetId, contentIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         remoteViews.setOnClickPendingIntent(ROOT_WIDGET_THING, pendingIntent);
         remoteViews.setOnClickPendingIntent(FL_DOING, pendingIntent);
         return remoteViews;
@@ -318,21 +319,21 @@ public class AppWidgetHelper {
         Intent intent = new Intent(context, ThingsActivity.class);
         intent.putExtra(Def.Communication.KEY_LIMIT, limit);
         PendingIntent pendingIntent = PendingIntent.getActivity(
-                context, appWidgetId, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+                context, appWidgetId, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         remoteViews.setOnClickPendingIntent(LL_THINGS_LIST_HEADER, pendingIntent);
 
         // setting image view click event
         intent = new Intent(context, ThingsListWidgetConfiguration.class);
         intent.putExtra(Def.Communication.KEY_WIDGET_ID, appWidgetId);
         pendingIntent = PendingIntent.getActivity(
-                context, appWidgetId, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+                context, appWidgetId, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         remoteViews.setOnClickPendingIntent(IV_THINGS_LIST_SETTING, pendingIntent);
 
         // create image view click event
         intent = DetailActivity.getOpenIntentForCreate(context, TAG, App.newThingColor);
         intent.putExtra(Def.Communication.KEY_LIMIT, limit);
         pendingIntent = PendingIntent.getActivity(
-                context, appWidgetId, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+                context, appWidgetId, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         remoteViews.setOnClickPendingIntent(IV_THINGS_LIST_CREATE, pendingIntent);
 
         // adapter for things
@@ -354,7 +355,7 @@ public class AppWidgetHelper {
                 DetailActivity.UPDATE);
         intent.setData(Uri.parse(intent.toUri(Intent.URI_INTENT_SCHEME)));
         pendingIntent = PendingIntent.getActivity(context, appWidgetId, intent,
-                PendingIntent.FLAG_UPDATE_CURRENT);
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         remoteViews.setPendingIntentTemplate(LV_THINGS_LIST, pendingIntent);
 
         remoteViews.setScrollPosition(LV_THINGS_LIST, 0);
@@ -567,25 +568,25 @@ public class AppWidgetHelper {
             return;
         }
         Glide.with(context)
-                .load(pathName)
                 .asBitmap()
+                .load(pathName)
                 .override(options.outWidth, options.outWidth * 3 / 4)
                 .centerCrop()
                 .into(new AppWidgetTarget(
-                        context, remoteViews, IV_IMAGE_ATTACHMENT, new int[] { appWidgetId }));
+                        context, IV_IMAGE_ATTACHMENT, remoteViews, appWidgetId));
     }
 
     private static void loadImageForThingsListItem(
             Context context, String pathName, RemoteViews remoteViews) {
         int width  = (int) (screenDensity * 180);
         int height = width * 3 / 4;
-        BitmapRequestBuilder builder =
+        RequestBuilder<Bitmap> builder =
                 Glide.with(context)
-                        .load(pathName)
                         .asBitmap()
+                        .load(pathName)
                         .override(width, height)
                         .centerCrop();
-        FutureTarget futureTarget = builder.into(width, height);
+        FutureTarget<Bitmap> futureTarget = builder.submit(width, height);
         try {
             remoteViews.setImageViewBitmap(IV_IMAGE_ATTACHMENT, (Bitmap) futureTarget.get());
         } catch (Exception e) {
@@ -708,7 +709,7 @@ public class AppWidgetHelper {
         intent.setAction(Def.Communication.BROADCAST_ACTION_UPDATE_CHECKLIST);
         intent.setData(Uri.parse(intent.toUri(Intent.URI_INTENT_SCHEME)));
         PendingIntent pendingIntent = PendingIntent.getBroadcast(context, appWidgetId, intent,
-                PendingIntent.FLAG_UPDATE_CURRENT);
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         remoteViews.setPendingIntentTemplate(R.id.lv_thing_check_list, pendingIntent);
     }
 
@@ -834,7 +835,7 @@ public class AppWidgetHelper {
         intent.setAction(Def.Communication.WIDGET_ACTION_FINISH);
         intent.putExtra(Def.Communication.KEY_ID, id);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(context,
-                (int) id, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+                (int) id, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         remoteViews.setOnClickPendingIntent(TV_THING_ACTION, pendingIntent);
     }
 
@@ -846,7 +847,7 @@ public class AppWidgetHelper {
         intent.setAction(Def.Communication.WIDGET_ACTION_FINISH);
         intent.putExtra(Def.Communication.KEY_ID, id);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(context,
-                (int) id, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+                (int) id, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         remoteViews.setOnClickPendingIntent(TV_THING_ACTION, pendingIntent);
     }
 

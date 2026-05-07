@@ -3,7 +3,7 @@ package com.ywwynm.everythingdone.utils;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.Resources;
-import android.support.v4.util.Pair;
+import androidx.core.util.Pair;
 import android.widget.EditText;
 
 import com.ywwynm.everythingdone.App;

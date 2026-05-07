@@ -117,7 +117,7 @@
 
     </FrameLayout>
 
-    <android.support.v7.widget.CardView
+    <androidx.cardview.widget.CardView
         android:id="@+id/cv_start_doing_as_bt_dialog"
         android:layout_width="248dp"
         android:layout_height="48dp"
@@ -135,6 +135,6 @@
             android:textColor="@android:color/white"
             android:text="@string/start_doing_full_title"/>
 
-    </android.support.v7.widget.CardView>
+    </androidx.cardview.widget.CardView>
 
 </LinearLayout>

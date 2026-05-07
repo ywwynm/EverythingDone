@@ -7,8 +7,11 @@ import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.media.MediaMetadataRetriever;
 import android.net.Uri;
-import android.support.v4.util.Pair;
-import android.support.v7.widget.RecyclerView;
+import android.os.Environment;
+import androidx.core.content.FileProvider;
+import java.io.IOException;
+import androidx.core.util.Pair;
+import androidx.recyclerview.widget.RecyclerView;
 import android.widget.LinearLayout;
 
 import com.ywwynm.everythingdone.App;
@@ -200,7 +203,7 @@ public class AttachmentHelper {
         }
 
         String fileName = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()) + fileType;
-        return FileUtil.createFile(Def.Meta.APP_FILE_DIR + "/" + folderName, fileName);
+        return FileUtil.createFile(Def.getAppFileDir(App.getApp()) + "/" + folderName, fileName);
     }
 
     public static int[] calculateImageSize(Context context, int itemSize) {
@@ -262,7 +265,11 @@ public class AttachmentHelper {
         } catch(Exception e) {
             e.printStackTrace();
         } finally {
-            retriever.release();
+            try {
+                retriever.release();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
         return bitmap;
     }
@@ -291,10 +298,7 @@ public class AttachmentHelper {
         if (itemSize % span != 0) {
             rows++;
         }
-        int itemHeight = (int) (density * 56);
-        if (DeviceUtil.hasLollipopApi()) {
-            itemHeight += density * 8;
-        }
+        int itemHeight = (int) (density * 56) + (int) (density * 8);
 
         LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) recyclerView.getLayoutParams();
         params.height = itemHeight * rows;
@@ -418,12 +422,14 @@ public class AttachmentHelper {
             return null;
         }
         List<String> attachmentsToDelete = new ArrayList<>();
-        String appDir = Def.Meta.APP_FILE_DIR;
+        String appDir = Def.getAppFileDir(App.getApp());
+        String oldAppDir = Environment.getExternalStorageDirectory().getAbsolutePath() + "/EverythingDone";
         String pathName;
         String[] attachmentsBefore = attachmentBefore.split(SIGNAL);
         for (int i = 1; i < attachmentsBefore.length; i++) {
             pathName = attachmentsBefore[i].substring(1, attachmentsBefore[i].length());
-            if (pathName.startsWith(appDir) && !attachmentAfter.contains(attachmentsBefore[i])) {
+            if ((pathName.startsWith(appDir) || pathName.startsWith(oldAppDir))
+                    && !attachmentAfter.contains(attachmentsBefore[i])) {
                 attachmentsToDelete.add(pathName);
             }
         }
@@ -455,7 +461,8 @@ public class AttachmentHelper {
         for (String typePathName : typePathNames) {
             if (typePathName.isEmpty()) continue;
             String pathName = typePathName.substring(1, typePathName.length());
-            Uri uri = Uri.fromFile(new File(pathName));
+            Uri uri = FileProvider.getUriForFile(App.getApp(),
+                    "com.ywwynm.everythingdone", new File(pathName));
             ret.add(uri);
         }
         return ret;

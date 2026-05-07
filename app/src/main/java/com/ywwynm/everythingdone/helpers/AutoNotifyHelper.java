@@ -59,9 +59,9 @@ public class AutoNotifyHelper {
         Intent intent = new Intent(context, AutoNotifyReceiver.class);
         intent.putExtra(Def.Communication.KEY_ID, id);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(context, (int) id, intent,
-                PendingIntent.FLAG_UPDATE_CURRENT);
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         long time = DateTimeUtil.getActualTimeAfterSomeTime(getAutoNotifyPreferences(context));
-        alarmManager.set(AlarmManager.RTC_WAKEUP, time, pendingIntent);
+        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, time, pendingIntent);
     }
 
     private static boolean shouldCreateAutoNotify(Thing thing, Context context) {

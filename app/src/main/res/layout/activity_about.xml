@@ -19,7 +19,7 @@
             android:layout_width="match_parent"
             android:layout_height="0dp" />
 
-        <android.support.v7.widget.Toolbar
+        <androidx.appcompat.widget.Toolbar
             android:id="@+id/actionbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
@@ -31,18 +31,14 @@
             android:layout_height="0dp"
             android:layout_weight="7">
 
-            <android.support.design.widget.FloatingActionButton
+            <ImageView
                 android:id="@+id/fab_about_head"
-                android:layout_width="220dp"
-                android:layout_height="220dp"
+                android:layout_width="180dp"
+                android:layout_height="180dp"
                 android:layout_gravity="center"
                 android:src="@drawable/about_head"
-                android:scaleType="center"
-                android:contentDescription="@string/everythingdone"
-                app:backgroundTint="#EEEEEE"
-                app:borderWidth="0dp"
-                app:elevation="0dp"
-                app:pressedTranslationZ="0dp"/>
+                android:scaleType="fitCenter"
+                android:contentDescription="@string/everythingdone"/>
 
         </FrameLayout>
 
@@ -114,7 +110,7 @@
 
     </LinearLayout>
 
-    <android.support.design.widget.FloatingActionButton
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_support"
         android:layout_width="56dp"
         android:layout_height="56dp"

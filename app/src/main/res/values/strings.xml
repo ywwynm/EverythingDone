@@ -614,6 +614,26 @@
     </string-array>
     <string name="follow_system_settings">Follow System</string>
     <string name="settings_noticeable_notification">More noticeable alarm notification</string>
+    <string name="settings_notification_reliability">Reminder reliability</string>
+    <string name="settings_group_notification_reliability">Reminder reliability</string>
+    <string name="settings_battery_optimization">Ignore battery optimization</string>
+    <string name="settings_battery_optimization_off">Off — reminders may be delayed by the system</string>
+    <string name="settings_battery_optimization_on">On — reminders fire on time</string>
+    <string name="settings_autostart">Autostart / background permission</string>
+    <string name="settings_autostart_desc">Tap to allow autostart so reminders still fire after the app is swiped away. Required on Xiaomi / Huawei / OPPO / Vivo / Honor and similar vendor ROMs.</string>
+    <string name="settings_autostart_not_needed">Your device does not require this — Pixel / AOSP-style ROMs respect alarm scheduling out of the box.</string>
+    <string name="settings_autostart_unavailable">No vendor-specific page found. Opened app info instead — please find &quot;Battery&quot; or &quot;Background activity&quot; from there.</string>
+    <string name="settings_notifications_enabled">Notification permission</string>
+    <string name="settings_notifications_enabled_off">Off — your reminders cannot show up. Tap to grant.</string>
+    <string name="settings_notifications_enabled_on">On — reminders can be displayed</string>
+    <string name="settings_full_screen_intent">Full-screen alarm permission</string>
+    <string name="settings_full_screen_intent_off">Off — &quot;more noticeable alarm&quot; will not raise the dialog. Tap to grant.</string>
+    <string name="settings_full_screen_intent_on">On — full-screen alarm dialog can show</string>
+    <string name="settings_channels_status">Reminder / habit / goal channels</string>
+    <string name="settings_channels_all_on">All %1$d channels enabled</string>
+    <string name="settings_channels_some_off">%1$d of %2$d disabled by you. Tap to fix.</string>
+    <string name="post_notifications_rationale_title">Allow notifications</string>
+    <string name="post_notifications_rationale_content">EverythingDone needs notification permission to fire your reminder, habit and goal alarms. Without it, the alarm will trigger but nothing will appear.</string>
     <string name="settings_toggle_checklist_thing_card">Toggle checklist item on thing card</string>
     <string name="settings_simple_finished_checklist">Fold finished checklist items on underway thing card</string>
     <string name="settings_auto_link">Automatically link phone number, web page and more when checking a thing</string>
@@ -1050,5 +1070,14 @@
     <string name="from_1_3_3_to_1_3_4_title">Save edits automatically and change habit records</string>
     <string name="from_1_3_3_to_1_3_4_content">Now you can enable saving edits automatically when creating or updating a thing.
     \n\nYou can also change your latest habit records to correct mistakes or pick lost memory. Check a habit, open menu, click \"check habit detail\" and you will see that action.</string>
+
+    <!-- Notification Channels -->
+    <string name="channel_reminder">Reminders</string>
+    <string name="channel_habit">Habits</string>
+    <string name="channel_goal">Goals</string>
+    <string name="channel_doing">Doing Mode</string>
+    <string name="channel_quick_create">Quick Create</string>
+    <string name="channel_ongoing">Ongoing Notification</string>
+    <string name="channel_auto_notify">Auto Notify</string>
 
 </resources>

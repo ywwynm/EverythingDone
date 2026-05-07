@@ -4,14 +4,14 @@ import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.PorterDuff;
-import android.support.annotation.DrawableRes;
-import android.support.annotation.IntDef;
-import android.support.annotation.StringRes;
-import android.support.v4.content.ContextCompat;
-import android.support.v4.util.LongSparseArray;
-import android.support.v7.widget.CardView;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
+import androidx.annotation.DrawableRes;
+import androidx.annotation.IntDef;
+import androidx.annotation.StringRes;
+import androidx.core.content.ContextCompat;
+import androidx.collection.LongSparseArray;
+import androidx.cardview.widget.CardView;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -25,7 +25,9 @@ import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.RequestManager;
-import com.bumptech.glide.load.resource.drawable.GlideDrawable;
+import android.graphics.drawable.Drawable;
+import com.bumptech.glide.load.DataSource;
+import com.bumptech.glide.load.engine.GlideException;
 import com.bumptech.glide.request.RequestListener;
 import com.bumptech.glide.request.target.Target;
 import com.ywwynm.everythingdone.App;
@@ -389,26 +391,22 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
             paramsCover.height = imageH;
 
             // before lollipop, set margins to negative number to remove ugly stroke
-            if (!DeviceUtil.hasLollipopApi()) {
-                int m = (int) (mDensity * -8);
-                paramsLayout.setMargins(0, m, 0, 0);
-            }
 
             String pathName = firstImageTypePathName.substring(1, firstImageTypePathName.length());
             mImageRequestManager
                     .load(pathName)
-                    .listener(new RequestListener<String, GlideDrawable>() {
+                    .listener(new RequestListener<Drawable>() {
                         @Override
-                        public boolean onException(
-                                Exception e, String model, Target<GlideDrawable> target,
+                        public boolean onLoadFailed(
+                                GlideException e, Object model, Target<Drawable> target,
                                 boolean isFirstResource) {
                             return false;
                         }
 
                         @Override
                         public boolean onResourceReady(
-                                GlideDrawable resource, String model, Target<GlideDrawable> target,
-                                boolean isFromMemoryCache, boolean isFirstResource) {
+                                Drawable resource, Object model, Target<Drawable> target,
+                                DataSource dataSource, boolean isFirstResource) {
                             holder.pbLoading.setVisibility(View.GONE);
                             return false;
                         }

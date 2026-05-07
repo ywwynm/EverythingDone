@@ -4,8 +4,8 @@ import android.annotation.SuppressLint;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.support.v4.app.NotificationManagerCompat;
-import android.support.v4.util.Pair;
+import androidx.core.app.NotificationManagerCompat;
+import androidx.core.util.Pair;
 import android.widget.Toast;
 
 import com.ywwynm.everythingdone.App;
@@ -71,57 +71,51 @@ public class ReminderNotificationActionReceiver extends BroadcastReceiver {
         }
         position = pair.second;
 
-        switch (action) {
-            case Def.Communication.NOTIFICATION_ACTION_FINISH:
-            case Def.Communication.WIDGET_ACTION_FINISH:
-                if (thing.isPrivate()) {
-                    Intent actionIntent = AuthenticationActivity.getOpenIntent(
-                            context, TAG, thingId, position,
-                            Def.Communication.AUTHENTICATE_ACTION_FINISH,
-                            context.getString(R.string.act_finish));
-                    actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
-                    context.startActivity(actionIntent);
-                } else {
-                    RemoteActionHelper.finishReminder(context, thing, position);
-                }
-                break;
-            case Def.Communication.NOTIFICATION_ACTION_DELAY: {
-                Intent actionIntent;
-                if (thing.isPrivate()) {
-                    actionIntent = AuthenticationActivity.getOpenIntent(
-                            context, TAG, thingId, position,
-                            Def.Communication.AUTHENTICATE_ACTION_DELAY,
-                            context.getString(R.string.act_delay));
-                } else {
-                    actionIntent = DelayReminderActivity.getOpenIntent(
-                            context, thing.getId(), position, thing.getColor());
-                }
+        if (Def.Communication.NOTIFICATION_ACTION_FINISH.equals(action)
+                || Def.Communication.WIDGET_ACTION_FINISH.equals(action)) {
+            if (thing.isPrivate()) {
+                Intent actionIntent = AuthenticationActivity.getOpenIntent(
+                        context, TAG, thingId, position,
+                        Def.Communication.AUTHENTICATE_ACTION_FINISH,
+                        context.getString(R.string.act_finish));
                 actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
                 context.startActivity(actionIntent);
-                break;
+            } else {
+                RemoteActionHelper.finishReminder(context, thing, position);
             }
-            case Def.Communication.NOTIFICATION_ACTION_START_DOING: {
-                if (thingId == App.getDoingThingId()) {
-                    Toast.makeText(context, R.string.start_doing_doing_this_thing,
-                            Toast.LENGTH_LONG).show();
-                    return;
-                }
+        } else if (Def.Communication.NOTIFICATION_ACTION_START_DOING.equals(action)) {
+            if (thingId == App.getDoingThingId()) {
+                Toast.makeText(context, R.string.start_doing_doing_this_thing,
+                        Toast.LENGTH_LONG).show();
+                return;
+            }
 
-                Intent actionIntent;
-                if (thing.isPrivate()) {
-                    actionIntent = AuthenticationActivity.getOpenIntent(
-                            context, TAG, thingId, position,
-                            Def.Communication.AUTHENTICATE_ACTION_START_DOING,
-                            context.getString(R.string.start_doing_full_title));
-                } else {
-                    actionIntent = StartDoingActivity.getOpenIntent(
-                            context, thing.getId(), position, thing.getColor(),
-                            DoingService.START_TYPE_ALARM, -1);
-                }
-                actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
-                context.startActivity(actionIntent);
-                break;
+            Intent actionIntent;
+            if (thing.isPrivate()) {
+                actionIntent = AuthenticationActivity.getOpenIntent(
+                        context, TAG, thingId, position,
+                        Def.Communication.AUTHENTICATE_ACTION_START_DOING,
+                        context.getString(R.string.start_doing_full_title));
+            } else {
+                actionIntent = StartDoingActivity.getOpenIntent(
+                        context, thing.getId(), position, thing.getColor(),
+                        DoingService.START_TYPE_ALARM, -1);
             }
+            actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
+            context.startActivity(actionIntent);
+        } else if (Def.Communication.NOTIFICATION_ACTION_DELAY.equals(action)) {
+            Intent actionIntent;
+            if (thing.isPrivate()) {
+                actionIntent = AuthenticationActivity.getOpenIntent(
+                        context, TAG, thingId, position,
+                        Def.Communication.AUTHENTICATE_ACTION_DELAY,
+                        context.getString(R.string.act_delay));
+            } else {
+                actionIntent = DelayReminderActivity.getOpenIntent(
+                        context, thing.getId(), position, thing.getColor());
+            }
+            actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
+            context.startActivity(actionIntent);
         }
     }
 }

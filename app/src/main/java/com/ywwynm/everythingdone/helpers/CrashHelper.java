@@ -66,7 +66,7 @@ public class CrashHelper implements Thread.UncaughtExceptionHandler {
     }
 
     private void saveCrashInfoToStorage(Throwable ex) {
-        String path = Def.Meta.APP_FILE_DIR + "/log";
+        String path = Def.getAppFileDir(mApplication) + "/log";
         String time = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
         String name = "crash_" + time + ".log";
         File file = FileUtil.createFile(path, name);

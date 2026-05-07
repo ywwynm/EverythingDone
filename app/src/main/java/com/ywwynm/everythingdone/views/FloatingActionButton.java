@@ -1,7 +1,7 @@
 package com.ywwynm.everythingdone.views;
 
 import android.content.Context;
-import android.support.v7.widget.RecyclerView;
+import androidx.recyclerview.widget.RecyclerView;
 import android.util.AttributeSet;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.AccelerateInterpolator;
@@ -13,9 +13,9 @@ import com.ywwynm.everythingdone.utils.DeviceUtil;
  * Created by ywwynm on 2015/8/16.
  * A custom FloatingActionButton with more animation for appearing/disappearing.
  * It can also attach to a RecyclerView and appear/disappear according to scrolling.
- * Based on FloatingActionButton in Support Design Library.
+ * Based on FloatingActionButton in Material Design Library.
  */
-public class FloatingActionButton extends android.support.design.widget.FloatingActionButton {
+public class FloatingActionButton extends com.google.android.material.floatingactionbutton.FloatingActionButton {
 
     public static final String TAG = "FloatingActionButton";
 
@@ -50,9 +50,7 @@ public class FloatingActionButton extends android.support.design.widget.Floating
     }
 
     private int getMarginBottom() {
-        if (!DeviceUtil.hasLollipopApi()) {
-            return 0;
-        } else return (int) (16 * getResources().getDisplayMetrics().density);
+        return (int) (16 * getResources().getDisplayMetrics().density);
     }
 
     public void bindSnackbars(Snackbar... snackbars) {
