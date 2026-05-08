@@ -120,7 +120,8 @@ import com.ywwynm.everythingdone.views.Snackbar;
 import com.ywwynm.everythingdone.views.pickers.ColorPicker;
 import com.ywwynm.everythingdone.views.pickers.DateTimePicker;
 
-import org.joda.time.DateTime;
+import java.time.ZonedDateTime;
+import java.time.ZoneId;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -895,7 +896,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             } else {
                 quickRemindPicker.pickForUI(9);
                 cbQuickRemind.setChecked(true);
-                long reminderInMillis = new DateTime().withTime(14, 0, 0, 0).getMillis();
+                long reminderInMillis = ZonedDateTime.now().withHour(14).withMinute(0).withSecond(0).withNano(0).toInstant().toEpochMilli();
                 tvQuickRemind.setText(DateTimeUtil.getDateTimeStrAt(reminderInMillis, this, false));
                 rhParams.setReminderInMillis(reminderInMillis);
             }
@@ -1150,24 +1151,14 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 boolean isDragging = mCheckListAdapter.isDragging();
                 if (!isDragging) {
                     mTvMoveChecklistAsBt.setText(R.string.act_back_from_move_checklist);
-                    if (DeviceUtil.hasJellyBeanMR1Api()) {
-                        mTvMoveChecklistAsBt.setCompoundDrawablesRelativeWithIntrinsicBounds(
-                                R.drawable.act_back_from_move_checklist, 0, 0, 0);
-                    } else {
-                        mTvMoveChecklistAsBt.setCompoundDrawablesWithIntrinsicBounds(
-                                R.drawable.act_back_from_move_checklist, 0, 0, 0);
-                    }
+                    mTvMoveChecklistAsBt.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                            R.drawable.act_back_from_move_checklist, 0, 0, 0);
                     mCheckListAdapter.setDragging(true);
                     mChecklistTouchHelper.attachToRecyclerView(mRvCheckList);
                 } else {
                     mTvMoveChecklistAsBt.setText(R.string.act_move_check_list);
-                    if (DeviceUtil.hasJellyBeanMR1Api()) {
-                        mTvMoveChecklistAsBt.setCompoundDrawablesRelativeWithIntrinsicBounds(
-                                R.drawable.act_move_checklist, 0, 0, 0);
-                    } else {
-                        mTvMoveChecklistAsBt.setCompoundDrawablesWithIntrinsicBounds(
-                                R.drawable.act_move_checklist, 0, 0, 0);
-                    }
+                    mTvMoveChecklistAsBt.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                            R.drawable.act_move_checklist, 0, 0, 0);
                     mCheckListAdapter.setDragging(false);
                     mChecklistTouchHelper.attachToRecyclerView(null);
                 }

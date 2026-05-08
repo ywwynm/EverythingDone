@@ -6,7 +6,7 @@ android {
 
     defaultConfig {
         applicationId "com.ywwynm.everythingdone"
-        minSdk 23
+        minSdk 26
         targetSdk 36
         versionCode 43
         versionName "2.0.0"
@@ -48,7 +48,7 @@ dependencies {
     implementation 'androidx.work:work-runtime:2.9.1'
 
     implementation 'com.github.chrisbanes:PhotoView:2.3.0'
-    implementation 'joda-time:joda-time:2.14.2'
+
     implementation 'com.github.bumptech.glide:glide:4.16.0'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.16.0'
     implementation 'jp.wasabeef:blurry:4.0.1'

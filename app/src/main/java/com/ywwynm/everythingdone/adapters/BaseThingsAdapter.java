@@ -43,7 +43,6 @@ import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
-import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.views.HabitRecordPresenter;
 import com.ywwynm.everythingdone.views.InterceptTouchCardView;
@@ -504,9 +503,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
             holder.tvAudioCount.setTextSize(18);
 
             llp2.setMargins(dp12, llp2.topMargin, llp2.rightMargin, llp2.bottomMargin);
-            if (DeviceUtil.hasJellyBeanMR1Api()) {
-                llp2.setMarginStart(dp12);
-            }
+            llp2.setMarginStart(dp12);
 
             holder.llAudioAttachment.setPadding(dp16, dp16, dp16, 0);
         } else {
@@ -515,9 +512,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
             holder.tvAudioCount.setTextSize(11);
 
             llp2.setMargins(dp8, llp2.topMargin, llp2.rightMargin, llp2.bottomMargin);
-            if (DeviceUtil.hasJellyBeanMR1Api()) {
-                llp2.setMarginStart(dp8);
-            }
+            llp2.setMarginStart(dp8);
 
             holder.llAudioAttachment.setPadding(dp16, dp16 / 4 * 3, dp16, 0);
         }

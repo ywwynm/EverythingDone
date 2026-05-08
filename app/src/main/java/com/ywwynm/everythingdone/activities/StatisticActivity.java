@@ -43,7 +43,10 @@ import com.ywwynm.everythingdone.utils.EdgeEffectUtil;
 import com.ywwynm.everythingdone.utils.LocaleUtil;
 import com.ywwynm.everythingdone.views.FloatingActionButton;
 
-import org.joda.time.DateTime;
+import java.time.ZonedDateTime;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 
 import java.io.File;
 import java.util.Calendar;
@@ -156,7 +159,7 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
         SharedPreferences metaData = getSharedPreferences(
                 Def.Meta.META_DATA_NAME, MODE_PRIVATE);
         long time = metaData.getLong(Def.Meta.KEY_START_USING_TIME, 0);
-        DateTime dt = new DateTime(time);
+        ZonedDateTime dt = Instant.ofEpochMilli(time).atZone(ZoneId.systemDefault());
         int gap = DateTimeUtil.calculateTimeGap(
                 time, System.currentTimeMillis(), Calendar.DATE) + 1;
         StringBuilder sb = new StringBuilder();
@@ -165,11 +168,11 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
             String year  = mApp.getString(R.string.year);
             String month = mApp.getString(R.string.month);
             String day   = mApp.getString(R.string.day);
-            sb.append(dt.toString(" yyyy " + year + " M " + month + " d " + day))
+            sb.append(dt.format(DateTimeFormatter.ofPattern(" yyyy " + year + " M " + month + " d " + day)))
                     .append(getString(R.string.statistic_start_from_part_2))
                     .append(" ").append(gap).append(" ");
         } else {
-            sb.append(dt.toString(" MMM d, yyyy"))
+            sb.append(dt.format(DateTimeFormatter.ofPattern(" MMM d, yyyy")))
                     .append(getString(R.string.statistic_start_from_part_2));
             if (gap <= 1) {
                 sb.append(" this day");

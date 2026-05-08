@@ -17,7 +17,6 @@ import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.DetailActivity;
 import com.ywwynm.everythingdone.helpers.AttachmentHelper;
 import com.ywwynm.everythingdone.permission.SimplePermissionCallback;
-import com.ywwynm.everythingdone.utils.DeviceUtil;
 
 import java.io.File;
 
@@ -125,19 +124,13 @@ public class AddAttachmentDialogFragment extends BaseDialogFragment {
         if (file != null) {
             mActivity.attachmentTypePathName = AttachmentHelper.IMAGE + file.getAbsolutePath();
             mActivity.cameraOutputUri = null;
-            if (DeviceUtil.hasNougatApi()) {
-                ContentValues contentValues = new ContentValues();
-                contentValues.put(MediaStore.Images.Media.DISPLAY_NAME, file.getName());
-                contentValues.put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/EverythingDone");
-                Uri imageUri = mActivity.getContentResolver()
-                        .insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues);
-                intent.putExtra(MediaStore.EXTRA_OUTPUT, imageUri);
-                mActivity.cameraOutputUri = imageUri;
-            } else {
-                intent.putExtra(MediaStore.EXTRA_OUTPUT,
-                        FileProvider.getUriForFile(mActivity,
-                                "com.ywwynm.everythingdone", file));
-            }
+            ContentValues contentValues = new ContentValues();
+            contentValues.put(MediaStore.Images.Media.DISPLAY_NAME, file.getName());
+            contentValues.put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/EverythingDone");
+            Uri imageUri = mActivity.getContentResolver()
+                    .insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues);
+            intent.putExtra(MediaStore.EXTRA_OUTPUT, imageUri);
+            mActivity.cameraOutputUri = imageUri;
             mActivity.startActivityForResult(intent,
                     Def.Communication.REQUEST_TAKE_PHOTO);
         }
@@ -150,19 +143,13 @@ public class AddAttachmentDialogFragment extends BaseDialogFragment {
         if (file != null) {
             mActivity.attachmentTypePathName = AttachmentHelper.VIDEO + file.getAbsolutePath();
             mActivity.cameraOutputUri = null;
-            if (DeviceUtil.hasNougatApi()) {
-                ContentValues contentValues = new ContentValues();
-                contentValues.put(MediaStore.Video.Media.DISPLAY_NAME, file.getName());
-                contentValues.put(MediaStore.Video.Media.RELATIVE_PATH, "Movies/EverythingDone");
-                Uri videoUri = mActivity.getContentResolver()
-                        .insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, contentValues);
-                intent.putExtra(MediaStore.EXTRA_OUTPUT, videoUri);
-                mActivity.cameraOutputUri = videoUri;
-            } else {
-                intent.putExtra(MediaStore.EXTRA_OUTPUT,
-                        FileProvider.getUriForFile(mActivity,
-                                "com.ywwynm.everythingdone", file));
-            }
+            ContentValues contentValues = new ContentValues();
+            contentValues.put(MediaStore.Video.Media.DISPLAY_NAME, file.getName());
+            contentValues.put(MediaStore.Video.Media.RELATIVE_PATH, "Movies/EverythingDone");
+            Uri videoUri = mActivity.getContentResolver()
+                    .insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, contentValues);
+            intent.putExtra(MediaStore.EXTRA_OUTPUT, videoUri);
+            mActivity.cameraOutputUri = videoUri;
             mActivity.startActivityForResult(intent,
                     Def.Communication.REQUEST_CAPTURE_VIDEO);
         }

@@ -23,7 +23,8 @@ import com.ywwynm.everythingdone.receivers.HabitReceiver;
 import com.ywwynm.everythingdone.receivers.ReminderReceiver;
 import com.ywwynm.everythingdone.utils.DeviceUtil;
 
-import org.joda.time.DateTime;
+import java.time.ZonedDateTime;
+import java.time.ZoneId;
 
 import java.util.List;
 
@@ -161,9 +162,9 @@ public class AlarmHelper {
         Intent intent = new Intent(context, DailyUpdateHabitReceiver.class);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
                 context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        DateTime dt = new DateTime().plusDays(1).withTime(0, 0, 0, 0);
+        ZonedDateTime dt = ZonedDateTime.now().plusDays(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, dt.getMillis(), pendingIntent);
+        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, dt.toInstant().toEpochMilli(), pendingIntent);
     }
 
     public static void tryToCreateDailyTodoAlarm(Context context) {
@@ -180,12 +181,12 @@ public class AlarmHelper {
         Intent intent = new Intent(context, DailyCreateTodoReceiver.class);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
                 context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        DateTime dt = new DateTime().withTime(pair.first, pair.second, 0, 0);
-        if (dt.getMillis() < System.currentTimeMillis()) {
+        ZonedDateTime dt = ZonedDateTime.now().withHour(pair.first).withMinute(pair.second).withSecond(0).withNano(0);
+        if (dt.toInstant().toEpochMilli() < System.currentTimeMillis()) {
             dt = dt.plusDays(1);
         }
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, dt.getMillis(), pendingIntent);
+        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, dt.toInstant().toEpochMilli(), pendingIntent);
         Log.d(TAG, "daily todo alarm is created");
     }
 

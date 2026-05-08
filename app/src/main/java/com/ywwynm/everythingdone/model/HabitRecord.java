@@ -3,7 +3,10 @@ package com.ywwynm.everythingdone.model;
 import android.database.Cursor;
 import androidx.annotation.IntDef;
 
-import org.joda.time.DateTime;
+import java.time.ZonedDateTime;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.temporal.WeekFields;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -43,10 +46,10 @@ public class HabitRecord {
         this.habitId = habitId;
         this.habitReminderId = habitReminderId;
         this.recordTime = System.currentTimeMillis();
-        DateTime dt = new DateTime(recordTime);
+        ZonedDateTime dt = Instant.ofEpochMilli(recordTime).atZone(ZoneId.systemDefault());
         this.recordYear = dt.getYear();
-        this.recordMonth = dt.getMonthOfYear();
-        this.recordWeek = dt.getWeekOfWeekyear();
+        this.recordMonth = dt.getMonthValue();
+        this.recordWeek = dt.get(WeekFields.ISO.weekOfWeekBasedYear());
         this.recordDay = dt.getDayOfMonth();
         this.type = TYPE_FINISHED;
     }
@@ -56,10 +59,10 @@ public class HabitRecord {
         this.habitId = habitId;
         this.habitReminderId = habitReminderId;
         this.recordTime = recordTime;
-        DateTime dt = new DateTime(recordTime);
+        ZonedDateTime dt = Instant.ofEpochMilli(recordTime).atZone(ZoneId.systemDefault());
         this.recordYear = dt.getYear();
-        this.recordMonth = dt.getMonthOfYear();
-        this.recordWeek = dt.getWeekOfWeekyear();
+        this.recordMonth = dt.getMonthValue();
+        this.recordWeek = dt.get(WeekFields.ISO.weekOfWeekBasedYear());
         this.recordDay = dt.getDayOfMonth();
         this.type = TYPE_FINISHED;
     }

@@ -64,7 +64,6 @@ import com.ywwynm.everythingdone.permission.SimplePermissionCallback;
 import com.ywwynm.everythingdone.receivers.LocaleChangeReceiver;
 import com.ywwynm.everythingdone.services.DoingService;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
-import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil;
 import com.ywwynm.everythingdone.utils.FileUtil;
@@ -317,20 +316,15 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     private void setFileRingtone(String pathName) {
         String audioName = FileUtil.getNameWithoutPostfix(pathName);
         File srcFile = new File(pathName);
-        Uri uri;
-        if (!DeviceUtil.hasNougatApi()) {
-            uri = FileProvider.getUriForFile(this, "com.ywwynm.everythingdone", srcFile);
-        } else {
-            File dstFile = FileUtil.createFile(Def.getAppFileDir(this) + "/ringtone",
-                    srcFile.getName());
-            try {
-                FileUtil.copyFile(srcFile, dstFile);
-            } catch (IOException e) {
-                e.printStackTrace();
-                // ignore this for the time being
-            }
-            uri = FileProvider.getUriForFile(this, "com.ywwynm.everythingdone", dstFile);
+        File dstFile = FileUtil.createFile(Def.getAppFileDir(this) + "/ringtone",
+                srcFile.getName());
+        try {
+            FileUtil.copyFile(srcFile, dstFile);
+        } catch (IOException e) {
+            e.printStackTrace();
+            // ignore this for the time being
         }
+        Uri uri = FileProvider.getUriForFile(this, "com.ywwynm.everythingdone", dstFile);
         if (!sRingtoneUriList.contains(uri)) {
             sRingtoneTitleList.add(1, audioName);
             sRingtoneUriList.add(1, uri);
@@ -703,11 +697,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         Drawable d1 = ContextCompat.getDrawable(this, R.drawable.act_start_doing);
         Drawable d2 = d1.mutate();
         d2.setColorFilter(mAccentColor, PorterDuff.Mode.SRC_ATOP);
-        if (DeviceUtil.hasJellyBeanMR1Api()) {
-            tvTitle.setCompoundDrawablesRelativeWithIntrinsicBounds(d2, null, null, null);
-        } else {
-            tvTitle.setCompoundDrawablesWithIntrinsicBounds(d2, null, null, null);
-        }
+        tvTitle.setCompoundDrawablesRelativeWithIntrinsicBounds(d2, null, null, null);
     }
 
     private void initUiAdvanced() {
@@ -1371,7 +1361,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     private void startCreateBackupFile() {
         Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
         intent.setType("*/*");
-        String timeStr = new org.joda.time.DateTime().toString("yyyyMMddHHmmss");
+        String timeStr = java.time.ZonedDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
         intent.putExtra(Intent.EXTRA_TITLE, "ED_backup_" + timeStr + ".bak");
         startActivityForResult(intent, Def.Communication.REQUEST_CREATE_BACKUP_FILE);
     }

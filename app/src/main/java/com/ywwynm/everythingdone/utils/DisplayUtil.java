@@ -42,8 +42,6 @@ import android.widget.TextView;
 
 import com.ywwynm.everythingdone.R;
 
-
-import java.lang.reflect.Method;
 import java.util.Random;
 
 /**
@@ -75,20 +73,7 @@ public class DisplayUtil {
         Point realScreen = new Point();
         Display display = ((WindowManager) context.getSystemService(Context.WINDOW_SERVICE))
                 .getDefaultDisplay();
-        if (DeviceUtil.hasJellyBeanMR1Api()) {
-            display.getRealSize(realScreen);
-        } else {
-            try {
-                Method mGetRawH = Display.class.getMethod("getRawHeight");
-                Method mGetRawW = Display.class.getMethod("getRawWidth");
-                realScreen.x = (Integer) mGetRawW.invoke(display);
-                realScreen.y = (Integer) mGetRawH.invoke(display);
-            } catch (Exception e) {
-                display.getSize(realScreen);
-                Log.e(TAG, "Cannot use reflection to get real screen size. " +
-                        "Returned size may be wrong.");
-            }
-        }
+        display.getRealSize(realScreen);
         return realScreen;
     }
 
@@ -302,10 +287,7 @@ public class DisplayUtil {
     }
 
     public static boolean isInMultiWindow(Activity activity) {
-        if (DeviceUtil.hasNougatApi()) {
-            return activity.isInMultiWindowMode();
-        }
-        return false;
+        return activity.isInMultiWindowMode();
     }
 
     /**

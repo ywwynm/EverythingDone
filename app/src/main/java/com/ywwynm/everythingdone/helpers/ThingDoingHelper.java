@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.os.Build;
 import androidx.core.util.Pair;
 import android.text.TextUtils;
 import android.widget.Toast;
@@ -190,11 +189,7 @@ public class ThingDoingHelper {
         App.setDoingThingId(mThing.getId());
         Intent serviceIntent = DoingService.getOpenIntent(
                 mContext, mThing, System.currentTimeMillis(), timeInMillis, startType, hrTime);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            mContext.startForegroundService(serviceIntent);
-        } else {
-            mContext.startService(serviceIntent);
-        }
+        mContext.startForegroundService(serviceIntent);
 
         Intent activityIntent = DoingActivity.getOpenIntent(mContext, false);
         if (outsideActivity || !(mContext instanceof Activity)) {

@@ -12,7 +12,8 @@ import com.ywwynm.everythingdone.model.HabitRecord;
 import com.ywwynm.everythingdone.model.HabitReminder;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 
-import org.joda.time.DateTime;
+import java.time.ZonedDateTime;
+import java.time.temporal.WeekFields;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -339,9 +340,9 @@ public class HabitDAO {
     }
 
     private int getFinishedTimesToday(long habitId) {
-        DateTime dt  = new DateTime();
+        ZonedDateTime dt  = ZonedDateTime.now();
         int curYear  = dt.getYear();
-        int curMonth = dt.getMonthOfYear();
+        int curMonth = dt.getMonthValue();
         int curDay   = dt.getDayOfMonth();
         int times    = 0;
         Cursor c = getFinishedHabitRecordCursor(habitId, 4);
@@ -361,9 +362,9 @@ public class HabitDAO {
     }
 
     private int getFinishedTimesThisWeek(long habitId) {
-        DateTime dt = new DateTime();
+        ZonedDateTime dt = ZonedDateTime.now();
         int curYear = dt.getYear();
-        int curWeek = dt.getWeekOfWeekyear();
+        int curWeek = dt.get(WeekFields.ISO.weekOfWeekBasedYear());
         int times   = 0;
         Cursor c = getFinishedHabitRecordCursor(habitId, 7);
         while (c.moveToNext()) {
@@ -380,9 +381,9 @@ public class HabitDAO {
     }
 
     private int getFinishedTimesThisMonth(long habitId) {
-        DateTime dt = new DateTime();
+        ZonedDateTime dt = ZonedDateTime.now();
         int curYear  = dt.getYear();
-        int curMonth = dt.getMonthOfYear();
+        int curMonth = dt.getMonthValue();
         int times    = 0;
         Cursor c = getFinishedHabitRecordCursor(habitId, 31);
         while (c.moveToNext()) {
@@ -399,7 +400,7 @@ public class HabitDAO {
     }
 
     private int getFinishedTimesThisYear(long habitId) {
-        DateTime dt = new DateTime();
+        ZonedDateTime dt = ZonedDateTime.now();
         int curYear = dt.getYear();
         int times   = 0;
         Cursor c = getFinishedHabitRecordCursor(habitId, 12);

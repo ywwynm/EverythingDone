@@ -24,7 +24,9 @@ import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.FileUtil;
 import com.ywwynm.everythingdone.utils.LocaleUtil;
 
-import org.joda.time.DateTime;
+import java.time.ZonedDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
@@ -348,14 +350,14 @@ public class AttachmentHelper {
         String sec = size[0] + " * " + size[1];
         list.add(new Pair<>(fst, sec));
 
-        DateTime dateTime = FileUtil.getImageCreateTime(pathName);
+        ZonedDateTime dateTime = FileUtil.getImageCreateTime(pathName);
         if (dateTime == null) {
             fst = context.getString(R.string.file_last_modify_time);
             File file = new File(pathName);
             sec = DateTimeUtil.getGeneralDateTimeStr(context, file.lastModified());
         } else {
             fst = context.getString(R.string.image_create_time);
-            sec = dateTime.toString(DateTimeUtil.getGeneralDateTimeFormatPattern(context));
+            sec = dateTime.format(DateTimeFormatter.ofPattern(DateTimeUtil.getGeneralDateTimeFormatPattern(context)));
         }
         list.add(new Pair<>(fst, sec));
 
@@ -379,13 +381,13 @@ public class AttachmentHelper {
         list.add(new Pair<>(fst, sec));
 
         fst = context.getString(R.string.video_create_time);
-        DateTime dateTime = FileUtil.getVideoCreateTime(pathName);
-        if (dateTime == null || dateTime.compareTo(new DateTime(1970, 1, 1, 0, 0)) < 0) {
+        ZonedDateTime dateTime = FileUtil.getVideoCreateTime(pathName);
+        if (dateTime == null || dateTime.compareTo(ZonedDateTime.of(1970, 1, 1, 0, 0, 0, 0, ZoneId.systemDefault())) < 0) {
             fst = context.getString(R.string.file_last_modify_time);
             File file = new File(pathName);
             sec = DateTimeUtil.getGeneralDateTimeStr(context, file.lastModified());
         } else {
-            sec = dateTime.toString(DateTimeUtil.getGeneralDateTimeFormatPattern(context));
+            sec = dateTime.format(DateTimeFormatter.ofPattern(DateTimeUtil.getGeneralDateTimeFormatPattern(context)));
         }
         list.add(new Pair<>(fst, sec));
 

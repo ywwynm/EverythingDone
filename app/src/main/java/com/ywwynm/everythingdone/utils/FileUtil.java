@@ -13,7 +13,8 @@ import android.os.Environment;
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 
-import org.joda.time.DateTime;
+import java.time.ZonedDateTime;
+import java.time.ZoneId;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -276,7 +277,7 @@ public class FileUtil {
         }
     }
 
-    public static DateTime getImageCreateTime(String pathName) {
+    public static ZonedDateTime getImageCreateTime(String pathName) {
         try {
             ExifInterface exif = new ExifInterface(pathName);
             String datetimeStr = exif.getAttribute(ExifInterface.TAG_DATETIME);
@@ -292,14 +293,14 @@ public class FileUtil {
             int minute = Integer.parseInt(times[1]);
             int second = Integer.parseInt(times[2]);
 
-            return new DateTime(year, month, day, hour, minute, second);
+            return ZonedDateTime.of(year, month, day, hour, minute, second, 0, ZoneId.systemDefault());
         } catch (Exception e) {
             e.printStackTrace();
             return null;
         }
     }
 
-    public static DateTime getVideoCreateTime(String pathName) {
+    public static ZonedDateTime getVideoCreateTime(String pathName) {
         MediaMetadataRetriever retriever = new MediaMetadataRetriever();
         try {
             retriever.setDataSource(pathName);
@@ -312,7 +313,7 @@ public class FileUtil {
             int hour   = Integer.parseInt(timeStr.substring(9, 11));
             int minute = Integer.parseInt(timeStr.substring(11, 13));
             int second = Integer.parseInt(timeStr.substring(13, 15));
-            return new DateTime(year, month, day, hour, minute, second);
+            return ZonedDateTime.of(year, month, day, hour, minute, second, 0, ZoneId.systemDefault());
         } catch (Exception e) {
             e.printStackTrace();
             return null;

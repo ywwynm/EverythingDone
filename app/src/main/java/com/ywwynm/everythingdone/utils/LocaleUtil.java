@@ -24,22 +24,12 @@ public class LocaleUtil {
 
     private LocaleUtil() {}
 
-    @SuppressWarnings("deprecation")
     public static Locale getSystemLocale(Context context) {
-        if (DeviceUtil.hasNougatApi()) {
-            return context.getResources().getConfiguration().getLocales().get(0);
-        } else {
-            return context.getResources().getConfiguration().locale;
-        }
+        return context.getResources().getConfiguration().getLocales().get(0);
     }
 
-    @SuppressWarnings("deprecation")
     public static void setAppLocale(Configuration configuration, Locale locale) {
-        if (DeviceUtil.hasNougatApi()) {
-            configuration.setLocale(locale);
-        } else {
-            configuration.locale = locale;
-        }
+        configuration.setLocale(locale);
     }
 
     public static boolean isChinese(Context context) {

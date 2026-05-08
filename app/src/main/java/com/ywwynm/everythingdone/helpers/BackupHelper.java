@@ -11,7 +11,10 @@ import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.FileUtil;
 
-import org.joda.time.DateTime;
+import java.time.ZonedDateTime;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -41,8 +44,8 @@ public class BackupHelper {
         File src = new File(context.getApplicationInfo().dataDir);
         String tempDirPath = Def.getAppFileDir(context) + BACKUP_DIR;
         long curTime = System.currentTimeMillis();
-        DateTime dt = new DateTime(curTime);
-        String timeStr = dt.toString("yyyyMMddHHmmss");
+        ZonedDateTime dt = Instant.ofEpochMilli(curTime).atZone(ZoneId.systemDefault());
+        String timeStr = dt.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
         String backupFileName = BACKUP_FILE_NAME_PREFIX + timeStr + "." + BACKUP_FILE_POSTFIX;
         File dst = FileUtil.createFile(tempDirPath, backupFileName);
         if (dst == null) return false;

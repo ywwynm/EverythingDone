@@ -83,7 +83,6 @@ import com.ywwynm.everythingdone.model.ThingsCounts;
 import com.ywwynm.everythingdone.permission.PermissionUtil;
 import com.ywwynm.everythingdone.permission.SimplePermissionCallback;
 import com.ywwynm.everythingdone.services.DoingService;
-import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil;
 import com.ywwynm.everythingdone.utils.FileUtil;
@@ -1102,21 +1101,17 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
         mDrawerLayout.setScrimColor(Color.parseColor("#84000000"));
 
-        if (DeviceUtil.hasNougatApi()) {
-            final View decor = getWindow().getDecorView();
-            decor.getViewTreeObserver().addOnPreDrawListener(
-                    new ViewTreeObserver.OnPreDrawListener() {
-                        @Override
-                        public boolean onPreDraw() {
-                            initRecyclerViewUi();
-                            mActivityHeader.computeFactors(mActionbar);
-                            decor.getViewTreeObserver().removeOnPreDrawListener(this);
-                            return true;
-                        }
-                    });
-        } else {
-            initRecyclerViewUi();
-        }
+        final View decor = getWindow().getDecorView();
+        decor.getViewTreeObserver().addOnPreDrawListener(
+                new ViewTreeObserver.OnPreDrawListener() {
+                    @Override
+                    public boolean onPreDraw() {
+                        initRecyclerViewUi();
+                        mActivityHeader.computeFactors(mActionbar);
+                        decor.getViewTreeObserver().removeOnPreDrawListener(this);
+                        return true;
+                    }
+                });
 
         MenuItem item = mDrawer.getMenu().getItem(mApp.getLimit());
         item.setCheckable(true);

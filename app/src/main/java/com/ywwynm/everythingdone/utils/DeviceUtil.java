@@ -20,16 +20,6 @@ public class DeviceUtil {
 
     private DeviceUtil() {}
 
-    // minSdk is 23 (Marshmallow), these are always true
-    public static boolean hasJellyBeanMR1Api() { return true; }
-    public static boolean hasKitKatApi() { return true; }
-    public static boolean hasLollipopApi() { return true; }
-    public static boolean hasMarshmallowApi() { return true; }
-
-    public static boolean hasNougatApi() {
-        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.N;
-    }
-
     public static String getDeviceInfo() {
         return "OS Version:   " + getAndroidVersion() + "\n" +
                "Manufacturer: " + getManufacturer()   + "\n" +

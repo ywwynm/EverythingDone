@@ -19,7 +19,6 @@ import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.adapters.BaseViewHolder;
 import com.ywwynm.everythingdone.adapters.SingleChoiceAdapter;
-import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 
 /**
@@ -89,7 +88,7 @@ public class ColorPicker extends PopupPicker {
             }
         }
         if (mWindowRect.right != DisplayUtil.getDisplaySize(this.mActivity).x) {
-            if (!DeviceUtil.hasNougatApi() || isRightWindow) {
+            if (isRightWindow) {
                 xOffset += (int) (mScreenDensity * 40);
             }
         }
@@ -243,10 +242,8 @@ public class ColorPicker extends PopupPicker {
                     break;
                 default:break;
             }
-            if (DeviceUtil.hasJellyBeanMR1Api()) {
-                params.setMarginStart(params.leftMargin);
-                params.setMarginEnd(params.rightMargin);
-            }
+            params.setMarginStart(params.leftMargin);
+            params.setMarginEnd(params.rightMargin);
         }
 
         @Override

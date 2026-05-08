@@ -23,7 +23,10 @@ import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.services.DoingService;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 
-import org.joda.time.DateTime;
+import java.time.ZonedDateTime;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 
 /**
  * Created by ywwynm on 2016/9/4.
@@ -109,12 +112,12 @@ public class RemoteActionHelper {
     private static String possibleMistakeInfoForFinishingHabitOnce(
             Thing thing, int position, long hrTime, boolean doing, Habit habit) {
         Gson gson = new Gson();
-        DateTime dt = new DateTime();
-        String curTimeStr = dt.toString("yyyyMMddHHmmss");
+        ZonedDateTime dt = ZonedDateTime.now();
+        String curTimeStr = dt.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
         String hrTimeStr = "";
         if (hrTime != -1) {
-            dt = dt.withMillis(hrTime);
-            hrTimeStr = dt.toString("yyyyMMddHHmmss");
+            dt = Instant.ofEpochMilli(hrTime).atZone(ZoneId.systemDefault());
+            hrTimeStr = dt.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
         }
         int recordLength = habit.getRecord().length();
         int remindedTimes = habit.getRemindedTimes();

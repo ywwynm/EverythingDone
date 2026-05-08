@@ -8,8 +8,11 @@ import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.LocaleUtil;
 
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeFieldType;
+import java.time.ZonedDateTime;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.temporal.ChronoField;
+import java.time.temporal.TemporalField;
 
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -276,13 +279,13 @@ public class Habit {
 
     public boolean allowFinish() {
         if (isPaused()) return false;
-        DateTime dt = new DateTime();
-        DateTimeFieldType jodaType = DateTimeUtil.getJodaType(type);
-        int ct = dt.get(jodaType), t;
+        ZonedDateTime dt = ZonedDateTime.now();
+        TemporalField temporalField = DateTimeUtil.getTemporalFieldFor(type);
+        int ct = dt.get(temporalField), t;
         long nextTime = 0;
         for (HabitReminder habitReminder : mHabitReminders) {
             long time = habitReminder.getNotifyTime();
-            t = dt.withMillis(time).get(jodaType);
+            t = Instant.ofEpochMilli(time).atZone(ZoneId.systemDefault()).get(temporalField);
             if (ct == t) {
                 return true;
             } else {
@@ -290,10 +293,10 @@ public class Habit {
             }
         }
 
-        DateTime ndt = new DateTime(DateTimeUtil.getHabitReminderTime(type, nextTime, -1));
-        t = ndt.get(jodaType);
+        ZonedDateTime ndt = Instant.ofEpochMilli(DateTimeUtil.getHabitReminderTime(type, nextTime, -1)).atZone(ZoneId.systemDefault());
+        t = ndt.get(temporalField);
         // All notifications are set to next T but we are still in this T.
-        ct = dt.withMillis(System.currentTimeMillis()).get(jodaType);
+        ct = Instant.ofEpochMilli(System.currentTimeMillis()).atZone(ZoneId.systemDefault()).get(temporalField);
         return ct == t && record.length() == remindedTimes - 1;
     }
 
@@ -315,9 +318,9 @@ public class Habit {
      */
     public boolean allowFinish(long notifyTime) {
         if (isPaused()) return false;
-        DateTime dt = new DateTime();
-        DateTimeFieldType jodaType = DateTimeUtil.getJodaType(type);
-        return dt.get(jodaType) == dt.withMillis(notifyTime).get(jodaType);
+        ZonedDateTime dt = ZonedDateTime.now();
+        TemporalField temporalField = DateTimeUtil.getTemporalFieldFor(type);
+        return dt.get(temporalField) == Instant.ofEpochMilli(notifyTime).atZone(ZoneId.systemDefault()).get(temporalField);
     }
 
     public String getFinishedTimesThisTStr(Context context) {
@@ -386,16 +389,16 @@ public class Habit {
                 // Once a month, you finish it in advance and now still want to do that thing?
                 // Ok, you can do it until end of next month.
                 long end = Long.MAX_VALUE;
-                DateTime dt = new DateTime();
-                dt = dt.withHourOfDay(23).withMinuteOfHour(59).withSecondOfMinute(59).withMillisOfSecond(999);
+                ZonedDateTime dt = ZonedDateTime.now();
+                dt = dt.withHour(23).withMinute(59).withSecond(59).withNano(999_000_000);
                 if (type == Calendar.DATE) {
-                    end = dt.plusDays(1).getMillis();
+                    end = dt.plusDays(1).toInstant().toEpochMilli();
                 } else if (type == Calendar.WEEK_OF_YEAR) {
-                    end = dt.plusWeeks(1).withDayOfWeek(7).getMillis();
+                    end = dt.plusWeeks(1).with(ChronoField.DAY_OF_WEEK, 7).toInstant().toEpochMilli();
                 } else if (type == Calendar.MONTH) {
-                    end = dt.plusMonths(1).withDayOfMonth(31).getMillis();
+                    end = dt.plusMonths(1).withDayOfMonth(31).toInstant().toEpochMilli();
                 } else if (type == Calendar.YEAR) {
-                    end = dt.plusYears(1).withMonthOfYear(12).withDayOfMonth(31).getMillis();
+                    end = dt.plusYears(1).withMonth(12).withDayOfMonth(31).toInstant().toEpochMilli();
                 }
                 return end;
             }
@@ -496,18 +499,18 @@ public class Habit {
 
     private void initHabitRemindersTimeOfDay() {
         String[] times = detail.split(",");
-        DateTime dt = new DateTime();
+        ZonedDateTime dt = ZonedDateTime.now();
         for (String time : times) {
             String[] t = time.split(":");
             int hour   = Integer.parseInt(t[0]);
             int minute = Integer.parseInt(t[1]);
-            dt = dt.withHourOfDay(hour).withMinuteOfHour(minute).withSecondOfMinute(0);
-            long remMillis = dt.getMillis();
+            dt = dt.withHour(hour).withMinute(minute).withSecond(0).withNano(0);
+            long remMillis = dt.toInstant().toEpochMilli();
             while (System.currentTimeMillis() >= remMillis) {
                 remMillis += 86400000;
             }
             mHabitReminders.add(new HabitReminder(0, id, remMillis));
-            dt = dt.withMillis(System.currentTimeMillis());
+            dt = ZonedDateTime.now();
         }
     }
 
@@ -516,20 +519,20 @@ public class Habit {
         String[] times = dateTimes[1].split(":");
         int hour = Integer.parseInt(times[0]);
         int minute = Integer.parseInt(times[1]);
-        DateTime dt = new DateTime().withHourOfDay(hour)
-                .withMinuteOfHour(minute).withSecondOfMinute(0);
+        ZonedDateTime dt = ZonedDateTime.now().withHour(hour)
+                .withMinute(minute).withSecond(0).withNano(0);
         String[] days = dateTimes[0].split(",");
         for (String dayStr : days) {
             int day = Integer.parseInt(dayStr);
             day = day == 0 ? 7 : day;
-            dt = dt.withDayOfWeek(day);
-            long remMillis = dt.getMillis();
+            dt = dt.with(ChronoField.DAY_OF_WEEK, day);
+            long remMillis = dt.toInstant().toEpochMilli();
             while (System.currentTimeMillis() >= remMillis) {
                 remMillis += 604800000;
             }
             mHabitReminders.add(new HabitReminder(0, id, remMillis));
-            dt = dt.withMillis(System.currentTimeMillis()).withHourOfDay(hour)
-                    .withMinuteOfHour(minute).withSecondOfMinute(0);
+            dt = ZonedDateTime.now().withHour(hour)
+                    .withMinute(minute).withSecond(0).withNano(0);
         }
     }
 
@@ -538,35 +541,35 @@ public class Habit {
         String[] times = dateTimes[1].split(":");
         int hour = Integer.parseInt(times[0]);
         int minute = Integer.parseInt(times[1]);
-        DateTime dt = new DateTime().withHourOfDay(hour)
-                .withMinuteOfHour(minute).withSecondOfMinute(0);
+        ZonedDateTime dt = ZonedDateTime.now().withHour(hour)
+                .withMinute(minute).withSecond(0).withNano(0);
         String[] days = dateTimes[0].split(",");
         for (String dayStr : days) {
             int day = Integer.parseInt(dayStr);
             long remMillis;
             if (day == 27) {
                 int year = dt.getYear();
-                int month = dt.getMonthOfYear();
+                int month = dt.getMonthValue();
                 dt = dt.withDayOfMonth(DateTimeUtil.getDaysOfMonth(year, month));
-                remMillis = dt.getMillis();
+                remMillis = dt.toInstant().toEpochMilli();
                 while (System.currentTimeMillis() >= remMillis) {
                     dt = dt.plusMonths(1);
                     year = dt.getYear();
-                    month = dt.getMonthOfYear();
+                    month = dt.getMonthValue();
                     dt = dt.withDayOfMonth(DateTimeUtil.getDaysOfMonth(year, month));
-                    remMillis = dt.getMillis();
+                    remMillis = dt.toInstant().toEpochMilli();
                 }
             } else {
                 dt = dt.withDayOfMonth(day + 1);
-                remMillis = dt.getMillis();
+                remMillis = dt.toInstant().toEpochMilli();
                 while (System.currentTimeMillis() >= remMillis) {
                     dt = dt.plusMonths(1);
-                    remMillis = dt.getMillis();
+                    remMillis = dt.toInstant().toEpochMilli();
                 }
             }
             mHabitReminders.add(new HabitReminder(0, id, remMillis));
-            dt = dt.withMillis(System.currentTimeMillis()).withHourOfDay(hour)
-                    .withMinuteOfHour(minute).withSecondOfMinute(0);
+            dt = ZonedDateTime.now().withHour(hour)
+                    .withMinute(minute).withSecond(0).withNano(0);
         }
     }
 
@@ -576,32 +579,32 @@ public class Habit {
         String[] times = dateTimes[2].split(":");
         int hour = Integer.parseInt(times[0]);
         int minute = Integer.parseInt(times[1]);
-        DateTime dt = new DateTime().withHourOfDay(hour)
-                .withMinuteOfHour(minute).withSecondOfMinute(0);
+        ZonedDateTime dt = ZonedDateTime.now().withHour(hour)
+                .withMinute(minute).withSecond(0).withNano(0);
         String[] months = dateTimes[0].split(",");
         for (String monthStr : months) {
             int month = Integer.parseInt(monthStr) + 1;
-            dt = dt.withMonthOfYear(month);
+            dt = dt.withMonth(month);
             long remMillis;
             if (day == 28) {
                 int year = dt.getYear();
                 dt = dt.withDayOfMonth(DateTimeUtil.getDaysOfMonth(year, month));
-                remMillis = dt.getMillis();
+                remMillis = dt.toInstant().toEpochMilli();
                 while (System.currentTimeMillis() >= remMillis) {
                     dt = dt.plusYears(1).withDayOfMonth(
                             DateTimeUtil.getDaysOfMonth(year + 1, month));
-                    remMillis = dt.getMillis();
+                    remMillis = dt.toInstant().toEpochMilli();
                 }
             } else {
                 dt = dt.withDayOfMonth(day);
-                remMillis = dt.getMillis();
+                remMillis = dt.toInstant().toEpochMilli();
                 while (System.currentTimeMillis() >= remMillis) {
-                    remMillis = dt.plusYears(1).getMillis();
+                    remMillis = dt.plusYears(1).toInstant().toEpochMilli();
                 }
             }
             mHabitReminders.add(new HabitReminder(0, id, remMillis));
-            dt = dt.withMillis(System.currentTimeMillis()).withHourOfDay(hour)
-                    .withMinuteOfHour(minute).withSecondOfMinute(0);
+            dt = ZonedDateTime.now().withHour(hour)
+                    .withMinute(minute).withSecond(0).withNano(0);
         }
     }
 }

@@ -56,9 +56,6 @@ public final class NotificationReliabilityHelper {
      */
     public static List<String> getDisabledCriticalChannels(Context context) {
         List<String> disabled = new ArrayList<>();
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-            return disabled;
-        }
         NotificationManager nm = context.getSystemService(NotificationManager.class);
         if (nm == null) return disabled;
         for (String id : CRITICAL_CHANNEL_IDS) {
@@ -80,23 +77,19 @@ public final class NotificationReliabilityHelper {
     }
 
     public static boolean openAppNotificationSettings(Context context) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Intent intent = new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS);
-            intent.putExtra(Settings.EXTRA_APP_PACKAGE, context.getPackageName());
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            if (startSafely(context, intent)) return true;
-        }
+        Intent intent = new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS);
+        intent.putExtra(Settings.EXTRA_APP_PACKAGE, context.getPackageName());
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        if (startSafely(context, intent)) return true;
         return openAppDetailsSettings(context);
     }
 
     public static boolean openChannelSettings(Context context, String channelId) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Intent intent = new Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS);
-            intent.putExtra(Settings.EXTRA_APP_PACKAGE, context.getPackageName());
-            intent.putExtra(Settings.EXTRA_CHANNEL_ID, channelId);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            if (startSafely(context, intent)) return true;
-        }
+        Intent intent = new Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS);
+        intent.putExtra(Settings.EXTRA_APP_PACKAGE, context.getPackageName());
+        intent.putExtra(Settings.EXTRA_CHANNEL_ID, channelId);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        if (startSafely(context, intent)) return true;
         return openAppNotificationSettings(context);
     }
 

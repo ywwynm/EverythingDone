@@ -88,12 +88,8 @@ public class SystemNotificationUtil {
         // TODO: 2016/9/30 Maybe we should provide different vibrations for different thing type. And it seems default vibration isn't very elegant on all devices.
 
         Uri soundUri = getSoundUri(type, context, autoNotify);
-        if (DeviceUtil.hasNougatApi()) {
-            // Without this line, the sound won't play.
-            // But this is stupid... I think it should be fixed by Google
-            context.grantUriPermission("com.android.systemui", soundUri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        }
+        context.grantUriPermission("com.android.systemui", soundUri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
         String channelId = autoNotify ? "auto_notify"
                 : type == Thing.REMINDER ? "reminder"
@@ -610,10 +606,9 @@ public class SystemNotificationUtil {
                 if (pathName == null || !new File(pathName).exists()) {
                     preferences.edit().putString(key, fs).apply();
                     return defaultUri;
-                } else if (DeviceUtil.hasNougatApi()) {
-                    uri = FileProvider.getUriForFile(
-                            context, Def.Meta.APP_AUTHORITY, new File(pathName));
                 }
+                uri = FileProvider.getUriForFile(
+                        context, Def.Meta.APP_AUTHORITY, new File(pathName));
             }
             return uri;
         }

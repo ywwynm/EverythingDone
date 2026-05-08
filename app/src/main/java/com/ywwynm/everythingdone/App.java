@@ -12,7 +12,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
-import android.os.Build;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
@@ -31,7 +30,6 @@ import com.ywwynm.everythingdone.managers.ThingManager;
 import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.services.AlarmHealthWorker;
 import com.ywwynm.everythingdone.services.PullAliveJobService;
-import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.FileUtil;
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil;
@@ -165,48 +163,46 @@ public class App extends Application {
     private static final long ALARM_SELF_HEAL_INTERVAL_MS = 6 * 60 * 60 * 1000L;
 
     private void createNotificationChannels() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationManager nm = getSystemService(NotificationManager.class);
+        NotificationManager nm = getSystemService(NotificationManager.class);
 
-            NotificationChannel reminderChannel = new NotificationChannel(
-                    "reminder", getString(R.string.channel_reminder),
-                    NotificationManager.IMPORTANCE_HIGH);
-            reminderChannel.enableVibration(true);
-            reminderChannel.enableLights(true);
+        NotificationChannel reminderChannel = new NotificationChannel(
+                "reminder", getString(R.string.channel_reminder),
+                NotificationManager.IMPORTANCE_HIGH);
+        reminderChannel.enableVibration(true);
+        reminderChannel.enableLights(true);
 
-            NotificationChannel habitChannel = new NotificationChannel(
-                    "habit", getString(R.string.channel_habit),
-                    NotificationManager.IMPORTANCE_HIGH);
-            habitChannel.enableVibration(true);
-            habitChannel.enableLights(true);
+        NotificationChannel habitChannel = new NotificationChannel(
+                "habit", getString(R.string.channel_habit),
+                NotificationManager.IMPORTANCE_HIGH);
+        habitChannel.enableVibration(true);
+        habitChannel.enableLights(true);
 
-            NotificationChannel goalChannel = new NotificationChannel(
-                    "goal", getString(R.string.channel_goal),
-                    NotificationManager.IMPORTANCE_HIGH);
-            goalChannel.enableVibration(true);
-            goalChannel.enableLights(true);
+        NotificationChannel goalChannel = new NotificationChannel(
+                "goal", getString(R.string.channel_goal),
+                NotificationManager.IMPORTANCE_HIGH);
+        goalChannel.enableVibration(true);
+        goalChannel.enableLights(true);
 
-            NotificationChannel doingChannel = new NotificationChannel(
-                    "doing", getString(R.string.channel_doing),
-                    NotificationManager.IMPORTANCE_LOW);
+        NotificationChannel doingChannel = new NotificationChannel(
+                "doing", getString(R.string.channel_doing),
+                NotificationManager.IMPORTANCE_LOW);
 
-            NotificationChannel quickCreateChannel = new NotificationChannel(
-                    "quick_create", getString(R.string.channel_quick_create),
-                    NotificationManager.IMPORTANCE_MIN);
+        NotificationChannel quickCreateChannel = new NotificationChannel(
+                "quick_create", getString(R.string.channel_quick_create),
+                NotificationManager.IMPORTANCE_MIN);
 
-            NotificationChannel ongoingChannel = new NotificationChannel(
-                    "ongoing", getString(R.string.channel_ongoing),
-                    NotificationManager.IMPORTANCE_LOW);
+        NotificationChannel ongoingChannel = new NotificationChannel(
+                "ongoing", getString(R.string.channel_ongoing),
+                NotificationManager.IMPORTANCE_LOW);
 
-            NotificationChannel autoNotifyChannel = new NotificationChannel(
-                    "auto_notify", getString(R.string.channel_auto_notify),
-                    NotificationManager.IMPORTANCE_DEFAULT);
+        NotificationChannel autoNotifyChannel = new NotificationChannel(
+                "auto_notify", getString(R.string.channel_auto_notify),
+                NotificationManager.IMPORTANCE_DEFAULT);
 
-            nm.createNotificationChannels(Arrays.asList(
-                    reminderChannel, habitChannel, goalChannel,
-                    doingChannel, quickCreateChannel, ongoingChannel,
-                    autoNotifyChannel));
-        }
+        nm.createNotificationChannels(Arrays.asList(
+                reminderChannel, habitChannel, goalChannel,
+                doingChannel, quickCreateChannel, ongoingChannel,
+                autoNotifyChannel));
     }
 
     private void firstLaunch() {

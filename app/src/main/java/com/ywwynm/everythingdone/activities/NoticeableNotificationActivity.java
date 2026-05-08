@@ -38,7 +38,8 @@ import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil;
 
-import org.joda.time.DateTime;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -292,7 +293,7 @@ public class NoticeableNotificationActivity extends EverythingDoneBaseActivity {
         String typeStr = Thing.getTypeStr(thingType, this);
         mIvTitle.setContentDescription(typeStr);
 
-        String timeStr = new DateTime().toString("HH:mm");
+        String timeStr = ZonedDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm"));
         String title = typeStr + " • " + timeStr;
         SpannableStringBuilder ssb = new SpannableStringBuilder(title);
         ForegroundColorSpan colorSpan1 = new ForegroundColorSpan(mThing.getColor());
