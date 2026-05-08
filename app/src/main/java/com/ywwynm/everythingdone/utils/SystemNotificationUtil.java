@@ -148,7 +148,7 @@ public class SystemNotificationUtil {
         }
 
         String firstImageUri = AttachmentHelper.getFirstImageTypePathName(attachment);
-        if (firstImageUri != null && PermissionUtil.hasStoragePermission(context)) {
+        if (firstImageUri != null && PermissionUtil.hasImagePermission(context)) {
             String pathName = firstImageUri.substring(1, firstImageUri.length());
             Bitmap bigPicture;
             Point display = DisplayUtil.getDisplaySize(context);

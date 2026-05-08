@@ -1277,15 +1277,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                     @Override
                     public void onClick(View v) {
                         todf.dismiss();
-                        doWithPermissionChecked(
-                                new SimplePermissionCallback(SettingsActivity.this) {
-                                    @Override
-                                    public void onGranted() {
-                                        startChooseImageAsDrawerHeader();
-                                    }
-                                },
-                                Def.Communication.REQUEST_PERMISSION_CHOOSE_IMAGE_FILE,
-                                PermissionUtil.getStoragePermissions());
+                        startChooseImageAsDrawerHeader();
                     }
                 });
         todf.show(getFragmentManager(), TwoOptionsDialogFragment.TAG);
@@ -1411,15 +1403,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                 new AuthenticationHelper.AuthenticationCallback() {
                     @Override
                     public void onAuthenticated() {
-                        doWithPermissionChecked(
-                                new SimplePermissionCallback(SettingsActivity.this) {
-                                    @Override
-                                    public void onGranted() {
-                                        startChooseBackupFile();
-                                    }
-                                },
-                                Def.Communication.REQUEST_PERMISSION_RESTORE,
-                                PermissionUtil.getStoragePermissions());
+                        startChooseBackupFile();
                     }
 
                     @Override
@@ -1470,15 +1454,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             @Override
             public void onClick(View v) {
                 mChoosingIndex = index;
-                doWithPermissionChecked(
-                        new SimplePermissionCallback(SettingsActivity.this) {
-                            @Override
-                            public void onGranted() {
-                                startChooseRingtoneFromStorage();
-                            }
-                        },
-                        Def.Communication.REQUEST_PERMISSION_CHOOSE_AUDIO_FILE,
-                        PermissionUtil.getStoragePermissions());
+                startChooseRingtoneFromStorage();
             }
         });
         cdf.setOnItemClickListener(new View.OnClickListener() {

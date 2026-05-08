@@ -57,6 +57,42 @@ public class PermissionUtil {
     }
 
     /**
+     * Returns only the permissions actually needed for the given things'
+     * attachments. On Android 12 and below returns
+     * {@code READ_EXTERNAL_STORAGE}; on Android 13+ returns the subset of
+     * {@code READ_MEDIA_IMAGES}, {@code READ_MEDIA_VIDEO}, and
+     * {@code READ_MEDIA_AUDIO} that matches the attachment types present.
+     */
+    public static String[] getRequiredPermissionsForThings(List<Thing> things) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            return new String[] { Manifest.permission.READ_EXTERNAL_STORAGE };
+        }
+
+        boolean needsImage = false, needsVideo = false, needsAudio = false;
+        for (Thing thing : things) {
+            String attachment = thing.getAttachment();
+            if (!AttachmentHelper.isValidForm(attachment)) continue;
+            String[] parts = attachment.split(AttachmentHelper.SIGNAL);
+            for (int i = 1; i < parts.length; i++) {
+                char type = parts[i].charAt(0);
+                if (type == '0') needsImage = true;
+                else if (type == '1') needsVideo = true;
+                else if (type == '2') needsAudio = true;
+            }
+        }
+
+        java.util.List<String> perms = new java.util.ArrayList<>(3);
+        if (needsImage) perms.add(Manifest.permission.READ_MEDIA_IMAGES);
+        if (needsVideo) perms.add(Manifest.permission.READ_MEDIA_VIDEO);
+        if (needsAudio) perms.add(Manifest.permission.READ_MEDIA_AUDIO);
+
+        if (perms.isEmpty()) {
+            perms.add(Manifest.permission.READ_MEDIA_IMAGES);
+        }
+        return perms.toArray(new String[0]);
+    }
+
+    /**
      * Returns the union of all media read permissions appropriate for the
      * running platform.
      *

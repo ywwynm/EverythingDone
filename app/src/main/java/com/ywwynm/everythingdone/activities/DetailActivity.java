@@ -823,7 +823,8 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
                     },
                     Def.Communication.REQUEST_PERMISSION_LOAD_THING,
-                    PermissionUtil.getStoragePermissions());
+                    PermissionUtil.getRequiredPermissionsForThings(
+                            Collections.singletonList(mThing)));
 
         } else {
             setScrollViewMarginTop(true);
@@ -1336,15 +1337,8 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         } else if (itemId == R.id.act_copy_content) {
             copyContent();
         } else if (itemId == R.id.act_export) {
-            doWithPermissionChecked(
-                    new SimplePermissionCallback(DetailActivity.this) {
-                        @Override
-                        public void onGranted() {
-                            ThingExporter.startExporting(
-                                    DetailActivity.this, getAccentColor(), mThing);
-                        }
-                    }, Def.Communication.REQUEST_PERMISSION_EXPORT_DETAIL,
-                    PermissionUtil.getStoragePermissions());
+            ThingExporter.startExporting(
+                    DetailActivity.this, getAccentColor(), mThing);
         } else if (itemId == R.id.act_abandon_new_thing) {
             createFailed(Def.Communication.RESULT_ABANDON_NEW_THING);
         } else if (itemId == R.id.act_sticky) {

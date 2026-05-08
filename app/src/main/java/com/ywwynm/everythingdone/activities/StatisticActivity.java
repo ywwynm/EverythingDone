@@ -266,15 +266,7 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
         mFab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                doWithPermissionChecked(
-                    new SimplePermissionCallback(StatisticActivity.this) {
-                        @Override
-                        public void onGranted() {
-                            startScreenshot();
-                        }
-                    },
-                    Def.Communication.REQUEST_PERMISSION_SCREENSHOT,
-                    PermissionUtil.getStoragePermissions());
+                startScreenshot();
             }
         });
     }

@@ -148,7 +148,7 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
                     finish();
                 }
             }, Def.Communication.REQUEST_PERMISSION_LOAD_THINGS_2,
-                    PermissionUtil.getStoragePermissions());
+                    PermissionUtil.getRequiredPermissionsForThings(mThings));
         } else {
             initRecyclerView();
         }

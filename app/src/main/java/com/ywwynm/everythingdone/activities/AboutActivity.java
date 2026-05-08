@@ -65,15 +65,7 @@ public class AboutActivity extends EverythingDoneBaseActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         int itemId = item.getItemId();
         if (itemId == R.id.act_share) {
-            doWithPermissionChecked(
-                    new SimplePermissionCallback(this) {
-                        @Override
-                        public void onGranted() {
-                            SendInfoHelper.shareApp(AboutActivity.this);
-                        }
-                    },
-                    Def.Communication.REQUEST_PERMISSION_SHARE_APP,
-                    PermissionUtil.getStoragePermissions());
+            SendInfoHelper.shareApp(AboutActivity.this);
         } else if (itemId == R.id.act_feedback) {
             SendInfoHelper.sendFeedback(this, false);
         }

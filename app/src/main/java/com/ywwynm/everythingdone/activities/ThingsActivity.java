@@ -288,16 +288,8 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     }
 
     private void tryToFeedbackError() {
-        doWithPermissionChecked(
-                new SimplePermissionCallback(this) {
-                    @Override
-                    public void onGranted() {
-                        SendInfoHelper.sendFeedback(ThingsActivity.this, true);
-                        deleteFeedbackFile();
-                    }
-                },
-                Def.Communication.REQUEST_PERMISSION_SEND_ERROR_FEEDBACK,
-                PermissionUtil.getStoragePermissions());
+        SendInfoHelper.sendFeedback(ThingsActivity.this, true);
+        deleteFeedbackFile();
     }
 
     private void deleteFeedbackFile() {
@@ -1159,7 +1151,8 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                         }
                     },
                     Def.Communication.REQUEST_PERMISSION_LOAD_THINGS,
-                    PermissionUtil.getStoragePermissions());
+                    PermissionUtil.getRequiredPermissionsForThings(
+                            mThingManager.getThings()));
         } else {
             // post here to make sure that animation plays well and completely
             mRecyclerView.postDelayed(initRecyclerViewRunnable, 240);
@@ -1602,18 +1595,10 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                         newLimit = Def.LimitForGettingThings.ALL_DELETED;
                     } else {
                         if (id == R.id.drawer_settings) {
-                            doWithPermissionChecked(
-                                    new SimplePermissionCallback(ThingsActivity.this) {
-                                        @Override
-                                        public void onGranted() {
-                                            Intent intent = new Intent(
-                                                    ThingsActivity.this, SettingsActivity.class);
-                                            startActivityForResult(intent,
-                                                    Def.Communication.REQUEST_ACTIVITY_SETTINGS);
-                                        }
-                                    },
-                                    Def.Communication.REQUEST_PERMISSION_OPEN_SETTINGS,
-                                    PermissionUtil.getStoragePermissions());
+                            Intent intent = new Intent(
+                                    ThingsActivity.this, SettingsActivity.class);
+                            startActivityForResult(intent,
+                                    Def.Communication.REQUEST_ACTIVITY_SETTINGS);
                         } else if (id == R.id.drawer_help) {
                             startActivity(new Intent(ThingsActivity.this, HelpActivity.class));
                         } else if (id == R.id.drawer_about) {
@@ -2555,16 +2540,10 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     }, 160); // TODO: 2016/10/23 check if 160 is enough
                 }
             } else if (itemId == R.id.act_export) {
-                doWithPermissionChecked(new SimplePermissionCallback(ThingsActivity.this) {
-                    @Override
-                    public void onGranted() {
-                        int accentColor = DisplayUtil.getRandomColor(App.getApp());
-                        ThingExporter.startExporting(ThingsActivity.this, accentColor,
-                                mThingManager.getSelectedThings());
-                        mModeManager.backNormalMode(0);
-                    }
-                }, Def.Communication.REQUEST_PERMISSION_EXPORT_MAIN,
-                        PermissionUtil.getStoragePermissions());
+                int accentColor = DisplayUtil.getRandomColor(App.getApp());
+                ThingExporter.startExporting(ThingsActivity.this, accentColor,
+                        mThingManager.getSelectedThings());
+                mModeManager.backNormalMode(0);
             }
             mModeManager.updateSelectedCount();
             return false;
