@@ -45,6 +45,14 @@ public class ThingsAdapter extends BaseThingsAdapter {
 
     private Handler mAnimHandler;
 
+    public interface OnNewItemBoundListener {
+        void onNewItemBound(int position, BaseThingViewHolder holder);
+    }
+
+    private int                       mArmedNewItemPosition = -1;
+    private long                      mArmedNewItemId       = -1L;
+    private OnNewItemBoundListener    mArmedNewItemListener;
+
     public ThingsAdapter(App app, OnItemTouchedListener listener) {
         super(app);
 
@@ -84,19 +92,88 @@ public class ThingsAdapter extends BaseThingsAdapter {
         mShouldThingsAnimWhenAppearing = shouldThingsAnimWhenAppearing;
     }
 
+    /**
+     * Arm a one-shot animation for a freshly created thing.
+     * When the row at {@code position} is next bound, its inner content is hidden and the
+     * listener is invoked so the activity can play a reveal / shining-border animation on it.
+     * The thing id is captured so we can re-match the row even if the position shifts before
+     * binding (e.g. another insert lands first).
+     */
+    public void armNewItemAnimation(int position, long thingId, OnNewItemBoundListener listener) {
+        mArmedNewItemPosition = position;
+        mArmedNewItemId       = thingId;
+        mArmedNewItemListener = listener;
+    }
+
+    public void clearArmedNewItemAnimation() {
+        mArmedNewItemPosition = -1;
+        mArmedNewItemId       = -1L;
+        mArmedNewItemListener = null;
+    }
+
     @Override
     public BaseThingViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         return new ThingViewHolder(mInflater.inflate(R.layout.card_thing, parent, false));
     }
 
     @Override
-    public void onBindViewHolder(BaseThingViewHolder holder, int position) {
+    public void onBindViewHolder(final BaseThingViewHolder holder, int position) {
         distinguishHeaderAndOthers(getThings().get(position).getType() == Thing.HEADER, holder.cv);
         super.onBindViewHolder(holder, position);
 
-        if (mShouldThingsAnimWhenAppearing) {
+        final boolean armed = isArmedFor(position);
+
+        // Reset any state a previously-armed (and now recycled) holder may have left behind.
+        // (distinguishHeaderAndOthers above already sets cv.visibility for us.)
+        if (!armed) {
+            if (holder.llContent.getAlpha() != 1f) holder.llContent.setAlpha(1f);
+            if (holder.cv.getAlpha() != 1f)        holder.cv.setAlpha(1f);
+        }
+
+        // Skip the generic "appearing" animation for the freshly-armed new item — that
+        // animation forces visibility=VISIBLE on a delay and would un-hide the card
+        // before our reveal/shining-border has a chance to run.
+        if (mShouldThingsAnimWhenAppearing && !armed) {
             playAppearingAnimation(holder.cv, position);
         }
+
+        maybeTriggerArmedNewItemAnimation(holder, position);
+    }
+
+    private boolean isArmedFor(int position) {
+        if (mArmedNewItemListener == null) return false;
+        if (position != mArmedNewItemPosition) return false;
+        if (mArmedNewItemId == -1L) return true;
+        return getThings().get(position).getId() == mArmedNewItemId;
+    }
+
+    private void maybeTriggerArmedNewItemAnimation(final BaseThingViewHolder holder, int position) {
+        if (!isArmedFor(position)) return;
+
+        final OnNewItemBoundListener listener = mArmedNewItemListener;
+        final int firedPosition = position;
+        clearArmedNewItemAnimation();
+
+        // Hide the whole card (background + content) until our animation runs.
+        // Using visibility=INVISIBLE is more robust than alpha — the RecyclerView default
+        // add animator drives alpha, so an alpha=0 we set here would get overwritten as
+        // soon as the add animation kicks in. INVISIBLE keeps the card laid out and
+        // measured (so we can locate it precisely for the border) but stops it drawing.
+        holder.cv.setVisibility(View.INVISIBLE);
+        holder.llContent.setAlpha(1f);
+        holder.cv.setAlpha(1f);
+
+        holder.cv.post(new Runnable() {
+            @Override
+            public void run() {
+                if (holder.cv.getWidth() == 0 || holder.cv.getHeight() == 0) {
+                    // Layout not done yet — try again on the next frame.
+                    holder.cv.post(this);
+                    return;
+                }
+                listener.onNewItemBound(firedPosition, holder);
+            }
+        });
     }
 
     private void distinguishHeaderAndOthers(boolean header, CardView cv) {

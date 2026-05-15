@@ -138,9 +138,11 @@ public class DisplayUtil {
 
     // This method has a sexy history~
     // Someday if you see this code again, wish that your dream had come true
+    private static final Random sRng = new Random();
+
     public static int getRandomColor(Context context) {
         int[] colors = context.getResources().getIntArray(R.array.thing);
-        return colors[new Random().nextInt(colors.length)];
+        return colors[sRng.nextInt(colors.length)];
     }
 
     public static int getColorIndex(int color, Context context) {

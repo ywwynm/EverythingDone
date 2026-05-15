@@ -638,6 +638,7 @@
     <string name="settings_simple_finished_checklist">Fold finished checklist items on underway thing card</string>
     <string name="settings_auto_link">Automatically link phone number, web page and more when checking a thing</string>
     <string name="settings_twice_back">Press Back twice to exit</string>
+    <string name="settings_create_animation_style">Border light animation when creating a new thing</string>
 
     <!--group ringtone-->
     <string name="chooser_ringtone">Select Ringtone</string>

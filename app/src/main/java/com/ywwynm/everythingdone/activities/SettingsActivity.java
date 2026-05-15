@@ -121,6 +121,8 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
     private CheckBox mCbTwiceBack;
 
+    private CheckBox mCbCreateAnimationStyle;
+
     // group ringtone
     private static String[] sKeysRingtone = {
             Def.Meta.KEY_RINGTONE_REMINDER,
@@ -483,6 +485,8 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
         mCbTwiceBack = f(R.id.cb_twice_back);
 
+        mCbCreateAnimationStyle = f(R.id.cb_create_animation_style);
+
         // ringtone
         mLlsRingtone    = new LinearLayout[4];
         mLlsRingtone[0] = f(R.id.ll_ringtone_reminder_as_bt);
@@ -580,6 +584,9 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
         boolean twiceBack = mPreferences.getBoolean(Def.Meta.KEY_TWICE_BACK, false);
         mCbTwiceBack.setChecked(twiceBack);
+
+        boolean createAnimationStyle = mPreferences.getBoolean(Def.Meta.KEY_CREATE_ANIMATION_STYLE, false);
+        mCbCreateAnimationStyle.setChecked(createAnimationStyle);
     }
 
     private void initUiRingtone() {
@@ -885,6 +892,13 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             @Override
             public void onClick(View v) {
                 mCbTwiceBack.setChecked(!mCbTwiceBack.isChecked());
+            }
+        });
+
+        f(R.id.rl_create_animation_style_as_bt).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mCbCreateAnimationStyle.setChecked(!mCbCreateAnimationStyle.isChecked());
             }
         });
     }
@@ -1548,6 +1562,8 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         boolean twiceBack = mCbTwiceBack.isChecked();
         FrequentSettings.put(Def.Meta.KEY_TWICE_BACK, twiceBack);
         editor.putBoolean(Def.Meta.KEY_TWICE_BACK, twiceBack);
+
+        editor.putBoolean(Def.Meta.KEY_CREATE_ANIMATION_STYLE, mCbCreateAnimationStyle.isChecked());
 
         // ringtone
         for (int i = 0; i < mChosenRingtoneUris.length; i++) {

@@ -90,6 +90,8 @@ public final class Def {
 
         public static final String KEY_NOTIFY_KEEP_ALARMS       = "notify_keep_alarms";
 
+        public static final String KEY_CREATE_ANIMATION_STYLE   = "create_animation_style";
+
     }
 
     public static final class LimitForGettingThings {

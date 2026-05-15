@@ -136,5 +136,11 @@
 
     </com.ywwynm.everythingdone.views.reveal.RevealLayout>
 
+    <com.ywwynm.everythingdone.views.reveal.ShiningBorder
+        android:id="@+id/shining_border"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="invisible"/>
+
 </merge>
 

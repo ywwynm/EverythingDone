@@ -1,6 +1,8 @@
 package com.ywwynm.everythingdone.activities;
 
 import android.Manifest;
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
 import android.app.ActivityManager;
 import android.os.Build;
 import androidx.activity.OnBackPressedCallback;
@@ -41,7 +43,9 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewAnimationUtils;
 import android.view.ViewTreeObserver;
+import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
@@ -97,6 +101,7 @@ import com.ywwynm.everythingdone.views.Snackbar;
 import com.ywwynm.everythingdone.views.ThingsStaggeredLayoutManager;
 import com.ywwynm.everythingdone.views.pickers.ColorPicker;
 import com.ywwynm.everythingdone.views.reveal.RevealLayout;
+import com.ywwynm.everythingdone.views.reveal.ShiningBorder;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -113,6 +118,14 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     private ThingManager mThingManager;
 
     private RevealLayout mRevealLayout;
+    private ShiningBorder mShiningBorder;
+    // Cached "full-screen" defaults set in findViews() — used to restore mShiningBorder
+    // after a card-scoped animation overrode them.
+    private float mShiningBorderDefaultStroke;
+    private float mShiningBorderDefaultCornerRadius;
+    private long  mShiningBorderDefaultDuration;
+    private float mShiningBorderDefaultParticleBaseSize;
+    private int   mShiningBorderDefaultMaxParticles = 160;
     private View         mViewToReveal;
     private TextView     mTvNoResult;
 
@@ -736,14 +749,23 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 mRecyclerView.postDelayed(new Runnable() {
                     @Override
                     public void run() {
+                        final int newPos = mThingManager.getPositionToInsertNewThing();
+                        final long newId = thingToCreate.getId();
+                        final int color  = thingToCreate.getColor();
+                        mAdapter.armNewItemAnimation(newPos, newId,
+                                new ThingsAdapter.OnNewItemBoundListener() {
+                            @Override
+                            public void onNewItemBound(int pos, BaseThingsAdapter.BaseThingViewHolder holder) {
+                                playNewItemAnimation(holder, color);
+                            }
+                        });
                         if (justNotifyAll) {
                             justNotifyAll();
                         } else {
                             if (change) {
                                 mAdapter.notifyItemChanged(1);
                             } else {
-                                mAdapter.notifyItemInserted(
-                                        mThingManager.getPositionToInsertNewThing());
+                                mAdapter.notifyItemInserted(newPos);
                             }
                         }
                         afterUpdateMainUiForCreateDone();
@@ -1034,6 +1056,16 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     @Override
     protected void findViews() {
         mRevealLayout = f(R.id.reveal_layout);
+        mShiningBorder = f(R.id.shining_border);
+        mShiningBorder.setStrokeWidth(8 * getResources().getDisplayMetrics().density);
+        mShiningBorder.setAnimationDuration(1290);
+        // Snapshot the "full-screen" defaults so a card-scoped animation can restore
+        // them after temporarily overriding strokeWidth / corner / duration / particles.
+        mShiningBorderDefaultStroke          = mShiningBorder.getStrokeWidth();
+        mShiningBorderDefaultCornerRadius    = mShiningBorder.getCornerRadius();
+        mShiningBorderDefaultDuration        = mShiningBorder.getAnimationDuration();
+        mShiningBorderDefaultParticleBaseSize =
+                2.2f * getResources().getDisplayMetrics().density;
         mViewToReveal = f(R.id.view_to_reveal);
         mTvNoResult   = f(R.id.tv_no_result);
 
@@ -1279,47 +1311,215 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
 
                 dismissSnackbars();
                 mFab.setClickable(false);
-                int[] location = new int[2];
-                mFab.getLocationInWindow(location);
-                location[0] += mFab.getWidth() / 2;
-                location[1] += mFab.getHeight() / 2;
-                mViewToReveal.setBackgroundColor(App.newThingColor);
-                mViewToReveal.setVisibility(View.VISIBLE);
-                mRevealLayout.setVisibility(View.VISIBLE);
-
-                mRevealLayout.show(location[0], location[1]);
 
                 final Intent intent = DetailActivity.getOpenIntentForCreate(
                         ThingsActivity.this, TAG, App.newThingColor);
-                mRevealLayout.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        startActivityForResult(
-                                intent, Def.Communication.REQUEST_ACTIVITY_DETAIL);
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                            overrideActivityTransition(OVERRIDE_TRANSITION_OPEN, 0, 0);
-                        } else {
-                            overridePendingTransition(0, 0);
-                        }
-                    }
-                }, 600);
 
-                // change this value to prevent from flashing.
-                final int delay = mApp.hasDetailActivityRun() ? 960 : 1600;
-                mRevealLayout.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        mRecyclerView.scrollToPosition(0);
-                        mActivityHeader.reset(false);
-                        mIsRevealAnimPlaying = false;
-                        mFab.showFromBottom();
-                        mFab.setClickable(true);
-                        mRevealLayout.setVisibility(View.INVISIBLE);
-                        mViewToReveal.setVisibility(View.INVISIBLE);
-                    }
-                }, delay);
+                boolean useShiningBorder = getSharedPreferences(
+                        Def.Meta.PREFERENCES_NAME, MODE_PRIVATE)
+                        .getBoolean(Def.Meta.KEY_CREATE_ANIMATION_STYLE, false);
+
+                if (useShiningBorder) {
+                    int color = App.newThingColor;
+                    int lightColor = DisplayUtil.getLightColor(color, ThingsActivity.this);
+                    mShiningBorder.setShiningColor(color);
+                    mShiningBorder.setOrdinaryColor(lightColor);
+                    mShiningBorder.setVisibility(View.VISIBLE);
+                    mShiningBorder.startAnimation();
+
+                    mShiningBorder.setOnAnimationEndListener(new ShiningBorder.OnAnimationEndListener() {
+                        @Override
+                        public void onAnimationEnd(ShiningBorder border) {
+                            startActivityForResult(
+                                    intent, Def.Communication.REQUEST_ACTIVITY_DETAIL);
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                                overrideActivityTransition(OVERRIDE_TRANSITION_OPEN, 0, 0);
+                            } else {
+                                overridePendingTransition(0, 0);
+                            }
+                        }
+                    });
+
+                    final int delay = 1200 + (mApp.hasDetailActivityRun() ? 360 : 1000);
+                    mRevealLayout.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            mRecyclerView.scrollToPosition(0);
+                            mActivityHeader.reset(false);
+                            mIsRevealAnimPlaying = false;
+                            mFab.showFromBottom();
+                            mFab.setClickable(true);
+                            mShiningBorder.setVisibility(View.INVISIBLE);
+                            mShiningBorder.resetTrace();
+                        }
+                    }, delay);
+                } else {
+                    int[] location = new int[2];
+                    mFab.getLocationInWindow(location);
+                    location[0] += mFab.getWidth() / 2;
+                    location[1] += mFab.getHeight() / 2;
+                    mViewToReveal.setBackgroundColor(App.newThingColor);
+                    mViewToReveal.setVisibility(View.VISIBLE);
+                    mRevealLayout.setVisibility(View.VISIBLE);
+
+                    mRevealLayout.show(location[0], location[1]);
+
+                    mRevealLayout.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            startActivityForResult(
+                                    intent, Def.Communication.REQUEST_ACTIVITY_DETAIL);
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                                overrideActivityTransition(OVERRIDE_TRANSITION_OPEN, 0, 0);
+                            } else {
+                                overridePendingTransition(0, 0);
+                            }
+                        }
+                    }, 600);
+
+                    // change this value to prevent from flashing.
+                    final int delay = mApp.hasDetailActivityRun() ? 960 : 1600;
+                    mRevealLayout.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            mRecyclerView.scrollToPosition(0);
+                            mActivityHeader.reset(false);
+                            mIsRevealAnimPlaying = false;
+                            mFab.showFromBottom();
+                            mFab.setClickable(true);
+                            mRevealLayout.setVisibility(View.INVISIBLE);
+                            mViewToReveal.setVisibility(View.INVISIBLE);
+                        }
+                    }, delay);
+                }
             }
         });
+    }
+
+    /**
+     * Plays a per-item entry animation on the freshly-bound card of a newly created thing.
+     * The card's inner content was already alpha=0'd by the adapter when it armed the
+     * animation, so the user sees the coloured card slot first and then watches the
+     * content materialise.
+     */
+    private void playNewItemAnimation(final BaseThingsAdapter.BaseThingViewHolder holder, final int color) {
+        final boolean useShining = getSharedPreferences(Def.Meta.PREFERENCES_NAME, MODE_PRIVATE)
+                .getBoolean(Def.Meta.KEY_CREATE_ANIMATION_STYLE, false);
+        // Make sure the card stays hidden while we wait for the RecyclerView default add
+        // animation to finish — anything else that may have flipped visibility back
+        // (e.g. things_show animation) is overridden here.
+        holder.cv.clearAnimation();
+        holder.cv.setVisibility(View.INVISIBLE);
+        holder.cv.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if (holder.cv.getWindowToken() == null) return;
+                // Defensive: keep it hidden until the chosen animation actually displays it.
+                holder.cv.clearAnimation();
+                holder.cv.setVisibility(View.INVISIBLE);
+                if (useShining) {
+                    playNewItemShiningBorder(holder, color);
+                } else {
+                    playNewItemReveal(holder);
+                }
+            }
+        }, 180);
+    }
+
+    private void playNewItemShiningBorder(final BaseThingsAdapter.BaseThingViewHolder holder, int color) {
+        int[] cardLoc = new int[2];
+        holder.cv.getLocationInWindow(cardLoc);
+        int[] borderLoc = new int[2];
+        mShiningBorder.getLocationInWindow(borderLoc);
+        int left   = cardLoc[0] - borderLoc[0];
+        int top    = cardLoc[1] - borderLoc[1];
+        int right  = left + holder.cv.getWidth();
+        int bottom = top  + holder.cv.getHeight();
+
+        float density   = DisplayUtil.getScreenDensity(this);
+        int   lightCol  = DisplayUtil.getLightColor(color, this);
+
+        // ---- Card-scoped overrides ----
+        // ShiningBorder also spreads particles up to strokeWidth*12 from the trace,
+        // so the full-screen default (8dp → 96dp halo) is way too wide for a card.
+        mShiningBorder.setStrokeWidth(density * 1.5f);
+        // card_thing.xml uses cardCornerRadius=2dp
+        mShiningBorder.setCornerRadius(density * 2f);
+        mShiningBorder.setShiningColor(color);
+        mShiningBorder.setOrdinaryColor(lightCol);
+        mShiningBorder.setRemainOrdinaryPath(false);
+        mShiningBorder.setRepeatAnimation(false);
+        mShiningBorder.setAnimationDuration(1600);
+        // Default baseSize is 2.2dp and glow renders at drawSize * 3.0 (focus particles),
+        // so even the biggest particle on a card stays small here.
+        mShiningBorder.setParticleBaseSize(density * 0.6f);
+        // Default 160 is sized for a full-screen trace; cap it for a card.
+        mShiningBorder.setMaxParticles(80);
+        mShiningBorder.assignPathAndFrame(left, top, right, bottom);
+
+        // Card stays INVISIBLE for the whole trace; only at the end do we reveal it.
+        mShiningBorder.setOnProgressUpdateListener(null);
+        mShiningBorder.setOnAnimationEndListener(new ShiningBorder.OnAnimationEndListener() {
+            @Override
+            public void onAnimationEnd(ShiningBorder border) {
+                holder.cv.setAlpha(0f);
+                holder.cv.setVisibility(View.VISIBLE);
+                holder.cv.animate().alpha(1f).setDuration(220).start();
+                mShiningBorder.setVisibility(View.INVISIBLE);
+                mShiningBorder.resetTrace();
+                mShiningBorder.setOnAnimationEndListener(null);
+                // Restore ShiningBorder defaults so the full-screen FAB animation
+                // (which doesn't touch these properties) finds them as-shipped.
+                restoreShiningBorderDefaults();
+            }
+        });
+        mShiningBorder.setVisibility(View.VISIBLE);
+        mShiningBorder.startAnimation();
+    }
+
+    private void restoreShiningBorderDefaults() {
+        // Restore everything the card-scoped animation overrode back to the values
+        // we snapshotted in findViews(), so the next full-screen FAB animation sees
+        // the originally-shipped 8dp stroke / 1200ms duration / etc.
+        mShiningBorder.setStrokeWidth(mShiningBorderDefaultStroke);
+        mShiningBorder.setCornerRadius(mShiningBorderDefaultCornerRadius);
+        mShiningBorder.setAnimationDuration(mShiningBorderDefaultDuration);
+        mShiningBorder.setParticleBaseSize(mShiningBorderDefaultParticleBaseSize);
+        mShiningBorder.setMaxParticles(mShiningBorderDefaultMaxParticles);
+        // Re-assign the path to the full view bounds; otherwise the per-item path
+        // we set earlier would stick around for the next FAB tap.
+        mShiningBorder.assignPathAndFrame();
+    }
+
+    private void playNewItemReveal(final BaseThingsAdapter.BaseThingViewHolder holder) {
+        final View card = holder.cv;
+        int w = card.getWidth();
+        int h = card.getHeight();
+        if (w == 0 || h == 0) {
+            card.setVisibility(View.VISIBLE);
+            return;
+        }
+        // Originate the reveal at the bottom-right corner. The reveal radius must reach
+        // the diagonally opposite (top-left) corner — that distance equals hypot(w, h).
+        int cx = w;
+        int cy = h;
+        float finalRadius = (float) Math.hypot(w, h);
+        Animator reveal = ViewAnimationUtils.createCircularReveal(card, cx, cy, 0f, finalRadius);
+        reveal.setDuration(540);
+        reveal.setInterpolator(new AccelerateDecelerateInterpolator());
+        reveal.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationStart(Animator a) {
+                card.setAlpha(1f);
+                card.setVisibility(View.VISIBLE);
+            }
+            @Override
+            public void onAnimationCancel(Animator a) {
+                card.setAlpha(1f);
+                card.setVisibility(View.VISIBLE);
+            }
+        });
+        reveal.start();
     }
 
     private void setRecyclerViewEvents() {

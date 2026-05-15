@@ -113,4 +113,13 @@ public class ThingsAdapterWrapper {
         mAdapter.notifyItemMoved(from, to);
     }
 
+    public void armNewItemAnimation(int position, long thingId,
+                                    ThingsAdapter.OnNewItemBoundListener listener) {
+        mAdapter.armNewItemAnimation(position, thingId, listener);
+    }
+
+    public void clearArmedNewItemAnimation() {
+        mAdapter.clearArmedNewItemAnimation();
+    }
+
 }

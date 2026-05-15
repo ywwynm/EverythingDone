@@ -593,6 +593,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
     public static class BaseThingViewHolder extends BaseViewHolder {
 
         public final InterceptTouchCardView cv;
+        public final LinearLayout llContent;
         public final View vPaddingBottom;
 
         public final ImageView   ivStickyOngoing;
@@ -633,6 +634,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
             super(item);
 
             cv             = f(R.id.cv_thing);
+            llContent      = f(R.id.ll_thing_content);
             vPaddingBottom = f(R.id.view_thing_padding_bottom);
 
             ivStickyOngoing = f(R.id.iv_thing_sticky_ongoing);

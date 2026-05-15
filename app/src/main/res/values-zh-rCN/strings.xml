@@ -631,6 +631,7 @@
     <string name="settings_simple_finished_checklist">在正在进行的记事卡片中折叠已完成的清单项</string>
     <string name="settings_auto_link">查看记事时，自动为电话号码、网页地址等添加链接</string>
     <string name="settings_twice_back">按两次返回键退出应用</string>
+    <string name="settings_create_animation_style">新建事项时使用屏幕边框光效动画</string>
 
     <!--group ringtone-->
     <string name="chooser_ringtone">选择铃声</string>
