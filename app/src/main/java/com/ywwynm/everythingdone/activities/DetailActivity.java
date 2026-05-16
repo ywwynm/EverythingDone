@@ -110,6 +110,7 @@ import com.ywwynm.everythingdone.receivers.HabitReceiver;
 import com.ywwynm.everythingdone.receivers.ReminderReceiver;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.DeviceUtil;
+import com.ywwynm.everythingdone.utils.BackgroundUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.FileUtil;
 import com.ywwynm.everythingdone.utils.KeyboardUtil;
@@ -677,7 +678,8 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             initBackButton(thingType);
         }
 
-        mFlRoot.setBackgroundColor(color);
+        BackgroundUtil.applyBackground(mFlRoot, mThing.getBackground());
+        applyForegroundColors(color);
 
         if (!mEditable) {
             mEtTitle.setKeyListener(null);
@@ -764,6 +766,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                     mCheckListAdapter.setActionCallback(new CheckListActionCallback());
                 }
                 mCheckListAdapter.setShouldAutoLink(mShouldAutoLink);
+                mCheckListAdapter.setThingColor(mThing.getColor());
                 setChecklistExpandShrinkEvent();
 
                 setMoveChecklistEvent();
@@ -1277,6 +1280,9 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             }
         }
         updateUndoRedoActionButtonState();
+        // Menu is freshly inflated — re-apply the accent-aware tint so icons stay
+        // readable on light thing colors.
+        tintMenuIcons(BackgroundUtil.isLight(getAccentColor()));
         return true;
     }
 
@@ -1466,6 +1472,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 mCheckListAdapter.setItems(items);
             }
             mCheckListAdapter.setShouldAutoLink(mShouldAutoLink);
+            mCheckListAdapter.setThingColor(mThing.getColor());
             setChecklistExpandShrinkEvent();
             mRvCheckList.setAdapter(mCheckListAdapter);
             mRvCheckList.setLayoutManager(mLlmCheckList);
@@ -2380,6 +2387,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 new ArgbEvaluator(), colorFrom, colorTo).setDuration(600).start();
 
         updateDescriptions(colorTo);
+        applyForegroundColors(colorTo);
 
         colorFrom = ((ColorDrawable) mActionbar.getBackground()).getColor();
         int alpha = Color.alpha(colorFrom);
@@ -2388,6 +2396,149 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 new ArgbEvaluator(), colorFrom, colorTo).setDuration(600).start();
         ObjectAnimator.ofObject(mStatusBar, "backgroundColor",
                 new ArgbEvaluator(), colorFrom, colorTo).setDuration(600).start();
+    }
+
+    /**
+     * Tint the toolbar's menu icons to be readable on the current background.
+     * Theme's {@code colorControlNormal=#FFFFFF} bakes white into the icons by
+     * default; this method overrides that per-item when the accent is light.
+     * Called from {@link #applyForegroundColors(int)} and at the tail of
+     * {@link #onCreateOptionsMenu(android.view.Menu)} (menu isn't inflated yet
+     * at the first applyForegroundColors call).
+     */
+    private void tintMenuIcons(boolean lightAccent) {
+        if (mActionbar == null) return;
+
+        // 1) The toolbar overflow button (the "⋮") is its own drawable, not a menu item.
+        android.graphics.drawable.Drawable overflow = mActionbar.getOverflowIcon();
+        if (overflow != null) {
+            overflow = overflow.mutate();
+            if (lightAccent) {
+                overflow.setColorFilter(android.graphics.Color.BLACK,
+                        android.graphics.PorterDuff.Mode.SRC_IN);
+            } else {
+                overflow.clearColorFilter();
+            }
+            mActionbar.setOverflowIcon(overflow);
+        }
+
+        // 2) Visible menu items (the icons shown directly on the toolbar like
+        // "remove checklist", "undo", "redo", etc.).
+        android.view.Menu menu = mActionbar.getMenu();
+        if (menu == null) return;
+        android.content.res.ColorStateList tint = lightAccent
+                ? android.content.res.ColorStateList.valueOf(android.graphics.Color.BLACK)
+                : null;
+        for (int i = 0; i < menu.size(); i++) {
+            android.view.MenuItem item = menu.getItem(i);
+            android.graphics.drawable.Drawable icon = item.getIcon();
+            if (icon == null) continue;
+            icon = icon.mutate();
+            if (lightAccent) {
+                icon.setColorFilter(android.graphics.Color.BLACK,
+                        android.graphics.PorterDuff.Mode.SRC_IN);
+            } else {
+                icon.clearColorFilter();
+            }
+            item.setIcon(icon);
+            // setIconTintList is API 26+; minSdk = 26 so safe.
+            item.setIconTintList(tint);
+        }
+    }
+
+    /**
+     * Apply a luminance-aware foreground color (black-side or white-side) to every
+     * TextView / EditText whose textColor was previously hard-coded white in
+     * activity_detail.xml. Called whenever the accent color is established or
+     * changes — so the title / content / time / type-info / move-checklist
+     * button stay readable on any background.
+     *
+     * <p>Phase 1.d of color-system migration. See COLOR_MIGRATION_PLAN.md.
+     */
+    private void applyForegroundColors(int color) {
+        int primary   = BackgroundUtil.onColor(color, BackgroundUtil.ON_ALPHA_PRIMARY);
+        int secondary = BackgroundUtil.onColor(color, BackgroundUtil.ON_ALPHA_SECONDARY);
+        int tertiary  = BackgroundUtil.onColor(color, BackgroundUtil.ON_ALPHA_TERTIARY);
+
+        mEtTitle.setTextColor(primary);
+        mEtTitle.setHintTextColor(primary);
+        mEtContent.setTextColor(secondary);
+        mEtContent.setHintTextColor(secondary);
+        mTvUpdateTime.setTextColor(tertiary);
+
+        TextView tvFinishTime = f(R.id.tv_finish_time);
+        if (tvFinishTime != null) tvFinishTime.setTextColor(tertiary);
+        TextView tvTypeInfo = f(R.id.tv_type_info);
+        if (tvTypeInfo != null) tvTypeInfo.setTextColor(tertiary);
+        if (mTvMoveChecklistAsBt != null) {
+            mTvMoveChecklistAsBt.setTextColor(tertiary);
+            // "Arrange items" compound drawable (icon on the left) — tint it.
+            androidx.core.widget.TextViewCompat.setCompoundDrawableTintList(
+                    mTvMoveChecklistAsBt,
+                    BackgroundUtil.isLight(color)
+                            ? android.content.res.ColorStateList.valueOf(android.graphics.Color.BLACK)
+                            : null);
+        }
+
+        // Bottom-bar quick-remind labels (xml hard-codes android:color/white)
+        // and the checkbox itself.
+        TextView tvRemindMe = f(R.id.tv_remind_me);
+        if (tvRemindMe != null) tvRemindMe.setTextColor(secondary);
+        if (tvQuickRemind != null) {
+            tvQuickRemind.setTextColor(secondary);
+            // Underline drawable used as background — tint it to match.
+            android.graphics.drawable.Drawable underline = tvQuickRemind.getBackground();
+            if (underline != null) {
+                if (BackgroundUtil.isLight(color)) {
+                    underline.setColorFilter(android.graphics.Color.BLACK,
+                            android.graphics.PorterDuff.Mode.SRC_IN);
+                } else {
+                    underline.clearColorFilter();
+                }
+            }
+        }
+        if (cbQuickRemind != null) {
+            int boxTint = BackgroundUtil.isLight(color)
+                    ? BackgroundUtil.onColor(color, 0.86f) /* dark side */
+                    : android.graphics.Color.WHITE;
+            androidx.core.widget.CompoundButtonCompat.setButtonTintList(
+                    cbQuickRemind, android.content.res.ColorStateList.valueOf(boxTint));
+        }
+
+        if (mCheckListAdapter != null) {
+            mCheckListAdapter.setThingColor(color);
+            mCheckListAdapter.notifyDataSetChanged();
+        }
+
+        // Inline image icons (back arrow, type-info icon, and any menu items).
+        // Theme's colorControlNormal forces #FFFFFF on these — override per-view.
+        boolean lightAccent = BackgroundUtil.isLight(color);
+        android.content.res.ColorStateList iconTint = lightAccent
+                ? android.content.res.ColorStateList.valueOf(android.graphics.Color.BLACK)
+                : null;
+        if (mIbBack != null) {
+            androidx.core.widget.ImageViewCompat.setImageTintList(mIbBack, iconTint);
+        }
+        android.widget.ImageView ivIconTypeInfo = f(R.id.iv_icon_type_info);
+        if (ivIconTypeInfo != null) {
+            androidx.core.widget.ImageViewCompat.setImageTintList(ivIconTypeInfo, iconTint);
+        }
+        tintMenuIcons(lightAccent);
+
+        // System bar icons adapt to the thing's color: dark icons (light bar) for
+        // light thing colors, default light icons otherwise. Deferred via post()
+        // because InsetsController calls during initUI may otherwise race against
+        // the activity's window attach.
+        final boolean lightBg = BackgroundUtil.isLight(color);
+        mFlRoot.post(new Runnable() {
+            @Override public void run() {
+                if (lightBg) {
+                    DisplayUtil.darkStatusBar(DetailActivity.this);
+                } else {
+                    DisplayUtil.cancelDarkStatusBar(DetailActivity.this);
+                }
+            }
+        });
     }
 
     private void setQuickRemindEvents() {

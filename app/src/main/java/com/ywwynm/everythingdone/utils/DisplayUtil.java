@@ -155,20 +155,39 @@ public class DisplayUtil {
         return -1;
     }
 
+    /**
+     * Slightly darker variant of {@code color}.
+     *
+     * <p>For colors that are part of the original 10-entry palette, returns the exact
+     * value from {@code R.array.thing_dark} (preserving zero visual change for
+     * existing data). For any other color, falls back to algorithmic blending via
+     * {@link BackgroundUtil#darker(int, float)}.
+     *
+     * <p>Phase 1 of the color-system migration; see COLOR_MIGRATION_PLAN.md.
+     */
     public static int getDarkColor(int color, Context context) {
-        int[] colorsDark = context.getResources().getIntArray(R.array.thing_dark);
         int index = getColorIndex(color, context);
         if (index != -1) {
-            return colorsDark[index];
-        } else return 0;
+            return context.getResources().getIntArray(R.array.thing_dark)[index];
+        }
+        return BackgroundUtil.darker(color, 0.15f);
     }
 
+    /**
+     * Slightly lighter (washed-out) variant of {@code color}.
+     *
+     * <p>For colors that are part of the original 10-entry palette, returns the exact
+     * value from {@code R.array.thing_light} — the legacy values were hand-tuned and
+     * a uniform 66% white blend doesn't match them within tolerable LSB delta for
+     * some entries (notably pine_green). For any other color, falls back to
+     * algorithmic blending via {@link BackgroundUtil#lighter(int, float)}.
+     */
     public static int getLightColor(int color, Context context) {
-        int[] colorsLight = context.getResources().getIntArray(R.array.thing_light);
         int index = getColorIndex(color, context);
         if (index != -1) {
-            return colorsLight[index];
-        } else return 0;
+            return context.getResources().getIntArray(R.array.thing_light)[index];
+        }
+        return BackgroundUtil.lighter(color, 0.66f);
     }
 
     public static int getTransparentColor(int color, int alpha) {

@@ -185,6 +185,7 @@ public class ThingDAO {
         values.put(Def.Database.COLUMN_CREATE_TIME_THINGS, thing.getCreateTime());
         values.put(Def.Database.COLUMN_UPDATE_TIME_THINGS, thing.getUpdateTime());
         values.put(Def.Database.COLUMN_FINISH_TIME_THINGS, thing.getFinishTime());
+        values.put(Def.Database.COLUMN_BACKGROUND_THINGS,  thing.getBackground().toJson());
 
         try {
             db.insert(Def.Database.TABLE_THINGS, null, values);
@@ -211,6 +212,7 @@ public class ThingDAO {
         ContentValues values = new ContentValues();
         values.put(Def.Database.COLUMN_TYPE_THINGS, typeAfter);
         values.put(Def.Database.COLUMN_COLOR_THINGS, updatedThing.getColor());
+        values.put(Def.Database.COLUMN_BACKGROUND_THINGS, updatedThing.getBackground().toJson());
         values.put(Def.Database.COLUMN_TITLE_THINGS, updatedThing.getTitle());
         values.put(Def.Database.COLUMN_CONTENT_THINGS, updatedThing.getContent());
         values.put(Def.Database.COLUMN_ATTACHMENT_THINGS, updatedThing.getAttachment());
@@ -248,6 +250,7 @@ public class ThingDAO {
             values.put(Def.Database.COLUMN_TYPE_THINGS, type);
             values.put(Def.Database.COLUMN_STATE_THINGS, stateAfter);
             values.put(Def.Database.COLUMN_COLOR_THINGS, thing.getColor());
+            values.put(Def.Database.COLUMN_BACKGROUND_THINGS, thing.getBackground().toJson());
             values.put(Def.Database.COLUMN_TITLE_THINGS, thing.getTitle());
             values.put(Def.Database.COLUMN_CONTENT_THINGS, thing.getContent());
             values.put(Def.Database.COLUMN_ATTACHMENT_THINGS, thing.getAttachment());

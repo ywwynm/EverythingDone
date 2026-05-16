@@ -33,7 +33,7 @@ public final class Def {
         public static final String FEEDBACK_ERROR_FILE_NAME = "feedback_error.dat";
 
         public static final String DATABASE_NAME = "EverythingDoneData.db";
-        public static final int DATABASE_VERSION = 8;
+        public static final int DATABASE_VERSION = 9;
 
         public static final int ONGOING_NOTIFICATION_ID = Integer.MAX_VALUE;
 
@@ -124,6 +124,7 @@ public final class Def {
         public static final String COLUMN_CREATE_TIME_THINGS = "create_time";
         public static final String COLUMN_UPDATE_TIME_THINGS = "update_time";
         public static final String COLUMN_FINISH_TIME_THINGS = "finish_time";
+        public static final String COLUMN_BACKGROUND_THINGS  = "background"; /* added in version 9 */
 
         public static final String TABLE_REMINDERS                 = "reminders";
         public static final String COLUMN_ID_REMINDERS             = "id";

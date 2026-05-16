@@ -118,6 +118,13 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
 
     private @BaseThingsAdapter.Style int mStyle = BaseThingsAdapter.STYLE_WHITE;
 
+    /**
+     * The owning thing's color. Set by {@link BaseThingsAdapter} per-bind so the
+     * checklist's text and checkbox icons can adapt to the background luminance.
+     * 0 = unset → falls back to the legacy {@link #mStyle}-only behaviour.
+     */
+    private int mThingColor = 0;
+
     public CheckListAdapter(Context context, int type, List<String> items) {
         mContext = context;
         mInflater = LayoutInflater.from(context);
@@ -197,6 +204,39 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
         mStyle = style;
     }
 
+    public void setThingColor(int thingColor) {
+        mThingColor = thingColor;
+    }
+
+    /** True when the foreground should be drawn black-side rather than white-side. */
+    private boolean dark() {
+        if (mStyle == BaseThingsAdapter.STYLE_BLACK) return true;
+        if (mThingColor == 0) return false;  // unset → keep legacy white behaviour
+        return com.ywwynm.everythingdone.utils.BackgroundUtil.isLight(mThingColor);
+    }
+
+    private int textColorSecondary() {
+        return dark() ? black_76p : white_76p;
+    }
+
+    private int textColorFinished() {
+        return dark() ? black_50p : white_50p;
+    }
+
+    /**
+     * Tint a checklist-row image (state icon, delete, expand/shrink) so that the
+     * white-pixel PNGs become visible on a light card. Apply after every
+     * {@link android.widget.ImageView#setImageResource(int)} in EditText mode.
+     */
+    private void tintRowIcon(android.widget.ImageView iv) {
+        if (dark()) {
+            androidx.core.widget.ImageViewCompat.setImageTintList(
+                    iv, android.content.res.ColorStateList.valueOf(android.graphics.Color.BLACK));
+        } else {
+            androidx.core.widget.ImageViewCompat.setImageTintList(iv, null);
+        }
+    }
+
     private void removeItemsForTextView() {
         if (mType == TEXTVIEW) {
             mItems.remove("2");
@@ -237,14 +277,11 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
         if (mType == TEXTVIEW) {
             TextViewHolder holder = (TextViewHolder) viewHolder;
             LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) holder.tv.getLayoutParams();
+            boolean dark = dark();
             if (mMaxItemCount != -1 && position == mMaxItemCount) {
                 holder.iv.setVisibility(View.GONE);
                 holder.tv.setTextSize(18);
-                if (mStyle == BaseThingsAdapter.STYLE_WHITE) {
-                    holder.tv.setTextColor(white_76p);
-                } else {
-                    holder.tv.setTextColor(black_76p);
-                }
+                holder.tv.setTextColor(textColorSecondary());
                 holder.tv.setText("...");
                 holder.tv.setContentDescription(mContext.getString(R.string.cd_checklist_more_items));
                 params.setMargins((int) (density * 8), 0, 0, params.bottomMargin);
@@ -255,32 +292,20 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
                 String stateContent = mItems.get(position);
                 char state = stateContent.charAt(0);
                 if (state == '0') {
-                    if (mStyle == BaseThingsAdapter.STYLE_WHITE) {
-                        holder.iv.setImageResource(R.drawable.checklist_unchecked_card);
-                    } else {
-                        holder.iv.setImageResource(R.drawable.checklist_unchecked_card_black);
-                    }
+                    holder.iv.setImageResource(dark
+                            ? R.drawable.checklist_unchecked_card_black
+                            : R.drawable.checklist_unchecked_card);
                     holder.iv.setContentDescription(
                             mContext.getString(R.string.cd_checklist_unfinished_item));
-                    if (mStyle == BaseThingsAdapter.STYLE_WHITE) {
-                        holder.tv.setTextColor(white_76p);
-                    } else {
-                        holder.tv.setTextColor(black_76p);
-                    }
+                    holder.tv.setTextColor(textColorSecondary());
                     holder.tv.setPaintFlags(flag & ~Paint.STRIKE_THRU_TEXT_FLAG);
                 } else if (state == '1') {
-                    if (mStyle == BaseThingsAdapter.STYLE_WHITE) {
-                        holder.iv.setImageResource(R.drawable.checklist_checked_card);
-                    } else {
-                        holder.iv.setImageResource(R.drawable.checklist_checked_card_black);
-                    }
+                    holder.iv.setImageResource(dark
+                            ? R.drawable.checklist_checked_card_black
+                            : R.drawable.checklist_checked_card);
                     holder.iv.setContentDescription(
                             mContext.getString(R.string.cd_checklist_finished_item));
-                    if (mStyle == BaseThingsAdapter.STYLE_WHITE) {
-                        holder.tv.setTextColor(white_50p);
-                    } else {
-                        holder.tv.setTextColor(black_50p);
-                    }
+                    holder.tv.setTextColor(textColorFinished());
                     if (FrequentSettings.getBoolean(Def.Meta.KEY_SIMPLE_FCLI)) {
                         holder.tv.setPaintFlags(flag & ~Paint.STRIKE_THRU_TEXT_FLAG);
                     } else {
@@ -328,6 +353,9 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
             params.topMargin = (int) (density * 3);
 
             mWatchEditTextChange = false;
+            tintRowIcon(holder.ivState);
+            tintRowIcon(holder.ivDelete);
+            tintRowIcon(holder.ivExpandShrink);
             String stateContent = mItems.get(position);
             char state = stateContent.charAt(0);
             if (state == '0') {
@@ -340,7 +368,7 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
                     holder.ivState.setContentDescription(
                             mContext.getString(R.string.cd_checklist_move));
                 }
-                holder.et.setTextColor(white_76p);
+                holder.et.setTextColor(textColorSecondary());
                 holder.et.setText(stateContent.substring(1, stateContent.length()));
             } else if (state == '1') {
                 if (!mDragging) {
@@ -352,7 +380,7 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
                     holder.ivState.setContentDescription(
                             mContext.getString(R.string.cd_checklist_move));
                 }
-                holder.et.setTextColor(white_50p);
+                holder.et.setTextColor(textColorFinished());
                 holder.et.setPaintFlags(flags | Paint.STRIKE_THRU_TEXT_FLAG);
                 holder.et.setText(stateContent.substring(1, stateContent.length()));
             } else if (state == '2') {
@@ -361,6 +389,8 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
                 String newItem = mContext.getString(R.string.hint_new_item);
                 holder.ivState.setContentDescription(newItem);
                 holder.et.setHint(newItem);
+                // Hint color: xml hard-codes #5CFFFFFF (white 36%); make it adaptive.
+                holder.et.setHintTextColor(textColorFinished());
                 holder.et.setText("");
             } else if (state == '3') {
                 holder.ivState.setVisibility(View.GONE);
@@ -393,7 +423,7 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
 
                 holder.et.setEnabled(false);
                 holder.et.setText(finishedItemsCountStr);
-                holder.et.setTextColor(white_50p);
+                holder.et.setTextColor(textColorFinished());
                 holder.et.setTextSize(16);
                 holder.et.getPaint().setTextSkewX(-0.20f);
             }

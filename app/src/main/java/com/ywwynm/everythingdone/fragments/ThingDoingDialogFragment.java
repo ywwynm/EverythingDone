@@ -88,7 +88,9 @@ public class ThingDoingDialogFragment extends BaseDialogFragment {
 
         enableOrDisableASDTimeUi();
 
-        mCvStartAsBt.setCardBackgroundColor(mThing.getColor());
+        com.ywwynm.everythingdone.utils.BackgroundUtil.applyCardBackground(
+                mCvStartAsBt,
+                com.ywwynm.everythingdone.model.ThingBackground.pure(mThing.getColor()));
     }
 
     private void enableOrDisableASDTimeUi() {

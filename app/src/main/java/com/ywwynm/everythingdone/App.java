@@ -28,6 +28,7 @@ import com.ywwynm.everythingdone.helpers.CrashHelper;
 import com.ywwynm.everythingdone.helpers.FingerprintHelper;
 import com.ywwynm.everythingdone.managers.ThingManager;
 import com.ywwynm.everythingdone.model.Thing;
+import com.ywwynm.everythingdone.model.ThingBackground;
 import com.ywwynm.everythingdone.services.AlarmHealthWorker;
 import com.ywwynm.everythingdone.services.PullAliveJobService;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
@@ -77,6 +78,22 @@ public class App extends Application {
     private static boolean somethingUpdatedSpecially = false;
     private static boolean justNotifyAll = false;
 
+    /**
+     * The randomly-chosen background for the next new thing the user creates.
+     *
+     * <p>Phase 2 of the color-system migration introduces this {@link ThingBackground}
+     * field alongside the legacy {@link #newThingColor} int (kept in sync). Phase 3
+     * will switch new-thing creation to draw from this field; Phase 4 will let it
+     * randomly be a GRADIENT background.
+     */
+    public static ThingBackground newThingBackground;
+
+    /**
+     * Legacy single-int companion of {@link #newThingBackground} — kept in sync
+     * as {@code newThingBackground.representativeColor()} so existing call sites
+     * that just need an int (intent extras, FAB ripple, etc.) keep working
+     * unchanged through Phase 2 / 3.
+     */
     public static int newThingColor;
 
     private static long doingThingId = -1;
@@ -456,12 +473,29 @@ public class App extends Application {
         return new Pair<>(thing, correctPos);
     }
 
-    // Added on 2016/12/3
+    /**
+     * Roll a random background for the next new-thing creation.
+     *
+     * <p>Phase 3 of color migration:
+     * <ul>
+     *   <li>Generates a PURE-mode {@link ThingBackground} with completely random RGB
+     *       (per Q5 of COLOR_MIGRATION_PLAN.md — full spectrum, no HSL clamp).</li>
+     *   <li>Avoids landing on the same color as the previous {@code newThingColor},
+     *       or any of the colors in the up-to-4 neighbouring rows around the
+     *       prospective insertion point (so a new card doesn't sit next to a
+     *       perceptually-identical sibling).</li>
+     * </ul>
+     * Phase 4 will extend this to a 50/50 PURE-vs-GRADIENT roll.
+     *
+     * <p>Method name kept as-is for source compat — the field it ultimately writes
+     * is now {@link #newThingBackground} (with {@link #newThingColor} kept as the
+     * representative-int companion).
+     */
     public static void updateNewThingColor() {
         int color;
         do {
-            color = DisplayUtil.getRandomColor(app);
-        } while (color == newThingColor);
+            color = randomColor();
+        } while (tooClose(color, newThingColor));
 
         while (ThingManager.isTotallyInitialized() && app.mThingManager != null
                 && app.mLimit == Def.LimitForGettingThings.ALL_UNDERWAY) {
@@ -487,21 +521,51 @@ public class App extends Application {
                     if (i < size) {
                         Thing temp = things.get(i);
                         if (temp != null) {
-                            existedColors[j++] = temp.getColor();
+                            existedColors[j++] = temp.getBackground().representativeColor();
                         }
                     }
                 }
             }
 
-            while (isInside(existedColors, color) || color == newThingColor) {
-                color = DisplayUtil.getRandomColor(app);
+            int spins = 0;
+            while ((isInsideNear(existedColors, color) || tooClose(color, newThingColor))
+                    && spins++ < 32) {
+                color = randomColor();
             }
 
             break;
         }
 
-        App.newThingColor = color;
+        App.newThingColor      = color;
+        App.newThingBackground = ThingBackground.pure(color);
     }
+
+    /** Full-spectrum random RGB — matches Everything-Android's {@code newRandomColor()}. */
+    private static int randomColor() {
+        return android.graphics.Color.rgb(
+                sRandom.nextInt(256), sRandom.nextInt(256), sRandom.nextInt(256));
+    }
+
+    /** Perceptual-ish RGB distance threshold for "feels like the same color". */
+    private static final int NEAR_THRESHOLD = 60;
+
+    private static boolean tooClose(int a, int b) {
+        if (a == 0 || b == 0) return false; // 0 used as "unset" sentinel
+        int dr = android.graphics.Color.red(a)   - android.graphics.Color.red(b);
+        int dg = android.graphics.Color.green(a) - android.graphics.Color.green(b);
+        int db = android.graphics.Color.blue(a)  - android.graphics.Color.blue(b);
+        // Cheap approximation: sum of |Δ| rather than Euclidean — fine for "avoid duplicates".
+        return Math.abs(dr) + Math.abs(dg) + Math.abs(db) < NEAR_THRESHOLD;
+    }
+
+    private static boolean isInsideNear(int[] arr, int color) {
+        for (int c : arr) {
+            if (tooClose(color, c)) return true;
+        }
+        return false;
+    }
+
+    private static final java.util.Random sRandom = new java.util.Random();
 
     private static boolean isInside(int[] arr, int value) {
         for (int elem : arr) {

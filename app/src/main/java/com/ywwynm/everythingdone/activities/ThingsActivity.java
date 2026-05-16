@@ -1358,7 +1358,8 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     mFab.getLocationInWindow(location);
                     location[0] += mFab.getWidth() / 2;
                     location[1] += mFab.getHeight() / 2;
-                    mViewToReveal.setBackgroundColor(App.newThingColor);
+                    com.ywwynm.everythingdone.utils.BackgroundUtil.applyBackground(
+                            mViewToReveal, App.newThingBackground);
                     mViewToReveal.setVisibility(View.VISIBLE);
                     mRevealLayout.setVisibility(View.VISIBLE);
 

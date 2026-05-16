@@ -12,6 +12,7 @@ import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.FrequentSettings;
 import com.ywwynm.everythingdone.R;
+import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.helpers.CheckListHelper;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil;
@@ -95,6 +96,13 @@ public class Thing implements Parcelable {
     private @Type  int type;
     private @State int state;
     private int    color;
+    /**
+     * Background appearance — PURE or GRADIENT.
+     * Persisted as JSON in {@code things.background} (DB v9+). For rows written by
+     * older versions this is reconstructed from {@link #color} via
+     * {@link ThingBackground#pure(int)} on {@code Cursor} load.
+     */
+    private ThingBackground background;
     private String title;
     private String content;
     private String attachment;
@@ -116,6 +124,7 @@ public class Thing implements Parcelable {
         this.type       = type;
         this.state      = state;
         this.color      = color;
+        this.background = ThingBackground.pure(color);
         this.title      = title;
         this.content    = content;
         this.attachment = attachment;
@@ -132,6 +141,7 @@ public class Thing implements Parcelable {
         type       = thing.type;
         state      = thing.state;
         color      = thing.color;
+        background = thing.background;
         title      = thing.title;
         content    = thing.content;
         attachment = thing.attachment;
@@ -154,6 +164,12 @@ public class Thing implements Parcelable {
         createTime = in.readLong();
         updateTime = in.readLong();
         finishTime = in.readLong();
+        // NEW (Phase 3): trailing background JSON. Older Parcels can't reach this read
+        // because the writer is updated in lockstep — but if they somehow do, the read
+        // returns null and we fall back to pure(color).
+        String bgJson = in.readString();
+        ThingBackground bg = ThingBackground.fromJson(bgJson);
+        background = bg != null ? bg : ThingBackground.pure(color);
     }
 
     public Thing(Cursor c) {
@@ -168,6 +184,13 @@ public class Thing implements Parcelable {
              c.getLong(8),
              c.getLong(9),
              c.getLong(10));
+        // The "background" column is appended in DB v9. For pre-v9 rows it's NULL;
+        // fall through to the constructor's pure(color) default.
+        int bgCol = c.getColumnIndex(Def.Database.COLUMN_BACKGROUND_THINGS);
+        if (bgCol >= 0 && !c.isNull(bgCol)) {
+            ThingBackground bg = ThingBackground.fromJson(c.getString(bgCol));
+            if (bg != null) this.background = bg;
+        }
     }
 
     public long getId() {
@@ -200,6 +223,27 @@ public class Thing implements Parcelable {
 
     public void setColor(int color) {
         this.color = color;
+        // Keep background in lock-step for legacy code paths that only set the int.
+        if (background == null || background.mode == ThingBackground.Mode.PURE) {
+            this.background = ThingBackground.pure(color);
+        }
+    }
+
+    /**
+     * The thing's visual background. Never null after construction — defaults to
+     * {@code ThingBackground.pure(color)} when not explicitly set or when loaded
+     * from a pre-v9 DB row.
+     */
+    public ThingBackground getBackground() {
+        if (background == null) background = ThingBackground.pure(color);
+        return background;
+    }
+
+    public void setBackground(ThingBackground background) {
+        if (background == null) background = ThingBackground.pure(color);
+        this.background = background;
+        // Keep the legacy single-int color column in sync with the representative.
+        this.color = background.representativeColor();
     }
 
     public String getTitle() {
@@ -541,5 +585,9 @@ public class Thing implements Parcelable {
         dest.writeLong(createTime);
         dest.writeLong(updateTime);
         dest.writeLong(finishTime);
+        // NEW (Phase 3): trailing background JSON. Adding at the very end keeps the
+        // existing Parcel field order intact, so any reader compiled against the older
+        // schema would only "miss" this final string rather than mis-align everything.
+        dest.writeString(background != null ? background.toJson() : null);
     }
 }
