@@ -232,6 +232,8 @@ public final class Def {
         public static final String KEY_THING        = PREFIX + "key.thing";
         public static final String KEY_ID           = PREFIX + "key.id";
         public static final String KEY_COLOR        = PREFIX + "key.color";
+        /** JSON encoding of a {@link com.ywwynm.everythingdone.model.ThingBackground}; added Phase 4. */
+        public static final String KEY_BACKGROUND   = PREFIX + "key.background";
         public static final String KEY_POSITION     = PREFIX + "key.position";
         public static final String KEY_TYPE_BEFORE  = PREFIX + "key.type_before";
         public static final String KEY_STATE_AFTER  = PREFIX + "key.state_after";

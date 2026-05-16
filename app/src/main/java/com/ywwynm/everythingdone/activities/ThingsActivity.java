@@ -751,12 +751,13 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     public void run() {
                         final int newPos = mThingManager.getPositionToInsertNewThing();
                         final long newId = thingToCreate.getId();
-                        final int color  = thingToCreate.getColor();
+                        final com.ywwynm.everythingdone.model.ThingBackground bg =
+                                thingToCreate.getBackground();
                         mAdapter.armNewItemAnimation(newPos, newId,
                                 new ThingsAdapter.OnNewItemBoundListener() {
                             @Override
                             public void onNewItemBound(int pos, BaseThingsAdapter.BaseThingViewHolder holder) {
-                                playNewItemAnimation(holder, color);
+                                playNewItemAnimation(holder, bg);
                             }
                         });
                         if (justNotifyAll) {
@@ -1313,17 +1314,32 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 mFab.setClickable(false);
 
                 final Intent intent = DetailActivity.getOpenIntentForCreate(
-                        ThingsActivity.this, TAG, App.newThingColor);
+                        ThingsActivity.this, TAG,
+                        App.newThingBackground != null
+                                ? App.newThingBackground
+                                : com.ywwynm.everythingdone.model.ThingBackground.pure(App.newThingColor));
 
                 boolean useShiningBorder = getSharedPreferences(
                         Def.Meta.PREFERENCES_NAME, MODE_PRIVATE)
                         .getBoolean(Def.Meta.KEY_CREATE_ANIMATION_STYLE, false);
 
                 if (useShiningBorder) {
-                    int color = App.newThingColor;
-                    int lightColor = DisplayUtil.getLightColor(color, ThingsActivity.this);
-                    mShiningBorder.setShiningColor(color);
-                    mShiningBorder.setOrdinaryColor(lightColor);
+                    // Phase 4.d: derive shining / ordinary colours per the new-thing's
+                    // ThingBackground mode (PURE vs GRADIENT). Same mapping as the
+                    // per-item ShiningBorder in playNewItemShiningBorder.
+                    com.ywwynm.everythingdone.model.ThingBackground bg = App.newThingBackground;
+                    if (bg == null) bg = com.ywwynm.everythingdone.model.ThingBackground.pure(
+                            App.newThingColor);
+                    int shiningCol, ordinaryCol;
+                    if (bg.mode == com.ywwynm.everythingdone.model.ThingBackground.Mode.PURE) {
+                        shiningCol  = bg.color;
+                        ordinaryCol = DisplayUtil.getLightColor(bg.color, ThingsActivity.this);
+                    } else {
+                        shiningCol  = bg.endColor;
+                        ordinaryCol = bg.color;
+                    }
+                    mShiningBorder.setShiningColor(shiningCol);
+                    mShiningBorder.setOrdinaryColor(ordinaryCol);
                     mShiningBorder.setVisibility(View.VISIBLE);
                     mShiningBorder.startAnimation();
 
@@ -1403,7 +1419,9 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
      * animation, so the user sees the coloured card slot first and then watches the
      * content materialise.
      */
-    private void playNewItemAnimation(final BaseThingsAdapter.BaseThingViewHolder holder, final int color) {
+    private void playNewItemAnimation(
+            final BaseThingsAdapter.BaseThingViewHolder holder,
+            final com.ywwynm.everythingdone.model.ThingBackground bg) {
         final boolean useShining = getSharedPreferences(Def.Meta.PREFERENCES_NAME, MODE_PRIVATE)
                 .getBoolean(Def.Meta.KEY_CREATE_ANIMATION_STYLE, false);
         // Make sure the card stays hidden while we wait for the RecyclerView default add
@@ -1419,7 +1437,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 holder.cv.clearAnimation();
                 holder.cv.setVisibility(View.INVISIBLE);
                 if (useShining) {
-                    playNewItemShiningBorder(holder, color);
+                    playNewItemShiningBorder(holder, bg);
                 } else {
                     playNewItemReveal(holder);
                 }
@@ -1427,7 +1445,9 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         }, 180);
     }
 
-    private void playNewItemShiningBorder(final BaseThingsAdapter.BaseThingViewHolder holder, int color) {
+    private void playNewItemShiningBorder(
+            final BaseThingsAdapter.BaseThingViewHolder holder,
+            com.ywwynm.everythingdone.model.ThingBackground bg) {
         int[] cardLoc = new int[2];
         holder.cv.getLocationInWindow(cardLoc);
         int[] borderLoc = new int[2];
@@ -1438,7 +1458,20 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         int bottom = top  + holder.cv.getHeight();
 
         float density   = DisplayUtil.getScreenDensity(this);
-        int   lightCol  = DisplayUtil.getLightColor(color, this);
+
+        // Phase 4.d: ShiningBorder colour derivation per ThingBackground mode —
+        // PURE: shining = colour, ordinary = its lighter sibling (matches the
+        // pre-gradient behaviour).
+        // GRADIENT: shining = end colour, ordinary = start colour (lets the trace
+        // sweep from one gradient stop to the other; matches Everything-Android).
+        int shiningCol, ordinaryCol;
+        if (bg.mode == com.ywwynm.everythingdone.model.ThingBackground.Mode.PURE) {
+            shiningCol  = bg.color;
+            ordinaryCol = DisplayUtil.getLightColor(bg.color, this);
+        } else {
+            shiningCol  = bg.endColor;
+            ordinaryCol = bg.color;
+        }
 
         // ---- Card-scoped overrides ----
         // ShiningBorder also spreads particles up to strokeWidth*12 from the trace,
@@ -1446,8 +1479,8 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         mShiningBorder.setStrokeWidth(density * 1.5f);
         // card_thing.xml uses cardCornerRadius=2dp
         mShiningBorder.setCornerRadius(density * 2f);
-        mShiningBorder.setShiningColor(color);
-        mShiningBorder.setOrdinaryColor(lightCol);
+        mShiningBorder.setShiningColor(shiningCol);
+        mShiningBorder.setOrdinaryColor(ordinaryCol);
         mShiningBorder.setRemainOrdinaryPath(false);
         mShiningBorder.setRepeatAnimation(false);
         mShiningBorder.setAnimationDuration(1600);

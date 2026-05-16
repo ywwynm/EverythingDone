@@ -1,6 +1,10 @@
 package com.ywwynm.everythingdone.utils;
 
+import android.animation.ArgbEvaluator;
+import android.animation.ValueAnimator;
 import android.graphics.Color;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
 import android.view.View;
 
 import androidx.cardview.widget.CardView;
@@ -87,31 +91,116 @@ public final class BackgroundUtil {
     // ---------------------------------------------------------------------------
 
     /**
-     * Paint {@code background} onto {@code view}. For now (Phase 2) only PURE mode
-     * is wired up; GRADIENT mode degrades to the representative color until Phase 4
-     * adds real GradientDrawable support.
+     * Paint {@code background} onto {@code view}.
+     * PURE: regular {@code setBackgroundColor}. GRADIENT: a reusable
+     * {@link GradientDrawable} — the same instance is mutated on subsequent calls so
+     * the view doesn't churn drawables (matters for the colour-change animation in
+     * DetailActivity).
      */
     public static void applyBackground(View view, ThingBackground background) {
         if (view == null || background == null) return;
         if (background.mode == ThingBackground.Mode.PURE) {
+            // Pure: defer to setBackgroundColor, which uses a cheap ColorDrawable.
             view.setBackgroundColor(background.color);
         } else {
-            // Phase 4 will replace this with a GradientDrawable.
-            view.setBackgroundColor(background.representativeColor());
+            GradientDrawable gd = obtainGradient(view);
+            gd.setOrientation(toGdOrientation(background.orientation));
+            gd.setColors(new int[] { background.color, background.endColor });
         }
     }
 
     /**
-     * Paint {@code background} onto a {@link CardView}. Same Phase 2 semantics as
-     * {@link #applyBackground(View, ThingBackground)} — Phase 4 will swap in a
-     * GradientDrawable wrapper for the GRADIENT branch.
+     * Paint {@code background} onto a {@link CardView}.
+     * PURE: {@link CardView#setCardBackgroundColor}. GRADIENT: a GradientDrawable
+     * set directly on the CardView itself (with the CardView's corner radius applied
+     * so the rounded outline still matches). CardView's outline shadow continues to
+     * work because the elevation-based shadow uses the view's outline, not the
+     * background drawable shape.
      */
     public static void applyCardBackground(CardView cv, ThingBackground background) {
         if (cv == null || background == null) return;
         if (background.mode == ThingBackground.Mode.PURE) {
+            // CardView's own setCardBackgroundColor resets its internal RoundRect
+            // drawable, naturally clobbering any GradientDrawable we may have set.
             cv.setCardBackgroundColor(background.color);
         } else {
-            cv.setCardBackgroundColor(background.representativeColor());
+            GradientDrawable gd;
+            Drawable existing = cv.getBackground();
+            if (existing instanceof GradientDrawable) {
+                gd = (GradientDrawable) existing;
+            } else {
+                gd = new GradientDrawable();
+                gd.setShape(GradientDrawable.RECTANGLE);
+                gd.setCornerRadius(cv.getRadius());
+                cv.setBackground(gd);
+            }
+            gd.setOrientation(toGdOrientation(background.orientation));
+            gd.setColors(new int[] { background.color, background.endColor });
         }
+    }
+
+    private static GradientDrawable obtainGradient(View view) {
+        Drawable existing = view.getBackground();
+        if (existing instanceof GradientDrawable) {
+            return (GradientDrawable) existing;
+        }
+        GradientDrawable gd = new GradientDrawable();
+        gd.setShape(GradientDrawable.RECTANGLE);
+        view.setBackground(gd);
+        return gd;
+    }
+
+    /**
+     * Animate {@code view}'s background from {@code from} to {@code to} over
+     * {@code duration} ms by running two {@link ArgbEvaluator}s in lock-step over
+     * the start and end colors. Orientation snaps to {@code to.orientation} at
+     * the midpoint (cleaner than trying to interpolate enum directions).
+     *
+     * <p>When both endpoints stay equal during a given frame (i.e. PURE-PURE
+     * animation), we fall back to {@link View#setBackgroundColor(int)} so the
+     * view keeps using a cheap ColorDrawable and other view code that casts
+     * to ColorDrawable continues to work.
+     */
+    public static ValueAnimator animateBackground(
+            final View view, final ThingBackground from, final ThingBackground to, long duration) {
+        if (view == null || from == null || to == null) return null;
+        final ArgbEvaluator eval = new ArgbEvaluator();
+        final int fStart = from.color,    fEnd = from.endColor;
+        final int tStart = to.color,      tEnd = to.endColor;
+        final ThingBackground.Orientation oFrom = from.orientation;
+        final ThingBackground.Orientation oTo   = to.orientation;
+
+        ValueAnimator anim = ValueAnimator.ofFloat(0f, 1f);
+        anim.setDuration(duration);
+        anim.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override public void onAnimationUpdate(ValueAnimator a) {
+                float f = (Float) a.getAnimatedValue();
+                int s = (Integer) eval.evaluate(f, fStart, tStart);
+                int e = (Integer) eval.evaluate(f, fEnd,   tEnd);
+                if (s == e) {
+                    view.setBackgroundColor(s);
+                } else {
+                    ThingBackground.Orientation o = (f < 0.5f) ? oFrom : oTo;
+                    applyBackground(view, ThingBackground.gradient(s, e, o));
+                }
+            }
+        });
+        anim.start();
+        return anim;
+    }
+
+    /** Map our {@link ThingBackground.Orientation} → platform {@link GradientDrawable.Orientation}. */
+    private static GradientDrawable.Orientation toGdOrientation(ThingBackground.Orientation o) {
+        switch (o) {
+            case L_R:   return GradientDrawable.Orientation.LEFT_RIGHT;
+            case T_B:   return GradientDrawable.Orientation.TOP_BOTTOM;
+            case LT_RB: return GradientDrawable.Orientation.TL_BR;
+            case RT_LB: return GradientDrawable.Orientation.TR_BL;
+            case LB_RT: return GradientDrawable.Orientation.BL_TR;
+            case RB_LT: return GradientDrawable.Orientation.BR_TL;
+            case R_L:   return GradientDrawable.Orientation.RIGHT_LEFT;
+            case B_T:   return GradientDrawable.Orientation.BOTTOM_TOP;
+        }
+        return GradientDrawable.Orientation.LEFT_RIGHT;
     }
 }

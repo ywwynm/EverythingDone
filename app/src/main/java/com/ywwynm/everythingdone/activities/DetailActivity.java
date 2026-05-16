@@ -101,6 +101,7 @@ import com.ywwynm.everythingdone.model.HabitReminder;
 import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.ReminderHabitParams;
 import com.ywwynm.everythingdone.model.Thing;
+import com.ywwynm.everythingdone.model.ThingBackground;
 import com.ywwynm.everythingdone.model.ThingAction;
 import com.ywwynm.everythingdone.permission.PermissionUtil;
 import com.ywwynm.everythingdone.permission.SimplePermissionCallback;
@@ -141,11 +142,24 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     public static final int UPDATE = 1;
 
     public static Intent getOpenIntentForCreate(Context context, String senderName, int color) {
+        return getOpenIntentForCreate(context, senderName, ThingBackground.pure(color));
+    }
+
+    /**
+     * Phase 4.e: open the DetailActivity in CREATE mode with a full
+     * {@link ThingBackground} (PURE or GRADIENT). Older callers can keep using the
+     * int overload; this puts both KEY_COLOR (representative int) and KEY_BACKGROUND
+     * (JSON) so any receiver that only reads KEY_COLOR still works.
+     */
+    public static Intent getOpenIntentForCreate(Context context, String senderName, ThingBackground bg) {
         final Intent intent = new Intent(context, DetailActivity.class);
         intent.putExtra(Def.Communication.KEY_SENDER_NAME, senderName);
         intent.putExtra(Def.Communication.KEY_DETAIL_ACTIVITY_TYPE,
                 DetailActivity.CREATE);
-        intent.putExtra(Def.Communication.KEY_COLOR, color);
+        if (bg != null) {
+            intent.putExtra(Def.Communication.KEY_COLOR,      bg.representativeColor());
+            intent.putExtra(Def.Communication.KEY_BACKGROUND, bg.toJson());
+        }
         return intent;
     }
 
@@ -367,6 +381,15 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             if (color == 0) color = DisplayUtil.getRandomColor(mApp);
 
             mThing = new Thing(newId, Thing.NOTE, color, newId);
+
+            // Phase 4.e: prefer the full ThingBackground from the intent when present
+            // — otherwise the int from KEY_COLOR is enough and Thing constructor's
+            // default of pure(color) is correct.
+            String bgJson = intent.getStringExtra(Def.Communication.KEY_BACKGROUND);
+            if (bgJson != null) {
+                ThingBackground bg = ThingBackground.fromJson(bgJson);
+                if (bg != null) mThing.setBackground(bg);
+            }
 
             App.updateNewThingColor();
             SystemNotificationUtil.tryToCreateQuickCreateNotification(this);
@@ -2247,7 +2270,16 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     }
 
     public int getAccentColor() {
-        return ((ColorDrawable) mFlRoot.getBackground()).getColor();
+        // Phase 4.a: source from the model instead of casting mFlRoot's Drawable —
+        // Phase 4.b switches that Drawable to GradientDrawable for GRADIENT-mode
+        // things, which would have crashed the previous ((ColorDrawable) ...) cast.
+        //
+        // mChangeColorTo tracks the "currently picked but not yet saved" color, so
+        // any caller asking for accent mid-edit sees the user's selection rather
+        // than the still-unmodified mThing.
+        if (mChangeColorTo != 0) return mChangeColorTo;
+        if (mThing != null) return mThing.getBackground().representativeColor();
+        return 0;
     }
 
     private void setScrollEvents() {
@@ -2380,23 +2412,57 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     private void changeColor(int colorTo) {
         mChangeColorTo = colorTo;
 
-        int colorFrom = ((ColorDrawable) mFlRoot.getBackground()).getColor();
+        // Phase 4.c: source the "from" background from the model (or the last
+        // animation's terminal state for chained picks) — not from
+        // ((ColorDrawable) mFlRoot.getBackground()).getColor() — so this still
+        // works once a thing is GRADIENT and mFlRoot's background is a
+        // GradientDrawable instead of ColorDrawable.
+        final ThingBackground fromBg = mLastAnimatedBackground != null
+                ? mLastAnimatedBackground
+                : mThing.getBackground();
+        final ThingBackground toBg   = ThingBackground.pure(colorTo);
+        mLastAnimatedBackground = toBg;
+
         quickRemindPicker.setAccentColor(colorTo);
         quickRemindPicker.pickForUI(quickRemindPicker.getPickedIndex());
-        ObjectAnimator.ofObject(mFlRoot, "backgroundColor",
-                new ArgbEvaluator(), colorFrom, colorTo).setDuration(600).start();
+
+        BackgroundUtil.animateBackground(mFlRoot, fromBg, toBg, 600);
 
         updateDescriptions(colorTo);
         applyForegroundColors(colorTo);
 
-        colorFrom = ((ColorDrawable) mActionbar.getBackground()).getColor();
-        int alpha = Color.alpha(colorFrom);
-        colorTo = DisplayUtil.getTransparentColor(colorTo, alpha);
+        // Actionbar / status bar overlay: stay single-colour (alpha-tinted by the
+        // scroll-driven listener), so reading the previous alpha off the existing
+        // ColorDrawable is still correct — it's not impacted by mFlRoot's drawable
+        // becoming a gradient.
+        int abAlpha = currentDrawableAlpha(mActionbar.getBackground());
+        int abFrom  = DisplayUtil.getTransparentColor(fromBg.representativeColor(), abAlpha);
+        int abTo    = DisplayUtil.getTransparentColor(colorTo, abAlpha);
         ObjectAnimator.ofObject(mActionbar, "backgroundColor",
-                new ArgbEvaluator(), colorFrom, colorTo).setDuration(600).start();
+                new ArgbEvaluator(), abFrom, abTo).setDuration(600).start();
         ObjectAnimator.ofObject(mStatusBar, "backgroundColor",
-                new ArgbEvaluator(), colorFrom, colorTo).setDuration(600).start();
+                new ArgbEvaluator(), abFrom, abTo).setDuration(600).start();
     }
+
+    /**
+     * Best-effort alpha read for the actionbar / status-bar overlay drawable.
+     * These two stay {@link ColorDrawable} in Phase 4 (only mFlRoot becomes a
+     * GradientDrawable when a thing is GRADIENT), so the ColorDrawable branch
+     * is the normal path. The fallback covers any future drawable swap.
+     */
+    private int currentDrawableAlpha(android.graphics.drawable.Drawable d) {
+        if (d instanceof ColorDrawable) return Color.alpha(((ColorDrawable) d).getColor());
+        if (d == null) return 0;
+        return d.getAlpha();
+    }
+
+    /**
+     * Phase 4.c: remembers the "terminal" background of the most recent
+     * {@link #changeColor(int)} animation so chained colour picks (user picks B
+     * before A's 600 ms animation finishes) animate from the previously-picked
+     * state rather than the stale model state.
+     */
+    private ThingBackground mLastAnimatedBackground;
 
     /**
      * Tint the toolbar's menu icons to be readable on the current background.

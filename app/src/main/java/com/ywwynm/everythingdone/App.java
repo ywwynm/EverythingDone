@@ -492,11 +492,12 @@ public class App extends Application {
      * representative-int companion).
      */
     public static void updateNewThingColor() {
-        int color;
-        do {
-            color = randomColor();
-        } while (tooClose(color, newThingColor));
+        ThingBackground bg = rollBackground();
 
+        // Phase 3 logic preserved: try not to repeat the previous new-thing colour
+        // and any of the up-to-4 neighbouring cards by RGB-distance on the
+        // representative.
+        int representative = bg.representativeColor();
         while (ThingManager.isTotallyInitialized() && app.mThingManager != null
                 && app.mLimit == Def.LimitForGettingThings.ALL_UNDERWAY) {
             List<Thing> things = app.mThingManager.getThings();
@@ -528,16 +529,38 @@ public class App extends Application {
             }
 
             int spins = 0;
-            while ((isInsideNear(existedColors, color) || tooClose(color, newThingColor))
+            while ((isInsideNear(existedColors, representative) || tooClose(representative, newThingColor))
                     && spins++ < 32) {
-                color = randomColor();
+                bg             = rollBackground();
+                representative = bg.representativeColor();
             }
 
             break;
         }
 
-        App.newThingColor      = color;
-        App.newThingBackground = ThingBackground.pure(color);
+        App.newThingBackground = bg;
+        App.newThingColor      = representative;
+    }
+
+    /**
+     * Phase 4.e: 50/50 PURE vs two-colour linear-gradient background, matching
+     * Everything-Android's reference. Random RGB throughout (per Q5 of the plan —
+     * no HSL clamp).
+     */
+    private static ThingBackground rollBackground() {
+        if (sRandom.nextBoolean()) {
+            return ThingBackground.pure(randomColor());
+        }
+        int s = randomColor();
+        int e = randomColor();
+        // Avoid degenerate gradient stops feeling identical — re-roll the end colour
+        // a few times if it's too close to the start.
+        for (int i = 0; i < 4 && tooClose(s, e); i++) {
+            e = randomColor();
+        }
+        ThingBackground.Orientation[] orientations = ThingBackground.Orientation.values();
+        ThingBackground.Orientation o = orientations[sRandom.nextInt(orientations.length)];
+        return ThingBackground.gradient(s, e, o);
     }
 
     /** Full-spectrum random RGB — matches Everything-Android's {@code newRandomColor()}. */

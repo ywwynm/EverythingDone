@@ -260,9 +260,18 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
                 holder.cv.setRadius(0);
                 holder.cv.setCardElevation(0);
                 int alpha = (int) (mWidgetAlpha / 100f * 255);
-                int alphaColor = DisplayUtil.getTransparentColor(
-                        thing.getColor(), alpha);
-                holder.cv.setCardBackgroundColor(alphaColor);
+                // Phase 4.d: preview supports gradient backgrounds by re-tinting
+                // both endpoints of the thing's ThingBackground with the same alpha,
+                // then handing it to BackgroundUtil. PURE keeps single-int path.
+                com.ywwynm.everythingdone.model.ThingBackground bg = thing.getBackground();
+                int s = DisplayUtil.getTransparentColor(bg.color,    alpha);
+                int e = DisplayUtil.getTransparentColor(bg.endColor, alpha);
+                com.ywwynm.everythingdone.model.ThingBackground tinted =
+                        bg.mode == com.ywwynm.everythingdone.model.ThingBackground.Mode.PURE
+                                ? com.ywwynm.everythingdone.model.ThingBackground.pure(s)
+                                : com.ywwynm.everythingdone.model.ThingBackground.gradient(s, e, bg.orientation);
+                com.ywwynm.everythingdone.utils.BackgroundUtil.applyCardBackground(
+                        holder.cv, tinted);
                 holder.ivStickyOngoing.setImageAlpha(alpha);
             }
         };
