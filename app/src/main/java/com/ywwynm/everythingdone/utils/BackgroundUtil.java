@@ -79,6 +79,21 @@ public final class BackgroundUtil {
         return hueBucket(bg.representativeColor());
     }
 
+    /**
+     * Whether {@code bg} should match a search for hue {@code bucket}. PURE
+     * matches when its one colour falls into that bucket. GRADIENT matches
+     * when EITHER stop's bucket equals {@code bucket} — a red→blue gradient
+     * shows up under both the red and the blue search. Sentinel
+     * {@link #HUE_BUCKET_NONE} (= "no filter") always matches.
+     */
+    public static boolean matchesHueBucket(ThingBackground bg, int bucket) {
+        if (bucket == HUE_BUCKET_NONE) return true;
+        if (bg == null) return false;
+        if (hueBucket(bg.color) == bucket) return true;
+        return bg.mode == ThingBackground.Mode.GRADIENT
+                && hueBucket(bg.endColor) == bucket;
+    }
+
     /** Standard "on" alpha tiers — match the existing white_*p / black_*p resources. */
     public static final float ON_ALPHA_PRIMARY   = 0.86f;
     public static final float ON_ALPHA_SECONDARY = 0.76f;
@@ -450,6 +465,30 @@ public final class BackgroundUtil {
             gd.setColors(new int[] { bg.color, bg.endColor });
             tabLayout.setSelectedTabIndicator(gd);
         }
+    }
+
+    /**
+     * Build a circular {@link android.graphics.drawable.RippleDrawable} for
+     * use as the {@code foreground} of an ImageView that already has its own
+     * (typically OVAL-shaped) background drawable. Ripples draw on top of
+     * the background and are clipped to a circle by the OVAL mask layer.
+     *
+     * <p>Used by every "FAB + overlay ImageView" cell where the overlay
+     * carries a gradient — without this, Material FAB's own ripple would be
+     * hidden under the overlay.
+     */
+    public static android.graphics.drawable.RippleDrawable circularRipple() {
+        // Mask layer: a white OVAL — only the colour's alpha/shape matters,
+        // RippleDrawable uses it solely for clipping the ripple bounds.
+        GradientDrawable mask = new GradientDrawable();
+        mask.setShape(GradientDrawable.OVAL);
+        mask.setColor(0xFFFFFFFF);
+        // 50% white ripple, matches the rippleColor that color_picker_fab.xml
+        // already uses on its FAB (@color/white_54p ≈ #89FFFFFF).
+        return new android.graphics.drawable.RippleDrawable(
+                android.content.res.ColorStateList.valueOf(0x89FFFFFF),
+                null,
+                mask);
     }
 
     /**

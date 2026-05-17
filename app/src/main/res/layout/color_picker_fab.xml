@@ -1,36 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- A FAB + an optional overlay ImageView so the picker can render the gradient
-     random-colour FAB. Material FloatingActionButton rejects setBackground()
-     wholesale (no-op + log warning), so for gradient mode we make the FAB itself
-     transparent and let the overlay carry the GradientDrawable. -->
+<!-- Phase 8: "fake FAB" — a 40dp FrameLayout clipped to an oval outline, with a
+     RippleDrawable foreground so the ripple draws ON TOP of any child
+     (background colour or gradient). Replaces the previous
+     FloatingActionButton + overlay ImageView combo, which lost its ripple
+     because the overlay sibling sat above the FAB.
+     Children: a background View carrying the colour/gradient drawable, and a
+     centered ImageView for the picked-state checkmark. Outline + ripple
+     foreground are installed in code (FabViewHolder / GradientOrientationDialogFragment.bind). -->
 <FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content">
+    android:id="@+id/fl_color_cell"
+    android:layout_width="40dp"
+    android:layout_height="40dp"
+    android:clickable="true"
+    android:focusable="true">
 
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fab_pick_color"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:scaleType="center"
-        app:fabSize="mini"
-        app:borderWidth="0dp"
-        app:elevation="0dp"
-        app:rippleColor="@color/white_54p"
-        app:pressedTranslationZ="0dp"/>
+    <View
+        android:id="@+id/v_color_cell_bg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"/>
 
     <ImageView
-        android:id="@+id/iv_pick_color_overlay"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
-        android:layout_gravity="center"
-        android:clickable="false"
-        android:focusable="false"
-        android:duplicateParentState="true"
+        android:id="@+id/iv_color_cell_check"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
         android:scaleType="center"
         android:visibility="gone"
-        tools:ignore="ContentDescription"
-        xmlns:tools="http://schemas.android.com/tools"/>
+        android:contentDescription="@null"/>
 
 </FrameLayout>

@@ -3,6 +3,18 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:ignore="TypographyEllipsis">
 
+    <!-- Phase 8 gradient orientation picker -->
+    <string name="gradient_orientation_title">渐变方向</string>
+    <string name="cd_gradient_orientation_l_r">从左到右</string>
+    <string name="cd_gradient_orientation_t_b">从上到下</string>
+    <string name="cd_gradient_orientation_lt_rb">从左上到右下</string>
+    <string name="cd_gradient_orientation_rt_lb">从右上到左下</string>
+    <string name="cd_gradient_orientation_lb_rt">从左下到右上</string>
+    <string name="cd_gradient_orientation_rb_lt">从右下到左上</string>
+    <string name="cd_gradient_orientation_r_l">从右到左</string>
+    <string name="cd_gradient_orientation_b_t">从下到上</string>
+    <string name="act_change_gradient_orientation">改变渐变方向</string>
+
 
     <!--——————————————————————General strings——————————————————————-->
     <string name="yes">是</string>

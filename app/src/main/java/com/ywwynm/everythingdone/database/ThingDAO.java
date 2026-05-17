@@ -165,8 +165,12 @@ public class ThingDAO {
             if (filterBucket != com.ywwynm.everythingdone.utils.BackgroundUtil.HUE_BUCKET_NONE
                     && t.getType() != Thing.HEADER
                     && t.getType() <  Thing.NOTIFY_EMPTY_UNDERWAY) {
-                int b = com.ywwynm.everythingdone.utils.BackgroundUtil.hueBucket(t.getBackground());
-                if (b != filterBucket) continue;
+                // Gradient things expose BOTH stops to the bucket filter so
+                // e.g. a red→blue thing matches the red and the blue search.
+                if (!com.ywwynm.everythingdone.utils.BackgroundUtil.matchesHueBucket(
+                        t.getBackground(), filterBucket)) {
+                    continue;
+                }
             }
             things.add(t);
         }

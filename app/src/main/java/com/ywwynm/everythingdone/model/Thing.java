@@ -550,13 +550,16 @@ public class Thing implements Parcelable {
 
     public boolean matchSearchRequirement(String keyword, int color) {
         // Phase 5/6: the int colour from the picker is now a hue-bucket hint, not
-        // an exact match. Convert both sides through BackgroundUtil.hueBucket and
-        // compare buckets. -1979711488 and 0 keep their legacy "no filter" meaning.
+        // an exact match. Convert it to a bucket and ask the background whether
+        // ANY of its stops falls into that bucket (so a red→blue gradient thing
+        // appears under both the red and the blue search). -1979711488 and 0
+        // keep their legacy "no filter" meaning.
         if (color != -1979711488 && color != 0) {
             int filterBucket = com.ywwynm.everythingdone.utils.BackgroundUtil.hueBucket(color);
-            int thingBucket  = com.ywwynm.everythingdone.utils.BackgroundUtil.hueBucket(
-                    this.background != null ? this.background.representativeColor() : this.color);
-            if (filterBucket != thingBucket) {
+            com.ywwynm.everythingdone.model.ThingBackground bg = this.background != null
+                    ? this.background
+                    : com.ywwynm.everythingdone.model.ThingBackground.pure(this.color);
+            if (!com.ywwynm.everythingdone.utils.BackgroundUtil.matchesHueBucket(bg, filterBucket)) {
                 return false;
             }
         }

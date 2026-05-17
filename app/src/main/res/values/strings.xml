@@ -946,6 +946,18 @@
     <string name="cd_picked">Picked,</string>
     <string name="cd_unpicked">Unpicked,</string>
 
+    <!-- Phase 8 gradient orientation picker -->
+    <string name="gradient_orientation_title">Gradient direction</string>
+    <string name="cd_gradient_orientation_l_r">left to right</string>
+    <string name="cd_gradient_orientation_t_b">top to bottom</string>
+    <string name="cd_gradient_orientation_lt_rb">top-left to bottom-right</string>
+    <string name="cd_gradient_orientation_rt_lb">top-right to bottom-left</string>
+    <string name="cd_gradient_orientation_lb_rt">bottom-left to top-right</string>
+    <string name="cd_gradient_orientation_rb_lt">bottom-right to top-left</string>
+    <string name="cd_gradient_orientation_r_l">right to left</string>
+    <string name="cd_gradient_orientation_b_t">bottom to top</string>
+    <string name="act_change_gradient_orientation">Change direction</string>
+
     <!--BaseThingWidgetConfiguration-->
     <string name="cd_app_widget_preview_background">App widget preview background</string>
 

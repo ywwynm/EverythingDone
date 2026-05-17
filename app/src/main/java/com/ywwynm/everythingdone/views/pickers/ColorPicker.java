@@ -5,7 +5,6 @@ import android.content.res.ColorStateList;
 import android.graphics.PorterDuff;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -47,6 +46,11 @@ public class ColorPicker extends PopupPicker {
     private ThingBackground mRandomPureBg;
     private ThingBackground mRandomGradientBg;
     private final Random mRandom = new Random();
+
+    /** Phase 8: bottom button to open the gradient-orientation dialog.
+     *  Only visible in COLOR_EDIT mode when the current pick is a GRADIENT. */
+    private android.widget.TextView mOrientationBt;
+    private Runnable mOnChangeOrientationListener;
 
     /**
      * Representative colours for the 8 hue buckets used in
@@ -117,6 +121,56 @@ public class ColorPicker extends PopupPicker {
         mAdapter.setHasStableIds(true);
         mRecyclerView.setAdapter(mAdapter);
         mWindowRect = new Rect();
+
+        // Phase 8: the COLOR_EDIT popup hosts a "change gradient direction"
+        // button beneath the colour grid. Hidden by default; only shown when
+        // the current pick is a GRADIENT background.
+        mOrientationBt = mContentView.findViewById(R.id.bt_change_gradient_orientation);
+        if (mOrientationBt != null && mType == Def.PickerType.COLOR_EDIT) {
+            mOrientationBt.setText(R.string.act_change_gradient_orientation);
+            mOrientationBt.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    // Phase 8: dismiss the popup first so the orientation
+                    // dialog opens against a clean window — otherwise the
+                    // dialog ends up below the picker and the user has to
+                    // tap-outside the popup before reaching it.
+                    dismiss();
+                    if (mOnChangeOrientationListener != null) {
+                        mOnChangeOrientationListener.run();
+                    }
+                }
+            });
+        }
+    }
+
+    /**
+     * Phase 8: register the callback fired when the user taps "change gradient
+     * direction" at the bottom of the COLOR_EDIT picker. DetailActivity uses
+     * this to launch {@link com.ywwynm.everythingdone.fragments.GradientOrientationDialogFragment}.
+     */
+    public void setOnChangeOrientationListener(Runnable listener) {
+        mOnChangeOrientationListener = listener;
+    }
+
+    /**
+     * Phase 8: refresh the bottom orientation button — show + tint when current
+     * pick is a GRADIENT, hide otherwise. Called by the picker itself after each
+     * {@code pickForBackground}, and by DetailActivity after externally driven
+     * colour changes (undo/redo, orientation dialog commit).
+     */
+    public void refreshOrientationBt() {
+        if (mOrientationBt == null || mType != Def.PickerType.COLOR_EDIT) return;
+        ThingBackground bg = getPickedBackground();
+        if (bg != null && bg.mode == ThingBackground.Mode.GRADIENT) {
+            mOrientationBt.setVisibility(View.VISIBLE);
+            // Tint the button text to match the gradient (uses applyTextBackground
+            // for a shader on the rendered glyphs).
+            com.ywwynm.everythingdone.utils.BackgroundUtil.applyTextBackground(
+                    mOrientationBt, bg);
+        } else {
+            mOrientationBt.setVisibility(View.GONE);
+        }
     }
 
     @Override
@@ -251,6 +305,9 @@ public class ColorPicker extends PopupPicker {
     @Override
     public void pickForUI(int index) {
         mAdapter.pick(index);
+        // Phase 8: pick may have changed mode (PURE↔GRADIENT) — refresh the
+        // bottom orientation button visibility accordingly.
+        refreshOrientationBt();
         if (mAnchor != null) {
             updateAnchor();
         }
@@ -347,22 +404,23 @@ public class ColorPicker extends PopupPicker {
             int index = (mType == Def.PickerType.COLOR_HAVE_ALL
                     || mType == Def.PickerType.HUE_BUCKET) ? position - 1 : position;
             int color = mColors[index];
-            holder.fab.setBackgroundTintList(ColorStateList.valueOf(color));
-            // Hide any gradient overlay leftover from a previous ViewHolder bind.
-            holder.overlay.setVisibility(View.GONE);
-            holder.overlay.setBackground(null);
-            holder.overlay.setImageDrawable(null);
+            // Phase 8 round 2: cell is now a clipped FrameLayout. Solid colour
+            // goes on the inner background View; checkmark on the inner
+            // ImageView. Ripple is the cell's own foreground (set in onCreate).
+            holder.bg.setBackgroundColor(color);
             setFabMargin(holder.itemView, index);
             if (mPickedPosition == position) {
-                holder.fab.setImageDrawable(tintedCheckmark(color));
-                holder.fab.setContentDescription(
+                holder.check.setVisibility(View.VISIBLE);
+                holder.check.setImageDrawable(tintedCheckmark(color));
+                holder.cell.setContentDescription(
                         mActivity.getString(R.string.cd_picked) + mColorsNames[index] + ",");
             } else {
-                holder.fab.setImageDrawable(null);
-                holder.fab.setContentDescription(
+                holder.check.setVisibility(View.GONE);
+                holder.check.setImageDrawable(null);
+                holder.cell.setContentDescription(
                         mActivity.getString(R.string.cd_unpicked) + mColorsNames[index] + ",");
             }
-            holder.fab.setClickable(mPickedPosition != position);
+            holder.cell.setClickable(mPickedPosition != position);
         }
 
         /**
@@ -395,42 +453,31 @@ public class ColorPicker extends PopupPicker {
             setFabMargin(holder.itemView, position);
 
             if (isGradient && bg != null) {
-                // Material FAB.setBackground is a no-op (logs a warning), so we
-                // render the gradient via the sibling overlay ImageView: make the
-                // FAB itself transparent and let the overlay carry the drawable.
-                holder.fab.setBackgroundTintList(
-                        ColorStateList.valueOf(android.graphics.Color.TRANSPARENT));
-                holder.fab.setImageDrawable(null);
-
+                // Gradient on the inner bg View. The cell's clipToOutline=oval
+                // crops it to a circle; cell's foreground RippleDrawable draws
+                // the press feedback on top.
                 android.graphics.drawable.GradientDrawable gd =
                         new android.graphics.drawable.GradientDrawable(
                                 toGdOrientation(bg.orientation),
                                 new int[] { bg.color, bg.endColor });
-                gd.setShape(android.graphics.drawable.GradientDrawable.OVAL);
-                holder.overlay.setVisibility(View.VISIBLE);
-                holder.overlay.setBackground(gd);
-                holder.overlay.setImageDrawable(mPickedPosition == position
-                        ? tintedCheckmark(bg.representativeColor())
-                        : null);
+                gd.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
+                holder.bg.setBackground(gd);
             } else {
                 int representative = bg != null ? bg.representativeColor() : 0;
-                // Pure random — back to the regular FAB tint approach, hide overlay.
-                holder.fab.setBackgroundTintList(ColorStateList.valueOf(representative));
-                holder.overlay.setVisibility(View.GONE);
-                holder.overlay.setBackground(null);
-                holder.overlay.setImageDrawable(null);
-                // Random-pure FAB: no icon when unpicked (so it visually distinguishes
-                // from palette FABs by colour alone, not by an icon overlay).
-                if (mPickedPosition == position) {
-                    holder.fab.setImageDrawable(tintedCheckmark(representative));
-                } else {
-                    holder.fab.setImageDrawable(null);
-                }
+                holder.bg.setBackgroundColor(representative);
             }
-            holder.fab.setContentDescription(mActivity.getString(
+            int rep = bg != null ? bg.representativeColor() : 0;
+            if (mPickedPosition == position) {
+                holder.check.setVisibility(View.VISIBLE);
+                holder.check.setImageDrawable(tintedCheckmark(rep));
+            } else {
+                holder.check.setVisibility(View.GONE);
+                holder.check.setImageDrawable(null);
+            }
+            holder.cell.setContentDescription(mActivity.getString(
                     isGradient ? R.string.cd_random_gradient_background
                                : R.string.cd_random_pure_background));
-            holder.fab.setClickable(true); // always re-rollable on tap
+            holder.cell.setClickable(true); // always re-rollable on tap
         }
 
         // Inlined copy of BackgroundUtil's enum mapping to avoid pulling
@@ -585,22 +632,42 @@ public class ColorPicker extends PopupPicker {
 
         class FabViewHolder extends BaseViewHolder {
 
-            final FloatingActionButton fab;
-            /** Overlay ImageView used to render gradient backgrounds — sibling of the FAB. */
-            final android.widget.ImageView overlay;
+            /** Outer 40dp clipped-to-oval cell — owns the click + ripple. */
+            final android.widget.FrameLayout cell;
+            /** Inner View carrying the solid/gradient background. */
+            final View bg;
+            /** Inner ImageView for the picked checkmark; scaleType=center keeps 24dp intrinsic. */
+            final android.widget.ImageView check;
 
             FabViewHolder(View itemView) {
                 super(itemView);
-                fab     = f(R.id.fab_pick_color);
-                overlay = f(R.id.iv_pick_color_overlay);
-                fab.setOnClickListener(new View.OnClickListener() {
+                cell  = f(R.id.fl_color_cell);
+                bg    = f(R.id.v_color_cell_bg);
+                check = f(R.id.iv_color_cell_check);
+
+                // Phase 8 round 2: clip to an oval so background colours +
+                // gradients are circular, and install a ripple foreground so
+                // tap feedback draws on top of those children. circularRipple()
+                // returns a RippleDrawable with an OVAL mask — the cell's
+                // clipToOutline keeps everything bounded to the circle.
+                cell.setClipToOutline(true);
+                cell.setOutlineProvider(new android.view.ViewOutlineProvider() {
+                    @Override
+                    public void getOutline(View v, android.graphics.Outline outline) {
+                        outline.setOval(0, 0, v.getWidth(), v.getHeight());
+                    }
+                });
+                cell.setForeground(
+                        com.ywwynm.everythingdone.utils.BackgroundUtil.circularRipple());
+
+                cell.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
                         int pos = getAdapterPosition();
-                        // Phase 6 fix round 4: only re-roll when the user taps an
-                        // already-picked random FAB. First tap commits the colour
-                        // the user can SEE in the FAB, so display == result. Tap
-                        // a second time to shuffle to a new random.
+                        // Phase 6 fix round 4: only re-roll when the user taps
+                        // an already-picked random FAB. First tap commits the
+                        // colour the user can SEE, so display == result. Tap
+                        // again to shuffle.
                         if (mType == Def.PickerType.COLOR_EDIT && mPickedPosition == pos) {
                             if (pos == mColors.length + 1) {
                                 mRandomPureBg     = rollPureBackground();

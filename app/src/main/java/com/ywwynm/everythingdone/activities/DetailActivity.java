@@ -2452,6 +2452,47 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 }
             }
         });
+        // Phase 8: bottom "change gradient direction" button — opens the
+        // orientation dialog with the current accent. On commit, build a new
+        // gradient with the same stops but the picked orientation, run it
+        // through changeBackground (animation + action log + propagation).
+        mColorPicker.setOnChangeOrientationListener(new Runnable() {
+            @Override
+            public void run() {
+                final ThingBackground current = getAccentBackground();
+                if (current == null
+                        || current.mode != ThingBackground.Mode.GRADIENT) return;
+                com.ywwynm.everythingdone.fragments.GradientOrientationDialogFragment df =
+                        new com.ywwynm.everythingdone.fragments.GradientOrientationDialogFragment();
+                df.setAccent(current);
+                df.setOnPickListener(
+                        new com.ywwynm.everythingdone.fragments
+                                .GradientOrientationDialogFragment.OnPickListener() {
+                            @Override
+                            public void onPicked(ThingBackground.Orientation orientation) {
+                                if (orientation == current.orientation) return;
+                                ThingBackground bgTo = ThingBackground.gradient(
+                                        current.color, current.endColor, orientation);
+                                ThingBackground bgFrom = mLastAnimatedBackground != null
+                                        ? mLastAnimatedBackground
+                                        : mThing.getBackground();
+                                changeBackground(bgTo);
+                                // Keep the colour picker's picked-FAB state in
+                                // sync — random-gradient FAB holds the current
+                                // gradient bg, and the bottom button is still
+                                // visible for further direction tweaks.
+                                mColorPicker.pickForBackground(bgTo);
+                                if (shouldAddToActionList) {
+                                    mActionList.addAction(new ThingAction(
+                                            ThingAction.UPDATE_COLOR, bgFrom, bgTo));
+                                }
+                            }
+                        });
+                df.show(getFragmentManager(),
+                        com.ywwynm.everythingdone.fragments
+                                .GradientOrientationDialogFragment.TAG);
+            }
+        });
     }
 
     private void changeColor(int colorTo) {
