@@ -983,7 +983,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
     private void initUiStartDoing() {
         @Thing.Type int thingType = mThing.getType();
-        FrameLayout fl = f(R.id.fl_doing_detail_as_bt);
+        FrameLayout fl = f(R.id.fl_start_doing_as_bt);
         if (mType == UPDATE && mEditable && thingType >= Thing.NOTE && thingType <= Thing.GOAL
                 && !(thingType == Thing.HABIT && mHabit != null && mHabit.isPaused())) {
             fl.setVisibility(View.VISIBLE);

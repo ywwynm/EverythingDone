@@ -75,14 +75,14 @@
          FloatingActionButton end-margin (@dimen/fab_margin = 16dp on v21+);
          vertically centered in the 56dp bar. -->
     <FrameLayout
-        android:id="@+id/fl_doing_detail_as_bt"
+        android:id="@+id/fl_start_doing_as_bt"
         android:layout_width="48dp"
         android:layout_height="48dp"
         android:layout_gravity="center_vertical"
         android:layout_marginEnd="@dimen/fab_margin"
         android:layout_marginRight="@dimen/fab_margin"
         android:background="@drawable/bg_fab_circle_accent"
-        android:elevation="6dp"
+        android:elevation="2dp"
         android:visibility="gone">
 
         <ImageView
