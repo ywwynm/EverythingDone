@@ -467,26 +467,39 @@ public final class BackgroundUtil {
         }
     }
 
+    /** Default ripple tint for circular fake-FAB cells over colour/gradient
+     *  backgrounds — 54% white, matches the legacy
+     *  {@code color_picker_fab.xml} {@code rippleColor="@color/white_54p"}. */
+    public static final int RIPPLE_LIGHT = 0x89FFFFFF;
+
+    /** Ripple tint for fake-FAB cells over light backgrounds where a light
+     *  ripple would disappear — 12% black, matches Material's
+     *  {@code ?attr/colorControlHighlight} on Light theme. */
+    public static final int RIPPLE_DARK  = 0x1F000000;
+
     /**
-     * Build a circular {@link android.graphics.drawable.RippleDrawable} for
-     * use as the {@code foreground} of an ImageView that already has its own
-     * (typically OVAL-shaped) background drawable. Ripples draw on top of
-     * the background and are clipped to a circle by the OVAL mask layer.
-     *
-     * <p>Used by every "FAB + overlay ImageView" cell where the overlay
-     * carries a gradient — without this, Material FAB's own ripple would be
-     * hidden under the overlay.
+     * Build a circular {@link android.graphics.drawable.RippleDrawable} with
+     * the default {@link #RIPPLE_LIGHT} tint. Use {@link #circularRipple(int)}
+     * when the host background is light and a dark ripple is needed.
      */
     public static android.graphics.drawable.RippleDrawable circularRipple() {
-        // Mask layer: a white OVAL — only the colour's alpha/shape matters,
-        // RippleDrawable uses it solely for clipping the ripple bounds.
+        return circularRipple(RIPPLE_LIGHT);
+    }
+
+    /**
+     * Build a circular {@link android.graphics.drawable.RippleDrawable} for
+     * use as the {@code foreground} of a view with a circular background
+     * drawable. The ripple is clipped to an OVAL mask layer so the press
+     * feedback stays circular regardless of view bounds.
+     */
+    public static android.graphics.drawable.RippleDrawable circularRipple(int rippleColor) {
+        // Mask layer: a white OVAL — only the shape matters, RippleDrawable
+        // uses it solely for clipping the ripple bounds.
         GradientDrawable mask = new GradientDrawable();
         mask.setShape(GradientDrawable.OVAL);
         mask.setColor(0xFFFFFFFF);
-        // 50% white ripple, matches the rippleColor that color_picker_fab.xml
-        // already uses on its FAB (@color/white_54p ≈ #89FFFFFF).
         return new android.graphics.drawable.RippleDrawable(
-                android.content.res.ColorStateList.valueOf(0x89FFFFFF),
+                android.content.res.ColorStateList.valueOf(rippleColor),
                 null,
                 mask);
     }

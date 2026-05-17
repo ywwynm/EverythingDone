@@ -1011,6 +1011,14 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                     PorterDuff.Mode.SRC_IN);
             ImageView iv = f(R.id.iv_doing_detail);
             iv.setImageDrawable(d2);
+
+            // Phase 8: fake-FAB ripple. Dark tint (~12% black) matches the
+            // legacy rectangular button's selectable_item_background, which
+            // read as a black-ish ripple on the teal accent. The default
+            // white circularRipple() is for cells whose bg is the thing's
+            // (often dark) colour; here the bg is the app_accent teal which
+            // is medium-light, so a dark ripple shows up better.
+            fl.setForeground(BackgroundUtil.circularRipple(BackgroundUtil.RIPPLE_DARK));
         }
     }
 
@@ -2667,6 +2675,14 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         // and the checkbox itself.
         TextView tvRemindMe = f(R.id.tv_remind_me);
         if (tvRemindMe != null) tvRemindMe.setTextColor(secondary);
+
+        // Phase 8: pill-shaped, luminance-adaptive ripple foreground on the
+        // quick-remind click area. Outline + clipToOutline install once;
+        // RippleDrawable tint follows the thing's luminance.
+        if (mFlQuickRemindAsBt != null) {
+            installQuickRemindPillRipple(color);
+        }
+
         if (tvQuickRemind != null) {
             tvQuickRemind.setTextColor(secondary);
             // Underline drawable used as background — tint it to match.
@@ -2722,6 +2738,53 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 }
             }
         });
+    }
+
+    /**
+     * Phase 8: install a pill-shaped, luminance-adaptive ripple on the
+     * quick-remind click area. Replaces the legacy
+     * {@code selectable_item_background_light} rectangle.
+     *
+     * <p>Shape: a rounded-rect outline with corner radius = height/2 so the
+     * ripple is a true pill regardless of the laid-out height. Read at
+     * {@code getOutline} time (post-layout), so we don't need an explicit
+     * height value.
+     *
+     * <p>Colour: {@code 16%} alpha on the "on-color" side of the current
+     * thing — black-ish on light backgrounds, white-ish on dark backgrounds.
+     * Re-installed on every {@link #applyForegroundColors(int)} pass so a
+     * pending colour pick is reflected immediately.
+     */
+    private void installQuickRemindPillRipple(int thingColor) {
+        // Outline + clipping — set once per view; reapplying is cheap.
+        mFlQuickRemindAsBt.setClipToOutline(true);
+        mFlQuickRemindAsBt.setOutlineProvider(new android.view.ViewOutlineProvider() {
+            @Override
+            public void getOutline(View v, android.graphics.Outline outline) {
+                outline.setRoundRect(0, 0, v.getWidth(), v.getHeight(),
+                        v.getHeight() / 2f);
+            }
+        });
+
+        // Pill mask for the RippleDrawable so the ripple itself is bounded to
+        // the pill even if Android draws foreground outside outline clipping.
+        // A corner radius bigger than half the view height guarantees a pill.
+        android.graphics.drawable.GradientDrawable mask =
+                new android.graphics.drawable.GradientDrawable();
+        mask.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
+        mask.setCornerRadius(1000f);
+        mask.setColor(android.graphics.Color.WHITE);
+
+        // Adaptive ripple tint — 16% alpha, black side on light backgrounds.
+        int rippleTint = BackgroundUtil.isLight(thingColor)
+                ? 0x29000000
+                : 0x29FFFFFF;
+        android.graphics.drawable.RippleDrawable ripple =
+                new android.graphics.drawable.RippleDrawable(
+                        android.content.res.ColorStateList.valueOf(rippleTint),
+                        null,
+                        mask);
+        mFlQuickRemindAsBt.setForeground(ripple);
     }
 
     private void setQuickRemindEvents() {
