@@ -3,6 +3,18 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:ignore="TypographyEllipsis">
 
+    <!-- Phase 8 gradient orientation picker -->
+    <string name="gradient_orientation_title">漸變方向</string>
+    <string name="cd_gradient_orientation_l_r">從左到右</string>
+    <string name="cd_gradient_orientation_t_b">從上到下</string>
+    <string name="cd_gradient_orientation_lt_rb">從左上到右下</string>
+    <string name="cd_gradient_orientation_rt_lb">從右上到左下</string>
+    <string name="cd_gradient_orientation_lb_rt">從左下到右上</string>
+    <string name="cd_gradient_orientation_rb_lt">從右下到左上</string>
+    <string name="cd_gradient_orientation_r_l">從右到左</string>
+    <string name="cd_gradient_orientation_b_t">從下到上</string>
+    <string name="act_change_gradient_orientation">改變漸變方向</string>
+
 
     <!--——————————————————————General strings——————————————————————-->
     <string name="yes">是</string>
@@ -607,10 +619,45 @@
     </string-array>
     <string name="follow_system_settings">跟隨系統設定</string>
     <string name="settings_noticeable_notification">更突出的記事提醒通知</string>
+    <string name="settings_notification_reliability">提醒可靠性</string>
+    <string name="settings_group_notification_reliability">提醒可靠性</string>
+    <string name="settings_battery_optimization">忽略電池最佳化</string>
+    <string name="settings_battery_optimization_off">未忽略 - 系統可能延遲你的提醒</string>
+    <string name="settings_battery_optimization_on">已忽略 - 提醒可以準時送達</string>
+    <string name="settings_autostart">自動啟動 / 背景權限</string>
+    <string name="settings_autostart_desc">點擊允許自動啟動，否則應用被滑掉後提醒不會響。小米 / 華為 / OPPO / vivo / 榮耀等國產 ROM 上必須打開。</string>
+    <string name="settings_autostart_not_needed">你的裝置無需此項 - Pixel / 原生 Android 類 ROM 預設會準時執行鬧鐘。</string>
+    <string name="settings_autostart_unavailable">沒找到對應的廠商設定頁，已為你開啟應用詳情，請在其中尋找「電池」或「背景執行」等選項。</string>
+    <string name="settings_notifications_enabled">通知權限</string>
+    <string name="settings_notifications_enabled_off">未授予 - 提醒到時間也無法顯示，點擊授權</string>
+    <string name="settings_notifications_enabled_on">已授予 - 提醒可以正常顯示</string>
+    <string name="settings_full_screen_intent">全螢幕提醒權限</string>
+    <string name="settings_full_screen_intent_off">未授予 - 「更突出的提醒」無法彈出對話框，點擊授權</string>
+    <string name="settings_full_screen_intent_on">已授予 - 全螢幕提醒對話框可以彈出</string>
+    <string name="settings_channels_status">提醒 / 習慣 / 目標通知類別</string>
+    <string name="settings_channels_all_on">%1$d 個通知類別全部開啟</string>
+    <string name="settings_channels_some_off">%2$d 個中有 %1$d 個被關閉，點擊修復</string>
+    <string name="post_notifications_rationale_title">請允許通知權限</string>
+    <string name="post_notifications_rationale_content">完事兒需要通知權限才能在提醒、習慣、目標到時間時彈出通知。如果沒有授權，鬧鐘會響但你看不到任何東西。</string>
     <string name="settings_toggle_checklist_thing_card">在記事卡片中調整清單項的勾選狀態</string>
     <string name="settings_simple_finished_checklist">在正在進行的記事卡片中折疊已完成的清單項</string>
     <string name="settings_auto_link">查看記事時，自動為電話號碼、網頁地址等添加鏈接</string>
     <string name="settings_twice_back">按兩次返回鍵退出程式</string>
+    <string name="settings_create_animation_style">新建事項時使用屏幕邊框光效動畫</string>
+
+    <!-- Color picker random FABs (Phase 6) -->
+    <string name="cd_random_pure_background">隨機純色</string>
+    <string name="cd_random_gradient_background">隨機漸變色</string>
+
+    <!-- Hue bucket names (Phase 6) -->
+    <string name="hue_bucket_red">紅色系</string>
+    <string name="hue_bucket_orange">橙色系</string>
+    <string name="hue_bucket_yellow">黃色系</string>
+    <string name="hue_bucket_green">綠色系</string>
+    <string name="hue_bucket_cyan">青色系</string>
+    <string name="hue_bucket_blue">藍色系</string>
+    <string name="hue_bucket_purple">紫色系</string>
+    <string name="hue_bucket_grey">灰色系</string>
 
     <!--group ringtone-->
     <string name="chooser_ringtone">選擇鈴聲</string>
@@ -1039,5 +1086,14 @@
     <string name="from_1_3_3_to_1_3_4_title">自動保存編輯與調整習慣完成記錄</string>
     <string name="from_1_3_3_to_1_3_4_content">現在，你能夠啟用在創建或更新記事時，自動保存編輯的功能。
     \n\n你也能夠調整最近的習慣完成記錄，彌補忘記點擊完成的遺憾。請前往查看記事的頁面，打開菜單，點擊“查看習慣詳情”，即可看到相應的操作。</string>
+
+    <!-- Notification Channels -->
+    <string name="channel_reminder">提醒</string>
+    <string name="channel_habit">習慣</string>
+    <string name="channel_goal">目標</string>
+    <string name="channel_doing">計時模式</string>
+    <string name="channel_quick_create">快速創建</string>
+    <string name="channel_ongoing">持續通知</string>
+    <string name="channel_auto_notify">自動提醒</string>
 
 </resources>

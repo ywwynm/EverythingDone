@@ -1,7 +1,7 @@
 package com.ywwynm.everythingdone.adapters;
 
-import android.support.v4.view.PagerAdapter;
-import android.support.v4.view.ViewPager;
+import androidx.viewpager.widget.PagerAdapter;
+import androidx.viewpager.widget.ViewPager;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -9,7 +9,7 @@ import java.util.List;
 
 /**
  * Created by ywwynm on 2015/10/11.
- * A subclass of {@link PagerAdapter} for {@link android.support.v4.view.ViewPager}
+ * A subclass of {@link PagerAdapter} for {@link androidx.viewpager.widget.ViewPager}
  * in {@link com.ywwynm.everythingdone.activities.ImageViewerActivity}
  */
 public class ImageViewerPagerAdapter extends PagerAdapter {

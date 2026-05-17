@@ -145,7 +145,8 @@ public class ThingExporter {
         String thingFileName = getFileName(context, thing);
         // should be like "hello-world-Note-20160630143306"
 
-        final String parentPath = Def.Meta.APP_FILE_DIR + "/temp/" + thingFileName;
+        String appFileDir = Def.getAppFileDir(context);
+        final String parentPath = appFileDir + "/temp/" + thingFileName;
         File txtFile = thingToTxtFile(context, thing, parentPath);
         List<File> attachmentFiles = AttachmentHelper.getOriginalFiles(thing.getAttachment());
 
@@ -168,7 +169,7 @@ public class ThingExporter {
 
         File dir = new File(parentPath);
         File zippedFile = FileUtil.createFile(
-                Def.Meta.APP_FILE_DIR + "/export", thingFileName + ".zip");
+                appFileDir + "/export", thingFileName + ".zip");
         if (zippedFile == null) {
             return false;
         }

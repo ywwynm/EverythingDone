@@ -8,11 +8,11 @@ import android.content.IntentFilter;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
-import android.support.v4.app.NotificationManagerCompat;
-import android.support.v4.content.ContextCompat;
-import android.support.v4.util.Pair;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
+import androidx.core.app.NotificationManagerCompat;
+import androidx.core.content.ContextCompat;
+import androidx.core.util.Pair;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.style.ForegroundColorSpan;
@@ -38,7 +38,8 @@ import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil;
 
-import org.joda.time.DateTime;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -109,7 +110,8 @@ public class NoticeableNotificationActivity extends EverythingDoneBaseActivity {
     @Override
     protected void init() {
         IntentFilter intentFilter = new IntentFilter(BROADCAST_ACTION_JUST_FINISH);
-        registerReceiver(mReceiver, intentFilter);
+        ContextCompat.registerReceiver(this, mReceiver, intentFilter,
+                ContextCompat.RECEIVER_NOT_EXPORTED);
 
         initMembers();
         if (mThing != null) {
@@ -284,14 +286,17 @@ public class NoticeableNotificationActivity extends EverythingDoneBaseActivity {
         @Thing.Type int thingType = mThing.getType();
         int iconRes = Thing.getTypeIconWhiteLarge(thingType);
         Drawable d1 = ContextCompat.getDrawable(this, iconRes);
-        Drawable d2 = d1.mutate();
-        d2.setColorFilter(mThing.getColor(), PorterDuff.Mode.SRC_ATOP);
+        // Phase 8: gradient-aware icon tint — PURE keeps the cheap SRC_ATOP
+        // filter; GRADIENT renders the icon as an alpha mask and fills it
+        // with a LinearGradient via SRC_IN.
+        Drawable d2 = com.ywwynm.everythingdone.utils.BackgroundUtil.tintDrawable(
+                getResources(), d1, mThing.getBackground());
         mIvTitle.setImageDrawable(d2);
 
         String typeStr = Thing.getTypeStr(thingType, this);
         mIvTitle.setContentDescription(typeStr);
 
-        String timeStr = new DateTime().toString("HH:mm");
+        String timeStr = ZonedDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm"));
         String title = typeStr + " • " + timeStr;
         SpannableStringBuilder ssb = new SpannableStringBuilder(title);
         ForegroundColorSpan colorSpan1 = new ForegroundColorSpan(mThing.getColor());
@@ -319,14 +324,25 @@ public class NoticeableNotificationActivity extends EverythingDoneBaseActivity {
             public void onBindViewHolder(BaseThingViewHolder holder, int position) {
                 super.onBindViewHolder(holder, position);
 
-                int color = DisplayUtil.getTransparentColor(mThing.getColor(), 16);
-                if (!DeviceUtil.hasLollipopApi()) {
-                    holder.cv.setBackgroundColor(color);
-                } else {
-                    holder.cv.setCardBackgroundColor(color);
-                }
+                // Phase 8: opaque thing-coloured card. Previously this used a
+                // 16/255 alpha overlay on the dialog's white window, which
+                // washed the thing colour out to near-white — BaseThingsAdapter
+                // then picked text colour from the thing's luminance and got
+                // it visibly wrong for dark things (white text on a near-white
+                // bg → invisible). With a fully opaque background the
+                // adapter's primary/secondary/tertiary on-color tiers contrast
+                // correctly with whatever the thing's colour is.
+                com.ywwynm.everythingdone.model.ThingBackground bg = mThing.getBackground();
                 holder.cv.setRadius(0);
                 holder.cv.setCardElevation(0);
+                if (bg.mode == com.ywwynm.everythingdone.model.ThingBackground.Mode.PURE) {
+                    holder.cv.setCardBackgroundColor(bg.color);
+                } else {
+                    holder.cv.setCardBackgroundColor(android.graphics.Color.TRANSPARENT);
+                    holder.cv.setBackground(
+                            com.ywwynm.everythingdone.utils.BackgroundUtil
+                                    .makeTranslucentGradient(bg, 255));
+                }
 
                 holder.tvTitle.setMaxLines(Integer.MAX_VALUE);
                 holder.tvContent.setMaxLines(Integer.MAX_VALUE);
@@ -342,8 +358,15 @@ public class NoticeableNotificationActivity extends EverythingDoneBaseActivity {
                     holder.tvContent.setVisibility(View.VISIBLE);
                     holder.tvContent.setText(R.string.notification_private_thing_content);
                     holder.tvContent.setTextSize(20);
+                    // Phase 8: now that the card bg is opaque thing colour,
+                    // pick black or white for the private-thing placeholder
+                    // based on the thing's luminance (matching the rest of
+                    // BaseThingsAdapter's on-color logic).
+                    boolean light = com.ywwynm.everythingdone.utils.BackgroundUtil
+                            .isLight(mThing.getColor());
                     holder.tvContent.setTextColor(ContextCompat.getColor(
-                            getApplicationContext(), R.color.black_76p));
+                            getApplicationContext(),
+                            light ? R.color.black_76p : R.color.white_76p));
                     int p = (int) (mDensity * 16);
                     holder.tvContent.setPadding(p, p, p, 0);
                 }
@@ -361,7 +384,10 @@ public class NoticeableNotificationActivity extends EverythingDoneBaseActivity {
             }
         };
         adapter.setCardWidth(mDialogWidth);
-        adapter.setStyle(BaseThingsAdapter.STYLE_BLACK);
+        // Phase 8: STYLE_BLACK was the legacy "always-black-side text" hack
+        // for when this activity's card was a near-transparent overlay on a
+        // white dialog. Card is now opaque thing-coloured (alpha 255) so the
+        // adapter's default luminance-adaptive path produces correct contrast.
         adapter.setChecklistMaxItemCount(-1);
         mRvThing.setLayoutManager(new LinearLayoutManager(this));
         mRvThing.setAdapter(adapter);
@@ -447,20 +473,6 @@ public class NoticeableNotificationActivity extends EverythingDoneBaseActivity {
                         // setFinishOnTouchOutside(true);
                     }
                 });
-
-        if (!DeviceUtil.hasLollipopApi()) {
-            mRvThing.addOnScrollListener(new RecyclerView.OnScrollListener() {
-
-                final int edgeColor = ContextCompat.getColor(
-                        getApplicationContext(), R.color.black_26p);
-
-                @Override
-                public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
-                    super.onScrollStateChanged(recyclerView, newState);
-                    EdgeEffectUtil.forRecyclerView(mRvThing, edgeColor);
-                }
-            });
-        }
 
         mFlCancelAsBt.setOnClickListener(new View.OnClickListener() {
             @Override

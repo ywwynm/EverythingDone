@@ -4,9 +4,9 @@ import android.app.Notification;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.support.v4.app.NotificationCompat;
-import android.support.v4.app.NotificationManagerCompat;
-import android.support.v4.util.Pair;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
+import androidx.core.util.Pair;
 
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
@@ -35,7 +35,11 @@ public class AutoNotifyReceiver extends BroadcastReceiver {
 
         NotificationCompat.Builder builder = SystemNotificationUtil
                 .newGeneralNotificationBuilder(context, TAG, id, pair.second, thing, true);
-        builder.setContentTitle(context.getString(R.string.auto_notify) + "-" + builder.mContentTitle);
+        String title = thing.getTitleToDisplay();
+        if (title.isEmpty()) {
+            title = Thing.getTypeStr(thing.getType(), context);
+        }
+        builder.setContentTitle(context.getString(R.string.auto_notify) + "-" + title);
         builder.setPriority(Notification.PRIORITY_DEFAULT);
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
         notificationManager.notify((int) id, builder.build());

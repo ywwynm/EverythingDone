@@ -1,12 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout
+<!-- Phase 8: the root used to be a FrameLayout wrapping only the RecyclerView.
+     ColorPicker (COLOR_EDIT mode) now needs an optional "change gradient
+     direction" button beneath the colour grid, so the root became a vertical
+     LinearLayout. The button stays GONE unless the picker explicitly enables
+     it (DateTimePicker / hue-bucket / non-edit colour pickers never touch it,
+     so no behavioural change there). -->
+<LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="wrap_content"
-    android:layout_height="wrap_content">
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
 
     <com.ywwynm.everythingdone.views.StablerRecyclerView
         android:id="@+id/rv_popup_picker"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"/>
 
-</FrameLayout>
+    <!-- Phase 8: the negative top margin pulls the button up over the
+         random-FAB row's 16dp bottom margin (set in
+         ColorPicker.ColorPickerAdapter.setFabMargin case 11/12), so the
+         visible gap between the random row and this button is the smaller
+         16-12=4dp. Tweak android:layout_marginTop here to taste. -->
+    <TextView
+        android:id="@+id/bt_change_gradient_orientation"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:layout_marginTop="-12dp"
+        android:gravity="center"
+        android:paddingLeft="12dp"
+        android:paddingRight="12dp"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:textAllCaps="false"
+        android:singleLine="true"
+        android:ellipsize="end"
+        android:background="@drawable/selectable_item_background"
+        android:visibility="gone"/>
+
+</LinearLayout>

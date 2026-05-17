@@ -2,14 +2,15 @@ package com.ywwynm.everythingdone.activities;
 
 import android.Manifest;
 import android.content.SharedPreferences;
+import com.ywwynm.everythingdone.permission.PermissionUtil;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.os.AsyncTask;
-import android.support.v4.content.ContextCompat;
-import android.support.v7.app.ActionBar;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.Toolbar;
+import androidx.core.content.ContextCompat;
+import androidx.appcompat.app.ActionBar;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.appcompat.widget.Toolbar;
 import android.view.View;
 import android.view.ViewTreeObserver;
 import android.widget.FrameLayout;
@@ -42,7 +43,10 @@ import com.ywwynm.everythingdone.utils.EdgeEffectUtil;
 import com.ywwynm.everythingdone.utils.LocaleUtil;
 import com.ywwynm.everythingdone.views.FloatingActionButton;
 
-import org.joda.time.DateTime;
+import java.time.ZonedDateTime;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 
 import java.io.File;
 import java.util.Calendar;
@@ -146,9 +150,6 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
         mIvHeader.requestLayout();
 
         float mt = mHeaderHeight - mScreenDensity * 28;
-        if (!DeviceUtil.hasLollipopApi()) {
-            mt -= mScreenDensity * 28;
-        }
         FrameLayout.LayoutParams flp = (FrameLayout.LayoutParams) mFab.getLayoutParams();
         flp.topMargin = (int) mt;
         mFab.requestLayout();
@@ -158,7 +159,7 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
         SharedPreferences metaData = getSharedPreferences(
                 Def.Meta.META_DATA_NAME, MODE_PRIVATE);
         long time = metaData.getLong(Def.Meta.KEY_START_USING_TIME, 0);
-        DateTime dt = new DateTime(time);
+        ZonedDateTime dt = Instant.ofEpochMilli(time).atZone(ZoneId.systemDefault());
         int gap = DateTimeUtil.calculateTimeGap(
                 time, System.currentTimeMillis(), Calendar.DATE) + 1;
         StringBuilder sb = new StringBuilder();
@@ -167,11 +168,11 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
             String year  = mApp.getString(R.string.year);
             String month = mApp.getString(R.string.month);
             String day   = mApp.getString(R.string.day);
-            sb.append(dt.toString(" yyyy " + year + " M " + month + " d " + day))
+            sb.append(dt.format(DateTimeFormatter.ofPattern(" yyyy " + year + " M " + month + " d " + day)))
                     .append(getString(R.string.statistic_start_from_part_2))
                     .append(" ").append(gap).append(" ");
         } else {
-            sb.append(dt.toString(" MMM d, yyyy"))
+            sb.append(dt.format(DateTimeFormatter.ofPattern(" MMM d, yyyy")))
                     .append(getString(R.string.statistic_start_from_part_2));
             if (gap <= 1) {
                 sb.append(" this day");
@@ -268,15 +269,7 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
         mFab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                doWithPermissionChecked(
-                    new SimplePermissionCallback(StatisticActivity.this) {
-                        @Override
-                        public void onGranted() {
-                            startScreenshot();
-                        }
-                    },
-                    Def.Communication.REQUEST_PERMISSION_SCREENSHOT,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE);
+                startScreenshot();
             }
         });
     }
@@ -307,8 +300,7 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
     }
 
     private void updateFabState() {
-        int statusbarSize = DeviceUtil.hasKitKatApi() ?
-            DisplayUtil.getStatusbarHeight(StatisticActivity.this) : 0;
+        int statusbarSize = DisplayUtil.getStatusbarHeight(StatisticActivity.this);
         int scrollY = mScrollView.getScrollY();
         int actionbarSize = mActionbar.getHeight();
         float fabY = mHeaderHeight - statusbarSize - actionbarSize - actionbarSize;
@@ -320,8 +312,7 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
     }
 
     private void updateActionbarState() {
-        int statusbarSize = DeviceUtil.hasKitKatApi() ?
-                DisplayUtil.getStatusbarHeight(mApp) : 0;
+        int statusbarSize = DisplayUtil.getStatusbarHeight(mApp);
         int scrollY = mScrollView.getScrollY();
         int color = ContextCompat.getColor(mApp, R.color.blue_grey_deep_grey);
         int actionbarSize = mActionbar.getHeight();

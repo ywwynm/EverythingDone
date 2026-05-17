@@ -7,9 +7,10 @@ import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
 import android.media.MediaPlayer;
 import android.net.Uri;
-import android.support.v4.content.ContextCompat;
-import android.support.v7.widget.CardView;
-import android.support.v7.widget.RecyclerView;
+import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
+import androidx.cardview.widget.CardView;
+import androidx.recyclerview.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -151,7 +152,8 @@ public class AudioAttachmentAdapter extends RecyclerView.Adapter<AudioAttachment
         String typePathName = mItems.get(index);
         File file = new File(typePathName.substring(1, typePathName.length()));
 
-        mPlayer = MediaPlayer.create(mActivity, Uri.fromFile(file));
+        mPlayer = MediaPlayer.create(mActivity,
+                FileProvider.getUriForFile(mActivity, "com.ywwynm.everythingdone", file));
         mPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             @Override
             public void onCompletion(MediaPlayer mp) {

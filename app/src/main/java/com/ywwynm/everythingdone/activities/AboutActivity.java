@@ -2,14 +2,16 @@ package com.ywwynm.everythingdone.activities;
 
 import android.Manifest;
 import android.content.ClipData;
+import com.ywwynm.everythingdone.permission.PermissionUtil;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.graphics.Paint;
 import android.graphics.Typeface;
-import android.support.design.widget.FloatingActionButton;
-import android.support.v4.content.ContextCompat;
-import android.support.v7.app.ActionBar;
-import android.support.v7.widget.Toolbar;
+import android.widget.ImageView;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import androidx.core.content.ContextCompat;
+import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -36,7 +38,7 @@ public class AboutActivity extends EverythingDoneBaseActivity {
     private View    mStatusBar;
     private Toolbar mActionbar;
 
-    private FloatingActionButton mFabHead;
+    private ImageView mFabHead;
     private TextView  mTvYwwynm;
     private TextView  mTvEverythingDone;
     private TextView  mTvVersion;
@@ -61,22 +63,11 @@ public class AboutActivity extends EverythingDoneBaseActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.act_share:
-                doWithPermissionChecked(
-                        new SimplePermissionCallback(this) {
-                            @Override
-                            public void onGranted() {
-                                SendInfoHelper.shareApp(AboutActivity.this);
-                            }
-                        },
-                        Def.Communication.REQUEST_PERMISSION_SHARE_APP,
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE);
-                break;
-            case R.id.act_feedback:
-                SendInfoHelper.sendFeedback(this, false);
-                break;
-            default:break;
+        int itemId = item.getItemId();
+        if (itemId == R.id.act_share) {
+            SendInfoHelper.shareApp(AboutActivity.this);
+        } else if (itemId == R.id.act_feedback) {
+            SendInfoHelper.sendFeedback(this, false);
         }
         return true;
     }
@@ -105,15 +96,8 @@ public class AboutActivity extends EverythingDoneBaseActivity {
         DisplayUtil.expandStatusBarViewAboveKitkat(mStatusBar);
         DisplayUtil.darkStatusBar(this);
 
-        if (DeviceUtil.hasKitKatApi()) {
-            if (DisplayUtil.hasNavigationBar(this)) {
-                int navHeight = DisplayUtil.getNavigationBarHeight(this);
-                FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) mFab.getLayoutParams();
-                params.bottomMargin += navHeight;
-                mFab.requestLayout();
-                mFlBottom.setPadding(0, 0, 0, navHeight);
-            }
-        }
+        DisplayUtil.applyBottomInsetAsMargin(mFab);
+        DisplayUtil.applyBottomInsetAsPadding(mFlBottom);
 
         Typeface tf = FontCache.get(Def.Meta.ROBOTO_MONO, this);
         mTvYwwynm.setTypeface(tf);
@@ -143,8 +127,6 @@ public class AboutActivity extends EverythingDoneBaseActivity {
 
     @Override
     protected void setEvents() {
-        mFabHead.setRippleColor(DisplayUtil.getLightColor(
-                DisplayUtil.getRandomColor(this), this));
         mFabHead.setOnClickListener(new View.OnClickListener() {
 
             long[] times = new long[16];
@@ -152,8 +134,6 @@ public class AboutActivity extends EverythingDoneBaseActivity {
             @Override
             public void onClick(View v) {
                 Context context = AboutActivity.this;
-                mFabHead.setRippleColor(DisplayUtil.getLightColor(
-                        DisplayUtil.getRandomColor(context), context));
                 System.arraycopy(times, 1, times, 0, times.length - 1);
                 times[times.length - 1] = System.currentTimeMillis();
                 if (times[0] >= (System.currentTimeMillis() - 500000)) {

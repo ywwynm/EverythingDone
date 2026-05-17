@@ -3,6 +3,18 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:ignore="TypographyEllipsis">
 
+    <!-- Phase 8 gradient orientation picker -->
+    <string name="gradient_orientation_title">渐变方向</string>
+    <string name="cd_gradient_orientation_l_r">从左到右</string>
+    <string name="cd_gradient_orientation_t_b">从上到下</string>
+    <string name="cd_gradient_orientation_lt_rb">从左上到右下</string>
+    <string name="cd_gradient_orientation_rt_lb">从右上到左下</string>
+    <string name="cd_gradient_orientation_lb_rt">从左下到右上</string>
+    <string name="cd_gradient_orientation_rb_lt">从右下到左上</string>
+    <string name="cd_gradient_orientation_r_l">从右到左</string>
+    <string name="cd_gradient_orientation_b_t">从下到上</string>
+    <string name="act_change_gradient_orientation">改变渐变方向</string>
+
 
     <!--——————————————————————General strings——————————————————————-->
     <string name="yes">是</string>
@@ -607,10 +619,45 @@
     </string-array>
     <string name="follow_system_settings">跟随系统设置</string>
     <string name="settings_noticeable_notification">更突出的记事提醒通知</string>
+    <string name="settings_notification_reliability">提醒可靠性</string>
+    <string name="settings_group_notification_reliability">提醒可靠性</string>
+    <string name="settings_battery_optimization">忽略电池优化</string>
+    <string name="settings_battery_optimization_off">未忽略 - 系统可能延迟你的提醒</string>
+    <string name="settings_battery_optimization_on">已忽略 - 提醒可以按时送达</string>
+    <string name="settings_autostart">自启动 / 后台权限</string>
+    <string name="settings_autostart_desc">点击允许自启动，否则应用被划掉后提醒不会响。小米 / 华为 / OPPO / vivo / 荣耀等国产 ROM 上必须打开。</string>
+    <string name="settings_autostart_not_needed">你的设备无需此项 - Pixel / 原生 Android 类 ROM 默认会按时执行闹钟。</string>
+    <string name="settings_autostart_unavailable">没找到对应的厂商设置页，已为你打开应用详情，请在其中查找"电池"或"后台运行"等选项。</string>
+    <string name="settings_notifications_enabled">通知权限</string>
+    <string name="settings_notifications_enabled_off">未授予 - 提醒到时间也无法显示，点击授权</string>
+    <string name="settings_notifications_enabled_on">已授予 - 提醒可以正常显示</string>
+    <string name="settings_full_screen_intent">全屏提醒权限</string>
+    <string name="settings_full_screen_intent_off">未授予 - "更突出的提醒"无法弹出对话框，点击授权</string>
+    <string name="settings_full_screen_intent_on">已授予 - 全屏提醒对话框可以弹出</string>
+    <string name="settings_channels_status">提醒 / 习惯 / 目标通知类别</string>
+    <string name="settings_channels_all_on">%1$d 个类别全部开启</string>
+    <string name="settings_channels_some_off">%2$d 个中有 %1$d 个被关闭，点击修复</string>
+    <string name="post_notifications_rationale_title">请允许通知权限</string>
+    <string name="post_notifications_rationale_content">完事儿需要通知权限才能在提醒、习惯、目标到时间时弹出通知。如果没有授权，闹钟会响但你看不到任何东西。</string>
     <string name="settings_toggle_checklist_thing_card">在记事卡片中调整清单项的勾选状态</string>
     <string name="settings_simple_finished_checklist">在正在进行的记事卡片中折叠已完成的清单项</string>
     <string name="settings_auto_link">查看记事时，自动为电话号码、网页地址等添加链接</string>
     <string name="settings_twice_back">按两次返回键退出应用</string>
+    <string name="settings_create_animation_style">新建事项时使用屏幕边框光效动画</string>
+
+    <!-- Color picker random FABs (Phase 6) -->
+    <string name="cd_random_pure_background">随机纯色</string>
+    <string name="cd_random_gradient_background">随机渐变色</string>
+
+    <!-- Hue bucket names (Phase 6) -->
+    <string name="hue_bucket_red">红色系</string>
+    <string name="hue_bucket_orange">橙色系</string>
+    <string name="hue_bucket_yellow">黄色系</string>
+    <string name="hue_bucket_green">绿色系</string>
+    <string name="hue_bucket_cyan">青色系</string>
+    <string name="hue_bucket_blue">蓝色系</string>
+    <string name="hue_bucket_purple">紫色系</string>
+    <string name="hue_bucket_grey">灰色系</string>
 
     <!--group ringtone-->
     <string name="chooser_ringtone">选择铃声</string>
@@ -1039,5 +1086,14 @@
     <string name="from_1_3_3_to_1_3_4_title">自动保存编辑与调整习惯完成记录</string>
     <string name="from_1_3_3_to_1_3_4_content">现在，你能够启用在创建或更新记事时，自动保存编辑的功能。
     \n\n你也能够调整最近的习惯完成记录，弥补忘记点击完成的遗憾。请前往查看记事的页面，打开菜单，点击“查看习惯详情”，即可看到相应的操作。</string>
+
+    <!-- Notification Channels -->
+    <string name="channel_reminder">提醒</string>
+    <string name="channel_habit">习惯</string>
+    <string name="channel_goal">目标</string>
+    <string name="channel_doing">计时模式</string>
+    <string name="channel_quick_create">快速创建</string>
+    <string name="channel_ongoing">持续通知</string>
+    <string name="channel_auto_notify">自动提醒</string>
 
 </resources>

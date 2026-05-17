@@ -24,6 +24,7 @@
         android:layout_weight="1">
 
         <TextView
+            android:id="@+id/tv_remind_me"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:gravity="center_vertical"
@@ -31,15 +32,26 @@
             android:textColor="@android:color/white"
             android:text="@string/remind_me"/>
 
+        <!-- Phase 8: ripple shape + colour are installed programmatically in
+             DetailActivity (setupQuickRemindRipple / applyForegroundColors)
+             so the corner radius matches the laid-out height (pill =
+             height/2) and the ripple tint adapts to the thing's luminance. -->
+        <!-- Negative marginStart slides the FrameLayout back 8dp so its
+             visible "left edge" (after the inner paddingLeft=8dp) lands right
+             where "提醒我于" ends — no visual gap between the two texts.
+             paddingLeft=8dp is kept so the pill ripple still extends 8dp to
+             the left of the "15分钟后" text. -->
         <FrameLayout
             android:id="@+id/fl_quick_remind_as_bt"
             android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:paddingLeft="4dp"
-            android:paddingRight="4dp"
+            android:layout_height="48dp"
+            android:layout_gravity="center_vertical"
+            android:paddingLeft="12dp"
+            android:paddingRight="12dp"
+            android:layout_marginStart="-8dp"
+            android:layout_marginLeft="-8dp"
             android:layout_marginEnd="16dp"
-            android:layout_marginRight="16dp"
-            android:background="@drawable/selectable_item_background_light">
+            android:layout_marginRight="16dp">
 
             <TextView
                 android:id="@+id/tv_quick_remind"
@@ -57,18 +69,26 @@
 
     </LinearLayout>
 
+    <!-- Phase 8: fake FAB — 40dp oval (background = bg_fab_circle_accent),
+         foreground RippleDrawable installed in DetailActivity.initUiStartDoing
+         for the circular tap feedback. Margins match the home screen's
+         FloatingActionButton end-margin (@dimen/fab_margin = 16dp on v21+);
+         vertically centered in the 56dp bar. -->
     <FrameLayout
-        android:id="@+id/fl_doing_detail_as_bt"
-        android:layout_width="54dp"
-        android:layout_height="56dp"
-        android:foreground="@drawable/selectable_item_background"
-        android:background="@color/app_accent"
+        android:id="@+id/fl_start_doing_as_bt"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="center_vertical"
+        android:layout_marginEnd="@dimen/fab_margin"
+        android:layout_marginRight="@dimen/fab_margin"
+        android:background="@drawable/bg_fab_circle_accent"
+        android:elevation="2dp"
         android:visibility="gone">
 
         <ImageView
             android:id="@+id/iv_doing_detail"
-            android:layout_width="26dp"
-            android:layout_height="26dp"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
             android:layout_gravity="center"
             android:scaleType="centerCrop"
             android:contentDescription="@string/start_doing_full_title"/>

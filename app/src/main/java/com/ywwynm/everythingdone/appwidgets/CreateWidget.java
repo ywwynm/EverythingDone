@@ -29,9 +29,13 @@ public class CreateWidget extends AppWidgetProvider {
             remoteViews.setContentDescription(
                     R.id.iv_widget_simple, context.getString(R.string.title_create_thing));
 
-            Intent contentIntent = DetailActivity.getOpenIntentForCreate(context, TAG, App.newThingColor);
+            // Phase 7: prefer ThingBackground for GRADIENT support.
+            Intent contentIntent = DetailActivity.getOpenIntentForCreate(context, TAG,
+                    App.newThingBackground != null
+                            ? App.newThingBackground
+                            : com.ywwynm.everythingdone.model.ThingBackground.pure(App.newThingColor));
             PendingIntent pendingIntent = PendingIntent.getActivity(context,
-                    appWidgetId, contentIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+                    appWidgetId, contentIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
             remoteViews.setOnClickPendingIntent(R.id.iv_widget_simple, pendingIntent);
             appWidgetManager.updateAppWidget(appWidgetId, remoteViews);
         }

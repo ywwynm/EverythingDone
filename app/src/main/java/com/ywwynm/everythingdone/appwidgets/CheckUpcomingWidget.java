@@ -34,7 +34,7 @@ public class CheckUpcomingWidget extends AppWidgetProvider {
             // And today is programmer's day, who cares about this?
             contentIntent.setAction(Def.Communication.SHORTCUT_ACTION_CHECK_UPCOMING);
             PendingIntent pendingIntent = PendingIntent.getActivity(context,
-                    appWidgetId, contentIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+                    appWidgetId, contentIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
             remoteViews.setOnClickPendingIntent(R.id.iv_widget_simple, pendingIntent);
             appWidgetManager.updateAppWidget(appWidgetId, remoteViews);
         }

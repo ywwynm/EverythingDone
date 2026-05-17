@@ -4,7 +4,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.database.Cursor;
-import android.support.annotation.StringRes;
+import androidx.annotation.StringRes;
 
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.database.ReminderDAO;

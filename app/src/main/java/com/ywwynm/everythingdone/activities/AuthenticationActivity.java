@@ -2,9 +2,10 @@ package com.ywwynm.everythingdone.activities;
 
 import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
-import android.support.v4.util.Pair;
-import android.support.v7.app.AppCompatActivity;
+import androidx.core.util.Pair;
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
@@ -44,7 +45,14 @@ public class AuthenticationActivity extends AppCompatActivity {
         Intent intent = getIntent();
 
         long id = intent.getLongExtra(Def.Communication.KEY_ID, -1);
-        if (App.getDoingThingId() == id) {
+        // Only redirect to DoingActivity when there genuinely *is* a doing
+        // thing AND the clicked thing is that one. Previously this compared
+        // a possibly-default id (-1) against the default doingThingId (-1) →
+        // any click that lost KEY_ID in transit (notably ThingsListWidget
+        // fill-in / template intents under some edge cases) opened the doing
+        // screen when nothing was being done, which then crashed with
+        // "doing_toast_pass_data_error".
+        if (App.getDoingThingId() > 0 && App.getDoingThingId() == id) {
             startActivity(DoingActivity.getOpenIntent(this, true));
             finish();
             return;
@@ -75,9 +83,10 @@ public class AuthenticationActivity extends AppCompatActivity {
             }
 
             String title = intent.getStringExtra(Def.Communication.KEY_TITLE);
-            int color = thing.getColor();
+            // Phase 8: pass full ThingBackground so the pattern-lock fallback
+            // renders gradient title / right-button on a GRADIENT thing.
             AuthenticationHelper.authenticate(
-                    this, color, title, cp,
+                    this, thing.getBackground(), title, cp,
                     new AuthenticationHelper.AuthenticationCallback() {
                         @Override
                         public void onAuthenticated() {
@@ -87,7 +96,11 @@ public class AuthenticationActivity extends AppCompatActivity {
                         @Override
                         public void onCancel() {
                             finish();
-                            overridePendingTransition(0, 0);
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                                overrideActivityTransition(OVERRIDE_TRANSITION_OPEN, 0, 0);
+                            } else {
+                                overridePendingTransition(0, 0);
+                            }
                         }
                     });
         } else {
@@ -106,7 +119,11 @@ public class AuthenticationActivity extends AppCompatActivity {
             actView();
         }
         finish();
-        overridePendingTransition(0, 0);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            overrideActivityTransition(OVERRIDE_TRANSITION_OPEN, 0, 0);
+        } else {
+            overridePendingTransition(0, 0);
+        }
     }
 
     private void actFinish(Thing thing, int position) {
@@ -119,25 +136,28 @@ public class AuthenticationActivity extends AppCompatActivity {
     }
 
     private void actDelay(Thing thing, int position) {
+        // Phase 8: pass full ThingBackground so delay-reminder dialog renders gradient.
         Intent intent = DelayReminderActivity.getOpenIntent(
-                this, thing.getId(), position, thing.getColor());
+                this, thing.getId(), position, thing.getBackground());
         startActivity(intent);
     }
 
     private void actStartDoing(Thing thing, int position) {
         long hrTime = getIntent().getLongExtra(Def.Communication.KEY_TIME, -1);
+        // Phase 8: pass full ThingBackground so start-doing dialog renders gradient.
         Intent intent = StartDoingActivity.getOpenIntent(
-                this, thing.getId(), position, thing.getColor(), DoingService.START_TYPE_ALARM,
-                hrTime);
+                this, thing.getId(), position, thing.getBackground(),
+                DoingService.START_TYPE_ALARM, hrTime);
         startActivity(intent);
     }
 
     private void actView() {
         Intent intent = getIntent();
         long id = intent.getLongExtra(Def.Communication.KEY_ID, -1);
-        sendBroadcast(
-                new Intent(Def.Communication.BROADCAST_ACTION_FINISH_DETAILACTIVITY)
-                        .putExtra(Def.Communication.KEY_ID, id));
+        Intent broadcastIntent = new Intent(Def.Communication.BROADCAST_ACTION_FINISH_DETAILACTIVITY);
+        broadcastIntent.putExtra(Def.Communication.KEY_ID, id);
+        broadcastIntent.setPackage(getPackageName());
+        sendBroadcast(broadcastIntent);
 
         intent.setClass(this, DetailActivity.class);
         startActivity(intent);

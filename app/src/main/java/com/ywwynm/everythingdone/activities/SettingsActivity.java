@@ -2,11 +2,14 @@ package com.ywwynm.everythingdone.activities;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import com.ywwynm.everythingdone.permission.PermissionUtil;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.content.res.Resources;
 import android.database.Cursor;
 import android.graphics.PorterDuff;
@@ -15,14 +18,15 @@ import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.AsyncTask;
+import androidx.core.content.FileProvider;
 import android.os.Handler;
 import android.os.Looper;
-import android.support.annotation.StringRes;
-import android.support.design.widget.Snackbar;
-import android.support.v4.app.NotificationManagerCompat;
-import android.support.v4.content.ContextCompat;
-import android.support.v7.app.ActionBar;
-import android.support.v7.widget.Toolbar;
+import androidx.annotation.StringRes;
+import com.google.android.material.snackbar.Snackbar;
+import androidx.core.app.NotificationManagerCompat;
+import androidx.core.content.ContextCompat;
+import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.widget.Toolbar;
 import android.view.View;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
@@ -51,6 +55,7 @@ import com.ywwynm.everythingdone.helpers.AutoNotifyHelper;
 import com.ywwynm.everythingdone.helpers.BackupHelper;
 import com.ywwynm.everythingdone.helpers.DailyTodoHelper;
 import com.ywwynm.everythingdone.helpers.FingerprintHelper;
+import com.ywwynm.everythingdone.helpers.NotificationReliabilityHelper;
 import com.ywwynm.everythingdone.helpers.ThingDoingHelper;
 import com.ywwynm.everythingdone.model.DoingRecord;
 import com.ywwynm.everythingdone.model.HabitReminder;
@@ -59,7 +64,6 @@ import com.ywwynm.everythingdone.permission.SimplePermissionCallback;
 import com.ywwynm.everythingdone.receivers.LocaleChangeReceiver;
 import com.ywwynm.everythingdone.services.DoingService;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
-import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil;
 import com.ywwynm.everythingdone.utils.FileUtil;
@@ -96,6 +100,17 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
     private CheckBox mCbNn; // noticeable notification
 
+    private LinearLayout mLlBatteryOptimization;
+    private TextView mTvBatteryOptimizationStatus;
+    private LinearLayout mLlAutostart;
+    private TextView mTvAutostartStatus;
+    private LinearLayout mLlPostNotifications;
+    private TextView mTvPostNotificationsStatus;
+    private LinearLayout mLlChannelsStatus;
+    private TextView mTvChannelsStatus;
+    private LinearLayout mLlFullScreenIntent;
+    private TextView mTvFullScreenIntentStatus;
+
     private CheckBox mCbToggleCli; // toggle checklist item
     private boolean  mToggleCliOtc;
 
@@ -105,6 +120,8 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     private CheckBox mCbAutoLink;
 
     private CheckBox mCbTwiceBack;
+
+    private CheckBox mCbCreateAnimationStyle;
 
     // group ringtone
     private static String[] sKeysRingtone = {
@@ -250,10 +267,23 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
             Uri uri = data.getData();
+            if (uri == null) return;
+
+            if (requestCode == Def.Communication.REQUEST_CREATE_BACKUP_FILE) {
+                showBackupLoadingDialog();
+                new BackupTask().execute(uri);
+                return;
+            }
+
+            if (requestCode == REQUEST_CHOOSE_BACKUP_FILE) {
+                startToRestore(uri);
+                return;
+            }
+
             String pathName = UriPathConverter.getLocalPathName(this, uri);
             View root = f(R.id.rl_settings_root);
             if (pathName == null) {
-                Snackbar.make(root, R.string.error_cannot_add_from_network, // TODO: 2017/3/28 not attachment
+                Snackbar.make(root, R.string.error_cannot_add_from_network,
                         Snackbar.LENGTH_SHORT).show();
                 return;
             }
@@ -270,8 +300,6 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                 mTvDrawerHeader.setText(pathName);
             } else if (requestCode == REQUEST_CHOOSE_AUDIO_FILE) {
                 setFileRingtone(pathName);
-            } else if (requestCode == REQUEST_CHOOSE_BACKUP_FILE) {
-                startToRestore(pathName);
             }
         }
     }
@@ -290,20 +318,15 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     private void setFileRingtone(String pathName) {
         String audioName = FileUtil.getNameWithoutPostfix(pathName);
         File srcFile = new File(pathName);
-        Uri uri;
-        if (!DeviceUtil.hasNougatApi()) {
-            uri = Uri.fromFile(srcFile);
-        } else {
-            File dstFile = FileUtil.createFile(Def.Meta.APP_FILE_DIR + "/ringtone",
-                    srcFile.getName());
-            try {
-                FileUtil.copyFile(srcFile, dstFile);
-            } catch (IOException e) {
-                e.printStackTrace();
-                // ignore this for the time being
-            }
-            uri = Uri.fromFile(dstFile);
+        File dstFile = FileUtil.createFile(Def.getAppFileDir(this) + "/ringtone",
+                srcFile.getName());
+        try {
+            FileUtil.copyFile(srcFile, dstFile);
+        } catch (IOException e) {
+            e.printStackTrace();
+            // ignore this for the time being
         }
+        Uri uri = FileProvider.getUriForFile(this, "com.ywwynm.everythingdone", dstFile);
         if (!sRingtoneUriList.contains(uri)) {
             sRingtoneTitleList.add(1, audioName);
             sRingtoneUriList.add(1, uri);
@@ -333,6 +356,40 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     protected void onResume() {
         super.onResume();
         initUiPrivacy();
+        updateNotificationReliabilityUi();
+    }
+
+    private void updateNotificationReliabilityUi() {
+        if (mTvBatteryOptimizationStatus == null) return;
+
+        boolean notif = NotificationReliabilityHelper.areNotificationsEnabled(this);
+        mTvPostNotificationsStatus.setText(notif
+                ? R.string.settings_notifications_enabled_on
+                : R.string.settings_notifications_enabled_off);
+
+        java.util.List<String> disabled =
+                NotificationReliabilityHelper.getDisabledCriticalChannels(this);
+        int total = NotificationReliabilityHelper.CRITICAL_CHANNEL_IDS.size();
+        if (disabled.isEmpty()) {
+            mTvChannelsStatus.setText(getString(R.string.settings_channels_all_on, total));
+        } else {
+            mTvChannelsStatus.setText(getString(
+                    R.string.settings_channels_some_off, disabled.size(), total));
+        }
+
+        boolean fsi = NotificationReliabilityHelper.canUseFullScreenIntent(this);
+        mTvFullScreenIntentStatus.setText(fsi
+                ? R.string.settings_full_screen_intent_on
+                : R.string.settings_full_screen_intent_off);
+
+        boolean ignored = NotificationReliabilityHelper.isBatteryOptimizationIgnored(this);
+        mTvBatteryOptimizationStatus.setText(ignored
+                ? R.string.settings_battery_optimization_on
+                : R.string.settings_battery_optimization_off);
+
+        mTvAutostartStatus.setText(NotificationReliabilityHelper.needsVendorAutostartHint()
+                ? R.string.settings_autostart_desc
+                : R.string.settings_autostart_not_needed);
     }
 
     @Override
@@ -410,12 +467,25 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
         mCbNn = f(R.id.cb_noticeable_notification);
 
+        mLlBatteryOptimization = f(R.id.ll_battery_optimization_as_bt);
+        mTvBatteryOptimizationStatus = f(R.id.tv_battery_optimization_status);
+        mLlAutostart = f(R.id.ll_autostart_as_bt);
+        mTvAutostartStatus = f(R.id.tv_autostart_status);
+        mLlPostNotifications = f(R.id.ll_post_notifications_as_bt);
+        mTvPostNotificationsStatus = f(R.id.tv_post_notifications_status);
+        mLlChannelsStatus = f(R.id.ll_channels_status_as_bt);
+        mTvChannelsStatus = f(R.id.tv_channels_status);
+        mLlFullScreenIntent = f(R.id.ll_full_screen_intent_as_bt);
+        mTvFullScreenIntentStatus = f(R.id.tv_full_screen_intent_status);
+
         mCbToggleCli  = f(R.id.cb_toggle_checklist);
         mCbSimpleFCli = f(R.id.cb_simple_finished_checklist);
 
         mCbAutoLink = f(R.id.cb_auto_link);
 
         mCbTwiceBack = f(R.id.cb_twice_back);
+
+        mCbCreateAnimationStyle = f(R.id.cb_create_animation_style);
 
         // ringtone
         mLlsRingtone    = new LinearLayout[4];
@@ -514,6 +584,9 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
         boolean twiceBack = mPreferences.getBoolean(Def.Meta.KEY_TWICE_BACK, false);
         mCbTwiceBack.setChecked(twiceBack);
+
+        boolean createAnimationStyle = mPreferences.getBoolean(Def.Meta.KEY_CREATE_ANIMATION_STYLE, false);
+        mCbCreateAnimationStyle.setChecked(createAnimationStyle);
     }
 
     private void initUiRingtone() {
@@ -548,16 +621,6 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     private void initUiFingerprint() {
         TextView tvTitle  = f(R.id.tv_use_fingerprint_title);
         TextView tvDscrpt = f(R.id.tv_use_fingerprint_description);
-
-        if (!DeviceUtil.hasMarshmallowApi()) {
-            mRlFgprtAsBt.setEnabled(false);
-            mCbFgprt.setEnabled(false);
-            mCbFgprt.setChecked(false);
-            tvTitle.setTextColor(ContextCompat.getColor(this, R.color.black_14p));
-            tvDscrpt.setTextColor(ContextCompat.getColor(this, R.color.black_10p));
-            tvDscrpt.setText(R.string.not_support_fgprt);
-            return;
-        }
 
         FingerprintHelper fph = FingerprintHelper.getInstance();
         String password = mPreferences.getString(Def.Meta.KEY_PRIVATE_PASSWORD, null);
@@ -641,16 +704,12 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         Drawable d1 = ContextCompat.getDrawable(this, R.drawable.act_start_doing);
         Drawable d2 = d1.mutate();
         d2.setColorFilter(mAccentColor, PorterDuff.Mode.SRC_ATOP);
-        if (DeviceUtil.hasJellyBeanMR1Api()) {
-            tvTitle.setCompoundDrawablesRelativeWithIntrinsicBounds(d2, null, null, null);
-        } else {
-            tvTitle.setCompoundDrawablesWithIntrinsicBounds(d2, null, null, null);
-        }
+        tvTitle.setCompoundDrawablesRelativeWithIntrinsicBounds(d2, null, null, null);
     }
 
     private void initUiAdvanced() {
         // quick create
-        boolean qc = mPreferences.getBoolean(Def.Meta.KEY_QUICK_CREATE, true);
+        boolean qc = mPreferences.getBoolean(Def.Meta.KEY_QUICK_CREATE, false);
         mCbQuickCreate.setChecked(qc);
 
         boolean closeLater = mPreferences.getBoolean(Def.Meta.KEY_CLOSE_NOTIFICATION_LATER, false);
@@ -738,6 +797,76 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             }
         });
 
+        mLlPostNotifications.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (NotificationReliabilityHelper.areNotificationsEnabled(SettingsActivity.this)) {
+                    NotificationReliabilityHelper.openAppNotificationSettings(SettingsActivity.this);
+                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                        && ContextCompat.checkSelfPermission(SettingsActivity.this,
+                                Manifest.permission.POST_NOTIFICATIONS)
+                        != PackageManager.PERMISSION_GRANTED) {
+                    doWithPermissionChecked(new SimplePermissionCallback(SettingsActivity.this) {
+                        @Override
+                        public void onDenied() {
+                            super.onDenied();
+                            // user denied — open notification settings so they can grant manually
+                            NotificationReliabilityHelper.openAppNotificationSettings(
+                                    SettingsActivity.this);
+                        }
+                    }, Def.Communication.REQUEST_PERMISSION_NOTIFICATION,
+                            Manifest.permission.POST_NOTIFICATIONS);
+                } else {
+                    NotificationReliabilityHelper.openAppNotificationSettings(SettingsActivity.this);
+                }
+            }
+        });
+
+        mLlChannelsStatus.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                java.util.List<String> disabled = NotificationReliabilityHelper
+                        .getDisabledCriticalChannels(SettingsActivity.this);
+                if (!disabled.isEmpty()) {
+                    NotificationReliabilityHelper.openChannelSettings(
+                            SettingsActivity.this, disabled.get(0));
+                } else {
+                    NotificationReliabilityHelper.openAppNotificationSettings(SettingsActivity.this);
+                }
+            }
+        });
+
+        mLlFullScreenIntent.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                NotificationReliabilityHelper.openFullScreenIntentSettings(SettingsActivity.this);
+            }
+        });
+
+        mLlBatteryOptimization.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (NotificationReliabilityHelper.isBatteryOptimizationIgnored(SettingsActivity.this)) {
+                    NotificationReliabilityHelper.openAppDetailsSettings(SettingsActivity.this);
+                } else {
+                    NotificationReliabilityHelper.requestIgnoreBatteryOptimization(SettingsActivity.this);
+                }
+            }
+        });
+
+        mLlAutostart.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                boolean opened = NotificationReliabilityHelper
+                        .openVendorAutostartSettings(SettingsActivity.this);
+                if (!opened) {
+                    Toast.makeText(SettingsActivity.this,
+                            R.string.settings_autostart_unavailable,
+                            Toast.LENGTH_LONG).show();
+                }
+            }
+        });
+
         f(R.id.rl_toggle_checklist_as_bt).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -763,6 +892,13 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             @Override
             public void onClick(View v) {
                 mCbTwiceBack.setChecked(!mCbTwiceBack.isChecked());
+            }
+        });
+
+        f(R.id.rl_create_animation_style_as_bt).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mCbCreateAnimationStyle.setChecked(!mCbCreateAnimationStyle.isChecked());
             }
         });
     }
@@ -1098,6 +1234,28 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
+                    // Quick-create is a notification-only feature — without
+                    // POST_NOTIFICATIONS it silently does nothing. Ask up-front
+                    // and roll the checkbox back if the user refuses, so we
+                    // don't end up with a "looks enabled but does nothing" state.
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                            && ContextCompat.checkSelfPermission(SettingsActivity.this,
+                                    Manifest.permission.POST_NOTIFICATIONS)
+                            != PackageManager.PERMISSION_GRANTED) {
+                        doWithPermissionChecked(new SimplePermissionCallback(SettingsActivity.this) {
+                            @Override
+                            public void onGranted() {
+                                SystemNotificationUtil.createQuickCreateNotification(App.getApp());
+                            }
+                            @Override
+                            public void onDenied() {
+                                super.onDenied();
+                                mCbQuickCreate.setChecked(false);
+                            }
+                        }, Def.Communication.REQUEST_PERMISSION_NOTIFICATION,
+                                Manifest.permission.POST_NOTIFICATIONS);
+                        return;
+                    }
                     SystemNotificationUtil.createQuickCreateNotification(App.getApp());
                 } else {
                     NotificationManagerCompat.from(App.getApp()).cancel(
@@ -1123,15 +1281,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                     @Override
                     public void onClick(View v) {
                         todf.dismiss();
-                        doWithPermissionChecked(
-                                new SimplePermissionCallback(SettingsActivity.this) {
-                                    @Override
-                                    public void onGranted() {
-                                        startChooseImageAsDrawerHeader();
-                                    }
-                                },
-                                Def.Communication.REQUEST_PERMISSION_CHOOSE_IMAGE_FILE,
-                                Manifest.permission.WRITE_EXTERNAL_STORAGE);
+                        startChooseImageAsDrawerHeader();
                     }
                 });
         todf.show(getFragmentManager(), TwoOptionsDialogFragment.TAG);
@@ -1187,9 +1337,9 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                 Intent intent = new Intent(context, LocaleChangeReceiver.class);
                 intent.setAction(Def.Communication.BROADCAST_ACTION_RESP_LOCALE_CHANGE);
                 PendingIntent pendingIntent = PendingIntent.getBroadcast(context,
-                        0, intent, PendingIntent.FLAG_CANCEL_CURRENT);
+                        0, intent, PendingIntent.FLAG_CANCEL_CURRENT | PendingIntent.FLAG_IMMUTABLE);
                 AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-                am.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 1600, pendingIntent);
+                am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 1600, pendingIntent);
             }
         });
         cdf.show(getFragmentManager(), ChooserDialogFragment.TAG);
@@ -1214,21 +1364,20 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                 new AuthenticationHelper.AuthenticationCallback() {
                     @Override
                     public void onAuthenticated() {
-                        doWithPermissionChecked(
-                                new SimplePermissionCallback(SettingsActivity.this) {
-                                    @Override
-                                    public void onGranted() {
-                                        showBackupLoadingDialog();
-                                        new BackupTask().execute();
-                                    }
-                                },
-                                Def.Communication.REQUEST_PERMISSION_BACKUP,
-                                Manifest.permission.WRITE_EXTERNAL_STORAGE);
+                        startCreateBackupFile();
                     }
 
                     @Override
                     public void onCancel() { }
                 });
+    }
+
+    private void startCreateBackupFile() {
+        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        intent.setType("*/*");
+        String timeStr = java.time.ZonedDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+        intent.putExtra(Intent.EXTRA_TITLE, "ED_backup_" + timeStr + ".bak");
+        startActivityForResult(intent, Def.Communication.REQUEST_CREATE_BACKUP_FILE);
     }
 
     private void showBackupLoadingDialog() {
@@ -1258,15 +1407,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                 new AuthenticationHelper.AuthenticationCallback() {
                     @Override
                     public void onAuthenticated() {
-                        doWithPermissionChecked(
-                                new SimplePermissionCallback(SettingsActivity.this) {
-                                    @Override
-                                    public void onGranted() {
-                                        startChooseBackupFile();
-                                    }
-                                },
-                                Def.Communication.REQUEST_PERMISSION_RESTORE,
-                                Manifest.permission.WRITE_EXTERNAL_STORAGE);
+                        startChooseBackupFile();
                     }
 
                     @Override
@@ -1275,16 +1416,16 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
     }
 
     private void startChooseBackupFile() {
-        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.setType("*/*");
         startActivityForResult(
                 Intent.createChooser(intent, getString(R.string.restore_choose_backup_file)),
                 Def.Communication.REQUEST_CHOOSE_BACKUP_FILE);
     }
 
-    private void startToRestore(String pathName) {
+    private void startToRestore(Uri uri) {
         showRestoreLoadingDialog();
-        new RestoreTask().execute(pathName);
+        new RestoreTask().execute(uri);
     }
 
     private void showRestoreLoadingDialog() {
@@ -1317,15 +1458,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             @Override
             public void onClick(View v) {
                 mChoosingIndex = index;
-                doWithPermissionChecked(
-                        new SimplePermissionCallback(SettingsActivity.this) {
-                            @Override
-                            public void onGranted() {
-                                startChooseRingtoneFromStorage();
-                            }
-                        },
-                        Def.Communication.REQUEST_PERMISSION_CHOOSE_AUDIO_FILE,
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE);
+                startChooseRingtoneFromStorage();
             }
         });
         cdf.setOnItemClickListener(new View.OnClickListener() {
@@ -1347,7 +1480,8 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                     if (pathName == null) { // TODO: 2016/5/16 strange behavior here
                         return;
                     }
-                    uri = Uri.fromFile(new File(pathName));
+                    uri = FileProvider.getUriForFile(
+                            context, "com.ywwynm.everythingdone", new File(pathName));
                 }
                 Ringtone ringtone = RingtoneManager.getRingtone(context, uri);
                 ringtone.play();
@@ -1429,6 +1563,8 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         FrequentSettings.put(Def.Meta.KEY_TWICE_BACK, twiceBack);
         editor.putBoolean(Def.Meta.KEY_TWICE_BACK, twiceBack);
 
+        editor.putBoolean(Def.Meta.KEY_CREATE_ANIMATION_STYLE, mCbCreateAnimationStyle.isChecked());
+
         // ringtone
         for (int i = 0; i < mChosenRingtoneUris.length; i++) {
             editor.putString(sKeysRingtone[i], mChosenRingtoneUris[i].toString());
@@ -1473,6 +1609,23 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         if (mDTPicked != 0) {
             AlarmHelper.tryToCreateDailyTodoAlarm(this);
         }
+
+        boolean anyNotificationFeatureEnabled = mCbNn.isChecked()
+                || mCbQuickCreate.isChecked()
+                || mCbCloseNotificationLater.isChecked()
+                || mCbOngoingLockscreen.isChecked()
+                || mANPicked != 0;
+        if (anyNotificationFeatureEnabled
+                && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+            doWithPermissionChecked(new SimplePermissionCallback(this) {
+                @Override
+                public void onDenied() {
+                    super.onDenied();
+                }
+            }, Def.Communication.REQUEST_PERMISSION_NOTIFICATION,
+                    Manifest.permission.POST_NOTIFICATIONS);
+        }
     }
 
     @Override
@@ -1511,7 +1664,7 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
 
         @Override
         protected Boolean doInBackground(Object... params) {
-            return BackupHelper.backup(SettingsActivity.this);
+            return BackupHelper.backup(SettingsActivity.this, (Uri) params[0]);
         }
 
         @Override
@@ -1564,8 +1717,8 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
             }
             cursor.close();
 
-            String backupFilePathName = (String) params[0];
-            if (BackupHelper.restore(context, new File(backupFilePathName))) {
+            Uri backupUri = (Uri) params[0];
+            if (BackupHelper.restore(context, backupUri)) {
                 AlarmHelper.cancelAlarms(context, thingIds, reminderIds, habitReminderIds);
                 try {
                     FileOutputStream fos = SettingsActivity.this.openFileOutput(

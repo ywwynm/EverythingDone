@@ -24,6 +24,9 @@ public class LongTextDialogFragment extends BaseDialogFragment {
     public static final String TAG = "LongTextDialogFragment";
 
     private int mAccentColor;
+    /** Phase 8: full ThingBackground for gradient title / confirm. EdgeEffect
+     *  stays on int (single-channel API). */
+    private com.ywwynm.everythingdone.model.ThingBackground mAccentBackground;
 
     private String mTitle;
     private String mContent;
@@ -46,8 +49,13 @@ public class LongTextDialogFragment extends BaseDialogFragment {
         TextView tvConfirmAsBt = f(R.id.tv_confirm_as_bt_long_text);
 
         if (mTitle != null) {
-            tvTitle.setTextColor(mAccentColor);
             tvTitle.setText(mTitle);
+            if (mAccentBackground != null) {
+                com.ywwynm.everythingdone.utils.BackgroundUtil.applyTextBackground(
+                        tvTitle, mAccentBackground);
+            } else {
+                tvTitle.setTextColor(mAccentColor);
+            }
         } else {
             tvTitle.setVisibility(View.GONE);
         }
@@ -71,7 +79,12 @@ public class LongTextDialogFragment extends BaseDialogFragment {
         if (mConfirmText != null) {
             tvConfirmAsBt.setText(mConfirmText);
         }
-        tvConfirmAsBt.setTextColor(mAccentColor);
+        if (mAccentBackground != null) {
+            com.ywwynm.everythingdone.utils.BackgroundUtil.applyTextBackground(
+                    tvConfirmAsBt, mAccentBackground);
+        } else {
+            tvConfirmAsBt.setTextColor(mAccentColor);
+        }
         tvConfirmAsBt.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -136,6 +149,13 @@ public class LongTextDialogFragment extends BaseDialogFragment {
 
     public void setAccentColor(int accentColor) {
         mAccentColor = accentColor;
+        mAccentBackground = null;
+    }
+
+    /** Phase 8: gradient-aware accent. */
+    public void setAccentBackground(com.ywwynm.everythingdone.model.ThingBackground bg) {
+        mAccentBackground = bg;
+        if (bg != null) mAccentColor = bg.representativeColor();
     }
 
     public void setTitle(String title) {

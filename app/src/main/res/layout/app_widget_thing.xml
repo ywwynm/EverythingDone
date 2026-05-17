@@ -7,6 +7,21 @@
     android:layout_height="match_parent"
     android:foreground="@drawable/selectable_item_background_light">
 
+    <!-- Phase 8: gradient-capable background. Drawn behind all content because
+         it's the first child of the RelativeLayout (so z-order = lowest). For
+         PURE things AppWidgetHelper renders a translucent solid-color bitmap;
+         for GRADIENT things it renders a GradientDrawable to a bitmap (since
+         RemoteViews can't carry a Shader). scaleType=fitXY stretches the
+         small bitmap to the actual widget size — linear gradients are
+         smooth under axis-aligned stretching. -->
+    <ImageView
+        android:id="@+id/iv_widget_bg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY"
+        android:importantForAccessibility="no"
+        android:contentDescription="@null"/>
+
     <TextView
         android:id="@+id/view_thing_padding_bottom"
         android:layout_width="1px"

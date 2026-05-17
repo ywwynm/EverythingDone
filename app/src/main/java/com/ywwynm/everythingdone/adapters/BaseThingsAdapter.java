@@ -4,14 +4,13 @@ import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.PorterDuff;
-import android.support.annotation.DrawableRes;
-import android.support.annotation.IntDef;
-import android.support.annotation.StringRes;
-import android.support.v4.content.ContextCompat;
-import android.support.v4.util.LongSparseArray;
-import android.support.v7.widget.CardView;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
+import androidx.annotation.DrawableRes;
+import androidx.annotation.StringRes;
+import androidx.core.content.ContextCompat;
+import androidx.collection.LongSparseArray;
+import androidx.cardview.widget.CardView;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -25,7 +24,9 @@ import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.RequestManager;
-import com.bumptech.glide.load.resource.drawable.GlideDrawable;
+import android.graphics.drawable.Drawable;
+import com.bumptech.glide.load.DataSource;
+import com.bumptech.glide.load.engine.GlideException;
 import com.bumptech.glide.request.RequestListener;
 import com.bumptech.glide.request.target.Target;
 import com.ywwynm.everythingdone.App;
@@ -40,14 +41,13 @@ import com.ywwynm.everythingdone.managers.ModeManager;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.Thing;
+import com.ywwynm.everythingdone.model.ThingBackground;
+import com.ywwynm.everythingdone.utils.BackgroundUtil;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
-import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.views.HabitRecordPresenter;
 import com.ywwynm.everythingdone.views.InterceptTouchCardView;
 
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
 import java.util.List;
 
 /**
@@ -58,28 +58,52 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
 
     public static final String TAG = "BaseThingsAdapter";
 
-    public static final int STYLE_WHITE = 0;
-    public static final int STYLE_BLACK = 1;
-
-    @IntDef({STYLE_WHITE, STYLE_BLACK})
-    @Retention(RetentionPolicy.SOURCE)
-    public @interface Style {}
-
     private static int white_86p;
     private static int white_76p;
     private static int white_66p;
+    private static int white_54p;
     private static int black_86p;
     private static int black_76p;
     private static int black_66p;
+    private static int black_54p;
 
     static {
         Context context = App.getApp();
         white_86p = ContextCompat.getColor(context, R.color.white_86p);
         white_76p = ContextCompat.getColor(context, R.color.white_76p);
         white_66p = ContextCompat.getColor(context, R.color.white_66p);
+        white_54p = ContextCompat.getColor(context, R.color.white_54p);
         black_86p = ContextCompat.getColor(context, R.color.black_86p);
         black_76p = ContextCompat.getColor(context, R.color.black_76p);
         black_66p = ContextCompat.getColor(context, R.color.black_66p);
+        black_54p = ContextCompat.getColor(context, R.color.black_54p);
+    }
+
+    /**
+     * Pick a text/foreground colour to draw on top of a card whose background
+     * is {@code thingColor}. Always luminance-adaptive: black-side on light
+     * cards, white-side on dark cards.
+     *
+     * <p>Phase 8: removed the STYLE_BLACK hard-override that NoticeableNotificationActivity
+     * used to rely on — back when its card was a 16/255 alpha overlay on a
+     * white dialog window, that override matched the (then near-white)
+     * effective background. Now that card is fully opaque thing colour, so the
+     * adaptive path is correct for every caller.
+     */
+    protected int textColorPrimary(int thingColor) {
+        return BackgroundUtil.isLight(thingColor) ? black_86p : white_86p;
+    }
+
+    protected int textColorSecondary(int thingColor) {
+        return BackgroundUtil.isLight(thingColor) ? black_76p : white_76p;
+    }
+
+    protected int textColorTertiary(int thingColor) {
+        return BackgroundUtil.isLight(thingColor) ? black_66p : white_66p;
+    }
+
+    protected int textColorDisabled(int thingColor) {
+        return BackgroundUtil.isLight(thingColor) ? black_54p : white_54p;
     }
 
     protected LayoutInflater mInflater;
@@ -95,7 +119,6 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
     private RequestManager mImageRequestManager;
 
     private int mCardWidth;
-    protected @Style int mStyle = STYLE_WHITE;
     private boolean mShouldShowPrivateContent = false;
     private int mChecklistMaxItemCount = 8;
 
@@ -122,10 +145,6 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
         mCardWidth = cardWidth;
     }
 
-    public void setStyle(int style) {
-        mStyle = style;
-    }
-
     public void setShouldShowPrivateContent(boolean shouldShowPrivateContent) {
         mShouldShowPrivateContent = shouldShowPrivateContent;
     }
@@ -143,7 +162,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
     public void onBindViewHolder(BaseThingViewHolder holder, int position) {
         Thing thing = getThings().get(position);
         setContentViewAppearance(holder, thing);
-        setCardAppearance(holder, thing.getColor(), thing.isSelected());
+        setCardAppearance(holder, thing.getBackground(), thing.isSelected());
     }
 
     private void setContentViewAppearance(final BaseThingViewHolder holder, Thing thing) {
@@ -152,6 +171,14 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
 
         if (thing.isPrivate() && !mShouldShowPrivateContent) {
             holder.ivPrivateThing.setVisibility(View.VISIBLE);
+            // Phase 8: tint the lock icon for luminance so it stays visible on
+            // light thing backgrounds (the drawable itself is single-tone white).
+            androidx.core.widget.ImageViewCompat.setImageTintList(
+                    holder.ivPrivateThing,
+                    BackgroundUtil.isLight(thing.getColor())
+                            ? android.content.res.ColorStateList.valueOf(
+                                    android.graphics.Color.BLACK)
+                            : null);
             holder.flImageAttachment.setVisibility(View.GONE);
             holder.tvContent.setVisibility(View.GONE);
             holder.rvChecklist.setVisibility(View.GONE);
@@ -201,11 +228,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
             holder.tvTitle.setVisibility(View.VISIBLE);
             holder.tvTitle.setPadding(p, p, p, 0);
             holder.tvTitle.setText(title);
-            if (mStyle == STYLE_WHITE) {
-                holder.tvTitle.setTextColor(white_86p);
-            } else {
-                holder.tvTitle.setTextColor(black_86p);
-            }
+            holder.tvTitle.setTextColor(textColorPrimary(thing.getColor()));
         } else {
             holder.tvTitle.setVisibility(View.GONE);
         }
@@ -229,11 +252,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
 
                 holder.tvContent.setPadding(p, p, p, 0);
                 holder.tvContent.setText(content);
-                if (mStyle == STYLE_WHITE) {
-                    holder.tvContent.setTextColor(white_76p);
-                } else {
-                    holder.tvContent.setTextColor(black_76p);
-                }
+                holder.tvContent.setTextColor(textColorSecondary(thing.getColor()));
             } else {
                 holder.tvContent.setVisibility(View.GONE);
                 holder.rvChecklist.setVisibility(View.VISIBLE);
@@ -248,7 +267,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
                 } else {
                     adapter.setItems(items);
                 }
-                adapter.setStyle(mStyle);
+                adapter.setThingColor(thing.getColor());
                 adapter.setMaxItemCount(mChecklistMaxItemCount);
                 onChecklistAdapterInitialized(holder, adapter, thing);
                 holder.rvChecklist.setAdapter(adapter);
@@ -304,6 +323,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
             holder.tvReminderTime.setText(
                     DateTimeUtil.getDateTimeStrGoal(mContext, thing, reminder));
         }
+        holder.tvReminderTime.setTextColor(textColorTertiary(thing.getColor()));
     }
 
     @SuppressLint("SetTextI18n")
@@ -328,6 +348,10 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
             summary += ", " + habit.getStateDescription(mContext);
         }
         holder.tvHabitSummary.setText(summary);
+        holder.tvHabitSummary.setTextColor(textColorTertiary(thing.getColor()));
+        holder.tvHabitNextReminder.setTextColor(textColorDisabled(thing.getColor()));
+        holder.tvHabitLastFive.setTextColor(textColorDisabled(thing.getColor()));
+        holder.tvHabitFinishedThisT.setTextColor(textColorTertiary(thing.getColor()));
 
         if (thing.getState() == Thing.UNDERWAY && !habit.isPaused()) {
             holder.tvHabitNextReminder.setVisibility(View.VISIBLE);
@@ -389,26 +413,22 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
             paramsCover.height = imageH;
 
             // before lollipop, set margins to negative number to remove ugly stroke
-            if (!DeviceUtil.hasLollipopApi()) {
-                int m = (int) (mDensity * -8);
-                paramsLayout.setMargins(0, m, 0, 0);
-            }
 
             String pathName = firstImageTypePathName.substring(1, firstImageTypePathName.length());
             mImageRequestManager
                     .load(pathName)
-                    .listener(new RequestListener<String, GlideDrawable>() {
+                    .listener(new RequestListener<Drawable>() {
                         @Override
-                        public boolean onException(
-                                Exception e, String model, Target<GlideDrawable> target,
+                        public boolean onLoadFailed(
+                                GlideException e, Object model, Target<Drawable> target,
                                 boolean isFirstResource) {
                             return false;
                         }
 
                         @Override
                         public boolean onResourceReady(
-                                GlideDrawable resource, String model, Target<GlideDrawable> target,
-                                boolean isFromMemoryCache, boolean isFirstResource) {
+                                Drawable resource, Object model, Target<Drawable> target,
+                                DataSource dataSource, boolean isFirstResource) {
                             holder.pbLoading.setVisibility(View.GONE);
                             return false;
                         }
@@ -454,13 +474,11 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
 
             holder.tvAudioCount.setText(str);
 
-            if (mStyle == STYLE_WHITE) {
-                holder.ivAudioCount.setImageResource(R.drawable.card_audio_attachment);
-                holder.tvAudioCount.setTextColor(white_66p);
-            } else {
-                holder.ivAudioCount.setImageResource(R.drawable.card_audio_attachment_black);
-                holder.tvAudioCount.setTextColor(black_66p);
-            }
+            boolean dark = BackgroundUtil.isLight(thing.getColor());
+            holder.ivAudioCount.setImageResource(dark
+                    ? R.drawable.card_audio_attachment_black
+                    : R.drawable.card_audio_attachment);
+            holder.tvAudioCount.setTextColor(textColorTertiary(thing.getColor()));
         }
     }
 
@@ -506,9 +524,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
             holder.tvAudioCount.setTextSize(18);
 
             llp2.setMargins(dp12, llp2.topMargin, llp2.rightMargin, llp2.bottomMargin);
-            if (DeviceUtil.hasJellyBeanMR1Api()) {
-                llp2.setMarginStart(dp12);
-            }
+            llp2.setMarginStart(dp12);
 
             holder.llAudioAttachment.setPadding(dp16, dp16, dp16, 0);
         } else {
@@ -517,9 +533,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
             holder.tvAudioCount.setTextSize(11);
 
             llp2.setMargins(dp8, llp2.topMargin, llp2.rightMargin, llp2.bottomMargin);
-            if (DeviceUtil.hasJellyBeanMR1Api()) {
-                llp2.setMarginStart(dp8);
-            }
+            llp2.setMarginStart(dp8);
 
             holder.llAudioAttachment.setPadding(dp16, dp16 / 4 * 3, dp16, 0);
         }
@@ -546,10 +560,8 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
         }
     }
 
-    private void setCardAppearance(final BaseThingViewHolder holder, int color, final boolean selected) {
-//        if (color == ContextCompat.getColor(mContext, R.color.pine_green)) {
-//            color = ContextCompat.getColor(mContext, R.color.aein_red);
-//        }
+    private void setCardAppearance(final BaseThingViewHolder holder,
+                                   ThingBackground background, final boolean selected) {
         final CardView cv = holder.cv;
         int currentMode = getCurrentMode();
         if (currentMode == ModeManager.MOVING) {
@@ -558,33 +570,50 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
                 ObjectAnimator.ofFloat(cv, "scaleY", 1.11f).setDuration(96).start();
                 ObjectAnimator.ofFloat(cv, "CardElevation", 12 * mDensity).
                         setDuration(96).start();
-                cv.setCardBackgroundColor(color);
+                BackgroundUtil.applyCardBackground(cv, background);
             } else {
                 cv.setScaleX(1.0f);
                 cv.setScaleY(1.0f);
                 cv.setCardElevation(2 * mDensity);
-                cv.setCardBackgroundColor(
-                        DisplayUtil.getLightColor(color, mContext));
+                BackgroundUtil.applyCardBackground(cv, lightVariant(background));
             }
         } else if (currentMode == ModeManager.SELECTING) {
             if (selected) {
-                cv.setCardBackgroundColor(color);
+                BackgroundUtil.applyCardBackground(cv, background);
             } else {
-                cv.setCardBackgroundColor(
-                        DisplayUtil.getLightColor(color, mContext));
+                BackgroundUtil.applyCardBackground(cv, lightVariant(background));
             }
         } else {
-            cv.setCardBackgroundColor(color);
+            BackgroundUtil.applyCardBackground(cv, background);
         }
 
+        // Phase 8: luminance-aware ripple — dark ripple on light cards (so the
+        // tap feedback is visible), light ripple on dark cards. Was gated on
+        // the (now-removed) STYLE_BLACK flag.
         // Wrong warning here since FrameLayout#setForeground(Drawable) was provided on API 1
-        if (mStyle == STYLE_BLACK) {
-            holder.cv.setForeground(ContextCompat.getDrawable(
-                    mContext, R.drawable.selectable_item_background));
-        } else {
-            holder.cv.setForeground(ContextCompat.getDrawable(
-                    mContext, R.drawable.selectable_item_background_light));
+        boolean cardIsLight = background != null
+                && BackgroundUtil.isLight(background.representativeColor());
+        holder.cv.setForeground(ContextCompat.getDrawable(
+                mContext,
+                cardIsLight
+                        ? R.drawable.selectable_item_background
+                        : R.drawable.selectable_item_background_light));
+    }
+
+    /**
+     * Produce a washed-out variant of {@code bg} for unselected cards in selecting/moving
+     * mode. PURE → lighter int (palette-aware, see {@link DisplayUtil#getLightColor}).
+     * GRADIENT → lighter on both endpoints (Phase 4 visual). Both keep the original
+     * background's mode/orientation.
+     */
+    private ThingBackground lightVariant(ThingBackground bg) {
+        if (bg.mode == ThingBackground.Mode.PURE) {
+            return ThingBackground.pure(DisplayUtil.getLightColor(bg.color, mContext));
         }
+        return ThingBackground.gradient(
+                DisplayUtil.getLightColor(bg.color,    mContext),
+                DisplayUtil.getLightColor(bg.endColor, mContext),
+                bg.orientation);
     }
 
     @Override
@@ -600,6 +629,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
     public static class BaseThingViewHolder extends BaseViewHolder {
 
         public final InterceptTouchCardView cv;
+        public final LinearLayout llContent;
         public final View vPaddingBottom;
 
         public final ImageView   ivStickyOngoing;
@@ -640,6 +670,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
             super(item);
 
             cv             = f(R.id.cv_thing);
+            llContent      = f(R.id.ll_thing_content);
             vPaddingBottom = f(R.id.view_thing_padding_bottom);
 
             ivStickyOngoing = f(R.id.iv_thing_sticky_ongoing);

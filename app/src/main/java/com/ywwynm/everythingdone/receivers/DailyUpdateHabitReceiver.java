@@ -10,6 +10,7 @@ import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
 import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper;
+import com.ywwynm.everythingdone.helpers.AlarmHelper;
 import com.ywwynm.everythingdone.model.Thing;
 
 public class DailyUpdateHabitReceiver extends BroadcastReceiver {
@@ -23,6 +24,7 @@ public class DailyUpdateHabitReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         updateHabits(context);
         sendBroadcastToMainUI(context);
+        AlarmHelper.createDailyUpdateHabitAlarm(context);
     }
 
     private void updateHabits(Context context) {

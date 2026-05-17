@@ -19,6 +19,9 @@ public class LoadingDialogFragment extends BaseDialogFragment {
     public static final String TAG = "LoadingDialogFragment";
 
     private int mAccentColor;
+    /** Phase 8: full ThingBackground for gradient title text. ProgressBar
+     *  indeterminate drawable PorterDuff filter stays int (API limit). */
+    private com.ywwynm.everythingdone.model.ThingBackground mAccentBackground;
 
     private String mTitle;
     private String mContent;
@@ -30,15 +33,22 @@ public class LoadingDialogFragment extends BaseDialogFragment {
         TextView tvContent    = f(R.id.tv_content_loading);
         ProgressBar pbLoading = f(R.id.pb_loading_fragment);
 
-        tvTitle.setTextColor(mAccentColor);
         if (mTitle != null) {
             tvTitle.setText(mTitle);
+        }
+        if (mAccentBackground != null) {
+            com.ywwynm.everythingdone.utils.BackgroundUtil.applyTextBackground(
+                    tvTitle, mAccentBackground);
+        } else {
+            tvTitle.setTextColor(mAccentColor);
         }
 
         if (mContent != null) {
             tvContent.setText(mContent);
         }
 
+        // PorterDuff tint is single-channel — collapse to representative int
+        // even when GRADIENT is supplied.
         pbLoading.getIndeterminateDrawable().setColorFilter(mAccentColor, PorterDuff.Mode.SRC_IN);
 
         setCancelable(false);
@@ -54,6 +64,13 @@ public class LoadingDialogFragment extends BaseDialogFragment {
 
     public void setAccentColor(int accentColor) {
         mAccentColor = accentColor;
+        mAccentBackground = null;
+    }
+
+    /** Phase 8: gradient-aware accent for the title. */
+    public void setAccentBackground(com.ywwynm.everythingdone.model.ThingBackground bg) {
+        mAccentBackground = bg;
+        if (bg != null) mAccentColor = bg.representativeColor();
     }
 
     public void setTitle(String title) {

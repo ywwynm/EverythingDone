@@ -1,13 +1,14 @@
 package com.ywwynm.everythingdone.receivers;
 
 import android.app.Notification;
+import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.support.v4.app.NotificationCompat;
-import android.support.v4.app.NotificationManagerCompat;
-import android.support.v4.util.Pair;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
+import androidx.core.util.Pair;
 import android.widget.Toast;
 
 import com.ywwynm.everythingdone.App;
@@ -215,12 +216,6 @@ public class HabitReceiver extends BroadcastReceiver {
         boolean moreNoticeable = sp.getBoolean(Def.Meta.KEY_NOTICEABLE_NOTIFICATION, true);
         notifyUserBySystemNotification(context, habitId, hrId, hrTime, position,
                 thing, moreNoticeable);
-        if (moreNoticeable) {
-            Intent intent = NoticeableNotificationActivity.getOpenIntentForHabit(
-                    context, hrId, position, hrTime);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
-            context.startActivity(intent);
-        }
     }
 
     private void notifyUserBySystemNotification(
@@ -228,13 +223,24 @@ public class HabitReceiver extends BroadcastReceiver {
             Thing thing, boolean moreNoticeable) {
         NotificationCompat.Builder builder = SystemNotificationUtil
                 .newGeneralNotificationBuilder(context, TAG, habitId, position, thing, false);
-        if (moreNoticeable && DeviceUtil.hasLollipopApi()) {
+        if (moreNoticeable) {
             // if we use a dialog to notify this alarm, we don't need to show heads-up notification
             builder.setPriority(NotificationCompat.PRIORITY_DEFAULT);
         }
 
+        // Phase 8: full ThingBackground for gradient on the action dialog.
         SystemNotificationUtil.addActionsForHabitNotification(
-                context, builder, hrId, position, hrTime);
+                context, builder, hrId, position, hrTime,
+                thing.isPrivate(), habitId, thing.getBackground());
+
+        if (moreNoticeable) {
+            Intent fullScreenIntent = NoticeableNotificationActivity.getOpenIntentForHabit(
+                    context, hrId, position, hrTime);
+            fullScreenIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
+            builder.setFullScreenIntent(PendingIntent.getActivity(
+                    context, (int) hrId, fullScreenIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE), true);
+        }
 
         NotificationManagerCompat nm = NotificationManagerCompat.from(context);
         nm.notify((int) hrId, builder.build());

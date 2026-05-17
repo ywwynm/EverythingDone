@@ -4,6 +4,10 @@ import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 import android.content.res.ColorStateList;
 import android.content.res.Configuration;
 import android.content.res.Resources;
@@ -14,11 +18,11 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.RippleDrawable;
 import android.graphics.drawable.StateListDrawable;
-import android.support.v4.content.ContextCompat;
-import android.support.v7.graphics.drawable.DrawerArrowDrawable;
-import android.support.v7.widget.AppCompatCheckBox;
-import android.support.v7.widget.AppCompatDrawableManager;
-import android.support.v7.widget.CardView;
+import androidx.core.content.ContextCompat;
+import androidx.appcompat.graphics.drawable.DrawerArrowDrawable;
+import androidx.appcompat.widget.AppCompatCheckBox;
+import androidx.core.graphics.drawable.DrawableCompat;
+import androidx.cardview.widget.CardView;
 import android.text.Layout;
 import android.util.Log;
 import android.util.SparseArray;
@@ -38,8 +42,6 @@ import android.widget.TextView;
 
 import com.ywwynm.everythingdone.R;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.util.Random;
 
 /**
@@ -61,12 +63,8 @@ public class DisplayUtil {
         Point screen = new Point();
         Display display = ((WindowManager) context.getSystemService(Context.WINDOW_SERVICE))
                 .getDefaultDisplay();
-        if (!DeviceUtil.hasLollipopApi()) {
-            display.getSize(screen);
-        } else {
-            // Content can overlay Navigation Bar above Lollipop.
-            display.getRealSize(screen);
-        }
+        // Content can overlay Navigation Bar above Lollipop.
+        display.getRealSize(screen);
         return screen;
     }
 
@@ -75,20 +73,7 @@ public class DisplayUtil {
         Point realScreen = new Point();
         Display display = ((WindowManager) context.getSystemService(Context.WINDOW_SERVICE))
                 .getDefaultDisplay();
-        if (DeviceUtil.hasJellyBeanMR1Api()) {
-            display.getRealSize(realScreen);
-        } else {
-            try {
-                Method mGetRawH = Display.class.getMethod("getRawHeight");
-                Method mGetRawW = Display.class.getMethod("getRawWidth");
-                realScreen.x = (Integer) mGetRawW.invoke(display);
-                realScreen.y = (Integer) mGetRawH.invoke(display);
-            } catch (Exception e) {
-                display.getSize(realScreen);
-                Log.e(TAG, "Cannot use reflection to get real screen size. " +
-                        "Returned size may be wrong.");
-            }
-        }
+        display.getRealSize(realScreen);
         return realScreen;
     }
 
@@ -153,9 +138,11 @@ public class DisplayUtil {
 
     // This method has a sexy history~
     // Someday if you see this code again, wish that your dream had come true
+    private static final Random sRng = new Random();
+
     public static int getRandomColor(Context context) {
         int[] colors = context.getResources().getIntArray(R.array.thing);
-        return colors[new Random().nextInt(colors.length)];
+        return colors[sRng.nextInt(colors.length)];
     }
 
     public static int getColorIndex(int color, Context context) {
@@ -168,20 +155,39 @@ public class DisplayUtil {
         return -1;
     }
 
+    /**
+     * Slightly darker variant of {@code color}.
+     *
+     * <p>For colors that are part of the original 10-entry palette, returns the exact
+     * value from {@code R.array.thing_dark} (preserving zero visual change for
+     * existing data). For any other color, falls back to algorithmic blending via
+     * {@link BackgroundUtil#darker(int, float)}.
+     *
+     * <p>Phase 1 of the color-system migration; see COLOR_MIGRATION_PLAN.md.
+     */
     public static int getDarkColor(int color, Context context) {
-        int[] colorsDark = context.getResources().getIntArray(R.array.thing_dark);
         int index = getColorIndex(color, context);
         if (index != -1) {
-            return colorsDark[index];
-        } else return 0;
+            return context.getResources().getIntArray(R.array.thing_dark)[index];
+        }
+        return BackgroundUtil.darker(color, 0.15f);
     }
 
+    /**
+     * Slightly lighter (washed-out) variant of {@code color}.
+     *
+     * <p>For colors that are part of the original 10-entry palette, returns the exact
+     * value from {@code R.array.thing_light} — the legacy values were hand-tuned and
+     * a uniform 66% white blend doesn't match them within tolerable LSB delta for
+     * some entries (notably pine_green). For any other color, falls back to
+     * algorithmic blending via {@link BackgroundUtil#lighter(int, float)}.
+     */
     public static int getLightColor(int color, Context context) {
-        int[] colorsLight = context.getResources().getIntArray(R.array.thing_light);
         int index = getColorIndex(color, context);
         if (index != -1) {
-            return colorsLight[index];
-        } else return 0;
+            return context.getResources().getIntArray(R.array.thing_light)[index];
+        }
+        return BackgroundUtil.lighter(color, 0.66f);
     }
 
     public static int getTransparentColor(int color, int alpha) {
@@ -217,149 +223,101 @@ public class DisplayUtil {
      * @param color color used to tint.
      */
     public static void tintView(View view, int color) {
-        final Drawable d = view.getBackground();
-        Drawable.ConstantState constantState = d.getConstantState();
-        if (constantState == null) return;
-        final Drawable nd = constantState.newDrawable();
-        nd.setColorFilter(AppCompatDrawableManager.getPorterDuffColorFilter(
-                color, PorterDuff.Mode.SRC_IN));
-        view.setBackground(nd);
-
-        // Drawable wrappedDrawable = DrawableCompat.wrap(view.getBackground().mutate());
-        // DrawableCompat.setTint(wrappedDrawable, color);
-        // view.setBackground(wrappedDrawable);
-
-        // ViewCompat.setBackgroundTintList(view, ColorStateList.valueOf(color));
+        Drawable wrappedDrawable = DrawableCompat.wrap(view.getBackground().mutate());
+        DrawableCompat.setTint(wrappedDrawable, color);
+        view.setBackground(wrappedDrawable);
     }
 
     public static void expandLayoutToStatusBarAboveLollipop(Activity activity) {
-        if (DeviceUtil.hasLollipopApi()) {
-            View decor = activity.getWindow().getDecorView();
-            decor.setSystemUiVisibility(
-                    decor.getSystemUiVisibility()
-                            | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
-        }
+        WindowCompat.setDecorFitsSystemWindows(activity.getWindow(), false);
     }
 
     public static void expandLayoutToFullscreenAboveLollipop(Activity activity) {
-        if (DeviceUtil.hasLollipopApi()) {
-            View decor = activity.getWindow().getDecorView();
-            decor.setSystemUiVisibility(
-                    decor.getSystemUiVisibility()
-                            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                            | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
-        }
+        WindowCompat.setDecorFitsSystemWindows(activity.getWindow(), false);
     }
 
     public static void expandStatusBarViewAboveKitkat(View statusBar) {
-        if (DeviceUtil.hasKitKatApi()) {
-            final int height = getStatusbarHeight(statusBar.getContext());
-            ViewGroup.LayoutParams vlp = statusBar.getLayoutParams();
-            vlp.height = height;
-            statusBar.requestLayout();
-        }
+        ViewCompat.setOnApplyWindowInsetsListener(statusBar, (v, insets) -> {
+            int topInset = insets.getInsets(WindowInsetsCompat.Type.systemBars()).top;
+            ViewGroup.LayoutParams vlp = v.getLayoutParams();
+            vlp.height = topInset;
+            v.requestLayout();
+            return insets;
+        });
+        statusBar.requestApplyInsets();
+    }
+
+    /**
+     * Apply the bottom system-bar inset (gesture bar / 3-button nav) as
+     * additional margin on the given view. Used for FABs and floating bottom
+     * buttons that should "sit above" the system bar instead of being hidden
+     * behind it.
+     *
+     * <p>The original layout's bottom margin is preserved; the inset is added
+     * on top of it, and re-applied if the configuration changes.
+     */
+    public static void applyBottomInsetAsMargin(View view) {
+        ViewGroup.MarginLayoutParams initial =
+                (ViewGroup.MarginLayoutParams) view.getLayoutParams();
+        final int originalBottom = initial.bottomMargin;
+        ViewCompat.setOnApplyWindowInsetsListener(view, (v, insets) -> {
+            androidx.core.graphics.Insets bars =
+                    insets.getInsets(WindowInsetsCompat.Type.systemBars()
+                            | WindowInsetsCompat.Type.displayCutout());
+            ViewGroup.MarginLayoutParams mlp =
+                    (ViewGroup.MarginLayoutParams) v.getLayoutParams();
+            mlp.bottomMargin = originalBottom + bars.bottom;
+            v.setLayoutParams(mlp);
+            return insets;
+        });
+        view.requestApplyInsets();
+    }
+
+    /**
+     * Apply the bottom system-bar inset as padding on the given view. The
+     * original padding (top/left/right and existing bottom) is preserved; the
+     * bottom inset is added on top of the original bottom padding.
+     */
+    public static void applyBottomInsetAsPadding(View view) {
+        final int origLeft = view.getPaddingLeft();
+        final int origTop = view.getPaddingTop();
+        final int origRight = view.getPaddingRight();
+        final int origBottom = view.getPaddingBottom();
+        ViewCompat.setOnApplyWindowInsetsListener(view, (v, insets) -> {
+            androidx.core.graphics.Insets bars =
+                    insets.getInsets(WindowInsetsCompat.Type.systemBars()
+                            | WindowInsetsCompat.Type.displayCutout());
+            v.setPadding(origLeft, origTop, origRight, origBottom + bars.bottom);
+            return insets;
+        });
+        view.requestApplyInsets();
     }
 
     public static void darkStatusBar(Activity activity) {
         Window window = activity.getWindow();
-        if (DeviceUtil.hasMarshmallowApi()) {
-            View decor = window.getDecorView();
-            decor.setSystemUiVisibility(
-                    decor.getSystemUiVisibility() | View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
-        }
-        darkStatusBarForMIUI(window);
-        darkStatusBarForFlyme(window);
+        View decor = window.getDecorView();
+        WindowInsetsControllerCompat controller = new WindowInsetsControllerCompat(window, decor);
+        controller.setAppearanceLightStatusBars(true);
     }
 
     public static void cancelDarkStatusBar(Activity activity) {
         Window window = activity.getWindow();
-        if (DeviceUtil.hasMarshmallowApi()) {
-            View decor = window.getDecorView();
-            decor.setSystemUiVisibility(
-                    decor.getSystemUiVisibility() & ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
-        }
-    }
-
-    private static void darkStatusBarForMIUI(Window window) {
-        Class<? extends Window> clazz = window.getClass();
-        try {
-            Class<?> layoutParams = Class.forName("android.view.MiuiWindowManager$LayoutParams");
-            Field field = layoutParams.getField("EXTRA_FLAG_STATUS_BAR_DARK_MODE");
-            int darkModeFlag = field.getInt(layoutParams);
-            Method extraFlagField = clazz.getMethod("setExtraFlags", int.class, int.class);
-            extraFlagField.invoke(window, darkModeFlag, darkModeFlag);
-        } catch (Exception ignored) { }
-    }
-
-    private static void darkStatusBarForFlyme(Window window) {
-        try {
-            WindowManager.LayoutParams lp = window.getAttributes();
-            Field darkFlag = WindowManager.LayoutParams.class
-                    .getDeclaredField("MEIZU_FLAG_DARK_STATUS_BAR_ICON");
-            Field meizuFlags = WindowManager.LayoutParams.class
-                    .getDeclaredField("meizuFlags");
-            darkFlag.setAccessible(true);
-            meizuFlags.setAccessible(true);
-            int bit = darkFlag.getInt(null);
-            int value = meizuFlags.getInt(lp);
-            value |= bit;
-            meizuFlags.setInt(lp, value);
-            window.setAttributes(lp);
-        } catch (Exception ignored) { }
+        View decor = window.getDecorView();
+        WindowInsetsControllerCompat controller = new WindowInsetsControllerCompat(window, decor);
+        controller.setAppearanceLightStatusBars(false);
     }
 
     public static boolean isInMultiWindow(Activity activity) {
-        if (DeviceUtil.hasNougatApi()) {
-            return activity.isInMultiWindowMode();
-        }
-        return false;
+        return activity.isInMultiWindowMode();
     }
 
     /**
-     * Set color of handlers appearing when user is selecting content of {@link EditText}.
-     * @param editText handlers of which {@link EditText} should be set to {@param color}.
-     * @param color color to set for handlers.
+     * @deprecated Reflection-based approach is blocked by non-SDK interface restrictions on API 36+.
+     * Use theme attributes {@code android:textSelectHandle}, {@code android:textSelectHandleLeft},
+     * and {@code android:textSelectHandleRight} instead.
      */
+    @Deprecated
     public static void setSelectionHandlersColor(EditText editText, int color) {
-        try {
-            final Class<?> cTextView = TextView.class;
-            final Field fhlRes = cTextView.getDeclaredField("mTextSelectHandleLeftRes");
-            final Field fhrRes = cTextView.getDeclaredField("mTextSelectHandleRightRes");
-            final Field fhcRes = cTextView.getDeclaredField("mTextSelectHandleRes");
-            fhlRes.setAccessible(true);
-            fhrRes.setAccessible(true);
-            fhcRes.setAccessible(true);
-
-            int hlRes = fhlRes.getInt(editText);
-            int hrRes = fhrRes.getInt(editText);
-            int hcRes = fhcRes.getInt(editText);
-
-            final Field fEditor = TextView.class.getDeclaredField("mEditor");
-            fEditor.setAccessible(true);
-            final Object editor = fEditor.get(editText);
-
-            final Class<?> cEditor = editor.getClass();
-            final Field fSelectHandleL = cEditor.getDeclaredField("mSelectHandleLeft");
-            final Field fSelectHandleR = cEditor.getDeclaredField("mSelectHandleRight");
-            final Field fSelectHandleC = cEditor.getDeclaredField("mSelectHandleCenter");
-            fSelectHandleL.setAccessible(true);
-            fSelectHandleR.setAccessible(true);
-            fSelectHandleC.setAccessible(true);
-
-            Drawable selectHandleL = ContextCompat.getDrawable(editText.getContext(), hlRes);
-            Drawable selectHandleR = ContextCompat.getDrawable(editText.getContext(), hrRes);
-            Drawable selectHandleC = ContextCompat.getDrawable(editText.getContext(), hcRes);
-
-            selectHandleL.mutate().setColorFilter(color, PorterDuff.Mode.SRC_IN);
-            selectHandleR.mutate().setColorFilter(color, PorterDuff.Mode.SRC_IN);
-            selectHandleC.mutate().setColorFilter(color, PorterDuff.Mode.SRC_IN);
-
-            fSelectHandleL.set(editor, selectHandleL);
-            fSelectHandleR.set(editor, selectHandleR);
-            fSelectHandleC.set(editor, selectHandleC);
-        } catch (Exception ignored) { }
     }
 
     public static int getThingCardWidth(Context context) {
@@ -374,12 +332,7 @@ public class DisplayUtil {
             span++;
         }
 
-        int basePadding;
-        if (!DeviceUtil.hasLollipopApi()) {
-            basePadding = (int) (density * 4);
-        } else {
-            basePadding = (int) (density * 6);
-        }
+        int basePadding = (int) (density * 6);
 
         return (res.getDisplayMetrics().widthPixels - basePadding * 2 * (span + 1)) / span;
     }
@@ -389,32 +342,12 @@ public class DisplayUtil {
     //private static HashMap<Integer, StateListDrawable> sSldMap;
 
     public static void setRippleColorForCardView(CardView cardView, int color) {
-        if (DeviceUtil.hasLollipopApi()) {
-            RippleDrawable rp = (RippleDrawable) cardView.getForeground();
-            rp.setColor(ColorStateList.valueOf(color));
-        } else {
-            if (sSldMap == null) {
-                sSldMap = new SparseArray<>();
-            }
-            StateListDrawable sld = sSldMap.get(color);
-            if (sld == null) {
-                sld = new StateListDrawable();
-                sld.addState(new int[] { android.R.attr.state_pressed },
-                        new ColorDrawable(color));
-                sld.addState(new int[]{-android.R.attr.state_pressed},
-                        new ColorDrawable(Color.TRANSPARENT));
-                sSldMap.put(color, sld);
-            }
-            cardView.setForeground(sld);
-        }
+        RippleDrawable rp = (RippleDrawable) cardView.getForeground();
+        rp.setColor(ColorStateList.valueOf(color));
     }
 
     public static void setSeekBarColor(SeekBar seekBar, int color) {
-        if (DeviceUtil.hasLollipopApi()) {
-            seekBar.setProgressTintList(ColorStateList.valueOf(color));
-        } else {
-            seekBar.getProgressDrawable().setColorFilter(color, PorterDuff.Mode.SRC_IN);
-        }
+        seekBar.setProgressTintList(ColorStateList.valueOf(color));
         seekBar.getThumb().setColorFilter(color, PorterDuff.Mode.SRC_IN);
     }
 

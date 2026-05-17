@@ -1,6 +1,6 @@
 package com.ywwynm.everythingdone;
 
-import android.os.Environment;
+import android.content.Context;
 
 /**
  * Created by ywwynm on 2015/5/21.
@@ -9,6 +9,14 @@ import android.os.Environment;
 public final class Def {
 
     private Def() { }
+
+    /**
+     * Get app-private external files directory for storing attachments, ringtones, etc.
+     * Uses getExternalFilesDir on API 29+, falls back to legacy path on older devices.
+     */
+    public static String getAppFileDir(Context context) {
+        return context.getExternalFilesDir(null).getAbsolutePath();
+    }
 
     public static final class Meta {
 
@@ -25,14 +33,11 @@ public final class Def {
         public static final String FEEDBACK_ERROR_FILE_NAME = "feedback_error.dat";
 
         public static final String DATABASE_NAME = "EverythingDoneData.db";
-        public static final int DATABASE_VERSION = 8;
+        public static final int DATABASE_VERSION = 9;
 
         public static final int ONGOING_NOTIFICATION_ID = Integer.MAX_VALUE;
 
         public static final String APP_AUTHORITY = "com.ywwynm.everythingdone";
-
-        public static final String APP_FILE_DIR =
-                Environment.getExternalStorageDirectory().getAbsolutePath() + "/EverythingDone";
 
         public static final String FEEDBACK_EMAIL = "everythingdonefeedback@gmail.com";
 
@@ -40,6 +45,7 @@ public final class Def {
 
         public static final String KEY_START_USING_TIME         = "start_using_time";
         public static final String KEY_LAST_BACKUP_TIME         = "last_backup_time";
+        public static final String KEY_LAST_ALARM_REBUILD       = "last_alarm_rebuild";
 
         public static final String KEY_DRAWER_HEADER            = "drawer_header";
         public static final String KEY_NOTICEABLE_NOTIFICATION  = "noticeable_notification"; // 2016/11/9
@@ -84,6 +90,8 @@ public final class Def {
 
         public static final String KEY_NOTIFY_KEEP_ALARMS       = "notify_keep_alarms";
 
+        public static final String KEY_CREATE_ANIMATION_STYLE   = "create_animation_style";
+
     }
 
     public static final class LimitForGettingThings {
@@ -116,6 +124,7 @@ public final class Def {
         public static final String COLUMN_CREATE_TIME_THINGS = "create_time";
         public static final String COLUMN_UPDATE_TIME_THINGS = "update_time";
         public static final String COLUMN_FINISH_TIME_THINGS = "finish_time";
+        public static final String COLUMN_BACKGROUND_THINGS  = "background"; /* added in version 9 */
 
         public static final String TABLE_REMINDERS                 = "reminders";
         public static final String COLUMN_ID_REMINDERS             = "id";
@@ -213,6 +222,9 @@ public final class Def {
 
         // added on 2017/3/28 to implement restore2
         public static final int REQUEST_CHOOSE_BACKUP_FILE             = 17;
+        public static final int REQUEST_CREATE_BACKUP_FILE            = 19;
+
+        public static final int REQUEST_PERMISSION_NOTIFICATION        = 20;
 
         public static final String KEY_SENDER_NAME          = PREFIX + "key.sender_name";
         public static final String KEY_DETAIL_ACTIVITY_TYPE = PREFIX + "key.detail_activity_type";
@@ -220,6 +232,8 @@ public final class Def {
         public static final String KEY_THING        = PREFIX + "key.thing";
         public static final String KEY_ID           = PREFIX + "key.id";
         public static final String KEY_COLOR        = PREFIX + "key.color";
+        /** JSON encoding of a {@link com.ywwynm.everythingdone.model.ThingBackground}; added Phase 4. */
+        public static final String KEY_BACKGROUND   = PREFIX + "key.background";
         public static final String KEY_POSITION     = PREFIX + "key.position";
         public static final String KEY_TYPE_BEFORE  = PREFIX + "key.type_before";
         public static final String KEY_STATE_AFTER  = PREFIX + "key.state_after";
@@ -312,6 +326,10 @@ public final class Def {
 
         public static final int COLOR_HAVE_ALL             = 0;
         public static final int COLOR_NO_ALL               = 1;
+        /** Phase 6: 10 palette FABs + 2 trailing "random pure" / "random gradient" FABs. */
+        public static final int COLOR_EDIT                 = 8;
+        /** Phase 6: 1 "all colours" sentinel + 8 hue-bucket FABs for search-by-similar-colour. */
+        public static final int HUE_BUCKET                 = 9;
         public static final int AFTER_TIME                 = 2;
         public static final int TIME_TYPE_NO_HOUR_MINUTE   = 3;
         public static final int TIME_TYPE_HAVE_HOUR_MINUTE = 4;

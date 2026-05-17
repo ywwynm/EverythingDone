@@ -1,6 +1,6 @@
 package com.ywwynm.everythingdone.adapters;
 
-import android.support.v7.widget.RecyclerView;
+import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -111,6 +111,15 @@ public class ThingsAdapterWrapper {
 
     public void notifyItemMoved(int from, int to) {
         mAdapter.notifyItemMoved(from, to);
+    }
+
+    public void armNewItemAnimation(int position, long thingId,
+                                    ThingsAdapter.OnNewItemBoundListener listener) {
+        mAdapter.armNewItemAnimation(position, thingId, listener);
+    }
+
+    public void clearArmedNewItemAnimation() {
+        mAdapter.clearArmedNewItemAnimation();
     }
 
 }

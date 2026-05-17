@@ -1,8 +1,9 @@
 package com.ywwynm.everythingdone;
 
-import android.annotation.TargetApi;
 import android.app.AlarmManager;
 import android.app.Application;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.job.JobInfo;
 import android.app.job.JobScheduler;
@@ -11,13 +12,13 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
-import android.os.Build;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
-import android.support.v4.util.Pair;
+import androidx.core.util.Pair;
 import android.util.Log;
 
-import com.bumptech.glide.Glide;
+
 import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
 import com.ywwynm.everythingdone.helpers.AlarmHelper;
@@ -27,14 +28,16 @@ import com.ywwynm.everythingdone.helpers.CrashHelper;
 import com.ywwynm.everythingdone.helpers.FingerprintHelper;
 import com.ywwynm.everythingdone.managers.ThingManager;
 import com.ywwynm.everythingdone.model.Thing;
+import com.ywwynm.everythingdone.model.ThingBackground;
+import com.ywwynm.everythingdone.services.AlarmHealthWorker;
 import com.ywwynm.everythingdone.services.PullAliveJobService;
-import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.FileUtil;
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -75,6 +78,22 @@ public class App extends Application {
     private static boolean somethingUpdatedSpecially = false;
     private static boolean justNotifyAll = false;
 
+    /**
+     * The randomly-chosen background for the next new thing the user creates.
+     *
+     * <p>Phase 2 of the color-system migration introduces this {@link ThingBackground}
+     * field alongside the legacy {@link #newThingColor} int (kept in sync). Phase 3
+     * will switch new-thing creation to draw from this field; Phase 4 will let it
+     * randomly be a GRADIENT background.
+     */
+    public static ThingBackground newThingBackground;
+
+    /**
+     * Legacy single-int companion of {@link #newThingBackground} — kept in sync
+     * as {@code newThingBackground.representativeColor()} so existing call sites
+     * that just need an int (intent extras, FAB ripple, etc.) keep working
+     * unchanged through Phase 2 / 3.
+     */
     public static int newThingColor;
 
     private static long doingThingId = -1;
@@ -83,14 +102,9 @@ public class App extends Application {
     public void onCreate() {
         super.onCreate();
 
-//        if (LeakCanary.isInAnalyzerProcess(this)) {
-//            return;
-//        }
-//        LeakCanary.install(this);
-//
-//        BlockCanary.install(this, new BlockCanaryContext()).start();
-
         app = this;
+
+        createNotificationChannels();
 
         CrashHelper.getInstance().init(this);
 
@@ -98,28 +112,13 @@ public class App extends Application {
 
         AppUpdateHelper.getInstance(this).handleAppUpdate();
 
-        /*
-            Force initialization within app's domain.
-            If this line was removed, things list widget may not load images because of checking
-            network state without corresponding permission.
-            {@see https://github.com/bumptech/glide/issues/1405} for more details.
-         */
-        Glide.with(this);
-
-        File file = new File(getApplicationInfo().dataDir + "/files/" +
-                Def.Meta.RESTORE_DONE_FILE_NAME);
+        File file = new File(getFilesDir(), Def.Meta.RESTORE_DONE_FILE_NAME);
         if (file.exists()) {
             AlarmHelper.createAllAlarms(this, false);
-            if (DeviceUtil.hasMarshmallowApi()) {
-                FingerprintHelper fingerprintHelper = FingerprintHelper.getInstance();
-                if (fingerprintHelper.isFingerprintEnabledInEverythingDone()
-                        && fingerprintHelper.isFingerprintReady()) {
-                    /*
-                        Fix bug: if restored, fingerprint will not work unless user disable/enable
-                        fingerprint in SettingsActivity
-                     */
-                    fingerprintHelper.createFingerprintKeyForEverythingDone();
-                }
+            FingerprintHelper fingerprintHelper = FingerprintHelper.getInstance();
+            if (fingerprintHelper.isFingerprintEnabledInEverythingDone()
+                    && fingerprintHelper.isFingerprintReady()) {
+                fingerprintHelper.createFingerprintKeyForEverythingDone();
             }
             FileUtil.deleteFile(file);
         }
@@ -140,9 +139,87 @@ public class App extends Application {
 
         AlarmHelper.createDailyUpdateHabitAlarm(this);
 
-        if (DeviceUtil.hasLollipopApi()) {
-            startPullAliveJob();
+        startPullAliveJob();
+        AlarmHealthWorker.schedule(this);
+
+        selfHealAlarmsIfStale();
+    }
+
+    /**
+     * Recover alarms after the app is force-stopped (system Settings, "彻底清理"
+     * on aggressive ROMs, etc) — those code paths cancel every alarm registered
+     * by this package without notice. The DB is intact, so we just rebuild from
+     * it. Throttled to {@link #ALARM_SELF_HEAL_INTERVAL_MS} via SharedPreferences
+     * so normal launches don't burn cycles, and run on a worker thread so it
+     * doesn't slow down cold starts.
+     */
+    private void selfHealAlarmsIfStale() {
+        final SharedPreferences sp = getSharedPreferences(
+                Def.Meta.PREFERENCES_NAME, MODE_PRIVATE);
+        long lastRebuild = sp.getLong(Def.Meta.KEY_LAST_ALARM_REBUILD, 0L);
+        long now = System.currentTimeMillis();
+        if (now - lastRebuild < ALARM_SELF_HEAL_INTERVAL_MS) {
+            return;
         }
+        Log.i(TAG, "Self-healing alarms (last rebuild "
+                + (lastRebuild == 0 ? "never" : ((now - lastRebuild) / 60000) + " min ago") + ")");
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    AlarmHelper.createAllAlarms(App.this, false);
+                    sp.edit().putLong(Def.Meta.KEY_LAST_ALARM_REBUILD,
+                            System.currentTimeMillis()).apply();
+                } catch (Throwable t) {
+                    Log.e(TAG, "Self-heal alarm rebuild failed", t);
+                }
+            }
+        }, "alarm-self-heal").start();
+    }
+
+    private static final long ALARM_SELF_HEAL_INTERVAL_MS = 6 * 60 * 60 * 1000L;
+
+    private void createNotificationChannels() {
+        NotificationManager nm = getSystemService(NotificationManager.class);
+
+        NotificationChannel reminderChannel = new NotificationChannel(
+                "reminder", getString(R.string.channel_reminder),
+                NotificationManager.IMPORTANCE_HIGH);
+        reminderChannel.enableVibration(true);
+        reminderChannel.enableLights(true);
+
+        NotificationChannel habitChannel = new NotificationChannel(
+                "habit", getString(R.string.channel_habit),
+                NotificationManager.IMPORTANCE_HIGH);
+        habitChannel.enableVibration(true);
+        habitChannel.enableLights(true);
+
+        NotificationChannel goalChannel = new NotificationChannel(
+                "goal", getString(R.string.channel_goal),
+                NotificationManager.IMPORTANCE_HIGH);
+        goalChannel.enableVibration(true);
+        goalChannel.enableLights(true);
+
+        NotificationChannel doingChannel = new NotificationChannel(
+                "doing", getString(R.string.channel_doing),
+                NotificationManager.IMPORTANCE_LOW);
+
+        NotificationChannel quickCreateChannel = new NotificationChannel(
+                "quick_create", getString(R.string.channel_quick_create),
+                NotificationManager.IMPORTANCE_MIN);
+
+        NotificationChannel ongoingChannel = new NotificationChannel(
+                "ongoing", getString(R.string.channel_ongoing),
+                NotificationManager.IMPORTANCE_LOW);
+
+        NotificationChannel autoNotifyChannel = new NotificationChannel(
+                "auto_notify", getString(R.string.channel_auto_notify),
+                NotificationManager.IMPORTANCE_DEFAULT);
+
+        nm.createNotificationChannels(Arrays.asList(
+                reminderChannel, habitChannel, goalChannel,
+                doingChannel, quickCreateChannel, ongoingChannel,
+                autoNotifyChannel));
     }
 
     private void firstLaunch() {
@@ -154,7 +231,6 @@ public class App extends Application {
         }
     }
 
-    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
     private void startPullAliveJob() {
         ComponentName componentName = new ComponentName(this, PullAliveJobService.class);
         JobInfo.Builder builder = new JobInfo.Builder(Integer.MAX_VALUE, componentName);
@@ -269,7 +345,8 @@ public class App extends Application {
             r = new Runnable() {
                 @Override
                 public void run() {
-                    String appDir = Def.Meta.APP_FILE_DIR;
+                    String appDir = Def.getAppFileDir(App.this);
+                    String oldAppDir = Environment.getExternalStorageDirectory().getAbsolutePath() + "/EverythingDone";
                     ReminderDAO dao = ReminderDAO.getInstance(App.this);
                     for (Thing thing : mThingsToDeleteForever) {
                         String attachment = thing.getAttachment();
@@ -277,7 +354,7 @@ public class App extends Application {
                             String[] attachments = attachment.split(AttachmentHelper.SIGNAL);
                             for (int i = 1; i < attachments.length; i++) {
                                 String pathName = attachments[i].substring(1, attachments[i].length());
-                                if (pathName.startsWith(appDir)
+                                if ((pathName.startsWith(appDir) || pathName.startsWith(oldAppDir))
                                         && !mAttachmentsToDeleteFile.contains(pathName)) {
                                     mAttachmentsToDeleteFile.add(pathName);
                                 }
@@ -306,19 +383,20 @@ public class App extends Application {
             r = new Runnable() {
                 @Override
                 public void run() {
-                    String appDir = Def.Meta.APP_FILE_DIR;
+                    String appDir = Def.getAppFileDir(App.this);
+                    String oldAppDir = Environment.getExternalStorageDirectory().getAbsolutePath() + "/EverythingDone";
                     List<String> usedAttachments = new ArrayList<>();
                     ThingDAO dao = ThingDAO.getInstance(App.this);
                     Cursor cursor = dao.getAllThingsCursor();
                     while (cursor.moveToNext()) {
-                        String attachment = cursor.getString(cursor.getColumnIndex(
+                        String attachment = cursor.getString(cursor.getColumnIndexOrThrow(
                                 Def.Database.COLUMN_ATTACHMENT_THINGS));
                         if (AttachmentHelper.isValidForm(attachment)) {
                             String[] attachments = attachment.split(AttachmentHelper.SIGNAL);
                             for (int i = 1; i < attachments.length; i++) {
                                 String pathName = attachments[i].substring(
                                         1, attachments[i].length());
-                                if (pathName.startsWith(appDir)
+                                if ((pathName.startsWith(appDir) || pathName.startsWith(oldAppDir))
                                         && !usedAttachments.contains(pathName)) {
                                     usedAttachments.add(pathName);
                                 }
@@ -348,9 +426,9 @@ public class App extends Application {
         }
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent pendingIntent = PendingIntent.getActivity(context,
-                0, intent, PendingIntent.FLAG_CANCEL_CURRENT);
+                0, intent, PendingIntent.FLAG_CANCEL_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-        am.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + time + 100, pendingIntent);
+        am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + time + 100, pendingIntent);
         Handler handler = new Handler(Looper.getMainLooper());
         handler.postDelayed(new Runnable() {
             @Override
@@ -395,13 +473,31 @@ public class App extends Application {
         return new Pair<>(thing, correctPos);
     }
 
-    // Added on 2016/12/3
+    /**
+     * Roll a random background for the next new-thing creation.
+     *
+     * <p>Phase 3 of color migration:
+     * <ul>
+     *   <li>Generates a PURE-mode {@link ThingBackground} with completely random RGB
+     *       (per Q5 of COLOR_MIGRATION_PLAN.md — full spectrum, no HSL clamp).</li>
+     *   <li>Avoids landing on the same color as the previous {@code newThingColor},
+     *       or any of the colors in the up-to-4 neighbouring rows around the
+     *       prospective insertion point (so a new card doesn't sit next to a
+     *       perceptually-identical sibling).</li>
+     * </ul>
+     * Phase 4 will extend this to a 50/50 PURE-vs-GRADIENT roll.
+     *
+     * <p>Method name kept as-is for source compat — the field it ultimately writes
+     * is now {@link #newThingBackground} (with {@link #newThingColor} kept as the
+     * representative-int companion).
+     */
     public static void updateNewThingColor() {
-        int color;
-        do {
-            color = DisplayUtil.getRandomColor(app);
-        } while (color == newThingColor);
+        ThingBackground bg = rollBackground();
 
+        // Phase 3 logic preserved: try not to repeat the previous new-thing colour
+        // and any of the up-to-4 neighbouring cards by RGB-distance on the
+        // representative.
+        int representative = bg.representativeColor();
         while (ThingManager.isTotallyInitialized() && app.mThingManager != null
                 && app.mLimit == Def.LimitForGettingThings.ALL_UNDERWAY) {
             List<Thing> things = app.mThingManager.getThings();
@@ -426,21 +522,73 @@ public class App extends Application {
                     if (i < size) {
                         Thing temp = things.get(i);
                         if (temp != null) {
-                            existedColors[j++] = temp.getColor();
+                            existedColors[j++] = temp.getBackground().representativeColor();
                         }
                     }
                 }
             }
 
-            while (isInside(existedColors, color) || color == newThingColor) {
-                color = DisplayUtil.getRandomColor(app);
+            int spins = 0;
+            while ((isInsideNear(existedColors, representative) || tooClose(representative, newThingColor))
+                    && spins++ < 32) {
+                bg             = rollBackground();
+                representative = bg.representativeColor();
             }
 
             break;
         }
 
-        App.newThingColor = color;
+        App.newThingBackground = bg;
+        App.newThingColor      = representative;
     }
+
+    /**
+     * Phase 4.e: 50/50 PURE vs two-colour linear-gradient background, matching
+     * Everything-Android's reference. Random RGB throughout (per Q5 of the plan —
+     * no HSL clamp).
+     */
+    private static ThingBackground rollBackground() {
+        if (sRandom.nextBoolean()) {
+            return ThingBackground.pure(randomColor());
+        }
+        int s = randomColor();
+        int e = randomColor();
+        // Avoid degenerate gradient stops feeling identical — re-roll the end colour
+        // a few times if it's too close to the start.
+        for (int i = 0; i < 4 && tooClose(s, e); i++) {
+            e = randomColor();
+        }
+        ThingBackground.Orientation[] orientations = ThingBackground.Orientation.values();
+        ThingBackground.Orientation o = orientations[sRandom.nextInt(orientations.length)];
+        return ThingBackground.gradient(s, e, o);
+    }
+
+    /** Full-spectrum random RGB — matches Everything-Android's {@code newRandomColor()}. */
+    private static int randomColor() {
+        return android.graphics.Color.rgb(
+                sRandom.nextInt(256), sRandom.nextInt(256), sRandom.nextInt(256));
+    }
+
+    /** Perceptual-ish RGB distance threshold for "feels like the same color". */
+    private static final int NEAR_THRESHOLD = 60;
+
+    private static boolean tooClose(int a, int b) {
+        if (a == 0 || b == 0) return false; // 0 used as "unset" sentinel
+        int dr = android.graphics.Color.red(a)   - android.graphics.Color.red(b);
+        int dg = android.graphics.Color.green(a) - android.graphics.Color.green(b);
+        int db = android.graphics.Color.blue(a)  - android.graphics.Color.blue(b);
+        // Cheap approximation: sum of |Δ| rather than Euclidean — fine for "avoid duplicates".
+        return Math.abs(dr) + Math.abs(dg) + Math.abs(db) < NEAR_THRESHOLD;
+    }
+
+    private static boolean isInsideNear(int[] arr, int color) {
+        for (int c : arr) {
+            if (tooClose(color, c)) return true;
+        }
+        return false;
+    }
+
+    private static final java.util.Random sRandom = new java.util.Random();
 
     private static boolean isInside(int[] arr, int value) {
         for (int elem : arr) {

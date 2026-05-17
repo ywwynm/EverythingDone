@@ -4,13 +4,16 @@ import android.app.Notification;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ServiceInfo;
 import android.os.Binder;
+import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.PowerManager;
-import android.support.annotation.IntDef;
-import android.support.annotation.Nullable;
+import androidx.annotation.IntDef;
+import androidx.annotation.Nullable;
+import androidx.core.app.NotificationCompat;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -266,19 +269,25 @@ public class DoingService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.i(TAG, "onStartCommand() start");
-        if (intent == null) {
-            stopSelf(startId);
-            return super.onStartCommand(null, flags, startId);
-        }
 
-        Thing thing = intent.getParcelableExtra(Def.Communication.KEY_THING);
-        if (thing == null) {
+        // Foreground-service contract: when started via startForegroundService(),
+        // we MUST call startForeground() within ~5s or the system kills the
+        // whole process with ForegroundServiceDidNotStartInTimeException. Even
+        // on early-return paths (null intent from a sticky restart, missing
+        // KEY_THING extra) we have to honor the contract before bailing out.
+        Thing thing = intent != null
+                ? intent.getParcelableExtra(Def.Communication.KEY_THING) : null;
+        if (intent == null || thing == null) {
+            Log.w(TAG, "onStartCommand without a usable Thing — "
+                    + "promoting placeholder + stopping. intent=" + intent);
+            promoteToForegroundPlaceholder();
+            stopForeground(true);
             stopSelf(startId);
-            return super.onStartCommand(null, flags, startId);
+            return START_NOT_STICKY;
         }
 
         PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
-        mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
+        mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "EverythingDone:DoingService");
 
         mThing = new Thing(thing);
 
@@ -327,9 +336,43 @@ public class DoingService extends Service {
         sSendBroadcastToUpdateMainUi = true;
         sResetDoingIdInOnDestroy = true;
 
+        Notification initialNotification = SystemNotificationUtil.createDoingNotification(
+                this, mThing, STATE_DOING, getInitialLeftTimeStr(), sHrTime, 0);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground((int) mThing.getId(), initialNotification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
+        } else {
+            startForeground((int) mThing.getId(), initialNotification);
+        }
+
         Log.i(TAG, "onStartCommand() end");
 
-        return super.onStartCommand(intent, flags, startId);
+        // Don't auto-restart with a stale/null intent — the early-return path
+        // above only exists because the OS occasionally delivers a sticky
+        // restart we don't want to handle.
+        return START_NOT_STICKY;
+    }
+
+    /**
+     * Last-resort foreground promotion used when {@link #onStartCommand} can't
+     * complete its work (e.g. sticky restart with null intent). The notification
+     * itself is never visible — caller immediately {@code stopForeground(true)}
+     * and {@code stopSelf}. Its only purpose is to satisfy the FGS contract so
+     * the OS doesn't crash the app with
+     * {@code ForegroundServiceDidNotStartInTimeException}.
+     */
+    private void promoteToForegroundPlaceholder() {
+        Notification placeholder = new NotificationCompat.Builder(this, "doing")
+                .setSmallIcon(R.drawable.act_create_white)
+                .setContentTitle(getString(R.string.title_activity_doing))
+                .setOngoing(false)
+                .build();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(0, placeholder,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
+        } else {
+            startForeground(0, placeholder);
+        }
     }
 
     @Override
@@ -519,6 +562,17 @@ public class DoingService extends Service {
                         + mTimeNumbers[4] + "" + mTimeNumbers[5];
             }
         }
+    }
+
+    private String getInitialLeftTimeStr() {
+        if (mLeftTime == -1) {
+            return getString(R.string.infinity);
+        }
+        long totalSecs = mLeftTime / 1000;
+        long hours = totalSecs / 3600;
+        long minutes = (totalSecs % 3600) / 60;
+        long seconds = totalSecs % 60;
+        return String.format("%02d:%02d:%02d", hours, minutes, seconds);
     }
 
     public class DoingBinder extends Binder {

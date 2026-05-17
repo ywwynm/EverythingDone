@@ -2,6 +2,7 @@ package com.ywwynm.everythingdone.helpers;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Environment;
 
 import com.ywwynm.everythingdone.App;
@@ -10,10 +11,16 @@ import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.FileUtil;
 
-import org.joda.time.DateTime;
+import java.time.ZonedDateTime;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,25 +40,33 @@ public class BackupHelper {
     private static final String BACKUP_DIR = "/backup";
     private static final String BACKUP_FILE_NAME_PREFIX = "ED_backup_";
 
-    public static boolean backup(Context context) {
-        /*
-            Before 1.3.7(40), we backup data dir except for some files.
-            After 1.3.7, we backup data dir only for some files.
-         */
+    public static boolean backup(Context context, Uri outputUri) {
         File src = new File(context.getApplicationInfo().dataDir);
-        String backupDirPath = Def.Meta.APP_FILE_DIR + BACKUP_DIR;
+        String tempDirPath = Def.getAppFileDir(context) + BACKUP_DIR;
         long curTime = System.currentTimeMillis();
-        DateTime dt = new DateTime(curTime);
-        String timeStr = dt.toString("yyyyMMddHHmmss");
+        ZonedDateTime dt = Instant.ofEpochMilli(curTime).atZone(ZoneId.systemDefault());
+        String timeStr = dt.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
         String backupFileName = BACKUP_FILE_NAME_PREFIX + timeStr + "." + BACKUP_FILE_POSTFIX;
-        File dst = FileUtil.createFile(backupDirPath, backupFileName);
+        File dst = FileUtil.createFile(tempDirPath, backupFileName);
+        if (dst == null) return false;
 
-        if (FileUtil.zipDirectory(src, dst, false, getBackupFilePaths(context))) {
+        if (!FileUtil.zipDirectory(src, dst, false, getBackupFilePaths(context))) {
+            FileUtil.deleteFile(dst);
+            return false;
+        }
+
+        try {
+            copyFileToUri(context, dst, outputUri);
             SharedPreferences sp = context.getSharedPreferences(
                     Def.Meta.META_DATA_NAME, Context.MODE_PRIVATE);
             sp.edit().putLong(Def.Meta.KEY_LAST_BACKUP_TIME, curTime).apply();
             return true;
-        } else return false;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        } finally {
+            FileUtil.deleteFile(dst);
+        }
     }
 
     public static String getLastBackupTimeString() {
@@ -75,10 +90,27 @@ public class BackupHelper {
         }
     }
 
-    public static boolean restore(Context context, File backupFile) {
+    public static boolean restore(Context context, Uri inputUri) {
         long curTime = System.currentTimeMillis();
-        String unzippedDirPathName = Def.Meta.APP_FILE_DIR + BACKUP_DIR + "/" + curTime;
-        boolean unzipResult = FileUtil.unzip(backupFile.getAbsolutePath(), unzippedDirPathName);
+        String tempDirPath = Def.getAppFileDir(context) + BACKUP_DIR;
+        File tempFile = new File(tempDirPath, "restore_" + curTime + "." + BACKUP_FILE_POSTFIX);
+
+        try {
+            File parent = tempFile.getParentFile();
+            if (parent != null && !parent.exists()) {
+                parent.mkdirs();
+            }
+            copyUriToFile(context, inputUri, tempFile);
+        } catch (IOException e) {
+            e.printStackTrace();
+            FileUtil.deleteFile(tempFile);
+            return false;
+        }
+
+        String unzippedDirPathName = tempDirPath + "/" + curTime;
+        boolean unzipResult = FileUtil.unzip(tempFile.getAbsolutePath(), unzippedDirPathName);
+        FileUtil.deleteFile(tempFile);
+
         if (!unzipResult) return false;
 
         try {
@@ -94,6 +126,30 @@ public class BackupHelper {
 
     public static boolean isSupportedBackupFilePostfix(String postfix) {
         return postfix.equals(BACKUP_FILE_POSTFIX);
+    }
+
+    private static void copyFileToUri(Context context, File src, Uri dstUri) throws IOException {
+        try (InputStream in = new java.io.FileInputStream(src);
+             OutputStream out = context.getContentResolver().openOutputStream(dstUri)) {
+            if (out == null) throw new IOException("Cannot open output stream for " + dstUri);
+            byte[] buf = new byte[8192];
+            int len;
+            while ((len = in.read(buf)) > 0) {
+                out.write(buf, 0, len);
+            }
+        }
+    }
+
+    private static void copyUriToFile(Context context, Uri srcUri, File dst) throws IOException {
+        try (InputStream in = context.getContentResolver().openInputStream(srcUri);
+             FileOutputStream out = new FileOutputStream(dst)) {
+            if (in == null) throw new IOException("Cannot open input stream for " + srcUri);
+            byte[] buf = new byte[8192];
+            int len;
+            while ((len = in.read(buf)) > 0) {
+                out.write(buf, 0, len);
+            }
+        }
     }
 
     private static String[] getBackupFilePaths(Context context) {

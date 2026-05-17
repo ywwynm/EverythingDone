@@ -64,7 +64,7 @@
             android:layout_width="match_parent"
             android:layout_height="0dp"/>
 
-        <android.support.v7.widget.Toolbar
+        <androidx.appcompat.widget.Toolbar
             android:id="@+id/actionbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
@@ -80,7 +80,7 @@
                 android:textSize="20sp"
                 android:alpha="0.0"/>
 
-        </android.support.v7.widget.Toolbar>
+        </androidx.appcompat.widget.Toolbar>
 
         <View
             android:id="@+id/actionbar_shadow"

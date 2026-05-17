@@ -2,7 +2,7 @@ package com.ywwynm.everythingdone.helpers;
 
 import android.content.Context;
 import android.content.Intent;
-import android.support.v4.util.Pair;
+import androidx.core.util.Pair;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -23,7 +23,10 @@ import com.ywwynm.everythingdone.model.Thing;
 import com.ywwynm.everythingdone.services.DoingService;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 
-import org.joda.time.DateTime;
+import java.time.ZonedDateTime;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 
 /**
  * Created by ywwynm on 2016/9/4.
@@ -39,7 +42,9 @@ public class RemoteActionHelper {
     public static void finishReminder(Context context, Thing thing, int position) {
         if (App.getDoingThingId() == thing.getId()) {
             DoingService.sStopReason = DoingRecord.STOP_REASON_FINISH;
-            context.sendBroadcast(new Intent(DoingActivity.BROADCAST_ACTION_JUST_FINISH));
+            Intent intentJustFinish1 = new Intent(DoingActivity.BROADCAST_ACTION_JUST_FINISH);
+            intentJustFinish1.setPackage(context.getPackageName());
+            context.sendBroadcast(intentJustFinish1);
             context.stopService(new Intent(context, DoingService.class));
             App.setDoingThingId(-1L);
         }
@@ -71,7 +76,9 @@ public class RemoteActionHelper {
         boolean doing = App.getDoingThingId() == thing.getId();
         if (doing) {
             DoingService.sStopReason = DoingRecord.STOP_REASON_FINISH;
-            context.sendBroadcast(new Intent(DoingActivity.BROADCAST_ACTION_JUST_FINISH));
+            Intent intentJustFinish2 = new Intent(DoingActivity.BROADCAST_ACTION_JUST_FINISH);
+            intentJustFinish2.setPackage(context.getPackageName());
+            context.sendBroadcast(intentJustFinish2);
             context.stopService(new Intent(context, DoingService.class));
             App.setDoingThingId(-1L);
         }
@@ -105,12 +112,12 @@ public class RemoteActionHelper {
     private static String possibleMistakeInfoForFinishingHabitOnce(
             Thing thing, int position, long hrTime, boolean doing, Habit habit) {
         Gson gson = new Gson();
-        DateTime dt = new DateTime();
-        String curTimeStr = dt.toString("yyyyMMddHHmmss");
+        ZonedDateTime dt = ZonedDateTime.now();
+        String curTimeStr = dt.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
         String hrTimeStr = "";
         if (hrTime != -1) {
-            dt = dt.withMillis(hrTime);
-            hrTimeStr = dt.toString("yyyyMMddHHmmss");
+            dt = Instant.ofEpochMilli(hrTime).atZone(ZoneId.systemDefault());
+            hrTimeStr = dt.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
         }
         int recordLength = habit.getRecord().length();
         int remindedTimes = habit.getRemindedTimes();
@@ -192,6 +199,7 @@ public class RemoteActionHelper {
         broadcastIntent.putExtra(Def.Communication.KEY_RESULT_CODE,
                 Def.Communication.RESULT_DOING_OR_CANCEL);
         broadcastIntent.putExtra(Def.Communication.KEY_THING, thing);
+        broadcastIntent.setPackage(context.getPackageName());
         context.sendBroadcast(broadcastIntent);
 
         AppWidgetHelper.updateSingleThingAppWidgets(context, thing.getId());
@@ -285,6 +293,7 @@ public class RemoteActionHelper {
                 broadcastIntent.putExtra(Def.Communication.KEY_CALL_CHANGE, shouldCallChange);
             }
         }
+        broadcastIntent.setPackage(context.getPackageName());
         context.sendBroadcast(broadcastIntent);
 
         AppWidgetHelper.updateSingleThingAppWidgets(context, thing.getId());

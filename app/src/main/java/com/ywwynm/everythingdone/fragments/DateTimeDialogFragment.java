@@ -3,14 +3,14 @@ package com.ywwynm.everythingdone.fragments;
 import android.annotation.SuppressLint;
 import android.content.DialogInterface;
 import android.os.Bundle;
-import android.support.annotation.StringRes;
-import android.support.design.widget.TabLayout;
-import android.support.v4.content.ContextCompat;
-import android.support.v4.view.ViewPager;
-import android.support.v7.widget.GridLayoutManager;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.SimpleItemAnimator;
+import androidx.annotation.StringRes;
+import com.google.android.material.tabs.TabLayout;
+import androidx.core.content.ContextCompat;
+import androidx.viewpager.widget.ViewPager;
+import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.SimpleItemAnimator;
 import android.text.InputFilter;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -45,7 +45,11 @@ import com.ywwynm.everythingdone.utils.LocaleUtil;
 import com.ywwynm.everythingdone.views.InputLayout;
 import com.ywwynm.everythingdone.views.pickers.DateTimePicker;
 
-import org.joda.time.DateTime;
+import java.time.ZonedDateTime;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoField;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -69,6 +73,10 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
     private boolean[] mTabInitiated = new boolean[3];
 
     private int mAccentColor;
+    /** Phase 8: full ThingBackground for any UI element that can render gradient
+     *  (confirm button text, tab indicator). int paint paths (cursor tint,
+     *  EdgeEffect, ColorStateList for cb / et highlight) stay on {@code mAccentColor}. */
+    private com.ywwynm.everythingdone.model.ThingBackground mAccentBackground;
     private int black_54p;
     private int black_26p;
 
@@ -305,7 +313,10 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
     @SuppressLint("InflateParams")
     private void initMembers() {
         mActivity = (DetailActivity) getActivity();
-        mAccentColor = mActivity.getAccentColor();
+        mAccentBackground = mActivity.getAccentBackground();
+        mAccentColor = mAccentBackground != null
+                ? mAccentBackground.representativeColor()
+                : mActivity.getAccentColor();
         black_54p = ContextCompat.getColor(mActivity, R.color.black_54p);
         black_26p = ContextCompat.getColor(mActivity, R.color.black_26p);
         confirmed = false;
@@ -423,33 +434,107 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
 
     private void initUI() {
         mTabLayout.setTabTextColors(black_26p, mAccentColor);
-        mTabLayout.setSelectedTabIndicatorColor(mAccentColor);
-        mTvConfirmAsBt.setTextColor(mAccentColor);
+        // Phase 8: gradient tab indicator when the accent is a GRADIENT, solid
+        // int otherwise. Falls back via applyTabIndicator's internal branch.
+        if (mAccentBackground != null) {
+            com.ywwynm.everythingdone.utils.BackgroundUtil.applyTabIndicator(
+                    mTabLayout, mAccentBackground);
+        } else {
+            mTabLayout.setSelectedTabIndicatorColor(mAccentColor);
+        }
+        // Phase 8: gradient text on the confirm button.
+        if (mAccentBackground != null) {
+            com.ywwynm.everythingdone.utils.BackgroundUtil.applyTextBackground(
+                    mTvConfirmAsBt, mAccentBackground);
+        } else {
+            mTvConfirmAsBt.setTextColor(mAccentColor);
+        }
 
         EdgeEffectUtil.forViewPager(mVpDateTime, mAccentColor);
 
         mVpDateTime.setOffscreenPageLimit(2);
         mVpDateTime.setAdapter(mTabAdapter);
         mTabLayout.setupWithViewPager(mVpDateTime);
+
+        // Phase 8: paint the currently-selected tab's label with a gradient
+        // shader when the accent is GRADIENT. setupWithViewPager creates the
+        // tab views above; install shader on the selected one and re-apply on
+        // selection changes (clear on the previous one so unselected tabs use
+        // the plain black_26p from setTabTextColors).
+        if (mAccentBackground != null
+                && mAccentBackground.mode
+                        == com.ywwynm.everythingdone.model.ThingBackground.Mode.GRADIENT) {
+            applyShaderToSelectedTab();
+            mTabLayout.addOnTabSelectedListener(
+                    new com.google.android.material.tabs.TabLayout.OnTabSelectedListener() {
+                        @Override
+                        public void onTabSelected(com.google.android.material.tabs.TabLayout.Tab tab) {
+                            applyShaderToSelectedTab();
+                        }
+                        @Override
+                        public void onTabUnselected(com.google.android.material.tabs.TabLayout.Tab tab) {
+                            clearShaderOnTab(tab);
+                        }
+                        @Override
+                        public void onTabReselected(com.google.android.material.tabs.TabLayout.Tab tab) { }
+                    });
+        }
+    }
+
+    /** Install the gradient shader on the currently-selected tab's label TextView. */
+    private void applyShaderToSelectedTab() {
+        if (mAccentBackground == null) return;
+        com.google.android.material.tabs.TabLayout.Tab sel = mTabLayout.getTabAt(
+                mTabLayout.getSelectedTabPosition());
+        if (sel == null) return;
+        TextView tv = findTabLabelTextView(sel);
+        if (tv != null) {
+            com.ywwynm.everythingdone.utils.BackgroundUtil.applyTextBackground(
+                    tv, mAccentBackground);
+        }
+    }
+
+    /** Remove the gradient shader so the unselected tab uses TabLayout's int colour. */
+    private void clearShaderOnTab(com.google.android.material.tabs.TabLayout.Tab tab) {
+        if (tab == null) return;
+        TextView tv = findTabLabelTextView(tab);
+        if (tv != null && tv.getPaint().getShader() != null) {
+            tv.getPaint().setShader(null);
+            tv.invalidate();
+        }
+    }
+
+    /** Walk a Material TabView for its label TextView (no public API exposes it). */
+    private TextView findTabLabelTextView(com.google.android.material.tabs.TabLayout.Tab tab) {
+        View tabView = tab.view;
+        if (tabView == null) return null;
+        if (tabView instanceof ViewGroup) {
+            ViewGroup vg = (ViewGroup) tabView;
+            for (int i = 0; i < vg.getChildCount(); i++) {
+                View child = vg.getChildAt(i);
+                if (child instanceof TextView) return (TextView) child;
+            }
+        }
+        return null;
     }
 
     private void initUIAt() {
-        DateTime dt = new DateTime();
+        ZonedDateTime dt = ZonedDateTime.now();
         long reminderInMillis = mActivity.rhParams.getReminderInMillis();
         int[] reminderAfterTime = mActivity.rhParams.getReminderAfterTime();
         if (reminderInMillis != -1) {
-            dt = dt.withMillis(reminderInMillis);
+            dt = Instant.ofEpochMilli(reminderInMillis).atZone(ZoneId.systemDefault());
         } else if (reminderAfterTime != null) {
-            dt = dt.withMillis(DateTimeUtil.getActualTimeAfterSomeTime(reminderAfterTime));
+            dt = Instant.ofEpochMilli(DateTimeUtil.getActualTimeAfterSomeTime(reminderAfterTime)).atZone(ZoneId.systemDefault());
         } else if (Thing.isReminderType(mThing.getType())) {
             Reminder reminder = ReminderDAO.getInstance(mActivity).getReminderById(mThing.getId());
-            dt = dt.withMillis(reminder.getNotifyTime());
+            dt = Instant.ofEpochMilli(reminder.getNotifyTime()).atZone(ZoneId.systemDefault());
         } else {
             dt = dt.plusMinutes(1);
         }
         int[] times = new int[5];
         for (int i = 0; i < times.length; i++) {
-            times[i] = dt.get(DateTimeUtil.getJodaType(mTimeTypes[i]));
+            times[i] = dt.get(DateTimeUtil.getTemporalFieldFor(mTimeTypes[i]));
             mEtsAt[i].setText(times[i] + "");
             mIlsAt[i].raiseLabel(false);
         }
@@ -501,10 +586,10 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
                 mAdapterTimeOfDay.setItems(Habit.getDayTimeListFromDetail(habitDetail));
             }
         } else {
-            DateTime dt = new DateTime();
+            ZonedDateTime dt = ZonedDateTime.now();
             List<Integer> items = new ArrayList<>();
-            items.add(dt.getHourOfDay());
-            items.add(dt.getMinuteOfHour());
+            items.add(dt.getHour());
+            items.add(dt.getMinute());
             mAdapterTimeOfDay.setItems(items);
         }
 
@@ -537,12 +622,12 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
                 mIlMinuteWmy.setTextForEditText(times[1]);
             }
         } else {
-            DateTime dt = new DateTime();
-            int week = dt.getDayOfWeek();
+            ZonedDateTime dt = ZonedDateTime.now();
+            int week = dt.getDayOfWeek().getValue();
             week = week == 7 ? 0 : week;
             mAdapterDayOfWeek.pick(week);
-            mIlHourWmy.setTextForEditText("" + dt.getHourOfDay());
-            String minute = "" + dt.getMinuteOfHour();
+            mIlHourWmy.setTextForEditText("" + dt.getHour());
+            String minute = "" + dt.getMinute();
             minute = minute.length() == 1 ? "0" + minute : minute;
             mIlMinuteWmy.setTextForEditText(minute);
         }
@@ -580,12 +665,12 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
                 mIlMinuteWmy.setTextForEditText(times[1]);
             }
         } else {
-            DateTime dt = new DateTime();
+            ZonedDateTime dt = ZonedDateTime.now();
             int day = dt.getDayOfMonth();
             day = day >= 28 ? 27 : day - 1;
             mAdapterDayOfMonth.pick(day);
-            mIlHourWmy.setTextForEditText("" + dt.getHourOfDay());
-            String minute = "" + dt.getMinuteOfHour();
+            mIlHourWmy.setTextForEditText("" + dt.getHour());
+            String minute = "" + dt.getMinute();
             minute = minute.length() == 1 ? "0" + minute : minute;
             mIlMinuteWmy.setTextForEditText(minute);
         }
@@ -628,8 +713,8 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
                 mIlMinuteWmy.setTextForEditText(dayTimes[2]);
             }
         } else {
-            DateTime dt = new DateTime();
-            int month = dt.getMonthOfYear() - 1;
+            ZonedDateTime dt = ZonedDateTime.now();
+            int month = dt.getMonthValue() - 1;
             mAdapterMonthOfYear.pick(month);
             int day = dt.getDayOfMonth();
             if (day >= 28) {
@@ -640,8 +725,8 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
             } else {
                 mIlDayYear.setTextForEditText("" + day);
             }
-            mIlHourWmy.setTextForEditText("" + dt.getHourOfDay());
-            String minute = "" + dt.getMinuteOfHour();
+            mIlHourWmy.setTextForEditText("" + dt.getHour());
+            String minute = "" + dt.getMinute();
             minute = minute.length() == 1 ? "0" + minute : minute;
             mIlMinuteWmy.setTextForEditText(minute);
         }
@@ -1082,14 +1167,14 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
             }
         }
         if (mayCanConfirm) {
-            DateTime dt  = new DateTime(times[0], times[1], times[2], times[3], times[4]);
-            DateTime cur = new DateTime();
+            ZonedDateTime dt  = ZonedDateTime.of(times[0], times[1], times[2], times[3], times[4], 0, 0, ZoneId.systemDefault());
+            ZonedDateTime cur = ZonedDateTime.now();
             if (dt.compareTo(cur) <= 0) {
                 setErrorAt(R.string.error_later);
             } else {
                 ReminderHabitParams before = new ReminderHabitParams(mActivity.rhParams);
                 mActivity.rhParams.reset();
-                mActivity.rhParams.setReminderInMillis(dt.getMillis());
+                mActivity.rhParams.setReminderInMillis(dt.toInstant().toEpochMilli());
                 addActionForUndoRedo(before);
                 updateActivityCbAndBackAndTd();
                 mActivity.tvQuickRemind.setText(
@@ -1201,8 +1286,8 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
         mTvSummaryAt.setTextColor(black_54p);
         StringBuilder sb = new StringBuilder();
         if (year != -1 && month != -1 && day != -1) {
-            DateTime dt = new DateTime().withYear(year).withMonthOfYear(month).withDayOfMonth(day);
-            int dayOfWeek = dt.getDayOfWeek();
+            ZonedDateTime dt = ZonedDateTime.now().withYear(year).withMonth(month).withDayOfMonth(day);
+            int dayOfWeek = dt.getDayOfWeek().getValue();
             dayOfWeek = dayOfWeek == 7 ? 1 : dayOfWeek + 1;
             sb.append(mActivity.getResources().getStringArray(R.array.day_of_week)[dayOfWeek - 1]);
             if (hour != -1) {

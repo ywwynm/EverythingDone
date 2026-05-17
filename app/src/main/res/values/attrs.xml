@@ -22,4 +22,16 @@
         <attr name="correctColor" format="color"/>
     </declare-styleable>
 
+    <declare-styleable name="ShiningBorder">
+        <attr name="strokeWidth" format="dimension"/>
+        <attr name="strokeCornerRadius" format="dimension"/>
+        <attr name="animationDuration" format="integer"/>
+        <attr name="repeatAnimation" format="boolean"/>
+        <attr name="animationDirection" format="enum">
+            <enum name="clockwise" value="0"/>
+            <enum name="anticlockwise" value="1"/>
+        </attr>
+        <attr name="remainOrdinaryPath" format="boolean"/>
+    </declare-styleable>
+
 </resources>

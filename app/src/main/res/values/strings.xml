@@ -211,6 +211,27 @@
         <item>@string/elegant_orange</item>
         <item>@string/Aein_red</item>
     </string-array>
+
+    <!-- Phase 6: 8 hue-bucket names (used by the search ColorPicker for content
+         descriptions). Order matches BackgroundUtil.HUE_BUCKET_* enum order. -->
+    <string-array name="hue_bucket_names">
+        <item>@string/hue_bucket_red</item>
+        <item>@string/hue_bucket_orange</item>
+        <item>@string/hue_bucket_yellow</item>
+        <item>@string/hue_bucket_green</item>
+        <item>@string/hue_bucket_cyan</item>
+        <item>@string/hue_bucket_blue</item>
+        <item>@string/hue_bucket_purple</item>
+        <item>@string/hue_bucket_grey</item>
+    </string-array>
+    <string name="hue_bucket_red">Red</string>
+    <string name="hue_bucket_orange">Orange</string>
+    <string name="hue_bucket_yellow">Yellow</string>
+    <string name="hue_bucket_green">Green</string>
+    <string name="hue_bucket_cyan">Cyan</string>
+    <string name="hue_bucket_blue">Blue</string>
+    <string name="hue_bucket_purple">Purple</string>
+    <string name="hue_bucket_grey">Grey</string>
     <string name="blue_grey_500">blue grey</string>
     <string name="my_cyan">cyan</string>
     <string name="blue_grey_deep_blue">deep grey blue</string>
@@ -614,10 +635,35 @@
     </string-array>
     <string name="follow_system_settings">Follow System</string>
     <string name="settings_noticeable_notification">More noticeable alarm notification</string>
+    <string name="settings_notification_reliability">Reminder reliability</string>
+    <string name="settings_group_notification_reliability">Reminder reliability</string>
+    <string name="settings_battery_optimization">Ignore battery optimization</string>
+    <string name="settings_battery_optimization_off">Off — reminders may be delayed by the system</string>
+    <string name="settings_battery_optimization_on">On — reminders fire on time</string>
+    <string name="settings_autostart">Autostart / background permission</string>
+    <string name="settings_autostart_desc">Tap to allow autostart so reminders still fire after the app is swiped away. Required on Xiaomi / Huawei / OPPO / Vivo / Honor and similar vendor ROMs.</string>
+    <string name="settings_autostart_not_needed">Your device does not require this — Pixel / AOSP-style ROMs respect alarm scheduling out of the box.</string>
+    <string name="settings_autostart_unavailable">No vendor-specific page found. Opened app info instead — please find &quot;Battery&quot; or &quot;Background activity&quot; from there.</string>
+    <string name="settings_notifications_enabled">Notification permission</string>
+    <string name="settings_notifications_enabled_off">Off — your reminders cannot show up. Tap to grant.</string>
+    <string name="settings_notifications_enabled_on">On — reminders can be displayed</string>
+    <string name="settings_full_screen_intent">Full-screen alarm permission</string>
+    <string name="settings_full_screen_intent_off">Off — &quot;more noticeable alarm&quot; will not raise the dialog. Tap to grant.</string>
+    <string name="settings_full_screen_intent_on">On — full-screen alarm dialog can show</string>
+    <string name="settings_channels_status">Reminder / habit / goal channels</string>
+    <string name="settings_channels_all_on">All %1$d channels enabled</string>
+    <string name="settings_channels_some_off">%1$d of %2$d disabled by you. Tap to fix.</string>
+    <string name="post_notifications_rationale_title">Allow notifications</string>
+    <string name="post_notifications_rationale_content">EverythingDone needs notification permission to fire your reminder, habit and goal alarms. Without it, the alarm will trigger but nothing will appear.</string>
     <string name="settings_toggle_checklist_thing_card">Toggle checklist item on thing card</string>
     <string name="settings_simple_finished_checklist">Fold finished checklist items on underway thing card</string>
     <string name="settings_auto_link">Automatically link phone number, web page and more when checking a thing</string>
     <string name="settings_twice_back">Press Back twice to exit</string>
+    <string name="settings_create_animation_style">Border light animation when creating a new thing</string>
+
+    <!-- Color picker random FABs (Phase 6) -->
+    <string name="cd_random_pure_background">Random pure colour</string>
+    <string name="cd_random_gradient_background">Random gradient colour</string>
 
     <!--group ringtone-->
     <string name="chooser_ringtone">Select Ringtone</string>
@@ -900,6 +946,18 @@
     <string name="cd_picked">Picked,</string>
     <string name="cd_unpicked">Unpicked,</string>
 
+    <!-- Phase 8 gradient orientation picker -->
+    <string name="gradient_orientation_title">Gradient direction</string>
+    <string name="cd_gradient_orientation_l_r">left to right</string>
+    <string name="cd_gradient_orientation_t_b">top to bottom</string>
+    <string name="cd_gradient_orientation_lt_rb">top-left to bottom-right</string>
+    <string name="cd_gradient_orientation_rt_lb">top-right to bottom-left</string>
+    <string name="cd_gradient_orientation_lb_rt">bottom-left to top-right</string>
+    <string name="cd_gradient_orientation_rb_lt">bottom-right to top-left</string>
+    <string name="cd_gradient_orientation_r_l">right to left</string>
+    <string name="cd_gradient_orientation_b_t">bottom to top</string>
+    <string name="act_change_gradient_orientation">Change direction</string>
+
     <!--BaseThingWidgetConfiguration-->
     <string name="cd_app_widget_preview_background">App widget preview background</string>
 
@@ -1050,5 +1108,14 @@
     <string name="from_1_3_3_to_1_3_4_title">Save edits automatically and change habit records</string>
     <string name="from_1_3_3_to_1_3_4_content">Now you can enable saving edits automatically when creating or updating a thing.
     \n\nYou can also change your latest habit records to correct mistakes or pick lost memory. Check a habit, open menu, click \"check habit detail\" and you will see that action.</string>
+
+    <!-- Notification Channels -->
+    <string name="channel_reminder">Reminders</string>
+    <string name="channel_habit">Habits</string>
+    <string name="channel_goal">Goals</string>
+    <string name="channel_doing">Doing Mode</string>
+    <string name="channel_quick_create">Quick Create</string>
+    <string name="channel_ongoing">Ongoing Notification</string>
+    <string name="channel_auto_notify">Auto Notify</string>
 
 </resources>

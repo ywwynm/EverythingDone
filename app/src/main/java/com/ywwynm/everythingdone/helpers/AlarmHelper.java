@@ -6,10 +6,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
-import android.support.v4.util.Pair;
+import androidx.core.util.Pair;
 import android.util.Log;
 
 import com.ywwynm.everythingdone.Def;
+import com.ywwynm.everythingdone.activities.ThingsActivity;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.database.ThingDAO;
@@ -22,7 +23,8 @@ import com.ywwynm.everythingdone.receivers.HabitReceiver;
 import com.ywwynm.everythingdone.receivers.ReminderReceiver;
 import com.ywwynm.everythingdone.utils.DeviceUtil;
 
-import org.joda.time.DateTime;
+import java.time.ZonedDateTime;
+import java.time.ZoneId;
 
 import java.util.List;
 
@@ -41,15 +43,9 @@ public class AlarmHelper {
         Intent intent = new Intent(context, ReminderReceiver.class);
         intent.putExtra(Def.Communication.KEY_ID, id);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
-                context, (int) id, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+                context, (int) id, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
-        if (DeviceUtil.hasMarshmallowApi()) {
-            am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, notifyTime, pendingIntent);
-        } else if (DeviceUtil.hasKitKatApi()) {
-            am.setExact(AlarmManager.RTC_WAKEUP, notifyTime, pendingIntent);
-        } else {
-            am.set(AlarmManager.RTC_WAKEUP, notifyTime, pendingIntent);
-        }
+        scheduleUserVisibleAlarm(context, am, notifyTime, pendingIntent);
     }
 
     public static void deleteReminderAlarm(Context context, long id) {
@@ -57,7 +53,7 @@ public class AlarmHelper {
         Intent intent = new Intent(context, ReminderReceiver.class);
         intent.putExtra(Def.Communication.KEY_ID, id);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(context, (int) id, intent,
-                PendingIntent.FLAG_UPDATE_CURRENT);
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         am.cancel(pendingIntent);
     }
 
@@ -66,15 +62,9 @@ public class AlarmHelper {
         Intent intent = new Intent(context, HabitReceiver.class);
         intent.putExtra(Def.Communication.KEY_ID, id);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(context, (int) id, intent,
-                PendingIntent.FLAG_UPDATE_CURRENT);
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
-        if (DeviceUtil.hasMarshmallowApi()) {
-            am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, notifyTime, pendingIntent);
-        } else if (DeviceUtil.hasKitKatApi()) {
-            am.setExact(AlarmManager.RTC_WAKEUP, notifyTime, pendingIntent);
-        } else {
-            am.set(AlarmManager.RTC_WAKEUP, notifyTime, pendingIntent);
-        }
+        scheduleUserVisibleAlarm(context, am, notifyTime, pendingIntent);
     }
 
     public static void deleteHabitReminderAlarm(Context context, long id) {
@@ -82,7 +72,7 @@ public class AlarmHelper {
         Intent intent = new Intent(context, HabitReceiver.class);
         intent.putExtra(Def.Communication.KEY_ID, id);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(context, (int) id, intent,
-                PendingIntent.FLAG_UPDATE_CURRENT);
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         am.cancel(pendingIntent);
     }
 
@@ -93,21 +83,21 @@ public class AlarmHelper {
             Intent intent = new Intent(context, AutoNotifyReceiver.class);
             intent.putExtra(Def.Communication.KEY_ID, thingId);
             PendingIntent pendingIntent = PendingIntent.getBroadcast(context, (int) thingId, intent,
-                    PendingIntent.FLAG_UPDATE_CURRENT);
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
             am.cancel(pendingIntent);
         }
         for (long reminderId : reminderIds) {
             Intent intent = new Intent(context, ReminderReceiver.class);
             intent.putExtra(Def.Communication.KEY_ID, reminderId);
             PendingIntent pendingIntent = PendingIntent.getBroadcast(context, (int) reminderId,
-                    intent, PendingIntent.FLAG_UPDATE_CURRENT);
+                    intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
             am.cancel(pendingIntent);
         }
         for (long habitReminderId : habitReminderIds) {
             Intent intent = new Intent(context, HabitReceiver.class);
             intent.putExtra(Def.Communication.KEY_ID, habitReminderId);
             PendingIntent pendingIntent = PendingIntent.getBroadcast(context, (int) habitReminderId, intent,
-                    PendingIntent.FLAG_UPDATE_CURRENT);
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
             am.cancel(pendingIntent);
         }
     }
@@ -152,15 +142,8 @@ public class AlarmHelper {
                     Intent intent = new Intent(context, ReminderReceiver.class);
                     intent.putExtra(Def.Communication.KEY_ID, id);
                     PendingIntent pendingIntent = PendingIntent.getBroadcast(
-                            context, (int) id, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-                    if (DeviceUtil.hasMarshmallowApi()) {
-                        am.setExactAndAllowWhileIdle(
-                                AlarmManager.RTC_WAKEUP, notifyTime, pendingIntent);
-                    } else if (DeviceUtil.hasKitKatApi()) {
-                        am.setExact(AlarmManager.RTC_WAKEUP, notifyTime, pendingIntent);
-                    } else {
-                        am.set(AlarmManager.RTC_WAKEUP, notifyTime, pendingIntent);
-                    }
+                            context, (int) id, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+                    scheduleUserVisibleAlarm(context, am, notifyTime, pendingIntent);
                 }
             } else if (type == Thing.HABIT) {
                 // 直接将习惯的提醒时间更新到最新时刻
@@ -178,10 +161,10 @@ public class AlarmHelper {
     public static void createDailyUpdateHabitAlarm(Context context) {
         Intent intent = new Intent(context, DailyUpdateHabitReceiver.class);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
-                context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-        DateTime dt = new DateTime().plusDays(1).withTime(0, 0, 0, 0);
+                context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        ZonedDateTime dt = ZonedDateTime.now().plusDays(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-        alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, dt.getMillis(), 86400000, pendingIntent);
+        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, dt.toInstant().toEpochMilli(), pendingIntent);
     }
 
     public static void tryToCreateDailyTodoAlarm(Context context) {
@@ -197,13 +180,13 @@ public class AlarmHelper {
 
         Intent intent = new Intent(context, DailyCreateTodoReceiver.class);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
-                context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-        DateTime dt = new DateTime().withTime(pair.first, pair.second, 0, 0);
-        if (dt.getMillis() < System.currentTimeMillis()) {
+                context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        ZonedDateTime dt = ZonedDateTime.now().withHour(pair.first).withMinute(pair.second).withSecond(0).withNano(0);
+        if (dt.toInstant().toEpochMilli() < System.currentTimeMillis()) {
             dt = dt.plusDays(1);
         }
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-        alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, dt.getMillis(), 86400000, pendingIntent);
+        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, dt.toInstant().toEpochMilli(), pendingIntent);
         Log.d(TAG, "daily todo alarm is created");
     }
 
@@ -211,8 +194,36 @@ public class AlarmHelper {
         AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         Intent intent = new Intent(context, DailyCreateTodoReceiver.class);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
-                context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+                context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         am.cancel(pendingIntent);
+    }
+
+    /**
+     * Schedule an alarm the user will see fire — reminders and habit reminders.
+     * Uses {@link AlarmManager#setAlarmClock} so the system surfaces it as a
+     * top-priority alarm (status-bar "next alarm" icon, exempt from Doze and
+     * from most OEM battery savers). Falls back to
+     * {@link AlarmManager#setExactAndAllowWhileIdle} on the rare device where
+     * {@code setAlarmClock} is denied.
+     */
+    private static void scheduleUserVisibleAlarm(
+            Context context, AlarmManager am, long notifyTime, PendingIntent fireIntent) {
+        try {
+            am.setAlarmClock(buildAlarmClockInfo(context, notifyTime), fireIntent);
+        } catch (SecurityException e) {
+            Log.w(TAG, "setAlarmClock denied; falling back to setExactAndAllowWhileIdle", e);
+            am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, notifyTime, fireIntent);
+        }
+    }
+
+    private static AlarmManager.AlarmClockInfo buildAlarmClockInfo(
+            Context context, long triggerTime) {
+        Intent showIntent = new Intent(context, ThingsActivity.class);
+        showIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        PendingIntent showPi = PendingIntent.getActivity(
+                context, 0, showIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        return new AlarmManager.AlarmClockInfo(triggerTime, showPi);
     }
 
 }

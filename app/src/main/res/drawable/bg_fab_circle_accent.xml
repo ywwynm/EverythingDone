@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Phase 8: solid teal circle used as the background of the
+     DetailActivity bottom-bar "start doing" fake FAB. The view's foreground
+     RippleDrawable (installed in DetailActivity.initUiStartDoing) draws the
+     circular tap feedback on top. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <solid android:color="@color/app_accent"/>
+</shape>

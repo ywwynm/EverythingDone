@@ -5,8 +5,8 @@ import android.app.DialogFragment;
 import android.content.DialogInterface;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.support.annotation.Nullable;
-import android.support.v4.content.ContextCompat;
+import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -26,6 +26,12 @@ public class ThreeActionsAlertDialogFragment extends BaseDialogFragment {
     public static final String TAG = "ThreeActionsAlertDialogFragment";
 
     private int[] mColors = new int[] { Color.BLACK, 0, Color.BLACK };
+    /** Phase 8: optional ThingBackground for title / first / second buttons.
+     *  Index 0 = title, 2 = continue (first + second share this slot, matching
+     *  the legacy mColors layout). When non-null the text is rendered as a
+     *  gradient shader; otherwise we fall back to the int in mColors. */
+    private com.ywwynm.everythingdone.model.ThingBackground mTitleBg;
+    private com.ywwynm.everythingdone.model.ThingBackground mContinueBg;
 
     private String mTitle;
     private String mContent;
@@ -69,8 +75,8 @@ public class ThreeActionsAlertDialogFragment extends BaseDialogFragment {
         TextView tvThirdAsBt  = f(R.id.tv_third_as_bt_alert);
 
         if (mTitle != null) {
-            tvTitle.setTextColor(mColors[0]);
             tvTitle.setText(mTitle);
+            applyAccent(tvTitle, mTitleBg, mColors[0]);
         } else {
             tvTitle.setVisibility(View.GONE);
         }
@@ -84,7 +90,7 @@ public class ThreeActionsAlertDialogFragment extends BaseDialogFragment {
 
         if (mFirstAction != null) {
             tvFirstAsBt.setText(mFirstAction);
-            tvFirstAsBt.setTextColor(mColors[2]);
+            applyAccent(tvFirstAsBt, mContinueBg, mColors[2]);
             tvFirstAsBt.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -101,7 +107,7 @@ public class ThreeActionsAlertDialogFragment extends BaseDialogFragment {
 
         if (mSecondAction != null) {
             tvSecondAsBt.setText(mSecondAction);
-            tvSecondAsBt.setTextColor(mColors[2]);
+            applyAccent(tvSecondAsBt, mContinueBg, mColors[2]);
             tvSecondAsBt.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -145,6 +151,7 @@ public class ThreeActionsAlertDialogFragment extends BaseDialogFragment {
 
     public void setTitleColor(int color) {
         mColors[0] = color;
+        mTitleBg = null;
     }
 
     public void setContentColor(int color) {
@@ -153,6 +160,28 @@ public class ThreeActionsAlertDialogFragment extends BaseDialogFragment {
 
     public void setContinueColor(int color) {
         mColors[2] = color;
+        mContinueBg = null;
+    }
+
+    /** Phase 8: gradient-aware accent for the title. */
+    public void setTitleBackground(com.ywwynm.everythingdone.model.ThingBackground bg) {
+        mTitleBg = bg;
+        if (bg != null) mColors[0] = bg.representativeColor();
+    }
+
+    /** Phase 8: gradient-aware accent for the two "continue" buttons. */
+    public void setContinueBackground(com.ywwynm.everythingdone.model.ThingBackground bg) {
+        mContinueBg = bg;
+        if (bg != null) mColors[2] = bg.representativeColor();
+    }
+
+    private void applyAccent(TextView tv, com.ywwynm.everythingdone.model.ThingBackground bg,
+                             int fallback) {
+        if (bg != null) {
+            com.ywwynm.everythingdone.utils.BackgroundUtil.applyTextBackground(tv, bg);
+        } else {
+            tv.setTextColor(fallback);
+        }
     }
 
     public void setTitle(String title) {

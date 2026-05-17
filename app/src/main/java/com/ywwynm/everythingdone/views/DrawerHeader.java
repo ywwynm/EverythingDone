@@ -73,7 +73,7 @@ public class DrawerHeader {
                 return;
             }
 
-            if (!PermissionUtil.hasStoragePermission(mApp)) {
+            if (!PermissionUtil.hasImagePermission(mApp)) {
                 // sometimes after re-installing the app by Android Studio, old data remains.
                 mIvHeader.setImageResource(R.drawable.drawer_header);
                 return;

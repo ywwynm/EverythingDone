@@ -6,9 +6,9 @@ import android.content.res.Configuration;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.graphics.Typeface;
-import android.support.v4.content.ContextCompat;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
+import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -38,6 +38,9 @@ public class DateTimePicker extends PopupPicker {
 
     private int mType;
     private int mAccentColor;
+    /** Phase 8: full ThingBackground for gradient text on the picked-item row.
+     *  When null, the adapter falls back to the legacy int {@link #mAccentColor}. */
+    private com.ywwynm.everythingdone.model.ThingBackground mAccentBackground;
     private String[] mItems;
     private View.OnClickListener mOnClickListener;
     private DateTimePickerAdapter mAdapter;
@@ -88,6 +91,17 @@ public class DateTimePicker extends PopupPicker {
 
     public void setAccentColor(int accentColor) {
         mAccentColor = accentColor;
+        mAccentBackground = null;
+    }
+
+    /**
+     * Phase 8: set the accent as a full {@link com.ywwynm.everythingdone.model.ThingBackground}
+     * so the picked-item row can render a gradient. Keeps {@link #mAccentColor} in
+     * sync with the representative int for the EdgeEffect and other int-only paths.
+     */
+    public void setAccentBackground(com.ywwynm.everythingdone.model.ThingBackground bg) {
+        mAccentBackground = bg;
+        if (bg != null) mAccentColor = bg.representativeColor();
     }
 
     @SuppressLint("SetTextI18n")
@@ -273,10 +287,25 @@ public class DateTimePicker extends PopupPicker {
             holder.bt.setText(mItems[position]);
             if (mPickedPosition == position) {
                 holder.bt.setTypeface(Typeface.DEFAULT_BOLD);
-                holder.bt.setTextColor(mAccentColor);
+                // Phase 8: gradient text on the picked row when the accent is
+                // a GRADIENT background. Falls back to plain accent int.
+                if (mAccentBackground != null) {
+                    com.ywwynm.everythingdone.utils.BackgroundUtil.applyTextBackground(
+                            holder.bt, mAccentBackground);
+                } else {
+                    if (holder.bt.getPaint().getShader() != null) {
+                        holder.bt.getPaint().setShader(null);
+                    }
+                    holder.bt.setTextColor(mAccentColor);
+                }
                 holder.bt.setClickable(position == 9);
             } else {
                 holder.bt.setTypeface(Typeface.DEFAULT);
+                // Clear any shader left from a previous bind to this view holder
+                // before painting an unselected row in its plain colour.
+                if (holder.bt.getPaint().getShader() != null) {
+                    holder.bt.getPaint().setShader(null);
+                }
                 holder.bt.setTextColor(ContextCompat.getColor(mActivity, R.color.black_54p));
                 holder.bt.setClickable(true);
             }

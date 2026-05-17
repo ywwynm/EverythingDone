@@ -3,6 +3,7 @@ package com.ywwynm.everythingdone.activities;
 import android.Manifest;
 import android.animation.ArgbEvaluator;
 import android.animation.ObjectAnimator;
+import androidx.activity.OnBackPressedCallback;
 import android.annotation.SuppressLint;
 import android.app.ActivityManager;
 import android.content.ActivityNotFoundException;
@@ -13,6 +14,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.Color;
@@ -23,18 +25,20 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.media.MediaPlayer;
 import android.net.Uri;
-import android.support.annotation.StringRes;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.app.ActivityOptionsCompat;
-import android.support.v4.content.ContextCompat;
-import android.support.v4.util.Pair;
-import android.support.v4.widget.NestedScrollView;
-import android.support.v7.widget.GridLayoutManager;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.SimpleItemAnimator;
-import android.support.v7.widget.Toolbar;
-import android.support.v7.widget.helper.ItemTouchHelper;
+import android.os.Build;
+import androidx.annotation.StringRes;
+import androidx.core.content.FileProvider;
+import androidx.core.app.ActivityCompat;
+import androidx.core.app.ActivityOptionsCompat;
+import androidx.core.content.ContextCompat;
+import androidx.core.util.Pair;
+import androidx.core.widget.NestedScrollView;
+import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.SimpleItemAnimator;
+import androidx.appcompat.widget.Toolbar;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import android.text.Editable;
 import android.text.Layout;
 import android.text.Spannable;
@@ -97,6 +101,7 @@ import com.ywwynm.everythingdone.model.HabitReminder;
 import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.ReminderHabitParams;
 import com.ywwynm.everythingdone.model.Thing;
+import com.ywwynm.everythingdone.model.ThingBackground;
 import com.ywwynm.everythingdone.model.ThingAction;
 import com.ywwynm.everythingdone.permission.PermissionUtil;
 import com.ywwynm.everythingdone.permission.SimplePermissionCallback;
@@ -106,6 +111,7 @@ import com.ywwynm.everythingdone.receivers.HabitReceiver;
 import com.ywwynm.everythingdone.receivers.ReminderReceiver;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.DeviceUtil;
+import com.ywwynm.everythingdone.utils.BackgroundUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.FileUtil;
 import com.ywwynm.everythingdone.utils.KeyboardUtil;
@@ -116,7 +122,8 @@ import com.ywwynm.everythingdone.views.Snackbar;
 import com.ywwynm.everythingdone.views.pickers.ColorPicker;
 import com.ywwynm.everythingdone.views.pickers.DateTimePicker;
 
-import org.joda.time.DateTime;
+import java.time.ZonedDateTime;
+import java.time.ZoneId;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -135,11 +142,24 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     public static final int UPDATE = 1;
 
     public static Intent getOpenIntentForCreate(Context context, String senderName, int color) {
+        return getOpenIntentForCreate(context, senderName, ThingBackground.pure(color));
+    }
+
+    /**
+     * Phase 4.e: open the DetailActivity in CREATE mode with a full
+     * {@link ThingBackground} (PURE or GRADIENT). Older callers can keep using the
+     * int overload; this puts both KEY_COLOR (representative int) and KEY_BACKGROUND
+     * (JSON) so any receiver that only reads KEY_COLOR still works.
+     */
+    public static Intent getOpenIntentForCreate(Context context, String senderName, ThingBackground bg) {
         final Intent intent = new Intent(context, DetailActivity.class);
         intent.putExtra(Def.Communication.KEY_SENDER_NAME, senderName);
         intent.putExtra(Def.Communication.KEY_DETAIL_ACTIVITY_TYPE,
                 DetailActivity.CREATE);
-        intent.putExtra(Def.Communication.KEY_COLOR, color);
+        if (bg != null) {
+            intent.putExtra(Def.Communication.KEY_COLOR,      bg.representativeColor());
+            intent.putExtra(Def.Communication.KEY_BACKGROUND, bg.toJson());
+        }
         return intent;
     }
 
@@ -164,6 +184,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
     // type + path + name of attachment to add
     public String attachmentTypePathName;
+    public Uri cameraOutputUri;
 
     public ReminderHabitParams rhParams = new ReminderHabitParams();
 
@@ -318,11 +339,13 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
             IntentFilter intentFilter = new IntentFilter(
                     Def.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI);
-            registerReceiver(mReceiver, intentFilter);
+            ContextCompat.registerReceiver(this, mReceiver, intentFilter,
+                    ContextCompat.RECEIVER_NOT_EXPORTED);
 
             intentFilter = new IntentFilter(
                     Def.Communication.BROADCAST_ACTION_FINISH_DETAILACTIVITY);
-            registerReceiver(mReceiver, intentFilter);
+            ContextCompat.registerReceiver(this, mReceiver, intentFilter,
+                    ContextCompat.RECEIVER_NOT_EXPORTED);
         }
     }
 
@@ -358,6 +381,15 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             if (color == 0) color = DisplayUtil.getRandomColor(mApp);
 
             mThing = new Thing(newId, Thing.NOTE, color, newId);
+
+            // Phase 4.e: prefer the full ThingBackground from the intent when present
+            // — otherwise the int from KEY_COLOR is enough and Thing constructor's
+            // default of pure(color) is correct.
+            String bgJson = intent.getStringExtra(Def.Communication.KEY_BACKGROUND);
+            if (bgJson != null) {
+                ThingBackground bg = ThingBackground.fromJson(bgJson);
+                if (bg != null) mThing.setBackground(bg);
+            }
 
             App.updateNewThingColor();
             SystemNotificationUtil.tryToCreateQuickCreateNotification(this);
@@ -428,7 +460,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 Uri data = intent.getParcelableExtra(Intent.EXTRA_STREAM);
                 String pathName = UriPathConverter.getLocalPathName(this, data);
                 if (pathName != null) {
-                    mThing.setAttachment(AttachmentHelper.SIGNAL + getTypePathName(pathName));
+                    mThing.setAttachment(AttachmentHelper.SIGNAL + getTypePathName(pathName, null));
                 }
             }
         } else if (Intent.ACTION_SEND_MULTIPLE.equals(action)) {
@@ -437,7 +469,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             for (Uri data : datas) {
                 String pathName = UriPathConverter.getLocalPathName(this, data);
                 if (pathName != null) {
-                    String typePathName = getTypePathName(pathName);
+                    String typePathName = getTypePathName(pathName, null);
                     if (typePathName != null) {
                         sb.append(AttachmentHelper.SIGNAL).append(typePathName);
                     }
@@ -642,9 +674,13 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             mTvMoveChecklistAsBt = f(R.id.tv_move_checklist_as_bt);
 
             View decorView = getWindow().getDecorView();
-            mColorPicker = new ColorPicker(this, decorView, Def.PickerType.COLOR_NO_ALL);
+            mColorPicker = new ColorPicker(this, decorView, Def.PickerType.COLOR_EDIT);
             quickRemindPicker = new DateTimePicker(this, decorView,
                     Def.PickerType.AFTER_TIME, mThing.getColor());
+            // Phase 8: feed the full ThingBackground so the picker's picked-row
+            // text supports gradients on a GRADIENT thing.
+            ThingBackground initialBg = mThing.getBackground();
+            if (initialBg != null) quickRemindPicker.setAccentBackground(initialBg);
             quickRemindPicker.setAnchor(tvQuickRemind);
         }
     }
@@ -653,6 +689,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     protected void initUI() {
         DisplayUtil.expandLayoutToStatusBarAboveLollipop(this);
         DisplayUtil.expandStatusBarViewAboveKitkat(mStatusBar);
+        DisplayUtil.applyBottomInsetAsPadding(mFlRoot);
 
         int color = mThing.getColor();
         if (mEditable) {
@@ -668,22 +705,15 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             initBackButton(thingType);
         }
 
-        mFlRoot.setBackgroundColor(color);
-
-        if (!DeviceUtil.hasLollipopApi()) {
-            if (mEditable) {
-                int appAccentColor = ContextCompat.getColor(this, R.color.app_accent);
-                DisplayUtil.setSelectionHandlersColor(mEtTitle, appAccentColor);
-                DisplayUtil.setSelectionHandlersColor(mEtContent, appAccentColor);
-            }
-        }
+        BackgroundUtil.applyBackground(mFlRoot, mThing.getBackground());
+        applyForegroundColors(color);
 
         if (!mEditable) {
             mEtTitle.setKeyListener(null);
             mEtContent.setKeyListener(null);
             cbQuickRemind.setEnabled(thingState == Thing.UNDERWAY);
         } else {
-            mColorPicker.pickForUI(DisplayUtil.getColorIndex(mThing.getColor(), this));
+            mColorPicker.pickForBackground(mThing.getBackground());
         }
 
         mEtTitle.setText(mThing.getTitleToDisplay());
@@ -763,6 +793,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                     mCheckListAdapter.setActionCallback(new CheckListActionCallback());
                 }
                 mCheckListAdapter.setShouldAutoLink(mShouldAutoLink);
+                mCheckListAdapter.setThingColor(mThing.getColor());
                 setChecklistExpandShrinkEvent();
 
                 setMoveChecklistEvent();
@@ -823,7 +854,8 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
                     },
                     Def.Communication.REQUEST_PERMISSION_LOAD_THING,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE);
+                    PermissionUtil.getRequiredPermissionsForThings(
+                            Collections.singletonList(mThing)));
 
         } else {
             setScrollViewMarginTop(true);
@@ -894,7 +926,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             } else {
                 quickRemindPicker.pickForUI(9);
                 cbQuickRemind.setChecked(true);
-                long reminderInMillis = new DateTime().withTime(14, 0, 0, 0).getMillis();
+                long reminderInMillis = ZonedDateTime.now().withHour(14).withMinute(0).withSecond(0).withNano(0).toInstant().toEpochMilli();
                 tvQuickRemind.setText(DateTimeUtil.getDateTimeStrAt(reminderInMillis, this, false));
                 rhParams.setReminderInMillis(reminderInMillis);
             }
@@ -951,7 +983,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
     private void initUiStartDoing() {
         @Thing.Type int thingType = mThing.getType();
-        FrameLayout fl = f(R.id.fl_doing_detail_as_bt);
+        FrameLayout fl = f(R.id.fl_start_doing_as_bt);
         if (mType == UPDATE && mEditable && thingType >= Thing.NOTE && thingType <= Thing.GOAL
                 && !(thingType == Thing.HABIT && mHabit != null && mHabit.isPaused())) {
             fl.setVisibility(View.VISIBLE);
@@ -961,7 +993,10 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                     @Thing.Type int thingType = mThing.getType();
                     if (thingType != Thing.REMINDER && thingType != Thing.HABIT) {
                         ThingDoingHelper helper = new ThingDoingHelper(DetailActivity.this, mThing);
-                        helper.tryToOpenStartDoingActivityUser();
+                        // Phase 8: pass the live accent (pending pick honoured) so the
+                        // StartDoingActivity dialog reflects the colour the user just
+                        // picked rather than the stale saved mThing.getColor().
+                        helper.tryToOpenStartDoingActivityUser(getAccentBackground());
                     } else {
                         ThingDoingDialogFragment tddf = new ThingDoingDialogFragment();
                         tddf.setThing(mThing);
@@ -976,6 +1011,14 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                     PorterDuff.Mode.SRC_IN);
             ImageView iv = f(R.id.iv_doing_detail);
             iv.setImageDrawable(d2);
+
+            // Phase 8: fake-FAB ripple. Dark tint (~12% black) matches the
+            // legacy rectangular button's selectable_item_background, which
+            // read as a black-ish ripple on the teal accent. The default
+            // white circularRipple() is for cells whose bg is the thing's
+            // (often dark) colour; here the bg is the app_accent teal which
+            // is medium-light, so a dark ripple shows up better.
+            fl.setForeground(BackgroundUtil.circularRipple(BackgroundUtil.RIPPLE_DARK));
         }
     }
 
@@ -995,6 +1038,13 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
     @Override
     protected void setEvents() {
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                returnToThingsActivity(true, true);
+            }
+        });
+
         setScrollEvents();
 
         final Window window = getWindow();
@@ -1013,8 +1063,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                     quickRemindPicker.dismiss();
                 }
             });
-            if (DeviceUtil.hasKitKatApi()) {
-                KeyboardUtil.addKeyboardCallback(window, new KeyboardUtil.KeyboardCallback() {
+            KeyboardUtil.addKeyboardCallback(window, new KeyboardUtil.KeyboardCallback() {
 
                     final int screenHeightDivide6 = DisplayUtil.getScreenSize(mApp).y / 6;
 
@@ -1048,7 +1097,6 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                         }
                     }
                 });
-            }
         }
 
         if (mShouldAutoLink) {
@@ -1062,16 +1110,10 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             if (!DeviceUtil.isFlyme()) {
                 int appAccent = ContextCompat.getColor(this, R.color.app_accent);
                 int cursorWidth = (int) (1.5 * screenDensity);
-                int normalLineCursorHeightVary = (int) (-4 * screenDensity);
-                int lastLineCursorHeightVary;
-                if (DeviceUtil.hasLollipopApi()) {
-                    lastLineCursorHeightVary = (int) (-1 * screenDensity);
-                } else {
-                    lastLineCursorHeightVary = normalLineCursorHeightVary;
-                }
+                int lastLineCursorHeightVary = (int) (-1 * screenDensity);
                 LineSpacingHelper.setTextCursorDrawable(
                         mEtContent, appAccent, cursorWidth,
-                        normalLineCursorHeightVary, lastLineCursorHeightVary);
+                        (int) (-4 * screenDensity), lastLineCursorHeightVary);
             }
 
             setEditTextWatchers();
@@ -1150,24 +1192,14 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 boolean isDragging = mCheckListAdapter.isDragging();
                 if (!isDragging) {
                     mTvMoveChecklistAsBt.setText(R.string.act_back_from_move_checklist);
-                    if (DeviceUtil.hasJellyBeanMR1Api()) {
-                        mTvMoveChecklistAsBt.setCompoundDrawablesRelativeWithIntrinsicBounds(
-                                R.drawable.act_back_from_move_checklist, 0, 0, 0);
-                    } else {
-                        mTvMoveChecklistAsBt.setCompoundDrawablesWithIntrinsicBounds(
-                                R.drawable.act_back_from_move_checklist, 0, 0, 0);
-                    }
+                    mTvMoveChecklistAsBt.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                            R.drawable.act_back_from_move_checklist, 0, 0, 0);
                     mCheckListAdapter.setDragging(true);
                     mChecklistTouchHelper.attachToRecyclerView(mRvCheckList);
                 } else {
                     mTvMoveChecklistAsBt.setText(R.string.act_move_check_list);
-                    if (DeviceUtil.hasJellyBeanMR1Api()) {
-                        mTvMoveChecklistAsBt.setCompoundDrawablesRelativeWithIntrinsicBounds(
-                                R.drawable.act_move_checklist, 0, 0, 0);
-                    } else {
-                        mTvMoveChecklistAsBt.setCompoundDrawablesWithIntrinsicBounds(
-                                R.drawable.act_move_checklist, 0, 0, 0);
-                    }
+                    mTvMoveChecklistAsBt.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                            R.drawable.act_move_checklist, 0, 0, 0);
                     mCheckListAdapter.setDragging(false);
                     mChecklistTouchHelper.attachToRecyclerView(null);
                 }
@@ -1200,14 +1232,12 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             title += Thing.getTypeStr(getThingTypeAfter(), mApp);
         }
         mFlRoot.setContentDescription(title);
-        if (DeviceUtil.hasLollipopApi()) {
-            BitmapDrawable bmd = (BitmapDrawable) getDrawable(R.mipmap.ic_launcher);
-            if (bmd != null) {
-                Bitmap bm = bmd.getBitmap();
-                try {
-                    setTaskDescription(new ActivityManager.TaskDescription(title, bm, color));
-                } catch (Exception ignored) {
-                }
+        BitmapDrawable bmd = (BitmapDrawable) getDrawable(R.mipmap.ic_launcher);
+        if (bmd != null) {
+            Bitmap bm = bmd.getBitmap();
+            try {
+                setTaskDescription(new ActivityManager.TaskDescription(title, bm, color));
+            } catch (Exception ignored) {
             }
         }
     }
@@ -1288,94 +1318,70 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             }
         }
         updateUndoRedoActionButtonState();
+        // Menu is freshly inflated — re-apply the accent-aware tint so icons stay
+        // readable on light thing colors.
+        tintMenuIcons(BackgroundUtil.isLight(getAccentColor()));
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.act_add_attachment:
-                AddAttachmentDialogFragment.newInstance().show(getFragmentManager(),
-                        AddAttachmentDialogFragment.TAG);
-                break;
-            case R.id.act_check_list:
-                toggleCheckList();
-                break;
-            case R.id.act_change_color:
-                mColorPicker.show();
-                break;
-            case R.id.act_set_as_private_thing:
-                togglePrivateThing();
-                break;
-            case R.id.act_undo:
-                undoOrRedo(mActionList.undo(), true);
-                break;
-            case R.id.act_redo:
-                undoOrRedo(mActionList.redo(), false);
-                break;
-            case R.id.act_check_habit_detail: {
-                if (mHabit == null) break;
+        int itemId = item.getItemId();
+        if (itemId == R.id.act_add_attachment) {
+            AddAttachmentDialogFragment.newInstance().show(getFragmentManager(),
+                    AddAttachmentDialogFragment.TAG);
+        } else if (itemId == R.id.act_check_list) {
+            toggleCheckList();
+        } else if (itemId == R.id.act_change_color) {
+            mColorPicker.show();
+        } else if (itemId == R.id.act_set_as_private_thing) {
+            togglePrivateThing();
+        } else if (itemId == R.id.act_undo) {
+            undoOrRedo(mActionList.undo(), true);
+        } else if (itemId == R.id.act_redo) {
+            undoOrRedo(mActionList.redo(), false);
+        } else if (itemId == R.id.act_check_habit_detail) {
+            if (mHabit != null) {
                 HabitDetailDialogFragment hddf = HabitDetailDialogFragment.newInstance();
                 mHabit = HabitDAO.getInstance(this).getHabitById(mHabit.getId());
                 hddf.setHabit(mHabit);
                 hddf.show(getFragmentManager(), HabitDetailDialogFragment.TAG);
-                break;
             }
-            case R.id.act_check_update_habit_record: {
-                if (mHabit == null) break;
+        } else if (itemId == R.id.act_check_update_habit_record) {
+            if (mHabit != null) {
                 HabitRecordDialogFragment hrdf = new HabitRecordDialogFragment();
                 mHabit = HabitDAO.getInstance(this).getHabitById(mHabit.getId());
                 hrdf.setHabit(mHabit);
                 hrdf.setEditable(mEditable);
                 hrdf.show(getFragmentManager(), HabitRecordDialogFragment.TAG);
-                break;
             }
-            case R.id.act_share:
-                chooseHowToShareThing();
-                break;
-            case R.id.act_finish_this_time_habit:
-                HabitDAO.getInstance(mApp).finishOneTime(mHabit);
-                mHabitFinishedThisTime = true;
-                rhParams.setHabitType(mHabit.getType());
-                rhParams.setHabitDetail(mHabit.getDetail());
-                returnToThingsActivity(true, false);
-                break;
-            case R.id.act_finish:
-                returnToThingsActivity(Thing.FINISHED);
-                break;
-            case R.id.act_delete:
-                returnToThingsActivity(Thing.DELETED);
-                break;
-            case R.id.act_restore:
-                returnToThingsActivity(Thing.UNDERWAY);
-                break;
-            case R.id.act_copy_content:
-                copyContent();
-                break;
-            case R.id.act_export:
-                doWithPermissionChecked(
-                        new SimplePermissionCallback(DetailActivity.this) {
-                            @Override
-                            public void onGranted() {
-                                ThingExporter.startExporting(
-                                        DetailActivity.this, getAccentColor(), mThing);
-                            }
-                        }, Def.Communication.REQUEST_PERMISSION_EXPORT_DETAIL,
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE);
-                break;
-            case R.id.act_abandon_new_thing:
-                createFailed(Def.Communication.RESULT_ABANDON_NEW_THING);
-                break;
-            case R.id.act_sticky:
-                stickyOrCancel();
-                break;
-            case R.id.act_ongoing_thing:
-                ongoingOrCancel();
-                break;
-            case R.id.act_pause_resume_habit:
-                pauseOrResumeHabit();
-                break;
-            default:break;
+        } else if (itemId == R.id.act_share) {
+            chooseHowToShareThing();
+        } else if (itemId == R.id.act_finish_this_time_habit) {
+            HabitDAO.getInstance(mApp).finishOneTime(mHabit);
+            mHabitFinishedThisTime = true;
+            rhParams.setHabitType(mHabit.getType());
+            rhParams.setHabitDetail(mHabit.getDetail());
+            returnToThingsActivity(true, false);
+        } else if (itemId == R.id.act_finish) {
+            returnToThingsActivity(Thing.FINISHED);
+        } else if (itemId == R.id.act_delete) {
+            returnToThingsActivity(Thing.DELETED);
+        } else if (itemId == R.id.act_restore) {
+            returnToThingsActivity(Thing.UNDERWAY);
+        } else if (itemId == R.id.act_copy_content) {
+            copyContent();
+        } else if (itemId == R.id.act_export) {
+            ThingExporter.startExporting(
+                    DetailActivity.this, getAccentColor(), mThing);
+        } else if (itemId == R.id.act_abandon_new_thing) {
+            createFailed(Def.Communication.RESULT_ABANDON_NEW_THING);
+        } else if (itemId == R.id.act_sticky) {
+            stickyOrCancel();
+        } else if (itemId == R.id.act_ongoing_thing) {
+            ongoingOrCancel();
+        } else if (itemId == R.id.act_pause_resume_habit) {
+            pauseOrResumeHabit();
         }
         return super.onOptionsItemSelected(item);
     }
@@ -1504,6 +1510,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 mCheckListAdapter.setItems(items);
             }
             mCheckListAdapter.setShouldAutoLink(mShouldAutoLink);
+            mCheckListAdapter.setThingColor(mThing.getColor());
             setChecklistExpandShrinkEvent();
             mRvCheckList.setAdapter(mCheckListAdapter);
             mRvCheckList.setLayoutManager(mLlmCheckList);
@@ -1558,9 +1565,11 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         final AlertDialogFragment adf = new AlertDialogFragment();
         adf.setShowCancel(false);
 
-        int color = getAccentColor();
-        adf.setTitleColor(color);
-        adf.setConfirmColor(color);
+        // Phase 8: feed full ThingBackground so title / confirm text render the
+        // gradient (via TextPaint shader) when the thing is GRADIENT.
+        ThingBackground accent = getAccentBackground();
+        adf.setTitleBackground(accent);
+        adf.setConfirmBackground(accent);
 
         adf.setTitle(getString(R.string.cannot_set_as_private_thing_title));
         adf.setContent(getString(R.string.warning_should_set_password_first));
@@ -1582,8 +1591,10 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         String cp = getSharedPreferences(Def.Meta.PREFERENCES_NAME, MODE_PRIVATE)
                 .getString(Def.Meta.KEY_PRIVATE_PASSWORD, null);
         final boolean shouldAddToActionList = this.shouldAddToActionList;
+        // Phase 8: pass full ThingBackground so the pattern-lock fallback
+        // renders gradient when the (pending) accent is GRADIENT.
         AuthenticationHelper.authenticate(
-                this, getAccentColor(), getString(R.string.act_cancel_private_thing), cp,
+                this, getAccentBackground(), getString(R.string.act_cancel_private_thing), cp,
                 new AuthenticationHelper.AuthenticationCallback() {
                     @Override
                     public void onAuthenticated() {
@@ -1624,9 +1635,9 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         AlertDialogFragment adf = new AlertDialogFragment();
         adf.setShowCancel(false);
 
-        int color = getAccentColor();
-        adf.setTitleColor(color);
-        adf.setConfirmColor(color);
+        ThingBackground accent = getAccentBackground();
+        adf.setTitleBackground(accent);
+        adf.setConfirmBackground(accent);
 
         adf.setTitle(getString(R.string.cannot_set_as_private_thing_title));
         adf.setContent(getString(R.string.warning_title_should_not_be_empty));
@@ -1679,10 +1690,23 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 moveChecklist((int) from, (int) to);
                 break;
             }
-            case ThingAction.UPDATE_COLOR:
-                mColorPicker.pickForUI(DisplayUtil.getColorIndex((int) to, mApp));
-                changeColor((int) to);
+            case ThingAction.UPDATE_COLOR: {
+                // Phase 6 fix #1: before/after are now stored as ThingBackground so
+                // undo/redo can round-trip GRADIENT picks losslessly. Legacy actions
+                // (int) are handled via fallback for safety, though no caller emits
+                // those anymore.
+                ThingBackground bgTarget;
+                if (to instanceof ThingBackground) {
+                    bgTarget = (ThingBackground) to;
+                } else if (to instanceof Integer) {
+                    bgTarget = ThingBackground.pure((Integer) to);
+                } else {
+                    break;
+                }
+                mColorPicker.pickForBackground(bgTarget);
+                changeBackground(bgTarget);
                 break;
+            }
             case ThingAction.ADD_ATTACHMENT:
                 // before: attachmentTypePathName, after: position
                 undoOrRedoAddAttachment(action, undo);
@@ -1934,7 +1958,14 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         mThing.setTitle(title);
         mThing.setContent(content);
         mThing.setAttachment(attachment);
-        mThing.setColor(mChangeColorTo != 0 ? mChangeColorTo : getAccentColor());
+        // Phase 6.d: prefer the full ThingBackground over the int companion so
+        // GRADIENT picks survive save. The int path is the fallback for legacy
+        // callers (and a no-op when mChangeBackgroundTo agrees with it).
+        if (mChangeBackgroundTo != null) {
+            mThing.setBackground(mChangeBackgroundTo);
+        } else {
+            mThing.setColor(mChangeColorTo != 0 ? mChangeColorTo : getAccentColor());
+        }
 
         long currentTime = System.currentTimeMillis();
         mThing.setUpdateTime(currentTime);
@@ -2018,18 +2049,47 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
             if (requestCode == Def.Communication.REQUEST_CHOOSE_MEDIA_FILE) {
-                String pathName = UriPathConverter.getLocalPathName(this, data.getData());
+                Uri uri = data.getData();
+                Log.d(TAG, "chooseMediaFile uri=" + uri + " scheme=" + (uri != null ? uri.getScheme() : "null"));
+                String pathName = UriPathConverter.getLocalPathName(this, uri);
+                Log.d(TAG, "chooseMediaFile getLocalPathName=" + pathName);
+                String mimeFallback = null;
                 if (pathName == null) {
+                    String mimeType = getContentResolver().getType(uri);
+                    Log.d(TAG, "chooseMediaFile mimeType=" + mimeType);
+                    String postfix = FileUtil.getPostfixFromMimeType(this, uri);
+                    Log.d(TAG, "chooseMediaFile postfixFromMime=" + postfix);
+                    if (postfix != null) {
+                        pathName = FileUtil.copyUriToFile(this, uri, postfix);
+                        Log.d(TAG, "chooseMediaFile copied to=" + pathName);
+                        mimeFallback = postfix;
+                    }
+                }
+                if (pathName == null) {
+                    Log.w(TAG, "chooseMediaFile pathName is null, showing error");
                     mNormalSnackbar.setMessage(R.string.error_cannot_add_from_network);
                     mFlRoot.postDelayed(mShowNormalSnackbar, KeyboardUtil.HIDE_DELAY);
                     return;
                 }
-                attachmentTypePathName = getTypePathName(pathName);
+                Log.d(TAG, "chooseMediaFile pathName=" + pathName + " postfix=" + FileUtil.getPostfix(pathName) + " mimeFallback=" + mimeFallback);
+                attachmentTypePathName = getTypePathName(pathName, mimeFallback);
+                Log.d(TAG, "chooseMediaFile attachmentTypePathName=" + attachmentTypePathName);
                 if (attachmentTypePathName == null) {
+                    Log.w(TAG, "chooseMediaFile getTypePathName returned null, showing error");
                     mNormalSnackbar.setMessage(R.string.error_unsupported_file_type);
                     mFlRoot.postDelayed(mShowNormalSnackbar, KeyboardUtil.HIDE_DELAY);
                     return;
                 }
+            }
+            // For camera/video capture, copy from MediaStore URI to our local file
+            if (cameraOutputUri != null && attachmentTypePathName != null) {
+                String localPath = attachmentTypePathName.substring(1); // remove type prefix
+                try {
+                    FileUtil.copyUriToExistingFile(this, cameraOutputUri, localPath);
+                } catch (Exception e) {
+                    Log.e(TAG, "Failed to copy camera output to local file", e);
+                }
+                cameraOutputUri = null;
             }
             addAttachment(0);
         } else if (resultCode == Def.Communication.RESULT_UPDATE_IMAGE_DONE) {
@@ -2050,33 +2110,37 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         }
     }
 
-    @Override
-    public void onBackPressed() {
-        returnToThingsActivity(true, true);
-    }
-
     public void showNormalSnackbar(int stringRes) {
         mNormalSnackbar.setMessage(stringRes);
         mNormalSnackbar.show();
     }
 
-    private String getTypePathName(String pathName) {
+    private String getTypePathName(String pathName, String mimePostfix) {
         String postfix = FileUtil.getPostfix(pathName);
-        if (AttachmentHelper.isImageFile(postfix)) {
+        if (AttachmentHelper.isImageFile(postfix)
+                || (mimePostfix != null && AttachmentHelper.isImageFile(
+                        mimePostfix.startsWith(".") ? mimePostfix.substring(1) : mimePostfix))) {
             return AttachmentHelper.IMAGE + pathName;
-        } else if (AttachmentHelper.isVideoFile(postfix)) {
+        } else if (AttachmentHelper.isVideoFile(postfix)
+                || (mimePostfix != null && AttachmentHelper.isVideoFile(
+                        mimePostfix.startsWith(".") ? mimePostfix.substring(1) : mimePostfix))) {
             File file = new File(pathName);
-            MediaPlayer player = MediaPlayer.create(this, Uri.fromFile(file));
+            MediaPlayer player = MediaPlayer.create(this,
+                    FileProvider.getUriForFile(this, "com.ywwynm.everythingdone", file));
             String ret = null;
             if (player.getVideoHeight() != 0) {
                 ret = AttachmentHelper.VIDEO + pathName;
-            } else if (AttachmentHelper.isAudioFile(postfix)) {
+            } else if (AttachmentHelper.isAudioFile(postfix)
+                    || (mimePostfix != null && AttachmentHelper.isAudioFile(
+                            mimePostfix.startsWith(".") ? mimePostfix.substring(1) : mimePostfix))) {
                 ret = AttachmentHelper.AUDIO + pathName;
             }
             player.reset();
             player.release();
             return ret;
-        } else if (AttachmentHelper.isAudioFile(postfix)) {
+        } else if (AttachmentHelper.isAudioFile(postfix)
+                || (mimePostfix != null && AttachmentHelper.isAudioFile(
+                        mimePostfix.startsWith(".") ? mimePostfix.substring(1) : mimePostfix))) {
             return AttachmentHelper.AUDIO + pathName;
         }
         return null;
@@ -2114,10 +2178,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     private void setScrollViewMarginTop(boolean hasMarginTop) {
         FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) mScrollView.getLayoutParams();
         if (hasMarginTop) {
-            float mt = screenDensity * 56;
-            if (DeviceUtil.hasKitKatApi()) {
-                mt += DisplayUtil.getStatusbarHeight(this);
-            }
+            float mt = screenDensity * 56 + DisplayUtil.getStatusbarHeight(this);
             params.setMargins(0, (int) mt, 0, params.bottomMargin);
         } else {
             params.setMargins(0, 0, 0, params.bottomMargin);
@@ -2243,15 +2304,32 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
     private void setImageCover() {
         FrameLayout.LayoutParams fl = (FrameLayout.LayoutParams) mImageCover.getLayoutParams();
-        fl.height = (int) (66 * screenDensity);
-        if (DeviceUtil.hasKitKatApi()) {
-            fl.height += DisplayUtil.getStatusbarHeight(this);
-        }
+        fl.height = (int) (66 * screenDensity) + DisplayUtil.getStatusbarHeight(this);
         mImageCover.setVisibility(View.VISIBLE);
     }
 
     public int getAccentColor() {
-        return ((ColorDrawable) mFlRoot.getBackground()).getColor();
+        ThingBackground bg = getAccentBackground();
+        return bg != null ? bg.representativeColor() : 0;
+    }
+
+    /**
+     * Phase 7: the canonical "current accent" — full {@link ThingBackground}
+     * so any caller that can render a gradient gets the gradient.
+     *
+     * <p>Priority: pending-pick ({@link #mChangeBackgroundTo}) → in-flight
+     * animation terminal ({@link #mLastAnimatedBackground}) → saved thing
+     * ({@link #mThing}.getBackground()) → null.
+     *
+     * <p>{@link #getAccentColor()} is now a thin {@code .representativeColor()}
+     * adapter on top of this — kept for callers (PorterDuff tints, single-int
+     * Android APIs) that genuinely can't consume more than an int.
+     */
+    public ThingBackground getAccentBackground() {
+        if (mChangeBackgroundTo != null) return mChangeBackgroundTo;
+        if (mChangeColorTo != 0) return ThingBackground.pure(mChangeColorTo);
+        if (mThing != null) return mThing.getBackground();
+        return null;
     }
 
     private void setScrollEvents() {
@@ -2265,12 +2343,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         final int barsHeight = (int) (screenDensity * 56);
         final int statusBarHeight = DisplayUtil.getStatusbarHeight(this);
 
-        final int statusBarOffset; // if is in translucent mode, we should also consider height of status bar.
-        if (!DeviceUtil.hasKitKatApi()) {
-            statusBarOffset = 0;
-        } else {
-            statusBarOffset = statusBarHeight;
-        }
+        final int statusBarOffset = statusBarHeight; // if is in translucent mode, we should also consider height of status bar.
 
         mScrollView.setOnScrollChangeListener(new NestedScrollView.OnScrollChangeListener() {
             @Override
@@ -2351,7 +2424,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         int marginTop = statusBarHeight;
         if (mRvImageAttachment.getVisibility() != View.VISIBLE) {
             marginTop += bottomBarHeight;
-        } else if (DeviceUtil.hasKitKatApi()) {
+        } else {
             marginTop -= statusBarHeight;
         }
 
@@ -2372,38 +2445,346 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         mColorPicker.setPickedListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                int colorFrom = getAccentColor();
-                int colorTo   = mColorPicker.getPickedColor();
-                if (colorFrom == colorTo) {
-                    return;
-                }
-                changeColor(mColorPicker.getPickedColor());
+                ThingBackground bgFrom = mLastAnimatedBackground != null
+                        ? mLastAnimatedBackground
+                        : mThing.getBackground();
+                ThingBackground bgTo   = mColorPicker.getPickedBackground();
+                if (bgTo == null) return;
+                if (bgFrom != null && bgFrom.equals(bgTo)) return;
+                changeBackground(bgTo);
                 if (shouldAddToActionList) {
+                    // Phase 6 fix #1: store the full ThingBackground for both ends
+                    // so undo/redo round-trips GRADIENT picks losslessly.
                     mActionList.addAction(new ThingAction(
-                            ThingAction.UPDATE_COLOR, colorFrom, colorTo));
+                            ThingAction.UPDATE_COLOR, bgFrom, bgTo));
                 }
+            }
+        });
+        // Phase 8: bottom "change gradient direction" button — opens the
+        // orientation dialog with the current accent. On commit, build a new
+        // gradient with the same stops but the picked orientation, run it
+        // through changeBackground (animation + action log + propagation).
+        mColorPicker.setOnChangeOrientationListener(new Runnable() {
+            @Override
+            public void run() {
+                final ThingBackground current = getAccentBackground();
+                if (current == null
+                        || current.mode != ThingBackground.Mode.GRADIENT) return;
+                com.ywwynm.everythingdone.fragments.GradientOrientationDialogFragment df =
+                        new com.ywwynm.everythingdone.fragments.GradientOrientationDialogFragment();
+                df.setAccent(current);
+                df.setOnPickListener(
+                        new com.ywwynm.everythingdone.fragments
+                                .GradientOrientationDialogFragment.OnPickListener() {
+                            @Override
+                            public void onPicked(ThingBackground.Orientation orientation) {
+                                if (orientation == current.orientation) return;
+                                ThingBackground bgTo = ThingBackground.gradient(
+                                        current.color, current.endColor, orientation);
+                                ThingBackground bgFrom = mLastAnimatedBackground != null
+                                        ? mLastAnimatedBackground
+                                        : mThing.getBackground();
+                                changeBackground(bgTo);
+                                // Keep the colour picker's picked-FAB state in
+                                // sync — random-gradient FAB holds the current
+                                // gradient bg, and the bottom button is still
+                                // visible for further direction tweaks.
+                                mColorPicker.pickForBackground(bgTo);
+                                if (shouldAddToActionList) {
+                                    mActionList.addAction(new ThingAction(
+                                            ThingAction.UPDATE_COLOR, bgFrom, bgTo));
+                                }
+                            }
+                        });
+                df.show(getFragmentManager(),
+                        com.ywwynm.everythingdone.fragments
+                                .GradientOrientationDialogFragment.TAG);
             }
         });
     }
 
     private void changeColor(int colorTo) {
-        mChangeColorTo = colorTo;
+        // Phase 6.d: keep the int-overload entry point for legacy callers
+        // (undo/redo, etc.) — internally it routes through changeBackground.
+        changeBackground(ThingBackground.pure(colorTo));
+    }
 
-        int colorFrom = ((ColorDrawable) mFlRoot.getBackground()).getColor();
-        quickRemindPicker.setAccentColor(colorTo);
+    /**
+     * Phase 6.d: change the thing's background (PURE or GRADIENT) with the
+     * standard 600 ms colour-transition animation. Generalisation of the
+     * previous {@link #changeColor(int)}.
+     */
+    private void changeBackground(ThingBackground bgTo) {
+        if (bgTo == null) return;
+        int colorTo = bgTo.representativeColor();
+        mChangeColorTo      = colorTo;
+        mChangeBackgroundTo = bgTo;
+
+        final ThingBackground fromBg = mLastAnimatedBackground != null
+                ? mLastAnimatedBackground
+                : mThing.getBackground();
+        final ThingBackground toBg   = bgTo;
+        mLastAnimatedBackground = toBg;
+
+        // Phase 8: feed the full target ThingBackground so a GRADIENT pick
+        // makes the picker's picked-row text render gradient too. The
+        // setAccentBackground also keeps mAccentColor in sync internally.
+        quickRemindPicker.setAccentBackground(bgTo);
         quickRemindPicker.pickForUI(quickRemindPicker.getPickedIndex());
-        ObjectAnimator.ofObject(mFlRoot, "backgroundColor",
-                new ArgbEvaluator(), colorFrom, colorTo).setDuration(600).start();
+
+        BackgroundUtil.animateBackground(mFlRoot, fromBg, toBg, 600);
 
         updateDescriptions(colorTo);
+        applyForegroundColors(colorTo);
 
-        colorFrom = ((ColorDrawable) mActionbar.getBackground()).getColor();
-        int alpha = Color.alpha(colorFrom);
-        colorTo = DisplayUtil.getTransparentColor(colorTo, alpha);
+        // Actionbar / status bar overlay: stay single-colour (alpha-tinted by the
+        // scroll-driven listener), so reading the previous alpha off the existing
+        // ColorDrawable is still correct — it's not impacted by mFlRoot's drawable
+        // becoming a gradient.
+        int abAlpha = currentDrawableAlpha(mActionbar.getBackground());
+        int abFrom  = DisplayUtil.getTransparentColor(fromBg.representativeColor(), abAlpha);
+        int abTo    = DisplayUtil.getTransparentColor(colorTo, abAlpha);
         ObjectAnimator.ofObject(mActionbar, "backgroundColor",
-                new ArgbEvaluator(), colorFrom, colorTo).setDuration(600).start();
+                new ArgbEvaluator(), abFrom, abTo).setDuration(600).start();
         ObjectAnimator.ofObject(mStatusBar, "backgroundColor",
-                new ArgbEvaluator(), colorFrom, colorTo).setDuration(600).start();
+                new ArgbEvaluator(), abFrom, abTo).setDuration(600).start();
+    }
+
+    /**
+     * Best-effort alpha read for the actionbar / status-bar overlay drawable.
+     * These two stay {@link ColorDrawable} in Phase 4 (only mFlRoot becomes a
+     * GradientDrawable when a thing is GRADIENT), so the ColorDrawable branch
+     * is the normal path. The fallback covers any future drawable swap.
+     */
+    private int currentDrawableAlpha(android.graphics.drawable.Drawable d) {
+        if (d instanceof ColorDrawable) return Color.alpha(((ColorDrawable) d).getColor());
+        if (d == null) return 0;
+        return d.getAlpha();
+    }
+
+    /**
+     * Phase 4.c: remembers the "terminal" background of the most recent
+     * {@link #changeColor(int)} animation so chained colour picks (user picks B
+     * before A's 600 ms animation finishes) animate from the previously-picked
+     * state rather than the stale model state.
+     */
+    private ThingBackground mLastAnimatedBackground;
+
+    /**
+     * Phase 6.d: pending {@link ThingBackground} chosen by the user via
+     * {@link #mColorPicker} but not yet saved. Set by {@link #changeBackground}
+     * and consumed at save-time alongside the legacy {@link #mChangeColorTo} int.
+     */
+    private ThingBackground mChangeBackgroundTo;
+
+    /**
+     * Tint the toolbar's menu icons to be readable on the current background.
+     * Theme's {@code colorControlNormal=#FFFFFF} bakes white into the icons by
+     * default; this method overrides that per-item when the accent is light.
+     * Called from {@link #applyForegroundColors(int)} and at the tail of
+     * {@link #onCreateOptionsMenu(android.view.Menu)} (menu isn't inflated yet
+     * at the first applyForegroundColors call).
+     */
+    private void tintMenuIcons(boolean lightAccent) {
+        if (mActionbar == null) return;
+
+        // 1) The toolbar overflow button (the "⋮") is its own drawable, not a menu item.
+        android.graphics.drawable.Drawable overflow = mActionbar.getOverflowIcon();
+        if (overflow != null) {
+            overflow = overflow.mutate();
+            if (lightAccent) {
+                overflow.setColorFilter(android.graphics.Color.BLACK,
+                        android.graphics.PorterDuff.Mode.SRC_IN);
+            } else {
+                overflow.clearColorFilter();
+            }
+            mActionbar.setOverflowIcon(overflow);
+        }
+
+        // 2) Visible menu items (the icons shown directly on the toolbar like
+        // "remove checklist", "undo", "redo", etc.).
+        android.view.Menu menu = mActionbar.getMenu();
+        if (menu == null) return;
+        android.content.res.ColorStateList tint = lightAccent
+                ? android.content.res.ColorStateList.valueOf(android.graphics.Color.BLACK)
+                : null;
+        for (int i = 0; i < menu.size(); i++) {
+            android.view.MenuItem item = menu.getItem(i);
+            android.graphics.drawable.Drawable icon = item.getIcon();
+            if (icon == null) continue;
+            icon = icon.mutate();
+            if (lightAccent) {
+                icon.setColorFilter(android.graphics.Color.BLACK,
+                        android.graphics.PorterDuff.Mode.SRC_IN);
+            } else {
+                icon.clearColorFilter();
+            }
+            item.setIcon(icon);
+            // setIconTintList is API 26+; minSdk = 26 so safe.
+            item.setIconTintList(tint);
+        }
+    }
+
+    /**
+     * Apply a luminance-aware foreground color (black-side or white-side) to every
+     * TextView / EditText whose textColor was previously hard-coded white in
+     * activity_detail.xml. Called whenever the accent color is established or
+     * changes — so the title / content / time / type-info / move-checklist
+     * button stay readable on any background.
+     *
+     * <p>Phase 1.d of color-system migration. See COLOR_MIGRATION_PLAN.md.
+     */
+    private void applyForegroundColors(int color) {
+        int primary   = BackgroundUtil.onColor(color, BackgroundUtil.ON_ALPHA_PRIMARY);
+        int secondary = BackgroundUtil.onColor(color, BackgroundUtil.ON_ALPHA_SECONDARY);
+        int tertiary  = BackgroundUtil.onColor(color, BackgroundUtil.ON_ALPHA_TERTIARY);
+
+        mEtTitle.setTextColor(primary);
+        mEtTitle.setHintTextColor(primary);
+
+        // Phase 8: tint the compound lock-icon (private thing) so it adapts to
+        // the current background luminance. setCompoundDrawableTintList only
+        // affects drawables that are currently set — no-op when the user isn't
+        // in private-thing mode, so safe to call unconditionally.
+        androidx.core.widget.TextViewCompat.setCompoundDrawableTintList(
+                mEtTitle,
+                BackgroundUtil.isLight(color)
+                        ? android.content.res.ColorStateList.valueOf(
+                                android.graphics.Color.BLACK)
+                        : android.content.res.ColorStateList.valueOf(
+                                android.graphics.Color.WHITE));
+        mEtContent.setTextColor(secondary);
+        mEtContent.setHintTextColor(secondary);
+        mTvUpdateTime.setTextColor(tertiary);
+
+        TextView tvFinishTime = f(R.id.tv_finish_time);
+        if (tvFinishTime != null) tvFinishTime.setTextColor(tertiary);
+        TextView tvTypeInfo = f(R.id.tv_type_info);
+        if (tvTypeInfo != null) tvTypeInfo.setTextColor(tertiary);
+        if (mTvMoveChecklistAsBt != null) {
+            mTvMoveChecklistAsBt.setTextColor(tertiary);
+            // "Arrange items" compound drawable (icon on the left) — tint it.
+            androidx.core.widget.TextViewCompat.setCompoundDrawableTintList(
+                    mTvMoveChecklistAsBt,
+                    BackgroundUtil.isLight(color)
+                            ? android.content.res.ColorStateList.valueOf(android.graphics.Color.BLACK)
+                            : null);
+        }
+
+        // Bottom-bar quick-remind labels (xml hard-codes android:color/white)
+        // and the checkbox itself.
+        TextView tvRemindMe = f(R.id.tv_remind_me);
+        if (tvRemindMe != null) tvRemindMe.setTextColor(secondary);
+
+        // Phase 8: pill-shaped, luminance-adaptive ripple foreground on the
+        // quick-remind click area. Outline + clipToOutline install once;
+        // RippleDrawable tint follows the thing's luminance.
+        if (mFlQuickRemindAsBt != null) {
+            installQuickRemindPillRipple(color);
+        }
+
+        if (tvQuickRemind != null) {
+            tvQuickRemind.setTextColor(secondary);
+            // Underline drawable used as background — tint it to match.
+            android.graphics.drawable.Drawable underline = tvQuickRemind.getBackground();
+            if (underline != null) {
+                if (BackgroundUtil.isLight(color)) {
+                    underline.setColorFilter(android.graphics.Color.BLACK,
+                            android.graphics.PorterDuff.Mode.SRC_IN);
+                } else {
+                    underline.clearColorFilter();
+                }
+            }
+        }
+        if (cbQuickRemind != null) {
+            int boxTint = BackgroundUtil.isLight(color)
+                    ? BackgroundUtil.onColor(color, 0.86f) /* dark side */
+                    : android.graphics.Color.WHITE;
+            androidx.core.widget.CompoundButtonCompat.setButtonTintList(
+                    cbQuickRemind, android.content.res.ColorStateList.valueOf(boxTint));
+        }
+
+        if (mCheckListAdapter != null) {
+            mCheckListAdapter.setThingColor(color);
+            mCheckListAdapter.notifyDataSetChanged();
+        }
+
+        // Inline image icons (back arrow, type-info icon, and any menu items).
+        // Theme's colorControlNormal forces #FFFFFF on these — override per-view.
+        boolean lightAccent = BackgroundUtil.isLight(color);
+        android.content.res.ColorStateList iconTint = lightAccent
+                ? android.content.res.ColorStateList.valueOf(android.graphics.Color.BLACK)
+                : null;
+        if (mIbBack != null) {
+            androidx.core.widget.ImageViewCompat.setImageTintList(mIbBack, iconTint);
+        }
+        android.widget.ImageView ivIconTypeInfo = f(R.id.iv_icon_type_info);
+        if (ivIconTypeInfo != null) {
+            androidx.core.widget.ImageViewCompat.setImageTintList(ivIconTypeInfo, iconTint);
+        }
+        tintMenuIcons(lightAccent);
+
+        // System bar icons adapt to the thing's color: dark icons (light bar) for
+        // light thing colors, default light icons otherwise. Deferred via post()
+        // because InsetsController calls during initUI may otherwise race against
+        // the activity's window attach.
+        final boolean lightBg = BackgroundUtil.isLight(color);
+        mFlRoot.post(new Runnable() {
+            @Override public void run() {
+                if (lightBg) {
+                    DisplayUtil.darkStatusBar(DetailActivity.this);
+                } else {
+                    DisplayUtil.cancelDarkStatusBar(DetailActivity.this);
+                }
+            }
+        });
+    }
+
+    /**
+     * Phase 8: install a pill-shaped, luminance-adaptive ripple on the
+     * quick-remind click area. Replaces the legacy
+     * {@code selectable_item_background_light} rectangle.
+     *
+     * <p>Shape: a rounded-rect outline with corner radius = height/2 so the
+     * ripple is a true pill regardless of the laid-out height. Read at
+     * {@code getOutline} time (post-layout), so we don't need an explicit
+     * height value.
+     *
+     * <p>Colour: {@code 16%} alpha on the "on-color" side of the current
+     * thing — black-ish on light backgrounds, white-ish on dark backgrounds.
+     * Re-installed on every {@link #applyForegroundColors(int)} pass so a
+     * pending colour pick is reflected immediately.
+     */
+    private void installQuickRemindPillRipple(int thingColor) {
+        // Outline + clipping — set once per view; reapplying is cheap.
+        mFlQuickRemindAsBt.setClipToOutline(true);
+        mFlQuickRemindAsBt.setOutlineProvider(new android.view.ViewOutlineProvider() {
+            @Override
+            public void getOutline(View v, android.graphics.Outline outline) {
+                outline.setRoundRect(0, 0, v.getWidth(), v.getHeight(),
+                        v.getHeight() / 2f);
+            }
+        });
+
+        // Pill mask for the RippleDrawable so the ripple itself is bounded to
+        // the pill even if Android draws foreground outside outline clipping.
+        // A corner radius bigger than half the view height guarantees a pill.
+        android.graphics.drawable.GradientDrawable mask =
+                new android.graphics.drawable.GradientDrawable();
+        mask.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
+        mask.setCornerRadius(1000f);
+        mask.setColor(android.graphics.Color.WHITE);
+
+        // Adaptive ripple tint — 16% alpha, black side on light backgrounds.
+        int rippleTint = BackgroundUtil.isLight(thingColor)
+                ? 0x29000000
+                : 0x29FFFFFF;
+        android.graphics.drawable.RippleDrawable ripple =
+                new android.graphics.drawable.RippleDrawable(
+                        android.content.res.ColorStateList.valueOf(rippleTint),
+                        null,
+                        mask);
+        mFlQuickRemindAsBt.setForeground(ripple);
     }
 
     private void setQuickRemindEvents() {
@@ -2489,9 +2870,9 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                        AlertDialogFragment.ConfirmListener confirmListener,
                        AlertDialogFragment.CancelListener cancelListener) {
         final AlertDialogFragment adf = new AlertDialogFragment();
-        int color = getAccentColor();
-        adf.setTitleColor(color);
-        adf.setConfirmColor(color);
+        ThingBackground accent = getAccentBackground();
+        adf.setTitleBackground(accent);
+        adf.setConfirmBackground(accent);
         adf.setTitle(getString(titleRes));
         adf.setContent(getString(contentRes));
         adf.setConfirmListener(confirmListener);
@@ -2670,7 +3051,13 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         if (mType == CREATE && !savedAfterOnPause) {
             resultCode = createThing(title, content, attachment, typeAfter, color, intent);
         } else {
-            boolean noUpdate = Thing.noUpdate(mThing, title, content, attachment, typeAfter, color)
+            // Phase 6: noUpdate now compares full ThingBackground (not just the
+            // int representative), so PURE↔GRADIENT changes with the same rep are
+            // caught natively.
+            ThingBackground proposedBg = mChangeBackgroundTo != null
+                    ? mChangeBackgroundTo
+                    : mThing.getBackground();
+            boolean noUpdate = Thing.noUpdate(mThing, title, content, attachment, typeAfter, proposedBg)
                     && !reminderUpdated && !habitUpdated && !mHabitFinishedThisTime
                     && !mHabitRecordEdited;
             if (noUpdate) {
@@ -2708,6 +3095,40 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 || resultCode == Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_DIFFERENT) {
             SystemNotificationUtil.tryToCreateThingOngoingNotification(this);
         }
+
+        maybeRequestNotificationPermission();
+    }
+
+    /**
+     * Ask for POST_NOTIFICATIONS the moment the user finishes creating an
+     * alarm-bearing thing (reminder / habit / goal). This is a much better
+     * moment than asking on first launch — the user just defined a thing they
+     * expect to be notified about, so the request is contextual. Android 13+
+     * silently rejects after the user has permanently denied, so calling this
+     * on every create is safe.
+     */
+    private void maybeRequestNotificationPermission() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return;
+        if (mThing == null) return;
+
+        @Thing.Type int type = mThing.getType();
+        boolean alarmBearing = type == Thing.REMINDER || type == Thing.WELCOME_REMINDER
+                || type == Thing.HABIT || type == Thing.WELCOME_HABIT
+                || type == Thing.GOAL  || type == Thing.WELCOME_GOAL;
+        if (!alarmBearing) return;
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                == PackageManager.PERMISSION_GRANTED) return;
+
+        doWithPermissionChecked(new SimplePermissionCallback(this) {
+            @Override
+            public void onDenied() {
+                // No-op: don't override the parent's snackbar — alarm + receiver
+                // logic still runs, the notification just won't be visible.
+                // Settings → Reminder reliability surfaces the disabled state.
+            }
+        }, Def.Communication.REQUEST_PERMISSION_NOTIFICATION,
+                Manifest.permission.POST_NOTIFICATIONS);
     }
 
     private void returnToThingsActivity(int stateAfter) {
@@ -2923,7 +3344,15 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         mThing.setContent(content);
         mThing.setAttachment(attachment);
         mThing.setType(typeAfter);
-        mThing.setColor(color);
+        // Phase 6 fix: lock in the picked ThingBackground (GRADIENT or off-palette
+        // PURE) when present — otherwise setColor's int-only path would either
+        // (a) drop the GRADIENT mode by re-puring the background, or
+        // (b) leave the old GRADIENT in place when the user picked a new PURE.
+        if (mChangeBackgroundTo != null) {
+            mThing.setBackground(mChangeBackgroundTo);
+        } else {
+            mThing.setColor(color);
+        }
 
         long currentTime = System.currentTimeMillis();
         mThing.setCreateTime(currentTime);
@@ -2956,7 +3385,15 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         mThing.setContent(content);
         mThing.setAttachment(attachment);
         mThing.setType(typeAfter);
-        mThing.setColor(color);
+        // Phase 6 fix: same rationale as createThing — apply ThingBackground if
+        // the user picked one, otherwise the int path. Done AFTER Thing.noUpdate
+        // has decided to proceed, so the side-effect on mThing.color in setBackground
+        // doesn't fool noUpdate into skipping the save.
+        if (mChangeBackgroundTo != null) {
+            mThing.setBackground(mChangeBackgroundTo);
+        } else {
+            mThing.setColor(color);
+        }
         mThing.setUpdateTime(System.currentTimeMillis());
 
         intent.putExtra(Def.Communication.KEY_TYPE_BEFORE, typeBefore);
@@ -3101,6 +3538,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
         intent.putExtra(Def.Communication.KEY_RESULT_CODE, resultCode);
         intent.setAction(Def.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI);
+        intent.setPackage(getPackageName());
         sendBroadcast(intent);
     }
 

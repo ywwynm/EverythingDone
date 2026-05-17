@@ -18,19 +18,28 @@ public class AuthenticationHelper {
     public static void authenticate(
             Activity activity, int accentColor, String title, String correctPassword,
             AuthenticationCallback callback) {
+        authenticate(activity,
+                com.ywwynm.everythingdone.model.ThingBackground.pure(accentColor),
+                title, correctPassword, callback);
+    }
+
+    /**
+     * Phase 8: ThingBackground-aware authenticate so the fallback pattern-lock
+     * dialog's title / right-button render gradient when the source thing has
+     * a GRADIENT background. BiometricPrompt is a system UI that can't accept
+     * a shader, so it just receives the title string and ignores accent.
+     */
+    public static void authenticate(
+            Activity activity, com.ywwynm.everythingdone.model.ThingBackground accent,
+            String title, String correctPassword, AuthenticationCallback callback) {
         if (correctPassword == null) {
             callback.onAuthenticated();
             return;
         }
 
-        if (!DeviceUtil.hasMarshmallowApi()) {
-            authenticateByPattern(activity, accentColor, title, correctPassword, callback);
-            return;
-        }
-
         FingerprintHelper.getInstance()
                 .tryToAuthenticatingByFingerprint(
-                        activity, accentColor, title, correctPassword, callback);
+                        activity, accent, title, correctPassword, callback);
     }
 
     private static void authenticateByPattern(

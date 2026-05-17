@@ -2,18 +2,51 @@
 <manifest
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="com.ywwynm.everythingdone">
+    >
 
     <uses-feature
         android:name="android.hardware.camera"
-        android:required="true"/>
+        android:required="false"/>
 
-    <uses-permission android:name="android.permission.USE_FINGERPRINT"/>
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32"/>
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"/>
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO"/>
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.VIBRATE"/>
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT"/>
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
+
+    <queries>
+        <intent>
+            <action android:name="android.media.action.IMAGE_CAPTURE"/>
+        </intent>
+        <intent>
+            <action android:name="android.media.action.VIDEO_CAPTURE"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.GET_CONTENT"/>
+            <data android:mimeType="image/*"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.GET_CONTENT"/>
+            <data android:mimeType="video/*"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.GET_CONTENT"/>
+            <data android:mimeType="audio/*"/>
+        </intent>
+    </queries>
 
     <application
         android:name=".App"
@@ -22,11 +55,10 @@
         android:label="@string/everythingdone"
         android:supportsRtl="true">
 
-        <meta-data android:name="android.max_aspect" android:value="2.1" />
-
         <activity
             android:name=".activities.ThingsActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
+            android:exported="true"
             android:label="@string/everythingdone"
             android:launchMode="singleTask"
             android:screenOrientation="user"
@@ -46,6 +78,7 @@
         <activity
             android:name=".activities.DetailActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
+            android:exported="true"
             android:label="@string/thing"
             android:screenOrientation="user"
             android:theme="@style/EverythingDoneTheme.Detail"
@@ -74,28 +107,34 @@
         <activity
             android:name=".activities.ImageViewerActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
+            android:exported="false"
             android:label="@string/image_or_video_attachment"
             android:theme="@style/EverythingDoneTheme.ImageViewer"/>
 
         <receiver
             android:name=".receivers.ReminderReceiver"
-            android:enabled="true"/>
+            android:enabled="true"
+            android:exported="false"/>
 
         <receiver
             android:name=".receivers.ReminderNotificationActionReceiver"
-            android:enabled="true"/>
+            android:enabled="true"
+            android:exported="false"/>
 
         <receiver
             android:name=".receivers.HabitReceiver"
-            android:enabled="true"/>
+            android:enabled="true"
+            android:exported="false"/>
 
         <receiver
             android:name=".receivers.HabitNotificationActionReceiver"
-            android:enabled="true"/>
+            android:enabled="true"
+            android:exported="false"/>
 
         <receiver
             android:name=".receivers.HabitWidgetActionReceiver"
-            android:enabled="true"/>
+            android:enabled="true"
+            android:exported="false"/>
 
         <receiver
             android:name=".receivers.BootReceiver"
@@ -108,7 +147,8 @@
 
         <receiver
             android:name=".receivers.LocaleChangeReceiver"
-            android:enabled="true"/>
+            android:enabled="true"
+            android:exported="false"/>
 
         <receiver
             android:name=".receivers.UserPresentReceiver"
@@ -122,21 +162,25 @@
         <activity
             android:name=".activities.SettingsActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
+            android:exported="false"
             android:label="@string/title_activity_settings"
             android:theme="@style/EverythingDoneTheme.Settings"/>
 
         <activity
             android:name=".activities.AboutActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
+            android:exported="false"
             android:label="@string/title_activity_about"
             android:theme="@style/EverythingDoneTheme.About"/>
 
         <receiver
             android:name=".receivers.AutoNotifyReceiver"
-            android:enabled="true"/>
+            android:enabled="true"
+            android:exported="false"/>
 
         <activity
             android:name=".activities.StatisticActivity"
+            android:exported="false"
             android:label="@string/title_activity_statistic"
             android:screenOrientation="portrait"
             android:theme="@style/EverythingDoneTheme.Statistic"/>
@@ -157,21 +201,25 @@
 
         <receiver
             android:name=".receivers.DailyCreateTodoReceiver"
-            android:enabled="true"/>
+            android:enabled="true"
+            android:exported="false"/>
 
         <activity
             android:name=".activities.AuthenticationActivity"
+            android:exported="false"
             android:taskAffinity="com.ywwynm.everythingdone.task.authentication"
             android:excludeFromRecents="true"
             android:theme="@style/EverythingDoneTheme.TotallyTransparent"/>
 
         <activity
             android:name=".activities.HelpActivity"
+            android:exported="false"
             android:label="@string/help"
             android:theme="@style/EverythingDoneTheme.Help"/>
 
         <receiver
             android:name=".appwidgets.CreateWidget"
+            android:exported="true"
             android:label="@string/title_create_thing">
             <meta-data
                 android:name="android.appwidget.provider"
@@ -183,6 +231,7 @@
 
         <receiver
             android:name=".appwidgets.CheckUpcomingWidget"
+            android:exported="true"
             android:label="@string/act_shortcut_check_upcoming">
             <meta-data
                 android:name="android.appwidget.provider"
@@ -194,6 +243,7 @@
 
         <receiver
             android:name=".appwidgets.single.ThingWidgetTiny"
+            android:exported="true"
             android:label="@string/thing">
             <meta-data
                 android:name="android.appwidget.provider"
@@ -209,6 +259,7 @@
 
         <receiver
             android:name=".appwidgets.single.ThingWidgetSmall"
+            android:exported="true"
             android:label="@string/thing">
             <meta-data
                 android:name="android.appwidget.provider"
@@ -224,6 +275,7 @@
 
         <receiver
             android:name=".appwidgets.single.ThingWidgetMiddle"
+            android:exported="true"
             android:label="@string/thing">
             <meta-data
                 android:name="android.appwidget.provider"
@@ -239,6 +291,7 @@
 
         <receiver
             android:name=".appwidgets.single.ThingWidgetLarge"
+            android:exported="true"
             android:label="@string/thing">
             <meta-data
                 android:name="android.appwidget.provider"
@@ -254,6 +307,7 @@
 
         <receiver
             android:name=".appwidgets.list.ThingsListWidget"
+            android:exported="true"
             android:label="@string/title_widget_things_list">
             <meta-data
                 android:name="android.appwidget.provider"
@@ -266,6 +320,7 @@
         <activity
             android:name=".appwidgets.single.BaseThingWidgetConfiguration"
             android:configChanges="orientation|keyboardHidden|screenSize"
+            android:exported="true"
             android:excludeFromRecents="true"
             android:label="@string/title_activity_thing_widget_configure"
             android:screenOrientation="user"
@@ -278,6 +333,7 @@
         <activity
             android:name=".appwidgets.single.ThingWidgetConfigurationTiny"
             android:configChanges="orientation|keyboardHidden|screenSize"
+            android:exported="true"
             android:excludeFromRecents="true"
             android:label="@string/title_activity_thing_widget_configure"
             android:screenOrientation="user"
@@ -290,6 +346,7 @@
         <activity
             android:name=".appwidgets.single.ThingWidgetConfigurationSmall"
             android:configChanges="orientation|keyboardHidden|screenSize"
+            android:exported="true"
             android:excludeFromRecents="true"
             android:label="@string/title_activity_thing_widget_configure"
             android:screenOrientation="user"
@@ -302,6 +359,7 @@
         <activity
             android:name=".appwidgets.single.ThingWidgetConfigurationMiddle"
             android:configChanges="orientation|keyboardHidden|screenSize"
+            android:exported="true"
             android:excludeFromRecents="true"
             android:label="@string/title_activity_thing_widget_configure"
             android:screenOrientation="user"
@@ -314,6 +372,7 @@
         <activity
             android:name=".appwidgets.single.ThingWidgetConfigurationLarge"
             android:configChanges="orientation|keyboardHidden|screenSize"
+            android:exported="true"
             android:excludeFromRecents="true"
             android:label="@string/title_activity_thing_widget_configure"
             android:screenOrientation="user"
@@ -325,6 +384,7 @@
 
         <activity
             android:name=".appwidgets.list.ThingsListWidgetConfiguration"
+            android:exported="true"
             android:taskAffinity="com.ywwynm.everythingdone.task.thing_list_widget_config"
             android:excludeFromRecents="true"
             android:theme="@style/EverythingDoneTheme.Dialog">
@@ -335,18 +395,21 @@
 
         <service
             android:name=".appwidgets.single.ChecklistWidgetService"
+            android:exported="true"
             android:permission="android.permission.BIND_REMOTEVIEWS"/>
 
         <service
             android:name=".appwidgets.list.ThingsListWidgetService"
+            android:exported="true"
             android:permission="android.permission.BIND_REMOTEVIEWS"/>
 
         <service
             android:name=".services.PullAliveJobService"
+            android:exported="false"
             android:permission="android.permission.BIND_JOB_SERVICE"/>
 
         <provider
-            android:name="android.support.v4.content.FileProvider"
+            android:name="androidx.core.content.FileProvider"
             android:authorities="com.ywwynm.everythingdone"
             android:exported="false"
             android:grantUriPermissions="true">
@@ -357,6 +420,7 @@
 
         <activity
             android:name=".activities.DelayReminderActivity"
+            android:exported="false"
             android:taskAffinity="com.ywwynm.everythingdone.task.delay_reminder"
             android:excludeFromRecents="true"
             android:theme="@style/EverythingDoneTheme.TotallyTransparent">
@@ -364,6 +428,7 @@
 
         <activity
             android:name=".activities.ShortcutActivity"
+            android:exported="true"
             android:theme="@style/EverythingDoneTheme.TotallyTransparent">
             <intent-filter>
                 <action android:name="com.ywwynm.everythingdone.action.shortcut.create"/>
@@ -375,6 +440,7 @@
 
         <activity
             android:name=".activities.StartDoingActivity"
+            android:exported="false"
             android:taskAffinity="com.ywwynm.everythingdone.task.doing"
             android:excludeFromRecents="true"
             android:theme="@style/EverythingDoneTheme.TotallyTransparent">
@@ -382,6 +448,7 @@
 
         <activity
             android:name=".activities.DoingActivity"
+            android:exported="false"
             android:label="@string/title_activity_doing"
             android:launchMode="singleTask"
             android:resizeableActivity="false"
@@ -392,16 +459,23 @@
         </activity>
 
         <service
-            android:name=".services.DoingService">
+            android:name=".services.DoingService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="countdown_timer_for_active_task_tracking" />
         </service>
 
         <receiver
             android:name=".receivers.DoingNotificationActionReceiver"
-            android:enabled="true">
+            android:enabled="true"
+            android:exported="false">
         </receiver>
 
         <activity
             android:name=".activities.NoticeableNotificationActivity"
+            android:exported="false"
             android:taskAffinity="com.ywwynm.everythingdone.task.noticeable_notification"
             android:excludeFromRecents="true"
             android:theme="@style/EverythingDoneTheme.NoticeableNotification">

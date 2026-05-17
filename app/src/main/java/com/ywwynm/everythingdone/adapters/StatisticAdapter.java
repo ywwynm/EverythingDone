@@ -1,14 +1,13 @@
 package com.ywwynm.everythingdone.adapters;
 
 import android.content.Context;
-import android.support.v7.widget.RecyclerView;
+import androidx.recyclerview.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
 import com.ywwynm.everythingdone.R;
-import com.ywwynm.everythingdone.utils.DeviceUtil;
 
 /**
  * Created by ywwynm on 2016/4/1.
@@ -40,13 +39,8 @@ public class StatisticAdapter extends RecyclerView.Adapter<StatisticAdapter.Stat
 
     @Override
     public void onBindViewHolder(StatisticHolder holder, int position) {
-        if (DeviceUtil.hasJellyBeanMR1Api()) {
-            holder.tvFirst.setCompoundDrawablesRelativeWithIntrinsicBounds(
-                    mIconRes[position], 0, 0, 0);
-        } else {
-            holder.tvFirst.setCompoundDrawablesWithIntrinsicBounds(
-                    mIconRes[position], 0, 0, 0);
-        }
+        holder.tvFirst.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                mIconRes[position], 0, 0, 0);
         holder.tvFirst.setText(mFirstRes[position]);
         if (mFirstTextSizes == null || mFirstTextSizes.length <= position
                 || mFirstTextSizes[position] == 0) {

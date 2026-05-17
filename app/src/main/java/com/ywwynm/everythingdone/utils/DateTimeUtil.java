@@ -3,7 +3,7 @@ package com.ywwynm.everythingdone.utils;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.Resources;
-import android.support.v4.util.Pair;
+import androidx.core.util.Pair;
 import android.widget.EditText;
 
 import com.ywwynm.everythingdone.App;
@@ -12,13 +12,15 @@ import com.ywwynm.everythingdone.database.ReminderDAO;
 import com.ywwynm.everythingdone.model.Reminder;
 import com.ywwynm.everythingdone.model.Thing;
 
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeFieldType;
-import org.joda.time.Days;
-import org.joda.time.Months;
-import org.joda.time.Weeks;
-
-import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalAdjusters;
+import java.time.temporal.WeekFields;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
@@ -36,11 +38,11 @@ public class DateTimeUtil {
     private DateTimeUtil() {}
 
     public static String getGeneralDateStr(Context context, long time) {
-        return new DateTime(time).toString(getGeneralDateFormatPattern(context));
+        return formatMillis(time, getGeneralDateFormatPattern(context));
     }
 
     public static String getGeneralDateTimeStr(Context context, long time) {
-        return new DateTime(time).toString(getGeneralDateTimeFormatPattern(context));
+        return formatMillis(time, getGeneralDateTimeFormatPattern(context));
     }
 
     public static String getGeneralDateFormatPattern(Context context) {
@@ -61,7 +63,7 @@ public class DateTimeUtil {
             String day   = context.getString(R.string.day);
             return "yyyy" + year + "M" + month + "d" + day + "EEEE H:mm:ss";
         } else {
-            return "H:mm:ss, MMM d, yyyy, EEEEEEEEE";
+            return "H:mm:ss, MMM d, yyyy, EEEE";
         }
     }
 
@@ -77,22 +79,22 @@ public class DateTimeUtil {
         }
     }
 
-    public static DateTimeFieldType getJodaType(int type) {
+    public static java.time.temporal.TemporalField getTemporalFieldFor(int type) {
         switch (type) {
             case Calendar.MINUTE:
-                return DateTimeFieldType.minuteOfHour();
+                return java.time.temporal.ChronoField.MINUTE_OF_HOUR;
             case Calendar.HOUR_OF_DAY:
-                return DateTimeFieldType.hourOfDay();
+                return java.time.temporal.ChronoField.HOUR_OF_DAY;
             case Calendar.DATE:
-                return DateTimeFieldType.dayOfMonth();
+                return java.time.temporal.ChronoField.DAY_OF_MONTH;
             case Calendar.WEEK_OF_YEAR:
-                return DateTimeFieldType.weekOfWeekyear();
+                return java.time.temporal.WeekFields.ISO.weekOfWeekBasedYear();
             case Calendar.MONTH:
-                return DateTimeFieldType.monthOfYear();
+                return java.time.temporal.ChronoField.MONTH_OF_YEAR;
             case Calendar.YEAR:
-                return DateTimeFieldType.year();
+                return java.time.temporal.ChronoField.YEAR;
             default:
-                return DateTimeFieldType.era();
+                return java.time.temporal.ChronoField.ERA;
         }
     }
 
@@ -235,9 +237,8 @@ public class DateTimeUtil {
             int days = Math.abs(calculateTimeGap(curTime, notifyTime, Calendar.DATE));
             if (days == 0) { // the alarm will ring today
                 if (curTime <= notifyTime) {
-                    // 应于16:00前完成, should be finished before 16:00,
                     String shouldBefore = context.getString(R.string.goal_should_finish_before);
-                    return String.format(shouldBefore, new DateTime(notifyTime).toString("H:mm"));
+                    return String.format(shouldBefore, formatMillis(notifyTime, "H:mm"));
                 } else {
                     if (isChinese) {
                         String overdue = context.getString(R.string.goal_overdue);
@@ -247,7 +248,6 @@ public class DateTimeUtil {
                     }
                 }
             } else if (curTime < notifyTime) { // days >= 1
-                // 应于60天内完成, should be finished in 60 days
                 String shouldFinishIn = context.getString(R.string.goal_should_finish_in);
                 shouldFinishIn = String.format(shouldFinishIn, days);
                 if (days == 1 && !isChinese) {
@@ -255,7 +255,6 @@ public class DateTimeUtil {
                 }
                 return shouldFinishIn;
             } else { // later than deadline while the thing isn't finished
-                // 已逾期16天, 16 days overdue
                 String overdue = context.getString(R.string.goal_overdue);
                 overdue = String.format(overdue, days);
                 if (days == 1 && !isChinese) {
@@ -268,15 +267,12 @@ public class DateTimeUtil {
             int goalDays = calculateTimeGap(goalCreateTime, notifyTime, Calendar.DATE);
             String finishedIn = context.getString(R.string.goal_finished_normal);
             if (finishDays < goalDays) {
-                // 已用6天提前完成, cost 6 days to finish in advance
                 finishedIn = context.getString(R.string.goal_finished_in_advance);
             } else if (finishDays > goalDays) {
-                // 已用960天逾期完成, cost 960 days to finish, overdue
                 finishedIn = context.getString(R.string.goal_finished_overdue);
-            } // else 已用36天完成, cost 36 days to finish
+            }
             String daysStr;
             if (finishDays == 0) {
-                // 已用<1天提前完成, cost <1 day to finish in advance
                 daysStr = "<1";
             } else {
                 daysStr = String.valueOf(finishDays);
@@ -336,8 +332,7 @@ public class DateTimeUtil {
     }
 
     public static String getDateTimeStrAt(long time, Context context, boolean timePeriod) {
-        DateTime dt = new DateTime(time);
-        return getDateTimeStrAt(dt, context, timePeriod);
+        return getDateTimeStrAt(toZoned(time), context, timePeriod);
     }
 
     /**
@@ -345,9 +340,7 @@ public class DateTimeUtil {
      * of a Reminder which belongs to a {@link com.ywwynm.everythingdone.model.Thing}
      * object with type {@link com.ywwynm.everythingdone.model.Thing.REMINDER} in detailed way.
      *
-     * @param dt A {@link DateTime} object which has called
-     *                 {@code DateTime#withMillis(long)}
-     *                 to set the correct time of
+     * @param zdt A {@link ZonedDateTime} object representing
      *                 {@link com.ywwynm.everythingdone.model.Reminder.notifyTime}.
      *
      * @param timePeriod Whether the returned string should contain time period
@@ -357,25 +350,26 @@ public class DateTimeUtil {
      * @return A string describing time in a detailed way. For example, will be
      *         "on Jan 29, 1995, 16:40", "yesterday, 2:33", "星期六清晨5:55" and so on.
      */
-    public static String getDateTimeStrAt(DateTime dt, Context context, boolean timePeriod) {
-        DateTime cur = new DateTime();
-        int year = dt.getYear();
+    public static String getDateTimeStrAt(ZonedDateTime zdt, Context context, boolean timePeriod) {
+        ZonedDateTime cur = ZonedDateTime.now();
+        int year = zdt.getYear();
         int curYear = cur.getYear();
-        int month = dt.getMonthOfYear();
-        int day = dt.getDayOfMonth();
-        int dayOfWeek = dt.getDayOfWeek();
+        int month = zdt.getMonthValue();
+        int day = zdt.getDayOfMonth();
+        int dayOfWeek = zdt.getDayOfWeek().getValue();
         dayOfWeek = dayOfWeek == 7 ? 1 : dayOfWeek + 1;
-        int curDayOfWeek = cur.getDayOfWeek();
+        int curDayOfWeek = cur.getDayOfWeek().getValue();
         curDayOfWeek = curDayOfWeek == 7 ? 1 : curDayOfWeek + 1;
-        int hour = dt.getHourOfDay();
-        int minute = dt.getMinuteOfHour();
+        int hour = zdt.getHour();
+        int minute = zdt.getMinute();
 
         Resources res = context.getResources();
-        Date date = dt.toDate();
+        Date date = Date.from(zdt.toInstant());
         StringBuilder sb = new StringBuilder();
         boolean isChinese = LocaleUtil.isChinese(context);
 
-        int days = calculateTimeGap(cur.getMillis(), dt.getMillis(), Calendar.DATE);
+        int days = calculateTimeGap(cur.toInstant().toEpochMilli(),
+                zdt.toInstant().toEpochMilli(), Calendar.DATE);
         if (days < 0) {
             if (days == -1) {
                 sb.append(res.getString(R.string.yesterday));
@@ -641,11 +635,11 @@ public class DateTimeUtil {
                     .append(res.getString(R.string.day));
         } else {
             sb.append("on ");
-            SimpleDateFormat sdf;
+            java.text.SimpleDateFormat sdf;
             if (year != curYear) {
-                sdf = new SimpleDateFormat("MMM d, yyyy");
+                sdf = new java.text.SimpleDateFormat("MMM d, yyyy");
             } else {
-                sdf = new SimpleDateFormat("MMM d");
+                sdf = new java.text.SimpleDateFormat("MMM d");
             }
             sb.append(sdf.format(date));
         }
@@ -700,8 +694,8 @@ public class DateTimeUtil {
         if (second < 1) {
             return "< 1s";
         } else if (second < 3600) {
-            return new SimpleDateFormat("mm:ss").format(new Date(time));
-        } else return new SimpleDateFormat("HH:mm:ss").format(new Date(time));
+            return new java.text.SimpleDateFormat("mm:ss").format(new Date(time));
+        } else return new java.text.SimpleDateFormat("HH:mm:ss").format(new Date(time));
     }
 
     public static String getTimeLengthStr(long time, Context context) {
@@ -783,26 +777,26 @@ public class DateTimeUtil {
         } else if (type == Calendar.WEEK_OF_YEAR) {
             return curHrTime + vary * 604800000L;
         }
-        DateTime dt = new DateTime(curHrTime);
-        int year = dt.getYear();
-        int month = dt.getMonthOfYear();
-        int day = dt.getDayOfMonth();
+        ZonedDateTime zdt = toZoned(curHrTime);
+        int year = zdt.getYear();
+        int month = zdt.getMonthValue();
+        int day = zdt.getDayOfMonth();
         if (type == Calendar.MONTH) {
             int days = getDaysOfMonth(year, month);
-            dt = dt.plusMonths(vary);
+            zdt = zdt.plusMonths(vary);
             if (day == days) {
-                year = dt.getYear();
-                month = dt.getMonthOfYear();
-                dt = dt.withDayOfMonth(getDaysOfMonth(year, month));
+                year = zdt.getYear();
+                month = zdt.getMonthValue();
+                zdt = zdt.withDayOfMonth(getDaysOfMonth(year, month));
             }
-            return dt.getMillis();
+            return zdt.toInstant().toEpochMilli();
         } else if (type == Calendar.YEAR) {
             int days = getDaysOfMonth(year, month);
-            dt = dt.plusYears(vary);
+            zdt = zdt.plusYears(vary);
             if (day == days) {
-                dt = dt.withDayOfMonth(getDaysOfMonth(year + vary, month));
+                zdt = zdt.withDayOfMonth(getDaysOfMonth(year + vary, month));
             }
-            return dt.getMillis();
+            return zdt.toInstant().toEpochMilli();
         }
         return 0;
     }
@@ -829,23 +823,33 @@ public class DateTimeUtil {
     }
 
     public static int calculateTimeGap(long start, long end, int type) {
-        DateTime sDt = new DateTime(start).withTime(0, 0, 0, 0);
-        DateTime eDt = new DateTime(end).withTime(0, 0, 0, 0);
+        ZonedDateTime sZdt = toZoned(start).truncatedTo(ChronoUnit.DAYS);
+        ZonedDateTime eZdt = toZoned(end).truncatedTo(ChronoUnit.DAYS);
 
         if (type == Calendar.DATE) {
-            return Days.daysBetween(sDt, eDt).getDays();
+            return (int) ChronoUnit.DAYS.between(sZdt, eZdt);
         } else if (type == Calendar.WEEK_OF_YEAR) {
-            sDt = sDt.withDayOfWeek(1);
-            eDt = eDt.withDayOfWeek(1);
-            return Weeks.weeksBetween(sDt, eDt).getWeeks();
+            sZdt = sZdt.with(TemporalAdjusters.previousOrSame(
+                    WeekFields.ISO.getFirstDayOfWeek()));
+            eZdt = eZdt.with(TemporalAdjusters.previousOrSame(
+                    WeekFields.ISO.getFirstDayOfWeek()));
+            return (int) ChronoUnit.WEEKS.between(sZdt, eZdt);
         } else if (type == Calendar.MONTH) {
-            sDt = sDt.withDayOfMonth(1);
-            eDt = eDt.withDayOfMonth(1);
-            return Months.monthsBetween(sDt, eDt).getMonths();
+            sZdt = sZdt.withDayOfMonth(1);
+            eZdt = eZdt.withDayOfMonth(1);
+            return (int) ChronoUnit.MONTHS.between(sZdt, eZdt);
         } else if (type == Calendar.YEAR) {
-            return eDt.getYear() - sDt.getYear();
+            return eZdt.getYear() - sZdt.getYear();
         }
         return 0;
+    }
+
+    private static String formatMillis(long millis, String pattern) {
+        return toZoned(millis).format(DateTimeFormatter.ofPattern(pattern));
+    }
+
+    private static ZonedDateTime toZoned(long millis) {
+        return Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault());
     }
 
 }

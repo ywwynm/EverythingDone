@@ -5,9 +5,9 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.support.v4.app.NotificationCompat;
-import android.support.v4.app.NotificationManagerCompat;
-import android.support.v4.util.Pair;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
+import androidx.core.util.Pair;
 import android.widget.Toast;
 
 import com.ywwynm.everythingdone.App;
@@ -116,30 +116,37 @@ public class ReminderReceiver extends BroadcastReceiver {
                 Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE);
         boolean moreNoticeable = sp.getBoolean(Def.Meta.KEY_NOTICEABLE_NOTIFICATION, true);
         notifyUserBySystemNotification(context, id, position, thing, moreNoticeable);
-        if (moreNoticeable) {
-            Intent intent = NoticeableNotificationActivity.getOpenIntentForReminder(context, id, position);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
-            context.startActivity(intent);
-        }
     }
 
     private void notifyUserBySystemNotification(
             Context context, long id, int position, Thing thing, boolean moreNoticeable) {
         NotificationCompat.Builder builder = SystemNotificationUtil
                 .newGeneralNotificationBuilder(context, TAG, id, position, thing, false);
-        if (moreNoticeable && DeviceUtil.hasLollipopApi()) {
+        if (moreNoticeable) {
             // if we use a dialog to notify this alarm, we don't need to show heads-up notification
             builder.setPriority(NotificationCompat.PRIORITY_DEFAULT);
         }
 
+        // Phase 8: pass full ThingBackground so the action's PendingIntent
+        // carries the gradient across IPC to StartDoingActivity / DelayReminderActivity.
         SystemNotificationUtil.addActionsForReminderNotification(
-                builder, context, id, position, thing.getType());
+                builder, context, id, position, thing.getType(), thing.isPrivate(),
+                thing.getBackground());
+
+        if (moreNoticeable) {
+            Intent fullScreenIntent = NoticeableNotificationActivity.getOpenIntentForReminder(
+                    context, id, position);
+            fullScreenIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
+            builder.setFullScreenIntent(PendingIntent.getActivity(
+                    context, (int) id, fullScreenIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE), true);
+        }
 
         Intent deleteIntent = new Intent(context, ReminderNotificationActionReceiver.class);
         deleteIntent.setAction(Def.Communication.NOTIFICATION_ACTION_CANCEL);
         deleteIntent.putExtra(Def.Communication.KEY_ID, id);
         builder.setDeleteIntent(PendingIntent.getBroadcast(
-                context, (int) id, deleteIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+                context, (int) id, deleteIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
 
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
         notificationManager.notify((int) id, builder.build());

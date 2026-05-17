@@ -30,7 +30,8 @@ public class DBHelper extends SQLiteOpenHelper {
                 + Def.Database.COLUMN_LOCATION_THINGS    + " integer, "
                 + Def.Database.COLUMN_CREATE_TIME_THINGS + " integer, "
                 + Def.Database.COLUMN_UPDATE_TIME_THINGS + " integer, "
-                + Def.Database.COLUMN_FINISH_TIME_THINGS + " integer"
+                + Def.Database.COLUMN_FINISH_TIME_THINGS + " integer, "
+                + Def.Database.COLUMN_BACKGROUND_THINGS  + " text" /* added in version 9 */
             + ")";
 
     private static final String SQL_CREATE_TABLE_REMINDERS = "create table if not exists "
@@ -137,6 +138,10 @@ public class DBHelper extends SQLiteOpenHelper {
             + Def.Database.TABLE_HABIT_RECORDS
             + " add column " + Def.Database.COLUMN_TYPE_HABIT_RECORDS + " integer not null default 0";
 
+    private static final String SQL_ADD_COLUMN_BACKGROUND_THINGS = "alter table "
+            + Def.Database.TABLE_THINGS
+            + " add column " + Def.Database.COLUMN_BACKGROUND_THINGS + " text";
+
     private static final String SQL_DROP_TABLE_THINGS = "drop table if exists "
             + Def.Database.TABLE_THINGS;
 
@@ -233,8 +238,11 @@ public class DBHelper extends SQLiteOpenHelper {
             db.execSQL(SQL_ADD_COLUMN_TYPE_HABIT_RECORD);
         } else if (oldVersion == 7) {
             db.execSQL(SQL_ADD_COLUMN_TYPE_HABIT_RECORD);
+            db.execSQL(SQL_ADD_COLUMN_BACKGROUND_THINGS);
+        } else if (oldVersion == 8) {
+            db.execSQL(SQL_ADD_COLUMN_BACKGROUND_THINGS);
         }
-        // released version should be 1, 3, 5, 6, 7, 8.
+        // released version should be 1, 3, 5, 6, 7, 8, 9.
     }
 
     @Override
@@ -246,18 +254,25 @@ public class DBHelper extends SQLiteOpenHelper {
     }
 
     private String generateInsertInitialSQL(int id, int type, int titleRes, int contentRes) {
+        // Phase 3+: roll a full ThingBackground (50/50 PURE vs GRADIENT) and
+        // write both the legacy int colour column and the new background JSON
+        // column. Previously this inserted only 11 values for a 12-column
+        // table — broken on fresh installs since v9 added COLUMN_BACKGROUND_THINGS.
+        com.ywwynm.everythingdone.model.ThingBackground bg =
+                com.ywwynm.everythingdone.model.ThingBackground.fromRandom();
         return "insert into " + Def.Database.TABLE_THINGS + " values(" + "'"
                 + id + "', '"
                 + type + "', '"
                 + Thing.UNDERWAY + "', '"
-                + DisplayUtil.getRandomColor(mContext) + "', '"
+                + bg.representativeColor() + "', '"
                 + (titleRes != 0 ? mContext.getString(titleRes) : "") + "', '"
                 + mContext.getString(contentRes) + "', "
                 + "''" + ", '"
                 + id + "', '"
                 + System.currentTimeMillis() + "', '"
                 + System.currentTimeMillis() + "', "
-                + "'0')";
+                + "'0', '"
+                + bg.toJson() + "')";
     }
 
 //    private String generateTestSQL(int id, String title, String content) {

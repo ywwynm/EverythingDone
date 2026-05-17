@@ -4,7 +4,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.support.v4.util.Pair;
+import androidx.core.util.Pair;
 import android.text.TextUtils;
 import android.widget.Toast;
 
@@ -171,7 +171,9 @@ public class ThingDoingHelper {
     }
 
     public static void stopDoing(Context context, @DoingRecord.StopReason int stopReason) {
-        context.sendBroadcast(new Intent(DoingActivity.BROADCAST_ACTION_JUST_FINISH));
+        Intent intent = new Intent(DoingActivity.BROADCAST_ACTION_JUST_FINISH);
+        intent.setPackage(context.getPackageName());
+        context.sendBroadcast(intent);
         DoingService.sStopReason = stopReason;
         context.stopService(new Intent(context, DoingService.class));
     }
@@ -185,8 +187,9 @@ public class ThingDoingHelper {
         if (hrTime == -1) hrTime = calculateHrTimeForHabit();
 
         App.setDoingThingId(mThing.getId());
-        mContext.startService(DoingService.getOpenIntent(
-                mContext, mThing, System.currentTimeMillis(), timeInMillis, startType, hrTime));
+        Intent serviceIntent = DoingService.getOpenIntent(
+                mContext, mThing, System.currentTimeMillis(), timeInMillis, startType, hrTime);
+        mContext.startForegroundService(serviceIntent);
 
         Intent activityIntent = DoingActivity.getOpenIntent(mContext, false);
         if (outsideActivity || !(mContext instanceof Activity)) {
@@ -222,9 +225,22 @@ public class ThingDoingHelper {
     }
 
     public void tryToOpenStartDoingActivityUser() {
+        tryToOpenStartDoingActivityUser(null);
+    }
+
+    /**
+     * Phase 8: open StartDoingActivity carrying the caller's pending accent
+     * (a ThingBackground) so the resulting dialog's title / confirm respect
+     * any colour picked-but-not-yet-saved in DetailActivity. {@code null} falls
+     * back to the saved {@code mThing.getBackground()}.
+     */
+    public void tryToOpenStartDoingActivityUser(
+            com.ywwynm.everythingdone.model.ThingBackground accent) {
         long hrTime = calculateHrTimeForHabit();
+        com.ywwynm.everythingdone.model.ThingBackground bg =
+                accent != null ? accent : mThing.getBackground();
         mContext.startActivity(StartDoingActivity.getOpenIntent(
-                mContext, mThing.getId(), -1, mThing.getColor(),
+                mContext, mThing.getId(), -1, bg,
                 DoingService.START_TYPE_USER, hrTime));
     }
 

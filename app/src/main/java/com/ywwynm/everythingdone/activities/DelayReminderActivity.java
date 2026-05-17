@@ -2,9 +2,10 @@ package com.ywwynm.everythingdone.activities;
 
 import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
-import android.support.v4.util.Pair;
-import android.support.v7.app.AppCompatActivity;
+import androidx.core.util.Pair;
+import androidx.appcompat.app.AppCompatActivity;
 import android.view.View;
 
 import com.ywwynm.everythingdone.App;
@@ -13,6 +14,7 @@ import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.fragments.ChooserDialogFragment;
 import com.ywwynm.everythingdone.helpers.RemoteActionHelper;
 import com.ywwynm.everythingdone.model.Thing;
+import com.ywwynm.everythingdone.model.ThingBackground;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 
@@ -29,10 +31,23 @@ public class DelayReminderActivity extends AppCompatActivity {
     public static final String TAG = "DelayReminderActivity";
 
     public static Intent getOpenIntent(Context context, long thingId, int position, int color) {
+        return getOpenIntent(context, thingId, position, ThingBackground.pure(color));
+    }
+
+    /**
+     * Phase 8: ThingBackground-aware open intent. Carries both KEY_COLOR (int)
+     * and KEY_BACKGROUND (JSON), so the chooser-dialog accent can render the
+     * gradient when the source thing has one.
+     */
+    public static Intent getOpenIntent(
+            Context context, long thingId, int position, ThingBackground bg) {
         Intent intent = new Intent(context, DelayReminderActivity.class);
         intent.putExtra(Def.Communication.KEY_ID, thingId);
         intent.putExtra(Def.Communication.KEY_POSITION, position);
-        intent.putExtra(Def.Communication.KEY_COLOR, color);
+        if (bg != null) {
+            intent.putExtra(Def.Communication.KEY_COLOR, bg.representativeColor());
+            intent.putExtra(Def.Communication.KEY_BACKGROUND, bg.toJson());
+        }
         return intent;
     }
 
@@ -73,9 +88,15 @@ public class DelayReminderActivity extends AppCompatActivity {
         }
 
         int color = intent.getIntExtra(Def.Communication.KEY_COLOR, DisplayUtil.getRandomColor(this));
+        // Phase 8: prefer the JSON ThingBackground when present so a GRADIENT
+        // thing's delay-reminder dialog renders gradient text on its title /
+        // confirm / picked row.
+        String bgJson = intent.getStringExtra(Def.Communication.KEY_BACKGROUND);
+        ThingBackground accent = ThingBackground.fromJson(bgJson);
+        if (accent == null) accent = ThingBackground.pure(color);
 
         final ChooserDialogFragment cdf = new ChooserDialogFragment();
-        cdf.setAccentColor(color);
+        cdf.setAccentBackground(accent);
         cdf.setShouldShowMore(false);
         cdf.setTitle(getString(R.string.delay_reminder));
         cdf.setItems(getItems());
@@ -92,7 +113,11 @@ public class DelayReminderActivity extends AppCompatActivity {
             @Override
             public void onDismiss() {
                 finish();
-                overridePendingTransition(0, 0);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    overrideActivityTransition(OVERRIDE_TRANSITION_OPEN, 0, 0);
+                } else {
+                    overridePendingTransition(0, 0);
+                }
             }
         });
         cdf.show(getFragmentManager(), ChooserDialogFragment.TAG);
