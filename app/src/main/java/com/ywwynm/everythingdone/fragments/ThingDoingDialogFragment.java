@@ -80,7 +80,16 @@ public class ThingDoingDialogFragment extends BaseDialogFragment {
 
     private void initUI() {
         TextView tvTitle = f(R.id.tv_title_thing_doing);
-        tvTitle.setTextColor(mThing.getColor());
+        // Phase 8: pull the live accent from DetailActivity rather than the
+        // saved mThing — the user may have picked a pending colour that hasn't
+        // been written back to the DB yet, and mThing.getBackground() is the
+        // stale saved value until that save happens.
+        com.ywwynm.everythingdone.model.ThingBackground bg = currentAccent();
+        if (bg != null) {
+            com.ywwynm.everythingdone.utils.BackgroundUtil.applyTextBackground(tvTitle, bg);
+        } else {
+            tvTitle.setTextColor(mThing.getColor());
+        }
 
         mTvASD.setText(mDoingHelper.getAutoStartDoingDesc());
         mTvASDTime.setText(mDoingHelper.getAutoDoingTimeDesc());
@@ -88,11 +97,17 @@ public class ThingDoingDialogFragment extends BaseDialogFragment {
 
         enableOrDisableASDTimeUi();
 
-        // Phase 7.c: feed the full ThingBackground so a GRADIENT thing's
-        // "start as bt" CardView renders the gradient instead of collapsing to
-        // its representative colour.
+        // Phase 7.c / 8: same story for the "start" CardView — reflect the
+        // pending pick, not the saved value.
         com.ywwynm.everythingdone.utils.BackgroundUtil.applyCardBackground(
-                mCvStartAsBt, mThing.getBackground());
+                mCvStartAsBt, bg != null ? bg : mThing.getBackground());
+    }
+
+    /** Live accent from DetailActivity (honouring any pending pick). */
+    private com.ywwynm.everythingdone.model.ThingBackground currentAccent() {
+        if (mActivity == null) return mThing.getBackground();
+        com.ywwynm.everythingdone.model.ThingBackground bg = mActivity.getAccentBackground();
+        return bg != null ? bg : mThing.getBackground();
     }
 
     private void enableOrDisableASDTimeUi() {
@@ -140,7 +155,9 @@ public class ThingDoingDialogFragment extends BaseDialogFragment {
             @Override
             public void onClick(View view) {
                 ThingDoingHelper helper = new ThingDoingHelper(mActivity, mThing);
-                helper.tryToOpenStartDoingActivityUser();
+                // Phase 8: thread the live accent through to StartDoingActivity
+                // so its chooser / alert respect the pending pick.
+                helper.tryToOpenStartDoingActivityUser(currentAccent());
             }
         });
     }
@@ -152,7 +169,11 @@ public class ThingDoingDialogFragment extends BaseDialogFragment {
         items.add(mActivity.getString(R.string.disable));
 
         final ChooserDialogFragment cdf = new ChooserDialogFragment();
-        cdf.setAccentColor(mThing.getColor());
+        // Phase 8: feed the live accent (pending pick honoured) so the chooser's
+        // title / confirm gradient matches what the user is currently seeing.
+        com.ywwynm.everythingdone.model.ThingBackground tbg = currentAccent();
+        if (tbg != null) cdf.setAccentBackground(tbg);
+        else             cdf.setAccentColor(mThing.getColor());
         cdf.setShouldShowMore(false);
         cdf.setTitle(getString(R.string.auto_start_doing_title));
         cdf.setItems(items);
@@ -173,7 +194,11 @@ public class ThingDoingDialogFragment extends BaseDialogFragment {
         items.add(0, mDoingHelper.getAutoStartDoingTimeFollowGeneralStr());
 
         final ChooserDialogFragment cdf = new ChooserDialogFragment();
-        cdf.setAccentColor(mThing.getColor());
+        // Phase 8: feed the live accent (pending pick honoured) so the chooser's
+        // title / confirm gradient matches what the user is currently seeing.
+        com.ywwynm.everythingdone.model.ThingBackground tbg = currentAccent();
+        if (tbg != null) cdf.setAccentBackground(tbg);
+        else             cdf.setAccentColor(mThing.getColor());
         cdf.setShouldShowMore(false);
         cdf.setTitle(getString(R.string.auto_start_doing_time_title));
         cdf.setItems(items);
@@ -196,7 +221,11 @@ public class ThingDoingDialogFragment extends BaseDialogFragment {
         items.add(mActivity.getString(R.string.disable));
 
         final ChooserDialogFragment cdf = new ChooserDialogFragment();
-        cdf.setAccentColor(mThing.getColor());
+        // Phase 8: feed the live accent (pending pick honoured) so the chooser's
+        // title / confirm gradient matches what the user is currently seeing.
+        com.ywwynm.everythingdone.model.ThingBackground tbg = currentAccent();
+        if (tbg != null) cdf.setAccentBackground(tbg);
+        else             cdf.setAccentColor(mThing.getColor());
         cdf.setShouldShowMore(false);
         cdf.setTitle(getString(R.string.auto_strict_mode_title));
         cdf.setItems(items);

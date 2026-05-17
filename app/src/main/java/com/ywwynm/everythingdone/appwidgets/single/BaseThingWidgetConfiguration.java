@@ -330,7 +330,12 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
 
         Button btFinish = f(R.id.bt_finish_set_alpha_app_widget);
         DisplayUtil.setButtonColor(btFinish, Color.WHITE);
-        btFinish.setTextColor(thing.getColor());
+        // Phase 8: gradient text for the "Done" label when the source thing
+        // has a GRADIENT background. applyTextBackground handles both modes —
+        // PURE just sets the text colour, GRADIENT installs a shader on the
+        // TextPaint scoped to the rendered text width.
+        com.ywwynm.everythingdone.utils.BackgroundUtil.applyTextBackground(
+                btFinish, thing.getBackground());
         btFinish.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {

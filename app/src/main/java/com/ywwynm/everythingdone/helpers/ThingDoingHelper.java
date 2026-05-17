@@ -225,9 +225,22 @@ public class ThingDoingHelper {
     }
 
     public void tryToOpenStartDoingActivityUser() {
+        tryToOpenStartDoingActivityUser(null);
+    }
+
+    /**
+     * Phase 8: open StartDoingActivity carrying the caller's pending accent
+     * (a ThingBackground) so the resulting dialog's title / confirm respect
+     * any colour picked-but-not-yet-saved in DetailActivity. {@code null} falls
+     * back to the saved {@code mThing.getBackground()}.
+     */
+    public void tryToOpenStartDoingActivityUser(
+            com.ywwynm.everythingdone.model.ThingBackground accent) {
         long hrTime = calculateHrTimeForHabit();
+        com.ywwynm.everythingdone.model.ThingBackground bg =
+                accent != null ? accent : mThing.getBackground();
         mContext.startActivity(StartDoingActivity.getOpenIntent(
-                mContext, mThing.getId(), -1, mThing.getColor(),
+                mContext, mThing.getId(), -1, bg,
                 DoingService.START_TYPE_USER, hrTime));
     }
 

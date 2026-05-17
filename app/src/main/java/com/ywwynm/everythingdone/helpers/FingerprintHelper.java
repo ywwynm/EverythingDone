@@ -138,10 +138,20 @@ public class FingerprintHelper {
     public void tryToAuthenticatingByFingerprint(
             Activity activity, int accentColor, String title, String correctPassword,
             AuthenticationHelper.AuthenticationCallback callback) {
+        tryToAuthenticatingByFingerprint(activity,
+                com.ywwynm.everythingdone.model.ThingBackground.pure(accentColor),
+                title, correctPassword, callback);
+    }
+
+    /** Phase 8: ThingBackground-aware overload — gradient flows into the pattern-lock fallback. */
+    public void tryToAuthenticatingByFingerprint(
+            Activity activity, com.ywwynm.everythingdone.model.ThingBackground accent,
+            String title, String correctPassword,
+            AuthenticationHelper.AuthenticationCallback callback) {
         if (isFingerprintReady() && isFingerprintEnabledInEverythingDone() && initFingerprintCipher()) {
             authenticateWithBiometricPrompt(activity, title, callback);
         } else {
-            showPatternLock(activity, accentColor, title, correctPassword, callback);
+            showPatternLock(activity, accent, title, correctPassword, callback);
         }
     }
 
@@ -170,8 +180,11 @@ public class FingerprintHelper {
                     public void onAuthenticationError(int errorCode, CharSequence errString) {
                         if (errorCode != BiometricPrompt.ERROR_NEGATIVE_BUTTON
                                 && errorCode != BiometricPrompt.ERROR_USER_CANCELED) {
-                            showPatternLock(activity, ContextCompat.getColor(activity,
-                                    R.color.blue_deep), title, "", callback);
+                            // Biometric error fallback: use a fixed brand-colour pattern lock.
+                            showPatternLock(activity,
+                                    com.ywwynm.everythingdone.model.ThingBackground.pure(
+                                            ContextCompat.getColor(activity, R.color.blue_deep)),
+                                    title, "", callback);
                         }
                     }
                 });
@@ -181,10 +194,14 @@ public class FingerprintHelper {
     }
 
     private void showPatternLock(
-            Activity activity, int accentColor, String title,
-            String correctPassword, AuthenticationHelper.AuthenticationCallback callback) {
+            Activity activity, com.ywwynm.everythingdone.model.ThingBackground accent,
+            String title, String correctPassword,
+            AuthenticationHelper.AuthenticationCallback callback) {
         final PatternLockDialogFragment pldf = new PatternLockDialogFragment();
-        pldf.setAccentColor(accentColor);
+        // Phase 8: prefer the ThingBackground setter so GRADIENT renders on
+        // the dialog's title + right-button. Falls back to int when caller
+        // only supplied a representative int (wrapped as PURE).
+        if (accent != null) pldf.setAccentBackground(accent);
         pldf.setType(PatternLockDialogFragment.TYPE_VALIDATE);
         pldf.setValidateTitle(title);
         pldf.setCorrectPassword(correctPassword);

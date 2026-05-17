@@ -32,6 +32,10 @@ public class PatternLockDialogFragment extends BaseDialogFragment {
     private String mPassword;
 
     private int mAccentColor;
+    /** Phase 8: full ThingBackground for gradient title / right-button text.
+     *  Falls back to plain {@link #mAccentColor} when null. PatternLockView's
+     *  correct-stroke colour stays int (the view paints with a single Paint). */
+    private com.ywwynm.everythingdone.model.ThingBackground mAccentBackground;
     private String mValidateTitle;
 
     private TextView mTvTitle;
@@ -82,9 +86,19 @@ public class PatternLockDialogFragment extends BaseDialogFragment {
     }
 
     private void initUI() {
-        mTvTitle.setTextColor(mAccentColor);
-        mTvRightAsBt.setTextColor(mAccentColor);
+        // Phase 8: gradient title + right-button when a ThingBackground was
+        // supplied; falls back to plain int otherwise.
+        if (mAccentBackground != null) {
+            com.ywwynm.everythingdone.utils.BackgroundUtil.applyTextBackground(
+                    mTvTitle, mAccentBackground);
+            com.ywwynm.everythingdone.utils.BackgroundUtil.applyTextBackground(
+                    mTvRightAsBt, mAccentBackground);
+        } else {
+            mTvTitle.setTextColor(mAccentColor);
+            mTvRightAsBt.setTextColor(mAccentColor);
+        }
         mLockView.setPathColor(ContextCompat.getColor(getActivity(), R.color.black_54));
+        // PatternLockView's correct-state stroke uses a single Paint — int only.
         mLockView.setCorrectColor(mAccentColor);
 
         if (mType == TYPE_SET) {
@@ -233,6 +247,13 @@ public class PatternLockDialogFragment extends BaseDialogFragment {
 
     public void setAccentColor(int accentColor) {
         mAccentColor = accentColor;
+        mAccentBackground = null;
+    }
+
+    /** Phase 8: full ThingBackground accent (gradient title / right-button when GRADIENT). */
+    public void setAccentBackground(com.ywwynm.everythingdone.model.ThingBackground bg) {
+        mAccentBackground = bg;
+        if (bg != null) mAccentColor = bg.representativeColor();
     }
 
     public void setCorrectPassword(String correctPassword) {

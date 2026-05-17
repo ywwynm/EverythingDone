@@ -160,7 +160,7 @@ public class SystemNotificationUtil {
                     .bigPicture(bigPicture)
                     .setSummaryText(contentText));
         } else {
-            extendWearable(builder, type, color, autoNotify, context);
+            extendWearable(builder, type, thing.getBackground(), autoNotify, context);
         }
 
         return builder;
@@ -169,6 +169,21 @@ public class SystemNotificationUtil {
     public static void addActionsForReminderNotification(
             NotificationCompat.Builder builder, Context context, long id, int position,
             @Thing.Type int type, boolean isPrivate, int color) {
+        addActionsForReminderNotification(builder, context, id, position, type, isPrivate,
+                com.ywwynm.everythingdone.model.ThingBackground.pure(color));
+    }
+
+    /**
+     * Phase 8: ThingBackground-aware reminder-notification action builder. The
+     * "Start doing" and "Delay" actions go through PendingIntent → StartDoingActivity /
+     * DelayReminderActivity, and the activity reads the bg back out to drive the
+     * dialog accent. Without this overload the int-only path collapsed any
+     * GRADIENT thing to its representative colour on the dialog.
+     */
+    public static void addActionsForReminderNotification(
+            NotificationCompat.Builder builder, Context context, long id, int position,
+            @Thing.Type int type, boolean isPrivate,
+            com.ywwynm.everythingdone.model.ThingBackground bg) {
         if (isPrivate) {
             Intent finishIntent = AuthenticationActivity.getOpenIntent(
                     context, "SystemNotificationUtil", id, position,
@@ -210,8 +225,11 @@ public class SystemNotificationUtil {
                         PendingIntent.getActivity(context,
                                 (int) id, delayIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
             } else {
+                // Phase 8: pass the full ThingBackground so the chooser dialog
+                // inside StartDoingActivity / DelayReminderActivity renders a
+                // gradient title / confirm / picked row.
                 Intent startIntent = StartDoingActivity.getOpenIntent(
-                        context, id, position, color,
+                        context, id, position, bg,
                         DoingService.START_TYPE_ALARM, -1);
                 startIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 builder.addAction(R.drawable.act_start_doing,
@@ -220,7 +238,7 @@ public class SystemNotificationUtil {
                                 (int) id, startIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
 
                 Intent delayIntent = DelayReminderActivity.getOpenIntent(
-                        context, id, position, color);
+                        context, id, position, bg);
                 delayIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 builder.addAction(R.drawable.act_delay,
                         context.getString(R.string.act_delay),
@@ -233,6 +251,17 @@ public class SystemNotificationUtil {
     public static void addActionsForHabitNotification(
             Context context, NotificationCompat.Builder builder, long hrId, int position, long hrTime,
             boolean isPrivate, long thingId, int color) {
+        addActionsForHabitNotification(context, builder, hrId, position, hrTime,
+                isPrivate, thingId,
+                com.ywwynm.everythingdone.model.ThingBackground.pure(color));
+    }
+
+    /** Phase 8: ThingBackground-aware habit-notification action builder.
+     *  See {@link #addActionsForReminderNotification(NotificationCompat.Builder, Context, long, int, int, boolean, com.ywwynm.everythingdone.model.ThingBackground)}. */
+    public static void addActionsForHabitNotification(
+            Context context, NotificationCompat.Builder builder, long hrId, int position, long hrTime,
+            boolean isPrivate, long thingId,
+            com.ywwynm.everythingdone.model.ThingBackground bg) {
         if (isPrivate) {
             Intent finishIntent = AuthenticationActivity.getOpenIntent(
                     context, "SystemNotificationUtil", thingId, position,
@@ -266,8 +295,9 @@ public class SystemNotificationUtil {
                     PendingIntent.getActivity(context,
                             (int) hrId, startIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
         } else {
+            // Phase 8: full ThingBackground for gradient on the chooser dialog.
             Intent startIntent = StartDoingActivity.getOpenIntent(
-                    context, thingId, position, color,
+                    context, thingId, position, bg,
                     DoingService.START_TYPE_ALARM, hrTime);
             startIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             builder.addAction(R.drawable.act_start_doing,
@@ -560,7 +590,8 @@ public class SystemNotificationUtil {
         }
     }
 
-    private static void extendWearable(NotificationCompat.Builder builder, int type, int color,
+    private static void extendWearable(NotificationCompat.Builder builder, int type,
+                                       com.ywwynm.everythingdone.model.ThingBackground bg,
                                        boolean autoNotify, Context context) {
         int bmdRes = R.drawable.wear_reminder;
         if (autoNotify) {
@@ -573,7 +604,10 @@ public class SystemNotificationUtil {
             }
         }
         BitmapDrawable bmd = (BitmapDrawable) ContextCompat.getDrawable(context, bmdRes);
-        Bitmap bm = BitmapUtil.createLayeredBitmap(bmd, color);
+        // Phase 8: gradient-aware layered bitmap. PURE keeps the flat-color
+        // path; GRADIENT lays a GradientDrawable behind the wear icon so the
+        // wearable background carries the thing's gradient.
+        Bitmap bm = BitmapUtil.createLayeredBitmap(bmd, bg);
         builder.extend(new NotificationCompat.WearableExtender().setBackground(bm));
     }
 

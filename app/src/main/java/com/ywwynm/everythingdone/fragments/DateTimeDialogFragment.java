@@ -73,6 +73,10 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
     private boolean[] mTabInitiated = new boolean[3];
 
     private int mAccentColor;
+    /** Phase 8: full ThingBackground for any UI element that can render gradient
+     *  (confirm button text, tab indicator). int paint paths (cursor tint,
+     *  EdgeEffect, ColorStateList for cb / et highlight) stay on {@code mAccentColor}. */
+    private com.ywwynm.everythingdone.model.ThingBackground mAccentBackground;
     private int black_54p;
     private int black_26p;
 
@@ -309,7 +313,10 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
     @SuppressLint("InflateParams")
     private void initMembers() {
         mActivity = (DetailActivity) getActivity();
-        mAccentColor = mActivity.getAccentColor();
+        mAccentBackground = mActivity.getAccentBackground();
+        mAccentColor = mAccentBackground != null
+                ? mAccentBackground.representativeColor()
+                : mActivity.getAccentColor();
         black_54p = ContextCompat.getColor(mActivity, R.color.black_54p);
         black_26p = ContextCompat.getColor(mActivity, R.color.black_26p);
         confirmed = false;
@@ -427,14 +434,88 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
 
     private void initUI() {
         mTabLayout.setTabTextColors(black_26p, mAccentColor);
-        mTabLayout.setSelectedTabIndicatorColor(mAccentColor);
-        mTvConfirmAsBt.setTextColor(mAccentColor);
+        // Phase 8: gradient tab indicator when the accent is a GRADIENT, solid
+        // int otherwise. Falls back via applyTabIndicator's internal branch.
+        if (mAccentBackground != null) {
+            com.ywwynm.everythingdone.utils.BackgroundUtil.applyTabIndicator(
+                    mTabLayout, mAccentBackground);
+        } else {
+            mTabLayout.setSelectedTabIndicatorColor(mAccentColor);
+        }
+        // Phase 8: gradient text on the confirm button.
+        if (mAccentBackground != null) {
+            com.ywwynm.everythingdone.utils.BackgroundUtil.applyTextBackground(
+                    mTvConfirmAsBt, mAccentBackground);
+        } else {
+            mTvConfirmAsBt.setTextColor(mAccentColor);
+        }
 
         EdgeEffectUtil.forViewPager(mVpDateTime, mAccentColor);
 
         mVpDateTime.setOffscreenPageLimit(2);
         mVpDateTime.setAdapter(mTabAdapter);
         mTabLayout.setupWithViewPager(mVpDateTime);
+
+        // Phase 8: paint the currently-selected tab's label with a gradient
+        // shader when the accent is GRADIENT. setupWithViewPager creates the
+        // tab views above; install shader on the selected one and re-apply on
+        // selection changes (clear on the previous one so unselected tabs use
+        // the plain black_26p from setTabTextColors).
+        if (mAccentBackground != null
+                && mAccentBackground.mode
+                        == com.ywwynm.everythingdone.model.ThingBackground.Mode.GRADIENT) {
+            applyShaderToSelectedTab();
+            mTabLayout.addOnTabSelectedListener(
+                    new com.google.android.material.tabs.TabLayout.OnTabSelectedListener() {
+                        @Override
+                        public void onTabSelected(com.google.android.material.tabs.TabLayout.Tab tab) {
+                            applyShaderToSelectedTab();
+                        }
+                        @Override
+                        public void onTabUnselected(com.google.android.material.tabs.TabLayout.Tab tab) {
+                            clearShaderOnTab(tab);
+                        }
+                        @Override
+                        public void onTabReselected(com.google.android.material.tabs.TabLayout.Tab tab) { }
+                    });
+        }
+    }
+
+    /** Install the gradient shader on the currently-selected tab's label TextView. */
+    private void applyShaderToSelectedTab() {
+        if (mAccentBackground == null) return;
+        com.google.android.material.tabs.TabLayout.Tab sel = mTabLayout.getTabAt(
+                mTabLayout.getSelectedTabPosition());
+        if (sel == null) return;
+        TextView tv = findTabLabelTextView(sel);
+        if (tv != null) {
+            com.ywwynm.everythingdone.utils.BackgroundUtil.applyTextBackground(
+                    tv, mAccentBackground);
+        }
+    }
+
+    /** Remove the gradient shader so the unselected tab uses TabLayout's int colour. */
+    private void clearShaderOnTab(com.google.android.material.tabs.TabLayout.Tab tab) {
+        if (tab == null) return;
+        TextView tv = findTabLabelTextView(tab);
+        if (tv != null && tv.getPaint().getShader() != null) {
+            tv.getPaint().setShader(null);
+            tv.invalidate();
+        }
+    }
+
+    /** Walk a Material TabView for its label TextView (no public API exposes it). */
+    private TextView findTabLabelTextView(com.google.android.material.tabs.TabLayout.Tab tab) {
+        View tabView = tab.view;
+        if (tabView == null) return null;
+        if (tabView instanceof ViewGroup) {
+            ViewGroup vg = (ViewGroup) tabView;
+            for (int i = 0; i < vg.getChildCount(); i++) {
+                View child = vg.getChildAt(i);
+                if (child instanceof TextView) return (TextView) child;
+            }
+        }
+        return null;
     }
 
     private void initUIAt() {

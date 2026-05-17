@@ -535,7 +535,9 @@ public class DoingActivity extends EverythingDoneBaseActivity {
             toggleStrictMode();
         } else if (id == R.id.fab_cancel_doing) {
             AlertDialogFragment adf = new AlertDialogFragment();
-            adf.setConfirmColor(mThing.getColor());
+            // Phase 8: preserve GRADIENT on the confirm button rather than
+            // collapsing to representative int.
+            adf.setConfirmBackground(mThing.getBackground());
             adf.setContent(getString(R.string.doing_alert_stop_doing_content));
             adf.setConfirmListener(new AlertDialogFragment.ConfirmListener() {
                 @Override
@@ -575,8 +577,9 @@ public class DoingActivity extends EverythingDoneBaseActivity {
 
     private void showAlertDialog(@StringRes int titleRes, @StringRes int contentRes) {
         AlertDialogFragment adf = new AlertDialogFragment();
-        adf.setTitleColor(mThing.getColor());
-        adf.setConfirmColor(mThing.getColor());
+        // Phase 8: gradient title / confirm when the thing has a GRADIENT bg.
+        adf.setTitleBackground(mThing.getBackground());
+        adf.setConfirmBackground(mThing.getBackground());
         adf.setShowCancel(false);
         adf.setTitle(getString(titleRes));
         adf.setContent(getString(contentRes));

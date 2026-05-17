@@ -100,18 +100,20 @@ public class ChooserDialogFragment extends BaseDialogFragment {
     }
 
     private void initUI() {
-        mTvTitle.setTextColor(mAccentColor);
         mTvTitle.setText(mTitle);
         if (mConfirmText != null) {
             mTvConfirmAsBt.setText(mConfirmText);
         }
-
-        mTvConfirmAsBt.setTextColor(mAccentColor);
+        // Phase 8: gradient text fill via TextPaint.setShader when an accent
+        // ThingBackground was supplied; falls back to plain setTextColor with
+        // the legacy int accent otherwise.
+        applyAccent(mTvTitle);
+        applyAccent(mTvConfirmAsBt);
 
         if (!mShouldShowMore) {
             mTvMoreAsBt.setVisibility(View.GONE);
         } else {
-            mTvMoreAsBt.setTextColor(mAccentColor);
+            applyAccent(mTvMoreAsBt);
         }
 
         if (mItems.size() > 9) {
@@ -131,6 +133,12 @@ public class ChooserDialogFragment extends BaseDialogFragment {
         }
 
         mAdapter = new RadioChooserAdapter(getActivity(), mItems, mAccentColor);
+        // Phase 8: propagate the gradient accent to the radio list so the
+        // picked row's text renders gradient too (rather than collapsing to
+        // its representative int).
+        if (mAccentBackground != null) {
+            mAdapter.setAccentBackground(mAccentBackground);
+        }
         mAdapter.setOnItemClickListener(mOnItemClickListener);
         mRecyclerView.setAdapter(mAdapter);
         mRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
@@ -206,7 +214,25 @@ public class ChooserDialogFragment extends BaseDialogFragment {
         return mAdapter.getPickedPosition();
     }
 
+    /** Phase 8: ThingBackground-typed accent so dialog title / buttons can render gradient text. */
+    private com.ywwynm.everythingdone.model.ThingBackground mAccentBackground;
+
+    public void setAccentBackground(com.ywwynm.everythingdone.model.ThingBackground bg) {
+        mAccentBackground = bg;
+        if (bg != null) mAccentColor = bg.representativeColor();
+    }
+
+    private void applyAccent(android.widget.TextView tv) {
+        if (mAccentBackground != null) {
+            com.ywwynm.everythingdone.utils.BackgroundUtil.applyTextBackground(
+                    tv, mAccentBackground);
+        } else {
+            tv.setTextColor(mAccentColor);
+        }
+    }
+
     public void setAccentColor(int accentColor) {
+        mAccentBackground = null;
         mAccentColor = accentColor;
     }
 

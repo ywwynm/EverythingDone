@@ -2235,12 +2235,13 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         int type = thing.getType();
         if (type == Thing.HABIT || type == Thing.GOAL) {
             long id = thing.getId();
-            int color = thing.getColor();
+            // Phase 8: feed the full ThingBackground so the celebration title
+            // and confirm preserve the GRADIENT a Habit/Goal might have.
             final AlertDialogFragment adf = new AlertDialogFragment();
             adf.setShowCancel(false);
             adf.setTitle(getString(R.string.congratulations));
-            adf.setTitleColor(color);
-            adf.setConfirmColor(color);
+            adf.setTitleBackground(thing.getBackground());
+            adf.setConfirmBackground(thing.getBackground());
             String content;
             if (type == Thing.HABIT) {
                 Habit habit = HabitDAO.getInstance(mApp).getHabitById(id);
@@ -2308,8 +2309,9 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                             Def.Meta.PREFERENCES_NAME, MODE_PRIVATE);
                     String cp = sp.getString(Def.Meta.KEY_PRIVATE_PASSWORD, null);
 
+                    // Phase 8: pass full ThingBackground for gradient pattern-lock UI.
                     AuthenticationHelper.authenticate(
-                            activity, thing.getColor(),
+                            activity, thing.getBackground(),
                             getString(R.string.check_private_thing), cp,
                             new AuthenticationHelper.AuthenticationCallback() {
                                 @Override
@@ -2500,14 +2502,18 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                     if (thingToSwipe.isPrivate()) {
                         String cp = getSharedPreferences(Def.Meta.PREFERENCES_NAME, MODE_PRIVATE)
                                 .getString(Def.Meta.KEY_PRIVATE_PASSWORD, null);
-                        AuthenticationHelper.authenticate(ThingsActivity.this, thingToSwipe.getColor(),
+                        // Phase 8: pass full ThingBackground for gradient pattern-lock UI.
+                        AuthenticationHelper.authenticate(ThingsActivity.this,
+                                thingToSwipe.getBackground(),
                                 getString(R.string.start_doing_full_title), cp,
                                 new AuthenticationHelper.AuthenticationCallback() {
                                     @Override
                                     public void onAuthenticated() {
                                         ThingDoingHelper helper = new ThingDoingHelper(
                                                 ThingsActivity.this, thingToSwipe);
-                                        helper.tryToOpenStartDoingActivityUser();
+                                        // Phase 8: thing is already saved here, use its bg.
+                                        helper.tryToOpenStartDoingActivityUser(
+                                                thingToSwipe.getBackground());
                                     }
 
                                     @Override

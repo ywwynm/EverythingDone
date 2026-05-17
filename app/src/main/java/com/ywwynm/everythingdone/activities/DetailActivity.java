@@ -677,6 +677,10 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             mColorPicker = new ColorPicker(this, decorView, Def.PickerType.COLOR_EDIT);
             quickRemindPicker = new DateTimePicker(this, decorView,
                     Def.PickerType.AFTER_TIME, mThing.getColor());
+            // Phase 8: feed the full ThingBackground so the picker's picked-row
+            // text supports gradients on a GRADIENT thing.
+            ThingBackground initialBg = mThing.getBackground();
+            if (initialBg != null) quickRemindPicker.setAccentBackground(initialBg);
             quickRemindPicker.setAnchor(tvQuickRemind);
         }
     }
@@ -989,7 +993,10 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                     @Thing.Type int thingType = mThing.getType();
                     if (thingType != Thing.REMINDER && thingType != Thing.HABIT) {
                         ThingDoingHelper helper = new ThingDoingHelper(DetailActivity.this, mThing);
-                        helper.tryToOpenStartDoingActivityUser();
+                        // Phase 8: pass the live accent (pending pick honoured) so the
+                        // StartDoingActivity dialog reflects the colour the user just
+                        // picked rather than the stale saved mThing.getColor().
+                        helper.tryToOpenStartDoingActivityUser(getAccentBackground());
                     } else {
                         ThingDoingDialogFragment tddf = new ThingDoingDialogFragment();
                         tddf.setThing(mThing);
@@ -1550,9 +1557,11 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         final AlertDialogFragment adf = new AlertDialogFragment();
         adf.setShowCancel(false);
 
-        int color = getAccentColor();
-        adf.setTitleColor(color);
-        adf.setConfirmColor(color);
+        // Phase 8: feed full ThingBackground so title / confirm text render the
+        // gradient (via TextPaint shader) when the thing is GRADIENT.
+        ThingBackground accent = getAccentBackground();
+        adf.setTitleBackground(accent);
+        adf.setConfirmBackground(accent);
 
         adf.setTitle(getString(R.string.cannot_set_as_private_thing_title));
         adf.setContent(getString(R.string.warning_should_set_password_first));
@@ -1574,8 +1583,10 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         String cp = getSharedPreferences(Def.Meta.PREFERENCES_NAME, MODE_PRIVATE)
                 .getString(Def.Meta.KEY_PRIVATE_PASSWORD, null);
         final boolean shouldAddToActionList = this.shouldAddToActionList;
+        // Phase 8: pass full ThingBackground so the pattern-lock fallback
+        // renders gradient when the (pending) accent is GRADIENT.
         AuthenticationHelper.authenticate(
-                this, getAccentColor(), getString(R.string.act_cancel_private_thing), cp,
+                this, getAccentBackground(), getString(R.string.act_cancel_private_thing), cp,
                 new AuthenticationHelper.AuthenticationCallback() {
                     @Override
                     public void onAuthenticated() {
@@ -1616,9 +1627,9 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         AlertDialogFragment adf = new AlertDialogFragment();
         adf.setShowCancel(false);
 
-        int color = getAccentColor();
-        adf.setTitleColor(color);
-        adf.setConfirmColor(color);
+        ThingBackground accent = getAccentBackground();
+        adf.setTitleBackground(accent);
+        adf.setConfirmBackground(accent);
 
         adf.setTitle(getString(R.string.cannot_set_as_private_thing_title));
         adf.setContent(getString(R.string.warning_title_should_not_be_empty));
@@ -2466,7 +2477,10 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         final ThingBackground toBg   = bgTo;
         mLastAnimatedBackground = toBg;
 
-        quickRemindPicker.setAccentColor(colorTo);
+        // Phase 8: feed the full target ThingBackground so a GRADIENT pick
+        // makes the picker's picked-row text render gradient too. The
+        // setAccentBackground also keeps mAccentColor in sync internally.
+        quickRemindPicker.setAccentBackground(bgTo);
         quickRemindPicker.pickForUI(quickRemindPicker.getPickedIndex());
 
         BackgroundUtil.animateBackground(mFlRoot, fromBg, toBg, 600);
@@ -2578,6 +2592,18 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
         mEtTitle.setTextColor(primary);
         mEtTitle.setHintTextColor(primary);
+
+        // Phase 8: tint the compound lock-icon (private thing) so it adapts to
+        // the current background luminance. setCompoundDrawableTintList only
+        // affects drawables that are currently set — no-op when the user isn't
+        // in private-thing mode, so safe to call unconditionally.
+        androidx.core.widget.TextViewCompat.setCompoundDrawableTintList(
+                mEtTitle,
+                BackgroundUtil.isLight(color)
+                        ? android.content.res.ColorStateList.valueOf(
+                                android.graphics.Color.BLACK)
+                        : android.content.res.ColorStateList.valueOf(
+                                android.graphics.Color.WHITE));
         mEtContent.setTextColor(secondary);
         mEtContent.setHintTextColor(secondary);
         mTvUpdateTime.setTextColor(tertiary);
@@ -2740,9 +2766,9 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                        AlertDialogFragment.ConfirmListener confirmListener,
                        AlertDialogFragment.CancelListener cancelListener) {
         final AlertDialogFragment adf = new AlertDialogFragment();
-        int color = getAccentColor();
-        adf.setTitleColor(color);
-        adf.setConfirmColor(color);
+        ThingBackground accent = getAccentBackground();
+        adf.setTitleBackground(accent);
+        adf.setConfirmBackground(accent);
         adf.setTitle(getString(titleRes));
         adf.setContent(getString(contentRes));
         adf.setConfirmListener(confirmListener);

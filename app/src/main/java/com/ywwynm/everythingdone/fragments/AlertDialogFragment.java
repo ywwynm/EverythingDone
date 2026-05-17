@@ -53,8 +53,8 @@ public class AlertDialogFragment extends BaseDialogFragment {
         TextView tvCancelAsBt  = f(R.id.tv_cancel_as_bt_alert);
 
         if (mTitle != null) {
-            tvTitle.setTextColor(mColors[0]);
             tvTitle.setText(mTitle);
+            applyAccent(tvTitle, mTitleBg, mColors[0]);
         } else {
             tvTitle.setVisibility(View.GONE);
         }
@@ -66,10 +66,10 @@ public class AlertDialogFragment extends BaseDialogFragment {
             tvContent.setVisibility(View.GONE);
         }
 
-        tvConfirmAsBt.setTextColor(mColors[2]);
         if (mConfirmText != null) {
             tvConfirmAsBt.setText(mConfirmText);
         }
+        applyAccent(tvConfirmAsBt, mConfirmBg, mColors[2]);
         tvConfirmAsBt.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -123,7 +123,37 @@ public class AlertDialogFragment extends BaseDialogFragment {
         super.onDismiss(dialog);
     }
 
+    /**
+     * Phase 8: paint {@code tv} with {@code bg} if non-null (PURE → single int,
+     * GRADIENT → glyph-fill shader via {@link BackgroundUtil#applyTextBackground}).
+     * Falls back to {@code fallbackColor} (the legacy int setter result) when
+     * {@code bg} is null.
+     */
+    private void applyAccent(TextView tv, com.ywwynm.everythingdone.model.ThingBackground bg,
+                             int fallbackColor) {
+        if (bg != null) {
+            com.ywwynm.everythingdone.utils.BackgroundUtil.applyTextBackground(tv, bg);
+        } else {
+            tv.setTextColor(fallbackColor);
+        }
+    }
+
+    /** Phase 8: backing fields for the ThingBackground-typed setters below. */
+    private com.ywwynm.everythingdone.model.ThingBackground mTitleBg;
+    private com.ywwynm.everythingdone.model.ThingBackground mConfirmBg;
+
+    public void setTitleBackground(com.ywwynm.everythingdone.model.ThingBackground bg) {
+        mTitleBg = bg;
+        if (bg != null) mColors[0] = bg.representativeColor();
+    }
+
+    public void setConfirmBackground(com.ywwynm.everythingdone.model.ThingBackground bg) {
+        mConfirmBg = bg;
+        if (bg != null) mColors[2] = bg.representativeColor();
+    }
+
     public void setTitleColor(int color) {
+        mTitleBg = null;
         mColors[0] = color;
     }
 
@@ -132,6 +162,7 @@ public class AlertDialogFragment extends BaseDialogFragment {
     }
 
     public void setConfirmColor(int color) {
+        mConfirmBg = null;
         mColors[2] = color;
     }
 

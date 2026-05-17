@@ -228,9 +228,10 @@ public class HabitReceiver extends BroadcastReceiver {
             builder.setPriority(NotificationCompat.PRIORITY_DEFAULT);
         }
 
+        // Phase 8: full ThingBackground for gradient on the action dialog.
         SystemNotificationUtil.addActionsForHabitNotification(
                 context, builder, hrId, position, hrTime,
-                thing.isPrivate(), habitId, thing.getColor());
+                thing.isPrivate(), habitId, thing.getBackground());
 
         if (moreNoticeable) {
             Intent fullScreenIntent = NoticeableNotificationActivity.getOpenIntentForHabit(

@@ -3,9 +3,14 @@ package com.ywwynm.everythingdone.utils;
 import android.animation.ArgbEvaluator;
 import android.animation.ValueAnimator;
 import android.graphics.Color;
+import android.graphics.LinearGradient;
+import android.graphics.Matrix;
+import android.graphics.Shader;
+import android.view.ViewTreeObserver;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.view.View;
+import android.widget.TextView;
 
 import androidx.cardview.widget.CardView;
 
@@ -243,6 +248,259 @@ public final class BackgroundUtil {
         });
         anim.start();
         return anim;
+    }
+
+    /**
+     * Apply {@code background} as the ink fill of {@code textView}'s glyphs.
+     *
+     * <p>PURE: regular {@link TextView#setTextColor(int)} + clears any shader
+     * left over from a previous GRADIENT bind.
+     *
+     * <p>GRADIENT: installs a {@link LinearGradient} on the TextView's
+     * {@link android.text.TextPaint}. Paint shaders fill glyph masks during
+     * drawing, so each character is coloured by the gradient.
+     *
+     * <p>Key subtlety: the shader spans the entire {@code textView} bounding box
+     * by default, but typical dialog labels are short text centred in a wide
+     * TextView — the visible glyphs would only sample a thin middle slice of the
+     * gradient and look uniform. We therefore measure the actual text width and
+     * translate the shader so the gradient endpoints align with the text's left
+     * and right edges (accounting for the TextView's gravity-driven offset).
+     * The shader is applied after layout (via a one-shot
+     * {@link ViewTreeObserver.OnPreDrawListener}) when the view's measured size
+     * and rendered text layout are settled. The TextView is also re-tinted with
+     * {@code representativeColor} synchronously so any pre-shader draw still
+     * has the right base colour.
+     */
+    public static void applyTextBackground(final TextView textView, final ThingBackground background) {
+        if (textView == null || background == null) return;
+
+        if (background.mode == ThingBackground.Mode.PURE) {
+            android.text.TextPaint paint = textView.getPaint();
+            if (paint.getShader() != null) paint.setShader(null);
+            textView.setTextColor(background.color);
+            textView.invalidate();
+            return;
+        }
+
+        // Pre-set representative as a synchronous fallback so any early draw
+        // (e.g. dialog enter animation) still uses the new colour.
+        textView.setTextColor(background.representativeColor());
+
+        final Runnable apply = new Runnable() {
+            @Override public void run() {
+                applyTextShaderNow(textView, background);
+            }
+        };
+        if (textView.getWidth() > 0 && textView.getHeight() > 0
+                && textView.getText() != null && textView.getText().length() > 0) {
+            apply.run();
+            return;
+        }
+        // One-shot pre-draw listener — guaranteed to fire after layout and right
+        // before the next frame, more reliable than post() across dialog
+        // lifecycles.
+        textView.getViewTreeObserver().addOnPreDrawListener(
+                new ViewTreeObserver.OnPreDrawListener() {
+                    @Override public boolean onPreDraw() {
+                        textView.getViewTreeObserver().removeOnPreDrawListener(this);
+                        applyTextShaderNow(textView, background);
+                        return true;
+                    }
+                });
+    }
+
+    /** Build a text-width-fitted LinearGradient and install it on the TextView's paint. */
+    private static void applyTextShaderNow(TextView textView, ThingBackground bg) {
+        CharSequence text = textView.getText();
+        if (text == null || text.length() == 0) return;
+        int viewW = textView.getWidth();
+        int viewH = textView.getHeight();
+        if (viewW <= 0 || viewH <= 0) return;
+
+        // Use TextView.getLayout() to get the exact rendered bounds of the first
+        // line — Layout.getLineLeft / getLineRight / getLineTop / getLineBottom
+        // are gravity-, padding-, alignment- and transformation-aware (handles
+        // textAllCaps too), so the gradient lines up identically across
+        // Button/TextView/TabView regardless of how each one positions its
+        // text. Layout-coord origin is at (totalPaddingLeft, totalPaddingTop)
+        // in view space, so we add those padding offsets to translate the
+        // shader into view coordinates.
+        android.text.Layout layout = textView.getLayout();
+        float textX, textY, textW, textH;
+        if (layout != null && layout.getLineCount() > 0) {
+            float lineLeft   = layout.getLineLeft(0);
+            float lineRight  = layout.getLineRight(0);
+            int   lineTop    = layout.getLineTop(0);
+            int   lineBottom = layout.getLineBottom(0);
+            textW = lineRight - lineLeft;
+            textH = lineBottom - lineTop;
+            textX = textView.getTotalPaddingLeft() + lineLeft;
+            textY = textView.getTotalPaddingTop()  + lineTop;
+        } else {
+            // Layout not yet built — fall back to a paint-based estimate.
+            textW = textView.getPaint().measureText(text, 0, text.length());
+            textH = textView.getPaint().getFontSpacing();
+            textX = textView.getPaddingLeft();
+            textY = (viewH - textH) / 2f;
+        }
+        if (textW <= 0) textW = viewW;
+        if (textH <= 0) textH = viewH;
+
+        // Build the gradient over (textW × textH) and translate to (textX, textY)
+        // so it lines up with the rendered glyphs regardless of view size.
+        LinearGradient lg = linearGradientFor(bg, textW, textH);
+        Matrix m = new Matrix();
+        m.setTranslate(textX, textY);
+        lg.setLocalMatrix(m);
+        textView.getPaint().setShader(lg);
+        textView.invalidate();
+    }
+
+    /** Build a LinearGradient covering {@code width × height} matching the given background's stops. */
+    private static LinearGradient linearGradientFor(ThingBackground bg, float width, float height) {
+        float x0, y0, x1, y1;
+        switch (bg.orientation) {
+            case L_R:   x0 = 0;     y0 = 0;      x1 = width; y1 = 0;      break;
+            case T_B:   x0 = 0;     y0 = 0;      x1 = 0;     y1 = height; break;
+            case LT_RB: x0 = 0;     y0 = 0;      x1 = width; y1 = height; break;
+            case RT_LB: x0 = width; y0 = 0;      x1 = 0;     y1 = height; break;
+            case LB_RT: x0 = 0;     y0 = height; x1 = width; y1 = 0;      break;
+            case RB_LT: x0 = width; y0 = height; x1 = 0;     y1 = 0;      break;
+            case R_L:   x0 = width; y0 = 0;      x1 = 0;     y1 = 0;      break;
+            case B_T:   x0 = 0;     y0 = height; x1 = 0;     y1 = 0;      break;
+            default:    x0 = 0;     y0 = 0;      x1 = width; y1 = 0;      break;
+        }
+        return new LinearGradient(
+                x0, y0, x1, y1,
+                bg.color, bg.endColor, Shader.TileMode.CLAMP);
+    }
+
+    /**
+     * Tint {@code source} with {@code bg}. PURE → mutated original with a
+     * solid {@link android.graphics.PorterDuff.Mode#SRC_ATOP} colour filter
+     * (cheap, in-place). GRADIENT → render the drawable to an offscreen bitmap
+     * as an alpha mask, then fill that mask with a {@link LinearGradient} via
+     * {@code SRC_IN}, and wrap the result in a {@link android.graphics.drawable.BitmapDrawable}.
+     *
+     * <p>Caller gets a fresh drawable for GRADIENT (safe to setBounds / install
+     * via {@code setCompoundDrawables}); the original {@code source} is left
+     * untouched in that branch. Use this anywhere a single-tone icon needs to
+     * adopt the accent — radio check, lock, small UI glyphs, etc.
+     */
+    public static Drawable tintDrawable(
+            android.content.res.Resources res, Drawable source, ThingBackground bg) {
+        if (source == null || bg == null) return source;
+        if (bg.mode == ThingBackground.Mode.PURE) {
+            Drawable d = source.mutate();
+            d.setColorFilter(bg.color, android.graphics.PorterDuff.Mode.SRC_ATOP);
+            return d;
+        }
+        int w = source.getIntrinsicWidth();
+        int h = source.getIntrinsicHeight();
+        if (w <= 0) w = 48;
+        if (h <= 0) h = 48;
+
+        android.graphics.Bitmap out = android.graphics.Bitmap.createBitmap(
+                w, h, android.graphics.Bitmap.Config.ARGB_8888);
+        android.graphics.Canvas c = new android.graphics.Canvas(out);
+
+        // 1. Draw the icon onto the bitmap with no tint so we get its alpha mask
+        //    (drawable's own paint draws in its native colour — usually opaque
+        //    black for these single-tone vector glyphs).
+        Drawable mask = source.mutate();
+        mask.setBounds(0, 0, w, h);
+        // Ensure no leftover filter from a previous tint.
+        mask.setColorFilter(null);
+        mask.draw(c);
+
+        // 2. Overlay a rect filled with the gradient, masked by what's already
+        //    there. SRC_IN keeps the destination's alpha (the icon shape) and
+        //    replaces its colour with the source (the gradient).
+        android.graphics.Paint p = new android.graphics.Paint(
+                android.graphics.Paint.ANTI_ALIAS_FLAG);
+        p.setShader(linearGradientFor(bg, w, h));
+        p.setXfermode(new android.graphics.PorterDuffXfermode(
+                android.graphics.PorterDuff.Mode.SRC_IN));
+        c.drawRect(0, 0, w, h, p);
+
+        return new android.graphics.drawable.BitmapDrawable(res, out);
+    }
+
+    /**
+     * Paint a {@link com.google.android.material.tabs.TabLayout}'s indicator with
+     * {@code bg}. PURE → solid indicator colour. GRADIENT → a {@link GradientDrawable}
+     * used as the selected-tab indicator drawable (Material's TabLayout accepts a
+     * Drawable here).
+     *
+     * <p>Note: the indicator drawable is laid out by TabLayout to span the
+     * selected tab's width — exactly the kind of "any width" use case where a
+     * GradientDrawable shines.
+     */
+    public static void applyTabIndicator(
+            com.google.android.material.tabs.TabLayout tabLayout, ThingBackground bg) {
+        if (tabLayout == null || bg == null) return;
+        if (bg.mode == ThingBackground.Mode.PURE) {
+            tabLayout.setSelectedTabIndicator((Drawable) null);
+            tabLayout.setSelectedTabIndicatorColor(bg.color);
+        } else {
+            GradientDrawable gd = new GradientDrawable();
+            gd.setShape(GradientDrawable.RECTANGLE);
+            gd.setOrientation(toGdOrientation(bg.orientation));
+            gd.setColors(new int[] { bg.color, bg.endColor });
+            tabLayout.setSelectedTabIndicator(gd);
+        }
+    }
+
+    /**
+     * Render {@code bg} as a {@code width × height} bitmap with the given
+     * {@code alpha} (0-255) applied to every stop. PURE → uniform color
+     * bitmap; GRADIENT → {@link GradientDrawable} rasterised to the bitmap.
+     * Used by paths that can't accept a {@link Shader} or {@link android.graphics.drawable.Drawable}
+     * directly — notably {@link android.widget.RemoteViews}-driven AppWidget
+     * surfaces (RemoteViews accepts a {@link android.graphics.Bitmap} via
+     * {@code setImageViewBitmap}, but no shader / drawable).
+     *
+     * <p>Pass {@code alpha=255} for opaque output.
+     */
+    public static android.graphics.Bitmap renderBackgroundBitmap(
+            ThingBackground bg, int width, int height, int alpha) {
+        if (width <= 0 || height <= 0) return null;
+        android.graphics.Bitmap bm = android.graphics.Bitmap.createBitmap(
+                width, height, android.graphics.Bitmap.Config.ARGB_8888);
+        if (bg == null) return bm;
+        if (bg.mode == ThingBackground.Mode.PURE) {
+            int color = (alpha << 24) | (bg.color & 0x00FFFFFF);
+            bm.eraseColor(color);
+            return bm;
+        }
+        // GRADIENT: rasterise a GradientDrawable into the bitmap canvas.
+        int s = (alpha << 24) | (bg.color    & 0x00FFFFFF);
+        int e = (alpha << 24) | (bg.endColor & 0x00FFFFFF);
+        GradientDrawable gd = new GradientDrawable();
+        gd.setShape(GradientDrawable.RECTANGLE);
+        gd.setOrientation(toGdOrientation(bg.orientation));
+        gd.setColors(new int[] { s, e });
+        gd.setBounds(0, 0, width, height);
+        gd.draw(new android.graphics.Canvas(bm));
+        return bm;
+    }
+
+    /**
+     * Build a translucent {@link GradientDrawable} from {@code bg} where every
+     * stop has its alpha replaced with {@code alpha} (0-255). PURE collapses
+     * to a uniform rectangle; GRADIENT keeps its orientation but with
+     * see-through stops. Used for overlay backgrounds that need to dim the
+     * accent (e.g. NoticeableNotificationActivity's half-overlay card).
+     */
+    public static GradientDrawable makeTranslucentGradient(ThingBackground bg, int alpha) {
+        GradientDrawable gd = new GradientDrawable();
+        gd.setShape(GradientDrawable.RECTANGLE);
+        int s = (alpha << 24) | (bg.color    & 0x00FFFFFF);
+        int e = (alpha << 24) | (bg.endColor & 0x00FFFFFF);
+        gd.setOrientation(toGdOrientation(bg.orientation));
+        gd.setColors(new int[] { s, e });
+        return gd;
     }
 
     /** Map our {@link ThingBackground.Orientation} → platform {@link GradientDrawable.Orientation}. */

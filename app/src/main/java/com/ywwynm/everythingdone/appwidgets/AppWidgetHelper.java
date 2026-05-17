@@ -68,6 +68,11 @@ public class AppWidgetHelper {
     private static final int dp12 = (int) (screenDensity * 12);
 
     private static final int ROOT_WIDGET_THING         = R.id.root_widget_thing;
+    /** Phase 8: backing ImageView for the widget background. RemoteViews can't
+     *  apply a Shader / GradientDrawable to setBackgroundColor on the root,
+     *  so we render the {@link com.ywwynm.everythingdone.model.ThingBackground}
+     *  to a bitmap and post it here via setImageViewBitmap. */
+    private static final int IV_WIDGET_BG              = R.id.iv_widget_bg;
 
     private static final int IV_STICKY_ONGOING         = R.id.iv_thing_sticky_ongoing;
     private static final int IV_STICKY_ONGOING_SMALL   = R.id.iv_thing_sticky_ongoing_smaller;
@@ -462,8 +467,22 @@ public class AppWidgetHelper {
             alpha = Math.abs(alpha);
         }
         alpha = (int) (alpha / 100f * 255);
+        // Phase 8: rasterise the (possibly gradient) ThingBackground to a
+        // small bitmap and push it through RemoteViews → background ImageView.
+        // PURE → uniform-colour bitmap (cheap); GRADIENT → linear-gradient
+        // bitmap. scaleType=fitXY on iv_widget_bg stretches the bitmap to the
+        // widget's actual size at render time. Also clear the root's own
+        // backgroundColor in case a previous bind left it set.
         remoteViews.setInt(ROOT_WIDGET_THING, "setBackgroundColor",
-                DisplayUtil.getTransparentColor(thing.getColor(), alpha));
+                android.graphics.Color.TRANSPARENT);
+        // Render at a modest resolution — linear gradients stretch smoothly
+        // and PURE doesn't care; 256×256 keeps the bitmap small in
+        // RemoteViews' parcel budget.
+        android.graphics.Bitmap bgBm = com.ywwynm.everythingdone.utils.BackgroundUtil
+                .renderBackgroundBitmap(thing.getBackground(), 256, 256, alpha);
+        if (bgBm != null) {
+            remoteViews.setImageViewBitmap(IV_WIDGET_BG, bgBm);
+        }
 
         setStickyOrOngoing(context, remoteViews, thing, alpha, clazz, style);
 

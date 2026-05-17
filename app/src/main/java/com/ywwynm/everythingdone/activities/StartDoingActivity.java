@@ -20,6 +20,7 @@ import com.ywwynm.everythingdone.helpers.ThingDoingHelper;
 import com.ywwynm.everythingdone.model.DoingRecord;
 import com.ywwynm.everythingdone.model.Habit;
 import com.ywwynm.everythingdone.model.Thing;
+import com.ywwynm.everythingdone.model.ThingBackground;
 import com.ywwynm.everythingdone.services.DoingService;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
@@ -38,10 +39,28 @@ public class StartDoingActivity extends AppCompatActivity {
     public static Intent getOpenIntent(
             Context context, long thingId, int position, int color,
             @DoingService.StartType int startType, long hrTime) {
+        return getOpenIntent(context, thingId, position,
+                ThingBackground.pure(color), startType, hrTime);
+    }
+
+    /**
+     * Phase 8: full {@link ThingBackground}-aware open intent. Carries both
+     * KEY_COLOR (representative int) and KEY_BACKGROUND (JSON) so callers that
+     * still read only the int continue to work, while this activity prefers
+     * the JSON when present — letting it render gradients on its dialogs and,
+     * critically, reflect any pending colour pick the caller made in
+     * DetailActivity instead of falling back to the stale saved DB value.
+     */
+    public static Intent getOpenIntent(
+            Context context, long thingId, int position, ThingBackground bg,
+            @DoingService.StartType int startType, long hrTime) {
         Intent intent = new Intent(context, StartDoingActivity.class);
         intent.putExtra(Def.Communication.KEY_ID, thingId);
         intent.putExtra(Def.Communication.KEY_POSITION, position);
-        intent.putExtra(Def.Communication.KEY_COLOR, color);
+        if (bg != null) {
+            intent.putExtra(Def.Communication.KEY_COLOR, bg.representativeColor());
+            intent.putExtra(Def.Communication.KEY_BACKGROUND, bg.toJson());
+        }
         intent.putExtra(DoingService.KEY_START_TYPE, startType);
         intent.putExtra(Def.Communication.KEY_TIME, hrTime);
         return intent;
@@ -49,6 +68,9 @@ public class StartDoingActivity extends AppCompatActivity {
 
     private Thing mThing;
     private @DoingService.StartType int mStartType;
+    /** Phase 8: accent decoded from the intent, prioritised over mThing.getColor()
+     *  on this screen's dialogs so DetailActivity's pending pick is honoured. */
+    private ThingBackground mAccentBackground;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -66,8 +88,16 @@ public class StartDoingActivity extends AppCompatActivity {
         mStartType = intent.getIntExtra(DoingService.KEY_START_TYPE, DoingService.START_TYPE_ALARM);
 
         int color = intent.getIntExtra(Def.Communication.KEY_COLOR, DisplayUtil.getRandomColor(this));
+        // Phase 8: prefer the JSON-encoded ThingBackground when present so the
+        // chooser title / confirm render gradient when applicable, and so the
+        // value reflects the caller's pending pick rather than the stale
+        // mThing.getColor() / KEY_COLOR int.
+        String bgJson = intent.getStringExtra(Def.Communication.KEY_BACKGROUND);
+        mAccentBackground = ThingBackground.fromJson(bgJson);
+        if (mAccentBackground == null) mAccentBackground = ThingBackground.pure(color);
+
         final ChooserDialogFragment cdf = new ChooserDialogFragment();
-        cdf.setAccentColor(color);
+        cdf.setAccentBackground(mAccentBackground);
         cdf.setShouldShowMore(false);
         cdf.setTitle(getString(R.string.start_doing_estimated_time));
         cdf.setItems(ThingDoingHelper.getStartDoingTimeItems(this));
@@ -104,8 +134,11 @@ public class StartDoingActivity extends AppCompatActivity {
 
     private void tryToStopAnotherDoingAndStartThis(final ChooserDialogFragment cdf) {
         AlertDialogFragment adf = new AlertDialogFragment();
-        adf.setTitleColor(mThing.getColor());
-        adf.setConfirmColor(mThing.getColor());
+        // Phase 8: use the caller-supplied accent so a GRADIENT or pending
+        // pick renders on the title / confirm. mAccentBackground falls back
+        // to ThingBackground.pure(mThing.color) in onCreate when absent.
+        adf.setTitleBackground(mAccentBackground);
+        adf.setConfirmBackground(mAccentBackground);
         adf.setTitle(getString(R.string.start_doing_stop_another_title));
         adf.setContent(getString(R.string.start_doing_stop_another_content));
         adf.setConfirmText(getString(R.string.yes));

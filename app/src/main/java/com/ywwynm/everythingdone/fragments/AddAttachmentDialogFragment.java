@@ -48,7 +48,17 @@ public class AddAttachmentDialogFragment extends BaseDialogFragment {
 
         mActivity = (DetailActivity) getActivity();
 
-        ((TextView) f(R.id.tv_add_attachment_title)).setTextColor(mActivity.getAccentColor());
+        // Phase 8: feed the full ThingBackground so a GRADIENT thing's title
+        // renders as gradient text rather than collapsing to its representative
+        // int colour. Falls back to int when no background was supplied (e.g.
+        // legacy callers).
+        TextView tvTitle = f(R.id.tv_add_attachment_title);
+        com.ywwynm.everythingdone.model.ThingBackground bg = mActivity.getAccentBackground();
+        if (bg != null) {
+            com.ywwynm.everythingdone.utils.BackgroundUtil.applyTextBackground(tvTitle, bg);
+        } else {
+            tvTitle.setTextColor(mActivity.getAccentColor());
+        }
 
         mTvTakePhotoAsBt        = f(R.id.tv_take_photo_as_bt);
         mTvShootVideoAsBt       = f(R.id.tv_shoot_video_as_bt);

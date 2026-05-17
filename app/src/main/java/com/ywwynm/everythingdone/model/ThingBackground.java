@@ -48,6 +48,24 @@ public final class ThingBackground {
     }
 
     /**
+     * A random {@link ThingBackground} matching the production new-thing
+     * distribution: 50/50 PURE vs GRADIENT, fully random RGB (per the
+     * COLOR_MIGRATION_PLAN.md "no HSL clamp" rule). Convenience for callers
+     * that need a one-shot random bg without going through App.rollBackground —
+     * notably {@code DBHelper.generateInsertInitialSQL} on fresh install.
+     */
+    public static ThingBackground fromRandom() {
+        java.util.Random rng = new java.util.Random();
+        int s = Color.rgb(rng.nextInt(256), rng.nextInt(256), rng.nextInt(256));
+        if (rng.nextBoolean()) {
+            return pure(s);
+        }
+        int e = Color.rgb(rng.nextInt(256), rng.nextInt(256), rng.nextInt(256));
+        Orientation[] orientations = Orientation.values();
+        return gradient(s, e, orientations[rng.nextInt(orientations.length)]);
+    }
+
+    /**
      * The legacy single-int "color" of this background, usable wherever an Android API
      * only accepts a 32-bit ARGB int (notification setColor, widget RemoteViews,
      * single-channel tints, etc.). For PURE this is the color itself; for GRADIENT
@@ -138,5 +156,15 @@ public final class ThingBackground {
             h = h * 31 + orientation.hashCode();
         }
         return h;
+    }
+
+    @Override
+    public String toString() {
+        if (mode == Mode.PURE) {
+            return "PURE(#" + Integer.toHexString(color) + ")";
+        }
+        return "GRADIENT(#" + Integer.toHexString(color)
+                + "->#" + Integer.toHexString(endColor)
+                + " " + orientation + ")";
     }
 }

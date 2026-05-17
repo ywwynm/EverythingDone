@@ -286,8 +286,11 @@ public class NoticeableNotificationActivity extends EverythingDoneBaseActivity {
         @Thing.Type int thingType = mThing.getType();
         int iconRes = Thing.getTypeIconWhiteLarge(thingType);
         Drawable d1 = ContextCompat.getDrawable(this, iconRes);
-        Drawable d2 = d1.mutate();
-        d2.setColorFilter(mThing.getColor(), PorterDuff.Mode.SRC_ATOP);
+        // Phase 8: gradient-aware icon tint — PURE keeps the cheap SRC_ATOP
+        // filter; GRADIENT renders the icon as an alpha mask and fills it
+        // with a LinearGradient via SRC_IN.
+        Drawable d2 = com.ywwynm.everythingdone.utils.BackgroundUtil.tintDrawable(
+                getResources(), d1, mThing.getBackground());
         mIvTitle.setImageDrawable(d2);
 
         String typeStr = Thing.getTypeStr(thingType, this);
@@ -321,10 +324,21 @@ public class NoticeableNotificationActivity extends EverythingDoneBaseActivity {
             public void onBindViewHolder(BaseThingViewHolder holder, int position) {
                 super.onBindViewHolder(holder, position);
 
-                int color = DisplayUtil.getTransparentColor(mThing.getColor(), 16);
-                holder.cv.setCardBackgroundColor(color);
+                // Phase 8 (4.7.1): half-transparent overlay. For PURE a single
+                // tinted ColorDrawable; for GRADIENT a translucent
+                // GradientDrawable with the same 16/255 alpha on both stops.
+                com.ywwynm.everythingdone.model.ThingBackground bg = mThing.getBackground();
                 holder.cv.setRadius(0);
                 holder.cv.setCardElevation(0);
+                if (bg.mode == com.ywwynm.everythingdone.model.ThingBackground.Mode.PURE) {
+                    int color = DisplayUtil.getTransparentColor(bg.color, 16);
+                    holder.cv.setCardBackgroundColor(color);
+                } else {
+                    holder.cv.setCardBackgroundColor(android.graphics.Color.TRANSPARENT);
+                    holder.cv.setBackground(
+                            com.ywwynm.everythingdone.utils.BackgroundUtil
+                                    .makeTranslucentGradient(bg, 16));
+                }
 
                 holder.tvTitle.setMaxLines(Integer.MAX_VALUE);
                 holder.tvContent.setMaxLines(Integer.MAX_VALUE);

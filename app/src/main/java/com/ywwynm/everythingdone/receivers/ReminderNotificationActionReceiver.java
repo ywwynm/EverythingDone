@@ -97,8 +97,9 @@ public class ReminderNotificationActionReceiver extends BroadcastReceiver {
                         Def.Communication.AUTHENTICATE_ACTION_START_DOING,
                         context.getString(R.string.start_doing_full_title));
             } else {
+                // Phase 8: pass full ThingBackground for GRADIENT support.
                 actionIntent = StartDoingActivity.getOpenIntent(
-                        context, thing.getId(), position, thing.getColor(),
+                        context, thing.getId(), position, thing.getBackground(),
                         DoingService.START_TYPE_ALARM, -1);
             }
             actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
@@ -111,8 +112,9 @@ public class ReminderNotificationActionReceiver extends BroadcastReceiver {
                         Def.Communication.AUTHENTICATE_ACTION_DELAY,
                         context.getString(R.string.act_delay));
             } else {
+                // Phase 8: pass full ThingBackground for GRADIENT support.
                 actionIntent = DelayReminderActivity.getOpenIntent(
-                        context, thing.getId(), position, thing.getColor());
+                        context, thing.getId(), position, thing.getBackground());
             }
             actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
             context.startActivity(actionIntent);

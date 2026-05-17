@@ -186,6 +186,14 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
 
         if (thing.isPrivate() && !mShouldShowPrivateContent) {
             holder.ivPrivateThing.setVisibility(View.VISIBLE);
+            // Phase 8: tint the lock icon for luminance so it stays visible on
+            // light thing backgrounds (the drawable itself is single-tone white).
+            androidx.core.widget.ImageViewCompat.setImageTintList(
+                    holder.ivPrivateThing,
+                    BackgroundUtil.isLight(thing.getColor())
+                            ? android.content.res.ColorStateList.valueOf(
+                                    android.graphics.Color.BLACK)
+                            : null);
             holder.flImageAttachment.setVisibility(View.GONE);
             holder.tvContent.setVisibility(View.GONE);
             holder.rvChecklist.setVisibility(View.GONE);

@@ -76,9 +76,10 @@ public class AuthenticationActivity extends AppCompatActivity {
             }
 
             String title = intent.getStringExtra(Def.Communication.KEY_TITLE);
-            int color = thing.getColor();
+            // Phase 8: pass full ThingBackground so the pattern-lock fallback
+            // renders gradient title / right-button on a GRADIENT thing.
             AuthenticationHelper.authenticate(
-                    this, color, title, cp,
+                    this, thing.getBackground(), title, cp,
                     new AuthenticationHelper.AuthenticationCallback() {
                         @Override
                         public void onAuthenticated() {
@@ -128,16 +129,18 @@ public class AuthenticationActivity extends AppCompatActivity {
     }
 
     private void actDelay(Thing thing, int position) {
+        // Phase 8: pass full ThingBackground so delay-reminder dialog renders gradient.
         Intent intent = DelayReminderActivity.getOpenIntent(
-                this, thing.getId(), position, thing.getColor());
+                this, thing.getId(), position, thing.getBackground());
         startActivity(intent);
     }
 
     private void actStartDoing(Thing thing, int position) {
         long hrTime = getIntent().getLongExtra(Def.Communication.KEY_TIME, -1);
+        // Phase 8: pass full ThingBackground so start-doing dialog renders gradient.
         Intent intent = StartDoingActivity.getOpenIntent(
-                this, thing.getId(), position, thing.getColor(), DoingService.START_TYPE_ALARM,
-                hrTime);
+                this, thing.getId(), position, thing.getBackground(),
+                DoingService.START_TYPE_ALARM, hrTime);
         startActivity(intent);
     }
 

@@ -24,6 +24,8 @@ public class AttachmentInfoDialogFragment extends BaseDialogFragment {
     public static final String TAG = "AttachmentInfoDialogFragment";
 
     private int mAccentColor;
+    /** Phase 8: full ThingBackground for gradient title / confirm. */
+    private com.ywwynm.everythingdone.model.ThingBackground mAccentBackground;
     private List<Pair<String, String>> mItems;
 
     private LayoutInflater mInflater;
@@ -41,9 +43,14 @@ public class AttachmentInfoDialogFragment extends BaseDialogFragment {
         mInflater = LayoutInflater.from(activity);
 
         TextView title = f(R.id.tv_title_attachment_info);
-        title.setTextColor(mAccentColor);
         TextView confirm = f(R.id.tv_confirm_as_bt_attachment_info);
-        confirm.setTextColor(mAccentColor);
+        if (mAccentBackground != null) {
+            com.ywwynm.everythingdone.utils.BackgroundUtil.applyTextBackground(title, mAccentBackground);
+            com.ywwynm.everythingdone.utils.BackgroundUtil.applyTextBackground(confirm, mAccentBackground);
+        } else {
+            title.setTextColor(mAccentColor);
+            confirm.setTextColor(mAccentColor);
+        }
         confirm.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -60,6 +67,13 @@ public class AttachmentInfoDialogFragment extends BaseDialogFragment {
 
     public void setAccentColor(int accentColor) {
         mAccentColor = accentColor;
+        mAccentBackground = null;
+    }
+
+    /** Phase 8: gradient-aware accent. PURE / GRADIENT both flow through. */
+    public void setAccentBackground(com.ywwynm.everythingdone.model.ThingBackground bg) {
+        mAccentBackground = bg;
+        if (bg != null) mAccentColor = bg.representativeColor();
     }
 
     public void setItems(List<Pair<String, String>> items) {

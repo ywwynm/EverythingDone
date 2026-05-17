@@ -104,8 +104,10 @@ public class HabitNotificationActionReceiver extends BroadcastReceiver {
                         context.getString(R.string.start_doing_full_title));
                 actionIntent.putExtra(Def.Communication.KEY_TIME, hrTime);
             } else {
+                // Phase 8: pass the full ThingBackground so a GRADIENT habit's
+                // start-doing chooser renders gradient.
                 actionIntent = StartDoingActivity.getOpenIntent(
-                        context, thing.getId(), position, thing.getColor(),
+                        context, thing.getId(), position, thing.getBackground(),
                         DoingService.START_TYPE_ALARM, hrTime);
             }
             actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);

@@ -127,8 +127,11 @@ public class ReminderReceiver extends BroadcastReceiver {
             builder.setPriority(NotificationCompat.PRIORITY_DEFAULT);
         }
 
+        // Phase 8: pass full ThingBackground so the action's PendingIntent
+        // carries the gradient across IPC to StartDoingActivity / DelayReminderActivity.
         SystemNotificationUtil.addActionsForReminderNotification(
-                builder, context, id, position, thing.getType(), thing.isPrivate(), thing.getColor());
+                builder, context, id, position, thing.getType(), thing.isPrivate(),
+                thing.getBackground());
 
         if (moreNoticeable) {
             Intent fullScreenIntent = NoticeableNotificationActivity.getOpenIntentForReminder(

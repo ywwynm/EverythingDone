@@ -37,8 +37,36 @@ public class BitmapUtil {
     }
 
     public static Bitmap createLayeredBitmap(Drawable d, int color) {
-        ColorDrawable cd = new ColorDrawable(color);
-        LayerDrawable lb = new LayerDrawable(new Drawable[] { cd, d });
+        return createLayeredBitmap(d,
+                com.ywwynm.everythingdone.model.ThingBackground.pure(color));
+    }
+
+    /**
+     * Phase 8: gradient-aware {@link #createLayeredBitmap(Drawable, int)}. PURE
+     * stays a flat {@link ColorDrawable} layer; GRADIENT uses a
+     * {@link android.graphics.drawable.GradientDrawable} with the bg's stops
+     * and orientation so the rendered bitmap carries the gradient. Foreground
+     * drawable {@code d} layers on top unchanged.
+     *
+     * <p>Used by {@code SystemNotificationUtil.extendWearable} (and any other
+     * caller that needs to bake an accent into a fixed-size bitmap — notably
+     * RemoteViews paths that can't accept a Shader).
+     */
+    public static Bitmap createLayeredBitmap(
+            Drawable d, com.ywwynm.everythingdone.model.ThingBackground bg) {
+        Drawable background;
+        if (bg == null || bg.mode == com.ywwynm.everythingdone.model.ThingBackground.Mode.PURE) {
+            background = new ColorDrawable(bg == null ? 0 : bg.color);
+        } else {
+            android.graphics.drawable.GradientDrawable gd =
+                    new android.graphics.drawable.GradientDrawable();
+            gd.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
+            gd.setColors(new int[] { bg.color, bg.endColor });
+            gd.setOrientation(toAndroidOrientation(bg.orientation));
+            background = gd;
+        }
+
+        LayerDrawable lb = new LayerDrawable(new Drawable[] { background, d });
 
         int w = d.getIntrinsicWidth();
         int h = d.getIntrinsicHeight();
@@ -47,6 +75,21 @@ public class BitmapUtil {
         lb.draw(new Canvas(bm));
 
         return bm;
+    }
+
+    private static android.graphics.drawable.GradientDrawable.Orientation
+            toAndroidOrientation(com.ywwynm.everythingdone.model.ThingBackground.Orientation o) {
+        switch (o) {
+            case L_R:   return android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT;
+            case T_B:   return android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM;
+            case LT_RB: return android.graphics.drawable.GradientDrawable.Orientation.TL_BR;
+            case RT_LB: return android.graphics.drawable.GradientDrawable.Orientation.TR_BL;
+            case LB_RT: return android.graphics.drawable.GradientDrawable.Orientation.BL_TR;
+            case RB_LT: return android.graphics.drawable.GradientDrawable.Orientation.BR_TL;
+            case R_L:   return android.graphics.drawable.GradientDrawable.Orientation.RIGHT_LEFT;
+            case B_T:   return android.graphics.drawable.GradientDrawable.Orientation.BOTTOM_TOP;
+        }
+        return android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT;
     }
 
     public static Bitmap createScaledBitmap(Bitmap src, int reqWidth, int reqHeight, boolean inside) {

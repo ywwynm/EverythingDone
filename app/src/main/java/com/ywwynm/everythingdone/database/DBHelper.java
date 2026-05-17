@@ -254,18 +254,25 @@ public class DBHelper extends SQLiteOpenHelper {
     }
 
     private String generateInsertInitialSQL(int id, int type, int titleRes, int contentRes) {
+        // Phase 3+: roll a full ThingBackground (50/50 PURE vs GRADIENT) and
+        // write both the legacy int colour column and the new background JSON
+        // column. Previously this inserted only 11 values for a 12-column
+        // table — broken on fresh installs since v9 added COLUMN_BACKGROUND_THINGS.
+        com.ywwynm.everythingdone.model.ThingBackground bg =
+                com.ywwynm.everythingdone.model.ThingBackground.fromRandom();
         return "insert into " + Def.Database.TABLE_THINGS + " values(" + "'"
                 + id + "', '"
                 + type + "', '"
                 + Thing.UNDERWAY + "', '"
-                + DisplayUtil.getRandomColor(mContext) + "', '"
+                + bg.representativeColor() + "', '"
                 + (titleRes != 0 ? mContext.getString(titleRes) : "") + "', '"
                 + mContext.getString(contentRes) + "', "
                 + "''" + ", '"
                 + id + "', '"
                 + System.currentTimeMillis() + "', '"
                 + System.currentTimeMillis() + "', "
-                + "'0')";
+                + "'0', '"
+                + bg.toJson() + "')";
     }
 
 //    private String generateTestSQL(int id, String title, String content) {
