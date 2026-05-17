@@ -45,7 +45,14 @@ public class AuthenticationActivity extends AppCompatActivity {
         Intent intent = getIntent();
 
         long id = intent.getLongExtra(Def.Communication.KEY_ID, -1);
-        if (App.getDoingThingId() == id) {
+        // Only redirect to DoingActivity when there genuinely *is* a doing
+        // thing AND the clicked thing is that one. Previously this compared
+        // a possibly-default id (-1) against the default doingThingId (-1) →
+        // any click that lost KEY_ID in transit (notably ThingsListWidget
+        // fill-in / template intents under some edge cases) opened the doing
+        // screen when nothing was being done, which then crashed with
+        // "doing_toast_pass_data_error".
+        if (App.getDoingThingId() > 0 && App.getDoingThingId() == id) {
             startActivity(DoingActivity.getOpenIntent(this, true));
             finish();
             return;

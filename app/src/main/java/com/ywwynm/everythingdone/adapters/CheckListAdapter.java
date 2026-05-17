@@ -116,12 +116,10 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
 
     private boolean mShouldAutoLink;
 
-    private @BaseThingsAdapter.Style int mStyle = BaseThingsAdapter.STYLE_WHITE;
-
     /**
      * The owning thing's color. Set by {@link BaseThingsAdapter} per-bind so the
      * checklist's text and checkbox icons can adapt to the background luminance.
-     * 0 = unset → falls back to the legacy {@link #mStyle}-only behaviour.
+     * 0 = unset → keep the default white-on-card behaviour.
      */
     private int mThingColor = 0;
 
@@ -200,17 +198,12 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
         mShouldAutoLink = shouldAutoLink;
     }
 
-    public void setStyle(int style) {
-        mStyle = style;
-    }
-
     public void setThingColor(int thingColor) {
         mThingColor = thingColor;
     }
 
     /** True when the foreground should be drawn black-side rather than white-side. */
     private boolean dark() {
-        if (mStyle == BaseThingsAdapter.STYLE_BLACK) return true;
         if (mThingColor == 0) return false;  // unset → keep legacy white behaviour
         return com.ywwynm.everythingdone.utils.BackgroundUtil.isLight(mThingColor);
     }

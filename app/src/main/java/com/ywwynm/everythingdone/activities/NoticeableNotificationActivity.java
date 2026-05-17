@@ -324,20 +324,24 @@ public class NoticeableNotificationActivity extends EverythingDoneBaseActivity {
             public void onBindViewHolder(BaseThingViewHolder holder, int position) {
                 super.onBindViewHolder(holder, position);
 
-                // Phase 8 (4.7.1): half-transparent overlay. For PURE a single
-                // tinted ColorDrawable; for GRADIENT a translucent
-                // GradientDrawable with the same 16/255 alpha on both stops.
+                // Phase 8: opaque thing-coloured card. Previously this used a
+                // 16/255 alpha overlay on the dialog's white window, which
+                // washed the thing colour out to near-white — BaseThingsAdapter
+                // then picked text colour from the thing's luminance and got
+                // it visibly wrong for dark things (white text on a near-white
+                // bg → invisible). With a fully opaque background the
+                // adapter's primary/secondary/tertiary on-color tiers contrast
+                // correctly with whatever the thing's colour is.
                 com.ywwynm.everythingdone.model.ThingBackground bg = mThing.getBackground();
                 holder.cv.setRadius(0);
                 holder.cv.setCardElevation(0);
                 if (bg.mode == com.ywwynm.everythingdone.model.ThingBackground.Mode.PURE) {
-                    int color = DisplayUtil.getTransparentColor(bg.color, 16);
-                    holder.cv.setCardBackgroundColor(color);
+                    holder.cv.setCardBackgroundColor(bg.color);
                 } else {
                     holder.cv.setCardBackgroundColor(android.graphics.Color.TRANSPARENT);
                     holder.cv.setBackground(
                             com.ywwynm.everythingdone.utils.BackgroundUtil
-                                    .makeTranslucentGradient(bg, 16));
+                                    .makeTranslucentGradient(bg, 255));
                 }
 
                 holder.tvTitle.setMaxLines(Integer.MAX_VALUE);
@@ -354,8 +358,15 @@ public class NoticeableNotificationActivity extends EverythingDoneBaseActivity {
                     holder.tvContent.setVisibility(View.VISIBLE);
                     holder.tvContent.setText(R.string.notification_private_thing_content);
                     holder.tvContent.setTextSize(20);
+                    // Phase 8: now that the card bg is opaque thing colour,
+                    // pick black or white for the private-thing placeholder
+                    // based on the thing's luminance (matching the rest of
+                    // BaseThingsAdapter's on-color logic).
+                    boolean light = com.ywwynm.everythingdone.utils.BackgroundUtil
+                            .isLight(mThing.getColor());
                     holder.tvContent.setTextColor(ContextCompat.getColor(
-                            getApplicationContext(), R.color.black_76p));
+                            getApplicationContext(),
+                            light ? R.color.black_76p : R.color.white_76p));
                     int p = (int) (mDensity * 16);
                     holder.tvContent.setPadding(p, p, p, 0);
                 }
@@ -373,7 +384,10 @@ public class NoticeableNotificationActivity extends EverythingDoneBaseActivity {
             }
         };
         adapter.setCardWidth(mDialogWidth);
-        adapter.setStyle(BaseThingsAdapter.STYLE_BLACK);
+        // Phase 8: STYLE_BLACK was the legacy "always-black-side text" hack
+        // for when this activity's card was a near-transparent overlay on a
+        // white dialog. Card is now opaque thing-coloured (alpha 255) so the
+        // adapter's default luminance-adaptive path produces correct contrast.
         adapter.setChecklistMaxItemCount(-1);
         mRvThing.setLayoutManager(new LinearLayoutManager(this));
         mRvThing.setAdapter(adapter);

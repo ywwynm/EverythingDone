@@ -406,19 +406,28 @@ public class AppWidgetHelper {
 
     public static RemoteViews createRemoteViewsForChecklistItem(
             Context context, String item, int itemsSize, boolean isSingleThingWidget) {
+        return createRemoteViewsForChecklistItem(context, item, itemsSize, isSingleThingWidget, null);
+    }
+
+    /**
+     * Phase 8: thing-aware checklist item renderer. When {@code thing != null}
+     * the text colour adapts to the thing's luminance (black on light card,
+     * white on dark card); otherwise we keep the legacy white-on-color
+     * behaviour for old callers.
+     */
+    public static RemoteViews createRemoteViewsForChecklistItem(
+            Context context, String item, int itemsSize, boolean isSingleThingWidget, Thing thing) {
         RemoteViews rv = new RemoteViews(context.getPackageName(), R.layout.check_list_tv_app_widget);
 
         if (!isSingleThingWidget) {
             rv.setInt(LL_CHECK_LIST_ITEM_ROOT, "setBackgroundResource", 0);
         }
 
-        int white_76 = ContextCompat.getColor(context, R.color.white_76p);
-        int white_50 = Color.parseColor("#80FFFFFF");
-
         rv.setViewPadding(LL_CHECK_LIST_ITEM_ROOT, (int) (-6 * screenDensity), 0, 0, 0);
 
         char state = item.charAt(0);
         String text = item.substring(1, item.length());
+        int textColor;
         if (state == '0') {
             rv.setImageViewResource(IV_STATE_CHECK_LIST, R.drawable.checklist_unchecked_card);
             if (isSingleThingWidget) {
@@ -428,7 +437,10 @@ public class AppWidgetHelper {
                 rv.setContentDescription(IV_STATE_CHECK_LIST,
                         context.getString(R.string.cd_checklist_unfinished_item));
             }
-            rv.setTextColor(TV_CONTENT_CHECK_LIST, white_76);
+            textColor = thing != null
+                    ? checklistItemTextColor(context, thing, false)
+                    : ContextCompat.getColor(context, R.color.white_76p);
+            rv.setTextColor(TV_CONTENT_CHECK_LIST, textColor);
             rv.setTextViewText(TV_CONTENT_CHECK_LIST, text);
         } else if (state == '1') {
             rv.setImageViewResource(IV_STATE_CHECK_LIST, R.drawable.checklist_checked_card);
@@ -439,7 +451,10 @@ public class AppWidgetHelper {
                 rv.setContentDescription(IV_STATE_CHECK_LIST,
                         context.getString(R.string.cd_checklist_finished_item));
             }
-            rv.setTextColor(TV_CONTENT_CHECK_LIST, white_50);
+            textColor = thing != null
+                    ? checklistItemTextColor(context, thing, true)
+                    : Color.parseColor("#80FFFFFF");
+            rv.setTextColor(TV_CONTENT_CHECK_LIST, textColor);
             SpannableString spannable = new SpannableString(text);
             spannable.setSpan(new StrikethroughSpan(), 0, text.length(),
                     Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
@@ -456,6 +471,65 @@ public class AppWidgetHelper {
             rv.setViewPadding(TV_CONTENT_CHECK_LIST, 0, (int) mt, 0, 0);
         }
         return rv;
+    }
+
+    /**
+     * Phase 8: apply luminance-adaptive text colours to every text view on the
+     * widget card. {@code thing}'s representative colour drives an
+     * {@link BackgroundUtil#isLight} check; on a light card we use the
+     * black_*p alpha tiers, otherwise the white_*p tiers. Image-attachment
+     * count overlay always stays {@code white_76p} on its own black_26p
+     * background.
+     *
+     * <p>RemoteViews-only API surface: {@link RemoteViews#setTextColor(int, int)}
+     * accepts a single int; no shader, so a gradient thing collapses to its
+     * representative — the eye averages anyway and contrast remains correct.
+     */
+    private static void applyAdaptiveTextColors(
+            Context context, RemoteViews rv, Thing thing) {
+        int color = thing.getColor();
+        boolean light = com.ywwynm.everythingdone.utils.BackgroundUtil.isLight(color);
+        int primary   = light
+                ? ContextCompat.getColor(context, R.color.black_86p)
+                : ContextCompat.getColor(context, R.color.white_86p);
+        int secondary = light
+                ? ContextCompat.getColor(context, R.color.black_76p)
+                : ContextCompat.getColor(context, R.color.white_76p);
+        int tertiary  = light
+                ? ContextCompat.getColor(context, R.color.black_66p)
+                : ContextCompat.getColor(context, R.color.white_66p);
+        int disabled  = light
+                ? ContextCompat.getColor(context, R.color.black_54p)
+                : ContextCompat.getColor(context, R.color.white_54p);
+
+        rv.setTextColor(TV_TITLE,                  primary);
+        rv.setTextColor(TV_CONTENT,                secondary);
+        rv.setTextColor(TV_REMINDER_TIME,          tertiary);
+        rv.setTextColor(TV_HABIT_SUMMARY,          tertiary);
+        rv.setTextColor(TV_HABIT_NEXT_REMINDER,    disabled);
+        rv.setTextColor(TV_HABIT_LAST_FIVE,        disabled);
+        rv.setTextColor(TV_HABIT_FINISHED_THIS_T,  tertiary);
+        rv.setTextColor(TV_THING_STATE,            tertiary);
+        rv.setTextColor(TV_AUDIO_COUNT,            tertiary);
+        rv.setTextColor(TV_AUDIO_COUNT_LARGE,      tertiary);
+        // Action label (e.g. 完成 / 本次完成) — keep it primary-prominent.
+        rv.setTextColor(TV_THING_ACTION,           primary);
+    }
+
+    /**
+     * Phase 8: text-colour tier for an individual checklist item — pulled out
+     * so {@link #createRemoteViewsForCheckListItem} can ask without recomputing.
+     * {@code finished=true} returns the disabled tier (strike-through items);
+     * otherwise the secondary tier.
+     */
+    static int checklistItemTextColor(Context context, Thing thing, boolean finished) {
+        boolean light = com.ywwynm.everythingdone.utils.BackgroundUtil.isLight(thing.getColor());
+        if (finished) {
+            // 50%-alpha strike-through colour — no res entry, use literal hex.
+            return light ? 0x80000000 : 0x80FFFFFF;
+        }
+        return ContextCompat.getColor(context,
+                light ? R.color.black_76p : R.color.white_76p);
     }
 
     private static void setAppearance(
@@ -475,14 +549,22 @@ public class AppWidgetHelper {
         // backgroundColor in case a previous bind left it set.
         remoteViews.setInt(ROOT_WIDGET_THING, "setBackgroundColor",
                 android.graphics.Color.TRANSPARENT);
-        // Render at a modest resolution — linear gradients stretch smoothly
-        // and PURE doesn't care; 256×256 keeps the bitmap small in
-        // RemoteViews' parcel budget.
+        // Render at a tiny resolution — linear gradients are axis-aligned and
+        // stretch losslessly under fitXY. 64×64 ≈ 16KB; 256×256 was ~262KB.
+        // Saves RemoteViews bitmap budget for the (much bigger) image
+        // attachment bitmap.
         android.graphics.Bitmap bgBm = com.ywwynm.everythingdone.utils.BackgroundUtil
-                .renderBackgroundBitmap(thing.getBackground(), 256, 256, alpha);
+                .renderBackgroundBitmap(thing.getBackground(), 64, 64, alpha);
         if (bgBm != null) {
             remoteViews.setImageViewBitmap(IV_WIDGET_BG, bgBm);
         }
+
+        // Phase 8: adapt all text colours on the widget card to the thing's
+        // luminance — previously the layout XML hard-coded white_*p so dark
+        // text on a LIGHT thing color was invisible. RemoteViews can only
+        // accept ARGB int (no shader), so for GRADIENT we use the
+        // representative; the human eye averages anyway.
+        applyAdaptiveTextColors(context, remoteViews, thing);
 
         setStickyOrOngoing(context, remoteViews, thing, alpha, clazz, style);
 
@@ -590,10 +672,19 @@ public class AppWidgetHelper {
         if (options.outWidth <= 0) {
             return;
         }
+        // Cap the bitmap dimensions — RemoteViews enforces a per-update bitmap
+        // memory budget (~26MB on most devices; varies by OEM). Source images
+        // can easily be 4000+px wide → 4000×3000×4 ≈ 48MB → IPC throws
+        // "RemoteViews ... exceeds maximum bitmap memory usage". 360dp is the
+        // widest the single-thing widget realistically occupies (one column on
+        // a tablet); centerCrop downscales the source.
+        int maxWidth  = (int) (screenDensity * 360);
+        int reqWidth  = Math.min(options.outWidth, maxWidth);
+        int reqHeight = reqWidth * 3 / 4;
         Glide.with(context)
                 .asBitmap()
                 .load(pathName)
-                .override(options.outWidth, options.outWidth * 3 / 4)
+                .override(reqWidth, reqHeight)
                 .centerCrop()
                 .into(new AppWidgetTarget(
                         context, IV_IMAGE_ATTACHMENT, remoteViews, appWidgetId));
@@ -636,8 +727,13 @@ public class AppWidgetHelper {
             String title = getTitleToDisplayForSimpleStyle(thing);
             if (title != null) {
                 remoteViews.setViewVisibility(TV_TITLE, View.VISIBLE);
-                remoteViews.setTextColor(TV_TITLE,
-                        ContextCompat.getColor(context, R.color.white_66p));
+                // Phase 8: simple-style title uses a muted tertiary tier; pick
+                // the side that contrasts with the thing's luminance instead
+                // of the legacy hardcoded white_66p.
+                boolean light = com.ywwynm.everythingdone.utils.BackgroundUtil
+                        .isLight(thing.getColor());
+                remoteViews.setTextColor(TV_TITLE, ContextCompat.getColor(
+                        context, light ? R.color.black_66p : R.color.white_66p));
                 remoteViews.setTextViewText(TV_TITLE, title);
                 remoteViews.setViewPadding(TV_TITLE, dp12, dp12, dp12, 0);
                 remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE);
@@ -702,7 +798,7 @@ public class AppWidgetHelper {
             if (clazz.getSuperclass().equals(BaseThingWidget.class)) {
                 setChecklistForSingleThing(context, remoteViews, thing, appWidgetId, clazz);
             } else {
-                setChecklistForThingsListItem(context, remoteViews, content);
+                setChecklistForThingsListItem(context, remoteViews, content, thing);
             }
         }
 
@@ -737,7 +833,7 @@ public class AppWidgetHelper {
     }
 
     private static void setChecklistForThingsListItem(
-            Context context, RemoteViews remoteViews, String checklistStr) {
+            Context context, RemoteViews remoteViews, String checklistStr, Thing thing) {
         remoteViews.setViewVisibility(LL_CHECK_LIST_ITEMS, View.VISIBLE);
         remoteViews.setViewVisibility(LV_CHECKLIST,        View.GONE);
         remoteViews.setViewVisibility(TV_CONTENT,          View.GONE);
@@ -757,7 +853,7 @@ public class AppWidgetHelper {
         }
 
         for (String item : items) {
-            RemoteViews rvItem = createRemoteViewsForChecklistItem(context, item, size, false);
+            RemoteViews rvItem = createRemoteViewsForChecklistItem(context, item, size, false, thing);
             remoteViews.addView(LL_CHECK_LIST_ITEMS, rvItem);
         }
 
