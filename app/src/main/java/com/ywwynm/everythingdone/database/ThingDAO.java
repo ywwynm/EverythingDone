@@ -143,10 +143,32 @@ public class ThingDAO {
     }
 
     public List<Thing> getThingsForDisplay(int limit, String keyword, int color) {
-        Cursor cursor = getThingsCursorForDisplay(limit, keyword, color);
+        // Phase 5: ColorPicker still hands us an int colour value, but with random
+        // background colours possible since Phase 3/4 the old SQL "color=<int>"
+        // exact match would almost never hit. Re-interpret the int as a "hue
+        // bucket hint": classify it once, then post-filter the result rows on
+        // their representative-colour's hue bucket.
+        int filterBucket = com.ywwynm.everythingdone.utils.BackgroundUtil.HUE_BUCKET_NONE;
+        if (color != 0 && color != -1979711488 /* legacy "all colors" sentinel */) {
+            filterBucket = com.ywwynm.everythingdone.utils.BackgroundUtil.hueBucket(color);
+        }
+
+        // Pass 0 to the cursor so the SQL no longer applies the now-defunct
+        // colour=<int> WHERE; we'll do the bucket filter in-memory below.
+        Cursor cursor = getThingsCursorForDisplay(limit, keyword, 0);
         List<Thing> things = new ArrayList<>();
         while (cursor.moveToNext()) {
-            things.add(new Thing(cursor));
+            Thing t = new Thing(cursor);
+            // Hue-bucket filtering applies to every coloured row — i.e. anything
+            // except HEADER and the NOTIFY_EMPTY_* placeholders (which have no
+            // user-set colour). This includes WELCOME_*, NOTIFICATION_*, etc.
+            if (filterBucket != com.ywwynm.everythingdone.utils.BackgroundUtil.HUE_BUCKET_NONE
+                    && t.getType() != Thing.HEADER
+                    && t.getType() <  Thing.NOTIFY_EMPTY_UNDERWAY) {
+                int b = com.ywwynm.everythingdone.utils.BackgroundUtil.hueBucket(t.getBackground());
+                if (b != filterBucket) continue;
+            }
+            things.add(t);
         }
         cursor.close();
         Collections.sort(things, new Comparator<Thing>() {
@@ -469,9 +491,10 @@ public class ThingDAO {
                 break;
             default:break;
         }
-        if (color != -1979711488 && color != 0) {
-            limitSb.append(" and color=").append(color);
-        }
+        // Phase 5: SQL "color=<int>" exact match is gone — random RGB colours
+        // since Phase 3/4 wouldn't have hit it anyway. Hue-bucket filtering is
+        // applied post-cursor in getThingsForDisplay above. The parameter is kept
+        // for source compat with the (Cursor-returning) call sites that pass 0.
         if (keyword != null) {
             keyword = keyword.replaceAll("'", "''");
             limitSb.append(" and (title like '%").append(keyword)

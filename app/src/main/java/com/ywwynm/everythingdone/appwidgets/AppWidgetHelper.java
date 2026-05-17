@@ -330,7 +330,11 @@ public class AppWidgetHelper {
         remoteViews.setOnClickPendingIntent(IV_THINGS_LIST_SETTING, pendingIntent);
 
         // create image view click event
-        intent = DetailActivity.getOpenIntentForCreate(context, TAG, App.newThingColor);
+        // Phase 7: prefer ThingBackground so a GRADIENT new-thing keeps its gradient.
+        intent = DetailActivity.getOpenIntentForCreate(context, TAG,
+                App.newThingBackground != null
+                        ? App.newThingBackground
+                        : com.ywwynm.everythingdone.model.ThingBackground.pure(App.newThingColor));
         intent.putExtra(Def.Communication.KEY_LIMIT, limit);
         pendingIntent = PendingIntent.getActivity(
                 context, appWidgetId, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);

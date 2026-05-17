@@ -26,6 +26,54 @@ public final class BackgroundUtil {
 
     private BackgroundUtil() {}
 
+    // ---------------------------------------------------------------------------
+    // Hue buckets — used by search-by-similar-color. See COLOR_MIGRATION_PLAN.md
+    // section 4.5. Values are stable ints persisted/transmitted via Intent / DAO
+    // calls; do not reorder.
+    // ---------------------------------------------------------------------------
+    public static final int HUE_BUCKET_NONE   = 0; // sentinel: no filter
+    public static final int HUE_BUCKET_RED    = 1;
+    public static final int HUE_BUCKET_ORANGE = 2;
+    public static final int HUE_BUCKET_YELLOW = 3;
+    public static final int HUE_BUCKET_GREEN  = 4;
+    public static final int HUE_BUCKET_CYAN   = 5;
+    public static final int HUE_BUCKET_BLUE   = 6;
+    public static final int HUE_BUCKET_PURPLE = 7;
+    public static final int HUE_BUCKET_GREY   = 8;
+
+    /**
+     * Classify {@code color} into one of the {@code HUE_BUCKET_*} buckets.
+     * Saturation below 0.15 maps to {@link #HUE_BUCKET_GREY} regardless of hue.
+     * Hue ranges (HSL degrees):
+     *   red    345-360, 0-15
+     *   orange 15-45
+     *   yellow 45-70
+     *   green  70-165
+     *   cyan   165-195
+     *   blue   195-255
+     *   purple 255-345 (includes magenta)
+     */
+    public static int hueBucket(int color) {
+        float[] hsl = new float[3];
+        androidx.core.graphics.ColorUtils.colorToHSL(color, hsl);
+        float h = hsl[0];
+        float s = hsl[1];
+        if (s < 0.15f) return HUE_BUCKET_GREY;
+        if (h >= 345f || h < 15f) return HUE_BUCKET_RED;
+        if (h < 45f)              return HUE_BUCKET_ORANGE;
+        if (h < 70f)              return HUE_BUCKET_YELLOW;
+        if (h < 165f)             return HUE_BUCKET_GREEN;
+        if (h < 195f)             return HUE_BUCKET_CYAN;
+        if (h < 255f)             return HUE_BUCKET_BLUE;
+        return HUE_BUCKET_PURPLE;
+    }
+
+    /** Hue bucket for the representative colour of a {@link ThingBackground}. */
+    public static int hueBucket(ThingBackground bg) {
+        if (bg == null) return HUE_BUCKET_NONE;
+        return hueBucket(bg.representativeColor());
+    }
+
     /** Standard "on" alpha tiers — match the existing white_*p / black_*p resources. */
     public static final float ON_ALPHA_PRIMARY   = 0.86f;
     public static final float ON_ALPHA_SECONDARY = 0.76f;
@@ -111,27 +159,35 @@ public final class BackgroundUtil {
 
     /**
      * Paint {@code background} onto a {@link CardView}.
-     * PURE: {@link CardView#setCardBackgroundColor}. GRADIENT: a GradientDrawable
-     * set directly on the CardView itself (with the CardView's corner radius applied
-     * so the rounded outline still matches). CardView's outline shadow continues to
-     * work because the elevation-based shadow uses the view's outline, not the
-     * background drawable shape.
+     *
+     * <p>Both PURE and GRADIENT route through {@link View#setBackground(Drawable)}
+     * so {@code cv.getBackground()} is replaced on every bind — this avoids the
+     * "stale GradientDrawable left over from a recycled ViewHolder" bug that
+     * showed up when we used {@link CardView#setCardBackgroundColor} for PURE
+     * after a GRADIENT bind (CardView only updates its internal drawable, not
+     * the View.background field, so the stale GradientDrawable kept rendering).
+     *
+     * <p>CardView's rounded-corner clipping and elevation shadow are driven by
+     * the view's outline (set by CardView in {@code onSizeChanged}) — not by
+     * the background drawable — so replacing the drawable doesn't break either.
      */
     public static void applyCardBackground(CardView cv, ThingBackground background) {
         if (cv == null || background == null) return;
+
         if (background.mode == ThingBackground.Mode.PURE) {
-            // CardView's own setCardBackgroundColor resets its internal RoundRect
-            // drawable, naturally clobbering any GradientDrawable we may have set.
-            cv.setCardBackgroundColor(background.color);
+            // View.setBackgroundColor wraps a fresh ColorDrawable and assigns it
+            // to View.background — replacing any stale GradientDrawable from a
+            // previous (recycled) bind. CardView's outline / shadow keep working.
+            cv.setBackgroundColor(background.color);
         } else {
             GradientDrawable gd;
             Drawable existing = cv.getBackground();
             if (existing instanceof GradientDrawable) {
+                // Reuse the existing instance (cheaper) and just mutate its colours.
                 gd = (GradientDrawable) existing;
             } else {
                 gd = new GradientDrawable();
                 gd.setShape(GradientDrawable.RECTANGLE);
-                gd.setCornerRadius(cv.getRadius());
                 cv.setBackground(gd);
             }
             gd.setOrientation(toGdOrientation(background.orientation));

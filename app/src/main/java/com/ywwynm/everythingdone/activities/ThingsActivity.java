@@ -1077,7 +1077,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         contextualToolbar.setTitleTextColor(ContextCompat.getColor(this, R.color.black_54p));
         RelativeLayout rlContextualToolbar = f(R.id.rl_contextual_toolbar);
         mColorPicker = new ColorPicker(this, getWindow().getDecorView(),
-                Def.PickerType.COLOR_HAVE_ALL);
+                Def.PickerType.HUE_BUCKET);
 
         mDrawerLayout = f(R.id.drawer_layout);
         mDrawer       = f(R.id.drawer);

@@ -633,6 +633,20 @@
     <string name="settings_twice_back">按兩次返回鍵退出程式</string>
     <string name="settings_create_animation_style">新建事項時使用屏幕邊框光效動畫</string>
 
+    <!-- Color picker random FABs (Phase 6) -->
+    <string name="cd_random_pure_background">隨機純色</string>
+    <string name="cd_random_gradient_background">隨機漸變色</string>
+
+    <!-- Hue bucket names (Phase 6) -->
+    <string name="hue_bucket_red">紅色系</string>
+    <string name="hue_bucket_orange">橙色系</string>
+    <string name="hue_bucket_yellow">黃色系</string>
+    <string name="hue_bucket_green">綠色系</string>
+    <string name="hue_bucket_cyan">青色系</string>
+    <string name="hue_bucket_blue">藍色系</string>
+    <string name="hue_bucket_purple">紫色系</string>
+    <string name="hue_bucket_grey">灰色系</string>
+
     <!--group ringtone-->
     <string name="chooser_ringtone">選擇鈴聲</string>
     <string name="ringtone_loading">正在載入鈴聲...</string>

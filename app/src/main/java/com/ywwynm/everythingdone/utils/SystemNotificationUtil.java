@@ -305,7 +305,10 @@ public class SystemNotificationUtil {
         nmc.cancel(Def.Meta.ONGOING_NOTIFICATION_ID);
 
         Intent contentIntent = DetailActivity.getOpenIntentForCreate(
-                context, App.class.getName(), App.newThingColor);
+                context, App.class.getName(),
+                App.newThingBackground != null
+                        ? App.newThingBackground
+                        : com.ywwynm.everythingdone.model.ThingBackground.pure(App.newThingColor));
         PendingIntent contentPendingIntent = PendingIntent.getActivity(context,
                 Def.Meta.ONGOING_NOTIFICATION_ID, contentIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 

@@ -482,13 +482,21 @@ public class Thing implements Parcelable {
         return result;
     }
 
+    /**
+     * Whether the proposed new state of a thing is identical to its current state.
+     *
+     * <p>Phase 6: the {@code color} comparison is generalised to compare full
+     * {@link ThingBackground} values, so a PURE→GRADIENT change with the same
+     * representative int (or any background-only change) is detected rather than
+     * silently dropped.
+     */
     public static boolean noUpdate(Thing thing, String title, String content, String attachment,
-                                   @Type int type, int color) {
+                                   @Type int type, ThingBackground background) {
         return thing.title.equals(title)
             && thing.content.equals(content)
             && thing.attachment.equals(attachment)
             && thing.type == type
-            && thing.color == color;
+            && thing.getBackground().equals(background);
     }
 
     public static boolean isImportantType(@Type int type) {
@@ -541,8 +549,16 @@ public class Thing implements Parcelable {
     }
 
     public boolean matchSearchRequirement(String keyword, int color) {
-        if (this.color != color && color != -1979711488 && color != 0) {
-            return false;
+        // Phase 5/6: the int colour from the picker is now a hue-bucket hint, not
+        // an exact match. Convert both sides through BackgroundUtil.hueBucket and
+        // compare buckets. -1979711488 and 0 keep their legacy "no filter" meaning.
+        if (color != -1979711488 && color != 0) {
+            int filterBucket = com.ywwynm.everythingdone.utils.BackgroundUtil.hueBucket(color);
+            int thingBucket  = com.ywwynm.everythingdone.utils.BackgroundUtil.hueBucket(
+                    this.background != null ? this.background.representativeColor() : this.color);
+            if (filterBucket != thingBucket) {
+                return false;
+            }
         }
 
         String curContent = content;

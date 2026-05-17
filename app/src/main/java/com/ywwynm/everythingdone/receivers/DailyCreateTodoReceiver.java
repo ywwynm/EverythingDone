@@ -19,7 +19,11 @@ public class DailyCreateTodoReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        Intent openIntent = DetailActivity.getOpenIntentForCreate(context, TAG, App.newThingColor);
+        // Phase 7: prefer ThingBackground for GRADIENT support.
+        Intent openIntent = DetailActivity.getOpenIntentForCreate(context, TAG,
+                App.newThingBackground != null
+                        ? App.newThingBackground
+                        : com.ywwynm.everythingdone.model.ThingBackground.pure(App.newThingColor));
         openIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
         context.startActivity(openIntent);
         AlarmHelper.tryToCreateDailyTodoAlarm(context);

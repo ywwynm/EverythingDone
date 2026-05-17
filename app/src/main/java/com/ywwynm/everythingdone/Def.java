@@ -326,6 +326,10 @@ public final class Def {
 
         public static final int COLOR_HAVE_ALL             = 0;
         public static final int COLOR_NO_ALL               = 1;
+        /** Phase 6: 10 palette FABs + 2 trailing "random pure" / "random gradient" FABs. */
+        public static final int COLOR_EDIT                 = 8;
+        /** Phase 6: 1 "all colours" sentinel + 8 hue-bucket FABs for search-by-similar-colour. */
+        public static final int HUE_BUCKET                 = 9;
         public static final int AFTER_TIME                 = 2;
         public static final int TIME_TYPE_NO_HOUR_MINUTE   = 3;
         public static final int TIME_TYPE_HAVE_HOUR_MINUTE = 4;

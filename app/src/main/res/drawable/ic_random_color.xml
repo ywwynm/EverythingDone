@@ -1,0 +1,17 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="#FFFFFFFF">
+
+    <!-- A "shuffle / re-roll" indicator: two thin arrows crossing, suggesting
+         "swap to another random colour". -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M16.5,4 L20.5,8 L16.5,12 L16.5,10 L13,10 L11,7.5 L13,7.5 L13,6 L16.5,6 Z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M16.5,12 L20.5,16 L16.5,20 L16.5,18 L13,18 L4,7 L7.5,7 L13,15 L16.5,15 Z" />
+
+</vector>

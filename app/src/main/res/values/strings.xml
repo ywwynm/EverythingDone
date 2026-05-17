@@ -211,6 +211,27 @@
         <item>@string/elegant_orange</item>
         <item>@string/Aein_red</item>
     </string-array>
+
+    <!-- Phase 6: 8 hue-bucket names (used by the search ColorPicker for content
+         descriptions). Order matches BackgroundUtil.HUE_BUCKET_* enum order. -->
+    <string-array name="hue_bucket_names">
+        <item>@string/hue_bucket_red</item>
+        <item>@string/hue_bucket_orange</item>
+        <item>@string/hue_bucket_yellow</item>
+        <item>@string/hue_bucket_green</item>
+        <item>@string/hue_bucket_cyan</item>
+        <item>@string/hue_bucket_blue</item>
+        <item>@string/hue_bucket_purple</item>
+        <item>@string/hue_bucket_grey</item>
+    </string-array>
+    <string name="hue_bucket_red">Red</string>
+    <string name="hue_bucket_orange">Orange</string>
+    <string name="hue_bucket_yellow">Yellow</string>
+    <string name="hue_bucket_green">Green</string>
+    <string name="hue_bucket_cyan">Cyan</string>
+    <string name="hue_bucket_blue">Blue</string>
+    <string name="hue_bucket_purple">Purple</string>
+    <string name="hue_bucket_grey">Grey</string>
     <string name="blue_grey_500">blue grey</string>
     <string name="my_cyan">cyan</string>
     <string name="blue_grey_deep_blue">deep grey blue</string>
@@ -639,6 +660,10 @@
     <string name="settings_auto_link">Automatically link phone number, web page and more when checking a thing</string>
     <string name="settings_twice_back">Press Back twice to exit</string>
     <string name="settings_create_animation_style">Border light animation when creating a new thing</string>
+
+    <!-- Color picker random FABs (Phase 6) -->
+    <string name="cd_random_pure_background">Random pure colour</string>
+    <string name="cd_random_gradient_background">Random gradient colour</string>
 
     <!--group ringtone-->
     <string name="chooser_ringtone">Select Ringtone</string>

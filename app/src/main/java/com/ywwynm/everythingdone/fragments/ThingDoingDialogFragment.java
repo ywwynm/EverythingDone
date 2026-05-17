@@ -88,9 +88,11 @@ public class ThingDoingDialogFragment extends BaseDialogFragment {
 
         enableOrDisableASDTimeUi();
 
+        // Phase 7.c: feed the full ThingBackground so a GRADIENT thing's
+        // "start as bt" CardView renders the gradient instead of collapsing to
+        // its representative colour.
         com.ywwynm.everythingdone.utils.BackgroundUtil.applyCardBackground(
-                mCvStartAsBt,
-                com.ywwynm.everythingdone.model.ThingBackground.pure(mThing.getColor()));
+                mCvStartAsBt, mThing.getBackground());
     }
 
     private void enableOrDisableASDTimeUi() {

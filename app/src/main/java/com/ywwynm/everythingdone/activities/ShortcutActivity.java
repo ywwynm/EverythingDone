@@ -33,8 +33,10 @@ public class ShortcutActivity extends AppCompatActivity {
         String action = getIntent().getAction();
         Intent openIntent = null;
         if (Def.Communication.SHORTCUT_ACTION_CREATE.equals(action)) {
-            openIntent = DetailActivity.getOpenIntentForCreate(
-                    this, TAG, App.newThingColor);
+            openIntent = DetailActivity.getOpenIntentForCreate(this, TAG,
+                    App.newThingBackground != null
+                            ? App.newThingBackground
+                            : com.ywwynm.everythingdone.model.ThingBackground.pure(App.newThingColor));
         } else if (Def.Communication.SHORTCUT_ACTION_CHECK_UPCOMING.equals(action)) {
             boolean canCheck = false;
             List<Thing> things = ThingDAO.getInstance(this)

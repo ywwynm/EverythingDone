@@ -674,7 +674,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             mTvMoveChecklistAsBt = f(R.id.tv_move_checklist_as_bt);
 
             View decorView = getWindow().getDecorView();
-            mColorPicker = new ColorPicker(this, decorView, Def.PickerType.COLOR_NO_ALL);
+            mColorPicker = new ColorPicker(this, decorView, Def.PickerType.COLOR_EDIT);
             quickRemindPicker = new DateTimePicker(this, decorView,
                     Def.PickerType.AFTER_TIME, mThing.getColor());
             quickRemindPicker.setAnchor(tvQuickRemind);
@@ -709,7 +709,7 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
             mEtContent.setKeyListener(null);
             cbQuickRemind.setEnabled(thingState == Thing.UNDERWAY);
         } else {
-            mColorPicker.pickForUI(DisplayUtil.getColorIndex(mThing.getColor(), this));
+            mColorPicker.pickForBackground(mThing.getBackground());
         }
 
         mEtTitle.setText(mThing.getTitleToDisplay());
@@ -1671,10 +1671,23 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
                 moveChecklist((int) from, (int) to);
                 break;
             }
-            case ThingAction.UPDATE_COLOR:
-                mColorPicker.pickForUI(DisplayUtil.getColorIndex((int) to, mApp));
-                changeColor((int) to);
+            case ThingAction.UPDATE_COLOR: {
+                // Phase 6 fix #1: before/after are now stored as ThingBackground so
+                // undo/redo can round-trip GRADIENT picks losslessly. Legacy actions
+                // (int) are handled via fallback for safety, though no caller emits
+                // those anymore.
+                ThingBackground bgTarget;
+                if (to instanceof ThingBackground) {
+                    bgTarget = (ThingBackground) to;
+                } else if (to instanceof Integer) {
+                    bgTarget = ThingBackground.pure((Integer) to);
+                } else {
+                    break;
+                }
+                mColorPicker.pickForBackground(bgTarget);
+                changeBackground(bgTarget);
                 break;
+            }
             case ThingAction.ADD_ATTACHMENT:
                 // before: attachmentTypePathName, after: position
                 undoOrRedoAddAttachment(action, undo);
@@ -1926,7 +1939,14 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         mThing.setTitle(title);
         mThing.setContent(content);
         mThing.setAttachment(attachment);
-        mThing.setColor(mChangeColorTo != 0 ? mChangeColorTo : getAccentColor());
+        // Phase 6.d: prefer the full ThingBackground over the int companion so
+        // GRADIENT picks survive save. The int path is the fallback for legacy
+        // callers (and a no-op when mChangeBackgroundTo agrees with it).
+        if (mChangeBackgroundTo != null) {
+            mThing.setBackground(mChangeBackgroundTo);
+        } else {
+            mThing.setColor(mChangeColorTo != 0 ? mChangeColorTo : getAccentColor());
+        }
 
         long currentTime = System.currentTimeMillis();
         mThing.setUpdateTime(currentTime);
@@ -2270,16 +2290,27 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
     }
 
     public int getAccentColor() {
-        // Phase 4.a: source from the model instead of casting mFlRoot's Drawable —
-        // Phase 4.b switches that Drawable to GradientDrawable for GRADIENT-mode
-        // things, which would have crashed the previous ((ColorDrawable) ...) cast.
-        //
-        // mChangeColorTo tracks the "currently picked but not yet saved" color, so
-        // any caller asking for accent mid-edit sees the user's selection rather
-        // than the still-unmodified mThing.
-        if (mChangeColorTo != 0) return mChangeColorTo;
-        if (mThing != null) return mThing.getBackground().representativeColor();
-        return 0;
+        ThingBackground bg = getAccentBackground();
+        return bg != null ? bg.representativeColor() : 0;
+    }
+
+    /**
+     * Phase 7: the canonical "current accent" — full {@link ThingBackground}
+     * so any caller that can render a gradient gets the gradient.
+     *
+     * <p>Priority: pending-pick ({@link #mChangeBackgroundTo}) → in-flight
+     * animation terminal ({@link #mLastAnimatedBackground}) → saved thing
+     * ({@link #mThing}.getBackground()) → null.
+     *
+     * <p>{@link #getAccentColor()} is now a thin {@code .representativeColor()}
+     * adapter on top of this — kept for callers (PorterDuff tints, single-int
+     * Android APIs) that genuinely can't consume more than an int.
+     */
+    public ThingBackground getAccentBackground() {
+        if (mChangeBackgroundTo != null) return mChangeBackgroundTo;
+        if (mChangeColorTo != 0) return ThingBackground.pure(mChangeColorTo);
+        if (mThing != null) return mThing.getBackground();
+        return null;
     }
 
     private void setScrollEvents() {
@@ -2395,32 +2426,44 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         mColorPicker.setPickedListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                int colorFrom = getAccentColor();
-                int colorTo   = mColorPicker.getPickedColor();
-                if (colorFrom == colorTo) {
-                    return;
-                }
-                changeColor(mColorPicker.getPickedColor());
+                ThingBackground bgFrom = mLastAnimatedBackground != null
+                        ? mLastAnimatedBackground
+                        : mThing.getBackground();
+                ThingBackground bgTo   = mColorPicker.getPickedBackground();
+                if (bgTo == null) return;
+                if (bgFrom != null && bgFrom.equals(bgTo)) return;
+                changeBackground(bgTo);
                 if (shouldAddToActionList) {
+                    // Phase 6 fix #1: store the full ThingBackground for both ends
+                    // so undo/redo round-trips GRADIENT picks losslessly.
                     mActionList.addAction(new ThingAction(
-                            ThingAction.UPDATE_COLOR, colorFrom, colorTo));
+                            ThingAction.UPDATE_COLOR, bgFrom, bgTo));
                 }
             }
         });
     }
 
     private void changeColor(int colorTo) {
-        mChangeColorTo = colorTo;
+        // Phase 6.d: keep the int-overload entry point for legacy callers
+        // (undo/redo, etc.) — internally it routes through changeBackground.
+        changeBackground(ThingBackground.pure(colorTo));
+    }
 
-        // Phase 4.c: source the "from" background from the model (or the last
-        // animation's terminal state for chained picks) — not from
-        // ((ColorDrawable) mFlRoot.getBackground()).getColor() — so this still
-        // works once a thing is GRADIENT and mFlRoot's background is a
-        // GradientDrawable instead of ColorDrawable.
+    /**
+     * Phase 6.d: change the thing's background (PURE or GRADIENT) with the
+     * standard 600 ms colour-transition animation. Generalisation of the
+     * previous {@link #changeColor(int)}.
+     */
+    private void changeBackground(ThingBackground bgTo) {
+        if (bgTo == null) return;
+        int colorTo = bgTo.representativeColor();
+        mChangeColorTo      = colorTo;
+        mChangeBackgroundTo = bgTo;
+
         final ThingBackground fromBg = mLastAnimatedBackground != null
                 ? mLastAnimatedBackground
                 : mThing.getBackground();
-        final ThingBackground toBg   = ThingBackground.pure(colorTo);
+        final ThingBackground toBg   = bgTo;
         mLastAnimatedBackground = toBg;
 
         quickRemindPicker.setAccentColor(colorTo);
@@ -2463,6 +2506,13 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
      * state rather than the stale model state.
      */
     private ThingBackground mLastAnimatedBackground;
+
+    /**
+     * Phase 6.d: pending {@link ThingBackground} chosen by the user via
+     * {@link #mColorPicker} but not yet saved. Set by {@link #changeBackground}
+     * and consumed at save-time alongside the legacy {@link #mChangeColorTo} int.
+     */
+    private ThingBackground mChangeBackgroundTo;
 
     /**
      * Tint the toolbar's menu icons to be readable on the current background.
@@ -2871,7 +2921,13 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         if (mType == CREATE && !savedAfterOnPause) {
             resultCode = createThing(title, content, attachment, typeAfter, color, intent);
         } else {
-            boolean noUpdate = Thing.noUpdate(mThing, title, content, attachment, typeAfter, color)
+            // Phase 6: noUpdate now compares full ThingBackground (not just the
+            // int representative), so PURE↔GRADIENT changes with the same rep are
+            // caught natively.
+            ThingBackground proposedBg = mChangeBackgroundTo != null
+                    ? mChangeBackgroundTo
+                    : mThing.getBackground();
+            boolean noUpdate = Thing.noUpdate(mThing, title, content, attachment, typeAfter, proposedBg)
                     && !reminderUpdated && !habitUpdated && !mHabitFinishedThisTime
                     && !mHabitRecordEdited;
             if (noUpdate) {
@@ -3158,7 +3214,15 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         mThing.setContent(content);
         mThing.setAttachment(attachment);
         mThing.setType(typeAfter);
-        mThing.setColor(color);
+        // Phase 6 fix: lock in the picked ThingBackground (GRADIENT or off-palette
+        // PURE) when present — otherwise setColor's int-only path would either
+        // (a) drop the GRADIENT mode by re-puring the background, or
+        // (b) leave the old GRADIENT in place when the user picked a new PURE.
+        if (mChangeBackgroundTo != null) {
+            mThing.setBackground(mChangeBackgroundTo);
+        } else {
+            mThing.setColor(color);
+        }
 
         long currentTime = System.currentTimeMillis();
         mThing.setCreateTime(currentTime);
@@ -3191,7 +3255,15 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         mThing.setContent(content);
         mThing.setAttachment(attachment);
         mThing.setType(typeAfter);
-        mThing.setColor(color);
+        // Phase 6 fix: same rationale as createThing — apply ThingBackground if
+        // the user picked one, otherwise the int path. Done AFTER Thing.noUpdate
+        // has decided to proceed, so the side-effect on mThing.color in setBackground
+        // doesn't fool noUpdate into skipping the save.
+        if (mChangeBackgroundTo != null) {
+            mThing.setBackground(mChangeBackgroundTo);
+        } else {
+            mThing.setColor(color);
+        }
         mThing.setUpdateTime(System.currentTimeMillis());
 
         intent.putExtra(Def.Communication.KEY_TYPE_BEFORE, typeBefore);
