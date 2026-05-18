@@ -8,10 +8,13 @@ This is an Android application named "EverythingDone" or "完事儿". The projec
 
 | Trigger | Action |
 |---------|--------|
-| User shares a fact about themselves | → Update `memory-profile.md` |
-| User states a preference | → Update `memory-preferences.md` |
-| A decision is made | → Update `memory-decisions.md` with date |
-| Completing substantive work | → Add to `memory-sessions.md` |
+| User shares a fact about themselves | → Update `memory/profile.md` |
+| User states a preference | → Update `memory/preferences.md` |
+| A decision is made | → Update `memory/decisions.md` with date |
+| Completing substantive work | → Add to `memory/sessions.md` |
+| A non-trivial task is technically possible but deferred | → Add to `memory/followups.md` |
+
+Project planning / review / analysis docs live under `docs/plans/`.
 
 **Skip:** Quick factual questions, trivial tasks with no new info.
 
