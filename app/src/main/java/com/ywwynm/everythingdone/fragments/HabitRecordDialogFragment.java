@@ -16,6 +16,8 @@ import com.ywwynm.everythingdone.adapters.HabitRecordAdapter;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.helpers.PossibleMistakeHelper;
 import com.ywwynm.everythingdone.model.Habit;
+import com.ywwynm.everythingdone.model.ThingBackground;
+import com.ywwynm.everythingdone.utils.BackgroundUtil;
 
 /**
  * Created by 张启 on 2017/3/10.
@@ -51,8 +53,14 @@ public class HabitRecordDialogFragment extends BaseDialogFragment {
 
         TextView title = f(R.id.tv_habit_record_title);
         DetailActivity activity = (DetailActivity) getActivity();
-        int accentColor = activity.getAccentColor();
-        title.setTextColor(accentColor);
+        ThingBackground accentBg = activity.getAccentBackground();
+        // Phase 8: title + confirm button render gradient when the thing
+        // has a GRADIENT accent.
+        if (accentBg != null) {
+            BackgroundUtil.applyTextBackground(title, accentBg);
+        } else {
+            title.setTextColor(activity.getAccentColor());
+        }
 
         RecyclerView rvRecord = f(R.id.rv_habit_record);
 
@@ -74,7 +82,11 @@ public class HabitRecordDialogFragment extends BaseDialogFragment {
         rvRecord.setLayoutManager(glm);
 
         TextView tvConfirm = f(R.id.tv_confirm_as_bt);
-        tvConfirm.setTextColor(accentColor);
+        if (accentBg != null) {
+            BackgroundUtil.applyTextBackground(tvConfirm, accentBg);
+        } else {
+            tvConfirm.setTextColor(activity.getAccentColor());
+        }
         tvConfirm.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {

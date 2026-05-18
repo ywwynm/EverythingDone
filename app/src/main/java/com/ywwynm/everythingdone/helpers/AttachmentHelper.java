@@ -18,6 +18,7 @@ import com.ywwynm.everythingdone.App;
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.fragments.AttachmentInfoDialogFragment;
+import com.ywwynm.everythingdone.model.ThingBackground;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
@@ -308,8 +309,17 @@ public class AttachmentHelper {
     }
 
     public static void showAttachmentInfoDialog(Activity activity, int accentColor, String typePathName) {
+        showAttachmentInfoDialog(activity, ThingBackground.pure(accentColor), typePathName);
+    }
+
+    /** Phase 8: gradient-aware open. Title + confirm in the dialog render
+     *  shader-painted gradient when {@code accentBg} is GRADIENT. The legacy
+     *  int overload wraps the colour into a PURE background and delegates here. */
+    public static void showAttachmentInfoDialog(Activity activity, ThingBackground accentBg, String typePathName) {
         AttachmentInfoDialogFragment aidf = new AttachmentInfoDialogFragment();
-        aidf.setAccentColor(accentColor);
+        if (accentBg != null) {
+            aidf.setAccentBackground(accentBg);
+        }
         aidf.setItems(getAttachmentInfo(activity, typePathName));
         aidf.show(activity.getFragmentManager(), AttachmentInfoDialogFragment.TAG);
     }

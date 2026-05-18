@@ -3,17 +3,22 @@ package com.ywwynm.everythingdone.adapters;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import android.graphics.Outline;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.RippleDrawable;
 import androidx.core.content.ContextCompat;
 import androidx.cardview.widget.CardView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewOutlineProvider;
 import android.widget.FrameLayout;
 import android.widget.TextView;
 
 import com.ywwynm.everythingdone.Def;
 import com.ywwynm.everythingdone.R;
+import com.ywwynm.everythingdone.model.ThingBackground;
+import com.ywwynm.everythingdone.utils.BackgroundUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.LocaleUtil;
 
@@ -44,6 +49,13 @@ public class RecurrencePickerAdapter extends MultiChoiceAdapter {
     private String[] mCds; // content descriptions
 
     private int mAccentColor;
+    /** Phase 8: full accent so picked cells (both NORMAL fake-FAB and
+     *  EndOfMonth CardView) render the real gradient. NORMAL is a fake-FAB —
+     *  a clipped FrameLayout whose inner background View carries a
+     *  GradientDrawable. The Ripple foreground colour is the only piece that
+     *  still uses {@link #mAccentColor} representative (Android's
+     *  RippleDrawable ColorStateList accepts a single int only). */
+    private ThingBackground mAccentBackground;
 
     private float mScreenDensity;
 
@@ -51,6 +63,17 @@ public class RecurrencePickerAdapter extends MultiChoiceAdapter {
 
     public void setOnPickListener(View.OnClickListener onPickListener) {
         mOnPickListener = onPickListener;
+    }
+
+    /** Phase 8: upgrade the accent signal to a full {@link ThingBackground}.
+     *  Rebinds so any currently-attached holder picks up the gradient on its
+     *  picked CardView background. */
+    public void setAccentBackground(ThingBackground bg) {
+        mAccentBackground = bg;
+        if (bg != null) {
+            mAccentColor = bg.representativeColor();
+            notifyDataSetChanged();
+        }
     }
 
     public RecurrencePickerAdapter(Context context, int type, int accentColor) {
@@ -124,13 +147,32 @@ public class RecurrencePickerAdapter extends MultiChoiceAdapter {
         int black_54 = ContextCompat.getColor(mContext, R.color.black_54);
         if (getItemViewType(position) == END_OF_MONTH) {
             EndOfMonthViewHolder holder = (EndOfMonthViewHolder) viewHolder;
+            // Phase 8: render the pill background through a self-rounded
+            // GradientDrawable instead of CardView.setCardBackgroundColor,
+            // so a GRADIENT accent shows as a real two-stop gradient. The
+            // corner radius is read back from cv.getRadius() (= XML's
+            // app:cardCornerRadius), so the pill shape (height/2) is
+            // preserved across recycled binds. Outline + ripple foreground
+            // clipping follow GradientDrawable.getOutline() automatically.
+            GradientDrawable pill = new GradientDrawable();
+            pill.setShape(GradientDrawable.RECTANGLE);
+            pill.setCornerRadius(holder.cv.getRadius());
             if (mPicked[position]) {
-                holder.cv.setCardBackgroundColor(mAccentColor);
+                if (mAccentBackground != null
+                        && mAccentBackground.mode == ThingBackground.Mode.GRADIENT) {
+                    pill.setOrientation(toGdOrientation(mAccentBackground.orientation));
+                    pill.setColors(new int[] {
+                            mAccentBackground.color, mAccentBackground.endColor });
+                } else {
+                    pill.setColor(mAccentColor);
+                }
+                holder.cv.setBackground(pill);
                 holder.cv.setContentDescription(mCdPicked + mCds[position] + ",");
                 DisplayUtil.setRippleColorForCardView(holder.cv, unPickerColor);
                 holder.tv.setTextColor(Color.WHITE);
             } else {
-                holder.cv.setCardBackgroundColor(unPickerColor);
+                pill.setColor(unPickerColor);
+                holder.cv.setBackground(pill);
                 holder.cv.setContentDescription(mCdUnpicked + mCds[position] + ",");
                 DisplayUtil.setRippleColorForCardView(holder.cv, mAccentColor);
                 holder.tv.setTextColor(black_54);
@@ -138,21 +180,44 @@ public class RecurrencePickerAdapter extends MultiChoiceAdapter {
         } else {
             NormalViewHolder holder = (NormalViewHolder) viewHolder;
             if (mType == Def.PickerType.DAY_OF_MONTH) {
-                FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) holder.fab.getLayoutParams();
+                FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) holder.cell.getLayoutParams();
                 params.width = (int) (mScreenDensity * 36);
                 params.height = params.width;
+                // OutlineProvider reads getWidth()/getHeight() at outline build
+                // time; invalidate so the new size produces a smaller oval.
+                holder.cell.invalidateOutline();
             }
             holder.tvDate.setText(mItems[position]);
             if (mPicked[position]) {
-                holder.fab.setBackgroundTintList(ColorStateList.valueOf(mAccentColor));
-                holder.fab.setRippleColor(unPickerColor);
+                // Phase 8: render the inner bg View with the full thing
+                // gradient when available. The cell's clipToOutline=oval
+                // crops the rectangle drawable to a circle, and the ripple
+                // foreground draws tap feedback on top.
+                if (mAccentBackground != null
+                        && mAccentBackground.mode == ThingBackground.Mode.GRADIENT) {
+                    GradientDrawable gd = new GradientDrawable(
+                            toGdOrientation(mAccentBackground.orientation),
+                            new int[] { mAccentBackground.color, mAccentBackground.endColor });
+                    gd.setShape(GradientDrawable.RECTANGLE);
+                    holder.bg.setBackground(gd);
+                } else {
+                    holder.bg.setBackground(null);
+                    holder.bg.setBackgroundColor(mAccentColor);
+                }
+                // Picked: ripple in unPickerColor (light grey) on top of the
+                // dark accent fill.
+                setRippleColor(holder.cell, unPickerColor);
                 holder.tvDate.setTextColor(Color.WHITE);
-                holder.fab.setContentDescription(mCdPicked + mCds[position] + ",");
+                holder.cell.setContentDescription(mCdPicked + mCds[position] + ",");
             } else {
-                holder.fab.setBackgroundTintList(ColorStateList.valueOf(unPickerColor));
-                holder.fab.setRippleColor(mAccentColor);
+                holder.bg.setBackground(null);
+                holder.bg.setBackgroundColor(unPickerColor);
+                // Unpicked: ripple uses the accent representative (single int —
+                // RippleDrawable API limit; the ripple waveform itself can't
+                // hold a gradient).
+                setRippleColor(holder.cell, mAccentColor);
                 holder.tvDate.setTextColor(black_54);
-                holder.fab.setContentDescription(mCdUnpicked + mCds[position] + ",");
+                holder.cell.setContentDescription(mCdUnpicked + mCds[position] + ",");
             }
         }
         viewHolder.itemView.setContentDescription(
@@ -191,15 +256,35 @@ public class RecurrencePickerAdapter extends MultiChoiceAdapter {
 
     private class NormalViewHolder extends BaseViewHolder {
 
-        final FloatingActionButton fab;
+        /** Outer 48dp (or 36dp for DAY_OF_MONTH) clipped-to-oval cell — owns
+         *  the click + ripple foreground. */
+        final FrameLayout cell;
+        /** Inner View carrying the picked-state gradient or unpicked grey. */
+        final View bg;
         final TextView tvDate;
 
         NormalViewHolder(View itemView) {
             super(itemView);
-            fab = f(R.id.fab_recurrence_picker);
+            cell   = f(R.id.fab_recurrence_picker);
+            bg     = f(R.id.v_recurrence_picker_bg);
             tvDate = f(R.id.tv_recurrence_picker);
 
-            fab.setOnClickListener(new View.OnClickListener() {
+            // Phase 8: clip to oval so the inner background drawable (solid
+            // or gradient rectangle) renders as a circle. Install a ripple
+            // foreground so tap feedback draws over the bg + tvDate layers.
+            // The ripple's mask is OVAL too — Android composites it against
+            // clipToOutline cleanly.
+            cell.setClipToOutline(true);
+            cell.setOutlineProvider(new ViewOutlineProvider() {
+                @Override
+                public void getOutline(View v, Outline outline) {
+                    outline.setOval(0, 0, v.getWidth(), v.getHeight());
+                }
+            });
+            // Initial ripple — onBindViewHolder swaps colour per picked state.
+            cell.setForeground(BackgroundUtil.circularRipple());
+
+            cell.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     togglePick(getAdapterPosition());
@@ -209,6 +294,33 @@ public class RecurrencePickerAdapter extends MultiChoiceAdapter {
                 }
             });
         }
+    }
+
+    /** Update the ripple foreground's tint without re-allocating the drawable. */
+    private static void setRippleColor(View cell, int color) {
+        if (cell.getForeground() instanceof RippleDrawable) {
+            ((RippleDrawable) cell.getForeground())
+                    .setColor(ColorStateList.valueOf(color));
+        }
+    }
+
+    /** Map {@link ThingBackground.Orientation} → platform GradientDrawable
+     *  orientation. Mirrors {@code BackgroundUtil.toGdOrientation} (private
+     *  there); duplicated here to avoid exposing the helper just for this
+     *  one use site. */
+    private static GradientDrawable.Orientation toGdOrientation(
+            ThingBackground.Orientation o) {
+        switch (o) {
+            case L_R:   return GradientDrawable.Orientation.LEFT_RIGHT;
+            case T_B:   return GradientDrawable.Orientation.TOP_BOTTOM;
+            case LT_RB: return GradientDrawable.Orientation.TL_BR;
+            case RT_LB: return GradientDrawable.Orientation.TR_BL;
+            case LB_RT: return GradientDrawable.Orientation.BL_TR;
+            case RB_LT: return GradientDrawable.Orientation.BR_TL;
+            case R_L:   return GradientDrawable.Orientation.RIGHT_LEFT;
+            case B_T:   return GradientDrawable.Orientation.BOTTOM_TOP;
+        }
+        return GradientDrawable.Orientation.LEFT_RIGHT;
     }
 
     private class EndOfMonthViewHolder extends BaseViewHolder {

@@ -19,6 +19,7 @@ import android.widget.TextView;
 
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.helpers.AttachmentHelper;
+import com.ywwynm.everythingdone.model.ThingBackground;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.FileUtil;
 
@@ -36,6 +37,10 @@ public class AudioAttachmentAdapter extends RecyclerView.Adapter<AudioAttachment
     private Activity mActivity;
 
     private int mAccentColor;
+    /** Phase 8: full accent so the attachment-info dialog launched from a tap
+     *  can render gradient. Always wraps {@link #mAccentColor} as PURE when
+     *  unset, so the helper never receives null. */
+    private ThingBackground mAccentBackground;
 
     private boolean mEditable;
 
@@ -58,11 +63,20 @@ public class AudioAttachmentAdapter extends RecyclerView.Adapter<AudioAttachment
             RemoveCallback callback) {
         mActivity = activity;
         mAccentColor = accentColor;
+        mAccentBackground = ThingBackground.pure(accentColor);
         mEditable = editable;
         mInflater = LayoutInflater.from(activity);
         mItems = items;
 
         mRemoveCallback = callback;
+    }
+
+    /** Phase 8: upgrade the accent to a full {@link ThingBackground} so the
+     *  attachment-info dialog renders gradient when the thing has one. */
+    public void setAccentBackground(ThingBackground bg) {
+        if (bg == null) return;
+        mAccentBackground = bg;
+        mAccentColor = bg.representativeColor();
     }
 
     public void setTakingScreenshot(boolean takingScreenshot) {
@@ -210,7 +224,7 @@ public class AudioAttachmentAdapter extends RecyclerView.Adapter<AudioAttachment
                 public void onClick(View v) {
                     String item = mItems.get(AudioCardViewHolder.this.getAdapterPosition());
                     String pathName = item.substring(1, item.length());
-                    AttachmentHelper.showAttachmentInfoDialog(mActivity, mAccentColor, pathName);
+                    AttachmentHelper.showAttachmentInfoDialog(mActivity, mAccentBackground, pathName);
                 }
             });
 

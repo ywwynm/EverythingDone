@@ -16,6 +16,8 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.ywwynm.everythingdone.R;
+import com.ywwynm.everythingdone.model.ThingBackground;
+import com.ywwynm.everythingdone.utils.BackgroundUtil;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.KeyboardUtil;
@@ -42,6 +44,9 @@ public class TimeOfDayRecAdapter extends RecyclerView.Adapter<BaseViewHolder> {
     private LayoutInflater mInflater;
 
     private int mAccentColor;
+    /** Phase 8: full accent so the focused EditText's text can render gradient.
+     *  Selection handlers, highlight and underline tint always stay int. */
+    private ThingBackground mAccentBackground;
     private int black_26p;
     private int black_54p;
 
@@ -56,6 +61,17 @@ public class TimeOfDayRecAdapter extends RecyclerView.Adapter<BaseViewHolder> {
 
     public void setOnItemChangeCallback(OnItemChangeCallback onItemChangeCallback) {
         mOnItemChangeCallback = onItemChangeCallback;
+    }
+
+    /** Phase 8: upgrade the accent signal to a full {@link ThingBackground}.
+     *  Re-binds so any already-attached EditTextHolder picks up the new
+     *  selection-handler tint and re-installs the shader on focus. */
+    public void setAccentBackground(ThingBackground bg) {
+        mAccentBackground = bg;
+        if (bg != null) {
+            mAccentColor = bg.representativeColor();
+            notifyDataSetChanged();
+        }
     }
 
     public TimeOfDayRecAdapter(Context context, int accentColor) {
@@ -181,18 +197,39 @@ public class TimeOfDayRecAdapter extends RecyclerView.Adapter<BaseViewHolder> {
             View.OnFocusChangeListener focusChangeListener = new View.OnFocusChangeListener() {
                 @Override
                 public void onFocusChange(View v, boolean hasFocus) {
+                    EditText et = (EditText) v;
                     if (hasFocus) {
-                        DisplayUtil.tintView(v, mAccentColor);
-                        ((EditText) v).setTextColor(mAccentColor);
-                        ((EditText) v).setHighlightColor(
+                        boolean useGradientLine = mAccentBackground != null
+                                && mAccentBackground.mode == ThingBackground.Mode.GRADIENT;
+                        if (useGradientLine) {
+                            BackgroundUtil.applyTextBackground(et, mAccentBackground);
+                            BackgroundUtil.applyEditTextUnderline(et, mAccentBackground);
+                            // Native underline hidden; only the foreground
+                            // gradient strip remains (avoids double-line).
+                            DisplayUtil.tintView(v, android.graphics.Color.TRANSPARENT);
+                        } else {
+                            if (et.getPaint().getShader() != null) {
+                                et.getPaint().setShader(null);
+                                et.invalidate();
+                            }
+                            et.setTextColor(mAccentColor);
+                            BackgroundUtil.clearEditTextUnderline(et);
+                            DisplayUtil.tintView(v, mAccentColor);
+                        }
+                        et.setHighlightColor(
                                 DisplayUtil.getLightColor(mAccentColor, mContext));
                     } else {
                         DisplayUtil.tintView(v, black_26p);
-                        ((EditText) v).setTextColor(black_54p);
+                        if (et.getPaint().getShader() != null) {
+                            et.getPaint().setShader(null);
+                            et.invalidate();
+                        }
+                        et.setTextColor(black_54p);
+                        BackgroundUtil.clearEditTextUnderline(et);
                         if (v.equals(etHour)) {
                             DateTimeUtil.limitHourForEditText(etHour);
                         } else {
-                            DateTimeUtil.formatLimitMinuteForEditText((EditText) v);
+                            DateTimeUtil.formatLimitMinuteForEditText(et);
                         }
                     }
                 }

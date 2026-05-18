@@ -35,6 +35,7 @@ import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.adapters.ImageViewerPagerAdapter;
 import com.ywwynm.everythingdone.fragments.AlertDialogFragment;
 import com.ywwynm.everythingdone.helpers.AttachmentHelper;
+import com.ywwynm.everythingdone.model.ThingBackground;
 import com.ywwynm.everythingdone.utils.DeviceUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil;
@@ -54,6 +55,11 @@ public class ImageViewerActivity extends EverythingDoneBaseActivity {
     private boolean mSystemUiVisible = true;
 
     private int mAccentColor;
+    /** Phase 8: full ThingBackground (deserialised from KEY_BACKGROUND
+     *  Intent extra) so the attachment-info dialog + delete-confirm dialog
+     *  can render gradient text on title / confirm. PURE accents fall back
+     *  to mAccentColor representative. */
+    private ThingBackground mAccentBackground;
     private boolean mEditable;
     private List<String> mTypePathNames;
     private int mPosition;
@@ -75,6 +81,14 @@ public class ImageViewerActivity extends EverythingDoneBaseActivity {
     protected void initMembers() {
         Intent intent = getIntent();
         mAccentColor = intent.getIntExtra(Def.Communication.KEY_COLOR, 0);
+        // Phase 8: prefer the full ThingBackground when present; fall back to
+        // ThingBackground.pure(mAccentColor) so consumers always have a real
+        // background to apply, not just an int.
+        String bgJson = intent.getStringExtra(Def.Communication.KEY_BACKGROUND);
+        mAccentBackground = ThingBackground.fromJson(bgJson);
+        if (mAccentBackground == null) {
+            mAccentBackground = ThingBackground.pure(mAccentColor);
+        }
         mEditable = intent.getBooleanExtra(Def.Communication.KEY_EDITABLE, true);
         mTypePathNames = intent.getStringArrayListExtra(
                 Def.Communication.KEY_TYPE_PATH_NAME);
@@ -240,12 +254,15 @@ public class ImageViewerActivity extends EverythingDoneBaseActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
         if (id == R.id.act_show_attachment_info) {
+            // Phase 8: pass the full ThingBackground so the info dialog can
+            // render gradient on title / confirm.
             AttachmentHelper.showAttachmentInfoDialog(
-                    this, mAccentColor, mTypePathNames.get(mVpImage.getCurrentItem()));
+                    this, mAccentBackground, mTypePathNames.get(mVpImage.getCurrentItem()));
         } else if (id == R.id.act_delete_attachment) {
             final AlertDialogFragment adf = new AlertDialogFragment();
             adf.setContentColor(ContextCompat.getColor(this, R.color.black_69p));
-            adf.setConfirmColor(mAccentColor);
+            // Phase 8: confirm button text supports gradient.
+            adf.setConfirmBackground(mAccentBackground);
             adf.setContent(getString(R.string.alert_delete_attachment));
             adf.setConfirmListener(new AlertDialogFragment.ConfirmListener() {
                 @Override

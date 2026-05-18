@@ -2259,6 +2259,9 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         AttachmentHelper.setAudioRecyclerViewHeight(mRvAudioAttachment, items.size(), mSpanAudio);
         mAudioAttachmentAdapter = new AudioAttachmentAdapter(this, getAccentColor(), mEditable, items,
                 mEditable ? new AudioAttachmentRemoveCallback() : null);
+        // Phase 8: feed the full ThingBackground so the attachment-info
+        // dialog opened from a tap can render gradient.
+        mAudioAttachmentAdapter.setAccentBackground(getAccentBackground());
         mAudioLayoutManager = new GridLayoutManager(this, mSpanAudio);
         mRvAudioAttachment.setAdapter(mAudioAttachmentAdapter);
         mRvAudioAttachment.setLayoutManager(mAudioLayoutManager);
@@ -3657,6 +3660,13 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         public void onClick(View v, int pos) {
             Intent intent = new Intent(DetailActivity.this, ImageViewerActivity.class);
             intent.putExtra(Def.Communication.KEY_COLOR, getAccentColor());
+            // Phase 8: also carry full ThingBackground so ImageViewerActivity
+            // and its sub-dialogs (attachment info / delete confirm) can
+            // render gradient.
+            ThingBackground accentBg = getAccentBackground();
+            if (accentBg != null) {
+                intent.putExtra(Def.Communication.KEY_BACKGROUND, accentBg.toJson());
+            }
             intent.putExtra(Def.Communication.KEY_EDITABLE, mEditable);
             intent.putExtra(Def.Communication.KEY_TYPE_PATH_NAME,
                     (ArrayList) mImageAttachmentAdapter.getItems());

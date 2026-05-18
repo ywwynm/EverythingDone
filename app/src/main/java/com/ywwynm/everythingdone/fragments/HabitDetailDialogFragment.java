@@ -19,6 +19,8 @@ import com.ywwynm.everythingdone.activities.DetailActivity;
 import com.ywwynm.everythingdone.adapters.HabitRecordAdapter;
 import com.ywwynm.everythingdone.database.HabitDAO;
 import com.ywwynm.everythingdone.model.Habit;
+import com.ywwynm.everythingdone.model.ThingBackground;
+import com.ywwynm.everythingdone.utils.BackgroundUtil;
 import com.ywwynm.everythingdone.utils.DateTimeUtil;
 import com.ywwynm.everythingdone.utils.LocaleUtil;
 
@@ -56,8 +58,15 @@ public class HabitDetailDialogFragment extends BaseDialogFragment {
 
         TextView title = f(R.id.tv_habit_detail_title);
         DetailActivity activity = (DetailActivity) getActivity();
-        int accentColor = activity.getAccentColor();
-        title.setTextColor(accentColor);
+        ThingBackground accentBg = activity.getAccentBackground();
+        // Phase 8: title + "get it" button render gradient when the thing
+        // has a GRADIENT accent. applyTextBackground falls back to plain
+        // setTextColor for PURE.
+        if (accentBg != null) {
+            BackgroundUtil.applyTextBackground(title, accentBg);
+        } else {
+            title.setTextColor(activity.getAccentColor());
+        }
 
         mTvCr            = f(R.id.tv_habit_detail_completion_rate);
         mTvTotalT        = f(R.id.tv_habit_detail_total_t);
@@ -66,7 +75,11 @@ public class HabitDetailDialogFragment extends BaseDialogFragment {
         mTvFinishedTimes = f(R.id.tv_habit_detail_times);
 
         TextView tvGetIt = f(R.id.tv_get_it_as_bt);
-        tvGetIt.setTextColor(accentColor);
+        if (accentBg != null) {
+            BackgroundUtil.applyTextBackground(tvGetIt, accentBg);
+        } else {
+            tvGetIt.setTextColor(activity.getAccentColor());
+        }
         tvGetIt.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {

@@ -21,6 +21,8 @@ import android.widget.TextView;
 import com.ywwynm.everythingdone.R;
 import com.ywwynm.everythingdone.activities.DetailActivity;
 import com.ywwynm.everythingdone.helpers.AttachmentHelper;
+import com.ywwynm.everythingdone.model.ThingBackground;
+import com.ywwynm.everythingdone.utils.BackgroundUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 import com.ywwynm.everythingdone.utils.FileUtil;
 import com.ywwynm.everythingdone.views.recording.AudioRecorder;
@@ -78,9 +80,20 @@ public class AudioRecordDialogFragment extends BaseDialogFragment {
         mIvReRecording     = f(R.id.iv_re_recording_audio);
         mIvCancelRecording = f(R.id.iv_cancel_recording_audio);
 
-        int accentColor = mActivity.getAccentColor();
+        // Phase 8: paint mBase with the full thing background so a GRADIENT
+        // accent renders as a real gradient under the voice-visualizer waves.
+        // VoiceVisualizer renders Paint-based waves (single-int API) and the
+        // EditText tint / highlight / selection handles are PorterDuff
+        // (single-int) — those continue to consume the representative colour.
+        ThingBackground accentBg = mActivity.getAccentBackground();
+        int accentColor = accentBg != null ? accentBg.representativeColor()
+                                           : mActivity.getAccentColor();
         mVisualizer.setRenderColor(accentColor);
-        mBase.setBackgroundColor(accentColor);
+        if (accentBg != null) {
+            BackgroundUtil.applyBackground(mBase, accentBg);
+        } else {
+            mBase.setBackgroundColor(accentColor);
+        }
 
         mEtFileName.setHighlightColor(DisplayUtil.getLightColor(accentColor, mActivity));
         DisplayUtil.setSelectionHandlersColor(mEtFileName, accentColor);
@@ -132,14 +145,27 @@ public class AudioRecordDialogFragment extends BaseDialogFragment {
 
     private void setEvents() {
         final int normalColor = ContextCompat.getColor(mActivity, R.color.black_26p);
-        final int accentColor = mActivity.getAccentColor();
+        final ThingBackground accentBg = mActivity.getAccentBackground();
+        final int accentColor = accentBg != null ? accentBg.representativeColor()
+                                                 : mActivity.getAccentColor();
         mEtFileName.setOnFocusChangeListener(new View.OnFocusChangeListener() {
             @Override
             public void onFocusChange(View v, boolean hasFocus) {
+                boolean useGradientLine = hasFocus
+                        && accentBg != null
+                        && accentBg.mode == ThingBackground.Mode.GRADIENT;
                 if (hasFocus) {
-                    DisplayUtil.tintView(mEtFileName, accentColor);
+                    if (useGradientLine) {
+                        BackgroundUtil.applyEditTextUnderline(mEtFileName, accentBg);
+                        // Hide native underline so only the gradient strip shows.
+                        DisplayUtil.tintView(mEtFileName, android.graphics.Color.TRANSPARENT);
+                    } else {
+                        BackgroundUtil.clearEditTextUnderline(mEtFileName);
+                        DisplayUtil.tintView(mEtFileName, accentColor);
+                    }
                 } else {
                     DisplayUtil.tintView(mEtFileName, normalColor);
+                    BackgroundUtil.clearEditTextUnderline(mEtFileName);
                 }
             }
         });

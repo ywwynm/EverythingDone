@@ -390,6 +390,18 @@ public class CheckListAdapter extends RecyclerView.Adapter<BaseViewHolder> {
                 holder.ivDelete.setVisibility(View.GONE);
                 holder.et.setVisibility(View.GONE);
                 holder.flSeparator.setVisibility(View.VISIBLE);
+                // Phase 8+: tint the dashed separator drawable to the
+                // mirror-opacity side based on thing luminance. Original
+                // drawable is #42FFFFFF (26% white); flip to 26% black on
+                // light backgrounds so it stays visible.
+                View sep = holder.flSeparator.getChildAt(0);
+                if (sep != null) {
+                    Drawable d = sep.getBackground();
+                    if (d != null) {
+                        int color = dark() ? 0x42000000 : 0x42FFFFFF;
+                        d.mutate().setColorFilter(color, android.graphics.PorterDuff.Mode.SRC_IN);
+                    }
+                }
             } else if (state == '4') {
                 params.topMargin = (int) (density * 6);
                 holder.ivState.setImageResource(R.drawable.checklist_finished);

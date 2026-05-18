@@ -363,6 +363,9 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
 
         for (int i = 0; i < mIlsAt.length; i++) {
             mIlsAt[i] = new InputLayout(mActivity, mTvsAt[i], mEtsAt[i], mAccentColor);
+            // Phase 8: feed the full ThingBackground so the focused label and
+            // EditText text can render gradient (highlight / cursor tint stay int).
+            mIlsAt[i].setAccentBackground(mAccentBackground);
         }
     }
 
@@ -372,6 +375,10 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
         mTvTimeAsBtAfter = f(tab1, R.id.tv_time_as_bt_after);
         mDtpAfter        = new DateTimePicker(mActivity, mContentView,
                 Def.PickerType.TIME_TYPE_HAVE_HOUR_MINUTE, mAccentColor);
+        // Phase 8: propagate gradient signal — picked-row text uses shader.
+        if (mAccentBackground != null) {
+            mDtpAfter.setAccentBackground(mAccentBackground);
+        }
         mTvErrorAfter = f(tab1, R.id.tv_error_after);
     }
 
@@ -382,12 +389,16 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
         mTvTimeAsBtRec    = f(tab2, R.id.tv_time_as_bt_recurrence);
         mDtpRec           = new DateTimePicker(mActivity, mContentView,
                                 Def.PickerType.TIME_TYPE_NO_HOUR_MINUTE, mAccentColor);
+        if (mAccentBackground != null) {
+            mDtpRec.setAccentBackground(mAccentBackground);
+        }
         mIvPickAllAsBtRec = f(tab2, R.id.iv_pick_all_as_bt_rec);
         mTvSummaryRec     = f(tab2, R.id.tv_summary_rec);
 
         // day
         mRvTimeOfDay      = f(tab2, R.id.rv_time_of_day);
         mAdapterTimeOfDay = new TimeOfDayRecAdapter(mActivity, mAccentColor);
+        mAdapterTimeOfDay.setAccentBackground(mAccentBackground);
         ArrayList<Integer> items = new ArrayList<>();
         items.add(-1);
         items.add(-1);
@@ -403,17 +414,21 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
         mIlDayYear   = new InputLayout(mActivity,
                 (TextView) f(tab2, R.id.tv_day_rec_wmy),
                 (EditText) f(tab2, R.id.et_day_rec_wmy), mAccentColor);
+        mIlDayYear.setAccentBackground(mAccentBackground);
         mIlHourWmy   = new InputLayout(mActivity,
                 (TextView) f(tab2, R.id.tv_hour_rec_wmy),
                 (EditText) f(tab2, R.id.et_hour_rec_wmy), mAccentColor);
+        mIlHourWmy.setAccentBackground(mAccentBackground);
         mIlMinuteWmy = new InputLayout(mActivity,
                 (TextView) f(tab2, R.id.tv_minute_rec_wmy),
                 (EditText) f(tab2, R.id.et_minute_rec_wmy), mAccentColor);
+        mIlMinuteWmy.setAccentBackground(mAccentBackground);
 
         // week
         mGlmDayOfWeek     = new GridLayoutManager(mActivity, 4);
         mAdapterDayOfWeek = new RecurrencePickerAdapter(mActivity,
                 Def.PickerType.DAY_OF_WEEK, mAccentColor);
+        mAdapterDayOfWeek.setAccentBackground(mAccentBackground);
 
         // month
         mGlmDayOfMonth     = new GridLayoutManager(mActivity, 6);
@@ -425,11 +440,13 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
         });
         mAdapterDayOfMonth = new RecurrencePickerAdapter(mActivity,
                 Def.PickerType.DAY_OF_MONTH, mAccentColor);
+        mAdapterDayOfMonth.setAccentBackground(mAccentBackground);
 
         // year
         mGlmMonthOfYear = new GridLayoutManager(mActivity, 4);
         mAdapterMonthOfYear = new RecurrencePickerAdapter(mActivity,
                 Def.PickerType.MONTH_OF_YEAR, mAccentColor);
+        mAdapterMonthOfYear.setAccentBackground(mAccentBackground);
     }
 
     private void initUI() {
@@ -852,14 +869,37 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
         mEtTimeAfter.setOnFocusChangeListener(new View.OnFocusChangeListener() {
             @Override
             public void onFocusChange(View v, boolean hasFocus) {
+                EditText et = (EditText) v;
                 if (hasFocus) {
-                    DisplayUtil.tintView(v, mAccentColor);
-                    ((EditText) v).setTextColor(mAccentColor);
-                    ((EditText) v).setHighlightColor(DisplayUtil.getLightColor(mAccentColor, mActivity));
+                    boolean useGradientLine = mAccentBackground != null
+                            && mAccentBackground.mode
+                                    == com.ywwynm.everythingdone.model.ThingBackground.Mode.GRADIENT;
+                    if (useGradientLine) {
+                        com.ywwynm.everythingdone.utils.BackgroundUtil
+                                .applyTextBackground(et, mAccentBackground);
+                        com.ywwynm.everythingdone.utils.BackgroundUtil
+                                .applyEditTextUnderline(et, mAccentBackground);
+                        // Hide native underline so only the gradient strip shows.
+                        DisplayUtil.tintView(v, android.graphics.Color.TRANSPARENT);
+                    } else {
+                        if (et.getPaint().getShader() != null) {
+                            et.getPaint().setShader(null);
+                            et.invalidate();
+                        }
+                        et.setTextColor(mAccentColor);
+                        com.ywwynm.everythingdone.utils.BackgroundUtil.clearEditTextUnderline(et);
+                        DisplayUtil.tintView(v, mAccentColor);
+                    }
+                    et.setHighlightColor(DisplayUtil.getLightColor(mAccentColor, mActivity));
                 } else {
                     improveComplex();
                     DisplayUtil.tintView(v, black_26p);
-                    ((EditText) v).setTextColor(black_54p);
+                    if (et.getPaint().getShader() != null) {
+                        et.getPaint().setShader(null);
+                        et.invalidate();
+                    }
+                    et.setTextColor(black_54p);
+                    com.ywwynm.everythingdone.utils.BackgroundUtil.clearEditTextUnderline(et);
                 }
             }
         });
@@ -1089,6 +1129,11 @@ public class DateTimeDialogFragment extends BaseDialogFragment {
     private void improveComplex() {
         if (LocaleUtil.isChinese(mActivity)) return;
         int page = mVpDateTime.getCurrentItem();
+        // Guard against a focus-change firing mid-tab-switch: ViewPager
+        // re-targets focus before onPageSelected runs initAll(), so the
+        // fields for `page` may not exist yet. Skip until findViewsX has
+        // populated them.
+        if (page < 0 || page >= mTabInitiated.length || !mTabInitiated[page]) return;
         if (page == 1) {
             String timeStr = mEtTimeAfter.getText().toString();
             if (timeStr.isEmpty()) return;

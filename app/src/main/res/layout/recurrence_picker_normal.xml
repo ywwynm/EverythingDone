@@ -1,24 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Phase 8: "fake FAB" cell. Previously a Material FloatingActionButton whose
+     setBackgroundTintList API is single-int only; replaced with a FrameLayout
+     clipped to an oval outline so the background View can carry a real
+     GradientDrawable when the picked thing has a gradient accent. Mirrors
+     color_picker_fab.xml. Outline + ripple foreground installed in
+     NormalViewHolder.
+     The TextView lives inside the cell so the ripple foreground also draws
+     over the picker label glyphs (white-on-accent or black-on-grey). -->
 <FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginTop="12dp">
 
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
+    <FrameLayout
         android:id="@+id/fab_recurrence_picker"
         android:layout_width="48dp"
         android:layout_height="48dp"
         android:layout_gravity="center"
-        app:borderWidth="0dp"
-        app:elevation="0dp"
-        app:pressedTranslationZ="0dp"/>
+        android:clickable="true"
+        android:focusable="true">
 
-    <TextView
-        android:id="@+id/tv_recurrence_picker"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"/>
+        <View
+            android:id="@+id/v_recurrence_picker_bg"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"/>
+
+        <TextView
+            android:id="@+id/tv_recurrence_picker"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"/>
+    </FrameLayout>
 
 </FrameLayout>

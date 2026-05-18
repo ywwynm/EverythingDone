@@ -8,6 +8,8 @@ import android.widget.EditText;
 import android.widget.TextView;
 
 import com.ywwynm.everythingdone.R;
+import com.ywwynm.everythingdone.model.ThingBackground;
+import com.ywwynm.everythingdone.utils.BackgroundUtil;
 import com.ywwynm.everythingdone.utils.DisplayUtil;
 
 /**
@@ -27,6 +29,12 @@ public class InputLayout {
     private EditText mEditText;
 
     private int mAccentColor;
+    /** Phase 8: full accent so the floating label and focused EditText text
+     *  can render gradient. When null, focused colours fall back to the plain
+     *  int {@link #mAccentColor}. Highlight tint, cursor / selection-handle
+     *  tint and the EditText underline tint always stay int (PorterDuff API
+     *  limit) — they consume {@link #mAccentColor} via representative. */
+    private ThingBackground mAccentBackground;
     private View.OnFocusChangeListener mOnFocusChangeListener;
 
     private boolean raised;
@@ -63,6 +71,21 @@ public class InputLayout {
             }
         });
         DisplayUtil.setSelectionHandlersColor(mEditText, accentColor);
+    }
+
+    /** Phase 8: upgrade the accent signal to a full {@link ThingBackground}.
+     *  Refreshes selection handler tint to the new representative colour and,
+     *  if the EditText is already focused, repaints the label/text right away
+     *  so the gradient shader picks up the new stops. */
+    public void setAccentBackground(ThingBackground bg) {
+        mAccentBackground = bg;
+        if (bg != null) {
+            mAccentColor = bg.representativeColor();
+            DisplayUtil.setSelectionHandlersColor(mEditText, mAccentColor);
+            if (mEditText.hasFocus()) {
+                setColors(mAccentColor);
+            }
+        }
     }
 
     public void setOnFocusChangeListenerForEditText(View.OnFocusChangeListener listener) {
@@ -114,15 +137,45 @@ public class InputLayout {
     }
 
     public void setColors(int colorTo) {
-        mTextView.setTextColor(colorTo);
         int black_54p = ContextCompat.getColor(mContext, R.color.black_54p);
+        boolean useGradientLine = colorTo != black_26p
+                && mAccentBackground != null
+                && mAccentBackground.mode == ThingBackground.Mode.GRADIENT;
         if (colorTo == black_26p) {
+            // Unfocused: plain int colours. Clear any leftover gradient shader
+            // from a previous focused bind so the label/text revert to grey.
+            clearShader(mTextView);
+            clearShader(mEditText);
+            mTextView.setTextColor(colorTo);
             mEditText.setTextColor(black_54p);
             mEditText.setHighlightColor(black_26p);
+            BackgroundUtil.clearEditTextUnderline(mEditText);
         } else {
-            mEditText.setTextColor(colorTo);
+            // Focused: label + EditText text adopt the accent. Use the gradient
+            // shader when we have a ThingBackground; otherwise plain int.
+            if (useGradientLine) {
+                BackgroundUtil.applyTextBackground(mTextView, mAccentBackground);
+                BackgroundUtil.applyTextBackground(mEditText, mAccentBackground);
+                BackgroundUtil.applyEditTextUnderline(mEditText, mAccentBackground);
+            } else {
+                clearShader(mTextView);
+                clearShader(mEditText);
+                mTextView.setTextColor(colorTo);
+                mEditText.setTextColor(colorTo);
+                BackgroundUtil.clearEditTextUnderline(mEditText);
+            }
             mEditText.setHighlightColor(DisplayUtil.getLightColor(colorTo, mContext));
         }
-        DisplayUtil.tintView(mEditText, colorTo);
+        // Native underline tint: transparent when the foreground gradient strip
+        // is taking over, otherwise show the native single-int underline (grey
+        // when blurred, accent when focused + PURE).
+        DisplayUtil.tintView(mEditText, useGradientLine ? android.graphics.Color.TRANSPARENT : colorTo);
+    }
+
+    private static void clearShader(TextView tv) {
+        if (tv.getPaint().getShader() != null) {
+            tv.getPaint().setShader(null);
+            tv.invalidate();
+        }
     }
 }

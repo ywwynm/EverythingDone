@@ -106,6 +106,34 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
         return BackgroundUtil.isLight(thingColor) ? black_54p : white_54p;
     }
 
+    /** Phase 8+: tint a single-tone white card ImageView (habit / reminder /
+     *  sticky-ongoing) to black when the thing background is light. The
+     *  source drawables are white-side variants, so {@code null} tint on
+     *  dark backgrounds preserves the original artwork. */
+    protected void tintCardIcon(android.widget.ImageView iv, int thingColor) {
+        if (iv == null) return;
+        androidx.core.widget.ImageViewCompat.setImageTintList(
+                iv,
+                BackgroundUtil.isLight(thingColor)
+                        ? android.content.res.ColorStateList.valueOf(
+                                android.graphics.Color.BLACK)
+                        : null);
+    }
+
+    /** Phase 8+: tint a dashed-line separator drawable. The static drawable
+     *  resource is hardcoded #89FFFFFF (53% white); we re-tint it via
+     *  ColorFilter to a mirror-opacity black on light backgrounds so the
+     *  separator stays visible without losing its alpha character. */
+    protected void tintCardSeparator(android.view.View separator, int thingColor) {
+        if (separator == null) return;
+        android.graphics.drawable.Drawable d = separator.getBackground();
+        if (d == null) return;
+        int color = BackgroundUtil.isLight(thingColor)
+                ? 0x89000000   // 53% black
+                : 0x89FFFFFF;  // 53% white (original)
+        d.mutate().setColorFilter(color, android.graphics.PorterDuff.Mode.SRC_IN);
+    }
+
     protected LayoutInflater mInflater;
     protected float mDensity;
 
@@ -218,6 +246,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
             }
             @StringRes int cdRes = sticky ? R.string.sticky_thing : R.string.ongoing_thing;
             holder.ivStickyOngoing.setContentDescription(mContext.getString(cdRes));
+            tintCardIcon(holder.ivStickyOngoing, thing.getColor());
         }
     }
 
@@ -324,6 +353,8 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
                     DateTimeUtil.getDateTimeStrGoal(mContext, thing, reminder));
         }
         holder.tvReminderTime.setTextColor(textColorTertiary(thing.getColor()));
+        tintCardIcon(holder.ivReminder, thing.getColor());
+        tintCardSeparator(holder.vReminderSeparator, thing.getColor());
     }
 
     @SuppressLint("SetTextI18n")
@@ -352,6 +383,10 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
         holder.tvHabitNextReminder.setTextColor(textColorDisabled(thing.getColor()));
         holder.tvHabitLastFive.setTextColor(textColorDisabled(thing.getColor()));
         holder.tvHabitFinishedThisT.setTextColor(textColorTertiary(thing.getColor()));
+        tintCardIcon(holder.ivHabit, thing.getColor());
+        tintCardSeparator(holder.vHabitSeparator1, thing.getColor());
+        tintCardSeparator(holder.vHabitSeparator2, thing.getColor());
+        holder.habitRecordPresenter.setThingColor(thing.getColor());
 
         if (thing.getState() == Thing.UNDERWAY && !habit.isPaused()) {
             holder.tvHabitNextReminder.setVisibility(View.VISIBLE);
@@ -449,6 +484,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
             }
 
             holder.tvImageCount.setText(AttachmentHelper.getImageAttachmentCountStr(attachment, mContext));
+            holder.tvImageCount.setTextColor(textColorSecondary(thing.getColor()));
 
             // when this card is unselected in selecting/moving mode, image should be covered
             if (getCurrentMode() == ModeManager.NORMAL) {
@@ -658,6 +694,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
 
         public final RelativeLayout       rlHabit;
         public final View                 vHabitSeparator1;
+        public final ImageView            ivHabit;
         public final TextView             tvHabitSummary;
         public final TextView             tvHabitNextReminder;
         public final View                 vHabitSeparator2;
@@ -699,6 +736,7 @@ public abstract class BaseThingsAdapter extends RecyclerView.Adapter<BaseThingsA
 
             rlHabit              = f(R.id.rl_thing_habit);
             vHabitSeparator1     = f(R.id.view_habit_separator_1);
+            ivHabit              = f(R.id.iv_thing_habit);
             tvHabitSummary       = f(R.id.tv_thing_habit_summary);
             tvHabitNextReminder  = f(R.id.tv_thing_habit_next_reminder);
             vHabitSeparator2     = f(R.id.view_habit_separator_2);

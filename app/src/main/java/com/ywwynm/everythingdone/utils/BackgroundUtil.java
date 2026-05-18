@@ -443,6 +443,175 @@ public final class BackgroundUtil {
     }
 
     /**
+     * Paint a coloured underline strip across {@code editText}'s bottom edge
+     * that adopts {@code bg}'s stops (PURE or GRADIENT).
+     *
+     * <p>Installed as the EditText's {@link View#setForeground(Drawable) foreground},
+     * not its background — so the platform's native EditText padding / hit
+     * area / IME positioning stay unchanged, and {@code DisplayUtil.tintView}'s
+     * tint on the background underline gets visually overlaid when the
+     * EditText is focused.
+     *
+     * <p>To remove the gradient (e.g. on blur), pass {@code null} —
+     * {@link #clearEditTextUnderline} does the same.
+     *
+     * <p>The strip is drawn by a tiny inner {@link Drawable} that re-positions
+     * the line layer to the bottom of its bounds on every {@code onBoundsChange},
+     * so it stays anchored to the EditText's bottom edge even after layout
+     * changes.
+     */
+    /** Material AppCompat EditText state-transition fade duration (ms). The
+     *  native StateListDrawable selector uses ~150ms for activated/default
+     *  swaps; we match it for the foreground gradient strip so focus
+     *  transitions feel consistent. */
+    private static final int EDIT_TEXT_UNDERLINE_FADE_MS = 150;
+
+    public static void applyEditTextUnderline(android.widget.EditText editText, ThingBackground bg) {
+        if (editText == null) return;
+        if (bg == null) {
+            clearEditTextUnderline(editText);
+            return;
+        }
+        int strokeHeightPx = Math.max(1,
+                (int) Math.ceil(editText.getResources().getDisplayMetrics().density * 2));
+        GradientDrawable line = new GradientDrawable();
+        line.setShape(GradientDrawable.RECTANGLE);
+        if (bg.mode == ThingBackground.Mode.GRADIENT) {
+            line.setOrientation(toGdOrientation(bg.orientation));
+            line.setColors(new int[] { bg.color, bg.endColor });
+        } else {
+            line.setColor(bg.color);
+        }
+        // Align with native underline geometry by reading the EditText's
+        // InsetDrawable child bounds — those are exactly the rectangle the
+        // 9-patch underline occupies, so length + vertical position match
+        // pixel-for-pixel. Falls back to paddingBottom if the background
+        // isn't an InsetDrawable (custom EditText themes).
+        BottomLineDrawable d = new BottomLineDrawable(editText, line, strokeHeightPx);
+        // Cancel any in-flight fade so the new bg appears immediately at full opacity.
+        cancelUnderlineFade(editText);
+        d.setAlpha(0);
+        editText.setForeground(d);
+        // Fade in to match Material EditText's state-transition animation.
+        android.animation.ObjectAnimator anim = android.animation.ObjectAnimator.ofInt(
+                d, "alpha", 0, 255);
+        anim.setDuration(EDIT_TEXT_UNDERLINE_FADE_MS);
+        editText.setTag(R_ID_UNDERLINE_ANIM, anim);
+        anim.start();
+    }
+
+    /** Counterpart to {@link #applyEditTextUnderline} — fades the foreground
+     *  strip out and clears it, matching native EditText's transition timing. */
+    public static void clearEditTextUnderline(final android.widget.EditText editText) {
+        if (editText == null) return;
+        Drawable fg = editText.getForeground();
+        cancelUnderlineFade(editText);
+        if (!(fg instanceof BottomLineDrawable)) {
+            editText.setForeground(null);
+            return;
+        }
+        final Drawable existing = fg;
+        android.animation.ObjectAnimator anim = android.animation.ObjectAnimator.ofInt(
+                existing, "alpha", existing.getAlpha(), 0);
+        anim.setDuration(EDIT_TEXT_UNDERLINE_FADE_MS);
+        anim.addListener(new android.animation.AnimatorListenerAdapter() {
+            @Override public void onAnimationEnd(android.animation.Animator a) {
+                // Only clear if the foreground is still our drawable — a
+                // newer applyEditTextUnderline() might have replaced it
+                // while this fade was running.
+                if (editText.getForeground() == existing) {
+                    editText.setForeground(null);
+                }
+            }
+        });
+        editText.setTag(R_ID_UNDERLINE_ANIM, anim);
+        anim.start();
+    }
+
+    /** Tag id used to stash the in-flight underline fade Animator on an
+     *  EditText, so a state change can cancel the previous fade before
+     *  starting a new one. R.id.* would be cleaner but this util mustn't
+     *  depend on app R — we use a stable hash of a unique key string. */
+    private static final int R_ID_UNDERLINE_ANIM =
+            "BackgroundUtil#underlineFadeAnim".hashCode();
+
+    private static void cancelUnderlineFade(android.widget.EditText editText) {
+        Object tag = editText.getTag(R_ID_UNDERLINE_ANIM);
+        if (tag instanceof android.animation.ObjectAnimator) {
+            ((android.animation.ObjectAnimator) tag).cancel();
+        }
+        editText.setTag(R_ID_UNDERLINE_ANIM, null);
+    }
+
+    /** Renders {@code inner} as a thin horizontal strip pixel-aligned with the
+     *  host EditText's native 9-patch underline. Position is recomputed on
+     *  every bounds change by inspecting the EditText's background
+     *  {@link android.graphics.drawable.InsetDrawable} — its child's bounds
+     *  are exactly the rectangle the native underline draws into, so width
+     *  + bottom edge match exactly. Falls back to the view bottom edge if
+     *  the background isn't an InsetDrawable (themed / custom EditText). */
+    private static final class BottomLineDrawable extends Drawable {
+        private final java.lang.ref.WeakReference<android.widget.EditText> hostRef;
+        private final GradientDrawable inner;
+        private final int strokeHeightPx;
+
+        BottomLineDrawable(android.widget.EditText host, GradientDrawable inner, int strokeHeightPx) {
+            this.hostRef = new java.lang.ref.WeakReference<>(host);
+            this.inner = inner;
+            this.strokeHeightPx = strokeHeightPx;
+        }
+
+        @Override
+        protected void onBoundsChange(android.graphics.Rect bounds) {
+            int lineLeft   = bounds.left;
+            int lineRight  = bounds.right;
+            int lineBottom = bounds.bottom;
+            android.widget.EditText et = hostRef.get();
+            if (et != null) {
+                android.graphics.drawable.Drawable bg = et.getBackground();
+                // Unwrap DrawableCompat.wrap() so we can reach the
+                // InsetDrawable even after DisplayUtil.tintView wrapped it.
+                // On API 23+ DrawableCompat.wrap returns the original
+                // drawable; on older platforms it returns an androidx
+                // WrappedDrawable that unwrap() handles transparently.
+                bg = androidx.core.graphics.drawable.DrawableCompat.unwrap(bg);
+                if (bg instanceof android.graphics.drawable.InsetDrawable) {
+                    android.graphics.drawable.Drawable child =
+                            ((android.graphics.drawable.InsetDrawable) bg).getDrawable();
+                    if (child != null) {
+                        android.graphics.Rect cb = child.getBounds();
+                        if (cb.width() > 0 && cb.height() > 0) {
+                            // child bounds are in the same coordinate space
+                            // as this drawable's bounds (InsetDrawable sets
+                            // child bounds = its own bounds - insets).
+                            lineLeft   = cb.left;
+                            lineRight  = cb.right;
+                            lineBottom = cb.bottom;
+                        }
+                    }
+                }
+            }
+            int lineTop = lineBottom - strokeHeightPx;
+            inner.setBounds(lineLeft, lineTop, lineRight, lineBottom);
+        }
+
+        @Override
+        public void draw(@androidx.annotation.NonNull android.graphics.Canvas canvas) {
+            inner.draw(canvas);
+        }
+
+        @Override public void setAlpha(int alpha) {
+            inner.setAlpha(alpha);
+            invalidateSelf();
+        }
+        @Override public int getAlpha() { return inner.getAlpha(); }
+        @Override public void setColorFilter(android.graphics.ColorFilter cf) {
+            inner.setColorFilter(cf);
+        }
+        @Override public int getOpacity() { return android.graphics.PixelFormat.TRANSLUCENT; }
+    }
+
+    /**
      * Paint a {@link com.google.android.material.tabs.TabLayout}'s indicator with
      * {@code bg}. PURE → solid indicator colour. GRADIENT → a {@link GradientDrawable}
      * used as the selected-tab indicator drawable (Material's TabLayout accepts a
