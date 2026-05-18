@@ -3,6 +3,8 @@
 /.idea/*
 .DS_Store
 /build
+**/build/
 /captures
 /.idea
 findbugs-android-exclude.xml
+.claude/settings.local.json
