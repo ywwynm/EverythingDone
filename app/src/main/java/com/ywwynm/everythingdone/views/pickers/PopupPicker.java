@@ -25,7 +25,15 @@ public abstract class PopupPicker {
 
     protected PopupWindow mPopupWindow;
     protected View mParent;
-    protected Object mAnchor;
+    /**
+     * The on-screen view this picker anchors to. Subclasses position the popup
+     * based on this view's location relative to {@link #mParent}: the same
+     * "compute anchor's screen coordinates, derive popup offset" path applies
+     * to ColorPicker (right-aligned to a toolbar menu item) and DateTimePicker
+     * (above a bottom-bar text button). The chosen Gravity flags and any
+     * fine-tuning constants stay subclass-private; mAnchor is just the "where".
+     */
+    protected View mAnchor;
     protected View mContentView;
     protected RecyclerView mRecyclerView;
 
@@ -55,9 +63,19 @@ public abstract class PopupPicker {
         mPopupWindow.setAnimationStyle(popupAnimStyle);
         mPopupWindow.setOutsideTouchable(true);
         mPopupWindow.setFocusable(true);
+        // Keep the soft keyboard visible when this popup is shown on top of
+        // an active EditText. INPUT_METHOD_NOT_NEEDED tells the framework
+        // "this popup doesn't participate in IME — don't change the IME's
+        // visibility because of me." Without this, setFocusable(true)
+        // forces the IME to hide as the popup grabs window focus, which on
+        // an edge-to-edge activity also re-triggers the bottom-bar inset
+        // chain and produces a visible flicker (IME drops, bottom bar
+        // drops, popup auto-dismisses mid-show). Matches the pre-edge-to-
+        // edge behaviour where the IME and these pickers happily coexisted.
+        mPopupWindow.setInputMethodMode(PopupWindow.INPUT_METHOD_NOT_NEEDED);
     }
 
-    public void setAnchor(Object anchor) {
+    public void setAnchor(View anchor) {
         mAnchor = anchor;
     }
 

@@ -70,6 +70,7 @@ public class HelpActivity extends EverythingDoneBaseActivity {
         mRecyclerView = f(R.id.rv_help);
         mRecyclerView.setAdapter(new HelpAdapter());
         mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        DisplayUtil.applyBottomInsetAsScrollPadding(mRecyclerView);
 
         mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
             final int color = ContextCompat.getColor(HelpActivity.this, R.color.blue_deep);

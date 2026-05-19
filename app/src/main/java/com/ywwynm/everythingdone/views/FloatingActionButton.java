@@ -50,6 +50,16 @@ public class FloatingActionButton extends com.google.android.material.floatingac
     }
 
     private int getMarginBottom() {
+        // Read the live LayoutParams instead of the XML-time 16dp constant —
+        // DisplayUtil.applyBottomInsetAsMargin adds the system-bar inset to
+        // the FAB's bottomMargin at runtime, so on devices with a gesture /
+        // 3-button nav bar the real margin is 16dp + insets.bottom. Using
+        // the constant caused hideToBottom() to under-translate by the inset
+        // height, leaving a sliver of FAB peeking above the nav bar.
+        android.view.ViewGroup.LayoutParams lp = getLayoutParams();
+        if (lp instanceof android.view.ViewGroup.MarginLayoutParams) {
+            return ((android.view.ViewGroup.MarginLayoutParams) lp).bottomMargin;
+        }
         return (int) (16 * getResources().getDisplayMetrics().density);
     }
 

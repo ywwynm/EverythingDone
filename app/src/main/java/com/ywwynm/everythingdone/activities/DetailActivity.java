@@ -1069,32 +1069,36 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
 
                     @Override
                     public void onKeyboardShow(int keyboardHeight) {
-                        if (mFlRoot.getPaddingBottom() == 0) {
-                            //set the padding of the contentView for the keyboard
-                            mFlRoot.setPadding(0, 0, 0, keyboardHeight);
-                            if (mRvCheckList == null || mRvCheckList.getVisibility() != View.VISIBLE) {
-                                int toScroll = DisplayUtil.getCursorY(mEtContent);
-                                toScroll += mEtTitle.getHeight();
-                                if (mRvImageAttachment != null && mRvImageAttachment.getVisibility() == View.VISIBLE) {
-                                    toScroll += mRvImageAttachment.getHeight();
-                                }
-                                final int fToScroll = toScroll;
-                                mScrollView.post(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        mScrollView.scrollTo(0, fToScroll - screenHeightDivide6);
-                                    }
-                                });
+                        // Padding is owned by applyBottomInsetAsPadding(mFlRoot)'s
+                        // decor-view inset chain (which uses max(navBar, ime) and
+                        // animates in lock-step with the IME). We must NOT call
+                        // setPadding here — the legacy onKeyboardHide setPadding(0)
+                        // path used to clobber the chain's navbar inset on every
+                        // IME→DialogFragment transition, leaving the bottom bar
+                        // sitting underneath the gesture / 3-button nav bar.
+                        // What this callback still does: auto-scroll the caret
+                        // into view when the IME opens — the chain handles inset
+                        // geometry but not "where the user is currently typing".
+                        if (mRvCheckList == null || mRvCheckList.getVisibility() != View.VISIBLE) {
+                            int toScroll = DisplayUtil.getCursorY(mEtContent);
+                            toScroll += mEtTitle.getHeight();
+                            if (mRvImageAttachment != null && mRvImageAttachment.getVisibility() == View.VISIBLE) {
+                                toScroll += mRvImageAttachment.getHeight();
                             }
+                            final int fToScroll = toScroll;
+                            mScrollView.post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    mScrollView.scrollTo(0, fToScroll - screenHeightDivide6);
+                                }
+                            });
                         }
                     }
 
                     @Override
                     public void onKeyboardHide() {
-                        if (mFlRoot.getPaddingBottom() != 0) {
-                            //reset the padding of the contentView
-                            mFlRoot.setPadding(0, 0, 0, 0);
-                        }
+                        // No-op — padding restoration is handled by the inset
+                        // chain. See note in onKeyboardShow.
                     }
                 });
         }
@@ -1333,6 +1337,13 @@ public final class DetailActivity extends EverythingDoneBaseActivity {
         } else if (itemId == R.id.act_check_list) {
             toggleCheckList();
         } else if (itemId == R.id.act_change_color) {
+            // Anchor the popup to this menu item's actual on-screen
+            // position. The change-color icon sits to the left of undo /
+            // redo / overflow in DetailActivity's actionbar, so without an
+            // explicit anchor the picker would open against the window
+            // edge (i.e. under the overflow dots) instead of under the
+            // icon the user tapped.
+            mColorPicker.setAnchor(findViewById(R.id.act_change_color));
             mColorPicker.show();
         } else if (itemId == R.id.act_set_as_private_thing) {
             togglePrivateThing();

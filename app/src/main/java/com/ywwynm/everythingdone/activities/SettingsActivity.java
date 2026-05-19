@@ -545,8 +545,10 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
         DisplayUtil.expandStatusBarViewAboveKitkat(f(R.id.view_status_bar));
         DisplayUtil.darkStatusBar(this);
 
-        EdgeEffectUtil.forScrollView((ScrollView) f(R.id.sv_settings),
+        ScrollView svSettings = f(R.id.sv_settings);
+        EdgeEffectUtil.forScrollView(svSettings,
                 ContextCompat.getColor(this, R.color.blue_deep));
+        DisplayUtil.applyBottomInsetAsScrollPadding(svSettings);
 
         initUiUserInterface();
         initUiRingtone();
@@ -1339,7 +1341,8 @@ public class SettingsActivity extends EverythingDoneBaseActivity {
                 PendingIntent pendingIntent = PendingIntent.getBroadcast(context,
                         0, intent, PendingIntent.FLAG_CANCEL_CURRENT | PendingIntent.FLAG_IMMUTABLE);
                 AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-                am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 1600, pendingIntent);
+                com.ywwynm.everythingdone.helpers.AlarmHelper.setExactAllowWhileIdleSafe(
+                        am, System.currentTimeMillis() + 1600, pendingIntent);
             }
         });
         cdf.show(getFragmentManager(), ChooserDialogFragment.TAG);

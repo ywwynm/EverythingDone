@@ -428,7 +428,8 @@ public class App extends Application {
         PendingIntent pendingIntent = PendingIntent.getActivity(context,
                 0, intent, PendingIntent.FLAG_CANCEL_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-        am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + time + 100, pendingIntent);
+        com.ywwynm.everythingdone.helpers.AlarmHelper.setExactAllowWhileIdleSafe(
+                am, System.currentTimeMillis() + time + 100, pendingIntent);
         Handler handler = new Handler(Looper.getMainLooper());
         handler.postDelayed(new Runnable() {
             @Override

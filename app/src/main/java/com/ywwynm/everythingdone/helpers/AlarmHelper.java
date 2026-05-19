@@ -164,7 +164,7 @@ public class AlarmHelper {
                 context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         ZonedDateTime dt = ZonedDateTime.now().plusDays(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, dt.toInstant().toEpochMilli(), pendingIntent);
+        setExactAllowWhileIdleSafe(alarmManager, dt.toInstant().toEpochMilli(), pendingIntent);
     }
 
     public static void tryToCreateDailyTodoAlarm(Context context) {
@@ -186,7 +186,7 @@ public class AlarmHelper {
             dt = dt.plusDays(1);
         }
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, dt.toInstant().toEpochMilli(), pendingIntent);
+        setExactAllowWhileIdleSafe(alarmManager, dt.toInstant().toEpochMilli(), pendingIntent);
         Log.d(TAG, "daily todo alarm is created");
     }
 
@@ -212,8 +212,52 @@ public class AlarmHelper {
             am.setAlarmClock(buildAlarmClockInfo(context, notifyTime), fireIntent);
         } catch (SecurityException e) {
             Log.w(TAG, "setAlarmClock denied; falling back to setExactAndAllowWhileIdle", e);
-            am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, notifyTime, fireIntent);
+            setExactAllowWhileIdleSafe(am, notifyTime, fireIntent);
         }
+    }
+
+    /**
+     * Schedule an exact-and-allow-while-idle alarm that survives Android's
+     * exact-alarm permission model.
+     *
+     * <ul>
+     *   <li>API ≤ 30: {@code setExactAndAllowWhileIdle} is always available.</li>
+     *   <li>API 31+ (Android 12): app must hold {@code SCHEDULE_EXACT_ALARM};
+     *       the user can revoke it at any time. We gate on
+     *       {@link AlarmManager#canScheduleExactAlarms()} and fall back to
+     *       the inexact {@code setAndAllowWhileIdle} if it returns false —
+     *       the alarm still fires, just within a window the system chooses.</li>
+     *   <li>API 33+ (Android 13): {@code USE_EXACT_ALARM} permission grants
+     *       this implicitly for calendar / clock-style apps (declared in
+     *       manifest); {@code canScheduleExactAlarms()} returns true and we
+     *       take the exact path.</li>
+     * </ul>
+     *
+     * Wrapped in a try/catch as a final safety net because some OEM ROMs
+     * (e.g. HarmonyOS) report {@code canScheduleExactAlarms = true} but
+     * still throw {@link SecurityException} at the actual call site.
+     */
+    public static void setExactAllowWhileIdleSafe(
+            AlarmManager am, long triggerAtMillis, PendingIntent operation) {
+        if (am == null || operation == null) return;
+        boolean canExact = android.os.Build.VERSION.SDK_INT
+                < android.os.Build.VERSION_CODES.S
+                || am.canScheduleExactAlarms();
+        if (canExact) {
+            try {
+                am.setExactAndAllowWhileIdle(
+                        AlarmManager.RTC_WAKEUP, triggerAtMillis, operation);
+                return;
+            } catch (SecurityException e) {
+                Log.w(TAG, "setExactAndAllowWhileIdle denied at call site; "
+                        + "falling back to setAndAllowWhileIdle", e);
+            }
+        }
+        // Inexact fallback — fires within a system-chosen window, not at the
+        // millisecond. Acceptable for the daily-update / daily-todo cadence
+        // and for reminders that already went through setAlarmClock first.
+        am.setAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP, triggerAtMillis, operation);
     }
 
     private static AlarmManager.AlarmClockInfo buildAlarmClockInfo(

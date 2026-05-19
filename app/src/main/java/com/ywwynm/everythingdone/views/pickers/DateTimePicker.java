@@ -181,22 +181,32 @@ public class DateTimePicker extends PopupPicker {
         View anchor = (View) mAnchor;
         anchor.getLocationInWindow(pos);
         if (mType == Def.PickerType.AFTER_TIME) {
-            if (DisplayUtil.isInMultiWindow(mActivity)) {
-                View decor = mActivity.getWindow().getDecorView();
-                if (decor.getWidth() == display.x) {
-                    // portrait multi-window
-                    int[] location = new int[2];
-                    decor.getLocationOnScreen(location);
-                    if (location[1] == 0) {
-                        displayHeight -= (display.y - decor.getHeight());
-                    } else {
-                        displayHeight -= location[1];
-                    }
-                }
+            // popup bottom lands at the anchor's vertical centre.
+            //
+            // Why subtract navBottom: PopupWindow is created without
+            // FLAG_LAYOUT_IN_SCREEN, so WindowManager insets the popup's
+            // own window by the bottom system bars (gesture / 3-button
+            // nav) — meaning the popup's reference "bottom" is
+            // `mParent.getHeight() - navBottom`, not `mParent.getHeight()`.
+            // Without the subtraction, the popup ends up navBottom px
+            // higher than intended (popup.bottom lands at anchor.top
+            // instead of anchor.center). Legacy non-edge-to-edge windows
+            // had `mParent.getHeight() == display.height - navbar`
+            // already, so the old formula happened to land in the right
+            // spot; in edge-to-edge `mParent.getHeight() == display.height`
+            // and we have to compensate explicitly.
+            androidx.core.view.WindowInsetsCompat insets =
+                    androidx.core.view.ViewCompat.getRootWindowInsets(mParent);
+            int navBottom = 0;
+            if (insets != null) {
+                navBottom = insets.getInsets(
+                        androidx.core.view.WindowInsetsCompat.Type.systemBars()
+                                | androidx.core.view.WindowInsetsCompat.Type
+                                        .displayCutout()).bottom;
             }
             mPopupWindow.showAtLocation(mParent, Gravity.BOTTOM | Gravity.START,
                     (int) (pos[0] - mScreenDensity * 16),
-                    displayHeight - pos[1] - anchor.getHeight());
+                    mParent.getHeight() - navBottom - pos[1] - anchor.getHeight() / 2);
         } else {
             mPopupWindow.showAtLocation(mParent, Gravity.TOP | Gravity.START,
                     pos[0] - DisplayUtil.getStatusbarHeight(mActivity),

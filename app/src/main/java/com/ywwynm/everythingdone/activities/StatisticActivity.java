@@ -116,6 +116,7 @@ public class StatisticActivity extends EverythingDoneBaseActivity {
     protected void initUI() {
         EdgeEffectUtil.forScrollView(mScrollView,
                 ContextCompat.getColor(this, R.color.blue_grey_deep_grey));
+        DisplayUtil.applyBottomInsetAsScrollPadding(mScrollView);
 
         initHeaderUI();
         initStartFromUI();

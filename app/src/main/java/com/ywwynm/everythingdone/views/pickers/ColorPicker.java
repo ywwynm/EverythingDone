@@ -53,6 +53,24 @@ public class ColorPicker extends PopupPicker {
     private Runnable mOnChangeOrientationListener;
 
     /**
+     * Optional {@link Drawable} that gets re-tinted to track the picked colour.
+     * Currently used by ThingsActivity's search-mode picker, where the
+     * toolbar icon's drawable should reflect the active hue bucket.
+     *
+     * <p>Distinct from {@link #mAnchor}: mAnchor controls <em>where</em> the
+     * popup appears; mTintTarget controls <em>what gets re-coloured</em> on
+     * each pick. The two used to overload a single Object field, which is why
+     * older callers passed a Drawable to {@code setAnchor} — that wiring is
+     * being unwound.
+     */
+    private Drawable mTintTarget;
+
+    /** See {@link #mTintTarget}. */
+    public void setTintTarget(Drawable target) {
+        mTintTarget = target;
+    }
+
+    /**
      * Representative colours for the 8 hue buckets used in
      * {@link Def.PickerType#HUE_BUCKET} mode. Index order matches
      * {@code BackgroundUtil.HUE_BUCKET_RED..GREY - 1} (i.e. RED=0, ORANGE=1, …
@@ -194,6 +212,25 @@ public class ColorPicker extends PopupPicker {
             }
         }
 
+        // When an anchor view is registered, align the popup's end edge to the
+        // anchor's end edge (in window coordinates) instead of the window's
+        // own end. Needed wherever the picker's trigger icon isn't the
+        // rightmost action — e.g. DetailActivity's actionbar where it sits
+        // to the left of undo / redo / overflow. On screens where the icon
+        // is already the last item (ThingsActivity search), this lands at
+        // xOffset = 0, same as the legacy "pin to window end" path.
+        //
+        // Uses getLocationInWindow + mParent.getWidth() rather than
+        // getLocationOnScreen + display.x so multi-window splits compute
+        // correctly: the popup is positioned relative to its parent window,
+        // not the whole display.
+        if (mAnchor != null && mAnchor.isAttachedToWindow()) {
+            int[] anchorLoc = new int[2];
+            mAnchor.getLocationInWindow(anchorLoc);
+            int anchorRightInWindow = anchorLoc[0] + mAnchor.getWidth();
+            xOffset = mParent.getWidth() - anchorRightInWindow;
+        }
+
         mPopupWindow.showAtLocation(mParent, Gravity.TOP | Gravity.END,
                 xOffset, DisplayUtil.getStatusbarHeight(this.mActivity));
     }
@@ -308,21 +345,21 @@ public class ColorPicker extends PopupPicker {
         // Phase 8: pick may have changed mode (PURE↔GRADIENT) — refresh the
         // bottom orientation button visibility accordingly.
         refreshOrientationBt();
-        if (mAnchor != null) {
+        if (mTintTarget != null) {
             updateAnchor();
         }
     }
 
     @Override
     public void updateAnchor() {
-        if (mAnchor == null) return;
+        if (mTintTarget == null) return;
         if (mType == Def.PickerType.COLOR_HAVE_ALL
                 || mType == Def.PickerType.HUE_BUCKET) {
             int filterColor = getPickedColor();
             // -1979711488 ≈ 0x8A000000 is the "all colours" sentinel; for HUE_BUCKET
-            // the anchor should appear dark/neutral when nothing is filtering, then
-            // tint to the picked bucket's representative when a bucket is chosen.
-            ((Drawable) mAnchor).mutate().setColorFilter(filterColor, PorterDuff.Mode.SRC_ATOP);
+            // the target icon should appear dark/neutral when nothing is filtering,
+            // then tint to the picked bucket's representative when a bucket is chosen.
+            mTintTarget.mutate().setColorFilter(filterColor, PorterDuff.Mode.SRC_ATOP);
         }
     }
 

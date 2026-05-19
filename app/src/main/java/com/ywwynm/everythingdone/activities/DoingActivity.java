@@ -244,6 +244,7 @@ public class DoingActivity extends EverythingDoneBaseActivity {
 
         initBackground();
         initBottomButtons();
+        DisplayUtil.applyBottomInsetAsScrollPadding(mRecyclerView);
     }
 
     private void initBackground() {

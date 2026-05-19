@@ -133,6 +133,7 @@ public class BaseThingWidgetConfiguration extends EverythingDoneBaseActivity {
         DisplayUtil.darkStatusBar(this);
 
         mLlConfig.setBackgroundColor(Color.parseColor("#66000000"));
+        DisplayUtil.applyBottomInsetAsScrollPadding(mRecyclerView);
 
         if (!PermissionUtil.hasStoragePermission(this)
                 && PermissionUtil.shouldRequestPermissionWhenLoadingThings(mThings)) {

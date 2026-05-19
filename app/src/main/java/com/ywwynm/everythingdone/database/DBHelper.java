@@ -108,6 +108,12 @@ public class DBHelper extends SQLiteOpenHelper {
                 + Def.Database.COLUMN_SHOULD_ASM_DOING         + " integer not null default 0"
             + ")";
 
+    // Phase 3+: the things table grew a 12th column `background TEXT` (added
+    // in DB v9). Fresh installs run onCreate() with the 12-column schema, so
+    // this INSERT must provide 12 values — trailing NULL means Thing(Cursor)
+    // falls back to ThingBackground.pure(color) for this header row, which
+    // matches plan §4.1.8 ("header row's color = -14784871 is a valid PURE
+    // colour, background field NULL is fine").
     private static final String SQL_INSERT_HEADER = "insert into "
             + Def.Database.TABLE_THINGS + " values("
             + "'7', '"
@@ -116,7 +122,7 @@ public class DBHelper extends SQLiteOpenHelper {
             + Thing.UNDERWAY
             + "', '-14784871', 'Let this be my last words', 'I trust thy love', 'to QQ', '7', '"
             + System.currentTimeMillis() + "', '"
-            + System.currentTimeMillis() + "', '0')";
+            + System.currentTimeMillis() + "', '0', NULL)";
 
     private static final String SQL_ADD_COLUMN_ALPHA_APP_WIDGET = "alter table "
             + Def.Database.TABLE_APP_WIDGET

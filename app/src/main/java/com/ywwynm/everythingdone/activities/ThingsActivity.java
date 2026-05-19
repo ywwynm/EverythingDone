@@ -510,7 +510,14 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         if (App.isSearching) {
             getMenuInflater().inflate(R.menu.menu_search, menu);
-            mColorPicker.setAnchor(menu.findItem(R.id.act_select_color).getIcon());
+            // Tint target can be wired right after inflate — the icon Drawable
+            // already exists. Anchor View must be looked up at show time
+            // instead (see onOptionsItemSelected) because the menu item's
+            // backing View isn't reliably attached / laid out yet inside
+            // onCreateOptionsMenu, especially under multi-window where the
+            // toolbar measures lazily; caching a stale View here meant the
+            // popup opened against (0, 0) instead of the actual icon.
+            mColorPicker.setTintTarget(menu.findItem(R.id.act_select_color).getIcon());
             mColorPicker.updateAnchor();
             return true;
         }
@@ -557,6 +564,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             AppWidgetHelper.updateAllThingsListAppWidgets(mApp);
         } else if (itemId == R.id.act_select_color) {
             dismissSnackbars();
+            mColorPicker.setAnchor(findViewById(R.id.act_select_color));
             mColorPicker.show();
         }
         return super.onOptionsItemSelected(item);
@@ -1116,6 +1124,16 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
     protected void initUI() {
         DisplayUtil.darkStatusBar(this);
 
+        // Edge-to-edge: let the window extend behind the status bar AND the
+        // gesture / 3-button navigation bar. Without this the decor view
+        // consumes the system-bar insets as its own padding and the layout
+        // can't fill the screen — the new-thing reveal animation and the
+        // list scroll then stop short of the nav bar on devices that report
+        // a non-zero bottom inset (Samsung foldables, Huawei tablets, etc.).
+        // Bottom-anchored views (FAB, bottom bar) get their inset margin /
+        // padding back via DisplayUtil.applyBottomInset*AsMargin/Padding.
+        DisplayUtil.expandLayoutToStatusBarAboveLollipop(this);
+
         View statusbar = f(R.id.view_status_bar);
         DrawerLayout.LayoutParams dlp1 = (DrawerLayout.LayoutParams)
                 statusbar.getLayoutParams();
@@ -1158,6 +1176,7 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         }
 
         DisplayUtil.applyBottomInsetAsMargin(mFab);
+        DisplayUtil.applyBottomInsetAsScrollPadding(mRecyclerView);
     }
 
     private void initRecyclerViewUi() {
@@ -1308,6 +1327,17 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         mFab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                // Hard guard: ignore re-clicks while the create-new-thing
+                // animation is in flight. mFab.setClickable(false) alone is
+                // not enough because FAB internals (showFromBottom on
+                // snackbar dismiss, scroll listeners) flip clickable back to
+                // true mid-animation, and the ShiningBorder is a single
+                // shared instance — a second click during the animation
+                // re-fires startAnimation / re-installs the end listener and
+                // leaves the border in a broken state.
+                if (mIsRevealAnimPlaying) {
+                    return;
+                }
                 mIsRevealAnimPlaying = true;
 
                 dismissSnackbars();
@@ -1429,10 +1459,20 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
         // (e.g. things_show animation) is overridden here.
         holder.cv.clearAnimation();
         holder.cv.setVisibility(View.INVISIBLE);
+        // Lock the FAB while the new-card animation plays. The card-scoped
+        // ShiningBorder writes to the single shared mShiningBorder instance,
+        // so a second FAB tap mid-animation would clobber its path / colour /
+        // listener and leave the trace half-rendered. The reveal path is
+        // safer but still suffers visually when a second animation stacks on
+        // top. mIsRevealAnimPlaying is honoured by the FAB onClick guard.
+        mIsRevealAnimPlaying = true;
         holder.cv.postDelayed(new Runnable() {
             @Override
             public void run() {
-                if (holder.cv.getWindowToken() == null) return;
+                if (holder.cv.getWindowToken() == null) {
+                    mIsRevealAnimPlaying = false;
+                    return;
+                }
                 // Defensive: keep it hidden until the chosen animation actually displays it.
                 holder.cv.clearAnimation();
                 holder.cv.setVisibility(View.INVISIBLE);
@@ -1505,6 +1545,8 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
                 // Restore ShiningBorder defaults so the full-screen FAB animation
                 // (which doesn't touch these properties) finds them as-shipped.
                 restoreShiningBorderDefaults();
+                // Unlock the FAB: new-card animation has finished.
+                mIsRevealAnimPlaying = false;
             }
         });
         mShiningBorder.setVisibility(View.VISIBLE);
@@ -1551,6 +1593,12 @@ public final class ThingsActivity extends EverythingDoneBaseActivity {
             public void onAnimationCancel(Animator a) {
                 card.setAlpha(1f);
                 card.setVisibility(View.VISIBLE);
+                mIsRevealAnimPlaying = false;
+            }
+            @Override
+            public void onAnimationEnd(Animator a) {
+                // Unlock the FAB once the new-card reveal has finished.
+                mIsRevealAnimPlaying = false;
             }
         });
         reveal.start();

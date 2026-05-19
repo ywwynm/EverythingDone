@@ -1,6 +1,8 @@
 package com.ywwynm.everythingdone.views;
 
 import androidx.annotation.StringRes;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -34,6 +36,10 @@ public class Snackbar {
     private App mApp;
     private int mType;
     private float mHeight;
+    /** True between {@link #show()} and {@link #dismiss()}. Replaces the
+     *  old translation-based check after the hidden-rest position became
+     *  dynamic (depends on the current bottom system-bar inset). */
+    private boolean mIsShowing;
 
     private Thread mHideThread;
 
@@ -84,15 +90,31 @@ public class Snackbar {
             mBindingFab.raise(mHeight);
         }
 
+        // Edge-to-edge: read the current gesture / 3-button nav-bar inset and
+        // both push the Snackbar up by that amount (so it sits above the nav
+        // bar) and extend the hidden-state offset by it (so dismiss really
+        // slides off-screen, not just down to the nav bar where a strip would
+        // peek through).
+        int insetBottom = readBottomSystemInset();
         if (mContentView.getParent() == null) {
             FrameLayout.LayoutParams flp = new FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, (int) mHeight);
             flp.gravity = Gravity.BOTTOM;
+            flp.bottomMargin = insetBottom;
             mTargetParent.addView(mContentView, flp);
+        } else {
+            // Re-attached / re-shown — re-sync the bottom margin in case the
+            // inset changed (rotation, multi-window, gesture-bar toggle).
+            ViewGroup.LayoutParams lp = mContentView.getLayoutParams();
+            if (lp instanceof FrameLayout.LayoutParams) {
+                ((FrameLayout.LayoutParams) lp).bottomMargin = insetBottom;
+                mContentView.setLayoutParams(lp);
+            }
         }
 
-        mContentView.setTranslationY(mHeight);
+        mContentView.setTranslationY(mHeight + insetBottom);
         mContentView.animate().translationY(0).setDuration(200).start();
+        mIsShowing = true;
 
         if (mType == NORMAL) {
             mTargetParent.postDelayed(mHideThread, 1200 + 160);
@@ -101,7 +123,10 @@ public class Snackbar {
 
     public void dismiss() {
         try {
-            mContentView.animate().translationY(mHeight).setDuration(200).start();
+            mIsShowing = false;
+            int insetBottom = readBottomSystemInset();
+            mContentView.animate().translationY(mHeight + insetBottom)
+                    .setDuration(200).start();
             //mPopupWindow.dismiss();
             if (mType == NORMAL && mHideThread != null) {
                 mHideThread.interrupt();
@@ -116,10 +141,20 @@ public class Snackbar {
     }
 
     public boolean isShowing() {
-        if (mContentView.getParent() == null) {
-            return false;
-        }
-        return mContentView.getTranslationY() != mHeight;
+        // Use the explicit flag rather than translationY: the hidden rest
+        // position is now dynamic (mHeight + bottom inset), so a plain
+        // numeric comparison would mis-fire on inset changes.
+        return mIsShowing && mContentView.getParent() != null;
+    }
+
+    /** Read the current bottom system-bar inset from the target parent's
+     *  attached root window. Returns 0 before the view is attached or when
+     *  the platform reports no insets (rare, mostly older OEMs). */
+    private int readBottomSystemInset() {
+        WindowInsetsCompat insets = ViewCompat.getRootWindowInsets(mTargetParent);
+        if (insets == null) return 0;
+        return insets.getInsets(WindowInsetsCompat.Type.systemBars()
+                | WindowInsetsCompat.Type.displayCutout()).bottom;
     }
 
     public void setUndoListener(View.OnClickListener onClickListener) {

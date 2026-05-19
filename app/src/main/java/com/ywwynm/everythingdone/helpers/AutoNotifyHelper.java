@@ -61,7 +61,7 @@ public class AutoNotifyHelper {
         PendingIntent pendingIntent = PendingIntent.getBroadcast(context, (int) id, intent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         long time = DateTimeUtil.getActualTimeAfterSomeTime(getAutoNotifyPreferences(context));
-        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, time, pendingIntent);
+        AlarmHelper.setExactAllowWhileIdleSafe(alarmManager, time, pendingIntent);
     }
 
     private static boolean shouldCreateAutoNotify(Thing thing, Context context) {

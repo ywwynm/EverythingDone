@@ -8,8 +8,16 @@
     <androidx.drawerlayout.widget.DrawerLayout
         android:id="@+id/drawer_layout"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:fitsSystemWindows="true">
+        android:layout_height="match_parent">
+        <!-- NOTE: deliberately NO fitsSystemWindows="true" here. DrawerLayout's
+             default fitsSystemWindows handler CONSUMES the insets
+             (`insets.consumeSystemWindowInsets()` in its onApplyWindowInsets),
+             which silently swallows the bottom-bar / IME insets before any
+             child can read them — that's why the FAB used to sit under the
+             gesture bar and the bottom-bar slid behind the keyboard. The
+             status bar is sized explicitly via view_status_bar +
+             DisplayUtil.expandStatusBarViewAboveKitkat below, so the
+             DrawerLayout's own status-bar tinting isn't needed. -->
 
         <View
             android:id="@+id/view_status_bar"
