@@ -196,6 +196,12 @@ These are not choices — Kotlin's syntax forces them.
 | `s.charAt(i)` on `String` | `s[i]` — Kotlin's `String` is `kotlin.String`, not `java.lang.String`; `.charAt(i)` is unresolved. Use indexed access. Behaviour identical. |
 | `s.split(regex)` (Java's regex-based split) | `s.split(regex.toRegex())` returning `List<String>`. **Important**: Kotlin's `String.split(String)` overload is **literal split, not regex** — using it silently changes behaviour. Always wrap the delimiter in `.toRegex()` when the Java original used `String.split`. If the call site needs `String[]`, follow with `.toTypedArray()` (gives `Array<String>` — invariance prevents declaring as `Array<String?>?`, so let the type infer at local-var sites). |
 | `Integer.MAX_VALUE`, `Integer.MIN_VALUE`, `Long.MAX_VALUE`, etc. | `Int.MAX_VALUE`, `Int.MIN_VALUE`, `Long.MAX_VALUE`. Java wrapper class names map to Kotlin primitive companion-style constants; same JVM constant pool entry, identical behaviour. Same applies to `Float`, `Double`, `Short`, `Byte`. |
+| `String.valueOf(x)` where `x` is `int`, `long`, etc. | `x.toString()`. Kotlin's `kotlin.String` companion does **not** re-export Java's static `valueOf(int)` — calling `String.valueOf(int)` from Kotlin source is unresolved. Use the primitive's `.toString()` extension. Same JVM output. |
+| `@IntDef({A, B, C})` where A/B/C are constants in this class | `@IntDef(0, 1, 2)` using integer **literals**, not symbol references. When the constants live in the same class's `companion object` and the annotation class is **also a nested member**, Kotlin's parser cannot resolve the forward reference and emits a misleading "val keyword is missing in annotation parameter" error. Hard-coding the int values is the simplest workaround. **Lose**: rename refactors no longer flow through the IntDef. Acceptable for goal A (annotation is metadata-only). |
+| Nested annotation class inside a non-trivial class body | Place at end of class body (after methods, before `companion object`). Placing it **before** other class members (e.g. before constructors) confuses Kotlin's parser and produces "Expecting member declaration" errors on the next member. |
+| `override fun equals(o: Any?)` | `override fun equals(other: Any?)` — Kotlin's `Any.equals` parameter is named `other`. Using a different name (`o`, `obj`, `that`) emits a warning. Rename mechanically. |
+| Java getter call from Kotlin source (`obj.getFoo()`) when `Foo`'s field has been translated to a Kotlin property | **Must** become `obj.foo` (property syntax). Kotlin auto-generates `getFoo()` for Java consumers but does **not** expose it as a callable method from Kotlin source. This is a **hard requirement**, not the C-class deferred preference — see [§7.3 POJO accessor strategy](#73-pojo-accessor-strategy-clarified-before-group-2) for which fields qualify. Java callers of the same field continue to use `getFoo()` unchanged. |
+| Kotlin property whose setter has side effects (other field assignment) | Cannot use Kotlin auto-property because the auto-generated setter would conflict with the side-effect setter; trying to define both yields "Platform declaration clash: same JVM signature `getFoo()`". **Workaround**: use a private backing field `_foo` + explicit `fun getFoo()` and `fun setFoo(value: Foo)` methods. Java callers see same signature as before. Kotlin callers must call `obj.getFoo()` / `obj.setFoo(v)` (method form, not property) — but this is unique to the side-effect fields, the bulk of POJOs stay on Option 3 property syntax. Example: `Thing.color` and `Thing.background` cross-sync each other; both moved to `_color` / `_background` + explicit accessors. |
 
 ### 3.10 Performance hot-path constraints
 
@@ -360,6 +366,44 @@ A group ships when all required V-levels pass and the user OKs the
 visual diff report.
 
 ---
+
+## 7.3 POJO accessor strategy (clarified before Group 2)
+
+The C-class deferral in §3.6 covers **call-site** rewrites
+(`obj.getFoo()` → `obj.foo`). The **declaration-site** translation
+of `private long id; public long getId() { return id; } public void
+setId(long id) { this.id = id; }` is a separate question — and
+mechanical translation has two plausible answers:
+
+- **Option 1 (mechanical)**: explicit `private var id: Long = 0`
+  + `fun getId(): Long = id` + `fun setId(id: Long) { this.id = id }`.
+  Preserves textual mapping line-by-line. Verbose: ~3 LoC per field
+  instead of 1.
+- **Option 3 (Kotlin property)**: `var id: Long = 0`. The Kotlin
+  compiler emits the same bytecode as Java's `private field +
+  public getter + public setter`. Java callers `obj.getId()` /
+  `obj.setId(x)` continue to compile unchanged.
+
+**Rule**: pick by the Java field-naming convention of the package.
+
+- If the field name **matches the JavaBean getter** (e.g. Java
+  `private long id` + `getId()`) — use **Option 3**. The Kotlin
+  property name is `id`, the auto-generated getter is `getId()`;
+  identical JVM contract, ~70% LoC reduction. **model/ falls
+  here** — all fields are unprefixed.
+- If the field name uses an Android-style **`m` prefix** (e.g.
+  `private TextView mTvTitle` + `getTvTitle()` or no getter at
+  all) — use **Option 1**. Otherwise Kotlin would auto-generate
+  `getMTvTitle()`, breaking Java callers. (Workaround with
+  `@get:JvmName("getTvTitle")` exists but adds 2 lines per field,
+  defeating Option 3's benefit.) **activities/, fragments/,
+  views/, adapters/ fall here.**
+
+Audit trail: Option 3 still carries N1 information at the **type**
+level — `var s: String?` declares nullable, callers see same
+`getS(): String?` in Kotlin or `String` platform type in Java. The
+`!!` markers at deref sites are the same in both options. No
+audit loss.
 
 ## 7.4 N1 relaxation for local variables (clarified in Group 1)
 

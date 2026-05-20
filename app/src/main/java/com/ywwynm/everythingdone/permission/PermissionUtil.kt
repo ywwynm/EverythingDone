@@ -78,7 +78,7 @@ object PermissionUtil {
         var needsVideo = false
         var needsAudio = false
         for (thing in things!!) {
-            val attachment: String? = thing!!.getAttachment()
+            val attachment: String? = thing!!.attachment
             if (!AttachmentHelper.isValidForm(attachment)) continue
             val parts = attachment!!.split(AttachmentHelper.SIGNAL!!.toRegex()).toTypedArray()
             for (i in 1 until parts.size) {
@@ -139,7 +139,7 @@ object PermissionUtil {
     @JvmStatic
     fun shouldRequestPermissionWhenLoadingThings(things: List<Thing?>?): Boolean {
         for (thing in things!!) {
-            if (AttachmentHelper.isValidForm(thing!!.getAttachment())) {
+            if (AttachmentHelper.isValidForm(thing!!.attachment)) {
                 return true
             }
         }
