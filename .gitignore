@@ -8,3 +8,4 @@
 /.idea
 findbugs-android-exclude.xml
 .claude/settings.local.json
+memory/screenshots/
