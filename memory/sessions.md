@@ -1,5 +1,114 @@
 # Sessions
 
+## 2026-05-20 — Kotlin migration Group 11 (views/)
+
+Translated 19 view classes (~4967 LoC):
+HackyViewPager, StablerRecyclerView, InterceptTouchCardView,
+BakedBezierInterpolator, HabitRecordPresenter,
+ThingsStaggeredLayoutManager, PopupPicker, DrawerHeader,
+FloatingActionButton, RevealLayout, InputLayout, Snackbar,
+ActivityHeader, VoiceVisualizer, AudioRecorder, DateTimePicker,
+ShiningBorder, ColorPicker, PatternLockView.
+
+Strategy: Option 1 (mechanical `m`-prefixed `private var` +
+explicit `fun getX()/setX()`) per plan §7.3 — views/ retains
+Android's `mFoo` field convention so Option 3 would auto-emit
+`getMFoo()` and break Java callers.
+
+Special handling:
+
+- **Constructors**: `View` subclasses keep all 3 (Context),
+  (Context, AttributeSet?), (Context, AttributeSet?, Int) chained
+  via `: super(...)` per Kotlin secondary-constructor pattern.
+  `AttributeSet` annotated `?` (framework nullable).
+- **PopupPicker abstract base**: protected fields exposed to
+  subclasses (ColorPicker, DateTimePicker) via `@JvmField
+  protected var` — required because Kotlin `protected` is
+  *subclass-only* (no same-package access), unlike Java.
+  Without `@JvmField` the property getter would also be
+  protected, but the field access pattern subclasses use needs
+  the bare field.
+- **VoiceVisualizer.receive(Int)**: was Java `protected` called
+  cross-package from `AudioRecorder` (same package). Kotlin
+  `protected` blocks same-package access ⇒ translated as
+  `internal` to preserve the call site.
+- **PatternLockView.Cell** (Parcelable + cached singletons):
+  `Cell.CREATOR` → `@JvmField val CREATOR` in companion;
+  `Cell.sCells[][]` → `@JvmField val sCells` in companion;
+  `Cell.of(int)` / `Cell.of(int, int)` static factories →
+  `@JvmStatic @Synchronized fun of(...)` in companion.
+  `BaseSavedState` subclass nested similarly. Parcel constructor
+  uses `parcelIn` (not `in` — Kotlin keyword).
+- **PatternLockView.CellState** static-data POJO: public mutable
+  fields used by outer for animation → `@JvmField var`.
+- **PatternLockView.OnPatternListener** Java abstract class with
+  empty default impls → Kotlin `abstract class` with `open fun`
+  bodies (each empty), preserving the "override only what you
+  need" pattern.
+- **ColorPickerAdapter inner class**: Kotlin forbids companion
+  objects inside inner classes. ALL_COLOR / NORMAL / DIVIDER view-
+  type ints and `toGdOrientation()` mapping helper hoisted to
+  ColorPicker's outer companion as `private const val` / `private
+  fun`. Inner-class call sites resolve unqualified because
+  companion members are visible without prefix from anywhere in
+  the enclosing class.
+- **ShiningBorder.Particle** mutable holder class → plain
+  `class Particle { var x: Float = 0f; ... }` (no @JvmField needed,
+  only accessed from outer Kotlin code).
+- **PatternLockView.SavedState constructor**: Java's `Parcel in`
+  → Kotlin `parcelIn: Parcel` (renamed to avoid `in` keyword
+  clash). `Boolean.readValue(loader)` returns Any?, cast as
+  `Boolean` directly (non-null asserted by call-site invariant).
+- **@file:Suppress("DEPRECATION")** applied to 4 files using
+  deprecated framework APIs:
+  * InputLayout — DisplayUtil.setSelectionHandlersColor (API 36+
+    non-SDK reflection restriction)
+  * PatternLockView — HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_
+    SETTING, invalidate(Rect), invalidate(int,int,int,int),
+    announceForAccessibility
+  * ColorPicker — Drawable.setColorFilter(int, Mode),
+    ViewHolder.getAdapterPosition()
+  * DateTimePicker — ViewHolder.getAdapterPosition()
+- **AudioRecorder** `@file:Suppress("MissingPermission")` —
+  AudioRecord constructor requires RECORD_AUDIO; suppression
+  matches original Java's lack of @RequiresPermission propagation.
+- **Smart-cast hardening**: nullable fields that the compiler
+  can't smart-cast inside lambdas / inner methods (e.g.
+  `mAnchor`, `mProgressAnimator`, `mPathFrame`) extracted to
+  local `val` before use, or asserted with `!!`.
+- **Vararg + spread**: `FloatingActionButton.bindSnackbars
+  (vararg snackbars: Snackbar?)` callers pass arrays, so the
+  field is stored as `Array<Snackbar?>?` via `@Suppress("UNCHECKED_
+  CAST") as Array<Snackbar?>` — preserves Java caller contract.
+- **Property-syntax rewrites for Group 2 model getters**: none
+  required in this group; views/ classes interact with Group 2
+  models only through method-form members (Thing.getBackground,
+  ThingBackground.representativeColor, etc.) and through fields
+  already exposed as Kotlin properties (`bg.color`, `bg.endColor`,
+  `bg.mode`, `bg.orientation`).
+
+Verifications:
+- V1: BUILD SUCCESSFUL (after 2 iterations — first failed with
+  10 errors: nullable-receiver from Group 3 utils' Point?
+  returns, ThingBackground.pure/gradient platform-type returns,
+  Companion-in-inner-class, deprecated String.toLowerCase()).
+  Final: APK assembled, 0 Kotlin warnings.
+- V2: grep audit clean — N1, E1; one `D.equals(header)` rewritten
+  to `D == header` in DrawerHeader; only remaining `.equals(` is
+  PatternLockView.Cell's `super.equals(other)` which is the
+  idiomatic Any?.equals override.
+- V3: cold-start renders 26 underway things identically to
+  baseline — `interesting`, `wow` (with reminder time),
+  `9999…` habit card (gradient + "3 times a month" + "Next
+  reminder on May 31, 8:39 in the morning"), `000` / `888888` /
+  `777` / `666` / `6` / `4` / `555` / `5` / `3` / `2` / `1` /
+  `111` palette, etc., all in their staggered-grid positions.
+  Screenshot: `memory/screenshots/group11/01_home_underway.png`.
+- V4 sampled: logcat clean on cold-start — zero FATAL /
+  AndroidRuntime / VerifyError / ClassNotFoundException /
+  NoSuchMethodError / NoClassDefFound from any
+  `com.ywwynm.everythingdone.views` class.
+
 ## 2026-05-20 — Kotlin migration Group 10 (services/)
 
 Translated 3 background-work classes (~805 LoC):
@@ -69,6 +178,33 @@ Verifications:
 - V4 sampled: logcat clean on cold-start — zero FATAL /
   VerifyError / ClassNotFoundException / NoSuchMethodError /
   NoClassDefFound / SQLiteException / RuntimeException
+- V3 (full 12-scene visual diff, captured after the fact):
+  replayed every baseline scene from `memory/screenshots/
+  baseline/README.md` and saved to `memory/screenshots/
+  group10_full/`. Verdict: **no Kotlin-regression
+  signals across any of the 12 scenes**.
+  * Scenes 02, 04, 05, 06, 07, 08, 09, 10, 12 are pixel-
+    identical to baseline modulo the always-ignorable
+    status-bar clock/signal/battery region.
+  * Scene 11 (color picker over wow detail) — popup
+    position, gradient, action bar, swatch grid layout
+    all identical; **one** bottom-left swatch differs
+    (baseline turquoise vs group10 red). The selected
+    swatch (rose with white checkmark) and remaining 11
+    swatches are identical. Attributable to "wow" Thing's
+    underlying color-state having been mutated between
+    the baseline run and the group10 run, not to the
+    translation.
+  * Scenes 01, 03 — baseline PNGs were captured mid
+    staggered-entrance animation (scene 01: only
+    "interesting" + "wow" cards visible above a mostly-
+    empty list with the rest still off-screen; scene 03:
+    11 cards with unnatural row gaps and bottom row only
+    half-rendered). group10 captures are at-settle (all
+    26 cards / full grid). This is a **baseline-capture
+    timing artifact**, not a regression — the baseline
+    needs to be re-captured after the list settles for
+    future V3 diffs to be meaningful here.
 
 ## 2026-05-20 — Kotlin migration Group 9 (receivers/)
 

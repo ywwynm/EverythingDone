@@ -1,0 +1,147 @@
+package com.ywwynm.everythingdone.views
+
+import android.content.Context
+import androidx.recyclerview.widget.RecyclerView
+import android.util.AttributeSet
+import android.view.animation.AccelerateDecelerateInterpolator
+import android.view.animation.AccelerateInterpolator
+import android.view.animation.OvershootInterpolator
+
+import com.ywwynm.everythingdone.utils.DeviceUtil
+
+/**
+ * Created by ywwynm on 2015/8/16.
+ * Translated to Kotlin by ywwynm and Claude Opus 4.7 on 2026/5/20.
+ * A custom FloatingActionButton with more animation for appearing/disappearing.
+ * It can also attach to a RecyclerView and appear/disappear according to scrolling.
+ * Based on FloatingActionButton in Material Design Library.
+ */
+open class FloatingActionButton : com.google.android.material.floatingactionbutton.FloatingActionButton {
+
+    private var mAccelerateDecelerateInterpolator: AccelerateDecelerateInterpolator? = null
+    private var mAccelerateInterpolator: AccelerateInterpolator? = null
+    private var mOvershootInterpolator: OvershootInterpolator? = null
+
+    private var mOnScreen: Boolean = true
+    private var mShrunk: Boolean = false
+
+    private var mSnackbars: Array<Snackbar?>? = null
+
+    constructor(context: Context, attrs: AttributeSet?, defStyleAttr: Int) : super(context, attrs, defStyleAttr) {
+        init()
+    }
+
+    constructor(context: Context) : super(context) {
+        init()
+    }
+
+    constructor(context: Context, attrs: AttributeSet?) : super(context, attrs) {
+        init()
+    }
+
+    private fun init() {
+        mAccelerateDecelerateInterpolator = AccelerateDecelerateInterpolator()
+        mAccelerateInterpolator = AccelerateInterpolator()
+        mOvershootInterpolator = OvershootInterpolator()
+    }
+
+    private fun getMarginBottom(): Int {
+        // Read the live LayoutParams instead of the XML-time 16dp constant —
+        // DisplayUtil.applyBottomInsetAsMargin adds the system-bar inset to
+        // the FAB's bottomMargin at runtime, so on devices with a gesture /
+        // 3-button nav bar the real margin is 16dp + insets.bottom. Using
+        // the constant caused hideToBottom() to under-translate by the inset
+        // height, leaving a sliver of FAB peeking above the nav bar.
+        val lp: android.view.ViewGroup.LayoutParams? = getLayoutParams()
+        if (lp is android.view.ViewGroup.MarginLayoutParams) {
+            return lp.bottomMargin
+        }
+        return (16 * getResources()!!.getDisplayMetrics()!!.density).toInt()
+    }
+
+    fun bindSnackbars(vararg snackbars: Snackbar?) {
+        @Suppress("UNCHECKED_CAST")
+        mSnackbars = snackbars as Array<Snackbar?>
+    }
+
+    fun attachToRecyclerView(recyclerView: RecyclerView) {
+        recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                if (dy > 0) {
+                    hideToBottom()
+                } else {
+                    showFromBottom()
+                }
+            }
+        })
+    }
+
+    fun raise(y: Float) {
+        animate()!!.translationY(-y).setInterpolator(null).setDuration(200)
+    }
+
+    fun fall() {
+        animate()!!.translationY(0f).setInterpolator(null).setDuration(200)
+    }
+
+    fun spread() {
+        showFromBottom()
+        if (mShrunk) {
+            animate()!!.scaleX(1.0f).setInterpolator(mOvershootInterpolator).setDuration(200)
+            animate()!!.scaleY(1.0f).setInterpolator(mOvershootInterpolator).setDuration(200)
+            setClickable(true)
+            mShrunk = false
+        }
+    }
+
+    fun shrink() {
+        if (!mShrunk) {
+            setClickable(false)
+            animate()!!.scaleX(0f).setInterpolator(mAccelerateInterpolator).setDuration(160)
+            animate()!!.scaleY(0f).setInterpolator(mAccelerateInterpolator).setDuration(160)
+            mShrunk = true
+        }
+    }
+
+    fun shrinkWithoutAnim() {
+        if (!mShrunk) {
+            setClickable(false)
+            setScaleX(0f)
+            setScaleY(0f)
+            mShrunk = true
+        }
+    }
+
+    fun showFromBottom() {
+        if (!mOnScreen) {
+            animate()!!.translationY(if (isSnackbarShowing()) -mSnackbars!![0]!!.getHeight().toFloat() else 0f)
+                    .setInterpolator(mAccelerateDecelerateInterpolator).setDuration(200)
+            setClickable(true)
+            mOnScreen = true
+        }
+    }
+
+    fun hideToBottom() {
+        if (mOnScreen) {
+            setClickable(false)
+            animate()!!.translationY((getHeight() + getMarginBottom()).toFloat())
+                    .setInterpolator(mAccelerateDecelerateInterpolator).setDuration(200)
+            mOnScreen = false
+        }
+    }
+
+    private fun isSnackbarShowing(): Boolean {
+        val snackbars: Array<Snackbar?> = mSnackbars ?: return false
+        for (snackbar in snackbars) {
+            if (snackbar != null && snackbar.isShowing()) {
+                return true
+            }
+        }
+        return false
+    }
+
+    companion object {
+        const val TAG: String = "FloatingActionButton"
+    }
+}
