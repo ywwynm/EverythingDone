@@ -1,5 +1,86 @@
 # Sessions
 
+## 2026-05-20 — Kotlin migration Group 8 (appwidgets/)
+
+Translated 17 widget files (~2301 LoC):
+- root/: AppWidgetHelper (1104 LoC), CheckUpcomingWidget,
+  CreateWidget
+- list/: ThingsListWidget, ThingsListWidgetService,
+  ThingsListWidgetConfiguration
+- single/: BaseThingWidget, BaseThingWidgetConfiguration
+  (421 LoC), ChecklistWidgetService, ThingWidget{Tiny/Small/
+  Middle/Large}, ThingWidgetConfiguration{Tiny/Small/Middle/
+  Large}
+
+Pattern split:
+- AppWidgetHelper → `object` (pure-static utility)
+- 3 simple `AppWidgetProvider` subclasses (CheckUpcomingWidget,
+  CreateWidget, ThingsListWidget) → `open class`
+- BaseThingWidget → `abstract class` with abstract
+  `getTag(): String?`; 4 size subclasses just override `getTag`
+- 4 size subclasses + 4 ThingWidgetConfiguration size
+  subclasses each override one abstract method returning a
+  literal value
+- 2 RemoteViewsService classes (ThingsListWidgetService,
+  ChecklistWidgetService) with nested
+  `class … : RemoteViewsFactory`
+- ThingsListWidgetConfiguration → `AppCompatActivity`
+- BaseThingWidgetConfiguration (421 LoC) →
+  `EverythingDoneBaseActivity`-derived, with inner
+  `ThingsAdapter` (extends BaseThingsAdapter, holds
+  `inner class Holder`) and several `object :` listeners
+
+Special handling:
+
+- Abstract Java method `protected String getTag()` →
+  `protected abstract fun getTag(): String?` and subclasses
+  return non-null literals. N1 nullable return type
+  doesn't restrict subclass body.
+- Abstract raw `Class` return → `Class<*>?`. Used in
+  ThingWidgetConfiguration*/ThingWidget* size variants.
+- `EverythingDoneBaseActivity` (still Java) extends
+  ComponentActivity; Kotlin sees `getOnBackPressedDispatcher()`
+  only via property syntax → use `onBackPressedDispatcher`.
+  Initial draft used method form → compile error at V1.
+- Inside `object : OnBackPressedCallback(true)`, inherited
+  `setEnabled(boolean)` maps to property `isEnabled = false`.
+- Java varargs `String...` requires Kotlin spread (`*`)
+  when passing an existing array:
+  `..., *PermissionUtil.getRequiredPermissionsForThings(
+  mThings)!!`. Caught at V1.
+- `clazz!!.getSuperclass().equals(X)` triggered "Only safe
+  (?.) or non-null asserted (!!.) calls are allowed on a
+  nullable receiver of type 'Class<*>?'" — `getSuperclass()`
+  returns `Class<*>?` (Java may return null). Fixed by
+  chaining `!!`: `clazz!!.getSuperclass()!!.equals(X)`.
+  Three occurrences in AppWidgetHelper.
+- Java APIs deprecated in API 33/35:
+  RemoteViews.setRemoteAdapter(Int, Intent),
+  AppWidgetManager.notifyAppWidgetViewDataChanged(Int, Int),
+  Window.setStatusBarColor(Int),
+  FLAG_TRANSLUCENT_NAVIGATION,
+  RecyclerView.ViewHolder.getAdapterPosition(). Four files
+  (AppWidgetHelper, ThingsListWidget, BaseThingWidget,
+  BaseThingWidgetConfiguration) declare
+  `@file:Suppress("DEPRECATION")` per plan §3.11.
+- AppWidgetHelper's `screenDensity` / `dp12` are runtime-init
+  `private val`s inside the object — same `<clinit>` order
+  as Java `private static final` per §3.3 S-4.
+- 35-plus `R.id.*` `private static final int` constants →
+  `private val` (not `const val` — R.id.* is a Java static
+  field, not a Kotlin compile-time const).
+
+Verifications:
+- V1: BUILD SUCCESSFUL, 0 Kotlin warnings, APK assembled
+- V2: grep audit clean — N1, E1
+- V3: cold-start renders 26 things identically. Widget
+  classes themselves not added to home screen, but
+  AppWidgetHelper / DAO paths are exercised by
+  RemoteActionHelper / receivers at launch.
+- V4 sampled: logcat clean on cold-start — zero FATAL /
+  VerifyError / ClassNotFoundException / NoSuchMethodError /
+  NoClassDefFound / SQLiteException / RuntimeException
+
 ## 2026-05-20 — Kotlin migration Group 7 (managers/)
 
 Translated 2 controller classes (~1236 LoC): ModeManager,
