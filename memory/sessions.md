@@ -1,5 +1,75 @@
 # Sessions
 
+## 2026-05-20 — Kotlin migration Group 5 (App + FrequentSettings)
+
+Translated 2 root-package files (~722 LoC):
+
+- `FrequentSettings.java` (119 LoC) → `object FrequentSettings`
+  per plan §3.3 S-3 (private ctor, all-static). The Java
+  `static { loadFromSharedPreferences(); }` block became
+  `init { loadFromSharedPreferences() }` inside the object
+  (§3.3 S-4 — JVM `<clinit>` timing preserved). Map values
+  cast via `as Boolean` / `as Long` / `as String?` (Java
+  `(boolean) Object` unboxing semantics preserved — NPE on
+  null receiver).
+
+- `App.java` (603 LoC) → `open class App : Application()`
+  with a `companion object` holding every static
+  field/method. Mix of patterns:
+  - Direct-access publics (Java callers do `App.isSearching
+    = true` / `App.newThingColor`) → `@JvmField var`.
+    Affects: `isSearching`, `runningDetailActivities`,
+    `newThingBackground`, `newThingColor`.
+  - Method-accessed privates with non-JavaBean getter
+    names → keep explicit `@JvmStatic fun`. Affects:
+    `isSomethingUpdatedSpecially()` / `setSomething…`
+    (non-`is`-prefixed property would generate `getX`),
+    `justNotifyAll()` / `setJustNotifyAll()` (no `is` or
+    `get` prefix), `getApp()`, `getDoingThingId()` /
+    `setDoingThingId()` (could be Kotlin property but kept
+    explicit for symmetry).
+  - Inside companion-object setters, accessing the
+    shadowed property uses `this.x = x` (not
+    `Companion.x = x` — the latter is the *outer-class*-
+    qualified path and doesn't resolve from inside the
+    companion itself).
+  - Two anonymous Runnables (in
+    `releaseResourcesAfterDeleteForever` /
+    `deleteAttachmentFiles`) reference `App.this` for
+    `Def.getAppFileDir(App.this)` and DAO `getInstance` —
+    kept as `object : Runnable` with `this@App` per §3.5
+    guard 3 (outer-this reference).
+  - `selfHealAlarmsIfStale`'s `new Thread(Runnable, name)`
+    constructor takes a Runnable with `App.this` access —
+    same `object : Runnable` treatment.
+  - `Handler.postDelayed`'s `System.exit(0)` Runnable has
+    no outer reference; kept as `object : Runnable` for
+    consistency rather than SAM lambda (minor).
+  - `getParcelableExtra` is deprecated upstream (API 33+);
+    added `@file:Suppress("DEPRECATION")` per §3.11.
+
+Verifications:
+- V1: BUILD SUCCESSFUL, 0 Kotlin warnings, APK assembled.
+- V2: grep audit clean — N1 on every ref type, E1 (the
+  one `==` is `temp.id == id` Long primitive compare,
+  correct).
+- V3: cold-start renders 26 things identically to
+  baseline.
+- V4 **required** for this group (logcat diff on
+  cold-start):
+  - Raw logcat: 53 baseline lines vs 53 post-translation
+    lines; differences only in PID, APK install-path
+    hash, Surface consumer name, and ImeTracker
+    correlation ID (all system noise — PM regenerates
+    install hashes on every reinstall, framework
+    generates fresh IDs per process).
+  - App-only filter (lines tagged `EverythingDone` or
+    `com.ywwynm`): 11 lines vs 11 lines, identical after
+    normalising the APK install-path hash.
+  - Zero FATAL / VerifyError / ClassNotFoundException /
+    NoSuchMethodError / NoClassDefFound / SQLiteException
+    / RuntimeException across the new bytecode.
+
 ## 2026-05-20 — Kotlin migration Group 4 (database/)
 
 Translated 6 DAO + DBHelper classes (~1900 LoC):
