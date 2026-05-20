@@ -1,5 +1,86 @@
 # Sessions
 
+## 2026-05-20 — Kotlin migration Group 6 (helpers/)
+
+Translated 18 helper classes (~4147 LoC):
+DailyTodoHelper, AuthenticationHelper, LineSpacingHelper,
+CrashHelper, PossibleMistakeHelper, AutoNotifyHelper,
+BackupHelper, CheckListHelper, AppUpdateHelper, FingerprintHelper,
+NotificationReliabilityHelper, AlarmHelper, ThingExporter,
+RemoteActionHelper, SendInfoHelper, ScreenshotHelper,
+AttachmentHelper, ThingDoingHelper.
+
+Pattern split:
+- 13 → `object` (pure utility singletons, private ctor + only-
+  static members): DailyTodoHelper, AuthenticationHelper,
+  LineSpacingHelper, PossibleMistakeHelper, AutoNotifyHelper,
+  BackupHelper, CheckListHelper, NotificationReliabilityHelper,
+  AlarmHelper, ThingExporter, RemoteActionHelper,
+  SendInfoHelper, ScreenshotHelper, AttachmentHelper
+- 3 → `class` with companion-object singleton (mutable instance
+  state): CrashHelper (mApplication, mDefaultHandler),
+  AppUpdateHelper (mContext), FingerprintHelper (mContext,
+  mKeyguardManager, mKeyStore, mKeyGenerator, mCipher)
+- 1 → `class` with public constructor (caller passes Thing per
+  instance): ThingDoingHelper (mContext, mThing,
+  mSpStartDoing, mSpSettings)
+
+Special handling:
+
+- `AutoNotifyHelper` had a `static { … }` init block that
+  overwrites the `AUTO_NOTIFY_TIMES` / `_TYPES` arrays in
+  DEBUG builds → `init { … }` inside the object per §3.3 S-4
+  (preserves `<clinit>` timing).
+- `LineSpacingHelper` has a `private static class
+  LineSpacingCursorDrawable extends ShapeDrawable` →
+  Kotlin `private class … : ShapeDrawable()` (nested, not
+  inner — equivalent to Java static nested).
+- `ScreenshotHelper` / `ThingExporter` each subclass
+  `AsyncTask` (deprecated upstream in API 30). Both files
+  declare `@file:Suppress("DEPRECATION",
+  "OVERRIDE_DEPRECATION")` — the latter is needed because
+  Kotlin's per-override warning isn't covered by file-level
+  DEPRECATION.
+- `ScreenshotHelper.getScreenshot(vararg params)` Java code
+  had `if (params == null || params.size == 1) return null` —
+  Kotlin vararg cannot be null, so the null check was
+  dropped (compiler reported "Condition is always 'false'").
+  Same behaviour: vararg with 1 arg still returns null.
+- `AppUpdateHelper`, `AttachmentHelper`,
+  `AuthenticationHelper`, `FingerprintHelper` all call
+  `activity.getFragmentManager()` which is deprecated since
+  API 28. The Java original used the same call (no
+  replacement adopted yet). All 4 add
+  `@file:Suppress("DEPRECATION")` per §3.11.
+- `ThingDoingHelper.mSpStartDoing` / `mSpSettings` are
+  initialised inline from the primary-constructor parameter
+  `context: Context?`. Both initialisers must use
+  `context!!.getSharedPreferences(...)` — initial draft
+  forgot the `!!` on the second one (caught at V1).
+- `RemoteActionHelper.finishReminder` mutates the `thing`
+  parameter (`thing = Thing.getSameCheckStateThing(...)`).
+  Java parameters are reassignable, Kotlin parameters are
+  `val`. Translated to a local `var t: Thing = thing!!` and
+  rewrote all subsequent uses to `t`.
+- `SendInfoHelper` keeps a `private const val
+  EXTRA_WX_SHARE_EXPLORE_CONTENT = "Kdescription"` for the
+  WeChat Moments share-key field.
+
+Verifications:
+- V1: BUILD SUCCESSFUL, 0 Kotlin warnings, APK assembled
+- V2: grep audit clean — all remaining `==` are
+  Int/null/Char/Boolean primitives; reference compares use
+  `===` or `.equals()` per §3.2
+- V3: cold-start renders 26 things identically; UI exercises
+  AttachmentHelper (`getFirstImageTypePathName`),
+  AlarmHelper (cold-start `createAllAlarms` path),
+  CrashHelper (init in App.onCreate), and various
+  Helper-dependent dialogs
+- V4 sampled: logcat clean on cold-start — zero FATAL /
+  VerifyError / ClassNotFoundException / NoSuchMethodError /
+  NoClassDefFound / SQLiteException / RuntimeException
+  across the new bytecode
+
 ## 2026-05-20 — Kotlin migration Group 5 (App + FrequentSettings)
 
 Translated 2 root-package files (~722 LoC):
