@@ -1,5 +1,75 @@
 # Sessions
 
+## 2026-05-20 — Kotlin migration Group 10 (services/)
+
+Translated 3 background-work classes (~805 LoC):
+- AlarmHealthWorker (73 LoC) — WorkManager Worker periodic
+  alarm health check
+- PullAliveJobService (79 LoC) — legacy JobScheduler 30-min
+  best-effort alarm rebuilder
+- DoingService (653 LoC) — foreground Service controlling
+  the "currently doing" countdown for reminders/habits
+
+Special handling:
+
+- AlarmHealthWorker `extends Worker(context, params)` → Kotlin
+  `class : Worker(context, params)` with the constructor
+  arguments passed directly to the super primary
+  constructor.
+- PullAliveJobService's Runnable body references the outer
+  Service's `getApplicationContext()` and `jobFinished()`
+  → kept as `object : Runnable` per §3.5 guard 3.
+- DoingService is the most complex Service in the codebase:
+  * `Handler.Callback` field initializer with `DoingService.this`
+    references for `SystemNotificationUtil.createDoingNotification(
+    DoingService.this, …)` and `DateTimeUtil.getGeneralDateTimeStr(
+    DoingService.this, …)` → kept as `object : Handler.Callback`
+    with `this@DoingService` per §3.5 guard 3.
+  * Inner `DoingBinder` class extends Binder, exposes
+    package-private setter/getter methods to the bound
+    DoingActivity. Each forwards via
+    `this@DoingService.X(...)` (Java's `DoingService.this.X(...)`).
+  * Nested `interface DoingListener` — Kotlin nested interface,
+    matches Java semantics.
+  * Nested `@interface State` / `@interface StartType` IntDef
+    annotations → Kotlin `annotation class` with `@IntDef`.
+    Per plan §3.9 mapping, the IntDef values are integer
+    literals (0, 1, 2) not symbol refs — companion's
+    `STATE_DOING` / `START_TYPE_ALARM` would be forward-
+    references at the annotation declaration site.
+  * Static mutable fields (`sStopReason`, `sSendBroadcastTo-
+    UpdateMainUi`, `sResetDoingIdInOnDestroy`, `sHrTime`)
+    → `@JvmField var` in companion object so Java callers
+    access them as plain fields (e.g.
+    `DoingService.sStopReason = X`).
+  * `Handler(Handler.Callback)` constructor is deprecated
+    since API 30; file declares `@file:Suppress("DEPRECATION")`.
+  * Manual local-var loops (`for (int i = start, j = 0; …)`)
+    aren't present, but several `for (int i = 1; i <= n;
+    i++)` translate to Kotlin `for (i in 1..n)`.
+- Property-syntax rewrites for Group 2 model getters:
+  `thing.getId()` → `thing.id`, `thing.getType()` → `thing.type`,
+  `habit.getType()` → `habit.type`, etc. Methods kept as
+  `fun` (Thing.getBackground, Habit.getDoingEndLimitTime,
+  ThingDoingHelper.shouldAutoStrictMode) keep their
+  method-form call sites.
+- `calculateTimeNumbers(long leftTime)` mutates the
+  parameter (`leftTime %= HOUR_MILLIS`); Kotlin params are
+  `val` ⇒ introduced local `var lt: Long = leftTime` and
+  rewrote subsequent uses.
+
+Verifications:
+- V1: BUILD SUCCESSFUL on first compile attempt, 0 Kotlin
+  warnings, APK assembled
+- V2: grep audit clean — N1, E1
+- V3: cold-start renders 26 things identically; services
+  are manifest-declared so they're loaded but DoingService
+  isn't activated without user starting a doing session —
+  pure registration smoke test
+- V4 sampled: logcat clean on cold-start — zero FATAL /
+  VerifyError / ClassNotFoundException / NoSuchMethodError /
+  NoClassDefFound / SQLiteException / RuntimeException
+
 ## 2026-05-20 — Kotlin migration Group 9 (receivers/)
 
 Translated 13 BroadcastReceiver classes (~1059 LoC):
