@@ -1,0 +1,125 @@
+package com.ywwynm.everythingdone.receivers
+
+import android.annotation.SuppressLint
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.util.Pair
+import android.widget.Toast
+
+import com.ywwynm.everythingdone.App
+import com.ywwynm.everythingdone.Def
+import com.ywwynm.everythingdone.R
+import com.ywwynm.everythingdone.activities.AuthenticationActivity
+import com.ywwynm.everythingdone.activities.DelayReminderActivity
+import com.ywwynm.everythingdone.activities.NoticeableNotificationActivity
+import com.ywwynm.everythingdone.activities.StartDoingActivity
+import com.ywwynm.everythingdone.database.ReminderDAO
+import com.ywwynm.everythingdone.helpers.RemoteActionHelper
+import com.ywwynm.everythingdone.model.Thing
+import com.ywwynm.everythingdone.services.DoingService
+
+/**
+ * Translated to Kotlin by ywwynm and Claude Opus 4.7 on 2026/5/20.
+ */
+open class ReminderNotificationActionReceiver : BroadcastReceiver() {
+
+    @SuppressLint("LongLogTag")
+    override fun onReceive(context: Context, intent: Intent) {
+        val action: String? = intent.getAction()
+        val thingId: Long = intent.getLongExtra(Def.Communication.KEY_ID, 0)
+        val nmc: NotificationManagerCompat = NotificationManagerCompat.from(context)
+        nmc.cancel(thingId.toInt())
+        context.sendBroadcast(
+                Intent(NoticeableNotificationActivity.BROADCAST_ACTION_JUST_FINISH)
+                        .putExtra(Def.Communication.KEY_ID, thingId))
+
+        var matched: Boolean = false
+        for (legalAction in LEGAL_ACTIONS) {
+            if (legalAction.equals(action)) {
+                matched = true
+                break
+            }
+        }
+        if (!matched) {
+            return
+        }
+
+        for (dId in App.getRunningDetailActivities()) if (dId == thingId) {
+            Toast.makeText(context, R.string.notification_toast_checking_action,
+                    Toast.LENGTH_LONG).show()
+            return
+        }
+
+        var position: Int = intent.getIntExtra(Def.Communication.KEY_POSITION, -1)
+        val pair: Pair<Thing, Int> = App.getThingAndPosition(context, thingId, position)!!
+        val thing: Thing? = pair.first
+        if (thing == null) {
+            ReminderDAO.getInstance(context)!!.delete(thingId)
+            return
+        }
+        position = pair.second!!
+
+        if (Def.Communication.NOTIFICATION_ACTION_FINISH.equals(action)
+                || Def.Communication.WIDGET_ACTION_FINISH.equals(action)) {
+            if (thing.isPrivate()) {
+                val actionIntent: Intent = AuthenticationActivity.getOpenIntent(
+                        context, TAG, thingId, position,
+                        Def.Communication.AUTHENTICATE_ACTION_FINISH,
+                        context.getString(R.string.act_finish))!!
+                actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
+                context.startActivity(actionIntent)
+            } else {
+                RemoteActionHelper.finishReminder(context, thing, position)
+            }
+        } else if (Def.Communication.NOTIFICATION_ACTION_START_DOING.equals(action)) {
+            if (thingId == App.getDoingThingId()) {
+                Toast.makeText(context, R.string.start_doing_doing_this_thing,
+                        Toast.LENGTH_LONG).show()
+                return
+            }
+
+            val actionIntent: Intent
+            if (thing.isPrivate()) {
+                actionIntent = AuthenticationActivity.getOpenIntent(
+                        context, TAG, thingId, position,
+                        Def.Communication.AUTHENTICATE_ACTION_START_DOING,
+                        context.getString(R.string.start_doing_full_title))!!
+            } else {
+                // Phase 8: pass full ThingBackground for GRADIENT support.
+                actionIntent = StartDoingActivity.getOpenIntent(
+                        context, thing.id, position, thing.getBackground(),
+                        DoingService.START_TYPE_ALARM, -1)!!
+            }
+            actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
+            context.startActivity(actionIntent)
+        } else if (Def.Communication.NOTIFICATION_ACTION_DELAY.equals(action)) {
+            val actionIntent: Intent
+            if (thing.isPrivate()) {
+                actionIntent = AuthenticationActivity.getOpenIntent(
+                        context, TAG, thingId, position,
+                        Def.Communication.AUTHENTICATE_ACTION_DELAY,
+                        context.getString(R.string.act_delay))!!
+            } else {
+                // Phase 8: pass full ThingBackground for GRADIENT support.
+                actionIntent = DelayReminderActivity.getOpenIntent(
+                        context, thing.id, position, thing.getBackground())!!
+            }
+            actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
+            context.startActivity(actionIntent)
+        }
+    }
+
+    companion object {
+        const val TAG: String = "ReminderNotificationActionReceiver"
+
+        private val LEGAL_ACTIONS: Array<String> = arrayOf(
+                Def.Communication.NOTIFICATION_ACTION_FINISH,
+                Def.Communication.WIDGET_ACTION_FINISH,
+                Def.Communication.NOTIFICATION_ACTION_DELAY,
+                Def.Communication.NOTIFICATION_ACTION_START_DOING,
+                Def.Communication.NOTIFICATION_ACTION_CANCEL
+        )
+    }
+}

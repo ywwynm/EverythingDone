@@ -1,5 +1,84 @@
 # Sessions
 
+## 2026-05-20 — Kotlin migration Group 9 (receivers/)
+
+Translated 13 BroadcastReceiver classes (~1059 LoC):
+LocaleChangeReceiver, DailyCreateTodoReceiver,
+AppUpdateReceiver, UserPresentReceiver, AutoNotifyReceiver,
+BootReceiver, DailyUpdateHabitReceiver,
+HabitWidgetActionReceiver, DoingNotificationActionReceiver,
+HabitNotificationActionReceiver,
+ReminderNotificationActionReceiver, ReminderReceiver,
+HabitReceiver.
+
+Uniform pattern:
+- All → `open class : BroadcastReceiver()` with single
+  `override fun onReceive(context: Context, intent: Intent)`.
+- `public static final String TAG` → `companion object {
+  const val TAG: String = ... }`.
+- Three of them (AppUpdateReceiver, UserPresentReceiver,
+  BootReceiver) wrap their work in `new Thread(new Runnable
+  { ... }).start()`. Kept as `Thread(object : Runnable {
+  override fun run() { ... } }).start()` — bodies only
+  reference a captured `appContext` local plus static-only
+  helpers (no outer-class `this`), so SAM lambda would have
+  worked too. Chose `object :` form for symmetry with
+  Group 5's similar pattern.
+
+Special handling:
+
+- AutoNotifyReceiver uses deprecated
+  `Notification.PRIORITY_DEFAULT` (API 26+); file declares
+  `@file:Suppress("DEPRECATION")` per §3.11.
+- HabitReceiver's "after 1600ms" notification Runnable
+  references `thing` (outer-scope local). Kept as
+  `object : Runnable` per §3.5 guard 3 (captures effectively
+  count as outer-scope reference for clarity).
+- ReminderNotificationActionReceiver's `LEGAL_ACTIONS`
+  `private static final String[]` → `private val
+  LEGAL_ACTIONS: Array<String> = arrayOf(...)` in companion
+  object. Not `const` — array initialiser isn't a
+  compile-time constant.
+- DoingNotificationActionReceiver's `ACTION_FINISH` /
+  `ACTION_USER_CANCEL` / `ACTION_STOP_SERVICE` were Java
+  `static final` strings built from `TAG + ".finish"` etc.
+  Translated as `const val` with the literal full string
+  baked in ("DoingNotificationActionReceiver.finish") —
+  matches the JVM constant pool entry the original Java
+  would emit (Java's string concatenation of two final
+  literals is also compile-time-foldable).
+- Property-syntax rewrites for Group 2 model getters:
+  `reminder.getState()` → `reminder.state`,
+  `reminder.getNotifyTime()` → `reminder.notifyTime`,
+  `reminder.setState(X)` → `reminder.state = X`,
+  `habitReminder.getHabitId()` → `habitReminder.habitId`,
+  `habitReminder.getNotifyTime()` → `habitReminder.notifyTime`,
+  `habit.getRecord()` → `habit.record`,
+  `habit.getRemindedTimes()` → `habit.remindedTimes`,
+  `habit.getHabitReminders()` → `habit.habitReminders`,
+  `thing.getType()` → `thing.type`,
+  `thing.getState()` → `thing.state`,
+  `thing.setContent(X)` → `thing.content = X`,
+  `thing.getId()` → `thing.id`. Methods that remain `fun`
+  in Group 2 (Thing.getBackground / getColor / getTitleTo-
+  Display / isPrivate / isSelected, Habit.isPaused /
+  getMinHabitReminderTime / getSummary, ReminderHabitParams
+  member getters) keep their method-form call sites.
+- Java vararg `String...` not used here — all `Intent.action`
+  comparisons are sequential `.equals()` chains.
+
+Verifications:
+- V1: BUILD SUCCESSFUL on first compile attempt (no
+  iteration needed), 0 Kotlin warnings, APK assembled
+- V2: grep audit clean — N1, E1; all remaining `==` are
+  Long/Int primitive or `== null` checks
+- V3: cold-start renders 26 things identically; receivers
+  manifest-declared so they're loaded but won't fire
+  without an alarm — pure registration smoke test
+- V4 sampled: logcat clean on cold-start — zero FATAL /
+  VerifyError / ClassNotFoundException / NoSuchMethodError /
+  NoClassDefFound / SQLiteException / RuntimeException
+
 ## 2026-05-20 — Kotlin migration Group 8 (appwidgets/)
 
 Translated 17 widget files (~2301 LoC):
