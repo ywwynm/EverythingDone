@@ -1,5 +1,64 @@
 # Sessions
 
+## 2026-05-20 — Kotlin migration Group 7 (managers/)
+
+Translated 2 controller classes (~1236 LoC): ModeManager,
+ThingManager. Both are stateful singletons.
+
+- `ModeManager` (308 LoC) — UI mode controller for ThingsActivity
+  (NORMAL / MOVING / SELECTING). Translated to a plain class
+  with a primary constructor accepting all collaborator
+  views/listeners. Three `Runnable`s (notifyDataSetRunnable,
+  hideActionBarShadowRunnable, backNormalModeListener)
+  reference outer-class fields → kept as `object : Runnable` /
+  `object : View.OnClickListener` per §3.5 guard 3, with
+  `this@ModeManager.backNormalMode(0)` replacing Java's
+  `ModeManager.this.backNormalMode(0)`. NORMAL / MOVING /
+  SELECTING moved into companion object as `const val Int`.
+- `ThingManager` (928 LoC) — singleton with private ctor +
+  `companion object { getInstance, isTotallyInitialized,
+  sThingManager }`. The class header comment explicitly says
+  "we cannot use lambda in this class to replace 'new
+  Runnable'" — preserved by keeping every executor task as
+  `object : Runnable { override fun run() { … } }` (the
+  bodies reference `mDao`, `mUndoGoals`, `mUndoHabits`,
+  `mContext`, etc. — outer state).
+
+Special handling:
+
+- Thing's `var selected: Boolean` (Kotlin property) coexists
+  with `open fun isSelected(): Boolean` (Kotlin fun). Property
+  name is `selected` not `isSelected`, so callers writing
+  `things.get(position).setSelected(true)` translate to
+  `things.get(position).selected = true`. Initial draft of
+  ModeManager wrote `.isSelected = true` → compile error
+  ("Function invocation 'isSelected()' expected. Variable
+  expected.") caught at V1.
+- Java's `List.toArray(T[])` Collection method isn't directly
+  callable from Kotlin on `MutableList<T>` here — replaced
+  with `mutableList.toTypedArray()` which returns a new
+  `Array<T>`. Used in `getSelectedThings()` and the executor
+  task inside `updateLocationsByAlarmTime`.
+- `Collections.sort(mThings, comparator)` where `mThings` is
+  `MutableList<Thing?>?` — needs `mThings!!` to unwrap the
+  nullable list (Kotlin's strict signature on Java's
+  `Collections.sort` doesn't auto-unwrap).
+- Java's `for (int i = start, j = 0; i <= end; i++, j++)`
+  pattern in `updateLocations` translated to manual
+  `while (i <= end) { ...; i++; j++ }` — Kotlin's `for in`
+  doesn't support multiple iterators.
+
+Verifications:
+- V1: BUILD SUCCESSFUL, 0 Kotlin warnings, APK assembled
+- V2: grep audit clean — N1, E1 (the only ref `==` are
+  `thing.id == X` Long primitive compares)
+- V3: cold-start renders 26 things identically — exercises
+  `ThingManager.getInstance` (private ctor + loadThings +
+  HEADER discovery) and the executor singleton init paths
+- V4 sampled: logcat clean on cold-start — zero FATAL /
+  VerifyError / ClassNotFoundException / NoSuchMethodError /
+  NoClassDefFound / SQLiteException / RuntimeException
+
 ## 2026-05-20 — Kotlin migration Group 6 (helpers/)
 
 Translated 18 helper classes (~4147 LoC):
