@@ -1,5 +1,88 @@
 # Sessions
 
+## 2026-05-20 — Kotlin migration Group 4 (database/)
+
+Translated 6 DAO + DBHelper classes (~1900 LoC):
+DoingRecordDAO, AppWidgetDAO, ReminderDAO, DBHelper, ThingDAO,
+HabitDAO. Five are singletons with the canonical Java
+double-checked-locking pattern (private ctor + static `sXxx` +
+`getInstance(Context)`); DBHelper extends SQLiteOpenHelper.
+
+Translation notes:
+
+- Singleton pattern: `class Xxx private constructor(context)
+  { … }` + `companion object { @JvmField var sXxx;
+  @JvmStatic fun getInstance(context) }`. The
+  double-checked-locking idiom translates verbatim with
+  `synchronized(Xxx::class.java)`. HabitDAO's original used
+  `synchronized(ReminderDAO.class)` — preserved verbatim as
+  `synchronized(ReminderDAO::class.java)` (likely a bug, but
+  behaviour snapshot).
+- DBHelper SQL constants: `private const val SQL_*` for all
+  pure-string CREATE/ALTER/DROP statements (Def.Database.X is
+  `const val`, so concatenation is compile-time). The one
+  exception is `SQL_INSERT_HEADER` which embeds
+  `System.currentTimeMillis()` — declared as `private val`
+  (not `const`) inside the companion object, init-once on
+  class load just like Java's `static final`.
+- Property-syntax rewrites for Group 2 model accessors:
+  thing.id / type / state / location / content / attachment /
+  createTime / updateTime / finishTime / title;
+  reminder.id / notifyTime / state / notifyMillis /
+  updateTime; habit.id / type / detail / record /
+  intervalInfo / remindedTimes / createTime / firstTime /
+  habitReminders / habitRecords; habitReminder.id /
+  habitId / notifyTime; habitRecord.id / habitId /
+  habitReminderId / recordTime / recordYear / recordMonth /
+  recordWeek / recordDay / type. Methods that stay as
+  `fun` in Group 2 (Thing.getColor / getBackground;
+  habit.isPaused / getClosestHabitReminder /
+  getFinalHabitReminder / getMinHabitReminderTime /
+  initHabitReminders / getHabitRecordsThisT;
+  doingRecord.shouldAutoStrictMode is a `Boolean` property
+  with `@get:JvmName("shouldAutoStrictMode")`) keep their
+  call-site form (property for shouldAutoStrictMode, method
+  for the rest).
+- Local-var promotion: `int backFrom` in
+  `createFakeFinishedHabitRecord` had a conditional
+  reassignment branch (`backFrom += timesEachT`) that
+  required `var` (initial Kotlin draft used `val` → compile
+  bug; caught before commit).
+- `cursor`, `cursor2` declared as separate locals in
+  `updateMaxHabitReminderRecordId` (Java had `Cursor c` and
+  `Cursor c2`) — kept the same naming for textual mapping.
+- The Java HabitDAO had `for-loop with continue` inside
+  `updateStates` — translated to Kotlin `while` with
+  manual `i++; continue` since Kotlin's `for in 0 until n`
+  doesn't permit continuing to next iteration after
+  conditional skip without restructuring.
+- `ThingBackground.fromRandom()` returns `ThingBackground?`
+  in Kotlin (N1); DBHelper `generateInsertInitialSQL`
+  unwraps with `!!` (matches Java's NPE-on-null semantics).
+
+Verifications:
+- V1: BUILD SUCCESSFUL, 0 Kotlin warnings, APK assembled.
+- V2: grep audit — N1 on every ref type, E1 (`===` for
+  enum compares, `.equals()` for String compares); the
+  remaining `==` are all Int/null/Char compares (verified
+  by greppable filter).
+- V3: cold-start renders 26 things including reminders
+  ("May 17, 5:46, reminded"), habit cards ("3 times a
+  month, Next reminder: on May 31"), and the empty
+  finished-this-month indicator — all of which exercise
+  ReminderDAO / HabitDAO read paths.
+- V4 **required** for this group:
+  - SQLite dump diff: baseline 50 INSERTs vs post-cold-
+    start 50 INSERTs — byte-identical except the HEADER
+    row (id 120→121, timestamps refreshed). This is the
+    expected behaviour of `ThingDAO.recreateHeader()`
+    which bumps HEADER id by 1 on every cold-start (Java
+    behaviour preserved).
+  - logcat clean: zero FATAL / VerifyError /
+    ClassNotFoundException / NoSuchMethodError /
+    NoClassDefFound / SQLiteException across the new
+    bytecode.
+
 ## 2026-05-20 — Kotlin migration Group 3 (utils/) + retroactive header stamps
 
 Translated 14 Java utility classes (~4537 LoC) under
