@@ -193,6 +193,9 @@ These are not choices — Kotlin's syntax forces them.
 | package-private (default) field/method | `internal` (closest mechanical match; widens from package to module, but this is single-module so the widening is harmless) |
 | `switch` with fall-through | `when` with **explicit body duplication** for each fall-through case (no implicit fall-through in Kotlin `when`) |
 | Java `this(…)` constructor delegation | secondary constructor `: this(…)` |
+| `s.charAt(i)` on `String` | `s[i]` — Kotlin's `String` is `kotlin.String`, not `java.lang.String`; `.charAt(i)` is unresolved. Use indexed access. Behaviour identical. |
+| `s.split(regex)` (Java's regex-based split) | `s.split(regex.toRegex())` returning `List<String>`. **Important**: Kotlin's `String.split(String)` overload is **literal split, not regex** — using it silently changes behaviour. Always wrap the delimiter in `.toRegex()` when the Java original used `String.split`. If the call site needs `String[]`, follow with `.toTypedArray()` (gives `Array<String>` — invariance prevents declaring as `Array<String?>?`, so let the type infer at local-var sites). |
+| `Integer.MAX_VALUE`, `Integer.MIN_VALUE`, `Long.MAX_VALUE`, etc. | `Int.MAX_VALUE`, `Int.MIN_VALUE`, `Long.MAX_VALUE`. Java wrapper class names map to Kotlin primitive companion-style constants; same JVM constant pool entry, identical behaviour. Same applies to `Float`, `Double`, `Short`, `Byte`. |
 
 ### 3.10 Performance hot-path constraints
 
@@ -357,6 +360,30 @@ A group ships when all required V-levels pass and the user OKs the
 visual diff report.
 
 ---
+
+## 7.4 N1 relaxation for local variables (clarified in Group 1)
+
+The N1 table in §3.1 covers **fields, parameters, and return
+types** — declarations whose nullability is observable across method
+boundaries and which carry audit-trail value. For **local
+`val` / `var` declarations**, prefer type inference over forcing
+`T?`. Rationale:
+
+- Local nullability is determined by the right-hand-side expression,
+  not by our declaration choice. Re-declaring it doesn't add audit
+  information that the `!!` on the next deref doesn't already
+  carry.
+- Strict `T?` on locals forces awkward conversions where the
+  RHS is provably non-null (e.g. `.toTypedArray()` returns
+  `Array<String>` non-null; coercing to `Array<String?>?` is
+  unsafe and verbose).
+- Audit trail is preserved by `!!` markers at deref sites, not by
+  the declaration type itself.
+
+**Rule**: at local-var sites where the RHS is a method call,
+constructor, or other typed expression, let Kotlin infer
+(`val x = …`). At declarations whose type is *constraining* the
+RHS (annotated explicitly to control elements, etc.), apply N1.
 
 ## 7.5 Open risks discovered during Group 0
 
