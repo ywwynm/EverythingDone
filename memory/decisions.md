@@ -81,6 +81,34 @@ Gradle Plugin are also unavailable. See
 [KOTLIN_MIGRATION_PLAN.md §7.5](../docs/plans/KOTLIN_MIGRATION_PLAN.md)
 for the kapt-replacement decision tree (KSP / defer / downgrade).
 
+### Kotlin migration Group 3 (utils/) — deprecation suppression as file-level
+
+14 utility classes translated cleanly; the only mechanical
+challenge was the wave of Java-API deprecation warnings the
+Kotlin compiler emits where the original Java already used the
+deprecated API (Display.getDefaultDisplay/getRealSize/getSize,
+Drawable.setColorFilter(Int, Mode), Notification.PRIORITY_*,
+Locale(String, String), Resources.updateConfiguration,
+InputMethodManager.SHOW_FORCED, etc.). Group 2's model/ classes
+had none of these because Cursor / Parcel are still un-deprecated.
+
+Decision: `@file:Suppress("DEPRECATION")` at the top of any
+`.kt` file whose Java original called a since-deprecated API.
+This preserves V1's "0 warnings" bar without changing which
+API is called (behaviour snapshot), and the post-migration
+refactor pass can revisit those call sites with intent.
+
+Documented as new rule in [KOTLIN_MIGRATION_PLAN.md §3.11](../docs/plans/KOTLIN_MIGRATION_PLAN.md).
+
+### Kotlin migration: header date stamp convention (added mid-migration)
+
+Each `.java` → `.kt` translation now stamps
+`Translated to Kotlin on YYYY-MM-DD.` immediately after the
+existing `Created by … on YYYY/M/D.` Javadoc line. Files without
+a `Created by` comment skip the stamp (e.g. ThingBackground was
+born post-convention). Group 1+2 backfilled. Plan §3.10.5
+captures the rule.
+
 ## 2026-05-19
 
 ### PopupPicker keeps IME visible — `INPUT_METHOD_NOT_NEEDED`

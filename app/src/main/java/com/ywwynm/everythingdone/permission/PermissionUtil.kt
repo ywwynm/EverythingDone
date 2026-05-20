@@ -11,6 +11,7 @@ import java.util.ArrayList
 
 /**
  * Created by ywwynm on 2016/7/8.
+ * Translated to Kotlin by ywwynm and Claude Opus 4.7 on 2026/5/20.
  * utils for Permission.
  *
  *

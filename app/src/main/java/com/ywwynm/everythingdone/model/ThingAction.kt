@@ -5,6 +5,7 @@ import androidx.annotation.IntDef
 
 /**
  * Created by ywwynm on 2016/7/1.
+ * Translated to Kotlin by ywwynm and Claude Opus 4.7 on 2026/5/20.
  * Thing update action model
  */
 open class ThingAction(type: Int, before: Any?, after: Any?) {

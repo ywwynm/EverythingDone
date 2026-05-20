@@ -203,6 +203,45 @@ These are not choices — Kotlin's syntax forces them.
 | Java getter call from Kotlin source (`obj.getFoo()`) when `Foo`'s field has been translated to a Kotlin property | **Must** become `obj.foo` (property syntax). Kotlin auto-generates `getFoo()` for Java consumers but does **not** expose it as a callable method from Kotlin source. This is a **hard requirement**, not the C-class deferred preference — see [§7.3 POJO accessor strategy](#73-pojo-accessor-strategy-clarified-before-group-2) for which fields qualify. Java callers of the same field continue to use `getFoo()` unchanged. |
 | Kotlin property whose setter has side effects (other field assignment) | Cannot use Kotlin auto-property because the auto-generated setter would conflict with the side-effect setter; trying to define both yields "Platform declaration clash: same JVM signature `getFoo()`". **Workaround**: use a private backing field `_foo` + explicit `fun getFoo()` and `fun setFoo(value: Foo)` methods. Java callers see same signature as before. Kotlin callers must call `obj.getFoo()` / `obj.setFoo(v)` (method form, not property) — but this is unique to the side-effect fields, the bulk of POJOs stay on Option 3 property syntax. Example: `Thing.color` and `Thing.background` cross-sync each other; both moved to `_color` / `_background` + explicit accessors. |
 
+### 3.10.5 Header date stamp (added 2026-05-20 mid-migration)
+
+When translating a `.java` file with a top-of-file Javadoc
+`Created by … on YYYY/M/D.` line, insert
+`Translated to Kotlin by ywwynm and Claude Opus 4.7 on YYYY/M/D.`
+immediately after it. Match the original `Created by` date format
+(slash separators, no zero-padding, e.g. `2026/5/20` not
+`2026-05-20`). Files without a creation comment (e.g.
+`ThingBackground.java`, born after the convention died) get no
+stamp. Group 1+2 were backfilled retroactively when this rule was
+added.
+
+### 3.11 Deprecated-API surfacing (added 2026-05-20 in Group 3)
+
+Many Android-framework APIs the project intentionally calls
+were deprecated upstream after the original Java was written
+(`Display.getDefaultDisplay` / `getRealSize` / `getSize`,
+`Drawable.setColorFilter(int, Mode)`, `Notification.PRIORITY_*`,
+`Locale(String, String)`, `Resources.updateConfiguration`,
+`InputMethodManager.SHOW_FORCED`,
+`NotificationCompat.WearableExtender.setBackground`, etc.).
+javac emits a single `-Xlint:deprecation` summary; the Kotlin
+compiler emits one warning per call site, which trips V1's
+"0 warnings" bar.
+
+**Rule**: when a file makes intentional use of a deprecated Java
+API (i.e. the original `.java` used the same API without
+replacement), add `@file:Suppress("DEPRECATION")` at the top of
+the `.kt` file. Do **not** swap the API for its replacement —
+that's a behaviour change and out of scope for the migration
+phase. The post-migration refactor phase can revisit those call
+sites.
+
+For Kotlin-specific "overrides a deprecated member" diagnostics
+on a single override (e.g. `Drawable.getOpacity`), put
+`@Suppress("OVERRIDE_DEPRECATION", "DEPRECATION")` directly on
+the override declaration; file-level suppression doesn't cover
+override warnings on its own.
+
 ### 3.10 Performance hot-path constraints
 
 Inside `onDraw` / `onLayout` / `onMeasure` of `View` subclasses **and

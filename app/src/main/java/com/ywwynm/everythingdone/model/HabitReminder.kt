@@ -4,6 +4,7 @@ import android.database.Cursor
 
 /**
  * Created by ywwynm on 2016/1/29.
+ * Translated to Kotlin by ywwynm and Claude Opus 4.7 on 2026/5/20.
  * model layer. related to table "habit_reminders".
  */
 open class HabitReminder(

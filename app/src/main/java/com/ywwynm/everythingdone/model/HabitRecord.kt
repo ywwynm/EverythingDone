@@ -8,6 +8,7 @@ import java.time.temporal.WeekFields
 
 /**
  * Created by ywwynm on 2016/2/11.
+ * Translated to Kotlin by ywwynm and Claude Opus 4.7 on 2026/5/20.
  * model layer for table "habit_records"
  */
 open class HabitRecord(

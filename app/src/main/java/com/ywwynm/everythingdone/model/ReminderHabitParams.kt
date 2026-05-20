@@ -5,6 +5,7 @@ import com.ywwynm.everythingdone.utils.DateTimeUtil
 
 /**
  * Created by ywwynm on 2016/7/1.
+ * Translated to Kotlin by ywwynm and Claude Opus 4.7 on 2026/5/20.
  * params of reminder and habit
  */
 open class ReminderHabitParams() {

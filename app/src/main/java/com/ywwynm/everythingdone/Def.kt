@@ -4,6 +4,7 @@ import android.content.Context
 
 /**
  * Created by ywwynm on 2015/5/21.
+ * Translated to Kotlin by ywwynm and Claude Opus 4.7 on 2026/5/20.
  * Def for EverythingDone
  */
 object Def {

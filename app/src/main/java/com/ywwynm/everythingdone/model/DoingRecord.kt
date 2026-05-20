@@ -6,6 +6,7 @@ import com.ywwynm.everythingdone.services.DoingService
 
 /**
  * Created by qiizhang on 2016/11/9.
+ * Translated to Kotlin by ywwynm and Claude Opus 4.7 on 2026/5/20.
  * model layer for table "doing_records"
  */
 open class DoingRecord(

@@ -9,6 +9,7 @@ import java.util.Calendar
 
 /**
  * Created by ywwynm on 2015/8/4.
+ * Translated to Kotlin by ywwynm and Claude Opus 4.7 on 2026/5/20.
  * Model layer. Related to table "reminders".
  *
  *
