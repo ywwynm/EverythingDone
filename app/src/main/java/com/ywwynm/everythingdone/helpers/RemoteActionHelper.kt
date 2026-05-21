@@ -85,8 +85,7 @@ object RemoteActionHelper {
             App.setDoingThingId(-1L)
         }
 
-        val allowFinish: Boolean
-        allowFinish = if (hrTime == -1L) {
+        val allowFinish = if (hrTime == -1L) {
             habit.allowFinish()
         } else {
             habit.allowFinish(hrTime)

@@ -51,7 +51,7 @@ open class CrashHelper private constructor() : Thread.UncaughtExceptionHandler {
     private fun saveCrashInfoToStorage(ex: Throwable) {
         val path: String = Def.getAppFileDir(mApplication) + "/log"
         val time: String = SimpleDateFormat("yyyyMMddHHmmss").format(Date())
-        val name: String = "crash_$time.log"
+        val name = "crash_$time.log"
         val file: File = FileUtil.createFile(path, name) ?: return
 
         try {

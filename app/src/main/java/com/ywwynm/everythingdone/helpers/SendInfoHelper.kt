@@ -223,8 +223,7 @@ object SendInfoHelper {
         if (habit.isPaused()) {
             habitStr += ", " + habit.getStateDescription(context)
         }
-        val GAP: String
-        GAP = if (isChinese) {
+        val GAP = if (isChinese) {
             ""
         } else " "
         sb.append(remindMe).append(habitStr).append("\n")
@@ -258,15 +257,13 @@ object SendInfoHelper {
             val goal: Reminder = ReminderDAO.getInstance(context)!!.getReminderById(thing.id)!!
             val gap: Int = DateTimeUtil.calculateTimeGap(
                     goal.updateTime, thing.finishTime, Calendar.DATE)
-            val gapStr: String
-            gapStr = if (gap == 0) {
+            val gapStr = if (gap == 0) {
                 "<1"
             } else {
                 gap.toString()
             }
 
-            val STRGAP: String
-            STRGAP = if (isChinese) {
+            val STRGAP = if (isChinese) {
                 ""
             } else " "
             sb.append(context!!.getString(R.string.share_i_work_hard_for)).append(STRGAP)

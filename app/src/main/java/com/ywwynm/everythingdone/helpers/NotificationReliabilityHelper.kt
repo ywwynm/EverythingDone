@@ -191,7 +191,7 @@ object NotificationReliabilityHelper {
     }
 
     private fun autostartCandidates(): Array<ComponentName?> {
-        return arrayOf<ComponentName?>(
+        return arrayOf(
                 // Xiaomi / Redmi / Poco — MIUI
                 ComponentName("com.miui.securitycenter",
                         "com.miui.permcenter.autostart.AutoStartManagementActivity"),

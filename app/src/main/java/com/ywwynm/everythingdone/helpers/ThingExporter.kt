@@ -128,16 +128,16 @@ object ThingExporter {
         // should be like "hello-world-Note-20160630143306"
 
         val appFileDir: String = Def.getAppFileDir(context)!!
-        val parentPath: String = "$appFileDir/temp/$thingFileName"
+        val parentPath = "$appFileDir/temp/$thingFileName"
         val txtFile: File? = thingToTxtFile(context, thing, parentPath)
         val attachmentFiles: List<File?>? = AttachmentHelper.getOriginalFiles(thing!!.attachment)
 
-        if (txtFile == null && (attachmentFiles == null || attachmentFiles.isEmpty())) {
+        if (txtFile == null && attachmentFiles.isNullOrEmpty()) {
             // the thing contains neither text content nor attachments
             return false
         }
 
-        if (attachmentFiles != null && !attachmentFiles.isEmpty()) {
+        if (!attachmentFiles.isNullOrEmpty()) {
             for (attachmentFile in attachmentFiles) {
                 val name: String = attachmentFile!!.getName()
                 val dstFile: File? = FileUtil.createFile(parentPath, name)

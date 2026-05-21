@@ -75,7 +75,7 @@ object AttachmentHelper {
     }
 
     @JvmStatic
-    fun toAttachmentItems(attachmentStr: String?): Pair<List<String?>, List<String?>>? {
+    fun toAttachmentItems(attachmentStr: String?): Pair<List<String?>, List<String?>> {
         val imageItems: MutableList<String?> = ArrayList()
         val audioItems: MutableList<String?> = ArrayList()
 
@@ -99,7 +99,7 @@ object AttachmentHelper {
     }
 
     @JvmStatic
-    fun toAttachmentStr(imageItems: List<String?>?, audioItems: List<String?>?): String? {
+    fun toAttachmentStr(imageItems: List<String?>?, audioItems: List<String?>?): String {
         val sb: StringBuilder = StringBuilder()
         if (imageItems != null) {
             for (typePathName in imageItems) {
@@ -166,11 +166,11 @@ object AttachmentHelper {
             }
 
             return if (imageCount != 0 && videoCount == 0) {
-                imageCount.toString() + " " + images
-            } else if (imageCount == 0) { // && videoCount != 0
-                videoCount.toString() + " " + videos
+                "$imageCount $images"
+            } else if (imageCount == 0) {
+                "$videoCount $videos"
             } else {
-                imageCount.toString() + " " + images + ", " + videoCount + " " + videos
+                "$imageCount $images, $videoCount $videos"
             }
         }
     }
@@ -204,15 +204,19 @@ object AttachmentHelper {
     fun createAttachmentFile(type: Int): File? {
         val folderName: String
         val fileType: String
-        if (type == IMAGE) {
-            folderName = "images"
-            fileType = ".jpg"
-        } else if (type == VIDEO) {
-            folderName = "videos"
-            fileType = ".mp4"
-        } else {
-            folderName = "audios"
-            fileType = ".wav"
+        when (type) {
+            IMAGE -> {
+                folderName = "images"
+                fileType = ".jpg"
+            }
+            VIDEO -> {
+                folderName = "videos"
+                fileType = ".mp4"
+            }
+            else -> {
+                folderName = "audios"
+                fileType = ".wav"
+            }
         }
 
         val fileName: String = SimpleDateFormat("yyyyMMddHHmmss").format(Date()) + fileType
@@ -237,15 +241,19 @@ object AttachmentHelper {
                     size[1] = size[0]
                 }
             } else {
-                if (itemSize == 1) {
-                    size[0] = displayWidth
-                    size[1] = displayWidth * 3 / 4
-                } else if (itemSize == 2) {
-                    size[0] = displayWidth / 2
-                    size[1] = displayWidth * 3 / 4
-                } else {
-                    size[0] = displayWidth / 3
-                    size[1] = size[0]
+                when (itemSize) {
+                    1 -> {
+                        size[0] = displayWidth
+                        size[1] = displayWidth * 3 / 4
+                    }
+                    2 -> {
+                        size[0] = displayWidth / 2
+                        size[1] = displayWidth * 3 / 4
+                    }
+                    else -> {
+                        size[0] = displayWidth / 3
+                        size[1] = size[0]
+                    }
                 }
             }
         } else {
@@ -361,12 +369,10 @@ object AttachmentHelper {
         sec = FileUtil.getFileSizeStr(file)!!
         list.add(Pair(fst, sec))
 
-        return if (type == '0') {
-            getAttachmentInfoImage(list, context, pathName)
-        } else if (type == '1') {
-            getAttachmentInfoVideo(list, context, pathName)
-        } else {
-            getAttachmentInfoAudio(list, context, pathName)
+        return when (type) {
+            '0' -> getAttachmentInfoImage(list, context, pathName)
+            '1' -> getAttachmentInfoVideo(list, context, pathName)
+            else -> getAttachmentInfoAudio(list, context, pathName)
         }
     }
 
@@ -465,26 +471,26 @@ object AttachmentHelper {
 
     @JvmStatic
     fun isImageFile(postfix: String?): Boolean {
-        val postfixes: Array<String?> = arrayOf<String?>("png", "jpg", "jpeg", "gif", "bmp", "webp")
+        val postfixes: Array<String?> = arrayOf("png", "jpg", "jpeg", "gif", "bmp", "webp")
         return isInsideArray(postfixes, postfix)
     }
 
     @JvmStatic
     fun isVideoFile(postfix: String?): Boolean {
-        val postfixes: Array<String?> = arrayOf<String?>("3gp", "mp4", "webm", "mkv")
+        val postfixes: Array<String?> = arrayOf("3gp", "mp4", "webm", "mkv")
         return isInsideArray(postfixes, postfix)
     }
 
     @JvmStatic
     fun isAudioFile(postfix: String?): Boolean {
-        val postfixes: Array<String?> = arrayOf<String?>("wav", "mp3", "3gp", "mp4", "aac", "flac", "mid", "xmf",
+        val postfixes: Array<String?> = arrayOf("wav", "mp3", "3gp", "mp4", "aac", "flac", "mid", "xmf",
                 "mxmf", "rtttl", "rtx", "ota", "imy", "ogg", "mkv")
         return isInsideArray(postfixes, postfix)
     }
 
     @JvmStatic
     fun toUriList(attachment: String?): ArrayList<Uri?>? {
-        if (attachment == null || attachment.isEmpty()) {
+        if (attachment.isNullOrEmpty()) {
             return null
         }
         val typePathNames: Array<String> = attachment.split(SIGNAL.toRegex()).toTypedArray()
@@ -501,7 +507,7 @@ object AttachmentHelper {
 
     @JvmStatic
     fun isAllImage(attachment: String?): Boolean {
-        if (attachment == null || attachment.isEmpty()) {
+        if (attachment.isNullOrEmpty()) {
             return false
         }
         return !attachment.contains(SIGNAL + VIDEO) && !attachment.contains(SIGNAL + AUDIO)
@@ -509,7 +515,7 @@ object AttachmentHelper {
 
     @JvmStatic
     fun isAllAudio(attachment: String?): Boolean {
-        if (attachment == null || attachment.isEmpty()) {
+        if (attachment.isNullOrEmpty()) {
             return false
         }
         return !attachment.contains(SIGNAL + IMAGE) && !attachment.contains(SIGNAL + VIDEO)

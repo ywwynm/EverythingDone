@@ -42,7 +42,7 @@ object BackupHelper {
         val tempDirPath: String = Def.getAppFileDir(context) + BACKUP_DIR
         val curTime: Long = System.currentTimeMillis()
         val dt: ZonedDateTime = Instant.ofEpochMilli(curTime).atZone(ZoneId.systemDefault())
-        val timeStr: String = dt.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
+        val timeStr = dt.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
         val backupFileName: String = "$BACKUP_FILE_NAME_PREFIX$timeStr.$BACKUP_FILE_POSTFIX"
         val dst: File = FileUtil.createFile(tempDirPath, backupFileName) ?: return false
 
@@ -105,7 +105,7 @@ object BackupHelper {
             return false
         }
 
-        val unzippedDirPathName: String = "$tempDirPath/$curTime"
+        val unzippedDirPathName = "$tempDirPath/$curTime"
         val unzipResult: Boolean = FileUtil.unzip(tempFile.absolutePath, unzippedDirPathName)
         FileUtil.deleteFile(tempFile)
 
@@ -157,8 +157,8 @@ object BackupHelper {
 
     private fun getBackupFilePaths(context: Context?): Array<String?> {
         val base: String = context!!.applicationInfo.dataDir
-        val dbDir: String = "$base/databases/"
-        val spDir: String = "$base/shared_prefs/"
+        val dbDir = "$base/databases/"
+        val spDir = "$base/shared_prefs/"
         val xmlPostFix = ".xml"
         val list: ArrayList<String?> = ArrayList()
         list.add(dbDir + Def.Meta.DATABASE_NAME)

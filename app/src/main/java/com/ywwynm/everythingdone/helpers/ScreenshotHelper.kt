@@ -373,42 +373,44 @@ object ScreenshotHelper {
             imageAdapter: ImageAttachmentAdapter?,
             rvAudio: RecyclerView?, audioAdapter: AudioAttachmentAdapter?) {
         for (did in didList!!) {
-            if (did == UPDATE_TITLE) {
-                etTitle!!.visibility = View.VISIBLE
-            } else if (did == UPDATE_TITLE_PADDING) {
-                val top: Float = density * 12
-                etTitle!!.setPadding(etTitle.getPaddingLeft(), top.toInt(), etTitle.getPaddingRight(), 0)
-                etTitle.requestLayout()
-            } else if (did == UPDATE_CONTENT) {
-                etContent!!.visibility = View.VISIBLE
-            } else if (did == UPDATE_CONTENT_MARGIN) {
-                val llp: LinearLayout.LayoutParams =
-                        etContent!!.layoutParams as LinearLayout.LayoutParams
-                llp.topMargin = (density * 20).toInt()
-                etContent.requestLayout()
-            } else if (did == UPDATE_CHECKLIST) { // must be editable if go here
-                val items: MutableList<String?> = checkListAdapter!!.getItems()!!
-                val index: Int = CheckListHelper.getLastUnfinishedItemIndex(items) + 1
-                items.add(index, "2")
-                if (index + 1 >= 0 && index + 1 < items.size
-                        && !items[index + 1].equals("3")) {
-                    items.add(index + 1, "3")
+            when (did) {
+                UPDATE_TITLE -> etTitle!!.visibility = View.VISIBLE
+                UPDATE_TITLE_PADDING -> {
+                    val top: Float = density * 12
+                    etTitle!!.setPadding(etTitle.getPaddingLeft(), top.toInt(), etTitle.getPaddingRight(), 0)
+                    etTitle.requestLayout()
                 }
-                checkListAdapter.notifyDataSetChanged()
-                llMoveChecklist!!.visibility = View.VISIBLE
-            } else if (did == UPDATE_CHECKLIST_MARGIN) {
-                val llp: LinearLayout.LayoutParams =
-                        rvChecklist!!.layoutParams as LinearLayout.LayoutParams
-                llp.topMargin = (density * 20).toInt()
-                rvChecklist.requestLayout()
-            } else if (did == UPDATE_IMAGE) {
-                imageAdapter!!.setTakingScreenshot(false)
-            } else if (did == UPDATE_AUDIO) {
-                audioAdapter!!.setTakingScreenshot(false)
-            } else if (did == UPDATE_AUDIO_MARGIN) {
-                val llp: LinearLayout.LayoutParams = rvAudio!!.layoutParams as LinearLayout.LayoutParams
-                llp.topMargin = (density * 32).toInt()
-                rvAudio.requestLayout()
+                UPDATE_CONTENT -> etContent!!.visibility = View.VISIBLE
+                UPDATE_CONTENT_MARGIN -> {
+                    val llp: LinearLayout.LayoutParams =
+                            etContent!!.layoutParams as LinearLayout.LayoutParams
+                    llp.topMargin = (density * 20).toInt()
+                    etContent.requestLayout()
+                }
+                UPDATE_CHECKLIST -> { // must be editable if go here
+                    val items: MutableList<String?> = checkListAdapter!!.getItems()!!
+                    val index: Int = CheckListHelper.getLastUnfinishedItemIndex(items) + 1
+                    items.add(index, "2")
+                    if (index + 1 >= 0 && index + 1 < items.size
+                            && !items[index + 1].equals("3")) {
+                        items.add(index + 1, "3")
+                    }
+                    checkListAdapter.notifyDataSetChanged()
+                    llMoveChecklist!!.visibility = View.VISIBLE
+                }
+                UPDATE_CHECKLIST_MARGIN -> {
+                    val llp: LinearLayout.LayoutParams =
+                            rvChecklist!!.layoutParams as LinearLayout.LayoutParams
+                    llp.topMargin = (density * 20).toInt()
+                    rvChecklist.requestLayout()
+                }
+                UPDATE_IMAGE -> imageAdapter!!.setTakingScreenshot(false)
+                UPDATE_AUDIO -> audioAdapter!!.setTakingScreenshot(false)
+                UPDATE_AUDIO_MARGIN -> {
+                    val llp: LinearLayout.LayoutParams = rvAudio!!.layoutParams as LinearLayout.LayoutParams
+                    llp.topMargin = (density * 32).toInt()
+                    rvAudio.requestLayout()
+                }
             }
         }
     }

@@ -89,7 +89,7 @@ object PossibleMistakeHelper {
     private fun createNewLogFile(): File? {
         val path: String = Def.getAppFileDir(App.getApp()) + "/log"
         val time: String = SimpleDateFormat("yyyyMMddHHmmss").format(Date())
-        val name: String = "possible_mistake_$time.info"
+        val name = "possible_mistake_$time.info"
         return FileUtil.createFile(path, name)
     }
 

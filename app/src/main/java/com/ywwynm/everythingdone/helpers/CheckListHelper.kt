@@ -36,7 +36,7 @@ object CheckListHelper {
         }
         val strs: Array<String> = str.split(SIGNAL.toRegex()).toTypedArray()
         val items: MutableList<String?> = ArrayList()
-        items.addAll(Arrays.asList<String>(*strs).subList(1, strs.size))
+        items.addAll(Arrays.asList(*strs).subList(1, strs.size))
 
         var firstFinishedIndex: Int = -1
         val size: Int = items.size
