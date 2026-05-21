@@ -227,7 +227,7 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
         }
 
         val singleThing: List<Thing?> = Collections.singletonList(Thing(thing))
-        val adapter: BaseThingsAdapter = object : BaseThingsAdapter(this) {
+        val adapter: BaseThingsAdapter = object : BaseThingsAdapter(this@BaseThingWidgetConfiguration) {
 
             override fun getCurrentMode(): Int {
                 return ModeManager.NORMAL
@@ -239,8 +239,8 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
 
             override fun onBindViewHolder(holder: BaseThingsAdapter.BaseThingViewHolder, position: Int) {
                 super.onBindViewHolder(holder, position)
-                holder.cv.setRadius(0f)
-                holder.cv.setCardElevation(0f)
+                holder.cv!!.setRadius(0f)
+                holder.cv!!.setCardElevation(0f)
                 val alpha: Int = (mWidgetAlpha / 100f * 255).toInt()
                 // Phase 4.d: preview supports gradient backgrounds.
                 val bg: com.ywwynm.everythingdone.model.ThingBackground = thing.getBackground()!!
@@ -252,7 +252,7 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
                         else com.ywwynm.everythingdone.model.ThingBackground.gradient(s, e, bg.orientation)!!
                 com.ywwynm.everythingdone.utils.BackgroundUtil.applyCardBackground(
                         holder.cv, tinted)
-                holder.ivStickyOngoing.setImageAlpha(alpha)
+                holder.ivStickyOngoing!!.setImageAlpha(alpha)
             }
         }
         val rvPreview: RecyclerView = f(R.id.rv_app_widget_preview)
@@ -349,7 +349,7 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BaseThingsAdapter.BaseThingViewHolder {
-            return Holder(mInflater.inflate(R.layout.card_thing, parent, false))
+            return Holder(mInflater!!.inflate(R.layout.card_thing, parent, false))
         }
 
         override fun onBindViewHolder(holder: BaseThingsAdapter.BaseThingViewHolder, position: Int) {
@@ -365,7 +365,7 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
         inner class Holder(item: View) : BaseThingsAdapter.BaseThingViewHolder(item) {
 
             init {
-                cv.setOnClickListener { v ->
+                cv!!.setOnClickListener { v ->
                     updateStatusBarAndBottomUi(false)
                     previewAppWidget(mThings!!.get(getAdapterPosition())!!)
                 }
