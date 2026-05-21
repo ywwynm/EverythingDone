@@ -301,16 +301,13 @@ open class HabitDAO private constructor(context: Context?) {
     open fun getFinishedTimesThisT(habit: Habit?): Int {
         val habitId: Long = habit!!.id
         val type: Int = habit.type
-        if (type == Calendar.DATE) {
-            return getFinishedTimesToday(habitId)
-        } else if (type == Calendar.WEEK_OF_YEAR) {
-            return getFinishedTimesThisWeek(habitId)
-        } else if (type == Calendar.MONTH) {
-            return getFinishedTimesThisMonth(habitId)
-        } else if (type == Calendar.YEAR) {
-            return getFinishedTimesThisYear(habitId)
+        return when (type) {
+            Calendar.DATE -> getFinishedTimesToday(habitId)
+            Calendar.WEEK_OF_YEAR -> getFinishedTimesThisWeek(habitId)
+            Calendar.MONTH -> getFinishedTimesThisMonth(habitId)
+            Calendar.YEAR -> getFinishedTimesThisYear(habitId)
+            else -> 0
         }
-        return 0
     }
 
     private fun getFinishedHabitRecordCursor(habitId: Long, limitCount: Int): Cursor {

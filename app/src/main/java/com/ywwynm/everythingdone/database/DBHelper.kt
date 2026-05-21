@@ -58,35 +58,44 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
 //        db.execSQL(SQL_DROP_TABLE_HABIT_REMINDERS);
 //        db.execSQL(SQL_DROP_TABLE_HABIT_RECORDS);
 //        onCreate(db);
-        if (oldVersion == 1) {
-            // no table "app_widget" in first version
-            db.execSQL(SQL_CREATE_TABLE_APP_WIDGET)
-            db.execSQL(SQL_CREATE_TABLE_DOING_RECORDS)
-            db.execSQL(SQL_ADD_COLUMN_TYPE_HABIT_RECORD)
-        } else if (oldVersion == 2) {
-            // Only for developing. I forget to create a column that describes widget's size
-            db.execSQL(SQL_DROP_TABLE_APP_WIDGET)
-            db.execSQL(SQL_CREATE_TABLE_APP_WIDGET)
-        } else if (oldVersion == 3) {
-            db.execSQL(SQL_ADD_COLUMN_ALPHA_APP_WIDGET)
-            db.execSQL(SQL_ADD_COLUMN_STYLE_APP_WIDGET)
-            db.execSQL(SQL_CREATE_TABLE_DOING_RECORDS)
-            db.execSQL(SQL_ADD_COLUMN_TYPE_HABIT_RECORD)
-        } else if (oldVersion == 4) {
-            // Only for developing. Thing list widget now can optimize style
-            db.execSQL(SQL_ADD_COLUMN_STYLE_APP_WIDGET)
-        } else if (oldVersion == 5) {
-            db.execSQL(SQL_CREATE_TABLE_DOING_RECORDS)
-            db.execSQL(SQL_ADD_COLUMN_TYPE_HABIT_RECORD)
-        } else if (oldVersion == 6) {
-            db.execSQL(SQL_ADD_COLUMN_START_TYPE_DOING_RECORD)
-            db.execSQL(SQL_ADD_COLUMN_SHOULD_ASM_DOING_RECORD)
-            db.execSQL(SQL_ADD_COLUMN_TYPE_HABIT_RECORD)
-        } else if (oldVersion == 7) {
-            db.execSQL(SQL_ADD_COLUMN_TYPE_HABIT_RECORD)
-            db.execSQL(SQL_ADD_COLUMN_BACKGROUND_THINGS)
-        } else if (oldVersion == 8) {
-            db.execSQL(SQL_ADD_COLUMN_BACKGROUND_THINGS)
+        when (oldVersion) {
+            1 -> {
+                // no table "app_widget" in first version
+                db.execSQL(SQL_CREATE_TABLE_APP_WIDGET)
+                db.execSQL(SQL_CREATE_TABLE_DOING_RECORDS)
+                db.execSQL(SQL_ADD_COLUMN_TYPE_HABIT_RECORD)
+            }
+            2 -> {
+                // Only for developing. I forget to create a column that describes widget's size
+                db.execSQL(SQL_DROP_TABLE_APP_WIDGET)
+                db.execSQL(SQL_CREATE_TABLE_APP_WIDGET)
+            }
+            3 -> {
+                db.execSQL(SQL_ADD_COLUMN_ALPHA_APP_WIDGET)
+                db.execSQL(SQL_ADD_COLUMN_STYLE_APP_WIDGET)
+                db.execSQL(SQL_CREATE_TABLE_DOING_RECORDS)
+                db.execSQL(SQL_ADD_COLUMN_TYPE_HABIT_RECORD)
+            }
+            4 -> {
+                // Only for developing. Thing list widget now can optimize style
+                db.execSQL(SQL_ADD_COLUMN_STYLE_APP_WIDGET)
+            }
+            5 -> {
+                db.execSQL(SQL_CREATE_TABLE_DOING_RECORDS)
+                db.execSQL(SQL_ADD_COLUMN_TYPE_HABIT_RECORD)
+            }
+            6 -> {
+                db.execSQL(SQL_ADD_COLUMN_START_TYPE_DOING_RECORD)
+                db.execSQL(SQL_ADD_COLUMN_SHOULD_ASM_DOING_RECORD)
+                db.execSQL(SQL_ADD_COLUMN_TYPE_HABIT_RECORD)
+            }
+            7 -> {
+                db.execSQL(SQL_ADD_COLUMN_TYPE_HABIT_RECORD)
+                db.execSQL(SQL_ADD_COLUMN_BACKGROUND_THINGS)
+            }
+            8 -> {
+                db.execSQL(SQL_ADD_COLUMN_BACKGROUND_THINGS)
+            }
         }
         // released version should be 1, 3, 5, 6, 7, 8, 9.
     }
