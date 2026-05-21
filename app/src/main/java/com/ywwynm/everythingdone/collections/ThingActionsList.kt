@@ -27,7 +27,7 @@ open class ThingActionsList(maxUndoTimes: Int) {
 
     open fun addAction(action: ThingAction?) {
         var size = mActions!!.size
-        var i = mCurPosition + 1
+        val i = mCurPosition + 1
         while (i < size) {
             mActions!!.removeAt(i)
             size--

@@ -26,25 +26,25 @@ object PermissionUtil {
     @JvmStatic
     fun getImagePermissions(): Array<String?>? {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            return arrayOf<String?>(Manifest.permission.READ_MEDIA_IMAGES)
+            return arrayOf(Manifest.permission.READ_MEDIA_IMAGES)
         }
-        return arrayOf<String?>(Manifest.permission.READ_EXTERNAL_STORAGE)
+        return arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
     }
 
     @JvmStatic
     fun getVideoPermissions(): Array<String?>? {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            return arrayOf<String?>(Manifest.permission.READ_MEDIA_VIDEO)
+            return arrayOf(Manifest.permission.READ_MEDIA_VIDEO)
         }
-        return arrayOf<String?>(Manifest.permission.READ_EXTERNAL_STORAGE)
+        return arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
     }
 
     @JvmStatic
     fun getAudioPermissions(): Array<String?>? {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            return arrayOf<String?>(Manifest.permission.READ_MEDIA_AUDIO)
+            return arrayOf(Manifest.permission.READ_MEDIA_AUDIO)
         }
-        return arrayOf<String?>(Manifest.permission.READ_EXTERNAL_STORAGE)
+        return arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
     }
 
     @JvmStatic
@@ -72,7 +72,7 @@ object PermissionUtil {
     @JvmStatic
     fun getRequiredPermissionsForThings(things: List<Thing?>?): Array<String?>? {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-            return arrayOf<String?>(Manifest.permission.READ_EXTERNAL_STORAGE)
+            return arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
         }
 
         var needsImage = false
@@ -84,9 +84,11 @@ object PermissionUtil {
             val parts = attachment!!.split(AttachmentHelper.SIGNAL!!.toRegex()).toTypedArray()
             for (i in 1 until parts.size) {
                 val type = parts[i][0]
-                if (type == '0') needsImage = true
-                else if (type == '1') needsVideo = true
-                else if (type == '2') needsAudio = true
+                when (type) {
+                    '0' -> needsImage = true
+                    '1' -> needsVideo = true
+                    '2' -> needsAudio = true
+                }
             }
         }
 
@@ -111,13 +113,13 @@ object PermissionUtil {
     @JvmStatic
     fun getStoragePermissions(): Array<String?>? {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            return arrayOf<String?>(
+            return arrayOf(
                     Manifest.permission.READ_MEDIA_IMAGES,
                     Manifest.permission.READ_MEDIA_VIDEO,
                     Manifest.permission.READ_MEDIA_AUDIO
             )
         }
-        return arrayOf<String?>(Manifest.permission.READ_EXTERNAL_STORAGE)
+        return arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
     }
 
     /**

@@ -15,7 +15,7 @@ object Def {
      */
     @JvmStatic
     fun getAppFileDir(context: Context?): String? {
-        return context!!.getExternalFilesDir(null)!!.getAbsolutePath()
+        return context!!.getExternalFilesDir(null)!!.absolutePath
     }
 
     object Meta {
