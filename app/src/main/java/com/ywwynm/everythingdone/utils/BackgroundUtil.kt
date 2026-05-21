@@ -343,7 +343,7 @@ object BackgroundUtil {
     /** Build a text-width-fitted LinearGradient and install it on the TextView's paint. */
     private fun applyTextShaderNow(textView: TextView, bg: ThingBackground) {
         val text: CharSequence? = textView.getText()
-        if (text == null || text.isEmpty()) return
+        if (text.isNullOrEmpty()) return
         val viewW: Int = textView.width
         val viewH: Int = textView.height
         if (viewW <= 0 || viewH <= 0) return

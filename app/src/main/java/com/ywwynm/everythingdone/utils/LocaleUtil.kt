@@ -105,14 +105,11 @@ object LocaleUtil {
         return if (isChinese(context)) {
             times.toString() + (if (shouldHasGapStr) " " else "") + timesStr
         } else {
-            if (times == 0) {
-                "0 time"
-            } else if (times == 1) {
-                "once"
-            } else if (times == 2) {
-                "twice"
-            } else {
-                times.toString() + " " + timesStr + "s"
+            when (times) {
+                0 -> "0 time"
+                1 -> "once"
+                2 -> "twice"
+                else -> times.toString() + " " + timesStr + "s"
             }
         }
     }

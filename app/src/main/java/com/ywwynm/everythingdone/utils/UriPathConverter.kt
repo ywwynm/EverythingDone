@@ -108,7 +108,7 @@ object UriPathConverter {
 
         var cursor: Cursor? = null
         val column = "_data"
-        val projection: Array<String?> = arrayOf<String?>(column)
+        val projection: Array<String?> = arrayOf(column)
 
         try {
             cursor = context!!.contentResolver.query(uri!!, projection, selection, selectionArgs,

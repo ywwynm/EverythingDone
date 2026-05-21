@@ -42,12 +42,12 @@ object EdgeEffectUtil {
     fun forRecyclerView(recyclerView: RecyclerView?, color: Int) {
         try {
             val rvClass: Class<*> = RecyclerView::class.java
-            for (name in arrayOf<String>("ensureTopGlow", "ensureBottomGlow")) {
+            for (name in arrayOf("ensureTopGlow", "ensureBottomGlow")) {
                 val method: Method = rvClass.getDeclaredMethod(name)
                 method.isAccessible = true
                 method.invoke(recyclerView)
             }
-            for (name in arrayOf<String>("mTopGlow", "mBottomGlow")) {
+            for (name in arrayOf("mTopGlow", "mBottomGlow")) {
                 val field: Field = rvClass.getDeclaredField(name)
                 field.isAccessible = true
                 val edge: Any = field.get(recyclerView)!!
@@ -62,7 +62,7 @@ object EdgeEffectUtil {
     fun forViewPager(viewPager: ViewPager?, color: Int) {
         try {
             val vpClass: Class<*> = ViewPager::class.java
-            for (name in arrayOf<String>("mLeftEdge", "mRightEdge")) {
+            for (name in arrayOf("mLeftEdge", "mRightEdge")) {
                 val field: Field = vpClass.getDeclaredField(name)
                 field.isAccessible = true
                 val edge: Any = field.get(viewPager)!!

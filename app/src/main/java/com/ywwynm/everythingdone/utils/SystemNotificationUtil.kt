@@ -627,19 +627,16 @@ object SystemNotificationUtil {
     private fun getSoundUri(type: Int, context: Context?, autoNotify: Boolean): Uri? {
         val preferences: SharedPreferences = context!!.getSharedPreferences(
                 Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE)
-        val key: String
-        val fs: String = SettingsActivity.FOLLOW_SYSTEM
-        key = if (autoNotify) {
+        val key = if (autoNotify) {
             Def.Meta.KEY_RINGTONE_AUTO_NOTIFY
         } else {
-            if (type == Thing.REMINDER) {
-                Def.Meta.KEY_RINGTONE_REMINDER
-            } else if (type == Thing.HABIT) {
-                Def.Meta.KEY_RINGTONE_HABIT
-            } else { // type == Thing.GOAL
-                Def.Meta.KEY_RINGTONE_GOAL
+            when (type) {
+                Thing.REMINDER -> Def.Meta.KEY_RINGTONE_REMINDER
+                Thing.HABIT -> Def.Meta.KEY_RINGTONE_HABIT
+                else -> Def.Meta.KEY_RINGTONE_GOAL
             }
         }
+        val fs: String = SettingsActivity.FOLLOW_SYSTEM
         val uriStr: String = preferences.getString(key, fs)!!
         val rm = RingtoneManager(context)
         rm.setType(RingtoneManager.TYPE_NOTIFICATION)

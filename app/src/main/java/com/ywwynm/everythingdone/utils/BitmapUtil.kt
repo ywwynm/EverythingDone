@@ -67,7 +67,7 @@ object BitmapUtil {
             background = gd
         }
 
-        val lb = LayerDrawable(arrayOf<Drawable?>(background, d))
+        val lb = LayerDrawable(arrayOf(background, d))
 
         val w: Int = d!!.intrinsicWidth
         val h: Int = d.intrinsicHeight
@@ -109,8 +109,7 @@ object BitmapUtil {
         } else {
             val fW: Float = oWidth.toFloat()  / reqWidth
             val fH: Float = oHeight.toFloat() / reqHeight
-            val maintainedSide: Int
-            maintainedSide = if (inside) {
+            val maintainedSide = if (inside) {
                 if (fW >= fH) oWidth else oHeight
             } else {
                 if (fW <= fH) oWidth else oHeight
@@ -202,14 +201,11 @@ object BitmapUtil {
             val orientation: Int = exif.getAttributeInt(
                     ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
             val matrix = Matrix()
-            if (orientation == ExifInterface.ORIENTATION_ROTATE_90) {
-                matrix.postRotate(90f)
-            } else if (orientation == ExifInterface.ORIENTATION_ROTATE_180) {
-                matrix.postRotate(180f)
-            } else if (orientation == ExifInterface.ORIENTATION_ROTATE_270) {
-                matrix.postRotate(270f)
-            } else {
-                return src
+            when (orientation) {
+                ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
+                ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
+                ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
+                else -> return src
             }
             val ret: Bitmap = Bitmap.createBitmap(src!!, 0, 0, src.getWidth(),
                     src.getHeight(), matrix, true)
