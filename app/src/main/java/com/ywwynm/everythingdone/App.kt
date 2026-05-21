@@ -429,8 +429,7 @@ open class App : Application() {
 
         @JvmStatic
         fun killMeAndRestart(context: Context?, toLaunch: Class<*>?, time: Long) {
-            val intent: Intent
-            intent = if (toLaunch == null) {
+            val intent = if (toLaunch == null) {
                 context!!.packageManager.getLaunchIntentForPackage(
                     context.packageName
                 )!!
