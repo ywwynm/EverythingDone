@@ -25,15 +25,15 @@ import java.util.Calendar
  */
 open class HabitDAO private constructor(context: Context?) {
 
-    private var mContext: Context? = context!!.getApplicationContext()
+    private var mContext: Context? = context!!.applicationContext
     private var mHabitReminderId: Long = -1
     private var mHabitRecordId: Long = 0
 
     private var db: SQLiteDatabase? = null
 
     init {
-        val helper: DBHelper = DBHelper(context)
-        db = helper.getWritableDatabase()
+        val helper = DBHelper(context)
+        db = helper.writableDatabase
         updateMaxHabitReminderRecordId()
     }
 
@@ -85,7 +85,7 @@ open class HabitDAO private constructor(context: Context?) {
 
     open fun getHabitById(id: Long): Habit? {
         val c: Cursor = db!!.query(Def.Database.TABLE_HABITS, null,
-                "id=" + id, null, null, null, null)
+            "id=$id", null, null, null, null)
         var habit: Habit? = null
         if (c.moveToFirst()) {
             habit = Habit(c)
@@ -99,7 +99,7 @@ open class HabitDAO private constructor(context: Context?) {
     open fun getHabitReminderById(id: Long): HabitReminder? {
         var habitReminder: HabitReminder? = null
         val c: Cursor = db!!.query(Def.Database.TABLE_HABIT_REMINDERS, null,
-                "id=" + id, null, null, null, null)
+            "id=$id", null, null, null, null)
         if (c.moveToFirst()) {
             habitReminder = HabitReminder(c)
         }
@@ -110,7 +110,7 @@ open class HabitDAO private constructor(context: Context?) {
     open fun getHabitRemindersByHabitId(habitId: Long): List<HabitReminder?>? {
         val habitReminders: MutableList<HabitReminder?> = ArrayList()
         val c: Cursor = db!!.query(Def.Database.TABLE_HABIT_REMINDERS, null,
-                "habit_id=" + habitId, null, null, null, null)
+            "habit_id=$habitId", null, null, null, null)
         while (c.moveToNext()) {
             habitReminders.add(HabitReminder(c))
         }
@@ -140,7 +140,7 @@ open class HabitDAO private constructor(context: Context?) {
         db!!.beginTransaction()
         try {
             val id: Long = habit!!.id
-            val values: ContentValues = ContentValues()
+            val values = ContentValues()
             values.put(Def.Database.COLUMN_ID_HABITS, id)
             values.put(Def.Database.COLUMN_TYPE_HABITS, habit.type)
             values.put(Def.Database.COLUMN_REMINDED_TIMES_HABITS, habit.remindedTimes)
@@ -165,7 +165,7 @@ open class HabitDAO private constructor(context: Context?) {
     open fun createHabitReminder(habitReminder: HabitReminder?) {
         mHabitReminderId++
         val notifyTime: Long = habitReminder!!.notifyTime
-        val values: ContentValues = ContentValues()
+        val values = ContentValues()
         values.put(Def.Database.COLUMN_ID_HABIT_REMINDERS, mHabitReminderId)
         values.put(Def.Database.COLUMN_HABIT_ID_HABIT_REMINDERS, habitReminder.habitId)
         values.put(Def.Database.COLUMN_NOTIFY_TIME_HABIT_REMINDERS, notifyTime)
@@ -182,7 +182,7 @@ open class HabitDAO private constructor(context: Context?) {
     }
 
     private fun getContentValuesFromHabitRecord(habitRecord: HabitRecord?, putId: Boolean): ContentValues {
-        val values: ContentValues = ContentValues()
+        val values = ContentValues()
         if (putId) {
             values.put(Def.Database.COLUMN_ID_HABIT_RECORDS, mHabitRecordId)
         }
@@ -218,7 +218,7 @@ open class HabitDAO private constructor(context: Context?) {
                 Def.Database.COLUMN_ID_HABITS + "=" + habitId,
                 null, null, null, null
         )
-        var paused: Boolean = false
+        var paused = false
         if (cursor.moveToFirst()) {
             val intervalInfo: String = cursor.getString(0)
             paused = intervalInfo.endsWith(",")
@@ -327,10 +327,10 @@ open class HabitDAO private constructor(context: Context?) {
 
     private fun getFinishedTimesToday(habitId: Long): Int {
         val dt: ZonedDateTime  = ZonedDateTime.now()
-        val curYear: Int  = dt.getYear()
-        val curMonth: Int = dt.getMonthValue()
-        val curDay: Int   = dt.getDayOfMonth()
-        var times: Int    = 0
+        val curYear: Int  = dt.year
+        val curMonth: Int = dt.monthValue
+        val curDay: Int   = dt.dayOfMonth
+        var times = 0
         val c: Cursor = getFinishedHabitRecordCursor(habitId, 4)
         while (c.moveToNext()) {
             val year: Int = c.getInt(c.getColumnIndex(
@@ -349,9 +349,9 @@ open class HabitDAO private constructor(context: Context?) {
 
     private fun getFinishedTimesThisWeek(habitId: Long): Int {
         val dt: ZonedDateTime = ZonedDateTime.now()
-        val curYear: Int = dt.getYear()
+        val curYear: Int = dt.year
         val curWeek: Int = dt.get(WeekFields.ISO.weekOfWeekBasedYear())
-        var times: Int   = 0
+        var times = 0
         val c: Cursor = getFinishedHabitRecordCursor(habitId, 7)
         while (c.moveToNext()) {
             val year: Int = c.getInt(c.getColumnIndex(
@@ -368,9 +368,9 @@ open class HabitDAO private constructor(context: Context?) {
 
     private fun getFinishedTimesThisMonth(habitId: Long): Int {
         val dt: ZonedDateTime = ZonedDateTime.now()
-        val curYear: Int  = dt.getYear()
-        val curMonth: Int = dt.getMonthValue()
-        var times: Int    = 0
+        val curYear: Int  = dt.year
+        val curMonth: Int = dt.monthValue
+        var times = 0
         val c: Cursor = getFinishedHabitRecordCursor(habitId, 31)
         while (c.moveToNext()) {
             val year: Int = c.getInt(c.getColumnIndex(
@@ -387,8 +387,8 @@ open class HabitDAO private constructor(context: Context?) {
 
     private fun getFinishedTimesThisYear(habitId: Long): Int {
         val dt: ZonedDateTime = ZonedDateTime.now()
-        val curYear: Int = dt.getYear()
-        var times: Int   = 0
+        val curYear: Int = dt.year
+        var times = 0
         val c: Cursor = getFinishedHabitRecordCursor(habitId, 12)
         while (c.moveToNext()) {
             val year: Int = c.getInt(c.getColumnIndex(
@@ -417,11 +417,9 @@ open class HabitDAO private constructor(context: Context?) {
      */
     open fun updateHabitToLatest(
             id: Long, updateRemindedTimes: Boolean, forceToUpdateRemindedTimes: Boolean) {
-        val habit: Habit? = getHabitById(id)
-        if (habit == null) {
-            // This may happen if the universe boom, so we should consider it strictly.
+        val habit: Habit = getHabitById(id)
+            ?: // This may happen if the universe boom, so we should consider it strictly.
             return
-        }
 
         val recordTimes: Int = habit.record!!.length
         if (updateRemindedTimes && forceToUpdateRemindedTimes) {
@@ -454,8 +452,8 @@ open class HabitDAO private constructor(context: Context?) {
             return
         }
         for (i in 0 until hrIdsSize) {
-            val newTime: Long = habitReminders.get(i)!!.notifyTime
-            updateHabitReminder(hrIds.get(i)!!, newTime)
+            val newTime: Long = habitReminders[i]!!.notifyTime
+            updateHabitReminder(hrIds[i]!!, newTime)
         }
 
         // 将已经提前完成的habitReminder更新至新的周期里
@@ -476,7 +474,7 @@ open class HabitDAO private constructor(context: Context?) {
                 val maxTime: Long = habit.getFinalHabitReminder()!!.notifyTime
                 val maxLastTime: Long = DateTimeUtil.getHabitReminderTime(habitType, maxTime, -1)
                 val curTime: Long = System.currentTimeMillis()
-                if (maxLastTime < curTime && curTime < minTime) {
+                if (curTime in (maxLastTime + 1)..<minTime) {
                     if (DateTimeUtil.calculateTimeGap(maxLastTime, curTime, habitType) != 0) {
                         updateHabitRemindedTimes(id, recordTimes.toLong())
                     }
@@ -522,12 +520,12 @@ open class HabitDAO private constructor(context: Context?) {
 
         val curTime: Long = System.currentTimeMillis()
         var nextRemindIndex: Int = timesEachT // 找出下一个提醒时刻所对应的下标，如果为timesEachT，则说明下一个提醒时刻在下个周期
-        for (i in 0 until timesEachT) if (habitReminders.get(i)!!.notifyTime < curTime) {
+        for (i in 0 until timesEachT) if (habitReminders[i]!!.notifyTime < curTime) {
             nextRemindIndex = i
             break
         }
         var backFrom: Int // 从哪一个HabitReminder开始回溯，找到我们需要伪造HabitRecord的对应的HabitReminder
-        var preVary: Int = 0
+        var preVary = 0
         if (nextRemindIndex == 0) {
             backFrom = timesEachT - 1
         } else if (!recordEndWith0 && recordTimes == habit.remindedTimes) {
@@ -544,14 +542,14 @@ open class HabitDAO private constructor(context: Context?) {
         if (indexToPreVary >= timesEachT) {
             indexToPreVary -= timesEachT
         }
-        var hr: HabitReminder = habitReminders.get(indexToPreVary)!!
+        var hr: HabitReminder = habitReminders[indexToPreVary]!!
         val habitType: Int = habit.type
         hr.notifyTime = DateTimeUtil.getHabitReminderTime(habitType, hr.notifyTime, preVary)
 
         var i: Int = backFrom
-        var j: Int = 1
+        var j = 1
         while (j <= indexFromLast) {
-            hr = habitReminders.get(i)!!
+            hr = habitReminders[i]!!
             hr.notifyTime = DateTimeUtil.getHabitReminderTime(habitType, hr.notifyTime, -1)
             i--
             if (i < 0) {
@@ -563,8 +561,8 @@ open class HabitDAO private constructor(context: Context?) {
         if (i >= timesEachT) {
             i -= timesEachT
         }
-        hr = habitReminders.get(i)!!
-        val fakeFinishedHabitRecord: HabitRecord = HabitRecord(
+        hr = habitReminders[i]!!
+        val fakeFinishedHabitRecord = HabitRecord(
                 habitId, hr.id, hr.notifyTime + 6000)
         fakeFinishedHabitRecord.type = HabitRecord.TYPE_FAKE_FINISHED
         createHabitRecord(fakeFinishedHabitRecord)
@@ -575,7 +573,7 @@ open class HabitDAO private constructor(context: Context?) {
      * 比如：字符串是011011010，c为1，index为2，那么c就是从后往前数的第4个1
      */
     private fun indexFromLast(src: String?, c: Char, index: Int): Int {
-        var lastN: Int = 0
+        var lastN = 0
         val arr: CharArray = src!!.toCharArray()
         for (i in arr.size - 1 downTo index) if (arr[i] == c) lastN++
         return lastN
@@ -585,7 +583,7 @@ open class HabitDAO private constructor(context: Context?) {
         val size: Int = habitRecords!!.size
         for (j in size - 1 downTo 0) {
             if (size - j == indexFromLast) {
-                val hr: HabitRecord = habitRecords.get(j)!!
+                val hr: HabitRecord = habitRecords[j]!!
                 @HabitRecord.Type val type: Int = hr.type
                 if (type == HabitRecord.TYPE_FINISHED) {
                     hr.type = HabitRecord.TYPE_CANCEL_FINISHED
@@ -604,37 +602,37 @@ open class HabitDAO private constructor(context: Context?) {
     }
 
     open fun updateRecordOfHabit(id: Long, record: String?) {
-        val values: ContentValues = ContentValues()
+        val values = ContentValues()
         values.put(Def.Database.COLUMN_RECORD_HABITS, record)
-        db!!.update(Def.Database.TABLE_HABITS, values, "id=" + id, null)
+        db!!.update(Def.Database.TABLE_HABITS, values, "id=$id", null)
     }
 
     open fun updateHabitRemindedTimes(id: Long, remindedTimes: Long) {
-        val values: ContentValues = ContentValues()
+        val values = ContentValues()
         values.put(Def.Database.COLUMN_REMINDED_TIMES_HABITS, remindedTimes)
-        db!!.update(Def.Database.TABLE_HABITS, values, "id=" + id, null)
+        db!!.update(Def.Database.TABLE_HABITS, values, "id=$id", null)
     }
 
     open fun addHabitIntervalInfo(id: Long, intervalInfoToAdd: String?) {
-        val values: ContentValues = ContentValues()
+        val values = ContentValues()
         values.put(Def.Database.COLUMN_INTERVAL_INFO_HABITS,
                 getHabitById(id)!!.intervalInfo + intervalInfoToAdd)
-        db!!.update(Def.Database.TABLE_HABITS, values, "id=" + id, null)
+        db!!.update(Def.Database.TABLE_HABITS, values, "id=$id", null)
     }
 
     open fun removeLastHabitIntervalInfo(id: Long) {
         var interval: String = getHabitById(id)!!.intervalInfo!!
         interval = interval.substring(0,
                 interval.lastIndexOf(if (interval.endsWith(";")) "," else ";") + 1)
-        val values: ContentValues = ContentValues()
+        val values = ContentValues()
         values.put(Def.Database.COLUMN_INTERVAL_INFO_HABITS, interval)
-        db!!.update(Def.Database.TABLE_HABITS, values, "id=" + id, null)
+        db!!.update(Def.Database.TABLE_HABITS, values, "id=$id", null)
     }
 
     open fun updateHabitReminder(hrId: Long, notifyTime: Long) {
-        val values: ContentValues = ContentValues()
+        val values = ContentValues()
         values.put(Def.Database.COLUMN_NOTIFY_TIME_HABIT_REMINDERS, notifyTime)
-        db!!.update(Def.Database.TABLE_HABIT_REMINDERS, values, "id=" + hrId, null)
+        db!!.update(Def.Database.TABLE_HABIT_REMINDERS, values, "id=$hrId", null)
         AlarmHelper.setHabitReminderAlarm(mContext, hrId, notifyTime)
     }
 
@@ -661,7 +659,7 @@ open class HabitDAO private constructor(context: Context?) {
     }
 
     open fun updateHabit(updatedHabit: Habit?): Boolean {
-        val values: ContentValues = ContentValues()
+        val values = ContentValues()
         values.put(Def.Database.COLUMN_TYPE_HABITS, updatedHabit!!.type)
         values.put(Def.Database.COLUMN_REMINDED_TIMES_HABITS, updatedHabit.remindedTimes)
         values.put(Def.Database.COLUMN_DETAIL_HABITS, updatedHabit.detail)
@@ -674,7 +672,7 @@ open class HabitDAO private constructor(context: Context?) {
     open fun deleteHabit(id: Long): Boolean {
         db!!.beginTransaction()
         try {
-            db!!.delete(Def.Database.TABLE_HABITS, "id=" + id, null)
+            db!!.delete(Def.Database.TABLE_HABITS, "id=$id", null)
             deleteHabitReminders(id)
             deleteHabitRecords(id)
             updateMaxHabitReminderRecordId()
@@ -693,15 +691,15 @@ open class HabitDAO private constructor(context: Context?) {
         for (habitReminder in habitReminders) {
             AlarmHelper.deleteHabitReminderAlarm(mContext, habitReminder!!.id)
         }
-        db!!.delete(Def.Database.TABLE_HABIT_REMINDERS, "habit_id=" + habitId, null)
+        db!!.delete(Def.Database.TABLE_HABIT_REMINDERS, "habit_id=$habitId", null)
     }
 
     open fun deleteHabitRecords(habitId: Long) {
-        db!!.delete(Def.Database.TABLE_HABIT_RECORDS, "habit_id=" + habitId, null)
+        db!!.delete(Def.Database.TABLE_HABIT_RECORDS, "habit_id=$habitId", null)
     }
 
     open fun deleteHabitRecord(hrId: Long) {
-        db!!.delete(Def.Database.TABLE_HABIT_RECORDS, "id=" + hrId, null)
+        db!!.delete(Def.Database.TABLE_HABIT_RECORDS, "id=$hrId", null)
     }
 
     companion object {
@@ -715,7 +713,7 @@ open class HabitDAO private constructor(context: Context?) {
             if (sHabitDAO == null) {
                 synchronized(ReminderDAO::class.java) {
                     if (sHabitDAO == null) {
-                        sHabitDAO = HabitDAO(context!!.getApplicationContext())
+                        sHabitDAO = HabitDAO(context!!.applicationContext)
                     }
                 }
             }

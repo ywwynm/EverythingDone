@@ -51,7 +51,7 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        Log.i(TAG, "database upgrade, old version: " + oldVersion + ", new version: " + newVersion)
+        Log.i(TAG, "database upgrade, old version: $oldVersion, new version: $newVersion")
 //        db.execSQL(SQL_DROP_TABLE_THINGS);
 //        db.execSQL(SQL_DROP_TABLE_REMINDERS);
 //        db.execSQL(SQL_DROP_TABLE_HABITS);
@@ -94,7 +94,7 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
     override fun onDowngrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         if (newVersion < oldVersion) {
             onUpgrade(db, newVersion, oldVersion)
-            db.setVersion(oldVersion)
+            db.version = oldVersion
         }
     }
 

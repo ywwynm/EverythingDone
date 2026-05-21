@@ -19,13 +19,13 @@ import java.util.ArrayList
  */
 open class ReminderDAO private constructor(context: Context?) {
 
-    private var mContext: Context? = context!!.getApplicationContext()
+    private var mContext: Context? = context!!.applicationContext
 
     private var db: SQLiteDatabase? = null
 
     init {
-        val helper: DBHelper = DBHelper(context)
-        db = helper.getWritableDatabase()
+        val helper = DBHelper(context)
+        db = helper.writableDatabase
     }
 
     open fun getAllReminders(): List<Reminder?>? {
@@ -40,7 +40,7 @@ open class ReminderDAO private constructor(context: Context?) {
 
     open fun getReminderById(id: Long): Reminder? {
         val cursor: Cursor = db!!.query(Def.Database.TABLE_REMINDERS, null,
-                "id=" + id, null, null, null, null)
+            "id=$id", null, null, null, null)
         var reminder: Reminder? = null
         if (cursor.moveToFirst()) {
             reminder = Reminder(cursor)
@@ -54,7 +54,7 @@ open class ReminderDAO private constructor(context: Context?) {
             val id: Long = reminder.id
             val notifyTime: Long = reminder.notifyTime
 
-            val values: ContentValues = ContentValues()
+            val values = ContentValues()
             values.put(Def.Database.COLUMN_ID_REMINDERS, id)
             values.put(Def.Database.COLUMN_NOTIFY_TIME_REMINDERS, notifyTime)
             values.put(Def.Database.COLUMN_STATE_REMINDERS, reminder.state)
@@ -72,12 +72,12 @@ open class ReminderDAO private constructor(context: Context?) {
             val id: Long = updatedReminder.id
             val notifyTime: Long = updatedReminder.notifyTime
 
-            val values: ContentValues = ContentValues()
+            val values = ContentValues()
             values.put(Def.Database.COLUMN_NOTIFY_TIME_REMINDERS, notifyTime)
             values.put(Def.Database.COLUMN_STATE_REMINDERS, updatedReminder.state)
             values.put(Def.Database.COLUMN_NOTIFY_MILLIS_REMINDERS, updatedReminder.notifyMillis)
             values.put(Def.Database.COLUMN_UPDATE_TIME_REMINDERS, updatedReminder.updateTime)
-            db!!.update(Def.Database.TABLE_REMINDERS, values, "id=" + id, null)
+            db!!.update(Def.Database.TABLE_REMINDERS, values, "id=$id", null)
 
             if (updatedReminder.state == Reminder.UNDERWAY) {
                 AlarmHelper.setReminderAlarm(mContext, id, notifyTime)
@@ -98,7 +98,7 @@ open class ReminderDAO private constructor(context: Context?) {
     }
 
     open fun delete(id: Long) {
-        db!!.delete(Def.Database.TABLE_REMINDERS, "id=" + id, null)
+        db!!.delete(Def.Database.TABLE_REMINDERS, "id=$id", null)
         AlarmHelper.deleteReminderAlarm(mContext, id)
     }
 
@@ -113,7 +113,7 @@ open class ReminderDAO private constructor(context: Context?) {
             if (sReminderDAO == null) {
                 synchronized(ReminderDAO::class.java) {
                     if (sReminderDAO == null) {
-                        sReminderDAO = ReminderDAO(context!!.getApplicationContext())
+                        sReminderDAO = ReminderDAO(context!!.applicationContext)
                     }
                 }
             }

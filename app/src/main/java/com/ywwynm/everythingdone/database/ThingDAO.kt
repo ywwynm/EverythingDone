@@ -25,15 +25,15 @@ import java.util.Comparator
  */
 open class ThingDAO private constructor(context: Context?) {
 
-    private var mContext: Context? = context!!.getApplicationContext()
+    private var mContext: Context? = context!!.applicationContext
 
     private var mLimit: Int = Def.LimitForGettingThings.ALL_UNDERWAY
 
     private var db: SQLiteDatabase? = null
 
     init {
-        val helper: DBHelper = DBHelper(context)
-        db = helper.getWritableDatabase()
+        val helper = DBHelper(context)
+        db = helper.writableDatabase
         recreateHeader()
     }
 
@@ -75,7 +75,7 @@ open class ThingDAO private constructor(context: Context?) {
     }
 
     private fun createHeader(idAndLocation: Long) {
-        val values: ContentValues = ContentValues()
+        val values = ContentValues()
         values.put(Def.Database.COLUMN_ID_THINGS, idAndLocation)
         values.put(Def.Database.COLUMN_TYPE_THINGS, Thing.HEADER)
         values.put(Def.Database.COLUMN_STATE_THINGS, Thing.UNDERWAY)
@@ -97,12 +97,12 @@ open class ThingDAO private constructor(context: Context?) {
 
     open fun getThingById(id: Long): Thing? {
         val cursor: Cursor = db!!.query(Def.Database.TABLE_THINGS, null,
-                "id=" + id, null, null, null, null)
+            "id=$id", null, null, null, null)
         val moved: Boolean = cursor.moveToFirst()
         if (!moved) {
             return null
         }
-        val thing: Thing = Thing(cursor)
+        val thing = Thing(cursor)
         cursor.close()
         return thing
     }
@@ -140,7 +140,7 @@ open class ThingDAO private constructor(context: Context?) {
         val cursor: Cursor = getThingsCursorForDisplay(limit, keyword, 0)
         val things: MutableList<Thing?> = ArrayList()
         while (cursor.moveToNext()) {
-            val t: Thing = Thing(cursor)
+            val t = Thing(cursor)
             // Hue-bucket filtering applies to every coloured row — i.e. anything
             // except HEADER and the NOTIFY_EMPTY_* placeholders (which have no
             // user-set colour). This includes WELCOME_*, NOTIFICATION_*, etc.
@@ -180,7 +180,7 @@ open class ThingDAO private constructor(context: Context?) {
             deleteNotifyEmpty(type, state, handleCurrentLimit)
         }
 
-        val values: ContentValues = ContentValues(11)
+        val values = ContentValues(11)
         values.put(Def.Database.COLUMN_ID_THINGS,          thing.id)
         values.put(Def.Database.COLUMN_TYPE_THINGS,        type)
         values.put(Def.Database.COLUMN_STATE_THINGS,       state)
@@ -216,7 +216,7 @@ open class ThingDAO private constructor(context: Context?) {
             deleteNotifyEmpty(typeAfter, state, handleCurrentLimit)
         }
 
-        val values: ContentValues = ContentValues()
+        val values = ContentValues()
         values.put(Def.Database.COLUMN_TYPE_THINGS, typeAfter)
         values.put(Def.Database.COLUMN_COLOR_THINGS, updatedThing.getColor())
         values.put(Def.Database.COLUMN_BACKGROUND_THINGS, updatedThing.getBackground()!!.toJson())
@@ -246,7 +246,7 @@ open class ThingDAO private constructor(context: Context?) {
         @Thing.Type val type: Int = thing.type
         // never give a chance to update header's state
         if (type == Thing.HEADER) return
-        val values: ContentValues = ContentValues()
+        val values = ContentValues()
 
         if (stateBefore == Thing.DELETED_FOREVER) {
             if (handleNotifyEmpty) {
@@ -289,12 +289,12 @@ open class ThingDAO private constructor(context: Context?) {
 
                 values.put(Def.Database.COLUMN_CONTENT_THINGS, thing.content)
                 values.put(Def.Database.COLUMN_STATE_THINGS, stateAfter)
-                db!!.update(Def.Database.TABLE_THINGS, values, "id=" + id, null)
+                db!!.update(Def.Database.TABLE_THINGS, values, "id=$id", null)
             } else {
                 val temp: Thing? = getThingById(id)
                 if (temp != null && temp.type == Thing.HEADER) return
 
-                db!!.delete(Def.Database.TABLE_THINGS, "id=" + id, null)
+                db!!.delete(Def.Database.TABLE_THINGS, "id=$id", null)
             }
 
             if (handleNotifyEmpty) {
@@ -316,25 +316,27 @@ open class ThingDAO private constructor(context: Context?) {
             if (!toUndo) {
                 updateHeader(size)
                 for (i in size - 1 downTo 0) {
-                    updateState(things.get(i), -1, stateBefore, stateAfter, false, false,
+                    updateState(
+                        things[i], -1, stateBefore, stateAfter, false, false,
                             false, false)
                 }
             } else {
                 for (i in size - 1 downTo 0) {
-                    updateState(things.get(i), locations!!.get(i)!!, stateBefore, stateAfter,
+                    updateState(
+                        things[i], locations!![i]!!, stateBefore, stateAfter,
                             false, false, true, false)
                 }
             }
 
             val thingsCounts: ThingsCounts = ThingsCounts.getInstance(mContext)!!
             val currentLimit: Int = mLimit
-            var neCreated: Int = 0
+            var neCreated = 0
             var limit: Int = Def.LimitForGettingThings.ALL_UNDERWAY
             while (limit <= Def.LimitForGettingThings.ALL_DELETED) {
                 if (currentLimit == limit) { limit++; continue }
 
                 var cursor: Cursor = getThingsCursorForDisplay(limit, null, 0)
-                var count: Int = 0
+                var count = 0
                 while (cursor.moveToNext()) {
                     count++
                     if (count == 3) break
@@ -351,9 +353,9 @@ open class ThingDAO private constructor(context: Context?) {
                     val NEtype: Int = Thing.getNotifyEmptyType(limit)
                     cursor.close()
                     cursor = db!!.query(Def.Database.TABLE_THINGS, null,
-                            "type=" + NEtype, null, null, null, null)
-                    if (cursor.getCount() != 0) {
-                        db!!.delete(Def.Database.TABLE_THINGS, "type=" + NEtype, null)
+                        "type=$NEtype", null, null, null, null)
+                    if (cursor.count != 0) {
+                        db!!.delete(Def.Database.TABLE_THINGS, "type=$NEtype", null)
                         thingsCounts.handleUpdate(NEtype, Thing.UNDERWAY,
                                 NEtype, Thing.DELETED_FOREVER, 1)
                     }
@@ -375,7 +377,7 @@ open class ThingDAO private constructor(context: Context?) {
     open fun updateLocations(ids: Array<Long?>?, locations: Array<Long?>?) {
         db!!.beginTransaction()
         try {
-            val values: ContentValues = ContentValues()
+            val values = ContentValues()
             for (i in 0 until ids!!.size) {
                 values.put(Def.Database.COLUMN_LOCATION_THINGS, locations!![i])
                 db!!.update(Def.Database.TABLE_THINGS, values, "id=" + ids[i], null)
@@ -519,9 +521,9 @@ open class ThingDAO private constructor(context: Context?) {
             for (limit in limits) {
                 val NEtype: Int = Thing.getNotifyEmptyType(limit)
                 val cursor: Cursor = db!!.query(Def.Database.TABLE_THINGS, null,
-                        "type=" + type, null, null, null, null)
-                if (cursor.getCount() != 0) {
-                    db!!.delete(Def.Database.TABLE_THINGS, "type=" + NEtype, null)
+                    "type=$type", null, null, null, null)
+                if (cursor.count != 0) {
+                    db!!.delete(Def.Database.TABLE_THINGS, "type=$NEtype", null)
                     thingsCounts.handleUpdate(NEtype, Thing.UNDERWAY, NEtype, Thing.DELETED_FOREVER, 1)
                 }
                 cursor.close()
@@ -531,9 +533,9 @@ open class ThingDAO private constructor(context: Context?) {
                 if (currentLimit != limit) {
                     val NEtype: Int = Thing.getNotifyEmptyType(limit)
                     val cursor: Cursor = db!!.query(Def.Database.TABLE_THINGS, null,
-                            "type=" + NEtype, null, null, null, null)
-                    if (cursor.getCount() != 0) {
-                        db!!.delete(Def.Database.TABLE_THINGS, "type=" + NEtype, null)
+                        "type=$NEtype", null, null, null, null)
+                    if (cursor.count != 0) {
+                        db!!.delete(Def.Database.TABLE_THINGS, "type=$NEtype", null)
                         thingsCounts.handleUpdate(NEtype, Thing.UNDERWAY, NEtype, Thing.DELETED_FOREVER, 1)
                     }
                     cursor.close()
@@ -552,7 +554,7 @@ open class ThingDAO private constructor(context: Context?) {
         if (handleCurrentLimit) {
             for (limit in limits) {
                 cursor = getThingsCursorForDisplay(limit, null, 0)
-                if (cursor.getCount() == 1) {
+                if (cursor.count == 1) {
                     ne = Thing.generateNotifyEmpty(limit, getHeaderId(), mContext)
                     if (ne != null) {
                         create(ne, false, false)
@@ -565,7 +567,7 @@ open class ThingDAO private constructor(context: Context?) {
             for (limit in limits) {
                 if (currentLimit != limit) {
                     cursor = getThingsCursorForDisplay(limit, null, 0)
-                    if (cursor.getCount() == 1) {
+                    if (cursor.count == 1) {
                         ne = Thing.generateNotifyEmpty(limit, getHeaderId(), mContext)
                         if (ne != null) {
                             create(ne, false, false)
@@ -591,7 +593,7 @@ open class ThingDAO private constructor(context: Context?) {
             if (sThingDAO == null) {
                 synchronized(ThingDAO::class.java) {
                     if (sThingDAO == null) {
-                        sThingDAO = ThingDAO(context!!.getApplicationContext())
+                        sThingDAO = ThingDAO(context!!.applicationContext)
                     }
                 }
             }

@@ -20,8 +20,8 @@ open class DoingRecordDAO private constructor(context: Context?) {
     private var db: SQLiteDatabase? = null
 
     init {
-        val helper: DBHelper = DBHelper(context)
-        db = helper.getWritableDatabase()
+        val helper = DBHelper(context)
+        db = helper.writableDatabase
     }
 
     open fun getAllDoingRecords(): List<DoingRecord?>? {
@@ -35,7 +35,7 @@ open class DoingRecordDAO private constructor(context: Context?) {
     }
 
     open fun insert(doingRecord: DoingRecord?): Boolean {
-        val values: ContentValues = ContentValues()
+        val values = ContentValues()
         values.put(Def.Database.COLUMN_THING_ID_DOING,           doingRecord!!.thingId)
         values.put(Def.Database.COLUMN_THING_TYPE_DOING,         doingRecord.thingType)
         values.put(Def.Database.COLUMN_ADD5_TIMES_DOING,         doingRecord.add5Times)
@@ -61,7 +61,7 @@ open class DoingRecordDAO private constructor(context: Context?) {
             if (sDoingRecordDAO == null) {
                 synchronized(DoingRecordDAO::class.java) {
                     if (sDoingRecordDAO == null) {
-                        sDoingRecordDAO = DoingRecordDAO(context!!.getApplicationContext())
+                        sDoingRecordDAO = DoingRecordDAO(context!!.applicationContext)
                     }
                 }
             }

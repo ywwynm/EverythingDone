@@ -20,8 +20,8 @@ open class AppWidgetDAO private constructor(context: Context?) {
     private var db: SQLiteDatabase? = null
 
     init {
-        val helper: DBHelper = DBHelper(context)
-        db = helper.getWritableDatabase()
+        val helper = DBHelper(context)
+        db = helper.writableDatabase
     }
 
     open fun getThingWidgetInfoById(appWidgetId: Int): ThingWidgetInfo? {
@@ -61,7 +61,7 @@ open class AppWidgetDAO private constructor(context: Context?) {
 
     open fun insert(appWidgetId: Int, thingId: Long, @ThingWidgetInfo.Size size: Int, alpha: Int,
                     @ThingWidgetInfo.Style style: Int): Boolean {
-        val values: ContentValues = ContentValues()
+        val values = ContentValues()
         values.put(Def.Database.COLUMN_ID_APP_WIDGET,       appWidgetId)
         values.put(Def.Database.COLUMN_THING_ID_APP_WIDGET, thingId)
         values.put(Def.Database.COLUMN_SIZE_APP_WIDGET,     size)
@@ -86,7 +86,7 @@ open class AppWidgetDAO private constructor(context: Context?) {
             if (sAppWidgetDAO == null) {
                 synchronized(AppWidgetDAO::class.java) {
                     if (sAppWidgetDAO == null) {
-                        sAppWidgetDAO = AppWidgetDAO(context!!.getApplicationContext())
+                        sAppWidgetDAO = AppWidgetDAO(context!!.applicationContext)
                     }
                 }
             }
