@@ -75,13 +75,13 @@ open class ColorPicker(
     init {
         if (type == Def.PickerType.HUE_BUCKET) {
             mColors = HUE_BUCKET_COLORS
-            mColorsNames = activity.getResources()!!
+            mColorsNames = activity.resources!!
                     .getStringArray(R.array.hue_bucket_names)!!
         } else {
-            mColors = activity.getResources()!!.getIntArray(R.array.thing)!!
-            mColorsNames = activity.getResources()!!.getStringArray(R.array.thing_colors_names)!!
+            mColors = activity.resources!!.getIntArray(R.array.thing)!!
+            mColorsNames = activity.resources!!.getStringArray(R.array.thing_colors_names)!!
         }
-        val params: ViewGroup.LayoutParams = mRecyclerView.getLayoutParams()!!
+        val params: ViewGroup.LayoutParams = mRecyclerView.layoutParams!!
         params.width = (mScreenDensity * 128).toInt()
         if (mType == Def.PickerType.COLOR_HAVE_ALL) {
             params.height = (mScreenDensity * 304).toInt()
@@ -101,11 +101,11 @@ open class ColorPicker(
         // For every 2 new colors you want to add, you should also add 48 dp to picker's height.
         mRecyclerView.setOverScrollMode(View.OVER_SCROLL_NEVER)
         mRecyclerView.setHasFixedSize(true)
-        val layoutManager: GridLayoutManager = GridLayoutManager(this.mActivity, 2)
-        layoutManager.setSpanSizeLookup(object : GridLayoutManager.SpanSizeLookup() {
+        val layoutManager = GridLayoutManager(this.mActivity, 2)
+        layoutManager.spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
             override fun getSpanSize(position: Int): Int {
                 if (mType == Def.PickerType.COLOR_HAVE_ALL
-                        || mType == Def.PickerType.HUE_BUCKET) {
+                    || mType == Def.PickerType.HUE_BUCKET) {
                     return if (position == 0) 2 else 1
                 } else if (mType == Def.PickerType.COLOR_EDIT) {
                     // The divider row spans both columns.
@@ -115,7 +115,7 @@ open class ColorPicker(
                 }
                 return 0
             }
-        })
+        }
         mRecyclerView.setLayoutManager(layoutManager)
         mAdapter = ColorPickerAdapter()
         mAdapter.setHasStableIds(true)
@@ -160,19 +160,19 @@ open class ColorPicker(
         if (mOrientationBt == null || mType != Def.PickerType.COLOR_EDIT) return
         val bg: ThingBackground? = getPickedBackground()
         if (bg != null && bg.mode == ThingBackground.Mode.GRADIENT) {
-            mOrientationBt.setVisibility(View.VISIBLE)
+            mOrientationBt.visibility = View.VISIBLE
             // Tint the button text to match the gradient (uses applyTextBackground
             // for a shader on the rendered glyphs).
             com.ywwynm.everythingdone.utils.BackgroundUtil.applyTextBackground(
                     mOrientationBt, bg)
         } else {
-            mOrientationBt.setVisibility(View.GONE)
+            mOrientationBt.visibility = View.GONE
         }
     }
 
     override fun show() {
-        var xOffset: Int = 0
-        val location: IntArray = IntArray(2)
+        var xOffset = 0
+        val location = IntArray(2)
         mParent.getLocationOnScreen(location)
         // if we are in multi-window mode, we should detect which part we are in, left or right.
         val isRightWindow: Boolean = location[0] != 0
@@ -203,11 +203,11 @@ open class ColorPicker(
         // correctly: the popup is positioned relative to its parent window,
         // not the whole display.
         val anchor: View? = mAnchor
-        if (anchor != null && anchor.isAttachedToWindow()) {
-            val anchorLoc: IntArray = IntArray(2)
+        if (anchor != null && anchor.isAttachedToWindow) {
+            val anchorLoc = IntArray(2)
             anchor.getLocationInWindow(anchorLoc)
-            val anchorRightInWindow: Int = anchorLoc[0] + anchor.getWidth()
-            xOffset = mParent.getWidth() - anchorRightInWindow
+            val anchorRightInWindow: Int = anchorLoc[0] + anchor.width
+            xOffset = mParent.width - anchorRightInWindow
         }
 
         mPopupWindow.showAtLocation(mParent, Gravity.TOP or Gravity.END,
@@ -309,7 +309,8 @@ open class ColorPicker(
     private fun rollGradientBackground(): ThingBackground {
         val s: Int = randomColor()
         val e: Int = randomColor()
-        val os: Array<ThingBackground.Orientation> = ThingBackground.Orientation.values()
+        val os: Array<ThingBackground.Orientation> =
+            ThingBackground.Orientation.entries.toTypedArray()
         return ThingBackground.gradient(s, e, os[mRandom.nextInt(os.size)])!!
     }
 
@@ -345,15 +346,15 @@ open class ColorPicker(
         private val mInflater: LayoutInflater = LayoutInflater.from(this@ColorPicker.mActivity)
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BaseViewHolder {
-            if (viewType == ALL_COLOR) {
-                return AllColorViewHolder(
-                        mInflater.inflate(R.layout.color_picker_bt, parent, false))
+            return if (viewType == ALL_COLOR) {
+                AllColorViewHolder(
+                    mInflater.inflate(R.layout.color_picker_bt, parent, false))
             } else if (viewType == DIVIDER) {
-                return BaseViewHolder(
-                        mInflater.inflate(R.layout.color_picker_divider, parent, false))
+                BaseViewHolder(
+                    mInflater.inflate(R.layout.color_picker_divider, parent, false))
             } else {
-                return FabViewHolder(
-                        mInflater.inflate(R.layout.color_picker_fab, parent, false))
+                FabViewHolder(
+                    mInflater.inflate(R.layout.color_picker_fab, parent, false))
             }
         }
 
@@ -400,7 +401,7 @@ open class ColorPicker(
                 holder.bt.setContentDescription(
                         mActivity.getString(R.string.cd_unpicked) + holder.bt.getText() + ",")
             }
-            holder.bt.setClickable(mPickedPosition != 0)
+            holder.bt.isClickable = mPickedPosition != 0
         }
 
         private fun setFab(viewHolder: RecyclerView.ViewHolder, position: Int) {
@@ -424,7 +425,7 @@ open class ColorPicker(
                 holder.cell.setContentDescription(
                         mActivity.getString(R.string.cd_unpicked) + mColorsNames[index] + ",")
             }
-            holder.cell.setClickable(mPickedPosition != position)
+            holder.cell.isClickable = mPickedPosition != position
         }
 
         /**
@@ -432,14 +433,14 @@ open class ColorPicker(
          * checkmark stays visible on pale colours like yellow) and white otherwise.
          * Phase 6 fix #5.
          */
-        private fun tintedCheckmark(fabColor: Int): android.graphics.drawable.Drawable? {
-            val raw: android.graphics.drawable.Drawable = ContextCompat.getDrawable(
+        private fun tintedCheckmark(fabColor: Int): Drawable? {
+            val raw: Drawable = ContextCompat.getDrawable(
                     mActivity, R.drawable.ic_color_picked) ?: return null
-            val d: android.graphics.drawable.Drawable = raw.mutate()
+            val d: Drawable = raw.mutate()
             val tint: Int = if (com.ywwynm.everythingdone.utils.BackgroundUtil.isLight(fabColor))
                     android.graphics.Color.BLACK
                     else android.graphics.Color.WHITE
-            d.setColorFilter(tint, android.graphics.PorterDuff.Mode.SRC_IN)
+            d.setColorFilter(tint, PorterDuff.Mode.SRC_IN)
             return d
         }
 
@@ -464,7 +465,7 @@ open class ColorPicker(
                                 toGdOrientation(bg.orientation),
                                 intArrayOf(bg.color, bg.endColor))
                 gd.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE)
-                holder.bg.setBackground(gd)
+                holder.bg.background = gd
             } else {
                 val representative: Int = bg?.representativeColor() ?: 0
                 holder.bg.setBackgroundColor(representative)
@@ -480,7 +481,7 @@ open class ColorPicker(
             holder.cell.setContentDescription(mActivity.getString(
                     if (isGradient) R.string.cd_random_gradient_background
                                   else R.string.cd_random_pure_background))
-            holder.cell.setClickable(true) // always re-rollable on tap
+            holder.cell.isClickable = true // always re-rollable on tap
         }
 
         /**
@@ -494,7 +495,7 @@ open class ColorPicker(
             val m4: Int = m8 shr 1
             val m16: Int = m8 shl 1
             val params: GridLayoutManager.LayoutParams =
-                    itemRoot.getLayoutParams() as GridLayoutManager.LayoutParams
+                    itemRoot.layoutParams as GridLayoutManager.LayoutParams
             when (index) {
                 0 ->
                     if (mType == Def.PickerType.COLOR_HAVE_ALL) {
@@ -580,10 +581,9 @@ open class ColorPicker(
 
         inner class AllColorViewHolder(itemView: View) : BaseViewHolder(itemView) {
 
-            val bt: Button
+            val bt: Button = f(R.id.bt_all_color)
 
             init {
-                bt = f(R.id.bt_all_color)
                 bt.setOnClickListener(object : View.OnClickListener {
                     override fun onClick(v: View) {
                         mPopupWindow.dismiss()
@@ -597,14 +597,14 @@ open class ColorPicker(
         inner class FabViewHolder(itemView: View) : BaseViewHolder(itemView) {
 
             /** Outer 40dp clipped-to-oval cell — owns the click + ripple. */
-            val cell: android.widget.FrameLayout
+            val cell: android.widget.FrameLayout = f(R.id.fl_color_cell)
+
             /** Inner View carrying the solid/gradient background. */
             val bg: View
             /** Inner ImageView for the picked checkmark; scaleType=center keeps 24dp intrinsic. */
             val check: android.widget.ImageView
 
             init {
-                cell = f(R.id.fl_color_cell)
                 bg = f(R.id.v_color_cell_bg)
                 check = f(R.id.iv_color_cell_check)
 
@@ -614,17 +614,17 @@ open class ColorPicker(
                 // returns a RippleDrawable with an OVAL mask — the cell's
                 // clipToOutline keeps everything bounded to the circle.
                 cell.setClipToOutline(true)
-                cell.setOutlineProvider(object : android.view.ViewOutlineProvider() {
+                cell.outlineProvider = object : android.view.ViewOutlineProvider() {
                     override fun getOutline(v: View, outline: android.graphics.Outline) {
-                        outline.setOval(0, 0, v.getWidth(), v.getHeight())
+                        outline.setOval(0, 0, v.width, v.height)
                     }
-                })
+                }
                 cell.setForeground(
                         com.ywwynm.everythingdone.utils.BackgroundUtil.circularRipple())
 
                 cell.setOnClickListener(object : View.OnClickListener {
                     override fun onClick(v: View) {
-                        val pos: Int = getAdapterPosition()
+                        val pos: Int = adapterPosition
                         // Phase 6 fix round 4: only re-roll when the user taps
                         // an already-picked random FAB. First tap commits the
                         // colour the user can SEE, so display == result. Tap

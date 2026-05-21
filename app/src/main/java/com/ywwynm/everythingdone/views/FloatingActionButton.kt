@@ -7,8 +7,6 @@ import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.AccelerateInterpolator
 import android.view.animation.OvershootInterpolator
 
-import com.ywwynm.everythingdone.utils.DeviceUtil
-
 /**
  * Created by ywwynm on 2015/8/16.
  * Translated to Kotlin by ywwynm and Claude Opus 4.7 on 2026/5/20.
@@ -52,11 +50,11 @@ open class FloatingActionButton : com.google.android.material.floatingactionbutt
         // 3-button nav bar the real margin is 16dp + insets.bottom. Using
         // the constant caused hideToBottom() to under-translate by the inset
         // height, leaving a sliver of FAB peeking above the nav bar.
-        val lp: android.view.ViewGroup.LayoutParams? = getLayoutParams()
+        val lp: android.view.ViewGroup.LayoutParams? = layoutParams
         if (lp is android.view.ViewGroup.MarginLayoutParams) {
             return lp.bottomMargin
         }
-        return (16 * getResources()!!.getDisplayMetrics()!!.density).toInt()
+        return (16 * resources!!.displayMetrics!!.density).toInt()
     }
 
     fun bindSnackbars(vararg snackbars: Snackbar?) {
@@ -90,14 +88,14 @@ open class FloatingActionButton : com.google.android.material.floatingactionbutt
         if (mShrunk) {
             animate()!!.scaleX(1.0f).setInterpolator(mOvershootInterpolator).setDuration(200)
             animate()!!.scaleY(1.0f).setInterpolator(mOvershootInterpolator).setDuration(200)
-            setClickable(true)
+            isClickable = true
             mShrunk = false
         }
     }
 
     fun shrink() {
         if (!mShrunk) {
-            setClickable(false)
+            isClickable = false
             animate()!!.scaleX(0f).setInterpolator(mAccelerateInterpolator).setDuration(160)
             animate()!!.scaleY(0f).setInterpolator(mAccelerateInterpolator).setDuration(160)
             mShrunk = true
@@ -106,26 +104,26 @@ open class FloatingActionButton : com.google.android.material.floatingactionbutt
 
     fun shrinkWithoutAnim() {
         if (!mShrunk) {
-            setClickable(false)
-            setScaleX(0f)
-            setScaleY(0f)
+            isClickable = false
+            scaleX = 0f
+            scaleY = 0f
             mShrunk = true
         }
     }
 
     fun showFromBottom() {
         if (!mOnScreen) {
-            animate()!!.translationY(if (isSnackbarShowing()) -mSnackbars!![0]!!.getHeight().toFloat() else 0f)
+            animate()!!.translationY(if (isSnackbarShowing()) -mSnackbars!![0]!!.getHeight() else 0f)
                     .setInterpolator(mAccelerateDecelerateInterpolator).setDuration(200)
-            setClickable(true)
+            isClickable = true
             mOnScreen = true
         }
     }
 
     fun hideToBottom() {
         if (mOnScreen) {
-            setClickable(false)
-            animate()!!.translationY((getHeight() + getMarginBottom()).toFloat())
+            isClickable = false
+            animate()!!.translationY((height + getMarginBottom()).toFloat())
                     .setInterpolator(mAccelerateDecelerateInterpolator).setDuration(200)
             mOnScreen = false
         }

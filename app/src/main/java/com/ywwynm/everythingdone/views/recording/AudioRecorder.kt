@@ -89,7 +89,7 @@ open class AudioRecorder {
                 bufSize
         )
 
-        if (mAudioRecord!!.getState() == AudioRecord.STATE_INITIALIZED) {
+        if (mAudioRecord!!.state == AudioRecord.STATE_INITIALIZED) {
             mBufSize = bufSize
         }
     }
@@ -154,7 +154,7 @@ open class AudioRecorder {
             writeWaveFileHeader(out, audioLength, dataLength,
                     RECORDING_SAMPLE_RATE.toLong(), 2, (16 * RECORDING_SAMPLE_RATE * 2 / 8).toLong())
 
-            val data: ByteArray = ByteArray(mBufSize)
+            val data = ByteArray(mBufSize)
 
             while (input.read(data) != -1) {
                 out.write(data)
@@ -178,7 +178,7 @@ open class AudioRecorder {
     @Throws(IOException::class)
     private fun writeWaveFileHeader(out: FileOutputStream, audioLength: Long,
                                     dataLength: Long, sampleRate: Long, channels: Int, byteRate: Long) {
-        val header: ByteArray = ByteArray(44)
+        val header = ByteArray(44)
         header[0] = 'R'.code.toByte() // RIFF/WAVE header
         header[1] = 'I'.code.toByte()
         header[2] = 'F'.code.toByte()
@@ -239,7 +239,7 @@ open class AudioRecorder {
             }
 
             var readSize: Int
-            val audioBytes: ByteArray = ByteArray(mBufSize)
+            val audioBytes = ByteArray(mBufSize)
             while (mIsListening) {
                 readSize = mAudioRecord!!.read(audioBytes, 0, mBufSize)
 

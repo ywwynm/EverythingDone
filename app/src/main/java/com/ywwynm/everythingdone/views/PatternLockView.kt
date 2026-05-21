@@ -94,9 +94,9 @@ open class PatternLockView @TargetApi(Build.VERSION_CODES.LOLLIPOP) constructor(
 
     init {
 
-        setClickable(true)
-        mPathPaint.setAntiAlias(true)
-        mPathPaint.setDither(true)
+        isClickable = true
+        mPathPaint.isAntiAlias = true
+        mPathPaint.isDither = true
 
         val typedArray: TypedArray = context.obtainStyledAttributes(attrs, R.styleable.PatternLockView)!!
         mPathColor = typedArray.getColor(R.styleable.PatternLockView_pathColor, Color.WHITE)
@@ -105,27 +105,28 @@ open class PatternLockView @TargetApi(Build.VERSION_CODES.LOLLIPOP) constructor(
         typedArray.recycle()
 
         mPathPaint.setColor(mPathColor)
-        mPathPaint.setStyle(Paint.Style.STROKE)
-        mPathPaint.setStrokeJoin(Paint.Join.ROUND)
-        mPathPaint.setStrokeCap(Paint.Cap.ROUND)
+        mPathPaint.style = Paint.Style.STROKE
+        mPathPaint.strokeJoin = Paint.Join.ROUND
+        mPathPaint.strokeCap = Paint.Cap.ROUND
 
         mPathWidth = dpToPx(3f)
-        mPathPaint.setStrokeWidth(mPathWidth.toFloat())
+        mPathPaint.strokeWidth = mPathWidth.toFloat()
         mDotSize = dpToPx(12f)
         mDotSizeActivated = dpToPx(28f)
-        mPaint.setAntiAlias(true)
-        mPaint.setDither(true)
+        mPaint.isAntiAlias = true
+        mPaint.isDither = true
 
         mCellStates = Array(LOCK_SIZE) { i ->
             Array(LOCK_SIZE) { j ->
-                val cs: CellState = CellState()
+                val cs = CellState()
                 cs.size = mDotSize.toFloat()
                 cs
             }
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
-                && !isInEditMode()) {
+                && !isInEditMode
+        ) {
             mFastOutSlowInInterpolator = AnimationUtils.loadInterpolator(
                     context, android.R.interpolator.fast_out_slow_in)
             mLinearOutSlowInInterpolator = AnimationUtils.loadInterpolator(
@@ -134,7 +135,7 @@ open class PatternLockView @TargetApi(Build.VERSION_CODES.LOLLIPOP) constructor(
     }
 
     private fun dpToPx(dpValue: Float): Int {
-        val scale: Float = getResources()!!.getDisplayMetrics()!!.density
+        val scale: Float = resources!!.displayMetrics!!.density
         return (dpValue * scale + 0.5f).toInt()
     }
 
@@ -253,7 +254,7 @@ open class PatternLockView @TargetApi(Build.VERSION_CODES.LOLLIPOP) constructor(
     }
 
     private fun getCenterYForRow(row: Int): Float {
-        return getPaddingTop() + row * mSquareHeight + mSquareHeight / 2f
+        return paddingTop + row * mSquareHeight + mSquareHeight / 2f
     }
 
     /**
@@ -275,13 +276,13 @@ open class PatternLockView @TargetApi(Build.VERSION_CODES.LOLLIPOP) constructor(
     fun setDisplayMode(displayMode: DisplayMode) {
         mPatternDisplayMode = displayMode
         if (displayMode == DisplayMode.Animate) {
-            if (mPattern.size == 0) {
+            if (mPattern.isEmpty()) {
                 throw IllegalStateException(
                         "you must have a pattern to "
                                 + "animate if you want to set the display mode to animate")
             }
             mAnimatingPeriodStart = SystemClock.elapsedRealtime()
-            val first: Cell = mPattern.get(0)
+            val first: Cell = mPattern[0]
             mInProgressX = getCenterXForColumn(first.column)
             mInProgressY = getCenterYForRow(first.row)
             clearPatternDrawLookup()
@@ -372,7 +373,7 @@ open class PatternLockView @TargetApi(Build.VERSION_CODES.LOLLIPOP) constructor(
             var fillInGapCell: Cell? = null
             val pattern: ArrayList<Cell> = mPattern
             if (!pattern.isEmpty()) {
-                val lastCell: Cell = pattern.get(pattern.size - 1)
+                val lastCell: Cell = pattern[pattern.size - 1]
                 val dRow: Int = cell.row - lastCell.row
                 val dColumn: Int = cell.column - lastCell.column
 
@@ -451,7 +452,7 @@ open class PatternLockView @TargetApi(Build.VERSION_CODES.LOLLIPOP) constructor(
             }
 
         })
-        valueAnimator.setInterpolator(mFastOutSlowInInterpolator)
+        valueAnimator.interpolator = mFastOutSlowInInterpolator
         valueAnimator.setDuration(100)
         valueAnimator.start()
         state.lineAnimator = valueAnimator
@@ -479,7 +480,7 @@ open class PatternLockView @TargetApi(Build.VERSION_CODES.LOLLIPOP) constructor(
 
             })
         }
-        valueAnimator.setInterpolator(interpolator)
+        valueAnimator.interpolator = interpolator
         valueAnimator.setDuration(duration)
         valueAnimator.start()
     }
@@ -513,7 +514,7 @@ open class PatternLockView @TargetApi(Build.VERSION_CODES.LOLLIPOP) constructor(
         val squareHeight: Float = mSquareHeight
         val hitSize: Float = squareHeight * mHitFactor
 
-        val offset: Float = getPaddingTop() + (squareHeight - hitSize) / 2f
+        val offset: Float = paddingTop + (squareHeight - hitSize) / 2f
         for (i in 0 until LOCK_SIZE) {
 
             val hitTop: Float = offset + squareHeight * i
@@ -546,9 +547,10 @@ open class PatternLockView @TargetApi(Build.VERSION_CODES.LOLLIPOP) constructor(
     }
 
     override fun onHoverEvent(event: MotionEvent): Boolean {
-        if ((getContext().getSystemService(
-                Context.ACCESSIBILITY_SERVICE) as AccessibilityManager).isTouchExplorationEnabled()) {
-            val action: Int = event.getAction()
+        if ((context.getSystemService(
+                Context.ACCESSIBILITY_SERVICE) as AccessibilityManager).isTouchExplorationEnabled
+        ) {
+            val action: Int = event.action
             when (action) {
                 MotionEvent.ACTION_HOVER_ENTER ->
                     event.setAction(MotionEvent.ACTION_DOWN)
@@ -565,11 +567,11 @@ open class PatternLockView @TargetApi(Build.VERSION_CODES.LOLLIPOP) constructor(
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        if (!mInputEnabled || !isEnabled()) {
+        if (!mInputEnabled || !isEnabled) {
             return false
         }
 
-        when (event.getAction()) {
+        when (event.action) {
             MotionEvent.ACTION_DOWN -> {
                 handleActionDown(event)
                 return true
@@ -610,7 +612,7 @@ open class PatternLockView @TargetApi(Build.VERSION_CODES.LOLLIPOP) constructor(
         val width: Int = w - getPaddingLeft() - getPaddingRight()
         mSquareWidth = width / LOCK_SIZE.toFloat()
 
-        val height: Int = h - getPaddingTop() - getPaddingBottom()
+        val height: Int = h - paddingTop - paddingBottom
         mSquareHeight = height / LOCK_SIZE.toFloat()
     }
 
@@ -630,23 +632,23 @@ open class PatternLockView @TargetApi(Build.VERSION_CODES.LOLLIPOP) constructor(
 
             clearPatternDrawLookup()
             for (i in 0 until numCircles) {
-                val cell: Cell = pattern.get(i)
+                val cell: Cell = pattern[i]
                 drawLookup[cell.row][cell.column] = true
             }
 
             // figure out in progress portion of ghosting line
 
-            val needToUpdateInProgressPoint: Boolean = numCircles > 0 && numCircles < count
+            val needToUpdateInProgressPoint: Boolean = numCircles in 1..<count
 
             if (needToUpdateInProgressPoint) {
                 val percentageOfNextCircle: Float = (spotInCycle % MILLIS_PER_CIRCLE_ANIMATING).toFloat() /
                         MILLIS_PER_CIRCLE_ANIMATING
 
-                val currentCell: Cell = pattern.get(numCircles - 1)
+                val currentCell: Cell = pattern[numCircles - 1]
                 val centerX: Float = getCenterXForColumn(currentCell.column)
                 val centerY: Float = getCenterYForRow(currentCell.row)
 
-                val nextCell: Cell = pattern.get(numCircles)
+                val nextCell: Cell = pattern[numCircles]
                 val dx: Float = percentageOfNextCircle *
                         (getCenterXForColumn(nextCell.column) - centerX)
                 val dy: Float = percentageOfNextCircle *
@@ -683,11 +685,11 @@ open class PatternLockView @TargetApi(Build.VERSION_CODES.LOLLIPOP) constructor(
         if (drawPath) {
             mPathPaint.setColor(getCurrentColor(true /* partOfPattern */))
 
-            var anyCircles: Boolean = false
-            var lastX: Float = 0f
-            var lastY: Float = 0f
+            var anyCircles = false
+            var lastX = 0f
+            var lastY = 0f
             for (i in 0 until count) {
-                val cell: Cell = pattern.get(i)
+                val cell: Cell = pattern[i]
 
                 // only draw the part of the pattern stored in
                 // the lookup table (this is only different in the case
@@ -730,8 +732,8 @@ open class PatternLockView @TargetApi(Build.VERSION_CODES.LOLLIPOP) constructor(
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        val minimumWidth: Int = getSuggestedMinimumWidth()
-        val minimumHeight: Int = getSuggestedMinimumHeight()
+        val minimumWidth: Int = suggestedMinimumWidth
+        val minimumHeight: Int = suggestedMinimumHeight
         var viewWidth: Int = resolveMeasured(widthMeasureSpec, minimumWidth)
         var viewHeight: Int = resolveMeasured(heightMeasureSpec, minimumHeight)
         val v: Int = min(viewWidth, viewHeight)
@@ -761,15 +763,15 @@ open class PatternLockView @TargetApi(Build.VERSION_CODES.LOLLIPOP) constructor(
     }
 
     private fun getCurrentColor(partOfPattern: Boolean): Int {
-        if (!partOfPattern || mInStealthMode || mPatternInProgress) {
+        return if (!partOfPattern || mInStealthMode || mPatternInProgress) {
             // unselected circle
-            return mPathColor
+            mPathColor
         } else if (mPatternDisplayMode == DisplayMode.Wrong) {
             // the pattern is wrong
-            return mWrongColor
+            mWrongColor
         } else if (mPatternDisplayMode == DisplayMode.Correct
-                || mPatternDisplayMode == DisplayMode.Animate) {
-            return mCorrectColor
+            || mPatternDisplayMode == DisplayMode.Animate) {
+            mCorrectColor
         } else {
             throw IllegalStateException("unknown display mode $mPatternDisplayMode")
         }
@@ -789,12 +791,12 @@ open class PatternLockView @TargetApi(Build.VERSION_CODES.LOLLIPOP) constructor(
         // the device
         // is busy...
         val radius: Float = mPathWidth.toFloat()
-        val historySize: Int = event.getHistorySize()
+        val historySize: Int = event.historySize
         mTmpInvalidateRect.setEmpty()
-        var invalidateNow: Boolean = false
+        var invalidateNow = false
         for (i in 0 until historySize + 1) {
-            val x: Float = if (i < historySize) event.getHistoricalX(i) else event.getX()
-            val y: Float = if (i < historySize) event.getHistoricalY(i) else event.getY()
+            val x: Float = if (i < historySize) event.getHistoricalX(i) else event.x
+            val y: Float = if (i < historySize) event.getHistoricalY(i) else event.y
             val hitCell: Cell? = detectAndAddHit(x, y)
             val patternSize: Int = mPattern.size
             if (hitCell != null && patternSize == 1) {
@@ -810,7 +812,7 @@ open class PatternLockView @TargetApi(Build.VERSION_CODES.LOLLIPOP) constructor(
 
             if (mPatternInProgress && patternSize > 0) {
                 val pattern: ArrayList<Cell> = mPattern
-                val lastCell: Cell = pattern.get(patternSize - 1)
+                val lastCell: Cell = pattern[patternSize - 1]
                 val lastCellCenterX: Float = getCenterXForColumn(lastCell.column)
                 val lastCellCenterY: Float = getCenterYForRow(lastCell.row)
 
@@ -841,8 +843,8 @@ open class PatternLockView @TargetApi(Build.VERSION_CODES.LOLLIPOP) constructor(
                         Math.round(right), Math.round(bottom))
             }
         }
-        mInProgressX = event.getX()
-        mInProgressY = event.getY()
+        mInProgressX = event.x
+        mInProgressY = event.y
 
         // To save updates, we only invalidate if the user moved beyond a
         // certain amount.
@@ -854,7 +856,7 @@ open class PatternLockView @TargetApi(Build.VERSION_CODES.LOLLIPOP) constructor(
     }
 
     private fun sendAccessEvent(resId: Int) {
-        announceForAccessibility(getContext().getString(resId))
+        announceForAccessibility(context.getString(resId))
     }
 
     private fun handleActionUp(event: MotionEvent) {
@@ -889,8 +891,8 @@ open class PatternLockView @TargetApi(Build.VERSION_CODES.LOLLIPOP) constructor(
 
     private fun handleActionDown(event: MotionEvent) {
         resetPattern()
-        val x: Float = event.getX()
-        val y: Float = event.getY()
+        val x: Float = event.x
+        val y: Float = event.y
         val hitCell: Cell? = detectAndAddHit(x, y)
         if (hitCell != null) {
             mPatternInProgress = true

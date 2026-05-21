@@ -61,15 +61,15 @@ open class Snackbar(
             }
         }
 
-        mContentView = LayoutInflater.from(targetParent.getContext())
+        mContentView = LayoutInflater.from(targetParent.context)
                 .inflate(R.layout.snackbar_undo, null)!!
         mTvMessage = mContentView.findViewById<View>(R.id.tv_message) as TextView
         if (mType == UNDO) {
             mBtUndo = mContentView.findViewById<View>(R.id.bt_undo) as Button
-            mBtUndo!!.setVisibility(View.VISIBLE)
+            mBtUndo!!.visibility = View.VISIBLE
         }
 
-        mHeight = mApp.getResources()!!.getDimension(R.dimen.sb_height)
+        mHeight = mApp.resources!!.getDimension(R.dimen.sb_height)
     }
 
     fun show() {
@@ -89,7 +89,7 @@ open class Snackbar(
         // slides off-screen, not just down to the nav bar where a strip would
         // peek through).
         val insetBottom: Int = readBottomSystemInset()
-        if (mContentView.getParent() == null) {
+        if (mContentView.parent == null) {
             val flp: FrameLayout.LayoutParams = FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, mHeight.toInt())
             flp.gravity = Gravity.BOTTOM
@@ -98,14 +98,14 @@ open class Snackbar(
         } else {
             // Re-attached / re-shown — re-sync the bottom margin in case the
             // inset changed (rotation, multi-window, gesture-bar toggle).
-            val lp: ViewGroup.LayoutParams? = mContentView.getLayoutParams()
+            val lp: ViewGroup.LayoutParams? = mContentView.layoutParams
             if (lp is FrameLayout.LayoutParams) {
                 lp.bottomMargin = insetBottom
                 mContentView.setLayoutParams(lp)
             }
         }
 
-        mContentView.setTranslationY(mHeight + insetBottom)
+        mContentView.translationY = mHeight + insetBottom
         mContentView.animate()!!.translationY(0f).setDuration(200).start()
         mIsShowing = true
 
@@ -137,7 +137,7 @@ open class Snackbar(
         // Use the explicit flag rather than translationY: the hidden rest
         // position is now dynamic (mHeight + bottom inset), so a plain
         // numeric comparison would mis-fire on inset changes.
-        return mIsShowing && mContentView.getParent() != null
+        return mIsShowing && mContentView.parent != null
     }
 
     /** Read the current bottom system-bar inset from the target parent's
@@ -157,11 +157,11 @@ open class Snackbar(
     }
 
     fun setMessage(@StringRes stringRes: Int) {
-        mTvMessage.setText(mApp.getString(stringRes))
+        mTvMessage.text = mApp.getString(stringRes)
     }
 
     fun setMessage(msg: String) {
-        mTvMessage.setText(msg)
+        mTvMessage.text = msg
     }
 
     fun setUndoText(@StringRes stringRes: Int) {
@@ -172,7 +172,7 @@ open class Snackbar(
         if (mType == NORMAL) {
             throw IllegalStateException("Type must be Snackbar.UNDO")
         }
-        mBtUndo!!.setText(text)
+        mBtUndo!!.text = text
     }
 
     fun getHeight(): Float {

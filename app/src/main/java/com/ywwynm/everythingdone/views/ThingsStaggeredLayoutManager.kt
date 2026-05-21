@@ -40,10 +40,10 @@ open class ThingsStaggeredLayoutManager : StaggeredGridLayoutManager {
     }
 
     override fun smoothScrollToPosition(recyclerView: RecyclerView, state: RecyclerView.State, position: Int) {
-        val context: Context = recyclerView.getContext()!!
+        val context: Context = recyclerView.context!!
         val screenHeight: Int = DisplayUtil.getDisplaySize(context)!!.y
         mSmoothScroller!!.setScreenHeight(screenHeight)
-        mSmoothScroller!!.setTargetPosition(position)
+        mSmoothScroller!!.targetPosition = position
         startSmoothScroll(mSmoothScroller)
     }
 

@@ -31,7 +31,7 @@ import kotlin.math.sqrt
 
 open class RevealLayout : FrameLayout {
 
-    private val mClipPath: Path
+    private val mClipPath: Path = Path()
     private var mClipRadius: Float = 0f
     private var mClipCenterX: Int = 0
     private var mClipCenterY: Int = 0
@@ -42,11 +42,10 @@ open class RevealLayout : FrameLayout {
     constructor(context: Context, attrs: AttributeSet?) : this(context, attrs, 0)
 
     constructor(context: Context, attrs: AttributeSet?, defStyle: Int) : super(context, attrs, defStyle) {
-        mClipPath = Path()
 
         // clipPath()仅在4.3以上支持硬件加速
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN_MR2) {
-            setLayerType(View.LAYER_TYPE_SOFTWARE, null)
+            setLayerType(LAYER_TYPE_SOFTWARE, null)
         }
     }
 
@@ -74,7 +73,7 @@ open class RevealLayout : FrameLayout {
     }
 
     fun show(x: Int, y: Int, duration: Int) {
-        if (x < 0 || x > getWidth() || y < 0 || y > getHeight()) {
+        if (x < 0 || x > width || y < 0 || y > height) {
             throw RuntimeException("Center point out of range or call method " +
                     "when View is not initialed yet.")
         }
@@ -85,20 +84,20 @@ open class RevealLayout : FrameLayout {
         val maxRadius: Float = getMaxRadius(x, y)
 
         val animator: Animator? = mAnimator
-        if (animator != null && animator.isRunning()) {
+        if (animator != null && animator.isRunning) {
             animator.cancel()
         }
 
         mAnimator = ObjectAnimator.ofFloat(this, "clipRadius", 0f, maxRadius).apply {
-            setInterpolator(BakedBezierInterpolator())
+            interpolator = BakedBezierInterpolator()
             setDuration(duration.toLong())
             start()
         }
     }
 
     private fun getMaxRadius(x: Int, y: Int): Float {
-        val h: Int = max(x, getWidth() - x)
-        val v: Int = max(y, getHeight() - y)
+        val h: Int = max(x, width - x)
+        val v: Int = max(y, height - y)
         return sqrt((h * h + v * v).toDouble()).toFloat()
     }
 
@@ -108,7 +107,7 @@ open class RevealLayout : FrameLayout {
     }
 
     fun hide(x: Int, y: Int, duration: Int) {
-        if (x < 0 || x > getWidth() || y < 0 || y > getHeight()) {
+        if (x < 0 || x > width || y < 0 || y > height) {
             throw RuntimeException("Center point out of range or call method " +
                     "when View is not initialed yet.")
         }
@@ -120,26 +119,25 @@ open class RevealLayout : FrameLayout {
         }
 
         val animator: Animator? = mAnimator
-        if (animator != null && animator.isRunning()) {
+        if (animator != null && animator.isRunning) {
             animator.cancel()
         }
 
         mAnimator = ObjectAnimator.ofFloat(this, "clipRadius", 0f).apply {
-            setInterpolator(BakedBezierInterpolator())
+            interpolator = BakedBezierInterpolator()
             setDuration(duration.toLong())
             start()
         }
     }
 
     override fun drawChild(canvas: Canvas, child: View, drawingTime: Long): Boolean {
-        if (indexOfChild(child) == getChildCount() - 1) {
-            val result: Boolean
+        if (indexOfChild(child) == childCount - 1) {
             mClipPath.reset()
             mClipPath.addCircle(mClipCenterX.toFloat(), mClipCenterY.toFloat(), mClipRadius, Path.Direction.CW)
 
             canvas.save()
             canvas.clipPath(mClipPath)
-            result = super.drawChild(canvas, child, drawingTime)
+            val result: Boolean = super.drawChild(canvas, child, drawingTime)
             canvas.restore()
             return result
         } else {

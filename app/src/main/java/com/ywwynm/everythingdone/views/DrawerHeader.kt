@@ -39,18 +39,18 @@ open class DrawerHeader(
         updateDrawerHeader()
 
         if (LocaleUtil.isChinese(mApp)) {
-            mTvLocation.setTextSize(16f)
-            mTvCompletionRate.setTextSize(28f)
+            mTvLocation.textSize = 16f
+            mTvCompletionRate.textSize = 28f
         } else {
             val width: Int = DisplayUtil.getScreenSize(mApp)!!.x
             if (width <= 720) {
-                mTvLocation.setTextSize(12f)
+                mTvLocation.textSize = 12f
             } else if (width <= 1080) {
-                mTvLocation.setTextSize(13f)
+                mTvLocation.textSize = 13f
             } else {
-                mTvLocation.setTextSize(14f)
+                mTvLocation.textSize = 14f
             }
-            mTvCompletionRate.setTextSize(24f)
+            mTvCompletionRate.textSize = 24f
         }
     }
 
@@ -103,8 +103,7 @@ open class DrawerHeader(
     }
 
     fun updateCompletionRate() {
-        mTvCompletionRate.setText(
-                ThingsCounts.getInstance(mApp)!!.getCompletionRate(mApp.getLimit()))
+        mTvCompletionRate.text = ThingsCounts.getInstance(mApp)!!.getCompletionRate(mApp.getLimit())
     }
 
     companion object {

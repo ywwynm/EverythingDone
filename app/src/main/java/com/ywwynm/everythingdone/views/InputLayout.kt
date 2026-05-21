@@ -50,7 +50,7 @@ open class InputLayout(
         setColors(black_26p)
 
         mEditText.setSelectAllOnFocus(true)
-        mEditText.setOnFocusChangeListener(object : View.OnFocusChangeListener {
+        mEditText.onFocusChangeListener = object : View.OnFocusChangeListener {
             override fun onFocusChange(v: View, hasFocus: Boolean) {
                 if (hasFocus) {
                     raiseLabel(true)
@@ -65,7 +65,7 @@ open class InputLayout(
                 }
                 mOnFocusChangeListener?.onFocusChange(v, hasFocus)
             }
-        })
+        }
         DisplayUtil.setSelectionHandlersColor(mEditText, accentColor)
     }
 
@@ -105,17 +105,17 @@ open class InputLayout(
         if (raised) {
             return
         }
-        mTextView.setPivotX(1f)
-        mTextView.setPivotY(1f)
+        mTextView.pivotX = 1f
+        mTextView.pivotY = 1f
 
         if (anim) {
             mTextView.animate()!!.scaleX(0.75f).setDuration(96)
             mTextView.animate()!!.scaleY(0.75f).setDuration(96)
             mTextView.animate()!!.translationY(-mScreenDensity * 24).setDuration(96)
         } else {
-            mTextView.setScaleX(0.75f)
-            mTextView.setScaleY(0.75f)
-            mTextView.setTranslationY(-mScreenDensity * 24)
+            mTextView.scaleX = 0.75f
+            mTextView.scaleY = 0.75f
+            mTextView.translationY = -mScreenDensity * 24
         }
         raised = true
     }
@@ -124,8 +124,8 @@ open class InputLayout(
         if (!raised) {
             return
         }
-        mTextView.setPivotX(1f)
-        mTextView.setPivotY(1f)
+        mTextView.pivotX = 1f
+        mTextView.pivotY = 1f
         mTextView.animate()!!.scaleX(1.0f).setDuration(96)
         mTextView.animate()!!.scaleY(1.0f).setDuration(96)
         mTextView.animate()!!.translationY(0f).setDuration(96)
@@ -144,7 +144,7 @@ open class InputLayout(
             clearShader(mEditText)
             mTextView.setTextColor(colorTo)
             mEditText.setTextColor(black_54p)
-            mEditText.setHighlightColor(black_26p)
+            mEditText.highlightColor = black_26p
             BackgroundUtil.clearEditTextUnderline(mEditText)
         } else {
             // Focused: label + EditText text adopt the accent. Use the gradient
@@ -160,7 +160,7 @@ open class InputLayout(
                 mEditText.setTextColor(colorTo)
                 BackgroundUtil.clearEditTextUnderline(mEditText)
             }
-            mEditText.setHighlightColor(DisplayUtil.getLightColor(colorTo, mContext))
+            mEditText.highlightColor = DisplayUtil.getLightColor(colorTo, mContext)
         }
         // Native underline tint: transparent when the foreground gradient strip
         // is taking over, otherwise show the native single-int underline (grey
@@ -172,8 +172,8 @@ open class InputLayout(
         const val TAG: String = "InputLayout"
 
         private fun clearShader(tv: TextView) {
-            if (tv.getPaint().getShader() != null) {
-                tv.getPaint().setShader(null)
+            if (tv.paint.shader != null) {
+                tv.paint.setShader(null)
                 tv.invalidate()
             }
         }

@@ -62,7 +62,7 @@ open class ActivityHeader(
         headerTranslationYFactor = 65f / 90
         titleShrinkFactor = -1.0f / 540 / mScreenDensity
         val isTablet: Boolean = DisplayUtil.isTablet(mApp)
-        val isLandscape: Boolean = mApp.getResources()!!.getConfiguration()!!.orientation ==
+        val isLandscape: Boolean = mApp.resources!!.configuration!!.orientation ==
                 Configuration.ORIENTATION_LANDSCAPE
         if (isTablet) {
             headerTranslationYFactor = 62f / 90
@@ -73,7 +73,7 @@ open class ActivityHeader(
         }
 
         if (actionbar != null) {
-            val actionbarHeight: Int = actionbar.getHeight()
+            val actionbarHeight: Int = actionbar.height
             if (near(actionbarHeight, (mScreenDensity * 48).toInt())) {
                 headerTranslationYFactor = 68f / 90
                 titleShrinkFactor = -1.0f / 360 / mScreenDensity
@@ -96,8 +96,8 @@ open class ActivityHeader(
             return
         }
 
-        var actionbarShadowAlphaAfter: Float = 0f
-        var scrollY: Int = -mBindingRecyclerView.getChildAt(0)!!.getTop()
+        var actionbarShadowAlphaAfter = 0f
+        var scrollY: Int = -mBindingRecyclerView.getChildAt(0)!!.top
         val titleAndShadowScrollY: Int = (mScreenDensity * 90).toInt()
         val shadowAppearCompletelyScrollY: Int = (mScreenDensity * 102).toInt()
 
@@ -165,11 +165,11 @@ open class ActivityHeader(
         if (thingsCount > 1 && !LocaleUtil.isChinese(mApp)) {
             subtitle += "s"
         }
-        mSubtitle.setText(subtitle)
+        mSubtitle.text = subtitle
     }
 
     fun hideActionbarShadow() {
-        actionbarShadowAlpha = mActionbarShadow.getAlpha()
+        actionbarShadowAlpha = mActionbarShadow.alpha
         mActionbarShadow.animate()!!.alpha(0f).withLayer().setDuration(160)
     }
 
@@ -182,11 +182,11 @@ open class ActivityHeader(
     }
 
     fun hideTitles() {
-        mRelativeLayout.setVisibility(View.INVISIBLE)
+        mRelativeLayout.visibility = View.INVISIBLE
     }
 
     fun reset(anim: Boolean) {
-        mRelativeLayout.setVisibility(View.VISIBLE)
+        mRelativeLayout.visibility = View.VISIBLE
         if (anim) {
             mRelativeLayout.animate()!!.translationY(0f)
             mTitle.animate()!!.scaleX(1.0f)
@@ -194,9 +194,9 @@ open class ActivityHeader(
             mSubtitle.animate()!!.alpha(1.0f)
             mActionbarShadow.animate()!!.alpha(0f)
         } else {
-            mRelativeLayout.setTranslationY(0f)
-            mTitle.setScaleX(1.0f)
-            mTitle.setScaleY(1.0f)
+            mRelativeLayout.translationY = 0f
+            mTitle.scaleX = 1.0f
+            mTitle.scaleY = 1.0f
             mSubtitle.setAlpha(1.0f)
             mActionbarShadow.setAlpha(0f)
         }
@@ -208,8 +208,8 @@ open class ActivityHeader(
 
     private fun updateHeader(scrollY: Int, anim: Boolean) {
         val scale: Float = titleShrinkFactor * scrollY + 1
-        mTitle.setPivotX(1f)
-        mTitle.setPivotY(1f)
+        mTitle.pivotX = 1f
+        mTitle.pivotY = 1f
 
         if (anim) {
             mRelativeLayout.animate()!!.translationY(-headerTranslationYFactor * scrollY)
@@ -224,9 +224,9 @@ open class ActivityHeader(
             mTitle.animate()!!.scaleY(scale).setDuration(160)
             mSubtitle.animate()!!.alpha(-1.0f / mScreenDensity / 90 * scrollY + 1).withLayer().setDuration(160)
         } else {
-            mRelativeLayout.setTranslationY((-headerTranslationYFactor * scrollY).toInt().toFloat())
-            mTitle.setScaleX(scale)
-            mTitle.setScaleY(scale)
+            mRelativeLayout.translationY = (-headerTranslationYFactor * scrollY).toInt().toFloat()
+            mTitle.scaleX = scale
+            mTitle.scaleY = scale
             mSubtitle.setAlpha(-1.0f / mScreenDensity / 90 * scrollY + 1)
         }
     }

@@ -33,11 +33,11 @@ abstract class PopupPicker(activity: Activity, parent: View, popupAnimStyle: Int
      * fine-tuning constants stay subclass-private; mAnchor is just the "where".
      */
     @JvmField protected var mAnchor: View? = null
-    @JvmField protected var mContentView: View
+    @JvmField protected var mContentView: View =
+        LayoutInflater.from(activity).inflate(R.layout.rv_popup_picker, null)!!
     @JvmField protected var mRecyclerView: RecyclerView
 
     init {
-        mContentView = LayoutInflater.from(activity).inflate(R.layout.rv_popup_picker, null)!!
         mRecyclerView = mContentView.findViewById<View>(R.id.rv_popup_picker) as RecyclerView
         mPopupWindow = PopupWindow(mContentView,
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
@@ -45,8 +45,8 @@ abstract class PopupPicker(activity: Activity, parent: View, popupAnimStyle: Int
         mContentView.setOnKeyListener(object : View.OnKeyListener {
             override fun onKey(v: View, keyCode: Int, event: KeyEvent): Boolean {
                 if (keyCode == KeyEvent.KEYCODE_BACK
-                        && event.getRepeatCount() == 1) {
-                    if (mPopupWindow.isShowing()) {
+                        && event.repeatCount == 1) {
+                    if (mPopupWindow.isShowing) {
                         mPopupWindow.dismiss()
                         return true
                     }
@@ -54,9 +54,9 @@ abstract class PopupPicker(activity: Activity, parent: View, popupAnimStyle: Int
                 return false
             }
         })
-        mPopupWindow.setAnimationStyle(popupAnimStyle)
-        mPopupWindow.setOutsideTouchable(true)
-        mPopupWindow.setFocusable(true)
+        mPopupWindow.animationStyle = popupAnimStyle
+        mPopupWindow.isOutsideTouchable = true
+        mPopupWindow.isFocusable = true
         // Keep the soft keyboard visible when this popup is shown on top of
         // an active EditText. INPUT_METHOD_NOT_NEEDED tells the framework
         // "this popup doesn't participate in IME — don't change the IME's
@@ -66,7 +66,7 @@ abstract class PopupPicker(activity: Activity, parent: View, popupAnimStyle: Int
         // chain and produces a visible flicker (IME drops, bottom bar
         // drops, popup auto-dismisses mid-show). Matches the pre-edge-to-
         // edge behaviour where the IME and these pickers happily coexisted.
-        mPopupWindow.setInputMethodMode(PopupWindow.INPUT_METHOD_NOT_NEEDED)
+        mPopupWindow.inputMethodMode = PopupWindow.INPUT_METHOD_NOT_NEEDED
     }
 
     fun setAnchor(anchor: View) {
@@ -82,13 +82,13 @@ abstract class PopupPicker(activity: Activity, parent: View, popupAnimStyle: Int
     abstract fun getPickedIndex(): Int
 
     fun dismiss() {
-        if (mPopupWindow.isShowing()) {
+        if (mPopupWindow.isShowing) {
             mPopupWindow.dismiss()
         }
     }
 
     fun isShowing(): Boolean {
-        return mPopupWindow.isShowing()
+        return mPopupWindow.isShowing
     }
 
     companion object {

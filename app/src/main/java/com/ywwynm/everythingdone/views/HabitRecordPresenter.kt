@@ -33,7 +33,7 @@ open class HabitRecordPresenter(imageViews: Array<ImageView>) {
     }
 
     fun setRecord(record: String) {
-        val context: Context = mImageViews[0].getContext()!!
+        val context: Context = mImageViews[0].context!!
         for (i in 0..4) {
             val state: Char = record[i]
             if (state == '0') {

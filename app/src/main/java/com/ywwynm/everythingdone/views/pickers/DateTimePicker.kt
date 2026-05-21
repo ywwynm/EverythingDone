@@ -51,22 +51,22 @@ open class DateTimePicker(
     private var mPreviousIndex: Int = 8
 
     init {
-        val params: ViewGroup.LayoutParams = mRecyclerView.getLayoutParams()!!
+        val params: ViewGroup.LayoutParams = mRecyclerView.layoutParams!!
         if (mType == Def.PickerType.AFTER_TIME) {
             params.width = (mScreenDensity * 168).toInt()
-            mItems = mActivity.getResources()!!.getStringArray(R.array.quick_remind)!!
+            mItems = mActivity.resources!!.getStringArray(R.array.quick_remind)!!
             if (BuildConfig.DEBUG) {
                 mItems[0] = "6 " + activity.getString(R.string.second)
             }
         } else if (mType == Def.PickerType.TIME_TYPE_HAVE_HOUR_MINUTE) {
             params.width = (mScreenDensity * 120).toInt()
-            mItems = mActivity.getResources()!!.getStringArray(R.array.time_type)!!
+            mItems = mActivity.resources!!.getStringArray(R.array.time_type)!!
             if (LocaleUtil.isChinese(mActivity)) {
                 mItems[2] = mActivity.getString(R.string.days)!!
             }
         } else {
             params.width = (mScreenDensity * 98).toInt()
-            val items: Array<String> = mActivity.getResources()!!.getStringArray(R.array.time_type)!!
+            val items: Array<String> = mActivity.resources!!.getStringArray(R.array.time_type)!!
             mItems = arrayOfNulls<String>(4).let {
                 System.arraycopy(items, 2, it, 0, 4)
                 @Suppress("UNCHECKED_CAST")
@@ -78,7 +78,7 @@ open class DateTimePicker(
         }
         params.height = getRecyclerViewHeight()
         mRecyclerView.setHasFixedSize(true)
-        val layoutManager: LinearLayoutManager = LinearLayoutManager(mActivity)
+        val layoutManager = LinearLayoutManager(mActivity)
         mRecyclerView.setLayoutManager(layoutManager)
         mAdapter = DateTimePickerAdapter()
         mRecyclerView.setAdapter(mAdapter)
@@ -117,16 +117,16 @@ open class DateTimePicker(
             if (mType == Def.PickerType.AFTER_TIME) {
                 val after: String = mActivity.getString(R.string.after)!!
                 if (LocaleUtil.isChinese(mActivity)) {
-                    anchor.setText(mItems[index])
+                    anchor.text = mItems[index]
                     anchor.append(after)
                 } else {
-                    anchor.setText("$after ")
+                    anchor.text = "$after "
                     anchor.append(mItems[index])
                 }
             } else {
                 val offset: Int = if (mType == Def.PickerType.TIME_TYPE_HAVE_HOUR_MINUTE) 0 else 1
                 if (!LocaleUtil.isChinese(mActivity)) {
-                    anchor.setText(mItems[index].lowercase())
+                    anchor.text = mItems[index].lowercase()
                     if (offset == 0) {
                         anchor.append(" ")
                     }
@@ -136,9 +136,9 @@ open class DateTimePicker(
                     val b2: Boolean = mType == Def.PickerType.TIME_TYPE_NO_HOUR_MINUTE
                             && (index == 1 || index == 2)
                     if (b1 || b2) {
-                        anchor.setText(mActivity.getString(R.string.description_a) + mItems[index])
+                        anchor.text = mActivity.getString(R.string.description_a) + mItems[index]
                     } else {
-                        anchor.setText(mItems[index])
+                        anchor.text = mItems[index]
                     }
                 }
                 if (mType == Def.PickerType.TIME_TYPE_HAVE_HOUR_MINUTE) {
@@ -157,12 +157,12 @@ open class DateTimePicker(
         val display: Point = DisplayUtil.getDisplaySize(mActivity)!!
         val displayHeight: Int = display.y
 
-        val params: ViewGroup.LayoutParams = mRecyclerView.getLayoutParams()!!
+        val params: ViewGroup.LayoutParams = mRecyclerView.layoutParams!!
         val recyclerViewHeight: Int = getRecyclerViewHeight()
-        val orientation: Int = mActivity.getResources()!!.getConfiguration()!!.orientation
+        val orientation: Int = mActivity.resources!!.configuration!!.orientation
         val isInLandscape: Boolean = orientation == Configuration.ORIENTATION_LANDSCAPE
         if (isInLandscape) {
-            val window: Rect = Rect()
+            val window = Rect()
             mParent.getWindowVisibleDisplayFrame(window)
             if (displayHeight - window.bottom >= 96 * mScreenDensity) { // Keyboard is showing.
                 if (window.bottom - mScreenDensity * 48 >= recyclerViewHeight) {
@@ -177,7 +177,7 @@ open class DateTimePicker(
             params.height = recyclerViewHeight
         }
 
-        val pos: IntArray = IntArray(2)
+        val pos = IntArray(2)
         val anchor: View = mAnchor as View
         anchor.getLocationInWindow(pos)
         if (mType == Def.PickerType.AFTER_TIME) {
@@ -197,7 +197,7 @@ open class DateTimePicker(
             // and we have to compensate explicitly.
             val insets: androidx.core.view.WindowInsetsCompat? =
                     androidx.core.view.ViewCompat.getRootWindowInsets(mParent)
-            var navBottom: Int = 0
+            var navBottom = 0
             if (insets != null) {
                 navBottom = insets.getInsets(
                         androidx.core.view.WindowInsetsCompat.Type.systemBars()
@@ -206,7 +206,7 @@ open class DateTimePicker(
             }
             mPopupWindow.showAtLocation(mParent, Gravity.BOTTOM or Gravity.START,
                     (pos[0] - mScreenDensity * 16).toInt(),
-                    mParent.getHeight() - navBottom - pos[1] - anchor.getHeight() / 2)
+                    mParent.height - navBottom - pos[1] - anchor.height / 2)
         } else {
             mPopupWindow.showAtLocation(mParent, Gravity.TOP or Gravity.START,
                     pos[0] - DisplayUtil.getStatusbarHeight(mActivity),
@@ -278,15 +278,15 @@ open class DateTimePicker(
         override fun onBindViewHolder(viewHolder: BaseViewHolder, position: Int) {
             val holder: DateTimeViewHolder = viewHolder as DateTimeViewHolder
             val m8: Int = (mScreenDensity * 8).toInt()
-            val params: RecyclerView.LayoutParams = holder.bt.getLayoutParams() as RecyclerView.LayoutParams
+            val params: RecyclerView.LayoutParams = holder.bt.layoutParams as RecyclerView.LayoutParams
             if (position == 0) {
                 params.setMargins(0, m8, 0, 0)
-            } else if (position == getItemCount() - 1) {
+            } else if (position == itemCount - 1) {
                 params.setMargins(0, 0, 0, m8)
             } else {
                 params.setMargins(0, 0, 0, 0)
             }
-            holder.bt.setText(mItems[position])
+            holder.bt.text = mItems[position]
             if (mPickedPosition == position) {
                 holder.bt.setTypeface(Typeface.DEFAULT_BOLD)
                 // Phase 8: gradient text on the picked row when the accent is
@@ -295,21 +295,21 @@ open class DateTimePicker(
                     com.ywwynm.everythingdone.utils.BackgroundUtil.applyTextBackground(
                             holder.bt, mAccentBackground)
                 } else {
-                    if (holder.bt.getPaint().getShader() != null) {
-                        holder.bt.getPaint().setShader(null)
+                    if (holder.bt.paint.shader != null) {
+                        holder.bt.paint.setShader(null)
                     }
                     holder.bt.setTextColor(mAccentColor)
                 }
-                holder.bt.setClickable(position == 9)
+                holder.bt.isClickable = position == 9
             } else {
                 holder.bt.setTypeface(Typeface.DEFAULT)
                 // Clear any shader left from a previous bind to this view holder
                 // before painting an unselected row in its plain colour.
-                if (holder.bt.getPaint().getShader() != null) {
-                    holder.bt.getPaint().setShader(null)
+                if (holder.bt.paint.shader != null) {
+                    holder.bt.paint.setShader(null)
                 }
                 holder.bt.setTextColor(ContextCompat.getColor(mActivity, R.color.black_54p))
-                holder.bt.setClickable(true)
+                holder.bt.isClickable = true
             }
         }
 
@@ -324,14 +324,13 @@ open class DateTimePicker(
 
         inner class DateTimeViewHolder(itemView: View) : BaseViewHolder(itemView) {
 
-            val bt: Button
+            val bt: Button = f(R.id.bt_pick_after_time)
 
             init {
-                bt = f(R.id.bt_pick_after_time)
                 bt.setOnClickListener(object : View.OnClickListener {
                     override fun onClick(v: View) {
                         mPopupWindow.dismiss()
-                        pickForUI(getAdapterPosition())
+                        pickForUI(adapterPosition)
                         if (mOnClickListener != null) {
                             mOnClickListener!!.onClick(v)
                         }

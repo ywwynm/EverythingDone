@@ -107,12 +107,12 @@ open class ShiningBorder : View {
         }
 
         mPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-        mPaint.setStyle(Paint.Style.STROKE)
-        mPaint.setStrokeCap(Paint.Cap.ROUND)
-        mPaint.setStrokeWidth(mStrokeWidth)
+        mPaint.style = Paint.Style.STROKE
+        mPaint.strokeCap = Paint.Cap.ROUND
+        mPaint.strokeWidth = mStrokeWidth
 
         mParticlePaint = Paint(Paint.ANTI_ALIAS_FLAG)
-        mParticlePaint.setStyle(Paint.Style.FILL)
+        mParticlePaint.style = Paint.Style.FILL
     }
 
     // --- getters (used by callers that need to temporarily override a value) ---
@@ -127,16 +127,16 @@ open class ShiningBorder : View {
 
     fun setStrokeWidth(px: Float) {
         mStrokeWidth = px
-        mPaint.setStrokeWidth(px)
+        mPaint.strokeWidth = px
         if (mPathAssigned) {
-            assignPathAndFrame(getLeft(), getTop(), getRight(), getBottom())
+            assignPathAndFrame(left, top, right, bottom)
         }
     }
 
     fun setCornerRadius(px: Float) {
         mCornerRadius = px
         if (mPathAssigned) {
-            assignPathAndFrame(getLeft(), getTop(), getRight(), getBottom())
+            assignPathAndFrame(left, top, right, bottom)
         }
     }
 
@@ -151,7 +151,7 @@ open class ShiningBorder : View {
     fun setAnimationDirection(direction: Int) {
         mAnimationDirection = direction
         if (mPathAssigned) {
-            assignPathAndFrame(getLeft(), getTop(), getRight(), getBottom())
+            assignPathAndFrame(left, top, right, bottom)
         }
     }
 
@@ -206,7 +206,7 @@ open class ShiningBorder : View {
     }
 
     fun assignPathAndFrame() {
-        assignPathAndFrame(getLeft(), getTop(), getRight(), getBottom())
+        assignPathAndFrame(left, top, right, bottom)
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -258,7 +258,7 @@ open class ShiningBorder : View {
     fun stopAnimation() {
         mForceStop = true
         val animator: ValueAnimator? = mProgressAnimator
-        if (animator != null && animator.isRunning()) {
+        if (animator != null && animator.isRunning) {
             animator.cancel()
         }
         mParticles.clear()
@@ -355,7 +355,7 @@ open class ShiningBorder : View {
         // Use squared distribution so they skew toward the head.
         val segStart: Float = max(0f, head - 0.12f)
         val count: Int = mRandom.nextInt(3) + 1 // 1~3
-        var i: Int = 0
+        var i = 0
         while (i < count && mParticles.size < mMaxParticles) {
             val r: Float = mRandom.nextFloat()
             val t: Float = segStart + (head - segStart) * (1f - r * r)
@@ -370,7 +370,7 @@ open class ShiningBorder : View {
     }
 
     private fun spawnSingleParticle(x: Float, y: Float, baseColor: Int, isFocus: Boolean) {
-        val p: Particle = Particle()
+        val p = Particle()
         p.x = x
         p.y = y
         // initial small random velocity for jittery motion
@@ -455,7 +455,7 @@ open class ShiningBorder : View {
      * Positive delta makes it brighter, negative darker.
      */
     private fun varyColor(baseColor: Int, lightnessDelta: Float): Int {
-        val hsl: FloatArray = FloatArray(3)
+        val hsl = FloatArray(3)
         androidx.core.graphics.ColorUtils.colorToHSL(baseColor, hsl)
         hsl[2] = max(0f, min(1f, hsl[2] + lightnessDelta))
         return androidx.core.graphics.ColorUtils.HSLToColor(hsl)
@@ -481,12 +481,12 @@ open class ShiningBorder : View {
         private val mPointCount: Int
 
         init {
-            val pm: PathMeasure = PathMeasure(path, false)
-            val length: Float = pm.getLength()
+            val pm = PathMeasure(path, false)
+            val length: Float = pm.length
             val rawCount: Int = length.toInt() + 1
-            val rawData: FloatArray = FloatArray(rawCount * 2)
-            val pos: FloatArray = FloatArray(2)
-            var index: Int = 0
+            val rawData = FloatArray(rawCount * 2)
+            val pos = FloatArray(2)
+            var index = 0
             for (i in 0 until rawCount) {
                 val distance: Float = i * length / (rawCount - 1)
                 pm.getPosTan(distance, pos, null)
@@ -563,7 +563,8 @@ open class ShiningBorder : View {
         private fun dpToPx(dp: Float): Float {
             return dp * android.util.TypedValue.applyDimension(
                     android.util.TypedValue.COMPLEX_UNIT_DIP, 1f,
-                    android.content.res.Resources.getSystem()!!.getDisplayMetrics())
+                    android.content.res.Resources.getSystem()!!.displayMetrics
+            )
         }
     }
 }

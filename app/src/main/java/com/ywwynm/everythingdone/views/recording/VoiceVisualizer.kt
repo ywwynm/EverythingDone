@@ -74,25 +74,25 @@ open class VoiceVisualizer(context: Context, attrs: AttributeSet?) : FrameLayout
         super.onDraw(canvas)
 
         // Create canvas once we're ready to draw
-        mRect.set(0, 0, getWidth(), getHeight())
+        mRect.set(0, 0, width, height)
 
         if (mCanvasBitmap == null) {
             mCanvasBitmap = Bitmap.createBitmap(
-                    canvas.getWidth(), canvas.getHeight(), Bitmap.Config.ARGB_8888)
+                    canvas.width, canvas.height, Bitmap.Config.ARGB_8888)
         }
 
         if (mCanvas == null) {
             mCanvas = Canvas(mCanvasBitmap!!)
         }
 
-        if (mNumColumns > getWidth()) {
+        if (mNumColumns > width) {
             mNumColumns = DEFAULT_NUM_COLUMNS
         }
 
-        mColumnWidth = getWidth().toFloat() / mNumColumns.toFloat()
+        mColumnWidth = width.toFloat() / mNumColumns.toFloat()
 
         if (mBaseY == 0) {
-            mBaseY = getHeight()
+            mBaseY = height
         }
 
         canvas.drawBitmap(mCanvasBitmap!!, mMatrix, null)
@@ -114,7 +114,7 @@ open class VoiceVisualizer(context: Context, attrs: AttributeSet?) : FrameLayout
                     mCanvas!!.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
                 } else if ((mType and Type.FADE.getFlag()) != 0) {
                     // Fade out old contents
-                    mFadePaint.setXfermode(PorterDuffXfermode(PorterDuff.Mode.MULTIPLY))
+                    mFadePaint.xfermode = PorterDuffXfermode(PorterDuff.Mode.MULTIPLY)
                     mCanvas!!.drawPaint(mFadePaint)
                 } else {
                     mCanvas!!.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
@@ -146,8 +146,8 @@ open class VoiceVisualizer(context: Context, attrs: AttributeSet?) : FrameLayout
         val randomVolume: Double = Math.random() * volume + 1
         val height: Float = when (mRenderRange) {
             RENDER_RANGE_TOP -> mBaseY.toFloat()
-            RENDER_RANGE_BOTTOM -> (getHeight() - mBaseY).toFloat()
-            else -> getHeight().toFloat()
+            RENDER_RANGE_BOTTOM -> (height - mBaseY).toFloat()
+            else -> height.toFloat()
         }
 
         val shrinkFactor: Float = if (volume < 50) 160f else 80f
