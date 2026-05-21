@@ -282,8 +282,7 @@ open class ThingManager private constructor(context: Context?) {
             updateHeader(1)
         }
 
-        val thingToUpdate: Thing?
-        thingToUpdate = if (!toUndo) {
+        val thingToUpdate = if (!toUndo) {
             Thing.getSameCheckStateThing(thing, stateBefore, stateAfter)
         } else thing
 
@@ -779,8 +778,7 @@ open class ThingManager private constructor(context: Context?) {
         if (thing == null) return
 
         val minLocation: Long = mDao!!.getMinThingLocation()
-        val newLocation: Long
-        newLocation = if (minLocation >= 0) {
+        val newLocation = if (minLocation >= 0) {
             -1
         } else {
             minLocation - 1
