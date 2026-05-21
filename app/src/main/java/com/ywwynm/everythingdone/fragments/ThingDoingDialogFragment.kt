@@ -2,7 +2,6 @@
 
 package com.ywwynm.everythingdone.fragments
 
-import android.content.Context
 import android.os.Bundle
 import androidx.core.content.ContextCompat
 import androidx.cardview.widget.CardView
@@ -56,7 +55,7 @@ open class ThingDoingDialogFragment : BaseDialogFragment() {
     ): View? {
         super.onCreateView(inflater, container, savedInstanceState)
 
-        mActivity = getActivity() as DetailActivity
+        mActivity = activity as DetailActivity
 
         mDoingHelper = ThingDoingHelper(mActivity, mThing)
 
@@ -94,7 +93,7 @@ open class ThingDoingDialogFragment : BaseDialogFragment() {
         enableOrDisableASDTimeUi()
 
         BackgroundUtil.applyCardBackground(
-            mCvStartAsBt, if (bg != null) bg else mThing!!.getBackground()
+            mCvStartAsBt, bg ?: mThing!!.getBackground()
         )
     }
 
@@ -102,7 +101,7 @@ open class ThingDoingDialogFragment : BaseDialogFragment() {
     private fun currentAccent(): ThingBackground? {
         if (mActivity == null) return mThing!!.getBackground()
         val bg: ThingBackground? = mActivity!!.getAccentBackground()
-        return if (bg != null) bg else mThing!!.getBackground()
+        return bg ?: mThing!!.getBackground()
     }
 
     private fun enableOrDisableASDTimeUi() {

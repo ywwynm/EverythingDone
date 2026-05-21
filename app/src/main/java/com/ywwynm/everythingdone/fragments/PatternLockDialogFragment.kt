@@ -85,7 +85,7 @@ open class PatternLockDialogFragment : BaseDialogFragment() {
             mTvTitle!!.setTextColor(mAccentColor)
             mTvRightAsBt!!.setTextColor(mAccentColor)
         }
-        mLockView!!.setPathColor(ContextCompat.getColor(getActivity()!!, R.color.black_54))
+        mLockView!!.setPathColor(ContextCompat.getColor(activity!!, R.color.black_54))
         // PatternLockView's correct-state stroke uses a single Paint — int only.
         mLockView!!.setCorrectColor(mAccentColor)
 

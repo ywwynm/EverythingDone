@@ -14,7 +14,6 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.SimpleItemAnimator
 import android.text.InputFilter
-import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
@@ -102,7 +101,7 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
                 super.onPageScrollStateChanged(state)
                 if (state == ViewPager.SCROLL_STATE_IDLE) {
                     val params: ViewGroup.LayoutParams = mVpDateTime!!.layoutParams
-                    params.height = mTabHeights!!.get(mVpDateTime!!.currentItem)
+                    params.height = mTabHeights!![mVpDateTime!!.currentItem]
                     mVpDateTime!!.postDelayed({
                         mVpDateTime!!.layoutParams = params
                     }, 96)
@@ -212,7 +211,7 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
 
     private fun updateViewPagerHeight() {
         val params: ViewGroup.LayoutParams = mVpDateTime!!.layoutParams
-        params.height = mTabHeights!!.get(mVpDateTime!!.currentItem)
+        params.height = mTabHeights!![mVpDateTime!!.currentItem]
         mVpDateTime!!.requestLayout()
     }
 
@@ -282,7 +281,7 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
 
     @SuppressLint("InflateParams")
     private fun initMembers() {
-        mActivity = getActivity() as DetailActivity
+        mActivity = activity as DetailActivity
         mAccentBackground = mActivity!!.getAccentBackground()
         mAccentColor = if (mAccentBackground != null)
             mAccentBackground!!.representativeColor()
@@ -316,7 +315,7 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
     }
 
     private fun findViewsAt() {
-        val tab0: View = mTabs!!.get(0)
+        val tab0: View = mTabs!![0]
         mTvsAt!![0] = f(tab0, R.id.tv_year_at)
         mTvsAt!![1] = f(tab0, R.id.tv_month_at)
         mTvsAt!![2] = f(tab0, R.id.tv_day_at)
@@ -338,7 +337,7 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
     }
 
     private fun findViewsAfter() {
-        val tab1: View = mTabs!!.get(1)
+        val tab1: View = mTabs!![1]
         mEtTimeAfter     = f(tab1, R.id.et_time_after)
         mTvTimeAsBtAfter = f(tab1, R.id.tv_time_as_bt_after)
         mDtpAfter        = DateTimePicker(
@@ -352,7 +351,7 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
     }
 
     private fun findViewsRec() {
-        val tab2: View = mTabs!!.get(2)
+        val tab2: View = mTabs!![2]
         mTvTimesLRec      = f(tab2, R.id.tv_times_l_recurrence)
         mTvTimesRRec      = f(tab2, R.id.tv_times_r_recurrence)
         mTvTimeAsBtRec    = f(tab2, R.id.tv_time_as_bt_recurrence)
@@ -586,7 +585,7 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
 
     private fun updateUIRecWeek() {
         mDtpRec!!.pickForUI(1)
-        mTabHeights!!.set(2, (mActivity!!.screenDensity * 280).toInt())
+        mTabHeights!![2] = (mActivity!!.screenDensity * 280).toInt()
         updateViewPagerHeight()
         updateRvHeightRec(1)
 
@@ -624,7 +623,7 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
 
     private fun updateUIRecMonth() {
         mDtpRec!!.pickForUI(2)
-        mTabHeights!!.set(2, (mActivity!!.screenDensity * 392).toInt())
+        mTabHeights!![2] = (mActivity!!.screenDensity * 392).toInt()
         updateViewPagerHeight()
         updateRvHeightRec(2)
 
@@ -639,7 +638,7 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
             if (habitDetail != null) {
                 val days: List<Int?> = Habit.getDayOrMonthListFromDetail(habitDetail)!!
                 mAdapterDayOfMonth!!.pick(days)
-                if (days.get(days.size - 1) == 27) {
+                if (days[days.size - 1] == 27) {
                     mAdapterDayOfMonth!!.pick(27)
                     mAdapterDayOfMonth!!.pick(mAdapterDayOfMonth!!.itemCount - 1)
                 }
@@ -667,7 +666,7 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
 
     private fun updateUIRecYear() {
         mDtpRec!!.pickForUI(3)
-        mTabHeights!!.set(2, (mActivity!!.screenDensity * 340).toInt())
+        mTabHeights!![2] = (mActivity!!.screenDensity * 340).toInt()
         updateViewPagerHeight()
         updateRvHeightRec(3)
 
@@ -684,7 +683,7 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
                 mAdapterMonthOfYear!!.pick(months)
 
                 val dayTimes: Array<String?> = Habit.getTimeFromDetailYear(habitDetail)!!
-                if ("28".equals(dayTimes[0])) {
+                if ("28" == dayTimes[0]) {
                     val et: EditText = mIlDayYear!!.getEditText()!!
                     et.inputType = EditorInfo.TYPE_CLASS_TEXT
                     et.filters = arrayOf<InputFilter>(InputFilter.LengthFilter(12))
@@ -881,7 +880,7 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
 
     private fun updateHeightsTimeOfDay() {
         val count = mAdapterTimeOfDay!!.itemCount
-        mTabHeights!!.set(2, (mActivity!!.screenDensity * (count * 48 + 96)).toInt())
+        mTabHeights!![2] = (mActivity!!.screenDensity * (count * 48 + 96)).toInt()
         updateViewPagerHeight()
         updateRvHeightRec(0)
     }
@@ -948,11 +947,11 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
                 updateTimePeriodRec()
             }
         })
-        mIlMinuteWmy!!.setOnFocusChangeListenerForEditText(View.OnFocusChangeListener { v, hasFocus ->
+        mIlMinuteWmy!!.setOnFocusChangeListenerForEditText { v, hasFocus ->
             if (!hasFocus) {
                 DateTimeUtil.formatLimitMinuteForEditText(v as EditText)
             }
-        })
+        }
     }
 
     private fun updateTimePeriodRec() {
@@ -1019,14 +1018,14 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
     private fun updatePickedTimesRec() {
         val count: Int
         val type = mDtpRec!!.getPickedIndex()
-        if (type == 0) {
-            count = mAdapterTimeOfDay!!.getTimeCount()
+        count = if (type == 0) {
+            mAdapterTimeOfDay!!.getTimeCount()
         } else if (type == 1) {
-            count = mAdapterDayOfWeek!!.getPickedCount()
+            mAdapterDayOfWeek!!.getPickedCount()
         } else if (type == 2) {
-            count = mAdapterDayOfMonth!!.getPickedCount()
+            mAdapterDayOfMonth!!.getPickedCount()
         } else {
-            count = mAdapterMonthOfYear!!.getPickedCount()
+            mAdapterMonthOfYear!!.getPickedCount()
         }
         mTvTimesLRec!!.text = "" + count
         improveComplex()
@@ -1119,7 +1118,7 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
                 ZoneId.systemDefault()
             )
             val cur: ZonedDateTime = ZonedDateTime.now()
-            if (dt.compareTo(cur) <= 0) {
+            if (dt <= cur) {
                 setErrorAt(R.string.error_later)
             } else {
                 val before = ReminderHabitParams(mActivity!!.rhParams)
@@ -1182,7 +1181,7 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
 
     private fun endSettingTimeRec() {
         val canConfirm: String = checkCanConfirmRec()
-        if (NO_PROBLEM.equals(canConfirm)) {
+        if (NO_PROBLEM == canConfirm) {
             val type = mDtpRec!!.getPickedTimeType()
             var detail: String? = ""
             if (type == Calendar.DATE) {
@@ -1233,7 +1232,7 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
     private fun formatMinuteAt() {
         val temp: String = mEtsAt!![4]!!.text.toString()
         if (temp.length == 1) {
-            mEtsAt!![4]!!.setText("0" + temp)
+            mEtsAt!![4]!!.setText("0$temp")
         }
     }
 
@@ -1291,14 +1290,14 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
 
     private fun checkCanConfirmRec(): String {
         val type = mDtpRec!!.getPickedIndex()
-        if (type == 0) {
-            return checkCanConfirmRecDay()
+        return if (type == 0) {
+            checkCanConfirmRecDay()
         } else if (type == 1) {
-            return checkCanConfirmRecWeek()
+            checkCanConfirmRecWeek()
         } else if (type == 2) {
-            return checkCanConfirmRecMonth()
+            checkCanConfirmRecMonth()
         } else {
-            return checkCanConfirmRecYear()
+            checkCanConfirmRecYear()
         }
     }
 
@@ -1313,7 +1312,7 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
             val set = HashSet<String>()
             var i = 0
             while (i < times.size) {
-                val time = times.get(i).toString() + ":" + times.get(i + 1)
+                val time = times[i].toString() + ":" + times[i + 1]
                 if (!set.add(time)) {
                     return mActivity!!.getString(R.string.error_different)
                 }

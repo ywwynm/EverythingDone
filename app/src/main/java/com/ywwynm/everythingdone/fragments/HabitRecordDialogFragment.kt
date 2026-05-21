@@ -49,7 +49,7 @@ open class HabitRecordDialogFragment : BaseDialogFragment() {
         super.onCreateView(inflater, container, savedInstanceState)
 
         val title: TextView = f(R.id.tv_habit_record_title)!!
-        val activity: DetailActivity = getActivity() as DetailActivity
+        val activity: DetailActivity = activity as DetailActivity
         val accentBg: ThingBackground? = activity.getAccentBackground()
         if (accentBg != null) {
             BackgroundUtil.applyTextBackground(title, accentBg)
@@ -86,7 +86,7 @@ open class HabitRecordDialogFragment : BaseDialogFragment() {
     override fun onDismiss(dialog: DialogInterface) {
         if (mConfirmClicked && mHabitRecordAdapter!!.hasRecordEdited()) {
             val record: String = mHabitRecordAdapter!!.getRecord()!!
-            val activity: DetailActivity = getActivity() as DetailActivity
+            val activity: DetailActivity = activity as DetailActivity
             val habitDAO: HabitDAO = HabitDAO.getInstance(activity)!!
             val habitId: Long = mHabit!!.id
             val habit: Habit? = habitDAO.getHabitById(habitId)

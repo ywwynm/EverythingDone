@@ -45,7 +45,7 @@ open class HabitDetailDialogFragment : BaseDialogFragment() {
         super.onCreateView(inflater, container, savedInstanceState)
 
         val title: TextView = f(R.id.tv_habit_detail_title)!!
-        val activity: DetailActivity = getActivity() as DetailActivity
+        val activity: DetailActivity = activity as DetailActivity
         val accentBg: ThingBackground? = activity.getAccentBackground()
         if (accentBg != null) {
             BackgroundUtil.applyTextBackground(title, accentBg)

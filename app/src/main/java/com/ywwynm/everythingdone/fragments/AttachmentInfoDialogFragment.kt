@@ -81,7 +81,7 @@ open class AttachmentInfoDialogFragment : BaseDialogFragment() {
         }
 
         override fun onBindViewHolder(holder: Holder, position: Int) {
-            val item: Pair<String, String> = mItems!!.get(position)!!
+            val item: Pair<String, String> = mItems!![position]!!
             holder.tvTitle!!.text   = item.first
             holder.tvContent!!.text = item.second
         }

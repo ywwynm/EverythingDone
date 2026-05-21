@@ -42,7 +42,7 @@ open class AddAttachmentDialogFragment : BaseDialogFragment() {
     ): View? {
         super.onCreateView(inflater, container, savedInstanceState)
 
-        mActivity = getActivity() as DetailActivity
+        mActivity = activity as DetailActivity
 
         val tvTitle: TextView = f(R.id.tv_add_attachment_title)!!
         val bg: ThingBackground? = mActivity!!.getAccentBackground()

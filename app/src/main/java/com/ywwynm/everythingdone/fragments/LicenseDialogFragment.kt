@@ -34,7 +34,7 @@ open class LicenseDialogFragment : BaseDialogFragment() {
     ): View? {
         super.onCreateView(inflater, container, savedInstanceState)
 
-        mActivity = getActivity()
+        mActivity = activity
 
         mAccentColor = DisplayUtil.getRandomColor(mActivity)
         val tvTitle: TextView = f(R.id.tv_title_license)!!
@@ -147,7 +147,7 @@ open class LicenseDialogFragment : BaseDialogFragment() {
 
     override fun getLayoutResource(): Int = R.layout.fragment_license
 
-    private inner class LicenseAdapter internal constructor(items: List<License?>?) : RecyclerView.Adapter<LicenseAdapter.Holder>() {
+    private inner class LicenseAdapter(items: List<License?>?) : RecyclerView.Adapter<LicenseAdapter.Holder>() {
 
         private var mInflater: LayoutInflater? = mActivity!!.layoutInflater
         private var mItems: List<License?>? = items
@@ -159,7 +159,7 @@ open class LicenseDialogFragment : BaseDialogFragment() {
 
         @SuppressLint("SetTextI18n")
         override fun onBindViewHolder(holder: Holder, position: Int) {
-            val license: License = mItems!!.get(position)!!
+            val license: License = mItems!![position]!!
             holder.tvName!!.text = license.name
             holder.tvLink!!.text = license.link
             holder.tvLink!!.setLinkTextColor(mLinkColor)
@@ -172,7 +172,7 @@ open class LicenseDialogFragment : BaseDialogFragment() {
 
         override fun getItemCount(): Int = mItems!!.size
 
-        internal inner class Holder(itemView: View?) : BaseViewHolder(itemView) {
+        inner class Holder(itemView: View?) : BaseViewHolder(itemView) {
 
             var tvName: TextView?    = f(R.id.tv_license_name)
             var tvLink: TextView?    = f(R.id.tv_license_link)
@@ -180,7 +180,7 @@ open class LicenseDialogFragment : BaseDialogFragment() {
         }
     }
 
-    private class License internal constructor(
+    private class License(
         var name: String?,
         var link: String?,
         var copyRight: String?,

@@ -130,13 +130,13 @@ open class ChooserDialogFragment : BaseDialogFragment() {
             mRecyclerView!!.overScrollMode = View.OVER_SCROLL_NEVER
         }
 
-        mAdapter = RadioChooserAdapter(getActivity(), mItems, mAccentColor)
+        mAdapter = RadioChooserAdapter(activity, mItems, mAccentColor)
         if (mAccentBackground != null) {
             mAdapter!!.setAccentBackground(mAccentBackground)
         }
         mAdapter!!.setOnItemClickListener(mOnItemClickListener)
         mRecyclerView!!.adapter = mAdapter
-        mRecyclerView!!.layoutManager = LinearLayoutManager(getActivity())
+        mRecyclerView!!.layoutManager = LinearLayoutManager(activity)
         mAdapter!!.pick(mInitialIndex)
 
         if (mItems!!.size > 9) {

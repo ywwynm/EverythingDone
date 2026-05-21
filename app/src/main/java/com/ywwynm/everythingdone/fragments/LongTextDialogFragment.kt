@@ -92,21 +92,19 @@ open class LongTextDialogFragment : BaseDialogFragment() {
         val v1: View = f(R.id.view_separator_1)!!
         val v2: View = f(R.id.view_separator_2)!!
         val sv: ScrollView = f(R.id.sv_long_text)!!
-        sv.viewTreeObserver.addOnScrollChangedListener(
-            ViewTreeObserver.OnScrollChangedListener {
-                val scrollY = sv.scrollY
-                if (scrollY <= 0) {
-                    v1.visibility = View.INVISIBLE
-                    v2.visibility = View.VISIBLE
-                } else if (scrollY >= sv.getChildAt(0).height - sv.height) {
-                    v1.visibility = View.VISIBLE
-                    v2.visibility = View.INVISIBLE
-                } else {
-                    v1.visibility = View.VISIBLE
-                    v2.visibility = View.VISIBLE
-                }
+        sv.viewTreeObserver.addOnScrollChangedListener {
+            val scrollY = sv.scrollY
+            if (scrollY <= 0) {
+                v1.visibility = View.INVISIBLE
+                v2.visibility = View.VISIBLE
+            } else if (scrollY >= sv.getChildAt(0).height - sv.height) {
+                v1.visibility = View.VISIBLE
+                v2.visibility = View.INVISIBLE
+            } else {
+                v1.visibility = View.VISIBLE
+                v2.visibility = View.VISIBLE
             }
-        )
+        }
         EdgeEffectUtil.forScrollView(sv, mAccentColor)
 
         return mContentView
@@ -116,11 +114,9 @@ open class LongTextDialogFragment : BaseDialogFragment() {
 
     override fun onResume() {
         super.onResume()
-        val screenDensity: Float = DisplayUtil.getScreenDensity(getActivity())
+        val screenDensity: Float = DisplayUtil.getScreenDensity(activity)
         val window: Window? = dialog!!.window
-        if (window != null) {
-            window.setLayout((screenDensity * 320).toInt(), WindowManager.LayoutParams.WRAP_CONTENT)
-        }
+        window?.setLayout((screenDensity * 320).toInt(), WindowManager.LayoutParams.WRAP_CONTENT)
     }
 
     override fun onDismiss(dialog: DialogInterface) {

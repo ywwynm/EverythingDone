@@ -115,8 +115,8 @@ open class GradientOrientationDialogFragment : BaseDialogFragment() {
     }
 
     private fun tintedCheckmark(): Drawable? {
-        var d: Drawable? = ContextCompat.getDrawable(getActivity()!!, R.drawable.ic_color_picked)
-        if (d == null) return null
+        var d: Drawable =
+            ContextCompat.getDrawable(activity!!, R.drawable.ic_color_picked) ?: return null
         d = d.mutate()
         val tint: Int = if (BackgroundUtil.isLight(mAccent!!.representativeColor()))
             Color.BLACK else Color.WHITE

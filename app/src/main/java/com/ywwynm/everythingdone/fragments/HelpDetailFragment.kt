@@ -29,7 +29,7 @@ open class HelpDetailFragment : Fragment() {
     ): View? {
         val contentView: View = inflater.inflate(R.layout.fragment_help_detail, container, false)
 
-        val activity: HelpActivity = getActivity() as HelpActivity
+        val activity: HelpActivity = activity as HelpActivity
         activity.updateActionBarTitle(true)
         activity.setRecyclerViewFocusable(false)
 
@@ -67,7 +67,7 @@ open class HelpDetailFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        val helpActivity: HelpActivity = getActivity() as HelpActivity
+        val helpActivity: HelpActivity = activity as HelpActivity
         helpActivity.updateActionBarTitle(false)
         helpActivity.setRecyclerViewFocusable(true)
     }

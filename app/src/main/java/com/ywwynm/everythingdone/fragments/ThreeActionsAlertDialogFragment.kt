@@ -47,11 +47,9 @@ open class ThreeActionsAlertDialogFragment : BaseDialogFragment() {
 
     override fun onResume() {
         super.onResume()
-        val screenDensity: Float = DisplayUtil.getScreenDensity(getActivity())
+        val screenDensity: Float = DisplayUtil.getScreenDensity(activity)
         val window: Window? = dialog!!.window
-        if (window != null) {
-            window.setLayout((screenDensity * 320).toInt(), WindowManager.LayoutParams.WRAP_CONTENT)
-        }
+        window?.setLayout((screenDensity * 320).toInt(), WindowManager.LayoutParams.WRAP_CONTENT)
     }
 
     override fun onCreateView(

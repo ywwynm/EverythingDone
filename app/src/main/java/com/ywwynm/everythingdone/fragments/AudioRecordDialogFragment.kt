@@ -9,7 +9,6 @@ import android.os.Bundle
 import android.os.SystemClock
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import androidx.core.content.ContextCompat
-import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -63,7 +62,7 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
     ): View? {
         super.onCreateView(inflater, container, savedInstanceState)
 
-        mActivity = getActivity() as DetailActivity
+        mActivity = activity as DetailActivity
         mRecorder = AudioRecorder()
 
         mLlFileName  = f(R.id.ll_audio_file_name)
@@ -77,8 +76,7 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         mIvCancelRecording = f(R.id.iv_cancel_recording_audio)
 
         val accentBg: ThingBackground? = mActivity!!.getAccentBackground()
-        val accentColor: Int = if (accentBg != null) accentBg.representativeColor()
-        else mActivity!!.getAccentColor()
+        val accentColor: Int = accentBg?.representativeColor() ?: mActivity!!.getAccentColor()
         mVisualizer!!.setRenderColor(accentColor)
         if (accentBg != null) {
             BackgroundUtil.applyBackground(mBase, accentBg)
@@ -133,8 +131,7 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
     private fun setEvents() {
         val normalColor = ContextCompat.getColor(mActivity!!, R.color.black_26p)
         val accentBg: ThingBackground? = mActivity!!.getAccentBackground()
-        val accentColor: Int = if (accentBg != null) accentBg.representativeColor()
-        else mActivity!!.getAccentColor()
+        val accentColor: Int = accentBg?.representativeColor() ?: mActivity!!.getAccentColor()
         mEtFileName!!.onFocusChangeListener = View.OnFocusChangeListener { v, hasFocus ->
             val useGradientLine = hasFocus
                     && accentBg != null
@@ -143,7 +140,7 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
                 if (useGradientLine) {
                     BackgroundUtil.applyEditTextUnderline(mEtFileName, accentBg)
                     // Hide native underline so only the gradient strip shows.
-                    DisplayUtil.tintView(mEtFileName, android.graphics.Color.TRANSPARENT)
+                    DisplayUtil.tintView(mEtFileName, Color.TRANSPARENT)
                 } else {
                     BackgroundUtil.clearEditTextUnderline(mEtFileName)
                     DisplayUtil.tintView(mEtFileName, accentColor)
