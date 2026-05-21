@@ -143,7 +143,7 @@ class ThingBackground private constructor(
          */
         @JvmStatic
         fun fromJson(json: String?): ThingBackground? {
-            if (json == null || json.isEmpty()) return null
+            if (json.isNullOrEmpty()) return null
             try {
                 val o = JSONObject(json)
                 val modeStr = o.optString(K_MODE, Mode.PURE.name)

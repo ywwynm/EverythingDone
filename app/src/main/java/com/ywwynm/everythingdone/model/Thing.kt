@@ -251,41 +251,33 @@ open class Thing(
 
         @JvmStatic
         fun getTypeStr(type: Int, context: Context?): String? {
-            return if (type == NOTE) {
-                context!!.getString(R.string.note)
-            } else if (type == REMINDER) {
-                context!!.getString(R.string.reminder)
-            } else if (type == HABIT) {
-                context!!.getString(R.string.habit)
-            } else if (type == GOAL) {
-                context!!.getString(R.string.goal)
-            } else context!!.getString(R.string.thing)
+            return when (type) {
+                NOTE -> context!!.getString(R.string.note)
+                REMINDER -> context!!.getString(R.string.reminder)
+                HABIT -> context!!.getString(R.string.habit)
+                GOAL -> context!!.getString(R.string.goal)
+                else -> context!!.getString(R.string.thing)
+            }
         }
 
         @JvmStatic
         @DrawableRes
         fun getTypeIconWhiteLarge(type: Int): Int {
-            return if (type == REMINDER) {
-                R.drawable.ic_reminder_white_large
-            } else if (type == HABIT) {
-                R.drawable.ic_habit_white_large
-            } else if (type == GOAL) {
-                R.drawable.ic_goal_white_large
-            } else {
-                R.drawable.ic_note_white_large
+            return when (type) {
+                REMINDER -> R.drawable.ic_reminder_white_large
+                HABIT -> R.drawable.ic_habit_white_large
+                GOAL -> R.drawable.ic_goal_white_large
+                else -> R.drawable.ic_note_white_large
             }
         }
 
         @JvmStatic
         fun getStateStr(state: Int, context: Context?): String? {
-            return if (state == UNDERWAY) {
-                context!!.getString(R.string.underway)
-            } else if (state == FINISHED) {
-                context!!.getString(R.string.finished)
-            } else if (state == DELETED) {
-                context!!.getString(R.string.deleted)
-            } else {
-                context!!.getString(R.string.underway)
+            return when (state) {
+                UNDERWAY -> context!!.getString(R.string.underway)
+                FINISHED -> context!!.getString(R.string.finished)
+                DELETED -> context!!.getString(R.string.deleted)
+                else -> context!!.getString(R.string.underway)
             }
         }
 
@@ -315,14 +307,11 @@ open class Thing(
                 } else {
                     limits = IntArray(2)
                     limits[0] = Def.LimitForGettingThings.ALL_UNDERWAY
-                    if (type == REMINDER) {
-                        limits[1] = Def.LimitForGettingThings.REMINDER_UNDERWAY
-                    } else if (type == HABIT) {
-                        limits[1] = Def.LimitForGettingThings.HABIT_UNDERWAY
-                    } else if (type == GOAL) {
-                        limits[1] = Def.LimitForGettingThings.GOAL_UNDERWAY
-                    } else {
-                        limits[1] = Def.LimitForGettingThings.NOTE_UNDERWAY
+                    limits[1] = when (type) {
+                        REMINDER -> Def.LimitForGettingThings.REMINDER_UNDERWAY
+                        HABIT -> Def.LimitForGettingThings.HABIT_UNDERWAY
+                        GOAL -> Def.LimitForGettingThings.GOAL_UNDERWAY
+                        else -> Def.LimitForGettingThings.NOTE_UNDERWAY
                     }
                 }
             }

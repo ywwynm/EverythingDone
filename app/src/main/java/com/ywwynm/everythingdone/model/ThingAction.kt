@@ -8,11 +8,8 @@ import androidx.annotation.IntDef
  * Translated to Kotlin by ywwynm and Claude Opus 4.7 on 2026/5/20.
  * Thing update action model
  */
-open class ThingAction(type: Int, before: Any?, after: Any?) {
+open class ThingAction(private val type: Int, private val before: Any?, private val after: Any?) {
 
-    private val type: Int = type
-    private val before: Any? = before
-    private val after: Any? = after
     private val extras: Bundle? = Bundle()
 
     open fun getType(): Int {
