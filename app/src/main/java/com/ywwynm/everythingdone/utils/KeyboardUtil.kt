@@ -28,7 +28,7 @@ object KeyboardUtil {
         }
 
         view.requestFocus()
-        val imm: InputMethodManager = view.getContext()
+        val imm: InputMethodManager = view.context
                 .getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
         imm.showSoftInput(view, InputMethodManager.SHOW_FORCED)
     }
@@ -40,12 +40,12 @@ object KeyboardUtil {
         }
         view.clearFocus()
 
-        val imm: InputMethodManager = view.getContext()
+        val imm: InputMethodManager = view.context
                 .getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
         if (!imm.isActive()) {
             return
         }
-        imm.hideSoftInputFromWindow(view.getWindowToken(), 0)
+        imm.hideSoftInputFromWindow(view.windowToken, 0)
     }
 
     @JvmStatic
@@ -60,19 +60,19 @@ object KeyboardUtil {
 
     @JvmStatic
     fun addKeyboardCallback(window: Window?, callback: KeyboardCallback?) {
-        val decorView: View = window!!.getDecorView()
+        val decorView: View = window!!.decorView
         decorView.getViewTreeObserver().addOnGlobalLayoutListener(
                 object : ViewTreeObserver.OnGlobalLayoutListener {
 
                     private val r: Rect = Rect()
                     private var initialDiff: Int = -1
                     private val possibleKeyboardHeight: Float =
-                            96 * DisplayUtil.getScreenDensity(decorView.getContext())
+                            96 * DisplayUtil.getScreenDensity(decorView.context)
                     private var mKeyboardOpened: Boolean = false
 
                     override fun onGlobalLayout() {
                         // decor.getRoot.getHeight is always full height
-                        val fullHeight: Int = decorView.getRootView().getHeight()
+                        val fullHeight: Int = decorView.getRootView().height
 
                         // r will be populated with the coordinates of your view that area still visible.
                         decorView.getWindowVisibleDisplayFrame(r)
@@ -89,15 +89,11 @@ object KeyboardUtil {
                         if (diff > possibleKeyboardHeight) {
                             if (!mKeyboardOpened) {
                                 mKeyboardOpened = true
-                                if (callback != null) {
-                                    callback.onKeyboardShow(diff)
-                                }
+                                callback?.onKeyboardShow(diff)
                             }
                         } else if (diff == 0) {
                             if (mKeyboardOpened) {
-                                if (callback != null) {
-                                    callback.onKeyboardHide()
-                                }
+                                callback?.onKeyboardHide()
                                 mKeyboardOpened = false
                             }
                         }

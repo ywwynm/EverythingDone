@@ -1,8 +1,6 @@
 package com.ywwynm.everythingdone.utils
 
 import android.graphics.Color
-import android.graphics.PorterDuff
-import android.graphics.drawable.Drawable
 import androidx.viewpager.widget.ViewPager
 import androidx.recyclerview.widget.RecyclerView
 import android.widget.EdgeEffect
@@ -32,8 +30,8 @@ object EdgeEffectUtil {
             val clazz: Class<*> = ScrollView::class.java
             val fEdgeGlowTop: Field = clazz.getDeclaredField("mEdgeGlowTop")
             val fEdgeGlowBottom: Field = clazz.getDeclaredField("mEdgeGlowBottom")
-            fEdgeGlowTop.setAccessible(true)
-            fEdgeGlowBottom.setAccessible(true)
+            fEdgeGlowTop.isAccessible = true
+            fEdgeGlowBottom.isAccessible = true
             setEdgeEffectColor(fEdgeGlowTop.get(sv) as EdgeEffect?, color)
             setEdgeEffectColor(fEdgeGlowBottom.get(sv) as EdgeEffect?, color)
         } catch (ignored: Exception) {
@@ -46,15 +44,15 @@ object EdgeEffectUtil {
             val rvClass: Class<*> = RecyclerView::class.java
             for (name in arrayOf<String>("ensureTopGlow", "ensureBottomGlow")) {
                 val method: Method = rvClass.getDeclaredMethod(name)
-                method.setAccessible(true)
+                method.isAccessible = true
                 method.invoke(recyclerView)
             }
             for (name in arrayOf<String>("mTopGlow", "mBottomGlow")) {
                 val field: Field = rvClass.getDeclaredField(name)
-                field.setAccessible(true)
+                field.isAccessible = true
                 val edge: Any = field.get(recyclerView)!!
                 val fEdgeEffect: Field = edge.javaClass.getDeclaredField("mEdgeEffect")
-                fEdgeEffect.setAccessible(true)
+                fEdgeEffect.isAccessible = true
                 setEdgeEffectColor(fEdgeEffect.get(edge) as EdgeEffect?, color)
             }
         } catch (ignored: Exception) { }
@@ -66,10 +64,10 @@ object EdgeEffectUtil {
             val vpClass: Class<*> = ViewPager::class.java
             for (name in arrayOf<String>("mLeftEdge", "mRightEdge")) {
                 val field: Field = vpClass.getDeclaredField(name)
-                field.setAccessible(true)
+                field.isAccessible = true
                 val edge: Any = field.get(viewPager)!!
                 val fEdgeEffect: Field = edge.javaClass.getDeclaredField("mEdgeEffect")
-                fEdgeEffect.setAccessible(true)
+                fEdgeEffect.isAccessible = true
                 setEdgeEffectColor(fEdgeEffect.get(edge) as EdgeEffect?, color)
             }
         } catch (ignored: Exception) { }
@@ -77,7 +75,7 @@ object EdgeEffectUtil {
 
     private fun setEdgeEffectColor(edgeEffect: EdgeEffect?, color: Int) {
         try {
-            edgeEffect!!.setColor(color)
+            edgeEffect!!.color = color
         } catch (ignored: Exception) { }
     }
 

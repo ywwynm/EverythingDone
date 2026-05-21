@@ -22,11 +22,11 @@ import java.util.Locale
  */
 object LocaleUtil {
 
-    const val TAG: String = "EverythingDone\$LocaleUtil"
+    const val TAG: String = $$"EverythingDone$LocaleUtil"
 
     @JvmStatic
     fun getSystemLocale(context: Context?): Locale? {
-        return context!!.getResources().getConfiguration().getLocales().get(0)
+        return context!!.resources.configuration.getLocales().get(0)
     }
 
     @JvmStatic
@@ -41,23 +41,23 @@ object LocaleUtil {
 
     @JvmStatic
     fun isSimplifiedChinese(context: Context?): Boolean {
-        return getSystemLocale(context)!!.getLanguage()
-                .equals(Locale.SIMPLIFIED_CHINESE.getLanguage())
+        return getSystemLocale(context)!!.language
+                .equals(Locale.SIMPLIFIED_CHINESE.language)
     }
 
     @JvmStatic
     fun isTraditionalChinese(context: Context?): Boolean {
-        return getSystemLocale(context)!!.getLanguage()
-                .equals(Locale.TRADITIONAL_CHINESE.getLanguage())
+        return getSystemLocale(context)!!.language
+                .equals(Locale.TRADITIONAL_CHINESE.language)
     }
 
     const val LANGUAGE_CODE_FOLLOW_SYSTEM: String = "follow system"
 
     @JvmStatic
     fun getLanguageDescription(languageCode: String?): String? {
-        val res: Resources = App.getApp()!!.getResources()
+        val res: Resources = App.getApp()!!.resources
         val lanCodes: Array<String?> = res.getStringArray(R.array.language_codes)
-        var index: Int = 0
+        var index = 0
         for (i in 0 until lanCodes.size) {
             if (lanCodes[i].equals(languageCode)) {
                 index = i
@@ -83,13 +83,13 @@ object LocaleUtil {
     fun changeLanguage(language: String, countryOrDistinct: String) {
         var lang: String = language
         var country: String = countryOrDistinct
-        if (LANGUAGE_CODE_FOLLOW_SYSTEM.equals(lang)) {
-            lang = Locale.getDefault().getLanguage()
-            country = Locale.getDefault().getCountry()
+        if (LANGUAGE_CODE_FOLLOW_SYSTEM == lang) {
+            lang = Locale.getDefault().language
+            country = Locale.getDefault().country
         }
-        val resources: Resources = App.getApp()!!.getResources()
-        val dm: DisplayMetrics = resources.getDisplayMetrics()
-        val configuration: Configuration = resources.getConfiguration()
+        val resources: Resources = App.getApp()!!.resources
+        val dm: DisplayMetrics = resources.displayMetrics
+        val configuration: Configuration = resources.configuration
         setAppLocale(configuration, Locale(lang, country))
         resources.updateConfiguration(configuration, dm)
     }
@@ -102,17 +102,17 @@ object LocaleUtil {
     @JvmStatic
     fun getTimesStr(context: Context?, times: Int, shouldHasGapStr: Boolean): String? {
         val timesStr: String = context!!.getString(R.string.times)
-        if (isChinese(context)) {
-            return times.toString() + (if (shouldHasGapStr) " " else "") + timesStr
+        return if (isChinese(context)) {
+            times.toString() + (if (shouldHasGapStr) " " else "") + timesStr
         } else {
             if (times == 0) {
-                return "0 time"
+                "0 time"
             } else if (times == 1) {
-                return "once"
+                "once"
             } else if (times == 2) {
-                return "twice"
+                "twice"
             } else {
-                return times.toString() + " " + timesStr + "s"
+                times.toString() + " " + timesStr + "s"
             }
         }
     }

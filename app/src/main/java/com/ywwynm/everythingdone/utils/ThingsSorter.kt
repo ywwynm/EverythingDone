@@ -44,18 +44,18 @@ object ThingsSorter {
                 if (thing1!!.type == Thing.HEADER) return -1
                 if (thing2!!.type == Thing.HEADER) return 1
 
-                if (ignoreSticky) {
-                    return compareByAlarmTime(thing1, thing2)
+                return if (ignoreSticky) {
+                    compareByAlarmTime(thing1, thing2)
                 } else {
                     // sort by location at first(which means considering sticky), then by alarm time
                     val loc1: Long = thing1.location
                     val loc2: Long = thing2.location
                     if (loc1 < 0 && loc2 >= 0) {
-                        return -1
+                        -1
                     } else if (loc1 >= 0 && loc2 < 0) {
-                        return 1
+                        1
                     } else {
-                        return compareByAlarmTime(thing1, thing2)
+                        compareByAlarmTime(thing1, thing2)
                     }
                 }
             }
@@ -68,20 +68,20 @@ object ThingsSorter {
                 val id2: Long = thing2.id
                 val shouldCompare2: Boolean = shouldCompare(id2, type2)
 
-                if (!shouldCompare1 && !shouldCompare2) {
-                    return compareByLocationAndSticky(thing1.location, thing2.location)
+                return if (!shouldCompare1 && !shouldCompare2) {
+                    compareByLocationAndSticky(thing1.location, thing2.location)
                 } else if (shouldCompare1 && !shouldCompare2) {
-                    return -1
+                    -1
                 } else if (!shouldCompare1 && shouldCompare2) {
-                    return 1
+                    1
                 } else {
                     val time1: Long = getAlarmTime(thing1.id, type1)
                     val time2: Long = getAlarmTime(thing2.id, type2)
                     if (time1 < time2) {
-                        return -1
+                        -1
                     } else if (time1 == time2) {
-                        return 0
-                    } else return 1
+                        0
+                    } else 1
                 }
             }
 
@@ -126,19 +126,19 @@ object ThingsSorter {
 
     @JvmStatic
     fun compareByLocationAndSticky(loc1: Long, loc2: Long): Int {
-        if (loc1 < 0 && loc2 >= 0) {
-            return -1
+        return if (loc1 < 0 && loc2 >= 0) {
+            -1
         } else if (loc1 >= 0 && loc2 < 0) {
-            return 1
+            1
         } else if (loc1 >= 0 && loc2 >= 0) {
-            if (loc1 > loc2)       return -1
-            else if (loc1 == loc2) return 0
-            else                   return 1
+            if (loc1 > loc2) -1
+            else if (loc1 == loc2) 0
+            else 1
         } else { // both are <0, both are sticky on top
             // locations are -3 and -2, the -3 one will be in front of the -2 one.
-            if (loc1 < loc2)       return -1
-            else if (loc1 == loc2) return 0
-            else                   return 1
+            if (loc1 < loc2) -1
+            else if (loc1 == loc2) 0
+            else 1
         }
     }
 

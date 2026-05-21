@@ -22,11 +22,8 @@ object UriPathConverter {
 
     @JvmStatic
     fun getLocalPathName(context: Context?, uri: Uri?): String? {
-        val pathName: String? = getPathName(context, uri)
-        if (pathName == null) {
-            return null
-        }
-        if (!pathName.startsWith(Environment.getExternalStorageDirectory().getAbsolutePath())) {
+        val pathName: String = getPathName(context, uri) ?: return null
+        if (!pathName.startsWith(Environment.getExternalStorageDirectory().absolutePath)) {
             val locations: List<String?> = FileUtil.getAllStorageLocations()!!
             for (location in locations) {
                 if (pathName.startsWith(location!!)) {
@@ -86,10 +83,10 @@ object UriPathConverter {
 
                 return getDataColumn(context, contentUri, "_id=" + split[1], null)
             }
-        } else if (uri.getScheme()!!.equals("content", ignoreCase = true)) {
+        } else if (uri.scheme!!.equals("content", ignoreCase = true)) {
             return getDataColumn(context, uri, null, null)
-        } else if (uri.getScheme()!!.equals("file", ignoreCase = true)) {
-            return uri.getPath()
+        } else if (uri.scheme!!.equals("file", ignoreCase = true)) {
+            return uri.path
         }
 
         return null
@@ -110,11 +107,11 @@ object UriPathConverter {
                       selectionArgs: Array<String?>?): String? {
 
         var cursor: Cursor? = null
-        val column: String = "_data"
+        val column = "_data"
         val projection: Array<String?> = arrayOf<String?>(column)
 
         try {
-            cursor = context!!.getContentResolver().query(uri!!, projection, selection, selectionArgs,
+            cursor = context!!.contentResolver.query(uri!!, projection, selection, selectionArgs,
                     null)
             if (cursor != null && cursor.moveToFirst()) {
                 val column_index: Int = cursor.getColumnIndexOrThrow(column)
@@ -124,8 +121,7 @@ object UriPathConverter {
             e.printStackTrace()
             return null
         } finally {
-            if (cursor != null)
-                cursor.close()
+            cursor?.close()
         }
         return null
     }
@@ -137,7 +133,7 @@ object UriPathConverter {
      */
     @JvmStatic
     fun isExternalStorageDocument(uri: Uri?): Boolean {
-        return "com.android.externalstorage.documents".equals(uri!!.getAuthority())
+        return "com.android.externalstorage.documents" == uri!!.authority
     }
 
     /**
@@ -146,7 +142,7 @@ object UriPathConverter {
      */
     @JvmStatic
     fun isDownloadsDocument(uri: Uri?): Boolean {
-        return "com.android.providers.downloads.documents".equals(uri!!.getAuthority())
+        return "com.android.providers.downloads.documents" == uri!!.authority
     }
 
     /**
@@ -155,7 +151,7 @@ object UriPathConverter {
      */
     @JvmStatic
     fun isMediaDocument(uri: Uri?): Boolean {
-        return "com.android.providers.media.documents".equals(uri!!.getAuthority())
+        return "com.android.providers.media.documents" == uri!!.authority
     }
 
 }

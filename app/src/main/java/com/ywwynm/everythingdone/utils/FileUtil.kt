@@ -33,7 +33,6 @@ import java.text.SimpleDateFormat
 import java.util.ArrayList
 import java.util.Date
 import java.util.Enumeration
-import java.util.Iterator
 import java.util.Locale
 import java.util.Scanner
 import java.util.zip.ZipEntry
@@ -56,7 +55,7 @@ object FileUtil {
 
     @JvmStatic
     fun createTempAudioFile(postfix: String?): File? {
-        val dir: File = File(Def.getAppFileDir(App.getApp()) + "/temp/audio_raw")
+        val dir = File(Def.getAppFileDir(App.getApp()) + "/temp/audio_raw")
         if (!dir.exists()) {
             val parentCreated: Boolean = dir.mkdirs()
             if (!parentCreated) {
@@ -72,23 +71,23 @@ object FileUtil {
     @JvmStatic
     fun copyUriToFile(context: Context?, uri: Uri?, postfix: String?): String? {
         val folderPath: String = Def.getAppFileDir(context) + "/temp"
-        val dir: File = File(folderPath)
+        val dir = File(folderPath)
         if (!dir.exists() && !dir.mkdirs()) {
             return null
         }
         @SuppressLint("SimpleDateFormat")
         val timeStamp: String = SimpleDateFormat("yyyyMMddHHmmss").format(Date())
-        val dst: File = File(dir, "media_" + timeStamp + postfix)
+        val dst = File(dir, "media_$timeStamp$postfix")
         try {
-            context!!.getContentResolver().openInputStream(uri!!).use { `in` ->
+            context!!.contentResolver.openInputStream(uri!!).use { `in` ->
                 FileOutputStream(dst).use { out ->
                     if (`in` == null) return null
-                    val buf: ByteArray = ByteArray(8192)
+                    val buf = ByteArray(8192)
                     var len: Int
                     while ((`in`.read(buf).also { len = it }) > 0) {
                         out.write(buf, 0, len)
                     }
-                    return dst.getAbsolutePath()
+                    return dst.absolutePath
                 }
             }
         } catch (e: Exception) {
@@ -100,11 +99,11 @@ object FileUtil {
     @JvmStatic
     @Throws(IOException::class)
     fun copyUriToExistingFile(context: Context?, uri: Uri?, dstPath: String?) {
-        val dst: File = File(dstPath!!)
-        context!!.getContentResolver().openInputStream(uri!!).use { `in` ->
+        val dst = File(dstPath!!)
+        context!!.contentResolver.openInputStream(uri!!).use { `in` ->
             FileOutputStream(dst).use { out ->
                 if (`in` == null) throw IOException("Cannot open input stream")
-                val buf: ByteArray = ByteArray(8192)
+                val buf = ByteArray(8192)
                 var len: Int
                 while ((`in`.read(buf).also { len = it }) > 0) {
                     out.write(buf, 0, len)
@@ -115,19 +114,18 @@ object FileUtil {
 
     @JvmStatic
     fun getPostfixFromMimeType(context: Context?, uri: Uri?): String? {
-        val mimeType: String? = context!!.getContentResolver().getType(uri!!)
-        if (mimeType == null) return null
+        val mimeType: String = context!!.contentResolver.getType(uri!!) ?: return null
         if (mimeType.startsWith("image/")) {
-            if (mimeType.equals("image/jpeg") || mimeType.equals("image/jpg")) return ".jpg"
-            if (mimeType.equals("image/png")) return ".png"
-            if (mimeType.equals("image/gif")) return ".gif"
-            if (mimeType.equals("image/webp")) return ".webp"
+            if (mimeType == "image/jpeg" || mimeType == "image/jpg") return ".jpg"
+            if (mimeType == "image/png") return ".png"
+            if (mimeType == "image/gif") return ".gif"
+            if (mimeType == "image/webp") return ".webp"
             return ".jpg"
         } else if (mimeType.startsWith("video/")) {
             return ".mp4"
         } else if (mimeType.startsWith("audio/")) {
-            if (mimeType.equals("audio/mpeg")) return ".mp3"
-            if (mimeType.equals("audio/wav")) return ".wav"
+            if (mimeType == "audio/mpeg") return ".mp3"
+            if (mimeType == "audio/wav") return ".wav"
             return ".mp3"
         }
         return null
@@ -135,7 +133,7 @@ object FileUtil {
 
     @JvmStatic
     fun isAppropriateAsFileName(str: String?): Boolean {
-        val forbid: String = "\\/:*?\"<>|"
+        val forbid = "\\/:*?\"<>|"
         val len: Int = forbid.length
         for (i in 0 until len) {
             if (str!!.contains(forbid[i].toString())) {
@@ -147,7 +145,7 @@ object FileUtil {
 
     @JvmStatic
     fun createFile(parentPath: String?, name: String?): File? {
-        val parent: File = File(parentPath!!)
+        val parent = File(parentPath!!)
         if (!parent.exists()) {
             val parentCreated: Boolean = parent.mkdirs()
             if (!parentCreated) {
@@ -159,22 +157,22 @@ object FileUtil {
 
     @JvmStatic
     fun deleteFile(pathName: String?): Boolean {
-        val file: File = File(pathName!!)
+        val file = File(pathName!!)
         return deleteFile(file)
     }
 
     @JvmStatic
     fun deleteFile(file: File?): Boolean {
-        if (file!!.isDirectory()) {
-            return deleteDirectory(file)
+        return if (file!!.isDirectory()) {
+            deleteDirectory(file)
         } else {
-            return file.delete()
+            file.delete()
         }
     }
 
     @JvmStatic
     fun deleteDirectory(pathName: String?): Boolean {
-        val dir: File = File(pathName!!)
+        val dir = File(pathName!!)
         return deleteDirectory(dir)
     }
 
@@ -196,26 +194,26 @@ object FileUtil {
     fun getNameWithoutPostfix(pathName: String?): String? {
         val name: String = File(pathName!!).getName()
         val index: Int = name.lastIndexOf(".")
-        if (index == -1) {
-            return name
+        return if (index == -1) {
+            name
         } else {
-            return name.substring(0, index)
+            name.substring(0, index)
         }
     }
 
     @JvmStatic
     fun getPostfix(pathName: String?): String? {
         val index: Int = pathName!!.lastIndexOf(".")
-        if (index == -1) {
-            return ""
+        return if (index == -1) {
+            ""
         } else {
-            return pathName.substring(index + 1).lowercase(Locale.US)
+            pathName.substring(index + 1).lowercase(Locale.US)
         }
     }
 
     @JvmStatic
     fun getFileSizeStr(file: File?): String? {
-        val B: Double  = 1.0
+        val B = 1.0
         val KB: Double = 1024 * B
         val MB: Double = 1024 * KB
         val GB: Double = 1024 * MB
@@ -248,7 +246,7 @@ object FileUtil {
         val options: BitmapFactory.Options = BitmapFactory.Options()
         options.inJustDecodeBounds = true
         BitmapFactory.decodeFile(pathName, options)
-        val ret: IntArray = IntArray(2)
+        val ret = IntArray(2)
         ret[0] = options.outWidth
         ret[1] = options.outHeight
         return ret
@@ -256,12 +254,12 @@ object FileUtil {
 
     @JvmStatic
     fun getVideoSize(pathName: String?): IntArray? {
-        val retriever: MediaMetadataRetriever = MediaMetadataRetriever()
+        val retriever = MediaMetadataRetriever()
         try {
             retriever.setDataSource(pathName)
             val widthStr: String = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)!!
             val heightStr: String = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)!!
-            val ret: IntArray = IntArray(2)
+            val ret = IntArray(2)
             ret[0] = widthStr.toInt()
             ret[1] = heightStr.toInt()
             return ret
@@ -279,7 +277,7 @@ object FileUtil {
 
     @JvmStatic
     fun getMediaDuration(pathName: String?): Long {
-        val retriever: MediaMetadataRetriever = MediaMetadataRetriever()
+        val retriever = MediaMetadataRetriever()
         try {
             retriever.setDataSource(pathName)
             val durationStr: String = retriever.extractMetadata(
@@ -300,7 +298,7 @@ object FileUtil {
     @JvmStatic
     fun getImageCreateTime(pathName: String?): ZonedDateTime? {
         try {
-            val exif: ExifInterface = ExifInterface(pathName!!)
+            val exif = ExifInterface(pathName!!)
             val datetimeStr: String = exif.getAttribute(ExifInterface.TAG_DATETIME)!!
 
             val datetime: Array<String> = datetimeStr.split(" ".toRegex()).toTypedArray()
@@ -323,7 +321,7 @@ object FileUtil {
 
     @JvmStatic
     fun getVideoCreateTime(pathName: String?): ZonedDateTime? {
-        val retriever: MediaMetadataRetriever = MediaMetadataRetriever()
+        val retriever = MediaMetadataRetriever()
         try {
             retriever.setDataSource(pathName)
             val timeStr: String = retriever.extractMetadata(
@@ -350,7 +348,7 @@ object FileUtil {
 
     @JvmStatic
     fun getAudioBitrate(pathName: String?): Int {
-        val retriever: MediaMetadataRetriever = MediaMetadataRetriever()
+        val retriever = MediaMetadataRetriever()
         try {
             retriever.setDataSource(pathName)
             val bitrate: Int = retriever.extractMetadata(
@@ -370,7 +368,7 @@ object FileUtil {
 
     @JvmStatic
     fun getAudioSampleRate(pathName: String?): Int {
-        val extractor: MediaExtractor = MediaExtractor()
+        val extractor = MediaExtractor()
         try {
             extractor.setDataSource(pathName!!)
             val mf: MediaFormat = extractor.getTrackFormat(0)
@@ -397,10 +395,10 @@ object FileUtil {
     @JvmStatic
     @Throws(IOException::class)
     fun copyFile(src: File?, dst: File?) {
-        val bis: BufferedInputStream = BufferedInputStream(FileInputStream(src))
-        val bos: BufferedOutputStream = BufferedOutputStream(FileOutputStream(dst))
+        val bis = BufferedInputStream(FileInputStream(src))
+        val bos = BufferedOutputStream(FileOutputStream(dst))
 
-        val b: ByteArray = ByteArray(4096)
+        val b = ByteArray(4096)
         var len: Int
         while ((bis.read(b).also { len = it }) != -1) {
             bos.write(b, 0, len)
@@ -417,13 +415,13 @@ object FileUtil {
         val files: Array<File?> = File(sourceDir!!).listFiles()!!
         for (file in files) {
             if (file!!.isFile()) {
-                val parent: File = File(targetDir!!)
+                val parent = File(targetDir!!)
                 if (!parent.exists()) {
                     if (!parent.mkdirs()) {
-                        throw IOException("Cannot create directory: " + parent.getAbsolutePath())
+                        throw IOException("Cannot create directory: " + parent.absolutePath)
                     }
                 }
-                val targetFile: File = File(parent.getAbsolutePath(), file.getName())
+                val targetFile = File(parent.absolutePath, file.getName())
                 copyFile(file, targetFile)
             } else {
                 val dir1: String = sourceDir + "/" + file.getName()
@@ -453,7 +451,7 @@ object FileUtil {
             zout = ZipOutputStream(FileOutputStream(dst))
             val files: Array<File?> = src!!.listFiles()!!
             for (file in files) {
-                if (file!!.isDirectory() || isInArray(file.getAbsolutePath(), *pathNames) != exclude) {
+                if (file!!.isDirectory() || isInArray(file.absolutePath, *pathNames) != exclude) {
                     // 递归压缩，更新curPaths
                     zipFileOrDirectory(zout, file, "", exclude, *pathNames)
                 }
@@ -472,15 +470,15 @@ object FileUtil {
         var `in`: FileInputStream? = null
         try {
             if (!src!!.isDirectory()) { // zip a file
-                val isInArr: Boolean = isInArray(src.getAbsolutePath(), *pathNames)
+                val isInArr: Boolean = isInArray(src.absolutePath, *pathNames)
                 if (isInArr == exclude) {
                     return
                 }
-                val buffer: ByteArray = ByteArray(4096)
+                val buffer = ByteArray(4096)
                 var bytes: Int
                 `in` = FileInputStream(src)
                 //实例代表一个条目内的ZIP归档
-                val entry: ZipEntry = ZipEntry(curPath + src.getName())
+                val entry = ZipEntry(curPath + src.getName())
                 //条目的信息写入底层流
                 zout!!.putNextEntry(entry)
                 while ((`in`.read(buffer).also { bytes = it }) != -1) {
@@ -491,7 +489,7 @@ object FileUtil {
                 val entries: Array<File?> = src.listFiles()!!
                 for (entry in entries) {
                     if (entry!!.isDirectory() ||
-                            isInArray(entry.getAbsolutePath(), *pathNames) != exclude) {
+                            isInArray(entry.absolutePath, *pathNames) != exclude) {
                         // 递归压缩，更新curPaths
                         zipFileOrDirectory(zout, entry, curPath + src.getName() + File.separator,
                                 exclude, *pathNames)
@@ -513,54 +511,54 @@ object FileUtil {
             zipFile = ZipFile(zipFileName!!)
             val entries: Enumeration<*> = zipFile.entries()
             var zipEntry: ZipEntry
-            val dst: File = File(outputDirectory!!)
+            val dst = File(outputDirectory!!)
             if (!dst.exists()) {
                 if (!dst.mkdirs()) {
-                    throw IOException("Cannot create directory: " + dst.getAbsolutePath())
+                    throw IOException("Cannot create directory: " + dst.absolutePath)
                 }
             }
 
             while (entries.hasMoreElements()) {
                 zipEntry = entries.nextElement() as ZipEntry
-                val entryName: String = zipEntry.getName()
+                val entryName: String = zipEntry.name
                 var `in`: InputStream? = null
                 var out: FileOutputStream? = null
                 try {
-                    if (zipEntry.isDirectory()) {
-                        var name: String = zipEntry.getName()
+                    if (zipEntry.isDirectory) {
+                        var name: String = zipEntry.name
                         name = name.substring(0, name.length - 1)
-                        val f: File = File(outputDirectory + separator + name)
+                        val f = File(outputDirectory + separator + name)
                         if (!f.exists()) {
                             if (!f.mkdirs()) {
-                                throw IOException("Cannot create directory: " + f.getAbsolutePath())
+                                throw IOException("Cannot create directory: " + f.absolutePath)
                             }
                         }
                     } else {
                         var index: Int = entryName.lastIndexOf("\\")
                         if (index != -1) {
-                            val df: File = File(outputDirectory + separator
+                            val df = File(outputDirectory + separator
                                     + entryName.substring(0, index))
                             if (!df.exists()) {
                                 if (!df.mkdirs()) {
-                                    throw IOException("Cannot create directory: " + df.getAbsolutePath())
+                                    throw IOException("Cannot create directory: " + df.absolutePath)
                                 }
                             }
                         }
                         index = entryName.lastIndexOf("/")
                         if (index != -1) {
-                            val df: File = File(outputDirectory + separator
+                            val df = File(outputDirectory + separator
                                     + entryName.substring(0, index))
                             if (!df.exists()) {
                                 if (!df.mkdirs()) {
-                                    throw IOException("Cannot create directory: " + df.getAbsolutePath())
+                                    throw IOException("Cannot create directory: " + df.absolutePath)
                                 }
                             }
                         }
-                        val f: File = File(outputDirectory + separator + zipEntry.getName())
+                        val f = File(outputDirectory + separator + zipEntry.name)
                         `in` = zipFile.getInputStream(zipEntry)
                         out = FileOutputStream(f)
                         var c: Int
-                        val bytes: ByteArray = ByteArray(1024)
+                        val bytes = ByteArray(1024)
                         while ((`in`.read(bytes).also { c = it }) != -1) {
                             out.write(bytes, 0, c)
                         }
@@ -604,9 +602,9 @@ object FileUtil {
         volds.add("/mnt/sdcard")
 
         try {
-            val mountFile: File = File("/proc/mounts")
+            val mountFile = File("/proc/mounts")
             if (mountFile.exists()) {
-                val scanner: Scanner = Scanner(mountFile)
+                val scanner = Scanner(mountFile)
                 while (scanner.hasNext()) {
                     val line: String = scanner.nextLine()
                     if (line.startsWith("/dev/block/vold/")) {
@@ -615,7 +613,7 @@ object FileUtil {
 
                         // don't add the default mount path
                         // it's already in the list.
-                        if (!element.equals("/mnt/sdcard")) {
+                        if (element != "/mnt/sdcard") {
                             mounts.add(element)
                         }
                     }
@@ -626,9 +624,9 @@ object FileUtil {
         }
 
         try {
-            val voldFile: File = File("/system/etc/vold.fstab")
+            val voldFile = File("/system/etc/vold.fstab")
             if (voldFile.exists()) {
-                val scanner: Scanner = Scanner(voldFile)
+                val scanner = Scanner(voldFile)
                 while (scanner.hasNext()) {
                     val line: String = scanner.nextLine()
                     if (line.startsWith("dev_mount")) {
@@ -637,7 +635,7 @@ object FileUtil {
 
                         if (element.contains(":"))
                             element = element.substring(0, element.indexOf(":"))
-                        if (!element.equals("/mnt/sdcard"))
+                        if (element != "/mnt/sdcard")
                             volds.add(element)
                     }
                 }
@@ -658,7 +656,7 @@ object FileUtil {
         val mountHash: ArrayList<String?> = ArrayList(10)
 
         for (mount in mounts) {
-            val root: File = File(mount!!)
+            val root = File(mount!!)
             if (root.exists() && root.isDirectory() && root.canWrite()) {
                 val list: Array<File?>? = root.listFiles()
                 val sb: StringBuilder = StringBuilder("[")
@@ -678,7 +676,7 @@ object FileUtil {
 
         mounts.clear()
 
-        ret.add(Environment.getExternalStorageDirectory().getAbsolutePath())
+        ret.add(Environment.getExternalStorageDirectory().absolutePath)
         ret.add("/sdcard2/")
         ret.add("/sdcard3/")
         ret.add("/sdcard4/")
@@ -701,7 +699,7 @@ object FileUtil {
             e.printStackTrace()
             return false
         } finally {
-            if (writer != null) writer.close()
+            writer?.close()
         }
     }
 
@@ -729,7 +727,7 @@ object FileUtil {
 
     private fun isInArray(str: String?, vararg arr: String?): Boolean {
         for (s in arr) {
-            if (s!!.equals(str)) return true
+            if (s!! == str) return true
         }
         return false
     }

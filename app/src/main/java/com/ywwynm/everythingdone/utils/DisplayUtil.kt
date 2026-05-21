@@ -16,7 +16,6 @@ import android.content.res.Resources
 import android.graphics.Color
 import android.graphics.Point
 import android.graphics.PorterDuff
-import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.RippleDrawable
 import android.graphics.drawable.StateListDrawable
@@ -26,7 +25,6 @@ import androidx.appcompat.widget.AppCompatCheckBox
 import androidx.core.graphics.drawable.DrawableCompat
 import androidx.cardview.widget.CardView
 import android.text.Layout
-import android.util.Log
 import android.util.SparseArray
 import android.view.Display
 import android.view.KeyCharacterMap
@@ -40,7 +38,6 @@ import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.Button
 import android.widget.EditText
 import android.widget.SeekBar
-import android.widget.TextView
 
 import com.ywwynm.everythingdone.R
 
@@ -57,15 +54,15 @@ object DisplayUtil {
 
     @JvmStatic
     fun getScreenDensity(context: Context?): Float {
-        return context!!.getResources().getDisplayMetrics().density
+        return context!!.resources.displayMetrics.density
     }
 
     @SuppressLint("NewApi")
     @JvmStatic
     fun getDisplaySize(context: Context?): Point? {
-        val screen: Point = Point()
+        val screen = Point()
         val display: Display = (context!!.getSystemService(Context.WINDOW_SERVICE) as WindowManager)
-                .getDefaultDisplay()
+                .defaultDisplay
         // Content can overlay Navigation Bar above Lollipop.
         display.getRealSize(screen)
         return screen
@@ -74,25 +71,25 @@ object DisplayUtil {
     // Get physical screen size of phone/tablet.
     @JvmStatic
     fun getScreenSize(context: Context?): Point? {
-        val realScreen: Point = Point()
+        val realScreen = Point()
         val display: Display = (context!!.getSystemService(Context.WINDOW_SERVICE) as WindowManager)
-                .getDefaultDisplay()
+                .defaultDisplay
         display.getRealSize(realScreen)
         return realScreen
     }
 
     @JvmStatic
     fun isTablet(context: Context?): Boolean { // improved on 2016/5/11~
-        return context!!.getResources().getBoolean(R.bool.isTablet)
+        return context!!.resources.getBoolean(R.bool.isTablet)
     }
 
     @JvmStatic
     fun getStatusbarHeight(context: Context?): Int {
-        val resources: Resources = context!!.getResources()
+        val resources: Resources = context!!.resources
         val resourceId: Int = resources.getIdentifier("status_bar_height", "dimen", "android")
-        if (resourceId > 0) {
-            return resources.getDimensionPixelSize(resourceId)
-        } else return 0
+        return if (resourceId > 0) {
+            resources.getDimensionPixelSize(resourceId)
+        } else 0
     }
 
     @JvmStatic
@@ -101,20 +98,20 @@ object DisplayUtil {
         val hasBackKey: Boolean = KeyCharacterMap.deviceHasKey(KeyEvent.KEYCODE_BACK)
         val con1: Boolean = !hasMenuKey && !hasBackKey
 
-        val resources: Resources = context!!.getResources()
+        val resources: Resources = context!!.resources
         val id: Int = resources.getIdentifier("config_showNavigationBar", "bool", "android")
         val con2: Boolean = id > 0 && resources.getBoolean(id)
 
         val con3: Boolean
-        val displaySize: Point = Point()
+        val displaySize = Point()
         val display: Display = (context.getSystemService(Context.WINDOW_SERVICE) as WindowManager)
-                .getDefaultDisplay()
+                .defaultDisplay
         display.getSize(displaySize)
         val screenSize: Point = getScreenSize(context)!!
-        if (context.getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
-            con3 = displaySize.y != screenSize.y
+        con3 = if (context.resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT) {
+            displaySize.y != screenSize.y
         } else {
-            con3 = displaySize.x != screenSize.x
+            displaySize.x != screenSize.x
         }
 
         return con1 || con2 || con3
@@ -122,23 +119,23 @@ object DisplayUtil {
 
     @JvmStatic
     fun getNavigationBarHeight(context: Context?): Int { // improved on 2016/11/21
-        var res1: Int = 0
-        val resources: Resources = context!!.getResources()
+        var res1 = 0
+        val resources: Resources = context!!.resources
         val resourceId: Int = resources.getIdentifier("navigation_bar_height", "dimen", "android")
         if (resourceId > 0) {
             res1 = resources.getDimensionPixelSize(resourceId)
         }
 
         val res2: Int
-        val displaySize: Point = Point()
+        val displaySize = Point()
         val display: Display = (context.getSystemService(Context.WINDOW_SERVICE) as WindowManager)
-                .getDefaultDisplay()
+                .defaultDisplay
         display.getSize(displaySize)
         val screenSize: Point = getScreenSize(context)!!
-        if (context.getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
-            res2 = screenSize.y - displaySize.y
+        res2 = if (context.resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT) {
+            screenSize.y - displaySize.y
         } else {
-            res2 = screenSize.x - displaySize.x
+            screenSize.x - displaySize.x
         }
 
         return Math.max(res1, res2)
@@ -150,13 +147,13 @@ object DisplayUtil {
 
     @JvmStatic
     fun getRandomColor(context: Context?): Int {
-        val colors: IntArray = context!!.getResources().getIntArray(R.array.thing)
+        val colors: IntArray = context!!.resources.getIntArray(R.array.thing)
         return colors[sRng.nextInt(colors.size)]
     }
 
     @JvmStatic
     fun getColorIndex(color: Int, context: Context?): Int {
-        val colors: IntArray = context!!.getResources().getIntArray(R.array.thing)
+        val colors: IntArray = context!!.resources.getIntArray(R.array.thing)
         for (i in 0 until colors.size) {
             if (colors[i] == color) {
                 return i
@@ -179,7 +176,7 @@ object DisplayUtil {
     fun getDarkColor(color: Int, context: Context?): Int {
         val index: Int = getColorIndex(color, context)
         if (index != -1) {
-            return context!!.getResources().getIntArray(R.array.thing_dark)[index]
+            return context!!.resources.getIntArray(R.array.thing_dark)[index]
         }
         return BackgroundUtil.darker(color, 0.15f)
     }
@@ -197,7 +194,7 @@ object DisplayUtil {
     fun getLightColor(color: Int, context: Context?): Int {
         val index: Int = getColorIndex(color, context)
         if (index != -1) {
-            return context!!.getResources().getIntArray(R.array.thing_light)[index]
+            return context!!.resources.getIntArray(R.array.thing_light)[index]
         }
         return BackgroundUtil.lighter(color, 0.66f)
     }
@@ -216,15 +213,15 @@ object DisplayUtil {
      */
     @JvmStatic
     fun playDrawerToggleAnim(d: DrawerArrowDrawable?) {
-        val start: Float = d!!.getProgress()
+        val start: Float = d!!.progress
         val end: Float = Math.abs(start - 1)
         val offsetAnimator: ValueAnimator = ValueAnimator.ofFloat(start, end)
         offsetAnimator.setDuration(300)
-        offsetAnimator.setInterpolator(AccelerateDecelerateInterpolator())
+        offsetAnimator.interpolator = AccelerateDecelerateInterpolator()
         offsetAnimator.addUpdateListener(object : ValueAnimator.AnimatorUpdateListener {
             override fun onAnimationUpdate(animation: ValueAnimator) {
                 val progress: Float = animation.getAnimatedValue() as Float
-                d.setProgress(progress)
+                d.progress = progress
             }
         })
         offsetAnimator.start()
@@ -237,26 +234,26 @@ object DisplayUtil {
      */
     @JvmStatic
     fun tintView(view: View?, color: Int) {
-        val wrappedDrawable: Drawable = DrawableCompat.wrap(view!!.getBackground().mutate())
+        val wrappedDrawable: Drawable = DrawableCompat.wrap(view!!.background.mutate())
         DrawableCompat.setTint(wrappedDrawable, color)
-        view.setBackground(wrappedDrawable)
+        view.background = wrappedDrawable
     }
 
     @JvmStatic
     fun expandLayoutToStatusBarAboveLollipop(activity: Activity?) {
-        WindowCompat.setDecorFitsSystemWindows(activity!!.getWindow(), false)
+        WindowCompat.setDecorFitsSystemWindows(activity!!.window, false)
     }
 
     @JvmStatic
     fun expandLayoutToFullscreenAboveLollipop(activity: Activity?) {
-        WindowCompat.setDecorFitsSystemWindows(activity!!.getWindow(), false)
+        WindowCompat.setDecorFitsSystemWindows(activity!!.window, false)
     }
 
     @JvmStatic
     fun expandStatusBarViewAboveKitkat(statusBar: View?) {
         ViewCompat.setOnApplyWindowInsetsListener(statusBar!!) { v, insets ->
             val topInset: Int = insets.getInsets(WindowInsetsCompat.Type.systemBars()).top
-            val vlp: ViewGroup.LayoutParams = v.getLayoutParams()
+            val vlp: ViewGroup.LayoutParams = v.layoutParams
             vlp.height = topInset
             v.requestLayout()
             insets
@@ -276,12 +273,12 @@ object DisplayUtil {
     @JvmStatic
     fun applyBottomInsetAsMargin(view: View?) {
         val initial: ViewGroup.MarginLayoutParams =
-                view!!.getLayoutParams() as ViewGroup.MarginLayoutParams
+                view!!.layoutParams as ViewGroup.MarginLayoutParams
         val originalBottom: Int = initial.bottomMargin
         chainDecorInsetsCallback(view) { insets ->
             val bottom: Int = computeBottomInset(insets)
             val mlp: ViewGroup.MarginLayoutParams =
-                    view.getLayoutParams() as ViewGroup.MarginLayoutParams
+                    view.layoutParams as ViewGroup.MarginLayoutParams
             mlp.bottomMargin = originalBottom + bottom
             view.setLayoutParams(mlp)
         }
@@ -300,9 +297,9 @@ object DisplayUtil {
     @JvmStatic
     fun applyBottomInsetAsPadding(view: View?) {
         val origLeft: Int = view!!.getPaddingLeft()
-        val origTop: Int = view.getPaddingTop()
+        val origTop: Int = view.paddingTop
         val origRight: Int = view.getPaddingRight()
-        val origBottom: Int = view.getPaddingBottom()
+        val origBottom: Int = view.paddingBottom
         chainDecorInsetsCallback(view) { insets ->
             val bottom: Int = computeBottomInset(insets)
             view.setPadding(origLeft, origTop, origRight, origBottom + bottom)
@@ -328,11 +325,11 @@ object DisplayUtil {
     @JvmStatic
     fun applyBottomInsetAsScrollPadding(view: View?) {
         val origLeft: Int = view!!.getPaddingLeft()
-        val origTop: Int = view.getPaddingTop()
+        val origTop: Int = view.paddingTop
         val origRight: Int = view.getPaddingRight()
-        val origBottom: Int = view.getPaddingBottom()
+        val origBottom: Int = view.paddingBottom
         if (view is ViewGroup) {
-            view.setClipToPadding(false)
+            view.clipToPadding = false
         }
         chainDecorInsetsCallback(view) { insets ->
             val bars: androidx.core.graphics.Insets = insets.getInsets(
@@ -424,11 +421,11 @@ object DisplayUtil {
                     // receive frames.
                     ViewCompat.setWindowInsetsAnimationCallback(decor,
                             object : androidx.core.view.WindowInsetsAnimationCompat.Callback(
-                                    androidx.core.view.WindowInsetsAnimationCompat.Callback
-                                            .DISPATCH_MODE_CONTINUE_ON_SUBTREE) {
+                                DISPATCH_MODE_CONTINUE_ON_SUBTREE
+                            ) {
                                 override fun onPrepare(
                                         animation: androidx.core.view.WindowInsetsAnimationCompat) {
-                                    if ((animation.getTypeMask()
+                                    if ((animation.typeMask
                                             and WindowInsetsCompat.Type.ime()) != 0) {
                                         imeAnimating[0] = true
                                     }
@@ -445,7 +442,7 @@ object DisplayUtil {
 
                                 override fun onEnd(
                                         animation: androidx.core.view.WindowInsetsAnimationCompat) {
-                                    if ((animation.getTypeMask()
+                                    if ((animation.typeMask
                                             and WindowInsetsCompat.Type.ime()) != 0) {
                                         imeAnimating[0] = false
                                         // Read the current *stable* insets and
@@ -492,7 +489,7 @@ object DisplayUtil {
                 decor.requestApplyInsets()
             }
         }
-        if (target.isAttachedToWindow()) {
+        if (target.isAttachedToWindow) {
             install.run()
         } else {
             target.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
@@ -519,23 +516,23 @@ object DisplayUtil {
 
     @JvmStatic
     fun darkStatusBar(activity: Activity?) {
-        val window: Window = activity!!.getWindow()
-        val decor: View = window.getDecorView()
-        val controller: WindowInsetsControllerCompat = WindowInsetsControllerCompat(window, decor)
-        controller.setAppearanceLightStatusBars(true)
+        val window: Window = activity!!.window
+        val decor: View = window.decorView
+        val controller = WindowInsetsControllerCompat(window, decor)
+        controller.isAppearanceLightStatusBars = true
     }
 
     @JvmStatic
     fun cancelDarkStatusBar(activity: Activity?) {
-        val window: Window = activity!!.getWindow()
-        val decor: View = window.getDecorView()
-        val controller: WindowInsetsControllerCompat = WindowInsetsControllerCompat(window, decor)
-        controller.setAppearanceLightStatusBars(false)
+        val window: Window = activity!!.window
+        val decor: View = window.decorView
+        val controller = WindowInsetsControllerCompat(window, decor)
+        controller.isAppearanceLightStatusBars = false
     }
 
     @JvmStatic
     fun isInMultiWindow(activity: Activity?): Boolean {
-        return activity!!.isInMultiWindowMode()
+        return activity!!.isInMultiWindowMode
     }
 
     /**
@@ -550,11 +547,11 @@ object DisplayUtil {
 
     @JvmStatic
     fun getThingCardWidth(context: Context?): Int {
-        var span: Int = 2
-        val res: Resources = context!!.getResources()
-        val density: Float = res.getDisplayMetrics().density
+        var span = 2
+        val res: Resources = context!!.resources
+        val density: Float = res.displayMetrics.density
 
-        if (res.getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
+        if (res.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
             span++
         }
         if (isTablet(context)) {
@@ -563,7 +560,7 @@ object DisplayUtil {
 
         val basePadding: Int = (density * 6).toInt()
 
-        return (res.getDisplayMetrics().widthPixels - basePadding * 2 * (span + 1)) / span
+        return (res.displayMetrics.widthPixels - basePadding * 2 * (span + 1)) / span
     }
 
     private var sSldMap: SparseArray<StateListDrawable?>? = null
@@ -572,30 +569,30 @@ object DisplayUtil {
 
     @JvmStatic
     fun setRippleColorForCardView(cardView: CardView?, color: Int) {
-        val rp: RippleDrawable = cardView!!.getForeground() as RippleDrawable
+        val rp: RippleDrawable = cardView!!.foreground as RippleDrawable
         rp.setColor(ColorStateList.valueOf(color))
     }
 
     @JvmStatic
     fun setSeekBarColor(seekBar: SeekBar?, color: Int) {
         seekBar!!.setProgressTintList(ColorStateList.valueOf(color))
-        seekBar.getThumb()!!.setColorFilter(color, PorterDuff.Mode.SRC_IN)
+        seekBar.thumb!!.setColorFilter(color, PorterDuff.Mode.SRC_IN)
     }
 
     @JvmStatic
     fun setButtonColor(button: Button?, color: Int) {
-        button!!.getBackground().setColorFilter(color, PorterDuff.Mode.MULTIPLY)
+        button!!.background.setColorFilter(color, PorterDuff.Mode.MULTIPLY)
     }
 
     @JvmStatic
     fun setCheckBoxColor(checkBox: AppCompatCheckBox?, accentColor: Int) {
         setCheckBoxColor(checkBox,
-                ContextCompat.getColor(checkBox!!.getContext(), R.color.black_54), accentColor)
+                ContextCompat.getColor(checkBox!!.context, R.color.black_54), accentColor)
     }
 
     @JvmStatic
     fun setCheckBoxColor(checkBox: AppCompatCheckBox?, uncheckedColor: Int, checkedColor: Int) {
-        val colorStateList: ColorStateList = ColorStateList(
+        val colorStateList = ColorStateList(
                 arrayOf(
                         intArrayOf(-android.R.attr.state_checked), // unchecked
                         intArrayOf( android.R.attr.state_checked)  // checked
@@ -605,13 +602,13 @@ object DisplayUtil {
                         checkedColor
                 )
         )
-        checkBox!!.setSupportButtonTintList(colorStateList)
+        checkBox!!.supportButtonTintList = colorStateList
     }
 
     @JvmStatic
     fun getCursorY(et: EditText?): Int {
-        val pos: Int = et!!.getSelectionStart()
-        val layout: Layout = et.getLayout()
+        val pos: Int = et!!.selectionStart
+        val layout: Layout = et.layout
         val line: Int = layout.getLineForOffset(pos)
         val baseline: Int = layout.getLineBaseline(line)
         val ascent: Int = layout.getLineAscent(line)

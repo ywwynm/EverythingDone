@@ -17,7 +17,7 @@ import java.util.Properties
  */
 object DeviceUtil {
 
-    const val TAG: String = "EverythingDone\$DeviceUtil"
+    const val TAG: String = $$"EverythingDone$DeviceUtil"
 
     @JvmStatic
     fun getDeviceInfo(): String? {
@@ -68,7 +68,7 @@ object DeviceUtil {
     private fun getProperty(key: String?): String? {
         var fis: FileInputStream? = null
         try {
-            val properties: Properties = Properties()
+            val properties = Properties()
             fis = FileInputStream(
                     File(Environment.getRootDirectory(), "build.prop"))
             properties.load(fis)

@@ -14,8 +14,6 @@ import com.ywwynm.everythingdone.model.Reminder
 import com.ywwynm.everythingdone.model.Thing
 
 import java.time.Instant
-import java.time.LocalDate
-import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -33,7 +31,7 @@ import java.util.GregorianCalendar
  */
 object DateTimeUtil {
 
-    const val TAG: String = "EverythingDone\$DateTimeUtil"
+    const val TAG: String = $$"EverythingDone$DateTimeUtil"
 
     @JvmStatic
     fun getGeneralDateStr(context: Context?, time: Long): String? {
@@ -92,7 +90,7 @@ object DateTimeUtil {
             Calendar.DATE ->
                 return java.time.temporal.ChronoField.DAY_OF_MONTH
             Calendar.WEEK_OF_YEAR ->
-                return java.time.temporal.WeekFields.ISO.weekOfWeekBasedYear()
+                return WeekFields.ISO.weekOfWeekBasedYear()
             Calendar.MONTH ->
                 return java.time.temporal.ChronoField.MONTH_OF_YEAR
             Calendar.YEAR ->
@@ -137,7 +135,7 @@ object DateTimeUtil {
 
     @JvmStatic
     fun getActualTimeAfterSomeTime(startTime: Long, timeType: Int, afterTime: Int): Long {
-        val calendar: GregorianCalendar = GregorianCalendar()
+        val calendar = GregorianCalendar()
         calendar.setTimeInMillis(startTime)
         calendar.add(timeType, afterTime)
         return calendar.getTimeInMillis()
@@ -149,14 +147,9 @@ object DateTimeUtil {
     @JvmStatic
     fun getDateTimeStrReminder(context: Context?, thingId: Long, timePeriod: Boolean): String? {
         val pair: Pair<Thing, Int> = App.getThingAndPosition(context, thingId, -1)!!
-        val thing: Thing? = pair.first
-        if (thing == null) {
-            return ""
-        }
-        val reminder: Reminder? = ReminderDAO.getInstance(context)!!.getReminderById(thingId)
-        if (reminder == null) {
-            return ""
-        }
+        val thing: Thing = pair.first ?: return ""
+        val reminder: Reminder =
+            ReminderDAO.getInstance(context)!!.getReminderById(thingId) ?: return ""
         return getDateTimeStrReminder(context, thing, reminder, timePeriod)
     }
 
@@ -205,14 +198,9 @@ object DateTimeUtil {
     @JvmStatic
     fun getDateTimeStrGoal(context: Context?, thingId: Long): String? {
         val pair: Pair<Thing, Int> = App.getThingAndPosition(context, thingId, -1)!!
-        val thing: Thing? = pair.first
-        if (thing == null) {
-            return ""
-        }
-        val goal: Reminder? = ReminderDAO.getInstance(context)!!.getReminderById(thingId)
-        if (goal == null) {
-            return ""
-        }
+        val thing: Thing = pair.first ?: return ""
+        val goal: Reminder =
+            ReminderDAO.getInstance(context)!!.getReminderById(thingId) ?: return ""
         return getDateTimeStrGoal(context, thing, goal)
     }
 
@@ -287,10 +275,10 @@ object DateTimeUtil {
                 finishedIn = context.getString(R.string.goal_finished_overdue)
             }
             val daysStr: String
-            if (finishDays == 0) {
-                daysStr = "<1"
+            daysStr = if (finishDays == 0) {
+                "<1"
             } else {
-                daysStr = finishDays.toString()
+                finishDays.toString()
             }
             finishedIn = String.format(finishedIn, daysStr)
             if (finishDays <= 1 && !isChinese) {
@@ -341,10 +329,10 @@ object DateTimeUtil {
         }
         val str: String = getDateTimeStr(type, time, context)!!
         val after: String = context!!.getString(R.string.after)
-        if (LocaleUtil.isChinese(context)) {
-            return str + after
+        return if (LocaleUtil.isChinese(context)) {
+            str + after
         } else {
-            return after + " " + str
+            after + " " + str
         }
     }
 
@@ -371,18 +359,18 @@ object DateTimeUtil {
     @JvmStatic
     fun getDateTimeStrAt(zdt: ZonedDateTime?, context: Context?, timePeriod: Boolean): String? {
         val cur: ZonedDateTime = ZonedDateTime.now()
-        val year: Int = zdt!!.getYear()
-        val curYear: Int = cur.getYear()
-        val month: Int = zdt.getMonthValue()
-        val day: Int = zdt.getDayOfMonth()
-        var dayOfWeek: Int = zdt.getDayOfWeek().getValue()
+        val year: Int = zdt!!.year
+        val curYear: Int = cur.year
+        val month: Int = zdt.monthValue
+        val day: Int = zdt.dayOfMonth
+        var dayOfWeek: Int = zdt.dayOfWeek.value
         dayOfWeek = if (dayOfWeek == 7) 1 else dayOfWeek + 1
-        var curDayOfWeek: Int = cur.getDayOfWeek().getValue()
+        var curDayOfWeek: Int = cur.dayOfWeek.value
         curDayOfWeek = if (curDayOfWeek == 7) 1 else curDayOfWeek + 1
-        val hour: Int = zdt.getHour()
-        val minute: Int = zdt.getMinute()
+        val hour: Int = zdt.hour
+        val minute: Int = zdt.minute
 
-        val res: Resources = context!!.getResources()
+        val res: Resources = context!!.resources
         val date: Date = Date.from(zdt.toInstant())
         val sb: StringBuilder = StringBuilder()
         val isChinese: Boolean = LocaleUtil.isChinese(context)
@@ -457,7 +445,7 @@ object DateTimeUtil {
     fun formatLimitMinuteForEditText(et: EditText?) {
         val minuteStr: String = et!!.getText().toString()
         if (minuteStr.length == 1) {
-            et.setText("0" + minuteStr)
+            et.setText("0$minuteStr")
         } else if (!minuteStr.isEmpty()) {
             val minute: Int = minuteStr.toInt()
             if (minute > 59) {
@@ -526,7 +514,7 @@ object DateTimeUtil {
         val days: Array<String> = dateTimes[0].split(",".toRegex()).toTypedArray()
         val times: Array<String> = dateTimes[1].split(":".toRegex()).toTypedArray()
         val every: String = context!!.getString(R.string.every)
-        val dayOfWeek: Array<String?> = context.getResources().getStringArray(R.array.day_of_week)
+        val dayOfWeek: Array<String?> = context.resources.getStringArray(R.array.day_of_week)
         val isChinese: Boolean = LocaleUtil.isChinese(context)
         if (isChinese) {
             sb.append(every)
@@ -535,7 +523,7 @@ object DateTimeUtil {
                 sb.append(dayOfWeek[day.toInt()]!!.substring(1, 2)).append(",")
             }
             sb.deleteCharAt(sb.length - 1)
-            sb.append(getTimePeriodStr(times[0].toInt(), context.getResources()))
+            sb.append(getTimePeriodStr(times[0].toInt(), context.resources))
                     .append(dateTimes[1])
         } else {
             sb.append("at ")
@@ -561,20 +549,20 @@ object DateTimeUtil {
             sb.append(every).append(monthStr)
             val monthDay: String = context.getString(R.string.month_day)
             for (day in days) {
-                if ("27".equals(day)) { // different from 28 in method below, but is correct.
+                if ("27" == day) { // different from 28 in method below, but is correct.
                     sb.append(context.getString(R.string.end_of_month)).append(",")
                 } else {
                     sb.append(day.toInt() + 1).append(monthDay).append(",")
                 }
             }
             sb.deleteCharAt(sb.length - 1)
-            sb.append(getTimePeriodStr(times[0].toInt(), context.getResources()))
+            sb.append(getTimePeriodStr(times[0].toInt(), context.resources))
                     .append(dateTimes[1])
         } else { // at 6:30 on the 1st, 6th, 16th, 26th day of every month
             sb.append("at ")
             sb.append(dateTimes[1]).append(" on the ")
             for (day in days) {
-                if ("27".equals(day)) {
+                if ("27" == day) {
                     sb.append("last, ")
                 } else {
                     sb.append(getDayOfMonthStrInEnglish(day)).append(", ")
@@ -594,7 +582,7 @@ object DateTimeUtil {
         val times: Array<String> = dateTimes[2].split(":".toRegex()).toTypedArray()
         val every: String = context!!.getString(R.string.every)
         val yearStr: String = context.getString(R.string.year).lowercase(java.util.Locale.getDefault())
-        val monthOfYear: Array<String?> = context.getResources().getStringArray(R.array.month_of_year)
+        val monthOfYear: Array<String?> = context.resources.getStringArray(R.array.month_of_year)
         val isChinese: Boolean = LocaleUtil.isChinese(context)
         if (isChinese) { // 每年六月,十二月月末傍晚18:00
             sb.append(every).append(yearStr)
@@ -602,17 +590,17 @@ object DateTimeUtil {
                 sb.append(monthOfYear[month.toInt()]).append(",")
             }
             sb.deleteCharAt(sb.length - 1)
-            if ("28".equals(day)) {
+            if ("28" == day) {
                 sb.append(context.getString(R.string.end_of_month))
             } else {
                 sb.append(day.toInt()).append(context.getString(R.string.month_day))
             }
-            sb.append(getTimePeriodStr(times[0].toInt(), context.getResources()))
+            sb.append(getTimePeriodStr(times[0].toInt(), context.resources))
                     .append(dateTimes[2])
         } else { // at 18:00 on the last day of June, December in every year
             sb.append("at ")
             sb.append(dateTimes[2]).append(" on the ")
-            if ("28".equals(day)) {
+            if ("28" == day) {
                 sb.append("last")
             } else {
                 sb.append(getDayOfMonthStrInEnglish(day))
@@ -631,21 +619,21 @@ object DateTimeUtil {
     private fun getDayOfMonthStrInEnglish(dayStr: String?): String? {
         val day: Int = dayStr!!.toInt()
         val postfix: String
-        if (day % 10 == 0) {
-            postfix = "st"
+        postfix = if (day % 10 == 0) {
+            "st"
         } else if (day % 10 == 1) {
-            postfix = "nd"
+            "nd"
         } else if (day % 11 == 2) {
-            postfix = "rd"
+            "rd"
         } else {
-            postfix = "th"
+            "th"
         }
         return (day + 1).toString() + postfix
     }
 
     private fun appendYearMonthDayStr(year: Int, month: Int, day: Int, curYear: Int,
                                       date: Date, context: Context?, sb: StringBuilder, isChinese: Boolean) {
-        val res: Resources = context!!.getResources()
+        val res: Resources = context!!.resources
         if (isChinese) {
             if (year != curYear) {
                 sb.append(year)
@@ -658,10 +646,10 @@ object DateTimeUtil {
         } else {
             sb.append("on ")
             val sdf: java.text.SimpleDateFormat
-            if (year != curYear) {
-                sdf = java.text.SimpleDateFormat("MMM d, yyyy")
+            sdf = if (year != curYear) {
+                java.text.SimpleDateFormat("MMM d, yyyy")
             } else {
-                sdf = java.text.SimpleDateFormat("MMM d")
+                java.text.SimpleDateFormat("MMM d")
             }
             sb.append(sdf.format(date))
         }
@@ -702,25 +690,25 @@ object DateTimeUtil {
     // todo: add annotations for methods below.
     @JvmStatic
     fun getTimeTypeLimit(y: Int, m: Int, index: Int): Int {
-        if (index == 1) {
-            return 12
+        return if (index == 1) {
+            12
         } else if (index == 3) {
-            return 23
+            23
         } else if (index == 4) {
-            return 59
+            59
         } else if (index == 2) {
-            return getDaysOfMonth(y, m)
-        } else return Int.MAX_VALUE
+            getDaysOfMonth(y, m)
+        } else Int.MAX_VALUE
     }
 
     @JvmStatic
     fun getDurationBriefStr(time: Long): String? {
         val second: Float = time / 1000f
-        if (second < 1) {
-            return "< 1s"
+        return if (second < 1) {
+            "< 1s"
         } else if (second < 3600) {
-            return java.text.SimpleDateFormat("mm:ss").format(Date(time))
-        } else return java.text.SimpleDateFormat("HH:mm:ss").format(Date(time))
+            java.text.SimpleDateFormat("mm:ss").format(Date(time))
+        } else java.text.SimpleDateFormat("HH:mm:ss").format(Date(time))
     }
 
     @JvmStatic
@@ -735,7 +723,7 @@ object DateTimeUtil {
         val dayStr: String = context.getString(R.string.statistic_day)
         val yearStr: String = context.getString(R.string.statistic_year)
         if (second < 1) {
-            return "< 1" + BLK + secStr
+            return "< 1$BLK$secStr"
         } else if (second < 60) {
             return second.toString() + BLK + secStr
         } else if (second < 3600) {
@@ -747,26 +735,26 @@ object DateTimeUtil {
                 if (isChinese) {
                     minStr = minStr.substring(0, minStr.length - 1)
                 }
-                return min.toString() + BLK + minStr + " " + sec + BLK + secStr
+                return "$min$BLK$minStr $sec$BLK$secStr"
             }
         } else if (second < 86400) {
             val hour: Long = second / 3600
             val min: Long = (second % 3600) / 60
-            if (min == 0L) {
-                return hour.toString() + BLK + hourStr
+            return if (min == 0L) {
+                hour.toString() + BLK + hourStr
             } else {
-                return hour.toString() + BLK + hourStr + " " + min + BLK + minStr
+                hour.toString() + BLK + hourStr + " " + min + BLK + minStr
             }
         } else if (second < 86400 * 365) {
             val day: Long  =   second / 86400
             val hour: Long =  (second % 86400) / 3600
             val min: Long  = ((second % 86400) % 3600) / 60
-            if (hour == 0L) {
-                return day.toString() + BLK + dayStr
+            return if (hour == 0L) {
+                day.toString() + BLK + dayStr
             } else if (min == 0L) {
-                return day.toString() + BLK + dayStr + " " + hour + BLK + hourStr
+                day.toString() + BLK + dayStr + " " + hour + BLK + hourStr
             } else {
-                return day.toString() + BLK + dayStr + " " +
+                day.toString() + BLK + dayStr + " " +
                         hour + BLK + hourStr + " " +
                         min + BLK + minStr
             }
@@ -775,10 +763,10 @@ object DateTimeUtil {
             var day: Long  =  (second % 31536000) / 86400
             val hour: Long = ((second % 31536000) % 86400) / 3600
             if (hour > 12) day++
-            if (day == 0L) {
-                return year.toString() + BLK + yearStr
+            return if (day == 0L) {
+                year.toString() + BLK + yearStr
             } else {
-                return year.toString() + BLK + yearStr + " " + day + BLK + dayStr
+                year.toString() + BLK + yearStr + " " + day + BLK + dayStr
             }
         }
     }
@@ -789,12 +777,12 @@ object DateTimeUtil {
         val hour: Long = (time % 86400000) / 3600
         if (hour > 12) day++
         val dayStr: String = context!!.getString(days)
-        if (day == 0L) {
-            return "< 1 " + dayStr
+        return if (day == 0L) {
+            "< 1 " + dayStr
         } else if (day == 1L) {
-            return day.toString() + " " + dayStr
+            day.toString() + " " + dayStr
         } else {
-            return day.toString() + " " + dayStr + (if (LocaleUtil.isChinese(context)) "" else "s")
+            day.toString() + " " + dayStr + (if (LocaleUtil.isChinese(context)) "" else "s")
         }
     }
 
@@ -806,15 +794,15 @@ object DateTimeUtil {
             return curHrTime + vary * 604800000L
         }
         var zdt: ZonedDateTime = toZoned(curHrTime)
-        var year: Int = zdt.getYear()
-        var month: Int = zdt.getMonthValue()
-        val day: Int = zdt.getDayOfMonth()
+        var year: Int = zdt.year
+        var month: Int = zdt.monthValue
+        val day: Int = zdt.dayOfMonth
         if (type == Calendar.MONTH) {
             val days: Int = getDaysOfMonth(year, month)
             zdt = zdt.plusMonths(vary.toLong())
             if (day == days) {
-                year = zdt.getYear()
-                month = zdt.getMonthValue()
+                year = zdt.year
+                month = zdt.monthValue
                 zdt = zdt.withDayOfMonth(getDaysOfMonth(year, month))
             }
             return zdt.toInstant().toEpochMilli()
@@ -861,16 +849,18 @@ object DateTimeUtil {
             return ChronoUnit.DAYS.between(sZdt, eZdt).toInt()
         } else if (type == Calendar.WEEK_OF_YEAR) {
             sZdt = sZdt.with(TemporalAdjusters.previousOrSame(
-                    WeekFields.ISO.getFirstDayOfWeek()))
+                    WeekFields.ISO.firstDayOfWeek
+            ))
             eZdt = eZdt.with(TemporalAdjusters.previousOrSame(
-                    WeekFields.ISO.getFirstDayOfWeek()))
+                    WeekFields.ISO.firstDayOfWeek
+            ))
             return ChronoUnit.WEEKS.between(sZdt, eZdt).toInt()
         } else if (type == Calendar.MONTH) {
             sZdt = sZdt.withDayOfMonth(1)
             eZdt = eZdt.withDayOfMonth(1)
             return ChronoUnit.MONTHS.between(sZdt, eZdt).toInt()
         } else if (type == Calendar.YEAR) {
-            return eZdt.getYear() - sZdt.getYear()
+            return eZdt.year - sZdt.year
         }
         return 0
     }

@@ -115,7 +115,7 @@ object SystemNotificationUtil {
 
         var contentTitle: String = title
         var contentText: String = content
-        var style: Int = 0
+        var style = 0
 
         if (CheckListHelper.isCheckListStr(content)) {
             contentText = CheckListHelper.toContentStr(content, "X  ", "√  ")!!
@@ -123,10 +123,10 @@ object SystemNotificationUtil {
 
         if (title.isEmpty() && content.isEmpty()) {
             contentTitle = Thing.getTypeStr(type, context)!!
-            if (AttachmentHelper.isValidForm(attachment)) {
-                contentText = context.getString(R.string.notification_has_attachment)
+            contentText = if (AttachmentHelper.isValidForm(attachment)) {
+                context.getString(R.string.notification_has_attachment)
             } else {
-                contentText = context.getString(R.string.empty)
+                context.getString(R.string.empty)
             }
         } else {
             if (title.isEmpty()) {
@@ -152,11 +152,11 @@ object SystemNotificationUtil {
             val display: Point = DisplayUtil.getDisplaySize(context)!!
             val width: Int = Math.min(display.x, display.y)
             val height: Int = width / 2
-            if (firstImageUri[0] == '0') {
-                bigPicture = BitmapUtil.decodeFileWithRequiredSize(pathName, width, height)
+            bigPicture = if (firstImageUri[0] == '0') {
+                BitmapUtil.decodeFileWithRequiredSize(pathName, width, height)
             } else {
-                bigPicture = BitmapUtil.createCroppedBitmap(
-                        AttachmentHelper.getImageFromVideo(pathName), width, height)
+                BitmapUtil.createCroppedBitmap(
+                    AttachmentHelper.getImageFromVideo(pathName), width, height)
             }
             builder.setStyle(NotificationCompat.BigPictureStyle()
                     .bigPicture(bigPicture)
@@ -198,7 +198,7 @@ object SystemNotificationUtil {
                     PendingIntent.getActivity(context,
                             id.toInt(), finishIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
         } else {
-            val finishIntent: Intent = Intent(context, ReminderNotificationActionReceiver::class.java)
+            val finishIntent = Intent(context, ReminderNotificationActionReceiver::class.java)
             finishIntent.setAction(Def.Communication.NOTIFICATION_ACTION_FINISH)
             finishIntent.putExtra(Def.Communication.KEY_ID, id)
             finishIntent.putExtra(Def.Communication.KEY_POSITION, position)
@@ -279,7 +279,7 @@ object SystemNotificationUtil {
                     PendingIntent.getActivity(context,
                             hrId.toInt(), finishIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
         } else {
-            val finishIntent: Intent = Intent(context, HabitNotificationActionReceiver::class.java)
+            val finishIntent = Intent(context, HabitNotificationActionReceiver::class.java)
             finishIntent.setAction(Def.Communication.NOTIFICATION_ACTION_FINISH)
             finishIntent.putExtra(Def.Communication.KEY_ID, hrId)
             finishIntent.putExtra(Def.Communication.KEY_POSITION, position)
@@ -321,7 +321,7 @@ object SystemNotificationUtil {
 //                    PendingIntent.getBroadcast(context,
 //                            (int) hrId, getItIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
 
-        val deleteIntent: Intent = Intent(context, HabitNotificationActionReceiver::class.java)
+        val deleteIntent = Intent(context, HabitNotificationActionReceiver::class.java)
         deleteIntent.setAction(Def.Communication.NOTIFICATION_ACTION_CANCEL)
         deleteIntent.putExtra(Def.Communication.KEY_ID, hrId)
         builder!!.setDeleteIntent(PendingIntent.getBroadcast(
@@ -387,7 +387,7 @@ object SystemNotificationUtil {
             builder.setContentIntent(PendingIntent.getActivity(
                     context, thingId.toInt(), contentIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
 
-            val finishIntent: Intent = Intent(context, DoingNotificationActionReceiver::class.java)
+            val finishIntent = Intent(context, DoingNotificationActionReceiver::class.java)
             finishIntent.setAction(DoingNotificationActionReceiver.ACTION_FINISH)
             finishIntent.putExtra(Def.Communication.KEY_ID, thingId)
             finishIntent.putExtra(Def.Communication.KEY_TIME, hrTime)
@@ -395,7 +395,7 @@ object SystemNotificationUtil {
                     PendingIntent.getBroadcast(
                             context, thingId.toInt(), finishIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
 
-            val cancelIntent: Intent = Intent(context, DoingNotificationActionReceiver::class.java)
+            val cancelIntent = Intent(context, DoingNotificationActionReceiver::class.java)
             cancelIntent.setAction(DoingNotificationActionReceiver.ACTION_USER_CANCEL)
             cancelIntent.putExtra(Def.Communication.KEY_ID, thingId)
             builder.addAction(R.drawable.act_cancel_white, context.getString(R.string.cancel),
@@ -403,7 +403,7 @@ object SystemNotificationUtil {
                             context, thingId.toInt(), cancelIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
         } else {
             builder.setStyle(NotificationCompat.BigTextStyle().bigText(contentText))
-            val contentIntent: Intent = Intent(context, DoingNotificationActionReceiver::class.java)
+            val contentIntent = Intent(context, DoingNotificationActionReceiver::class.java)
             if (doingState == DoingService.STATE_FAILED_CARELESS) {
                 contentIntent.setAction(DoingNotificationActionReceiver.ACTION_STOP_SERVICE)
             } else if (doingState == DoingService.STATE_FAILED_NEXT_ALARM) {
@@ -435,7 +435,7 @@ object SystemNotificationUtil {
             } else {
                 // there should be attachment
                 val attachment: String = thing.attachment!!
-                if (!attachment.isEmpty() && !"to QQ".equals(attachment)) {
+                if (!attachment.isEmpty() && "to QQ" != attachment) {
                     val imgStr: String? = AttachmentHelper.getImageAttachmentCountStr(attachment, context)
                     if (imgStr != null) {
                         nTitle.append(imgStr).append(", ")
@@ -456,7 +456,7 @@ object SystemNotificationUtil {
             return context!!.getString(R.string.doing_left_time) + " " + leftTimeStr
         } else {
             val between: String = if (LocaleUtil.isChinese(context)) ", " else ". "
-            var part1: String = ""
+            var part1 = ""
             if (doingState == DoingService.STATE_FAILED_CARELESS) {
                 part1 = context!!.getString(R.string.doing_failed_careless)
             } else if (doingState == DoingService.STATE_FAILED_NEXT_ALARM) {
@@ -503,7 +503,7 @@ object SystemNotificationUtil {
                         PendingIntent.getActivity(context,
                                 id.toInt(), finishIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
             } else {
-                val finishIntent: Intent = Intent(context, ReminderNotificationActionReceiver::class.java)
+                val finishIntent = Intent(context, ReminderNotificationActionReceiver::class.java)
                 finishIntent.setAction(Def.Communication.NOTIFICATION_ACTION_FINISH)
                 finishIntent.putExtra(Def.Communication.KEY_ID, id)
                 finishIntent.putExtra(Def.Communication.KEY_POSITION, -1)
@@ -544,7 +544,7 @@ object SystemNotificationUtil {
                         PendingIntent.getActivity(context,
                                 id.toInt(), finishIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
             } else {
-                val finishIntent: Intent = Intent(context, HabitNotificationActionReceiver::class.java)
+                val finishIntent = Intent(context, HabitNotificationActionReceiver::class.java)
                 finishIntent.setAction(Def.Communication.NOTIFICATION_ACTION_FINISH)
                 finishIntent.putExtra(Def.Communication.KEY_ID, -1) // hrId -> -1
                 finishIntent.putExtra(Def.Communication.KEY_POSITION, -1)
@@ -629,25 +629,25 @@ object SystemNotificationUtil {
                 Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE)
         val key: String
         val fs: String = SettingsActivity.FOLLOW_SYSTEM
-        if (autoNotify) {
-            key = Def.Meta.KEY_RINGTONE_AUTO_NOTIFY
+        key = if (autoNotify) {
+            Def.Meta.KEY_RINGTONE_AUTO_NOTIFY
         } else {
             if (type == Thing.REMINDER) {
-                key = Def.Meta.KEY_RINGTONE_REMINDER
+                Def.Meta.KEY_RINGTONE_REMINDER
             } else if (type == Thing.HABIT) {
-                key = Def.Meta.KEY_RINGTONE_HABIT
+                Def.Meta.KEY_RINGTONE_HABIT
             } else { // type == Thing.GOAL
-                key = Def.Meta.KEY_RINGTONE_GOAL
+                Def.Meta.KEY_RINGTONE_GOAL
             }
         }
         val uriStr: String = preferences.getString(key, fs)!!
-        val rm: RingtoneManager = RingtoneManager(context)
+        val rm = RingtoneManager(context)
         rm.setType(RingtoneManager.TYPE_NOTIFICATION)
         var defaultUri: Uri? = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
         if (defaultUri == null) {
             defaultUri = rm.getRingtoneUri(0)
         }
-        if (uriStr.equals(fs)) {
+        if (uriStr == fs) {
             return defaultUri
         } else {
             var uri: Uri = Uri.parse(Uri.decode(uriStr))

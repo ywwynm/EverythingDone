@@ -62,12 +62,12 @@ object BackgroundUtil {
      */
     @JvmStatic
     fun hueBucket(color: Int): Int {
-        val hsl: FloatArray = FloatArray(3)
+        val hsl = FloatArray(3)
         androidx.core.graphics.ColorUtils.colorToHSL(color, hsl)
         val h: Float = hsl[0]
         val s: Float = hsl[1]
         if (s < 0.15f) return HUE_BUCKET_GREY
-        if (h >= 345f || h < 15f) return HUE_BUCKET_RED
+        if (h !in 15f..<345f) return HUE_BUCKET_RED
         if (h < 45f)              return HUE_BUCKET_ORANGE
         if (h < 70f)              return HUE_BUCKET_YELLOW
         if (h < 165f)             return HUE_BUCKET_GREEN
@@ -126,7 +126,7 @@ object BackgroundUtil {
      */
     @JvmStatic
     fun onColor(background: Int, alpha: Float): Int {
-        val rgb: Int = if (isLight(background)) 0x000000 else 0xFFFFFF.toInt()
+        val rgb: Int = if (isLight(background)) 0x000000 else 0xFFFFFF
         val a: Int   = Math.round(clamp01(alpha) * 255f)
         return (a shl 24) or rgb
     }
@@ -183,7 +183,7 @@ object BackgroundUtil {
         } else {
             val gd: GradientDrawable = obtainGradient(view)
             gd.setOrientation(toGdOrientation(background.orientation))
-            gd.setColors(intArrayOf(background.color, background.endColor))
+            gd.colors = intArrayOf(background.color, background.endColor)
         }
     }
 
@@ -212,28 +212,28 @@ object BackgroundUtil {
             cv.setBackgroundColor(background.color)
         } else {
             val gd: GradientDrawable
-            val existing: Drawable? = cv.getBackground()
+            val existing: Drawable? = cv.background
             if (existing is GradientDrawable) {
                 // Reuse the existing instance (cheaper) and just mutate its colours.
                 gd = existing
             } else {
                 gd = GradientDrawable()
                 gd.setShape(GradientDrawable.RECTANGLE)
-                cv.setBackground(gd)
+                cv.background = gd
             }
             gd.setOrientation(toGdOrientation(background.orientation))
-            gd.setColors(intArrayOf(background.color, background.endColor))
+            gd.colors = intArrayOf(background.color, background.endColor)
         }
     }
 
     private fun obtainGradient(view: View): GradientDrawable {
-        val existing: Drawable? = view.getBackground()
+        val existing: Drawable? = view.background
         if (existing is GradientDrawable) {
             return existing
         }
-        val gd: GradientDrawable = GradientDrawable()
+        val gd = GradientDrawable()
         gd.setShape(GradientDrawable.RECTANGLE)
-        view.setBackground(gd)
+        view.background = gd
         return gd
     }
 
@@ -252,7 +252,7 @@ object BackgroundUtil {
     fun animateBackground(
             view: View?, from: ThingBackground?, to: ThingBackground?, duration: Long): ValueAnimator? {
         if (view == null || from == null || to == null) return null
-        val eval: ArgbEvaluator = ArgbEvaluator()
+        val eval = ArgbEvaluator()
         val fStart: Int = from.color
         val fEnd: Int   = from.endColor
         val tStart: Int = to.color
@@ -306,8 +306,8 @@ object BackgroundUtil {
         if (textView == null || background == null) return
 
         if (background.mode === ThingBackground.Mode.PURE) {
-            val paint: android.text.TextPaint = textView.getPaint()
-            if (paint.getShader() != null) paint.setShader(null)
+            val paint: android.text.TextPaint = textView.paint
+            if (paint.shader != null) paint.setShader(null)
             textView.setTextColor(background.color)
             textView.invalidate()
             return
@@ -322,7 +322,7 @@ object BackgroundUtil {
                 applyTextShaderNow(textView, background)
             }
         }
-        if (textView.getWidth() > 0 && textView.getHeight() > 0
+        if (textView.width > 0 && textView.height > 0
                 && textView.getText() != null && textView.getText().length > 0) {
             apply.run()
             return
@@ -343,9 +343,9 @@ object BackgroundUtil {
     /** Build a text-width-fitted LinearGradient and install it on the TextView's paint. */
     private fun applyTextShaderNow(textView: TextView, bg: ThingBackground) {
         val text: CharSequence? = textView.getText()
-        if (text == null || text.length == 0) return
-        val viewW: Int = textView.getWidth()
-        val viewH: Int = textView.getHeight()
+        if (text == null || text.isEmpty()) return
+        val viewW: Int = textView.width
+        val viewH: Int = textView.height
         if (viewW <= 0 || viewH <= 0) return
 
         // Use TextView.getLayout() to get the exact rendered bounds of the first
@@ -356,24 +356,24 @@ object BackgroundUtil {
         // text. Layout-coord origin is at (totalPaddingLeft, totalPaddingTop)
         // in view space, so we add those padding offsets to translate the
         // shader into view coordinates.
-        val layout: android.text.Layout? = textView.getLayout()
+        val layout: android.text.Layout? = textView.layout
         var textX: Float
         var textY: Float
         var textW: Float
         var textH: Float
-        if (layout != null && layout.getLineCount() > 0) {
+        if (layout != null && layout.lineCount > 0) {
             val lineLeft: Float   = layout.getLineLeft(0)
             val lineRight: Float  = layout.getLineRight(0)
             val lineTop: Int      = layout.getLineTop(0)
             val lineBottom: Int   = layout.getLineBottom(0)
             textW = lineRight - lineLeft
             textH = (lineBottom - lineTop).toFloat()
-            textX = textView.getTotalPaddingLeft() + lineLeft
-            textY = textView.getTotalPaddingTop() + lineTop.toFloat()
+            textX = textView.totalPaddingLeft + lineLeft
+            textY = textView.totalPaddingTop + lineTop.toFloat()
         } else {
             // Layout not yet built — fall back to a paint-based estimate.
-            textW = textView.getPaint().measureText(text, 0, text.length)
-            textH = textView.getPaint().getFontSpacing()
+            textW = textView.paint.measureText(text, 0, text.length)
+            textH = textView.paint.fontSpacing
             textX = textView.getPaddingLeft().toFloat()
             textY = (viewH - textH) / 2f
         }
@@ -383,10 +383,10 @@ object BackgroundUtil {
         // Build the gradient over (textW × textH) and translate to (textX, textY)
         // so it lines up with the rendered glyphs regardless of view size.
         val lg: LinearGradient = linearGradientFor(bg, textW, textH)
-        val m: Matrix = Matrix()
+        val m = Matrix()
         m.setTranslate(textX, textY)
         lg.setLocalMatrix(m)
-        textView.getPaint().setShader(lg)
+        textView.paint.setShader(lg)
         textView.invalidate()
     }
 
@@ -432,8 +432,8 @@ object BackgroundUtil {
             d.setColorFilter(bg.color, android.graphics.PorterDuff.Mode.SRC_ATOP)
             return d
         }
-        var w: Int = source.getIntrinsicWidth()
-        var h: Int = source.getIntrinsicHeight()
+        var w: Int = source.intrinsicWidth
+        var h: Int = source.intrinsicHeight
         if (w <= 0) w = 48
         if (h <= 0) h = 48
 
@@ -447,7 +447,7 @@ object BackgroundUtil {
         val mask: Drawable = source.mutate()
         mask.setBounds(0, 0, w, h)
         // Ensure no leftover filter from a previous tint.
-        mask.setColorFilter(null)
+        mask.colorFilter = null
         mask.draw(c)
 
         // 2. Overlay a rect filled with the gradient, masked by what's already
@@ -456,8 +456,8 @@ object BackgroundUtil {
         val p: android.graphics.Paint = android.graphics.Paint(
                 android.graphics.Paint.ANTI_ALIAS_FLAG)
         p.setShader(linearGradientFor(bg, w.toFloat(), h.toFloat()))
-        p.setXfermode(android.graphics.PorterDuffXfermode(
-                android.graphics.PorterDuff.Mode.SRC_IN))
+        p.xfermode = android.graphics.PorterDuffXfermode(
+            android.graphics.PorterDuff.Mode.SRC_IN)
         c.drawRect(0f, 0f, w.toFloat(), h.toFloat(), p)
 
         return android.graphics.drawable.BitmapDrawable(res, out)
@@ -495,12 +495,12 @@ object BackgroundUtil {
             return
         }
         val strokeHeightPx: Int = Math.max(1,
-                Math.ceil((editText.getResources().getDisplayMetrics().density * 2).toDouble()).toInt())
-        val line: GradientDrawable = GradientDrawable()
+                Math.ceil((editText.resources.displayMetrics.density * 2).toDouble()).toInt())
+        val line = GradientDrawable()
         line.setShape(GradientDrawable.RECTANGLE)
         if (bg.mode === ThingBackground.Mode.GRADIENT) {
             line.setOrientation(toGdOrientation(bg.orientation))
-            line.setColors(intArrayOf(bg.color, bg.endColor))
+            line.colors = intArrayOf(bg.color, bg.endColor)
         } else {
             line.setColor(bg.color)
         }
@@ -509,7 +509,7 @@ object BackgroundUtil {
         // 9-patch underline occupies, so length + vertical position match
         // pixel-for-pixel. Falls back to paddingBottom if the background
         // isn't an InsetDrawable (custom EditText themes).
-        val d: BottomLineDrawable = BottomLineDrawable(editText, line, strokeHeightPx)
+        val d = BottomLineDrawable(editText, line, strokeHeightPx)
         // Cancel any in-flight fade so the new bg appears immediately at full opacity.
         cancelUnderlineFade(editText)
         d.setAlpha(0)
@@ -527,7 +527,7 @@ object BackgroundUtil {
     @JvmStatic
     fun clearEditTextUnderline(editText: android.widget.EditText?) {
         if (editText == null) return
-        val fg: Drawable? = editText.getForeground()
+        val fg: Drawable? = editText.foreground
         cancelUnderlineFade(editText)
         if (fg !is BottomLineDrawable) {
             editText.setForeground(null)
@@ -535,14 +535,14 @@ object BackgroundUtil {
         }
         val existing: Drawable = fg
         val anim: android.animation.ObjectAnimator = android.animation.ObjectAnimator.ofInt(
-                existing, "alpha", existing.getAlpha(), 0)
+                existing, "alpha", existing.alpha, 0)
         anim.setDuration(EDIT_TEXT_UNDERLINE_FADE_MS.toLong())
         anim.addListener(object : android.animation.AnimatorListenerAdapter() {
             override fun onAnimationEnd(a: android.animation.Animator) {
                 // Only clear if the foreground is still our drawable — a
                 // newer applyEditTextUnderline() might have replaced it
                 // while this fade was running.
-                if (editText.getForeground() === existing) {
+                if (editText.foreground === existing) {
                     editText.setForeground(null)
                 }
             }
@@ -573,7 +573,7 @@ object BackgroundUtil {
      *  are exactly the rectangle the native underline draws into, so width
      *  + bottom edge match exactly. Falls back to the view bottom edge if
      *  the background isn't an InsetDrawable (themed / custom EditText). */
-    private class BottomLineDrawable internal constructor(
+    private class BottomLineDrawable(
             host: android.widget.EditText, private val inner: GradientDrawable, private val strokeHeightPx: Int) : Drawable() {
         private val hostRef: java.lang.ref.WeakReference<android.widget.EditText> =
                 java.lang.ref.WeakReference<android.widget.EditText>(host)
@@ -584,7 +584,7 @@ object BackgroundUtil {
             var lineBottom: Int = bounds.bottom
             val et: android.widget.EditText? = hostRef.get()
             if (et != null) {
-                var bg: android.graphics.drawable.Drawable? = et.getBackground()
+                var bg: Drawable? = et.background
                 // Unwrap DrawableCompat.wrap() so we can reach the
                 // InsetDrawable even after DisplayUtil.tintView wrapped it.
                 // On API 23+ DrawableCompat.wrap returns the original
@@ -592,7 +592,7 @@ object BackgroundUtil {
                 // WrappedDrawable that unwrap() handles transparently.
                 bg = androidx.core.graphics.drawable.DrawableCompat.unwrap(bg!!)
                 if (bg is android.graphics.drawable.InsetDrawable) {
-                    val child: android.graphics.drawable.Drawable? = bg.getDrawable()
+                    val child: Drawable? = bg.drawable
                     if (child != null) {
                         val cb: android.graphics.Rect = child.getBounds()
                         if (cb.width() > 0 && cb.height() > 0) {
@@ -615,12 +615,13 @@ object BackgroundUtil {
         }
 
         override fun setAlpha(alpha: Int) {
-            inner.setAlpha(alpha)
+            inner.alpha = alpha
             invalidateSelf()
         }
-        override fun getAlpha(): Int { return inner.getAlpha() }
+        override fun getAlpha(): Int { return inner.alpha
+        }
         override fun setColorFilter(cf: android.graphics.ColorFilter?) {
-            inner.setColorFilter(cf)
+            inner.colorFilter = cf
         }
         @Suppress("OVERRIDE_DEPRECATION", "DEPRECATION")
         override fun getOpacity(): Int { return android.graphics.PixelFormat.TRANSLUCENT }
@@ -644,10 +645,10 @@ object BackgroundUtil {
             tabLayout.setSelectedTabIndicator(null as Drawable?)
             tabLayout.setSelectedTabIndicatorColor(bg.color)
         } else {
-            val gd: GradientDrawable = GradientDrawable()
+            val gd = GradientDrawable()
             gd.setShape(GradientDrawable.RECTANGLE)
             gd.setOrientation(toGdOrientation(bg.orientation))
-            gd.setColors(intArrayOf(bg.color, bg.endColor))
+            gd.colors = intArrayOf(bg.color, bg.endColor)
             tabLayout.setSelectedTabIndicator(gd)
         }
     }
@@ -682,7 +683,7 @@ object BackgroundUtil {
     fun circularRipple(rippleColor: Int): android.graphics.drawable.RippleDrawable {
         // Mask layer: a white OVAL — only the shape matters, RippleDrawable
         // uses it solely for clipping the ripple bounds.
-        val mask: GradientDrawable = GradientDrawable()
+        val mask = GradientDrawable()
         mask.setShape(GradientDrawable.OVAL)
         mask.setColor(0xFFFFFFFF.toInt())
         return android.graphics.drawable.RippleDrawable(
@@ -717,10 +718,10 @@ object BackgroundUtil {
         // GRADIENT: rasterise a GradientDrawable into the bitmap canvas.
         val s: Int = (alpha shl 24) or (bg.color    and 0x00FFFFFF)
         val e: Int = (alpha shl 24) or (bg.endColor and 0x00FFFFFF)
-        val gd: GradientDrawable = GradientDrawable()
+        val gd = GradientDrawable()
         gd.setShape(GradientDrawable.RECTANGLE)
         gd.setOrientation(toGdOrientation(bg.orientation))
-        gd.setColors(intArrayOf(s, e))
+        gd.colors = intArrayOf(s, e)
         gd.setBounds(0, 0, width, height)
         gd.draw(android.graphics.Canvas(bm))
         return bm
@@ -735,27 +736,26 @@ object BackgroundUtil {
      */
     @JvmStatic
     fun makeTranslucentGradient(bg: ThingBackground?, alpha: Int): GradientDrawable {
-        val gd: GradientDrawable = GradientDrawable()
+        val gd = GradientDrawable()
         gd.setShape(GradientDrawable.RECTANGLE)
         val s: Int = (alpha shl 24) or (bg!!.color    and 0x00FFFFFF)
         val e: Int = (alpha shl 24) or (bg.endColor and 0x00FFFFFF)
         gd.setOrientation(toGdOrientation(bg.orientation))
-        gd.setColors(intArrayOf(s, e))
+        gd.colors = intArrayOf(s, e)
         return gd
     }
 
     /** Map our [ThingBackground.Orientation] → platform [GradientDrawable.Orientation]. */
     private fun toGdOrientation(o: ThingBackground.Orientation): GradientDrawable.Orientation {
-        when (o) {
-            ThingBackground.Orientation.L_R   -> return GradientDrawable.Orientation.LEFT_RIGHT
-            ThingBackground.Orientation.T_B   -> return GradientDrawable.Orientation.TOP_BOTTOM
-            ThingBackground.Orientation.LT_RB -> return GradientDrawable.Orientation.TL_BR
-            ThingBackground.Orientation.RT_LB -> return GradientDrawable.Orientation.TR_BL
-            ThingBackground.Orientation.LB_RT -> return GradientDrawable.Orientation.BL_TR
-            ThingBackground.Orientation.RB_LT -> return GradientDrawable.Orientation.BR_TL
-            ThingBackground.Orientation.R_L   -> return GradientDrawable.Orientation.RIGHT_LEFT
-            ThingBackground.Orientation.B_T   -> return GradientDrawable.Orientation.BOTTOM_TOP
+        return when (o) {
+            ThingBackground.Orientation.L_R   -> GradientDrawable.Orientation.LEFT_RIGHT
+            ThingBackground.Orientation.T_B   -> GradientDrawable.Orientation.TOP_BOTTOM
+            ThingBackground.Orientation.LT_RB -> GradientDrawable.Orientation.TL_BR
+            ThingBackground.Orientation.RT_LB -> GradientDrawable.Orientation.TR_BL
+            ThingBackground.Orientation.LB_RT -> GradientDrawable.Orientation.BL_TR
+            ThingBackground.Orientation.RB_LT -> GradientDrawable.Orientation.BR_TL
+            ThingBackground.Orientation.R_L   -> GradientDrawable.Orientation.RIGHT_LEFT
+            ThingBackground.Orientation.B_T   -> GradientDrawable.Orientation.BOTTOM_TOP
         }
-        return GradientDrawable.Orientation.LEFT_RIGHT
     }
 }

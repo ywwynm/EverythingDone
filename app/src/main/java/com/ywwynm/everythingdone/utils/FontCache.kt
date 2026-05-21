@@ -18,10 +18,10 @@ object FontCache {
 
     @JvmStatic
     fun get(name: String?, context: Context?): Typeface? {
-        var tf: Typeface? = fontCache.get(name)
+        var tf: Typeface? = fontCache[name]
         if (tf == null) {
-            tf = Typeface.createFromAsset(context!!.getAssets(), name)
-            fontCache.put(name, tf)
+            tf = Typeface.createFromAsset(context!!.assets, name)
+            fontCache[name] = tf
         }
         return tf
     }

@@ -23,7 +23,7 @@ object BitmapUtil {
     const val TAG: String = "BitmapUtil"
 
     private fun calculateInSampleSize(oWidth: Int, oHeight: Int, reqWidth: Int, reqHeight: Int): Int {
-        var inSampleSize: Int = 1
+        var inSampleSize = 1
         if (oHeight > reqWidth || oWidth > reqHeight) {
             val halfHeight: Int = oHeight / 2
             val halfWidth: Int = oWidth / 2
@@ -57,20 +57,20 @@ object BitmapUtil {
             d: Drawable?, bg: com.ywwynm.everythingdone.model.ThingBackground?): Bitmap? {
         val background: Drawable
         if (bg == null || bg.mode === com.ywwynm.everythingdone.model.ThingBackground.Mode.PURE) {
-            background = ColorDrawable(if (bg == null) 0 else bg.color)
+            background = ColorDrawable(bg?.color ?: 0)
         } else {
             val gd: android.graphics.drawable.GradientDrawable =
                     android.graphics.drawable.GradientDrawable()
             gd.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE)
-            gd.setColors(intArrayOf(bg.color, bg.endColor))
+            gd.colors = intArrayOf(bg.color, bg.endColor)
             gd.setOrientation(toAndroidOrientation(bg.orientation))
             background = gd
         }
 
-        val lb: LayerDrawable = LayerDrawable(arrayOf<Drawable?>(background, d))
+        val lb = LayerDrawable(arrayOf<Drawable?>(background, d))
 
-        val w: Int = d!!.getIntrinsicWidth()
-        val h: Int = d.getIntrinsicHeight()
+        val w: Int = d!!.intrinsicWidth
+        val h: Int = d.intrinsicHeight
         val bm: Bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
         lb.setBounds(0, 0, w, h)
         lb.draw(Canvas(bm))
@@ -110,10 +110,10 @@ object BitmapUtil {
             val fW: Float = oWidth.toFloat()  / reqWidth
             val fH: Float = oHeight.toFloat() / reqHeight
             val maintainedSide: Int
-            if (inside) {
-                maintainedSide = if (fW >= fH) oWidth else oHeight
+            maintainedSide = if (inside) {
+                if (fW >= fH) oWidth else oHeight
             } else {
-                maintainedSide = if (fW <= fH) oWidth else oHeight
+                if (fW <= fH) oWidth else oHeight
             }
             if (maintainedSide == oWidth) {
                 val height: Int = oHeight * reqWidth / oWidth
@@ -133,8 +133,8 @@ object BitmapUtil {
     fun createCroppedBitmap(src: Bitmap?, reqWidth: Int, reqHeight: Int): Bitmap? {
         val scaledBm: Bitmap = createScaledBitmap(src, reqWidth, reqHeight, false)!!
 
-        var x: Int = 0
-        var y: Int = 0
+        var x = 0
+        var y = 0
         val oWidth: Int  = scaledBm.getWidth()
         val oHeight: Int = scaledBm.getHeight()
 
@@ -198,10 +198,10 @@ object BitmapUtil {
     @JvmStatic
     fun tryToGetRotatedBitmap(src: Bitmap?, pathName: String?): Bitmap? {
         try {
-            val exif: ExifInterface = ExifInterface(pathName!!)
+            val exif = ExifInterface(pathName!!)
             val orientation: Int = exif.getAttributeInt(
                     ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
-            val matrix: Matrix = Matrix()
+            val matrix = Matrix()
             if (orientation == ExifInterface.ORIENTATION_ROTATE_90) {
                 matrix.postRotate(90f)
             } else if (orientation == ExifInterface.ORIENTATION_ROTATE_180) {
@@ -225,10 +225,7 @@ object BitmapUtil {
 
     @JvmStatic
     fun saveBitmapToStorage(parentPath: String?, name: String?, bitmap: Bitmap?): File? {
-        val file: File? = FileUtil.createFile(parentPath, name)
-        if (file == null) {
-            return null
-        }
+        val file: File = FileUtil.createFile(parentPath, name) ?: return null
 
         var fos: FileOutputStream? = null
         try {
