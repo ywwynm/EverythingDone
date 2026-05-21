@@ -442,8 +442,7 @@ open class DoingService : Service() {
         }
 
         if (mHabit != null) {
-            val etc: Long
-            etc = if (mLeftTime == 0L) { // countdown is over
+            val etc = if (mLeftTime == 0L) { // countdown is over
                 System.currentTimeMillis() + 5 * MINUTE_MILLIS * (mAdd5MinTimes + 1)
             } else {
                 mStartTime + mTimeInMillis + 5 * MINUTE_MILLIS * (mAdd5MinTimes + 1)
