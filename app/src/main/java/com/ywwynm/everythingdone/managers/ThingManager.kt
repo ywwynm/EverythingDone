@@ -35,7 +35,7 @@ import java.util.concurrent.Executors
  */
 open class ThingManager private constructor(context: Context?) {
 
-    private var mContext: Context? = context!!.getApplicationContext()
+    private var mContext: Context? = context!!.applicationContext
 
     private var mDao: ThingDAO? = ThingDAO.getInstance(context)
 
@@ -78,7 +78,7 @@ open class ThingManager private constructor(context: Context?) {
     init {
         setLimit(Def.LimitForGettingThings.ALL_UNDERWAY, true)
 
-        mHeaderId = mThings!!.get(0)!!.id
+        mHeaderId = mThings!![0]!!.id
     }
 
     open fun setLimit(limit: Int, loadThingsNow: Boolean) {
@@ -104,7 +104,7 @@ open class ThingManager private constructor(context: Context?) {
             var pos: Int = -1
             var notifyEmpty: Thing? = null
             for (i in 1 until size) {
-                val thing: Thing = mThings!!.get(i)!!
+                val thing: Thing = mThings!![i]!!
                 if (thing.type >= Thing.NOTIFY_EMPTY_UNDERWAY) {
                     pos = i
                     notifyEmpty = thing
@@ -132,8 +132,8 @@ open class ThingManager private constructor(context: Context?) {
     open fun searchThings(keyword: String?, color: Int) {
         val things: List<Thing?> = mDao!!.getThingsForDisplay(mLimit, keyword, color)!!
         val PTP: String = Thing.PRIVATE_THING_PREFIX
-        var containsPtp: Boolean = false
-        var i: Int = 0
+        var containsPtp = false
+        var i = 0
         while (i < PTP.length && !containsPtp) {
             if (keyword!!.contains(PTP[i].toString())) {
                 containsPtp = true
@@ -189,7 +189,7 @@ open class ThingManager private constructor(context: Context?) {
         updateHeader(1)
 
         // see if we can delete a NOTIFY_EMPTY
-        var deletedNEnow: Boolean = false
+        var deletedNEnow = false
         val type: Int = thingToCreate.type
         if (handleNotifyEmpty && !App.isSearching) {
             deletedNEnow = deleteNEnow(type, Thing.UNDERWAY)
@@ -255,7 +255,7 @@ open class ThingManager private constructor(context: Context?) {
         } else {
             mThings!!.removeAt(position)
 
-            var createdNEnow: Boolean = false
+            var createdNEnow = false
             if (handleNotifyEmpty) {
                 createdNEnow = createNEnow(typeBefore, state, !App.isSearching)
             }
@@ -283,9 +283,9 @@ open class ThingManager private constructor(context: Context?) {
         }
 
         val thingToUpdate: Thing?
-        if (!toUndo) {
-            thingToUpdate = Thing.getSameCheckStateThing(thing, stateBefore, stateAfter)
-        } else thingToUpdate = thing
+        thingToUpdate = if (!toUndo) {
+            Thing.getSameCheckStateThing(thing, stateBefore, stateAfter)
+        } else thing
 
         mExecutor!!.execute(object : Runnable {
             override fun run() {
@@ -294,7 +294,7 @@ open class ThingManager private constructor(context: Context?) {
             }
         })
 
-        var deletedNEnow: Boolean = false
+        var deletedNEnow = false
         if (handleNotifyEmpty && !App.isSearching) {
             deletedNEnow = deleteNEnow(thingType, stateAfter)
         }
@@ -329,12 +329,12 @@ open class ThingManager private constructor(context: Context?) {
                 val curTime: Long = System.currentTimeMillis()
                 if (stateAfter == Thing.UNDERWAY) {
                     habitDAO.updateHabitToLatest(thingId, true, true)
-                    habitDAO.addHabitIntervalInfo(thingId, curTime.toString() + ";")
+                    habitDAO.addHabitIntervalInfo(thingId, "$curTime;")
                 } else {
                     if (habitDAO.isPaused(thingId)) {
-                        habitDAO.addHabitIntervalInfo(thingId, curTime.toString() + ";")
+                        habitDAO.addHabitIntervalInfo(thingId, "$curTime;")
                     }
-                    habitDAO.addHabitIntervalInfo(thingId, curTime.toString() + ",")
+                    habitDAO.addHabitIntervalInfo(thingId, "$curTime,")
                 }
             } else {
                 habitDAO.removeLastHabitIntervalInfo(thingId)
@@ -343,7 +343,7 @@ open class ThingManager private constructor(context: Context?) {
 
         mThingsCounts!!.handleUpdate(thingType, stateBefore, thingType, stateAfter, 1)
 
-        var createdNEnow: Boolean = false
+        var createdNEnow = false
         if (handleNotifyEmpty) {
             createdNEnow = createNEnow(thingType, stateBefore, !App.isSearching)
         }
@@ -357,7 +357,7 @@ open class ThingManager private constructor(context: Context?) {
             things: List<Thing?>?, @Thing.State stateBefore: Int, @Thing.State stateAfter: Int): List<Int?>? {
         val ONGOING_K: String = Def.Meta.KEY_ONGOING_THING_ID
         val curOngoingId: Long = FrequentSettings.getLong(ONGOING_K)
-        var shouldCancelOngoing: Boolean = false
+        var shouldCancelOngoing = false
 
         val clonedThings: MutableList<Thing?> = ArrayList()
         var temp: Thing?
@@ -383,7 +383,7 @@ open class ThingManager private constructor(context: Context?) {
         })
 
         // things.get(0).getType() will lead us to current limit.
-        var type: Int = things.get(0)!!.type
+        var type: Int = things[0]!!.type
         if (!App.isSearching) {
             deleteNEnow(type, stateAfter)
         }
@@ -399,7 +399,7 @@ open class ThingManager private constructor(context: Context?) {
 
         val rDao: ReminderDAO = ReminderDAO.getInstance(mContext)!!
         val positions: MutableList<Int?> = ArrayList(size)
-        val updateCounts: SparseIntArray = SparseIntArray()
+        val updateCounts = SparseIntArray()
         //HashMap<Integer, Integer> updateCounts = new HashMap<>();
         for (thing in things) {
             val pos: Int = mThings!!.indexOf(thing)
@@ -442,14 +442,14 @@ open class ThingManager private constructor(context: Context?) {
                 if (stateAfter == Thing.UNDERWAY) {
                     for (habitId in mUndoHabits!!) {
                         habitDAO.updateHabitToLatest(habitId!!, true, true)
-                        habitDAO.addHabitIntervalInfo(habitId, curTime.toString() + ";")
+                        habitDAO.addHabitIntervalInfo(habitId, "$curTime;")
                     }
                 } else {
                     for (habitId in mUndoHabits!!) {
                         if (habitDAO.isPaused(habitId!!)) {
-                            habitDAO.addHabitIntervalInfo(habitId, curTime.toString() + ";")
+                            habitDAO.addHabitIntervalInfo(habitId, "$curTime;")
                         }
-                        habitDAO.addHabitIntervalInfo(habitId, curTime.toString() + ",")
+                        habitDAO.addHabitIntervalInfo(habitId, "$curTime,")
                     }
                 }
             }
@@ -485,19 +485,19 @@ open class ThingManager private constructor(context: Context?) {
 
         updateHeader(6)
 
-        var type: Int = things.get(0)!!.type
+        var type: Int = things[0]!!.type
         if (!App.isSearching) {
             deleteNEnow(type, stateAfter)
         }
 
         val size: Int = things.size
-        val updateCounts: SparseIntArray = SparseIntArray()
+        val updateCounts = SparseIntArray()
         //HashMap<Integer, Integer> updateCounts = new HashMap<>();
         var thing: Thing
         for (i in size - 1 downTo 0) {
-            thing = things.get(i)!!
+            thing = things[i]!!
             type = thing.type
-            mThings!!.add(positions!!.get(i)!!, thing)
+            mThings!!.add(positions!![i]!!, thing)
             updateCounts.put(type, updateCounts.get(type) + 1)
         }
 
@@ -553,7 +553,7 @@ open class ThingManager private constructor(context: Context?) {
      * location in database and keep stability.
      */
     open fun move(from: Int, to: Int) {
-        val temp: Thing? = mThings!!.get(from)
+        val temp: Thing? = mThings!![from]
         mThings!!.removeAt(from)
         mThings!!.add(to, temp)
     }
@@ -569,8 +569,8 @@ open class ThingManager private constructor(context: Context?) {
         val locations: Array<Long?> = arrayOfNulls(end - start + 1)
 
         for (i in start..end) {
-            ids[i - start] = mThings!!.get(i)!!.id
-            locations[i - start] = mThings!!.get(i)!!.location
+            ids[i - start] = mThings!![i]!!.id
+            locations[i - start] = mThings!![i]!!.location
         }
 
         // moving between sticky things
@@ -581,9 +581,9 @@ open class ThingManager private constructor(context: Context?) {
         }
 
         var i: Int = start
-        var j: Int = 0
+        var j = 0
         while (i <= end) {
-            mThings!!.get(i)!!.location = locations[j]!!
+            mThings!![i]!!.location = locations[j]!!
             i++
             j++
         }
@@ -605,7 +605,7 @@ open class ThingManager private constructor(context: Context?) {
         val ids: Array<Long?> = arrayOfNulls(size)
         val locationsList: MutableList<Long?> = ArrayList(size)
         for (i in 0 until size) {
-            val thing: Thing = mThings!!.get(i)!!
+            val thing: Thing = mThings!![i]!!
             ids[i] = thing.id
             locationsList.add(thing.location)
         }
@@ -620,7 +620,7 @@ open class ThingManager private constructor(context: Context?) {
         var maxLocation: Long = Long.MIN_VALUE
         var maxPos: Int = -1
         for (i in 0 until size) {
-            val location: Long = locationsList.get(i)!!
+            val location: Long = locationsList[i]!!
             if (location > maxLocation) {
                 maxLocation = location
                 maxPos = i
@@ -630,7 +630,7 @@ open class ThingManager private constructor(context: Context?) {
         locationsList.add(0, maxLocation)
 
         for (i in 0 until size) {
-            mThings!!.get(i)!!.location = locationsList.get(i)!!
+            mThings!![i]!!.location = locationsList[i]!!
         }
         mExecutor!!.execute(object : Runnable {
             override fun run() {
@@ -668,7 +668,7 @@ open class ThingManager private constructor(context: Context?) {
                 if (updateState || limit != Def.LimitForGettingThings.ALL_UNDERWAY) {
                     val cursor: Cursor = mDao!!.getThingsCursorForDisplay(limit, null, 0)
                     var id1: Long = -1
-                    var count: Int = 0
+                    var count = 0
                     while (cursor.moveToNext()) {
                         count++
                         id1 = cursor.getLong(0)
@@ -694,7 +694,7 @@ open class ThingManager private constructor(context: Context?) {
         val limits: IntArray = Thing.getLimits(type, state)!!
         for (limit in limits) {
             if (mLimit == limit) {
-                val thing: Thing = mThings!!.get(1)!!
+                val thing: Thing = mThings!![1]!!
                 val NEtype: Int = thing.type
                 if (NEtype >= Thing.NOTIFY_EMPTY_UNDERWAY) {
                     updateState(thing, 1, -1, Thing.UNDERWAY, Thing.DELETED_FOREVER, false, false)
@@ -709,7 +709,7 @@ open class ThingManager private constructor(context: Context?) {
      * @return if [mThings] is "empty" for user-created things now.
      */
     open fun isThingsEmpty(): Boolean {
-        return mThings!!.size < 2 || mThings!!.get(1)!!.type >= Thing.NOTIFY_EMPTY_UNDERWAY
+        return mThings!!.size < 2 || mThings!![1]!!.type >= Thing.NOTIFY_EMPTY_UNDERWAY
     }
 
     open fun getSelectedThings(): Array<Thing?>? {
@@ -725,12 +725,12 @@ open class ThingManager private constructor(context: Context?) {
     open fun setSelectedTo(selected: Boolean) {
         val size: Int = mThings!!.size
         for (i in 1 until size) {
-            mThings!!.get(i)!!.selected = selected
+            mThings!![i]!!.selected = selected
         }
     }
 
     open fun getSelectedCount(): Int {
-        var count: Int = 0
+        var count = 0
         for (thing in mThings!!) {
             if (thing!!.isSelected()) count++
         }
@@ -749,7 +749,7 @@ open class ThingManager private constructor(context: Context?) {
     open fun getPosition(id: Long): Int {
         val size: Int = mThings!!.size
         for (i in 0 until size) {
-            if (mThings!!.get(i)!!.id == id) {
+            if (mThings!![i]!!.id == id) {
                 return i
             }
         }
@@ -758,7 +758,7 @@ open class ThingManager private constructor(context: Context?) {
 
     private fun updateHeader(addSize: Int) {
         mHeaderId += addSize
-        val header: Thing? = mThings!!.get(0)
+        val header: Thing? = mThings!![0]
         if (header != null && header.type == Thing.HEADER) {
             header.id = mHeaderId
             header.location = mDao!!.getMaxThingLocation() + addSize
@@ -768,7 +768,7 @@ open class ThingManager private constructor(context: Context?) {
     open fun getSingleSelectedPosition(): Int {
         val size: Int = mThings!!.size
         for (i in 0 until size) {
-            if (mThings!!.get(i)!!.isSelected()) {
+            if (mThings!![i]!!.isSelected()) {
                 return i
             }
         }
@@ -780,10 +780,10 @@ open class ThingManager private constructor(context: Context?) {
 
         val minLocation: Long = mDao!!.getMinThingLocation()
         val newLocation: Long
-        if (minLocation >= 0) {
-            newLocation = -1
+        newLocation = if (minLocation >= 0) {
+            -1
         } else {
-            newLocation = minLocation - 1
+            minLocation - 1
         }
         val ids: Array<Long?> = arrayOfNulls(1)
         ids[0] = thing.id
@@ -823,7 +823,7 @@ open class ThingManager private constructor(context: Context?) {
     open fun getPositionToInsertNewThing(): Int {
         val size: Int = mThings!!.size
         for (i in 1 until size) {
-            if (mThings!!.get(i)!!.location >= 0) {
+            if (mThings!![i]!!.location >= 0) {
                 return i
             }
         }
@@ -853,7 +853,7 @@ open class ThingManager private constructor(context: Context?) {
             if (sThingManager == null) {
                 synchronized(ThingManager::class.java) {
                     if (sThingManager == null) {
-                        sThingManager = ThingManager(context!!.getApplicationContext())
+                        sThingManager = ThingManager(context!!.applicationContext)
                     }
                 }
             }

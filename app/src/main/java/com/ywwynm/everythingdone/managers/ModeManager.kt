@@ -60,7 +60,7 @@ open class ModeManager(app: App?,
     private var mNavigationListener: View.OnClickListener? = nListener
     //private WeakReference<View.OnClickListener> mWrNavigationIconListener;
 
-    private var mContextualListener: Toolbar.OnMenuItemClickListener? = listener
+    private var mContextualListener: OnMenuItemClickListener? = listener
     //private WeakReference<Toolbar.OnMenuItemClickListener> mWrContextualMenuListener;
 
     private var showContextualToolbar: Animation? = AnimationUtils.loadAnimation(mApp,
@@ -133,8 +133,7 @@ open class ModeManager(app: App?,
                 ObjectAnimator.ofFloat(cv, "scaleY", 1.0f).setDuration(96).start()
             }
         }
-        (rv.getItemAnimator() as SimpleItemAnimator)
-                .setSupportsChangeAnimations(false)
+        (rv.itemAnimator as SimpleItemAnimator).supportsChangeAnimations = false
         updateMenuItems()
     }
 
@@ -165,15 +164,14 @@ open class ModeManager(app: App?,
             mFab!!.spread()
         }
         mThingManager!!.setSelectedTo(false)
-        (mRecyclerView!!.getItemAnimator() as SimpleItemAnimator)
-                .setSupportsChangeAnimations(true)
+        (mRecyclerView!!.itemAnimator as SimpleItemAnimator).supportsChangeAnimations = true
     }
 
     private fun notifyThingsSelected(position: Int) {
         mFab!!.shrink()
         val things: List<Thing?> = mThingManager!!.getThings()!!
         if (position >= 0 && position < things.size) {
-            things.get(position)!!.selected = true
+            things[position]!!.selected = true
         }
         mAdapter!!.notifyDataSetChanged()
     }
@@ -194,7 +192,7 @@ open class ModeManager(app: App?,
         }
 
         val rl: RelativeLayout = mRlContextualToolbar!!
-        rl.setVisibility(View.VISIBLE)
+        rl.visibility = View.VISIBLE
         if (anim) {
             rl.setAnimation(showContextualToolbar)
             showContextualToolbar!!.startNow()
@@ -212,7 +210,7 @@ open class ModeManager(app: App?,
         val rl: RelativeLayout = mRlContextualToolbar!!
         rl.setAnimation(hideContextualToolbar)
         hideContextualToolbar!!.start()
-        rl.setVisibility(View.INVISIBLE)
+        rl.visibility = View.INVISIBLE
         tb.getMenu().clear()
     }
 
@@ -231,10 +229,7 @@ open class ModeManager(app: App?,
     }
 
     private fun updateMenuItemSelectAll() {
-        val item: MenuItem? = mContextualToolbar!!.getMenu().findItem(R.id.act_select_all)
-        if (item == null) {
-            return
-        }
+        val item: MenuItem = mContextualToolbar!!.getMenu().findItem(R.id.act_select_all) ?: return
         if (mThingManager!!.getSelectedCount() == mThingManager!!.getThings()!!.size - 1) {
             item.setIcon(R.drawable.act_deselect_all)
             item.setTitle(R.string.act_deselect_all)
@@ -245,14 +240,11 @@ open class ModeManager(app: App?,
     }
 
     private fun updateMenuItemStickyOnTop() {
-        val item: MenuItem? = mContextualToolbar!!.getMenu().findItem(R.id.act_sticky)
-        if (item == null) {
-            return
-        }
+        val item: MenuItem = mContextualToolbar!!.getMenu().findItem(R.id.act_sticky) ?: return
         if (mThingManager!!.getSelectedCount() != 1) {
-            item.setVisible(false)
+            item.isVisible = false
         } else {
-            item.setVisible(true)
+            item.isVisible = true
             val thing: Thing = mThingManager!!.getSelectedThings()!![0]!!
             if (thing.location < 0) {
                 item.setIcon(R.drawable.act_cancel_sticky)
