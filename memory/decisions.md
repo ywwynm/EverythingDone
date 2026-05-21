@@ -52,6 +52,19 @@ a grilling session and written up in
   warnings, higher risk (Parcelable CREATOR, reflection, widgets);
   header date stamps. Logged as follow-ups, not this pass.
 
+### Cleanup execution: hybrid (IDE batch + agent judgment)
+After Group 1 + Habit.kt by-hand (cost: ~1 edit per fix, ~1100 fixes
+total = too slow + transcription risk on structural transforms),
+switched to a hybrid: the **user batch-applies** the safe high-volume
+Tier-1 idiom inspections via AS Inspection Results → "Apply fix to all"
+(the IDE's own refactoring engine — behaviour-exact, zero transcription
+risk). The **agent** does the judgment-required items (Tier-2:
+ObjectLiteralToLambda hot-path/guard, ReplaceJavaStaticMethodWithKotlinAnalog,
+CanBePrimaryConstructorProperty, KotlinRedundantOverride), Tier-3
+(RedundantNullableReturnType isolated commit), Tier-6 investigation, and
+**all compile-verify + per-module commits** (stage package-by-package
+from the en-masse batch result to keep ~17 module commits reviewable).
+
 ## 2026-05-18
 
 ### Recurrence picker NORMAL cells: Material FAB → fake-FAB

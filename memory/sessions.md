@@ -1,5 +1,15 @@
 # Sessions
 
+## 2026-05-21 — IDE inspection fixes in DateTimeUtil.kt
+
+Fixed Kotlin IDE inspection items in `DateTimeUtil.kt`:
+- **RedundantNullableReturnType** (13): Removed redundant `?` from return types on methods that never return null.
+- **Join declaration and assignment** (3): Combined `val x; x = ...` into `val x = ...` for `daysStr`, `postfix`, `sdf`.
+- **String concatenation to template** (7): Converted `"a" + x + "b"` to `"a${x}b"` in `getTimeLengthStr` and `getTimeLengthStrOnlyDay`.
+- **Cascade-if to when** (5): Rewrote if-else chains to `when` expressions in `getDateTimeStrRec`, `getTimeTypeLimit`, `getTimeLengthStrOnlyDay`, `getThisTStr`, `calculateTimeGap`.
+- **Skipped**: `Collections.synchronizedMap` replacement (compatibility concern).
+Compile: `:app:compileDebugKotlin` BUILD SUCCESSFUL, zero errors.
+
 ## 2026-05-20 — Kotlin migration Group 17 (SettingsActivity) — FINAL
 
 Translated `SettingsActivity.java` 1771 LoC → Kotlin. This is the last
