@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.ywwynm.everythingdone.adapters
 
 import android.os.Handler
@@ -85,7 +87,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
 
     override fun onBindViewHolder(holder: BaseThingViewHolder, position: Int) {
         distinguishHeaderAndOthers(
-            getThings()!!.get(position)!!.type == Thing.HEADER, holder.cv
+            getThings()!![position]!!.type == Thing.HEADER, holder.cv
         )
         super.onBindViewHolder(holder, position)
 
@@ -107,7 +109,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         if (mArmedNewItemListener == null) return false
         if (position != mArmedNewItemPosition) return false
         if (mArmedNewItemId == -1L) return true
-        return getThings()!!.get(position)!!.id == mArmedNewItemId
+        return getThings()!![position]!!.id == mArmedNewItemId
     }
 
     private fun maybeTriggerArmedNewItemAnimation(holder: BaseThingViewHolder, position: Int) {
@@ -199,7 +201,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
                         items.remove("3")
                         items.remove("4")
                         if (itemPos < 0 || itemPos >= items.size
-                            || items.get(itemPos)!!.startsWith("1")
+                            || items[itemPos]!!.startsWith("1")
                         ) {
                             return
                         }
@@ -234,7 +236,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         fun onItemLongClick(v: View?, position: Int): Boolean
     }
 
-    private inner class ThingViewHolder internal constructor(item: View?) : BaseThingViewHolder(item) {
+    private inner class ThingViewHolder(item: View?) : BaseThingViewHolder(item) {
 
         init {
             if (mOnItemTouchedListener != null) {

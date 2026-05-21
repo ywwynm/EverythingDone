@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.ywwynm.everythingdone.adapters
 
 import android.content.Context
@@ -95,7 +97,7 @@ open class RadioChooserAdapter(
 
     override fun getItemCount(): Int = mItems!!.size
 
-    private inner class ChoiceHolder internal constructor(itemView: View?) : BaseViewHolder(itemView) {
+    private inner class ChoiceHolder(itemView: View?) : BaseViewHolder(itemView) {
 
         val tv: TextView? = f(R.id.tv_rv_chooser_fragment)
 

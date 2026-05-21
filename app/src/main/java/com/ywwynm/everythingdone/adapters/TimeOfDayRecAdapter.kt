@@ -8,7 +8,6 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import android.text.Editable
 import android.text.TextWatcher
-import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -86,15 +85,15 @@ open class TimeOfDayRecAdapter(
         val strs: MutableList<String> = ArrayList()
         var i = 0
         while (i < items.size) {
-            var hour = items.get(i).toString()
+            var hour = items[i].toString()
             if (hour.length == 1) {
-                hour = "0" + hour
+                hour = "0$hour"
             }
-            var minute = items.get(i + 1).toString()
+            var minute = items[i + 1].toString()
             if (minute.length == 1) {
-                minute = "0" + minute
+                minute = "0$minute"
             }
-            strs.add(hour + ":" + minute)
+            strs.add("$hour:$minute")
             i += 2
         }
         Collections.sort(strs)
@@ -126,15 +125,15 @@ open class TimeOfDayRecAdapter(
             holder.ivReminder!!.setImageResource(mIcons[position])
             holder.ivReminder!!.contentDescription =
                 mContext!!.getString(R.string.cd_reminder_time) + (position + 1)
-            val hour = mItems!!.get(2 * position)!!
+            val hour = mItems!![2 * position]!!
             if (hour == -1) {
                 holder.etHour!!.setText("")
                 holder.etMinute!!.setText("")
             } else {
                 holder.etHour!!.setText("" + hour)
-                val minute = mItems!!.get(2 * position + 1)!!
+                val minute = mItems!![2 * position + 1]!!
                 if (minute < 10) {
-                    holder.etMinute!!.setText("0" + minute)
+                    holder.etMinute!!.setText("0$minute")
                 } else {
                     holder.etMinute!!.setText("" + minute)
                 }
@@ -143,7 +142,7 @@ open class TimeOfDayRecAdapter(
     }
 
     override fun getItemViewType(position: Int): Int {
-        val item = mItems!!.get(2 * position)!!
+        val item = mItems!![2 * position]!!
         return if (item == 96) {
             TEXTVIEW
         } else EDITTEXT
@@ -163,7 +162,7 @@ open class TimeOfDayRecAdapter(
         }
     }
 
-    private inner class EditTextHolder internal constructor(itemView: View?) : BaseViewHolder(itemView) {
+    private inner class EditTextHolder(itemView: View?) : BaseViewHolder(itemView) {
 
         var ivReminder: ImageView? = f(R.id.iv_reminder_rec_day)
         var etHour: EditText? = f(R.id.et_hour_rec_day)
@@ -202,7 +201,7 @@ open class TimeOfDayRecAdapter(
                     }
                     et.setTextColor(black_54p)
                     BackgroundUtil.clearEditTextUnderline(et)
-                    if (v.equals(etHour)) {
+                    if (v == etHour) {
                         DateTimeUtil.limitHourForEditText(etHour)
                     } else {
                         DateTimeUtil.formatLimitMinuteForEditText(et)
@@ -236,7 +235,7 @@ open class TimeOfDayRecAdapter(
                 mItems!!.removeAt(2 * pos)
                 mItems!!.removeAt(2 * pos)
                 val size = mItems!!.size
-                if (size < 7 && mItems!!.get(size - 1) != 96) {
+                if (size < 7 && mItems!![size - 1] != 96) {
                     mItems!!.add(96)
                 }
                 notifyItemRemoved(pos)
@@ -247,7 +246,7 @@ open class TimeOfDayRecAdapter(
             }
         }
 
-        internal inner class TimeTextWatcher(private val mType: Int) : TextWatcher {
+        inner class TimeTextWatcher(private val mType: Int) : TextWatcher {
 
             override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {}
 
@@ -258,15 +257,15 @@ open class TimeOfDayRecAdapter(
                 val pos = if (mType == HOUR) position * 2 else position * 2 + 1
                 val numStr = s.toString()
                 if (numStr.isEmpty()) {
-                    mItems!!.set(pos, -1)
+                    mItems!![pos] = -1
                 } else {
-                    mItems!!.set(pos, Integer.valueOf(numStr))
+                    mItems!![pos] = Integer.valueOf(numStr)
                 }
             }
         }
     }
 
-    private inner class TextViewHolder internal constructor(itemView: View?) : BaseViewHolder(itemView) {
+    private inner class TextViewHolder(itemView: View?) : BaseViewHolder(itemView) {
 
         var tvNewReminder: TextView? = f(R.id.tv_new_reminder_as_bt_rec_day)
 
@@ -274,7 +273,7 @@ open class TimeOfDayRecAdapter(
             tvNewReminder!!.setOnClickListener {
                 val size = mItems!!.size
                 val pos = adapterPosition
-                mItems!!.set(size - 1, -1)
+                mItems!![size - 1] = -1
                 mItems!!.add(-1)
                 notifyItemChanged(pos)
                 if (size < 7) {

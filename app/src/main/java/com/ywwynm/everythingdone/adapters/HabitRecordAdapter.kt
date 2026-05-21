@@ -27,7 +27,7 @@ open class HabitRecordAdapter(
 
     open fun getRecord(): String? = mRecord
 
-    open fun hasRecordEdited(): Boolean = !mRecord!!.equals(mOriRecord)
+    open fun hasRecordEdited(): Boolean = mRecord!! != mOriRecord
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ImageViewHolder {
         return ImageViewHolder(mInflater!!.inflate(R.layout.rv_habit_record, parent, false))

@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.ywwynm.everythingdone.adapters
 
 import android.animation.ObjectAnimator
@@ -111,8 +113,7 @@ abstract class BaseThingsAdapter(context: Context?) :
     /** Phase 8+: tint a dashed-line separator drawable to mirror-opacity black on light backgrounds. */
     protected open fun tintCardSeparator(separator: View?, thingColor: Int) {
         if (separator == null) return
-        val d: Drawable? = separator.background
-        if (d == null) return
+        val d: Drawable = separator.background ?: return
         val color = if (BackgroundUtil.isLight(thingColor))
             0x89000000.toInt()   // 53% black
         else 0x89FFFFFF.toInt()  // 53% white (original)
@@ -136,7 +137,7 @@ abstract class BaseThingsAdapter(context: Context?) :
     }
 
     override fun onBindViewHolder(holder: BaseThingViewHolder, position: Int) {
-        val thing: Thing = getThings()!!.get(position)!!
+        val thing: Thing = getThings()!![position]!!
         setContentViewAppearance(holder, thing)
         setCardAppearance(holder, thing.getBackground(), thing.isSelected())
     }
@@ -588,7 +589,7 @@ abstract class BaseThingsAdapter(context: Context?) :
     }
 
     override fun getItemViewType(position: Int): Int {
-        return getThings()!!.get(position)!!.type
+        return getThings()!![position]!!.type
     }
 
     override fun getItemCount(): Int {

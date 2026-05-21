@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.ywwynm.everythingdone.adapters
 
 import android.content.Context
@@ -201,7 +203,7 @@ open class CheckListAdapter(
                 var firstFinishedIndex = -1
                 val size = mItems!!.size
                 for (i in 0 until size) {
-                    if (mItems!!.get(i)!!.startsWith("1")) {
+                    if (mItems!![i]!!.startsWith("1")) {
                         firstFinishedIndex = i
                         break
                     }
@@ -243,7 +245,7 @@ open class CheckListAdapter(
             } else {
                 holder.iv!!.visibility = View.VISIBLE
                 val flag = holder.tv!!.paintFlags
-                val stateContent: String = mItems!!.get(position)!!
+                val stateContent: String = mItems!![position]!!
                 val state = stateContent[0]
                 if (state == '0') {
                     holder.iv!!.setImageResource(
@@ -313,7 +315,7 @@ open class CheckListAdapter(
             tintRowIcon(holder.ivState)
             tintRowIcon(holder.ivDelete)
             tintRowIcon(holder.ivExpandShrink)
-            val stateContent: String = mItems!!.get(position)!!
+            val stateContent: String = mItems!![position]!!
             val state = stateContent[0]
             if (state == '0') {
                 if (!mDragging) {
@@ -357,7 +359,7 @@ open class CheckListAdapter(
                 if (sep != null) {
                     val d: Drawable? = sep.background
                     if (d != null) {
-                        val color = if (dark()) 0x42000000.toInt() else 0x42FFFFFF.toInt()
+                        val color = if (dark()) 0x42000000 else 0x42FFFFFF
                         d.mutate().setColorFilter(color, android.graphics.PorterDuff.Mode.SRC_IN)
                     }
                 }
@@ -399,9 +401,9 @@ open class CheckListAdapter(
             val str = mContext!!.getString(R.string.some_checklist_items_finished)
             return String.format(str, finishedCount)
         } else {
-            var str = finishedCount.toString() + " item"
+            var str = "$finishedCount item"
             if (finishedCount > 1) str += "s"
-            return str + " finished"
+            return "$str finished"
         }
     }
 
@@ -446,7 +448,7 @@ open class CheckListAdapter(
         } else size
     }
 
-    private class TextViewHolder internal constructor(itemView: View?) : BaseViewHolder(itemView) {
+    private class TextViewHolder(itemView: View?) : BaseViewHolder(itemView) {
 
         val llClickable: LinearLayout? = f(R.id.ll_check_list_tv)
         val spaceClickable: View? = f(R.id.space_checklist_item_tv)
@@ -490,9 +492,9 @@ open class CheckListAdapter(
         private fun setupIvListeners() {
             ivState!!.setOnTouchListener { _, event ->
                 val pos = adapterPosition
-                val item: String = mItems!!.get(pos)!!
+                val item: String = mItems!![pos]!!
                 if (event.action == MotionEvent.ACTION_DOWN && mDragging
-                    && !item.equals("2") && !item.equals("3") && !item.equals("4")
+                    && item != "2" && item != "3" && item != "4"
                 ) {
                     if (mIvStateTouchCallback != null) {
                         mIvStateTouchCallback!!.onTouch(pos)
@@ -509,7 +511,7 @@ open class CheckListAdapter(
                 val posAfter: Int
                 KeyboardUtil.hideKeyboard(et)
 
-                val item: String = mItems!!.get(pos)!!
+                val item: String = mItems!![pos]!!
                 var state = item[0]
                 if (mDragging && state != '2') {
                     return@setOnClickListener
@@ -617,9 +619,9 @@ open class CheckListAdapter(
                 override fun afterTextChanged(s: Editable) {
                     if (!mWatchEditTextChange) return
                     val pos = adapterPosition
-                    val state = mItems!!.get(pos)!![0]
+                    val state = mItems!![pos]!![0]
                     if (state == '0' || state == '1') {
-                        mItems!!.set(pos, state + s.toString())
+                        mItems!![pos] = state + s.toString()
                     }
                     if (mActionCallback != null) {
                         mActionCallback!!.onAction(
@@ -638,7 +640,7 @@ open class CheckListAdapter(
             et.onFocusChangeListener = View.OnFocusChangeListener { v, hasFocus ->
                 if (hasFocus) {
                     val pos = adapterPosition
-                    if (mItems!!.get(pos)!![0] == '2') {
+                    if (mItems!![pos]!![0] == '2') {
                         insertItem(CheckListHelper.toCheckListStr(mItems), v, pos, "")
                     } else {
                         v.post {
@@ -663,17 +665,17 @@ open class CheckListAdapter(
                             insertItem(CheckListHelper.toCheckListStr(mItems), v, pos, "")
                         } else {
                             val before: String = CheckListHelper.toCheckListStr(mItems)!!
-                            val current: String = mItems!!.get(pos)!!
+                            val current: String = mItems!![pos]!!
                             val newCurrent = current.substring(0, cursorPos + 1)
                             val next = current.substring(cursorPos + 1, etLength + 1)
-                            mItems!!.set(pos, newCurrent)
+                            mItems!![pos] = newCurrent
                             notifyItemChanged(pos)
                             insertItem(before, v, pos, next)
                         }
                         return@listener true
                     } else if (keyCode == KeyEvent.KEYCODE_DEL) {
                         if ((pos != 0 && et.selectionEnd == 0)
-                            || (pos == 0 && mItems!!.get(0)!!.length == 1)
+                            || (pos == 0 && mItems!![0]!!.length == 1)
                         ) {
                             removeItem(v, pos, false)
                             return@listener true
@@ -689,9 +691,9 @@ open class CheckListAdapter(
          * and press enter when focus is on any EditTexts.
          */
         private fun insertItem(before: String?, v: View, pos: Int, preset: String) {
-            val state = mItems!!.get(pos)!![0]
+            val state = mItems!![pos]!![0]
             if (state == '2') {
-                mItems!!.set(pos, "0")
+                mItems!![pos] = "0"
                 mItems!!.add(pos + 1, "2")
                 notifyItemChanged(pos)
             } else {
@@ -721,11 +723,11 @@ open class CheckListAdapter(
         private fun removeItem(v: View, posIn: Int, deleteByClick: Boolean) {
             val before: String = CheckListHelper.toCheckListStr(mItems)!!
             var justNotifyAll = false
-            val current: String = mItems!!.get(posIn)!!
+            val current: String = mItems!![posIn]!!
             var pos = posIn
             val posToFocus: Int
             if (pos != 0) {
-                if (mItems!!.get(pos - 1)!!.equals("4")) { // delete first finished item.
+                if (mItems!![pos - 1]!! == "4") { // delete first finished item.
                     if (pos - 4 == -1) { // there is no unfinished item.
                         if (!deleteByClick) { // user used keyboard to delete this item.
                             if (current.length != 1) {
@@ -753,12 +755,12 @@ open class CheckListAdapter(
             if (pos == 0) {
                 cursorPos = -1
             } else {
-                val itemToFocus: String = mItems!!.get(if (posToFocus == -1) 0 else posToFocus)!!
+                val itemToFocus: String = mItems!![if (posToFocus == -1) 0 else posToFocus]!!
                 val length = itemToFocus.length
                 cursorPos = if (length == 1) 0 else length - 1
                 if (!deleteByClick && posToFocus != -1) {
                     val append = current.substring(1, current.length)
-                    mItems!!.set(posToFocus, itemToFocus + append)
+                    mItems!![posToFocus] = itemToFocus + append
                     justNotifyAll = true
                 }
             }
@@ -771,7 +773,7 @@ open class CheckListAdapter(
             }
 
             val size = mItems!!.size
-            if (mItems!!.get(size - 1)!!.equals("4")) {
+            if (mItems!![size - 1]!! == "4") {
                 mItems!!.remove("3")
                 mItems!!.remove("4")
             }

@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.ywwynm.everythingdone.adapters
 
 import android.content.Context
@@ -216,7 +218,7 @@ open class RecurrencePickerAdapter(
         return count
     }
 
-    private inner class NormalViewHolder internal constructor(itemView: View?) : BaseViewHolder(itemView) {
+    private inner class NormalViewHolder(itemView: View?) : BaseViewHolder(itemView) {
 
         /** Outer 48dp clipped-to-oval cell — owns click + ripple foreground. */
         val cell: FrameLayout? = f(R.id.fab_recurrence_picker)
@@ -242,7 +244,7 @@ open class RecurrencePickerAdapter(
         }
     }
 
-    private inner class EndOfMonthViewHolder internal constructor(itemView: View?) : BaseViewHolder(itemView) {
+    private inner class EndOfMonthViewHolder(itemView: View?) : BaseViewHolder(itemView) {
 
         val cv: CardView? = f(R.id.cv_end_of_month_rec)
         val tv: TextView? = f(R.id.tv_end_of_month_rec)

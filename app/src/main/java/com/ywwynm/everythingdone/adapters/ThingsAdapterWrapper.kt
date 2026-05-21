@@ -30,7 +30,7 @@ open class ThingsAdapterWrapper(adapter: ThingsAdapter?) {
 
     open fun tryToNotify() {
         if (!mNotifyActions!!.isEmpty()) {
-            mNotifyActions!!.get(mNotifyActions!!.size - 1).notifyAdapter()
+            mNotifyActions!![mNotifyActions!!.size - 1].notifyAdapter()
             mNotifyActions!!.clear()
         }
     }
