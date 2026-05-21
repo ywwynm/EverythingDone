@@ -40,6 +40,7 @@ import com.ywwynm.everythingdone.receivers.ReminderNotificationActionReceiver
 import com.ywwynm.everythingdone.services.DoingService
 
 import java.io.File
+import kotlin.math.min
 
 /**
  * Created by ywwynm on 2016/2/1.
@@ -71,7 +72,7 @@ object SystemNotificationUtil {
         val contentIntent: Intent = AuthenticationActivity.getOpenIntent(
                 context, senderName, id, position,
                 Def.Communication.AUTHENTICATE_ACTION_VIEW,
-                context!!.getString(R.string.check_private_thing))!!
+                context!!.getString(R.string.check_private_thing))
         val type: Int  = thing!!.type
         val color: Int = thing.getColor()
         val contentPendingIntent: PendingIntent = PendingIntent.getActivity(context,
@@ -118,7 +119,7 @@ object SystemNotificationUtil {
         var style = 0
 
         if (CheckListHelper.isCheckListStr(content)) {
-            contentText = CheckListHelper.toContentStr(content, "X  ", "√  ")!!
+            contentText = CheckListHelper.toContentStr(content, "X  ", "√  ")
         }
 
         if (title.isEmpty() && content.isEmpty()) {
@@ -149,8 +150,8 @@ object SystemNotificationUtil {
         if (firstImageUri != null && PermissionUtil.hasImagePermission(context)) {
             val pathName: String = firstImageUri.substring(1, firstImageUri.length)
             val bigPicture: Bitmap?
-            val display: Point = DisplayUtil.getDisplaySize(context)!!
-            val width: Int = Math.min(display.x, display.y)
+            val display: Point = DisplayUtil.getDisplaySize(context)
+            val width: Int = min(display.x, display.y)
             val height: Int = width / 2
             bigPicture = if (firstImageUri[0] == '0') {
                 BitmapUtil.decodeFileWithRequiredSize(pathName, width, height)
@@ -192,7 +193,7 @@ object SystemNotificationUtil {
             val finishIntent: Intent = AuthenticationActivity.getOpenIntent(
                     context, "SystemNotificationUtil", id, position,
                     Def.Communication.AUTHENTICATE_ACTION_FINISH,
-                    context!!.getString(R.string.act_finish))!!
+                    context!!.getString(R.string.act_finish))
             finishIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             builder!!.addAction(R.drawable.act_finish, context.getString(R.string.act_finish),
                     PendingIntent.getActivity(context,
@@ -212,9 +213,9 @@ object SystemNotificationUtil {
                 val startIntent: Intent = AuthenticationActivity.getOpenIntent(
                         context, "SystemNotificationUtil", id, position,
                         Def.Communication.AUTHENTICATE_ACTION_START_DOING,
-                        context!!.getString(R.string.act_start_doing))!!
+                        context.getString(R.string.act_start_doing))
                 startIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                builder!!.addAction(R.drawable.act_start_doing,
+                builder.addAction(R.drawable.act_start_doing,
                         context.getString(R.string.act_start_doing),
                         PendingIntent.getActivity(context,
                                 id.toInt(), startIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
@@ -222,7 +223,7 @@ object SystemNotificationUtil {
                 val delayIntent: Intent = AuthenticationActivity.getOpenIntent(
                         context, "SystemNotificationUtil", id, position,
                         Def.Communication.AUTHENTICATE_ACTION_DELAY,
-                        context.getString(R.string.act_delay))!!
+                        context.getString(R.string.act_delay))
                 delayIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 builder.addAction(R.drawable.act_delay,
                         context.getString(R.string.act_delay),
@@ -234,15 +235,15 @@ object SystemNotificationUtil {
                 // gradient title / confirm / picked row.
                 val startIntent: Intent = StartDoingActivity.getOpenIntent(
                         context, id, position, bg,
-                        DoingService.START_TYPE_ALARM, -1)!!
+                        DoingService.START_TYPE_ALARM, -1)
                 startIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                builder!!.addAction(R.drawable.act_start_doing,
-                        context!!.getString(R.string.act_start_doing),
+                builder.addAction(R.drawable.act_start_doing,
+                        context.getString(R.string.act_start_doing),
                         PendingIntent.getActivity(context,
                                 id.toInt(), startIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
 
                 val delayIntent: Intent = DelayReminderActivity.getOpenIntent(
-                        context, id, position, bg)!!
+                        context, id, position, bg)
                 delayIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 builder.addAction(R.drawable.act_delay,
                         context.getString(R.string.act_delay),
@@ -272,7 +273,7 @@ object SystemNotificationUtil {
             val finishIntent: Intent = AuthenticationActivity.getOpenIntent(
                     context, "SystemNotificationUtil", thingId, position,
                     Def.Communication.AUTHENTICATE_ACTION_FINISH,
-                    context!!.getString(R.string.act_finish_this_time_habit))!!
+                    context!!.getString(R.string.act_finish_this_time_habit))
             finishIntent.putExtra(Def.Communication.KEY_TIME, hrTime)
             finishIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             builder!!.addAction(R.drawable.act_finish, context.getString(R.string.act_finish_this_time_habit),
@@ -293,10 +294,10 @@ object SystemNotificationUtil {
             val startIntent: Intent = AuthenticationActivity.getOpenIntent(
                     context, "SystemNotificationUtil", thingId, position,
                     Def.Communication.AUTHENTICATE_ACTION_START_DOING,
-                    context!!.getString(R.string.act_start_doing))!!
+                    context.getString(R.string.act_start_doing))
             startIntent.putExtra(Def.Communication.KEY_TIME, hrTime)
             startIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            builder!!.addAction(R.drawable.act_start_doing,
+            builder.addAction(R.drawable.act_start_doing,
                     context.getString(R.string.act_start_doing),
                     PendingIntent.getActivity(context,
                             hrId.toInt(), startIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
@@ -304,10 +305,10 @@ object SystemNotificationUtil {
             // Phase 8: full ThingBackground for gradient on the chooser dialog.
             val startIntent: Intent = StartDoingActivity.getOpenIntent(
                     context, thingId, position, bg,
-                    DoingService.START_TYPE_ALARM, hrTime)!!
+                    DoingService.START_TYPE_ALARM, hrTime)
             startIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            builder!!.addAction(R.drawable.act_start_doing,
-                    context!!.getString(R.string.act_start_doing),
+            builder.addAction(R.drawable.act_start_doing,
+                    context.getString(R.string.act_start_doing),
                     PendingIntent.getActivity(context,
                             hrId.toInt(), startIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
         }
@@ -324,7 +325,7 @@ object SystemNotificationUtil {
         val deleteIntent = Intent(context, HabitNotificationActionReceiver::class.java)
         deleteIntent.setAction(Def.Communication.NOTIFICATION_ACTION_CANCEL)
         deleteIntent.putExtra(Def.Communication.KEY_ID, hrId)
-        builder!!.setDeleteIntent(PendingIntent.getBroadcast(
+        builder.setDeleteIntent(PendingIntent.getBroadcast(
                 context, hrId.toInt(), deleteIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
     }
 
@@ -346,7 +347,7 @@ object SystemNotificationUtil {
                 context, App::class.java.getName(),
                 if (App.newThingBackground != null)
                         App.newThingBackground
-                else com.ywwynm.everythingdone.model.ThingBackground.pure(App.newThingColor))!!
+                else com.ywwynm.everythingdone.model.ThingBackground.pure(App.newThingColor))
         val contentPendingIntent: PendingIntent = PendingIntent.getActivity(context,
                 Def.Meta.ONGOING_NOTIFICATION_ID, contentIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 
@@ -366,7 +367,7 @@ object SystemNotificationUtil {
             context: Context?, thing: Thing?, @DoingService.State doingState: Int,
             leftTimeStr: String?, hrTime: Long, highlightStrategy: Int): Notification {
         @Thing.Type val thingType: Int = thing!!.type
-        val contentText: String = getDoingNotificationContent(context, doingState, leftTimeStr)!!
+        val contentText: String = getDoingNotificationContent(context, doingState, leftTimeStr)
         val builder: NotificationCompat.Builder = NotificationCompat.Builder(context!!, "doing")
                 .setColor(thing.getColor())
                 .setSmallIcon(Thing.getTypeIconWhiteLarge(thingType))
@@ -383,7 +384,7 @@ object SystemNotificationUtil {
 
         val thingId: Long = thing.id
         if (doingState == DoingService.STATE_DOING) {
-            val contentIntent: Intent = DoingActivity.getOpenIntent(context, true)!!
+            val contentIntent: Intent = DoingActivity.getOpenIntent(context, true)
             builder.setContentIntent(PendingIntent.getActivity(
                     context, thingId.toInt(), contentIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
 
@@ -428,7 +429,7 @@ object SystemNotificationUtil {
             var thingContent: String = thing.content!!
             if (!thingContent.isEmpty()) {
                 if (CheckListHelper.isCheckListStr(thingContent)) {
-                    thingContent = CheckListHelper.toContentStr(thingContent, "X ", "√ ")!!
+                    thingContent = CheckListHelper.toContentStr(thingContent, "X ", "√ ")
                     thingContent = thingContent.replace("\n".toRegex(), "\n  ")
                 }
                 nTitle.append(thingContent)
@@ -470,7 +471,7 @@ object SystemNotificationUtil {
     fun tryToCreateThingOngoingNotification(context: Context?) {
         val curOngoingId: Long = FrequentSettings.getLong(Def.Meta.KEY_ONGOING_THING_ID)
         if (curOngoingId != -1L) {
-            val thing: Thing? = App.getThingAndPosition(context, curOngoingId, -1)!!.first
+            val thing: Thing? = App.getThingAndPosition(context, curOngoingId, -1).first
             if (thing != null) {
                 createThingOngoingNotification(context, thing)
             }
@@ -481,7 +482,7 @@ object SystemNotificationUtil {
     fun createThingOngoingNotification(context: Context?, thing: Thing?) {
         val id: Long = thing!!.id
         val builder: NotificationCompat.Builder = newGeneralNotificationBuilder(
-                context, App::class.java.getName(), id, -1, thing, false)!!
+                context, App::class.java.getName(), id, -1, thing, false)
         val showOnLockscreen: Boolean = FrequentSettings.getBoolean(Def.Meta.KEY_ONGOING_LOCKSCREEN)
         builder.setPriority(if (showOnLockscreen) Notification.PRIORITY_DEFAULT else Notification.PRIORITY_MIN)
                 .setSound(null)
@@ -497,7 +498,7 @@ object SystemNotificationUtil {
                 val finishIntent: Intent = AuthenticationActivity.getOpenIntent(
                         context, App::class.java.getName(), id, -1,
                         Def.Communication.AUTHENTICATE_ACTION_FINISH,
-                        context!!.getString(R.string.act_finish))!!
+                        context!!.getString(R.string.act_finish))
                 finishIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 builder.addAction(R.drawable.act_finish, context.getString(R.string.act_finish),
                         PendingIntent.getActivity(context,
@@ -516,7 +517,7 @@ object SystemNotificationUtil {
                 val startIntent: Intent = AuthenticationActivity.getOpenIntent(
                         context, App::class.java.getName(), id, -1,
                         Def.Communication.AUTHENTICATE_ACTION_START_DOING,
-                        context!!.getString(R.string.act_start_doing))!!
+                        context.getString(R.string.act_start_doing))
                 startIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 builder.addAction(R.drawable.act_start_doing,
                         context.getString(R.string.act_start_doing),
@@ -525,10 +526,10 @@ object SystemNotificationUtil {
             } else {
                 val startIntent: Intent = StartDoingActivity.getOpenIntent(
                         context, id, -1, color,
-                        DoingService.START_TYPE_ALARM, -1)!!
+                        DoingService.START_TYPE_ALARM, -1)
                 startIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 builder.addAction(R.drawable.act_start_doing,
-                        context!!.getString(R.string.act_start_doing),
+                        context.getString(R.string.act_start_doing),
                         PendingIntent.getActivity(context,
                                 id.toInt(), startIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
             }
@@ -537,7 +538,7 @@ object SystemNotificationUtil {
                 val finishIntent: Intent = AuthenticationActivity.getOpenIntent(
                         context, App::class.java.getName(), id, -1,
                         Def.Communication.AUTHENTICATE_ACTION_FINISH,
-                        context!!.getString(R.string.act_finish_once_habit))!!
+                        context!!.getString(R.string.act_finish_once_habit))
                 finishIntent.putExtra(Def.Communication.KEY_TIME, -1L)
                 finishIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 builder.addAction(R.drawable.act_finish, context.getString(R.string.act_finish_once_habit),
@@ -558,7 +559,7 @@ object SystemNotificationUtil {
                 val startIntent: Intent = AuthenticationActivity.getOpenIntent(
                         context, App::class.java.getName(), id, -1,
                         Def.Communication.AUTHENTICATE_ACTION_START_DOING,
-                        context!!.getString(R.string.act_start_doing))!!
+                        context.getString(R.string.act_start_doing))
                 startIntent.putExtra(Def.Communication.KEY_TIME, -1L)
                 startIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 builder.addAction(R.drawable.act_start_doing,
@@ -568,10 +569,10 @@ object SystemNotificationUtil {
             } else {
                 val startIntent: Intent = StartDoingActivity.getOpenIntent(
                         context, id, -1, color,
-                        DoingService.START_TYPE_ALARM, -1)!!
+                        DoingService.START_TYPE_ALARM, -1)
                 startIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 builder.addAction(R.drawable.act_start_doing,
-                        context!!.getString(R.string.act_start_doing),
+                        context.getString(R.string.act_start_doing),
                         PendingIntent.getActivity(context,
                                 id.toInt(), startIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
             }
@@ -620,7 +621,7 @@ object SystemNotificationUtil {
         // Phase 8: gradient-aware layered bitmap. PURE keeps the flat-color
         // path; GRADIENT lays a GradientDrawable behind the wear icon so the
         // wearable background carries the thing's gradient.
-        val bm: Bitmap = BitmapUtil.createLayeredBitmap(bmd, bg)!!
+        val bm: Bitmap = BitmapUtil.createLayeredBitmap(bmd, bg)
         builder!!.extend(NotificationCompat.WearableExtender().setBackground(bm))
     }
 

@@ -31,7 +31,7 @@ open class ReminderReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val id: Long = intent.getLongExtra(Def.Communication.KEY_ID, 0)
         val reminderDAO: ReminderDAO = ReminderDAO.getInstance(context)!!
-        val pair: Pair<Thing, Int> = App.getThingAndPosition(context, id, -1)!!
+        val pair: Pair<Thing, Int> = App.getThingAndPosition(context, id, -1)
         val thing: Thing? = pair.first
         if (thing == null) {
             reminderDAO.delete(id)
@@ -113,7 +113,7 @@ open class ReminderReceiver : BroadcastReceiver() {
     private fun notifyUserBySystemNotification(
             context: Context, id: Long, position: Int, thing: Thing, moreNoticeable: Boolean) {
         val builder: NotificationCompat.Builder = SystemNotificationUtil
-                .newGeneralNotificationBuilder(context, TAG, id, position, thing, false)!!
+                .newGeneralNotificationBuilder(context, TAG, id, position, thing, false)
         if (moreNoticeable) {
             // if we use a dialog to notify this alarm, we don't need to show heads-up notification
             builder.setPriority(NotificationCompat.PRIORITY_DEFAULT)
@@ -127,7 +127,7 @@ open class ReminderReceiver : BroadcastReceiver() {
 
         if (moreNoticeable) {
             val fullScreenIntent: Intent = NoticeableNotificationActivity.getOpenIntentForReminder(
-                    context, id, position)!!
+                    context, id, position)
             fullScreenIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
             builder.setFullScreenIntent(PendingIntent.getActivity(
                     context, id.toInt(), fullScreenIntent,

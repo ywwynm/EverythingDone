@@ -42,6 +42,8 @@ import android.widget.SeekBar
 import com.ywwynm.everythingdone.R
 
 import java.util.Random
+import kotlin.math.abs
+import kotlin.math.max
 
 /**
  * Created by ywwynm on 2015/6/28.
@@ -98,7 +100,7 @@ object DisplayUtil {
         val hasBackKey: Boolean = KeyCharacterMap.deviceHasKey(KeyEvent.KEYCODE_BACK)
         val con1: Boolean = !hasMenuKey && !hasBackKey
 
-        val resources: Resources = context!!.resources
+        val resources: Resources = context.resources
         val id: Int = resources.getIdentifier("config_showNavigationBar", "bool", "android")
         val con2: Boolean = id > 0 && resources.getBoolean(id)
 
@@ -107,7 +109,7 @@ object DisplayUtil {
         val display: Display = (context.getSystemService(Context.WINDOW_SERVICE) as WindowManager)
                 .defaultDisplay
         display.getSize(displaySize)
-        val screenSize: Point = getScreenSize(context)!!
+        val screenSize: Point = getScreenSize(context)
         con3 = if (context.resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT) {
             displaySize.y != screenSize.y
         } else {
@@ -131,14 +133,14 @@ object DisplayUtil {
         val display: Display = (context.getSystemService(Context.WINDOW_SERVICE) as WindowManager)
                 .defaultDisplay
         display.getSize(displaySize)
-        val screenSize: Point = getScreenSize(context)!!
+        val screenSize: Point = getScreenSize(context)
         res2 = if (context.resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT) {
             screenSize.y - displaySize.y
         } else {
             screenSize.x - displaySize.x
         }
 
-        return Math.max(res1, res2)
+        return max(res1, res2)
     }
 
     // This method has a sexy history~
@@ -214,7 +216,7 @@ object DisplayUtil {
     @JvmStatic
     fun playDrawerToggleAnim(d: DrawerArrowDrawable?) {
         val start: Float = d!!.progress
-        val end: Float = Math.abs(start - 1)
+        val end: Float = abs(start - 1)
         val offsetAnimator: ValueAnimator = ValueAnimator.ofFloat(start, end)
         offsetAnimator.setDuration(300)
         offsetAnimator.interpolator = AccelerateDecelerateInterpolator()
@@ -401,7 +403,7 @@ object DisplayUtil {
                     // entering / leaving). Skipped during IME animations to
                     // avoid the pre-animation target-insets flash described
                     // above.
-                    ViewCompat.setOnApplyWindowInsetsListener(decor) { v, insets ->
+                    ViewCompat.setOnApplyWindowInsetsListener(decor) { _, insets ->
                         if (!imeAnimating[0]) {
                             for (c in java.util.ArrayList(list)) {
                                 c.accept(insets)
@@ -509,7 +511,7 @@ object DisplayUtil {
                         or WindowInsetsCompat.Type.displayCutout())
         val ime: androidx.core.graphics.Insets = insets.getInsets(
                 WindowInsetsCompat.Type.ime())
-        return Math.max(bars.bottom, ime.bottom)
+        return max(bars.bottom, ime.bottom)
     }
 
     @JvmStatic

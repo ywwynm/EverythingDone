@@ -52,7 +52,7 @@ abstract class BaseDialogFragment : DialogFragment() {
         if (!isAdded) {
             try {
                 super.show(manager, tag)
-            } catch (ignored: IllegalStateException) {
+            } catch (_: IllegalStateException) {
                 // ignore this
             }
         }

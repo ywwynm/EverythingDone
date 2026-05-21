@@ -17,8 +17,6 @@ import com.ywwynm.everythingdone.adapters.BaseViewHolder
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil
 
-import java.util.Arrays
-
 /**
  * Created by ywwynm on 2017/3/11.
  * Translated to Kotlin by ywwynm and Claude Opus 4.7 on 2026/5/20.
@@ -142,7 +140,7 @@ open class LicenseDialogFragment : BaseDialogFragment() {
                 License.TYPE_GLIDE
             )
         )
-        return Arrays.asList(*licenses)
+        return listOf(*licenses)
     }
 
     override fun getLayoutResource(): Int = R.layout.fragment_license
@@ -218,7 +216,7 @@ open class LicenseDialogFragment : BaseDialogFragment() {
                 "Redistribution and use in source and binary forms, with or without modification, are " +
                 "permitted provided that the following conditions are met:\n" +
                 "\n" +
-                "1. Redistributions of source code must retain the above copyright notice, this list of" +
+                "1. Redistributions of source code must retain the above copyright notice, this list of " +
                 "conditions and the following disclaimer.\n" +
                 "\n" +
                 "2. Redistributions in binary form must reproduce the above copyright notice, this list " +

@@ -37,7 +37,7 @@ open class AuthenticationActivity : AppCompatActivity() {
 
         val position = intent.getIntExtra(Def.Communication.KEY_POSITION, -1)
 
-        val pair: Pair<Thing, Int> = App.getThingAndPosition(this, id, position)!!
+        val pair: Pair<Thing, Int> = App.getThingAndPosition(this, id, position)
 
         if (pair.first == null) {
             finish()

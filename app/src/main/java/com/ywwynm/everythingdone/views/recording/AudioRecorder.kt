@@ -17,6 +17,7 @@ import java.io.FileNotFoundException
 import java.io.FileOutputStream
 import java.io.IOException
 import java.util.ArrayList
+import kotlin.math.log10
 
 /**
  * Created by tyorikan on 2015/06/09.
@@ -279,7 +280,7 @@ open class AudioRecorder {
             }
 
             val amplitude: Double = sum / (byteReadSize / 2.0) // 振幅
-            val decibel: Double = 10 * Math.log10(amplitude)
+            val decibel: Double = 10 * log10(amplitude)
 
             if (BuildConfig.DEBUG) {
                 Log.i(TAG, "decibel: $decibel")

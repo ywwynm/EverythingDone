@@ -90,7 +90,7 @@ open class ShiningBorder : View {
     constructor(context: Context, attrs: AttributeSet?, defStyle: Int) : super(context, attrs, defStyle) {
 
         if (attrs != null) {
-            val a: TypedArray = context.obtainStyledAttributes(attrs, R.styleable.ShiningBorder)!!
+            val a: TypedArray = context.obtainStyledAttributes(attrs, R.styleable.ShiningBorder)
             mStrokeWidth = a.getDimension(
                     R.styleable.ShiningBorder_strokeWidth, mStrokeWidth)
             mCornerRadius = a.getDimension(

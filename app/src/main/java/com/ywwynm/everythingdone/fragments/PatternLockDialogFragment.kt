@@ -116,7 +116,7 @@ open class PatternLockDialogFragment : BaseDialogFragment() {
     private fun initUiValidate() {
         mTvTitle!!.text = mValidateTitle
         mTvContent!!.setText(R.string.confirm_pattern)
-        f<View>(R.id.rl_pattern_lock_control)!!.visibility = View.GONE
+        f<View>(R.id.rl_pattern_lock_control).visibility = View.GONE
     }
 
     private fun setEvents() {
@@ -143,7 +143,7 @@ open class PatternLockDialogFragment : BaseDialogFragment() {
 
         mTvLeftAsBt!!.setOnClickListener { dismiss() }
         mTvRightAsBt!!.setOnClickListener {
-            if (mLockView!!.getSimplePattern()!!.isEmpty()) {
+            if (mLockView!!.getSimplePattern().isEmpty()) {
                 return@setOnClickListener
             }
             mLockView!!.clearPattern()
@@ -175,7 +175,7 @@ open class PatternLockDialogFragment : BaseDialogFragment() {
             setEventsSetStep1()
         }
         mTvRightAsBt!!.setOnClickListener { v ->
-            val password: String = mLockView!!.getSimplePattern()!!
+            val password: String = mLockView!!.getSimplePattern()
             if (!mPassword.equals(password)) {
                 return@setOnClickListener
             }

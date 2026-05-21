@@ -165,7 +165,7 @@ open class Snackbar(
     }
 
     fun setUndoText(@StringRes stringRes: Int) {
-        setUndoText(mApp.getString(stringRes)!!)
+        setUndoText(mApp.getString(stringRes))
     }
 
     fun setUndoText(text: String) {

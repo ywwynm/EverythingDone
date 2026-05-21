@@ -48,6 +48,8 @@ import com.ywwynm.everythingdone.utils.DateTimeUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.views.HabitRecordPresenter
 import com.ywwynm.everythingdone.views.InterceptTouchCardView
+import androidx.core.view.isGone
+import androidx.core.view.isVisible
 
 /**
  * Created by ywwynm on 2016/7/31.
@@ -185,18 +187,18 @@ abstract class BaseThingsAdapter(context: Context?) :
         } else {
             holder.ivStickyOngoing!!.visibility = View.VISIBLE
             if (getCurrentMode() != ModeManager.NORMAL && !thing.isSelected()) {
-                holder.ivStickyOngoing!!.setImageResource(
+                holder.ivStickyOngoing.setImageResource(
                     if (sticky)
                         R.drawable.ic_sticky_not_selected
                     else R.drawable.ic_ongoing_notication_not_selected
                 )
             } else {
-                holder.ivStickyOngoing!!.setImageResource(
+                holder.ivStickyOngoing.setImageResource(
                     if (sticky) R.drawable.ic_sticky else R.drawable.ic_ongoing_notication
                 )
             }
             @StringRes val cdRes = if (sticky) R.string.sticky_thing else R.string.ongoing_thing
-            holder.ivStickyOngoing!!.contentDescription = mContext!!.getString(cdRes)
+            holder.ivStickyOngoing.contentDescription = mContext!!.getString(cdRes)
             tintCardIcon(holder.ivStickyOngoing, thing.getColor())
         }
     }
@@ -206,9 +208,9 @@ abstract class BaseThingsAdapter(context: Context?) :
         if (!title.isEmpty()) {
             val p = (mDensity * 16).toInt()
             holder.tvTitle!!.visibility = View.VISIBLE
-            holder.tvTitle!!.setPadding(p, p, p, 0)
-            holder.tvTitle!!.text = title
-            holder.tvTitle!!.setTextColor(textColorPrimary(thing.getColor()))
+            holder.tvTitle.setPadding(p, p, p, 0)
+            holder.tvTitle.text = title
+            holder.tvTitle.setTextColor(textColorPrimary(thing.getColor()))
         } else {
             holder.tvTitle!!.visibility = View.GONE
         }
@@ -225,20 +227,20 @@ abstract class BaseThingsAdapter(context: Context?) :
 
                 val length = content.length
                 if (length <= 60) {
-                    holder.tvContent!!.textSize = -0.14f * length + 24.14f
+                    holder.tvContent.textSize = -0.14f * length + 24.14f
                 } else {
-                    holder.tvContent!!.textSize = 16f
+                    holder.tvContent.textSize = 16f
                 }
 
-                holder.tvContent!!.setPadding(p, p, p, 0)
-                holder.tvContent!!.text = content
-                holder.tvContent!!.setTextColor(textColorSecondary(thing.getColor()))
+                holder.tvContent.setPadding(p, p, p, 0)
+                holder.tvContent.text = content
+                holder.tvContent.setTextColor(textColorSecondary(thing.getColor()))
             } else {
                 holder.tvContent!!.visibility = View.GONE
                 holder.rvChecklist!!.visibility = View.VISIBLE
 
                 val id = thing.id
-                val items: MutableList<String?>? = CheckListHelper.toCheckListItems(content, false)
+                val items: MutableList<String?> = CheckListHelper.toCheckListItems(content, false)
                 var adapter: CheckListAdapter? = mCheckListAdapters!!.get(id)
                 if (adapter == null) {
                     adapter = CheckListAdapter(mContext,
@@ -250,11 +252,11 @@ abstract class BaseThingsAdapter(context: Context?) :
                 adapter.setThingColor(thing.getColor())
                 adapter.setMaxItemCount(mChecklistMaxItemCount)
                 onChecklistAdapterInitialized(holder, adapter, thing)
-                holder.rvChecklist!!.adapter = adapter
-                holder.rvChecklist!!.layoutManager = LinearLayoutManager(mContext)
+                holder.rvChecklist.adapter = adapter
+                holder.rvChecklist.layoutManager = LinearLayoutManager(mContext)
 
                 val rp = (mDensity * 6).toInt()
-                holder.rvChecklist!!.setPaddingRelative(rp, p, p, 0)
+                holder.rvChecklist.setPaddingRelative(rp, p, p, 0)
             }
         } else {
             holder.tvContent!!.visibility = View.GONE
@@ -283,27 +285,27 @@ abstract class BaseThingsAdapter(context: Context?) :
 
         val p = (mDensity * 16).toInt()
         holder.rlReminder!!.visibility = View.VISIBLE
-        holder.rlReminder!!.setPadding(p, p, p, 0)
+        holder.rlReminder.setPadding(p, p, p, 0)
 
         val params = holder.ivReminder!!.layoutParams as RelativeLayout.LayoutParams
         if (thingType == Thing.REMINDER) {
             params.setMargins(0, (mDensity * 2).toInt(), 0, 0)
-            holder.ivReminder!!.setImageResource(R.drawable.card_reminder)
-            holder.ivReminder!!.contentDescription = mContext!!.getString(R.string.reminder)
+            holder.ivReminder.setImageResource(R.drawable.card_reminder)
+            holder.ivReminder.contentDescription = mContext!!.getString(R.string.reminder)
             holder.tvReminderTime!!.textSize = 12f
 
-            holder.tvReminderTime!!.text =
+            holder.tvReminderTime.text =
                 DateTimeUtil.getDateTimeStrReminder(mContext, thing, reminder)
         } else {
             params.setMargins(0, (mDensity * 1.6).toInt(), 0, 0)
-            holder.ivReminder!!.setImageResource(R.drawable.card_goal)
-            holder.ivReminder!!.contentDescription = mContext!!.getString(R.string.goal)
+            holder.ivReminder.setImageResource(R.drawable.card_goal)
+            holder.ivReminder.contentDescription = mContext!!.getString(R.string.goal)
             holder.tvReminderTime!!.textSize = 16f
 
-            holder.tvReminderTime!!.text =
+            holder.tvReminderTime.text =
                 DateTimeUtil.getDateTimeStrGoal(mContext, thing, reminder)
         }
-        holder.tvReminderTime!!.setTextColor(textColorTertiary(thing.getColor()))
+        holder.tvReminderTime.setTextColor(textColorTertiary(thing.getColor()))
         tintCardIcon(holder.ivReminder, thing.getColor())
         tintCardSeparator(holder.vReminderSeparator, thing.getColor())
     }
@@ -323,31 +325,31 @@ abstract class BaseThingsAdapter(context: Context?) :
 
         val p = (mDensity * 16).toInt()
         holder.rlHabit!!.visibility = View.VISIBLE
-        holder.rlHabit!!.setPadding(p, p, p, 0)
+        holder.rlHabit.setPadding(p, p, p, 0)
 
         var summary: String = habit.getSummary(mContext)!!
         if (thing.state == Thing.UNDERWAY && habit.isPaused()) {
             summary += ", " + habit.getStateDescription(mContext)
         }
         holder.tvHabitSummary!!.text = summary
-        holder.tvHabitSummary!!.setTextColor(textColorTertiary(thing.getColor()))
+        holder.tvHabitSummary.setTextColor(textColorTertiary(thing.getColor()))
         holder.tvHabitNextReminder!!.setTextColor(textColorDisabled(thing.getColor()))
         holder.tvHabitLastFive!!.setTextColor(textColorDisabled(thing.getColor()))
         holder.tvHabitFinishedThisT!!.setTextColor(textColorTertiary(thing.getColor()))
         tintCardIcon(holder.ivHabit, thing.getColor())
         tintCardSeparator(holder.vHabitSeparator1, thing.getColor())
         tintCardSeparator(holder.vHabitSeparator2, thing.getColor())
-        holder.habitRecordPresenter!!.setThingColor(thing.getColor())
+        holder.habitRecordPresenter.setThingColor(thing.getColor())
 
         if (thing.state == Thing.UNDERWAY && !habit.isPaused()) {
-            holder.tvHabitNextReminder!!.visibility = View.VISIBLE
+            holder.tvHabitNextReminder.visibility = View.VISIBLE
             holder.vHabitSeparator2!!.visibility = View.VISIBLE
-            holder.tvHabitLastFive!!.visibility = View.VISIBLE
+            holder.tvHabitLastFive.visibility = View.VISIBLE
             holder.llHabitRecord!!.visibility = View.VISIBLE
-            holder.tvHabitFinishedThisT!!.visibility = View.VISIBLE
+            holder.tvHabitFinishedThisT.visibility = View.VISIBLE
 
             val next = mContext!!.getString(R.string.habit_next_reminder)
-            holder.tvHabitNextReminder!!.text =
+            holder.tvHabitNextReminder.text =
                 next + " " + habit.getNextReminderDescription(mContext)
 
             val record: String = habit.record!!
@@ -361,15 +363,15 @@ abstract class BaseThingsAdapter(context: Context?) :
                     lastFive.append("?")
                 }
             }
-            holder.habitRecordPresenter!!.setRecord(lastFive.toString())
+            holder.habitRecordPresenter.setRecord(lastFive.toString())
 
-            holder.tvHabitFinishedThisT!!.text = habit.getFinishedTimesThisTStr(mContext)
+            holder.tvHabitFinishedThisT.text = habit.getFinishedTimesThisTStr(mContext)
         } else {
-            holder.tvHabitNextReminder!!.visibility = View.GONE
+            holder.tvHabitNextReminder.visibility = View.GONE
             holder.vHabitSeparator2!!.visibility = View.GONE
-            holder.tvHabitLastFive!!.visibility = View.GONE
+            holder.tvHabitLastFive.visibility = View.GONE
             holder.llHabitRecord!!.visibility = View.GONE
-            holder.tvHabitFinishedThisT!!.visibility = View.GONE
+            holder.tvHabitFinishedThisT.visibility = View.GONE
         }
     }
 
@@ -382,7 +384,7 @@ abstract class BaseThingsAdapter(context: Context?) :
             val imageW = mCardWidth
             val imageH = imageW * 3 / 4
 
-            val paramsLayout = holder.flImageAttachment!!.layoutParams as LinearLayout.LayoutParams
+            val paramsLayout = holder.flImageAttachment.layoutParams as LinearLayout.LayoutParams
             paramsLayout.width = imageW
 
             val paramsImage = holder.ivImageAttachment!!.layoutParams as FrameLayout.LayoutParams
@@ -409,14 +411,14 @@ abstract class BaseThingsAdapter(context: Context?) :
                     }
                 })
                 .centerCrop()
-                .into(holder.ivImageAttachment!!)
+                .into(holder.ivImageAttachment)
 
-            if (holder.tvTitle!!.visibility == View.GONE
-                && holder.tvContent!!.visibility == View.GONE
-                && holder.rvChecklist!!.visibility == View.GONE
-                && holder.llAudioAttachment!!.visibility == View.GONE
-                && holder.rlReminder!!.visibility == View.GONE
-                && holder.rlHabit!!.visibility == View.GONE
+            if (holder.tvTitle!!.isGone
+                && holder.tvContent!!.isGone
+                && holder.rvChecklist!!.isGone
+                && holder.llAudioAttachment!!.isGone
+                && holder.rlReminder!!.isGone
+                && holder.rlHabit!!.isGone
             ) {
                 holder.vPaddingBottom!!.visibility = View.GONE
             } else {
@@ -425,12 +427,12 @@ abstract class BaseThingsAdapter(context: Context?) :
 
             holder.tvImageCount!!.text =
                 AttachmentHelper.getImageAttachmentCountStr(attachment, mContext)
-            holder.tvImageCount!!.setTextColor(textColorSecondary(thing.getColor()))
+            holder.tvImageCount.setTextColor(textColorSecondary(thing.getColor()))
 
             if (getCurrentMode() == ModeManager.NORMAL) {
-                holder.vImageCover!!.visibility = View.GONE
+                holder.vImageCover.visibility = View.GONE
             } else {
-                holder.vImageCover!!.visibility =
+                holder.vImageCover.visibility =
                     if (thing.isSelected()) View.GONE else View.VISIBLE
             }
         } else {
@@ -447,7 +449,7 @@ abstract class BaseThingsAdapter(context: Context?) :
         } else {
             holder.llAudioAttachment!!.visibility = View.VISIBLE
             val p = (mDensity * 16).toInt()
-            holder.llAudioAttachment!!.setPadding(p, p / 4 * 3, p, 0)
+            holder.llAudioAttachment.setPadding(p, p / 4 * 3, p, 0)
 
             holder.tvAudioCount!!.text = str
 
@@ -457,26 +459,26 @@ abstract class BaseThingsAdapter(context: Context?) :
                     R.drawable.card_audio_attachment_black
                 else R.drawable.card_audio_attachment
             )
-            holder.tvAudioCount!!.setTextColor(textColorTertiary(thing.getColor()))
+            holder.tvAudioCount.setTextColor(textColorTertiary(thing.getColor()))
         }
     }
 
     private fun updateCardSeparatorsIfNeeded(holder: BaseThingViewHolder) {
-        if (holder.flImageAttachment!!.visibility == View.VISIBLE
-            && holder.tvTitle!!.visibility == View.GONE
-            && holder.tvContent!!.visibility == View.GONE
-            && holder.rvChecklist!!.visibility == View.GONE
-            && holder.llAudioAttachment!!.visibility == View.GONE
+        if (holder.flImageAttachment!!.isVisible
+            && holder.tvTitle!!.isGone
+            && holder.tvContent!!.isGone
+            && holder.rvChecklist!!.isGone
+            && holder.llAudioAttachment!!.isGone
         ) {
-            if (holder.rlReminder!!.visibility == View.VISIBLE) {
+            if (holder.rlReminder!!.isVisible) {
                 holder.vReminderSeparator!!.visibility = View.GONE
-            } else if (holder.rlHabit!!.visibility == View.VISIBLE) {
+            } else if (holder.rlHabit!!.isVisible) {
                 holder.vHabitSeparator1!!.visibility = View.GONE
             }
         } else {
-            if (holder.rlReminder!!.visibility == View.VISIBLE) {
+            if (holder.rlReminder!!.isVisible) {
                 holder.vReminderSeparator!!.visibility = View.VISIBLE
-            } else if (holder.rlHabit!!.visibility == View.VISIBLE) {
+            } else if (holder.rlHabit!!.isVisible) {
                 holder.vHabitSeparator1!!.visibility = View.VISIBLE
             }
         }
@@ -493,43 +495,45 @@ abstract class BaseThingsAdapter(context: Context?) :
         val dp8  = (mDensity * 8).toInt()
         val dp12 = (mDensity * 12).toInt()
         val dp16 = (mDensity * 16).toInt()
-        if (holder.flImageAttachment!!.visibility == View.GONE
-            && holder.tvTitle!!.visibility == View.GONE
-            && holder.tvContent!!.visibility == View.GONE
-            && holder.rvChecklist!!.visibility == View.GONE
+        if (holder.flImageAttachment!!.isGone
+            && holder.tvTitle!!.isGone
+            && holder.tvContent!!.isGone
+            && holder.rvChecklist!!.isGone
         ) {
             llp1.height = (mDensity * 16).toInt()
             llp1.topMargin = dp1
-            holder.tvAudioCount!!.textSize = 18f
+            holder.tvAudioCount.textSize = 18f
 
             llp2.setMargins(dp12, llp2.topMargin, llp2.rightMargin, llp2.bottomMargin)
             llp2.marginStart = dp12
 
-            holder.llAudioAttachment!!.setPadding(dp16, dp16, dp16, 0)
+            holder.llAudioAttachment.setPadding(dp16, dp16, dp16, 0)
         } else {
             llp1.height = ViewGroup.LayoutParams.WRAP_CONTENT
             llp1.topMargin = 0
-            holder.tvAudioCount!!.textSize = 11f
+            holder.tvAudioCount.textSize = 11f
 
             llp2.setMargins(dp8, llp2.topMargin, llp2.rightMargin, llp2.bottomMargin)
             llp2.marginStart = dp8
 
-            holder.llAudioAttachment!!.setPadding(dp16, dp16 / 4 * 3, dp16, 0)
+            holder.llAudioAttachment.setPadding(dp16, dp16 / 4 * 3, dp16, 0)
         }
-        holder.ivAudioCount!!.requestLayout()
+        holder.ivAudioCount.requestLayout()
     }
 
     private fun updateCardForDoing(holder: BaseThingViewHolder, thing: Thing) {
         if (App.getDoingThingId() == thing.id) {
             holder.flDoing!!.visibility = View.VISIBLE
-            holder.cv!!.post(Runnable {
-                val lp = holder.flDoing!!.layoutParams as FrameLayout.LayoutParams
-                lp.width  = holder.cv!!.width
-                lp.height = holder.cv!!.height
-                Log.i(TAG, "setting doing cover for thing card, " +
-                        "width[" + lp.width + ", height[" + lp.height + "]")
-                holder.flDoing!!.requestLayout()
-            })
+            holder.cv!!.post {
+                val lp = holder.flDoing.layoutParams as FrameLayout.LayoutParams
+                lp.width = holder.cv.width
+                lp.height = holder.cv.height
+                Log.i(
+                    TAG, "setting doing cover for thing card, " +
+                            "width[" + lp.width + ", height[" + lp.height + "]"
+                )
+                holder.flDoing.requestLayout()
+            }
         } else {
             holder.flDoing!!.visibility = View.GONE
         }
@@ -566,7 +570,7 @@ abstract class BaseThingsAdapter(context: Context?) :
 
         val cardIsLight = background != null
                 && BackgroundUtil.isLight(background.representativeColor())
-        holder.cv!!.foreground = ContextCompat.getDrawable(
+        holder.cv.foreground = ContextCompat.getDrawable(
             mContext!!,
             if (cardIsLight)
                 R.drawable.selectable_item_background
@@ -575,7 +579,7 @@ abstract class BaseThingsAdapter(context: Context?) :
     }
 
     /** Produce a washed-out variant of `bg` for unselected cards. */
-    private fun lightVariant(bg: ThingBackground?): ThingBackground? {
+    private fun lightVariant(bg: ThingBackground?): ThingBackground {
         if (bg!!.mode === ThingBackground.Mode.PURE) {
             return ThingBackground.pure(DisplayUtil.getLightColor(bg.color, mContext))
         }

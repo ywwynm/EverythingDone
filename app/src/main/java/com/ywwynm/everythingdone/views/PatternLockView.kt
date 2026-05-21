@@ -5,7 +5,6 @@ package com.ywwynm.everythingdone.views
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
-import android.annotation.TargetApi
 import android.content.Context
 import android.content.res.TypedArray
 import android.graphics.Canvas
@@ -13,7 +12,6 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.Rect
-import android.os.Build
 import android.os.Debug
 import android.os.Parcel
 import android.os.Parcelable
@@ -41,7 +39,7 @@ import kotlin.math.sqrt
  * Changed by ywwynm on 2016/5/22 for project demand
  * A pattern lock view
  */
-open class PatternLockView @TargetApi(Build.VERSION_CODES.LOLLIPOP) constructor(
+open class PatternLockView(
         context: Context, attrs: AttributeSet?
 ) : View(context, attrs) {
 
@@ -98,7 +96,7 @@ open class PatternLockView @TargetApi(Build.VERSION_CODES.LOLLIPOP) constructor(
         mPathPaint.isAntiAlias = true
         mPathPaint.isDither = true
 
-        val typedArray: TypedArray = context.obtainStyledAttributes(attrs, R.styleable.PatternLockView)!!
+        val typedArray: TypedArray = context.obtainStyledAttributes(attrs, R.styleable.PatternLockView)
         mPathColor = typedArray.getColor(R.styleable.PatternLockView_pathColor, Color.WHITE)
         mWrongColor = typedArray.getColor(R.styleable.PatternLockView_wrongColor, Color.RED)
         mCorrectColor = typedArray.getColor(R.styleable.PatternLockView_correctColor, Color.GREEN)
@@ -124,9 +122,7 @@ open class PatternLockView @TargetApi(Build.VERSION_CODES.LOLLIPOP) constructor(
             }
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
-                && !isInEditMode
-        ) {
+        if (!isInEditMode) {
             mFastOutSlowInInterpolator = AnimationUtils.loadInterpolator(
                     context, android.R.interpolator.fast_out_slow_in)
             mLinearOutSlowInInterpolator = AnimationUtils.loadInterpolator(
@@ -419,10 +415,13 @@ open class PatternLockView @TargetApi(Build.VERSION_CODES.LOLLIPOP) constructor(
     private fun startCellActivatedAnimation(cell: Cell) {
         val cellState: CellState = mCellStates[cell.row][cell.column]
         startSizeAnimation(mDotSize.toFloat(), mDotSizeActivated.toFloat(), 96,
-                mLinearOutSlowInInterpolator, cellState, Runnable {
-                    startSizeAnimation(mDotSizeActivated.toFloat(), mDotSize.toFloat(), 192,
-                            mFastOutSlowInInterpolator, cellState, null)
-                })
+                mLinearOutSlowInInterpolator, cellState
+        ) {
+            startSizeAnimation(
+                mDotSizeActivated.toFloat(), mDotSize.toFloat(), 192,
+                mFastOutSlowInInterpolator, cellState, null
+            )
+        }
         startLineEndAnimation(cellState, mInProgressX, mInProgressY,
                 getCenterXForColumn(cell.column), getCenterYForRow(cell.row))
     }

@@ -58,7 +58,7 @@ open class RadioChooserAdapter(
         val holder = viewHolder as ChoiceHolder
         val item = mItems!![position]
         holder.tv!!.text = item
-        val context = holder.tv!!.context
+        val context = holder.tv.context
         val uncheckedColor = ContextCompat.getColor(context, R.color.black_54)
         val d: Drawable?
         if (mPickedPosition == position) { // -15310698
@@ -73,26 +73,26 @@ open class RadioChooserAdapter(
                 d = srcChecked!!.mutate()
                 d.setColorFilter(mAccentColor, PorterDuff.Mode.SRC_ATOP)
             }
-            holder.tv!!.contentDescription = context.getString(R.string.cd_chosen_item) + item
+            holder.tv.contentDescription = context.getString(R.string.cd_chosen_item) + item
             if (mAccentBackground != null) {
                 BackgroundUtil.applyTextBackground(holder.tv, mAccentBackground)
             } else {
-                if (holder.tv!!.paint.shader != null) {
-                    holder.tv!!.paint.setShader(null)
+                if (holder.tv.paint.shader != null) {
+                    holder.tv.paint.setShader(null)
                 }
-                holder.tv!!.setTextColor(mAccentColor)
+                holder.tv.setTextColor(mAccentColor)
             }
         } else {
             d = ContextCompat.getDrawable(context, R.drawable.ic_radiobutton_unchecked)
             d!!.mutate().setColorFilter(uncheckedColor, PorterDuff.Mode.SRC_ATOP)
-            holder.tv!!.contentDescription =
+            holder.tv.contentDescription =
                 context.getString(R.string.cd_not_chosen_item) + item
-            if (holder.tv!!.paint.shader != null) {
-                holder.tv!!.paint.setShader(null)
+            if (holder.tv.paint.shader != null) {
+                holder.tv.paint.setShader(null)
             }
-            holder.tv!!.setTextColor(uncheckedColor)
+            holder.tv.setTextColor(uncheckedColor)
         }
-        holder.tv!!.setCompoundDrawablesWithIntrinsicBounds(d, null, null, null)
+        holder.tv.setCompoundDrawablesWithIntrinsicBounds(d, null, null, null)
     }
 
     override fun getItemCount(): Int = mItems!!.size

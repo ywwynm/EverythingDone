@@ -62,7 +62,7 @@ object LineSpacingHelper {
                     normalLineCursorHeightVary, lastLineCursorHeightVary)
             Array.set(arr, 0, d)
             Array.set(arr, 1, d)
-        } catch (ignored: Exception) {}
+        } catch (_: Exception) {}
     }
 
     private class LineSpacingCursorDrawable(

@@ -1420,9 +1420,6 @@ class SettingsActivity : EverythingDoneBaseActivity() {
         ) {
             doWithPermissionChecked(
                 object : SimplePermissionCallback(this) {
-                    override fun onDenied() {
-                        super.onDenied()
-                    }
                 },
                 Def.Communication.REQUEST_PERMISSION_NOTIFICATION,
                 Manifest.permission.POST_NOTIFICATIONS

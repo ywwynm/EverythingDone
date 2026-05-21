@@ -235,56 +235,56 @@ open class CheckListAdapter(
             val dark = dark()
             if (mMaxItemCount != -1 && position == mMaxItemCount) {
                 holder.iv!!.visibility = View.GONE
-                holder.tv!!.textSize = 18f
-                holder.tv!!.setTextColor(textColorSecondary())
-                holder.tv!!.text = "..."
-                holder.tv!!.contentDescription =
+                holder.tv.textSize = 18f
+                holder.tv.setTextColor(textColorSecondary())
+                holder.tv.text = "..."
+                holder.tv.contentDescription =
                     mContext!!.getString(R.string.cd_checklist_more_items)
                 params.setMargins((density * 8).toInt(), 0, 0, params.bottomMargin)
                 setEventForTextViewItemMore(holder)
             } else {
                 holder.iv!!.visibility = View.VISIBLE
-                val flag = holder.tv!!.paintFlags
+                val flag = holder.tv.paintFlags
                 val stateContent: String = mItems!![position]!!
                 val state = stateContent[0]
                 if (state == '0') {
-                    holder.iv!!.setImageResource(
+                    holder.iv.setImageResource(
                         if (dark)
                             R.drawable.checklist_unchecked_card_black
                         else R.drawable.checklist_unchecked_card
                     )
-                    holder.iv!!.contentDescription =
+                    holder.iv.contentDescription =
                         mContext!!.getString(R.string.cd_checklist_unfinished_item)
-                    holder.tv!!.setTextColor(textColorSecondary())
-                    holder.tv!!.paintFlags = flag and Paint.STRIKE_THRU_TEXT_FLAG.inv()
+                    holder.tv.setTextColor(textColorSecondary())
+                    holder.tv.paintFlags = flag and Paint.STRIKE_THRU_TEXT_FLAG.inv()
                 } else if (state == '1') {
-                    holder.iv!!.setImageResource(
+                    holder.iv.setImageResource(
                         if (dark)
                             R.drawable.checklist_checked_card_black
                         else R.drawable.checklist_checked_card
                     )
-                    holder.iv!!.contentDescription =
+                    holder.iv.contentDescription =
                         mContext!!.getString(R.string.cd_checklist_finished_item)
-                    holder.tv!!.setTextColor(textColorFinished())
+                    holder.tv.setTextColor(textColorFinished())
                     if (FrequentSettings.getBoolean(Def.Meta.KEY_SIMPLE_FCLI)) {
-                        holder.tv!!.paintFlags = flag and Paint.STRIKE_THRU_TEXT_FLAG.inv()
+                        holder.tv.paintFlags = flag and Paint.STRIKE_THRU_TEXT_FLAG.inv()
                     } else {
-                        holder.tv!!.paintFlags = flag or Paint.STRIKE_THRU_TEXT_FLAG
+                        holder.tv.paintFlags = flag or Paint.STRIKE_THRU_TEXT_FLAG
                     }
                 }
 
                 val size = mItems!!.size
                 if ((mMaxItemCount != -1 && size >= mMaxItemCount) || mMaxItemCount == -1) {
-                    holder.tv!!.textSize = 14f
+                    holder.tv.textSize = 14f
                     params.setMargins(0, (2 * density).toInt(), 0, params.bottomMargin)
                 } else {
                     val textSize = -4 * size / 7f + 130f / 7
-                    holder.tv!!.textSize = textSize
+                    holder.tv.textSize = textSize
                     val mt = -2 * textSize / 3 + 34f / 3
                     params.setMargins(0, mt.toInt(), 0, params.bottomMargin)
                 }
 
-                holder.tv!!.text = stateContent.substring(1, stateContent.length)
+                holder.tv.text = stateContent.substring(1, stateContent.length)
                 params.setMargins(0, params.topMargin, 0, params.bottomMargin)
 
                 setEventForTextViewItem(holder)
@@ -293,21 +293,21 @@ open class CheckListAdapter(
             val holder = viewHolder as EditTextHolder
             holder.flSeparator!!.visibility = View.GONE
             holder.ivState!!.visibility = View.VISIBLE
-            holder.ivState!!.isClickable = true
+            holder.ivState.isClickable = true
             holder.ivDelete!!.visibility = View.INVISIBLE
             holder.ivExpandShrink!!.visibility = View.GONE
 
             holder.et!!.isEnabled = true
-            holder.et!!.visibility = View.VISIBLE
-            holder.et!!.paint.textSkewX = 0f
+            holder.et.visibility = View.VISIBLE
+            holder.et.paint.textSkewX = 0f
 
-            val flags = holder.et!!.paintFlags
-            holder.et!!.paintFlags = flags and Paint.STRIKE_THRU_TEXT_FLAG.inv()
+            val flags = holder.et.paintFlags
+            holder.et.paintFlags = flags and Paint.STRIKE_THRU_TEXT_FLAG.inv()
 
-            holder.et!!.textSize = 20f
-            holder.et!!.hint = ""
+            holder.et.textSize = 20f
+            holder.et.hint = ""
 
-            val params = holder.et!!.layoutParams as LinearLayout.LayoutParams
+            val params = holder.et.layoutParams as LinearLayout.LayoutParams
             params.width = LinearLayout.LayoutParams.MATCH_PARENT
             params.topMargin = (density * 3).toInt()
 
@@ -319,43 +319,43 @@ open class CheckListAdapter(
             val state = stateContent[0]
             if (state == '0') {
                 if (!mDragging) {
-                    holder.ivState!!.setImageResource(R.drawable.checklist_unchecked_detail)
-                    holder.ivState!!.contentDescription =
+                    holder.ivState.setImageResource(R.drawable.checklist_unchecked_detail)
+                    holder.ivState.contentDescription =
                         mContext!!.getString(R.string.cd_checklist_unfinished_item_clickable)
                 } else {
-                    holder.ivState!!.setImageResource(R.drawable.checklist_move_76)
-                    holder.ivState!!.contentDescription =
+                    holder.ivState.setImageResource(R.drawable.checklist_move_76)
+                    holder.ivState.contentDescription =
                         mContext!!.getString(R.string.cd_checklist_move)
                 }
-                holder.et!!.setTextColor(textColorSecondary())
-                holder.et!!.setText(stateContent.substring(1, stateContent.length))
+                holder.et.setTextColor(textColorSecondary())
+                holder.et.setText(stateContent.substring(1, stateContent.length))
             } else if (state == '1') {
                 if (!mDragging) {
-                    holder.ivState!!.setImageResource(R.drawable.checklist_checked_detail)
-                    holder.ivState!!.contentDescription =
+                    holder.ivState.setImageResource(R.drawable.checklist_checked_detail)
+                    holder.ivState.contentDescription =
                         mContext!!.getString(R.string.cd_checklist_finished_item_clickable)
                 } else {
-                    holder.ivState!!.setImageResource(R.drawable.checklist_move_50)
-                    holder.ivState!!.contentDescription =
+                    holder.ivState.setImageResource(R.drawable.checklist_move_50)
+                    holder.ivState.contentDescription =
                         mContext!!.getString(R.string.cd_checklist_move)
                 }
-                holder.et!!.setTextColor(textColorFinished())
-                holder.et!!.paintFlags = flags or Paint.STRIKE_THRU_TEXT_FLAG
-                holder.et!!.setText(stateContent.substring(1, stateContent.length))
+                holder.et.setTextColor(textColorFinished())
+                holder.et.paintFlags = flags or Paint.STRIKE_THRU_TEXT_FLAG
+                holder.et.setText(stateContent.substring(1, stateContent.length))
             } else if (state == '2') {
                 params.topMargin = (density * 4).toInt()
-                holder.ivState!!.setImageResource(R.drawable.checklist_add)
+                holder.ivState.setImageResource(R.drawable.checklist_add)
                 val newItem = mContext!!.getString(R.string.hint_new_item)
-                holder.ivState!!.contentDescription = newItem
-                holder.et!!.hint = newItem
-                holder.et!!.setHintTextColor(textColorFinished())
-                holder.et!!.setText("")
+                holder.ivState.contentDescription = newItem
+                holder.et.hint = newItem
+                holder.et.setHintTextColor(textColorFinished())
+                holder.et.setText("")
             } else if (state == '3') {
-                holder.ivState!!.visibility = View.GONE
-                holder.ivDelete!!.visibility = View.GONE
-                holder.et!!.visibility = View.GONE
-                holder.flSeparator!!.visibility = View.VISIBLE
-                val sep: View? = holder.flSeparator!!.getChildAt(0)
+                holder.ivState.visibility = View.GONE
+                holder.ivDelete.visibility = View.GONE
+                holder.et.visibility = View.GONE
+                holder.flSeparator.visibility = View.VISIBLE
+                val sep: View? = holder.flSeparator.getChildAt(0)
                 if (sep != null) {
                     val d: Drawable? = sep.background
                     if (d != null) {
@@ -365,32 +365,32 @@ open class CheckListAdapter(
                 }
             } else if (state == '4') {
                 params.topMargin = (density * 6).toInt()
-                holder.ivState!!.setImageResource(R.drawable.checklist_finished)
-                holder.ivState!!.isClickable = false
+                holder.ivState.setImageResource(R.drawable.checklist_finished)
+                holder.ivState.isClickable = false
 
                 var finishedCount = 0
                 for (item in mItems!!) if (item!![0] == '1') finishedCount++
                 val finishedItemsCountStr = getFinishedItemsCountStr(finishedCount) + " "
-                holder.ivState!!.contentDescription = finishedItemsCountStr
+                holder.ivState.contentDescription = finishedItemsCountStr
                 params.width = LinearLayout.LayoutParams.WRAP_CONTENT
 
-                holder.ivExpandShrink!!.rotation = 0f
+                holder.ivExpandShrink.rotation = 0f
                 if (mExpanded) {
-                    holder.ivExpandShrink!!.setImageResource(R.drawable.act_shrink_checklist_finished_items)
-                    holder.ivExpandShrink!!.contentDescription =
+                    holder.ivExpandShrink.setImageResource(R.drawable.act_shrink_checklist_finished_items)
+                    holder.ivExpandShrink.contentDescription =
                         mContext!!.getString(R.string.cd_checklist_shrink_finished_items)
                 } else {
-                    holder.ivExpandShrink!!.setImageResource(R.drawable.act_expand_checklist_finished_items)
-                    holder.ivExpandShrink!!.contentDescription =
+                    holder.ivExpandShrink.setImageResource(R.drawable.act_expand_checklist_finished_items)
+                    holder.ivExpandShrink.contentDescription =
                         mContext!!.getString(R.string.cd_checklist_expand_finished_items)
                 }
-                holder.ivExpandShrink!!.visibility = View.VISIBLE
+                holder.ivExpandShrink.visibility = View.VISIBLE
 
-                holder.et!!.isEnabled = false
-                holder.et!!.setText(finishedItemsCountStr)
-                holder.et!!.setTextColor(textColorFinished())
-                holder.et!!.textSize = 16f
-                holder.et!!.paint.textSkewX = -0.20f
+                holder.et.isEnabled = false
+                holder.et.setText(finishedItemsCountStr)
+                holder.et.setTextColor(textColorFinished())
+                holder.et.textSize = 16f
+                holder.et.paint.textSkewX = -0.20f
             }
             mWatchEditTextChange = true
         }
@@ -411,15 +411,15 @@ open class CheckListAdapter(
         if (mTvItemClickCallback == null) {
             holder.llClickable!!.isClickable = false
             holder.spaceClickable!!.isClickable = false
-            holder.llClickable!!.setBackgroundResource(0)
+            holder.llClickable.setBackgroundResource(0)
         } else {
             holder.llClickable!!.isClickable = true
-            holder.llClickable!!.setBackgroundResource(R.drawable.selectable_item_background_light)
-            holder.llClickable!!.setOnClickListener {
+            holder.llClickable.setBackgroundResource(R.drawable.selectable_item_background_light)
+            holder.llClickable.setOnClickListener {
                 mTvItemClickCallback!!.onItemClick(holder.adapterPosition)
             }
             holder.spaceClickable!!.isClickable = true
-            holder.spaceClickable!!.setOnClickListener { v ->
+            holder.spaceClickable.setOnClickListener { v ->
                 mTvItemClickCallback!!.onItemSpaceClick(v)
             }
         }
@@ -427,12 +427,12 @@ open class CheckListAdapter(
 
     private fun setEventForTextViewItemMore(holder: TextViewHolder) {
         holder.llClickable!!.isClickable = true
-        holder.llClickable!!.setBackgroundResource(0)
-        holder.llClickable!!.setOnClickListener { v ->
+        holder.llClickable.setBackgroundResource(0)
+        holder.llClickable.setOnClickListener { v ->
             mTvItemClickCallback!!.onItemSpaceClick(v)
         }
         holder.spaceClickable!!.isClickable = true
-        holder.spaceClickable!!.setOnClickListener { v ->
+        holder.spaceClickable.setOnClickListener { v ->
             mTvItemClickCallback!!.onItemSpaceClick(v)
         }
     }
@@ -504,8 +504,8 @@ open class CheckListAdapter(
                 false
             }
 
-            ivState!!.setOnClickListener {
-                val before: String = CheckListHelper.toCheckListStr(mItems)!!
+            ivState.setOnClickListener {
+                val before: String = CheckListHelper.toCheckListStr(mItems)
 
                 var pos = adapterPosition
                 val posAfter: Int
@@ -579,17 +579,17 @@ open class CheckListAdapter(
                         mContext!!, R.drawable.act_expand_checklist_finished_items
                     )!!
                     val isExpandDrawableAttaching = expandDrawable.constantState ===
-                            ivExpandShrink!!.drawable.constantState
-                    ivExpandShrink!!.animate()
+                            ivExpandShrink.drawable.constantState
+                    ivExpandShrink.animate()
                         .rotation(if (isExpandDrawableAttaching == mExpanded) 0f else 180f)
                         .setDuration(160).start()
                     mExpandShrinkCallback!!.updateChecklistHeight(!mExpanded, mItems, true)
                     mExpanded = !mExpanded
                     if (mExpanded) {
-                        ivExpandShrink!!.contentDescription =
+                        ivExpandShrink.contentDescription =
                             mContext!!.getString(R.string.cd_checklist_shrink_finished_items)
                     } else {
-                        ivExpandShrink!!.contentDescription =
+                        ivExpandShrink.contentDescription =
                             mContext!!.getString(R.string.cd_checklist_expand_finished_items)
                     }
                 }
@@ -645,12 +645,12 @@ open class CheckListAdapter(
                     } else {
                         v.post {
                             ivDelete!!.isClickable = true
-                            ivDelete!!.visibility = View.VISIBLE
+                            ivDelete.visibility = View.VISIBLE
                         }
                     }
                 } else {
                     ivDelete!!.isClickable = false
-                    ivDelete!!.visibility = View.INVISIBLE
+                    ivDelete.visibility = View.INVISIBLE
                 }
             }
 
@@ -664,7 +664,7 @@ open class CheckListAdapter(
                         if (cursorPos == etLength) {
                             insertItem(CheckListHelper.toCheckListStr(mItems), v, pos, "")
                         } else {
-                            val before: String = CheckListHelper.toCheckListStr(mItems)!!
+                            val before: String = CheckListHelper.toCheckListStr(mItems)
                             val current: String = mItems!![pos]!!
                             val newCurrent = current.substring(0, cursorPos + 1)
                             val next = current.substring(cursorPos + 1, etLength + 1)
@@ -721,7 +721,7 @@ open class CheckListAdapter(
         }
 
         private fun removeItem(v: View, posIn: Int, deleteByClick: Boolean) {
-            val before: String = CheckListHelper.toCheckListStr(mItems)!!
+            val before: String = CheckListHelper.toCheckListStr(mItems)
             var justNotifyAll = false
             val current: String = mItems!![posIn]!!
             var pos = posIn

@@ -119,7 +119,7 @@ object ThingsSorter {
                     }
                     timeMap.put(id, time)
                 }
-                return time!!
+                return time
             }
         }
     }

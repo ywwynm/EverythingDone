@@ -108,10 +108,10 @@ open class FingerprintHelper private constructor(context: Context?) {
         try {
             mKeyStore!!.load(null)
             val key: SecretKey =
-                mKeyStore!!.getKey(FINGERPRINT_KEY_NAME, null) as SecretKey? ?: return false
+                mKeyStore!!.getKey(FINGERPRINT_KEY_NAME, null) as? SecretKey? ?: return false
             mCipher!!.init(Cipher.ENCRYPT_MODE, key)
             return true
-        } catch (e: KeyPermanentlyInvalidatedException) {
+        } catch (_: KeyPermanentlyInvalidatedException) {
             return false
         } catch (e: KeyStoreException) {
             throw RuntimeException("Failed to init Cipher", e)

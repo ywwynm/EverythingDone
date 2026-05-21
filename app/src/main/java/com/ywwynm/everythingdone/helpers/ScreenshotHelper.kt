@@ -45,6 +45,7 @@ import java.lang.ref.WeakReference
 import java.text.SimpleDateFormat
 import java.util.ArrayList
 import java.util.Date
+import androidx.core.graphics.createBitmap
 
 /**
  * Created by qiizhang on 2016/9/5.
@@ -112,7 +113,7 @@ object ScreenshotHelper {
         if (params.size == 1) {
             return null
         }
-        val view: View = params[0] as View? ?: return null
+        val view: View = params[0] as? View? ?: return null
         val color: Int = params[1] as Int
         return getScreenshot(view, color)
     }
@@ -135,8 +136,7 @@ object ScreenshotHelper {
         }
 
         // get screen shot bitmap
-        val bitmap: Bitmap = Bitmap.createBitmap(scrollView.width, height,
-                Bitmap.Config.ARGB_8888)
+        val bitmap: Bitmap = createBitmap(scrollView.width, height)
         val canvas = Canvas(bitmap)
         canvas.drawColor(color)
         scrollView.draw(canvas)
@@ -341,7 +341,7 @@ object ScreenshotHelper {
                 }
             }
             if (!noImage) {
-                imageAdapter!!.setTakingScreenshot(true)
+                imageAdapter.setTakingScreenshot(true)
                 didList.add(UPDATE_IMAGE)
             }
         }

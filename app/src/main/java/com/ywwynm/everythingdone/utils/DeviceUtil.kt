@@ -73,7 +73,7 @@ object DeviceUtil {
                     File(Environment.getRootDirectory(), "build.prop"))
             properties.load(fis)
             return properties.getProperty(key, null)
-        } catch (e: IOException) {
+        } catch (_: IOException) {
             return null
         } finally {
             FileUtil.closeStream(fis)

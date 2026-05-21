@@ -196,7 +196,7 @@ object ThingExporter {
         var content: String = thing.content!!
         if (useContent && !content.isEmpty()) {
             if (CheckListHelper.isCheckListStr(content)) {
-                content = CheckListHelper.toContentStr(content, "", "")!!
+                content = CheckListHelper.toContentStr(content, "", "")
             }
 
             content = removeReturns(content.trim())

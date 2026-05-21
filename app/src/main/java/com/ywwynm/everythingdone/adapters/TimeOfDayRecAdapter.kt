@@ -24,7 +24,6 @@ import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.KeyboardUtil
 
 import java.util.ArrayList
-import java.util.Collections
 
 /**
  * Created by ywwynm on 2016/1/27.

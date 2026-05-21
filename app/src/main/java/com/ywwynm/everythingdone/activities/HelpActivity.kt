@@ -124,7 +124,7 @@ open class HelpActivity : EverythingDoneBaseActivity() {
             var tv: TextView? = f(R.id.tv_help_rv)
 
             init {
-                f<View>(R.id.ll_help_rv)!!.setOnClickListener {
+                f<View>(R.id.ll_help_rv).setOnClickListener {
                     val pos = adapterPosition
                     mHelpDetailFragment = HelpDetailFragment.newInstance(
                         mTitles, mContents, pos

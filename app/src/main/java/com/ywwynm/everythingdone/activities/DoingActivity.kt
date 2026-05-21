@@ -25,7 +25,6 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import android.util.Log
 import android.view.View
 import android.view.ViewGroup
-import android.view.ViewTreeObserver
 import android.view.animation.OvershootInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageView
@@ -52,6 +51,7 @@ import com.ywwynm.everythingdone.views.FloatingActionButton
 import java.util.Collections
 
 import jp.wasabeef.blurry.Blurry
+import androidx.core.graphics.toColorInt
 
 /**
  * Created by qiizhang on 2016/10/31.
@@ -240,15 +240,14 @@ open class DoingActivity : EverythingDoneBaseActivity() {
     }
 
     private fun setRecyclerViewEvent() {
-        mRecyclerView!!.viewTreeObserver.addOnGlobalLayoutListener(
-            ViewTreeObserver.OnGlobalLayoutListener {
-                val height = mRecyclerView!!.height
-                if (height > mRvMaxHeight) {
-                    val vlp: ViewGroup.LayoutParams = mRecyclerView!!.layoutParams
-                    vlp.height = mRvMaxHeight
-                    mRecyclerView!!.requestLayout()
-                }
-            })
+        mRecyclerView!!.viewTreeObserver.addOnGlobalLayoutListener {
+            val height = mRecyclerView!!.height
+            if (height > mRvMaxHeight) {
+                val vlp: ViewGroup.LayoutParams = mRecyclerView!!.layoutParams
+                vlp.height = mRvMaxHeight
+                mRecyclerView!!.requestLayout()
+            }
+        }
         val helper = ItemTouchHelper(CardTouchCallback())
         helper.attachToRecyclerView(mRecyclerView)
     }
@@ -291,7 +290,7 @@ open class DoingActivity : EverythingDoneBaseActivity() {
             Blurry.with(mApp)
                 .radius(16)
                 .sampling(4)
-                .color(Color.parseColor("#36000000"))
+                .color("#36000000".toColorInt())
                 .animate(1600)
                 .onto(f<View>(R.id.fl_bg_cover_doing) as ViewGroup)
         }, 160)
@@ -328,7 +327,7 @@ open class DoingActivity : EverythingDoneBaseActivity() {
     }
 
     private fun initRecyclerView() {
-        val p = (DisplayUtil.getScreenSize(mApp)!!.x - mCardWidth) / 2
+        val p = (DisplayUtil.getScreenSize(mApp).x - mCardWidth) / 2
         mRecyclerView!!.setPadding(p, 0, p, 0)
 
         val singleThing: List<Thing?> = Collections.singletonList(mThing)
@@ -341,7 +340,7 @@ open class DoingActivity : EverythingDoneBaseActivity() {
             override fun onBindViewHolder(holder: BaseThingViewHolder, position: Int) {
                 super.onBindViewHolder(holder, position)
                 holder.cv!!.radius = 0f
-                holder.cv!!.cardElevation = 0f
+                holder.cv.cardElevation = 0f
                 holder.tvTitle!!.maxLines = Int.MAX_VALUE
                 holder.tvContent!!.maxLines = Int.MAX_VALUE
                 holder.rlReminder!!.visibility = View.GONE
@@ -430,13 +429,13 @@ open class DoingActivity : EverythingDoneBaseActivity() {
     private fun playEnterAnimations() {
         mRecyclerView!!.postDelayed({
             mTvInfinity!!.animate().setDuration(1600).alpha(0.76f)
-            f<View>(R.id.tv_swipe_to_finish_doing)!!.animate().setDuration(1600).alpha(1f)
+            f<View>(R.id.tv_swipe_to_finish_doing).animate().setDuration(1600).alpha(1f)
             mRecyclerView!!.animate().setDuration(1600).alpha(0.84f)
             mRecyclerView!!.scrollBy(0, Int.MAX_VALUE)
         }, 160) // executed after 1160ms, animation ends at 2760ms
         mRecyclerView!!.postDelayed({
-            f<View>(R.id.tv_separator_1_doing)!!.animate().setDuration(360).alpha(0.86f)
-            f<View>(R.id.tv_separator_2_doing)!!.animate().setDuration(360).alpha(0.76f)
+            f<View>(R.id.tv_separator_1_doing).animate().setDuration(360).alpha(0.86f)
+            f<View>(R.id.tv_separator_2_doing).animate().setDuration(360).alpha(0.76f)
 
             mRecyclerView!!.smoothScrollToPosition(0)
 
@@ -556,7 +555,7 @@ open class DoingActivity : EverythingDoneBaseActivity() {
         ): Boolean = false
 
         override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-            val pair: Pair<Thing, Int> = App.getThingAndPosition(mApp, mThing!!.id, -1)!!
+            val pair: Pair<Thing, Int> = App.getThingAndPosition(mApp, mThing!!.id, -1)
             DoingService.sStopReason = DoingRecord.STOP_REASON_FINISH
             if (mThing!!.type == Thing.HABIT) {
                 if (!RemoteActionHelper.finishHabitOnce(
@@ -577,7 +576,7 @@ open class DoingActivity : EverythingDoneBaseActivity() {
         ) {
             super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive)
             if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
-                val displayWidth = DisplayUtil.getDisplaySize(mApp)!!.x
+                val displayWidth = DisplayUtil.getDisplaySize(mApp).x
                 val v: View = mRecyclerView!!
                 if (dX < 0) {
                     v.alpha = 1.0f + dX / v.right

@@ -380,20 +380,20 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
 
         mIlDayYear   = InputLayout(
             mActivity!!,
-            f<TextView>(tab2, R.id.tv_day_rec_wmy)!!,
-            f<EditText>(tab2, R.id.et_day_rec_wmy)!!, mAccentColor
+            f(tab2, R.id.tv_day_rec_wmy),
+            f(tab2, R.id.et_day_rec_wmy), mAccentColor
         )
         mIlDayYear!!.setAccentBackground(mAccentBackground)
         mIlHourWmy   = InputLayout(
             mActivity!!,
-            f<TextView>(tab2, R.id.tv_hour_rec_wmy)!!,
-            f<EditText>(tab2, R.id.et_hour_rec_wmy)!!, mAccentColor
+            f(tab2, R.id.tv_hour_rec_wmy),
+            f(tab2, R.id.et_hour_rec_wmy), mAccentColor
         )
         mIlHourWmy!!.setAccentBackground(mAccentBackground)
         mIlMinuteWmy = InputLayout(
             mActivity!!,
-            f<TextView>(tab2, R.id.tv_minute_rec_wmy)!!,
-            f<EditText>(tab2, R.id.et_minute_rec_wmy)!!, mAccentColor
+            f(tab2, R.id.tv_minute_rec_wmy),
+            f(tab2, R.id.et_minute_rec_wmy), mAccentColor
         )
         mIlMinuteWmy!!.setAccentBackground(mAccentBackground)
 
@@ -596,7 +596,7 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
             val habitDetail: String? = getHabitDetail()
             if (habitDetail != null) {
                 mAdapterDayOfWeek!!.pick(Habit.getDayOrMonthListFromDetail(habitDetail))
-                val times: Array<String?> = Habit.getTimeFromDetailWeekMonth(habitDetail)!!
+                val times: Array<String?> = Habit.getTimeFromDetailWeekMonth(habitDetail)
                 mIlHourWmy!!.setTextForEditText(times[0]!!)
                 mIlMinuteWmy!!.setTextForEditText(times[1]!!)
             }
@@ -633,13 +633,13 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
         if (getHabitType() == Calendar.MONTH) {
             val habitDetail: String? = getHabitDetail()
             if (habitDetail != null) {
-                val days: List<Int?> = Habit.getDayOrMonthListFromDetail(habitDetail)!!
+                val days: List<Int?> = Habit.getDayOrMonthListFromDetail(habitDetail)
                 mAdapterDayOfMonth!!.pick(days)
                 if (days[days.size - 1] == 27) {
                     mAdapterDayOfMonth!!.pick(27)
                     mAdapterDayOfMonth!!.pick(mAdapterDayOfMonth!!.itemCount - 1)
                 }
-                val times: Array<String?> = Habit.getTimeFromDetailWeekMonth(habitDetail)!!
+                val times: Array<String?> = Habit.getTimeFromDetailWeekMonth(habitDetail)
                 mIlHourWmy!!.setTextForEditText(times[0]!!)
                 mIlMinuteWmy!!.setTextForEditText(times[1]!!)
             }
@@ -676,12 +676,12 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
         if (getHabitType() == Calendar.YEAR) {
             val habitDetail: String? = getHabitDetail()
             if (habitDetail != null) {
-                val months: List<Int?> = Habit.getDayOrMonthListFromDetail(habitDetail)!!
+                val months: List<Int?> = Habit.getDayOrMonthListFromDetail(habitDetail)
                 mAdapterMonthOfYear!!.pick(months)
 
-                val dayTimes: Array<String?> = Habit.getTimeFromDetailYear(habitDetail)!!
+                val dayTimes: Array<String?> = Habit.getTimeFromDetailYear(habitDetail)
                 if ("28" == dayTimes[0]) {
-                    val et: EditText = mIlDayYear!!.getEditText()!!
+                    val et: EditText = mIlDayYear!!.getEditText()
                     et.inputType = EditorInfo.TYPE_CLASS_TEXT
                     et.filters = arrayOf<InputFilter>(InputFilter.LengthFilter(12))
                     mIlDayYear!!.setTextForEditText(mActivity!!.getString(R.string.end_of_month))
@@ -697,7 +697,7 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
             mAdapterMonthOfYear!!.pick(month)
             val day = dt.dayOfMonth
             if (day >= 28) {
-                val et: EditText = mIlDayYear!!.getEditText()!!
+                val et: EditText = mIlDayYear!!.getEditText()
                 et.inputType = EditorInfo.TYPE_CLASS_TEXT
                 et.filters = arrayOf<InputFilter>(InputFilter.LengthFilter(12))
                 mIlDayYear!!.setTextForEditText(mActivity!!.getString(R.string.end_of_month))
@@ -1195,7 +1195,7 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
                         val day: Int
                         try {
                             day = Integer.parseInt(mIlDayYear!!.getTextFromEditText())
-                        } catch (e: NumberFormatException) {
+                        } catch (_: NumberFormatException) {
                             @Suppress("UNUSED_VARIABLE")
                             val ignored: Int = 28.also { /* defaultDay */ }
                             detail = Habit.generateDetailMonthOfYear(months, 28, hour, minute)

@@ -36,12 +36,12 @@ open class ThingsStaggeredLayoutManager : StaggeredGridLayoutManager {
     override fun onLayoutChildren(recycler: RecyclerView.Recycler, state: RecyclerView.State) {
         try {
             super.onLayoutChildren(recycler, state)
-        } catch (ignored: IndexOutOfBoundsException) { }
+        } catch (_: IndexOutOfBoundsException) { }
     }
 
     override fun smoothScrollToPosition(recyclerView: RecyclerView, state: RecyclerView.State, position: Int) {
         val context: Context = recyclerView.context!!
-        val screenHeight: Int = DisplayUtil.getDisplaySize(context)!!.y
+        val screenHeight: Int = DisplayUtil.getDisplaySize(context).y
         mSmoothScroller!!.setScreenHeight(screenHeight)
         mSmoothScroller!!.targetPosition = position
         startSmoothScroll(mSmoothScroller)

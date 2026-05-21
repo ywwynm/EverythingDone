@@ -49,7 +49,7 @@ open class VoiceVisualizer(context: Context, attrs: AttributeSet?) : FrameLayout
     }
 
     private fun init(context: Context, attrs: AttributeSet?) {
-        val args: TypedArray = context.obtainStyledAttributes(attrs, R.styleable.VoiceVisualizer)!!
+        val args: TypedArray = context.obtainStyledAttributes(attrs, R.styleable.VoiceVisualizer)
         mNumColumns = args.getInteger(R.styleable.VoiceVisualizer_numColumns, DEFAULT_NUM_COLUMNS)
 
         mPaint.setColor(args.getColor(R.styleable.VoiceVisualizer_renderColor, Color.BLACK))

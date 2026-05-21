@@ -60,7 +60,7 @@ open class HabitNotificationActionReceiver : BroadcastReceiver() {
         }
 
         var position: Int = intent.getIntExtra(Def.Communication.KEY_POSITION, -1)
-        val pair: Pair<Thing, Int> = App.getThingAndPosition(context, thingId, position)!!
+        val pair: Pair<Thing, Int> = App.getThingAndPosition(context, thingId, position)
         val thing: Thing = pair.first ?: return
         position = pair.second!!
 
@@ -93,14 +93,14 @@ open class HabitNotificationActionReceiver : BroadcastReceiver() {
                 actionIntent = AuthenticationActivity.getOpenIntent(
                         context, TAG, thingId, position,
                         Def.Communication.AUTHENTICATE_ACTION_START_DOING,
-                        context.getString(R.string.start_doing_full_title))!!
+                        context.getString(R.string.start_doing_full_title))
                 actionIntent.putExtra(Def.Communication.KEY_TIME, hrTime)
             } else {
                 // Phase 8: pass the full ThingBackground so a GRADIENT habit's
                 // start-doing chooser renders gradient.
                 actionIntent = StartDoingActivity.getOpenIntent(
                         context, thing.id, position, thing.getBackground(),
-                        DoingService.START_TYPE_ALARM, hrTime)!!
+                        DoingService.START_TYPE_ALARM, hrTime)
             }
             actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
             context.startActivity(actionIntent)

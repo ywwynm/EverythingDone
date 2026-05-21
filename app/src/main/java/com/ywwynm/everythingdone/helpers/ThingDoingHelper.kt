@@ -51,10 +51,10 @@ open class ThingDoingHelper(context: Context?, thing: Thing?) {
 
         App.setDoingThingId(mThing!!.id)
         val serviceIntent: Intent = DoingService.getOpenIntent(
-                mContext, mThing, System.currentTimeMillis(), timeInMillis, startType, hr)!!
+                mContext, mThing, System.currentTimeMillis(), timeInMillis, startType, hr)
         mContext!!.startForegroundService(serviceIntent)
 
-        val activityIntent: Intent = DoingActivity.getOpenIntent(mContext, false)!!
+        val activityIntent: Intent = DoingActivity.getOpenIntent(mContext, false)
         if (outsideActivity || mContext !is Activity) {
             activityIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
@@ -145,31 +145,38 @@ open class ThingDoingHelper(context: Context?, thing: Thing?) {
      */
     open fun shouldAutoStartDoing(): Boolean {
         val strategy: Int = getAutoStartDoingStrategy()
-        if (strategy == AUTO_START_DOING_STRATEGY_FOLLOW_GENERAL) {
-            val sysStrategy: Int = mSpSettings!!.getInt(Def.Meta.KEY_AUTO_START_DOING,
-                    SYS_AUTO_START_DOING_STRATEGY_DISABLED)
-            when (sysStrategy) {
-                SYS_AUTO_START_DOING_STRATEGY_DISABLED -> return false
-                SYS_AUTO_START_DOING_STRATEGY_ALL -> {
-                    // suppose that this method will only be called for Reminder or Habit
-                    return true
-                }
-                else -> {
-                    if (mThing == null) {
-                        return false
+        when (strategy) {
+            AUTO_START_DOING_STRATEGY_FOLLOW_GENERAL -> {
+                val sysStrategy: Int = mSpSettings!!.getInt(
+                    Def.Meta.KEY_AUTO_START_DOING,
+                    SYS_AUTO_START_DOING_STRATEGY_DISABLED
+                )
+                when (sysStrategy) {
+                    SYS_AUTO_START_DOING_STRATEGY_DISABLED -> return false
+                    SYS_AUTO_START_DOING_STRATEGY_ALL -> {
+                        // suppose that this method will only be called for Reminder or Habit
+                        return true
                     }
-                    @Thing.Type val thingType: Int = mThing!!.type
-                    return when {
-                        thingType == Thing.REMINDER && sysStrategy == SYS_AUTO_START_DOING_STRATEGY_REMINDER -> true
-                        thingType == Thing.HABIT && sysStrategy == SYS_AUTO_START_DOING_STRATEGY_HABIT -> true
-                        else -> false
+
+                    else -> {
+                        if (mThing == null) {
+                            return false
+                        }
+                        @Thing.Type val thingType: Int = mThing!!.type
+                        return when (thingType) {
+                            Thing.REMINDER if sysStrategy == SYS_AUTO_START_DOING_STRATEGY_REMINDER -> true
+                            Thing.HABIT if sysStrategy == SYS_AUTO_START_DOING_STRATEGY_HABIT -> true
+                            else -> false
+                        }
                     }
                 }
             }
-        } else if (strategy == AUTO_START_DOING_STRATEGY_ENABLED) {
-            return true
-        } else { // AUTO_START_DOING_STRATEGY_DISABLED
-            return false
+            AUTO_START_DOING_STRATEGY_ENABLED -> {
+                return true
+            }
+            else -> { // AUTO_START_DOING_STRATEGY_DISABLED
+                return false
+            }
         }
     }
 
@@ -208,31 +215,38 @@ open class ThingDoingHelper(context: Context?, thing: Thing?) {
      */
     open fun shouldAutoStrictMode(): Boolean {
         val strategy: Int = getAutoStrictModeStrategy()
-        if (strategy == AUTO_STRICT_MODE_STRATEGY_FOLLOW_GENERAL) {
-            val sysStrategy: Int = mSpSettings!!.getInt(Def.Meta.KEY_AUTO_STRICT_MODE,
-                    SYS_AUTO_STRICT_MODE_STRATEGY_DISABLED)
-            when (sysStrategy) {
-                SYS_AUTO_STRICT_MODE_STRATEGY_DISABLED -> return false
-                SYS_AUTO_STRICT_MODE_STRATEGY_ALL -> {
-                    // suppose that this method will only be called for Reminder or Habit
-                    return true
-                }
-                else -> {
-                    if (mThing == null) {
-                        return false
+        when (strategy) {
+            AUTO_STRICT_MODE_STRATEGY_FOLLOW_GENERAL -> {
+                val sysStrategy: Int = mSpSettings!!.getInt(
+                    Def.Meta.KEY_AUTO_STRICT_MODE,
+                    SYS_AUTO_STRICT_MODE_STRATEGY_DISABLED
+                )
+                when (sysStrategy) {
+                    SYS_AUTO_STRICT_MODE_STRATEGY_DISABLED -> return false
+                    SYS_AUTO_STRICT_MODE_STRATEGY_ALL -> {
+                        // suppose that this method will only be called for Reminder or Habit
+                        return true
                     }
-                    @Thing.Type val thingType: Int = mThing!!.type
-                    return when {
-                        thingType == Thing.REMINDER && sysStrategy == SYS_AUTO_STRICT_MODE_STRATEGY_REMINDER -> true
-                        thingType == Thing.HABIT && sysStrategy == SYS_AUTO_STRICT_MODE_STRATEGY_HABIT -> true
-                        else -> false
+
+                    else -> {
+                        if (mThing == null) {
+                            return false
+                        }
+                        @Thing.Type val thingType: Int = mThing!!.type
+                        return when (thingType) {
+                            Thing.REMINDER if sysStrategy == SYS_AUTO_STRICT_MODE_STRATEGY_REMINDER -> true
+                            Thing.HABIT if sysStrategy == SYS_AUTO_STRICT_MODE_STRATEGY_HABIT -> true
+                            else -> false
+                        }
                     }
                 }
             }
-        } else if (strategy == AUTO_STRICT_MODE_STRATEGY_ENABLED) {
-            return true
-        } else { // AUTO_STRICT_MODE_STRATEGY_DISABLED
-            return false
+            AUTO_STRICT_MODE_STRATEGY_ENABLED -> {
+                return true
+            }
+            else -> { // AUTO_STRICT_MODE_STRATEGY_DISABLED
+                return false
+            }
         }
     }
 
@@ -338,9 +352,9 @@ open class ThingDoingHelper(context: Context?, thing: Thing?) {
                     disabled
                 } else {
                     @Thing.Type val thingType: Int = mThing!!.type
-                    when {
-                        thingType == Thing.REMINDER && sysStrategy == SYS_AUTO_START_DOING_STRATEGY_REMINDER -> enabled
-                        thingType == Thing.HABIT && sysStrategy == SYS_AUTO_START_DOING_STRATEGY_HABIT -> enabled
+                    when (thingType) {
+                        Thing.REMINDER if sysStrategy == SYS_AUTO_START_DOING_STRATEGY_REMINDER -> enabled
+                        Thing.HABIT if sysStrategy == SYS_AUTO_START_DOING_STRATEGY_HABIT -> enabled
                         else -> disabled
                     }
                 }
@@ -364,7 +378,7 @@ open class ThingDoingHelper(context: Context?, thing: Thing?) {
             val arr: Array<String> = doingTimeStr.split(",".toRegex()).toTypedArray()
             val type: Int = arr[0].toInt()
             val time: Int = arr[1].toInt()
-            part2 = DateTimeUtil.getDateTimeStr(type, time, mContext)!!
+            part2 = DateTimeUtil.getDateTimeStr(type, time, mContext)
         }
         return "$part1 ($part2)"
     }
@@ -384,9 +398,9 @@ open class ThingDoingHelper(context: Context?, thing: Thing?) {
                     disabled
                 } else {
                     @Thing.Type val thingType: Int = mThing!!.type
-                    when {
-                        thingType == Thing.REMINDER && sysStrategy == SYS_AUTO_STRICT_MODE_STRATEGY_REMINDER -> enabled
-                        thingType == Thing.HABIT && sysStrategy == SYS_AUTO_STRICT_MODE_STRATEGY_HABIT -> enabled
+                    when (thingType) {
+                        Thing.REMINDER if sysStrategy == SYS_AUTO_STRICT_MODE_STRATEGY_REMINDER -> enabled
+                        Thing.HABIT if sysStrategy == SYS_AUTO_STRICT_MODE_STRATEGY_HABIT -> enabled
                         else -> disabled
                     }
                 }

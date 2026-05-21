@@ -53,7 +53,7 @@ open class ReminderNotificationActionReceiver : BroadcastReceiver() {
         }
 
         var position: Int = intent.getIntExtra(Def.Communication.KEY_POSITION, -1)
-        val pair: Pair<Thing, Int> = App.getThingAndPosition(context, thingId, position)!!
+        val pair: Pair<Thing, Int> = App.getThingAndPosition(context, thingId, position)
         val thing: Thing? = pair.first
         if (thing == null) {
             ReminderDAO.getInstance(context)!!.delete(thingId)
@@ -68,7 +68,7 @@ open class ReminderNotificationActionReceiver : BroadcastReceiver() {
                 val actionIntent: Intent = AuthenticationActivity.getOpenIntent(
                         context, TAG, thingId, position,
                         Def.Communication.AUTHENTICATE_ACTION_FINISH,
-                        context.getString(R.string.act_finish))!!
+                        context.getString(R.string.act_finish))
                 actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
                 context.startActivity(actionIntent)
             } else {
@@ -80,32 +80,29 @@ open class ReminderNotificationActionReceiver : BroadcastReceiver() {
                         Toast.LENGTH_LONG).show()
                 return
             }
-
-            val actionIntent: Intent
-            if (thing.isPrivate()) {
-                actionIntent = AuthenticationActivity.getOpenIntent(
-                        context, TAG, thingId, position,
-                        Def.Communication.AUTHENTICATE_ACTION_START_DOING,
-                        context.getString(R.string.start_doing_full_title))!!
+            val actionIntent: Intent = if (thing.isPrivate()) {
+                AuthenticationActivity.getOpenIntent(
+                    context, TAG, thingId, position,
+                    Def.Communication.AUTHENTICATE_ACTION_START_DOING,
+                    context.getString(R.string.start_doing_full_title))
             } else {
                 // Phase 8: pass full ThingBackground for GRADIENT support.
-                actionIntent = StartDoingActivity.getOpenIntent(
-                        context, thing.id, position, thing.getBackground(),
-                        DoingService.START_TYPE_ALARM, -1)!!
+                StartDoingActivity.getOpenIntent(
+                    context, thing.id, position, thing.getBackground(),
+                    DoingService.START_TYPE_ALARM, -1)
             }
             actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
             context.startActivity(actionIntent)
         } else if (Def.Communication.NOTIFICATION_ACTION_DELAY == action) {
-            val actionIntent: Intent
-            if (thing.isPrivate()) {
-                actionIntent = AuthenticationActivity.getOpenIntent(
-                        context, TAG, thingId, position,
-                        Def.Communication.AUTHENTICATE_ACTION_DELAY,
-                        context.getString(R.string.act_delay))!!
+            val actionIntent: Intent = if (thing.isPrivate()) {
+                AuthenticationActivity.getOpenIntent(
+                    context, TAG, thingId, position,
+                    Def.Communication.AUTHENTICATE_ACTION_DELAY,
+                    context.getString(R.string.act_delay))
             } else {
                 // Phase 8: pass full ThingBackground for GRADIENT support.
-                actionIntent = DelayReminderActivity.getOpenIntent(
-                        context, thing.id, position, thing.getBackground())!!
+                DelayReminderActivity.getOpenIntent(
+                    context, thing.id, position, thing.getBackground())
             }
             actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
             context.startActivity(actionIntent)

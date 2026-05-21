@@ -178,7 +178,7 @@ object AlarmHelper {
             return
         }
 
-        val dailyTodoPairs: List<Pair<Int, Int>?> = DailyTodoHelper.getDailyTodoTimePairs()!!
+        val dailyTodoPairs: List<Pair<Int, Int>?> = DailyTodoHelper.getDailyTodoTimePairs()
         val pair: Pair<Int, Int> = dailyTodoPairs[index]!!
 
         val intent = Intent(context, DailyCreateTodoReceiver::class.java)

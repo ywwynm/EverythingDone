@@ -113,7 +113,7 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
         // column. Previously this inserted only 11 values for a 12-column
         // table — broken on fresh installs since v9 added COLUMN_BACKGROUND_THINGS.
         val bg: com.ywwynm.everythingdone.model.ThingBackground =
-                com.ywwynm.everythingdone.model.ThingBackground.fromRandom()!!
+                com.ywwynm.everythingdone.model.ThingBackground.fromRandom()
         return "insert into " + Def.Database.TABLE_THINGS + " values(" + "'" +
                 id + "', '" +
                 type + "', '" +

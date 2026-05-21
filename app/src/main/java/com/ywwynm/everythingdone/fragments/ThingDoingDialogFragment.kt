@@ -157,7 +157,7 @@ open class ThingDoingDialogFragment : BaseDialogFragment() {
     }
 
     private fun showAutoStartDoingTimeChooser() {
-        val items: MutableList<String?> = ArrayList(ThingDoingHelper.getStartDoingTimeItems(mActivity)!!)
+        val items: MutableList<String?> = ArrayList(ThingDoingHelper.getStartDoingTimeItems(mActivity))
         items.add(0, mDoingHelper!!.getAutoStartDoingTimeFollowGeneralStr())
 
         val cdf = ChooserDialogFragment()

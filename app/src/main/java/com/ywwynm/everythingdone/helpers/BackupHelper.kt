@@ -43,7 +43,7 @@ object BackupHelper {
         val curTime: Long = System.currentTimeMillis()
         val dt: ZonedDateTime = Instant.ofEpochMilli(curTime).atZone(ZoneId.systemDefault())
         val timeStr = dt.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
-        val backupFileName: String = "$BACKUP_FILE_NAME_PREFIX$timeStr.$BACKUP_FILE_POSTFIX"
+        val backupFileName = "$BACKUP_FILE_NAME_PREFIX$timeStr.$BACKUP_FILE_POSTFIX"
         val dst: File = FileUtil.createFile(tempDirPath, backupFileName) ?: return false
 
         if (!FileUtil.zipDirectory(src, dst, false, *getBackupFilePaths(context))) {

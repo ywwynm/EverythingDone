@@ -24,7 +24,7 @@ object UriPathConverter {
     fun getLocalPathName(context: Context?, uri: Uri?): String? {
         val pathName: String = getPathName(context, uri) ?: return null
         if (!pathName.startsWith(Environment.getExternalStorageDirectory().absolutePath)) {
-            val locations: List<String?> = FileUtil.getAllStorageLocations()!!
+            val locations: List<String?> = FileUtil.getAllStorageLocations()
             for (location in locations) {
                 if (pathName.startsWith(location!!)) {
                     return pathName

@@ -32,7 +32,7 @@ open class DoingNotificationActionReceiver : BroadcastReceiver() {
         if (ACTION_FINISH == action) {
             DoingService.sStopReason = DoingRecord.STOP_REASON_FINISH
             val thingId: Long = intent.getLongExtra(Def.Communication.KEY_ID, -1L)
-            val pair: Pair<Thing, Int> = App.getThingAndPosition(context, thingId, -1)!!
+            val pair: Pair<Thing, Int> = App.getThingAndPosition(context, thingId, -1)
             val thing: Thing? = pair.first
             if (thing != null) {
                 @Thing.Type val thingType: Int = thing.type

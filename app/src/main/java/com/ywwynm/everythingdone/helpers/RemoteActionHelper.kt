@@ -172,7 +172,7 @@ object RemoteActionHelper {
 
     @JvmStatic
     fun toggleChecklistItem(context: Context?, id: Long, itemPos: Int) {
-        val pair: Pair<Thing, Int> = App.getThingAndPosition(context, id, -1)!!
+        val pair: Pair<Thing, Int> = App.getThingAndPosition(context, id, -1)
         val thing: Thing = pair.first ?: return
         val updatedContent: String? = CheckListHelper.toggleChecklistItem(thing.content, itemPos)
         thing.content = updatedContent

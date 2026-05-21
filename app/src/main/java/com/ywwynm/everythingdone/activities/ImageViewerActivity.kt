@@ -75,7 +75,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         @Suppress("UNCHECKED_CAST")
         mTypePathNames = intent.getStringArrayListExtra(
             Def.Communication.KEY_TYPE_PATH_NAME
-        ) as ArrayList<String>?
+        )
         mPosition = intent.getIntExtra(Def.Communication.KEY_POSITION, 0)
 
         val size = mTypePathNames!!.size
@@ -140,7 +140,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
     }
 
     private fun getImageSize(): IntArray {
-        val screen: Point = DisplayUtil.getScreenSize(this)!!
+        val screen: Point = DisplayUtil.getScreenSize(this)
         val width  = screen.x
         val height = screen.y
         return intArrayOf(width, height)

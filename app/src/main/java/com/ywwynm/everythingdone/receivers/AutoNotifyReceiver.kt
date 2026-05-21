@@ -24,7 +24,7 @@ open class AutoNotifyReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val id: Long = intent.getLongExtra(Def.Communication.KEY_ID, 0)
 
-        val pair: Pair<Thing, Int> = App.getThingAndPosition(context, id, -1)!!
+        val pair: Pair<Thing, Int> = App.getThingAndPosition(context, id, -1)
         val thing: Thing? = pair.first
         if (thing == null || thing.state != Thing.UNDERWAY) {
             return
@@ -34,7 +34,7 @@ open class AutoNotifyReceiver : BroadcastReceiver() {
         }
 
         val builder: NotificationCompat.Builder = SystemNotificationUtil
-                .newGeneralNotificationBuilder(context, TAG, id, pair.second!!, thing, true)!!
+                .newGeneralNotificationBuilder(context, TAG, id, pair.second!!, thing, true)
         var title: String = thing.getTitleToDisplay()!!
         if (title.isEmpty()) {
             title = Thing.getTypeStr(thing.type, context)!!

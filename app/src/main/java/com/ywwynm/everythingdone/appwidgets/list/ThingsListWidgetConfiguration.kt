@@ -23,6 +23,7 @@ import com.ywwynm.everythingdone.model.ThingWidgetInfo
 import com.ywwynm.everythingdone.utils.DisplayUtil
 
 import java.util.ArrayList
+import kotlin.math.abs
 
 /**
  * Created by qiizhang on 2016/8/10.
@@ -76,13 +77,13 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
 
         mCbSimpleView = findViewById(R.id.cb_simple_view)!!
         DisplayUtil.setCheckBoxColor(mCbSimpleView, color)
-        findViewById<View>(R.id.rl_simple_view_as_bt).setOnClickListener { v ->
+        findViewById<View>(R.id.rl_simple_view_as_bt).setOnClickListener { _ ->
             mCbSimpleView!!.toggle()
         }
 
         mCbAlphaHeader = findViewById(R.id.cb_alpha_header)!!
         DisplayUtil.setCheckBoxColor(mCbAlphaHeader, color)
-        findViewById<View>(R.id.rl_alpha_header_as_bt).setOnClickListener { v ->
+        findViewById<View>(R.id.rl_alpha_header_as_bt).setOnClickListener { _ ->
             mCbAlphaHeader!!.toggle()
         }
 
@@ -115,7 +116,7 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
         if (alpha == ThingWidgetInfo.HEADER_ALPHA_0) {
             mSbAlpha!!.progress = 0
         } else {
-            mSbAlpha!!.progress = Math.abs(alpha)
+            mSbAlpha!!.progress = abs(alpha)
         }
     }
 

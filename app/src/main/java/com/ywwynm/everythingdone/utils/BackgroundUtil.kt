@@ -13,10 +13,12 @@ import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.view.View
 import android.widget.TextView
+import androidx.annotation.Keep
 
 import androidx.cardview.widget.CardView
 
 import com.ywwynm.everythingdone.model.ThingBackground
+import kotlin.math.ceil
 
 /**
  * Algorithmic helpers for deriving colors and brightness-aware foreground choices
@@ -315,7 +317,7 @@ object BackgroundUtil {
         // (e.g. dialog enter animation) still uses the new colour.
         textView.setTextColor(background.representativeColor())
 
-        val apply: Runnable = Runnable {
+        val apply = Runnable {
             applyTextShaderNow(textView, background)
         }
         if (textView.width > 0 && textView.height > 0
@@ -491,7 +493,7 @@ object BackgroundUtil {
             return
         }
         val strokeHeightPx: Int = Math.max(1,
-                Math.ceil((editText.resources.displayMetrics.density * 2).toDouble()).toInt())
+                ceil((editText.resources.displayMetrics.density * 2).toDouble()).toInt())
         val line = GradientDrawable()
         line.setShape(GradientDrawable.RECTANGLE)
         if (bg.mode === ThingBackground.Mode.GRADIENT) {
@@ -610,6 +612,7 @@ object BackgroundUtil {
             inner.draw(canvas)
         }
 
+        @Keep
         override fun setAlpha(alpha: Int) {
             inner.alpha = alpha
             invalidateSelf()

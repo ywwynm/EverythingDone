@@ -111,7 +111,7 @@ object SendInfoHelper {
         try {
             context.startActivity(Intent.createChooser(intent,
                     context.getString(R.string.send_feedback_to_developer)))
-        } catch (e: ActivityNotFoundException) {
+        } catch (_: ActivityNotFoundException) {
             Toast.makeText(context, context.getString(R.string.error_activity_not_found),
                     Toast.LENGTH_SHORT).show()
         }
@@ -144,7 +144,7 @@ object SendInfoHelper {
         try {
             context.startActivity(Intent.createChooser(
                     intent, context.getString(R.string.support_select_market)))
-        } catch (e: ActivityNotFoundException) {
+        } catch (_: ActivityNotFoundException) {
             Toast.makeText(context, context.getString(R.string.error_activity_not_found),
                     Toast.LENGTH_SHORT).show()
         }
@@ -178,7 +178,7 @@ object SendInfoHelper {
             if (reminder != null) {
                 val reminderMe: String = context!!.getString(R.string.remind_me)
                 val reminderInfoStr: String = DateTimeUtil.getDateTimeStrReminder(
-                        context, thing, reminder, true)!!
+                        context, thing, reminder, true)
                 sb.append(StringUtil.upperFirst(reminderMe)).append(reminderInfoStr).append("\n\n")
             }
         } else if (type == Thing.HABIT) {
@@ -190,7 +190,7 @@ object SendInfoHelper {
             if (state != Thing.FINISHED) {
                 val goal: Reminder? = ReminderDAO.getInstance(context)!!.getReminderById(id)
                 if (goal != null) {
-                    val goalInfoStr: String = DateTimeUtil.getDateTimeStrGoal(context, thing, goal)!!
+                    val goalInfoStr: String = DateTimeUtil.getDateTimeStrGoal(context, thing, goal)
                     sb.append(StringUtil.upperFirst(goalInfoStr)).append("\n\n")
                 }
             }

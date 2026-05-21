@@ -48,7 +48,7 @@ open class DelayReminderActivity : AppCompatActivity() {
         val intent: Intent = getIntent()
         val id = intent.getLongExtra(Def.Communication.KEY_ID, -1)
         val pos = intent.getIntExtra(Def.Communication.KEY_POSITION, -1)
-        val pair: Pair<Thing, Int> = App.getThingAndPosition(applicationContext, id, pos)!!
+        val pair: Pair<Thing, Int> = App.getThingAndPosition(applicationContext, id, pos)
         if (pair.first == null) {
             finish()
             return

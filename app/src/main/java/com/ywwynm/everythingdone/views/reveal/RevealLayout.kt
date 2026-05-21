@@ -14,10 +14,10 @@ import android.animation.ObjectAnimator
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Path
-import android.os.Build
 import android.util.AttributeSet
 import android.view.View
 import android.widget.FrameLayout
+import androidx.annotation.Keep
 import kotlin.math.max
 import kotlin.math.sqrt
 
@@ -41,13 +41,7 @@ open class RevealLayout : FrameLayout {
 
     constructor(context: Context, attrs: AttributeSet?) : this(context, attrs, 0)
 
-    constructor(context: Context, attrs: AttributeSet?, defStyle: Int) : super(context, attrs, defStyle) {
-
-        // clipPath()仅在4.3以上支持硬件加速
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN_MR2) {
-            setLayerType(LAYER_TYPE_SOFTWARE, null)
-        }
-    }
+    constructor(context: Context, attrs: AttributeSet?, defStyle: Int) : super(context, attrs, defStyle)
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         mClipCenterX = w / 2
@@ -62,6 +56,7 @@ open class RevealLayout : FrameLayout {
         return mClipRadius
     }
 
+    @Keep
     @Suppress("unused")
     fun setClipRadius(clipRadius: Float) {
         mClipRadius = clipRadius
@@ -73,7 +68,7 @@ open class RevealLayout : FrameLayout {
     }
 
     fun show(x: Int, y: Int, duration: Int) {
-        if (x < 0 || x > width || y < 0 || y > height) {
+        if (x !in 0..width || y < 0 || y > height) {
             throw RuntimeException("Center point out of range or call method " +
                     "when View is not initialed yet.")
         }
@@ -107,7 +102,7 @@ open class RevealLayout : FrameLayout {
     }
 
     fun hide(x: Int, y: Int, duration: Int) {
-        if (x < 0 || x > width || y < 0 || y > height) {
+        if (x !in 0..width || y < 0 || y > height) {
             throw RuntimeException("Center point out of range or call method " +
                     "when View is not initialed yet.")
         }

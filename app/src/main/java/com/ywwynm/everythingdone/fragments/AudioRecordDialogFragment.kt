@@ -132,7 +132,7 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         val normalColor = ContextCompat.getColor(mActivity!!, R.color.black_26p)
         val accentBg: ThingBackground? = mActivity!!.getAccentBackground()
         val accentColor: Int = accentBg?.representativeColor() ?: mActivity!!.getAccentColor()
-        mEtFileName!!.onFocusChangeListener = View.OnFocusChangeListener { v, hasFocus ->
+        mEtFileName!!.onFocusChangeListener = View.OnFocusChangeListener { _, hasFocus ->
             val useGradientLine = hasFocus
                     && accentBg != null
                     && accentBg.mode === ThingBackground.Mode.GRADIENT

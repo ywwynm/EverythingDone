@@ -16,7 +16,6 @@ import android.util.Log
 import androidx.core.app.NotificationManagerCompat
 
 import java.util.ArrayList
-import java.util.Arrays
 import java.util.Locale
 
 /**
@@ -43,7 +42,7 @@ object NotificationReliabilityHelper {
     /** Channel IDs whose silent disabling would break the core reminder UX. */
     @JvmField
     val CRITICAL_CHANNEL_IDS: List<String?> =
-            Arrays.asList("reminder", "habit", "goal")
+        listOf("reminder", "habit", "goal")
 
     @JvmStatic
     fun areNotificationsEnabled(context: Context?): Boolean {
@@ -116,9 +115,6 @@ object NotificationReliabilityHelper {
 
     @JvmStatic
     fun isBatteryOptimizationIgnored(context: Context?): Boolean {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-            return true
-        }
         val pm: PowerManager? = context!!.getSystemService(Context.POWER_SERVICE) as PowerManager?
         return pm != null && pm.isIgnoringBatteryOptimizations(context.packageName)
     }
@@ -130,9 +126,6 @@ object NotificationReliabilityHelper {
     @SuppressLint("BatteryLife")
     @JvmStatic
     fun requestIgnoreBatteryOptimization(context: Context?): Boolean {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-            return true
-        }
         val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
         intent.setData(Uri.parse("package:" + context!!.packageName))
         return startSafely(context, intent)

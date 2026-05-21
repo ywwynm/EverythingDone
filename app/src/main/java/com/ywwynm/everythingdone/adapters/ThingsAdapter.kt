@@ -94,8 +94,8 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         val armed = isArmedFor(position)
 
         if (!armed) {
-            if (holder.llContent!!.alpha != 1f) holder.llContent!!.alpha = 1f
-            if (holder.cv!!.alpha != 1f)        holder.cv!!.alpha = 1f
+            if (holder.llContent!!.alpha != 1f) holder.llContent.alpha = 1f
+            if (holder.cv!!.alpha != 1f)        holder.cv.alpha = 1f
         }
 
         if (mShouldThingsAnimWhenAppearing && !armed) {
@@ -121,12 +121,12 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
 
         holder.cv!!.visibility = View.INVISIBLE
         holder.llContent!!.alpha = 1f
-        holder.cv!!.alpha = 1f
+        holder.cv.alpha = 1f
 
-        holder.cv!!.post(object : Runnable {
+        holder.cv.post(object : Runnable {
             override fun run() {
-                if (holder.cv!!.width == 0 || holder.cv!!.height == 0) {
-                    holder.cv!!.post(this)
+                if (holder.cv.width == 0 || holder.cv.height == 0) {
+                    holder.cv.post(this)
                     return
                 }
                 listener!!.onNewItemBound(firedPosition, holder)
@@ -196,8 +196,8 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
                     val simpleFCli = FrequentSettings.getBoolean(Def.Meta.KEY_SIMPLE_FCLI)
                     val content: String = thing.content!!
                     if (simpleFCli) {
-                        val items: MutableList<String?>? = CheckListHelper.toCheckListItems(content, false)
-                        items!!.remove("2")
+                        val items: MutableList<String?> = CheckListHelper.toCheckListItems(content, false)
+                        items.remove("2")
                         items.remove("3")
                         items.remove("4")
                         if (itemPos < 0 || itemPos >= items.size

@@ -115,7 +115,7 @@ open class DoingService : Service() {
 
                 val notification: Notification = SystemNotificationUtil.createDoingNotification(
                         this@DoingService, mThing, doingState, getLeftTimeStr(), sHrTime,
-                        getHighlightStrategy(careless))!!
+                        getHighlightStrategy(careless))
                 mStartHighlighted = true
                 startForeground(mThing!!.id.toInt(), notification)
 
@@ -295,7 +295,7 @@ open class DoingService : Service() {
         sResetDoingIdInOnDestroy = true
 
         val initialNotification: Notification = SystemNotificationUtil.createDoingNotification(
-                this, mThing, STATE_DOING, getInitialLeftTimeStr(), sHrTime, 0)!!
+                this, mThing, STATE_DOING, getInitialLeftTimeStr(), sHrTime, 0)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             startForeground(mThing!!.id.toInt(), initialNotification,
                     ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)

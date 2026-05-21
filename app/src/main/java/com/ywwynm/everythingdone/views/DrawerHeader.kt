@@ -42,7 +42,7 @@ open class DrawerHeader(
             mTvLocation.textSize = 16f
             mTvCompletionRate.textSize = 28f
         } else {
-            val width: Int = DisplayUtil.getScreenSize(mApp)!!.x
+            val width: Int = DisplayUtil.getScreenSize(mApp).x
             if (width <= 720) {
                 mTvLocation.textSize = 12f
             } else if (width <= 1080) {

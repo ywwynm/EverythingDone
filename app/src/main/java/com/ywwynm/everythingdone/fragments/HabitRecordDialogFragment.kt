@@ -76,7 +76,7 @@ open class HabitRecordDialogFragment : BaseDialogFragment() {
             dismiss()
         }
 
-        f<TextView>(R.id.tv_cancel_as_bt)!!.setOnClickListener { dismiss() }
+        f<TextView>(R.id.tv_cancel_as_bt).setOnClickListener { dismiss() }
 
         return mContentView
     }

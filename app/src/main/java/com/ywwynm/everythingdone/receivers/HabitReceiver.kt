@@ -62,7 +62,7 @@ open class HabitReceiver : BroadcastReceiver() {
             ThingDoingHelper.stopDoing(context, DoingRecord.STOP_REASON_CANCEL_NEXT_ALARM)
         }
 
-        val pair: Pair<Thing, Int> = App.getThingAndPosition(context, habitId, -1)!!
+        val pair: Pair<Thing, Int> = App.getThingAndPosition(context, habitId, -1)
         val thing: Thing? = pair.first
         if (thing == null) {
             habitDAO.deleteHabit(habitId)
@@ -81,7 +81,7 @@ open class HabitReceiver : BroadcastReceiver() {
                     e.printStackTrace()
                 }
                 val notification: Notification = SystemNotificationUtil.createDoingNotification(
-                        App.getApp(), thing, DoingService.STATE_FAILED_NEXT_ALARM, null, -1, 2)!!
+                        App.getApp(), thing, DoingService.STATE_FAILED_NEXT_ALARM, null, -1, 2)
                 NotificationManagerCompat.from(App.getApp()!!).notify(habitId.toInt(), notification)
             }.start()
         }
@@ -154,7 +154,7 @@ open class HabitReceiver : BroadcastReceiver() {
 
             if (hrTime > System.currentTimeMillis()) {
                 // this should be impossible
-                hrTime = DateTimeUtil.getHabitReminderTime(habit!!.type, hrTime, -1)
+                hrTime = DateTimeUtil.getHabitReminderTime(habit.type, hrTime, -1)
             }
             notifyUser(context, habitId, hrId, hrTime, position, thing)
         }
@@ -207,7 +207,7 @@ open class HabitReceiver : BroadcastReceiver() {
             context: Context, habitId: Long, hrId: Long, hrTime: Long, position: Int,
             thing: Thing, moreNoticeable: Boolean) {
         val builder: NotificationCompat.Builder = SystemNotificationUtil
-                .newGeneralNotificationBuilder(context, TAG, habitId, position, thing, false)!!
+                .newGeneralNotificationBuilder(context, TAG, habitId, position, thing, false)
         if (moreNoticeable) {
             // if we use a dialog to notify this alarm, we don't need to show heads-up notification
             builder.setPriority(NotificationCompat.PRIORITY_DEFAULT)
@@ -220,7 +220,7 @@ open class HabitReceiver : BroadcastReceiver() {
 
         if (moreNoticeable) {
             val fullScreenIntent: Intent = NoticeableNotificationActivity.getOpenIntentForHabit(
-                    context, hrId, position, hrTime)!!
+                    context, hrId, position, hrTime)
             fullScreenIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
             builder.setFullScreenIntent(PendingIntent.getActivity(
                     context, hrId.toInt(), fullScreenIntent,

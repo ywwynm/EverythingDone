@@ -143,14 +143,14 @@ open class RecurrencePickerAdapter(
                 } else {
                     pill.setColor(mAccentColor)
                 }
-                holder.cv!!.background = pill
-                holder.cv!!.contentDescription = mCdPicked + mCds!![position] + ","
+                holder.cv.background = pill
+                holder.cv.contentDescription = mCdPicked + mCds!![position] + ","
                 DisplayUtil.setRippleColorForCardView(holder.cv, unPickerColor)
                 holder.tv!!.setTextColor(Color.WHITE)
             } else {
                 pill.setColor(unPickerColor)
-                holder.cv!!.background = pill
-                holder.cv!!.contentDescription = mCdUnpicked + mCds!![position] + ","
+                holder.cv.background = pill
+                holder.cv.contentDescription = mCdUnpicked + mCds!![position] + ","
                 DisplayUtil.setRippleColorForCardView(holder.cv, mAccentColor)
                 holder.tv!!.setTextColor(black_54)
             }
@@ -160,7 +160,7 @@ open class RecurrencePickerAdapter(
                 val params = holder.cell!!.layoutParams as FrameLayout.LayoutParams
                 params.width = (mScreenDensity * 36).toInt()
                 params.height = params.width
-                holder.cell!!.invalidateOutline()
+                holder.cell.invalidateOutline()
             }
             holder.tvDate!!.text = mItems!![position]
             if (mPicked!![position]) {
@@ -175,16 +175,16 @@ open class RecurrencePickerAdapter(
                     holder.bg!!.background = gd
                 } else {
                     holder.bg!!.background = null
-                    holder.bg!!.setBackgroundColor(mAccentColor)
+                    holder.bg.setBackgroundColor(mAccentColor)
                 }
                 setRippleColor(holder.cell, unPickerColor)
-                holder.tvDate!!.setTextColor(Color.WHITE)
+                holder.tvDate.setTextColor(Color.WHITE)
                 holder.cell!!.contentDescription = mCdPicked + mCds!![position] + ","
             } else {
                 holder.bg!!.background = null
-                holder.bg!!.setBackgroundColor(unPickerColor)
+                holder.bg.setBackgroundColor(unPickerColor)
                 setRippleColor(holder.cell, mAccentColor)
-                holder.tvDate!!.setTextColor(black_54)
+                holder.tvDate.setTextColor(black_54)
                 holder.cell!!.contentDescription = mCdUnpicked + mCds!![position] + ","
             }
         }

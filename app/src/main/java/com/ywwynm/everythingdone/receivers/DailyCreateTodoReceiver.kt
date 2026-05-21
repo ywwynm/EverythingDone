@@ -21,7 +21,7 @@ open class DailyCreateTodoReceiver : BroadcastReceiver() {
         val openIntent: Intent = DetailActivity.getOpenIntentForCreate(context, TAG,
                 if (App.newThingBackground != null)
                         App.newThingBackground
-                else com.ywwynm.everythingdone.model.ThingBackground.pure(App.newThingColor))!!
+                else com.ywwynm.everythingdone.model.ThingBackground.pure(App.newThingColor))
         openIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
         context.startActivity(openIntent)
         AlarmHelper.tryToCreateDailyTodoAlarm(context)

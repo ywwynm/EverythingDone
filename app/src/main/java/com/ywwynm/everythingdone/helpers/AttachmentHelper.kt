@@ -366,7 +366,7 @@ object AttachmentHelper {
         list.add(Pair(fst, sec))
 
         fst = context.getString(R.string.file_size)
-        sec = FileUtil.getFileSizeStr(file)!!
+        sec = FileUtil.getFileSizeStr(file)
         list.add(Pair(fst, sec))
 
         return when (type) {
@@ -379,7 +379,7 @@ object AttachmentHelper {
     private fun getAttachmentInfoImage(
             list: MutableList<Pair<String, String>?>, context: Context, pathName: String): List<Pair<String, String>?> {
         var fst: String = context.getString(R.string.image_size)
-        val size: IntArray = FileUtil.getImageSize(pathName)!!
+        val size: IntArray = FileUtil.getImageSize(pathName)
         var sec: String = size[0].toString() + " * " + size[1]
         list.add(Pair(fst, sec))
 

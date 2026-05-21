@@ -43,7 +43,7 @@ open class HabitRecordAdapter(
 
         if (correctPos >= len) {
             holder.iv!!.setImageResource(R.drawable.ic_habit_record_unknown)
-            holder.iv!!.setOnClickListener(null)
+            holder.iv.setOnClickListener(null)
         } else {
             val s = mRecord!![correctPos]
             if (s == '0') {

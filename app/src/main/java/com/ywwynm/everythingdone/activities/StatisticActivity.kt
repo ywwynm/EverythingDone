@@ -47,6 +47,7 @@ import java.time.format.DateTimeFormatter
 
 import java.io.File
 import java.util.Calendar
+import androidx.core.content.edit
 
 open class StatisticActivity : EverythingDoneBaseActivity() {
 
@@ -83,7 +84,7 @@ open class StatisticActivity : EverythingDoneBaseActivity() {
 
         mScreenDensity = DisplayUtil.getScreenDensity(mApp)
 
-        val screenWidth = DisplayUtil.getScreenSize(mApp)!!.x
+        val screenWidth = DisplayUtil.getScreenSize(mApp).x
         mHeaderHeight = screenWidth * 1080f / 1920
     }
 
@@ -126,7 +127,7 @@ open class StatisticActivity : EverythingDoneBaseActivity() {
         } else {
             if (!File(header).exists()) {
                 mIvHeader!!.setImageResource(R.drawable.drawer_header_large)
-                mPreferences!!.edit().putString(Def.Meta.KEY_DRAWER_HEADER, D).apply()
+                mPreferences!!.edit { putString(Def.Meta.KEY_DRAWER_HEADER, D) }
             } else {
                 val bm: Bitmap? = BitmapUtil.decodeFileWithRequiredSize(
                     header,
@@ -190,8 +191,8 @@ open class StatisticActivity : EverythingDoneBaseActivity() {
         if (u != 0 || f != 0 || d != 0) {
             NoteTask().execute()
         } else {
-            f<View>(R.id.tv_note_record_statistic)!!.visibility = View.GONE
-            f<View>(R.id.cv_note_record_statistic)!!.visibility = View.GONE
+            f<View>(R.id.tv_note_record_statistic).visibility = View.GONE
+            f<View>(R.id.cv_note_record_statistic).visibility = View.GONE
         }
     }
 
@@ -202,8 +203,8 @@ open class StatisticActivity : EverythingDoneBaseActivity() {
         if (u != 0 || f != 0 || d != 0) {
             ReminderTask().execute()
         } else {
-            f<View>(R.id.tv_reminder_record_statistic)!!.visibility = View.GONE
-            f<View>(R.id.cv_reminder_record_statistic)!!.visibility = View.GONE
+            f<View>(R.id.tv_reminder_record_statistic).visibility = View.GONE
+            f<View>(R.id.cv_reminder_record_statistic).visibility = View.GONE
         }
     }
 
@@ -214,8 +215,8 @@ open class StatisticActivity : EverythingDoneBaseActivity() {
         if (u != 0 || f != 0 || d != 0) {
             HabitTask().execute()
         } else {
-            f<View>(R.id.tv_habit_record_statistic)!!.visibility = View.GONE
-            f<View>(R.id.cv_habit_record_statistic)!!.visibility = View.GONE
+            f<View>(R.id.tv_habit_record_statistic).visibility = View.GONE
+            f<View>(R.id.cv_habit_record_statistic).visibility = View.GONE
         }
     }
 
@@ -227,8 +228,8 @@ open class StatisticActivity : EverythingDoneBaseActivity() {
         if (u != 0 || f != 0 || d != 0) {
             GoalTask().execute()
         } else {
-            f<View>(R.id.tv_goal_record_statistic)!!.visibility = View.GONE
-            f<View>(R.id.cv_goal_record_statistic)!!.visibility = View.GONE
+            f<View>(R.id.tv_goal_record_statistic).visibility = View.GONE
+            f<View>(R.id.cv_goal_record_statistic).visibility = View.GONE
         }
     }
 
@@ -320,7 +321,7 @@ open class StatisticActivity : EverythingDoneBaseActivity() {
             val content: String = cursor.getString(cursor.getColumnIndex(CONTENT))
             counts[0] += title.length
             if (CheckListHelper.isCheckListStr(content)) {
-                counts[0] += CheckListHelper.toContentStr(content, "", "")!!
+                counts[0] += CheckListHelper.toContentStr(content, "", "")
                     .replace("\n".toRegex(), "").length
             } else {
                 counts[0] += content.replace("\n".toRegex(), "").length

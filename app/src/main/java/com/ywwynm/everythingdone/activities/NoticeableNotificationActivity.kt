@@ -46,6 +46,8 @@ import java.time.format.DateTimeFormatter
 
 import java.util.ArrayList
 import java.util.Collections
+import androidx.core.graphics.toColorInt
+import androidx.core.view.isVisible
 
 /**
  * Created by qiizhang on 2016/11/10.
@@ -137,7 +139,7 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
         }
 
         val position = intent.getIntExtra(Def.Communication.KEY_POSITION, -1)
-        val pair: Pair<Thing, Int> = App.getThingAndPosition(this, thingId, position)!!
+        val pair: Pair<Thing, Int> = App.getThingAndPosition(this, thingId, position)
         mThing = pair.first
         mPosition = pair.second ?: -1
 
@@ -263,7 +265,7 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
         val title = "$typeStr • $timeStr"
         val ssb = SpannableStringBuilder(title)
         val colorSpan1 = ForegroundColorSpan(mThing!!.getColor())
-        val colorSpan2 = ForegroundColorSpan(Color.parseColor("#66000000"))
+        val colorSpan2 = ForegroundColorSpan("#66000000".toColorInt())
         val index = title.indexOf('•')
         ssb.setSpan(colorSpan1, 0, index - 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         ssb.setSpan(colorSpan2, index - 1, title.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
@@ -282,12 +284,12 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
 
                 val bg: ThingBackground = mThing!!.getBackground()!!
                 holder.cv!!.radius = 0f
-                holder.cv!!.cardElevation = 0f
+                holder.cv.cardElevation = 0f
                 if (bg.mode === ThingBackground.Mode.PURE) {
-                    holder.cv!!.setCardBackgroundColor(bg.color)
+                    holder.cv.setCardBackgroundColor(bg.color)
                 } else {
-                    holder.cv!!.setCardBackgroundColor(Color.TRANSPARENT)
-                    holder.cv!!.background =
+                    holder.cv.setCardBackgroundColor(Color.TRANSPARENT)
+                    holder.cv.background =
                         BackgroundUtil.makeTranslucentGradient(bg, 255)
                 }
 
@@ -300,23 +302,23 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
                 holder.flDoing!!.visibility = View.GONE
                 holder.ivStickyOngoing!!.visibility = View.GONE
 
-                if (holder.ivPrivateThing!!.visibility == View.VISIBLE) {
-                    holder.ivPrivateThing!!.visibility = View.GONE
-                    holder.tvContent!!.visibility = View.VISIBLE
-                    holder.tvContent!!.setText(R.string.notification_private_thing_content)
-                    holder.tvContent!!.textSize = 20f
+                if (holder.ivPrivateThing!!.isVisible) {
+                    holder.ivPrivateThing.visibility = View.GONE
+                    holder.tvContent.visibility = View.VISIBLE
+                    holder.tvContent.setText(R.string.notification_private_thing_content)
+                    holder.tvContent.textSize = 20f
                     val light = BackgroundUtil.isLight(mThing!!.getColor())
-                    holder.tvContent!!.setTextColor(
+                    holder.tvContent.setTextColor(
                         ContextCompat.getColor(
                             applicationContext,
                             if (light) R.color.black_76p else R.color.white_76p
                         )
                     )
                     val p = (mDensity * 16).toInt()
-                    holder.tvContent!!.setPadding(p, p, p, 0)
+                    holder.tvContent.setPadding(p, p, p, 0)
                 }
 
-                holder.cv!!.setOnClickListener {
+                holder.cv.setOnClickListener {
                     val intent = DetailActivity.getOpenIntentForUpdate(
                         this@NoticeableNotificationActivity,
                         TAG,

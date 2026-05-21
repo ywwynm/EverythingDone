@@ -38,9 +38,10 @@ import com.ywwynm.everythingdone.utils.SystemNotificationUtil
 
 import java.io.File
 import java.util.ArrayList
-import java.util.Arrays
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import kotlin.math.abs
+import kotlin.system.exitProcess
 
 /**
  * Created by ywwynm on 2015/6/24.
@@ -133,7 +134,7 @@ open class App : Application() {
         }
         Log.i(TAG, "Self-healing alarms (last rebuild " +
                 (if (lastRebuild == 0L) "never" else ((now - lastRebuild) / 60000).toString() + " min ago") + ")")
-        Thread(Runnable {
+        Thread({
             try {
                 AlarmHelper.createAllAlarms(this@App, false)
                 sp.edit().putLong(Def.Meta.KEY_LAST_ALARM_REBUILD,
@@ -181,10 +182,13 @@ open class App : Application() {
                 "auto_notify", getString(R.string.channel_auto_notify),
                 NotificationManager.IMPORTANCE_DEFAULT)
 
-        nm.createNotificationChannels(Arrays.asList(
+        nm.createNotificationChannels(
+            listOf(
                 reminderChannel, habitChannel, goalChannel,
                 doingChannel, quickCreateChannel, ongoingChannel,
-                autoNotifyChannel))
+                autoNotifyChannel
+            )
+        )
     }
 
     private fun firstLaunch() {
@@ -437,8 +441,8 @@ open class App : Application() {
             AlarmHelper.setExactAllowWhileIdleSafe(
                     am, System.currentTimeMillis() + time + 100, pendingIntent)
             val handler = Handler(Looper.getMainLooper())
-            handler.postDelayed(Runnable {
-                System.exit(0)
+            handler.postDelayed({
+                exitProcess(0)
             }, time)
         }
 
@@ -555,7 +559,7 @@ open class App : Application() {
          */
         private fun rollBackground(): ThingBackground {
             if (sRandom.nextBoolean()) {
-                return ThingBackground.pure(randomColor())!!
+                return ThingBackground.pure(randomColor())
             }
             val s: Int = randomColor()
             var e: Int = randomColor()
@@ -569,7 +573,7 @@ open class App : Application() {
             val orientations: Array<ThingBackground.Orientation> =
                 ThingBackground.Orientation.entries.toTypedArray()
             val o: ThingBackground.Orientation = orientations[sRandom.nextInt(orientations.size)]
-            return ThingBackground.gradient(s, e, o)!!
+            return ThingBackground.gradient(s, e, o)
         }
 
         /** Full-spectrum random RGB — matches Everything-Android's `newRandomColor()`. */
@@ -587,7 +591,7 @@ open class App : Application() {
             val dg: Int = android.graphics.Color.green(a) - android.graphics.Color.green(b)
             val db: Int = android.graphics.Color.blue(a)  - android.graphics.Color.blue(b)
             // Cheap approximation: sum of |Δ| rather than Euclidean — fine for "avoid duplicates".
-            return Math.abs(dr) + Math.abs(dg) + Math.abs(db) < NEAR_THRESHOLD
+            return abs(dr) + abs(dg) + abs(db) < NEAR_THRESHOLD
         }
 
         private fun isInsideNear(arr: IntArray, color: Int): Boolean {

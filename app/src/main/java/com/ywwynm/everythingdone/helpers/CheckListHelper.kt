@@ -4,7 +4,6 @@ import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.R
 
 import java.util.ArrayList
-import java.util.Arrays
 import java.util.Locale
 
 /**
@@ -32,11 +31,11 @@ object CheckListHelper {
     fun toCheckListItems(s: String?, convert: Boolean): MutableList<String?> {
         var str: String = s!!
         if (convert) {
-            str = toCheckListStr(str)!!
+            str = toCheckListStr(str)
         }
         val strs: Array<String> = str.split(SIGNAL.toRegex()).toTypedArray()
         val items: MutableList<String?> = ArrayList()
-        items.addAll(Arrays.asList(*strs).subList(1, strs.size))
+        items.addAll(listOf(*strs).subList(1, strs.size))
 
         var firstFinishedIndex: Int = -1
         val size: Int = items.size
@@ -59,7 +58,7 @@ object CheckListHelper {
 
     @JvmStatic
     fun toContentStr(items: List<String?>?): String {
-        val checkListStr: String = toCheckListStr(items)!!
+        val checkListStr: String = toCheckListStr(items)
         return toContentStr(checkListStr, "", "")
     }
 
@@ -105,7 +104,7 @@ object CheckListHelper {
         if (itemPos < 0) {
             return checklistStr
         }
-        val items: MutableList<String?> = toCheckListItems(checklistStr, false)!!
+        val items: MutableList<String?> = toCheckListItems(checklistStr, false)
         items.remove("2")
         items.remove("3")
         items.remove("4")

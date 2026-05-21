@@ -13,6 +13,7 @@ import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.helpers.CheckListHelper
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil
+import androidx.core.content.edit
 
 /**
  * Created by ywwynm on 2015/5/21.
@@ -122,7 +123,7 @@ open class Thing(
         if (bg == null) bg = ThingBackground.pure(_color)
         this._background = bg
         // Keep the legacy single-int color column in sync with the representative.
-        this._color = bg!!.representativeColor()
+        this._color = bg.representativeColor()
     }
 
     open fun getTitleToDisplay(): String? {
@@ -289,29 +290,41 @@ open class Thing(
             } else if (state == DELETED || type == NOTIFY_EMPTY_DELETED) {
                 limits = intArrayOf(Def.LimitForGettingThings.ALL_DELETED)
             } else {
-                if (type == WELCOME_UNDERWAY || type == NOTIFICATION_UNDERWAY
-                        || type == NOTIFY_EMPTY_UNDERWAY) {
-                    return intArrayOf(Def.LimitForGettingThings.ALL_UNDERWAY)
-                } else if (type == WELCOME_NOTE || type == NOTIFICATION_NOTE
-                        || type == NOTIFY_EMPTY_NOTE) {
-                    return intArrayOf(Def.LimitForGettingThings.NOTE_UNDERWAY)
-                } else if (type == WELCOME_REMINDER || type == NOTIFICATION_REMINDER
-                        || type == NOTIFY_EMPTY_REMINDER) {
-                    return intArrayOf(Def.LimitForGettingThings.REMINDER_UNDERWAY)
-                } else if (type == WELCOME_HABIT || type == NOTIFICATION_HABIT
-                        || type == NOTIFY_EMPTY_HABIT) {
-                    return intArrayOf(Def.LimitForGettingThings.HABIT_UNDERWAY)
-                } else if (type == WELCOME_GOAL || type == NOTIFICATION_GOAL
-                        || type == NOTIFY_EMPTY_GOAL) {
-                    return intArrayOf(Def.LimitForGettingThings.GOAL_UNDERWAY)
-                } else {
-                    limits = IntArray(2)
-                    limits[0] = Def.LimitForGettingThings.ALL_UNDERWAY
-                    limits[1] = when (type) {
-                        REMINDER -> Def.LimitForGettingThings.REMINDER_UNDERWAY
-                        HABIT -> Def.LimitForGettingThings.HABIT_UNDERWAY
-                        GOAL -> Def.LimitForGettingThings.GOAL_UNDERWAY
-                        else -> Def.LimitForGettingThings.NOTE_UNDERWAY
+                when (type) {
+                    WELCOME_UNDERWAY, NOTIFICATION_UNDERWAY,
+                    NOTIFY_EMPTY_UNDERWAY -> {
+                        return intArrayOf(Def.LimitForGettingThings.ALL_UNDERWAY)
+                    }
+
+                    WELCOME_NOTE, NOTIFICATION_NOTE,
+                    NOTIFY_EMPTY_NOTE -> {
+                        return intArrayOf(Def.LimitForGettingThings.NOTE_UNDERWAY)
+                    }
+
+                    WELCOME_REMINDER, NOTIFICATION_REMINDER,
+                    NOTIFY_EMPTY_REMINDER -> {
+                        return intArrayOf(Def.LimitForGettingThings.REMINDER_UNDERWAY)
+                    }
+
+                    WELCOME_HABIT, NOTIFICATION_HABIT,
+                    NOTIFY_EMPTY_HABIT -> {
+                        return intArrayOf(Def.LimitForGettingThings.HABIT_UNDERWAY)
+                    }
+
+                    WELCOME_GOAL, NOTIFICATION_GOAL,
+                    NOTIFY_EMPTY_GOAL -> {
+                        return intArrayOf(Def.LimitForGettingThings.GOAL_UNDERWAY)
+                    }
+
+                    else -> {
+                        limits = IntArray(2)
+                        limits[0] = Def.LimitForGettingThings.ALL_UNDERWAY
+                        limits[1] = when (type) {
+                            REMINDER -> Def.LimitForGettingThings.REMINDER_UNDERWAY
+                            HABIT -> Def.LimitForGettingThings.HABIT_UNDERWAY
+                            GOAL -> Def.LimitForGettingThings.GOAL_UNDERWAY
+                            else -> Def.LimitForGettingThings.NOTE_UNDERWAY
+                        }
                     }
                 }
             }
@@ -324,7 +337,7 @@ open class Thing(
                 return false
             }
             val limits = getLimits(type, state)
-            for (lim in limits!!) {
+            for (lim in limits) {
                 if (limit == lim) {
                     return true
                 }
@@ -464,7 +477,7 @@ open class Thing(
             if (curOngoingId == thingId) {
                 SystemNotificationUtil.cancelThingOngoingNotification(context, thingId)
                 context!!.getSharedPreferences(Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE)
-                        .edit().putLong(K, -1L).apply()
+                        .edit { putLong(K, -1L) }
                 FrequentSettings.put(K, -1L)
             }
         }

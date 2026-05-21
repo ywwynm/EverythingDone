@@ -54,26 +54,26 @@ open class DateTimePicker(
         val params: ViewGroup.LayoutParams = mRecyclerView.layoutParams!!
         if (mType == Def.PickerType.AFTER_TIME) {
             params.width = (mScreenDensity * 168).toInt()
-            mItems = mActivity.resources!!.getStringArray(R.array.quick_remind)!!
+            mItems = mActivity.resources!!.getStringArray(R.array.quick_remind)
             if (BuildConfig.DEBUG) {
                 mItems[0] = "6 " + activity.getString(R.string.second)
             }
         } else if (mType == Def.PickerType.TIME_TYPE_HAVE_HOUR_MINUTE) {
             params.width = (mScreenDensity * 120).toInt()
-            mItems = mActivity.resources!!.getStringArray(R.array.time_type)!!
+            mItems = mActivity.resources!!.getStringArray(R.array.time_type)
             if (LocaleUtil.isChinese(mActivity)) {
-                mItems[2] = mActivity.getString(R.string.days)!!
+                mItems[2] = mActivity.getString(R.string.days)
             }
         } else {
             params.width = (mScreenDensity * 98).toInt()
-            val items: Array<String> = mActivity.resources!!.getStringArray(R.array.time_type)!!
+            val items: Array<String> = mActivity.resources!!.getStringArray(R.array.time_type)
             mItems = arrayOfNulls<String>(4).let {
                 System.arraycopy(items, 2, it, 0, 4)
                 @Suppress("UNCHECKED_CAST")
                 it as Array<String>
             }
             if (LocaleUtil.isChinese(mActivity)) {
-                mItems[0] = mActivity.getString(R.string.days)!!
+                mItems[0] = mActivity.getString(R.string.days)
             }
         }
         params.height = getRecyclerViewHeight()
@@ -115,7 +115,7 @@ open class DateTimePicker(
         val anchor: TextView = mAnchor as TextView
         if (index != 9) {
             if (mType == Def.PickerType.AFTER_TIME) {
-                val after: String = mActivity.getString(R.string.after)!!
+                val after: String = mActivity.getString(R.string.after)
                 if (LocaleUtil.isChinese(mActivity)) {
                     anchor.text = mItems[index]
                     anchor.append(after)
@@ -154,7 +154,7 @@ open class DateTimePicker(
         }
         mRecyclerView.scrollToPosition(getPickedIndex())
 
-        val display: Point = DisplayUtil.getDisplaySize(mActivity)!!
+        val display: Point = DisplayUtil.getDisplaySize(mActivity)
         val displayHeight: Int = display.y
 
         val params: ViewGroup.LayoutParams = mRecyclerView.layoutParams!!

@@ -21,7 +21,6 @@ import com.ywwynm.everythingdone.utils.ThingsSorter
 import java.util.ArrayList
 import java.util.Arrays
 import java.util.Collections
-import java.util.Comparator
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -594,11 +593,8 @@ open class ThingManager private constructor(context: Context?) {
             locationsList.add(thing.location)
         }
 
-        Collections.sort(locationsList, object : Comparator<Long?> {
-            override fun compare(l1: Long?, l2: Long?): Int {
-                return ThingsSorter.compareByLocationAndSticky(l1!!, l2!!)
-            }
-        })
+        Collections.sort(locationsList,
+            Comparator<Long?> { l1, l2 -> ThingsSorter.compareByLocationAndSticky(l1!!, l2!!) })
         // if there are sticky things, locations[0] will be <0 while first thing is header, so
         // I should assign max location to header by myself
         var maxLocation: Long = Long.MIN_VALUE
@@ -629,7 +625,7 @@ open class ThingManager private constructor(context: Context?) {
      * has been "deleted", which can occur when creating and updating.
      */
     private fun createNEnow(@Thing.Type type: Int, @Thing.State state: Int, addToThingsNow: Boolean): Boolean {
-        val limits: IntArray = Thing.getLimits(type, state)!!
+        val limits: IntArray = Thing.getLimits(type, state)
         for (limit in limits) {
             if (mLimit == limit) {
                 if (mThings!!.size == 1) {
@@ -644,7 +640,7 @@ open class ThingManager private constructor(context: Context?) {
 
     private fun willCreateNEforOtherLimit(id: Long, @Thing.Type type: Int, @Thing.State state: Int,
                                           updateState: Boolean): Boolean {
-        val limits: IntArray = Thing.getLimits(type, state)!!
+        val limits: IntArray = Thing.getLimits(type, state)
         for (limit in limits) {
             if (mLimit != limit) {
                 if (updateState || limit != Def.LimitForGettingThings.ALL_UNDERWAY) {
@@ -673,7 +669,7 @@ open class ThingManager private constructor(context: Context?) {
      * has been "created", which can occur when creating and updating.
      */
     private fun deleteNEnow(@Thing.Type type: Int, @Thing.State state: Int): Boolean {
-        val limits: IntArray = Thing.getLimits(type, state)!!
+        val limits: IntArray = Thing.getLimits(type, state)
         for (limit in limits) {
             if (mLimit == limit) {
                 val thing: Thing = mThings!![1]!!

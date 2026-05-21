@@ -23,6 +23,7 @@ import java.time.temporal.WeekFields
 import java.util.Calendar
 import java.util.Date
 import java.util.GregorianCalendar
+import kotlin.math.abs
 
 /**
  * Created by ywwynm on 2015/8/27.
@@ -69,7 +70,7 @@ object DateTimeUtil {
 
     @JvmStatic
     fun getDateTimeStr(type: Int, time: Int, context: Context?): String {
-        var typeStr: String = getTimeTypeStr(type, context)!!
+        var typeStr: String = getTimeTypeStr(type, context)
         if (LocaleUtil.isChinese(context)) {
             return time.toString() + typeStr
         } else {
@@ -145,8 +146,8 @@ object DateTimeUtil {
      * see [getDateTimeStrReminder]
      */
     @JvmStatic
-    fun getDateTimeStrReminder(context: Context?, thingId: Long, timePeriod: Boolean): String? {
-        val pair: Pair<Thing, Int> = App.getThingAndPosition(context, thingId, -1)!!
+    fun getDateTimeStrReminder(context: Context?, thingId: Long, timePeriod: Boolean): String {
+        val pair: Pair<Thing, Int> = App.getThingAndPosition(context, thingId, -1)
         val thing: Thing = pair.first ?: return ""
         val reminder: Reminder =
             ReminderDAO.getInstance(context)!!.getReminderById(thingId) ?: return ""
@@ -157,7 +158,7 @@ object DateTimeUtil {
      * see [getDateTimeStrReminder]
      */
     @JvmStatic
-    fun getDateTimeStrReminder(context: Context?, thing: Thing?, reminder: Reminder?): String? {
+    fun getDateTimeStrReminder(context: Context?, thing: Thing?, reminder: Reminder?): String {
         return getDateTimeStrReminder(context, thing, reminder, false)
     }
 
@@ -166,7 +167,7 @@ object DateTimeUtil {
      */
     @JvmStatic
     fun getDateTimeStrReminder(
-            context: Context?, thing: Thing?, reminder: Reminder?, timePeriod: Boolean): String? {
+            context: Context?, thing: Thing?, reminder: Reminder?, timePeriod: Boolean): String {
         return getDateTimeStrReminder(
                 context, reminder!!.notifyTime, thing!!.state, reminder.state, timePeriod)
     }
@@ -181,7 +182,7 @@ object DateTimeUtil {
     fun getDateTimeStrReminder(
             context: Context?, notifyTime: Long, @Thing.State thingState: Int, reminderState: Int,
             timePeriod: Boolean): String {
-        var timeStr: String = getDateTimeStrAt(notifyTime, context, timePeriod)!!
+        var timeStr: String = getDateTimeStrAt(notifyTime, context, timePeriod)
         if (timeStr.startsWith("on ")) {
             timeStr = timeStr.substring(3, timeStr.length)
         }
@@ -196,8 +197,8 @@ object DateTimeUtil {
      * see [getDateTimeStrGoal]
      */
     @JvmStatic
-    fun getDateTimeStrGoal(context: Context?, thingId: Long): String? {
-        val pair: Pair<Thing, Int> = App.getThingAndPosition(context, thingId, -1)!!
+    fun getDateTimeStrGoal(context: Context?, thingId: Long): String {
+        val pair: Pair<Thing, Int> = App.getThingAndPosition(context, thingId, -1)
         val thing: Thing = pair.first ?: return ""
         val goal: Reminder =
             ReminderDAO.getInstance(context)!!.getReminderById(thingId) ?: return ""
@@ -208,7 +209,7 @@ object DateTimeUtil {
      * see [getDateTimeStrGoal]
      */
     @JvmStatic
-    fun getDateTimeStrGoal(context: Context?, thing: Thing?, goal: Reminder?): String? {
+    fun getDateTimeStrGoal(context: Context?, thing: Thing?, goal: Reminder?): String {
         return getDateTimeStrGoal(
                 context, goal!!.notifyTime, goal.updateTime, thing!!.finishTime,
                 thing.state, goal.state)
@@ -233,11 +234,11 @@ object DateTimeUtil {
     @JvmStatic
     fun getDateTimeStrGoal(
             context: Context?, notifyTime: Long, goalCreateTime: Long, thingFinishTime: Long,
-            @Thing.State thingState: Int, goalState: Int): String? {
+            @Thing.State thingState: Int, goalState: Int): String {
         val isChinese: Boolean = LocaleUtil.isChinese(context)
         if (thingState == Thing.UNDERWAY) {
             val curTime: Long = System.currentTimeMillis()
-            val days: Int = Math.abs(calculateTimeGap(curTime, notifyTime, Calendar.DATE))
+            val days: Int = abs(calculateTimeGap(curTime, notifyTime, Calendar.DATE))
             if (days == 0) { // the alarm will ring today
                 if (curTime <= notifyTime) {
                     val shouldBefore: String = context!!.getString(R.string.goal_should_finish_before)
@@ -306,7 +307,7 @@ object DateTimeUtil {
     fun getShouldBeAchievedBeforeStr(
             context: Context?, notifyTime: Long, timePeriod: Boolean): String {
         val shouldBefore: String = context!!.getString(R.string.goal_should_finish_before)
-        var dateTimeAtStr: String = getDateTimeStrAt(notifyTime, context, timePeriod)!!
+        var dateTimeAtStr: String = getDateTimeStrAt(notifyTime, context, timePeriod)
         if (dateTimeAtStr.startsWith("on ")) {
             dateTimeAtStr = dateTimeAtStr.substring(3, dateTimeAtStr.length)
         }
@@ -326,7 +327,7 @@ object DateTimeUtil {
         if (time == 0) {
             return getThisTStr(type, context)
         }
-        val str: String = getDateTimeStr(type, time, context)!!
+        val str: String = getDateTimeStr(type, time, context)
         val after: String = context!!.getString(R.string.after)
         return if (LocaleUtil.isChinese(context)) {
             str + after
@@ -336,7 +337,7 @@ object DateTimeUtil {
     }
 
     @JvmStatic
-    fun getDateTimeStrAt(time: Long, context: Context?, timePeriod: Boolean): String? {
+    fun getDateTimeStrAt(time: Long, context: Context?, timePeriod: Boolean): String {
         return getDateTimeStrAt(toZoned(time), context, timePeriod)
     }
 

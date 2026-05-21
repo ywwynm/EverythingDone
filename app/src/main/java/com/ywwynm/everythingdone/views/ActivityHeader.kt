@@ -160,7 +160,7 @@ open class ActivityHeader(
     private fun updateSubtitle() {
         val thingsCount: Int = ThingManager.getInstance(mApp)!!.getThingsCounts()!!
                 .getThingsCountForActivityHeader(mApp.getLimit())
-        var subtitle: String = if (thingsCount == 0) mApp.getString(R.string.empty)!! else
+        var subtitle: String = if (thingsCount == 0) mApp.getString(R.string.empty) else
                 "" + thingsCount + " " + mApp.getString(R.string.a_thing)
         if (thingsCount > 1 && !LocaleUtil.isChinese(mApp)) {
             subtitle += "s"

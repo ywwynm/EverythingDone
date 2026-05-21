@@ -107,12 +107,12 @@ open class Reminder(
 
         @JvmStatic
         fun getStateDescription(thingState: Int, reminderState: Int, context: Context?): String {
-            val result = when {
-                reminderState == REMINDED -> context!!.getString(R.string.reminder_reminded)
-                reminderState == EXPIRED -> context!!.getString(R.string.reminder_expired)
-                else -> when {
-                    thingState == Thing.UNDERWAY -> ""
-                    thingState == Thing.FINISHED -> context!!.getString(R.string.reminder_needless)
+            val result = when (reminderState) {
+                REMINDED -> context!!.getString(R.string.reminder_reminded)
+                EXPIRED -> context!!.getString(R.string.reminder_expired)
+                else -> when (thingState) {
+                    Thing.UNDERWAY -> ""
+                    Thing.FINISHED -> context!!.getString(R.string.reminder_needless)
                     else -> context!!.getString(R.string.reminder_unavailable)
                 }
             }

@@ -79,7 +79,7 @@ open class ImageAttachmentAdapter(
 
         val size = AttachmentHelper.calculateImageSize(mContext, itemCount)
         val params = holder.itemView.layoutParams as GridLayoutManager.LayoutParams
-        params.width  = size!![0]
+        params.width  = size[0]
         params.height = size[1]
 
         val type = if (typePathName[0] == '0') AttachmentHelper.IMAGE else AttachmentHelper.VIDEO
@@ -97,7 +97,7 @@ open class ImageAttachmentAdapter(
             holder.ivVideoSignal!!.visibility = View.VISIBLE
         }
 
-        Glide.with(holder.ivImage!!.context)
+        Glide.with(holder.ivImage.context)
             .load(pathName)
             .centerCrop()
             .listener(object : RequestListener<Drawable> {
@@ -110,17 +110,17 @@ open class ImageAttachmentAdapter(
                     resource: Drawable, model: Any, target: Target<Drawable>?,
                     dataSource: DataSource, isFirstResource: Boolean
                 ): Boolean {
-                    holder.ivDelete!!.visibility = View.VISIBLE
+                    holder.ivDelete.visibility = View.VISIBLE
                     holder.pbLoading!!.visibility = View.GONE
                     return false
                 }
             })
-            .into(holder.ivImage!!)
+            .into(holder.ivImage)
 
         if (!mTakingScreenshot && mEditable) {
-            holder.ivDelete!!.visibility = View.VISIBLE
+            holder.ivDelete.visibility = View.VISIBLE
         } else {
-            holder.ivDelete!!.visibility = View.GONE
+            holder.ivDelete.visibility = View.GONE
         }
     }
 

@@ -36,7 +36,7 @@ object BitmapUtil {
     }
 
     @JvmStatic
-    fun createLayeredBitmap(d: Drawable?, color: Int): Bitmap? {
+    fun createLayeredBitmap(d: Drawable?, color: Int): Bitmap {
         return createLayeredBitmap(d,
                 com.ywwynm.everythingdone.model.ThingBackground.pure(color))
     }

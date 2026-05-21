@@ -31,7 +31,7 @@ open class HabitWidgetActionReceiver : BroadcastReceiver() {
                 return
             }
 
-            val pair: Pair<Thing, Int> = App.getThingAndPosition(context, id, position)!!
+            val pair: Pair<Thing, Int> = App.getThingAndPosition(context, id, position)
             val thing: Thing = pair.first ?: return
             position = pair.second!!
 

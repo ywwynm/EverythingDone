@@ -81,7 +81,7 @@ object PermissionUtil {
         for (thing in things!!) {
             val attachment: String? = thing!!.attachment
             if (!AttachmentHelper.isValidForm(attachment)) continue
-            val parts = attachment!!.split(AttachmentHelper.SIGNAL!!.toRegex()).toTypedArray()
+            val parts = attachment!!.split(AttachmentHelper.SIGNAL.toRegex()).toTypedArray()
             for (i in 1 until parts.size) {
                 val type = parts[i][0]
                 when (type) {

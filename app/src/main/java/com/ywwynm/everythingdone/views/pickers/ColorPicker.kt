@@ -76,10 +76,10 @@ open class ColorPicker(
         if (type == Def.PickerType.HUE_BUCKET) {
             mColors = HUE_BUCKET_COLORS
             mColorsNames = activity.resources!!
-                    .getStringArray(R.array.hue_bucket_names)!!
+                    .getStringArray(R.array.hue_bucket_names)
         } else {
-            mColors = activity.resources!!.getIntArray(R.array.thing)!!
-            mColorsNames = activity.resources!!.getStringArray(R.array.thing_colors_names)!!
+            mColors = activity.resources!!.getIntArray(R.array.thing)
+            mColorsNames = activity.resources!!.getStringArray(R.array.thing_colors_names)
         }
         val params: ViewGroup.LayoutParams = mRecyclerView.layoutParams!!
         params.width = (mScreenDensity * 128).toInt()
@@ -109,18 +109,21 @@ open class ColorPicker(
         val layoutManager = GridLayoutManager(this.mActivity, 2)
         layoutManager.spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
             override fun getSpanSize(position: Int): Int {
-                when (mType) {
+                return when (mType) {
                     Def.PickerType.COLOR_HAVE_ALL, Def.PickerType.HUE_BUCKET -> {
-                        return if (position == 0) 2 else 1
+                        if (position == 0) 2 else 1
                     }
+
                     Def.PickerType.COLOR_EDIT -> {
                         // The divider row spans both columns.
-                        return if (position == mColors.size) 2 else 1
+                        if (position == mColors.size) 2 else 1
                     }
+
                     Def.PickerType.COLOR_NO_ALL -> {
-                        return 1
+                        1
                     }
-                    else -> return 0
+
+                    else -> 0
                 }
             }
         }
@@ -190,7 +193,7 @@ open class ColorPicker(
                 xOffset += (mScreenDensity * 12).toInt()
             }
         }
-        if (mWindowRect.right != DisplayUtil.getDisplaySize(this.mActivity)!!.x) {
+        if (mWindowRect.right != DisplayUtil.getDisplaySize(this.mActivity).x) {
             if (isRightWindow) {
                 xOffset += (mScreenDensity * 40).toInt()
             }
@@ -309,7 +312,7 @@ open class ColorPicker(
     }
 
     private fun rollPureBackground(): ThingBackground {
-        return ThingBackground.pure(randomColor())!!
+        return ThingBackground.pure(randomColor())
     }
 
     private fun rollGradientBackground(): ThingBackground {
@@ -317,7 +320,7 @@ open class ColorPicker(
         val e: Int = randomColor()
         val os: Array<ThingBackground.Orientation> =
             ThingBackground.Orientation.entries.toTypedArray()
-        return ThingBackground.gradient(s, e, os[mRandom.nextInt(os.size)])!!
+        return ThingBackground.gradient(s, e, os[mRandom.nextInt(os.size)])
     }
 
     private fun randomColor(): Int {
@@ -343,7 +346,7 @@ open class ColorPicker(
             // -1979711488 ≈ 0x8A000000 is the "all colours" sentinel; for HUE_BUCKET
             // the target icon should appear dark/neutral when nothing is filtering,
             // then tint to the picked bucket's representative when a bucket is chosen.
-            mTintTarget!!.mutate()!!.setColorFilter(filterColor, PorterDuff.Mode.SRC_ATOP)
+            mTintTarget!!.mutate().setColorFilter(filterColor, PorterDuff.Mode.SRC_ATOP)
         }
     }
 

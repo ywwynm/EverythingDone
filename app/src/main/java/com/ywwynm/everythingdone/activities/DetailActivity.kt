@@ -62,6 +62,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.content.res.AppCompatResources
 
 import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.Def
@@ -128,6 +129,10 @@ import java.util.Collections
 import java.util.HashMap
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import androidx.core.view.isVisible
+import androidx.core.view.size
+import androidx.core.view.get
+import androidx.core.content.edit
 
 @SuppressLint("NewApi")
 class DetailActivity : EverythingDoneBaseActivity() {
@@ -443,9 +448,9 @@ class DetailActivity : EverythingDoneBaseActivity() {
             return
         }
 
-        val pair: Pair<Thing, Int>? = App.getThingAndPosition(mApp, oriId, -1)
-        mThing = pair?.first
-        mPosition = pair?.second ?: -1
+        val pair: Pair<Thing, Int> = App.getThingAndPosition(mApp, oriId, -1)
+        mThing = pair.first
+        mPosition = pair.second ?: -1
     }
 
     private fun initAutoLink() {
@@ -512,7 +517,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
                                 KeyboardUtil.hideKeyboard(window)
                                 try {
                                     urlSpan.onClick(et)
-                                } catch (e: ActivityNotFoundException) {
+                                } catch (_: ActivityNotFoundException) {
                                     mNormalSnackbar!!.setMessage(R.string.error_activity_not_found)
                                     mFlRoot!!.postDelayed(mShowNormalSnackbar,
                                         KeyboardUtil.HIDE_DELAY.toLong())
@@ -692,7 +697,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
                     mLlMoveChecklist!!.visibility = View.VISIBLE
                 }
 
-                val items: MutableList<String?> = CheckListHelper.toCheckListItems(content, false)!!
+                val items: MutableList<String?> = CheckListHelper.toCheckListItems(content, false)
                 if (!mEditable) {
                     val state = mThing!!.state
                     items.remove("2")
@@ -761,7 +766,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
                 object : SimplePermissionCallback(this) {
                     override fun onGranted() {
                         val items: Pair<List<String?>, List<String?>> =
-                            AttachmentHelper.toAttachmentItems(attachment)!!
+                            AttachmentHelper.toAttachmentItems(attachment)
                         if (!items.first.isEmpty()) {
                             initImageAttachmentUI(items.first)
                         } else {
@@ -780,7 +785,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
                 Def.Communication.REQUEST_PERMISSION_LOAD_THING,
                 *PermissionUtil.getRequiredPermissionsForThings(
                     Collections.singletonList(mThing)
-                )!!
+                )
             )
 
         } else {
@@ -884,7 +889,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
                     quickRemindPicker!!.pickForUI(8)
                     rhParams.reminderAfterTime = quickRemindPicker!!.getPickedTimeAfter()
                 } else {
-                    f<View>(R.id.ll_bottom_bar_detail)!!.visibility = View.GONE
+                    f<View>(R.id.ll_bottom_bar_detail).visibility = View.GONE
                     val params = mScrollView!!.layoutParams as FrameLayout.LayoutParams
                     params.setMargins(0, params.topMargin, 0, 0)
                 }
@@ -982,13 +987,13 @@ class DetailActivity : EverythingDoneBaseActivity() {
             })
             KeyboardUtil.addKeyboardCallback(window, object : KeyboardUtil.KeyboardCallback {
 
-                val screenHeightDivide6: Int = DisplayUtil.getScreenSize(mApp)!!.y / 6
+                val screenHeightDivide6: Int = DisplayUtil.getScreenSize(mApp).y / 6
 
                 override fun onKeyboardShow(keyboardHeight: Int) {
                     if (mRvCheckList == null || mRvCheckList!!.visibility != View.VISIBLE) {
                         var toScroll = DisplayUtil.getCursorY(mEtContent)
                         toScroll += mEtTitle!!.height
-                        if (mRvImageAttachment != null && mRvImageAttachment!!.visibility == View.VISIBLE) {
+                        if (mRvImageAttachment != null && mRvImageAttachment!!.isVisible) {
                             toScroll += mRvImageAttachment!!.height
                         }
                         val fToScroll = toScroll
@@ -1131,12 +1136,12 @@ class DetailActivity : EverythingDoneBaseActivity() {
             title += Thing.getTypeStr(getThingTypeAfter(), mApp)
         }
         mFlRoot!!.contentDescription = title
-        val bmd: BitmapDrawable? = getDrawable(R.mipmap.ic_launcher) as BitmapDrawable?
+        val bmd: BitmapDrawable? = AppCompatResources.getDrawable(this, R.mipmap.ic_launcher) as BitmapDrawable?
         if (bmd != null) {
             val bm: Bitmap = bmd.bitmap
             try {
                 setTaskDescription(ActivityManager.TaskDescription(title, bm, color))
-            } catch (ignored: Exception) {
+            } catch (_: Exception) {
             }
         }
     }
@@ -1155,8 +1160,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
                 } else Reminder.getType(rhParams.getReminderTime(), System.currentTimeMillis())
             }
         } else {
-            @Thing.Type val typeBefore: Int = mThing!!.type
-            when (typeBefore) {
+            when (@Thing.Type val typeBefore: Int = mThing!!.type) {
                 Thing.REMINDER, Thing.GOAL -> {
                     if (mReminder == null) {
                         return typeBefore
@@ -1235,7 +1239,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
         } else if (itemId == R.id.act_check_list) {
             toggleCheckList()
         } else if (itemId == R.id.act_change_color) {
-            mColorPicker!!.setAnchor(findViewById<View>(R.id.act_change_color))
+            mColorPicker!!.setAnchor(findViewById(R.id.act_change_color))
             mColorPicker!!.show()
         } else if (itemId == R.id.act_set_as_private_thing) {
             togglePrivateThing()
@@ -1358,8 +1362,8 @@ class DetailActivity : EverythingDoneBaseActivity() {
 
     private fun toggleCheckList() {
         val before: String
-        if (mRvCheckList!!.visibility == View.VISIBLE) {
-            before = CheckListHelper.toCheckListStr(mCheckListAdapter!!.getItems())!!
+        if (mRvCheckList!!.isVisible) {
+            before = CheckListHelper.toCheckListStr(mCheckListAdapter!!.getItems())
             toggleCheckListActionItem(mActionbar!!.menu, false)
             mEtContent!!.visibility = View.VISIBLE
             mRvCheckList!!.visibility = View.GONE
@@ -1369,7 +1373,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
             }
             mChecklistTouchHelper!!.attachToRecyclerView(null)
 
-            val contentStr: String = CheckListHelper.toContentStr(mCheckListAdapter!!.getItems())!!
+            val contentStr: String = CheckListHelper.toContentStr(mCheckListAdapter!!.getItems())
             val temp = shouldAddToActionList
             shouldAddToActionList = false
             mEtContent!!.setText(contentStr)
@@ -1390,7 +1394,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
 
             val content: String = mEtContent!!.text.toString()
             before = content
-            val items: MutableList<String?> = CheckListHelper.toCheckListItems(content, true)!!
+            val items: MutableList<String?> = CheckListHelper.toCheckListItems(content, true)
             var focusFirst = false
             if (items.size == 2 && items[0]!! == "0") {
                 focusFirst = true
@@ -1571,7 +1575,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
             ThingAction.UPDATE_COLOR -> {
                 val bgTarget: ThingBackground = when (to) {
                     is ThingBackground -> to
-                    is Int -> ThingBackground.pure(to)!!
+                    is Int -> ThingBackground.pure(to)
                     else -> {
                         shouldAddToActionList = true
                         updateUndoRedoActionButtonState()
@@ -1729,7 +1733,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
             mRvCheckList, mCheckListAdapter, mLlMoveChecklist,
             mRvImageAttachment, mImageAttachmentAdapter,
             mRvAudioAttachment, mAudioAttachmentAdapter
-        )!!
+        )
     }
 
     private fun canShareThing(): Boolean {
@@ -1738,11 +1742,11 @@ class DetailActivity : EverythingDoneBaseActivity() {
             && mRvImageAttachment!!.visibility != View.VISIBLE
             && mRvAudioAttachment!!.visibility != View.VISIBLE
         ) {
-            if (mEtContent!!.visibility == View.VISIBLE) {
+            if (mEtContent!!.isVisible) {
                 if (mEtContent!!.text.toString().isEmpty()) {
                     canShare = false
                 }
-            } else if (mRvCheckList!!.visibility == View.VISIBLE) {
+            } else if (mRvCheckList!!.isVisible) {
                 if (mEditable && mCheckListAdapter!!.itemCount == 1) {
                     canShare = false
                 }
@@ -1753,14 +1757,14 @@ class DetailActivity : EverythingDoneBaseActivity() {
 
     private fun copyContent() {
         var content = ""
-        if (mEtContent!!.visibility == View.VISIBLE) {
+        if (mEtContent!!.isVisible) {
             content = mEtContent!!.text.toString()
-        } else if (mRvCheckList != null && mRvCheckList!!.visibility == View.VISIBLE
+        } else if (mRvCheckList != null && mRvCheckList!!.isVisible
             && mCheckListAdapter != null
         ) {
             content = CheckListHelper.toContentStr(
                 CheckListHelper.toCheckListStr(mCheckListAdapter!!.getItems()), "X  ", "√  "
-            )!!
+            )
         }
 
         val clipboardManager = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
@@ -1782,14 +1786,14 @@ class DetailActivity : EverythingDoneBaseActivity() {
 
         setSpans()
 
-        if (mRvImageAttachment!!.visibility == View.VISIBLE) {
+        if (mRvImageAttachment!!.isVisible) {
             val size = mImageAttachmentAdapter!!.itemCount
             AttachmentHelper.setImageRecyclerViewHeight(mRvImageAttachment, size, mMaxSpanImage)
             mImageLayoutManager!!.spanCount = if (size < mMaxSpanImage) size else mMaxSpanImage
             mImageAttachmentAdapter!!.notifyDataSetChanged()
         }
 
-        if (mRvAudioAttachment!!.visibility == View.VISIBLE) {
+        if (mRvAudioAttachment!!.isVisible) {
             AttachmentHelper.setAudioRecyclerViewHeight(
                 mRvAudioAttachment,
                 mAudioAttachmentAdapter!!.itemCount, mSpanAudio
@@ -1856,7 +1860,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
         } else {
             // only update color, title, content, attachment and update time now
             if (mType == CREATE) {
-                mPosition = App.getThingAndPosition(mApp, mThing!!.id, -1)!!.second ?: -1
+                mPosition = App.getThingAndPosition(mApp, mThing!!.id, -1).second ?: -1
             }
             @Thing.Type val typeBefore: Int = mThing!!.type
             var updateResult = -1
@@ -2221,7 +2225,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
         mScrollView!!.setOnScrollChangeListener(NestedScrollView.OnScrollChangeListener {
                 _, _, scrollY, _, _ ->
             var imageHeight = 0
-            if (mRvImageAttachment!!.visibility == View.VISIBLE) {
+            if (mRvImageAttachment!!.isVisible) {
                 imageHeight = mRvImageAttachment!!.height
             }
 
@@ -2262,7 +2266,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
             }
         })
 
-        if (f<View>(R.id.ll_bottom_bar_detail)!!.visibility == View.VISIBLE) {
+        if (f<View>(R.id.ll_bottom_bar_detail).isVisible) {
             val observer: ViewTreeObserver = mScrollView!!.viewTreeObserver
             observer.addOnScrollChangedListener {
                 updateBottomBarShadow()
@@ -2328,7 +2332,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
                     if (orientation === current.orientation) return
                     val bgTo: ThingBackground = ThingBackground.gradient(
                         current.color, current.endColor, orientation
-                    )!!
+                    )
                     val bgFrom: ThingBackground? = if (mLastAnimatedBackground != null)
                         mLastAnimatedBackground
                     else mThing!!.getBackground()
@@ -2343,10 +2347,6 @@ class DetailActivity : EverythingDoneBaseActivity() {
             })
             df.show(fragmentManager, GradientOrientationDialogFragment.TAG)
         })
-    }
-
-    private fun changeColor(colorTo: Int) {
-        changeBackground(ThingBackground.pure(colorTo))
     }
 
     private fun changeBackground(bgTo: ThingBackground?) {
@@ -2413,8 +2413,8 @@ class DetailActivity : EverythingDoneBaseActivity() {
         val tint: android.content.res.ColorStateList? = if (lightAccent)
             android.content.res.ColorStateList.valueOf(Color.BLACK)
         else null
-        for (i in 0 until menu.size()) {
-            val item: MenuItem = menu.getItem(i)
+        for (i in 0 until menu.size) {
+            val item: MenuItem = menu[i]
             var icon: Drawable = item.icon ?: continue
             icon = icon.mutate()
             if (lightAccent) {
@@ -2948,8 +2948,8 @@ class DetailActivity : EverythingDoneBaseActivity() {
 
     private fun getThingContent(): String {
         var content: String
-        if (mRvCheckList!!.visibility == View.VISIBLE) {
-            content = CheckListHelper.toCheckListStr(mCheckListAdapter!!.getItems())!!
+        if (mRvCheckList!!.isVisible) {
+            content = CheckListHelper.toCheckListStr(mCheckListAdapter!!.getItems())
             if (mHabitFinishedThisTime) {
                 content = content.replace((CheckListHelper.SIGNAL + "1").toRegex(),
                     CheckListHelper.SIGNAL + "0")
@@ -2963,13 +2963,13 @@ class DetailActivity : EverythingDoneBaseActivity() {
     private fun getThingAttachment(): String {
         var imageItems: List<String?>? = null
         var audioItems: List<String?>? = null
-        if (mRvImageAttachment!!.visibility == View.VISIBLE) {
+        if (mRvImageAttachment!!.isVisible) {
             imageItems = mImageAttachmentAdapter!!.getItems()
         }
-        if (mRvAudioAttachment!!.visibility == View.VISIBLE) {
+        if (mRvAudioAttachment!!.isVisible) {
             audioItems = mAudioAttachmentAdapter!!.getItems()
         }
-        val attachment: String = AttachmentHelper.toAttachmentStr(imageItems, audioItems)!!
+        val attachment: String = AttachmentHelper.toAttachmentStr(imageItems, audioItems)
         val attachmentsToDelete: List<String?>? = AttachmentHelper
             .getAttachmentsToDelete(mThing!!.attachment, attachment)
         if (!attachmentsToDelete.isNullOrEmpty()) {
@@ -2980,7 +2980,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
 
     private fun createFailed(resultCode: Int) {
         if (savedAfterOnPause) {
-            mPosition = App.getThingAndPosition(mApp, mThing!!.id, -1)!!.second ?: -1
+            mPosition = App.getThingAndPosition(mApp, mThing!!.id, -1).second ?: -1
             ThingManager.getInstance(mApp)!!.updateState(
                 mThing, mPosition, mThing!!.location, Thing.UNDERWAY, Thing.DELETED_FOREVER,
                 false, true
@@ -3205,7 +3205,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
             mThing!!.id
         }
         getSharedPreferences(Def.Meta.PREFERENCES_NAME, MODE_PRIVATE)
-            .edit().putLong(K, ongoingAfter).apply()
+            .edit { putLong(K, ongoingAfter) }
         FrequentSettings.put(K, ongoingAfter)
 
         updateUiEverywhereForItemChangeAndFinish()
@@ -3358,11 +3358,11 @@ class DetailActivity : EverythingDoneBaseActivity() {
         override fun onRemove(position: Int, item: String?, cursorPos: Int) {
             if (item == null) {
                 val holder =
-                    mRvCheckList!!.findViewHolderForAdapterPosition(position) as CheckListAdapter.EditTextHolder?
+                    mRvCheckList!!.findViewHolderForAdapterPosition(position) as? CheckListAdapter.EditTextHolder?
                         ?: return
                 if (position != -1) {
                     holder.et!!.requestFocus()
-                    holder.et!!.setSelection(cursorPos)
+                    holder.et.setSelection(cursorPos)
                 } else {
                     KeyboardUtil.hideKeyboard(currentFocus)
                 }
@@ -3391,7 +3391,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
             var startY = 0
             var startWidth = w
             var startHeight = v.height
-            if (w == DisplayUtil.getDisplaySize(App.getApp())!!.x) {
+            if (w == DisplayUtil.getDisplaySize(App.getApp()).x) {
                 startX = w / 2
                 startY = startHeight / 2
                 startWidth = 0
@@ -3500,8 +3500,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
     }
 
     private fun moveAttachment(from: Int, to: Int, isImageAttachment: Boolean) {
-        val items: MutableList<String?>
-        items = if (isImageAttachment) {
+        val items: MutableList<String?> = if (isImageAttachment) {
             mImageAttachmentAdapter!!.getItems()!! as MutableList<String?>
         } else {
             mAudioAttachmentAdapter!!.getItems()!! as MutableList<String?>
@@ -3573,11 +3572,6 @@ class DetailActivity : EverythingDoneBaseActivity() {
         const val UPDATE: Int = 1
 
         @JvmField var createActivitiesCount: Int = 0
-
-        @JvmStatic
-        fun getOpenIntentForCreate(context: Context?, senderName: String?, color: Int): Intent {
-            return getOpenIntentForCreate(context, senderName, ThingBackground.pure(color))
-        }
 
         /**
          * Phase 4.e: open the DetailActivity in CREATE mode with a full ThingBackground.

@@ -142,7 +142,7 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
                     finish()
                 }
             }, Def.Communication.REQUEST_PERMISSION_LOAD_THINGS_2,
-                    *PermissionUtil.getRequiredPermissionsForThings(mThings)!!)
+                    *PermissionUtil.getRequiredPermissionsForThings(mThings))
         } else {
             initRecyclerView()
         }
@@ -177,7 +177,7 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
         val actionBar: ActionBar? = supportActionBar
         actionBar?.setDisplayHomeAsUpEnabled(true)
 
-        mActionBar!!.setNavigationOnClickListener { v -> finish() }
+        mActionBar!!.setNavigationOnClickListener { _ -> finish() }
     }
 
     override fun setEvents() {
@@ -220,7 +220,7 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
             if (wallpaper != null) {
                 ivBackground.setImageDrawable(wallpaper)
             }
-        } catch (e: SecurityException) {
+        } catch (_: SecurityException) {
             ivBackground.setBackgroundColor(0xCC000000.toInt())
         }
 
@@ -238,7 +238,7 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
             override fun onBindViewHolder(holder: BaseThingViewHolder, position: Int) {
                 super.onBindViewHolder(holder, position)
                 holder.cv!!.radius = 0f
-                holder.cv!!.cardElevation = 0f
+                holder.cv.cardElevation = 0f
                 val alpha: Int = (mWidgetAlpha / 100f * 255).toInt()
                 // Phase 4.d: preview supports gradient backgrounds.
                 val bg: com.ywwynm.everythingdone.model.ThingBackground = thing.getBackground()!!
@@ -246,8 +246,8 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
                 val e: Int = DisplayUtil.getTransparentColor(bg.endColor, alpha)
                 val tinted: com.ywwynm.everythingdone.model.ThingBackground =
                         if (bg.mode === com.ywwynm.everythingdone.model.ThingBackground.Mode.PURE)
-                                com.ywwynm.everythingdone.model.ThingBackground.pure(s)!!
-                        else com.ywwynm.everythingdone.model.ThingBackground.gradient(s, e, bg.orientation)!!
+                                com.ywwynm.everythingdone.model.ThingBackground.pure(s)
+                        else com.ywwynm.everythingdone.model.ThingBackground.gradient(s, e, bg.orientation)
                 com.ywwynm.everythingdone.utils.BackgroundUtil.applyCardBackground(
                         holder.cv, tinted)
                 holder.ivStickyOngoing!!.imageAlpha = alpha
@@ -308,7 +308,7 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
         // Phase 8: gradient text for the "Done" label.
         com.ywwynm.everythingdone.utils.BackgroundUtil.applyTextBackground(
                 btFinish, thing.getBackground())
-        btFinish.setOnClickListener { v -> endSelectThing(thing) }
+        btFinish.setOnClickListener { _ -> endSelectThing(thing) }
     }
 
     private fun endPreviewAppWidget() {
@@ -363,7 +363,7 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
         inner class Holder(item: View) : BaseThingViewHolder(item) {
 
             init {
-                cv!!.setOnClickListener { v ->
+                cv!!.setOnClickListener { _ ->
                     updateStatusBarAndBottomUi(false)
                     previewAppWidget(mThings!![adapterPosition]!!)
                 }

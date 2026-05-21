@@ -55,7 +55,7 @@ class ThingBackground private constructor(
                 o.put(K_ORIENT, orientation.name)
             }
             return o.toString()
-        } catch (e: JSONException) {
+        } catch (_: JSONException) {
             // putting ints / strings can't actually throw, but org.json's checked
             // exception forces a catch. Fall back to a safe PURE encoding.
             return "{\"$K_MODE\":\"PURE\",\"$K_COLOR\":$color}"
@@ -125,7 +125,7 @@ class ThingBackground private constructor(
          * notably `DBHelper.generateInsertInitialSQL` on fresh install.
          */
         @JvmStatic
-        fun fromRandom(): ThingBackground? {
+        fun fromRandom(): ThingBackground {
             val rng = java.util.Random()
             val s = Color.rgb(rng.nextInt(256), rng.nextInt(256), rng.nextInt(256))
             if (rng.nextBoolean()) {
@@ -156,11 +156,11 @@ class ThingBackground private constructor(
                 val orStr    = o.optString(K_ORIENT, Orientation.L_R.name)
                 val orientation: Orientation
                 try { orientation = Orientation.valueOf(orStr) }
-                catch (ex: IllegalArgumentException) { return gradient(color, endColor, Orientation.L_R) }
+                catch (_: IllegalArgumentException) { return gradient(color, endColor, Orientation.L_R) }
                 return gradient(color, endColor, orientation)
-            } catch (e: JSONException) {
+            } catch (_: JSONException) {
                 return null
-            } catch (e: IllegalArgumentException) {
+            } catch (_: IllegalArgumentException) {
                 return null
             }
         }

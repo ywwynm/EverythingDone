@@ -46,7 +46,7 @@ open class StartDoingActivity : AppCompatActivity() {
         val intent: Intent = getIntent()
         val id = intent.getLongExtra(Def.Communication.KEY_ID, -1)
         val pos = intent.getIntExtra(Def.Communication.KEY_POSITION, -1)
-        val pair: Pair<Thing, Int> = App.getThingAndPosition(applicationContext, id, pos)!!
+        val pair: Pair<Thing, Int> = App.getThingAndPosition(applicationContext, id, pos)
         mThing = pair.first
         if (mThing == null) {
             finish()
@@ -115,7 +115,7 @@ open class StartDoingActivity : AppCompatActivity() {
             timeInMillis = -1
         } else {
             val typeTimes: Pair<List<Int>, List<Int>> =
-                ThingDoingHelper.getStartDoingTypeTimes(false)!!
+                ThingDoingHelper.getStartDoingTypeTimes(false)
             val etc: Long = DateTimeUtil.getActualTimeAfterSomeTime(
                 typeTimes.first[index], typeTimes.second[index]
             )

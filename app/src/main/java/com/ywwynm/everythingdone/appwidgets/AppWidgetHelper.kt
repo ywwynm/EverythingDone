@@ -54,6 +54,8 @@ import com.ywwynm.everythingdone.receivers.HabitWidgetActionReceiver
 import com.ywwynm.everythingdone.receivers.ReminderNotificationActionReceiver
 import com.ywwynm.everythingdone.utils.DateTimeUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
+import kotlin.math.abs
+import kotlin.math.min
 
 /**
  * Created by ywwynm on 2016/7/27.
@@ -175,7 +177,7 @@ object AppWidgetHelper {
     @JvmStatic
     fun updateThingsListAppWidgetsForType(context: Context?, @Thing.Type type: Int) {
         Log.i(TAG, "updateThingsListAppWidgetForType is called, type[$type]")
-        val limits: IntArray = Thing.getLimits(type, Thing.UNDERWAY)!!
+        val limits: IntArray = Thing.getLimits(type, Thing.UNDERWAY)
         for (limit in limits) {
             updateThingsListAppWidgets(context, limit)
         }
@@ -253,7 +255,7 @@ object AppWidgetHelper {
         val contentIntent: Intent = AuthenticationActivity.getOpenIntent(
                 context, TAG, thing!!.id, position,
                 Def.Communication.AUTHENTICATE_ACTION_VIEW,
-                context.getString(R.string.check_private_thing))!!
+                context.getString(R.string.check_private_thing))
         val pendingIntent: PendingIntent = PendingIntent.getActivity(
                 context, appWidgetId, contentIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
@@ -276,7 +278,7 @@ object AppWidgetHelper {
                 alpha = if (alpha == ThingWidgetInfo.HEADER_ALPHA_0) {
                     0
                 } else {
-                    (Math.abs(alpha) / 100f * 255).toInt()
+                    (abs(alpha) / 100f * 255).toInt()
                 }
                 headerColor = DisplayUtil.getTransparentColor(headerColor, alpha)
                 remoteViews.setInt(LL_THINGS_LIST_HEADER, "setBackgroundColor", headerColor)
@@ -303,7 +305,7 @@ object AppWidgetHelper {
         intent = DetailActivity.getOpenIntentForCreate(context, TAG,
                 if (App.newThingBackground != null)
                         App.newThingBackground
-                else com.ywwynm.everythingdone.model.ThingBackground.pure(App.newThingColor))!!
+                else com.ywwynm.everythingdone.model.ThingBackground.pure(App.newThingColor))
         intent.putExtra(Def.Communication.KEY_LIMIT, limit)
         pendingIntent = PendingIntent.getActivity(
                 context, appWidgetId, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
@@ -492,7 +494,7 @@ object AppWidgetHelper {
         a = if (a == ThingWidgetInfo.HEADER_ALPHA_0) {
             0
         } else {
-            Math.abs(a)
+            abs(a)
         }
         a = (a / 100f * 255).toInt()
         // Phase 8: rasterise the (possibly gradient) ThingBackground to a
@@ -619,7 +621,7 @@ object AppWidgetHelper {
         // Cap the bitmap dimensions — RemoteViews enforces a per-update bitmap
         // memory budget (~26MB on most devices; varies by OEM).
         val maxWidth: Int  = (screenDensity * 360).toInt()
-        val reqWidth: Int  = Math.min(options.outWidth, maxWidth)
+        val reqWidth: Int  = min(options.outWidth, maxWidth)
         val reqHeight: Int = reqWidth * 3 / 4
         Glide.with(context)
                 .asBitmap()
@@ -700,7 +702,7 @@ object AppWidgetHelper {
         var content: String = thing.content!!
         if (!content.isEmpty()) {
             if (CheckListHelper.isCheckListStr(content)) {
-                content = CheckListHelper.toContentStr(content, "X ", "√ ")!!
+                content = CheckListHelper.toContentStr(content, "X ", "√ ")
                 content = content.replace("\n".toRegex(), "\n  ")
             }
             return content
@@ -777,7 +779,7 @@ object AppWidgetHelper {
 
         remoteViews.setViewPadding(LL_CHECK_LIST_ITEMS, dp12, dp12, dp12, 0)
 
-        var items: MutableList<String?> = CheckListHelper.toCheckListItems(checklistStr, false)!!
+        var items: MutableList<String?> = CheckListHelper.toCheckListItems(checklistStr, false)
         items.remove("2")
         items.remove("3")
         items.remove("4")

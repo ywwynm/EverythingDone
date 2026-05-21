@@ -33,7 +33,7 @@ open class HelpDetailFragment : Fragment() {
         activity.updateActionBarTitle(true)
         activity.setRecyclerViewFocusable(false)
 
-        val args: Bundle = arguments!!
+        val args: Bundle = requireArguments()
         val titles: Array<String?>?   = args.getStringArray(Def.Communication.KEY_HELP_TITLES) as Array<String?>?
         val contents: Array<String?>? = args.getStringArray(Def.Communication.KEY_HELP_CONTENTS) as Array<String?>?
         if (titles == null || contents == null || titles.size != contents.size) {
@@ -42,7 +42,7 @@ open class HelpDetailFragment : Fragment() {
 
         val pos: Int = args.getInt(Def.Communication.KEY_POSITION)
 
-        val color: Int = ContextCompat.getColor(getActivity()!!, R.color.blue_deep)
+        val color: Int = ContextCompat.getColor(requireActivity(), R.color.blue_deep)
 
         val pages: Array<View?> = arrayOfNulls(titles.size)
         for (i in pages.indices) {

@@ -34,7 +34,7 @@ object EdgeEffectUtil {
             fEdgeGlowBottom.isAccessible = true
             setEdgeEffectColor(fEdgeGlowTop.get(sv) as EdgeEffect?, color)
             setEdgeEffectColor(fEdgeGlowBottom.get(sv) as EdgeEffect?, color)
-        } catch (ignored: Exception) {
+        } catch (_: Exception) {
         }
     }
 
@@ -55,7 +55,7 @@ object EdgeEffectUtil {
                 fEdgeEffect.isAccessible = true
                 setEdgeEffectColor(fEdgeEffect.get(edge) as EdgeEffect?, color)
             }
-        } catch (ignored: Exception) { }
+        } catch (_: Exception) { }
     }
 
     @JvmStatic
@@ -70,13 +70,13 @@ object EdgeEffectUtil {
                 fEdgeEffect.isAccessible = true
                 setEdgeEffectColor(fEdgeEffect.get(edge) as EdgeEffect?, color)
             }
-        } catch (ignored: Exception) { }
+        } catch (_: Exception) { }
     }
 
     private fun setEdgeEffectColor(edgeEffect: EdgeEffect?, color: Int) {
         try {
             edgeEffect!!.color = color
-        } catch (ignored: Exception) { }
+        } catch (_: Exception) { }
     }
 
 }

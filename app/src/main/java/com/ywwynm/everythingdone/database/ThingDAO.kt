@@ -14,6 +14,7 @@ import com.ywwynm.everythingdone.utils.ThingsSorter
 import java.util.ArrayList
 import java.util.Collections
 import java.util.Comparator
+import kotlin.math.max
 
 /**
  * Created by ywwynm on 2015/9/6.
@@ -53,7 +54,7 @@ open class ThingDAO private constructor(context: Context?) {
 
         db!!.delete(Def.Database.TABLE_THINGS, "type=" + Thing.HEADER, null)
 
-        val idAndLocation: Long = Math.max(maxId, maxLocation) + 1
+        val idAndLocation: Long = max(maxId, maxLocation) + 1
         createHeader(idAndLocation)
 
 //        cursor = db.query(Def.Database.TABLE_THINGS, null,

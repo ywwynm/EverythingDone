@@ -15,7 +15,6 @@ import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.Point
 import android.graphics.drawable.BitmapDrawable
 import android.os.Bundle
@@ -48,10 +47,10 @@ import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
 import android.widget.EditText
 import android.widget.FrameLayout
-import android.widget.ImageView
 import android.widget.RelativeLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.content.res.AppCompatResources
 
 import com.bumptech.glide.Glide
 import com.ywwynm.everythingdone.App
@@ -105,6 +104,9 @@ import com.ywwynm.everythingdone.views.reveal.ShiningBorder
 import java.io.File
 import java.util.ArrayList
 import java.util.HashSet
+import kotlin.math.hypot
+import androidx.core.view.get
+import androidx.core.graphics.toColorInt
 
 class ThingsActivity : EverythingDoneBaseActivity() {
 
@@ -465,7 +467,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
     }
 
     private fun updateTaskDescription() {
-        val bmd: BitmapDrawable? = getDrawable(R.mipmap.ic_launcher) as BitmapDrawable?
+        val bmd: BitmapDrawable? = AppCompatResources.getDrawable(this, R.mipmap.ic_launcher) as BitmapDrawable?
         if (bmd != null) {
             val bm: Bitmap = bmd.bitmap
             setTaskDescription(
@@ -639,7 +641,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
             mActivityHeader!!.reset(false)
         }
 
-        val underway: MenuItem = mDrawer!!.menu.getItem(0)
+        val underway: MenuItem = mDrawer!!.menu[0]
         mPreviousItem!!.isChecked = false
         underway.isChecked = true
         mPreviousItem = underway
@@ -965,9 +967,9 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         val dhView: View = mDrawer!!.getHeaderView(0)
         mDrawerHeader = DrawerHeader(
             mApp!!,
-            f<ImageView>(dhView, R.id.iv_drawer_header)!!,
-            f<TextView>(dhView, R.id.tv_dh_location)!!,
-            f<TextView>(dhView, R.id.tv_dh_completion_rate)!!
+            f(dhView, R.id.iv_drawer_header),
+            f(dhView, R.id.tv_dh_location),
+            f(dhView, R.id.tv_dh_completion_rate)
         )
 
         mFab = f(R.id.fab_create)
@@ -979,9 +981,9 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         mActivityHeader = ActivityHeader(
             mApp!!, mRecyclerView!!,
             f(R.id.actionbar_shadow)!!,
-            f<RelativeLayout>(R.id.rl_header)!!,
-            f<TextView>(R.id.tv_header_title)!!,
-            f<TextView>(R.id.tv_header_subtitle)!!
+            f(R.id.rl_header),
+            f(R.id.tv_header_title),
+            f(R.id.tv_header_subtitle)
         )
 
         val fl: FrameLayout = f(R.id.fl_things)!!
@@ -1018,7 +1020,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         mDrawerLayout!!.fitsSystemWindows = false
         mDrawer!!.fitsSystemWindows = false
 
-        mDrawerLayout!!.setScrimColor(Color.parseColor("#84000000"))
+        mDrawerLayout!!.setScrimColor("#84000000".toColorInt())
 
         val decor: View = window.decorView
         decor.viewTreeObserver.addOnPreDrawListener(
@@ -1031,7 +1033,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
                 }
             })
 
-        val item: MenuItem = mDrawer!!.menu.getItem(mApp!!.getLimit())
+        val item: MenuItem = mDrawer!!.menu[mApp!!.getLimit()]
         item.isCheckable = true
         item.isChecked = true
         mPreviousItem = item
@@ -1066,7 +1068,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
                 Def.Communication.REQUEST_PERMISSION_LOAD_THINGS,
                 *PermissionUtil.getRequiredPermissionsForThings(
                     mThingManager!!.getThings()
-                )!!
+                )
             )
         } else {
             // post here to make sure that animation plays well and completely
@@ -1112,7 +1114,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
             if (DisplayUtil.isInMultiWindow(this)) {
                 val decor: View = window.decorView
-                val display: Point = DisplayUtil.getDisplaySize(this)!!
+                val display: Point = DisplayUtil.getDisplaySize(this)
                 if (decor.width != display.x) {
                     mSpan++
                 }
@@ -1207,7 +1209,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
                 if (bg == null) bg = ThingBackground.pure(App.newThingColor)
                 val shiningCol: Int
                 val ordinaryCol: Int
-                if (bg!!.mode === ThingBackground.Mode.PURE) {
+                if (bg.mode === ThingBackground.Mode.PURE) {
                     shiningCol  = bg.color
                     ordinaryCol = DisplayUtil.getLightColor(bg.color, this@ThingsActivity)
                 } else {
@@ -1287,15 +1289,15 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         val useShining = getSharedPreferences(Def.Meta.PREFERENCES_NAME, MODE_PRIVATE)
             .getBoolean(Def.Meta.KEY_CREATE_ANIMATION_STYLE, false)
         holder.cv!!.clearAnimation()
-        holder.cv!!.visibility = View.INVISIBLE
+        holder.cv.visibility = View.INVISIBLE
         mIsRevealAnimPlaying = true
-        holder.cv!!.postDelayed({
-            if (holder.cv!!.windowToken == null) {
+        holder.cv.postDelayed({
+            if (holder.cv.windowToken == null) {
                 mIsRevealAnimPlaying = false
                 return@postDelayed
             }
-            holder.cv!!.clearAnimation()
-            holder.cv!!.visibility = View.INVISIBLE
+            holder.cv.clearAnimation()
+            holder.cv.visibility = View.INVISIBLE
             if (useShining) {
                 playNewItemShiningBorder(holder, bg)
             } else {
@@ -1313,8 +1315,8 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         mShiningBorder!!.getLocationInWindow(borderLoc)
         val left   = cardLoc[0] - borderLoc[0]
         val top    = cardLoc[1] - borderLoc[1]
-        val right  = left + holder.cv!!.width
-        val bottom = top  + holder.cv!!.height
+        val right  = left + holder.cv.width
+        val bottom = top  + holder.cv.height
 
         val density = DisplayUtil.getScreenDensity(this)
 
@@ -1345,9 +1347,9 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         mShiningBorder!!.setOnProgressUpdateListener(null)
         mShiningBorder!!.setOnAnimationEndListener(object : ShiningBorder.OnAnimationEndListener {
             override fun onAnimationEnd(border: ShiningBorder) {
-                holder.cv!!.alpha = 0f
-                holder.cv!!.visibility = View.VISIBLE
-                holder.cv!!.animate().alpha(1f).setDuration(220).start()
+                holder.cv.alpha = 0f
+                holder.cv.visibility = View.VISIBLE
+                holder.cv.animate().alpha(1f).setDuration(220).start()
                 mShiningBorder!!.visibility = View.INVISIBLE
                 mShiningBorder!!.resetTrace()
                 mShiningBorder!!.setOnAnimationEndListener(null)
@@ -1378,7 +1380,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         }
         val cx = w
         val cy = h
-        val finalRadius = Math.hypot(w.toDouble(), h.toDouble()).toFloat()
+        val finalRadius = hypot(w.toDouble(), h.toDouble()).toFloat()
         val reveal: Animator = ViewAnimationUtils.createCircularReveal(card, cx, cy, 0f, finalRadius)
         reveal.duration = 540
         reveal.interpolator = AccelerateDecelerateInterpolator()
@@ -1631,8 +1633,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         mActionbar!!.setNavigationOnClickListener(OnNavigationIconClickedListener())
         mDrawer!!.setNavigationItemSelectedListener(NavigationView.OnNavigationItemSelectedListener { menuItem ->
             if (mPreviousItem!! != menuItem) {
-                val id = menuItem.itemId
-                val newLimit: Int = when (id) {
+                val newLimit: Int = when (menuItem.itemId) {
                     R.id.drawer_underway -> Def.LimitForGettingThings.ALL_UNDERWAY
                     R.id.drawer_note -> Def.LimitForGettingThings.NOTE_UNDERWAY
                     R.id.drawer_reminder -> Def.LimitForGettingThings.REMINDER_UNDERWAY
@@ -1670,7 +1671,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
 
     private fun changeToLimit(newLimit: Int, updateDrawerItem: Boolean) {
         if (updateDrawerItem) {
-            val menuItem: MenuItem = mDrawer!!.menu.getItem(newLimit)
+            val menuItem: MenuItem = mDrawer!!.menu[newLimit]
             checkDrawerItem(menuItem)
         }
 
@@ -2360,7 +2361,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         ) {
             super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive)
             if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
-                val displayWidth = DisplayUtil.getDisplaySize(mApp)!!.x
+                val displayWidth = DisplayUtil.getDisplaySize(mApp).x
                 val v: View = viewHolder.itemView
                 val holder = viewHolder as BaseThingsAdapter.BaseThingViewHolder
                 val position = viewHolder.adapterPosition
@@ -2373,7 +2374,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
                 if (dX < 0) {
                     holder.flDoing!!.alpha = 1.0f
                     if (App.getDoingThingId() != thing.id) {
-                        holder.flDoing!!.visibility = View.GONE
+                        holder.flDoing.visibility = View.GONE
                     }
                     v.alpha = 1.0f + dX / v.right
                 } else if (dX > 0) {
@@ -2384,21 +2385,21 @@ class ThingsActivity : EverythingDoneBaseActivity() {
 
                     holder.flDoing!!.visibility = View.VISIBLE
                     if (!hasSwipedRight) {
-                        val lp = holder.flDoing!!.layoutParams as FrameLayout.LayoutParams
+                        val lp = holder.flDoing.layoutParams as FrameLayout.LayoutParams
                         lp.width  = holder.cv!!.width
-                        lp.height = holder.cv!!.height
-                        holder.flDoing!!.requestLayout()
+                        lp.height = holder.cv.height
+                        holder.flDoing.requestLayout()
                         hasSwipedRight = true
                     }
 
                     var alpha: Float = dX / (displayWidth - v.left) * 2
                     if (alpha > 1.0f) alpha = 1.0f
-                    holder.flDoing!!.alpha = alpha
+                    holder.flDoing.alpha = alpha
                 } else {
                     v.alpha = 1.0f
                     holder.flDoing!!.alpha = 1.0f
                     if (App.getDoingThingId() != thing.id) {
-                        holder.flDoing!!.visibility = View.GONE
+                        holder.flDoing.visibility = View.GONE
                     }
                 }
                 swiped = dX != 0f
