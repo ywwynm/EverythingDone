@@ -25,7 +25,7 @@ object CheckListHelper {
 
     @JvmStatic
     fun isCheckListStr(s: String?): Boolean {
-        return s!!.length >= SIGNAL_LENGTH && s.substring(0, SIGNAL_LENGTH).equals(SIGNAL)
+        return s!!.length >= SIGNAL_LENGTH && s.substring(0, SIGNAL_LENGTH) == SIGNAL
     }
 
     @JvmStatic
@@ -41,7 +41,7 @@ object CheckListHelper {
         var firstFinishedIndex: Int = -1
         val size: Int = items.size
         for (i in 0 until size) {
-            if (items.get(i)!!.startsWith("1")) {
+            if (items[i]!!.startsWith("1")) {
                 firstFinishedIndex = i
                 break
             }
@@ -70,9 +70,9 @@ object CheckListHelper {
         } else {
             val signal: Char = checkListStr[SIGNAL_LENGTH]
             var result: String = checkListStr.substring(SIGNAL_LENGTH + 1, checkListStr.length)
-            if (signal == '0') {
-                result = unchecked + result
-            } else result = checked + result
+            result = if (signal == '0') {
+                unchecked + result
+            } else checked + result
 
             result = result.replace((SIGNAL + 0).toRegex(), "\n" + unchecked)
             result = result.replace((SIGNAL + 1).toRegex(), "\n" + checked)
@@ -113,7 +113,7 @@ object CheckListHelper {
             return checklistStr
         }
 
-        val oldItem: String = items.get(itemPos)!!
+        val oldItem: String = items[itemPos]!!
         items.removeAt(itemPos)
         if (oldItem.startsWith("0")) { // unfinished to finished
             val newItem: String = "1" + oldItem.substring(1, oldItem.length)
@@ -134,7 +134,7 @@ object CheckListHelper {
     fun getFirstFinishedItemIndex(items: List<String?>?): Int {
         val size: Int = items!!.size
         for (i in 0 until size) {
-            if (items.get(i)!!.startsWith("1")) {
+            if (items[i]!!.startsWith("1")) {
                 return i
             }
         }
@@ -145,7 +145,7 @@ object CheckListHelper {
     fun getLastUnfinishedItemIndex(items: List<String?>?): Int {
         val size: Int = items!!.size
         for (i in size - 1 downTo 0) {
-            if (items.get(i)!!.startsWith("0")) {
+            if (items[i]!!.startsWith("0")) {
                 return i
             }
         }
@@ -154,7 +154,7 @@ object CheckListHelper {
 
     @JvmStatic
     fun onlyOneFinishedItem(items: List<String?>?): Boolean {
-        var count: Int = 0
+        var count = 0
         for (item in items!!) {
             if (item!!.startsWith("1")) {
                 count++

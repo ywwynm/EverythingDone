@@ -58,11 +58,11 @@ object NotificationReliabilityHelper {
     @JvmStatic
     fun getDisabledCriticalChannels(context: Context?): List<String?>? {
         val disabled: MutableList<String?> = ArrayList()
-        val nm: NotificationManager? = context!!.getSystemService(NotificationManager::class.java)
-        if (nm == null) return disabled
+        val nm: NotificationManager =
+            context!!.getSystemService(NotificationManager::class.java) ?: return disabled
         for (id in CRITICAL_CHANNEL_IDS) {
             val ch: NotificationChannel? = nm.getNotificationChannel(id)
-            if (ch != null && ch.getImportance() == NotificationManager.IMPORTANCE_NONE) {
+            if (ch != null && ch.importance == NotificationManager.IMPORTANCE_NONE) {
                 disabled.add(id)
             }
         }
@@ -81,8 +81,8 @@ object NotificationReliabilityHelper {
 
     @JvmStatic
     fun openAppNotificationSettings(context: Context?): Boolean {
-        val intent: Intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
-        intent.putExtra(Settings.EXTRA_APP_PACKAGE, context!!.getPackageName())
+        val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+        intent.putExtra(Settings.EXTRA_APP_PACKAGE, context!!.packageName)
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         if (startSafely(context, intent)) return true
         return openAppDetailsSettings(context)
@@ -90,8 +90,8 @@ object NotificationReliabilityHelper {
 
     @JvmStatic
     fun openChannelSettings(context: Context?, channelId: String?): Boolean {
-        val intent: Intent = Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
-        intent.putExtra(Settings.EXTRA_APP_PACKAGE, context!!.getPackageName())
+        val intent = Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
+        intent.putExtra(Settings.EXTRA_APP_PACKAGE, context!!.packageName)
         intent.putExtra(Settings.EXTRA_CHANNEL_ID, channelId)
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         if (startSafely(context, intent)) return true
@@ -106,8 +106,8 @@ object NotificationReliabilityHelper {
     @JvmStatic
     fun openFullScreenIntentSettings(context: Context?): Boolean {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            val intent: Intent = Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT)
-            intent.setData(Uri.parse("package:" + context!!.getPackageName()))
+            val intent = Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT)
+            intent.setData(Uri.parse("package:" + context!!.packageName))
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             if (startSafely(context, intent)) return true
         }
@@ -120,7 +120,7 @@ object NotificationReliabilityHelper {
             return true
         }
         val pm: PowerManager? = context!!.getSystemService(Context.POWER_SERVICE) as PowerManager?
-        return pm != null && pm.isIgnoringBatteryOptimizations(context.getPackageName())
+        return pm != null && pm.isIgnoringBatteryOptimizations(context.packageName)
     }
 
     /**
@@ -133,8 +133,8 @@ object NotificationReliabilityHelper {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
             return true
         }
-        val intent: Intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
-        intent.setData(Uri.parse("package:" + context!!.getPackageName()))
+        val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
+        intent.setData(Uri.parse("package:" + context!!.packageName))
         return startSafely(context, intent)
     }
 
@@ -148,7 +148,7 @@ object NotificationReliabilityHelper {
     @JvmStatic
     fun openVendorAutostartSettings(context: Context?): Boolean {
         for (candidate in autostartCandidates()) {
-            val intent: Intent = Intent()
+            val intent = Intent()
             intent.setComponent(candidate)
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             if (startSafely(context, intent)) {
@@ -160,8 +160,8 @@ object NotificationReliabilityHelper {
 
     @JvmStatic
     fun openAppDetailsSettings(context: Context?): Boolean {
-        val intent: Intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-        intent.setData(Uri.parse("package:" + context!!.getPackageName()))
+        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+        intent.setData(Uri.parse("package:" + context!!.packageName))
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         return startSafely(context, intent)
     }
@@ -238,7 +238,7 @@ object NotificationReliabilityHelper {
     }
 
     private fun startSafely(context: Context?, intent: Intent): Boolean {
-        val pm: PackageManager = context!!.getPackageManager()
+        val pm: PackageManager = context!!.packageManager
         if (intent.resolveActivity(pm) == null) {
             return false
         }
@@ -246,7 +246,7 @@ object NotificationReliabilityHelper {
             context.startActivity(intent)
             return true
         } catch (e: Exception) {
-            Log.w(TAG, "Failed to start " + intent, e)
+            Log.w(TAG, "Failed to start $intent", e)
             return false
         }
     }

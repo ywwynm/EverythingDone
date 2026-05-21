@@ -39,7 +39,7 @@ import javax.crypto.SecretKey
  */
 open class FingerprintHelper private constructor(context: Context?) {
 
-    private var mContext: Context? = context!!.getApplicationContext()
+    private var mContext: Context? = context!!.applicationContext
 
     private var mKeyguardManager: KeyguardManager? = null
     private var mKeyStore: KeyStore? = null
@@ -69,7 +69,7 @@ open class FingerprintHelper private constructor(context: Context?) {
     }
 
     open fun hasSystemFingerprintSet(): Boolean {
-        return mKeyguardManager != null && mKeyguardManager!!.isKeyguardSecure()
+        return mKeyguardManager != null && mKeyguardManager!!.isKeyguardSecure
     }
 
     open fun hasFingerprintRegistered(): Boolean {
@@ -107,10 +107,8 @@ open class FingerprintHelper private constructor(context: Context?) {
     private fun initFingerprintCipher(): Boolean {
         try {
             mKeyStore!!.load(null)
-            val key: SecretKey? = mKeyStore!!.getKey(FINGERPRINT_KEY_NAME, null) as SecretKey?
-            if (key == null) {
-                return false
-            }
+            val key: SecretKey =
+                mKeyStore!!.getKey(FINGERPRINT_KEY_NAME, null) as SecretKey? ?: return false
             mCipher!!.init(Cipher.ENCRYPT_MODE, key)
             return true
         } catch (e: KeyPermanentlyInvalidatedException) {
@@ -159,7 +157,7 @@ open class FingerprintHelper private constructor(context: Context?) {
                 .setNegativeButtonText(mContext!!.getString(android.R.string.cancel))
                 .build()
 
-        val prompt: BiometricPrompt = BiometricPrompt(activity as FragmentActivity, executor,
+        val prompt = BiometricPrompt(activity as FragmentActivity, executor,
                 object : BiometricPrompt.AuthenticationCallback() {
                     override fun onAuthenticationSucceeded(
                             result: BiometricPrompt.AuthenticationResult) {
@@ -189,7 +187,7 @@ open class FingerprintHelper private constructor(context: Context?) {
             activity: Activity?, accent: com.ywwynm.everythingdone.model.ThingBackground?,
             title: String?, correctPassword: String?,
             callback: AuthenticationHelper.AuthenticationCallback?) {
-        val pldf: PatternLockDialogFragment = PatternLockDialogFragment()
+        val pldf = PatternLockDialogFragment()
         // Phase 8: prefer the ThingBackground setter so GRADIENT renders on
         // the dialog's title + right-button. Falls back to int when caller
         // only supplied a representative int (wrapped as PURE).
@@ -198,7 +196,7 @@ open class FingerprintHelper private constructor(context: Context?) {
         pldf.setValidateTitle(title)
         pldf.setCorrectPassword(correctPassword)
         pldf.setAuthenticationCallback(callback)
-        pldf.show(activity!!.getFragmentManager(), PatternLockDialogFragment.TAG)
+        pldf.show(activity!!.fragmentManager, PatternLockDialogFragment.TAG)
     }
 
     companion object {

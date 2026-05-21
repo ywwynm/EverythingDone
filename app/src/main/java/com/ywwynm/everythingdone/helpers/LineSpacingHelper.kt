@@ -36,8 +36,8 @@ object LineSpacingHelper {
             override fun afterTextChanged(s: Editable?) {}
 
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                val add: Float = et.getLineSpacingExtra()
-                val mul: Float = et.getLineSpacingMultiplier()
+                val add: Float = et.lineSpacingExtra
+                val mul: Float = et.lineSpacingMultiplier
                 et.setLineSpacing(0f, 1f)
                 et.setLineSpacing(add, mul)
             }
@@ -50,12 +50,12 @@ object LineSpacingHelper {
             normalLineCursorHeightVary: Int, lastLineCursorHeightVary: Int) {
         try {
             val method: Method = TextView::class.java.getDeclaredMethod("createEditorIfNeeded")
-            method.setAccessible(true)
+            method.isAccessible = true
             method.invoke(et)
             val field1: Field = TextView::class.java.getDeclaredField("mEditor")
             val field2: Field = Class.forName("android.widget.Editor").getDeclaredField("mCursorDrawable")
-            field1.setAccessible(true)
-            field2.setAccessible(true)
+            field1.isAccessible = true
+            field2.isAccessible = true
             val arr: Any = field2.get(field1.get(et))!!
             val d: Drawable = LineSpacingCursorDrawable(
                     et, cursorColor, cursorWidth,
@@ -65,7 +65,7 @@ object LineSpacingHelper {
         } catch (ignored: Exception) {}
     }
 
-    private class LineSpacingCursorDrawable internal constructor(
+    private class LineSpacingCursorDrawable(
             editText: EditText?, color: Int, width: Int,
             normalLineHeightVary: Int, lastLineHeightVary: Int) : ShapeDrawable() {
 
@@ -76,15 +76,15 @@ object LineSpacingHelper {
 
         init {
             setDither(false)
-            getPaint().setColor(color)
+            paint.setColor(color)
             setIntrinsicWidth(width)
         }
 
         override fun setBounds(left: Int, top: Int, right: Int, bottom: Int) {
-            val pos: Int = mEditText!!.getSelectionStart()
-            val layout: Layout = mEditText!!.getLayout()
+            val pos: Int = mEditText!!.selectionStart
+            val layout: Layout = mEditText!!.layout
             val cursorLine: Int = layout.getLineForOffset(pos)
-            val lineCount: Int = mEditText!!.getLineCount()
+            val lineCount: Int = mEditText!!.lineCount
             val heightVary: Int = if (cursorLine != lineCount - 1)
                     mNormalLineHeightVary else mLastLineHeightVary
             super.setBounds(left, top, right, bottom + heightVary)

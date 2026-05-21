@@ -37,13 +37,10 @@ object PossibleMistakeHelper {
 
     @JvmStatic
     fun outputNewMistake(exception: Exception?) {
-        val file: File? = createNewLogFile()
-        if (file == null) {
-            return
-        }
+        val file: File = createNewLogFile() ?: return
 
         try {
-            val writer: PrintWriter = PrintWriter(FileWriter(file))
+            val writer = PrintWriter(FileWriter(file))
             writer.println(System.currentTimeMillis())
             writer.print("APP Version:  ")
             writer.println(BuildConfig.VERSION_NAME + "_" + BuildConfig.VERSION_CODE)
@@ -69,13 +66,10 @@ object PossibleMistakeHelper {
 
     @JvmStatic
     fun outputNewMistake(possibleMistakeInfo: String?, stackTraceElements: Array<StackTraceElement?>?) {
-        val file: File? = createNewLogFile()
-        if (file == null) {
-            return
-        }
+        val file: File = createNewLogFile() ?: return
 
         try {
-            val writer: PrintWriter = PrintWriter(FileWriter(file))
+            val writer = PrintWriter(FileWriter(file))
             writer.println(System.currentTimeMillis())
             writer.print("APP Version:  ")
             writer.println(BuildConfig.VERSION_NAME + "_" + BuildConfig.VERSION_CODE)
@@ -95,7 +89,7 @@ object PossibleMistakeHelper {
     private fun createNewLogFile(): File? {
         val path: String = Def.getAppFileDir(App.getApp()) + "/log"
         val time: String = SimpleDateFormat("yyyyMMddHHmmss").format(Date())
-        val name: String = "possible_mistake_" + time + ".info"
+        val name: String = "possible_mistake_$time.info"
         return FileUtil.createFile(path, name)
     }
 

@@ -101,7 +101,7 @@ open class ThingDoingHelper(context: Context?, thing: Thing?) {
             accent: com.ywwynm.everythingdone.model.ThingBackground?) {
         val hrTime: Long = calculateHrTimeForHabit()
         val bg: com.ywwynm.everythingdone.model.ThingBackground? =
-                if (accent != null) accent else mThing!!.getBackground()
+            accent ?: mThing!!.getBackground()
         mContext!!.startActivity(StartDoingActivity.getOpenIntent(
                 mContext, mThing!!.id, -1, bg,
                 DoingService.START_TYPE_USER, hrTime))
@@ -158,11 +158,11 @@ open class ThingDoingHelper(context: Context?, thing: Thing?) {
                     return false
                 }
                 @Thing.Type val thingType: Int = mThing!!.type
-                if (thingType == Thing.REMINDER && sysStrategy == SYS_AUTO_START_DOING_STRATEGY_REMINDER) {
-                    return true
+                return if (thingType == Thing.REMINDER && sysStrategy == SYS_AUTO_START_DOING_STRATEGY_REMINDER) {
+                    true
                 } else if (thingType == Thing.HABIT && sysStrategy == SYS_AUTO_START_DOING_STRATEGY_HABIT) {
-                    return true
-                } else return false
+                    true
+                } else false
             }
         } else if (strategy == AUTO_START_DOING_STRATEGY_ENABLED) {
             return true
@@ -173,12 +173,12 @@ open class ThingDoingHelper(context: Context?, thing: Thing?) {
 
     open fun getAutoStartDoingDesc(): String? {
         val strategy: Int = getAutoStartDoingStrategy()
-        if (strategy == AUTO_START_DOING_STRATEGY_FOLLOW_GENERAL) {
-            return getAutoStartDoingFollowGeneralStr()
+        return if (strategy == AUTO_START_DOING_STRATEGY_FOLLOW_GENERAL) {
+            getAutoStartDoingFollowGeneralStr()
         } else if (strategy == AUTO_START_DOING_STRATEGY_ENABLED) {
-            return mContext!!.getString(R.string.enabled)
+            mContext!!.getString(R.string.enabled)
         } else {
-            return mContext!!.getString(R.string.disabled)
+            mContext!!.getString(R.string.disabled)
         }
     }
 
@@ -221,11 +221,11 @@ open class ThingDoingHelper(context: Context?, thing: Thing?) {
                     return false
                 }
                 @Thing.Type val thingType: Int = mThing!!.type
-                if (thingType == Thing.REMINDER && sysStrategy == SYS_AUTO_STRICT_MODE_STRATEGY_REMINDER) {
-                    return true
+                return if (thingType == Thing.REMINDER && sysStrategy == SYS_AUTO_STRICT_MODE_STRATEGY_REMINDER) {
+                    true
                 } else if (thingType == Thing.HABIT && sysStrategy == SYS_AUTO_STRICT_MODE_STRATEGY_HABIT) {
-                    return true
-                } else return false
+                    true
+                } else false
             }
         } else if (strategy == AUTO_STRICT_MODE_STRATEGY_ENABLED) {
             return true
@@ -236,12 +236,12 @@ open class ThingDoingHelper(context: Context?, thing: Thing?) {
 
     open fun getAutoStrictModeDesc(): String? {
         val strategy: Int = getAutoStrictModeStrategy()
-        if (strategy == AUTO_STRICT_MODE_STRATEGY_FOLLOW_GENERAL) {
-            return getAutoStrictModeFollowGeneralStr()
+        return if (strategy == AUTO_STRICT_MODE_STRATEGY_FOLLOW_GENERAL) {
+            getAutoStrictModeFollowGeneralStr()
         } else if (strategy == AUTO_STRICT_MODE_STRATEGY_ENABLED) {
-            return mContext!!.getString(R.string.enabled)
+            mContext!!.getString(R.string.enabled)
         } else {
-            return mContext!!.getString(R.string.disabled)
+            mContext!!.getString(R.string.disabled)
         }
     }
 
@@ -254,15 +254,15 @@ open class ThingDoingHelper(context: Context?, thing: Thing?) {
     open fun setAutoDoingTimeStrategy(index: Int) {
         val key: String = mThing!!.id.toString() + "_" + KEY_INDEX_AUTO_START_DOING_TIME
         val pair: Pair<List<Int>, List<Int>> = getStartDoingTypeTimes(true)
-        val strategy: String = pair.first!!.get(index).toString() + "," + pair.second!!.get(index)
+        val strategy: String = pair.first!![index].toString() + "," + pair.second!![index]
         mSpStartDoing!!.edit().putString(key, strategy).apply()
     }
 
     open fun getAutoDoingTimeDesc(): String? {
         val doingTimeStr: String = getAutoDoingTimeStrategy()!!
-        if (START_DOING_TIME_FOLLOW_GENERAL_PICKED.equals(doingTimeStr)) {
+        if (START_DOING_TIME_FOLLOW_GENERAL_PICKED == doingTimeStr) {
             return getAutoStartDoingTimeFollowGeneralStr()
-        } else if (START_DOING_TIME_NOT_SURE_PICKED.equals(doingTimeStr)) {
+        } else if (START_DOING_TIME_NOT_SURE_PICKED == doingTimeStr) {
             return mContext!!.getString(R.string.start_doing_time_not_sure)
         } else {
             val arr: Array<String> = doingTimeStr.split(",".toRegex()).toTypedArray()
@@ -276,16 +276,16 @@ open class ThingDoingHelper(context: Context?, thing: Thing?) {
         var key: String = mThing!!.id.toString() + "_" + KEY_INDEX_AUTO_START_DOING_TIME
         var doingTimeStr: String = mSpStartDoing!!.getString(
                 key, START_DOING_TIME_FOLLOW_GENERAL_PICKED)!!
-        if (START_DOING_TIME_FOLLOW_GENERAL_PICKED.equals(doingTimeStr)) {
-            if (mThing!!.type == Thing.REMINDER) {
-                key = Def.Meta.KEY_ASD_TIME_REMINDER
+        if (START_DOING_TIME_FOLLOW_GENERAL_PICKED == doingTimeStr) {
+            key = if (mThing!!.type == Thing.REMINDER) {
+                Def.Meta.KEY_ASD_TIME_REMINDER
             } else {
-                key = Def.Meta.KEY_ASD_TIME_HABIT
+                Def.Meta.KEY_ASD_TIME_HABIT
             }
             doingTimeStr = mSpSettings!!.getString(key, START_DOING_TIME_NOT_SURE_PICKED)!!
         }
 
-        if (START_DOING_TIME_NOT_SURE_PICKED.equals(doingTimeStr)) {
+        if (START_DOING_TIME_NOT_SURE_PICKED == doingTimeStr) {
             return -1
         }
 
@@ -296,7 +296,7 @@ open class ThingDoingHelper(context: Context?, thing: Thing?) {
         if (mThing!!.type == Thing.HABIT) {
             val habit: Habit? = HabitDAO.getInstance(mContext)!!.getHabitById(mThing!!.id)
             if (habit != null) {
-                val calendar: GregorianCalendar = GregorianCalendar()
+                val calendar = GregorianCalendar()
                 val habitType: Int = habit.type
                 val ct: Int = calendar.get(habitType)
                 calendar.setTimeInMillis(System.currentTimeMillis() + doingTime
@@ -335,31 +335,31 @@ open class ThingDoingHelper(context: Context?, thing: Thing?) {
         } else if (sysStrategy == SYS_AUTO_START_DOING_STRATEGY_ALL) {
             part2 = enabled
         } else {
-            if (mThing == null) {
-                part2 = disabled
+            part2 = if (mThing == null) {
+                disabled
             } else {
                 @Thing.Type val thingType: Int = mThing!!.type
                 if (thingType == Thing.REMINDER && sysStrategy == SYS_AUTO_START_DOING_STRATEGY_REMINDER) {
-                    part2 = enabled
+                    enabled
                 } else if (thingType == Thing.HABIT && sysStrategy == SYS_AUTO_START_DOING_STRATEGY_HABIT) {
-                    part2 = enabled
-                } else part2 = disabled
+                    enabled
+                } else disabled
             }
         }
-        return part1 + " (" + part2 + ")"
+        return "$part1 ($part2)"
     }
 
     open fun getAutoStartDoingTimeFollowGeneralStr(): String? {
         val part1: String = mContext!!.getString(R.string.auto_start_doing_follow_general)
         val part2: String
         val key: String
-        if (mThing!!.type == Thing.REMINDER) {
-            key = Def.Meta.KEY_ASD_TIME_REMINDER
+        key = if (mThing!!.type == Thing.REMINDER) {
+            Def.Meta.KEY_ASD_TIME_REMINDER
         } else {
-            key = Def.Meta.KEY_ASD_TIME_HABIT
+            Def.Meta.KEY_ASD_TIME_HABIT
         }
         val doingTimeStr: String = mSpSettings!!.getString(key, START_DOING_TIME_NOT_SURE_PICKED)!!
-        if (START_DOING_TIME_NOT_SURE_PICKED.equals(doingTimeStr)) {
+        if (START_DOING_TIME_NOT_SURE_PICKED == doingTimeStr) {
             part2 = mContext!!.getString(R.string.start_doing_time_not_sure)
         } else {
             val arr: Array<String> = doingTimeStr.split(",".toRegex()).toTypedArray()
@@ -367,7 +367,7 @@ open class ThingDoingHelper(context: Context?, thing: Thing?) {
             val time: Int = arr[1].toInt()
             part2 = DateTimeUtil.getDateTimeStr(type, time, mContext)!!
         }
-        return part1 + " (" + part2 + ")"
+        return "$part1 ($part2)"
     }
 
     open fun getAutoStrictModeFollowGeneralStr(): String? {
@@ -382,18 +382,18 @@ open class ThingDoingHelper(context: Context?, thing: Thing?) {
         } else if (sysStrategy == SYS_AUTO_STRICT_MODE_STRATEGY_ALL) {
             part2 = enabled
         } else {
-            if (mThing == null) {
-                part2 = disabled
+            part2 = if (mThing == null) {
+                disabled
             } else {
                 @Thing.Type val thingType: Int = mThing!!.type
                 if (thingType == Thing.REMINDER && sysStrategy == SYS_AUTO_STRICT_MODE_STRATEGY_REMINDER) {
-                    part2 = enabled
+                    enabled
                 } else if (thingType == Thing.HABIT && sysStrategy == SYS_AUTO_STRICT_MODE_STRATEGY_HABIT) {
-                    part2 = enabled
-                } else part2 = disabled
+                    enabled
+                } else disabled
             }
         }
-        return part1 + " (" + part2 + ")"
+        return "$part1 ($part2)"
     }
 
     companion object {
@@ -513,7 +513,7 @@ open class ThingDoingHelper(context: Context?, thing: Thing?) {
             val size: Int = typeTimes.first!!.size
             for (i in 1 until size) {
                 items.add(DateTimeUtil.getDateTimeStr(
-                        typeTimes.first!!.get(i), typeTimes.second!!.get(i), context))
+                    typeTimes.first!![i], typeTimes.second!![i], context))
             }
             return items
         }
@@ -526,8 +526,8 @@ open class ThingDoingHelper(context: Context?, thing: Thing?) {
             val pair: Pair<List<Int>, List<Int>> = getStartDoingTypeTimes(hasFollowGeneral)
             val size: Int = pair.first!!.size
             for (i in 0 until size) {
-                val str: String = pair.first!!.get(i).toString() + "," + pair.second!!.get(i)
-                if (str.equals(picked)) {
+                val str: String = pair.first!![i].toString() + "," + pair.second!![i]
+                if (str == picked) {
                     return i
                 }
             }
@@ -538,13 +538,13 @@ open class ThingDoingHelper(context: Context?, thing: Thing?) {
         fun getStartDoingTimePickedStr(
                 index: Int, hasFollowGeneral: Boolean): String? {
             val pair: Pair<List<Int>, List<Int>> = getStartDoingTypeTimes(hasFollowGeneral)
-            return pair.first!!.get(index).toString() + "," + pair.second!!.get(index)
+            return pair.first!![index].toString() + "," + pair.second!![index]
         }
 
         @JvmStatic
         fun stopDoing(context: Context?, @DoingRecord.StopReason stopReason: Int) {
-            val intent: Intent = Intent(DoingActivity.BROADCAST_ACTION_JUST_FINISH)
-            intent.setPackage(context!!.getPackageName())
+            val intent = Intent(DoingActivity.BROADCAST_ACTION_JUST_FINISH)
+            intent.setPackage(context!!.packageName)
             context.sendBroadcast(intent)
             DoingService.sStopReason = stopReason
             context.stopService(Intent(context, DoingService::class.java))

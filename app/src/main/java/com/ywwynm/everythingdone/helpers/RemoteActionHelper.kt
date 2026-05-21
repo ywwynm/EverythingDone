@@ -43,8 +43,8 @@ object RemoteActionHelper {
         var t: Thing = thing!!
         if (App.getDoingThingId() == t.id) {
             DoingService.sStopReason = DoingRecord.STOP_REASON_FINISH
-            val intentJustFinish1: Intent = Intent(DoingActivity.BROADCAST_ACTION_JUST_FINISH)
-            intentJustFinish1.setPackage(context!!.getPackageName())
+            val intentJustFinish1 = Intent(DoingActivity.BROADCAST_ACTION_JUST_FINISH)
+            intentJustFinish1.setPackage(context!!.packageName)
             context.sendBroadcast(intentJustFinish1)
             context.stopService(Intent(context, DoingService::class.java))
             App.setDoingThingId(-1L)
@@ -78,18 +78,18 @@ object RemoteActionHelper {
         val doing: Boolean = App.getDoingThingId() == thing.id
         if (doing) {
             DoingService.sStopReason = DoingRecord.STOP_REASON_FINISH
-            val intentJustFinish2: Intent = Intent(DoingActivity.BROADCAST_ACTION_JUST_FINISH)
-            intentJustFinish2.setPackage(context!!.getPackageName())
+            val intentJustFinish2 = Intent(DoingActivity.BROADCAST_ACTION_JUST_FINISH)
+            intentJustFinish2.setPackage(context!!.packageName)
             context.sendBroadcast(intentJustFinish2)
             context.stopService(Intent(context, DoingService::class.java))
             App.setDoingThingId(-1L)
         }
 
         val allowFinish: Boolean
-        if (hrTime == -1L) {
-            allowFinish = habit.allowFinish()
+        allowFinish = if (hrTime == -1L) {
+            habit.allowFinish()
         } else {
-            allowFinish = habit.allowFinish(hrTime)
+            habit.allowFinish(hrTime)
         }
         if (allowFinish) {
             habitDAO.finishOneTime(habit)
@@ -113,10 +113,10 @@ object RemoteActionHelper {
 
     private fun possibleMistakeInfoForFinishingHabitOnce(
             thing: Thing?, position: Int, hrTime: Long, doing: Boolean, habit: Habit): String {
-        val gson: Gson = Gson()
+        val gson = Gson()
         var dt: ZonedDateTime = ZonedDateTime.now()
         val curTimeStr: String = dt.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
-        var hrTimeStr: String = ""
+        var hrTimeStr = ""
         if (hrTime != -1L) {
             dt = Instant.ofEpochMilli(hrTime).atZone(ZoneId.systemDefault())
             hrTimeStr = dt.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
@@ -174,10 +174,7 @@ object RemoteActionHelper {
     @JvmStatic
     fun toggleChecklistItem(context: Context?, id: Long, itemPos: Int) {
         val pair: Pair<Thing, Int> = App.getThingAndPosition(context, id, -1)!!
-        val thing: Thing? = pair.first
-        if (thing == null) {
-            return
-        }
+        val thing: Thing = pair.first ?: return
         val updatedContent: String? = CheckListHelper.toggleChecklistItem(thing.content, itemPos)
         thing.content = updatedContent
         val position: Int = pair.second!!
@@ -198,12 +195,12 @@ object RemoteActionHelper {
         } else {
             App.setSomethingUpdatedSpecially(true)
         }
-        val broadcastIntent: Intent = Intent(
+        val broadcastIntent = Intent(
                 Def.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI)
         broadcastIntent.putExtra(Def.Communication.KEY_RESULT_CODE,
                 Def.Communication.RESULT_DOING_OR_CANCEL)
         broadcastIntent.putExtra(Def.Communication.KEY_THING, thing)
-        broadcastIntent.setPackage(context!!.getPackageName())
+        broadcastIntent.setPackage(context!!.packageName)
         context.sendBroadcast(broadcastIntent)
 
         AppWidgetHelper.updateSingleThingAppWidgets(context, thing!!.id)
@@ -273,7 +270,7 @@ object RemoteActionHelper {
             App.setSomethingUpdatedSpecially(true)
         }
 
-        val broadcastIntent: Intent = Intent(
+        val broadcastIntent = Intent(
                 Def.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI)
         broadcastIntent.putExtra(Def.Communication.KEY_RESULT_CODE, resultCode)
         broadcastIntent.putExtra(Def.Communication.KEY_THING, thing)
@@ -287,18 +284,18 @@ object RemoteActionHelper {
                 val shouldCallChange: Boolean = thingManager.updateState(
                         thing, position, thing!!.location, Thing.UNDERWAY,
                         Thing.FINISHED, false, true)
-                Log.d(TAG, "Updating state from remote action, shouldCallChange: " + shouldCallChange)
+                Log.d(TAG, "Updating state from remote action, shouldCallChange: $shouldCallChange")
                 broadcastIntent.putExtra(Def.Communication.KEY_CALL_CHANGE, shouldCallChange)
             }
         } else if (resultCode == Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_DIFFERENT) {
             if (position != -1) {
                 val shouldCallChange: Boolean =
                         thingManager.update(typeBefore, thing, position, true) == 1
-                Log.d(TAG, "Updating type from remote action, shouldCallChange: " + shouldCallChange)
+                Log.d(TAG, "Updating type from remote action, shouldCallChange: $shouldCallChange")
                 broadcastIntent.putExtra(Def.Communication.KEY_CALL_CHANGE, shouldCallChange)
             }
         }
-        broadcastIntent.setPackage(context!!.getPackageName())
+        broadcastIntent.setPackage(context!!.packageName)
         context.sendBroadcast(broadcastIntent)
 
         AppWidgetHelper.updateSingleThingAppWidgets(context, thing!!.id)

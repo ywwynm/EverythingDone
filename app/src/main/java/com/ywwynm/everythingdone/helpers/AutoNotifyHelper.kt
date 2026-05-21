@@ -58,7 +58,7 @@ object AutoNotifyHelper {
         }
         val id: Long = thing!!.id
         val alarmManager: AlarmManager = context!!.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val intent: Intent = Intent(context, AutoNotifyReceiver::class.java)
+        val intent = Intent(context, AutoNotifyReceiver::class.java)
         intent.putExtra(Def.Communication.KEY_ID, id)
         val pendingIntent: PendingIntent = PendingIntent.getBroadcast(context, id.toInt(), intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
@@ -93,7 +93,7 @@ object AutoNotifyHelper {
 
     private fun getAutoNotifyPreferences(context: Context?): IntArray {
         val index: Int = getAutoNotifyPreferencesIndex(context)
-        val ret: IntArray = IntArray(2)
+        val ret = IntArray(2)
         if (index == 0) {
             ret[1] = 0
         } else {

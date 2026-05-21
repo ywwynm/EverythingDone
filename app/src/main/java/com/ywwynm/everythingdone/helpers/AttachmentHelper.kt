@@ -54,7 +54,7 @@ object AttachmentHelper {
 
     @JvmStatic
     fun isValidForm(attachment: String?): Boolean {
-        return !attachment!!.isEmpty() && !attachment.equals("to QQ")
+        return !attachment!!.isEmpty() && attachment != "to QQ"
     }
 
     @JvmStatic
@@ -66,7 +66,7 @@ object AttachmentHelper {
         val typePathNames: Array<String> = attachmentStr.split(SIGNAL.toRegex()).toTypedArray()
         for (i in 1 until typePathNames.size) {
             val pathName: String = typePathNames[i].substring(1, typePathNames[i].length)
-            val file: File = File(pathName)
+            val file = File(pathName)
             if (file.exists()) {
                 files.add(file)
             }
@@ -82,7 +82,7 @@ object AttachmentHelper {
         val typePathNames: Array<String> = attachmentStr!!.split(SIGNAL.toRegex()).toTypedArray()
         for (i in 1 until typePathNames.size) {
             val pathName: String = typePathNames[i].substring(1, typePathNames[i].length)
-            val file: File = File(pathName)
+            val file = File(pathName)
 
             // if user delete an attachment directly through deleting original file, we should
             // find it out.
@@ -138,10 +138,10 @@ object AttachmentHelper {
         }
 
         val typePathNames: Array<String> = attachment!!.split(SIGNAL.toRegex()).toTypedArray()
-        var imageCount: Int = 0
-        var videoCount: Int = 0
+        var imageCount = 0
+        var videoCount = 0
         for (i in 1 until typePathNames.size) {
-            val file: File = File(typePathNames[i].substring(1, typePathNames[i].length))
+            val file = File(typePathNames[i].substring(1, typePathNames[i].length))
             if (file.exists()) {
                 if (typePathNames[i].startsWith(IMAGE.toString())) {
                     imageCount++
@@ -165,12 +165,12 @@ object AttachmentHelper {
                 }
             }
 
-            if (imageCount != 0 && videoCount == 0) {
-                return imageCount.toString() + " " + images
+            return if (imageCount != 0 && videoCount == 0) {
+                imageCount.toString() + " " + images
             } else if (imageCount == 0) { // && videoCount != 0
-                return videoCount.toString() + " " + videos
+                videoCount.toString() + " " + videos
             } else {
-                return imageCount.toString() + " " + images + ", " + videoCount + " " + videos
+                imageCount.toString() + " " + images + ", " + videoCount + " " + videos
             }
         }
     }
@@ -181,9 +181,9 @@ object AttachmentHelper {
             return null
         }
         val typePathNames: Array<String> = attachment!!.split(SIGNAL.toRegex()).toTypedArray()
-        var count: Int = 0
+        var count = 0
         for (i in 1 until typePathNames.size) {
-            val file: File = File(typePathNames[i].substring(1, typePathNames[i].length))
+            val file = File(typePathNames[i].substring(1, typePathNames[i].length))
             if (file.exists() && typePathNames[i].startsWith(AUDIO.toString())) {
                 count++
             }
@@ -196,7 +196,7 @@ object AttachmentHelper {
             if (!LocaleUtil.isChinese(context) && count > 1) {
                 audios += "s"
             }
-            return count.toString() + " " + audios
+            return "$count $audios"
         }
     }
 
@@ -221,11 +221,11 @@ object AttachmentHelper {
 
     @JvmStatic
     fun calculateImageSize(context: Context?, itemSize: Int): IntArray {
-        val size: IntArray = IntArray(2)
-        val res: Resources = context!!.getResources()
+        val size = IntArray(2)
+        val res: Resources = context!!.resources
         val isTablet: Boolean = DisplayUtil.isTablet(context)
-        val orientation: Int = res.getConfiguration().orientation
-        val displayWidth: Int = res.getDisplayMetrics().widthPixels
+        val orientation: Int = res.configuration.orientation
+        val displayWidth: Int = res.displayMetrics.widthPixels
 
         if (isTablet) {
             if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
@@ -273,10 +273,10 @@ object AttachmentHelper {
     @JvmStatic
     fun getImageFromVideo(pathName: String?): Bitmap? {
         var bitmap: Bitmap? = null
-        val retriever: MediaMetadataRetriever = MediaMetadataRetriever()
+        val retriever = MediaMetadataRetriever()
         try {
             retriever.setDataSource(pathName)
-            bitmap = retriever.getFrameAtTime()
+            bitmap = retriever.frameAtTime
         } catch (e: Exception) {
             e.printStackTrace()
         } finally {
@@ -292,7 +292,7 @@ object AttachmentHelper {
     @JvmStatic
     fun setImageRecyclerViewHeight(recyclerView: RecyclerView?, itemSize: Int, maxSpan: Int) {
         val height: Int
-        val itemHeight: Int = calculateImageSize(recyclerView!!.getContext(), itemSize)[1]
+        val itemHeight: Int = calculateImageSize(recyclerView!!.context, itemSize)[1]
         if (itemSize <= maxSpan) {
             height = itemHeight
         } else {
@@ -303,14 +303,14 @@ object AttachmentHelper {
             height = h
         }
 
-        val params: LinearLayout.LayoutParams = recyclerView.getLayoutParams() as LinearLayout.LayoutParams
+        val params: LinearLayout.LayoutParams = recyclerView.layoutParams as LinearLayout.LayoutParams
         params.height = height
         recyclerView.requestLayout()
     }
 
     @JvmStatic
     fun setAudioRecyclerViewHeight(recyclerView: RecyclerView?, itemSize: Int, span: Int) {
-        val density: Float = recyclerView!!.getContext().getResources().getDisplayMetrics().density
+        val density: Float = recyclerView!!.context.resources.displayMetrics.density
 
         var rows: Int = itemSize / span
         if (itemSize % span != 0) {
@@ -318,7 +318,7 @@ object AttachmentHelper {
         }
         val itemHeight: Int = (density * 56).toInt() + (density * 8).toInt()
 
-        val params: LinearLayout.LayoutParams = recyclerView.getLayoutParams() as LinearLayout.LayoutParams
+        val params: LinearLayout.LayoutParams = recyclerView.layoutParams as LinearLayout.LayoutParams
         params.height = itemHeight * rows
         recyclerView.requestLayout()
     }
@@ -333,12 +333,12 @@ object AttachmentHelper {
      *  int overload wraps the colour into a PURE background and delegates here. */
     @JvmStatic
     fun showAttachmentInfoDialog(activity: Activity?, accentBg: ThingBackground?, typePathName: String?) {
-        val aidf: AttachmentInfoDialogFragment = AttachmentInfoDialogFragment()
+        val aidf = AttachmentInfoDialogFragment()
         if (accentBg != null) {
             aidf.setAccentBackground(accentBg)
         }
         aidf.setItems(getAttachmentInfo(activity, typePathName))
-        aidf.show(activity!!.getFragmentManager(), AttachmentInfoDialogFragment.TAG)
+        aidf.show(activity!!.fragmentManager, AttachmentInfoDialogFragment.TAG)
     }
 
     private fun getAttachmentInfo(context: Context?, typePathName: String?): List<Pair<String, String>?>? {
@@ -346,7 +346,7 @@ object AttachmentHelper {
         val pathName: String = typePathName.substring(1, typePathName.length)
 
         val list: MutableList<Pair<String, String>?> = ArrayList()
-        val file: File = File(pathName)
+        val file = File(pathName)
         var fst: String = context!!.getString(R.string.file_path)
         if (!file.exists()) {
             val sec: String = context.getString(R.string.file_path_not_existed)
@@ -354,19 +354,19 @@ object AttachmentHelper {
             return list
         }
 
-        var sec: String = file.getAbsolutePath()
+        var sec: String = file.absolutePath
         list.add(Pair(fst, sec))
 
         fst = context.getString(R.string.file_size)
         sec = FileUtil.getFileSizeStr(file)!!
         list.add(Pair(fst, sec))
 
-        if (type == '0') {
-            return getAttachmentInfoImage(list, context, pathName)
+        return if (type == '0') {
+            getAttachmentInfoImage(list, context, pathName)
         } else if (type == '1') {
-            return getAttachmentInfoVideo(list, context, pathName)
+            getAttachmentInfoVideo(list, context, pathName)
         } else {
-            return getAttachmentInfoAudio(list, context, pathName)
+            getAttachmentInfoAudio(list, context, pathName)
         }
     }
 
@@ -380,7 +380,7 @@ object AttachmentHelper {
         val dateTime: ZonedDateTime? = FileUtil.getImageCreateTime(pathName)
         if (dateTime == null) {
             fst = context.getString(R.string.file_last_modify_time)
-            val file: File = File(pathName)
+            val file = File(pathName)
             sec = DateTimeUtil.getGeneralDateTimeStr(context, file.lastModified())!!
         } else {
             fst = context.getString(R.string.image_create_time)
@@ -406,9 +406,9 @@ object AttachmentHelper {
 
         fst = context.getString(R.string.video_create_time)
         val dateTime: ZonedDateTime? = FileUtil.getVideoCreateTime(pathName)
-        if (dateTime == null || dateTime.compareTo(ZonedDateTime.of(1970, 1, 1, 0, 0, 0, 0, ZoneId.systemDefault())) < 0) {
+        if (dateTime == null || dateTime < ZonedDateTime.of(1970, 1, 1, 0, 0, 0, 0, ZoneId.systemDefault())) {
             fst = context.getString(R.string.file_last_modify_time)
-            val file: File = File(pathName)
+            val file = File(pathName)
             sec = DateTimeUtil.getGeneralDateTimeStr(context, file.lastModified())!!
         } else {
             sec = dateTime.format(DateTimeFormatter.ofPattern(DateTimeUtil.getGeneralDateTimeFormatPattern(context)))
@@ -421,7 +421,7 @@ object AttachmentHelper {
     private fun getAttachmentInfoAudio(
             list: MutableList<Pair<String, String>?>, context: Context, pathName: String): List<Pair<String, String>?> {
         var fst: String = context.getString(R.string.file_last_modify_time)
-        val file: File = File(pathName)
+        val file = File(pathName)
         var sec: String = DateTimeUtil.getGeneralDateTimeStr(context, file.lastModified())!!
         list.add(Pair(fst, sec))
 
@@ -432,12 +432,12 @@ object AttachmentHelper {
 
         fst = context.getString(R.string.audio_bitrate)
         val bitrate: Int = FileUtil.getAudioBitrate(pathName)
-        sec = bitrate.toString() + " Kbps"
+        sec = "$bitrate Kbps"
         list.add(Pair(fst, sec))
 
         fst = context.getString(R.string.audio_sample_rate)
         val sampleRate: Int = FileUtil.getAudioSampleRate(pathName)
-        sec = sampleRate.toString() + " Hz"
+        sec = "$sampleRate Hz"
         list.add(Pair(fst, sec))
 
         return list
@@ -450,7 +450,7 @@ object AttachmentHelper {
         }
         val attachmentsToDelete: MutableList<String?> = ArrayList()
         val appDir: String = Def.getAppFileDir(App.getApp())!!
-        val oldAppDir: String = Environment.getExternalStorageDirectory().getAbsolutePath() + "/EverythingDone"
+        val oldAppDir: String = Environment.getExternalStorageDirectory().absolutePath + "/EverythingDone"
         var pathName: String
         val attachmentsBefore: Array<String> = attachmentBefore!!.split(SIGNAL.toRegex()).toTypedArray()
         for (i in 1 until attachmentsBefore.size) {

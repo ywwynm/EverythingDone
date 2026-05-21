@@ -58,7 +58,7 @@ open class AppUpdateHelper private constructor(context: Context?) {
         val reminderDAO: ReminderDAO = ReminderDAO.getInstance(mContext)!!
         val cursor: Cursor = thingDAO.getThingsCursor("type=" + Thing.REMINDER)!!
         while (cursor.moveToNext()) {
-            val thing: Thing = Thing(cursor)
+            val thing = Thing(cursor)
             val id: Long = thing.id
             val reminder: Reminder = reminderDAO.getReminderById(id)!!
             val millis: Long = reminder.notifyMillis
@@ -79,7 +79,7 @@ open class AppUpdateHelper private constructor(context: Context?) {
 
         val ltdf: LongTextDialogFragment = createLongTextDialog(
                 R.string.title_important_alert, R.string.content_important_reminder_permission)
-        ltdf.show(activity!!.getFragmentManager(), LongTextDialogFragment.TAG)
+        ltdf.show(activity!!.fragmentManager, LongTextDialogFragment.TAG)
 
         sp.edit().putBoolean(KEY_1_0_4_TO_1_0_5, true).apply()
         return true
@@ -93,7 +93,7 @@ open class AppUpdateHelper private constructor(context: Context?) {
 
         val ltdf: AlertDialogFragment = createDialog(
                 R.string.from_1_2_7_to_1_3_0_title, R.string.from_1_2_7_to_1_3_0_content)
-        ltdf.show(activity!!.getFragmentManager(), AlertDialogFragment.TAG)
+        ltdf.show(activity!!.fragmentManager, AlertDialogFragment.TAG)
 
         sp.edit().putBoolean(KEY_1_2_7_TO_1_3_0, true).apply()
         return true
@@ -107,7 +107,7 @@ open class AppUpdateHelper private constructor(context: Context?) {
 
         val ltdf: AlertDialogFragment = createDialog(
                 R.string.from_1_3_0_to_1_3_1_title, R.string.from_1_3_0_to_1_3_1_content)
-        ltdf.show(activity!!.getFragmentManager(), AlertDialogFragment.TAG)
+        ltdf.show(activity!!.fragmentManager, AlertDialogFragment.TAG)
 
         sp.edit().putBoolean(KEY_1_3_0_TO_1_3_1, true).apply()
         return true
@@ -121,14 +121,14 @@ open class AppUpdateHelper private constructor(context: Context?) {
 
         val ltdf: AlertDialogFragment = createDialog(
                 R.string.from_1_3_3_to_1_3_4_title, R.string.from_1_3_3_to_1_3_4_content)
-        ltdf.show(activity!!.getFragmentManager(), AlertDialogFragment.TAG)
+        ltdf.show(activity!!.fragmentManager, AlertDialogFragment.TAG)
 
         sp.edit().putBoolean(KEY_1_3_3_TO_1_3_4, true).apply()
         return true
     }
 
     private fun createDialog(@StringRes titleRes: Int, @StringRes contentRes: Int): AlertDialogFragment {
-        val adf: AlertDialogFragment = AlertDialogFragment()
+        val adf = AlertDialogFragment()
         val color: Int = DisplayUtil.getRandomColor(mContext)
         adf.setTitleColor(color)
         adf.setConfirmColor(color)
@@ -141,7 +141,7 @@ open class AppUpdateHelper private constructor(context: Context?) {
     }
 
     private fun createLongTextDialog(@StringRes titleRes: Int, @StringRes contentRes: Int): LongTextDialogFragment {
-        val ltdf: LongTextDialogFragment = LongTextDialogFragment()
+        val ltdf = LongTextDialogFragment()
         ltdf.setAccentColor(DisplayUtil.getRandomColor(mContext))
         ltdf.setTitle(mContext!!.getString(titleRes))
         ltdf.setContent(mContext!!.getString(contentRes))
@@ -159,7 +159,7 @@ open class AppUpdateHelper private constructor(context: Context?) {
             if (sInstance == null) {
                 synchronized(AppUpdateHelper::class.java) {
                     if (sInstance == null) {
-                        sInstance = AppUpdateHelper(context!!.getApplicationContext())
+                        sInstance = AppUpdateHelper(context!!.applicationContext)
                     }
                 }
             }
@@ -175,13 +175,13 @@ open class AppUpdateHelper private constructor(context: Context?) {
                 return false
             }
 
-            val adf: AlertDialogFragment = AlertDialogFragment()
+            val adf = AlertDialogFragment()
             adf.setShowCancel(false)
             adf.setTitleColor(color)
             adf.setConfirmColor(color)
             adf.setTitle(activity.getString(R.string.from_1_1_4_to_1_1_5_title))
             adf.setContent(activity.getString(R.string.from_1_1_4_to_1_1_5_content))
-            adf.show(activity.getFragmentManager(), AlertDialogFragment.TAG)
+            adf.show(activity.fragmentManager, AlertDialogFragment.TAG)
 
             sp.edit().putBoolean(KEY_1_1_4_TO_1_1_5, true).apply()
 

@@ -36,7 +36,7 @@ object AlarmHelper {
     @JvmStatic
     fun setReminderAlarm(context: Context?, id: Long, notifyTime: Long) {
         val am: AlarmManager = context!!.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val intent: Intent = Intent(context, ReminderReceiver::class.java)
+        val intent = Intent(context, ReminderReceiver::class.java)
         intent.putExtra(Def.Communication.KEY_ID, id)
         val pendingIntent: PendingIntent = PendingIntent.getBroadcast(
                 context, id.toInt(), intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
@@ -47,7 +47,7 @@ object AlarmHelper {
     @JvmStatic
     fun deleteReminderAlarm(context: Context?, id: Long) {
         val am: AlarmManager = context!!.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val intent: Intent = Intent(context, ReminderReceiver::class.java)
+        val intent = Intent(context, ReminderReceiver::class.java)
         intent.putExtra(Def.Communication.KEY_ID, id)
         val pendingIntent: PendingIntent = PendingIntent.getBroadcast(context, id.toInt(), intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
@@ -57,7 +57,7 @@ object AlarmHelper {
     @JvmStatic
     fun setHabitReminderAlarm(context: Context?, id: Long, notifyTime: Long) {
         val am: AlarmManager = context!!.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val intent: Intent = Intent(context, HabitReceiver::class.java)
+        val intent = Intent(context, HabitReceiver::class.java)
         intent.putExtra(Def.Communication.KEY_ID, id)
         val pendingIntent: PendingIntent = PendingIntent.getBroadcast(context, id.toInt(), intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
@@ -68,7 +68,7 @@ object AlarmHelper {
     @JvmStatic
     fun deleteHabitReminderAlarm(context: Context?, id: Long) {
         val am: AlarmManager = context!!.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val intent: Intent = Intent(context, HabitReceiver::class.java)
+        val intent = Intent(context, HabitReceiver::class.java)
         intent.putExtra(Def.Communication.KEY_ID, id)
         val pendingIntent: PendingIntent = PendingIntent.getBroadcast(context, id.toInt(), intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
@@ -80,21 +80,21 @@ object AlarmHelper {
                      habitReminderIds: List<Long?>?) {
         val am: AlarmManager = context!!.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         for (thingId in thingIds!!) {
-            val intent: Intent = Intent(context, AutoNotifyReceiver::class.java)
+            val intent = Intent(context, AutoNotifyReceiver::class.java)
             intent.putExtra(Def.Communication.KEY_ID, thingId)
             val pendingIntent: PendingIntent = PendingIntent.getBroadcast(context, thingId!!.toInt(), intent,
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
             am.cancel(pendingIntent)
         }
         for (reminderId in reminderIds!!) {
-            val intent: Intent = Intent(context, ReminderReceiver::class.java)
+            val intent = Intent(context, ReminderReceiver::class.java)
             intent.putExtra(Def.Communication.KEY_ID, reminderId)
             val pendingIntent: PendingIntent = PendingIntent.getBroadcast(context, reminderId!!.toInt(),
                     intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
             am.cancel(pendingIntent)
         }
         for (habitReminderId in habitReminderIds!!) {
-            val intent: Intent = Intent(context, HabitReceiver::class.java)
+            val intent = Intent(context, HabitReceiver::class.java)
             intent.putExtra(Def.Communication.KEY_ID, habitReminderId)
             val pendingIntent: PendingIntent = PendingIntent.getBroadcast(context, habitReminderId!!.toInt(), intent,
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
@@ -140,7 +140,7 @@ object AlarmHelper {
                     reminder.state = Reminder.EXPIRED
                     reminderDAO.update(reminder)
                 } else {
-                    val intent: Intent = Intent(context, ReminderReceiver::class.java)
+                    val intent = Intent(context, ReminderReceiver::class.java)
                     intent.putExtra(Def.Communication.KEY_ID, id)
                     val pendingIntent: PendingIntent = PendingIntent.getBroadcast(
                             context, id.toInt(), intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
@@ -161,7 +161,7 @@ object AlarmHelper {
 
     @JvmStatic
     fun createDailyUpdateHabitAlarm(context: Context?) {
-        val intent: Intent = Intent(context, DailyUpdateHabitReceiver::class.java)
+        val intent = Intent(context, DailyUpdateHabitReceiver::class.java)
         val pendingIntent: PendingIntent = PendingIntent.getBroadcast(
                 context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val dt: ZonedDateTime = ZonedDateTime.now().plusDays(1).withHour(0).withMinute(0).withSecond(0).withNano(0)
@@ -179,9 +179,9 @@ object AlarmHelper {
         }
 
         val dailyTodoPairs: List<Pair<Int, Int>?> = DailyTodoHelper.getDailyTodoTimePairs()!!
-        val pair: Pair<Int, Int> = dailyTodoPairs.get(index)!!
+        val pair: Pair<Int, Int> = dailyTodoPairs[index]!!
 
-        val intent: Intent = Intent(context, DailyCreateTodoReceiver::class.java)
+        val intent = Intent(context, DailyCreateTodoReceiver::class.java)
         val pendingIntent: PendingIntent = PendingIntent.getBroadcast(
                 context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         var dt: ZonedDateTime = ZonedDateTime.now().withHour(pair.first!!).withMinute(pair.second!!).withSecond(0).withNano(0)
@@ -196,7 +196,7 @@ object AlarmHelper {
     @JvmStatic
     fun cancelDailyTodoAlarm(context: Context?) {
         val am: AlarmManager = context!!.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val intent: Intent = Intent(context, DailyCreateTodoReceiver::class.java)
+        val intent = Intent(context, DailyCreateTodoReceiver::class.java)
         val pendingIntent: PendingIntent = PendingIntent.getBroadcast(
                 context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         am.cancel(pendingIntent)
@@ -265,7 +265,7 @@ object AlarmHelper {
 
     private fun buildAlarmClockInfo(
             context: Context?, triggerTime: Long): AlarmManager.AlarmClockInfo {
-        val showIntent: Intent = Intent(context, ThingsActivity::class.java)
+        val showIntent = Intent(context, ThingsActivity::class.java)
         showIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         val showPi: PendingIntent = PendingIntent.getActivity(
                 context, 0, showIntent,

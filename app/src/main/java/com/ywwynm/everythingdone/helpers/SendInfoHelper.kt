@@ -50,7 +50,7 @@ object SendInfoHelper {
         val content: String = context.getString(R.string.app_share_info)
 
         val bm: Bitmap = (ContextCompat.getDrawable(
-                context, R.drawable.ic_launcher_ori) as BitmapDrawable).getBitmap()
+                context, R.drawable.ic_launcher_ori) as BitmapDrawable).bitmap
         val file: File = BitmapUtil.saveBitmapToStorage(FileUtil.getTempPath(context), "app.jpeg", bm)!!
         val uri: Uri = FileProvider.getUriForFile(context,
                 "com.ywwynm.everythingdone", file)
@@ -80,7 +80,7 @@ object SendInfoHelper {
         var title: String = context!!.getString(R.string.act_share)
         val thisStr: String = context.getString(R.string.this_gai)
         if (!isChinese) {
-            title = title + " " + thisStr + " "
+            title = "$title $thisStr "
         } else {
             title += thisStr
         }
@@ -90,7 +90,7 @@ object SendInfoHelper {
     @SuppressLint("SimpleDateFormat")
     @JvmStatic
     fun sendFeedback(context: Context?, attachLogFile: Boolean) {
-        val intent: Intent = Intent()
+        val intent = Intent()
         intent.putExtra(Intent.EXTRA_SUBJECT, context!!.getString(R.string.act_feedback) + "-" +
                 SimpleDateFormat("yyyyMMddHHmmss").format(Date()) +
                 "-" + BuildConfig.VERSION_NAME + "-" + BuildConfig.VERSION_CODE)
@@ -99,7 +99,7 @@ object SendInfoHelper {
         val email: String = Def.Meta.FEEDBACK_EMAIL
         if (!attachLogFile) {
             intent.setAction(Intent.ACTION_SENDTO)
-            intent.setData(Uri.parse("mailto:" + email))
+            intent.setData(Uri.parse("mailto:$email"))
         } else {
             intent.setAction(Intent.ACTION_SEND)
             intent.setType("message/rfc822")
@@ -119,15 +119,14 @@ object SendInfoHelper {
 
     private fun getLatestLogUri(context: Context?): Uri? {
         val dirPath: String = Def.getAppFileDir(context) + "/log"
-        val dir: File = File(dirPath)
+        val dir = File(dirPath)
         if (dir.exists()) {
-            val files: Array<File?>? = dir.listFiles()
-            if (files == null) return null
+            val files: Array<out File?> = dir.listFiles() ?: return null
             var max: File? = null
-            var maxName: String = ""
+            var maxName = ""
             for (file in files) {
                 val name: String = file!!.getName()
-                if (name.endsWith(".log") && name.compareTo(maxName) > 0) {
+                if (name.endsWith(".log") && name > maxName) {
                     maxName = name
                     max = file
                 }
@@ -140,8 +139,8 @@ object SendInfoHelper {
 
     @JvmStatic
     fun rateApp(context: Context?) {
-        val uri: Uri = Uri.parse("market://details?id=" + context!!.getPackageName())
-        val intent: Intent = Intent(Intent.ACTION_VIEW, uri)
+        val uri: Uri = Uri.parse("market://details?id=" + context!!.packageName)
+        val intent = Intent(Intent.ACTION_VIEW, uri)
         try {
             context.startActivity(Intent.createChooser(
                     intent, context.getString(R.string.support_select_market)))
@@ -207,10 +206,7 @@ object SendInfoHelper {
 
     @JvmStatic
     fun getHabitShareInfo(context: Context?, id: Long, thingState: Int): String? {
-        val habit: Habit? = HabitDAO.getInstance(context)!!.getHabitById(id)
-        if (habit == null) {
-            return ""
-        }
+        val habit: Habit = HabitDAO.getInstance(context)!!.getHabitById(id) ?: return ""
 
         val type: Int = habit.type
         val piT: Int = habit.getPersistInT()
@@ -228,9 +224,9 @@ object SendInfoHelper {
             habitStr += ", " + habit.getStateDescription(context)
         }
         val GAP: String
-        if (isChinese) {
-            GAP = ""
-        } else GAP = " "
+        GAP = if (isChinese) {
+            ""
+        } else " "
         sb.append(remindMe).append(habitStr).append("\n")
                 .append(context.getString(R.string.share_i_persist_in_for)).append(GAP)
                 .append(if (piT < 1) "<1" else piT.toString()).append(GAP)
@@ -263,16 +259,16 @@ object SendInfoHelper {
             val gap: Int = DateTimeUtil.calculateTimeGap(
                     goal.updateTime, thing.finishTime, Calendar.DATE)
             val gapStr: String
-            if (gap == 0) {
-                gapStr = "<1"
+            gapStr = if (gap == 0) {
+                "<1"
             } else {
-                gapStr = gap.toString()
+                gap.toString()
             }
 
             val STRGAP: String
-            if (isChinese) {
-                STRGAP = ""
-            } else STRGAP = " "
+            STRGAP = if (isChinese) {
+                ""
+            } else " "
             sb.append(context!!.getString(R.string.share_i_work_hard_for)).append(STRGAP)
                     .append(gapStr).append(STRGAP).append(context.getString(days))
             if (!isChinese && gap > 1) {
@@ -297,7 +293,7 @@ object SendInfoHelper {
 
     private fun startShare(
             context: Context?, title: String?, content: String?, attachments: ArrayList<Uri?>?, allImage: Boolean) {
-        val intent: Intent = Intent()
+        val intent = Intent()
         if (attachments == null) {
             intent.setAction(Intent.ACTION_SEND)
             intent.setType("text/plain")

@@ -47,13 +47,13 @@ object AuthenticationHelper {
     private fun authenticateByPattern(
             activity: Activity?, accentColor: Int, title: String?, correctPassword: String?,
             callback: AuthenticationCallback?) {
-        val pldf: PatternLockDialogFragment = PatternLockDialogFragment()
+        val pldf = PatternLockDialogFragment()
         pldf.setAccentColor(accentColor)
         pldf.setType(PatternLockDialogFragment.TYPE_VALIDATE)
         pldf.setValidateTitle(title)
         pldf.setCorrectPassword(correctPassword)
         pldf.setAuthenticationCallback(callback)
-        pldf.show(activity!!.getFragmentManager(), PatternLockDialogFragment.TAG)
+        pldf.show(activity!!.fragmentManager, PatternLockDialogFragment.TAG)
     }
 
     interface AuthenticationCallback {

@@ -36,7 +36,7 @@ object ThingExporter {
         ExportTask(activity, accentColor).execute(*things)
     }
 
-    private class ExportTask internal constructor(activity: Activity?, accentColor: Int) : AsyncTask<Thing?, Any?, Int?>() {
+    private class ExportTask(activity: Activity?, accentColor: Int) : AsyncTask<Thing?, Any?, Int?>() {
 
         private var mWrActivity: WeakReference<Activity?>? = WeakReference(activity)
         private var mWrLdf: WeakReference<LoadingDialogFragment?>? = null
@@ -44,32 +44,26 @@ object ThingExporter {
         private var mParamsLength: Int = 0
 
         override fun onPreExecute() {
-            val activity: Activity? = mWrActivity!!.get()
-            if (activity == null) {
-                return
-            }
+            val activity: Activity = mWrActivity!!.get() ?: return
 
-            val ldf: LoadingDialogFragment = LoadingDialogFragment()
+            val ldf = LoadingDialogFragment()
             ldf.setAccentColor(mAccentColor)
             ldf.setTitle(activity.getString(R.string.export_loading_title))
             ldf.setContent(activity.getString(R.string.export_loading_content))
 
             mWrLdf = WeakReference(ldf)
-            ldf.show(activity.getFragmentManager(), LoadingDialogFragment.TAG)
+            ldf.show(activity.fragmentManager, LoadingDialogFragment.TAG)
         }
 
         override fun doInBackground(vararg params: Thing?): Int? {
             mParamsLength = params.size
-            var successTimes: Int = 0
+            var successTimes = 0
             for (i in 0 until mParamsLength) {
                 if (mWrActivity == null) {
                     return null
                 }
 
-                val activity: Activity? = mWrActivity!!.get()
-                if (activity == null) {
-                    continue
-                }
+                val activity: Activity = mWrActivity!!.get() ?: continue
 
                 if (export(activity, params[i])) {
                     successTimes++
@@ -87,19 +81,13 @@ object ThingExporter {
                 return
             }
 
-            val ldf: LoadingDialogFragment? = mWrLdf!!.get()
-            if (ldf == null) {
-                return
-            }
+            val ldf: LoadingDialogFragment = mWrLdf!!.get() ?: return
 
             ldf.dismiss()
 
-            val activity: Activity? = mWrActivity!!.get()
-            if (activity == null) {
-                return
-            }
+            val activity: Activity = mWrActivity!!.get() ?: return
 
-            val adf: AlertDialogFragment = AlertDialogFragment()
+            val adf = AlertDialogFragment()
             adf.setShowCancel(false)
             adf.setTitleColor(mAccentColor)
             adf.setConfirmColor(mAccentColor)
@@ -121,7 +109,7 @@ object ThingExporter {
                 adf.setContent(activity.getString(R.string.export_failed_content))
             }
 
-            adf.show(activity.getFragmentManager(), AlertDialogFragment.TAG)
+            adf.show(activity.fragmentManager, AlertDialogFragment.TAG)
         }
     }
 
@@ -140,7 +128,7 @@ object ThingExporter {
         // should be like "hello-world-Note-20160630143306"
 
         val appFileDir: String = Def.getAppFileDir(context)!!
-        val parentPath: String = appFileDir + "/temp/" + thingFileName
+        val parentPath: String = "$appFileDir/temp/$thingFileName"
         val txtFile: File? = thingToTxtFile(context, thing, parentPath)
         val attachmentFiles: List<File?>? = AttachmentHelper.getOriginalFiles(thing!!.attachment)
 
@@ -161,9 +149,10 @@ object ThingExporter {
             }
         }
 
-        val dir: File = File(parentPath)
+        val dir = File(parentPath)
         val zippedFile: File = FileUtil.createFile(
-                appFileDir + "/export", thingFileName + ".zip") ?: return false
+            "$appFileDir/export", "$thingFileName.zip"
+        ) ?: return false
 
         val zipped: Boolean = FileUtil.zipDirectory(dir, zippedFile)
         if (!zipped) {
@@ -192,7 +181,7 @@ object ThingExporter {
     private fun getFileName(context: Context?, thing: Thing?): String {
         val sb: StringBuilder = StringBuilder()
         var title: String = thing!!.getTitleToDisplay()!!
-        var useContent: Boolean = true
+        var useContent = true
         if (!title.isEmpty()) {
             title = title.trim()
             if (title.length > 10) {
@@ -232,7 +221,7 @@ object ThingExporter {
 
     private fun removeReturns(str: String): String {
         val count: Int = str.length
-        var start: Int = 0
+        var start = 0
         val last: Int = count - 1
         var end: Int = last
         while ((start <= end) && (str[start] <= '\n')) {
@@ -249,8 +238,8 @@ object ThingExporter {
 
     private fun writeToFile(file: File, str: String) {
         try {
-            val fw: FileWriter = FileWriter(file)
-            val bw: BufferedWriter = BufferedWriter(fw)
+            val fw = FileWriter(file)
+            val bw = BufferedWriter(fw)
             bw.write(str)
             bw.close()
         } catch (e: IOException) {

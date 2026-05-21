@@ -51,14 +51,11 @@ open class CrashHelper private constructor() : Thread.UncaughtExceptionHandler {
     private fun saveCrashInfoToStorage(ex: Throwable) {
         val path: String = Def.getAppFileDir(mApplication) + "/log"
         val time: String = SimpleDateFormat("yyyyMMddHHmmss").format(Date())
-        val name: String = "crash_" + time + ".log"
-        val file: File? = FileUtil.createFile(path, name)
-        if (file == null) {
-            return
-        }
+        val name: String = "crash_$time.log"
+        val file: File = FileUtil.createFile(path, name) ?: return
 
         try {
-            val writer: PrintWriter = PrintWriter(FileWriter(file))
+            val writer = PrintWriter(FileWriter(file))
             writer.println(time)
             writer.print("APP Version:  ")
             writer.println(BuildConfig.VERSION_NAME + "_" + BuildConfig.VERSION_CODE)

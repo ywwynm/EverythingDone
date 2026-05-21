@@ -8,7 +8,6 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.PorterDuff
 import android.graphics.drawable.Drawable
-import android.net.Uri
 import android.os.AsyncTask
 import androidx.core.content.FileProvider
 import androidx.annotation.DrawableRes
@@ -71,16 +70,13 @@ object ScreenshotHelper {
         override fun onTaskDone(file: File?) {
             if (mWrLdf != null) {
                 val ldf: LoadingDialogFragment? = mWrLdf!!.get()
-                if (ldf != null) {
-                    ldf.dismiss()
-                }
+                ldf?.dismiss()
             }
 
             if (mWrContext == null) return
-            val context: Context? = mWrContext!!.get()
-            if (context == null) return
+            val context: Context = mWrContext!!.get() ?: return
 
-            val intent: Intent = Intent(Intent.ACTION_SEND)
+            val intent = Intent(Intent.ACTION_SEND)
             intent.setType("image/jpeg")
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             intent.putExtra(Intent.EXTRA_STREAM,
@@ -116,10 +112,7 @@ object ScreenshotHelper {
         if (params.size == 1) {
             return null
         }
-        val view: View? = params[0] as View?
-        if (view == null) {
-            return null
-        }
+        val view: View = params[0] as View? ?: return null
         val color: Int = params[1] as Int
         return getScreenshot(view, color)
     }
@@ -134,27 +127,27 @@ object ScreenshotHelper {
     }
 
     private fun getScreenShotForScrollViews(scrollView: FrameLayout, color: Int): File? {
-        val count: Int = scrollView.getChildCount()
-        var height: Int = 0
+        val count: Int = scrollView.childCount
+        var height = 0
         for (i in 0 until count) {
             val view: View = scrollView.getChildAt(i)
-            height += view.getHeight()
+            height += view.height
         }
 
         // get screen shot bitmap
-        val bitmap: Bitmap = Bitmap.createBitmap(scrollView.getWidth(), height,
+        val bitmap: Bitmap = Bitmap.createBitmap(scrollView.width, height,
                 Bitmap.Config.ARGB_8888)
-        val canvas: Canvas = Canvas(bitmap)
+        val canvas = Canvas(bitmap)
         canvas.drawColor(color)
         scrollView.draw(canvas)
 
-        var name: String = "screenshot_"
+        var name = "screenshot_"
         name += SimpleDateFormat("yyyyMMddHHmmss").format(Date())
         name += ".jpeg"
-        return BitmapUtil.saveBitmapToStorage(FileUtil.getTempPath(scrollView.getContext()), name, bitmap)
+        return BitmapUtil.saveBitmapToStorage(FileUtil.getTempPath(scrollView.context), name, bitmap)
     }
 
-    private class ScreenshotTask internal constructor(callback: ScreenshotCallback?) : AsyncTask<Any?, Any?, File?>() {
+    private class ScreenshotTask(callback: ScreenshotCallback?) : AsyncTask<Any?, Any?, File?>() {
 
         private var mCallback: ScreenshotCallback? = callback
 
@@ -205,16 +198,16 @@ object ScreenshotHelper {
     fun showTypeInfo(
             layout: View?, thingId: Long, @Thing.Type typeBefore: Int, @Thing.Type typeAfter: Int, @Thing.State thingState: Int,
             rhParams: ReminderHabitParams?) {
-        val ivIcon: ImageView = layout!!.findViewById(R.id.iv_icon_type_info) as ImageView
-        val context: Context = ivIcon.getContext()
+        val ivIcon: ImageView = layout!!.findViewById(R.id.iv_icon_type_info)
+        val context: Context = ivIcon.context
         @DrawableRes val iconRes: Int = Thing.getTypeIconWhiteLarge(typeAfter)
-        val d1: Drawable = ContextCompat.getDrawable(ivIcon.getContext(), iconRes)!!
+        val d1: Drawable = ContextCompat.getDrawable(ivIcon.context, iconRes)!!
         val d2: Drawable = d1.mutate()
         d2.setColorFilter(ContextCompat.getColor(context, R.color.white_66p), PorterDuff.Mode.SRC_IN)
         ivIcon.setImageDrawable(d2)
 
-        val tvInfo: TextView = layout.findViewById(R.id.tv_type_info) as TextView
-        val llp: LinearLayout.LayoutParams = tvInfo.getLayoutParams() as LinearLayout.LayoutParams
+        val tvInfo: TextView = layout.findViewById(R.id.tv_type_info)
+        val llp: LinearLayout.LayoutParams = tvInfo.layoutParams as LinearLayout.LayoutParams
         if (Thing.isReminderType(typeAfter)) {
             var reminderInMillis: Long = rhParams!!.reminderInMillis
             if (reminderInMillis == -1L) {
@@ -228,23 +221,23 @@ object ScreenshotHelper {
                     || (thingState == Thing.UNDERWAY
                         && (reminder.notifyTime != reminderInMillis
                             || typeBefore != typeAfter))) {
-                if (typeAfter == Thing.REMINDER) {
-                    info = DateTimeUtil.getDateTimeStrReminder(
-                            context, reminderInMillis, Thing.UNDERWAY, Reminder.UNDERWAY, true)
+                info = if (typeAfter == Thing.REMINDER) {
+                    DateTimeUtil.getDateTimeStrReminder(
+                        context, reminderInMillis, Thing.UNDERWAY, Reminder.UNDERWAY, true)
                 } else {
-                    info = DateTimeUtil.getDateTimeStrGoal(context,
-                            reminderInMillis, System.currentTimeMillis(), 0,
-                            Thing.UNDERWAY, Reminder.UNDERWAY)
+                    DateTimeUtil.getDateTimeStrGoal(context,
+                        reminderInMillis, System.currentTimeMillis(), 0,
+                        Thing.UNDERWAY, Reminder.UNDERWAY)
                 }
             }  else {
-                if (typeAfter == Thing.REMINDER) {
-                    info = DateTimeUtil.getDateTimeStrReminder(context, thingId, true)
+                info = if (typeAfter == Thing.REMINDER) {
+                    DateTimeUtil.getDateTimeStrReminder(context, thingId, true)
                 } else {
                     if (thingState == Thing.UNDERWAY) {
-                        info = DateTimeUtil.getDateTimeStrGoal(context, thingId)
+                        DateTimeUtil.getDateTimeStrGoal(context, thingId)
                     } else { // thingState == Thing.FINISHED
-                        info = DateTimeUtil.getShouldBeAchievedBeforeStr(
-                                context, reminderInMillis, true)
+                        DateTimeUtil.getShouldBeAchievedBeforeStr(
+                            context, reminderInMillis, true)
                     }
                 }
             }
@@ -274,17 +267,17 @@ object ScreenshotHelper {
             tvInfo.append(StringUtil.lowerFirst(info))
             llp.topMargin = (density * 0.5).toInt()
         } else { // other types
-            layout.setVisibility(View.GONE)
+            layout.visibility = View.GONE
             return // don't show layout
         }
 
         tvInfo.requestLayout()
-        layout.setVisibility(View.VISIBLE)
+        layout.visibility = View.VISIBLE
     }
 
     @JvmStatic
     fun hideTypeInfo(layout: View?) {
-        layout!!.setVisibility(View.GONE)
+        layout!!.visibility = View.GONE
     }
 
     @JvmStatic
@@ -297,10 +290,10 @@ object ScreenshotHelper {
             rvAudio: RecyclerView?, audioAdapter: AudioAttachmentAdapter?): List<Int?>? {
         val didList: MutableList<Int?> = ArrayList()
         val noTitle: Boolean = etTitle!!.getText().toString().isEmpty()
-        val noImage: Boolean = rvImage == null || rvImage.getVisibility() != View.VISIBLE ||
+        val noImage: Boolean = rvImage == null || rvImage.visibility != View.VISIBLE ||
                 imageAdapter == null
         if (noTitle) {
-            etTitle.setVisibility(View.GONE)
+            etTitle.visibility = View.GONE
             didList.add(UPDATE_TITLE)
         } else if (noImage) {
             val top: Float = density * 20
@@ -309,21 +302,21 @@ object ScreenshotHelper {
             didList.add(UPDATE_TITLE_PADDING)
         }
 
-        if (etContent!!.getVisibility() == View.VISIBLE &&
+        if (etContent!!.visibility == View.VISIBLE &&
                 etContent.getText().toString().isEmpty()) {
-            etContent.setVisibility(View.GONE)
+            etContent.visibility = View.GONE
             didList.add(UPDATE_CONTENT)
         } else if (!noImage) {
             val llp: LinearLayout.LayoutParams =
-                    etContent.getLayoutParams() as LinearLayout.LayoutParams
+                    etContent.layoutParams as LinearLayout.LayoutParams
             llp.topMargin = (density * 8).toInt()
             etContent.requestLayout()
             didList.add(UPDATE_CONTENT_MARGIN)
         }
 
         if (editable) {
-            if (rvChecklist != null && rvChecklist.getVisibility() == View.VISIBLE
-                    && checkListAdapter != null && llMoveChecklist!!.getVisibility() == View.VISIBLE) {
+            if (rvChecklist != null && rvChecklist.visibility == View.VISIBLE
+                    && checkListAdapter != null && llMoveChecklist!!.visibility == View.VISIBLE) {
                 // 5 possible situations for finished/unfinished items
                 val items: MutableList<String?> = checkListAdapter.getItems()!!
                 val unfinishedExisted: Boolean = CheckListHelper.getLastUnfinishedItemIndex(items) != -1
@@ -332,12 +325,12 @@ object ScreenshotHelper {
                     items.remove("3")
                 }
                 checkListAdapter.notifyDataSetChanged()
-                llMoveChecklist.setVisibility(View.GONE)
+                llMoveChecklist.visibility = View.GONE
                 didList.add(UPDATE_CHECKLIST)
 
                 if (noTitle && !noImage) {
                     val llp: LinearLayout.LayoutParams =
-                            rvChecklist.getLayoutParams() as LinearLayout.LayoutParams
+                            rvChecklist.layoutParams as LinearLayout.LayoutParams
                     if (!unfinishedExisted) {
                         llp.topMargin = (density * -4).toInt()
                     } else {
@@ -352,13 +345,13 @@ object ScreenshotHelper {
                 didList.add(UPDATE_IMAGE)
             }
         }
-        if (rvAudio != null && rvAudio.getVisibility() == View.VISIBLE && audioAdapter != null) {
+        if (rvAudio != null && rvAudio.visibility == View.VISIBLE && audioAdapter != null) {
             audioAdapter.setTakingScreenshot(true)
             didList.add(UPDATE_AUDIO)
-            val noContent: Boolean = etContent.getVisibility() != View.VISIBLE ||
+            val noContent: Boolean = etContent.visibility != View.VISIBLE ||
                     etContent.getText().toString().isEmpty()
             if (noTitle && noContent) {
-                val llp: LinearLayout.LayoutParams = rvAudio.getLayoutParams() as LinearLayout.LayoutParams
+                val llp: LinearLayout.LayoutParams = rvAudio.layoutParams as LinearLayout.LayoutParams
                 if (noImage) {
                     llp.topMargin = (density * 20).toInt()
                 } else {
@@ -381,16 +374,16 @@ object ScreenshotHelper {
             rvAudio: RecyclerView?, audioAdapter: AudioAttachmentAdapter?) {
         for (did in didList!!) {
             if (did == UPDATE_TITLE) {
-                etTitle!!.setVisibility(View.VISIBLE)
+                etTitle!!.visibility = View.VISIBLE
             } else if (did == UPDATE_TITLE_PADDING) {
                 val top: Float = density * 12
                 etTitle!!.setPadding(etTitle.getPaddingLeft(), top.toInt(), etTitle.getPaddingRight(), 0)
                 etTitle.requestLayout()
             } else if (did == UPDATE_CONTENT) {
-                etContent!!.setVisibility(View.VISIBLE)
+                etContent!!.visibility = View.VISIBLE
             } else if (did == UPDATE_CONTENT_MARGIN) {
                 val llp: LinearLayout.LayoutParams =
-                        etContent!!.getLayoutParams() as LinearLayout.LayoutParams
+                        etContent!!.layoutParams as LinearLayout.LayoutParams
                 llp.topMargin = (density * 20).toInt()
                 etContent.requestLayout()
             } else if (did == UPDATE_CHECKLIST) { // must be editable if go here
@@ -398,14 +391,14 @@ object ScreenshotHelper {
                 val index: Int = CheckListHelper.getLastUnfinishedItemIndex(items) + 1
                 items.add(index, "2")
                 if (index + 1 >= 0 && index + 1 < items.size
-                        && !items.get(index + 1).equals("3")) {
+                        && !items[index + 1].equals("3")) {
                     items.add(index + 1, "3")
                 }
                 checkListAdapter.notifyDataSetChanged()
-                llMoveChecklist!!.setVisibility(View.VISIBLE)
+                llMoveChecklist!!.visibility = View.VISIBLE
             } else if (did == UPDATE_CHECKLIST_MARGIN) {
                 val llp: LinearLayout.LayoutParams =
-                        rvChecklist!!.getLayoutParams() as LinearLayout.LayoutParams
+                        rvChecklist!!.layoutParams as LinearLayout.LayoutParams
                 llp.topMargin = (density * 20).toInt()
                 rvChecklist.requestLayout()
             } else if (did == UPDATE_IMAGE) {
@@ -413,7 +406,7 @@ object ScreenshotHelper {
             } else if (did == UPDATE_AUDIO) {
                 audioAdapter!!.setTakingScreenshot(false)
             } else if (did == UPDATE_AUDIO_MARGIN) {
-                val llp: LinearLayout.LayoutParams = rvAudio!!.getLayoutParams() as LinearLayout.LayoutParams
+                val llp: LinearLayout.LayoutParams = rvAudio!!.layoutParams as LinearLayout.LayoutParams
                 llp.topMargin = (density * 32).toInt()
                 rvAudio.requestLayout()
             }

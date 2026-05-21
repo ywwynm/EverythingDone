@@ -19,8 +19,6 @@ import java.time.format.DateTimeFormatter
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
-import java.io.InputStream
-import java.io.OutputStream
 import java.util.ArrayList
 
 /**
@@ -40,12 +38,12 @@ object BackupHelper {
 
     @JvmStatic
     fun backup(context: Context?, outputUri: Uri?): Boolean {
-        val src: File = File(context!!.getApplicationInfo().dataDir)
+        val src = File(context!!.applicationInfo.dataDir)
         val tempDirPath: String = Def.getAppFileDir(context) + BACKUP_DIR
         val curTime: Long = System.currentTimeMillis()
         val dt: ZonedDateTime = Instant.ofEpochMilli(curTime).atZone(ZoneId.systemDefault())
         val timeStr: String = dt.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
-        val backupFileName: String = BACKUP_FILE_NAME_PREFIX + timeStr + "." + BACKUP_FILE_POSTFIX
+        val backupFileName: String = "$BACKUP_FILE_NAME_PREFIX$timeStr.$BACKUP_FILE_POSTFIX"
         val dst: File = FileUtil.createFile(tempDirPath, backupFileName) ?: return false
 
         if (!FileUtil.zipDirectory(src, dst, false, *getBackupFilePaths(context))) {
@@ -74,18 +72,18 @@ object BackupHelper {
                 Def.Meta.META_DATA_NAME, Context.MODE_PRIVATE)
         var time: Long = sp.getLong(Def.Meta.KEY_LAST_BACKUP_TIME, -1L)
         if (time == -1L) {
-            val backupFile: File = File(
+            val backupFile = File(
                     Environment.getExternalStorageDirectory(), BACKUP_FILE_NAME_OLD)
             if (backupFile.exists()) {
                 time = backupFile.lastModified()
             }
         }
 
-        if (time != -1L) {
-            return context.getString(R.string.last_backup) + " " +
+        return if (time != -1L) {
+            context.getString(R.string.last_backup) + " " +
                     DateTimeUtil.getDateTimeStrAt(time, context, false)
         } else {
-            return context.getString(R.string.no_backup_before)
+            context.getString(R.string.no_backup_before)
         }
     }
 
@@ -93,7 +91,7 @@ object BackupHelper {
     fun restore(context: Context?, inputUri: Uri?): Boolean {
         val curTime: Long = System.currentTimeMillis()
         val tempDirPath: String = Def.getAppFileDir(context) + BACKUP_DIR
-        val tempFile: File = File(tempDirPath, "restore_" + curTime + "." + BACKUP_FILE_POSTFIX)
+        val tempFile = File(tempDirPath, "restore_$curTime.$BACKUP_FILE_POSTFIX")
 
         try {
             val parent: File? = tempFile.getParentFile()
@@ -107,14 +105,14 @@ object BackupHelper {
             return false
         }
 
-        val unzippedDirPathName: String = tempDirPath + "/" + curTime
-        val unzipResult: Boolean = FileUtil.unzip(tempFile.getAbsolutePath(), unzippedDirPathName)
+        val unzippedDirPathName: String = "$tempDirPath/$curTime"
+        val unzipResult: Boolean = FileUtil.unzip(tempFile.absolutePath, unzippedDirPathName)
         FileUtil.deleteFile(tempFile)
 
         if (!unzipResult) return false
 
         try {
-            FileUtil.copyFilesInDirTo(unzippedDirPathName, context!!.getApplicationInfo().dataDir)
+            FileUtil.copyFilesInDirTo(unzippedDirPathName, context!!.applicationInfo.dataDir)
             return true
         } catch (e: IOException) {
             e.printStackTrace()
@@ -132,9 +130,9 @@ object BackupHelper {
     @Throws(IOException::class)
     private fun copyFileToUri(context: Context?, src: File?, dstUri: Uri?) {
         java.io.FileInputStream(src).use { `in` ->
-            (context!!.getContentResolver().openOutputStream(dstUri!!)).use { out ->
-                if (out == null) throw IOException("Cannot open output stream for " + dstUri)
-                val buf: ByteArray = ByteArray(8192)
+            (context!!.contentResolver.openOutputStream(dstUri!!)).use { out ->
+                if (out == null) throw IOException("Cannot open output stream for $dstUri")
+                val buf = ByteArray(8192)
                 var len: Int
                 while ((`in`.read(buf).also { len = it }) > 0) {
                     out.write(buf, 0, len)
@@ -145,10 +143,10 @@ object BackupHelper {
 
     @Throws(IOException::class)
     private fun copyUriToFile(context: Context?, srcUri: Uri?, dst: File?) {
-        (context!!.getContentResolver().openInputStream(srcUri!!)).use { `in` ->
+        (context!!.contentResolver.openInputStream(srcUri!!)).use { `in` ->
             FileOutputStream(dst).use { out ->
-                if (`in` == null) throw IOException("Cannot open input stream for " + srcUri)
-                val buf: ByteArray = ByteArray(8192)
+                if (`in` == null) throw IOException("Cannot open input stream for $srcUri")
+                val buf = ByteArray(8192)
                 var len: Int
                 while ((`in`.read(buf).also { len = it }) > 0) {
                     out.write(buf, 0, len)
@@ -158,10 +156,10 @@ object BackupHelper {
     }
 
     private fun getBackupFilePaths(context: Context?): Array<String?> {
-        val base: String = context!!.getApplicationInfo().dataDir
-        val dbDir: String = base + "/databases/"
-        val spDir: String = base + "/shared_prefs/"
-        val xmlPostFix: String = ".xml"
+        val base: String = context!!.applicationInfo.dataDir
+        val dbDir: String = "$base/databases/"
+        val spDir: String = "$base/shared_prefs/"
+        val xmlPostFix = ".xml"
         val list: ArrayList<String?> = ArrayList()
         list.add(dbDir + Def.Meta.DATABASE_NAME)
         list.add(spDir + Def.Meta.META_DATA_NAME      + xmlPostFix)
