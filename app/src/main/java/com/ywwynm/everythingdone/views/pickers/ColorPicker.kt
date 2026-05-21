@@ -83,16 +83,21 @@ open class ColorPicker(
         }
         val params: ViewGroup.LayoutParams = mRecyclerView.layoutParams!!
         params.width = (mScreenDensity * 128).toInt()
-        if (mType == Def.PickerType.COLOR_HAVE_ALL) {
-            params.height = (mScreenDensity * 304).toInt()
-        } else if (mType == Def.PickerType.COLOR_NO_ALL) {
-            params.height = (mScreenDensity * 264).toInt()
-        } else if (mType == Def.PickerType.COLOR_EDIT) {
-            // 10 palette FABs + 1dp divider (≈ 13 dp incl. margins) + 2 random FABs.
-            params.height = (mScreenDensity * 328).toInt()
-        } else if (mType == Def.PickerType.HUE_BUCKET) {
-            // "all" button + 8 bucket FABs in 4 rows.
-            params.height = (mScreenDensity * 256).toInt()
+        when (mType) {
+            Def.PickerType.COLOR_HAVE_ALL -> {
+                params.height = (mScreenDensity * 304).toInt()
+            }
+            Def.PickerType.COLOR_NO_ALL -> {
+                params.height = (mScreenDensity * 264).toInt()
+            }
+            Def.PickerType.COLOR_EDIT -> {
+                // 10 palette FABs + 1dp divider (≈ 13 dp incl. margins) + 2 random FABs.
+                params.height = (mScreenDensity * 328).toInt()
+            }
+            Def.PickerType.HUE_BUCKET -> {
+                // "all" button + 8 bucket FABs in 4 rows.
+                params.height = (mScreenDensity * 256).toInt()
+            }
         }
         if (mType == Def.PickerType.COLOR_EDIT) {
             mRandomPureBg = rollPureBackground()
@@ -104,16 +109,19 @@ open class ColorPicker(
         val layoutManager = GridLayoutManager(this.mActivity, 2)
         layoutManager.spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
             override fun getSpanSize(position: Int): Int {
-                if (mType == Def.PickerType.COLOR_HAVE_ALL
-                    || mType == Def.PickerType.HUE_BUCKET) {
-                    return if (position == 0) 2 else 1
-                } else if (mType == Def.PickerType.COLOR_EDIT) {
-                    // The divider row spans both columns.
-                    return if (position == mColors.size) 2 else 1
-                } else if (mType == Def.PickerType.COLOR_NO_ALL) {
-                    return 1
+                when (mType) {
+                    Def.PickerType.COLOR_HAVE_ALL, Def.PickerType.HUE_BUCKET -> {
+                        return if (position == 0) 2 else 1
+                    }
+                    Def.PickerType.COLOR_EDIT -> {
+                        // The divider row spans both columns.
+                        return if (position == mColors.size) 2 else 1
+                    }
+                    Def.PickerType.COLOR_NO_ALL -> {
+                        return 1
+                    }
+                    else -> return 0
                 }
-                return 0
             }
         }
         mRecyclerView.setLayoutManager(layoutManager)
@@ -346,14 +354,12 @@ open class ColorPicker(
         private val mInflater: LayoutInflater = LayoutInflater.from(this@ColorPicker.mActivity)
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BaseViewHolder {
-            return if (viewType == ALL_COLOR) {
-                AllColorViewHolder(
+            return when (viewType) {
+                ALL_COLOR -> AllColorViewHolder(
                     mInflater.inflate(R.layout.color_picker_bt, parent, false))
-            } else if (viewType == DIVIDER) {
-                BaseViewHolder(
+                DIVIDER -> BaseViewHolder(
                     mInflater.inflate(R.layout.color_picker_divider, parent, false))
-            } else {
-                FabViewHolder(
+                else -> FabViewHolder(
                     mInflater.inflate(R.layout.color_picker_fab, parent, false))
             }
         }
@@ -555,28 +561,25 @@ open class ColorPicker(
         }
 
         override fun getItemCount(): Int {
-            if (mType == Def.PickerType.COLOR_HAVE_ALL
-                    || mType == Def.PickerType.HUE_BUCKET) {
-                return mColors.size + 1
-            } else if (mType == Def.PickerType.COLOR_NO_ALL) {
-                return mColors.size
-            } else if (mType == Def.PickerType.COLOR_EDIT) {
-                return mColors.size + 3  // + divider + random-pure + random-gradient
+            return when (mType) {
+                Def.PickerType.COLOR_HAVE_ALL, Def.PickerType.HUE_BUCKET -> mColors.size + 1
+                Def.PickerType.COLOR_NO_ALL -> mColors.size
+                Def.PickerType.COLOR_EDIT -> mColors.size + 3  // + divider + random-pure + random-gradient
+                else -> 0
             }
-            return 0
         }
 
         override fun getItemViewType(position: Int): Int {
-            if (mType == Def.PickerType.COLOR_HAVE_ALL
-                    || mType == Def.PickerType.HUE_BUCKET) {
-                return if (position == 0) ALL_COLOR else NORMAL
-            } else if (mType == Def.PickerType.COLOR_NO_ALL) {
-                return NORMAL
-            } else if (mType == Def.PickerType.COLOR_EDIT) {
-                if (position == mColors.size) return DIVIDER
-                return NORMAL
+            return when (mType) {
+                Def.PickerType.COLOR_HAVE_ALL, Def.PickerType.HUE_BUCKET -> {
+                    if (position == 0) ALL_COLOR else NORMAL
+                }
+                Def.PickerType.COLOR_NO_ALL -> NORMAL
+                Def.PickerType.COLOR_EDIT -> {
+                    if (position == mColors.size) DIVIDER else NORMAL
+                }
+                else -> super.getItemViewType(position)
             }
-            return super.getItemViewType(position)
         }
 
         inner class AllColorViewHolder(itemView: View) : BaseViewHolder(itemView) {

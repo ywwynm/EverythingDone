@@ -35,10 +35,9 @@ abstract class PopupPicker(activity: Activity, parent: View, popupAnimStyle: Int
     @JvmField protected var mAnchor: View? = null
     @JvmField protected var mContentView: View =
         LayoutInflater.from(activity).inflate(R.layout.rv_popup_picker, null)!!
-    @JvmField protected var mRecyclerView: RecyclerView
+    @JvmField protected var mRecyclerView: RecyclerView = mContentView.findViewById<View>(R.id.rv_popup_picker) as RecyclerView
 
     init {
-        mRecyclerView = mContentView.findViewById<View>(R.id.rv_popup_picker) as RecyclerView
         mPopupWindow = PopupWindow(mContentView,
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         mPopupWindow.setBackgroundDrawable(ContextCompat.getDrawable(activity, R.drawable.bg_picker))

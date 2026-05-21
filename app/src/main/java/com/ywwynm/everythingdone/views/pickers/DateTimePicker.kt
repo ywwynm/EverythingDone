@@ -279,12 +279,10 @@ open class DateTimePicker(
             val holder: DateTimeViewHolder = viewHolder as DateTimeViewHolder
             val m8: Int = (mScreenDensity * 8).toInt()
             val params: RecyclerView.LayoutParams = holder.bt.layoutParams as RecyclerView.LayoutParams
-            if (position == 0) {
-                params.setMargins(0, m8, 0, 0)
-            } else if (position == itemCount - 1) {
-                params.setMargins(0, 0, 0, m8)
-            } else {
-                params.setMargins(0, 0, 0, 0)
+            when (position) {
+                0 -> params.setMargins(0, m8, 0, 0)
+                itemCount - 1 -> params.setMargins(0, 0, 0, m8)
+                else -> params.setMargins(0, 0, 0, 0)
             }
             holder.bt.text = mItems[position]
             if (mPickedPosition == position) {

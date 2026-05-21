@@ -36,18 +36,22 @@ open class HabitRecordPresenter(imageViews: Array<ImageView>) {
         val context: Context = mImageViews[0].context!!
         for (i in 0..4) {
             val state: Char = record[i]
-            if (state == '0') {
-                mImageViews[i].setImageResource(R.drawable.card_habit_unfinished)
-                mImageViews[i].setContentDescription(
-                        context.getString(R.string.cd_habit_unfinished))
-            } else if (state == '1') {
-                mImageViews[i].setImageResource(R.drawable.card_habit_finished)
-                mImageViews[i].setContentDescription(
-                        context.getString(R.string.cd_habit_finished))
-            } else {
-                mImageViews[i].setImageResource(R.drawable.card_habit_unknown)
-                mImageViews[i].setContentDescription(
-                        context.getString(R.string.cd_habit_unknown))
+            when (state) {
+                '0' -> {
+                    mImageViews[i].setImageResource(R.drawable.card_habit_unfinished)
+                    mImageViews[i].setContentDescription(
+                            context.getString(R.string.cd_habit_unfinished))
+                }
+                '1' -> {
+                    mImageViews[i].setImageResource(R.drawable.card_habit_finished)
+                    mImageViews[i].setContentDescription(
+                            context.getString(R.string.cd_habit_finished))
+                }
+                else -> {
+                    mImageViews[i].setImageResource(R.drawable.card_habit_unknown)
+                    mImageViews[i].setContentDescription(
+                            context.getString(R.string.cd_habit_unknown))
+                }
             }
         }
         applyTint()
