@@ -74,7 +74,7 @@ open class Thing(
         // NEW (Phase 3): trailing background JSON.
         val bgJson = `in`.readString()
         val bg = ThingBackground.fromJson(bgJson)
-        _background = if (bg != null) bg else ThingBackground.pure(_color)
+        _background = bg ?: ThingBackground.pure(_color)
     }
 
     constructor(c: Cursor?) : this(
@@ -148,10 +148,10 @@ open class Thing(
         // keep their legacy "no filter" meaning.
         if (color != -1979711488 && color != 0) {
             val filterBucket = com.ywwynm.everythingdone.utils.BackgroundUtil.hueBucket(color)
-            val bg: com.ywwynm.everythingdone.model.ThingBackground? = if (this._background != null)
+            val bg: ThingBackground? = if (this._background != null)
                 this._background
             else
-                com.ywwynm.everythingdone.model.ThingBackground.pure(this._color)
+                ThingBackground.pure(this._color)
             if (!com.ywwynm.everythingdone.utils.BackgroundUtil.matchesHueBucket(bg, filterBucket)) {
                 return false
             }
@@ -251,41 +251,41 @@ open class Thing(
 
         @JvmStatic
         fun getTypeStr(type: Int, context: Context?): String? {
-            if (type == NOTE) {
-                return context!!.getString(R.string.note)
+            return if (type == NOTE) {
+                context!!.getString(R.string.note)
             } else if (type == REMINDER) {
-                return context!!.getString(R.string.reminder)
+                context!!.getString(R.string.reminder)
             } else if (type == HABIT) {
-                return context!!.getString(R.string.habit)
+                context!!.getString(R.string.habit)
             } else if (type == GOAL) {
-                return context!!.getString(R.string.goal)
-            } else return context!!.getString(R.string.thing)
+                context!!.getString(R.string.goal)
+            } else context!!.getString(R.string.thing)
         }
 
         @JvmStatic
         @DrawableRes
         fun getTypeIconWhiteLarge(type: Int): Int {
-            if (type == REMINDER) {
-                return R.drawable.ic_reminder_white_large
+            return if (type == REMINDER) {
+                R.drawable.ic_reminder_white_large
             } else if (type == HABIT) {
-                return R.drawable.ic_habit_white_large
+                R.drawable.ic_habit_white_large
             } else if (type == GOAL) {
-                return R.drawable.ic_goal_white_large
+                R.drawable.ic_goal_white_large
             } else {
-                return R.drawable.ic_note_white_large
+                R.drawable.ic_note_white_large
             }
         }
 
         @JvmStatic
         fun getStateStr(state: Int, context: Context?): String? {
-            if (state == UNDERWAY) {
-                return context!!.getString(R.string.underway)
+            return if (state == UNDERWAY) {
+                context!!.getString(R.string.underway)
             } else if (state == FINISHED) {
-                return context!!.getString(R.string.finished)
+                context!!.getString(R.string.finished)
             } else if (state == DELETED) {
-                return context!!.getString(R.string.deleted)
+                context!!.getString(R.string.deleted)
             } else {
-                return context!!.getString(R.string.underway)
+                context!!.getString(R.string.underway)
             }
         }
 
@@ -417,11 +417,11 @@ open class Thing(
         @JvmStatic
         fun noUpdate(thing: Thing?, title: String?, content: String?, attachment: String?,
                      type: Int, background: ThingBackground?): Boolean {
-            return thing!!.title!!.equals(title) &&
-                    thing.content!!.equals(content) &&
-                    thing.attachment!!.equals(attachment) &&
+            return thing!!.title!! == title &&
+                    thing.content!! == content &&
+                    thing.attachment!! == attachment &&
                     thing.type == type &&
-                    thing.getBackground()!!.equals(background)
+                    thing.getBackground()!! == background
         }
 
         @JvmStatic

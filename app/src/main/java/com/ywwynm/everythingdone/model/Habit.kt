@@ -71,14 +71,11 @@ open class Habit(
 
     open fun initHabitReminders() {
         habitReminders = ArrayList()
-        if (type == Calendar.DATE) {
-            initHabitRemindersTimeOfDay()
-        } else if (type == Calendar.WEEK_OF_YEAR) {
-            initHabitRemindersDayOfWeek()
-        } else if (type == Calendar.MONTH) {
-            initHabitRemindersDayOfMonth()
-        } else if (type == Calendar.YEAR) {
-            initHabitRemindersMonthOfYear()
+        when (type) {
+            Calendar.DATE -> initHabitRemindersTimeOfDay()
+            Calendar.WEEK_OF_YEAR -> initHabitRemindersDayOfWeek()
+            Calendar.MONTH -> initHabitRemindersDayOfMonth()
+            Calendar.YEAR -> initHabitRemindersMonthOfYear()
         }
         firstTime = getMinHabitReminderTime()
     }
@@ -175,7 +172,7 @@ open class Habit(
 
     open fun allowFinish(): Boolean {
         if (isPaused()) return false
-        var dt = ZonedDateTime.now()
+        val dt = ZonedDateTime.now()
         val temporalField = DateTimeUtil.getTemporalFieldFor(type)
         var ct = dt.get(temporalField)
         var t: Int
@@ -213,7 +210,7 @@ open class Habit(
         val timesThisT = HabitDAO.getInstance(context)!!.getFinishedTimesThisT(this)
         if (LocaleUtil.isChinese(context)) {
             val timesStr = context.getString(R.string.times)
-            return timeTypeThisT + finished + " " + timesThisT + " " + timesStr
+            return "$timeTypeThisT$finished $timesThisT $timesStr"
         } else {
             return finished + " " + LocaleUtil.getTimesStr(context, timesThisT) + " " + timeTypeThisT
         }
@@ -230,7 +227,7 @@ open class Habit(
         if (LocaleUtil.isChinese(context)) {
             val every = context!!.getString(R.string.every)
             val timesStr = context.getString(R.string.times)
-            return every + timeTypeEveryT + " " + timesEveryT + " " + timesStr
+            return "$every$timeTypeEveryT $timesEveryT $timesStr"
         } else {
             return LocaleUtil.getTimesStr(context, timesEveryT) + " a " + timeTypeEveryT
         }
@@ -240,9 +237,9 @@ open class Habit(
      * Precondition: Habit should be in underway.
      */
     open fun getStateDescription(context: Context?): String? {
-        if (isPaused()) {
-            return context!!.getString(R.string.habit_paused)
-        } else return ""
+        return if (isPaused()) {
+            context!!.getString(R.string.habit_paused)
+        } else ""
     }
 
     open fun getCelebrationText(context: Context?): String? {
@@ -275,20 +272,17 @@ open class Habit(
                 var end = Long.MAX_VALUE
                 var dt = ZonedDateTime.now()
                 dt = dt.withHour(23).withMinute(59).withSecond(59).withNano(999_000_000)
-                if (type == Calendar.DATE) {
-                    end = dt.plusDays(1).toInstant().toEpochMilli()
-                } else if (type == Calendar.WEEK_OF_YEAR) {
-                    end = dt.plusWeeks(1).with(ChronoField.DAY_OF_WEEK, 7).toInstant().toEpochMilli()
-                } else if (type == Calendar.MONTH) {
-                    end = dt.plusMonths(1).withDayOfMonth(31).toInstant().toEpochMilli()
-                } else if (type == Calendar.YEAR) {
-                    end = dt.plusYears(1).withMonth(12).withDayOfMonth(31).toInstant().toEpochMilli()
+                when (type) {
+                    Calendar.DATE -> end = dt.plusDays(1).toInstant().toEpochMilli()
+                    Calendar.WEEK_OF_YEAR -> end = dt.plusWeeks(1).with(ChronoField.DAY_OF_WEEK, 7).toInstant().toEpochMilli()
+                    Calendar.MONTH -> end = dt.plusMonths(1).withDayOfMonth(31).toInstant().toEpochMilli()
+                    Calendar.YEAR -> end = dt.plusYears(1).withMonth(12).withDayOfMonth(31).toInstant().toEpochMilli()
                 }
                 return end
             }
 
             val newHrs: ArrayList<HabitReminder?> = ArrayList(habitReminders!!)
-            Collections.sort(newHrs, Comparator<HabitReminder?> { hr1, hr2 ->
+            Collections.sort(newHrs, Comparator { hr1, hr2 ->
                 val hrTime1 = hr1!!.notifyTime
                 val hrTime2 = hr2!!.notifyTime
                 if (hrTime1 == hrTime2) 0
@@ -350,14 +344,14 @@ open class Habit(
             val day = Integer.parseInt(dayStr)
             var remMillis: Long
             if (day == 27) {
-                var year = dt.getYear()
-                var month = dt.getMonthValue()
+                var year = dt.year
+                var month = dt.monthValue
                 dt = dt.withDayOfMonth(DateTimeUtil.getDaysOfMonth(year, month))
                 remMillis = dt.toInstant().toEpochMilli()
                 while (System.currentTimeMillis() >= remMillis) {
                     dt = dt.plusMonths(1)
-                    year = dt.getYear()
-                    month = dt.getMonthValue()
+                    year = dt.year
+                    month = dt.monthValue
                     dt = dt.withDayOfMonth(DateTimeUtil.getDaysOfMonth(year, month))
                     remMillis = dt.toInstant().toEpochMilli()
                 }
@@ -389,7 +383,7 @@ open class Habit(
             dt = dt.withMonth(month)
             var remMillis: Long
             if (day == 28) {
-                val year = dt.getYear()
+                val year = dt.year
                 dt = dt.withDayOfMonth(DateTimeUtil.getDaysOfMonth(year, month))
                 remMillis = dt.toInstant().toEpochMilli()
                 while (System.currentTimeMillis() >= remMillis) {
@@ -414,7 +408,7 @@ open class Habit(
 
         @JvmStatic
         fun noUpdate(habit: Habit?, type: Int, detail: String?): Boolean {
-            return habit!!.type == type && habit.detail!!.equals(detail)
+            return habit!!.type == type && habit.detail == detail
         }
 
         @JvmStatic
@@ -429,7 +423,7 @@ open class Habit(
             while (i < times!!.size) {
                 val minute = times[i + 1].toString()
                 sb.append(times[i]).append(":")
-                        .append(if (minute.length == 1) "0" + minute else minute).append(",")
+                        .append(if (minute.length == 1) "0$minute" else minute).append(",")
                 i += 2
             }
             return sb.substring(0, sb.length - 1)
@@ -454,7 +448,7 @@ open class Habit(
                 sb.append(day).append(",")
             }
             sb.deleteCharAt(sb.length - 1)
-            sb.append(" ").append(hour).append(":").append(if (minute < 10) "0" + minute else minute)
+            sb.append(" ").append(hour).append(":").append(if (minute < 10) "0$minute" else minute)
             return sb.toString()
         }
 
@@ -488,7 +482,7 @@ open class Habit(
             }
             sb.deleteCharAt(sb.length - 1)
             sb.append(" ").append(day).append(" ").append(hour).append(":")
-                    .append(if (minute < 10) "0" + minute else minute)
+                    .append(if (minute < 10) "0$minute" else minute)
             return sb.toString()
         }
 

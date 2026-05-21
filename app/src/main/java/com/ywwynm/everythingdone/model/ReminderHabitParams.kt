@@ -47,13 +47,13 @@ open class ReminderHabitParams() {
 
     open fun getDateTimeStr(): String? {
         val context = App.getApp()
-        if (reminderInMillis != -1L) {
-            return DateTimeUtil.getDateTimeStrAt(reminderInMillis, context, false)
+        return if (reminderInMillis != -1L) {
+            DateTimeUtil.getDateTimeStrAt(reminderInMillis, context, false)
         } else if (reminderAfterTime != null) {
-            return DateTimeUtil.getDateTimeStrAfter(
-                    reminderAfterTime!![0], reminderAfterTime!![1], context)
+            DateTimeUtil.getDateTimeStrAfter(
+                reminderAfterTime!![0], reminderAfterTime!![1], context)
         } else {
-            return DateTimeUtil.getDateTimeStrRec(context, habitType, habitDetail)
+            DateTimeUtil.getDateTimeStrRec(context, habitType, habitDetail)
         }
     }
 }

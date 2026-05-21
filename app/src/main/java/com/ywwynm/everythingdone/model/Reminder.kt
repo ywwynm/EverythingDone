@@ -46,22 +46,22 @@ open class Reminder(
             return -1 // unfinished yet
         }
         if (!isGoal) {
-            if (thingFinishTime < notifyTime) {
-                return 0
+            return if (thingFinishTime < notifyTime) {
+                0
             } else if (thingFinishTime == notifyTime) {
-                return 1
+                1
             } else {
-                return 2
+                2
             }
         } else {
             val finishDays = DateTimeUtil.calculateTimeGap(updateTime, thingFinishTime, Calendar.DATE)
             val goalDays   = DateTimeUtil.calculateTimeGap(updateTime, notifyTime, Calendar.DATE)
-            if (finishDays < goalDays) {
-                return 0
+            return if (finishDays < goalDays) {
+                0
             } else if (finishDays == goalDays) {
-                return 1
+                1
             } else {
-                return 2
+                2
             }
         }
     }
@@ -73,10 +73,10 @@ open class Reminder(
         val part3 = context.getString(R.string.celebration_goal_part_3)
         val gap = DateTimeUtil.calculateTimeGap(updateTime, System.currentTimeMillis(), Calendar.DATE)
         val gapStr: String
-        if (gap == 0) {
-            gapStr = "<1"
+        gapStr = if (gap == 0) {
+            "<1"
         } else {
-            gapStr = gap.toString()
+            gap.toString()
         }
 
         val isChinese = LocaleUtil.isChinese(context)
@@ -101,25 +101,25 @@ open class Reminder(
 
         @JvmStatic
         fun getType(notifyTime: Long, createTime: Long): Int {
-            if (DateTimeUtil.calculateTimeGap(createTime, notifyTime, Calendar.DATE) > GOAL_DAYS) {
-                return Thing.GOAL
-            } else return Thing.REMINDER
+            return if (DateTimeUtil.calculateTimeGap(createTime, notifyTime, Calendar.DATE) > GOAL_DAYS) {
+                Thing.GOAL
+            } else Thing.REMINDER
         }
 
         @JvmStatic
         fun getStateDescription(thingState: Int, reminderState: Int, context: Context?): String? {
             val result: String?
-            if (reminderState == REMINDED) {
-                result = context!!.getString(R.string.reminder_reminded)
+            result = if (reminderState == REMINDED) {
+                context!!.getString(R.string.reminder_reminded)
             } else if (reminderState == EXPIRED) {
-                result = context!!.getString(R.string.reminder_expired)
+                context!!.getString(R.string.reminder_expired)
             } else {
                 if (thingState == Thing.UNDERWAY) {
-                    result = ""
+                    ""
                 } else if (thingState == Thing.FINISHED) {
-                    result = context!!.getString(R.string.reminder_needless)
+                    context!!.getString(R.string.reminder_needless)
                 } else {
-                    result = context!!.getString(R.string.reminder_unavailable)
+                    context!!.getString(R.string.reminder_unavailable)
                 }
             }
             return result

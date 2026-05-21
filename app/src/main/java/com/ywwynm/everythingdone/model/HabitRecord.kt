@@ -28,10 +28,10 @@ open class HabitRecord(
         0, 0, 0, 0, TYPE_FINISHED
     ) {
         val dt = Instant.ofEpochMilli(recordTime).atZone(ZoneId.systemDefault())
-        recordYear = dt.getYear()
-        recordMonth = dt.getMonthValue()
+        recordYear = dt.year
+        recordMonth = dt.monthValue
         recordWeek = dt.get(WeekFields.ISO.weekOfWeekBasedYear())
-        recordDay = dt.getDayOfMonth()
+        recordDay = dt.dayOfMonth
     }
 
     constructor(habitId: Long, habitReminderId: Long, recordTime: Long) : this(
@@ -39,10 +39,10 @@ open class HabitRecord(
         0, 0, 0, 0, TYPE_FINISHED
     ) {
         val dt = Instant.ofEpochMilli(recordTime).atZone(ZoneId.systemDefault())
-        recordYear = dt.getYear()
-        recordMonth = dt.getMonthValue()
+        recordYear = dt.year
+        recordMonth = dt.monthValue
         recordWeek = dt.get(WeekFields.ISO.weekOfWeekBasedYear())
-        recordDay = dt.getDayOfMonth()
+        recordDay = dt.dayOfMonth
     }
 
     constructor(c: Cursor?) : this(

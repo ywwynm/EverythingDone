@@ -58,7 +58,7 @@ class ThingBackground private constructor(
         } catch (e: JSONException) {
             // putting ints / strings can't actually throw, but org.json's checked
             // exception forces a catch. Fall back to a safe PURE encoding.
-            return "{\"" + K_MODE + "\":\"PURE\",\"" + K_COLOR + "\":" + color + "}"
+            return "{\"$K_MODE\":\"PURE\",\"$K_COLOR\":$color}"
         }
     }
 
@@ -132,7 +132,7 @@ class ThingBackground private constructor(
                 return pure(s)
             }
             val e = Color.rgb(rng.nextInt(256), rng.nextInt(256), rng.nextInt(256))
-            val orientations = Orientation.values()
+            val orientations = Orientation.entries.toTypedArray()
             return gradient(s, e, orientations[rng.nextInt(orientations.size)])
         }
 

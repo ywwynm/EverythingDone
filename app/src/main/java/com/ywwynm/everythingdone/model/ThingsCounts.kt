@@ -34,8 +34,8 @@ open class ThingsCounts private constructor(context: Context?) {
             var totalCount = 0
             var state = Thing.UNDERWAY
             while (state <= Thing.DELETED) {
-                val cursor = dao!!.getThingsCursor("type=" + type + " and state=" + state)
-                val cursorCount = cursor!!.getCount()
+                val cursor = dao!!.getThingsCursor("type=$type and state=$state")
+                val cursorCount = cursor!!.count
                 val prefCount = getCount(type, state)
                 if (cursorCount != prefCount) {
                     setCounts(type, state, cursorCount)
@@ -206,7 +206,7 @@ open class ThingsCounts private constructor(context: Context?) {
             if (sThingsCounts == null) {
                 synchronized(ThingsCounts::class.java) {
                     if (sThingsCounts == null) {
-                        sThingsCounts = ThingsCounts(context!!.getApplicationContext())
+                        sThingsCounts = ThingsCounts(context!!.applicationContext)
                     }
                 }
             }

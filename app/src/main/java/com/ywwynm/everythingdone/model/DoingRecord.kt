@@ -2,7 +2,6 @@ package com.ywwynm.everythingdone.model
 
 import android.database.Cursor
 import androidx.annotation.IntDef
-import com.ywwynm.everythingdone.services.DoingService
 
 /**
  * Created by qiizhang on 2016/11/9.
