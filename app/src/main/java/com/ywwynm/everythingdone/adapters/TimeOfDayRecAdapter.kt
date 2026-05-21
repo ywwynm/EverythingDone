@@ -96,7 +96,7 @@ open class TimeOfDayRecAdapter(
             strs.add("$hour:$minute")
             i += 2
         }
-        Collections.sort(strs)
+        strs.sort()
         items.clear()
         for (str in strs) {
             val times = str.split(":".toRegex()).toTypedArray()
