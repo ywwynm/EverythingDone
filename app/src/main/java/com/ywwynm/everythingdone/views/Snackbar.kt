@@ -149,7 +149,7 @@ open class Snackbar(
                 or WindowInsetsCompat.Type.displayCutout()).bottom
     }
 
-    fun setUndoListener(onClickListener: View.OnClickListener) {
+    fun setUndoListener(onClickListener: View.OnClickListener?) {
         if (mType == NORMAL) {
             throw IllegalStateException("Type must be Snackbar.UNDO")
         }

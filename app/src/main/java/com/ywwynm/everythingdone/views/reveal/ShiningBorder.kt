@@ -175,15 +175,15 @@ open class ShiningBorder : View {
         mParticleBaseSize = px
     }
 
-    fun setOnAnimationStartListener(listener: OnAnimationStartListener) {
+    fun setOnAnimationStartListener(listener: OnAnimationStartListener?) {
         mOnStartListener = listener
     }
 
-    fun setOnAnimationEndListener(listener: OnAnimationEndListener) {
+    fun setOnAnimationEndListener(listener: OnAnimationEndListener?) {
         mOnEndListener = listener
     }
 
-    fun setOnProgressUpdateListener(listener: OnProgressUpdateListener) {
+    fun setOnProgressUpdateListener(listener: OnProgressUpdateListener?) {
         mOnProgressListener = listener
     }
 

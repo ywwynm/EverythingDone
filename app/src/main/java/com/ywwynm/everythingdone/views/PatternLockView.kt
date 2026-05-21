@@ -205,7 +205,7 @@ open class PatternLockView @TargetApi(Build.VERSION_CODES.LOLLIPOP) constructor(
      *
      * @param onPatternListener The call back.
      */
-    fun setOnPatternListener(onPatternListener: OnPatternListener) {
+    fun setOnPatternListener(onPatternListener: OnPatternListener?) {
         mOnPatternListener = onPatternListener
     }
 
