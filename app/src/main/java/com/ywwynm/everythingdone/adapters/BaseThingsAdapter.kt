@@ -635,11 +635,11 @@ abstract class BaseThingsAdapter(context: Context?) :
         @JvmField val llHabitRecord: LinearLayout?         = f(R.id.ll_thing_habit_record)
         @JvmField val tvHabitLastFive: TextView?            = f(R.id.tv_thing_habit_last_five_record)
         @JvmField val habitRecordPresenter: HabitRecordPresenter? = HabitRecordPresenter(arrayOf(
-            f<ImageView>(R.id.iv_thing_habit_record_1),
-            f<ImageView>(R.id.iv_thing_habit_record_2),
-            f<ImageView>(R.id.iv_thing_habit_record_3),
-            f<ImageView>(R.id.iv_thing_habit_record_4),
-            f<ImageView>(R.id.iv_thing_habit_record_5)
+            f(R.id.iv_thing_habit_record_1),
+            f(R.id.iv_thing_habit_record_2),
+            f(R.id.iv_thing_habit_record_3),
+            f(R.id.iv_thing_habit_record_4),
+            f(R.id.iv_thing_habit_record_5)
         ))
         @JvmField val tvHabitFinishedThisT: TextView? = f(R.id.tv_thing_habit_finished_this_t)
 

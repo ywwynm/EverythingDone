@@ -35,12 +35,10 @@ open class DateTimePagerAdapter(context: Context?, tabs: List<View?>?) : PagerAd
 
     override fun getPageTitle(position: Int): CharSequence? {
         val res: Resources = mContext!!.resources
-        return if (position == 0) {
-            res.getString(R.string.quick_remind_title_at)
-        } else if (position == 1) {
-            res.getString(R.string.quick_remind_title_after)
-        } else {
-            res.getString(R.string.quick_remind_title_recurrence)
+        return when (position) {
+            0 -> res.getString(R.string.quick_remind_title_at)
+            1 -> res.getString(R.string.quick_remind_title_after)
+            else -> res.getString(R.string.quick_remind_title_recurrence)
         }
     }
 
