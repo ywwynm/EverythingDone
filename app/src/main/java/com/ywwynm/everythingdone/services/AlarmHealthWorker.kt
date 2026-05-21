@@ -36,7 +36,7 @@ open class AlarmHealthWorker(context: Context, params: WorkerParameters) : Worke
 
     override fun doWork(): Result {
         try {
-            AlarmHelper.createAllAlarms(getApplicationContext(), false)
+            AlarmHelper.createAllAlarms(applicationContext, false)
             Log.i(TAG, "Alarm health check rebuilt all alarms.")
             return Result.success()
         } catch (t: Throwable) {

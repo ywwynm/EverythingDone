@@ -34,7 +34,7 @@ open class PullAliveJobService : JobService() {
         // every run after the first was a silent no-op.
         mWorker = Thread(object : Runnable {
             override fun run() {
-                val context: Context = getApplicationContext()
+                val context: Context = applicationContext
                 try {
                     AlarmHelper.createAllAlarms(context, true)
                     Log.i(TAG, "Alarms set.")
@@ -60,11 +60,12 @@ open class PullAliveJobService : JobService() {
     override fun onStopJob(params: JobParameters): Boolean {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             Log.w(TAG, "Pull alive job stopped by system. stopReason=" +
-                    params.getStopReason())
+                    params.stopReason
+            )
         } else {
             Log.w(TAG, "Pull alive job stopped by system.")
         }
-        if (mWorker != null && mWorker!!.isAlive()) {
+        if (mWorker != null && mWorker!!.isAlive) {
             mWorker!!.interrupt()
         }
         mWorker = null

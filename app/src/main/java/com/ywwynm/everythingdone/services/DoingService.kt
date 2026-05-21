@@ -137,10 +137,10 @@ open class DoingService : Service() {
 
                 if (doingState == STATE_DOING) {
                     mHandler!!.sendEmptyMessageDelayed(96, 1000)
-                    if (mWakeLock != null && !mWakeLock!!.isHeld()) {
+                    if (mWakeLock != null && !mWakeLock!!.isHeld) {
                         mWakeLock!!.acquire()
                     }
-                } else if (mWakeLock != null && mWakeLock!!.isHeld()) {
+                } else if (mWakeLock != null && mWakeLock!!.isHeld) {
                     mWakeLock!!.release()
                 }
                 return true
@@ -169,7 +169,7 @@ open class DoingService : Service() {
     }
 
     private fun handleLeftTimeChange(leftTimeBefore: Long) {
-        val from: IntArray = IntArray(6)
+        val from = IntArray(6)
         System.arraycopy(mTimeNumbers, 0, from, 0, 6)
         mLeftTime -= 1000
         calculateTimeNumbers(mLeftTime)
@@ -234,8 +234,7 @@ open class DoingService : Service() {
         // whole process with ForegroundServiceDidNotStartInTimeException. Even
         // on early-return paths (null intent from a sticky restart, missing
         // KEY_THING extra) we have to honor the contract before bailing out.
-        val thing: Thing? = if (intent != null)
-                intent.getParcelableExtra(Def.Communication.KEY_THING) else null
+        val thing: Thing? = intent?.getParcelableExtra(Def.Communication.KEY_THING)
         if (intent == null || thing == null) {
             Log.w(TAG, "onStartCommand without a usable Thing — " +
                     "promoting placeholder + stopping. intent=" + intent)
@@ -251,7 +250,7 @@ open class DoingService : Service() {
         mThing = Thing(thing)
 
         if (mThing!!.type == Thing.HABIT) {
-            mHabit = HabitDAO.getInstance(getApplicationContext())!!.getHabitById(mThing!!.id)
+            mHabit = HabitDAO.getInstance(applicationContext)!!.getHabitById(mThing!!.id)
         }
 
         mTimeInMillis = intent.getLongExtra(KEY_TIME_IN_MILLIS, -1L)
@@ -259,13 +258,13 @@ open class DoingService : Service() {
         mStartTime = intent.getLongExtra(KEY_START_TIME, -1L)
         mEndTime = -1
 
-        if (mTimeInMillis == -1L) {
-            mLeftTime = -1
+        mLeftTime = if (mTimeInMillis == -1L) {
+            -1
         } else {
             if (System.currentTimeMillis() - mStartTime < 6 * 1000L) {
-                mLeftTime = mTimeInMillis / 1000L * 1000L
+                mTimeInMillis / 1000L * 1000L
             } else {
-                mLeftTime = (mStartTime + mTimeInMillis - System.currentTimeMillis()) / 1000L * 1000L
+                (mStartTime + mTimeInMillis - System.currentTimeMillis()) / 1000L * 1000L
             }
         }
 
@@ -275,7 +274,7 @@ open class DoingService : Service() {
         mTotalAdd5MinTimes = 0
 
         mStartType = intent.getIntExtra(KEY_START_TYPE, START_TYPE_ALARM)
-        val helper: ThingDoingHelper = ThingDoingHelper(this, mThing)
+        val helper = ThingDoingHelper(this, mThing)
         mShouldAutoStrictMode = helper.shouldAutoStrictMode()
 
         Log.i(TAG, "start counting down, mPredictDoingTime[" + mPredictDoingTime + "], " +
@@ -345,7 +344,7 @@ open class DoingService : Service() {
         }
 
         if (mThing != null) {
-            val doingRecord: DoingRecord = DoingRecord(-1, mThing!!.id, mThing!!.type,
+            val doingRecord = DoingRecord(-1, mThing!!.id, mThing!!.type,
                     mTotalAdd5MinTimes, mPlayedTimes, mTotalPlayedTime,
                     mPredictDoingTime, mStartTime, mEndTime, sStopReason,
                     mStartType, mShouldAutoStrictMode)
@@ -362,7 +361,7 @@ open class DoingService : Service() {
         mHandler = null
         mDoingListener = null
 
-        if (mWakeLock != null && mWakeLock!!.isHeld()) {
+        if (mWakeLock != null && mWakeLock!!.isHeld) {
             mWakeLock!!.release()
         }
         mWakeLock = null
@@ -444,13 +443,13 @@ open class DoingService : Service() {
 
         if (mHabit != null) {
             val etc: Long
-            if (mLeftTime == 0L) { // countdown is over
-                etc = System.currentTimeMillis() + 5 * MINUTE_MILLIS * (mAdd5MinTimes + 1)
+            etc = if (mLeftTime == 0L) { // countdown is over
+                System.currentTimeMillis() + 5 * MINUTE_MILLIS * (mAdd5MinTimes + 1)
             } else {
-                etc = mStartTime + mTimeInMillis + 5 * MINUTE_MILLIS * (mAdd5MinTimes + 1)
+                mStartTime + mTimeInMillis + 5 * MINUTE_MILLIS * (mAdd5MinTimes + 1)
             }
             val habitType: Int = mHabit!!.type
-            val calendar: GregorianCalendar = GregorianCalendar()
+            val calendar = GregorianCalendar()
             val ct: Int = calendar.get(habitType) // current t
             calendar.setTimeInMillis(etc)
             if (calendar.get(habitType) != ct) {
@@ -506,13 +505,13 @@ open class DoingService : Service() {
     }
 
     private fun getLeftTimeStr(): String? {
-        if (mTimeInMillis == -1L) {
-            return getString(R.string.infinity)
+        return if (mTimeInMillis == -1L) {
+            getString(R.string.infinity)
         } else {
             if (mTimeNumbers[0] == -1) {
-                return "00:00:00"
+                "00:00:00"
             } else {
-                return mTimeNumbers[0].toString() + "" + mTimeNumbers[1] + ":" +
+                mTimeNumbers[0].toString() + "" + mTimeNumbers[1] + ":" +
                         mTimeNumbers[2] + "" + mTimeNumbers[3] + ":" +
                         mTimeNumbers[4] + "" + mTimeNumbers[5]
             }
