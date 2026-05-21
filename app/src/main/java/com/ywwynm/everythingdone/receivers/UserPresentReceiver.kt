@@ -16,10 +16,10 @@ import com.ywwynm.everythingdone.utils.SystemNotificationUtil
 open class UserPresentReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
-        if (Intent.ACTION_USER_PRESENT.equals(intent.getAction())) {
+        if (Intent.ACTION_USER_PRESENT == intent.action) {
             Log.i(TAG, "Screen is on, EverythingDone is responding...")
 
-            val appContext: Context = context.getApplicationContext()
+            val appContext: Context = context.applicationContext
             Thread(object : Runnable {
                 override fun run() {
                     AlarmHelper.createAllAlarms(appContext, false)

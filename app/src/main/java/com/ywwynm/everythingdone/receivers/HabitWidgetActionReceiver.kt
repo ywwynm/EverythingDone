@@ -12,7 +12,6 @@ import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.database.HabitDAO
 import com.ywwynm.everythingdone.helpers.RemoteActionHelper
 import com.ywwynm.everythingdone.model.Habit
-import com.ywwynm.everythingdone.model.HabitReminder
 import com.ywwynm.everythingdone.model.Thing
 
 /**
@@ -24,7 +23,7 @@ import com.ywwynm.everythingdone.model.Thing
 open class HabitWidgetActionReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
-        if (Def.Communication.WIDGET_ACTION_FINISH.equals(intent.getAction())) {
+        if (Def.Communication.WIDGET_ACTION_FINISH == intent.action) {
             val id: Long = intent.getLongExtra(Def.Communication.KEY_ID, -1)
             var position: Int = intent.getIntExtra(Def.Communication.KEY_POSITION, -1)
 
@@ -33,10 +32,7 @@ open class HabitWidgetActionReceiver : BroadcastReceiver() {
             }
 
             val pair: Pair<Thing, Int> = App.getThingAndPosition(context, id, position)!!
-            val thing: Thing? = pair.first
-            if (thing == null) {
-                return
-            }
+            val thing: Thing = pair.first ?: return
             position = pair.second!!
 
             val habit: Habit? = HabitDAO.getInstance(context)!!.getHabitById(id)

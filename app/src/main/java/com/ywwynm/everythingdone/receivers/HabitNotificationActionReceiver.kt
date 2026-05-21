@@ -25,7 +25,7 @@ import com.ywwynm.everythingdone.services.DoingService
 open class HabitNotificationActionReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
-        val action: String? = intent.getAction()
+        val action: String? = intent.action
         val hrId: Long = intent.getLongExtra(Def.Communication.KEY_ID, -1)
         val thingId: Long
         if (hrId == -1L) { // ongoing Habit
@@ -34,10 +34,7 @@ open class HabitNotificationActionReceiver : BroadcastReceiver() {
                     Def.Meta.KEY_ONGOING_THING_ID, -1L)
         } else {
             val habitDAO: HabitDAO = HabitDAO.getInstance(context)!!
-            val hr: HabitReminder? = habitDAO.getHabitReminderById(hrId)
-            if (hr == null) {
-                return
-            }
+            val hr: HabitReminder = habitDAO.getHabitReminderById(hrId) ?: return
             thingId = hr.habitId
 
             val nmc: NotificationManagerCompat = NotificationManagerCompat.from(context)
@@ -45,13 +42,14 @@ open class HabitNotificationActionReceiver : BroadcastReceiver() {
         }
 
         // NOTIFICATION_ACTION_CANCEL is used as the delete intent; just cancel notification
-        if (Def.Communication.NOTIFICATION_ACTION_CANCEL.equals(action)) {
+        if (Def.Communication.NOTIFICATION_ACTION_CANCEL == action) {
             return
         }
 
         // Only NOTIFICATION_ACTION_FINISH and NOTIFICATION_ACTION_START_DOING are handled here
-        if (!Def.Communication.NOTIFICATION_ACTION_FINISH.equals(action)
-                && !Def.Communication.NOTIFICATION_ACTION_START_DOING.equals(action)) {
+        if (Def.Communication.NOTIFICATION_ACTION_FINISH != action
+            && Def.Communication.NOTIFICATION_ACTION_START_DOING != action
+        ) {
             return
         }
 
@@ -63,10 +61,7 @@ open class HabitNotificationActionReceiver : BroadcastReceiver() {
 
         var position: Int = intent.getIntExtra(Def.Communication.KEY_POSITION, -1)
         val pair: Pair<Thing, Int> = App.getThingAndPosition(context, thingId, position)!!
-        val thing: Thing? = pair.first
-        if (thing == null) {
-            return
-        }
+        val thing: Thing = pair.first ?: return
         position = pair.second!!
 
         context.sendBroadcast(
@@ -74,7 +69,7 @@ open class HabitNotificationActionReceiver : BroadcastReceiver() {
                         .putExtra(Def.Communication.KEY_ID, thing.id))
 
         val hrTime: Long = intent.getLongExtra(Def.Communication.KEY_TIME, -1)
-        if (Def.Communication.NOTIFICATION_ACTION_FINISH.equals(action)) {
+        if (Def.Communication.NOTIFICATION_ACTION_FINISH == action) {
             if (thing.isPrivate()) {
                 val actionIntent: Intent = AuthenticationActivity.getOpenIntent(
                         context, TAG, thingId, position,
@@ -86,7 +81,7 @@ open class HabitNotificationActionReceiver : BroadcastReceiver() {
             } else {
                 RemoteActionHelper.finishHabitOnce(context, thing, position, hrTime)
             }
-        } else if (Def.Communication.NOTIFICATION_ACTION_START_DOING.equals(action)) {
+        } else if (Def.Communication.NOTIFICATION_ACTION_START_DOING == action) {
             if (thingId == App.getDoingThingId()) {
                 Toast.makeText(context, R.string.start_doing_doing_this_thing,
                         Toast.LENGTH_LONG).show()

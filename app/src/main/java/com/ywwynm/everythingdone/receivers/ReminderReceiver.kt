@@ -49,7 +49,7 @@ open class ReminderReceiver : BroadcastReceiver() {
 
         if (reminder.state == Reminder.UNDERWAY) {
 
-            val helper: ThingDoingHelper = ThingDoingHelper(context, thing)
+            val helper = ThingDoingHelper(context, thing)
             val shouldAutoStartDoing: Boolean = helper.shouldAutoStartDoing()
             if (thing.state == Thing.UNDERWAY
                     && App.getDoingThingId() == -1L && shouldAutoStartDoing) {
@@ -134,7 +134,7 @@ open class ReminderReceiver : BroadcastReceiver() {
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE), true)
         }
 
-        val deleteIntent: Intent = Intent(context, ReminderNotificationActionReceiver::class.java)
+        val deleteIntent = Intent(context, ReminderNotificationActionReceiver::class.java)
         deleteIntent.setAction(Def.Communication.NOTIFICATION_ACTION_CANCEL)
         deleteIntent.putExtra(Def.Communication.KEY_ID, id)
         builder.setDeleteIntent(PendingIntent.getBroadcast(

@@ -27,7 +27,7 @@ open class ReminderNotificationActionReceiver : BroadcastReceiver() {
 
     @SuppressLint("LongLogTag")
     override fun onReceive(context: Context, intent: Intent) {
-        val action: String? = intent.getAction()
+        val action: String? = intent.action
         val thingId: Long = intent.getLongExtra(Def.Communication.KEY_ID, 0)
         val nmc: NotificationManagerCompat = NotificationManagerCompat.from(context)
         nmc.cancel(thingId.toInt())
@@ -35,9 +35,9 @@ open class ReminderNotificationActionReceiver : BroadcastReceiver() {
                 Intent(NoticeableNotificationActivity.BROADCAST_ACTION_JUST_FINISH)
                         .putExtra(Def.Communication.KEY_ID, thingId))
 
-        var matched: Boolean = false
+        var matched = false
         for (legalAction in LEGAL_ACTIONS) {
-            if (legalAction.equals(action)) {
+            if (legalAction == action) {
                 matched = true
                 break
             }
@@ -61,8 +61,9 @@ open class ReminderNotificationActionReceiver : BroadcastReceiver() {
         }
         position = pair.second!!
 
-        if (Def.Communication.NOTIFICATION_ACTION_FINISH.equals(action)
-                || Def.Communication.WIDGET_ACTION_FINISH.equals(action)) {
+        if (Def.Communication.NOTIFICATION_ACTION_FINISH == action
+            || Def.Communication.WIDGET_ACTION_FINISH == action
+        ) {
             if (thing.isPrivate()) {
                 val actionIntent: Intent = AuthenticationActivity.getOpenIntent(
                         context, TAG, thingId, position,
@@ -73,7 +74,7 @@ open class ReminderNotificationActionReceiver : BroadcastReceiver() {
             } else {
                 RemoteActionHelper.finishReminder(context, thing, position)
             }
-        } else if (Def.Communication.NOTIFICATION_ACTION_START_DOING.equals(action)) {
+        } else if (Def.Communication.NOTIFICATION_ACTION_START_DOING == action) {
             if (thingId == App.getDoingThingId()) {
                 Toast.makeText(context, R.string.start_doing_doing_this_thing,
                         Toast.LENGTH_LONG).show()
@@ -94,7 +95,7 @@ open class ReminderNotificationActionReceiver : BroadcastReceiver() {
             }
             actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
             context.startActivity(actionIntent)
-        } else if (Def.Communication.NOTIFICATION_ACTION_DELAY.equals(action)) {
+        } else if (Def.Communication.NOTIFICATION_ACTION_DELAY == action) {
             val actionIntent: Intent
             if (thing.isPrivate()) {
                 actionIntent = AuthenticationActivity.getOpenIntent(

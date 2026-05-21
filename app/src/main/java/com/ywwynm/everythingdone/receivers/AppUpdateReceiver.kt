@@ -15,10 +15,10 @@ import com.ywwynm.everythingdone.utils.SystemNotificationUtil
 open class AppUpdateReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
-        if (Intent.ACTION_MY_PACKAGE_REPLACED.equals(intent.getAction())) {
+        if (Intent.ACTION_MY_PACKAGE_REPLACED == intent.action) {
             Log.i(TAG, "EverythingDone updated.")
 
-            val appContext: Context = context.getApplicationContext()
+            val appContext: Context = context.applicationContext
             Thread(object : Runnable {
                 override fun run() {
                     AlarmHelper.createAllAlarms(appContext, false)

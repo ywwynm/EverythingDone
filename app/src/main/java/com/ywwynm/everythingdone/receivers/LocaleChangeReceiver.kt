@@ -17,7 +17,7 @@ import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper
 open class LocaleChangeReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
-        if (Def.Communication.BROADCAST_ACTION_RESP_LOCALE_CHANGE.equals(intent.getAction())) {
+        if (Def.Communication.BROADCAST_ACTION_RESP_LOCALE_CHANGE == intent.action) {
             AppWidgetHelper.updateAllAppWidgets(context)
 
             if (BuildConfig.DEBUG) {

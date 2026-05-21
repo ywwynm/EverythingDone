@@ -39,10 +39,7 @@ open class HabitReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val hrId: Long = intent.getLongExtra(Def.Communication.KEY_ID, 0)
         val habitDAO: HabitDAO = HabitDAO.getInstance(context)!!
-        val habitReminder: HabitReminder? = habitDAO.getHabitReminderById(hrId)
-        if (habitReminder == null) {
-            return
-        }
+        val habitReminder: HabitReminder = habitDAO.getHabitReminderById(hrId) ?: return
 
         val habitId: Long = habitReminder.habitId
         var habit: Habit? = habitDAO.getHabitById(habitId)
@@ -105,7 +102,7 @@ open class HabitReceiver : BroadcastReceiver() {
 
         if (thing.state == Thing.UNDERWAY) {
 
-            val helper: ThingDoingHelper = ThingDoingHelper(context, thing)
+            val helper = ThingDoingHelper(context, thing)
             val shouldAutoStartDoing: Boolean = helper.shouldAutoStartDoing()
             if (curDoingId == -1L && shouldAutoStartDoing) {
                 updateHabitRecordTimesAndUi(context, hrId, thing, position)
@@ -174,11 +171,9 @@ open class HabitReceiver : BroadcastReceiver() {
 
     private fun updateHabitRecordTimes(context: Context, hrId: Long) {
         val habitDAO: HabitDAO = HabitDAO.getInstance(context)!!
-        val habitReminder: HabitReminder? = habitDAO.getHabitReminderById(hrId)
-        if (habitReminder == null) return
+        val habitReminder: HabitReminder = habitDAO.getHabitReminderById(hrId) ?: return
         val habitId: Long = habitReminder.habitId
-        val habit: Habit? = habitDAO.getHabitById(habitId)
-        if (habit == null) return
+        val habit: Habit = habitDAO.getHabitById(habitId) ?: return
         habitDAO.updateHabitReminderToNext(hrId)
         var recordTimes: Int = habit.record!!.length
         val remindedTimes: Int = habit.remindedTimes

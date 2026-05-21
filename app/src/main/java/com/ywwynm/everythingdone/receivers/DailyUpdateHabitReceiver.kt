@@ -40,7 +40,7 @@ open class DailyUpdateHabitReceiver : BroadcastReceiver() {
 
     private fun sendBroadcastToMainUI(context: Context) {
         App.setJustNotifyAll(true)
-        val broadcastIntent: Intent = Intent(
+        val broadcastIntent = Intent(
                 Def.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI)
         broadcastIntent.putExtra(Def.Communication.KEY_RESULT_CODE,
                 Def.Communication.RESULT_JUST_NOTIFY_DATASET_CHANGED)

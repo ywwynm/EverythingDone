@@ -17,10 +17,10 @@ import com.ywwynm.everythingdone.utils.SystemNotificationUtil
 open class BootReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
-        if (Intent.ACTION_BOOT_COMPLETED.equals(intent.getAction())) {
+        if (Intent.ACTION_BOOT_COMPLETED == intent.action) {
             Log.i(TAG, "Device boot, EverythingDone is responding...")
 
-            val appContext: Context = context.getApplicationContext()
+            val appContext: Context = context.applicationContext
             Thread(object : Runnable {
                 override fun run() {
                     AlarmHelper.createAllAlarms(appContext, true)

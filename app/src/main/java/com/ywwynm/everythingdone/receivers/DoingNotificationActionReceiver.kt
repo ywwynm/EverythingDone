@@ -21,14 +21,15 @@ import com.ywwynm.everythingdone.services.DoingService
 open class DoingNotificationActionReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
-        val action: String = intent.getAction()!!
-        if (!ACTION_FINISH.equals(action)
-                && !ACTION_USER_CANCEL.equals(action)
-                && !ACTION_STOP_SERVICE.equals(action)) {
+        val action: String = intent.action!!
+        if (ACTION_FINISH != action
+            && ACTION_USER_CANCEL != action
+            && ACTION_STOP_SERVICE != action
+        ) {
             return
         }
 
-        if (ACTION_FINISH.equals(action)) {
+        if (ACTION_FINISH == action) {
             DoingService.sStopReason = DoingRecord.STOP_REASON_FINISH
             val thingId: Long = intent.getLongExtra(Def.Communication.KEY_ID, -1L)
             val pair: Pair<Thing, Int> = App.getThingAndPosition(context, thingId, -1)!!
@@ -44,7 +45,7 @@ open class DoingNotificationActionReceiver : BroadcastReceiver() {
                     RemoteActionHelper.finishReminder(context, thing, pair.second!!)
                 }
             }
-        } else if (ACTION_USER_CANCEL.equals(action)) {
+        } else if (ACTION_USER_CANCEL == action) {
             DoingService.sStopReason = DoingRecord.STOP_REASON_CANCEL_USER
         }
 
