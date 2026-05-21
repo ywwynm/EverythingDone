@@ -64,10 +64,10 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
 
         val p: Int = (DisplayUtil.getScreenDensity(this) * 8).toInt()
         val rv: RecyclerView = findViewById(R.id.rv_types_list_things_list_widget_config) as RecyclerView
-        mAdapter = object : RadioChooserAdapter(this, items, color) {
-            override fun onBindViewHolder(holder: BaseViewHolder, position: Int) {
-                super.onBindViewHolder(holder, position)
-                holder.itemView.setPadding(p, 0, p, 0)
+        mAdapter = object : RadioChooserAdapter(this@ThingsListWidgetConfiguration, items, color) {
+            override fun onBindViewHolder(viewHolder: BaseViewHolder, position: Int) {
+                super.onBindViewHolder(viewHolder, position)
+                viewHolder.itemView.setPadding(p, 0, p, 0)
             }
         }
         mAdapter!!.pick(0)
