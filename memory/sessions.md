@@ -1,5 +1,713 @@
 # Sessions
 
+## 2026-05-20 — Kotlin migration Group 17 (SettingsActivity) — FINAL
+
+Translated `SettingsActivity.java` 1771 LoC → Kotlin. This is the last
+group of the migration plan — every `.java` source in `app/` is now
+`.kt`. The plan's §3 rule set held without revision through all 17
+groups; the last group needed only routine nullability/!! tweaks.
+
+### V1 / V2 results
+First-pass compile: **15 errors, 0 warnings on SettingsActivity itself**.
+All errors were nullability mismatches against already-Kotlin helpers:
+
+| # | Site                                                | Fix |
+|---|-----------------------------------------------------|-----|
+| 1 | `FingerprintHelper.getInstance()` ×3                | `!!` (Companion returns nullable) |
+| 2 | `ThingDoingHelper.getStartDoingTimeItems(this)` ×3  | `!!.toMutableList()` / `: List<String?>` |
+| 3 | `NotificationReliabilityHelper.getDisabledCriticalChannels(this)` ×2 | `: List<String?>`, `!!`, `disabled.get(0)!!` |
+| 4 | `DailyTodoHelper.getDailyTodoItems(this)`           | `?.toMutableList()` for `sDTItems: MutableList<String?>?` |
+| 5 | `getRingtoneTitle(...)` return type                 | `String?` (replaceChineseBrackets returns String?) |
+| 6 | Various `replaceChineseBrackets(dr.getTitle(ctx))`  | sRingtoneTitleList typed as `MutableList<String?>?` |
+
+Second pass: BUILD SUCCESSFUL, 0 warnings on the new file.
+
+### V3 / V4 (emulator-5554)
+- Launch ThingsActivity → open drawer → tap Settings → SettingsActivity
+  opens with yellow toolbar, full UI/Reminder-Reliability/Ringtone/
+  Data/Privacy/StartDoing/Advanced sections render correctly.
+- Tap "Language" row → ChooserDialogFragment opens with 5 language
+  options (Follow System highlighted) — `showChooseLanguageDialog`
+  path works including `setItems(MutableList<String?>?)` plumbing.
+- Tap "Press Back twice to exit" CheckBox → toggles on screen.
+- Back → ThingsActivity → `EverythingDone_preferences.xml` written:
+  `twice_back=true`, `noticeable_notification=true`, `auto_save_edits=false`.
+  Confirms `finish()` override → `storeConfiguration()` runs and
+  `SharedPreferences.Editor.apply()` commits all groups.
+- Logcat for app PID: 0 FATAL / 0 AndroidRuntime / 0 EverythingDone E lines.
+
+### Notes / gotchas
+- **`AsyncTask` deprecated, still functional**: BackupTask / RestoreTask
+  inner classes extend `AsyncTask<Any?, Any?, Boolean>` — `vararg
+  params: Any?` syntax in `doInBackground` replaces Java's `Object...`.
+- **`@file:Suppress("DEPRECATION")` only, not OVERRIDE_DEPRECATION**:
+  no methods here override deprecated framework methods (`onActivityResult`
+  + `onResume/onStop/onCreate` lifecycle remain non-deprecated at AGP
+  current target).
+- **`@SuppressLint("ApplySharedPref")` for inline `commit()`**: applied
+  to the single `mPreferences!!.edit()...commit()` call in
+  `showChooseLanguageDialog`'s Confirm listener (called before
+  `App.killMeAndRestart`, must be synchronous).
+- **Static migration**: `sKeysRingtone`, `sRingtoneTitleList`,
+  `sRingtoneUriList`, `sDTItems`, `sANItems` moved to companion
+  object as `var` (still mutable, lazily initialized inside Activity
+  methods — original Java code uses them across re-creations).
+- **`setItems()` accepts `MutableList<String?>?`** not `List<String>`
+  — required `.toMutableList() as MutableList<String?>` casts at every
+  `Arrays.asList(strArr)` Java site, or just `array.toMutableList()`
+  when items don't need explicit nullability.
+
+### Migration complete
+All 17 groups translated. App contains 0 `.java` files in
+`app/src/main/java/com/ywwynm/everythingdone/`.
+
+## 2026-05-20 — Kotlin migration Group 16 (ThingsActivity)
+
+Translated `ThingsActivity.java` 2834 LoC → Kotlin in one Write pass.
+Class declared `final` (plain `class : EverythingDoneBaseActivity()`).
+Inner listener classes (`OnNavigationIconClickedListener`,
+`OnThingTouchedListener`, `ThingsTouchCallback`,
+`OnContextualMenuClickedListener`) kept as `internal inner class` —
+they all access outer-state members (mAdapter, mModeManager, etc.).
+
+### V1 / V2 results
+First-pass compile: **8 errors, 0 warnings on ThingsActivity itself**.
+All 8 boiled down to non-null arg expectations on already-Kotlin
+constructors / setters that the Java code's platform-typed sites had
+masked:
+
+| # | Site                                                | Fix |
+|---|-----------------------------------------------------|-----|
+| 1 | `setTintTarget(menuItem.icon)`                      | `icon!!` (Drawable?) |
+| 2 | `DrawerHeader(mApp, …)`                             | `mApp!!`, view!! ×3 |
+| 3 | `ActivityHeader(mApp, mRecyclerView, …)`            | `mApp!!`, `mRecyclerView!!`, view!! ×4 |
+| 4 | `mActivityHeader!!.setModeManager(mModeManager)`    | `mModeManager!!` |
+| 5 | `mUndoSnackbar!!.setMessage(messages[0])`           | `messages[0]!!` / `[1]!!` |
+| 6 | `ThingExporter.startExporting(…, getSelectedThings())` | spread + `?: emptyArray()` (vararg consumes `Thing?...`) |
+
+Second pass: BUILD SUCCESSFUL, 0 warnings emitted from the new file.
+
+### V3 / V4 (emulator-5554)
+- Launch ThingsActivity → list renders 28 items, FAB visible.
+- Open drawer → NavigationView with completion-rate header, all 9 items.
+- Tap Reminder row → header switches to "Reminder 5 things", FAB stays
+  spread, RecyclerView reloads.
+- Tap FAB → reveal animation plays → DetailActivity opens green (newThingColor).
+- Type content + back twice → return to ThingsActivity, header now
+  "Underway 29 things", new green card "Group16_ThingsActivity_test"
+  appears at position 1 after scroll-to-top — `playNewItemAnimation`
+  (reveal variant) fires correctly.
+- Tap search icon → search bar swaps in, FAB shrinks, typing "888888"
+  filters to single matching dark-slate card.
+
+No new crashes, no logcat exceptions. APK installs and runs clean.
+
+### Notes / gotchas captured during this group
+- Old Java `getCurrentFocus()` returns nullable View — `KeyboardUtil.
+  hideKeyboard(currentFocus)` now passes `View?` but the util already
+  null-checks.
+- Java code referenced `mUndoThings.iterator()` and assumed
+  `MutableIterator<Thing>` — added explicit type at the iterator
+  declaration to keep `iterator.remove()` callable.
+- `mUndoPositions` had to be re-cast after `updateStates` because the
+  ThingManager.kt return type is `MutableList<Int?>?`; cast to
+  `MutableList<Int>` is unchecked-suppressed but safe in this control
+  flow (the manager never inserts nulls).
+- The Java `for (final Thing undoThing : mUndoThings)` paired with
+  `undoThing.setSelected(false)` becomes `undoThing.selected = false`
+  in Kotlin because `Thing.kt` has a public `selected` property; the
+  `isSelected()` method is also still available for reads.
+- `ThingsTouchCallback.onChildDraw` uses `FrameLayout.LayoutParams`
+  for `flDoing` — `InterceptTouchCardView.LayoutParams` doesn't exist
+  as a nested type (same Group 12 fix).
+
+## 2026-05-20 — Kotlin migration Group 15 (DetailActivity)
+
+Translated the first monster, `DetailActivity.java` 3883 LoC → Kotlin.
+Single file. Strategy: Option 1 m-prefixed for view fields, Option 3
+for Group 2/4 model getters at call sites. Class declared `final`
+(plain `class` in Kotlin, no `open`).
+
+The class itself was Java `public final class`, so the Kotlin
+translation is `class DetailActivity : EverythingDoneBaseActivity()`
+with no `open` modifier. This in turn means Kotlin warns on every
+`open fun` inside (since members of a `final` class can't be
+overridden — `open` is silently meaningless). Stripped `open` from
+9 fun/val declarations that don't override anything.
+
+Special handling:
+
+- **`@file:Suppress("DEPRECATION")`**: required because the file
+  uses `getFragmentManager()` (deprecated since API 28),
+  `overridePendingTransition(...)` (deprecated since API 34 in
+  favour of `overrideActivityTransition`), and
+  `getDrawable(R.mipmap.ic_launcher)` (deprecated since API 21,
+  replaced by `ContextCompat.getDrawable`).
+- **`fun getType()` → `val type: Int get() = mType`**: the Java
+  getter `getType()` was being called as a Kotlin property
+  (`mActivity!!.type`) by Group 13's DateTimeDialogFragment. Once
+  DetailActivity was translated, `fun getType()` no longer matched
+  JavaBean-property-access conventions (Kotlin's function `getX()`
+  is just a function, not a property). Rewrote as a Kotlin `val
+  type: Int get() = mType` so both Kotlin callers (property syntax)
+  and Java callers (auto-generated `getType()` method) work.
+- **`Pair<Thing, Int>?` from `App.getThingAndPosition`**: same
+  Group 14 gotcha — App.kt declares the return as `Pair<Thing, Int>?`
+  (non-null inner types via androidx.core.util.Pair) but at runtime
+  the inner fields can still be null (Java @Nullable). `pair.second
+  ?: -1` is the safe-access pattern.
+- **`Pair<List<String?>, List<String?>>` from
+  `AttachmentHelper.toAttachmentItems`**: Group 6's helper returns
+  nullable inner Strings, my first declaration used non-null inner
+  Strings, type-match failed. Fix: align to source type.
+- **`ScreenshotHelper.ShareCallback.onTaskDone(file: File?)`**:
+  Group 6's ScreenshotHelper declared `onTaskDone` taking nullable
+  File. My override said `File`, override signature mismatch. Fix:
+  match the supertype.
+- **`Habit(mHabit)` copy ctor**: Habit's primary ctor in Kotlin
+  expects non-null Habit; `mHabit` is `Habit?`. Need `!!`.
+- **Smart cast impossible** for `mIbBack` (mutable property):
+  `ImageViewCompat.setImageTintList(mIbBack, ...)` needs non-null
+  ImageView. The if-null guard doesn't smart-cast a `var` because
+  of concurrent mutation possibility. Need `mIbBack!!`.
+- **`Layout.getOffsetForHorizontal(line: Int, horiz: Float)`**:
+  Java auto-widens Int → Float; Kotlin requires explicit `.toFloat()`.
+- **`List<Int?>?` vs `List<Int>` from
+  `ScreenshotHelper.updateThingUiBeforeScreenshot`**: same as
+  attachment items, return type alignment.
+- **`Snackbar` ctor non-null params**: Group 11 translation
+  declared `Snackbar(app: App, type: Int, parent: ViewGroup, ...)`
+  with non-null app and parent. Call site passes `mApp` (`App?`)
+  and `mFlRoot` (`FrameLayout?`) — need `!!` at both.
+- **`ItemTouchHelper.startDrag(holder: RecyclerView.ViewHolder)`**:
+  takes non-null. `mRvCheckList!!.findViewHolderForAdapterPosition(pos)`
+  returns nullable; need `!!` at the call.
+- **`when (action.getType())` exhaustiveness**: Java switch-fallthrough
+  with `default:break;` → Kotlin `when` block with `else -> {}`. Two
+  branches early-return; in those cases the outer `when` exits and
+  the post-`when` code (`updateUndoRedoActionButtonState();
+  shouldAddToActionList = true;`) wouldn't execute under the
+  problematic `UPDATE_COLOR` branch. Rewrote to set the flag and
+  call the function before `return` in the unreachable-cast branch.
+- **Override deprecation propagation**: my Group 15 changes
+  triggered the Kotlin compiler to recompile dependent fragment
+  files and emit `OVERRIDE_DEPRECATION` warnings on
+  `getFragmentManager` / `onDismiss` / `onCreateView` overrides
+  inheriting from the deprecated `android.app.DialogFragment`.
+  Added `"OVERRIDE_DEPRECATION"` to the `@file:Suppress(...)` of
+  10 fragment files (BaseDialogFragment, AlertDialogFragment,
+  AudioRecordDialogFragment, ChooserDialogFragment,
+  DateTimeDialogFragment, HabitRecordDialogFragment,
+  LongTextDialogFragment, PatternLockDialogFragment,
+  ThreeActionsAlertDialogFragment, TwoOptionsDialogFragment).
+  PatternLockDialogFragment didn't have any file-level suppression
+  before (no internal deprecated-API use); just `OVERRIDE_DEPRECATION`
+  was added.
+- **Param-name mismatch in supertype** at
+  `ThingsListWidgetConfiguration.kt:68`'s anonymous
+  `RadioChooserAdapter` override: my parameter was `holder` but the
+  supertype RadioChooserAdapter.onBindViewHolder is `viewHolder`.
+  Kotlin warns to avoid named-argument confusion. Renamed.
+- **Cross-file DateTimeDialogFragment nullable receiver chain**:
+  Group 13's translation accessed `mActivity!!.tvQuickRemind.text` /
+  `.cbQuickRemind.isChecked` / `.quickRemindPicker.pickPreviousForUI()`.
+  Those fields were Java public fields when Group 13 ran (platform
+  types). Once DetailActivity became Kotlin, they're strict `T?`
+  fields. Added `!!` at the 7 dependent call sites.
+
+Verifications:
+- V1: BUILD SUCCESSFUL after 2 fix iterations. First pass 15 errors
+  (App?/FrameLayout? in Snackbar ctor, Pair-inner-type mismatch,
+  onTaskDone override sig, List<Int?> vs List<Int>, smart-cast on
+  mIbBack, Habit(mHabit) non-null, 8 cross-file errors in
+  DateTimeDialogFragment from `mActivity.X.method()` chain). Second
+  pass: getOffsetForHorizontal Int→Float, List<Int?> return type.
+  Final: APK 10.4 MB, **0 Kotlin warnings** after stripping
+  `open` (9 places) + adding OVERRIDE_DEPRECATION to 10 fragment
+  files + renaming `holder`→`viewHolder` in
+  ThingsListWidgetConfiguration.
+- V2: grep audit clean — N1, E1; all remaining `==` are Long
+  primitive (`thing.id`, `createTime`/`updateTime`), Int primitive
+  (`mType == CREATE/UPDATE`, `state == Thing.FINISHED`, etc.), or
+  compile-time constants.
+- V3: cold-start renders 27 things identically to baseline; FAB
+  tap opens DetailActivity in CREATE mode with random yellow
+  accent, title/content edit fields, attachment/checklist/colour-
+  picker/overflow action bar icons, "Remind me after 15 minutes"
+  bottom-bar. Screenshots:
+  `memory/screenshots/group15/01_home.png`,
+  `02_detail_create.png`,
+  `03_home_after_create.png` (28 things — +1 new yellow card
+  "Group15_DetailActivity_test").
+- V4 full required: drove full new-thing-creation flow via the
+  new poll-then-tap pattern (`.claude/rules/adb.md`):
+  cold-start → poll ThingsActivity ready → dump for fab_create
+  bounds → tap → poll DetailActivity ready (5 iterations × 200ms
+  = 1s) → input text "Group15_DetailActivity_test" → dump for
+  ib_back bounds → tap → poll ThingsActivity (returns immediately
+  on the OS dispatch) → wake screen → screencap.
+  End-to-end logcat: zero FATAL / AndroidRuntime /
+  NullPointerException(ywwynm) / VerifyError. Save-on-back path
+  exercised: the new note persisted to the ThingManager and is
+  visible at position 0 of the underway grid with the correct
+  yellow accent (random color generation).
+
+## 2026-05-20 — Kotlin migration Group 14 (small activities/)
+
+Translated 11 Activity classes (~3294 LoC, plan estimated 1864 —
+gap from post-plan feature additions):
+EverythingDoneBaseActivity (base), ShortcutActivity,
+DelayReminderActivity, AuthenticationActivity, HelpActivity,
+StartDoingActivity, AboutActivity, ImageViewerActivity,
+NoticeableNotificationActivity, DoingActivity, StatisticActivity.
+
+The three "monster" activities (DetailActivity 3883 LoC,
+ThingsActivity 2834 LoC, SettingsActivity 1771 LoC) are Groups
+15/16/17 and remain Java.
+
+Strategy: Option 1 (mechanical `m`-prefixed `private var` + explicit
+`fun setX()/getX()`) for view fields; Option 3 (property syntax) for
+Group 2/4 model getters at call sites; `EverythingDoneBaseActivity`
+abstract methods preserved as Kotlin `abstract fun`.
+
+Pattern split:
+- 9 → `open class : EverythingDoneBaseActivity()` (HelpActivity,
+  AboutActivity, ImageViewerActivity, NoticeableNotificationActivity,
+  DoingActivity, StatisticActivity)
+- 4 → `open class : AppCompatActivity()` (ShortcutActivity,
+  DelayReminderActivity, AuthenticationActivity, StartDoingActivity)
+- 1 → `abstract class : AppCompatActivity()` (the base)
+
+Special handling:
+
+- **EverythingDoneBaseActivity.doWithPermissionChecked
+  `vararg permissions: String?`**: Java's `String...` accepted nullable
+  elements de facto. Per N1, vararg ref param → `String?`. Internal
+  delegate `ActivityCompat.requestPermissions(this, permissions, ...)`
+  expects `Array<String>` non-null elements, so the spread inside the
+  method needs `@Suppress("UNCHECKED_CAST") permissions as Array<String>`.
+  This unblocks the cross-file spread call at
+  `BaseThingWidgetConfiguration.kt:145`
+  (`*PermissionUtil.getRequiredPermissionsForThings(mThings)!!`)
+  which returns `Array<String?>?`.
+- **`App.getThingAndPosition` returns `Pair<Thing, Int>?`** (Group 5
+  declared this — non-null inner types via androidx.core.util.Pair
+  whose generics are Java-untyped at runtime). Initial Kotlin drafts
+  in 5 of the 11 files declared `Pair<Thing?, Int?>` (per N1
+  default), all failed type-match. Fixed to `Pair<Thing, Int>`.
+  At runtime `pair.first` and `pair.second` can still be null (Java's
+  Pair fields are @Nullable in source — Group 5 left a latent
+  N1 violation in App.kt), so the existing `if (pair.first == null)`
+  null checks still work. `pair.second` access uses `?: -1` as the
+  safe fallback.
+- **DoingService.DoingBinder method-form access**: Group 10 translated
+  the binder's `getThing()` / `getTimeInMillis()` / `getLeftTime()` /
+  `isInStrictMode()` / `getPlayedTimes()` etc. as `open fun`, not
+  Kotlin properties. So callers from Kotlin need method-call syntax
+  (`mDoingBinder!!.getThing()`, `isInStrictMode()`). Initial draft
+  used property syntax — all failed. Bulk rewrite via `replace_all`
+  across DoingActivity. Same gotcha as Group 13's `ModeManager.
+  getCurrentMode()` / `ThingManager.getThings()`.
+- **`object : BaseThingsAdapter(this)` → `this@OuterClass`** (same
+  Group 12 fix surface): NoticeableNotificationActivity and
+  DoingActivity both construct anonymous BaseThingsAdapter subclasses
+  passing `this`. Kotlin's constructor-arg lookup adds the supertype's
+  Companion to implicit receivers, so bare `this` may resolve to
+  `BaseThingsAdapter.Companion` instead of the outer activity.
+- **`ThingDoingHelper.getStartDoingTypeTimes` returns
+  `Pair<List<Int>, List<Int>>`**: Group 6 used non-null inner types.
+  StartDoingActivity initial draft declared `Pair<List<Int?>, ...>`
+  per N1 default — type-match failed.
+- **`ThingDAO.getThingsForDisplay` returns immutable `List<Thing?>?`**:
+  ShortcutActivity sorts via `Collections.sort(things, ...)` which
+  needs MutableList. Wrapped with `ArrayList(...)` constructor (same
+  pattern as Group 13's ThingDoingDialogFragment fix).
+- **Deprecated APIs surfacing**:
+  - `android.os.AsyncTask` (StatisticActivity has 5 inner AsyncTask
+    subclasses) — file declares
+    `@file:Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")`.
+  - `View.SYSTEM_UI_FLAG_*` + `setSystemUiVisibility` in
+    ImageViewerActivity — deprecated since API 30.
+  - `getFragmentManager()` / `overridePendingTransition()` /
+    `android.app.DialogFragment` references in
+    AuthenticationActivity / DelayReminderActivity / StartDoingActivity.
+- **`StatisticActivity.getStrsForReminderGoalRecord` Cursor-after-close
+  bug**: original Java has `int tCount = cursor.getCount();` AFTER
+  `cursor.close()`. Pre-existing Java bug (using a closed cursor);
+  per goal-A behavior snapshot, preserved verbatim in Kotlin.
+  Plan §1 forbids fixing pre-existing bugs during translation.
+
+Verifications:
+- V1: BUILD SUCCESSFUL after 1 fix iteration. First pass 25 errors:
+  6 in `Pair<Thing?, Int?>` signature mismatch, 8 in DoingBinder
+  method-vs-property, 2 in BaseThingsAdapter `this` → `this@Outer`,
+  1 in ShortcutActivity MutableList vs List, 2 in StartDoingActivity
+  `Pair<List<Int?>, ...>`, 1 cross-file in
+  BaseThingWidgetConfiguration vararg spread (fixed by changing
+  base activity vararg to String?), 5 in NoticeableNotificationActivity
+  `Thing(mThing)` non-null. Final: APK 10.4 MB, 0 Kotlin warnings.
+- V2: grep audit clean — N1, E1; remaining `==` are Long primitive
+  (`App.getDoingThingId() == id`, `thingId == mThing!!.id`) or Char
+  (`src[i] == key`).
+- V3: cold-start renders 27 things identically to baseline. Drawer
+  opens correctly via hamburger tap, showing all 9 menu items.
+  Screenshots: `memory/screenshots/group14/01_home_underway.png` +
+  `02_drawer.png`.
+- V4 required: logcat clean on cold-start + drawer-open path — zero
+  FATAL / AndroidRuntime / VerifyError / ClassNotFoundException /
+  NoSuchMethodError / NoClassDefFound across any
+  `com.ywwynm.everythingdone.activities` class. Cold-start dex-link
+  verification covers ALL 11 translated classes — even
+  ImageViewerActivity / DoingActivity / StatisticActivity / etc.
+  that the user doesn't trigger on cold-start get their Kotlin
+  metadata validated by Android's verifier at first dex load.
+- V4 user-facing (added after methodology fix — see updated
+  `.claude/rules/adb.md`): drove drawer → Help → back → drawer →
+  About via the new poll-then-tap pattern. HelpActivity renders
+  11 help items with yellow Toolbar; AboutActivity renders full
+  layout (app logo, "ywwynm's EverythingDone" title, version 2.0.0,
+  OPEN SOURCE LICENSES link, pink support FAB). Zero crash markers
+  across both activity transitions. Screenshots:
+  `memory/screenshots/group14/03_help.png` + `04_about.png`.
+  The earlier failed taps in this session (drawer-Help tap missed
+  because of stale 1.43 scale-factor + auto-closing drawer) are the
+  reason the rules were updated — the new pattern lands every tap on
+  the first try by polling uiautomator dump for bounds rather than
+  estimating from a scaled screenshot.
+
+## 2026-05-20 — Kotlin migration Group 13 (fragments/)
+
+Translated 18 DialogFragment / Fragment classes (~4636 LoC):
+BaseDialogFragment, LoadingDialogFragment, TwoOptionsDialogFragment,
+AttachmentInfoDialogFragment, HelpDetailFragment,
+HabitDetailDialogFragment, HabitRecordDialogFragment,
+LongTextDialogFragment, GradientOrientationDialogFragment,
+AddAttachmentDialogFragment, AlertDialogFragment,
+ThreeActionsAlertDialogFragment, ThingDoingDialogFragment,
+PatternLockDialogFragment, AudioRecordDialogFragment,
+ChooserDialogFragment, LicenseDialogFragment,
+DateTimeDialogFragment (1435 LoC monster).
+
+Strategy: Option 1 (mechanical `m`-prefixed `private var` +
+explicit `fun setX()/getX()`) for view fields; Option 3 (property
+syntax) for Group 2 / Group 4 model getter call sites.
+
+Pattern split:
+- All 17 dialog fragments → `open class : BaseDialogFragment()`
+- BaseDialogFragment → `abstract class : DialogFragment()` with
+  `protected open fun getLayoutResource(): Int` and a generic
+  `f<T : View?>(id): T` view-binding helper
+- HelpDetailFragment → `open class : Fragment()` (the only
+  non-dialog member of the group; uses androidx.fragment.app)
+
+Special handling:
+
+- **android.app.DialogFragment is deprecated** (since API 28).
+  Every fragment that extends it carries
+  `@file:Suppress("DEPRECATION")` per plan §3.11 — the same
+  upstream-deprecated-API rule used in Groups 3/6/8/11. The whole
+  inheritance tree (BaseDialogFragment and all 16 subclasses) is
+  tagged; HelpDetailFragment uses androidx.fragment.app.Fragment
+  and needs no suppression. The original Java code emitted a single
+  -Xlint summary; Kotlin emits one warning per call site so V1's
+  "0 warnings" bar requires the file-level suppression.
+- **f() generic view-binding helper**: Java's
+  `protected final <T extends View> T f(int id)` translated to
+  Kotlin `protected fun <T : View?> f(@IdRes id: Int): T` with
+  `T : View?` upper bound (matches BaseViewHolder.kt pattern from
+  Group 12). Callers can declare nullable or non-null T as needed.
+  Three subclasses use the 2-arg variant `f(view, id)` to bind
+  views from a specific sub-tree (DateTimeDialogFragment for tab
+  layouts, HabitDetailDialogFragment, etc.).
+- **ChooserDialogFragment field-decl order**: the Java original
+  declared `mAccentBackground` near the bottom of the file (around
+  line 218) but used it from `initUI()` at the top. Kotlin
+  permits this because `var X: T? = null` has no initializer that
+  references other instance state; the default-init runs in
+  primary-constructor order which doesn't affect correctness.
+  Reordered in Kotlin to group all private fields at top for
+  readability.
+- **DateTimeDialogFragment property-initialized listeners**:
+  `mPageChangeListener` and `mTvTimeAsBtClickListener` are
+  declared as `private val ...: T = object : ... { ... }`. The
+  anonymous body references outer fields (`mTabInitiated`,
+  `mVpDateTime`, `mTvTimeAsBtAfter`, `mDtpAfter`, `mDtpRec`).
+  Kotlin's `object :` expression captures the outer `this`
+  automatically — no explicit `this@DateTimeDialogFragment`
+  needed since these are bare names, not `Outer.this.X` syntax.
+- **ReminderHabitParams Java getter calls vs Kotlin properties**:
+  Group 4's translation made `reminderInMillis`,
+  `reminderAfterTime`, `habitType`, `habitDetail` Kotlin
+  properties (Option 3). Initial Kotlin draft used the Java
+  method form `rhParams.getHabitDetail()`, `rhParams.
+  setHabitType(X)` etc. — all broke at compile. Per plan §3.9
+  last row, Kotlin callers of a translated POJO must use property
+  syntax (`rhParams.habitDetail`, `rhParams.habitType = X`).
+  10 call sites in DateTimeDialogFragment fixed.
+- **InputLayout / DateTimePicker constructors are non-null**:
+  Group 11 translated these with non-null primary-constructor
+  params (`context: Context`, `view: View`). Kotlin call sites in
+  DateTimeDialogFragment / ThingDoingDialogFragment passing
+  `mActivity` (`DetailActivity?`) and `mContentView` (`View?`)
+  fail without `!!`. Mechanical fix at each ctor invocation.
+- **`f(tab2, R.id.X) as TextView?` → `f<TextView>(tab2, R.id.X)!!`**:
+  the cast form `as TextView?` produces a nullable; passing it to
+  `InputLayout(context, textView: TextView, editText: EditText, ...)`
+  (non-null params) needs `!!` anyway. Cleaner to assert at the
+  binding site: explicit generic + `!!` returns non-null straight
+  from the helper. 6 sites in DateTimeDialogFragment.findViewsRec.
+- **Int + String concatenation**: Java's `AttachmentHelper.IMAGE +
+  file.absolutePath` (Int + String) doesn't compile in Kotlin —
+  `Int` has no `plus(String)` overload. Mechanical fix:
+  `AttachmentHelper.IMAGE.toString() + file.absolutePath`. Per
+  plan §3.9 String.valueOf mapping. 3 sites
+  (AddAttachmentDialogFragment x2, AudioRecordDialogFragment x1).
+- **`putExtra(EXTRA_MIME_TYPES, arrayOf("...", "..."))`**: works
+  in Kotlin without explicit `arrayOf<String>(...)` — the
+  resolution picks the `String[]` overload of `Intent.putExtra`
+  directly. No fix needed (initial concern unfounded).
+- **PatternLockView.OnPatternListener overrides**: Group 11
+  translated this abstract class with non-null params
+  `pattern: List<Cell>, simplePattern: String`. Initial Kotlin
+  draft used the conservative `List<Cell?>?, String?` (per N1
+  default), but Kotlin override matching requires exact signature.
+  Fixed all 6 overrides (3 listener instances × 2 methods) in
+  PatternLockDialogFragment.
+- **ThingDoingHelper.getStartDoingTimeItems returns List, not
+  MutableList**: Group 6 translation returns `List<String?>?`
+  (immutable). ThingDoingDialogFragment needs to call
+  `items.add(0, ...)`, which requires MutableList. Wrapped with
+  `ArrayList(...)` constructor: `val items: MutableList<String?>
+  = ArrayList(ThingDoingHelper.getStartDoingTimeItems(...)!!)`.
+- **AttachmentHelper.kt:340 cross-file fix**: AttachmentHelper
+  calls `aidf.setItems(getAttachmentInfo(...))` where
+  getAttachmentInfo returns `List<Pair<String, String>?>?`
+  (non-null inner Strings). My initial
+  AttachmentInfoDialogFragment.setItems took
+  `List<Pair<String?, String?>?>?` (wider/nullable inner). Kotlin
+  List is invariant — these aren't subtype-compatible. Tightened
+  AttachmentInfoDialogFragment's signature to
+  `List<Pair<String, String>?>?` to match the upstream supplier.
+- **String?.equals(String) order**: `dayTimes[0].equals("28")`
+  where dayTimes[0] is `String?` — Kotlin allows this (extension
+  for nullable receivers), but the reversed form `"28".equals(
+  dayTimes[0])` is cleaner and matches the textual-mapping rule
+  (Java's `.equals` is null-safe in the same way). Used reversed
+  form for 1 site in DateTimeDialogFragment.updateUIRecYear.
+- **Bundle? arguments**: Java's `getArguments()` returns Bundle?,
+  Kotlin sees `arguments: Bundle?` property. Several
+  `arguments.getString(...)` style calls require `arguments!!`.
+- **action.getExtras() in DateTimeDialogFragment.
+  addActionForUndoRedo**: ThingAction.getExtras() returns
+  Bundle? per Group 2 model translation. Two call sites need
+  `!!` chain to call putBoolean/putInt.
+- **DateTimeUtil.getTimePeriodStr returns String?**: assigned to
+  `var period: String = ...` requires `!!`. 1 site.
+- **`mVisualizer!!` in AudioRecordDialogFragment**: `AudioRecorder.
+  link(VoiceVisualizer)` non-null param; mVisualizer is nullable
+  var with no smart-cast (mutable property). Mechanical `!!`.
+- **endSettingTimeRec restructure**: original Java had
+  `int day = 28` in catch block then continues to set detail. Kotlin
+  `val day: Int` declared in try-catch can't escape with default;
+  refactored to extract `applyConfirm(type, detail)` helper called
+  from both try-success and catch paths so flow stays linear.
+
+Verifications:
+- V1: BUILD SUCCESSFUL after 1 fix iteration. First pass 53
+  errors: 8 in DateTimeDialogFragment InputLayout/DateTimePicker
+  ctor null-safety, 10 in ReminderHabitParams property-syntax,
+  6 in PatternLockListener override signatures, 3 in Int+String
+  concat, 8 in mTvErrorAfter / setAnchor null-safety, 6 in
+  TextView/EditText nullable cast, 4 in dayTimes[i] null
+  unwrap, 4 in arguments / Bundle null deref, 2 in
+  ThingDoingHelper.getStartDoingTimeItems immutable list,
+  1 in AttachmentInfoDialogFragment Pair generic type, 1 in
+  AudioRecorder.link non-null. Final: APK assembled 10.4 MB,
+  0 Kotlin warnings.
+- V2: grep audit clean — N1, E1; all remaining `==` are Int /
+  Char primitive (`mState == PREPARED`, `time <= 1 && str[length
+  - 1] == 's'`, etc.) or compile-time constants
+  (`DetailActivity.CREATE`).
+- V3: cold-start renders 27 things identically to baseline
+  (group12 + 1 test note). Drawer, FAB, and staggered grid all
+  intact. Screenshot:
+  `memory/screenshots/group13/01_home_underway.png`.
+- V4 sampled: logcat clean on cold-start — zero FATAL /
+  AndroidRuntime / VerifyError / ClassNotFoundException /
+  NoSuchMethodError / NoClassDefFound / SQLiteException /
+  RuntimeException across any `com.ywwynm.everythingdone.
+  fragments` class. Note: cold-start does not instantiate any
+  DialogFragment (they show only on user action); dex link +
+  class-load validation is what V4 sampled actually covers here.
+  Full V4 (interactive dialog open) is deferred to user testing
+  per group 13 table (sampled, not required).
+
+## 2026-05-20 — Kotlin migration Group 12 (adapters/)
+
+Translated 16 adapter classes (~3848 LoC):
+BaseViewHolder, SingleChoiceAdapter, MultiChoiceAdapter,
+ImageViewerPagerAdapter, DateTimePagerAdapter, StatisticAdapter,
+HabitRecordAdapter, ThingsAdapterWrapper, RadioChooserAdapter,
+ImageAttachmentAdapter, AudioAttachmentAdapter, TimeOfDayRecAdapter,
+RecurrencePickerAdapter, ThingsAdapter, BaseThingsAdapter,
+CheckListAdapter.
+
+Strategy per plan §7.3: Option 1 (mechanical `m`-prefixed `private
+var` + explicit `fun getX()/setX()`) for ViewHolder fields. Option 3
+for Group 2 model getter call sites (thing.id / type / state /
+content / attachment / location; reminder.* properties;
+habit.record).
+
+Pattern split:
+- 4 plain `open class` (StatisticAdapter, HabitRecordAdapter,
+  ThingsAdapterWrapper, ImageAttachmentAdapter,
+  AudioAttachmentAdapter, ImageViewerPagerAdapter,
+  DateTimePagerAdapter, RadioChooserAdapter, TimeOfDayRecAdapter,
+  RecurrencePickerAdapter, CheckListAdapter)
+- 2 `abstract class` (SingleChoiceAdapter, MultiChoiceAdapter,
+  BaseThingsAdapter)
+- 1 concrete subclass (ThingsAdapter extends BaseThingsAdapter)
+- 1 `open class BaseViewHolder` (base ViewHolder)
+
+Special handling:
+
+- **BaseThingsAdapter / CheckListAdapter `static {}` blocks**:
+  translated to `companion object { init { … } }` per §3.3 S-4.
+  Each block reads `App.getApp()!!` (App.getApp returns App? per
+  Group 5 translation; not-null asserted since `<clinit>` happens
+  after App.onCreate sets sApp).
+- **BaseThingsAdapter.BaseThingViewHolder fields**: declared as
+  `@JvmField val ...: T? = f(...)` per plan §7.3 Option 1 to keep
+  Java field-syntax access for downstream callers (no `m`-prefix
+  here since all Java fields were unprefixed public — direct port
+  preserves `holder.cv`, `holder.tvTitle` etc.).
+- **Inner class restrictions**: TimeOfDayRecAdapter.TimeTextWatcher
+  Java had `static final int HOUR, MINUTE` constants. Kotlin
+  prohibits companion objects inside `inner class`. Hoisted HOUR /
+  MINUTE to outer TimeOfDayRecAdapter's companion as
+  `private const val` per the same pattern as Group 11's ColorPicker
+  fix (ALL_COLOR/NORMAL/DIVIDER hoisted out of ColorPickerAdapter).
+- **`this`-as-Context vs `this`-as-Companion** in `object :
+  SuperClass(this, …)` form (Group 8's existing
+  ThingsListWidgetConfiguration / BaseThingWidgetConfiguration):
+  when extending a Kotlin class with a companion, the constructor
+  arg list adds the supertype's Companion to implicit `this`
+  receivers, so bare `this` resolved to `RadioChooserAdapter.
+  Companion` / `BaseThingsAdapter.Companion` and failed
+  type-check. Disambiguated to `this@OuterActivity`. Newly
+  documented gotcha — pre-Group 12, RadioChooserAdapter and
+  BaseThingsAdapter were still Java (no Kotlin Companion) so the
+  bare `this` resolved unambiguously.
+- **BaseThingViewHolder field nullability propagation**:
+  Group 8's BaseThingWidgetConfiguration accessed `holder.cv.
+  setRadius(0f)` / `holder.ivStickyOngoing.setImageAlpha(alpha)` /
+  `cv.setOnClickListener` / `mInflater.inflate(…)` directly.
+  Once these became Kotlin `T?` (per plan §7.3 Option 1), each
+  access required `!!`. Five call sites in Group 8's file added
+  `!!`.
+- **InterceptTouchCardView.LayoutParams**: Java's
+  `(InterceptTouchCardView.LayoutParams) holder.flDoing.
+  getLayoutParams()` accessed the inherited LayoutParams type
+  through the subclass name (allowed in Java but not in Kotlin —
+  Kotlin requires referencing the inner class through its actual
+  declaring class). Replaced with `FrameLayout.LayoutParams`
+  (CardView extends FrameLayout, so its LayoutParams is
+  FrameLayout.LayoutParams).
+- **`MutableList<T>.remove(int)` vs `.removeAt(int)`**: TimeOfDay-
+  RecAdapter / CheckListAdapter — Java's `List<E>.remove(int)`
+  positional overload becomes Kotlin's `.removeAt(int)`. Calling
+  `.remove(int)` on a `MutableList<Int?>` would call the
+  element-removal overload (removing the value, not the
+  position). Audited all `.remove(<int>)` call sites and converted
+  positional ones.
+- **`MutableList<String?>?` vs `List<String?>?`**: CheckListHelper.
+  toCheckListItems returns MutableList; my initial BaseThingsAdapter
+  `val items: List<String?>? = ...` declaration didn't match
+  CheckListAdapter's constructor `MutableList<String?>?` param.
+  Tightened the local to MutableList.
+- **ModeManager.getCurrentMode / ThingManager.getThings stay as
+  fun**: Group 7's translations kept these as `open fun` (not
+  property) because `currentMode` is a private backing field
+  with side-effect setters elsewhere. Call sites in ThingsAdapter
+  use method form `mModeManager!!.getCurrentMode()` / `mThing-
+  Manager!!.getThings()` — initial draft used property syntax
+  (caught at V1).
+- **ThingManager.getInstance**: returns `ThingManager?` per Group
+  7. Call sites in ThingsAdapter need `!!` chain:
+  `ThingManager.getInstance(mApp)!!.update(...)`.
+- **CheckListAdapter inner classes**: TextViewHolder (Java `static`)
+  → Kotlin `private class` (nested, not inner). EditTextHolder
+  (Java implicit-inner) → Kotlin `open inner class`. Its
+  TextWatcher with self-field `mBefore` → kept as `object :
+  TextWatcher` per §3.5 guard 2.
+- **CheckListAdapter `removeItem(int posIn, ...)`**: Java mutated
+  `pos` parameter. Kotlin params are `val` ⇒ introduced local
+  `var pos = posIn` and rewrote subsequent uses.
+- **CheckListAdapter `holder.tv.text = "..."` / `holder.tv.
+  setHintTextColor(...)`**: Group 8 already established that
+  TextView.text uses property syntax in Kotlin (Java auto-
+  generated getter). Kept method-form for `setText` on EditText
+  to disambiguate from `text` property (which exists as
+  Editable; setting String would conflict).
+- **Bitwise ops in Kotlin**: `flag & ~Paint.STRIKE_THRU_TEXT_FLAG`
+  → `flag and Paint.STRIKE_THRU_TEXT_FLAG.inv()`; `flag |
+  Paint.STRIKE_THRU_TEXT_FLAG` → `flag or Paint.STRIKE_THRU_TEXT_
+  FLAG`. Per §3.9 mapping.
+- **`tintRowIcon(iv: ImageView?)` early-return**: ImageViewCompat.
+  setImageTintList's first param is `@NonNull ImageView` so
+  passing a nullable `iv` fails. Pattern from BaseThingsAdapter's
+  `tintCardIcon` reused (`if (iv == null) return` early-out, then
+  smart-cast handles the rest).
+- **Anonymous Runnables / Listeners**: SAM lambda where the body
+  only captures outer state without self-deregistration / self-
+  field / explicit OuterType.this; `object :` form for: ThingsAdapter
+  `holder.cv.post(this)` recursion (guard 1 — self-registration),
+  ThingsAdapter `Animation.AnimationListener` (3-method
+  interface), BaseThingsAdapter Glide `RequestListener<Drawable>`
+  (2 methods), CheckListAdapter `TextWatcher` (guard 2 — self-
+  field `mBefore`), BaseThingsAdapter `Runnable` posting layout
+  fixup (kept for symmetry though could be SAM).
+- **RecurrencePickerAdapter `setRippleColor` / `toGdOrientation`
+  helpers**: were Java `private static` methods. Translated to
+  `@JvmStatic private fun` inside the companion object.
+- **ImageViewerPagerAdapter `mTabs as MutableList<View?>?`**:
+  ctor receives `List<View?>?` per N1, but the body calls
+  `mTabs!!.removeAt(index)` requiring MutableList. Java's
+  `List.remove` was OK because at runtime the impl was ArrayList.
+  Cast at field-store to preserve textual-mapping.
+
+Verifications:
+- V1: BUILD SUCCESSFUL after one fix iteration. First pass had
+  19 errors: 4 in BaseThingsAdapter (items-MutableList, Layout-
+  Params resolution, App.getApp! nullity), 3 in CheckListAdapter
+  (tintRowIcon null safety, App.getApp! ×2), 3 in ThingsAdapter
+  (currentMode/things as property, getInstance! nullity), 3 in
+  TimeOfDayRecAdapter (Collections.sort on List<String?>,
+  companion-in-inner-class, str.split nullable receiver),
+  1 in ThingsListWidgetConfiguration (this-as-Companion),
+  5 in BaseThingWidgetConfiguration (this-as-Companion, 4×
+  nullable field access). Final: APK assembled, 0 Kotlin
+  warnings, 10.3 MB APK.
+- V2: grep audit clean — N1, E1; all remaining `==` are
+  Long primitive (`thing.id`), Int primitive (mType / position /
+  viewType / size / type / cursorPos / item), or compile-time
+  constants (View.* / ModeManager.* / Thing.* / ThingBackground.
+  Mode.* / Def.PickerType.*).
+- V3: cold-start renders 26 things identically to baseline —
+  same staggered-grid layout with `interesting`, `wow` (May 17,
+  5:46 reminded), `9999...` habit card (gradient + "3 times a
+  month" + "Next reminder: on May 31, 8:39 in the morning" +
+  "Last five times" + "Finished 0 time this month"), and the
+  full `000` / `888888` / `777` / `666` / `6` / `4` (May 17,
+  5:45 reminded) / `5` / `3` / `1` / `2` / `555` / `111`
+  palette in their expected positions.
+  Screenshot: `memory/screenshots/group12/01_home_underway.png`.
+- V4 sampled: logcat clean on cold-start — zero FATAL /
+  AndroidRuntime / VerifyError / ClassNotFoundException /
+  NoSuchMethodError / NoClassDefFound / SQLiteException /
+  RuntimeException from any `com.ywwynm.everythingdone.adapters`
+  class.
+
 ## 2026-05-20 — Kotlin migration Group 11 (views/)
 
 Translated 19 view classes (~4967 LoC):
