@@ -1,5 +1,57 @@
 # Decisions
 
+## 2026-05-21
+
+### Post-migration Kotlin cleanup: scope + risk boundaries (grilling session)
+After the 17-group Java→Kotlin migration completed, a cleanup phase
+targets the IDE inspection noise (warnings + suggestions) AS shows on
+`.kt` files, while keeping behaviour identical. Decisions, captured via
+a grilling session and written up in
+[KOTLIN_CLEANUP_PLAN.md](../docs/plans/KOTLIN_CLEANUP_PLAN.md):
+
+- **Target bar**: fix yellow warnings + *safe* grey suggestions. Skip
+  the migration plan's C-class / D-class items that risk behaviour
+  (`data class`, scope functions, behaviour-changing property syntax).
+- **Nullability boundary**: remove AS-flagged redundant `!!`, and narrow
+  *purely-local* `var x: T? = ...` (used in one function, provably never
+  null) to `T`. **Do NOT** touch declared nullability of fields /
+  params / cross-function values — the N1 audit trail and the crash
+  surface (see [followups.md](followups.md) ShiningBorder incident)
+  stay intact.
+- **Work-list source**: ground-truth from AS's own engine —
+  `E:\software\Android Studio\bin\inspect.bat` against
+  `.idea/inspectionProfiles/Project_Default.xml`, plus `gradlew lint`.
+  NOT `assembleDebug` (migration drove compiler warnings to 0 via
+  suppressions; IDE inspections are a different, larger set).
+- **Verification**: each commit must `:app:assembleDebug` with 0 new
+  warnings; one consolidated install + smoke-test + logcat (V3/V4) at
+  the end, not per-commit (screenshot frugality).
+- **Commit granularity**: one commit per **module** (mirror the 17
+  migration groups → ~17 commits), each applying all in-scope fixes to
+  that module's files. (Revised from per-category mid-session: too many
+  commits. Trade-off accepted: harder to bisect a regression to a
+  specific transform type, mitigated by behaviour-neutrality + final
+  smoke test.) Plus **one isolated commit** for
+  `RedundantNullableReturnType` (return-type narrowing — crosses the N1
+  boundary and ripples to callers; done last).
+- **RedundantNullableReturnType (77) opted IN** (revises the original
+  "don't touch return types" boundary): AS proves the function never
+  returns null, so narrowing `T?`→`T` is runtime-safe and is the only
+  real lever to reduce nullability noise (AS flags **zero** redundant
+  `!!` — the migration's `!!` are all genuinely needed given `T?`
+  declarations).
+- **Tier 6 — investigate & report, do NOT fix**:
+  `KotlinConstantConditions` (e.g. "cast always fails",
+  `Habit.kt` "total always zero"), `EmptyRange` (downTo? bugs),
+  `KotlinUnreachableCode`, `UnusedSymbol` (many false positives —
+  `App.kt` is manifest-instantiated). "Fixing" these would change
+  behaviour; surface as findings, preserve behaviour per goal-A.
+- **Out of scope (kept untouched)**: existing `@file:Suppress(...)`
+  (deprecation-API swaps are behaviour changes); Java-interop ceremony
+  (`@JvmStatic` / `@JvmField` / explicit `getX()`/`setX()`) — not AS
+  warnings, higher risk (Parcelable CREATOR, reflection, widgets);
+  header date stamps. Logged as follow-ups, not this pass.
+
 ## 2026-05-18
 
 ### Recurrence picker NORMAL cells: Material FAB → fake-FAB
