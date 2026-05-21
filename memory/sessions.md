@@ -1,8 +1,46 @@
 # Sessions
 
-## 2026-05-21 — Fixed RedundantNullableReturnType across ~80 sites
+## 2026-05-21 — Post-migration Kotlin cleanup (full session)
 
-Applied `RedundantNullableReturnType` fix: removed `?` from return types of functions/val properties guaranteed to never return null. 37 files edited covering all listed sites. Full `:app:assembleDebug` BUILD SUCCESSFUL with zero errors.
+Completed IDE inspection cleanup on the `kotlin` branch after the 17-group
+Java→Kotlin migration. ~30 commits total. Full plan in
+`docs/plans/KOTLIN_CLEANUP_PLAN.md`.
+
+### Approach
+- **Grilling session** established scope/risk boundaries (yellow warnings +
+  safe grey suggestions; no behavior-changing transforms)
+- **AS GUI** exported inspection inventory twice (`memory/inspections-gui/`,
+  `memory/inspections-gui-2/`); headless `inspect.bat` unusable on AGP 9 /
+  Compose
+- **Hybrid execution**: user batch-applied safe Tier-1 via AS "Apply fix to
+  all"; agent handled remaining ~230 structural/judgment items + Tier-2/3
+
+### Fixes applied (~1100+ edits across ~150 files)
+| Tier | What | Count |
+|---|---|---|
+| Tier-1 safe | Property access, cascade-if→when, string templates, join decl, redundant types/imports/qualifiers, elvis, safe-access, SAM ctor, put→[], visibility, range checks, isNullOrEmpty, enum entries, const, etc. | ~970 |
+| Tier-2 judgment | ObjectLiteralToLambda (34/36 after B-class/hot-path guard audit), ReplaceJavaStaticMethodWithKotlinAnalog (1 remaining), CanBePrimaryConstructorProperty (3) | ~38 |
+| Tier-3 boundary | RedundantNullableReturnType — return type T?→T across 25 files; 0 downstream compile errors | ~80 |
+| Bug fix | ThingsActivity.onActivityResult NPE (data!! → null guard) | 1 |
+| Suppressions | @file:Suppress("DEPRECATION") on 10 files (latent warnings surfaced by full recompile) | 10 |
+
+### What was NOT touched
+- Naming conventions (mXxx fields, f() helpers), BooleanLiteralArgument,
+  spelling/Grazie — intentional style choices
+- @JvmStatic/@JvmField, explicit getX()/setX() — Java interop, deferred
+- data class, scope functions, coroutines — D-class, behavior-changing
+- Android Lint (~700 items) — separate concern, mostly pre-existing
+- Existing @file:Suppress annotations — deprecation swaps are behavior changes
+
+### Tier-6 investigation (reported, not fixed)
+Two potential ClassCastExceptions in unsafe casts (DetailActivity:3354
+ViewHolder→EditTextHolder, ScreenshotHelper:115 params[0] as View) and
+four benign findings (empty ranges, constant conditions). See session
+transcript for details.
+
+### Verification
+- Every commit: `:app:assembleDebug` with 0 errors / 0 warnings
+- Final smoke test on device: user confirmed "问题不大"
 
 Files changed: App.kt, DoingActivity.kt, NoticeableNotificationActivity.kt, BaseThingsAdapter.kt, AppWidgetHelper.kt, BaseThingWidgetConfiguration.kt, CheckListHelper.kt (5 sites), NotificationReliabilityHelper.kt, ScreenshotHelper.kt, SendInfoHelper.kt, Habit.kt (6 sites), Reminder.kt, Thing.kt, ThingAction.kt, ThingBackground.kt (3 sites), PermissionUtil.kt (5 sites), DoingService.kt (2 sites), BitmapUtil.kt (2 sites), DeviceUtil.kt (2 sites), DisplayUtil.kt (2 sites), FileUtil.kt (4 sites), LocaleUtil.kt, StringUtil.kt (3 sites), SystemNotificationUtil.kt (4 sites), ThingsSorter.kt.
 
