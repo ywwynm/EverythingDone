@@ -10,7 +10,6 @@ import android.content.IntentFilter
 import android.content.ServiceConnection
 import androidx.core.content.ContextCompat
 import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.PixelFormat
 import android.os.Build
 import android.os.Handler

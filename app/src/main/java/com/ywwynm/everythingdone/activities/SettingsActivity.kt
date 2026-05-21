@@ -283,7 +283,7 @@ class SettingsActivity : EverythingDoneBaseActivity() {
         val ringtone: Ringtone = RingtoneManager.getRingtone(this, uri)!!
         ringtone.play()
         mPlayingRingtone = ringtone
-        f<View>(R.id.rl_settings_root)!!.postDelayed({
+        f<View>(R.id.rl_settings_root).postDelayed({
             if (ringtone.isPlaying) {
                 ringtone.stop()
             }
@@ -307,7 +307,7 @@ class SettingsActivity : EverythingDoneBaseActivity() {
             else R.string.settings_notifications_enabled_off
         )
 
-        val disabled: List<String?> = NotificationReliabilityHelper.getDisabledCriticalChannels(this)!!
+        val disabled: List<String?> = NotificationReliabilityHelper.getDisabledCriticalChannels(this)
         val total: Int = NotificationReliabilityHelper.CRITICAL_CHANNEL_IDS.size
         if (disabled.isEmpty()) {
             mTvChannelsStatus!!.text = getString(R.string.settings_channels_all_on, total)
@@ -369,7 +369,7 @@ class SettingsActivity : EverythingDoneBaseActivity() {
         }
 
         if (sDTItems == null) {
-            sDTItems = DailyTodoHelper.getDailyTodoItems(this)?.toMutableList()
+            sDTItems = DailyTodoHelper.getDailyTodoItems(this).toMutableList()
         }
     }
 
@@ -613,7 +613,7 @@ class SettingsActivity : EverythingDoneBaseActivity() {
         mASDTimesPicked[0] = ThingDoingHelper.getStartDoingTimeIndex(pickedStr[0], false)
         mASDTimesPicked[1] = ThingDoingHelper.getStartDoingTimeIndex(pickedStr[1], false)
 
-        val items: List<String?> = ThingDoingHelper.getStartDoingTimeItems(this)!!
+        val items: List<String?> = ThingDoingHelper.getStartDoingTimeItems(this)
         mTvASDTimes!![0]!!.text = items[mASDTimesPicked[0]]
         mTvASDTimes!![1]!!.text = items[mASDTimesPicked[1]]
 
@@ -708,15 +708,15 @@ class SettingsActivity : EverythingDoneBaseActivity() {
     }
 
     private fun setUiEvents() {
-        f<View>(R.id.ll_change_drawer_header_as_bt)!!.setOnClickListener {
+        f<View>(R.id.ll_change_drawer_header_as_bt).setOnClickListener {
             showChangeDrawerHeaderDialog()
         }
 
-        f<View>(R.id.ll_app_language_as_bt)!!.setOnClickListener {
+        f<View>(R.id.ll_app_language_as_bt).setOnClickListener {
             showChooseLanguageDialog()
         }
 
-        f<View>(R.id.rl_noticeable_notification_as_bt)!!.setOnClickListener {
+        f<View>(R.id.rl_noticeable_notification_as_bt).setOnClickListener {
             mCbNn!!.isChecked = !mCbNn!!.isChecked
         }
 
@@ -745,7 +745,7 @@ class SettingsActivity : EverythingDoneBaseActivity() {
 
         mLlChannelsStatus!!.setOnClickListener {
             val disabled: List<String?> = NotificationReliabilityHelper
-                .getDisabledCriticalChannels(this@SettingsActivity)!!
+                .getDisabledCriticalChannels(this@SettingsActivity)
             if (!disabled.isEmpty()) {
                 NotificationReliabilityHelper.openChannelSettings(
                     this@SettingsActivity, disabled[0]!!
@@ -777,19 +777,19 @@ class SettingsActivity : EverythingDoneBaseActivity() {
             }
         }
 
-        f<View>(R.id.rl_toggle_checklist_as_bt)!!.setOnClickListener {
+        f<View>(R.id.rl_toggle_checklist_as_bt).setOnClickListener {
             mCbToggleCli!!.isChecked = !mCbToggleCli!!.isChecked
         }
-        f<View>(R.id.rl_simple_finished_checklist_as_bt)!!.setOnClickListener {
+        f<View>(R.id.rl_simple_finished_checklist_as_bt).setOnClickListener {
             mCbSimpleFCli!!.isChecked = !mCbSimpleFCli!!.isChecked
         }
-        f<View>(R.id.rl_auto_link_as_bt)!!.setOnClickListener {
+        f<View>(R.id.rl_auto_link_as_bt).setOnClickListener {
             mCbAutoLink!!.isChecked = !mCbAutoLink!!.isChecked
         }
-        f<View>(R.id.rl_twice_back_as_bt)!!.setOnClickListener {
+        f<View>(R.id.rl_twice_back_as_bt).setOnClickListener {
             mCbTwiceBack!!.isChecked = !mCbTwiceBack!!.isChecked
         }
-        f<View>(R.id.rl_create_animation_style_as_bt)!!.setOnClickListener {
+        f<View>(R.id.rl_create_animation_style_as_bt).setOnClickListener {
             mCbCreateAnimationStyle!!.isChecked = !mCbCreateAnimationStyle!!.isChecked
         }
     }
@@ -819,7 +819,7 @@ class SettingsActivity : EverythingDoneBaseActivity() {
     }
 
     private fun setDataEvents() {
-        f<View>(R.id.rl_auto_save_edits_as_bt)!!.setOnClickListener {
+        f<View>(R.id.rl_auto_save_edits_as_bt).setOnClickListener {
             val cdf = ChooserDialogFragment()
             cdf.setAccentColor(mAccentColor)
             cdf.setTitle(getString(R.string.auto_save_edits_title))
@@ -836,23 +836,23 @@ class SettingsActivity : EverythingDoneBaseActivity() {
             }
             cdf.show(fragmentManager, ChooserDialogFragment.TAG)
         }
-        f<View>(R.id.iv_auto_save_edits_help_as_bt)!!.setOnClickListener {
+        f<View>(R.id.iv_auto_save_edits_help_as_bt).setOnClickListener {
             createAlertDialog(
                 false, R.string.auto_save_edits_title, R.string.auto_save_edits_help_info,
                 R.string.act_get_it
             ).show(fragmentManager, AlertDialogFragment.TAG)
         }
 
-        f<View>(R.id.tv_backup_as_bt)!!.setOnClickListener {
+        f<View>(R.id.tv_backup_as_bt).setOnClickListener {
             showBackupDialog()
         }
-        f<View>(R.id.ll_restore_as_bt)!!.setOnClickListener {
+        f<View>(R.id.ll_restore_as_bt).setOnClickListener {
             showRestoreDialog()
         }
     }
 
     private fun setPrivacyEvents() {
-        f<View>(R.id.ll_set_password_as_bt)!!.setOnClickListener {
+        f<View>(R.id.ll_set_password_as_bt).setOnClickListener {
             val passwordBefore: String? = mPreferences!!.getString(Def.Meta.KEY_PRIVATE_PASSWORD, null)
             if (passwordBefore == null) {
                 beginSetPassword()
@@ -914,7 +914,7 @@ class SettingsActivity : EverythingDoneBaseActivity() {
     }
 
     private fun setStartDoingEvents() {
-        f<View>(R.id.ll_auto_start_doing_as_bt)!!.setOnClickListener {
+        f<View>(R.id.ll_auto_start_doing_as_bt).setOnClickListener {
             showAutoStartDoingDialog()
         }
 
@@ -925,10 +925,10 @@ class SettingsActivity : EverythingDoneBaseActivity() {
             }
         }
 
-        f<View>(R.id.rl_auto_strict_mode_as_bt)!!.setOnClickListener {
+        f<View>(R.id.rl_auto_strict_mode_as_bt).setOnClickListener {
             showAutoStrictModeDialog()
         }
-        f<View>(R.id.iv_auto_strict_mode_help_as_bt)!!.setOnClickListener {
+        f<View>(R.id.iv_auto_strict_mode_help_as_bt).setOnClickListener {
             val adf: AlertDialogFragment = createAlertDialog(
                 false, R.string.doing_alert_first_strict_mode_title,
                 R.string.auto_strict_mode_help_content, R.string.act_get_it
@@ -945,12 +945,12 @@ class SettingsActivity : EverythingDoneBaseActivity() {
             R.string.auto_start_doing_time_reminder_title
         else R.string.auto_start_doing_time_habit_title
         cdf.setTitle(getString(titleRes))
-        cdf.setItems(ThingDoingHelper.getStartDoingTimeItems(this)!!.toMutableList())
+        cdf.setItems(ThingDoingHelper.getStartDoingTimeItems(this).toMutableList())
         cdf.setInitialIndex(mASDTimesPicked[index])
         cdf.setConfirmListener {
             val picked = cdf.getPickedIndex()
             mASDTimesPicked[index] = picked
-            val items: List<String?> = ThingDoingHelper.getStartDoingTimeItems(applicationContext)!!
+            val items: List<String?> = ThingDoingHelper.getStartDoingTimeItems(applicationContext)
             mTvASDTimes!![index]!!.text = items[picked]
         }
         cdf.show(fragmentManager, ChooserDialogFragment.TAG)
@@ -993,20 +993,20 @@ class SettingsActivity : EverythingDoneBaseActivity() {
     private fun setAdvancedEvents() {
         setQuickCreateEvents()
 
-        f<View>(R.id.rl_close_notification_later_as_bt)!!.setOnClickListener {
+        f<View>(R.id.rl_close_notification_later_as_bt).setOnClickListener {
             mCbCloseNotificationLater!!.isChecked = !mCbCloseNotificationLater!!.isChecked
         }
-        f<View>(R.id.rl_ongoing_lockscreen_as_bt)!!.setOnClickListener {
+        f<View>(R.id.rl_ongoing_lockscreen_as_bt).setOnClickListener {
             val ongoingLockscreen: Boolean = !mCbOngoingLockscreen!!.isChecked
             mCbOngoingLockscreen!!.isChecked = ongoingLockscreen
             FrequentSettings.put(Def.Meta.KEY_ONGOING_LOCKSCREEN, ongoingLockscreen)
             SystemNotificationUtil.tryToCreateThingOngoingNotification(App.getApp())
         }
 
-        f<View>(R.id.ll_daily_todo_as_bt)!!.setOnClickListener {
+        f<View>(R.id.ll_daily_todo_as_bt).setOnClickListener {
             showDailyTodoFragment()
         }
-        f<View>(R.id.iv_daily_todo_help_as_bt)!!.setOnClickListener {
+        f<View>(R.id.iv_daily_todo_help_as_bt).setOnClickListener {
             val adf: AlertDialogFragment = createAlertDialog(
                 false, R.string.create_daily_todo_automatically,
                 R.string.create_daily_todo_help_info, R.string.act_get_it
@@ -1014,13 +1014,13 @@ class SettingsActivity : EverythingDoneBaseActivity() {
             adf.show(fragmentManager, AlertDialogFragment.TAG)
         }
 
-        f<View>(R.id.ll_advanced_auto_notify_as_bt)!!.setOnClickListener {
+        f<View>(R.id.ll_advanced_auto_notify_as_bt).setOnClickListener {
             if (mCdfAN == null) {
                 initAutoNotifyFragment()
             }
             mCdfAN!!.show(fragmentManager, ChooserDialogFragment.TAG)
         }
-        f<View>(R.id.iv_auto_notify_help_as_bt)!!.setOnClickListener {
+        f<View>(R.id.iv_auto_notify_help_as_bt).setOnClickListener {
             val adf: AlertDialogFragment = createAlertDialog(
                 false, R.string.auto_notify, R.string.auto_notify_help_info, R.string.act_get_it
             )
@@ -1033,7 +1033,7 @@ class SettingsActivity : EverythingDoneBaseActivity() {
         cdf.setAccentColor(mAccentColor)
         cdf.setShouldShowMore(false)
         cdf.setTitle(getString(R.string.auto_notify_set_time))
-        cdf.setItems(sDTItems as MutableList<String?>?)
+        cdf.setItems(sDTItems)
         cdf.setInitialIndex(mDTPicked)
         cdf.setConfirmListener {
             mDTPicked = cdf.getPickedIndex()
@@ -1043,7 +1043,7 @@ class SettingsActivity : EverythingDoneBaseActivity() {
     }
 
     private fun setQuickCreateEvents() {
-        f<View>(R.id.rl_quick_create_as_bt)!!.setOnClickListener {
+        f<View>(R.id.rl_quick_create_as_bt).setOnClickListener {
             mCbQuickCreate!!.toggle()
         }
 
@@ -1254,7 +1254,7 @@ class SettingsActivity : EverythingDoneBaseActivity() {
         val cdf: ChooserDialogFragment = mCdfsRingtone!![index]!!
         cdf.setAccentColor(mAccentColor)
         cdf.setTitle(getString(R.string.chooser_ringtone))
-        cdf.setItems(sRingtoneTitleList as MutableList<String?>?)
+        cdf.setItems(sRingtoneTitleList)
         cdf.setInitialIndex(sRingtoneUriList!!.indexOf(mChosenRingtoneUris!![index]))
         cdf.setShouldOverScroll(true)
         cdf.setConfirmListener {
@@ -1315,7 +1315,7 @@ class SettingsActivity : EverythingDoneBaseActivity() {
         mCdfAN!!.setAccentColor(mAccentColor)
         mCdfAN!!.setShouldShowMore(false)
         mCdfAN!!.setTitle(getString(R.string.auto_notify_set_time))
-        mCdfAN!!.setItems(sANItems as MutableList<String?>?)
+        mCdfAN!!.setItems(sANItems)
         mCdfAN!!.setInitialIndex(mANPicked)
         mCdfAN!!.setConfirmListener {
             mANPicked = mCdfAN!!.getPickedIndex()

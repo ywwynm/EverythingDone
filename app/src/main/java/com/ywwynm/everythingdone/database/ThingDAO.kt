@@ -515,7 +515,7 @@ open class ThingDAO private constructor(context: Context?) {
     }
 
     private fun deleteNotifyEmpty(@Thing.Type type: Int, @Thing.State state: Int, handleCurrentLimit: Boolean) {
-        val limits: IntArray = Thing.getLimits(type, state)!!
+        val limits: IntArray = Thing.getLimits(type, state)
         val currentLimit: Int = mLimit
         val thingsCounts: ThingsCounts = ThingsCounts.getInstance(mContext)!!
         if (handleCurrentLimit) {
@@ -546,7 +546,7 @@ open class ThingDAO private constructor(context: Context?) {
     }
 
     private fun createNotifyEmpty(@Thing.Type type: Int, @Thing.State state: Int, handleCurrentLimit: Boolean) {
-        val limits: IntArray = Thing.getLimits(type, state)!!
+        val limits: IntArray = Thing.getLimits(type, state)
         val currentLimit: Int = mLimit
         val thingsCounts: ThingsCounts = ThingsCounts.getInstance(mContext)!!
         var cursor: Cursor
