@@ -79,8 +79,8 @@ open class GradientOrientationDialogFragment : BaseDialogFragment() {
 
     private fun bind(cell: View, orientation: ThingBackground.Orientation) {
         val root: FrameLayout = cell as FrameLayout  // cell is the FrameLayout itself
-        val bg: View = cell.findViewById<View>(R.id.v_color_cell_bg)
-        val check: ImageView = cell.findViewById<ImageView>(R.id.iv_color_cell_check)
+        val bg: View = cell.findViewById(R.id.v_color_cell_bg)
+        val check: ImageView = cell.findViewById(R.id.iv_color_cell_check)
 
         root.clipToOutline = true
         root.outlineProvider = object : ViewOutlineProvider() {

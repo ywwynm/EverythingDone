@@ -186,7 +186,7 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
         setEvents()
 
         val args: Bundle = arguments!!
-        mThing = args.getParcelable<Thing>(Def.Communication.KEY_THING)
+        mThing = args.getParcelable(Def.Communication.KEY_THING)
         val limit = args.getInt(Def.Communication.KEY_LIMIT)
         if (mActivity!!.rhParams.habitDetail != null ||
             limit == Def.LimitForGettingThings.HABIT_UNDERWAY
@@ -260,14 +260,11 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
                     val habit: Habit = HabitDAO.getInstance(mActivity)!!.getHabitById(mThing!!.id)!!
                     type = habit.type
                 }
-                if (type == Calendar.DATE) {
-                    updateUIRecDay()
-                } else if (type == Calendar.WEEK_OF_YEAR) {
-                    updateUIRecWeek()
-                } else if (type == Calendar.MONTH) {
-                    updateUIRecMonth()
-                } else if (type == Calendar.YEAR) {
-                    updateUIRecYear()
+                when (type) {
+                    Calendar.DATE -> updateUIRecDay()
+                    Calendar.WEEK_OF_YEAR -> updateUIRecWeek()
+                    Calendar.MONTH -> updateUIRecMonth()
+                    Calendar.YEAR -> updateUIRecYear()
                 }
             } else {
                 updateUIRecDay()
@@ -857,14 +854,11 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
 
             mTvSummaryRec!!.text = ""
 
-            if (pickedIndex == 0) {
-                updateUIRecDay()
-            } else if (pickedIndex == 1) {
-                updateUIRecWeek()
-            } else if (pickedIndex == 2) {
-                updateUIRecMonth()
-            } else {
-                updateUIRecYear()
+            when (pickedIndex) {
+                0 -> updateUIRecDay()
+                1 -> updateUIRecWeek()
+                2 -> updateUIRecMonth()
+                else -> updateUIRecYear()
             }
         }
         mIvPickAllAsBtRec!!.setOnClickListener {
@@ -886,33 +880,37 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
     }
 
     private fun pickOrUnpickAll(index: Int) {
-        if (index == 1) {
-            if (mAdapterDayOfWeek!!.getPickedCount() == mAdapterDayOfWeek!!.itemCount) {
-                mAdapterDayOfWeek!!.unpickAll()
-            } else {
-                mAdapterDayOfWeek!!.pickAll()
+        when (index) {
+            1 -> {
+                if (mAdapterDayOfWeek!!.getPickedCount() == mAdapterDayOfWeek!!.itemCount) {
+                    mAdapterDayOfWeek!!.unpickAll()
+                } else {
+                    mAdapterDayOfWeek!!.pickAll()
+                }
+                mAdapterDayOfWeek!!.notifyDataSetChanged()
+                mTvTimesLRec!!.text = "" + mAdapterDayOfWeek!!.getPickedCount()
+                updatePickAllButton(mAdapterDayOfWeek!!)
             }
-            mAdapterDayOfWeek!!.notifyDataSetChanged()
-            mTvTimesLRec!!.text = "" + mAdapterDayOfWeek!!.getPickedCount()
-            updatePickAllButton(mAdapterDayOfWeek!!)
-        } else if (index == 2) {
-            if (mAdapterDayOfMonth!!.getPickedCount() == mAdapterDayOfMonth!!.itemCount) {
-                mAdapterDayOfMonth!!.unpickAll()
-            } else {
-                mAdapterDayOfMonth!!.pickAll()
+            2 -> {
+                if (mAdapterDayOfMonth!!.getPickedCount() == mAdapterDayOfMonth!!.itemCount) {
+                    mAdapterDayOfMonth!!.unpickAll()
+                } else {
+                    mAdapterDayOfMonth!!.pickAll()
+                }
+                mAdapterDayOfMonth!!.notifyDataSetChanged()
+                mTvTimesLRec!!.text = "" + mAdapterDayOfMonth!!.getPickedCount()
+                updatePickAllButton(mAdapterDayOfMonth!!)
             }
-            mAdapterDayOfMonth!!.notifyDataSetChanged()
-            mTvTimesLRec!!.text = "" + mAdapterDayOfMonth!!.getPickedCount()
-            updatePickAllButton(mAdapterDayOfMonth!!)
-        } else if (index == 3) {
-            if (mAdapterMonthOfYear!!.getPickedCount() == mAdapterMonthOfYear!!.itemCount) {
-                mAdapterMonthOfYear!!.unpickAll()
-            } else {
-                mAdapterMonthOfYear!!.pickAll()
+            3 -> {
+                if (mAdapterMonthOfYear!!.getPickedCount() == mAdapterMonthOfYear!!.itemCount) {
+                    mAdapterMonthOfYear!!.unpickAll()
+                } else {
+                    mAdapterMonthOfYear!!.pickAll()
+                }
+                mAdapterMonthOfYear!!.notifyDataSetChanged()
+                mTvTimesLRec!!.text = "" + mAdapterMonthOfYear!!.getPickedCount()
+                updatePickAllButton(mAdapterMonthOfYear!!)
             }
-            mAdapterMonthOfYear!!.notifyDataSetChanged()
-            mTvTimesLRec!!.text = "" + mAdapterMonthOfYear!!.getPickedCount()
-            updatePickAllButton(mAdapterMonthOfYear!!)
         }
         improveComplex()
     }
@@ -1016,16 +1014,12 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
     }
 
     private fun updatePickedTimesRec() {
-        val count: Int
         val type = mDtpRec!!.getPickedIndex()
-        count = if (type == 0) {
-            mAdapterTimeOfDay!!.getTimeCount()
-        } else if (type == 1) {
-            mAdapterDayOfWeek!!.getPickedCount()
-        } else if (type == 2) {
-            mAdapterDayOfMonth!!.getPickedCount()
-        } else {
-            mAdapterMonthOfYear!!.getPickedCount()
+        val count = when (type) {
+            0 -> mAdapterTimeOfDay!!.getTimeCount()
+            1 -> mAdapterDayOfWeek!!.getPickedCount()
+            2 -> mAdapterDayOfMonth!!.getPickedCount()
+            else -> mAdapterMonthOfYear!!.getPickedCount()
         }
         mTvTimesLRec!!.text = "" + count
         improveComplex()
@@ -1076,12 +1070,10 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
         mVpDateTime!!.requestFocus()
         KeyboardUtil.hideKeyboard(mVpDateTime)
         val page = mVpDateTime!!.currentItem
-        if (page == 0) {
-            endSettingTimeAt()
-        } else if (page == 1) {
-            endSettingTimeAfter()
-        } else {
-            endSettingTimeRec()
+        when (page) {
+            0 -> endSettingTimeAt()
+            1 -> endSettingTimeAfter()
+            else -> endSettingTimeRec()
         }
     }
 
@@ -1189,25 +1181,29 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
             } else {
                 val hour = Integer.parseInt(mIlHourWmy!!.getTextFromEditText())
                 val minute = Integer.parseInt(mIlMinuteWmy!!.getTextFromEditText())
-                if (type == Calendar.WEEK_OF_YEAR) {
-                    val days: List<Int?>? = mAdapterDayOfWeek!!.getPickedIndexes()
-                    detail = Habit.generateDetailDayOf(days, hour, minute)
-                } else if (type == Calendar.MONTH) {
-                    val days: List<Int?>? = mAdapterDayOfMonth!!.getPickedIndexes()
-                    detail = Habit.generateDetailDayOf(days, hour, minute)
-                } else if (type == Calendar.YEAR) {
-                    val months: List<Int?>? = mAdapterMonthOfYear!!.getPickedIndexes()
-                    val day: Int
-                    try {
-                        day = Integer.parseInt(mIlDayYear!!.getTextFromEditText())
-                    } catch (e: NumberFormatException) {
-                        @Suppress("UNUSED_VARIABLE")
-                        val ignored: Int = 28.also { /* defaultDay */ }
-                        detail = Habit.generateDetailMonthOfYear(months, 28, hour, minute)
-                        applyConfirm(type, detail)
-                        return
+                when (type) {
+                    Calendar.WEEK_OF_YEAR -> {
+                        val days: List<Int?>? = mAdapterDayOfWeek!!.getPickedIndexes()
+                        detail = Habit.generateDetailDayOf(days, hour, minute)
                     }
-                    detail = Habit.generateDetailMonthOfYear(months, day, hour, minute)
+                    Calendar.MONTH -> {
+                        val days: List<Int?>? = mAdapterDayOfMonth!!.getPickedIndexes()
+                        detail = Habit.generateDetailDayOf(days, hour, minute)
+                    }
+                    Calendar.YEAR -> {
+                        val months: List<Int?>? = mAdapterMonthOfYear!!.getPickedIndexes()
+                        val day: Int
+                        try {
+                            day = Integer.parseInt(mIlDayYear!!.getTextFromEditText())
+                        } catch (e: NumberFormatException) {
+                            @Suppress("UNUSED_VARIABLE")
+                            val ignored: Int = 28.also { /* defaultDay */ }
+                            detail = Habit.generateDetailMonthOfYear(months, 28, hour, minute)
+                            applyConfirm(type, detail)
+                            return
+                        }
+                        detail = Habit.generateDetailMonthOfYear(months, day, hour, minute)
+                    }
                 }
             }
             applyConfirm(type, detail)
@@ -1290,14 +1286,11 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
 
     private fun checkCanConfirmRec(): String {
         val type = mDtpRec!!.getPickedIndex()
-        return if (type == 0) {
-            checkCanConfirmRecDay()
-        } else if (type == 1) {
-            checkCanConfirmRecWeek()
-        } else if (type == 2) {
-            checkCanConfirmRecMonth()
-        } else {
-            checkCanConfirmRecYear()
+        return when (type) {
+            0 -> checkCanConfirmRecDay()
+            1 -> checkCanConfirmRecWeek()
+            2 -> checkCanConfirmRecMonth()
+            else -> checkCanConfirmRecYear()
         }
     }
 

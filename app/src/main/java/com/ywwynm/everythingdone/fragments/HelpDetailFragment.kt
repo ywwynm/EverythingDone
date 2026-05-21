@@ -47,17 +47,17 @@ open class HelpDetailFragment : Fragment() {
         val pages: Array<View?> = arrayOfNulls(titles.size)
         for (i in pages.indices) {
             pages[i] = inflater.inflate(R.layout.include_help_detail_content, container, false)
-            val sv: ScrollView = pages[i]!!.findViewById<ScrollView>(R.id.sv_help_detail)
+            val sv: ScrollView = pages[i]!!.findViewById(R.id.sv_help_detail)
             EdgeEffectUtil.forScrollView(sv, color)
 
-            val tvTitle: TextView = pages[i]!!.findViewById<TextView>(R.id.tv_title_help_detail)
+            val tvTitle: TextView = pages[i]!!.findViewById(R.id.tv_title_help_detail)
             tvTitle.text = titles[i]
 
-            val tvContent: TextView = pages[i]!!.findViewById<TextView>(R.id.tv_title_help_content)
+            val tvContent: TextView = pages[i]!!.findViewById(R.id.tv_title_help_content)
             tvContent.text = contents[i]
         }
 
-        val vp: ViewPager = contentView.findViewById<ViewPager>(R.id.vp_help_detail)
+        val vp: ViewPager = contentView.findViewById(R.id.vp_help_detail)
         vp.adapter = HelpDetailPagerAdapter(pages)
         vp.currentItem = pos
         EdgeEffectUtil.forViewPager(vp, color)

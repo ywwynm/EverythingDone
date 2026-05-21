@@ -160,18 +160,20 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         })
 
         mFabMain!!.setOnClickListener {
-            if (mState == PREPARED) {
-                mRecorder!!.startRecording()
-                preparedToRecording()
-                mState = RECORDING
-            } else if (mState == RECORDING) {
-                mRecorder!!.stopListening(true)
-                mFileToSave = mRecorder!!.getSavedFile()
-                mRecorder!!.startListening()
-                recordingToStopped()
-                mState = STOPPED
-            } else {
-                saveFileAndLeave()
+            when (mState) {
+                PREPARED -> {
+                    mRecorder!!.startRecording()
+                    preparedToRecording()
+                    mState = RECORDING
+                }
+                RECORDING -> {
+                    mRecorder!!.stopListening(true)
+                    mFileToSave = mRecorder!!.getSavedFile()
+                    mRecorder!!.startListening()
+                    recordingToStopped()
+                    mState = STOPPED
+                }
+                else -> saveFileAndLeave()
             }
         }
 
