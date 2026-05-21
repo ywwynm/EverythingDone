@@ -1,5 +1,11 @@
 # Sessions
 
+## 2026-05-21 — Fixed RedundantNullableReturnType across ~80 sites
+
+Applied `RedundantNullableReturnType` fix: removed `?` from return types of functions/val properties guaranteed to never return null. 37 files edited covering all listed sites. Full `:app:assembleDebug` BUILD SUCCESSFUL with zero errors.
+
+Files changed: App.kt, DoingActivity.kt, NoticeableNotificationActivity.kt, BaseThingsAdapter.kt, AppWidgetHelper.kt, BaseThingWidgetConfiguration.kt, CheckListHelper.kt (5 sites), NotificationReliabilityHelper.kt, ScreenshotHelper.kt, SendInfoHelper.kt, Habit.kt (6 sites), Reminder.kt, Thing.kt, ThingAction.kt, ThingBackground.kt (3 sites), PermissionUtil.kt (5 sites), DoingService.kt (2 sites), BitmapUtil.kt (2 sites), DeviceUtil.kt (2 sites), DisplayUtil.kt (2 sites), FileUtil.kt (4 sites), LocaleUtil.kt, StringUtil.kt (3 sites), SystemNotificationUtil.kt (4 sites), ThingsSorter.kt.
+
 ## 2026-05-21 — IDE inspection fixes in DateTimeUtil.kt
 
 Fixed Kotlin IDE inspection items in `DateTimeUtil.kt`:
