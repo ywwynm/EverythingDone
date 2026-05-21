@@ -70,17 +70,17 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
         rv.setAdapter(mAdapter)
         rv.setLayoutManager(LinearLayoutManager(this))
 
-        mSbAlpha = findViewById<SeekBar>(R.id.sb_app_widget_alpha)!!
+        mSbAlpha = findViewById(R.id.sb_app_widget_alpha)!!
         mSbAlpha!!.setMax(100)
         DisplayUtil.setSeekBarColor(mSbAlpha, color)
 
-        mCbSimpleView = findViewById<AppCompatCheckBox>(R.id.cb_simple_view)!!
+        mCbSimpleView = findViewById(R.id.cb_simple_view)!!
         DisplayUtil.setCheckBoxColor(mCbSimpleView, color)
         findViewById<View>(R.id.rl_simple_view_as_bt).setOnClickListener { v ->
             mCbSimpleView!!.toggle()
         }
 
-        mCbAlphaHeader = findViewById<AppCompatCheckBox>(R.id.cb_alpha_header)!!
+        mCbAlphaHeader = findViewById(R.id.cb_alpha_header)!!
         DisplayUtil.setCheckBoxColor(mCbAlphaHeader, color)
         findViewById<View>(R.id.rl_alpha_header_as_bt).setOnClickListener { v ->
             mCbAlphaHeader!!.toggle()

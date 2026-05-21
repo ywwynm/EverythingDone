@@ -199,8 +199,7 @@ object AppWidgetHelper {
         for (thingWidgetInfo in thingWidgetInfos) {
             val appWidgetId: Int = thingWidgetInfo!!.id
             val thingId: Long = thingWidgetInfo.thingId
-            val intent: Intent
-            intent = if (thingId < 0) { // for things list widgets
+            val intent = if (thingId < 0) { // for things list widgets
                 Intent(context, ThingsListWidget::class.java)
             } else {
                 Intent(context, getProviderClassBySize(thingWidgetInfo.size))
@@ -214,16 +213,13 @@ object AppWidgetHelper {
 
     @JvmStatic
     fun getProviderClassBySize(@ThingWidgetInfo.Size size: Int): Class<*>? {
-        if (size == ThingWidgetInfo.SIZE_TINY) {
-            return ThingWidgetTiny::class.java
-        } else if (size == ThingWidgetInfo.SIZE_SMALL) {
-            return ThingWidgetSmall::class.java
-        } else if (size == ThingWidgetInfo.SIZE_MIDDLE) {
-            return ThingWidgetMiddle::class.java
-        } else if (size == ThingWidgetInfo.SIZE_LARGE) {
-            return ThingWidgetLarge::class.java
+        return when (size) {
+            ThingWidgetInfo.SIZE_TINY -> ThingWidgetTiny::class.java
+            ThingWidgetInfo.SIZE_SMALL -> ThingWidgetSmall::class.java
+            ThingWidgetInfo.SIZE_MIDDLE -> ThingWidgetMiddle::class.java
+            ThingWidgetInfo.SIZE_LARGE -> ThingWidgetLarge::class.java
+            else -> BaseThingWidget::class.java
         }
-        return BaseThingWidget::class.java
     }
 
     @JvmStatic
