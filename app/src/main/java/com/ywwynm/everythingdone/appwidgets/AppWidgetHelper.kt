@@ -133,12 +133,12 @@ object AppWidgetHelper {
      */
     @JvmStatic
     fun updateSingleThingAppWidgets(context: Context?, thingId: Long) {
-        Log.i(TAG, "updateSingleThingAppWidgets is called, thingId[" + thingId + "]")
+        Log.i(TAG, "updateSingleThingAppWidgets is called, thingId[$thingId]")
         val appWidgetDAO: AppWidgetDAO = AppWidgetDAO.getInstance(context)!!
         val thingWidgetInfos: List<ThingWidgetInfo?> = appWidgetDAO.getThingWidgetInfosByThingId(thingId)!!
         for (thingWidgetInfo in thingWidgetInfos) {
             val appWidgetId: Int = thingWidgetInfo!!.id
-            val intent: Intent = Intent(context, getProviderClassBySize(thingWidgetInfo.size))
+            val intent = Intent(context, getProviderClassBySize(thingWidgetInfo.size))
             intent.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE)
             intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS,
                     intArrayOf(appWidgetId))
@@ -148,8 +148,10 @@ object AppWidgetHelper {
 
     @JvmStatic
     fun updateThingsListAppWidget(context: Context?, appWidgetId: Int) {
-        Log.i(TAG, "updateThingsListAppWidget(context, appWidgetId) is called, appWidgetId[" + appWidgetId + "]")
-        val intent: Intent = Intent(context, ThingsListWidget::class.java)
+        Log.i(TAG,
+            "updateThingsListAppWidget(context, appWidgetId) is called, appWidgetId[$appWidgetId]"
+        )
+        val intent = Intent(context, ThingsListWidget::class.java)
         intent.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE)
         intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS,
                 intArrayOf(appWidgetId))
@@ -161,7 +163,7 @@ object AppWidgetHelper {
      */
     @JvmStatic
     fun updateThingsListAppWidgets(context: Context?, limit: Int) {
-        Log.i(TAG, "updateThingsListAppWidget(context, limit) is called, limit[" + limit + "]")
+        Log.i(TAG, "updateThingsListAppWidget(context, limit) is called, limit[$limit]")
         val appWidgetDAO: AppWidgetDAO = AppWidgetDAO.getInstance(context)!!
         val storedLimit: Int = -limit - 1
         val thingWidgetInfos: List<ThingWidgetInfo?> = appWidgetDAO.getThingWidgetInfosByThingId(storedLimit.toLong())!!
@@ -172,7 +174,7 @@ object AppWidgetHelper {
 
     @JvmStatic
     fun updateThingsListAppWidgetsForType(context: Context?, @Thing.Type type: Int) {
-        Log.i(TAG, "updateThingsListAppWidgetForType is called, type[" + type + "]")
+        Log.i(TAG, "updateThingsListAppWidgetForType is called, type[$type]")
         val limits: IntArray = Thing.getLimits(type, Thing.UNDERWAY)!!
         for (limit in limits) {
             updateThingsListAppWidgets(context, limit)
@@ -198,10 +200,10 @@ object AppWidgetHelper {
             val appWidgetId: Int = thingWidgetInfo!!.id
             val thingId: Long = thingWidgetInfo.thingId
             val intent: Intent
-            if (thingId < 0) { // for things list widgets
-                intent = Intent(context, ThingsListWidget::class.java)
+            intent = if (thingId < 0) { // for things list widgets
+                Intent(context, ThingsListWidget::class.java)
             } else {
-                intent = Intent(context, getProviderClassBySize(thingWidgetInfo.size))
+                Intent(context, getProviderClassBySize(thingWidgetInfo.size))
             }
             intent.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE)
             intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS,
@@ -227,13 +229,13 @@ object AppWidgetHelper {
     @JvmStatic
     @ThingWidgetInfo.Size
     fun getSizeByProviderClass(clazz: Class<*>?): Int {
-        if (clazz!!.equals(ThingWidgetTiny::class.java)) {
+        if (clazz!! == ThingWidgetTiny::class.java) {
             return ThingWidgetInfo.SIZE_TINY
-        } else if (clazz.equals(ThingWidgetSmall::class.java)) {
+        } else if (clazz == ThingWidgetSmall::class.java) {
             return ThingWidgetInfo.SIZE_SMALL
-        } else if (clazz.equals(ThingWidgetMiddle::class.java)) {
+        } else if (clazz == ThingWidgetMiddle::class.java) {
             return ThingWidgetInfo.SIZE_MIDDLE
-        } else if (clazz.equals(ThingWidgetLarge::class.java)) {
+        } else if (clazz == ThingWidgetLarge::class.java) {
             return ThingWidgetInfo.SIZE_LARGE
         }
         return ThingWidgetInfo.SIZE_MIDDLE
@@ -244,13 +246,13 @@ object AppWidgetHelper {
             context: Context?, thing: Thing?, position: Int, appWidgetId: Int, clazz: Class<*>?): RemoteViews {
         val dao: AppWidgetDAO = AppWidgetDAO.getInstance(context)!!
         val info: ThingWidgetInfo? = dao.getThingWidgetInfoById(appWidgetId)
-        var alpha: Int = 100
+        var alpha = 100
         @ThingWidgetInfo.Style var style: Int = ThingWidgetInfo.STYLE_NORMAL
         if (info != null) {
             alpha = info.alpha
             style = info.style
         }
-        val remoteViews: RemoteViews = RemoteViews(context!!.getPackageName(), R.layout.app_widget_thing)
+        val remoteViews = RemoteViews(context!!.packageName, R.layout.app_widget_thing)
         setAppearance(context, remoteViews, thing, appWidgetId, clazz, alpha, style)
         val contentIntent: Intent = AuthenticationActivity.getOpenIntent(
                 context, TAG, thing!!.id, position,
@@ -266,7 +268,7 @@ object AppWidgetHelper {
 
     @JvmStatic
     fun createRemoteViewsForThingsList(context: Context?, limit: Int, appWidgetId: Int): RemoteViews {
-        val remoteViews: RemoteViews = RemoteViews(context!!.getPackageName(), R.layout.app_widget_things_list)
+        val remoteViews = RemoteViews(context!!.packageName, R.layout.app_widget_things_list)
         var headerColor: Int = ContextCompat.getColor(context, R.color.app_accent)
         remoteViews.setInt(LL_THINGS_LIST_HEADER, "setBackgroundColor", headerColor)
 
@@ -275,10 +277,10 @@ object AppWidgetHelper {
         if (info != null) {
             var alpha: Int = info.alpha
             if (alpha < 0) {
-                if (alpha == ThingWidgetInfo.HEADER_ALPHA_0) {
-                    alpha = 0
+                alpha = if (alpha == ThingWidgetInfo.HEADER_ALPHA_0) {
+                    0
                 } else {
-                    alpha = (Math.abs(alpha) / 100f * 255).toInt()
+                    (Math.abs(alpha) / 100f * 255).toInt()
                 }
                 headerColor = DisplayUtil.getTransparentColor(headerColor, alpha)
                 remoteViews.setInt(LL_THINGS_LIST_HEADER, "setBackgroundColor", headerColor)
@@ -287,7 +289,7 @@ object AppWidgetHelper {
 
         remoteViews.setTextViewText(TV_THINGS_LIST_TITLE, getStringForLimit(context, limit))
 
-        var intent: Intent = Intent(context, ThingsActivity::class.java)
+        var intent = Intent(context, ThingsActivity::class.java)
         intent.putExtra(Def.Communication.KEY_LIMIT, limit)
         var pendingIntent: PendingIntent = PendingIntent.getActivity(
                 context, appWidgetId, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
@@ -356,9 +358,9 @@ object AppWidgetHelper {
     @JvmStatic
     fun createRemoteViewsForThingsListItem(
             context: Context?, thing: Thing?, appWidgetId: Int): RemoteViews {
-        val remoteViews: RemoteViews = RemoteViews(context!!.getPackageName(),
+        val remoteViews = RemoteViews(context!!.packageName,
                 R.layout.app_widget_item_thing)
-        var alpha: Int = 100
+        var alpha = 100
         @ThingWidgetInfo.Style var style: Int = ThingWidgetInfo.STYLE_NORMAL
         val dao: AppWidgetDAO = AppWidgetDAO.getInstance(context)!!
         val info: ThingWidgetInfo? = dao.getThingWidgetInfoById(appWidgetId)
@@ -383,7 +385,7 @@ object AppWidgetHelper {
     @JvmStatic
     fun createRemoteViewsForChecklistItem(
             context: Context?, item: String?, itemsSize: Int, isSingleThingWidget: Boolean, thing: Thing?): RemoteViews {
-        val rv: RemoteViews = RemoteViews(context!!.getPackageName(), R.layout.check_list_tv_app_widget)
+        val rv = RemoteViews(context!!.packageName, R.layout.check_list_tv_app_widget)
 
         if (!isSingleThingWidget) {
             rv.setInt(LL_CHECK_LIST_ITEM_ROOT, "setBackgroundResource", 0)
@@ -421,7 +423,7 @@ object AppWidgetHelper {
                     checklistItemTextColor(context, thing, true)
             else Color.parseColor("#80FFFFFF")
             rv.setTextColor(TV_CONTENT_CHECK_LIST, textColor)
-            val spannable: SpannableString = SpannableString(text)
+            val spannable = SpannableString(text)
             spannable.setSpan(StrikethroughSpan(), 0, text.length,
                     Spanned.SPAN_INCLUSIVE_EXCLUSIVE)
             rv.setTextViewText(TV_CONTENT_CHECK_LIST, spannable)
@@ -491,18 +493,18 @@ object AppWidgetHelper {
             context: Context, remoteViews: RemoteViews, thing: Thing?, appWidgetId: Int, clazz: Class<*>?,
             alpha: Int, @ThingWidgetInfo.Style style: Int) {
         var a: Int = alpha
-        if (a == ThingWidgetInfo.HEADER_ALPHA_0) {
-            a = 0
+        a = if (a == ThingWidgetInfo.HEADER_ALPHA_0) {
+            0
         } else {
-            a = Math.abs(a)
+            Math.abs(a)
         }
         a = (a / 100f * 255).toInt()
         // Phase 8: rasterise the (possibly gradient) ThingBackground to a
         // small bitmap and push it through RemoteViews → background ImageView.
         remoteViews.setInt(ROOT_WIDGET_THING, "setBackgroundColor",
-                android.graphics.Color.TRANSPARENT)
+                Color.TRANSPARENT)
         // 64×64 ≈ 16KB; saves RemoteViews bitmap budget.
-        val bgBm: android.graphics.Bitmap? = com.ywwynm.everythingdone.utils.BackgroundUtil
+        val bgBm: Bitmap? = com.ywwynm.everythingdone.utils.BackgroundUtil
                 .renderBackgroundBitmap(thing!!.getBackground(), 64, 64, a)
         if (bgBm != null) {
             remoteViews.setImageViewBitmap(IV_WIDGET_BG, bgBm)
@@ -559,7 +561,7 @@ object AppWidgetHelper {
         } else {
             @DrawableRes val ivRes: Int = if (sticky) R.drawable.ic_sticky else R.drawable.ic_ongoing_notication
             val cd: String = context.getString(if (sticky) R.string.sticky_thing else R.string.ongoing_thing)
-            if (clazz!!.equals(ThingsListWidget::class.java) && style == ThingWidgetInfo.STYLE_SIMPLE) {
+            if (clazz!! == ThingsListWidget::class.java && style == ThingWidgetInfo.STYLE_SIMPLE) {
                 remoteViews.setViewVisibility(IV_STICKY_ONGOING, View.GONE)
                 remoteViews.setViewVisibility(IV_STICKY_ONGOING_SMALL, View.VISIBLE)
                 remoteViews.setInt(IV_STICKY_ONGOING_SMALL, "setImageAlpha", alpha)
@@ -597,7 +599,7 @@ object AppWidgetHelper {
         remoteViews.setViewVisibility(TV_IMAGE_COUNT,       View.VISIBLE)
 
         val pathName: String = firstImageTypePathName.substring(1, firstImageTypePathName.length)
-        if (clazz!!.getSuperclass()!!.equals(BaseThingWidget::class.java)) {
+        if (clazz!!.getSuperclass()!! == BaseThingWidget::class.java) {
             loadImageForSingleThing(context, pathName, remoteViews, appWidgetId)
         } else {
             loadImageForThingsListItem(context, pathName, remoteViews)
@@ -735,7 +737,7 @@ object AppWidgetHelper {
                 remoteViews.setTextViewTextSize(TV_CONTENT, TypedValue.COMPLEX_UNIT_SP, 16f)
             }
         } else {
-            if (clazz!!.getSuperclass()!!.equals(BaseThingWidget::class.java)) {
+            if (clazz!!.getSuperclass()!! == BaseThingWidget::class.java) {
                 setChecklistForSingleThing(context, remoteViews, thing, appWidgetId, clazz)
             } else {
                 setChecklistForThingsListItem(context, remoteViews, content, thing)
@@ -754,7 +756,7 @@ object AppWidgetHelper {
 
         remoteViews.setViewPadding(LV_CHECKLIST, dp12, dp12, dp12, 0)
 
-        var intent: Intent = Intent(context, ChecklistWidgetService::class.java)
+        var intent = Intent(context, ChecklistWidgetService::class.java)
         intent.putExtra(Def.Communication.KEY_WIDGET_ID, appWidgetId)
         intent.putExtra(Def.Communication.KEY_ID, thing.id)
         // Very important! without this line, two different checklist items may have same content
@@ -795,7 +797,7 @@ object AppWidgetHelper {
         }
 
         if (size > 8) {
-            val rvItem: RemoteViews = RemoteViews(context.getPackageName(), R.layout.check_list_tv_app_widget)
+            val rvItem = RemoteViews(context.packageName, R.layout.check_list_tv_app_widget)
             rvItem.setViewVisibility(IV_STATE_CHECK_LIST, View.GONE)
             rvItem.setTextViewText(TV_CONTENT_CHECK_LIST, "...")
             rvItem.setContentDescription(TV_CONTENT_CHECK_LIST,
@@ -869,7 +871,8 @@ object AppWidgetHelper {
 
         if (thing.isPrivate() || thing.state != Thing.UNDERWAY
                 || (type != Thing.REMINDER && type != Thing.GOAL && type != Thing.HABIT)
-                || !clazz!!.getSuperclass()!!.equals(BaseThingWidget::class.java)) {
+                || clazz!!.getSuperclass()!! != BaseThingWidget::class.java
+        ) {
             remoteViews.setViewVisibility(LL_THING_ACTION, View.GONE)
             return
         }
@@ -887,7 +890,7 @@ object AppWidgetHelper {
         remoteViews.setTextViewText(TV_THING_ACTION, context.getString(R.string.act_finish))
 
         val id: Long = thing.id
-        val intent: Intent = Intent(context, ReminderNotificationActionReceiver::class.java)
+        val intent = Intent(context, ReminderNotificationActionReceiver::class.java)
         intent.setAction(Def.Communication.WIDGET_ACTION_FINISH)
         intent.putExtra(Def.Communication.KEY_ID, id)
         val pendingIntent: PendingIntent = PendingIntent.getBroadcast(context,
@@ -899,7 +902,7 @@ object AppWidgetHelper {
         remoteViews.setTextViewText(TV_THING_ACTION, context.getString(R.string.act_finish_this_time_habit))
 
         val id: Long = thing.id
-        val intent: Intent = Intent(context, HabitWidgetActionReceiver::class.java)
+        val intent = Intent(context, HabitWidgetActionReceiver::class.java)
         intent.setAction(Def.Communication.WIDGET_ACTION_FINISH)
         intent.putExtra(Def.Communication.KEY_ID, id)
         val pendingIntent: PendingIntent = PendingIntent.getBroadcast(context,

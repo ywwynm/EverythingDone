@@ -20,8 +20,8 @@ open class CreateWidget : AppWidgetProvider() {
 
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
         for (appWidgetId in appWidgetIds) {
-            val remoteViews: RemoteViews = RemoteViews(
-                    context.getPackageName(), R.layout.app_widget_simple)
+            val remoteViews = RemoteViews(
+                    context.packageName, R.layout.app_widget_simple)
             remoteViews.setImageViewResource(
                     R.id.iv_widget_simple, R.drawable.widget_create_content)
             remoteViews.setContentDescription(

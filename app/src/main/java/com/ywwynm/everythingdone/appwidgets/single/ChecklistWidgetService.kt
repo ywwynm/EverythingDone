@@ -22,7 +22,7 @@ import com.ywwynm.everythingdone.model.Thing
 open class ChecklistWidgetService : RemoteViewsService() {
 
     override fun onGetViewFactory(intent: Intent): RemoteViewsFactory {
-        return ChecklistViewFactory(getApplicationContext(), intent)
+        return ChecklistViewFactory(applicationContext, intent)
     }
 
     class ChecklistViewFactory internal constructor(context: Context?, intent: Intent?) : RemoteViewsFactory {
@@ -73,18 +73,18 @@ open class ChecklistWidgetService : RemoteViewsService() {
 
         override fun getViewAt(position: Int): RemoteViews? {
             val count: Int = getCount()
-            if (position < 0 || position >= count) {
+            if (position !in 0..<count) {
                 return null
             }
             val rv: RemoteViews = AppWidgetHelper.createRemoteViewsForChecklistItem(
-                    mContext, mItems!!.get(position), count, true, mThing)
+                    mContext, mItems!![position], count, true, mThing)
             setupEvents(rv, position)
             return rv
         }
 
         private fun setupEvents(rv: RemoteViews, position: Int) {
             if (mThing!!.state == Thing.UNDERWAY) {
-                val intent: Intent = Intent(Def.Communication.BROADCAST_ACTION_UPDATE_CHECKLIST)
+                val intent = Intent(Def.Communication.BROADCAST_ACTION_UPDATE_CHECKLIST)
                 intent.putExtra(Def.Communication.KEY_ID, mThing!!.id)
                 intent.putExtra(Def.Communication.KEY_POSITION, position)
                 rv.setOnClickFillInIntent(LL_CHECK_LIST, intent)
@@ -101,10 +101,10 @@ open class ChecklistWidgetService : RemoteViewsService() {
 
         override fun getItemId(position: Int): Long {
             val count: Int = getCount()
-            if (position < 0 || position >= count) {
+            if (position !in 0..<count) {
                 return -1L
             }
-            return mItems!!.get(position)!!.hashCode().toLong()
+            return mItems!![position]!!.hashCode().toLong()
         }
 
         override fun hasStableIds(): Boolean {

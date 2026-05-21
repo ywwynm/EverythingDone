@@ -77,7 +77,7 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
         super.onConfigurationChanged(newConfig)
 
         mSpanCount = if (DisplayUtil.isTablet(this)) 3 else 2
-        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
+        if (getResources().configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
             mSpanCount++
         }
         mStaggeredGridLayoutManager!!.setSpanCount(mSpanCount)
@@ -103,7 +103,7 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
         }
 
         mSpanCount = if (DisplayUtil.isTablet(this)) 3 else 2
-        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
+        if (getResources().configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
             mSpanCount++
         }
 
@@ -150,16 +150,16 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
 
     private fun updateStatusBarAndBottomUi(selecting: Boolean) {
         val window: Window = getWindow()
-        val flp: FrameLayout.LayoutParams = mLlConfig!!.getLayoutParams() as FrameLayout.LayoutParams
+        val flp: FrameLayout.LayoutParams = mLlConfig!!.layoutParams as FrameLayout.LayoutParams
 
         if (selecting) {
-            window.setStatusBarColor(ContextCompat.getColor(this, R.color.bg_statusbar_lollipop))
+            window.statusBarColor = ContextCompat.getColor(this, R.color.bg_statusbar_lollipop)
             window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION)
             flp.bottomMargin = 0
             flp.rightMargin = 0
             mLlConfig!!.requestLayout()
         } else {
-            window.setStatusBarColor(Color.TRANSPARENT)
+            window.statusBarColor = Color.TRANSPARENT
             window.addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION)
             DisplayUtil.applyBottomInsetAsMargin(mLlConfig)
         }
@@ -174,10 +174,8 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
 
     override fun setActionbar() {
         setSupportActionBar(mActionBar)
-        val actionBar: ActionBar? = getSupportActionBar()
-        if (actionBar != null) {
-            actionBar.setDisplayHomeAsUpEnabled(true)
-        }
+        val actionBar: ActionBar? = supportActionBar
+        actionBar?.setDisplayHomeAsUpEnabled(true)
 
         mActionBar!!.setNavigationOnClickListener { v -> finish() }
     }
@@ -185,7 +183,7 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
     override fun setEvents() {
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                if (mFlPreviewAndConfig!!.getVisibility() == View.VISIBLE) {
+                if (mFlPreviewAndConfig!!.visibility == View.VISIBLE) {
                     endPreviewAppWidget()
                 } else {
                     isEnabled = false
@@ -210,15 +208,15 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
     }
 
     private fun previewAppWidget(thing: Thing) {
-        mFlPreviewAndConfig!!.setVisibility(View.VISIBLE)
-        mActionBar!!.setVisibility(View.GONE)
-        mRecyclerView!!.setVisibility(View.GONE)
+        mFlPreviewAndConfig!!.visibility = View.VISIBLE
+        mActionBar!!.visibility = View.GONE
+        mRecyclerView!!.visibility = View.GONE
         DisplayUtil.cancelDarkStatusBar(this)
 
         val ivBackground: ImageView = f(R.id.iv_app_widget_preview_background)
         try {
-            val wm: WallpaperManager = WallpaperManager.getInstance(getApplicationContext())
-            val wallpaper: Drawable? = wm.getDrawable()
+            val wm: WallpaperManager = WallpaperManager.getInstance(applicationContext)
+            val wallpaper: Drawable? = wm.drawable
             if (wallpaper != null) {
                 ivBackground.setImageDrawable(wallpaper)
             }
@@ -237,10 +235,10 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
                 return singleThing.toMutableList()
             }
 
-            override fun onBindViewHolder(holder: BaseThingsAdapter.BaseThingViewHolder, position: Int) {
+            override fun onBindViewHolder(holder: BaseThingViewHolder, position: Int) {
                 super.onBindViewHolder(holder, position)
-                holder.cv!!.setRadius(0f)
-                holder.cv!!.setCardElevation(0f)
+                holder.cv!!.radius = 0f
+                holder.cv!!.cardElevation = 0f
                 val alpha: Int = (mWidgetAlpha / 100f * 255).toInt()
                 // Phase 4.d: preview supports gradient backgrounds.
                 val bg: com.ywwynm.everythingdone.model.ThingBackground = thing.getBackground()!!
@@ -252,11 +250,11 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
                         else com.ywwynm.everythingdone.model.ThingBackground.gradient(s, e, bg.orientation)!!
                 com.ywwynm.everythingdone.utils.BackgroundUtil.applyCardBackground(
                         holder.cv, tinted)
-                holder.ivStickyOngoing!!.setImageAlpha(alpha)
+                holder.ivStickyOngoing!!.imageAlpha = alpha
             }
         }
         val rvPreview: RecyclerView = f(R.id.rv_app_widget_preview)
-        val flp: FrameLayout.LayoutParams = rvPreview.getLayoutParams() as FrameLayout.LayoutParams
+        val flp: FrameLayout.LayoutParams = rvPreview.layoutParams as FrameLayout.LayoutParams
         flp.width = DisplayUtil.getThingCardWidth(this)
         rvPreview.requestLayout()
         rvPreview.setAdapter(adapter)
@@ -265,19 +263,19 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
             private var mDx: Int = 0
             private var mDy: Int = 0
             override fun onTouch(v: View, event: MotionEvent): Boolean {
-                val rawX: Int = event.getRawX().toInt()
-                val rawY: Int = event.getRawY().toInt()
-                when (event.getAction()) {
+                val rawX: Int = event.rawX.toInt()
+                val rawY: Int = event.rawY.toInt()
+                when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
                         val flp: FrameLayout.LayoutParams =
-                                rvPreview.getLayoutParams() as FrameLayout.LayoutParams
+                                rvPreview.layoutParams as FrameLayout.LayoutParams
                         mDx = rawX - flp.leftMargin
                         mDy = rawY - flp.topMargin
                         return true
                     }
                     MotionEvent.ACTION_MOVE -> {
                         val flp: FrameLayout.LayoutParams =
-                                rvPreview.getLayoutParams() as FrameLayout.LayoutParams
+                                rvPreview.layoutParams as FrameLayout.LayoutParams
                         flp.leftMargin = rawX - mDx
                         flp.topMargin  = rawY - mDy
                         rvPreview.requestLayout()
@@ -290,7 +288,7 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
 
         val sbAlpha: SeekBar = f(R.id.sb_app_widget_alpha)
         sbAlpha.setMax(100)
-        sbAlpha.setProgress(100)
+        sbAlpha.progress = 100
         DisplayUtil.setSeekBarColor(sbAlpha, ContextCompat.getColor(this, R.color.app_accent))
         sbAlpha.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
@@ -314,9 +312,9 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
     }
 
     private fun endPreviewAppWidget() {
-        mFlPreviewAndConfig!!.setVisibility(View.GONE)
-        mActionBar!!.setVisibility(View.VISIBLE)
-        mRecyclerView!!.setVisibility(View.VISIBLE)
+        mFlPreviewAndConfig!!.visibility = View.GONE
+        mActionBar!!.visibility = View.VISIBLE
+        mRecyclerView!!.visibility = View.VISIBLE
 
         updateStatusBarAndBottomUi(true)
         DisplayUtil.darkStatusBar(this)
@@ -332,7 +330,7 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
                 this, thing, -1, mAppWidgetId, clazz)
         AppWidgetManager.getInstance(this).updateAppWidget(mAppWidgetId, views)
 
-        val intent: Intent = Intent()
+        val intent = Intent()
         intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, mAppWidgetId)
         setResult(RESULT_OK, intent)
         finish()
@@ -348,26 +346,26 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
             return mThings
         }
 
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BaseThingsAdapter.BaseThingViewHolder {
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BaseThingViewHolder {
             return Holder(mInflater!!.inflate(R.layout.card_thing, parent, false))
         }
 
-        override fun onBindViewHolder(holder: BaseThingsAdapter.BaseThingViewHolder, position: Int) {
+        override fun onBindViewHolder(holder: BaseThingViewHolder, position: Int) {
             val m: Int = (mDensity * 6).toInt()
 
             val lp: StaggeredGridLayoutManager.LayoutParams =
-                    holder.itemView.getLayoutParams() as StaggeredGridLayoutManager.LayoutParams
+                    holder.itemView.layoutParams as StaggeredGridLayoutManager.LayoutParams
             lp.setMargins(m, m, m, m)
 
             super.onBindViewHolder(holder, position)
         }
 
-        inner class Holder(item: View) : BaseThingsAdapter.BaseThingViewHolder(item) {
+        inner class Holder(item: View) : BaseThingViewHolder(item) {
 
             init {
                 cv!!.setOnClickListener { v ->
                     updateStatusBarAndBottomUi(false)
-                    previewAppWidget(mThings!!.get(getAdapterPosition())!!)
+                    previewAppWidget(mThings!![adapterPosition]!!)
                 }
             }
         }

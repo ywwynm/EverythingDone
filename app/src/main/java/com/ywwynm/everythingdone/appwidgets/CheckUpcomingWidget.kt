@@ -20,14 +20,14 @@ open class CheckUpcomingWidget : AppWidgetProvider() {
 
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
         for (appWidgetId in appWidgetIds) {
-            val remoteViews: RemoteViews = RemoteViews(
-                    context.getPackageName(), R.layout.app_widget_simple)
+            val remoteViews = RemoteViews(
+                    context.packageName, R.layout.app_widget_simple)
             remoteViews.setImageViewResource(
                     R.id.iv_widget_simple, R.drawable.widget_check_upcoming_content)
             remoteViews.setContentDescription(
                     R.id.iv_widget_simple, context.getString(R.string.act_shortcut_check_upcoming))
 
-            val contentIntent: Intent = Intent(context, ShortcutActivity::class.java)
+            val contentIntent = Intent(context, ShortcutActivity::class.java)
             // Well, this is not very elegant but I don't want to change more code.
             // And today is programmer's day, who cares about this?
             contentIntent.setAction(Def.Communication.SHORTCUT_ACTION_CHECK_UPCOMING)

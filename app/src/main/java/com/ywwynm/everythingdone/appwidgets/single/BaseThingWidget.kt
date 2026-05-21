@@ -29,8 +29,8 @@ abstract class BaseThingWidget : AppWidgetProvider() {
     protected abstract fun getTag(): String?
 
     override fun onReceive(context: Context, intent: Intent) {
-        Log.i(getTag(), "onReceive(context, intent) is called, action[" + intent.getAction() + "]")
-        if (Def.Communication.BROADCAST_ACTION_UPDATE_CHECKLIST.equals(intent.getAction())) {
+        Log.i(getTag(), "onReceive(context, intent) is called, action[" + intent.action + "]")
+        if (Def.Communication.BROADCAST_ACTION_UPDATE_CHECKLIST == intent.action) {
             val id: Long = intent.getLongExtra(Def.Communication.KEY_ID, -1)
             val itemPos: Int = intent.getIntExtra(Def.Communication.KEY_POSITION, 0)
             RemoteActionHelper.toggleChecklistItem(context, id, itemPos)
@@ -52,7 +52,7 @@ abstract class BaseThingWidget : AppWidgetProvider() {
             thingManager: ThingManager, thingDAO: ThingDAO, appWidgetDAO: AppWidgetDAO,
             appWidgetManager: AppWidgetManager, context: Context, appWidgetId: Int) {
         val TAG: String = getTag()!!
-        Log.i(TAG, "updateSingleThingAppWidget is called, appWidgetId[" + appWidgetId + "]")
+        Log.i(TAG, "updateSingleThingAppWidget is called, appWidgetId[$appWidgetId]")
         val thingWidgetInfo: ThingWidgetInfo? = appWidgetDAO.getThingWidgetInfoById(appWidgetId)
         if (thingWidgetInfo == null) {
             Log.e(TAG, "updateSingleThingAppWidget but thingWidgetInfo is null")
@@ -99,7 +99,7 @@ abstract class BaseThingWidget : AppWidgetProvider() {
         val things: List<Thing?> = thingManager.getThings()!!
         val size: Int = things.size
         for (i in 0 until size) {
-            val thing: Thing = things.get(i)!!
+            val thing: Thing = things[i]!!
             if (thing.id == thingId) {
                 pair = Pair(i, thing)
             }

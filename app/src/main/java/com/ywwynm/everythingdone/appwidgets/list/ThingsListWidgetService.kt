@@ -23,7 +23,7 @@ import java.util.ArrayList
 open class ThingsListWidgetService : RemoteViewsService() {
 
     override fun onGetViewFactory(intent: Intent): RemoteViewsFactory {
-        return ThingsListViewFactory(getApplicationContext(), intent)
+        return ThingsListViewFactory(applicationContext, intent)
     }
 
     class ThingsListViewFactory internal constructor(context: Context?, intent: Intent?) : RemoteViewsFactory {
@@ -71,13 +71,13 @@ open class ThingsListWidgetService : RemoteViewsService() {
         }
 
         override fun getViewAt(position: Int): RemoteViews? {
-            if (position < -1 || position >= getCount()) {
+            if (position < -1 || position >= count) {
                 return null
             }
-            val thing: Thing = mThings!!.get(position)!!
+            val thing: Thing = mThings!![position]!!
             val rv: RemoteViews = AppWidgetHelper.createRemoteViewsForThingsListItem(
                     mContext, thing, mAppWidgetId)
-            val intent: Intent = Intent()
+            val intent = Intent()
             intent.putExtra(Def.Communication.KEY_ID, thing.id)
             intent.putExtra(Def.Communication.KEY_POSITION, position + 1)
             rv.setOnClickFillInIntent(R.id.root_widget_thing, intent)
@@ -96,7 +96,7 @@ open class ThingsListWidgetService : RemoteViewsService() {
             if (position < 0 || position > mThings!!.size - 1) {
                 return -1L
             }
-            return mThings!!.get(position)!!.id
+            return mThings!![position]!!.id
         }
 
         override fun hasStableIds(): Boolean {
