@@ -526,7 +526,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
             AppWidgetHelper.updateAllThingsListAppWidgets(mApp)
         } else if (itemId == R.id.act_select_color) {
             dismissSnackbars()
-            mColorPicker!!.setAnchor(findViewById<View>(R.id.act_select_color))
+            mColorPicker!!.setAnchor(findViewById(R.id.act_select_color))
             mColorPicker!!.show()
         }
         return super.onOptionsItemSelected(item)
@@ -649,8 +649,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         val thingToCreate: Thing = data.getParcelableExtra(Def.Communication.KEY_THING)!!
 
         mDrawerLayout!!.postDelayed({
-            val change: Boolean
-            change = if (createdDone) {
+            val change = if (createdDone) {
                 data.getBooleanExtra(Def.Communication.KEY_CALL_CHANGE, false)
             } else {
                 mThingManager!!.create(thingToCreate, true, true)
@@ -1632,33 +1631,32 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         mActionbar!!.setNavigationOnClickListener(OnNavigationIconClickedListener())
         mDrawer!!.setNavigationItemSelectedListener(NavigationView.OnNavigationItemSelectedListener { menuItem ->
             if (mPreviousItem!! != menuItem) {
-                val newLimit: Int
                 val id = menuItem.itemId
-                if (id == R.id.drawer_underway) {
-                    newLimit = Def.LimitForGettingThings.ALL_UNDERWAY
-                } else if (id == R.id.drawer_note) {
-                    newLimit = Def.LimitForGettingThings.NOTE_UNDERWAY
-                } else if (id == R.id.drawer_reminder) {
-                    newLimit = Def.LimitForGettingThings.REMINDER_UNDERWAY
-                } else if (id == R.id.drawer_habit) {
-                    newLimit = Def.LimitForGettingThings.HABIT_UNDERWAY
-                } else if (id == R.id.drawer_goal) {
-                    newLimit = Def.LimitForGettingThings.GOAL_UNDERWAY
-                } else if (id == R.id.drawer_finished) {
-                    newLimit = Def.LimitForGettingThings.ALL_FINISHED
-                } else if (id == R.id.drawer_deleted) {
-                    newLimit = Def.LimitForGettingThings.ALL_DELETED
-                } else {
-                    if (id == R.id.drawer_settings) {
+                val newLimit: Int = when (id) {
+                    R.id.drawer_underway -> Def.LimitForGettingThings.ALL_UNDERWAY
+                    R.id.drawer_note -> Def.LimitForGettingThings.NOTE_UNDERWAY
+                    R.id.drawer_reminder -> Def.LimitForGettingThings.REMINDER_UNDERWAY
+                    R.id.drawer_habit -> Def.LimitForGettingThings.HABIT_UNDERWAY
+                    R.id.drawer_goal -> Def.LimitForGettingThings.GOAL_UNDERWAY
+                    R.id.drawer_finished -> Def.LimitForGettingThings.ALL_FINISHED
+                    R.id.drawer_deleted -> Def.LimitForGettingThings.ALL_DELETED
+                    R.id.drawer_settings -> {
                         val intent = Intent(this@ThingsActivity, SettingsActivity::class.java)
                         startActivityForResult(intent, Def.Communication.REQUEST_ACTIVITY_SETTINGS)
-                    } else if (id == R.id.drawer_help) {
-                        startActivity(Intent(this@ThingsActivity, HelpActivity::class.java))
-                    } else if (id == R.id.drawer_about) {
-                        startActivity(Intent(this@ThingsActivity, AboutActivity::class.java))
+                        mShouldCloseDrawer = true
+                        return@OnNavigationItemSelectedListener true
                     }
-                    mShouldCloseDrawer = true
-                    return@OnNavigationItemSelectedListener true
+                    R.id.drawer_help -> {
+                        startActivity(Intent(this@ThingsActivity, HelpActivity::class.java))
+                        mShouldCloseDrawer = true
+                        return@OnNavigationItemSelectedListener true
+                    }
+                    R.id.drawer_about -> {
+                        startActivity(Intent(this@ThingsActivity, AboutActivity::class.java))
+                        mShouldCloseDrawer = true
+                        return@OnNavigationItemSelectedListener true
+                    }
+                    else -> return@OnNavigationItemSelectedListener true
                 }
 
                 mDrawerLayout!!.closeDrawer(GravityCompat.START)

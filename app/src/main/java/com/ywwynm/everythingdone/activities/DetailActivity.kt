@@ -55,7 +55,6 @@ import android.view.ViewGroup
 import android.view.ViewTreeObserver
 import android.view.Window
 import android.widget.CheckBox
-import android.widget.CompoundButton
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageButton
@@ -652,18 +651,23 @@ class DetailActivity : EverythingDoneBaseActivity() {
     }
 
     private fun initBackButton(@Thing.Type thingType: Int) {
-        if (thingType == Thing.REMINDER || thingType == Thing.WELCOME_REMINDER) {
-            mIbBack!!.setImageResource(R.drawable.act_back_reminder)
-            mIbBack!!.contentDescription = getString(R.string.cd_back_reminder)
-        } else if (thingType == Thing.HABIT || thingType == Thing.WELCOME_HABIT) {
-            mIbBack!!.setImageResource(R.drawable.act_back_habit)
-            mIbBack!!.contentDescription = getString(R.string.cd_back_habit)
-        } else if (thingType == Thing.GOAL || thingType == Thing.WELCOME_GOAL) {
-            mIbBack!!.setImageResource(R.drawable.act_back_goal)
-            mIbBack!!.contentDescription = getString(R.string.cd_back_goal)
-        } else {
-            mIbBack!!.setImageResource(R.drawable.act_back_note)
-            mIbBack!!.contentDescription = getString(R.string.cd_back_note)
+        when (thingType) {
+            Thing.REMINDER, Thing.WELCOME_REMINDER -> {
+                mIbBack!!.setImageResource(R.drawable.act_back_reminder)
+                mIbBack!!.contentDescription = getString(R.string.cd_back_reminder)
+            }
+            Thing.HABIT, Thing.WELCOME_HABIT -> {
+                mIbBack!!.setImageResource(R.drawable.act_back_habit)
+                mIbBack!!.contentDescription = getString(R.string.cd_back_habit)
+            }
+            Thing.GOAL, Thing.WELCOME_GOAL -> {
+                mIbBack!!.setImageResource(R.drawable.act_back_goal)
+                mIbBack!!.contentDescription = getString(R.string.cd_back_goal)
+            }
+            else -> {
+                mIbBack!!.setImageResource(R.drawable.act_back_note)
+                mIbBack!!.contentDescription = getString(R.string.cd_back_note)
+            }
         }
     }
 
@@ -812,33 +816,37 @@ class DetailActivity : EverythingDoneBaseActivity() {
 
     private fun initAndShowTvFinishTime(tvFinishTime: TextView, @Thing.Type thingType: Int, isChinese: Boolean) {
         tvFinishTime.visibility = View.VISIBLE
-        if (thingType == Thing.HABIT) {
-            tvFinishTime.setText(R.string.finish_at_habit)
-            if (!isChinese) {
-                tvFinishTime.append(" ")
+        when (thingType) {
+            Thing.HABIT -> {
+                tvFinishTime.setText(R.string.finish_at_habit)
+                if (!isChinese) {
+                    tvFinishTime.append(" ")
+                }
+                tvFinishTime.append(DateTimeUtil.getDateTimeStrAt(mThing!!.finishTime, mApp, true))
             }
-            tvFinishTime.append(DateTimeUtil.getDateTimeStrAt(mThing!!.finishTime, mApp, true))
-        } else if (thingType == Thing.GOAL) {
-            val actionStr: String
-            var finishType = 1
-            if (mReminder != null) {
-                finishType = mReminder!!.getFinishType(mThing!!.finishTime, true)
+            Thing.GOAL -> {
+                val actionStr: String
+                var finishType = 1
+                if (mReminder != null) {
+                    finishType = mReminder!!.getFinishType(mThing!!.finishTime, true)
+                }
+                actionStr = when (finishType) {
+                    0 -> getString(R.string.finish_at_goal_in_advance)
+                    1 -> getString(R.string.finish_at_goal_normal)
+                    else -> { // finishType == 2
+                        getString(R.string.finish_at_goal_overdue)
+                    }
+                }
+                tvFinishTime.text = String.format(
+                    actionStr, DateTimeUtil.getDateTimeStrAt(mThing!!.finishTime, mApp, true)
+                )
             }
-            actionStr = if (finishType == 0) {
-                getString(R.string.finish_at_goal_in_advance)
-            } else if (finishType == 1) {
-                getString(R.string.finish_at_goal_normal)
-            } else { // finishType == 2
-                getString(R.string.finish_at_goal_overdue)
+            else -> {
+                tvFinishTime.text = String.format(
+                    getString(R.string.finish_at_normal),
+                    DateTimeUtil.getDateTimeStrAt(mThing!!.finishTime, mApp, true)
+                )
             }
-            tvFinishTime.text = String.format(
-                actionStr, DateTimeUtil.getDateTimeStrAt(mThing!!.finishTime, mApp, true)
-            )
-        } else {
-            tvFinishTime.text = String.format(
-                getString(R.string.finish_at_normal),
-                DateTimeUtil.getDateTimeStrAt(mThing!!.finishTime, mApp, true)
-            )
         }
     }
 
@@ -1148,22 +1156,26 @@ class DetailActivity : EverythingDoneBaseActivity() {
             }
         } else {
             @Thing.Type val typeBefore: Int = mThing!!.type
-            if (typeBefore == Thing.REMINDER || typeBefore == Thing.GOAL) {
-                if (mReminder == null) {
+            when (typeBefore) {
+                Thing.REMINDER, Thing.GOAL -> {
+                    if (mReminder == null) {
+                        return typeBefore
+                    }
+                    val reminderState = mReminder!!.state
+                    return if ((reminderState == Reminder.REMINDED || reminderState == Reminder.EXPIRED)
+                        && mReminder!!.notifyTime == time
+                    ) {
+                        typeBefore
+                    } else {
+                        Thing.NOTE
+                    }
+                }
+                Thing.HABIT -> {
+                    return Thing.NOTE
+                }
+                else -> {
                     return typeBefore
                 }
-                val reminderState = mReminder!!.state
-                return if ((reminderState == Reminder.REMINDED || reminderState == Reminder.EXPIRED)
-                    && mReminder!!.notifyTime == time
-                ) {
-                    typeBefore
-                } else {
-                    Thing.NOTE
-                }
-            } else if (typeBefore == Thing.HABIT) {
-                return Thing.NOTE
-            } else {
-                return typeBefore
             }
         }
     }
@@ -1557,15 +1569,14 @@ class DetailActivity : EverythingDoneBaseActivity() {
                 moveChecklist(from as Int, to as Int)
             }
             ThingAction.UPDATE_COLOR -> {
-                val bgTarget: ThingBackground
-                if (to is ThingBackground) {
-                    bgTarget = to
-                } else if (to is Int) {
-                    bgTarget = ThingBackground.pure(to)!!
-                } else {
-                    shouldAddToActionList = true
-                    updateUndoRedoActionButtonState()
-                    return
+                val bgTarget: ThingBackground = when (to) {
+                    is ThingBackground -> to
+                    is Int -> ThingBackground.pure(to)!!
+                    else -> {
+                        shouldAddToActionList = true
+                        updateUndoRedoActionButtonState()
+                        return
+                    }
                 }
                 mColorPicker!!.pickForBackground(bgTarget)
                 changeBackground(bgTarget)
@@ -2215,16 +2226,14 @@ class DetailActivity : EverythingDoneBaseActivity() {
             }
 
             // the scrollY that action bar shadow should begin to appear
-            val shadowAY: Float
             // the scrollY that action bar shadow should totally appear
-            val shadowTY: Float
-            shadowAY = if (imageHeight == 0) {
+            val shadowAY: Float = if (imageHeight == 0) {
                 screenDensity * 14
             } else {
                 imageHeight -
                         barsHeight - statusBarOffset + screenDensity * 20
             }
-            shadowTY = shadowAY + screenDensity * 20
+            val shadowTY: Float = shadowAY + screenDensity * 20
             if (scrollY >= shadowTY) {
                 mActionBarShadow!!.alpha = 1.0f
             } else if (scrollY <= shadowAY) {
@@ -2237,14 +2246,13 @@ class DetailActivity : EverythingDoneBaseActivity() {
             if (imageHeight != 0) {
                 val abAY: Float = shadowAY - screenDensity * 12
                 val abTY: Float = abAY + screenDensity * 16
-                val abAlpha: Int
-                if (scrollY <= abAY) {
-                    abAlpha = 0
+                val abAlpha: Int = if (scrollY <= abAY) {
+                    0
                 } else if (scrollY >= abTY) {
-                    abAlpha = 255
+                    255
                 } else {
                     val progress: Float = (scrollY - abAY) / (abTY - abAY)
-                    abAlpha = (progress * 255).toInt()
+                    (progress * 255).toInt()
                 }
 
                 var color = getAccentColor()
@@ -2964,7 +2972,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
         val attachment: String = AttachmentHelper.toAttachmentStr(imageItems, audioItems)!!
         val attachmentsToDelete: List<String?>? = AttachmentHelper
             .getAttachmentsToDelete(mThing!!.attachment, attachment)
-        if (attachmentsToDelete != null && !attachmentsToDelete.isEmpty()) {
+        if (!attachmentsToDelete.isNullOrEmpty()) {
             mApp!!.addAttachmentsToDeleteFile(attachmentsToDelete)
         }
         return attachment
@@ -3190,12 +3198,11 @@ class DetailActivity : EverythingDoneBaseActivity() {
             SystemNotificationUtil.cancelThingOngoingNotification(this, ongoingBefore)
         }
 
-        val ongoingAfter: Long
-        if (ongoingBefore == mThing!!.id) {
-            ongoingAfter = -1L
+        val ongoingAfter: Long = if (ongoingBefore == mThing!!.id) {
+            -1L
         } else {
-            ongoingAfter = mThing!!.id
             SystemNotificationUtil.createThingOngoingNotification(this, mThing)
+            mThing!!.id
         }
         getSharedPreferences(Def.Meta.PREFERENCES_NAME, MODE_PRIVATE)
             .edit().putLong(K, ongoingAfter).apply()

@@ -12,7 +12,6 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.appcompat.widget.Toolbar
 import android.view.View
-import android.view.ViewTreeObserver
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -591,8 +590,7 @@ open class StatisticActivity : EverythingDoneBaseActivity() {
                 R.string.statistic_reminder_in_advance
             )
             val rv: RecyclerView = f(R.id.rv_reminder_record_statistic)!!
-            val textSizes: FloatArray?
-            textSizes = if (LocaleUtil.isChinese(mApp)) {
+            val textSizes: FloatArray? = if (LocaleUtil.isChinese(mApp)) {
                 null
             } else {
                 floatArrayOf(EN.toFloat(), EN.toFloat(), EN.toFloat(), EN.toFloat())
@@ -626,8 +624,7 @@ open class StatisticActivity : EverythingDoneBaseActivity() {
                 R.string.statistic_habit_longest_pit
             )
             val rv: RecyclerView = f(R.id.rv_habit_record_statistic)!!
-            val textSizes: FloatArray
-            textSizes = if (LocaleUtil.isChinese(mApp)) {
+            val textSizes = if (LocaleUtil.isChinese(mApp)) {
                 floatArrayOf(16f, CN_SMALL.toFloat(), 16f, 16f, 16f)
             } else {
                 floatArrayOf(EN.toFloat(), EN.toFloat(), 14f, EN.toFloat(), EN.toFloat())
@@ -659,8 +656,7 @@ open class StatisticActivity : EverythingDoneBaseActivity() {
                 R.string.statistic_reminder_in_advance
             )
             val rv: RecyclerView = f(R.id.rv_goal_record_statistic)!!
-            val textSizes: FloatArray?
-            textSizes = if (LocaleUtil.isChinese(mApp)) {
+            val textSizes: FloatArray? = if (LocaleUtil.isChinese(mApp)) {
                 null
             } else {
                 floatArrayOf(EN.toFloat(), 16f, EN.toFloat(), EN.toFloat())

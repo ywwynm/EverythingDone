@@ -152,7 +152,7 @@ open class DoingActivity : EverythingDoneBaseActivity() {
      * view and force every level to transparent so the wallpaper is visible.
      */
     private fun clearOpaqueAncestorBackgrounds() {
-        var v: View? = findViewById<View>(android.R.id.content)
+        var v: View? = findViewById(android.R.id.content)
         val decor: View = window.decorView
         while (v != null) {
             v.background = null
