@@ -287,7 +287,7 @@ object ScreenshotHelper {
             rvChecklist: RecyclerView?, checkListAdapter: CheckListAdapter?,
             llMoveChecklist: LinearLayout?,
             rvImage: RecyclerView?, imageAdapter: ImageAttachmentAdapter?,
-            rvAudio: RecyclerView?, audioAdapter: AudioAttachmentAdapter?): List<Int?>? {
+            rvAudio: RecyclerView?, audioAdapter: AudioAttachmentAdapter?): List<Int?> {
         val didList: MutableList<Int?> = ArrayList()
         val noTitle: Boolean = etTitle!!.getText().toString().isEmpty()
         val noImage: Boolean = rvImage == null || rvImage.visibility != View.VISIBLE ||

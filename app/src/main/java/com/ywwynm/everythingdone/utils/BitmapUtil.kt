@@ -54,7 +54,7 @@ object BitmapUtil {
      */
     @JvmStatic
     fun createLayeredBitmap(
-            d: Drawable?, bg: com.ywwynm.everythingdone.model.ThingBackground?): Bitmap? {
+            d: Drawable?, bg: com.ywwynm.everythingdone.model.ThingBackground?): Bitmap {
         val background: Drawable
         if (bg == null || bg.mode === com.ywwynm.everythingdone.model.ThingBackground.Mode.PURE) {
             background = ColorDrawable(bg?.color ?: 0)
@@ -129,7 +129,7 @@ object BitmapUtil {
     }
 
     @JvmStatic
-    fun createCroppedBitmap(src: Bitmap?, reqWidth: Int, reqHeight: Int): Bitmap? {
+    fun createCroppedBitmap(src: Bitmap?, reqWidth: Int, reqHeight: Int): Bitmap {
         val scaledBm: Bitmap = createScaledBitmap(src, reqWidth, reqHeight, false)!!
 
         var x = 0

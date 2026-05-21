@@ -443,7 +443,7 @@ open class App : Application() {
         }
 
         @JvmStatic
-        fun getThingAndPosition(context: Context?, id: Long, knownPos: Int): Pair<Thing, Int>? {
+        fun getThingAndPosition(context: Context?, id: Long, knownPos: Int): Pair<Thing, Int> {
             val thingManager: ThingManager = ThingManager.getInstance(context)!!
             val thingDAO: ThingDAO = ThingDAO.getInstance(context)!!
             var thing: Thing? = null

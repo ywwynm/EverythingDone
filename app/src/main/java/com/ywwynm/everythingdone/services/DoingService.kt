@@ -517,7 +517,7 @@ open class DoingService : Service() {
         }
     }
 
-    private fun getInitialLeftTimeStr(): String? {
+    private fun getInitialLeftTimeStr(): String {
         if (mLeftTime == -1L) {
             return getString(R.string.infinity)
         }
@@ -638,7 +638,7 @@ open class DoingService : Service() {
         @JvmStatic
         fun getOpenIntent(
                 context: Context?, thing: Thing?, startTime: Long, timeInMillis: Long,
-                @StartType startType: Int, hrTime: Long): Intent? {
+                @StartType startType: Int, hrTime: Long): Intent {
             return Intent(context, DoingService::class.java)
                     .putExtra(Def.Communication.KEY_THING, thing)
                     .putExtra(KEY_START_TIME, startTime)

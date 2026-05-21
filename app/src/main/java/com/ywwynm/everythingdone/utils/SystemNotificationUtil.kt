@@ -66,7 +66,7 @@ object SystemNotificationUtil {
      */
     @JvmStatic
     fun newGeneralNotificationBuilder(
-            context: Context?, senderName: String?, id: Long, position: Int, thing: Thing?, autoNotify: Boolean): NotificationCompat.Builder? {
+            context: Context?, senderName: String?, id: Long, position: Int, thing: Thing?, autoNotify: Boolean): NotificationCompat.Builder {
 
         val contentIntent: Intent = AuthenticationActivity.getOpenIntent(
                 context, senderName, id, position,
@@ -364,7 +364,7 @@ object SystemNotificationUtil {
     @JvmStatic
     fun createDoingNotification(
             context: Context?, thing: Thing?, @DoingService.State doingState: Int,
-            leftTimeStr: String?, hrTime: Long, highlightStrategy: Int): Notification? {
+            leftTimeStr: String?, hrTime: Long, highlightStrategy: Int): Notification {
         @Thing.Type val thingType: Int = thing!!.type
         val contentText: String = getDoingNotificationContent(context, doingState, leftTimeStr)!!
         val builder: NotificationCompat.Builder = NotificationCompat.Builder(context!!, "doing")
@@ -416,7 +416,7 @@ object SystemNotificationUtil {
     }
 
     private fun getDoingNotificationTitle(
-            context: Context?, thing: Thing, @DoingService.State doingState: Int): String? {
+            context: Context?, thing: Thing, @DoingService.State doingState: Int): String {
         val nTitle: StringBuilder = StringBuilder()
         if (doingState == DoingService.STATE_DOING) {
             nTitle.append(context!!.getString(R.string.doing_currently_doing)).append(" ")
@@ -451,7 +451,7 @@ object SystemNotificationUtil {
     }
 
     private fun getDoingNotificationContent(
-            context: Context?, @DoingService.State doingState: Int, leftTimeStr: String?): String? {
+            context: Context?, @DoingService.State doingState: Int, leftTimeStr: String?): String {
         if (doingState == DoingService.STATE_DOING) {
             return context!!.getString(R.string.doing_left_time) + " " + leftTimeStr
         } else {

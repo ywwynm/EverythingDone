@@ -56,7 +56,7 @@ object NotificationReliabilityHelper {
      * critical channels are enabled. Always returns empty on API &lt; 26.
      */
     @JvmStatic
-    fun getDisabledCriticalChannels(context: Context?): List<String?>? {
+    fun getDisabledCriticalChannels(context: Context?): List<String?> {
         val disabled: MutableList<String?> = ArrayList()
         val nm: NotificationManager =
             context!!.getSystemService(NotificationManager::class.java) ?: return disabled

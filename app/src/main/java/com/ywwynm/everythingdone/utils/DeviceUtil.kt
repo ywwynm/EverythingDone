@@ -20,14 +20,14 @@ object DeviceUtil {
     const val TAG: String = $$"EverythingDone$DeviceUtil"
 
     @JvmStatic
-    fun getDeviceInfo(): String? {
+    fun getDeviceInfo(): String {
         return "OS Version:   " + getAndroidVersion() + "\n" +
                "Manufacturer: " + getManufacturer()   + "\n" +
                "Phone Model:  " + getPhoneModel()     + "\n"
     }
 
     @JvmStatic
-    fun getAndroidVersion(): String? {
+    fun getAndroidVersion(): String {
         return Build.VERSION.RELEASE + "_" + Build.VERSION.SDK_INT
     }
 

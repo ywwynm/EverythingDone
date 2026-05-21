@@ -10,7 +10,7 @@ import androidx.annotation.IntDef
  */
 open class ThingAction(private val type: Int, private val before: Any?, private val after: Any?) {
 
-    private val extras: Bundle? = Bundle()
+    private val extras: Bundle = Bundle()
 
     open fun getType(): Int {
         return type

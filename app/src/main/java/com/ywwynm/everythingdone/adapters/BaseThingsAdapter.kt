@@ -632,7 +632,7 @@ abstract class BaseThingsAdapter(context: Context?) :
         @JvmField val vHabitSeparator2: View?                 = f(R.id.view_habit_separator_2)
         @JvmField val llHabitRecord: LinearLayout?         = f(R.id.ll_thing_habit_record)
         @JvmField val tvHabitLastFive: TextView?            = f(R.id.tv_thing_habit_last_five_record)
-        @JvmField val habitRecordPresenter: HabitRecordPresenter? = HabitRecordPresenter(arrayOf(
+        @JvmField val habitRecordPresenter: HabitRecordPresenter = HabitRecordPresenter(arrayOf(
             f(R.id.iv_thing_habit_record_1),
             f(R.id.iv_thing_habit_record_2),
             f(R.id.iv_thing_habit_record_3),

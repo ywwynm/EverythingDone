@@ -430,7 +430,7 @@ open class Habit(
         }
 
         @JvmStatic
-        fun getDayTimeListFromDetail(detail: String?): List<Int?>? {
+        fun getDayTimeListFromDetail(detail: String?): List<Int?> {
             val timeList: ArrayList<Int?> = ArrayList()
             val times = detail!!.split(",".toRegex()).toTypedArray()
             for (time in times) {
@@ -442,7 +442,7 @@ open class Habit(
         }
 
         @JvmStatic
-        fun generateDetailDayOf(days: List<Int?>?, hour: Int, minute: Int): String? {
+        fun generateDetailDayOf(days: List<Int?>?, hour: Int, minute: Int): String {
             val sb = StringBuilder()
             for (day in days!!) {
                 sb.append(day).append(",")
@@ -453,7 +453,7 @@ open class Habit(
         }
 
         @JvmStatic
-        fun getDayOrMonthListFromDetail(detail: String?): List<Int?>? {
+        fun getDayOrMonthListFromDetail(detail: String?): List<Int?> {
             val domList: ArrayList<Int?> = ArrayList()
             val dayTimes = detail!!.split(" ".toRegex()).toTypedArray()
             val doms = dayTimes[0].split(",".toRegex()).toTypedArray()
@@ -464,7 +464,7 @@ open class Habit(
         }
 
         @JvmStatic
-        fun getTimeFromDetailWeekMonth(detail: String?): Array<String?>? {
+        fun getTimeFromDetailWeekMonth(detail: String?): Array<String?> {
             val dayTimes = detail!!.split(" ".toRegex()).toTypedArray()
             val times = dayTimes[1].split(":".toRegex()).toTypedArray()
             if (times[1].length == 1) {
@@ -475,7 +475,7 @@ open class Habit(
         }
 
         @JvmStatic
-        fun generateDetailMonthOfYear(months: List<Int?>?, day: Int, hour: Int, minute: Int): String? {
+        fun generateDetailMonthOfYear(months: List<Int?>?, day: Int, hour: Int, minute: Int): String {
             val sb = StringBuilder()
             for (month in months!!) {
                 sb.append(month).append(",")
@@ -487,7 +487,7 @@ open class Habit(
         }
 
         @JvmStatic
-        fun getTimeFromDetailYear(detail: String?): Array<String?>? {
+        fun getTimeFromDetailYear(detail: String?): Array<String?> {
             val dayTimes: Array<String?> = arrayOfNulls(3)
             val monthDayTimes = detail!!.split(" ".toRegex()).toTypedArray()
             dayTimes[0] = monthDayTimes[1]

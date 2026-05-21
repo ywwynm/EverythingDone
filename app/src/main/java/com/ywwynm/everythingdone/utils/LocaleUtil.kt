@@ -115,7 +115,7 @@ object LocaleUtil {
     }
 
     @JvmStatic
-    fun getPercentStr(num1: Int, num2: Int): String? {
+    fun getPercentStr(num1: Int, num2: Int): String {
         if (num2 == 0) {
             return "0 %"
         } else {

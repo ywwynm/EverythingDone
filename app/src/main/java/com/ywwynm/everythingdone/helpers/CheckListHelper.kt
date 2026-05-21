@@ -29,7 +29,7 @@ object CheckListHelper {
     }
 
     @JvmStatic
-    fun toCheckListItems(s: String?, convert: Boolean): MutableList<String?>? {
+    fun toCheckListItems(s: String?, convert: Boolean): MutableList<String?> {
         var str: String = s!!
         if (convert) {
             str = toCheckListStr(str)!!
@@ -58,13 +58,13 @@ object CheckListHelper {
     }
 
     @JvmStatic
-    fun toContentStr(items: List<String?>?): String? {
+    fun toContentStr(items: List<String?>?): String {
         val checkListStr: String = toCheckListStr(items)!!
         return toContentStr(checkListStr, "", "")
     }
 
     @JvmStatic
-    fun toContentStr(checkListStr: String?, unchecked: String?, checked: String?): String? {
+    fun toContentStr(checkListStr: String?, unchecked: String?, checked: String?): String {
         if (!checkListStr!!.contains(SIGNAL + 0) && !checkListStr.contains(SIGNAL + 1)) {
             return ""
         } else {
@@ -85,7 +85,7 @@ object CheckListHelper {
     }
 
     @JvmStatic
-    fun toCheckListStr(items: List<String?>?): String? {
+    fun toCheckListStr(items: List<String?>?): String {
         val sb: StringBuilder = StringBuilder()
         for (s in items!!) {
             if (s!!.startsWith("0") || s.startsWith("1")) {
@@ -96,7 +96,7 @@ object CheckListHelper {
     }
 
     @JvmStatic
-    fun toCheckListStr(content: String?): String? {
+    fun toCheckListStr(content: String?): String {
         return SIGNAL + 0 + content!!.replace("\n".toRegex(), SIGNAL + 0)
     }
 

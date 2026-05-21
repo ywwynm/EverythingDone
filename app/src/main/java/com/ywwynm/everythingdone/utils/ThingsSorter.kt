@@ -31,7 +31,7 @@ object ThingsSorter {
      *                     `ignoreSticky` is false.
      */
     @JvmStatic
-    fun getThingComparatorByAlarmTime(ignoreSticky: Boolean): Comparator<Thing?>? {
+    fun getThingComparatorByAlarmTime(ignoreSticky: Boolean): Comparator<Thing?> {
         val rDao: ReminderDAO = ReminderDAO.getInstance(App.getApp())!!
         val hDao: HabitDAO = HabitDAO.getInstance(App.getApp())!!
         return object : Comparator<Thing?> {

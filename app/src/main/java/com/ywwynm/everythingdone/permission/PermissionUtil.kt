@@ -24,7 +24,7 @@ import java.util.ArrayList
 object PermissionUtil {
 
     @JvmStatic
-    fun getImagePermissions(): Array<String?>? {
+    fun getImagePermissions(): Array<String?> {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             return arrayOf(Manifest.permission.READ_MEDIA_IMAGES)
         }
@@ -32,7 +32,7 @@ object PermissionUtil {
     }
 
     @JvmStatic
-    fun getVideoPermissions(): Array<String?>? {
+    fun getVideoPermissions(): Array<String?> {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             return arrayOf(Manifest.permission.READ_MEDIA_VIDEO)
         }
@@ -40,7 +40,7 @@ object PermissionUtil {
     }
 
     @JvmStatic
-    fun getAudioPermissions(): Array<String?>? {
+    fun getAudioPermissions(): Array<String?> {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             return arrayOf(Manifest.permission.READ_MEDIA_AUDIO)
         }
@@ -70,7 +70,7 @@ object PermissionUtil {
      * `READ_MEDIA_AUDIO` that matches the attachment types present.
      */
     @JvmStatic
-    fun getRequiredPermissionsForThings(things: List<Thing?>?): Array<String?>? {
+    fun getRequiredPermissionsForThings(things: List<Thing?>?): Array<String?> {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
             return arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
         }
@@ -111,7 +111,7 @@ object PermissionUtil {
         "Asking for image, video and audio permissions together is intrusive on Android 13+ and a denial on any one type currently aborts unrelated flows. Use getImagePermissions, getVideoPermissions or getAudioPermissions for new code, and consider ActivityResultContracts.PickVisualMedia or SAF (ACTION_OPEN_DOCUMENT) which need no permission at all."
     )
     @JvmStatic
-    fun getStoragePermissions(): Array<String?>? {
+    fun getStoragePermissions(): Array<String?> {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             return arrayOf(
                     Manifest.permission.READ_MEDIA_IMAGES,

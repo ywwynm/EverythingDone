@@ -282,7 +282,7 @@ open class Thing(
         }
 
         @JvmStatic
-        fun getLimits(type: Int, state: Int): IntArray? {
+        fun getLimits(type: Int, state: Int): IntArray {
             val limits: IntArray
             if (state == FINISHED || type == NOTIFY_EMPTY_FINISHED) {
                 limits = intArrayOf(Def.LimitForGettingThings.ALL_FINISHED)

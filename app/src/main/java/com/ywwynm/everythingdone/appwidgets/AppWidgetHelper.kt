@@ -212,7 +212,7 @@ object AppWidgetHelper {
     }
 
     @JvmStatic
-    fun getProviderClassBySize(@ThingWidgetInfo.Size size: Int): Class<*>? {
+    fun getProviderClassBySize(@ThingWidgetInfo.Size size: Int): Class<*> {
         return when (size) {
             ThingWidgetInfo.SIZE_TINY -> ThingWidgetTiny::class.java
             ThingWidgetInfo.SIZE_SMALL -> ThingWidgetSmall::class.java

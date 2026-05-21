@@ -59,7 +59,7 @@ object DisplayUtil {
 
     @SuppressLint("NewApi")
     @JvmStatic
-    fun getDisplaySize(context: Context?): Point? {
+    fun getDisplaySize(context: Context?): Point {
         val screen = Point()
         val display: Display = (context!!.getSystemService(Context.WINDOW_SERVICE) as WindowManager)
                 .defaultDisplay
@@ -70,7 +70,7 @@ object DisplayUtil {
 
     // Get physical screen size of phone/tablet.
     @JvmStatic
-    fun getScreenSize(context: Context?): Point? {
+    fun getScreenSize(context: Context?): Point {
         val realScreen = Point()
         val display: Display = (context!!.getSystemService(Context.WINDOW_SERVICE) as WindowManager)
                 .defaultDisplay

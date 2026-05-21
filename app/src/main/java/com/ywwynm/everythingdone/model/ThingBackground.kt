@@ -45,7 +45,7 @@ class ThingBackground private constructor(
     }
 
     /** Serialize to a JSON string suitable for persisting in the `background` DB column. */
-    fun toJson(): String? {
+    fun toJson(): String {
         try {
             val o = JSONObject()
             o.put(K_MODE,  mode.name)
@@ -107,13 +107,13 @@ class ThingBackground private constructor(
 
         /** A pure (single-color) background. */
         @JvmStatic
-        fun pure(color: Int): ThingBackground? {
+        fun pure(color: Int): ThingBackground {
             return ThingBackground(Mode.PURE, color, color, Orientation.L_R)
         }
 
         /** A two-color linear gradient background. */
         @JvmStatic
-        fun gradient(startColor: Int, endColor: Int, orientation: Orientation?): ThingBackground? {
+        fun gradient(startColor: Int, endColor: Int, orientation: Orientation?): ThingBackground {
             return ThingBackground(Mode.GRADIENT, startColor, endColor, orientation!!)
         }
 

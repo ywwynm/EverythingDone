@@ -205,7 +205,7 @@ object SendInfoHelper {
     }
 
     @JvmStatic
-    fun getHabitShareInfo(context: Context?, id: Long, thingState: Int): String? {
+    fun getHabitShareInfo(context: Context?, id: Long, thingState: Int): String {
         val habit: Habit = HabitDAO.getInstance(context)!!.getHabitById(id) ?: return ""
 
         val type: Int = habit.type

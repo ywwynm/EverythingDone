@@ -49,7 +49,7 @@ object FileUtil {
     const val TAG: String = "FileUtil"
 
     @JvmStatic
-    fun getTempPath(context: Context?): String? {
+    fun getTempPath(context: Context?): String {
         return Def.getAppFileDir(context) + "/temp"
     }
 
@@ -212,7 +212,7 @@ object FileUtil {
     }
 
     @JvmStatic
-    fun getFileSizeStr(file: File?): String? {
+    fun getFileSizeStr(file: File?): String {
         val B = 1.0
         val KB: Double = 1024 * B
         val MB: Double = 1024 * KB
@@ -242,7 +242,7 @@ object FileUtil {
     }
 
     @JvmStatic
-    fun getImageSize(pathName: String?): IntArray? {
+    fun getImageSize(pathName: String?): IntArray {
         val options: BitmapFactory.Options = BitmapFactory.Options()
         options.inJustDecodeBounds = true
         BitmapFactory.decodeFile(pathName, options)
@@ -593,7 +593,7 @@ object FileUtil {
      */
     @SuppressLint("SdCardPath")
     @JvmStatic
-    fun getAllStorageLocations(): List<String?>? {
+    fun getAllStorageLocations(): List<String?> {
         val ret: ArrayList<String?> = ArrayList()
 
         val mounts: ArrayList<String?> = ArrayList()

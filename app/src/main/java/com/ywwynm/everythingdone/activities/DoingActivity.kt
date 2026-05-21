@@ -336,7 +336,7 @@ open class DoingActivity : EverythingDoneBaseActivity() {
 
             override fun getCurrentMode(): Int = ModeManager.NORMAL
 
-            override fun getThings(): List<Thing?>? = singleThing
+            override fun getThings(): List<Thing?> = singleThing
 
             override fun onBindViewHolder(holder: BaseThingViewHolder, position: Int) {
                 super.onBindViewHolder(holder, position)

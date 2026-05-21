@@ -231,7 +231,7 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
                 return ModeManager.NORMAL
             }
 
-            override fun getThings(): MutableList<Thing?>? {
+            override fun getThings(): MutableList<Thing?> {
                 return singleThing.toMutableList()
             }
 

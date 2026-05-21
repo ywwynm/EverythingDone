@@ -14,7 +14,7 @@ object StringUtil {
     const val TAG: String = "StringUtil"
 
     @JvmStatic
-    fun upperFirst(s: String?): String? {
+    fun upperFirst(s: String?): String {
         if (TextUtils.isEmpty(s)) {
             return ""
         }
@@ -23,7 +23,7 @@ object StringUtil {
     }
 
     @JvmStatic
-    fun lowerFirst(s: String?): String? {
+    fun lowerFirst(s: String?): String {
         if (TextUtils.isEmpty(s)) {
             return ""
         }
@@ -32,7 +32,7 @@ object StringUtil {
     }
 
     @JvmStatic
-    fun replaceChineseBrackets(s: String?): String? {
+    fun replaceChineseBrackets(s: String?): String {
         if (TextUtils.isEmpty(s)) {
             return ""
         }
