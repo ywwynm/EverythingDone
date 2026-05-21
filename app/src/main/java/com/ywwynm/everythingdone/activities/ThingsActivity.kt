@@ -536,7 +536,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         if (requestCode == Def.Communication.REQUEST_ACTIVITY_DETAIL) {
-            updateMainUi(data!!, resultCode)
+            if (data != null) updateMainUi(data, resultCode)
         } else if (requestCode == Def.Communication.REQUEST_ACTIVITY_SETTINGS) {
             if (resultCode == Def.Communication.RESULT_UPDATE_DRAWER_HEADER_DONE) {
                 mDrawerHeader!!.updateDrawerHeader()
