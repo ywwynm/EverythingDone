@@ -32,33 +32,33 @@ object FrequentSettings {
 
         val languageCode: String = sp.getString(Def.Meta.KEY_LANGUAGE_CODE,
                 LocaleUtil.LANGUAGE_CODE_FOLLOW_SYSTEM + "_")!!
-        settingsMap!!.put(Def.Meta.KEY_LANGUAGE_CODE, languageCode)
+        settingsMap!![Def.Meta.KEY_LANGUAGE_CODE] = languageCode
 
         val toggleCliOtc: Boolean = sp.getBoolean(Def.Meta.KEY_TOGGLE_CLI_OTC, false)
-        settingsMap!!.put(Def.Meta.KEY_TOGGLE_CLI_OTC, toggleCliOtc)
+        settingsMap!![Def.Meta.KEY_TOGGLE_CLI_OTC] = toggleCliOtc
 
         val simpleFCli: Boolean = sp.getBoolean(Def.Meta.KEY_SIMPLE_FCLI, false)
-        settingsMap!!.put(Def.Meta.KEY_SIMPLE_FCLI, simpleFCli)
+        settingsMap!![Def.Meta.KEY_SIMPLE_FCLI] = simpleFCli
 
         val autoLink: Boolean = sp.getBoolean(Def.Meta.KEY_AUTO_LINK, false)
-        settingsMap!!.put(Def.Meta.KEY_AUTO_LINK, autoLink)
+        settingsMap!![Def.Meta.KEY_AUTO_LINK] = autoLink
 
         val twiceBack: Boolean = sp.getBoolean(Def.Meta.KEY_TWICE_BACK, false)
-        settingsMap!!.put(Def.Meta.KEY_TWICE_BACK, twiceBack)
+        settingsMap!![Def.Meta.KEY_TWICE_BACK] = twiceBack
 
         val closeLater: Boolean = sp.getBoolean(Def.Meta.KEY_CLOSE_NOTIFICATION_LATER, false)
-        settingsMap!!.put(Def.Meta.KEY_CLOSE_NOTIFICATION_LATER, closeLater)
+        settingsMap!![Def.Meta.KEY_CLOSE_NOTIFICATION_LATER] = closeLater
 
         val autoSaveEdits: Boolean = sp.getBoolean(Def.Meta.KEY_AUTO_SAVE_EDITS, false)
-        settingsMap!!.put(Def.Meta.KEY_AUTO_SAVE_EDITS, autoSaveEdits)
+        settingsMap!![Def.Meta.KEY_AUTO_SAVE_EDITS] = autoSaveEdits
 
         val curOngoingId: Long = sp.getLong(Def.Meta.KEY_ONGOING_THING_ID, -1L)
-        settingsMap!!.put(Def.Meta.KEY_ONGOING_THING_ID, curOngoingId)
+        settingsMap!![Def.Meta.KEY_ONGOING_THING_ID] = curOngoingId
     }
 
     @JvmStatic
     fun put(key: String?, value: Any?) {
-        settingsMap!!.put(key, value)
+        settingsMap!![key] = value
     }
 
     @JvmStatic
@@ -69,7 +69,7 @@ object FrequentSettings {
     @JvmStatic
     fun getBoolean(key: String?, defValue: Boolean): Boolean {
         if (settingsMap!!.containsKey(key)) {
-            return settingsMap!!.get(key) as Boolean
+            return settingsMap!![key] as Boolean
         } else {
             val value: Boolean = getBooleanFromSp(key, defValue)
             put(key, value)
@@ -85,7 +85,7 @@ object FrequentSettings {
     @JvmStatic
     fun getLong(key: String?, defValue: Long): Long {
         if (settingsMap!!.containsKey(key)) {
-            return settingsMap!!.get(key) as Long
+            return settingsMap!![key] as Long
         } else {
             val value: Long = getLongFromSp(key, defValue)
             put(key, value)
@@ -96,7 +96,7 @@ object FrequentSettings {
     @JvmStatic
     fun getString(key: String?, defValue: String?): String? {
         if (settingsMap!!.containsKey(key)) {
-            return settingsMap!!.get(key) as String?
+            return settingsMap!![key] as String?
         } else {
             val value: String? = getStringFromSp(key, defValue)
             put(key, value)

@@ -82,7 +82,7 @@ open class App : Application() {
 
         AppUpdateHelper.getInstance(this)!!.handleAppUpdate()
 
-        val file: File = File(getFilesDir(), Def.Meta.RESTORE_DONE_FILE_NAME)
+        val file = File(filesDir, Def.Meta.RESTORE_DONE_FILE_NAME)
         if (file.exists()) {
             AlarmHelper.createAllAlarms(this, false)
             val fingerprintHelper: FingerprintHelper = FingerprintHelper.getInstance()!!
@@ -149,37 +149,37 @@ open class App : Application() {
     private fun createNotificationChannels() {
         val nm: NotificationManager = getSystemService(NotificationManager::class.java)
 
-        val reminderChannel: NotificationChannel = NotificationChannel(
+        val reminderChannel = NotificationChannel(
                 "reminder", getString(R.string.channel_reminder),
                 NotificationManager.IMPORTANCE_HIGH)
         reminderChannel.enableVibration(true)
         reminderChannel.enableLights(true)
 
-        val habitChannel: NotificationChannel = NotificationChannel(
+        val habitChannel = NotificationChannel(
                 "habit", getString(R.string.channel_habit),
                 NotificationManager.IMPORTANCE_HIGH)
         habitChannel.enableVibration(true)
         habitChannel.enableLights(true)
 
-        val goalChannel: NotificationChannel = NotificationChannel(
+        val goalChannel = NotificationChannel(
                 "goal", getString(R.string.channel_goal),
                 NotificationManager.IMPORTANCE_HIGH)
         goalChannel.enableVibration(true)
         goalChannel.enableLights(true)
 
-        val doingChannel: NotificationChannel = NotificationChannel(
+        val doingChannel = NotificationChannel(
                 "doing", getString(R.string.channel_doing),
                 NotificationManager.IMPORTANCE_LOW)
 
-        val quickCreateChannel: NotificationChannel = NotificationChannel(
+        val quickCreateChannel = NotificationChannel(
                 "quick_create", getString(R.string.channel_quick_create),
                 NotificationManager.IMPORTANCE_MIN)
 
-        val ongoingChannel: NotificationChannel = NotificationChannel(
+        val ongoingChannel = NotificationChannel(
                 "ongoing", getString(R.string.channel_ongoing),
                 NotificationManager.IMPORTANCE_LOW)
 
-        val autoNotifyChannel: NotificationChannel = NotificationChannel(
+        val autoNotifyChannel = NotificationChannel(
                 "auto_notify", getString(R.string.channel_auto_notify),
                 NotificationManager.IMPORTANCE_DEFAULT)
 
@@ -199,12 +199,12 @@ open class App : Application() {
     }
 
     private fun startPullAliveJob() {
-        val componentName: ComponentName = ComponentName(this, PullAliveJobService::class.java)
+        val componentName = ComponentName(this, PullAliveJobService::class.java)
         val builder: JobInfo.Builder = JobInfo.Builder(Int.MAX_VALUE, componentName)
         //builder.setPeriodic(10 * 1000);
         builder.setPeriodic((30 * 60 * 1000).toLong()) // half an hour
         builder.setPersisted(true)
-        val jobScheduler: JobScheduler = getSystemService(Context.JOB_SCHEDULER_SERVICE) as JobScheduler
+        val jobScheduler: JobScheduler = getSystemService(JOB_SCHEDULER_SERVICE) as JobScheduler
         jobScheduler.schedule(builder.build())
     }
 
@@ -231,11 +231,10 @@ open class App : Application() {
 
     open fun releaseResourcesAfterDeleteForever() {
         if (!mThingsToDeleteForever!!.isEmpty()) {
-            val r: Runnable
-            r = object : Runnable {
+            val r = object : Runnable {
                 override fun run() {
                     val appDir: String = Def.getAppFileDir(this@App)!!
-                    val oldAppDir: String = Environment.getExternalStorageDirectory().getAbsolutePath() + "/EverythingDone"
+                    val oldAppDir: String = Environment.getExternalStorageDirectory().absolutePath + "/EverythingDone"
                     val dao: ReminderDAO = ReminderDAO.getInstance(this@App)!!
                     for (thing in mThingsToDeleteForever!!) {
                         val attachment: String = thing!!.attachment!!
@@ -268,11 +267,10 @@ open class App : Application() {
 
     open fun deleteAttachmentFiles() {
         if (!mAttachmentsToDeleteFile!!.isEmpty()) {
-            val r: Runnable
-            r = object : Runnable {
+            val r = object : Runnable {
                 override fun run() {
                     val appDir: String = Def.getAppFileDir(this@App)!!
-                    val oldAppDir: String = Environment.getExternalStorageDirectory().getAbsolutePath() + "/EverythingDone"
+                    val oldAppDir: String = Environment.getExternalStorageDirectory().absolutePath + "/EverythingDone"
                     val usedAttachments: MutableList<String?> = ArrayList()
                     val dao: ThingDAO = ThingDAO.getInstance(this@App)!!
                     val cursor: Cursor = dao.getAllThingsCursor()!!
@@ -432,19 +430,20 @@ open class App : Application() {
         @JvmStatic
         fun killMeAndRestart(context: Context?, toLaunch: Class<*>?, time: Long) {
             val intent: Intent
-            if (toLaunch == null) {
-                intent = context!!.getPackageManager().getLaunchIntentForPackage(
-                        context.getPackageName())!!
+            intent = if (toLaunch == null) {
+                context!!.packageManager.getLaunchIntentForPackage(
+                    context.packageName
+                )!!
             } else {
-                intent = Intent(context, toLaunch)
+                Intent(context, toLaunch)
             }
             intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
             val pendingIntent: PendingIntent = PendingIntent.getActivity(context,
                     0, intent, PendingIntent.FLAG_CANCEL_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-            val am: AlarmManager = context!!.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-            com.ywwynm.everythingdone.helpers.AlarmHelper.setExactAllowWhileIdleSafe(
+            val am: AlarmManager = context!!.getSystemService(ALARM_SERVICE) as AlarmManager
+            AlarmHelper.setExactAllowWhileIdleSafe(
                     am, System.currentTimeMillis() + time + 100, pendingIntent)
-            val handler: Handler = Handler(Looper.getMainLooper())
+            val handler = Handler(Looper.getMainLooper())
             handler.postDelayed(object : Runnable {
                 override fun run() {
                     System.exit(0)
@@ -460,17 +459,17 @@ open class App : Application() {
             var correctPos: Int = knownPos
             if (knownPos == -1) {
                 correctPos = thingManager.getPosition(id)
-                if (correctPos == -1) {
-                    thing = thingDAO.getThingById(id)
+                thing = if (correctPos == -1) {
+                    thingDAO.getThingById(id)
                 } else {
-                    thing = thingManager.getThings()!!.get(correctPos)
+                    thingManager.getThings()!![correctPos]
                 }
             } else {
                 val things: List<Thing?> = thingManager.getThings()!!
                 val size: Int = things.size
-                if (knownPos >= size || things.get(knownPos)!!.id != id) {
+                if (knownPos >= size || things[knownPos]!!.id != id) {
                     for (i in 0 until size) {
-                        val temp: Thing = things.get(i)!!
+                        val temp: Thing = things[i]!!
                         if (temp.id == id) {
                             thing = temp
                             correctPos = i
@@ -482,7 +481,7 @@ open class App : Application() {
                         correctPos = -1
                     }
                 } else {
-                    thing = things.get(knownPos)
+                    thing = things[knownPos]
                 }
             }
             return Pair(thing, correctPos)
@@ -515,10 +514,7 @@ open class App : Application() {
             var representative: Int = bg.representativeColor()
             while (ThingManager.isTotallyInitialized() && app!!.mThingManager != null
                     && app!!.mLimit == Def.LimitForGettingThings.ALL_UNDERWAY) {
-                val things: List<Thing?>? = app!!.mThingManager!!.getThings()
-                if (things == null) {
-                    break
-                }
+                val things: MutableList<Thing?> = app!!.mThingManager!!.getThings() ?: break
 
                 val size: Int = things.size
                 if (size <= 1) {
@@ -526,19 +522,19 @@ open class App : Application() {
                 }
 
                 val index: Int = app!!.mThingManager!!.getPositionToInsertNewThing()
-                val existedColors: IntArray = IntArray(4)
+                val existedColors = IntArray(4)
                 var start: Int = index - 2
                 var end: Int = index + 1
                 while (start < 1) {
                     start++
                     end++
                 }
-                if (start >= 1 && start < size) {
+                if (start in 1..<size) {
                     var i: Int = start
-                    var j: Int = 0
+                    var j = 0
                     while (i <= end) {
                         if (i < size) {
-                            val temp: Thing? = things.get(i)
+                            val temp: Thing? = things[i]
                             if (temp != null) {
                                 existedColors[j++] = temp.getBackground()!!.representativeColor()
                             }
@@ -547,7 +543,7 @@ open class App : Application() {
                     }
                 }
 
-                var spins: Int = 0
+                var spins = 0
                 while ((isInsideNear(existedColors, representative) || tooClose(representative, newThingColor))
                         && spins++ < 32) {
                     bg             = rollBackground()
@@ -574,12 +570,13 @@ open class App : Application() {
             var e: Int = randomColor()
             // Avoid degenerate gradient stops feeling identical — re-roll the end colour
             // a few times if it's too close to the start.
-            var i: Int = 0
+            var i = 0
             while (i < 4 && tooClose(s, e)) {
                 e = randomColor()
                 i++
             }
-            val orientations: Array<ThingBackground.Orientation> = ThingBackground.Orientation.values()
+            val orientations: Array<ThingBackground.Orientation> =
+                ThingBackground.Orientation.entries.toTypedArray()
             val o: ThingBackground.Orientation = orientations[sRandom.nextInt(orientations.size)]
             return ThingBackground.gradient(s, e, o)!!
         }
