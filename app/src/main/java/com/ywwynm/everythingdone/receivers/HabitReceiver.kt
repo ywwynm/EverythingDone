@@ -74,18 +74,16 @@ open class HabitReceiver : BroadcastReceiver() {
                     Toast.LENGTH_LONG).show()
             // create this notification after 1600ms, otherwise it will be cancelled because of
             // stopping a service bound a foreground notification with same id
-            Thread(object : Runnable {
-                override fun run() {
-                    try {
-                        Thread.sleep(1600)
-                    } catch (e: InterruptedException) {
-                        e.printStackTrace()
-                    }
-                    val notification: Notification = SystemNotificationUtil.createDoingNotification(
-                            App.getApp(), thing, DoingService.STATE_FAILED_NEXT_ALARM, null, -1, 2)!!
-                    NotificationManagerCompat.from(App.getApp()!!).notify(habitId.toInt(), notification)
+            Thread {
+                try {
+                    Thread.sleep(1600)
+                } catch (e: InterruptedException) {
+                    e.printStackTrace()
                 }
-            }).start()
+                val notification: Notification = SystemNotificationUtil.createDoingNotification(
+                        App.getApp(), thing, DoingService.STATE_FAILED_NEXT_ALARM, null, -1, 2)!!
+                NotificationManagerCompat.from(App.getApp()!!).notify(habitId.toInt(), notification)
+            }.start()
         }
 
         val position: Int = pair.second!!

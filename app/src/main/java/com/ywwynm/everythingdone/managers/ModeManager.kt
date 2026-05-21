@@ -80,22 +80,16 @@ open class ModeManager(app: App?,
     private var hideActionBarShadowRunnable: Runnable? = null
 
     init {
-        notifyDataSetRunnable = object : Runnable {
-            override fun run() {
-                mAdapter!!.notifyDataSetChanged()
-            }
+        notifyDataSetRunnable = Runnable {
+            mAdapter!!.notifyDataSetChanged()
         }
 
-        backNormalModeListener = object : View.OnClickListener {
-            override fun onClick(v: View) {
-                this@ModeManager.backNormalMode(0)
-            }
+        backNormalModeListener = View.OnClickListener {
+            this@ModeManager.backNormalMode(0)
         }
 
-        hideActionBarShadowRunnable = object : Runnable {
-            override fun run() {
-                mHeader!!.hideActionbarShadow()
-            }
+        hideActionBarShadowRunnable = Runnable {
+            mHeader!!.hideActionbarShadow()
         }
     }
 

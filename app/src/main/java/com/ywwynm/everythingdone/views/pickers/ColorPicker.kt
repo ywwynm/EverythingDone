@@ -136,16 +136,14 @@ open class ColorPicker(
         mOrientationBt = mContentView.findViewById(R.id.bt_change_gradient_orientation)
         if (mOrientationBt != null && mType == Def.PickerType.COLOR_EDIT) {
             mOrientationBt.setText(R.string.act_change_gradient_orientation)
-            mOrientationBt.setOnClickListener(object : View.OnClickListener {
-                override fun onClick(v: View) {
-                    // Phase 8: dismiss the popup first so the orientation
-                    // dialog opens against a clean window — otherwise the
-                    // dialog ends up below the picker and the user has to
-                    // tap-outside the popup before reaching it.
-                    dismiss()
-                    mOnChangeOrientationListener?.run()
-                }
-            })
+            mOrientationBt.setOnClickListener {
+                // Phase 8: dismiss the popup first so the orientation
+                // dialog opens against a clean window — otherwise the
+                // dialog ends up below the picker and the user has to
+                // tap-outside the popup before reaching it.
+                dismiss()
+                mOnChangeOrientationListener?.run()
+            }
         }
     }
 
@@ -587,13 +585,11 @@ open class ColorPicker(
             val bt: Button = f(R.id.bt_all_color)
 
             init {
-                bt.setOnClickListener(object : View.OnClickListener {
-                    override fun onClick(v: View) {
-                        mPopupWindow.dismiss()
-                        pickForUI(0)
-                        mOnClickListener?.onClick(v)
-                    }
-                })
+                bt.setOnClickListener {
+                    mPopupWindow.dismiss()
+                    pickForUI(0)
+                    mOnClickListener?.onClick(it)
+                }
             }
         }
 
@@ -625,25 +621,23 @@ open class ColorPicker(
                 cell.setForeground(
                         com.ywwynm.everythingdone.utils.BackgroundUtil.circularRipple())
 
-                cell.setOnClickListener(object : View.OnClickListener {
-                    override fun onClick(v: View) {
-                        val pos: Int = adapterPosition
-                        // Phase 6 fix round 4: only re-roll when the user taps
-                        // an already-picked random FAB. First tap commits the
-                        // colour the user can SEE, so display == result. Tap
-                        // again to shuffle.
-                        if (mType == Def.PickerType.COLOR_EDIT && mPickedPosition == pos) {
-                            if (pos == mColors.size + 1) {
-                                mRandomPureBg = rollPureBackground()
-                            } else if (pos == mColors.size + 2) {
-                                mRandomGradientBg = rollGradientBackground()
-                            }
+                cell.setOnClickListener {
+                    val pos: Int = adapterPosition
+                    // Phase 6 fix round 4: only re-roll when the user taps
+                    // an already-picked random FAB. First tap commits the
+                    // colour the user can SEE, so display == result. Tap
+                    // again to shuffle.
+                    if (mType == Def.PickerType.COLOR_EDIT && mPickedPosition == pos) {
+                        if (pos == mColors.size + 1) {
+                            mRandomPureBg = rollPureBackground()
+                        } else if (pos == mColors.size + 2) {
+                            mRandomGradientBg = rollGradientBackground()
                         }
-                        mPopupWindow.dismiss()
-                        pickForUI(pos)
-                        mOnClickListener?.onClick(v)
                     }
-                })
+                    mPopupWindow.dismiss()
+                    pickForUI(pos)
+                    mOnClickListener?.onClick(it)
+                }
             }
         }
 

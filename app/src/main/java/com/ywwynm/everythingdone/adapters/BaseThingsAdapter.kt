@@ -522,15 +522,13 @@ abstract class BaseThingsAdapter(context: Context?) :
     private fun updateCardForDoing(holder: BaseThingViewHolder, thing: Thing) {
         if (App.getDoingThingId() == thing.id) {
             holder.flDoing!!.visibility = View.VISIBLE
-            holder.cv!!.post(object : Runnable {
-                override fun run() {
-                    val lp = holder.flDoing!!.layoutParams as FrameLayout.LayoutParams
-                    lp.width  = holder.cv!!.width
-                    lp.height = holder.cv!!.height
-                    Log.i(TAG, "setting doing cover for thing card, " +
-                            "width[" + lp.width + ", height[" + lp.height + "]")
-                    holder.flDoing!!.requestLayout()
-                }
+            holder.cv!!.post(Runnable {
+                val lp = holder.flDoing!!.layoutParams as FrameLayout.LayoutParams
+                lp.width  = holder.cv!!.width
+                lp.height = holder.cv!!.height
+                Log.i(TAG, "setting doing cover for thing card, " +
+                        "width[" + lp.width + ", height[" + lp.height + "]")
+                holder.flDoing!!.requestLayout()
             })
         } else {
             holder.flDoing!!.visibility = View.GONE

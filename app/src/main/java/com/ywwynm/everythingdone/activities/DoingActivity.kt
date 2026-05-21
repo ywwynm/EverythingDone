@@ -241,14 +241,12 @@ open class DoingActivity : EverythingDoneBaseActivity() {
 
     private fun setRecyclerViewEvent() {
         mRecyclerView!!.viewTreeObserver.addOnGlobalLayoutListener(
-            object : ViewTreeObserver.OnGlobalLayoutListener {
-                override fun onGlobalLayout() {
-                    val height = mRecyclerView!!.height
-                    if (height > mRvMaxHeight) {
-                        val vlp: ViewGroup.LayoutParams = mRecyclerView!!.layoutParams
-                        vlp.height = mRvMaxHeight
-                        mRecyclerView!!.requestLayout()
-                    }
+            ViewTreeObserver.OnGlobalLayoutListener {
+                val height = mRecyclerView!!.height
+                if (height > mRvMaxHeight) {
+                    val vlp: ViewGroup.LayoutParams = mRecyclerView!!.layoutParams
+                    vlp.height = mRvMaxHeight
+                    mRecyclerView!!.requestLayout()
                 }
             })
         val helper = ItemTouchHelper(CardTouchCallback())

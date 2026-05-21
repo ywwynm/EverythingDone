@@ -28,11 +28,9 @@ object PossibleMistakeHelper {
 
     @JvmStatic
     fun outputNewMistakeInBackground(e: Exception?) {
-        Thread(object : Runnable {
-            override fun run() {
-                outputNewMistake(e)
-            }
-        }).start()
+        Thread {
+            outputNewMistake(e)
+        }.start()
     }
 
     @JvmStatic
@@ -57,11 +55,9 @@ object PossibleMistakeHelper {
     @JvmStatic
     fun outputNewMistakeInBackground(possibleMistakeInfo: String?) {
         val stackTraceElements: Array<StackTraceElement?> = Thread.currentThread().getStackTrace()
-        Thread(object : Runnable {
-            override fun run() {
-                outputNewMistake(possibleMistakeInfo, stackTraceElements)
-            }
-        }).start()
+        Thread {
+            outputNewMistake(possibleMistakeInfo, stackTraceElements)
+        }.start()
     }
 
     @JvmStatic

@@ -262,19 +262,17 @@ object BackgroundUtil {
 
         val anim: ValueAnimator = ValueAnimator.ofFloat(0f, 1f)
         anim.setDuration(duration)
-        anim.addUpdateListener(object : ValueAnimator.AnimatorUpdateListener {
-            override fun onAnimationUpdate(a: ValueAnimator) {
-                val f: Float = a.getAnimatedValue() as Float
-                val s: Int = eval.evaluate(f, fStart, tStart) as Int
-                val e: Int = eval.evaluate(f, fEnd,   tEnd) as Int
-                if (s == e) {
-                    view.setBackgroundColor(s)
-                } else {
-                    val o: ThingBackground.Orientation = if (f < 0.5f) oFrom else oTo
-                    applyBackground(view, ThingBackground.gradient(s, e, o))
-                }
+        anim.addUpdateListener { a: ValueAnimator ->
+            val f: Float = a.getAnimatedValue() as Float
+            val s: Int = eval.evaluate(f, fStart, tStart) as Int
+            val e: Int = eval.evaluate(f, fEnd,   tEnd) as Int
+            if (s == e) {
+                view.setBackgroundColor(s)
+            } else {
+                val o: ThingBackground.Orientation = if (f < 0.5f) oFrom else oTo
+                applyBackground(view, ThingBackground.gradient(s, e, o))
             }
-        })
+        }
         anim.start()
         return anim
     }
@@ -317,10 +315,8 @@ object BackgroundUtil {
         // (e.g. dialog enter animation) still uses the new colour.
         textView.setTextColor(background.representativeColor())
 
-        val apply: Runnable = object : Runnable {
-            override fun run() {
-                applyTextShaderNow(textView, background)
-            }
+        val apply: Runnable = Runnable {
+            applyTextShaderNow(textView, background)
         }
         if (textView.width > 0 && textView.height > 0
                 && textView.getText() != null && textView.getText().length > 0) {

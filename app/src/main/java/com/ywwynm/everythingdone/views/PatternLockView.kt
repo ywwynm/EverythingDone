@@ -419,12 +419,9 @@ open class PatternLockView @TargetApi(Build.VERSION_CODES.LOLLIPOP) constructor(
     private fun startCellActivatedAnimation(cell: Cell) {
         val cellState: CellState = mCellStates[cell.row][cell.column]
         startSizeAnimation(mDotSize.toFloat(), mDotSizeActivated.toFloat(), 96,
-                mLinearOutSlowInInterpolator, cellState, object : Runnable {
-
-                    override fun run() {
-                        startSizeAnimation(mDotSizeActivated.toFloat(), mDotSize.toFloat(), 192,
-                                mFastOutSlowInInterpolator, cellState, null)
-                    }
+                mLinearOutSlowInInterpolator, cellState, Runnable {
+                    startSizeAnimation(mDotSizeActivated.toFloat(), mDotSize.toFloat(), 192,
+                            mFastOutSlowInInterpolator, cellState, null)
                 })
         startLineEndAnimation(cellState, mInProgressX, mInProgressY,
                 getCenterXForColumn(cell.column), getCenterYForRow(cell.row))
@@ -435,16 +432,12 @@ open class PatternLockView @TargetApi(Build.VERSION_CODES.LOLLIPOP) constructor(
                                       targetY: Float) {
         val valueAnimator: ValueAnimator = ValueAnimator.ofFloat(0f, 1f)
         valueAnimator
-                .addUpdateListener(object : ValueAnimator.AnimatorUpdateListener {
-
-                    override fun onAnimationUpdate(animation: ValueAnimator) {
-                        val t: Float = animation.getAnimatedValue() as Float
-                        state.lineEndX = (1 - t) * startX + t * targetX
-                        state.lineEndY = (1 - t) * startY + t * targetY
-                        invalidate()
-                    }
-
-                })
+                .addUpdateListener { animation: ValueAnimator ->
+                    val t: Float = animation.getAnimatedValue() as Float
+                    state.lineEndX = (1 - t) * startX + t * targetX
+                    state.lineEndY = (1 - t) * startY + t * targetY
+                    invalidate()
+                }
         valueAnimator.addListener(object : AnimatorListenerAdapter() {
 
             override fun onAnimationEnd(animation: Animator) {
@@ -463,14 +456,10 @@ open class PatternLockView @TargetApi(Build.VERSION_CODES.LOLLIPOP) constructor(
                                    endRunnable: Runnable?) {
         val valueAnimator: ValueAnimator = ValueAnimator.ofFloat(start, end)
         valueAnimator
-                .addUpdateListener(object : ValueAnimator.AnimatorUpdateListener {
-
-                    override fun onAnimationUpdate(animation: ValueAnimator) {
-                        state.size = animation.getAnimatedValue() as Float
-                        invalidate()
-                    }
-
-                })
+                .addUpdateListener { animation: ValueAnimator ->
+                    state.size = animation.getAnimatedValue() as Float
+                    invalidate()
+                }
         if (endRunnable != null) {
             valueAnimator.addListener(object : AnimatorListenerAdapter() {
 

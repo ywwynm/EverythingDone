@@ -218,12 +218,10 @@ object DisplayUtil {
         val offsetAnimator: ValueAnimator = ValueAnimator.ofFloat(start, end)
         offsetAnimator.setDuration(300)
         offsetAnimator.interpolator = AccelerateDecelerateInterpolator()
-        offsetAnimator.addUpdateListener(object : ValueAnimator.AnimatorUpdateListener {
-            override fun onAnimationUpdate(animation: ValueAnimator) {
-                val progress: Float = animation.getAnimatedValue() as Float
-                d.progress = progress
-            }
-        })
+        offsetAnimator.addUpdateListener { animation: ValueAnimator ->
+            val progress: Float = animation.getAnimatedValue() as Float
+            d.progress = progress
+        }
         offsetAnimator.start()
     }
 

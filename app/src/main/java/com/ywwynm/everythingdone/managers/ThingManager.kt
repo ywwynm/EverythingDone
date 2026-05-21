@@ -234,11 +234,9 @@ open class ThingManager private constructor(context: Context?) {
             updateHeader(1)
         }
 
-        mExecutor!!.execute(object : Runnable {
-            override fun run() {
-                mDao!!.update(typeBefore, updatedThing, true, false)
-            }
-        })
+        mExecutor!!.execute {
+            mDao!!.update(typeBefore, updatedThing, true, false)
+        }
 
         val state: Int     = updatedThing!!.state
         val typeAfter: Int = updatedThing.type
@@ -286,12 +284,10 @@ open class ThingManager private constructor(context: Context?) {
             Thing.getSameCheckStateThing(thing, stateBefore, stateAfter)
         } else thing
 
-        mExecutor!!.execute(object : Runnable {
-            override fun run() {
-                mDao!!.updateState(thingToUpdate, location, stateBefore, stateAfter,
-                        handleNotifyEmpty, false, toUndo, true)
-            }
-        })
+        mExecutor!!.execute {
+            mDao!!.updateState(thingToUpdate, location, stateBefore, stateAfter,
+                    handleNotifyEmpty, false, toUndo, true)
+        }
 
         var deletedNEnow = false
         if (handleNotifyEmpty && !App.isSearching) {
@@ -375,11 +371,9 @@ open class ThingManager private constructor(context: Context?) {
             FrequentSettings.put(ONGOING_K, -1L)
         }
 
-        mExecutor!!.execute(object : Runnable {
-            override fun run() {
-                mDao!!.updateStates(clonedThings, null, stateBefore, stateAfter, false)
-            }
-        })
+        mExecutor!!.execute {
+            mDao!!.updateStates(clonedThings, null, stateBefore, stateAfter, false)
+        }
 
         // things.get(0).getType() will lead us to current limit.
         var type: Int = things[0]!!.type
@@ -430,29 +424,27 @@ open class ThingManager private constructor(context: Context?) {
 //            mThingsCounts.handleUpdate(t, stateBefore, t, stateAfter, v);
 //        }
 
-        mExecutor!!.execute(object : Runnable {
-            override fun run() {
-                for (goal in mUndoGoals!!) {
-                    rDao.resetGoal(goal)
-                }
+        mExecutor!!.execute {
+            for (goal in mUndoGoals!!) {
+                rDao.resetGoal(goal)
+            }
 
-                val habitDAO: HabitDAO = HabitDAO.getInstance(mContext)!!
-                val curTime: Long = System.currentTimeMillis()
-                if (stateAfter == Thing.UNDERWAY) {
-                    for (habitId in mUndoHabits!!) {
-                        habitDAO.updateHabitToLatest(habitId!!, true, true)
+            val habitDAO: HabitDAO = HabitDAO.getInstance(mContext)!!
+            val curTime: Long = System.currentTimeMillis()
+            if (stateAfter == Thing.UNDERWAY) {
+                for (habitId in mUndoHabits!!) {
+                    habitDAO.updateHabitToLatest(habitId!!, true, true)
+                    habitDAO.addHabitIntervalInfo(habitId, "$curTime;")
+                }
+            } else {
+                for (habitId in mUndoHabits!!) {
+                    if (habitDAO.isPaused(habitId!!)) {
                         habitDAO.addHabitIntervalInfo(habitId, "$curTime;")
                     }
-                } else {
-                    for (habitId in mUndoHabits!!) {
-                        if (habitDAO.isPaused(habitId!!)) {
-                            habitDAO.addHabitIntervalInfo(habitId, "$curTime;")
-                        }
-                        habitDAO.addHabitIntervalInfo(habitId, "$curTime,")
-                    }
+                    habitDAO.addHabitIntervalInfo(habitId, "$curTime,")
                 }
             }
-        })
+        }
 
         createNEnow(type, stateBefore, !App.isSearching)
 
@@ -475,12 +467,10 @@ open class ThingManager private constructor(context: Context?) {
             clonedLocations.add(location)
         }
 
-        mExecutor!!.execute(object : Runnable {
-            override fun run() {
-                mDao!!.updateStates(clonedThings, clonedLocations, stateBefore, stateAfter,
-                        true)
-            }
-        })
+        mExecutor!!.execute {
+            mDao!!.updateStates(clonedThings, clonedLocations, stateBefore, stateAfter,
+                    true)
+        }
 
         updateHeader(6)
 
@@ -513,24 +503,21 @@ open class ThingManager private constructor(context: Context?) {
 //            mThingsCounts.handleUpdate(t, stateBefore, t, stateAfter, v);
 //        }
 
-        mExecutor!!.execute(object : Runnable {
-
-            override fun run() {
-                mIsHandlingUndo = true
-                val reminderDAO: ReminderDAO = ReminderDAO.getInstance(mContext)!!
-                for (goal in mUndoGoals!!) {
-                    reminderDAO.update(goal)
-                }
-                mUndoGoals!!.clear()
-
-                val habitDAO: HabitDAO = HabitDAO.getInstance(mContext)!!
-                for (habitId in mUndoHabits!!) {
-                    habitDAO.removeLastHabitIntervalInfo(habitId!!)
-                }
-                mUndoHabits!!.clear()
-                mIsHandlingUndo = false
+        mExecutor!!.execute {
+            mIsHandlingUndo = true
+            val reminderDAO: ReminderDAO = ReminderDAO.getInstance(mContext)!!
+            for (goal in mUndoGoals!!) {
+                reminderDAO.update(goal)
             }
-        })
+            mUndoGoals!!.clear()
+
+            val habitDAO: HabitDAO = HabitDAO.getInstance(mContext)!!
+            for (habitId in mUndoHabits!!) {
+                habitDAO.removeLastHabitIntervalInfo(habitId!!)
+            }
+            mUndoHabits!!.clear()
+            mIsHandlingUndo = false
+        }
 
         createNEnow(type, stateBefore, !App.isSearching)
     }
@@ -586,11 +573,9 @@ open class ThingManager private constructor(context: Context?) {
             i++
             j++
         }
-        mExecutor!!.execute(object : Runnable {
-            override fun run() {
-                mDao!!.updateLocations(ids, locations)
-            }
-        })
+        mExecutor!!.execute {
+            mDao!!.updateLocations(ids, locations)
+        }
     }
 
     /**
@@ -631,12 +616,10 @@ open class ThingManager private constructor(context: Context?) {
         for (i in 0 until size) {
             mThings!![i]!!.location = locationsList[i]!!
         }
-        mExecutor!!.execute(object : Runnable {
-            override fun run() {
-                val locationsArray: Array<Long?> = locationsList.toTypedArray()
-                mDao!!.updateLocations(ids, locationsArray)
-            }
-        })
+        mExecutor!!.execute {
+            val locationsArray: Array<Long?> = locationsList.toTypedArray()
+            mDao!!.updateLocations(ids, locationsArray)
+        }
     }
 
     // added in thought of reusing code for shortcut action "checking upcoming thing" on 2016/10/22

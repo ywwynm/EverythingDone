@@ -20,17 +20,15 @@ open class UserPresentReceiver : BroadcastReceiver() {
             Log.i(TAG, "Screen is on, EverythingDone is responding...")
 
             val appContext: Context = context.applicationContext
-            Thread(object : Runnable {
-                override fun run() {
-                    AlarmHelper.createAllAlarms(appContext, false)
-                    Log.i(TAG, "Alarms set.")
+            Thread {
+                AlarmHelper.createAllAlarms(appContext, false)
+                Log.i(TAG, "Alarms set.")
 
-                    SystemNotificationUtil.tryToCreateQuickCreateNotification(appContext)
-                    Log.i(TAG, "Quick Create Notification created.")
+                SystemNotificationUtil.tryToCreateQuickCreateNotification(appContext)
+                Log.i(TAG, "Quick Create Notification created.")
 
-                    Log.i(TAG, "Everything Done after screen was on.")
-                }
-            }).start()
+                Log.i(TAG, "Everything Done after screen was on.")
+            }.start()
 
         }
     }

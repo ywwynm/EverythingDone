@@ -133,15 +133,13 @@ open class App : Application() {
         }
         Log.i(TAG, "Self-healing alarms (last rebuild " +
                 (if (lastRebuild == 0L) "never" else ((now - lastRebuild) / 60000).toString() + " min ago") + ")")
-        Thread(object : Runnable {
-            override fun run() {
-                try {
-                    AlarmHelper.createAllAlarms(this@App, false)
-                    sp.edit().putLong(Def.Meta.KEY_LAST_ALARM_REBUILD,
-                            System.currentTimeMillis()).apply()
-                } catch (t: Throwable) {
-                    Log.e(TAG, "Self-heal alarm rebuild failed", t)
-                }
+        Thread(Runnable {
+            try {
+                AlarmHelper.createAllAlarms(this@App, false)
+                sp.edit().putLong(Def.Meta.KEY_LAST_ALARM_REBUILD,
+                        System.currentTimeMillis()).apply()
+            } catch (t: Throwable) {
+                Log.e(TAG, "Self-heal alarm rebuild failed", t)
             }
         }, "alarm-self-heal").start()
     }
@@ -231,11 +229,10 @@ open class App : Application() {
 
     open fun releaseResourcesAfterDeleteForever() {
         if (!mThingsToDeleteForever!!.isEmpty()) {
-            val r = object : Runnable {
-                override fun run() {
-                    val appDir: String = Def.getAppFileDir(this@App)!!
-                    val oldAppDir: String = Environment.getExternalStorageDirectory().absolutePath + "/EverythingDone"
-                    val dao: ReminderDAO = ReminderDAO.getInstance(this@App)!!
+            val r = Runnable {
+                val appDir: String = Def.getAppFileDir(this@App)!!
+                val oldAppDir: String = Environment.getExternalStorageDirectory().absolutePath + "/EverythingDone"
+                val dao: ReminderDAO = ReminderDAO.getInstance(this@App)!!
                     for (thing in mThingsToDeleteForever!!) {
                         val attachment: String = thing!!.attachment!!
                         if (AttachmentHelper.isValidForm(attachment)) {
@@ -251,7 +248,6 @@ open class App : Application() {
                         dao.delete(thing.id)
                     }
                     mThingsToDeleteForever!!.clear()
-                }
             }
             mExecutor!!.execute(r)
         }
@@ -267,12 +263,11 @@ open class App : Application() {
 
     open fun deleteAttachmentFiles() {
         if (!mAttachmentsToDeleteFile!!.isEmpty()) {
-            val r = object : Runnable {
-                override fun run() {
-                    val appDir: String = Def.getAppFileDir(this@App)!!
-                    val oldAppDir: String = Environment.getExternalStorageDirectory().absolutePath + "/EverythingDone"
-                    val usedAttachments: MutableList<String?> = ArrayList()
-                    val dao: ThingDAO = ThingDAO.getInstance(this@App)!!
+            val r = Runnable {
+                val appDir: String = Def.getAppFileDir(this@App)!!
+                val oldAppDir: String = Environment.getExternalStorageDirectory().absolutePath + "/EverythingDone"
+                val usedAttachments: MutableList<String?> = ArrayList()
+                val dao: ThingDAO = ThingDAO.getInstance(this@App)!!
                     val cursor: Cursor = dao.getAllThingsCursor()!!
                     while (cursor.moveToNext()) {
                         val attachment: String = cursor.getString(cursor.getColumnIndexOrThrow(
@@ -296,7 +291,6 @@ open class App : Application() {
                         }
                     }
                     mAttachmentsToDeleteFile!!.clear()
-                }
             }
             mExecutor!!.execute(r)
         }
@@ -443,10 +437,8 @@ open class App : Application() {
             AlarmHelper.setExactAllowWhileIdleSafe(
                     am, System.currentTimeMillis() + time + 100, pendingIntent)
             val handler = Handler(Looper.getMainLooper())
-            handler.postDelayed(object : Runnable {
-                override fun run() {
-                    System.exit(0)
-                }
+            handler.postDelayed(Runnable {
+                System.exit(0)
             }, time)
         }
 

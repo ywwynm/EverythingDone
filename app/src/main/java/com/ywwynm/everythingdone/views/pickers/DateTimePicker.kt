@@ -325,15 +325,11 @@ open class DateTimePicker(
             val bt: Button = f(R.id.bt_pick_after_time)
 
             init {
-                bt.setOnClickListener(object : View.OnClickListener {
-                    override fun onClick(v: View) {
-                        mPopupWindow.dismiss()
-                        pickForUI(adapterPosition)
-                        if (mOnClickListener != null) {
-                            mOnClickListener!!.onClick(v)
-                        }
-                    }
-                })
+                bt.setOnClickListener {
+                    mPopupWindow.dismiss()
+                    pickForUI(adapterPosition)
+                    mOnClickListener?.onClick(it)
+                }
             }
         }
     }

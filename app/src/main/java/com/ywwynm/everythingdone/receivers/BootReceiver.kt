@@ -21,22 +21,20 @@ open class BootReceiver : BroadcastReceiver() {
             Log.i(TAG, "Device boot, EverythingDone is responding...")
 
             val appContext: Context = context.applicationContext
-            Thread(object : Runnable {
-                override fun run() {
-                    AlarmHelper.createAllAlarms(appContext, true)
-                    Log.i(TAG, "Alarms set.")
+            Thread {
+                AlarmHelper.createAllAlarms(appContext, true)
+                Log.i(TAG, "Alarms set.")
 
-                    SystemNotificationUtil.tryToCreateQuickCreateNotification(appContext)
-                    Log.i(TAG, "Quick Create Notification created.")
+                SystemNotificationUtil.tryToCreateQuickCreateNotification(appContext)
+                Log.i(TAG, "Quick Create Notification created.")
 
-                    SystemNotificationUtil.tryToCreateThingOngoingNotification(appContext)
+                SystemNotificationUtil.tryToCreateThingOngoingNotification(appContext)
 
-                    AppWidgetHelper.updateAllAppWidgets(appContext)
-                    Log.i(TAG, "App widgets updated.")
+                AppWidgetHelper.updateAllAppWidgets(appContext)
+                Log.i(TAG, "App widgets updated.")
 
-                    Log.i(TAG, "Everything Done after device boot.")
-                }
-            }).start()
+                Log.i(TAG, "Everything Done after device boot.")
+            }.start()
 
         }
     }

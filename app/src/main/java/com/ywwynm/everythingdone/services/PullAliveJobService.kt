@@ -32,27 +32,25 @@ open class PullAliveJobService : JobService() {
         // cached mThread and called start() on it again on subsequent jobs,
         // which throws IllegalThreadStateException on a finished thread — so
         // every run after the first was a silent no-op.
-        mWorker = Thread(object : Runnable {
-            override fun run() {
-                val context: Context = applicationContext
-                try {
-                    AlarmHelper.createAllAlarms(context, true)
-                    Log.i(TAG, "Alarms set.")
+        mWorker = Thread {
+            val context: Context = applicationContext
+            try {
+                AlarmHelper.createAllAlarms(context, true)
+                Log.i(TAG, "Alarms set.")
 
-                    SystemNotificationUtil.tryToCreateQuickCreateNotification(context)
-                    Log.i(TAG, "Quick Create Notification created.")
-                } catch (t: Throwable) {
-                    Log.e(TAG, "Pull alive worker crashed", t)
-                } finally {
-                    if (!Thread.interrupted()) {
-                        // Not asking for reschedule — the next periodic fire is
-                        // already booked and immediate retry burns quota.
-                        jobFinished(params, false)
-                        Log.i(TAG, "Everything Done for pull alive job.")
-                    }
+                SystemNotificationUtil.tryToCreateQuickCreateNotification(context)
+                Log.i(TAG, "Quick Create Notification created.")
+            } catch (t: Throwable) {
+                Log.e(TAG, "Pull alive worker crashed", t)
+            } finally {
+                if (!Thread.interrupted()) {
+                    // Not asking for reschedule — the next periodic fire is
+                    // already booked and immediate retry burns quota.
+                    jobFinished(params, false)
+                    Log.i(TAG, "Everything Done for pull alive job.")
                 }
             }
-        })
+        }
         mWorker!!.start()
         return true
     }

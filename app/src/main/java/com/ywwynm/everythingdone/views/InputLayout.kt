@@ -50,21 +50,19 @@ open class InputLayout(
         setColors(black_26p)
 
         mEditText.setSelectAllOnFocus(true)
-        mEditText.onFocusChangeListener = object : View.OnFocusChangeListener {
-            override fun onFocusChange(v: View, hasFocus: Boolean) {
-                if (hasFocus) {
-                    raiseLabel(true)
-                    setColors(mAccentColor)
-                    mTextView.setTypeface(Typeface.DEFAULT_BOLD)
-                } else {
-                    if (mEditText.getText().toString().isEmpty()) {
-                        this@InputLayout.fallLabel()
-                    }
-                    setColors(black_26p)
-                    mTextView.setTypeface(Typeface.DEFAULT)
+        mEditText.onFocusChangeListener = View.OnFocusChangeListener { v: View?, hasFocus: Boolean ->
+            if (hasFocus) {
+                raiseLabel(true)
+                setColors(mAccentColor)
+                mTextView.setTypeface(Typeface.DEFAULT_BOLD)
+            } else {
+                if (mEditText.getText().toString().isEmpty()) {
+                    this@InputLayout.fallLabel()
                 }
-                mOnFocusChangeListener?.onFocusChange(v, hasFocus)
+                setColors(black_26p)
+                mTextView.setTypeface(Typeface.DEFAULT)
             }
+            mOnFocusChangeListener?.onFocusChange(v, hasFocus)
         }
         DisplayUtil.setSelectionHandlersColor(mEditText, accentColor)
     }
