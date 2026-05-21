@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.ywwynm.everythingdone.activities
 
 import android.annotation.SuppressLint
@@ -36,7 +38,6 @@ import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.receivers.HabitNotificationActionReceiver
 import com.ywwynm.everythingdone.receivers.ReminderNotificationActionReceiver
 import com.ywwynm.everythingdone.utils.BackgroundUtil
-import com.ywwynm.everythingdone.utils.DateTimeUtil
 import com.ywwynm.everythingdone.utils.DeviceUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 
@@ -79,7 +80,7 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
 
     private val mReceiver: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            if (BROADCAST_ACTION_JUST_FINISH.equals(intent.action)) {
+            if (BROADCAST_ACTION_JUST_FINISH == intent.action) {
                 val thingId = intent.getLongExtra(Def.Communication.KEY_ID, -1L)
                 if (thingId == mThing!!.id) {
                     finish()
@@ -127,8 +128,8 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
         val thingId: Long
         if (mIsHabit) {
             mHrId = intent.getLongExtra(Def.Communication.KEY_ID, -1L)
-            val habitReminder: HabitReminder? = HabitDAO.getInstance(this)!!.getHabitReminderById(mHrId)
-            if (habitReminder == null) return
+            val habitReminder: HabitReminder =
+                HabitDAO.getInstance(this)!!.getHabitReminderById(mHrId) ?: return
             thingId = habitReminder.habitId
             mHrTime = intent.getLongExtra(Def.Communication.KEY_TIME, -1L)
         } else {
@@ -280,8 +281,8 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
                 super.onBindViewHolder(holder, position)
 
                 val bg: ThingBackground = mThing!!.getBackground()!!
-                holder.cv!!.setRadius(0f)
-                holder.cv!!.setCardElevation(0f)
+                holder.cv!!.radius = 0f
+                holder.cv!!.cardElevation = 0f
                 if (bg.mode === ThingBackground.Mode.PURE) {
                     holder.cv!!.setCardBackgroundColor(bg.color)
                 } else {
@@ -337,12 +338,12 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
         val size = mActions!!.size
         for (i in 0 until size) {
             mFlActions!![i]!!.visibility = View.VISIBLE
-            var drawable: Drawable = ContextCompat.getDrawable(this, mActionsIcons!!.get(i))!!
+            var drawable: Drawable = ContextCompat.getDrawable(this, mActionsIcons!![i])!!
             drawable = drawable.mutate()
             drawable.setColorFilter(actionColor, PorterDuff.Mode.SRC_ATOP)
             mIvActions!![i]!!.setImageDrawable(drawable)
-            mFlActions!![i]!!.setOnClickListener(mActions!!.get(i))
-            mIvActions!![i]!!.contentDescription = getString(mActionsTexts!!.get(i))
+            mFlActions!![i]!!.setOnClickListener(mActions!![i])
+            mIvActions!![i]!!.contentDescription = getString(mActionsTexts!![i])
         }
 
         if (FrequentSettings.getBoolean(Def.Meta.KEY_CLOSE_NOTIFICATION_LATER)) {
@@ -409,10 +410,9 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
     companion object {
         const val TAG: String = "NoticeableNotificationActivity"
 
-        @JvmField
-        val BROADCAST_ACTION_JUST_FINISH: String = "$TAG.action.just_finish"
+        const val BROADCAST_ACTION_JUST_FINISH: String = "$TAG.action.just_finish"
 
-        private val KEY_IS_HABIT: String = "$TAG.key.is_habit"
+        private const val KEY_IS_HABIT: String = "$TAG.key.is_habit"
 
         @JvmStatic
         fun getOpenIntentForReminder(context: Context?, thingId: Long, position: Int): Intent {

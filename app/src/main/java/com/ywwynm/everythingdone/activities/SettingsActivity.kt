@@ -1,4 +1,4 @@
-@file:Suppress("DEPRECATION")
+@file:Suppress("DEPRECATION", "UNCHECKED_CAST", "OVERRIDE_DEPRECATION")
 
 package com.ywwynm.everythingdone.activities
 
@@ -18,7 +18,6 @@ import android.media.RingtoneManager
 import android.net.Uri
 import android.os.AsyncTask
 import android.os.Build
-import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import androidx.annotation.StringRes
@@ -245,7 +244,7 @@ class SettingsActivity : EverythingDoneBaseActivity() {
             }
 
             if (requestCode == Def.Communication.REQUEST_CHOOSE_IMAGE_FILE) {
-                mTvDrawerHeader!!.setTextSize(12f)
+                mTvDrawerHeader!!.textSize = 12f
                 mTvDrawerHeader!!.text = pathName
             } else if (requestCode == Def.Communication.REQUEST_CHOOSE_AUDIO_FILE) {
                 setFileRingtone(pathName)
@@ -383,7 +382,7 @@ class SettingsActivity : EverythingDoneBaseActivity() {
         mCdfsRingtone         = arrayOfNulls(4)
 
         var defaultUri: Uri? = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-        if (defaultUri == null) defaultUri = sRingtoneUriList!!.get(0)
+        if (defaultUri == null) defaultUri = sRingtoneUriList!![0]
         for (i in mChosenRingtoneUris!!.indices) {
             val value: String = mPreferences!!.getString(sKeysRingtone[i], FOLLOW_SYSTEM)!!
             if (FOLLOW_SYSTEM == value) {
@@ -495,10 +494,10 @@ class SettingsActivity : EverythingDoneBaseActivity() {
             Def.Meta.KEY_DRAWER_HEADER, DEFAULT_DRAWER_HEADER
         )!!
         if (DEFAULT_DRAWER_HEADER == header) {
-            mTvDrawerHeader!!.setTextSize(14f)
+            mTvDrawerHeader!!.textSize = 14f
             mTvDrawerHeader!!.setText(R.string.default_drawer_header)
         } else {
-            mTvDrawerHeader!!.setTextSize(12f)
+            mTvDrawerHeader!!.textSize = 12f
             mTvDrawerHeader!!.text = header
         }
 
@@ -572,7 +571,7 @@ class SettingsActivity : EverythingDoneBaseActivity() {
             if (password == null) {
                 tvDscrpt.setText(R.string.password_not_set)
             } else {
-                tvDscrpt.setTextSize(if (LocaleUtil.isChinese(this)) 14f else 12f)
+                tvDscrpt.textSize = if (LocaleUtil.isChinese(this)) 14f else 12f
                 if (!fph.supportFingerprint()) {
                     tvDscrpt.setText(R.string.not_support_fgprt)
                 } else if (!fph.hasSystemFingerprintSet()) {
@@ -615,8 +614,8 @@ class SettingsActivity : EverythingDoneBaseActivity() {
         mASDTimesPicked[1] = ThingDoingHelper.getStartDoingTimeIndex(pickedStr[1], false)
 
         val items: List<String?> = ThingDoingHelper.getStartDoingTimeItems(this)!!
-        mTvASDTimes!![0]!!.text = items.get(mASDTimesPicked[0])
-        mTvASDTimes!![1]!!.text = items.get(mASDTimesPicked[1])
+        mTvASDTimes!![0]!!.text = items[mASDTimesPicked[0]]
+        mTvASDTimes!![1]!!.text = items[mASDTimesPicked[1]]
 
         mASMPicked = mPreferences!!.getInt(Def.Meta.KEY_AUTO_STRICT_MODE, 0)
         mTvASM!!.text = options[mASMPicked]
@@ -671,7 +670,7 @@ class SettingsActivity : EverythingDoneBaseActivity() {
         if (mDTPicked == 0) {
             mTvDT!!.setText(R.string.disabled)
         } else {
-            mTvDT!!.text = sDTItems!!.get(mDTPicked)
+            mTvDT!!.text = sDTItems!![mDTPicked]
         }
     }
 
@@ -682,7 +681,7 @@ class SettingsActivity : EverythingDoneBaseActivity() {
             mTvANRingtoneTitle!!.setTextColor(ContextCompat.getColor(this, R.color.black_14p))
             mTvANRingtone!!.text = ""
         } else {
-            mTvAN!!.text = sANItems!!.get(mANPicked - 1)
+            mTvAN!!.text = sANItems!![mANPicked - 1]
             mLlANRingtoneAsBt!!.isEnabled = true
             mTvANRingtoneTitle!!.setTextColor(ContextCompat.getColor(this, R.color.black_54p))
             mTvANRingtone!!.text = mChosenRingtoneTitles!![mChosenRingtoneTitles!!.size - 1]
@@ -693,9 +692,7 @@ class SettingsActivity : EverythingDoneBaseActivity() {
         val toolbar: Toolbar = f(R.id.actionbar)!!
         setSupportActionBar(toolbar)
         val actionBar: ActionBar? = supportActionBar
-        if (actionBar != null) {
-            actionBar.setDisplayHomeAsUpEnabled(true)
-        }
+        actionBar?.setDisplayHomeAsUpEnabled(true)
         toolbar.setNavigationOnClickListener {
             finish()
         }
@@ -751,7 +748,7 @@ class SettingsActivity : EverythingDoneBaseActivity() {
                 .getDisabledCriticalChannels(this@SettingsActivity)!!
             if (!disabled.isEmpty()) {
                 NotificationReliabilityHelper.openChannelSettings(
-                    this@SettingsActivity, disabled.get(0)!!
+                    this@SettingsActivity, disabled[0]!!
                 )
             } else {
                 NotificationReliabilityHelper.openAppNotificationSettings(this@SettingsActivity)
@@ -832,11 +829,11 @@ class SettingsActivity : EverythingDoneBaseActivity() {
             cdf.setItems(items)
             cdf.setShouldShowMore(false)
             cdf.setInitialIndex(if (mAutoSaveEdits) 0 else 1)
-            cdf.setConfirmListener(View.OnClickListener {
+            cdf.setConfirmListener {
                 val picked = cdf.getPickedIndex()
                 mAutoSaveEdits = picked == 0
                 mTvASE!!.setText(if (mAutoSaveEdits) R.string.enabled else R.string.disabled)
-            })
+            }
             cdf.show(fragmentManager, ChooserDialogFragment.TAG)
         }
         f<View>(R.id.iv_auto_save_edits_help_as_bt)!!.setOnClickListener {
@@ -892,11 +889,11 @@ class SettingsActivity : EverythingDoneBaseActivity() {
         val pldf = PatternLockDialogFragment()
         pldf.setType(PatternLockDialogFragment.TYPE_SET)
         pldf.setAccentColor(mAccentColor)
-        pldf.setPasswordSetDoneListener(View.OnClickListener {
+        pldf.setPasswordSetDoneListener {
             mPreferences!!.edit()
                 .putString(Def.Meta.KEY_PRIVATE_PASSWORD, pldf.getPassword()).apply()
             initUiPrivacy()
-        })
+        }
         pldf.show(fragmentManager, PatternLockDialogFragment.TAG)
     }
 
@@ -950,12 +947,12 @@ class SettingsActivity : EverythingDoneBaseActivity() {
         cdf.setTitle(getString(titleRes))
         cdf.setItems(ThingDoingHelper.getStartDoingTimeItems(this)!!.toMutableList())
         cdf.setInitialIndex(mASDTimesPicked[index])
-        cdf.setConfirmListener(View.OnClickListener {
+        cdf.setConfirmListener {
             val picked = cdf.getPickedIndex()
             mASDTimesPicked[index] = picked
             val items: List<String?> = ThingDoingHelper.getStartDoingTimeItems(applicationContext)!!
-            mTvASDTimes!![index]!!.text = items.get(picked)
-        })
+            mTvASDTimes!![index]!!.text = items[picked]
+        }
         cdf.show(fragmentManager, ChooserDialogFragment.TAG)
     }
 
@@ -963,12 +960,12 @@ class SettingsActivity : EverythingDoneBaseActivity() {
         val cdf: ChooserDialogFragment = createChooserDialogForStartDoing()
         cdf.setTitle(getString(R.string.auto_start_doing_title))
         cdf.setInitialIndex(mASDPicked)
-        cdf.setConfirmListener(View.OnClickListener {
+        cdf.setConfirmListener {
             mASDPicked = cdf.getPickedIndex()
             val states: Array<String> = resources.getStringArray(R.array.auto_start_doing_states)
             mTvASD!!.text = states[mASDPicked]
             enableOrDisableASDTimesUi()
-        })
+        }
         cdf.show(fragmentManager, ChooserDialogFragment.TAG)
     }
 
@@ -976,11 +973,11 @@ class SettingsActivity : EverythingDoneBaseActivity() {
         val cdf: ChooserDialogFragment = createChooserDialogForStartDoing()
         cdf.setTitle(getString(R.string.auto_strict_mode_title))
         cdf.setInitialIndex(mASMPicked)
-        cdf.setConfirmListener(View.OnClickListener {
+        cdf.setConfirmListener {
             val states: Array<String> = resources.getStringArray(R.array.auto_start_doing_states)
             mASMPicked = cdf.getPickedIndex()
             mTvASM!!.text = states[mASMPicked]
-        })
+        }
         cdf.show(fragmentManager, ChooserDialogFragment.TAG)
     }
 
@@ -1038,10 +1035,10 @@ class SettingsActivity : EverythingDoneBaseActivity() {
         cdf.setTitle(getString(R.string.auto_notify_set_time))
         cdf.setItems(sDTItems as MutableList<String?>?)
         cdf.setInitialIndex(mDTPicked)
-        cdf.setConfirmListener(View.OnClickListener {
+        cdf.setConfirmListener {
             mDTPicked = cdf.getPickedIndex()
             updateUiDailyTodo()
-        })
+        }
         cdf.show(fragmentManager, ChooserDialogFragment.TAG)
     }
 
@@ -1082,20 +1079,18 @@ class SettingsActivity : EverythingDoneBaseActivity() {
     private fun showChangeDrawerHeaderDialog() {
         val todf = TwoOptionsDialogFragment()
         todf.setStartAction(
-            R.drawable.act_default_drawer_header, R.string.default_drawer_header,
-            View.OnClickListener {
-                mTvDrawerHeader!!.setTextSize(14f)
-                mTvDrawerHeader!!.setText(R.string.default_drawer_header)
-                todf.dismiss()
-            }
-        )
+            R.drawable.act_default_drawer_header, R.string.default_drawer_header
+        ) {
+            mTvDrawerHeader!!.textSize = 14f
+            mTvDrawerHeader!!.setText(R.string.default_drawer_header)
+            todf.dismiss()
+        }
         todf.setEndAction(
-            R.drawable.act_select_image_as_drawer_header, R.string.more,
-            View.OnClickListener {
-                todf.dismiss()
-                startChooseImageAsDrawerHeader()
-            }
-        )
+            R.drawable.act_select_image_as_drawer_header, R.string.more
+        ) {
+            todf.dismiss()
+            startChooseImageAsDrawerHeader()
+        }
         todf.show(fragmentManager, TwoOptionsDialogFragment.TAG)
     }
 
@@ -1150,7 +1145,7 @@ class SettingsActivity : EverythingDoneBaseActivity() {
                 context, 0, intent,
                 PendingIntent.FLAG_CANCEL_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-            val am: AlarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            val am: AlarmManager = context.getSystemService(ALARM_SERVICE) as AlarmManager
             AlarmHelper.setExactAllowWhileIdleSafe(
                 am, System.currentTimeMillis() + 1600, pendingIntent
             )
@@ -1191,7 +1186,7 @@ class SettingsActivity : EverythingDoneBaseActivity() {
         val timeStr: String = java.time.ZonedDateTime.now().format(
             java.time.format.DateTimeFormatter.ofPattern("yyyyMMddHHmmss")
         )
-        intent.putExtra(Intent.EXTRA_TITLE, "ED_backup_" + timeStr + ".bak")
+        intent.putExtra(Intent.EXTRA_TITLE, "ED_backup_$timeStr.bak")
         startActivityForResult(intent, Def.Communication.REQUEST_CREATE_BACKUP_FILE)
     }
 
@@ -1262,17 +1257,17 @@ class SettingsActivity : EverythingDoneBaseActivity() {
         cdf.setItems(sRingtoneTitleList as MutableList<String?>?)
         cdf.setInitialIndex(sRingtoneUriList!!.indexOf(mChosenRingtoneUris!![index]))
         cdf.setShouldOverScroll(true)
-        cdf.setConfirmListener(View.OnClickListener {
+        cdf.setConfirmListener {
             val pickedIndex = cdf.getPickedIndex()
-            mTvsRingtone!![index]!!.text = sRingtoneTitleList!!.get(pickedIndex)
+            mTvsRingtone!![index]!!.text = sRingtoneTitleList!![pickedIndex]
             cdf.setInitialIndex(pickedIndex)
-            mChosenRingtoneUris!![index] = sRingtoneUriList!!.get(pickedIndex)
-            mChosenRingtoneTitles!![index] = sRingtoneTitleList!!.get(pickedIndex)
-        })
-        cdf.setMoreListener(View.OnClickListener {
+            mChosenRingtoneUris!![index] = sRingtoneUriList!![pickedIndex]
+            mChosenRingtoneTitles!![index] = sRingtoneTitleList!![pickedIndex]
+        }
+        cdf.setMoreListener {
             mChoosingIndex = index
             startChooseRingtoneFromStorage()
-        })
+        }
         cdf.setOnItemClickListener(View.OnClickListener {
             if (mPlayingRingtone != null) {
                 mPlayingRingtone!!.stop()
@@ -1284,13 +1279,11 @@ class SettingsActivity : EverythingDoneBaseActivity() {
                     "user picked a ringtone but getPickedIndex returned -1"
                 )
             }
-            var uri: Uri = sRingtoneUriList!!.get(pickedIndex)
+            var uri: Uri = sRingtoneUriList!![pickedIndex]
             val context: Context = this@SettingsActivity
             if (isFileRingtone(mRingtoneManager!!, uri)) {
-                val pathName: String? = UriPathConverter.getLocalPathName(context, uri)
-                if (pathName == null) {
-                    return@OnClickListener
-                }
+                val pathName: String =
+                    UriPathConverter.getLocalPathName(context, uri) ?: return@OnClickListener
                 uri = FileProvider.getUriForFile(
                     context, "com.ywwynm.everythingdone", File(pathName)
                 )
@@ -1324,10 +1317,10 @@ class SettingsActivity : EverythingDoneBaseActivity() {
         mCdfAN!!.setTitle(getString(R.string.auto_notify_set_time))
         mCdfAN!!.setItems(sANItems as MutableList<String?>?)
         mCdfAN!!.setInitialIndex(mANPicked)
-        mCdfAN!!.setConfirmListener(View.OnClickListener {
+        mCdfAN!!.setConfirmListener {
             mANPicked = mCdfAN!!.getPickedIndex()
             updateUiAutoNotifyRingtone()
-        })
+        }
     }
 
     private fun storeConfiguration() {

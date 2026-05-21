@@ -30,29 +30,25 @@ open class ShortcutActivity : AppCompatActivity() {
 
         val action: String? = intent.action
         var openIntent: Intent? = null
-        if (Def.Communication.SHORTCUT_ACTION_CREATE.equals(action)) {
+        if (Def.Communication.SHORTCUT_ACTION_CREATE == action) {
             openIntent = DetailActivity.getOpenIntentForCreate(
                 this, TAG,
                 if (App.newThingBackground != null)
                     App.newThingBackground
                 else ThingBackground.pure(App.newThingColor)
             )
-        } else if (Def.Communication.SHORTCUT_ACTION_CHECK_UPCOMING.equals(action)) {
+        } else if (Def.Communication.SHORTCUT_ACTION_CHECK_UPCOMING == action) {
             var canCheck = false
             val things: MutableList<Thing?> = ArrayList(ThingDAO.getInstance(this)!!
                 .getThingsForDisplay(Def.LimitForGettingThings.ALL_UNDERWAY)!!)
             Collections.sort(things, ThingsSorter.getThingComparatorByAlarmTime(true))
-            val thing: Thing = things.get(1)!! // 0 is header
+            val thing: Thing = things[1]!! // 0 is header
             @Thing.Type val thingType = thing.type
             if (thingType == Thing.HABIT) {
                 canCheck = true
             } else if (Thing.isReminderType(thingType)) {
                 val reminder: Reminder? = ReminderDAO.getInstance(this)!!.getReminderById(thing.id)
-                canCheck = if (reminder == null || reminder.state != Reminder.UNDERWAY) {
-                    false
-                } else {
-                    true
-                }
+                canCheck = !(reminder == null || reminder.state != Reminder.UNDERWAY)
             }
 
             if (canCheck) {
@@ -64,10 +60,10 @@ open class ShortcutActivity : AppCompatActivity() {
             } else {
                 Toast.makeText(this, R.string.alert_shortcut_no_upcoming, Toast.LENGTH_LONG).show()
             }
-        } else if (Def.Communication.SHORTCUT_ACTION_CHECK_STICKY.equals(action)) {
+        } else if (Def.Communication.SHORTCUT_ACTION_CHECK_STICKY == action) {
             val things: MutableList<Thing?> = ArrayList(ThingDAO.getInstance(this)!!
                 .getThingsForDisplay(Def.LimitForGettingThings.ALL_UNDERWAY)!!)
-            val thing: Thing = things.get(1)!!
+            val thing: Thing = things[1]!!
             if (thing.location < 0) {
                 openIntent = AuthenticationActivity.getOpenIntent(
                     this, TAG, thing.id, -1,

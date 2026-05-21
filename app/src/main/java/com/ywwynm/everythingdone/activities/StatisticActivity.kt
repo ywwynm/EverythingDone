@@ -122,7 +122,7 @@ open class StatisticActivity : EverythingDoneBaseActivity() {
 
         val D = SettingsActivity.DEFAULT_DRAWER_HEADER
         val header: String = mPreferences!!.getString(Def.Meta.KEY_DRAWER_HEADER, D)!!
-        if (D.equals(header)) {
+        if (D == header) {
             mIvHeader!!.setImageResource(R.drawable.drawer_header_large)
         } else {
             if (!File(header).exists()) {
@@ -162,7 +162,7 @@ open class StatisticActivity : EverythingDoneBaseActivity() {
             val year  = mApp!!.getString(R.string.year)
             val month = mApp!!.getString(R.string.month)
             val day   = mApp!!.getString(R.string.day)
-            sb.append(dt.format(DateTimeFormatter.ofPattern(" yyyy " + year + " M " + month + " d " + day)))
+            sb.append(dt.format(DateTimeFormatter.ofPattern(" yyyy $year M $month d $day")))
                 .append(getString(R.string.statistic_start_from_part_2))
                 .append(" ").append(gap).append(" ")
         } else {
@@ -244,11 +244,10 @@ open class StatisticActivity : EverythingDoneBaseActivity() {
     }
 
     override fun setEvents() {
-        mScrollView!!.viewTreeObserver.addOnScrollChangedListener(
-            ViewTreeObserver.OnScrollChangedListener {
-                updateFabState()
-                updateActionbarState()
-            })
+        mScrollView!!.viewTreeObserver.addOnScrollChangedListener {
+            updateFabState()
+            updateActionbarState()
+        }
 
         mFab!!.setOnClickListener { startScreenshot() }
     }
@@ -360,8 +359,7 @@ open class StatisticActivity : EverythingDoneBaseActivity() {
             val id = cursor.getLong(
                 cursor.getColumnIndex(Def.Database.COLUMN_ID_THINGS)
             )
-            val habit: Habit? = hDao.getHabitById(id)
-            if (habit == null) continue
+            val habit: Habit = hDao.getHabitById(id) ?: continue
 
             val record: String = habit.record!!
             fCount += countOfKey(record, "1")
@@ -415,8 +413,7 @@ open class StatisticActivity : EverythingDoneBaseActivity() {
             val id = cursor.getLong(
                 cursor.getColumnIndex(Def.Database.COLUMN_ID_THINGS)
             )
-            val reminder: Reminder? = rDao.getReminderById(id)
-            if (reminder == null) continue
+            val reminder: Reminder = rDao.getReminderById(id) ?: continue
 
             tNtfMillis += reminder.notifyMillis
 
@@ -595,10 +592,10 @@ open class StatisticActivity : EverythingDoneBaseActivity() {
             )
             val rv: RecyclerView = f(R.id.rv_reminder_record_statistic)!!
             val textSizes: FloatArray?
-            if (LocaleUtil.isChinese(mApp)) {
-                textSizes = null
+            textSizes = if (LocaleUtil.isChinese(mApp)) {
+                null
             } else {
-                textSizes = floatArrayOf(EN.toFloat(), EN.toFloat(), EN.toFloat(), EN.toFloat())
+                floatArrayOf(EN.toFloat(), EN.toFloat(), EN.toFloat(), EN.toFloat())
             }
             rv.adapter = StatisticAdapter(
                 this@StatisticActivity, iconRes, firstRes, textSizes, strings
@@ -630,10 +627,10 @@ open class StatisticActivity : EverythingDoneBaseActivity() {
             )
             val rv: RecyclerView = f(R.id.rv_habit_record_statistic)!!
             val textSizes: FloatArray
-            if (LocaleUtil.isChinese(mApp)) {
-                textSizes = floatArrayOf(16f, CN_SMALL.toFloat(), 16f, 16f, 16f)
+            textSizes = if (LocaleUtil.isChinese(mApp)) {
+                floatArrayOf(16f, CN_SMALL.toFloat(), 16f, 16f, 16f)
             } else {
-                textSizes = floatArrayOf(EN.toFloat(), EN.toFloat(), 14f, EN.toFloat(), EN.toFloat())
+                floatArrayOf(EN.toFloat(), EN.toFloat(), 14f, EN.toFloat(), EN.toFloat())
             }
             rv.adapter = StatisticAdapter(
                 this@StatisticActivity, iconRes, firstRes, textSizes, strings
@@ -663,10 +660,10 @@ open class StatisticActivity : EverythingDoneBaseActivity() {
             )
             val rv: RecyclerView = f(R.id.rv_goal_record_statistic)!!
             val textSizes: FloatArray?
-            if (LocaleUtil.isChinese(mApp)) {
-                textSizes = null
+            textSizes = if (LocaleUtil.isChinese(mApp)) {
+                null
             } else {
-                textSizes = floatArrayOf(EN.toFloat(), 16f, EN.toFloat(), EN.toFloat())
+                floatArrayOf(EN.toFloat(), 16f, EN.toFloat(), EN.toFloat())
             }
             rv.adapter = StatisticAdapter(
                 this@StatisticActivity, iconRes, firstRes, textSizes, strings

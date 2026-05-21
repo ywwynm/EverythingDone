@@ -101,9 +101,7 @@ open class AboutActivity : EverythingDoneBaseActivity() {
     override fun setActionbar() {
         setSupportActionBar(mActionbar)
         val actionBar: ActionBar? = supportActionBar
-        if (actionBar != null) {
-            actionBar.setDisplayHomeAsUpEnabled(true)
-        }
+        actionBar?.setDisplayHomeAsUpEnabled(true)
         mActionbar!!.setNavigationOnClickListener { finish() }
     }
 

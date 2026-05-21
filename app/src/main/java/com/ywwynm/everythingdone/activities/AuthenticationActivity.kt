@@ -83,11 +83,11 @@ open class AuthenticationActivity : AppCompatActivity() {
     }
 
     private fun act(action: String?, thing: Thing, position: Int) {
-        if (Def.Communication.AUTHENTICATE_ACTION_FINISH.equals(action)) {
+        if (Def.Communication.AUTHENTICATE_ACTION_FINISH == action) {
             actFinish(thing, position)
-        } else if (Def.Communication.AUTHENTICATE_ACTION_DELAY.equals(action)) {
+        } else if (Def.Communication.AUTHENTICATE_ACTION_DELAY == action) {
             actDelay(thing, position)
-        } else if (Def.Communication.AUTHENTICATE_ACTION_START_DOING.equals(action)) {
+        } else if (Def.Communication.AUTHENTICATE_ACTION_START_DOING == action) {
             actStartDoing(thing, position)
         } else {
             actView()
@@ -104,7 +104,7 @@ open class AuthenticationActivity : AppCompatActivity() {
         if (thing.type != Thing.HABIT) { // reminder or goal
             RemoteActionHelper.finishReminder(this, thing, position)
         } else {
-            val time = getIntent().getLongExtra(Def.Communication.KEY_TIME, -1)
+            val time = intent.getLongExtra(Def.Communication.KEY_TIME, -1)
             RemoteActionHelper.finishHabitOnce(this, thing, position, time)
         }
     }
@@ -117,7 +117,7 @@ open class AuthenticationActivity : AppCompatActivity() {
     }
 
     private fun actStartDoing(thing: Thing, position: Int) {
-        val hrTime = getIntent().getLongExtra(Def.Communication.KEY_TIME, -1)
+        val hrTime = intent.getLongExtra(Def.Communication.KEY_TIME, -1)
         val intent = StartDoingActivity.getOpenIntent(
             this, thing.id, position, thing.getBackground(),
             DoingService.START_TYPE_ALARM, hrTime

@@ -37,7 +37,6 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
-import android.view.KeyEvent
 import android.view.Menu
 import android.view.MenuItem
 import android.view.MotionEvent
@@ -97,7 +96,6 @@ import com.ywwynm.everythingdone.utils.SystemNotificationUtil
 import com.ywwynm.everythingdone.views.ActivityHeader
 import com.ywwynm.everythingdone.views.DrawerHeader
 import com.ywwynm.everythingdone.views.FloatingActionButton
-import com.ywwynm.everythingdone.views.InterceptTouchCardView
 import com.ywwynm.everythingdone.views.Snackbar
 import com.ywwynm.everythingdone.views.ThingsStaggeredLayoutManager
 import com.ywwynm.everythingdone.views.pickers.ColorPicker
@@ -418,7 +416,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
             }
         }
 
-        mFab!!.setRippleColor(App.newThingColor)
+        mFab!!.rippleColor = App.newThingColor
         mActivityHeader!!.updateText()
 
         KeyboardUtil.hideKeyboard(currentFocus)
@@ -491,7 +489,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         if (limit <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
             menuInflater.inflate(R.menu.menu_things_underway, menu)
             if (limit == Def.LimitForGettingThings.NOTE_UNDERWAY) {
-                menu.findItem(R.id.act_sort_by_alarm).setVisible(false)
+                menu.findItem(R.id.act_sort_by_alarm).isVisible = false
             }
         } else if (limit == Def.LimitForGettingThings.ALL_FINISHED) {
             menuInflater.inflate(R.menu.menu_things_finished, menu)
@@ -642,8 +640,8 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         }
 
         val underway: MenuItem = mDrawer!!.menu.getItem(0)
-        mPreviousItem!!.setChecked(false)
-        underway.setChecked(true)
+        mPreviousItem!!.isChecked = false
+        underway.isChecked = true
         mPreviousItem = underway
 
         val createdDone = data.getBooleanExtra(Def.Communication.KEY_CREATED_DONE, false)
@@ -652,10 +650,10 @@ class ThingsActivity : EverythingDoneBaseActivity() {
 
         mDrawerLayout!!.postDelayed({
             val change: Boolean
-            if (createdDone) {
-                change = data.getBooleanExtra(Def.Communication.KEY_CALL_CHANGE, false)
+            change = if (createdDone) {
+                data.getBooleanExtra(Def.Communication.KEY_CALL_CHANGE, false)
             } else {
-                change = mThingManager!!.create(thingToCreate, true, true)
+                mThingManager!!.create(thingToCreate, true, true)
             }
             mRecyclerView!!.postDelayed({
                 val newPos = mThingManager!!.getPositionToInsertNewThing()
@@ -721,7 +719,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
                 } else {
                     val things: MutableList<Thing?> = mThingManager!!.getThings()!!
                     if (pos > 0 && pos < things.size) {
-                        val thing: Thing = things.get(pos)!!
+                        val thing: Thing = things[pos]!!
                         if (thing.matchSearchRequirement(
                                 mEtSearch!!.text.toString(),
                                 mColorPicker!!.getPickedColor()
@@ -1035,8 +1033,8 @@ class ThingsActivity : EverythingDoneBaseActivity() {
             })
 
         val item: MenuItem = mDrawer!!.menu.getItem(mApp!!.getLimit())
-        item.setCheckable(true)
-        item.setChecked(true)
+        item.isCheckable = true
+        item.isChecked = true
         mPreviousItem = item
 
         mActivityHeader!!.updateText()
@@ -1383,8 +1381,8 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         val cy = h
         val finalRadius = Math.hypot(w.toDouble(), h.toDouble()).toFloat()
         val reveal: Animator = ViewAnimationUtils.createCircularReveal(card, cx, cy, 0f, finalRadius)
-        reveal.setDuration(540)
-        reveal.setInterpolator(AccelerateDecelerateInterpolator())
+        reveal.duration = 540
+        reveal.interpolator = AccelerateDecelerateInterpolator()
         reveal.addListener(object : AnimatorListenerAdapter() {
             override fun onAnimationStart(a: Animator) {
                 card.alpha = 1f
@@ -1451,7 +1449,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
                 return@OnClickListener
             }
 
-            val stateAfter = mUndoThings!!.get(0).state
+            val stateAfter = mUndoThings!![0].state
             mScrollCausedByFinger = false
 
             if (mUndoAll) {
@@ -1476,9 +1474,9 @@ class ThingsActivity : EverythingDoneBaseActivity() {
                 )
             } else if (!mUndoThings!!.isEmpty()) {
                 val size = mUndoThings!!.size
-                val thing = mUndoThings!!.get(size - 1)
-                val position = mUndoPositions!!.get(size - 1)
-                val location = mUndoLocations!!.get(size - 1)
+                val thing = mUndoThings!![size - 1]
+                val position = mUndoPositions!![size - 1]
+                val location = mUndoLocations!![size - 1]
                 mUndoThings!!.removeAt(size - 1)
                 mUndoPositions!!.removeAt(size - 1)
                 mUndoLocations!!.removeAt(size - 1)
@@ -1513,11 +1511,11 @@ class ThingsActivity : EverythingDoneBaseActivity() {
                 dismissSnackbars()
             }
         })
-        mHabitSnackbar!!.setUndoListener(View.OnClickListener {
+        mHabitSnackbar!!.setUndoListener {
             if (!mUndoHabitRecords!!.isEmpty()) {
                 var size = mUndoHabitRecords!!.size
-                val hr: HabitRecord = mUndoHabitRecords!!.get(size - 1)
-                val position = mUndoPositions!!.get(size - 1)
+                val hr: HabitRecord = mUndoHabitRecords!![size - 1]
+                val position = mUndoPositions!![size - 1]
                 mThingsIdsToUpdateWidget!!.remove(hr.habitId)
                 mUndoHabitRecords!!.removeAt(size - 1)
                 mUndoPositions!!.removeAt(size - 1)
@@ -1526,11 +1524,11 @@ class ThingsActivity : EverythingDoneBaseActivity() {
 
                 if (!mUndoThings!!.isEmpty()) {
                     size = mUndoThings!!.size
-                    val thing = mUndoThings!!.get(size - 1)
+                    val thing = mUndoThings!![size - 1]
                     mUndoThings!!.removeAt(size - 1)
                     mThingsIdsToUpdateWidget!!.remove(thing.id)
                     mThingManager!!.update(thing.type, thing, position, false)
-                    mThingManager!!.getThings()!!.set(position, thing)
+                    mThingManager!!.getThings()!![position] = thing
                 }
 
                 mAdapter!!.notifyItemChanged(position)
@@ -1544,7 +1542,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
                     AppWidgetHelper.updateThingsListAppWidgetsForType(mApp, Thing.HABIT)
                 }
             }
-        })
+        }
     }
 
     private fun setSearchEvents() {
@@ -1633,7 +1631,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
 
         mActionbar!!.setNavigationOnClickListener(OnNavigationIconClickedListener())
         mDrawer!!.setNavigationItemSelectedListener(NavigationView.OnNavigationItemSelectedListener { menuItem ->
-            if (!mPreviousItem!!.equals(menuItem)) {
+            if (mPreviousItem!! != menuItem) {
                 val newLimit: Int
                 val id = menuItem.itemId
                 if (id == R.id.drawer_underway) {
@@ -1701,9 +1699,9 @@ class ThingsActivity : EverythingDoneBaseActivity() {
     }
 
     private fun checkDrawerItem(menuItem: MenuItem) {
-        menuItem.setCheckable(true)
-        menuItem.setChecked(true)
-        mPreviousItem!!.setChecked(false)
+        menuItem.isCheckable = true
+        menuItem.isChecked = true
+        mPreviousItem!!.isChecked = false
         mPreviousItem = menuItem
     }
 
@@ -1723,7 +1721,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         val size = things.size
         if (mModeManager!!.getCurrentMode() == ModeManager.SELECTING) {
             for (i in 1 until size) {
-                thing = things.get(i)!!
+                thing = things[i]!!
                 if (thing.isSelected()) {
                     val type = thing.type
                     if (Thing.isImportantType(type)) {
@@ -1740,7 +1738,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
             }
         } else {
             for (i in 1 until size) {
-                thing = things.get(i)!!
+                thing = things[i]!!
                 val type = thing.type
                 if (Thing.isImportantType(type)) {
                     containsHabitOrGoal = true
@@ -1758,7 +1756,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
             }
         }
 
-        val stateBefore = things.get(1)!!.state
+        val stateBefore = things[1]!!.state
         if (containsHabitOrGoal && stateBefore == Thing.UNDERWAY && mUndoThings!!.size > 1) {
             // if mUntoThing.size == 1, it means that it is user's decision
             alertForHabitGoal(stateBefore, stateAfter)
@@ -1820,7 +1818,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
     }
 
     private fun handleUpdateStates(stateBefore: Int, stateAfter: Int) {
-        if (mUndoThings!!.size == 0) {
+        if (mUndoThings!!.isEmpty()) {
             return
         }
         mStateToUndoFrom = stateAfter
@@ -1872,7 +1870,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
                     mModeManager!!.backNormalMode(0)
                 }
             } else {
-                if (things.get(1)!!.type >= Thing.NOTIFICATION_UNDERWAY) {
+                if (things[1]!!.type >= Thing.NOTIFICATION_UNDERWAY) {
                     mModeManager!!.backNormalMode(0)
                 }
                 mModeManager!!.updateSelectedCount()
@@ -1915,10 +1913,10 @@ class ThingsActivity : EverythingDoneBaseActivity() {
             }
             Thing.FINISHED -> {
                 updateStr = getString(R.string.sb_finish)
-                if (limit <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
-                    undoStr = getString(R.string.act_sb_undo_finish)
+                undoStr = if (limit <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
+                    getString(R.string.act_sb_undo_finish)
                 } else {
-                    undoStr = getString(R.string.act_sb_undo)
+                    getString(R.string.act_sb_undo)
                 }
             }
             Thing.DELETED -> {
@@ -2112,7 +2110,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
                     return
                 }
 
-                val thing: Thing = things.get(position)!!
+                val thing: Thing = things[position]!!
                 if (thing.isPrivate()) {
                     val activity = this@ThingsActivity
                     val sp: SharedPreferences = getSharedPreferences(
@@ -2135,7 +2133,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
                     openDetailActivityForUpdate(thing, position, v!!)
                 }
             } else {
-                val thing: Thing = things.get(position)!!
+                val thing: Thing = things[position]!!
                 if (App.getDoingThingId() != thing.id) {
                     thing.selected = !thing.isSelected()
                     mAdapter!!.notifyItemChanged(position)
@@ -2169,7 +2167,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
                 return false
             }
 
-            val thing: Thing = things.get(position)!!
+            val thing: Thing = things[position]!!
             if (mModeManager!!.getCurrentMode() == ModeManager.NORMAL
                 && thing.type <= Thing.NOTIFICATION_GOAL
                 && App.getDoingThingId() != thing.id
@@ -2183,7 +2181,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
                         )
                     }
                 } else {
-                    things.get(position)!!.selected = true
+                    things[position]!!.selected = true
                     mModeManager!!.toSelectingMode(position)
                 }
             } else {
@@ -2233,12 +2231,12 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         private fun canMove(from: Int, to: Int): Boolean {
             val things: List<Thing?> = mThingManager!!.getThings()!!
             val size = things.size
-            if (from < 0 || from >= size || to < 0 || to >= size) {
+            if (from !in 0..<size || to < 0 || to >= size) {
                 return false
             }
 
-            val t1: Thing = things.get(from)!!
-            val t2: Thing = things.get(to)!!
+            val t1: Thing = things[from]!!
+            val t2: Thing = things[to]!!
             if (t1.type == Thing.HEADER || t2.type == Thing.HEADER) {
                 return false
             }
@@ -2271,7 +2269,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
                 return
             }
 
-            val thingToSwipe: Thing = things.get(position)!!
+            val thingToSwipe: Thing = things[position]!!
             val id = thingToSwipe.id
             @Thing.Type val thingType = thingToSwipe.type
             if (thingType > Thing.NOTIFICATION_GOAL) {
@@ -2373,7 +2371,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
                     return
                 }
 
-                val thing: Thing = things.get(position)!!
+                val thing: Thing = things[position]!!
                 if (dX < 0) {
                     holder.flDoing!!.alpha = 1.0f
                     if (App.getDoingThingId() != thing.id) {
@@ -2437,7 +2435,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         if (habit != null) {
             if (habit.allowFinish()) {
                 if (!mUndoHabitRecords!!.isEmpty()) {
-                    val hr: HabitRecord = mUndoHabitRecords!!.get(mUndoHabitRecords!!.size - 1)
+                    val hr: HabitRecord = mUndoHabitRecords!![mUndoHabitRecords!!.size - 1]
                     if (hr.habitId != id) {
                         dismissSnackbars()
                     }
@@ -2451,7 +2449,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
                         CheckListHelper.SIGNAL + "0"
                     )
                     mThingManager!!.update(thingType, thing, position, false)
-                    mThingManager!!.getThings()!!.set(position, thing)
+                    mThingManager!!.getThings()!![position] = thing
                 }
                 mUndoHabitRecords!!.add(habitDAO.finishOneTime(habit)!!)
                 mUndoPositions!!.add(position)
@@ -2558,7 +2556,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
                     mModeManager!!.backNormalMode(oldPosition)
                     mRecyclerView!!.postDelayed({
                         if (oldPosition >= mThingManager!!.getThings()!!.size) return@postDelayed
-                        val thing: Thing = mThingManager!!.getThings()!!.get(oldPosition)!!
+                        val thing: Thing = mThingManager!!.getThings()!![oldPosition]!!
                         val newPosition: Int
                         if (thing.location < 0) {
                             mThingManager!!.cancelStickyThing(thing, oldPosition)

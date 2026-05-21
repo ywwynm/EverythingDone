@@ -15,7 +15,6 @@ import android.graphics.PixelFormat
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
-import android.os.Message
 import android.view.WindowManager
 import androidx.annotation.StringRes
 import androidx.core.util.Pair
@@ -80,7 +79,7 @@ open class DoingActivity : EverythingDoneBaseActivity() {
 
     private val mReceiver: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            if (BROADCAST_ACTION_JUST_FINISH.equals(intent.action)) {
+            if (BROADCAST_ACTION_JUST_FINISH == intent.action) {
                 finish()
             }
         }
@@ -220,7 +219,7 @@ open class DoingActivity : EverythingDoneBaseActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             window.attributes.setWallpaperTouchEventsEnabled(false)
         }
-        mIvBg!!.setBackgroundColor(0x66000000.toInt())
+        mIvBg!!.setBackgroundColor(0x66000000)
     }
 
     private fun initBottomButtons() {
@@ -277,13 +276,13 @@ open class DoingActivity : EverythingDoneBaseActivity() {
         updateBottomButtons()
 
         if (mDoingBinder!!.getTimeInMillis() == -1L) {
-            mInfinityHandler = Handler(Handler.Callback { message ->
+            mInfinityHandler = Handler { message ->
                 if (message.what == 96) {
                     mTvInfinity!!.animate().setDuration(3600).alpha(1 - mTvInfinity!!.alpha)
                     mInfinityHandler!!.sendEmptyMessageDelayed(96, 3600)
                 }
                 false
-            })
+            }
         }
 
         startCountdownAndPlayAnimations()
@@ -343,8 +342,8 @@ open class DoingActivity : EverythingDoneBaseActivity() {
 
             override fun onBindViewHolder(holder: BaseThingViewHolder, position: Int) {
                 super.onBindViewHolder(holder, position)
-                holder.cv!!.setRadius(0f)
-                holder.cv!!.setCardElevation(0f)
+                holder.cv!!.radius = 0f
+                holder.cv!!.cardElevation = 0f
                 holder.tvTitle!!.maxLines = Int.MAX_VALUE
                 holder.tvContent!!.maxLines = Int.MAX_VALUE
                 holder.rlReminder!!.visibility = View.GONE
@@ -530,7 +529,7 @@ open class DoingActivity : EverythingDoneBaseActivity() {
         finish()
     }
 
-    private inner class SlowScrollLinearLayoutManager(context: Context?) : LinearLayoutManager(context) {
+    private class SlowScrollLinearLayoutManager(context: Context?) : LinearLayoutManager(context) {
 
         private val mSmoothScroller: LinearSmoothScroller = object : LinearSmoothScroller(context) {
             override fun calculateTimeForScrolling(dx: Int): Int = 360
@@ -594,11 +593,9 @@ open class DoingActivity : EverythingDoneBaseActivity() {
     companion object {
         const val TAG: String = "DoingActivity"
 
-        @JvmField
-        val KEY_RESUME: String = "$TAG.resume"
+        const val KEY_RESUME: String = "$TAG.resume"
 
-        @JvmField
-        val BROADCAST_ACTION_JUST_FINISH: String = "$TAG.just_finish"
+        const val BROADCAST_ACTION_JUST_FINISH: String = "$TAG.just_finish"
 
         private const val MINUTE_MILLIS: Long = 60 * 1000L
         private const val HOUR_MILLIS: Long   = 60 * MINUTE_MILLIS

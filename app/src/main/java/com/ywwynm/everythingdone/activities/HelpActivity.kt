@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.ywwynm.everythingdone.activities
 
 import androidx.fragment.app.FragmentTransaction
@@ -76,9 +78,7 @@ open class HelpActivity : EverythingDoneBaseActivity() {
         val toolbar: Toolbar = f(R.id.actionbar)!!
         setSupportActionBar(toolbar)
         val actionBar: ActionBar? = supportActionBar
-        if (actionBar != null) {
-            actionBar.setDisplayHomeAsUpEnabled(true)
-        }
+        actionBar?.setDisplayHomeAsUpEnabled(true)
         toolbar.setNavigationOnClickListener {
             if (mHelpDetailFragment != null && mHelpDetailFragment!!.isVisible) {
                 supportFragmentManager.popBackStack()
@@ -93,9 +93,7 @@ open class HelpActivity : EverythingDoneBaseActivity() {
 
     open fun updateActionBarTitle(toDetail: Boolean) {
         val actionBar: ActionBar? = supportActionBar
-        if (actionBar != null) {
-            actionBar.setTitle(if (toDetail) R.string.help_detail else R.string.help)
-        }
+        actionBar?.setTitle(if (toDetail) R.string.help_detail else R.string.help)
     }
 
     // Used to make the RecyclerView not focusable in talkback mode

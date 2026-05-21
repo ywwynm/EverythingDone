@@ -117,7 +117,7 @@ open class StartDoingActivity : AppCompatActivity() {
             val typeTimes: Pair<List<Int>, List<Int>> =
                 ThingDoingHelper.getStartDoingTypeTimes(false)!!
             val etc: Long = DateTimeUtil.getActualTimeAfterSomeTime(
-                typeTimes.first.get(index), typeTimes.second.get(index)
+                typeTimes.first[index], typeTimes.second[index]
             )
             if (mThing!!.type == Thing.HABIT) {
                 val habit: Habit? = HabitDAO.getInstance(this)!!.getHabitById(mThing!!.id)
@@ -144,7 +144,7 @@ open class StartDoingActivity : AppCompatActivity() {
                 }
             }
             timeInMillis = DateTimeUtil.getActualTimeAfterSomeTime(
-                0, typeTimes.first.get(index), typeTimes.second.get(index)
+                0, typeTimes.first[index], typeTimes.second[index]
             )
         }
         if (canStartDoing) {
@@ -156,7 +156,7 @@ open class StartDoingActivity : AppCompatActivity() {
             }
 
             val helper = ThingDoingHelper(this, mThing)
-            val hrTime = getIntent().getLongExtra(Def.Communication.KEY_TIME, -1L)
+            val hrTime = intent.getLongExtra(Def.Communication.KEY_TIME, -1L)
             if (mStartType == DoingService.START_TYPE_ALARM) {
                 helper.startDoingAlarm(timeInMillis, hrTime)
             } else {

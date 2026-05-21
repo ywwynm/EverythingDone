@@ -97,7 +97,6 @@ import com.ywwynm.everythingdone.helpers.ThingDoingHelper
 import com.ywwynm.everythingdone.helpers.ThingExporter
 import com.ywwynm.everythingdone.managers.ThingManager
 import com.ywwynm.everythingdone.model.Habit
-import com.ywwynm.everythingdone.model.HabitReminder
 import com.ywwynm.everythingdone.model.Reminder
 import com.ywwynm.everythingdone.model.ReminderHabitParams
 import com.ywwynm.everythingdone.model.Thing
@@ -123,7 +122,6 @@ import com.ywwynm.everythingdone.views.pickers.ColorPicker
 import com.ywwynm.everythingdone.views.pickers.DateTimePicker
 
 import java.time.ZonedDateTime
-import java.time.ZoneId
 
 import java.io.File
 import java.util.ArrayList
@@ -233,7 +231,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
     private val mReceiver: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             val action: String? = intent.action
-            if (Def.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI.equals(action)) {
+            if (Def.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI == action) {
                 val resultCode = intent.getIntExtra(
                     Def.Communication.KEY_RESULT_CODE,
                     Def.Communication.RESULT_NO_UPDATE
@@ -261,7 +259,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
                         finish()
                     }
                 }
-            } else if (Def.Communication.BROADCAST_ACTION_FINISH_DETAILACTIVITY.equals(action)) {
+            } else if (Def.Communication.BROADCAST_ACTION_FINISH_DETAILACTIVITY == action) {
                 val id = intent.getLongExtra(Def.Communication.KEY_ID, -1)
                 if (mThing != null && mThing!!.id == id) {
                     finish()
@@ -302,7 +300,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
 
         val intent: Intent = getIntent()
         val action: String? = intent.action
-        if (Intent.ACTION_SEND.equals(action) || Intent.ACTION_SEND_MULTIPLE.equals(action)) {
+        if (Intent.ACTION_SEND == action || Intent.ACTION_SEND_MULTIPLE == action) {
             mSenderName = "intent"
             mType = CREATE
         } else {
@@ -335,9 +333,9 @@ class DetailActivity : EverythingDoneBaseActivity() {
             App.updateNewThingColor()
             SystemNotificationUtil.tryToCreateQuickCreateNotification(this)
 
-            if ("intent".equals(mSenderName)) {
+            if ("intent" == mSenderName) {
                 setupThingFromIntent()
-            } else if (DailyCreateTodoReceiver.TAG.equals(mSenderName)) {
+            } else if (DailyCreateTodoReceiver.TAG == mSenderName) {
                 mThing!!.title = getDailyTodoTitle()
             }
         } else {
@@ -391,7 +389,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
         val intent: Intent = getIntent()
         val action: String? = intent.action
         val type: String? = intent.type
-        if (Intent.ACTION_SEND.equals(action)) {
+        if (Intent.ACTION_SEND == action) {
             if (type!!.contains("image/") || type.contains("video/")
                 || type.contains("audio/")
             ) {
@@ -401,7 +399,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
                     mThing!!.attachment = AttachmentHelper.SIGNAL + getTypePathName(pathName, null)
                 }
             }
-        } else if (Intent.ACTION_SEND_MULTIPLE.equals(action)) {
+        } else if (Intent.ACTION_SEND_MULTIPLE == action) {
             val datas: ArrayList<Uri>? = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM)
             val sb = StringBuilder()
             for (data in datas!!) {
@@ -441,7 +439,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
             val newId = manager.getHeaderId()
             val runningDetailActivities: MutableList<Long?> = App.getRunningDetailActivities()
             val index = runningDetailActivities.lastIndexOf(oriId)
-            runningDetailActivities.set(index, newId)
+            runningDetailActivities[index] = newId
             mThing = Thing(newId, Thing.NOTE, 0, newId)
             return
         }
@@ -460,16 +458,16 @@ class DetailActivity : EverythingDoneBaseActivity() {
 
                 override fun onTouch(v: View, event: MotionEvent): Boolean {
                     val action = event.action
-                    val onLongClicked: Boolean? = mOnLongClickedMap!!.get(v)
+                    val onLongClicked: Boolean? = mOnLongClickedMap!![v]
                     if (onLongClicked != null && onLongClicked) {
                         return false
                     }
 
                     if (action == MotionEvent.ACTION_UP) {
-                        val touchMovedCount: Int? = mTouchMovedCountMap!!.get(v)
+                        val touchMovedCount: Int? = mTouchMovedCountMap!![v]
                         if (touchMovedCount != null && touchMovedCount >= 3) {
                             Log.d(TAG, "touchMoved: $touchMovedCount")
-                            mTouchMovedCountMap!!.put(v, 0)
+                            mTouchMovedCountMap!![v] = 0
                             return false
                         }
 
@@ -498,7 +496,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
                         }
 
                         val link: Array<ClickableSpan> = sContent.getSpans(offset, offset, ClickableSpan::class.java)
-                        if (link.size != 0) {
+                        if (link.isNotEmpty()) {
                             val urlSpan = link[0] as URLSpan
 
                             if (!mEditable) {
@@ -544,19 +542,19 @@ class DetailActivity : EverythingDoneBaseActivity() {
                             return true
                         }
                     } else if (action == MotionEvent.ACTION_MOVE) {
-                        val touchMovedCount: Int? = mTouchMovedCountMap!!.get(v)
-                        mTouchMovedCountMap!!.put(v, if (touchMovedCount == null) 1 else touchMovedCount + 1)
+                        val touchMovedCount: Int? = mTouchMovedCountMap!![v]
+                        mTouchMovedCountMap!![v] = if (touchMovedCount == null) 1 else touchMovedCount + 1
                     }
                     return false
                 }
             }
             mEtContentClickListener = View.OnClickListener { v ->
-                mTouchMovedCountMap!!.put(v, 0)
-                mOnLongClickedMap!!.put(v, false)
+                mTouchMovedCountMap!![v] = 0
+                mOnLongClickedMap!![v] = false
             }
             mEtContentLongClickListener = View.OnLongClickListener { v ->
-                mTouchMovedCountMap!!.put(v, 0)
-                mOnLongClickedMap!!.put(v, true)
+                mTouchMovedCountMap!![v] = 0
+                mOnLongClickedMap!![v] = true
                 false
             }
         }
@@ -621,7 +619,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
         @Thing.Type val thingType: Int  = mThing!!.type
         @Thing.State val thingState: Int = mThing!!.state
 
-        if (DailyCreateTodoReceiver.TAG.equals(mSenderName)) {
+        if (DailyCreateTodoReceiver.TAG == mSenderName) {
             initBackButton(Thing.REMINDER)
         } else {
             initBackButton(thingType)
@@ -697,7 +695,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
                     if (state == Thing.FINISHED) {
                         items.remove("3")
                         items.remove("4")
-                    } else if (items.get(0)!!.equals("2")) {
+                    } else if (items[0]!! == "2") {
                         items.remove("3")
                         items.remove("4")
                     }
@@ -846,7 +844,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
 
     private fun initUiBottomBar() {
         if (mType == CREATE) {
-            if (!DailyCreateTodoReceiver.TAG.equals(mSenderName)) {
+            if (DailyCreateTodoReceiver.TAG != mSenderName) {
                 quickRemindPicker!!.pickForUI(8)
                 rhParams.reminderAfterTime = quickRemindPicker!!.getPickedTimeAfter()
             } else {
@@ -1044,7 +1042,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
     ) {
         if (isClickingExpandOrShrink) {
             val focus: View? = currentFocus
-            if (focus != null) focus.clearFocus()
+            focus?.clearFocus()
         }
         val vlp: ViewGroup.LayoutParams = mRvCheckList!!.layoutParams
         vlp.height = getChecklistItemsHeight(expand, items)
@@ -1057,7 +1055,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
         }
         var unfinishedHeight = 0
         for (i in 0 until items!!.size) {
-            val item: String = items.get(i)!!
+            val item: String = items[i]!!
             val state = item[0]
             if (state != '1') {
                 val holder: RecyclerView.ViewHolder? = mRvCheckList!!.findViewHolderForAdapterPosition(i)
@@ -1141,10 +1139,10 @@ class DetailActivity : EverythingDoneBaseActivity() {
         if (mThing!!.state != Thing.UNDERWAY) return mThing!!.type
         val time = rhParams.getReminderTime()
         if (cbQuickRemind!!.isChecked) {
-            if (mReminder != null && mReminder!!.notifyTime == time) {
-                return mThing!!.type
+            return if (mReminder != null && mReminder!!.notifyTime == time) {
+                mThing!!.type
             } else {
-                return if (rhParams.habitDetail != null) {
+                if (rhParams.habitDetail != null) {
                     Thing.HABIT
                 } else Reminder.getType(rhParams.getReminderTime(), System.currentTimeMillis())
             }
@@ -1202,12 +1200,12 @@ class DetailActivity : EverythingDoneBaseActivity() {
             } else if (state == Thing.FINISHED) {
                 inflater.inflate(R.menu.menu_detail_finished, menu)
                 if (thingType != Thing.HABIT) {
-                    menu.findItem(R.id.act_check_habit_detail).setVisible(false)
+                    menu.findItem(R.id.act_check_habit_detail).isVisible = false
                 }
             } else {
                 inflater.inflate(R.menu.menu_detail_deleted, menu)
                 if (thingType != Thing.HABIT) {
-                    menu.findItem(R.id.act_check_habit_detail).setVisible(false)
+                    menu.findItem(R.id.act_check_habit_detail).isVisible = false
                 }
             }
         }
@@ -1382,7 +1380,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
             before = content
             val items: MutableList<String?> = CheckListHelper.toCheckListItems(content, true)!!
             var focusFirst = false
-            if (items.size == 2 && items.get(0)!!.equals("0")) {
+            if (items.size == 2 && items[0]!! == "0") {
                 focusFirst = true
             }
 
@@ -1521,10 +1519,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
     }
 
     private fun updateUndoRedoActionButtonState() {
-        val undoItem: MenuItem? = mActionbar!!.menu.findItem(R.id.act_undo)
-        if (undoItem == null) {
-            return
-        }
+        val undoItem: MenuItem = mActionbar!!.menu.findItem(R.id.act_undo) ?: return
         undoItem.isEnabled = mActionList!!.canUndo()
 
         val redoItem: MenuItem = mActionbar!!.menu.findItem(R.id.act_redo)
@@ -1672,16 +1667,16 @@ class DetailActivity : EverythingDoneBaseActivity() {
         }
 
         val todf = TwoOptionsDialogFragment()
-        todf.setStartAction(R.drawable.act_share_text_image, R.string.act_share_thing_text_image,
-            View.OnClickListener {
-                todf.dismiss()
-                SendInfoHelper.shareThing(this@DetailActivity, mThing)
-            })
-        todf.setEndAction(R.drawable.act_take_long_screenshot, R.string.act_share_thing_screenshot,
-            View.OnClickListener {
-                todf.dismiss()
-                shareThingInScreenshot()
-            })
+        todf.setStartAction(R.drawable.act_share_text_image, R.string.act_share_thing_text_image
+        ) {
+            todf.dismiss()
+            SendInfoHelper.shareThing(this@DetailActivity, mThing)
+        }
+        todf.setEndAction(R.drawable.act_take_long_screenshot, R.string.act_share_thing_screenshot
+        ) {
+            todf.dismiss()
+            shareThingInScreenshot()
+        }
         todf.show(fragmentManager, TwoOptionsDialogFragment.TAG)
     }
 
@@ -2188,7 +2183,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
 
     fun getAccentColor(): Int {
         val bg: ThingBackground? = getAccentBackground()
-        return if (bg != null) bg.representativeColor() else 0
+        return bg?.representativeColor() ?: 0
     }
 
     /**
@@ -2223,11 +2218,11 @@ class DetailActivity : EverythingDoneBaseActivity() {
             val shadowAY: Float
             // the scrollY that action bar shadow should totally appear
             val shadowTY: Float
-            if (imageHeight == 0) {
-                shadowAY = screenDensity * 14
+            shadowAY = if (imageHeight == 0) {
+                screenDensity * 14
             } else {
-                shadowAY = imageHeight -
-                    barsHeight - statusBarOffset + screenDensity * 20
+                imageHeight -
+                        barsHeight - statusBarOffset + screenDensity * 20
             }
             shadowTY = shadowAY + screenDensity * 20
             if (scrollY >= shadowTY) {
@@ -2305,9 +2300,9 @@ class DetailActivity : EverythingDoneBaseActivity() {
             val bgFrom: ThingBackground? = if (mLastAnimatedBackground != null)
                 mLastAnimatedBackground
             else mThing!!.getBackground()
-            val bgTo: ThingBackground? = mColorPicker!!.getPickedBackground()
-            if (bgTo == null) return@setPickedListener
-            if (bgFrom != null && bgFrom.equals(bgTo)) return@setPickedListener
+            val bgTo: ThingBackground =
+                mColorPicker!!.getPickedBackground() ?: return@setPickedListener
+            if (bgFrom != null && bgFrom == bgTo) return@setPickedListener
             changeBackground(bgTo)
             if (shouldAddToActionList) {
                 mActionList!!.addAction(ThingAction(
@@ -2412,8 +2407,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
         else null
         for (i in 0 until menu.size()) {
             val item: MenuItem = menu.getItem(i)
-            var icon: Drawable? = item.icon
-            if (icon == null) continue
+            var icon: Drawable = item.icon ?: continue
             icon = icon.mutate()
             if (lightAccent) {
                 icon.setColorFilter(Color.BLACK, PorterDuff.Mode.SRC_IN)
@@ -2444,9 +2438,9 @@ class DetailActivity : EverythingDoneBaseActivity() {
         mTvUpdateTime!!.setTextColor(tertiary)
 
         val tvFinishTime: TextView? = f(R.id.tv_finish_time)
-        if (tvFinishTime != null) tvFinishTime.setTextColor(tertiary)
+        tvFinishTime?.setTextColor(tertiary)
         val tvTypeInfo: TextView? = f(R.id.tv_type_info)
-        if (tvTypeInfo != null) tvTypeInfo.setTextColor(tertiary)
+        tvTypeInfo?.setTextColor(tertiary)
         if (mTvMoveChecklistAsBt != null) {
             mTvMoveChecklistAsBt!!.setTextColor(tertiary)
             androidx.core.widget.TextViewCompat.setCompoundDrawableTintList(
@@ -2458,7 +2452,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
         }
 
         val tvRemindMe: TextView? = f(R.id.tv_remind_me)
-        if (tvRemindMe != null) tvRemindMe.setTextColor(secondary)
+        tvRemindMe?.setTextColor(secondary)
 
         if (mFlQuickRemindAsBt != null) {
             installQuickRemindPillRipple(color)
@@ -2525,8 +2519,8 @@ class DetailActivity : EverythingDoneBaseActivity() {
         mask.cornerRadius = 1000f
         mask.setColor(Color.WHITE)
 
-        val rippleTint = if (BackgroundUtil.isLight(thingColor)) 0x29000000.toInt()
-        else 0x29FFFFFF.toInt()
+        val rippleTint = if (BackgroundUtil.isLight(thingColor)) 0x29000000
+        else 0x29FFFFFF
         val ripple = android.graphics.drawable.RippleDrawable(
             android.content.res.ColorStateList.valueOf(rippleTint),
             null,
@@ -2536,18 +2530,20 @@ class DetailActivity : EverythingDoneBaseActivity() {
     }
 
     private fun setQuickRemindEvents() {
-        cbQuickRemind!!.setOnCheckedChangeListener(CompoundButton.OnCheckedChangeListener { _, _ ->
+        cbQuickRemind!!.setOnCheckedChangeListener { _, _ ->
             updateDescriptions(getAccentColor())
             updateBackButton()
             cbQuickRemind!!.contentDescription =
                 getString(R.string.remind_me) + tvQuickRemind!!.text
             if (shouldAddToActionList) {
-                mActionList!!.addAction(ThingAction(
-                    ThingAction.TOGGLE_REMINDER_OR_HABIT, null, null
-                ))
+                mActionList!!.addAction(
+                    ThingAction(
+                        ThingAction.TOGGLE_REMINDER_OR_HABIT, null, null
+                    )
+                )
             }
             tryToNotifyKeepAlarms()
-        })
+        }
         if (mThing!!.state == Thing.UNDERWAY) {
             mFlQuickRemindAsBt!!.setOnClickListener {
                 quickRemindPicker!!.show()
@@ -2697,7 +2693,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
 
     private fun willBeEmptyThing(title: String, content: String, attachment: String): Boolean {
         val contentEmpty = content.isEmpty() && attachment.isEmpty()
-        val b1 = DailyCreateTodoReceiver.TAG.equals(mSenderName) && contentEmpty
+        val b1 = DailyCreateTodoReceiver.TAG == mSenderName && contentEmpty
         val b2 = title.isEmpty() && contentEmpty
         return b1 || b2
     }
@@ -2750,7 +2746,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
         val attachment: String = getThingAttachment()
 
         if (mType == CREATE && willBeEmptyThing(title, content, attachment)) {
-            if (shouldAlertForNotCreateDailyTodo && DailyCreateTodoReceiver.TAG.equals(mSenderName)) {
+            if (shouldAlertForNotCreateDailyTodo && DailyCreateTodoReceiver.TAG == mSenderName) {
                 alertForNotCreateDailyTodo()
             } else {
                 createFailed(Def.Communication.RESULT_CREATE_BLANK_THING)
@@ -2766,10 +2762,8 @@ class DetailActivity : EverythingDoneBaseActivity() {
             return
         }
 
-        val habitUpdated: Boolean? = setOrUpdateHabit(isHabitBefore, isHabitAfter, alertForChangingAlarms)
-        if (habitUpdated == null) {
-            return
-        }
+        val habitUpdated: Boolean =
+            setOrUpdateHabit(isHabitBefore, isHabitAfter, alertForChangingAlarms) ?: return
 
         val color = if (mChangeColorTo != 0) mChangeColorTo else getAccentColor()
         val intent = Intent()
@@ -3203,7 +3197,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
             ongoingAfter = mThing!!.id
             SystemNotificationUtil.createThingOngoingNotification(this, mThing)
         }
-        getSharedPreferences(Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE)
+        getSharedPreferences(Def.Meta.PREFERENCES_NAME, MODE_PRIVATE)
             .edit().putLong(K, ongoingAfter).apply()
         FrequentSettings.put(K, ongoingAfter)
 
@@ -3356,8 +3350,9 @@ class DetailActivity : EverythingDoneBaseActivity() {
 
         override fun onRemove(position: Int, item: String?, cursorPos: Int) {
             if (item == null) {
-                val holder = mRvCheckList!!.findViewHolderForAdapterPosition(position) as CheckListAdapter.EditTextHolder?
-                if (holder == null) return
+                val holder =
+                    mRvCheckList!!.findViewHolderForAdapterPosition(position) as CheckListAdapter.EditTextHolder?
+                        ?: return
                 if (position != -1) {
                     holder.et!!.requestFocus()
                     holder.et!!.setSelection(cursorPos)
@@ -3407,7 +3402,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
     private inner class ImageAttachmentRemoveCallback : ImageAttachmentAdapter.RemoveCallback {
 
         override fun onRemove(pos: Int) {
-            val item: String = mImageAttachmentAdapter!!.getItems()!!.get(pos)!!
+            val item: String = mImageAttachmentAdapter!!.getItems()!![pos]!!
             notifyImageAttachmentsChanged(false, pos)
 
             KeyboardUtil.hideKeyboard(currentFocus)
@@ -3423,7 +3418,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
     private inner class AudioAttachmentRemoveCallback : AudioAttachmentAdapter.RemoveCallback {
 
         override fun onRemoved(pos: Int) {
-            val item: String = mAudioAttachmentAdapter!!.getItems()!!.get(pos)!!
+            val item: String = mAudioAttachmentAdapter!!.getItems()!![pos]!!
             notifyAudioAttachmentsChanged(false, pos)
 
             KeyboardUtil.hideKeyboard(currentFocus)
@@ -3453,10 +3448,10 @@ class DetailActivity : EverythingDoneBaseActivity() {
         val pos3 = items.indexOf("3")
         if (pos3 != -1) {
             val pos4 = pos3 + 1
-            if ((from <= pos3 && to >= pos3) || (from >= pos3 && to <= pos3)) {
+            if ((pos3 in from..to) || (pos3 in to..from)) {
                 return false
             }
-            if ((from <= pos4 && to >= pos4) || (from >= pos4 && to <= pos4)) {
+            if ((pos4 in from..to) || (pos4 in to..from)) {
                 return false
             }
         }
@@ -3499,10 +3494,10 @@ class DetailActivity : EverythingDoneBaseActivity() {
 
     private fun moveAttachment(from: Int, to: Int, isImageAttachment: Boolean) {
         val items: MutableList<String?>
-        if (isImageAttachment) {
-            items = mImageAttachmentAdapter!!.getItems()!! as MutableList<String?>
+        items = if (isImageAttachment) {
+            mImageAttachmentAdapter!!.getItems()!! as MutableList<String?>
         } else {
-            items = mAudioAttachmentAdapter!!.getItems()!! as MutableList<String?>
+            mAudioAttachmentAdapter!!.getItems()!! as MutableList<String?>
         }
         val typePathName: String = items.removeAt(from)!!
         items.add(to, typePathName)
@@ -3559,7 +3554,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
         }
     }
 
-    private inner class CannotScrollLinearLayoutManager(context: Context?) : LinearLayoutManager(context) {
+    private class CannotScrollLinearLayoutManager(context: Context?) : LinearLayoutManager(context) {
 
         override fun canScrollVertically(): Boolean = false
     }

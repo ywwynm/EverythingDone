@@ -125,7 +125,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
                 iv.contentDescription = getString(R.string.cd_video_attachment)
                 videoSignal.visibility = View.VISIBLE
                 videoSignal.setOnClickListener(videoListener)
-                iv.setZoomable(false)
+                iv.isZoomable = false
             }
 
             loadImage(pathName, iv, pb, size)
@@ -155,7 +155,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
     private fun getVideoListener(): View.OnClickListener {
         return View.OnClickListener {
             val pos = mVpImage!!.currentItem
-            val typePathName: String = mTypePathNames!!.get(pos)
+            val typePathName: String = mTypePathNames!![pos]
             val pathName = typePathName.substring(1, typePathName.length)
             val file = File(pathName)
 
@@ -202,9 +202,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
 
         setSupportActionBar(mActionbar)
         val actionBar: ActionBar? = supportActionBar
-        if (actionBar != null) {
-            actionBar.setDisplayHomeAsUpEnabled(true)
-        }
+        actionBar?.setDisplayHomeAsUpEnabled(true)
         updateAttachmentNumber()
         mActionbar!!.setNavigationOnClickListener { returnToDetailActivity() }
     }
@@ -213,8 +211,8 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         menuInflater.inflate(R.menu.menu_image_viewer, menu)
         if (!mEditable) {
             val item: MenuItem = menu.findItem(R.id.act_delete_attachment)
-            item.setVisible(false)
-            item.setEnabled(false)
+            item.isVisible = false
+            item.isEnabled = false
         }
         return true
     }
@@ -223,7 +221,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         val id = item.itemId
         if (id == R.id.act_show_attachment_info) {
             AttachmentHelper.showAttachmentInfoDialog(
-                this, mAccentBackground, mTypePathNames!!.get(mVpImage!!.currentItem)
+                this, mAccentBackground, mTypePathNames!![mVpImage!!.currentItem]
             )
         } else if (id == R.id.act_delete_attachment) {
             val adf = AlertDialogFragment()
@@ -267,7 +265,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         val total   = mTypePathNames!!.size
         val actionBar: ActionBar? = supportActionBar
         if (actionBar != null) {
-            actionBar.setTitle("$current / $total")
+            actionBar.title = "$current / $total"
         }
     }
 
