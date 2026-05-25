@@ -71,6 +71,12 @@ Second follow-up in same UI pass:
   Fixed `createFailed()` to put `KEY_RESULT_CODE` into its result `Intent`
   and call `setResult(resultCode, intent)`. Re-verified assembleDebug
   (`BUILD SUCCESSFUL in 9s`) and `git diff --check`.
+- Extended the updated thing-card radius to `DoingActivity`, which reuses
+  `card_thing` but had been forcing the CardView radius to `0f`. Kept
+  `NoticeableNotificationActivity` square per user direction, and left the
+  single-thing widget configuration preview unchanged because the actual
+  desktop widget is RemoteViews + bitmap-backed, not a CardView. Re-verified
+  assembleDebug (`BUILD SUCCESSFUL in 5s`) and `git diff --check`.
 
 ## 2026-05-21 — Post-migration Kotlin cleanup (full session)
 

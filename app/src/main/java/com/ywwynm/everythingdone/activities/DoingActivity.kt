@@ -338,8 +338,7 @@ open class DoingActivity : EverythingDoneBaseActivity() {
 
             override fun onBindViewHolder(holder: BaseThingViewHolder, position: Int) {
                 super.onBindViewHolder(holder, position)
-                holder.cv!!.radius = 0f
-                holder.cv.cardElevation = 0f
+                holder.cv!!.cardElevation = 0f
                 holder.tvTitle!!.maxLines = Int.MAX_VALUE
                 holder.tvContent!!.maxLines = Int.MAX_VALUE
                 holder.rlReminder!!.visibility = View.GONE
