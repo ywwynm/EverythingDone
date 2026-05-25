@@ -2992,10 +2992,11 @@ class DetailActivity : EverythingDoneBaseActivity() {
         }
 
         val intent = Intent()
+        intent.putExtra(Def.Communication.KEY_RESULT_CODE, resultCode)
         if (shouldSendBroadCast()) {
             sendBroadCastToUpdateMainUI(intent, resultCode)
         } else {
-            setResult(resultCode)
+            setResult(resultCode, intent)
         }
         App.setLastUpdateUiIntent(intent)
 

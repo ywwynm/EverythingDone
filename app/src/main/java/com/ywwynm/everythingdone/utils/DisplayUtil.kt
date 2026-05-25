@@ -549,7 +549,6 @@ object DisplayUtil {
     fun getThingCardWidth(context: Context?): Int {
         var span = 2
         val res: Resources = context!!.resources
-        val density: Float = res.displayMetrics.density
 
         if (res.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
             span++
@@ -558,7 +557,7 @@ object DisplayUtil {
             span++
         }
 
-        val basePadding: Int = (density * 6).toInt()
+        val basePadding: Int = res.getDimensionPixelSize(R.dimen.thing_card_outer_spacing)
 
         return (res.displayMetrics.widthPixels - basePadding * 2 * (span + 1)) / span
     }

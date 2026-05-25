@@ -1332,8 +1332,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
 
         // ---- Card-scoped overrides ----
         mShiningBorder!!.setStrokeWidth(density * 1.5f)
-        // card_thing.xml uses cardCornerRadius=2dp
-        mShiningBorder!!.setCornerRadius(density * 2f)
+        mShiningBorder!!.setCornerRadius(resources.getDimension(R.dimen.thing_card_corner_radius))
         mShiningBorder!!.setShiningColor(shiningCol)
         mShiningBorder!!.setOrdinaryColor(ordinaryCol)
         mShiningBorder!!.setRemainOrdinaryPath(false)

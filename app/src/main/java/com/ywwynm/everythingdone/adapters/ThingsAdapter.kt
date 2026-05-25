@@ -2,6 +2,7 @@
 
 package com.ywwynm.everythingdone.adapters
 
+import android.animation.ObjectAnimator
 import android.os.Handler
 import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
@@ -36,7 +37,10 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
 
     // decrease memory usage as much as possible.
     private var mOnTouchListener: View.OnTouchListener =
-        View.OnTouchListener { v, event -> mOnItemTouchedListener!!.onItemTouch(v, event) }
+        View.OnTouchListener { v, event ->
+            animateCardOnTouch(v, event)
+            mOnItemTouchedListener!!.onItemTouch(v, event)
+        }
 
     private var mModeManager: ModeManager? = null
 
@@ -59,6 +63,10 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
     override fun getCurrentMode(): Int = mModeManager!!.getCurrentMode()
 
     override fun getThings(): List<Thing?>? = mThingManager!!.getThings()
+
+    override fun shouldDimUnselectedContent(currentMode: Int): Boolean {
+        return currentMode == ModeManager.SELECTING || currentMode == ModeManager.MOVING
+    }
 
     open fun shouldThingsAnimWhenAppearing(): Boolean = mShouldThingsAnimWhenAppearing
 
@@ -94,7 +102,11 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         val armed = isArmedFor(position)
 
         if (!armed) {
-            if (holder.llContent!!.alpha != 1f) holder.llContent.alpha = 1f
+            if (mModeManager!!.getCurrentMode() == ModeManager.NORMAL
+                && holder.llContent!!.alpha != 1f
+            ) {
+                holder.llContent.alpha = 1f
+            }
             if (holder.cv!!.alpha != 1f)        holder.cv.alpha = 1f
         }
 
@@ -135,7 +147,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
     }
 
     private fun distinguishHeaderAndOthers(header: Boolean, cv: CardView?) {
-        val mX = (mDensity * 6).toInt()
+        val mX = mApp!!.resources.getDimensionPixelSize(R.dimen.thing_card_outer_spacing)
         val mY = if (header) 0 else mX
 
         val height: Int = if (header) {
@@ -149,6 +161,59 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         lp.height = height
         lp.setMargins(mX, mY, mX, mY)
         lp.isFullSpan = header
+    }
+
+    private fun animateCardOnTouch(v: View?, event: MotionEvent?) {
+        if (v !is CardView || event == null) {
+            return
+        }
+        if (mModeManager?.getCurrentMode() != ModeManager.NORMAL) {
+            return
+        }
+
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> animateCardTouchDown(v)
+            MotionEvent.ACTION_UP,
+            MotionEvent.ACTION_CANCEL,
+            MotionEvent.ACTION_OUTSIDE -> animateCardTouchRelease(v)
+        }
+    }
+
+    private fun animateCardTouchDown(card: CardView) {
+        val normalElevation = mApp!!.resources.getDimension(R.dimen.thing_card_normal_elevation)
+        card.animate().cancel()
+        card.animate()
+            .scaleX(CARD_TOUCH_PRESSED_SCALE)
+            .scaleY(CARD_TOUCH_PRESSED_SCALE)
+            .setDuration(CARD_TOUCH_DOWN_DURATION)
+            .start()
+        ObjectAnimator.ofFloat(
+            card, "cardElevation", normalElevation * CARD_TOUCH_PRESSED_ELEVATION_RATIO
+        ).setDuration(CARD_TOUCH_DOWN_DURATION).start()
+    }
+
+    private fun animateCardTouchRelease(card: CardView) {
+        val normalElevation = mApp!!.resources.getDimension(R.dimen.thing_card_normal_elevation)
+        card.animate().cancel()
+        card.animate()
+            .scaleX(CARD_TOUCH_OVERSHOOT_SCALE)
+            .scaleY(CARD_TOUCH_OVERSHOOT_SCALE)
+            .setDuration(CARD_TOUCH_RELEASE_DURATION)
+            .withEndAction {
+                card.animate()
+                    .scaleX(1.0f)
+                    .scaleY(1.0f)
+                    .setDuration(CARD_TOUCH_SETTLE_DURATION)
+                    .withEndAction(null)
+                    .start()
+                ObjectAnimator.ofFloat(card, "cardElevation", normalElevation)
+                    .setDuration(CARD_TOUCH_SETTLE_DURATION)
+                    .start()
+            }
+            .start()
+        ObjectAnimator.ofFloat(
+            card, "cardElevation", normalElevation * CARD_TOUCH_OVERSHOOT_SCALE
+        ).setDuration(CARD_TOUCH_RELEASE_DURATION).start()
     }
 
     private fun playAppearingAnimation(v: View, position: Int) {
@@ -253,5 +318,12 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
 
     companion object {
         const val TAG: String = "ThingsAdapter"
+
+        private const val CARD_TOUCH_PRESSED_SCALE = 0.936f
+        private const val CARD_TOUCH_OVERSHOOT_SCALE = 1.016f
+        private const val CARD_TOUCH_PRESSED_ELEVATION_RATIO = 2f / 3f
+        private const val CARD_TOUCH_DOWN_DURATION = 96L
+        private const val CARD_TOUCH_RELEASE_DURATION = 160L
+        private const val CARD_TOUCH_SETTLE_DURATION = 80L
     }
 }

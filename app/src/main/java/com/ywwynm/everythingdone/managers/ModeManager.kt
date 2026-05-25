@@ -18,7 +18,6 @@ import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.adapters.ThingsAdapter
 import com.ywwynm.everythingdone.model.Thing
-import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.views.ActivityHeader
 import com.ywwynm.everythingdone.views.FloatingActionButton
 
@@ -40,7 +39,6 @@ open class ModeManager(app: App?,
 
     private var mApp: App? = app
     private var mThingManager: ThingManager? = ThingManager.getInstance(app)
-    private var screenDensity: Float = DisplayUtil.getScreenDensity(mApp)
 
     //private WeakReference<DrawerLayout> mWrDrawerLayout;
     private var mDrawerLayout: DrawerLayout? = drawerLayout
@@ -122,7 +120,10 @@ open class ModeManager(app: App?,
             val holder: RecyclerView.ViewHolder? = rv.findViewHolderForAdapterPosition(position)
             if (holder != null) {
                 val cv: CardView = holder.itemView as CardView
-                ObjectAnimator.ofFloat(cv, "cardElevation", 2 * screenDensity).setDuration(96).start()
+                ObjectAnimator.ofFloat(
+                    cv, "cardElevation",
+                    mApp!!.resources.getDimension(R.dimen.thing_card_normal_elevation)
+                ).setDuration(96).start()
                 ObjectAnimator.ofFloat(cv, "scaleX", 1.0f).setDuration(96).start()
                 ObjectAnimator.ofFloat(cv, "scaleY", 1.0f).setDuration(96).start()
             }
@@ -147,7 +148,10 @@ open class ModeManager(app: App?,
             val holder: RecyclerView.ViewHolder? = mRecyclerView!!.findViewHolderForAdapterPosition(position)
             if (holder != null) {
                 val cv: CardView = holder.itemView as CardView
-                ObjectAnimator.ofFloat(cv, "CardElevation", 2 * screenDensity)
+                ObjectAnimator.ofFloat(
+                    cv, "cardElevation",
+                    mApp!!.resources.getDimension(R.dimen.thing_card_normal_elevation)
+                )
                         .setDuration(96).start()
                 cv.animate().scaleX(1.0f).setDuration(96)
                 cv.animate().scaleY(1.0f).withEndAction(notifyDataSetRunnable).setDuration(96)

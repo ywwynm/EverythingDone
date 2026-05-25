@@ -1,5 +1,77 @@
 # Sessions
 
+## 2026-05-25 — Homepage thing-card UI refresh, step 1
+
+Updated EverythingDone's homepage thing cards using Everything-Android's
+main-list card feel as reference:
+
+- Added shared card tokens: 10dp outer spacing, 10dp corner radius,
+  8dp normal elevation, 12dp dragging elevation.
+- Applied the spacing to `activity_things.xml`, `ThingsAdapter`
+  item margins, and `DisplayUtil.getThingCardWidth` so image cards
+  keep the same waterfall grid geometry.
+- Updated `card_thing.xml` with the larger radius, stronger shadow,
+  max elevation, and outline clipping for image attachments.
+- Added normal-mode touch response in `ThingsAdapter`: press scales to
+  0.936 and lowers elevation; release bounces to 1.016 then settles.
+- Kept moving/selecting mode geometry consistent via `BaseThingsAdapter`
+  and `ModeManager`; updated new-item shining border radius to the
+  same card-radius dimen.
+
+Verification:
+- `.\gradlew.bat :app:assembleDebug --console=plain` passed
+  (`BUILD SUCCESSFUL in 2s` on the final incremental run).
+- `git diff --check` passed; only existing CRLF conversion warnings.
+- No visual install/screenshot was performed because `adb devices`
+  showed only a physical device and no `emulator-5554`.
+
+Follow-up in same session after user reported the radius still looked
+unchanged:
+- Root cause: `BackgroundUtil.applyCardBackground()` replaced
+  CardView's runtime background with a plain `ColorDrawable` or a
+  no-radius `GradientDrawable` on every bind. On API 21+, CardView's
+  outline follows that runtime background, so the XML
+  `cardCornerRadius` was effectively erased.
+- Fix: `applyCardBackground()` now always uses a rounded
+  `GradientDrawable`, syncing `gd.cornerRadius = cv.radius` and using
+  identical color stops for PURE backgrounds so pure/gradient recycling
+  keeps the same rounded shape.
+- Re-verified `.\gradlew.bat :app:assembleDebug --console=plain`
+  (`BUILD SUCCESSFUL in 8s`) and `git diff --check`.
+
+Second follow-up in same UI pass:
+- In selecting/moving mode, unselected cards already used
+  `lightVariant(background)`, but their content layer kept full alpha.
+  On light cards this made black text/icons stand out too much.
+- Added `BaseThingsAdapter.shouldDimUnselectedContent()` and enabled it
+  only for the homepage `ThingsAdapter`; unselected homepage cards now
+  set `llContent` and sticky/ongoing icon alpha to `0.54f`.
+- Adjusted `ThingsAdapter.onBindViewHolder()` so its new-item-animation
+  cleanup only forces `llContent.alpha = 1f` in NORMAL mode, otherwise
+  it would undo the selecting/moving-mode dim.
+- Re-verified `.\gradlew.bat :app:assembleDebug --console=plain`
+  (`BUILD SUCCESSFUL in 8s`) and `git diff --check`.
+- User clarified black and white content should not use the same alpha
+  because black reads visually heavier. Split unselected content alpha:
+  black/dark foreground on light cards uses `0.38f`; white/light
+  foreground on dark cards uses `0.54f`. Re-verified assembleDebug
+  (`BUILD SUCCESSFUL in 6s`) and `git diff --check`.
+- User clarified the alpha split should only apply to adaptive foreground
+  content (text/icons/checklist/reminder/habit), not to image attachments
+  or the card colour itself. Replaced the coarse `llContent.alpha` dim with
+  per-view alpha assignment: image attachment container/image/cover/loading
+  stay at `1.0f`, while adaptive foreground views use the black/white split.
+  Re-verified assembleDebug (`BUILD SUCCESSFUL in 7s`) and `git diff --check`.
+- User reported the "Blank thing has been abandoned" snackbar no longer
+  appears after creating an empty thing and returning home. Root cause:
+  `DetailActivity.createFailed()` used `setResult(resultCode)` without an
+  `Intent`, while `ThingsActivity.onActivityResult()` now intentionally skips
+  null `data` to avoid a migrated Kotlin NPE. The non-zero result code was
+  therefore dropped before `RESULT_CREATE_BLANK_THING` could show its snackbar.
+  Fixed `createFailed()` to put `KEY_RESULT_CODE` into its result `Intent`
+  and call `setResult(resultCode, intent)`. Re-verified assembleDebug
+  (`BUILD SUCCESSFUL in 9s`) and `git diff --check`.
+
 ## 2026-05-21 — Post-migration Kotlin cleanup (full session)
 
 Completed IDE inspection cleanup on the `kotlin` branch after the 17-group

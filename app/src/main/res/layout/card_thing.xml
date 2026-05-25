@@ -6,8 +6,11 @@
     android:id="@+id/cv_thing"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
+    android:clipToOutline="true"
     android:foreground="@drawable/selectable_item_background_light"
-    app:cardCornerRadius="2dp"
+    app:cardCornerRadius="@dimen/thing_card_corner_radius"
+    app:cardElevation="@dimen/thing_card_normal_elevation"
+    app:cardMaxElevation="@dimen/thing_card_dragging_elevation"
     app:cardPreventCornerOverlap="false">
 
     <LinearLayout

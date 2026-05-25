@@ -134,6 +134,49 @@ abstract class BaseThingsAdapter(context: Context?) :
         mChecklistMaxItemCount = checklistMaxItemCount
     }
 
+    private fun setNormalCardGeometry(cv: CardView) {
+        cv.animate().cancel()
+        cv.scaleX = 1.0f
+        cv.scaleY = 1.0f
+        cv.cardElevation = mContext!!.resources.getDimension(R.dimen.thing_card_normal_elevation)
+    }
+
+    protected open fun shouldDimUnselectedContent(currentMode: Int): Boolean {
+        return false
+    }
+
+    private fun applyUnselectedContentAlpha(
+        holder: BaseThingViewHolder,
+        background: ThingBackground?,
+        dim: Boolean
+    ) {
+        holder.llContent!!.alpha = 1.0f
+        holder.flImageAttachment!!.alpha = 1.0f
+        holder.ivImageAttachment!!.alpha = 1.0f
+        holder.vImageCover!!.alpha = 1.0f
+        holder.pbLoading!!.alpha = 1.0f
+
+        val adaptiveAlpha = if (dim) {
+            if (background != null && BackgroundUtil.isLight(background.representativeColor())) {
+                UNSELECTED_DARK_CONTENT_ALPHA
+            } else {
+                UNSELECTED_LIGHT_CONTENT_ALPHA
+            }
+        } else {
+            1.0f
+        }
+
+        holder.tvTitle!!.alpha = adaptiveAlpha
+        holder.tvImageCount!!.alpha = adaptiveAlpha
+        holder.ivPrivateThing!!.alpha = adaptiveAlpha
+        holder.tvContent!!.alpha = adaptiveAlpha
+        holder.rvChecklist!!.alpha = adaptiveAlpha
+        holder.llAudioAttachment!!.alpha = adaptiveAlpha
+        holder.rlReminder!!.alpha = adaptiveAlpha
+        holder.rlHabit!!.alpha = adaptiveAlpha
+        holder.ivStickyOngoing!!.alpha = adaptiveAlpha
+    }
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BaseThingViewHolder {
         return BaseThingViewHolder(mInflater!!.inflate(R.layout.card_thing, parent, false))
     }
@@ -545,26 +588,32 @@ abstract class BaseThingsAdapter(context: Context?) :
     ) {
         val cv: CardView = holder.cv!!
         val currentMode = getCurrentMode()
+        val dimUnselectedContent = shouldDimUnselectedContent(currentMode) && !selected
+        applyUnselectedContentAlpha(holder, background, dimUnselectedContent)
+
         if (currentMode == ModeManager.MOVING) {
             if (selected) {
                 ObjectAnimator.ofFloat(cv, "scaleX", 1.11f).setDuration(96).start()
                 ObjectAnimator.ofFloat(cv, "scaleY", 1.11f).setDuration(96).start()
-                ObjectAnimator.ofFloat(cv, "CardElevation", 12 * mDensity)
+                ObjectAnimator.ofFloat(
+                    cv, "cardElevation",
+                    mContext!!.resources.getDimension(R.dimen.thing_card_dragging_elevation)
+                )
                     .setDuration(96).start()
                 BackgroundUtil.applyCardBackground(cv, background)
             } else {
-                cv.scaleX = 1.0f
-                cv.scaleY = 1.0f
-                cv.cardElevation = 2 * mDensity
+                setNormalCardGeometry(cv)
                 BackgroundUtil.applyCardBackground(cv, lightVariant(background))
             }
         } else if (currentMode == ModeManager.SELECTING) {
+            setNormalCardGeometry(cv)
             if (selected) {
                 BackgroundUtil.applyCardBackground(cv, background)
             } else {
                 BackgroundUtil.applyCardBackground(cv, lightVariant(background))
             }
         } else {
+            setNormalCardGeometry(cv)
             BackgroundUtil.applyCardBackground(cv, background)
         }
 
@@ -662,6 +711,9 @@ abstract class BaseThingsAdapter(context: Context?) :
         private var black_76p: Int = 0
         private var black_66p: Int = 0
         private var black_54p: Int = 0
+
+        private const val UNSELECTED_DARK_CONTENT_ALPHA = 0.32f
+        private const val UNSELECTED_LIGHT_CONTENT_ALPHA = 0.64f
 
         init {
             val context: Context = App.getApp()!!

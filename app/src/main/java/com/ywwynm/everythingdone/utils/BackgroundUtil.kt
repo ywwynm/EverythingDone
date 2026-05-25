@@ -200,29 +200,32 @@ object BackgroundUtil {
      * the View.background field, so the stale GradientDrawable kept rendering).
      *
      * CardView's rounded-corner clipping and elevation shadow are driven by
-     * the view's outline (set by CardView in `onSizeChanged`) — not by
-     * the background drawable — so replacing the drawable doesn't break either.
+     * the view's background outline on API 21+. Keep the runtime drawable's
+     * corner radius in sync with [CardView.getRadius], otherwise replacing
+     * CardView's internal round-rect background silently makes the card square.
      */
     @JvmStatic
     fun applyCardBackground(cv: CardView?, background: ThingBackground?) {
         if (cv == null || background == null) return
 
-        if (background.mode === ThingBackground.Mode.PURE) {
-            // View.setBackgroundColor wraps a fresh ColorDrawable and assigns it
-            // to View.background — replacing any stale GradientDrawable from a
-            // previous (recycled) bind. CardView's outline / shadow keep working.
-            cv.setBackgroundColor(background.color)
+        val gd: GradientDrawable
+        val existing: Drawable? = cv.background
+        if (existing is GradientDrawable) {
+            // Reuse the existing instance (cheaper) and just mutate its colours.
+            gd = existing
         } else {
-            val gd: GradientDrawable
-            val existing: Drawable? = cv.background
-            if (existing is GradientDrawable) {
-                // Reuse the existing instance (cheaper) and just mutate its colours.
-                gd = existing
-            } else {
-                gd = GradientDrawable()
-                gd.setShape(GradientDrawable.RECTANGLE)
-                cv.background = gd
-            }
+            gd = GradientDrawable()
+            gd.setShape(GradientDrawable.RECTANGLE)
+            cv.background = gd
+        }
+        gd.cornerRadius = cv.radius
+
+        if (background.mode === ThingBackground.Mode.PURE) {
+            // Use identical stops instead of setBackgroundColor so recycled
+            // pure/gradient binds all keep the same rounded drawable shape.
+            gd.setOrientation(GradientDrawable.Orientation.LEFT_RIGHT)
+            gd.colors = intArrayOf(background.color, background.color)
+        } else {
             gd.setOrientation(toGdOrientation(background.orientation))
             gd.colors = intArrayOf(background.color, background.endColor)
         }

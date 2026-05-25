@@ -1,6 +1,10 @@
 <resources>
 
     <dimen name="rv_things_padding">4dp</dimen>
+    <dimen name="thing_card_outer_spacing">8dp</dimen>
+    <dimen name="thing_card_corner_radius">10dp</dimen>
+    <dimen name="thing_card_normal_elevation">8dp</dimen>
+    <dimen name="thing_card_dragging_elevation">12dp</dimen>
 
     <dimen name="fab_margin">0dp</dimen>
 

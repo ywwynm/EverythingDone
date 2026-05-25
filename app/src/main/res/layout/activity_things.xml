@@ -69,9 +69,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:clipToPadding="false"
-                android:paddingLeft="@dimen/rv_things_padding"
+                android:paddingLeft="@dimen/thing_card_outer_spacing"
                 android:layout_marginTop="?attr/actionBarSize"
-                android:paddingRight="@dimen/rv_things_padding"
+                android:paddingRight="@dimen/thing_card_outer_spacing"
                 android:scrollbars="vertical"
                 android:scrollbarStyle="outsideOverlay"
                 android:theme="@style/Theme.AppCompat.Light"/>
