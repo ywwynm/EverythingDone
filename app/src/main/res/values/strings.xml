@@ -618,6 +618,8 @@
     <string name="settings_change_drawer_header">Drawer Header Image</string>
     <string name="default_drawer_header">Default</string>
     <string name="settings_app_language">Language</string>
+    <string name="settings_follow_system_dark_mode">Follow system dark mode</string>
+    <string name="settings_force_dark_mode">Enable dark mode</string>
     <string name="change_app_language">Change App Language</string>
     <string-array name="languages" tools:ignore="MissingTranslation">
         <item>@string/follow_system_settings</item>

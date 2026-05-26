@@ -23,6 +23,7 @@ import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.activities.DetailActivity
 import com.ywwynm.everythingdone.helpers.AttachmentHelper
 import com.ywwynm.everythingdone.model.ThingBackground
+import com.ywwynm.everythingdone.utils.AppearanceUtil
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.FileUtil
@@ -75,6 +76,24 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         mIvReRecording     = f(R.id.iv_re_recording_audio)
         mIvCancelRecording = f(R.id.iv_cancel_recording_audio)
 
+        if (AppearanceUtil.isDarkMode(mActivity!!)) {
+            mIvReRecording!!.setImageDrawable(
+                DisplayUtil.opaqueTintDrawable(
+                    mActivity!!,
+                    ContextCompat.getDrawable(mActivity!!, R.drawable.act_re_recording_audio),
+                    ContextCompat.getColor(mActivity!!, R.color.app_chrome_control_unchecked)
+                )
+            )
+            mIvCancelRecording!!.setImageDrawable(
+                DisplayUtil.opaqueTintDrawable(
+                    mActivity!!,
+                    ContextCompat.getDrawable(mActivity!!, R.drawable.act_cancel_recording_audio),
+                    ContextCompat.getColor(mActivity!!, R.color.app_chrome_control_unchecked)
+                )
+            )
+            setMainFabIcon(R.drawable.act_start_recording_audio)
+        }
+
         val accentBg: ThingBackground? = mActivity!!.getAccentBackground()
         val accentColor: Int = accentBg?.representativeColor() ?: mActivity!!.getAccentColor()
         mVisualizer!!.setRenderColor(accentColor)
@@ -86,7 +105,10 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
 
         mEtFileName!!.highlightColor = DisplayUtil.getLightColor(accentColor, mActivity)
         DisplayUtil.setSelectionHandlersColor(mEtFileName, accentColor)
-        DisplayUtil.tintView(mEtFileName, ContextCompat.getColor(mActivity!!, R.color.black_26p))
+        DisplayUtil.tintView(
+            mEtFileName,
+            ContextCompat.getColor(mActivity!!, R.color.app_chrome_on_surface_hint)
+        )
 
         mRecorder!!.link(mVisualizer!!)
         mRecorder!!.startListening()
@@ -129,7 +151,9 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
     }
 
     private fun setEvents() {
-        val normalColor = ContextCompat.getColor(mActivity!!, R.color.black_26p)
+        val normalColor = ContextCompat.getColor(
+            mActivity!!, R.color.app_chrome_on_surface_hint
+        )
         val accentBg: ThingBackground? = mActivity!!.getAccentBackground()
         val accentColor: Int = accentBg?.representativeColor() ?: mActivity!!.getAccentColor()
         mEtFileName!!.onFocusChangeListener = View.OnFocusChangeListener { _, hasFocus ->
@@ -195,7 +219,7 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
 
         mVisualizer!!.animate().alpha(1.0f).setDuration(ANIM_DURATION.toLong())
         mBase!!.animate().alpha(1.0f).setDuration(ANIM_DURATION.toLong())
-        mFabMain!!.setImageResource(R.drawable.act_stop_recording_audio)
+        setMainFabIcon(R.drawable.act_stop_recording_audio)
 
         mFabMain!!.contentDescription = getString(R.string.cd_stop_record_audio)
     }
@@ -213,7 +237,7 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         mBase!!.animate().alpha(0.16f).setDuration(ANIM_DURATION.toLong())
 
         mFabMain!!.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#4CAF50"))
-        mFabMain!!.setImageResource(R.drawable.act_save_audio)
+        setMainFabIcon(R.drawable.act_save_audio)
 
         mIvReRecording!!.isClickable = true
         mIvCancelRecording!!.isClickable = true
@@ -229,8 +253,10 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         mChronometer!!.animate().alpha(0.26f).setDuration(ANIM_DURATION.toLong())
         mChronometer!!.animate().translationY(0f).setDuration(ANIM_DURATION.toLong())
 
-        mFabMain!!.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#FFFFFF"))
-        mFabMain!!.setImageResource(R.drawable.act_start_recording_audio)
+        mFabMain!!.backgroundTintList = ColorStateList.valueOf(
+            ContextCompat.getColor(mActivity!!, R.color.app_chrome_surface_elevated)
+        )
+        setMainFabIcon(R.drawable.act_start_recording_audio)
 
         mIvReRecording!!.isClickable = false
         mIvCancelRecording!!.isClickable = false
@@ -247,6 +273,20 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         }
         mConfirmClicked = true
         dismiss()
+    }
+
+    private fun setMainFabIcon(iconRes: Int) {
+        if (AppearanceUtil.isDarkMode(mActivity!!)) {
+            mFabMain!!.setImageDrawable(
+                DisplayUtil.opaqueTintDrawable(
+                    mActivity!!,
+                    ContextCompat.getDrawable(mActivity!!, iconRes),
+                    ContextCompat.getColor(mActivity!!, R.color.app_chrome_control_unchecked)
+                )
+            )
+        } else {
+            mFabMain!!.setImageResource(iconRes)
+        }
     }
 
     companion object {

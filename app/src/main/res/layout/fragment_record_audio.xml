@@ -36,6 +36,8 @@
                 android:layout_height="wrap_content"
                 android:textSize="16sp"
                 android:singleLine="true"
+                android:textColor="@color/app_chrome_on_surface_secondary"
+                android:textColorHint="@color/app_chrome_on_surface_hint"
                 android:textCursorDrawable="@null"
                 android:imeOptions="actionDone"
                 android:selectAllOnFocus="true"
@@ -45,6 +47,7 @@
                 android:layout_width="40dp"
                 android:layout_height="wrap_content"
                 android:text=".wav"
+                android:textColor="@color/app_chrome_on_surface_secondary"
                 android:textSize="16sp"
                 tools:ignore="HardcodedText"/>
 
@@ -58,7 +61,7 @@
             android:layout_marginBottom="12dp"
             android:gravity="center"
             android:textSize="36dp"
-            android:textColor="#000000"
+            android:textColor="@color/app_chrome_on_surface_strong"
             android:alpha="0.26"
             tools:ignore="SpUsage"/>
 
@@ -88,6 +91,7 @@
                 android:layout_marginEnd="@dimen/iv_fab_audio_margin"
                 android:layout_marginRight="@dimen/iv_fab_audio_margin"
                 android:src="@drawable/act_re_recording_audio"
+                android:tint="@color/app_chrome_control_unchecked"
                 android:contentDescription="@string/cd_re_recording_audio"
                 android:background="@drawable/selectable_item_background"
                 android:alpha="0"/>
@@ -101,7 +105,8 @@
                 android:contentDescription="@string/cd_start_record_audio"
                 app:elevation="4dp"
                 app:pressedTranslationZ="8dp"
-                app:backgroundTint="#FFFFFF"
+                app:backgroundTint="@color/app_chrome_surface_elevated"
+                app:rippleColor="@color/app_chrome_ripple"
                 app:borderWidth="0dp"/>
 
             <ImageView
@@ -112,6 +117,7 @@
                 android:layout_marginStart="@dimen/iv_fab_audio_margin"
                 android:layout_marginLeft="@dimen/iv_fab_audio_margin"
                 android:src="@drawable/act_cancel_recording_audio"
+                android:tint="@color/app_chrome_control_unchecked"
                 android:contentDescription="@string/cd_cancel_recording_audio"
                 android:background="@drawable/selectable_item_background"
                 android:alpha="0"/>

@@ -5,13 +5,18 @@ package com.ywwynm.everythingdone.fragments
 import android.app.Dialog
 import android.app.DialogFragment
 import android.app.FragmentManager
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
+import android.view.ContextThemeWrapper
 import androidx.annotation.IdRes
 import androidx.annotation.LayoutRes
+import androidx.core.content.ContextCompat
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.Window
+
+import com.ywwynm.everythingdone.R
 
 /**
  * Created by ywwynm on 2015/9/29.
@@ -23,15 +28,25 @@ abstract class BaseDialogFragment : DialogFragment() {
     @JvmField
     protected var mContentView: View? = null
 
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setStyle(STYLE_NO_TITLE, R.style.EverythingDoneTheme_Dialog)
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View? {
-        mContentView = inflater.inflate(getLayoutResource(), container, false)
+        val themedInflater = inflater.cloneInContext(
+            dialog?.context ?: ContextThemeWrapper(activity!!, R.style.EverythingDoneTheme_Dialog)
+        )
+        mContentView = themedInflater.inflate(getLayoutResource(), container, false)
         return mContentView
     }
 
     @LayoutRes
     protected abstract fun getLayoutResource(): Int
+
+    protected open fun getDialogWindowWidthPx(): Int = ViewGroup.LayoutParams.WRAP_CONTENT
 
     @Suppress("UNCHECKED_CAST")
     protected fun <T : View?> f(view: View?, @IdRes id: Int): T {
@@ -43,9 +58,23 @@ abstract class BaseDialogFragment : DialogFragment() {
     }
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
-        val dialog: Dialog = super.onCreateDialog(savedInstanceState)
+        val dialog = super.onCreateDialog(savedInstanceState)
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
         return dialog
+    }
+
+    override fun onStart() {
+        super.onStart()
+        val dialog = dialog ?: return
+        dialog.window?.setBackgroundDrawable(
+            ColorDrawable(
+                ContextCompat.getColor(dialog.context, R.color.app_chrome_surface_elevated)
+            )
+        )
+        dialog.window?.setLayout(
+            getDialogWindowWidthPx(),
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
     }
 
     override fun show(manager: FragmentManager, tag: String?) {

@@ -7,6 +7,7 @@ import android.os.Bundle
 import androidx.core.util.Pair
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.core.content.ContextCompat
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -33,6 +34,11 @@ open class AttachmentInfoDialogFragment : BaseDialogFragment() {
 
     override fun getLayoutResource(): Int = R.layout.fragment_attachment_info
 
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        restoreArguments()
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View? {
@@ -46,9 +52,13 @@ open class AttachmentInfoDialogFragment : BaseDialogFragment() {
         if (mAccentBackground != null) {
             BackgroundUtil.applyTextBackground(title, mAccentBackground)
             BackgroundUtil.applyTextBackground(confirm, mAccentBackground)
-        } else {
+        } else if (mAccentColor != 0) {
             title.setTextColor(mAccentColor)
             confirm.setTextColor(mAccentColor)
+        } else {
+            val fallback = ContextCompat.getColor(activity, R.color.app_chrome_on_surface_primary)
+            title.setTextColor(fallback)
+            confirm.setTextColor(fallback)
         }
         confirm.setOnClickListener { dismiss() }
 
@@ -62,16 +72,65 @@ open class AttachmentInfoDialogFragment : BaseDialogFragment() {
     open fun setAccentColor(accentColor: Int) {
         mAccentColor = accentColor
         mAccentBackground = null
+        ensureArguments().putInt(ARG_ACCENT_COLOR, accentColor)
+        ensureArguments().remove(ARG_ACCENT_BACKGROUND)
     }
 
     /** Phase 8: gradient-aware accent. PURE / GRADIENT both flow through. */
     open fun setAccentBackground(bg: ThingBackground?) {
         mAccentBackground = bg
         if (bg != null) mAccentColor = bg.representativeColor()
+        val args = ensureArguments()
+        args.putInt(ARG_ACCENT_COLOR, mAccentColor)
+        if (bg != null) {
+            args.putString(ARG_ACCENT_BACKGROUND, bg.toJson())
+        } else {
+            args.remove(ARG_ACCENT_BACKGROUND)
+        }
     }
 
     open fun setItems(items: List<Pair<String, String>?>?) {
-        mItems = items
+        mItems = items ?: emptyList()
+        val titles = ArrayList<String>()
+        val contents = ArrayList<String>()
+        for (item in mItems.orEmpty()) {
+            if (item == null) continue
+            titles.add(item.first ?: "")
+            contents.add(item.second ?: "")
+        }
+        val args = ensureArguments()
+        args.putStringArrayList(ARG_ITEM_TITLES, titles)
+        args.putStringArrayList(ARG_ITEM_CONTENTS, contents)
+    }
+
+    private fun ensureArguments(): Bundle {
+        var args = arguments
+        if (args == null) {
+            args = Bundle()
+            arguments = args
+        }
+        return args
+    }
+
+    private fun restoreArguments() {
+        val args = arguments ?: return
+        mAccentColor = args.getInt(ARG_ACCENT_COLOR, mAccentColor)
+        mAccentBackground = ThingBackground.fromJson(args.getString(ARG_ACCENT_BACKGROUND))
+        if (mAccentBackground != null) {
+            mAccentColor = mAccentBackground!!.representativeColor()
+        }
+
+        val titles = args.getStringArrayList(ARG_ITEM_TITLES)
+        val contents = args.getStringArrayList(ARG_ITEM_CONTENTS)
+        if (titles != null && contents != null && titles.size == contents.size) {
+            val items = ArrayList<Pair<String, String>?>(titles.size)
+            for (i in titles.indices) {
+                items.add(Pair(titles[i], contents[i]))
+            }
+            mItems = items
+        } else if (mItems == null) {
+            mItems = emptyList()
+        }
     }
 
     internal inner class Adapter : RecyclerView.Adapter<Adapter.Holder>() {
@@ -81,12 +140,12 @@ open class AttachmentInfoDialogFragment : BaseDialogFragment() {
         }
 
         override fun onBindViewHolder(holder: Holder, position: Int) {
-            val item: Pair<String, String> = mItems!![position]!!
+            val item: Pair<String, String> = mItems?.getOrNull(position) ?: return
             holder.tvTitle!!.text   = item.first
             holder.tvContent!!.text = item.second
         }
 
-        override fun getItemCount(): Int = mItems!!.size
+        override fun getItemCount(): Int = mItems?.size ?: 0
 
         internal inner class Holder(itemView: View?) : BaseViewHolder(itemView) {
 
@@ -97,5 +156,9 @@ open class AttachmentInfoDialogFragment : BaseDialogFragment() {
 
     companion object {
         const val TAG: String = "AttachmentInfoDialogFragment"
+        private const val ARG_ACCENT_COLOR = "accent_color"
+        private const val ARG_ACCENT_BACKGROUND = "accent_background"
+        private const val ARG_ITEM_TITLES = "item_titles"
+        private const val ARG_ITEM_CONTENTS = "item_contents"
     }
 }

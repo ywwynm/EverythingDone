@@ -19,7 +19,7 @@
         android:theme="@style/EverythingDoneTheme.Detail.Actionbar"
         android:background="#00000000"
         app:contentInsetStart="0dp"
-        app:popupTheme="@style/Theme.AppCompat.Light">
+        app:popupTheme="@style/EverythingDoneTheme.Detail.Popup">
 
         <!--content description will be set in Activity-->
         <ImageButton

@@ -4,6 +4,7 @@ package com.ywwynm.everythingdone.activities
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.content.res.Configuration
 import androidx.activity.OnBackPressedCallback
 import android.graphics.Point
 import android.graphics.PorterDuff
@@ -33,6 +34,7 @@ import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.adapters.ImageViewerPagerAdapter
 import com.ywwynm.everythingdone.fragments.AlertDialogFragment
+import com.ywwynm.everythingdone.fragments.AttachmentInfoDialogFragment
 import com.ywwynm.everythingdone.helpers.AttachmentHelper
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.utils.DisplayUtil
@@ -49,6 +51,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
     private var mAccentColor: Int = 0
     /** Phase 8: full ThingBackground for gradient text on title / confirm. */
     private var mAccentBackground: ThingBackground? = null
+    private var mNightModeMask: Int = 0
     private var mEditable: Boolean = false
     private var mTypePathNames: ArrayList<String>? = null
     private var mPosition: Int = 0
@@ -64,6 +67,8 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
     override fun getLayoutResource(): Int = R.layout.activity_image_viewer
 
     override fun initMembers() {
+        mNightModeMask = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+
         val intent: Intent = getIntent()
         mAccentColor = intent.getIntExtra(Def.Communication.KEY_COLOR, 0)
         val bgJson = intent.getStringExtra(Def.Communication.KEY_BACKGROUND)
@@ -220,12 +225,10 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         val id = item.itemId
         if (id == R.id.act_show_attachment_info) {
-            AttachmentHelper.showAttachmentInfoDialog(
-                this, mAccentBackground, mTypePathNames!![mVpImage!!.currentItem]
-            )
+            showAttachmentInfoDialogForCurrentImage()
         } else if (id == R.id.act_delete_attachment) {
             val adf = AlertDialogFragment()
-            adf.setContentColor(ContextCompat.getColor(this, R.color.black_69p))
+            adf.setContentColor(ContextCompat.getColor(this, R.color.app_chrome_on_surface_medium))
             adf.setConfirmBackground(mAccentBackground)
             adf.setContent(getString(R.string.alert_delete_attachment))
             adf.setConfirmListener(object : AlertDialogFragment.ConfirmListener {
@@ -244,6 +247,14 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
             return true
         }
         return false
+    }
+
+    private fun showAttachmentInfoDialogForCurrentImage() {
+        val typePathNames = mTypePathNames ?: return
+        if (typePathNames.isEmpty()) return
+        val currentItem = mVpImage?.currentItem ?: return
+        val index = currentItem.coerceIn(0, typePathNames.size - 1)
+        AttachmentHelper.showAttachmentInfoDialog(this, mAccentBackground, typePathNames[index])
     }
 
     override fun setEvents() {
@@ -286,6 +297,36 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
             mActionbar!!.visibility = View.VISIBLE
         }
         mSystemUiVisible = !mSystemUiVisible
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+
+        val newNightModeMask = newConfig.uiMode and Configuration.UI_MODE_NIGHT_MASK
+        if (newNightModeMask == mNightModeMask) return
+
+        mNightModeMask = newNightModeMask
+        delegate.applyDayNight()
+
+        val attachmentInfoWasShowing =
+            fragmentManager.findFragmentByTag(AttachmentInfoDialogFragment.TAG) is AttachmentInfoDialogFragment
+        dismissDialogFragment(AttachmentInfoDialogFragment.TAG)
+        dismissDialogFragment(AlertDialogFragment.TAG)
+
+        if (attachmentInfoWasShowing) {
+            mVpImage?.post {
+                if (!isFinishing && !isDestroyed) {
+                    showAttachmentInfoDialogForCurrentImage()
+                }
+            }
+        }
+    }
+
+    private fun dismissDialogFragment(tag: String) {
+        val fragment = fragmentManager.findFragmentByTag(tag)
+        if (fragment is android.app.DialogFragment) {
+            fragment.dismissAllowingStateLoss()
+        }
     }
 
     private fun returnToDetailActivity() {

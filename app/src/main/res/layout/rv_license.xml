@@ -14,7 +14,7 @@
         android:layout_marginLeft="8dp"
         android:layout_marginRight="8dp"
         android:textSize="18sp"
-        android:textColor="@color/black_76p"/>
+        android:textColor="@color/app_chrome_on_surface_high"/>
 
     <TextView
         android:id="@+id/tv_license_link"
@@ -31,7 +31,8 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
         android:padding="8dp"
-        android:background="#EEEEEE"
+        android:background="@color/app_chrome_code_surface"
+        android:textColor="@color/app_chrome_on_surface_primary"
         android:fontFamily="sans-serif-condensed"/>
 
 </LinearLayout>

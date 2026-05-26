@@ -18,6 +18,8 @@
         android:imeOptions="actionNext"
         android:selectAllOnFocus="true"
         android:textSize="16sp"
+        android:textColor="@color/app_chrome_on_surface_secondary"
+        android:textColorHint="@color/app_chrome_on_surface_hint"
         android:textCursorDrawable="@null"
         android:text="45"
         tools:ignore="HardcodedText"/>
@@ -34,6 +36,8 @@
         android:gravity="center_vertical"
         android:drawableEnd="@drawable/ic_dropdown"
         android:drawableRight="@drawable/ic_dropdown"
+        android:drawableTint="@color/app_chrome_control_unchecked"
+        android:textColor="@color/app_chrome_on_surface_secondary"
         android:background="@drawable/selectable_item_background"/>
 
     <TextView

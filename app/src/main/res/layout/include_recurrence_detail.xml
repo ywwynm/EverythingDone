@@ -13,6 +13,7 @@
         android:layout_marginLeft="12dp"
         android:layout_centerVertical="true"
         android:textSize="16sp"
+        android:textColor="@color/app_chrome_on_surface_secondary"
         android:text="0"
         tools:ignore="HardcodedText"/>
 
@@ -26,6 +27,7 @@
         android:layout_toRightOf="@id/tv_times_l_recurrence"
         android:layout_centerVertical="true"
         android:textSize="16sp"
+        android:textColor="@color/app_chrome_on_surface_secondary"
         android:text="@string/times"/>
 
     <TextView
@@ -36,6 +38,7 @@
         android:layout_toRightOf="@id/tv_times_r_recurrence"
         android:layout_centerVertical="true"
         android:textSize="16sp"
+        android:textColor="@color/app_chrome_on_surface_secondary"
         android:text="@string/every"/>
 
     <TextView
@@ -50,6 +53,8 @@
         android:gravity="center_vertical"
         android:drawableEnd="@drawable/ic_dropdown"
         android:drawableRight="@drawable/ic_dropdown"
+        android:drawableTint="@color/app_chrome_control_unchecked"
+        android:textColor="@color/app_chrome_on_surface_secondary"
         android:textSize="16sp"
         android:background="@drawable/selectable_item_background"
         tools:ignore="RelativeOverlap"/>
@@ -65,6 +70,7 @@
         android:layout_marginRight="2dp"
         android:scaleType="center"
         android:src="@drawable/act_select_all"
+        android:tint="@color/app_chrome_control_unchecked"
         android:contentDescription="@string/act_select_all"
         android:background="@drawable/selectable_item_background"/>
 

@@ -56,7 +56,7 @@
             android:paddingTop="8dp"
             android:paddingRight="12dp"
             android:paddingBottom="8dp"
-            android:textColor="@color/black_26p"
+            android:textColor="@color/app_chrome_on_surface_hint"
             android:textAllCaps="true"
             android:text="@string/cancel"
             android:background="@drawable/selectable_item_background"/>

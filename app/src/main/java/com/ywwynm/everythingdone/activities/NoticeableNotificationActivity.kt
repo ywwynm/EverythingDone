@@ -7,6 +7,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.res.Configuration
 import android.graphics.Color
 import android.graphics.PorterDuff
 import android.graphics.drawable.Drawable
@@ -37,6 +38,7 @@ import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.receivers.HabitNotificationActionReceiver
 import com.ywwynm.everythingdone.receivers.ReminderNotificationActionReceiver
+import com.ywwynm.everythingdone.utils.AppearanceUtil
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DeviceUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
@@ -46,7 +48,6 @@ import java.time.format.DateTimeFormatter
 
 import java.util.ArrayList
 import java.util.Collections
-import androidx.core.graphics.toColorInt
 import androidx.core.view.isVisible
 
 /**
@@ -73,12 +74,14 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
     private var mIvTitle: ImageView? = null
     private var mTvTitle: TextView? = null
 
+    private var mRoot: View? = null
     private var mRvThing: RecyclerView? = null
 
     private var mFlActions: Array<FrameLayout?>? = null
     private var mIvActions: Array<ImageView?>? = null
 
     private var mFlCancelAsBt: FrameLayout? = null
+    private var mIvCancel: ImageView? = null
 
     private val mReceiver: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -224,6 +227,7 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
     }
 
     override fun findViews() {
+        mRoot = f(R.id.ll_root_noticeable_notification)
         mTvTitle = f(R.id.tv_noticeable_notification_title)
         mIvTitle = f(R.id.iv_noticeable_notification_title)
 
@@ -240,12 +244,46 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
         mIvActions!![2] = f(R.id.iv_3_noticeable_notification_as_bt)
 
         mFlCancelAsBt = f(R.id.fl_noticeable_notification_cancel_as_bt)
+        mIvCancel = f(R.id.iv_noticeable_notification_cancel)
     }
 
     override fun initUI() {
+        applyDialogShellAppearance()
         initTitleUI()
         initRvThing()
         initActionsUI()
+    }
+
+    private fun applyDialogShellAppearance() {
+        mRoot!!.setBackgroundColor(
+            ContextCompat.getColor(this, R.color.app_chrome_surface_elevated)
+        )
+        applyActionButtonRipples()
+
+        var cancelDrawable: Drawable =
+            ContextCompat.getDrawable(this, R.drawable.act_cancel_recording_audio)!!
+        cancelDrawable = cancelDrawable.mutate()
+        cancelDrawable.setColorFilter(
+            ContextCompat.getColor(this, R.color.app_chrome_control_unchecked),
+            PorterDuff.Mode.SRC_ATOP
+        )
+        mIvCancel!!.setImageDrawable(cancelDrawable)
+    }
+
+    private fun applyActionButtonRipples() {
+        val backgroundRes = if (AppearanceUtil.isDarkMode(this)) {
+            R.drawable.selectable_item_background_light
+        } else {
+            R.drawable.selectable_item_background
+        }
+        applyActionButtonRipple(mFlCancelAsBt, backgroundRes)
+        for (button in mFlActions ?: emptyArray<FrameLayout?>()) {
+            applyActionButtonRipple(button, backgroundRes)
+        }
+    }
+
+    private fun applyActionButtonRipple(button: View?, backgroundRes: Int) {
+        button?.background = ContextCompat.getDrawable(this, backgroundRes)?.mutate()
     }
 
     @SuppressLint("SetTextI18n")
@@ -265,7 +303,9 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
         val title = "$typeStr • $timeStr"
         val ssb = SpannableStringBuilder(title)
         val colorSpan1 = ForegroundColorSpan(mThing!!.getColor())
-        val colorSpan2 = ForegroundColorSpan("#66000000".toColorInt())
+        val colorSpan2 = ForegroundColorSpan(
+            ContextCompat.getColor(this, R.color.app_chrome_on_surface_hint)
+        )
         val index = title.indexOf('•')
         ssb.setSpan(colorSpan1, 0, index - 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         ssb.setSpan(colorSpan2, index - 1, title.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
@@ -336,14 +376,10 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
     }
 
     private fun initActionsUI() {
-        val actionColor = ContextCompat.getColor(this, R.color.black_54p)
+        tintActionIcons()
         val size = mActions!!.size
         for (i in 0 until size) {
             mFlActions!![i]!!.visibility = View.VISIBLE
-            var drawable: Drawable = ContextCompat.getDrawable(this, mActionsIcons!![i])!!
-            drawable = drawable.mutate()
-            drawable.setColorFilter(actionColor, PorterDuff.Mode.SRC_ATOP)
-            mIvActions!![i]!!.setImageDrawable(drawable)
             mFlActions!![i]!!.setOnClickListener(mActions!![i])
             mIvActions!![i]!!.contentDescription = getString(mActionsTexts!![i])
         }
@@ -361,6 +397,17 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
             } else {
                 mShouldShowActionsInOnResume = true
             }
+        }
+    }
+
+    private fun tintActionIcons() {
+        val actionColor = ContextCompat.getColor(this, R.color.app_chrome_control_unchecked)
+        val size = mActions!!.size
+        for (i in 0 until size) {
+            var drawable: Drawable = ContextCompat.getDrawable(this, mActionsIcons!![i])!!
+            drawable = drawable.mutate()
+            drawable.setColorFilter(actionColor, PorterDuff.Mode.SRC_ATOP)
+            mIvActions!![i]!!.setImageDrawable(drawable)
         }
     }
 
@@ -387,6 +434,14 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
     }
 
     override fun setActionbar() {}
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        delegate.applyDayNight()
+        applyDialogShellAppearance()
+        initTitleUI()
+        tintActionIcons()
+    }
 
     override fun setEvents() {
         mRvThing!!.viewTreeObserver.addOnGlobalLayoutListener(

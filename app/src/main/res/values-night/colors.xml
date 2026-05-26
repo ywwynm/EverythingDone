@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <color name="bg_activity_things">#121212</color>
+
+    <color name="app_chrome_surface">#121212</color>
+    <color name="app_chrome_surface_elevated">#1E1E1E</color>
+    <color name="app_chrome_on_surface_strong">#DEFFFFFF</color>
+    <color name="app_chrome_on_surface_primary">#DEFFFFFF</color>
+    <color name="app_chrome_on_surface_high">#C4FFFFFF</color>
+    <color name="app_chrome_on_surface_medium">#B0FFFFFF</color>
+    <color name="app_chrome_on_surface_secondary">#A8FFFFFF</color>
+    <color name="app_chrome_control_unchecked">#A8FFFFFF</color>
+    <color name="app_chrome_on_surface_hint">#66FFFFFF</color>
+    <color name="app_chrome_on_surface_disabled">#61FFFFFF</color>
+    <color name="app_chrome_divider">#24FFFFFF</color>
+    <color name="app_chrome_ripple">#24FFFFFF</color>
+    <color name="app_chrome_code_surface">#2A2A2A</color>
+    <color name="app_chrome_snackbar_background">#323232</color>
+    <color name="app_chrome_snackbar_text">#FFFFFF</color>
+    <color name="date_time_rec_existing_foreground">#C4FFFFFF</color>
+    <color name="date_time_rec_new_foreground">#40FFFFFF</color>
+    <color name="bg_unpicked">#2A2A2A</color>
+
+</resources>

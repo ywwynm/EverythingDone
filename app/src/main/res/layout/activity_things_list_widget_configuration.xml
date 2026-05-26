@@ -5,6 +5,7 @@
     android:layout_height="wrap_content"
     xmlns:tools="http://schemas.android.com/tools"
     android:paddingTop="16dp"
+    android:background="@color/app_chrome_surface_elevated"
     android:orientation="vertical">
 
     <TextView
@@ -29,7 +30,7 @@
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:layout_marginTop="8dp"
-        android:background="@color/black_14p"/>
+        android:background="@color/app_chrome_divider"/>
 
     <LinearLayout
         android:layout_width="match_parent"

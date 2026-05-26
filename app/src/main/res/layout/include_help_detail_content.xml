@@ -4,7 +4,7 @@
     android:id="@+id/sv_help_detail"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#EEEEEE">
+    android:background="@color/app_chrome_surface">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -17,7 +17,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:lineSpacingMultiplier="1.2"
-            android:textColor="@color/black_87p"
+            android:textColor="@color/app_chrome_on_surface_primary"
             android:textSize="24sp"/>
 
         <TextView
@@ -26,7 +26,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
             android:lineSpacingMultiplier="1.28"
-            android:textColor="@color/black_54p"
+            android:textColor="@color/app_chrome_on_surface_secondary"
             android:textSize="18sp"/>
 
     </LinearLayout>

@@ -21,7 +21,7 @@
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:layout_marginTop="12dp"
-        android:background="@color/black_26p"
+        android:background="@color/app_chrome_divider"
         android:visibility="invisible"/>
 
     <com.ywwynm.everythingdone.views.StablerRecyclerView
@@ -33,7 +33,7 @@
         android:id="@+id/view_separator_2"
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="@color/black_26p"/>
+        android:background="@color/app_chrome_divider"/>
 
     <TextView
         android:id="@+id/tv_get_it_as_bt_license"

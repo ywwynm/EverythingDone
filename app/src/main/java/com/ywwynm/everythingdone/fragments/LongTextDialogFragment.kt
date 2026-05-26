@@ -4,6 +4,7 @@ package com.ywwynm.everythingdone.fragments
 
 import android.content.DialogInterface
 import android.os.Bundle
+import androidx.core.content.ContextCompat
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -44,6 +45,12 @@ open class LongTextDialogFragment : BaseDialogFragment() {
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View? {
         super.onCreateView(inflater, container, savedInstanceState)
+
+        if (mAccentColor == 0 && mAccentBackground == null) {
+            mAccentColor = ContextCompat.getColor(
+                activity!!, R.color.app_chrome_on_surface_strong
+            )
+        }
 
         val tvTitle: TextView       = f(R.id.tv_title_long_text)!!
         val tvContent: TextView     = f(R.id.tv_content_long_text)!!

@@ -41,6 +41,9 @@ abstract class PopupPicker(activity: Activity, parent: View, popupAnimStyle: Int
         mPopupWindow = PopupWindow(mContentView,
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         mPopupWindow.setBackgroundDrawable(ContextCompat.getDrawable(activity, R.drawable.bg_picker))
+        mContentView.setBackgroundColor(
+            ContextCompat.getColor(activity, R.color.app_chrome_surface_elevated)
+        )
         mContentView.setOnKeyListener(object : View.OnKeyListener {
             override fun onKey(v: View, keyCode: Int, event: KeyEvent): Boolean {
                 if (keyCode == KeyEvent.KEYCODE_BACK

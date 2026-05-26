@@ -8,5 +8,5 @@
     android:paddingRight="16dp"
     android:gravity="center_vertical"
     android:textSize="14sp"
-    android:textColor="@color/black_54p"
+    android:textColor="@color/app_chrome_on_surface_secondary"
     android:background="@drawable/selectable_item_background"/>

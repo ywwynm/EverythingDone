@@ -34,6 +34,7 @@ import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.services.AlarmHealthWorker
 import com.ywwynm.everythingdone.services.PullAliveJobService
 import com.ywwynm.everythingdone.utils.FileUtil
+import com.ywwynm.everythingdone.utils.AppearanceUtil
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil
 
 import java.io.File
@@ -74,6 +75,7 @@ open class App : Application() {
         super.onCreate()
 
         app = this
+        AppearanceUtil.applyDefaultNightMode()
 
         createNotificationChannels()
 

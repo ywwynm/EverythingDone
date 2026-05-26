@@ -46,6 +46,14 @@ object FrequentSettings {
         val twiceBack: Boolean = sp.getBoolean(Def.Meta.KEY_TWICE_BACK, false)
         settingsMap!![Def.Meta.KEY_TWICE_BACK] = twiceBack
 
+        val followSystemDarkMode: Boolean = sp.getBoolean(
+            Def.Meta.KEY_FOLLOW_SYSTEM_DARK_MODE, false
+        )
+        settingsMap!![Def.Meta.KEY_FOLLOW_SYSTEM_DARK_MODE] = followSystemDarkMode
+
+        val forceDarkMode: Boolean = sp.getBoolean(Def.Meta.KEY_FORCE_DARK_MODE, false)
+        settingsMap!![Def.Meta.KEY_FORCE_DARK_MODE] = forceDarkMode
+
         val closeLater: Boolean = sp.getBoolean(Def.Meta.KEY_CLOSE_NOTIFICATION_LATER, false)
         settingsMap!![Def.Meta.KEY_CLOSE_NOTIFICATION_LATER] = closeLater
 

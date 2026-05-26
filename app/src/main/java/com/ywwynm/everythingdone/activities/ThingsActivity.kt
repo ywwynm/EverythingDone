@@ -17,6 +17,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Point
 import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -85,6 +86,7 @@ import com.ywwynm.everythingdone.model.ThingsCounts
 import com.ywwynm.everythingdone.permission.PermissionUtil
 import com.ywwynm.everythingdone.permission.SimplePermissionCallback
 import com.ywwynm.everythingdone.services.DoingService
+import com.ywwynm.everythingdone.utils.AppearanceUtil
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil
@@ -175,6 +177,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
 
     private var mCanSeeUi: Boolean = false
     private var mUpdateMainUiInOnResume: Boolean = true
+    private var mRestoredFromSavedState: Boolean = false
 
     private val initRecyclerViewRunnable: Runnable = Runnable {
         if (mAdapter!!.getItemCount() <=
@@ -182,7 +185,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         ) {
             mThingManager!!.loadThings()
         }
-        mAdapter!!.setShouldThingsAnimWhenAppearing(true)
+        mAdapter!!.setShouldThingsAnimWhenAppearing(!mRestoredFromSavedState)
         mAdapter!!.attachToRecyclerView(mRecyclerView)
         mStaggeredGridLayoutManager = ThingsStaggeredLayoutManager(
             mSpan, StaggeredGridLayoutManager.VERTICAL
@@ -225,6 +228,8 @@ class ThingsActivity : EverythingDoneBaseActivity() {
     private var mDontPickSearchColor: Boolean = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        mRestoredFromSavedState = savedInstanceState != null
+
         super.onCreate(savedInstanceState)
 
         setDrawer()
@@ -420,6 +425,11 @@ class ThingsActivity : EverythingDoneBaseActivity() {
 
         mFab!!.rippleColor = App.newThingColor
         mActivityHeader!!.updateText()
+        if (App.isSearching) {
+            updateSearchNoResult(0)
+        } else {
+            hideSearchNoResult()
+        }
 
         KeyboardUtil.hideKeyboard(currentFocus)
     }
@@ -482,6 +492,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         if (App.isSearching) {
             menuInflater.inflate(R.menu.menu_search, menu)
+            tintHomeMenuIconsForAppearance(menu)
             mColorPicker!!.setTintTarget(menu.findItem(R.id.act_select_color).icon!!)
             mColorPicker!!.updateAnchor()
             return true
@@ -498,7 +509,36 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         } else {
             menuInflater.inflate(R.menu.menu_things_deleted, menu)
         }
+        tintHomeMenuIconsForAppearance(menu)
         return true
+    }
+
+    private fun tintHomeMenuIconsForAppearance(menu: Menu) {
+        if (!AppearanceUtil.isDarkMode(this)) return
+
+        val tint = ContextCompat.getColor(this, R.color.app_accent)
+        for (i in 0 until menu.size()) {
+            val item = menu.getItem(i)
+            item.icon = DisplayUtil.opaqueTintDrawable(this, item.icon, tint)
+        }
+    }
+
+    private fun applyDrawerMenuIconTintForAppearance() {
+        mDrawer!!.itemIconTintList = null
+        if (!AppearanceUtil.isDarkMode(this)) return
+
+        val tint = ContextCompat.getColor(this, R.color.app_chrome_control_unchecked)
+        tintDrawerMenuIcons(mDrawer!!.menu, tint)
+    }
+
+    private fun tintDrawerMenuIcons(menu: Menu, tint: Int) {
+        for (i in 0 until menu.size()) {
+            val item = menu.getItem(i)
+            item.icon = DisplayUtil.opaqueTintDrawable(this, item.icon, tint)
+            if (item.hasSubMenu()) {
+                tintDrawerMenuIcons(item.subMenu!!, tint)
+            }
+        }
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
@@ -952,6 +992,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         mShiningBorderDefaultParticleBaseSize = 2.2f * resources.displayMetrics.density
         mViewToReveal = f(R.id.view_to_reveal)
         mTvNoResult   = f(R.id.tv_no_result)
+        updateSearchNoResult(0)
 
         mActionbar = f(R.id.actionbar)
         mViewInsideActionbar = f(R.id.view_inside_actionbar)
@@ -963,6 +1004,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
 
         mDrawerLayout = f(R.id.drawer_layout)
         mDrawer       = f(R.id.drawer)
+        applyDrawerMenuIconTintForAppearance()
 
         val dhView: View = mDrawer!!.getHeaderView(0)
         mDrawerHeader = DrawerHeader(
@@ -1001,7 +1043,11 @@ class ThingsActivity : EverythingDoneBaseActivity() {
     }
 
     override fun initUI() {
-        DisplayUtil.darkStatusBar(this)
+        if (AppearanceUtil.isDarkMode(this)) {
+            DisplayUtil.cancelDarkStatusBar(this)
+        } else {
+            DisplayUtil.darkStatusBar(this)
+        }
 
         DisplayUtil.expandLayoutToStatusBarAboveLollipop(this)
 
@@ -1057,7 +1103,11 @@ class ThingsActivity : EverythingDoneBaseActivity() {
             doWithPermissionChecked(
                 object : SimplePermissionCallback(this) {
                     override fun onGranted() {
-                        mRecyclerView!!.postDelayed(initRecyclerViewRunnable, 240)
+                        if (mRestoredFromSavedState) {
+                            initRecyclerViewRunnable.run()
+                        } else {
+                            mRecyclerView!!.postDelayed(initRecyclerViewRunnable, 240)
+                        }
                     }
 
                     override fun onDenied() {
@@ -1072,7 +1122,11 @@ class ThingsActivity : EverythingDoneBaseActivity() {
             )
         } else {
             // post here to make sure that animation plays well and completely
-            mRecyclerView!!.postDelayed(initRecyclerViewRunnable, 240)
+            if (mRestoredFromSavedState) {
+                initRecyclerViewRunnable.run()
+            } else {
+                mRecyclerView!!.postDelayed(initRecyclerViewRunnable, 240)
+            }
         }
     }
 
@@ -1599,13 +1653,44 @@ class ThingsActivity : EverythingDoneBaseActivity() {
 
     private fun updateSearchNoResult(keyboardHeight: Int) {
         mRevealLayout!!.setPadding(0, 0, 0, keyboardHeight)
+        mTvNoResult!!.setTextColor(ContextCompat.getColor(this, R.color.app_chrome_on_surface_hint))
         if (keyboardHeight != 0) {
-            mTvNoResult!!.append("...")
-            mTvNoResult!!.setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, 0)
+            mTvNoResult!!.text = getString(R.string.no_result) + "..."
+            setSearchNoResultImage(false)
         } else {
             mTvNoResult!!.setText(R.string.no_result)
-            mTvNoResult!!.setCompoundDrawablesWithIntrinsicBounds(0, R.drawable.img_no_result, 0, 0)
+            setSearchNoResultImage(true)
         }
+    }
+
+    private fun setSearchNoResultImage(show: Boolean) {
+        if (!show) {
+            mTvNoResult!!.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                null, null, null, null
+            )
+            return
+        }
+        val raw: Drawable? = ContextCompat.getDrawable(this, R.drawable.img_no_result)
+        val image: Drawable? = if (AppearanceUtil.isDarkMode(this)) {
+            DisplayUtil.opaqueTintDrawable(
+                this,
+                raw,
+                ContextCompat.getColor(this, R.color.app_chrome_on_surface_hint)
+            )
+        } else {
+            raw
+        }
+        mTvNoResult!!.setCompoundDrawablesRelativeWithIntrinsicBounds(
+            null, image, null, null
+        )
+    }
+
+    private fun hideSearchNoResult() {
+        mTvNoResult!!.animate().cancel()
+        mTvNoResult!!.alpha = 0f
+        mTvNoResult!!.visibility = View.INVISIBLE
+        mRevealLayout!!.visibility = View.INVISIBLE
+        mRevealLayout!!.setPadding(0, 0, 0, 0)
     }
 
     private fun searchThings() {
@@ -1628,6 +1713,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         }
         mDrawerLayout!!.addDrawerListener(toggle)
         toggle.syncState()
+        applyHomeNavigationIconTintForAppearance()
 
         mActionbar!!.setNavigationOnClickListener(OnNavigationIconClickedListener())
         mDrawer!!.setNavigationItemSelectedListener(NavigationView.OnNavigationItemSelectedListener { menuItem ->
@@ -1666,6 +1752,23 @@ class ThingsActivity : EverythingDoneBaseActivity() {
             }
             true
         })
+    }
+
+    private fun applyHomeNavigationIconTintForAppearance() {
+        val icon = mActionbar!!.navigationIcon ?: return
+        val tint = ContextCompat.getColor(
+            this,
+            if (AppearanceUtil.isDarkMode(this)) {
+                R.color.app_accent
+            } else {
+                R.color.app_chrome_on_surface_secondary
+            }
+        )
+        if (icon is DrawerArrowDrawable) {
+            icon.color = tint
+        } else {
+            mActionbar!!.navigationIcon = DisplayUtil.opaqueTintDrawable(this, icon, tint)
+        }
     }
 
     private fun changeToLimit(newLimit: Int, updateDrawerItem: Boolean) {
@@ -1995,7 +2098,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
             mActivityHeader!!.updateText()
             mDrawerHeader!!.updateCompletionRate()
             mAdapter!!.setShouldThingsAnimWhenAppearing(shouldThingsAnimWhenAppearing)
-            handleSearchResults()
+            hideSearchNoResult()
             DisplayUtil.playDrawerToggleAnim(mActionbar!!.navigationIcon as DrawerArrowDrawable)
         } else {
             mActionbar!!.setNavigationContentDescription(R.string.cd_quit_searching)
@@ -2020,11 +2123,16 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         }
         mAdapter!!.notifyDataSetChanged()
         App.isSearching = !toNormal
+        applyHomeNavigationIconTintForAppearance()
         invalidateOptionsMenu()
         mDontPickSearchColor = true
     }
 
     private fun handleSearchResults() {
+        if (!App.isSearching) {
+            hideSearchNoResult()
+            return
+        }
         if (mThingManager!!.getThings()!!.size == 1) {
             mTvNoResult!!.visibility = View.VISIBLE
             mRevealLayout!!.visibility = View.VISIBLE
@@ -2032,6 +2140,9 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         } else {
             mTvNoResult!!.animate().alpha(0f).setDuration(160)
             mRevealLayout!!.postDelayed({
+                if (App.isSearching && mThingManager!!.getThings()!!.size == 1) {
+                    return@postDelayed
+                }
                 mRevealLayout!!.visibility = View.INVISIBLE
                 mTvNoResult!!.visibility = View.INVISIBLE
             }, 160)

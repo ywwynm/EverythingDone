@@ -85,7 +85,9 @@ open class PatternLockDialogFragment : BaseDialogFragment() {
             mTvTitle!!.setTextColor(mAccentColor)
             mTvRightAsBt!!.setTextColor(mAccentColor)
         }
-        mLockView!!.setPathColor(ContextCompat.getColor(activity!!, R.color.black_54))
+        mLockView!!.setPathColor(
+            ContextCompat.getColor(activity!!, R.color.app_chrome_control_unchecked)
+        )
         // PatternLockView's correct-state stroke uses a single Paint — int only.
         mLockView!!.setCorrectColor(mAccentColor)
 

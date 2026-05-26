@@ -82,6 +82,9 @@ open class DateTimePicker(
         mRecyclerView.setLayoutManager(layoutManager)
         mAdapter = DateTimePickerAdapter()
         mRecyclerView.setAdapter(mAdapter)
+        if (mType == Def.PickerType.AFTER_TIME) {
+            mAdapter.pick(8)
+        }
 
         mRecyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
@@ -152,7 +155,10 @@ open class DateTimePicker(
         if (mAnchor == null) {
             return
         }
-        mRecyclerView.scrollToPosition(getPickedIndex())
+        val pickedIndex = getPickedIndex()
+        if (pickedIndex >= 0) {
+            mRecyclerView.scrollToPosition(pickedIndex)
+        }
 
         val display: Point = DisplayUtil.getDisplaySize(mActivity)
         val displayHeight: Int = display.y
@@ -306,7 +312,9 @@ open class DateTimePicker(
                 if (holder.bt.paint.shader != null) {
                     holder.bt.paint.setShader(null)
                 }
-                holder.bt.setTextColor(ContextCompat.getColor(mActivity, R.color.black_54p))
+                holder.bt.setTextColor(
+                    ContextCompat.getColor(mActivity, R.color.app_chrome_on_surface_secondary)
+                )
                 holder.bt.isClickable = true
             }
         }

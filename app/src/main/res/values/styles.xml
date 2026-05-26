@@ -8,22 +8,36 @@
         <item name="swirl_errorColor">@color/error</item>
     </style>
     
-    <style name="EverythingDoneTheme.Things.Toolbar" parent="Theme.AppCompat.Light.NoActionBar">
+    <style name="EverythingDoneTheme.Things.Toolbar" parent="Theme.AppCompat.DayNight.NoActionBar">
         <item name="drawerArrowStyle">@style/DrawerArrowStyle</item>
+        <item name="colorControlNormal">@color/app_chrome_on_surface_secondary</item>
+        <item name="colorControlHighlight">@color/app_chrome_ripple</item>
     </style>
 
-    <style name="EverythingDoneTheme.Things.Drawer" parent="Theme.AppCompat.Light.NoActionBar">
-        <item name="colorPrimary">#000000</item>
+    <style name="EverythingDoneTheme.Things.Drawer" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/app_chrome_on_surface_primary</item>
         <item name="android:textSize">16sp</item>
     </style>
 
-    <style name="EverythingDoneTheme.Things.Search" parent="Theme.AppCompat.Light">
-        <item name="colorAccent">@color/black_54</item>
-        <item name="android:textColorHighlight">@color/black_26p</item>
+    <style name="EverythingDoneTheme.Things.Search" parent="Theme.AppCompat.DayNight">
+        <item name="colorAccent">@color/app_chrome_control_unchecked</item>
+        <item name="android:textColorHighlight">@color/app_chrome_ripple</item>
     </style>
 
-    <style name="EverythingDoneTheme.Detail" parent="Theme.AppCompat.Light.NoActionBar">
+    <style name="EverythingDoneTheme.AppAccentToolbar" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="colorControlNormal">@color/black_54p</item>
+        <item name="colorControlHighlight">@color/black_10p</item>
+    </style>
+
+    <style name="EverythingDoneTheme.Detail" parent="Theme.AppCompat.DayNight.NoActionBar">
         <item name="windowActionModeOverlay">true</item>
+        <item name="android:dialogTheme">@style/EverythingDoneTheme.Dialog</item>
+        <item name="android:textColorPrimary">@color/app_chrome_on_surface_primary</item>
+        <item name="android:textColorSecondary">@color/app_chrome_on_surface_secondary</item>
+        <item name="colorControlNormal">@color/app_chrome_on_surface_secondary</item>
+        <item name="colorControlHighlight">@color/app_chrome_ripple</item>
+        <item name="colorBackgroundFloating">@color/app_chrome_surface_elevated</item>
+        <item name="android:colorBackgroundFloating">@color/app_chrome_surface_elevated</item>
         <item name="swirl_ridgeColor">@color/black_54</item>
         <item name="swirl_errorColor">@color/error</item>
         <!--<item name="actionOverflowButtonStyle">@style/EverythingDoneTheme.Detail.Overflow</item>-->
@@ -32,6 +46,15 @@
     <style name="EverythingDoneTheme.Detail.Actionbar">
         <item name="android:background">@drawable/selectable_item_background</item>
         <item name="colorControlNormal">#FFFFFF</item>
+    </style>
+
+    <style name="EverythingDoneTheme.Detail.Popup" parent="ThemeOverlay.AppCompat.DayNight">
+        <item name="android:textColorPrimary">@color/app_chrome_on_surface_primary</item>
+        <item name="android:textColorSecondary">@color/app_chrome_on_surface_secondary</item>
+        <item name="colorControlNormal">@color/app_chrome_on_surface_secondary</item>
+        <item name="colorControlHighlight">@color/app_chrome_ripple</item>
+        <item name="colorBackgroundFloating">@color/app_chrome_surface_elevated</item>
+        <item name="android:colorBackgroundFloating">@color/app_chrome_surface_elevated</item>
     </style>
 
     <!--<style name="EverythingDoneTheme.Detail.Overflow" parent="Widget.AppCompat.ActionButton.Overflow">-->
@@ -49,25 +72,39 @@
     </style>
 
     <style name="EverythingDoneTheme.ImageViewer" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:dialogTheme">@style/EverythingDoneTheme.Dialog</item>
     </style>
 
     <style name="EverythingDoneTheme.ImageViewer.Actionbar" parent="Theme.AppCompat.NoActionBar">
         <item name="colorControlNormal">#FFFFFF</item>
     </style>
 
-    <style name="EverythingDoneTheme.Settings" parent="Theme.AppCompat.Light.NoActionBar">
+    <style name="EverythingDoneTheme.Settings" parent="Theme.AppCompat.DayNight.NoActionBar">
         <item name="colorAccent">@color/blue_deep</item>
+        <item name="android:textColorPrimary">@color/app_chrome_on_surface_primary</item>
+        <item name="android:textColorSecondary">@color/app_chrome_on_surface_secondary</item>
+        <item name="colorControlNormal">@color/app_chrome_on_surface_secondary</item>
+        <item name="colorControlHighlight">@color/app_chrome_ripple</item>
+        <item name="android:colorBackground">@color/app_chrome_surface</item>
         <item name="swirl_ridgeColor">@color/blue_deep</item>
         <item name="swirl_errorColor">@color/error</item>
     </style>
 
-    <style name="EverythingDoneTheme.About" parent="Theme.AppCompat.Light.NoActionBar">
-
+    <style name="EverythingDoneTheme.About" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="android:windowBackground">@color/app_chrome_surface</item>
+        <item name="android:colorBackground">@color/app_chrome_surface</item>
+        <item name="android:textColorPrimary">@color/app_chrome_on_surface_primary</item>
+        <item name="android:textColorSecondary">@color/app_chrome_on_surface_secondary</item>
+        <item name="colorControlNormal">@color/app_chrome_on_surface_secondary</item>
+        <item name="colorControlHighlight">@color/app_chrome_ripple</item>
     </style>
 
-    <style name="EverythingDoneTheme.Statistic" parent="Theme.AppCompat.NoActionBar">
+    <style name="EverythingDoneTheme.Statistic" parent="Theme.AppCompat.DayNight.NoActionBar">
         <item name="android:dialogTheme">@style/EverythingDoneTheme.Dialog</item>
         <item name="android:windowBackground">@color/bg_activity_things</item>
+        <item name="android:textColorPrimary">@color/app_chrome_on_surface_primary</item>
+        <item name="android:textColorSecondary">@color/app_chrome_on_surface_secondary</item>
+        <item name="colorControlHighlight">@color/app_chrome_ripple</item>
     </style>
 
     <style name="EverythingDoneTheme.Statistic.Actionbar" parent="Theme.AppCompat.NoActionBar">
@@ -83,13 +120,22 @@
         <item name="swirl_errorColor">@color/error</item>
     </style>
 
-    <style name="EverythingDoneTheme.Help" parent="Theme.AppCompat.Light.NoActionBar">
-
+    <style name="EverythingDoneTheme.Help" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="android:windowBackground">@color/app_chrome_surface</item>
+        <item name="android:colorBackground">@color/app_chrome_surface</item>
+        <item name="android:textColorPrimary">@color/app_chrome_on_surface_primary</item>
+        <item name="android:textColorSecondary">@color/app_chrome_on_surface_secondary</item>
+        <item name="colorControlNormal">@color/black_54p</item>
+        <item name="colorControlHighlight">@color/app_chrome_ripple</item>
     </style>
 
     <style name="EverythingDoneTheme.ThingWidgetConfiguration"
-           parent="Theme.AppCompat.Light.NoActionBar">
-
+           parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="android:textColorPrimary">@color/app_chrome_on_surface_primary</item>
+        <item name="android:textColorSecondary">@color/app_chrome_on_surface_secondary</item>
+        <item name="colorControlNormal">@color/app_chrome_on_surface_secondary</item>
+        <item name="colorControlHighlight">@color/app_chrome_ripple</item>
+        <item name="android:colorBackground">@color/app_chrome_surface</item>
     </style>
 
     <style name="EverythingDoneTheme.Doing" parent="Theme.AppCompat.Light.NoActionBar">
@@ -134,8 +180,22 @@
         <item name="android:background">@drawable/selectable_item_background_light</item>
     </style>
 
-    <style name="EverythingDoneTheme.Dialog" parent="Theme.AppCompat.Light.Dialog">
+    <style name="EverythingDoneTheme.Dialog" parent="Theme.AppCompat.DayNight.Dialog">
         <item name="windowNoTitle">true</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowMinWidthMajor">0dp</item>
+        <item name="android:windowMinWidthMinor">0dp</item>
+        <item name="windowMinWidthMajor">0dp</item>
+        <item name="windowMinWidthMinor">0dp</item>
+        <item name="android:windowBackground">@color/app_chrome_surface_elevated</item>
+        <item name="colorBackgroundFloating">@color/app_chrome_surface_elevated</item>
+        <item name="android:colorBackgroundFloating">@color/app_chrome_surface_elevated</item>
+        <item name="colorAccent">@color/blue_deep</item>
+        <item name="android:textColorPrimary">@color/app_chrome_on_surface_primary</item>
+        <item name="android:textColorSecondary">@color/app_chrome_on_surface_secondary</item>
+        <item name="colorControlNormal">@color/app_chrome_on_surface_secondary</item>
+        <item name="colorControlHighlight">@color/app_chrome_ripple</item>
+        <item name="android:colorBackground">@color/app_chrome_surface_elevated</item>
     </style>
 
     <style name="EverythingDoneTheme.NoticeableNotification" parent="EverythingDoneTheme.Dialog">

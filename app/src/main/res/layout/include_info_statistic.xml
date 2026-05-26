@@ -23,7 +23,7 @@
         android:layout_marginTop="12dp"
         android:layout_marginLeft="@dimen/card_note_reminder_statistic_margin"
         android:layout_marginRight="@dimen/card_note_reminder_statistic_margin"
-        app:cardBackgroundColor="#FFFFFF"
+        app:cardBackgroundColor="@color/app_chrome_surface_elevated"
         app:cardCornerRadius="2dp">
 
         <com.ywwynm.everythingdone.views.StablerRecyclerView
@@ -50,7 +50,7 @@
         android:layout_marginTop="12dp"
         android:layout_marginLeft="@dimen/card_note_reminder_statistic_margin"
         android:layout_marginRight="@dimen/card_note_reminder_statistic_margin"
-        app:cardBackgroundColor="#FFFFFF"
+        app:cardBackgroundColor="@color/app_chrome_surface_elevated"
         app:cardCornerRadius="2dp">
 
         <com.ywwynm.everythingdone.views.StablerRecyclerView
@@ -77,7 +77,7 @@
         android:layout_marginTop="12dp"
         android:layout_marginLeft="@dimen/card_note_reminder_statistic_margin"
         android:layout_marginRight="@dimen/card_note_reminder_statistic_margin"
-        app:cardBackgroundColor="#FFFFFF"
+        app:cardBackgroundColor="@color/app_chrome_surface_elevated"
         app:cardCornerRadius="2dp">
 
         <com.ywwynm.everythingdone.views.StablerRecyclerView
@@ -104,7 +104,7 @@
         android:layout_marginTop="12dp"
         android:layout_marginLeft="@dimen/card_note_reminder_statistic_margin"
         android:layout_marginRight="@dimen/card_note_reminder_statistic_margin"
-        app:cardBackgroundColor="#FFFFFF"
+        app:cardBackgroundColor="@color/app_chrome_surface_elevated"
         app:cardCornerRadius="2dp">
 
         <com.ywwynm.everythingdone.views.StablerRecyclerView
@@ -131,7 +131,7 @@
         android:layout_marginTop="12dp"
         android:layout_marginLeft="@dimen/card_note_reminder_statistic_margin"
         android:layout_marginRight="@dimen/card_note_reminder_statistic_margin"
-        app:cardBackgroundColor="#FFFFFF"
+        app:cardBackgroundColor="@color/app_chrome_surface_elevated"
         app:cardCornerRadius="2dp">
 
         <com.ywwynm.everythingdone.views.StablerRecyclerView

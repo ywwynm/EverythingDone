@@ -11,7 +11,8 @@
         android:layout_height="wrap_content"
         android:gravity="center"
         android:paddingBottom="16dp"
-        android:textColor="@color/black_54p"
+        android:textColor="@color/app_chrome_on_surface_secondary"
+        android:drawableTint="@color/app_chrome_control_unchecked"
         android:background="@drawable/selectable_item_background"/>
 
     <TextView
@@ -20,7 +21,8 @@
         android:layout_height="wrap_content"
         android:gravity="center"
         android:paddingBottom="16dp"
-        android:textColor="@color/black_54p"
+        android:textColor="@color/app_chrome_on_surface_secondary"
+        android:drawableTint="@color/app_chrome_control_unchecked"
         android:background="@drawable/selectable_item_background"/>
 
 </LinearLayout>

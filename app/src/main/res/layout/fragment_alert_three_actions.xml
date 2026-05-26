@@ -3,8 +3,7 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    style="@style/Theme.AppCompat.Light">
+    android:orientation="vertical">
 
     <TextView
         android:id="@+id/tv_title_alert"
@@ -58,7 +57,7 @@
         android:paddingRight="20dp"
         android:layout_marginBottom="8dp"
         android:gravity="center_vertical|end"
-        android:textColor="@color/black_26p"
+        android:textColor="@color/app_chrome_on_surface_hint"
         android:text="@string/cancel"
         android:background="@drawable/selectable_item_background"
         android:textAllCaps="true"/>

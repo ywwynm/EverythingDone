@@ -79,11 +79,16 @@ import com.ywwynm.everythingdone.database.ReminderDAO
 import com.ywwynm.everythingdone.database.ThingDAO
 import com.ywwynm.everythingdone.fragments.AddAttachmentDialogFragment
 import com.ywwynm.everythingdone.fragments.AlertDialogFragment
+import com.ywwynm.everythingdone.fragments.AttachmentInfoDialogFragment
+import com.ywwynm.everythingdone.fragments.AudioRecordDialogFragment
+import com.ywwynm.everythingdone.fragments.ChooserDialogFragment
 import com.ywwynm.everythingdone.fragments.DateTimeDialogFragment
 import com.ywwynm.everythingdone.fragments.GradientOrientationDialogFragment
 import com.ywwynm.everythingdone.fragments.HabitDetailDialogFragment
 import com.ywwynm.everythingdone.fragments.HabitRecordDialogFragment
 import com.ywwynm.everythingdone.fragments.LoadingDialogFragment
+import com.ywwynm.everythingdone.fragments.LongTextDialogFragment
+import com.ywwynm.everythingdone.fragments.PatternLockDialogFragment
 import com.ywwynm.everythingdone.fragments.ThingDoingDialogFragment
 import com.ywwynm.everythingdone.fragments.TwoOptionsDialogFragment
 import com.ywwynm.everythingdone.helpers.AppUpdateHelper
@@ -125,6 +130,7 @@ import java.time.ZonedDateTime
 
 import java.io.File
 import java.util.ArrayList
+import java.util.Calendar
 import java.util.Collections
 import java.util.HashMap
 import java.util.concurrent.ExecutorService
@@ -174,6 +180,8 @@ class DetailActivity : EverythingDoneBaseActivity() {
     private var mSpanAudio: Int = 0
 
     private var mDateTimeDialogFragment: DateTimeDialogFragment? = null
+    private var mLimit: Int = -1
+    private var mNightModeMask: Int = 0
 
     private var mFlRoot: FrameLayout? = null
     private var mColorPicker: ColorPicker? = null
@@ -301,6 +309,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
         mApp!!.setDetailActivityRun(true)
 
         screenDensity = DisplayUtil.getScreenDensity(this)
+        mNightModeMask = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
 
         val intent: Intent = getIntent()
         val action: String? = intent.action
@@ -371,11 +380,11 @@ class DetailActivity : EverythingDoneBaseActivity() {
         setSpans()
 
         if (mEditable) {
-            var limit = intent.getIntExtra(Def.Communication.KEY_LIMIT, -1)
-            if (limit == -1) {
-                limit = mApp!!.getLimit()
+            mLimit = intent.getIntExtra(Def.Communication.KEY_LIMIT, -1)
+            if (mLimit == -1) {
+                mLimit = mApp!!.getLimit()
             }
-            mDateTimeDialogFragment = DateTimeDialogFragment.newInstance(mThing, limit)
+            createDateTimeDialogFragment()
         }
         mExecutor = Executors.newSingleThreadExecutor()
 
@@ -598,16 +607,24 @@ class DetailActivity : EverythingDoneBaseActivity() {
             mLlMoveChecklist     = f(R.id.ll_move_checklist)
             mTvMoveChecklistAsBt = f(R.id.tv_move_checklist_as_bt)
 
-            val decorView: View = window.decorView
-            mColorPicker = ColorPicker(this, decorView, Def.PickerType.COLOR_EDIT)
-            quickRemindPicker = DateTimePicker(
-                this, decorView,
-                Def.PickerType.AFTER_TIME, mThing!!.getColor()
-            )
-            val initialBg: ThingBackground? = mThing!!.getBackground()
-            if (initialBg != null) quickRemindPicker!!.setAccentBackground(initialBg)
-            quickRemindPicker!!.setAnchor(tvQuickRemind!!)
+            createEditablePickers()
         }
+    }
+
+    private fun createDateTimeDialogFragment() {
+        mDateTimeDialogFragment = DateTimeDialogFragment.newInstance(mThing, mLimit)
+    }
+
+    private fun createEditablePickers() {
+        val decorView: View = window.decorView
+        mColorPicker = ColorPicker(this, decorView, Def.PickerType.COLOR_EDIT)
+        quickRemindPicker = DateTimePicker(
+            this, decorView,
+            Def.PickerType.AFTER_TIME, getAccentColor()
+        )
+        val currentBg: ThingBackground? = getAccentBackground()
+        if (currentBg != null) quickRemindPicker!!.setAccentBackground(currentBg)
+        quickRemindPicker!!.setAnchor(tvQuickRemind!!)
     }
 
     override fun initUI() {
@@ -730,10 +747,12 @@ class DetailActivity : EverythingDoneBaseActivity() {
                 setMoveChecklistEvent()
 
                 mLlmCheckList = CannotScrollLinearLayoutManager(this)
+                if (mEditable) {
+                    mCheckListAdapter!!.setExpanded(false)
+                }
                 mRvCheckList!!.adapter = mCheckListAdapter
                 mRvCheckList!!.layoutManager = mLlmCheckList
                 if (mEditable) {
-                    mCheckListAdapter!!.setExpanded(false)
                     mRvCheckList!!.viewTreeObserver.addOnPreDrawListener(
                         object : ViewTreeObserver.OnPreDrawListener {
                             override fun onPreDraw(): Boolean {
@@ -1058,30 +1077,8 @@ class DetailActivity : EverythingDoneBaseActivity() {
             focus?.clearFocus()
         }
         val vlp: ViewGroup.LayoutParams = mRvCheckList!!.layoutParams
-        vlp.height = getChecklistItemsHeight(expand, items)
+        vlp.height = ViewGroup.LayoutParams.WRAP_CONTENT
         mRvCheckList!!.requestLayout()
-    }
-
-    private fun getChecklistItemsHeight(expand: Boolean, items: MutableList<String?>?): Int {
-        if (expand) {
-            return ViewGroup.LayoutParams.WRAP_CONTENT
-        }
-        var unfinishedHeight = 0
-        for (i in 0 until items!!.size) {
-            val item: String = items[i]!!
-            val state = item[0]
-            if (state != '1') {
-                val holder: RecyclerView.ViewHolder? = mRvCheckList!!.findViewHolderForAdapterPosition(i)
-                if (holder != null) {
-                    unfinishedHeight += holder.itemView.height
-                } else if (state == '3') {
-                    unfinishedHeight += (48 * screenDensity).toInt()
-                } else if (state == '4') {
-                    unfinishedHeight += (36 * screenDensity).toInt()
-                }
-            } else break
-        }
-        return unfinishedHeight
     }
 
     private fun setMoveChecklistEvent() {
@@ -1778,10 +1775,14 @@ class DetailActivity : EverythingDoneBaseActivity() {
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
 
-        if (mEditable) {
-            mColorPicker!!.dismiss()
-            quickRemindPicker!!.dismiss()
-            mNormalSnackbar!!.dismiss()
+        val newNightModeMask = newConfig.uiMode and Configuration.UI_MODE_NIGHT_MASK
+        val appearanceChanged = newNightModeMask != mNightModeMask
+        mNightModeMask = newNightModeMask
+
+        if (appearanceChanged) {
+            handleAppearanceModeChanged()
+        } else if (mEditable) {
+            dismissEditableOverlays()
         }
 
         setSpans()
@@ -1800,6 +1801,93 @@ class DetailActivity : EverythingDoneBaseActivity() {
             )
             mAudioLayoutManager!!.spanCount = mSpanAudio
             mAudioAttachmentAdapter!!.notifyDataSetChanged()
+        }
+    }
+
+    private fun handleAppearanceModeChanged() {
+        val quickPickedIndex = if (mEditable) getQuickRemindPickedIndexForRecreate() else -1
+        val pickedBackground = if (mEditable) {
+            mColorPicker?.getPickedBackground() ?: getAccentBackground()
+        } else {
+            null
+        }
+
+        delegate.applyDayNight()
+        mActionbar?.dismissPopupMenus()
+        dismissDetailDialogFragmentsForAppearance()
+
+        if (mEditable) {
+            dismissEditableOverlays()
+            createEditablePickers()
+            setColorPickerEvent()
+            setQuickRemindPickerEvent()
+            mColorPicker!!.pickForBackground(pickedBackground)
+            quickRemindPicker!!.pickForUI(quickPickedIndex)
+            createDateTimeDialogFragment()
+        }
+
+        invalidateOptionsMenu()
+    }
+
+    private fun getQuickRemindPickedIndexForRecreate(): Int {
+        val pickedIndex = quickRemindPicker?.getPickedIndex() ?: -1
+        if (pickedIndex >= 0) return pickedIndex
+
+        val reminderAfterTime = rhParams.reminderAfterTime
+        if (reminderAfterTime != null) {
+            val inferred = getQuickRemindIndex(reminderAfterTime)
+            if (inferred >= 0) return inferred
+        }
+
+        if (rhParams.reminderInMillis != -1L || rhParams.habitDetail != null) {
+            return 9
+        }
+        return 8
+    }
+
+    private fun getQuickRemindIndex(reminderAfterTime: IntArray): Int {
+        val times = intArrayOf(1, 1, 1, 2, 1, 2, 1, 30, 15)
+        val types = intArrayOf(
+            Calendar.YEAR, Calendar.MONTH, Calendar.WEEK_OF_YEAR,
+            Calendar.DATE, Calendar.DATE, Calendar.HOUR_OF_DAY,
+            Calendar.HOUR, Calendar.MINUTE, Calendar.MINUTE
+        )
+        for (i in times.indices) {
+            if (reminderAfterTime[0] == types[i] && reminderAfterTime[1] == times[i]) {
+                return i
+            }
+        }
+        return -1
+    }
+
+    private fun dismissEditableOverlays() {
+        mColorPicker?.dismiss()
+        quickRemindPicker?.dismiss()
+        mNormalSnackbar?.dismiss()
+    }
+
+    private fun dismissDetailDialogFragmentsForAppearance() {
+        val tags = arrayOf(
+            AddAttachmentDialogFragment.TAG,
+            AlertDialogFragment.TAG,
+            AttachmentInfoDialogFragment.TAG,
+            AudioRecordDialogFragment.TAG,
+            ChooserDialogFragment.TAG,
+            DateTimeDialogFragment.TAG,
+            GradientOrientationDialogFragment.TAG,
+            HabitDetailDialogFragment.TAG,
+            HabitRecordDialogFragment.TAG,
+            LoadingDialogFragment.TAG,
+            LongTextDialogFragment.TAG,
+            PatternLockDialogFragment.TAG,
+            ThingDoingDialogFragment.TAG,
+            TwoOptionsDialogFragment.TAG
+        )
+        for (tag in tags) {
+            val fragment = fragmentManager.findFragmentByTag(tag)
+            if (fragment is android.app.DialogFragment) {
+                fragment.dismissAllowingStateLoss()
+            }
         }
     }
 
@@ -2557,6 +2645,10 @@ class DetailActivity : EverythingDoneBaseActivity() {
                 quickRemindPicker!!.show()
             }
         }
+        setQuickRemindPickerEvent()
+    }
+
+    private fun setQuickRemindPickerEvent() {
         quickRemindPicker!!.setPickedListener {
             val pickedBefore = quickRemindPicker!!.getPreviousIndex()
             val pickedAfter  = quickRemindPicker!!.getPickedIndex()
@@ -3358,15 +3450,15 @@ class DetailActivity : EverythingDoneBaseActivity() {
 
         override fun onRemove(position: Int, item: String?, cursorPos: Int) {
             if (item == null) {
+                if (position == -1) {
+                    KeyboardUtil.hideKeyboard(currentFocus)
+                    return
+                }
                 val holder =
                     mRvCheckList!!.findViewHolderForAdapterPosition(position) as? CheckListAdapter.EditTextHolder?
                         ?: return
-                if (position != -1) {
-                    holder.et!!.requestFocus()
-                    holder.et.setSelection(cursorPos)
-                } else {
-                    KeyboardUtil.hideKeyboard(currentFocus)
-                }
+                holder.et!!.requestFocus()
+                holder.et.setSelection(cursorPos)
             } else {
                 KeyboardUtil.hideKeyboard(currentFocus)
             }

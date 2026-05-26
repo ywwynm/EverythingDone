@@ -13,6 +13,7 @@
         android:layout_gravity="center_vertical"
         android:layout_marginEnd="8dp"
         android:layout_marginRight="8dp"
+        android:tint="@color/date_time_rec_existing_foreground"
         tools:ignore="ContentDescription"/>
 
     <EditText
@@ -25,8 +26,8 @@
         android:inputType="number"
         android:textSize="14sp"
         android:hint="@string/hour"
-        android:textColor="@color/black_54p"
-        android:textColorHint="@color/black_26p"
+        android:textColor="@color/app_chrome_on_surface_secondary"
+        android:textColorHint="@color/app_chrome_on_surface_hint"
         android:textCursorDrawable="@null"
         android:selectAllOnFocus="true"/>
 
@@ -40,8 +41,8 @@
         android:inputType="number"
         android:textSize="14sp"
         android:hint="@string/minute"
-        android:textColor="@color/black_54p"
-        android:textColorHint="@color/black_26p"
+        android:textColor="@color/app_chrome_on_surface_secondary"
+        android:textColorHint="@color/app_chrome_on_surface_hint"
         android:textCursorDrawable="@null"
         android:selectAllOnFocus="true"/>
 
@@ -53,6 +54,7 @@
         android:layout_marginStart="56dp"
         android:layout_marginLeft="56dp"
         android:src="@drawable/act_delete_time_rec"
+        android:tint="@color/app_chrome_control_unchecked"
         android:contentDescription="@string/cd_delete_reminder_time_day_rec"
         android:background="@drawable/selectable_item_background"/>
 

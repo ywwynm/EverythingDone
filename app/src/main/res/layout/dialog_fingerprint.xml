@@ -45,7 +45,7 @@
         android:layout_toRightOf="@id/swirlview_fingerprint"
         android:layout_below="@id/tv_content_fingerprint"
         android:gravity="center_vertical"
-        android:textColor="@color/black_26p"/>
+        android:textColor="@color/app_chrome_on_surface_hint"/>
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -67,7 +67,7 @@
             android:paddingRight="12dp"
             android:paddingBottom="8dp"
             android:background="@drawable/selectable_item_background"
-            android:textColor="@color/black_26p"
+            android:textColor="@color/app_chrome_on_surface_hint"
             android:textAllCaps="true"
             android:text="@string/cancel"/>
 

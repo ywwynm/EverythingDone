@@ -18,12 +18,12 @@
         android:paddingRight="16dp"
         android:layout_gravity="center_vertical"
         android:textSize="16sp"
-        android:textColor="@color/black_69p"/>
+        android:textColor="@color/app_chrome_on_surface_medium"/>
 
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="@color/black_10p"
+        android:background="@color/app_chrome_ripple"
         android:layout_gravity="bottom"/>
 
 </FrameLayout>

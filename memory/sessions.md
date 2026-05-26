@@ -1599,3 +1599,418 @@ Earlier in same session: `Add Claude Code project config and agent skills`
 (`9f91693`) — set up CLAUDE.md, .claude/ statusline, Matt Pocock skills
 docs, and switched local checkout from `migration/android-16` to `master`
 post PR-merge.
+
+## 2026-05-26 — Dark mode planning
+
+Planned dark-mode support for EverythingDone using `$grill-with-docs`.
+Created root `CONTEXT.md` with domain language for Thing Background,
+Thing Foreground, App Chrome, Hybrid Chrome Surface, and Appearance Mode.
+
+Wrote `docs/plans/DARK_MODE_PLAN.md` covering:
+- Appearance Mode settings (`followSystemDarkMode`, `forceDarkMode`) with
+  follow-system priority and conservative light defaults.
+- Strict light-mode visual compatibility: DayNight may be used only as the
+  dispatch mechanism; `values/` resources must preserve current light UI.
+- App Chrome scope: home, settings, help, about, statistics, dialogs,
+  popups, pickers, snackbar, noticeable-notification shell, and widget
+  configuration chrome.
+- Thing Background scope: Thing-owned backgrounds and foregrounds ignore
+  app dark mode and keep existing lightness-based adaptive text/icon logic.
+- State policy for system dark-mode changes, including special caution for
+  `DetailActivity`, `DoingActivity`, `SettingsActivity`,
+  `NoticeableNotificationActivity`, and widget configuration screens.
+
+## 2026-05-26 — Dark mode implementation first pass
+
+Implemented the first dark-mode slice for App Chrome:
+- Added Appearance Mode settings plumbing:
+  `followSystemDarkMode`, `forceDarkMode`, `AppearanceUtil`, app-start
+  `AppCompatDelegate` mode application, Settings rows, immediate
+  persistence, and follow-system priority over force-dark.
+- Added light-equivalent semantic chrome colours in `values/`, dark
+  equivalents in `values-night/`, a dark picker background, and DayNight
+  theme dispatch for Settings, Help, About, Statistic, dialog, and widget
+  configuration chrome.
+- Updated App Chrome surfaces: home background/header/search/drawer,
+  Settings rows and disabled runtime text, Help/About/Statistic,
+  snackbar, shared dialogs, license/loading/two-action dialogs,
+  date/time and colour pickers, audio-record dialog chrome, widget
+  configuration chrome, and NoticeableNotificationActivity's shell.
+- Preserved Thing-background surfaces: thing cards, Detail/Doing bodies,
+  embedded Noticeable thing content, actual widget RemoteViews, and
+  Thing foreground lightness logic remain outside Appearance Mode.
+- Added state handling: Settings stores and recreates on `uiMode`; Detail,
+  Doing, Noticeable, and widget configuration surfaces avoid destructive
+  automatic recreation where needed.
+
+Verification:
+- `.\gradlew.bat :app:assembleDebug --console=plain` passed after the
+  final implementation pass.
+- `git diff --check` passed with only existing CRLF conversion warnings.
+- No visual dark/light screenshot pass was run yet; only one physical
+  device was attached when checked, and no emulator was available.
+
+## 2026-05-26 — Dark mode regression fixes
+
+Addressed reported dark-mode and light-mode regressions after the first
+implementation pass:
+- Restored light-mode Drawer and Statistic icon behaviour by avoiding
+  unconditional icon tint lists. Drawer item icons and home toolbar actions
+  are now tinted app-accent yellow only in dark mode; Statistic row icons are
+  tinted only in dark mode.
+- Repainted Settings icons in dark mode: TextView compound icons follow
+  their text colour, and ImageView help/info icons use the App Chrome control
+  foreground.
+- Added DetailActivity dialog-theme propagation so dialogs opened from the
+  Thing-owned Detail screen resolve DayNight App Chrome dialog resources.
+- Filled dark foreground gaps in Detail dialogs: add attachment, audio
+  recording, two-action/share choices, pattern lock path, and start/auto-start
+  doing chooser paths.
+- Filled DateTimeDialog "After" and "Recurrence" foreground gaps for edit
+  fields, dropdown affordances, pick-all/delete icons, recurrence row text,
+  and recurrence picker unselected text.
+
+Verification:
+- `.\gradlew.bat :app:assembleDebug --console=plain` passed.
+
+Audio attachment ripple follow-up:
+- Reinstalled the audio attachment card foreground and the three action icon
+  backgrounds in `AudioAttachmentAdapter.onBindViewHolder()` based on the
+  current `Appearance Mode`. Dark mode now explicitly uses
+  `selectable_item_background_light`; light mode keeps
+  `selectable_item_background`.
+- Checked other Detail-body selectable usages. Image attachments, checklist
+  controls, and the move-checklist control are on Thing/image-owned surfaces and
+  intentionally keep their existing light ripple rather than following App
+  Chrome dark mode.
+
+Verification:
+- `.\gradlew.bat :app:assembleDebug --console=plain` passed.
+
+Settings Appearance Mode wording/visibility follow-up:
+- Updated Settings Appearance Mode labels to "Follow system dark mode" and
+  "Enable dark mode", with Simplified Chinese using `深色模式` and Traditional
+  Chinese using `深色模式` / `開啟`.
+- Changed `SettingsActivity.updateUiAppearanceMode()` so the enable-dark row is
+  hidden while follow-system is checked instead of being disabled and dimmed.
+- `git diff --check` passed with CRLF conversion warnings only.
+- No device screenshot pass was run in this step.
+
+## 2026-05-26 — Dark mode regression fixes, second pass
+
+Fixed the issues reported after testing the first regression pass:
+- Reworked icon tinting for PNG assets with baked-in alpha. Added
+  `DisplayUtil.opaqueTintDrawable(...)`, which normalises the source alpha
+  mask to the target colour alpha and returns a new drawable instead of
+  tinting shared drawable state in place.
+- Settings section compound icons now use the TextView's current colour in
+  both light and dark mode, so the notification-reliability header icon gets
+  the same blue treatment as other section icons. Dark help/info ImageViews
+  use the normalised App Chrome control tint.
+- Home Drawer menu item icons no longer get the yellow app-accent tint.
+  The dark-mode yellow tint is limited to the drawer toggle icon and home
+  toolbar action icons, with normalised alpha so PNG actions are not dimmed.
+- DetailActivity is now a DayNight Activity theme while keeping
+  Thing-background foreground rules in the screen body. BaseDialogFragment
+  now creates dialogs with a forced DayNight dialog context and an App Chrome
+  elevated window background, so Detail dialogs are dark surfaces instead of
+  white windows.
+- DateTimeDialog recurrence controls received another pass: dark unpicked
+  recurrence chip background, normalised pick-all/delete/reminder icons, and
+  explicit text/icon colours for the "new reminder time" row.
+
+Verification:
+- `.\gradlew.bat :app:assembleDebug --console=plain` passed.
+- `git diff --check` passed with CRLF conversion warnings only.
+- `adb devices` showed one physical device and no emulator; no visual
+  screenshot pass was run to avoid taking over the attached device.
+
+## 2026-05-26 - Dark mode crash and Drawer icon follow-up
+
+Fixed two regressions reported from device testing:
+- `BaseDialogFragment` no longer creates dialogs from a detached
+  `createConfigurationContext(...)` wrapper. It now uses an Activity-backed
+  `ContextThemeWrapper`, preventing AddAttachment and other restored
+  DialogFragments from crashing with `WindowManager$BadTokenException`.
+- Drawer menu item icons are now explicitly repainted in dark mode with a
+  non-yellow App Chrome control colour using `DisplayUtil.opaqueTintDrawable`.
+  This preserves the rule that only the drawer toggle and home toolbar action
+  icons use app-accent yellow.
+
+Verification:
+- `.\gradlew.bat :app:assembleDebug --console=plain` passed.
+- `git diff --check` passed with CRLF conversion warnings only.
+- No device smoke test was run in this step; the attached device was not
+  controlled from the agent session.
+
+## 2026-05-26 - Dark mode Detail polish follow-up
+
+Fixed the next set of user-reported dark-mode regressions:
+- Restored BaseDialogFragment dialog width to content-driven `WRAP_CONTENT`
+  after show, so `ThingDoingDialogFragment` and `DateTimeDialogFragment`
+  are no longer widened by DayNight dialog minimum-width defaults.
+- Updated Detail audio attachment rows to use App Chrome elevated card
+  background, semantic title/metadata colours, and normalised control icon
+  tint for play/pause/stop/delete/info states.
+- Repainted DateTimeDialog dropdown arrows with normalised App Chrome control
+  tint, and aligned the "new reminder time" row text and icon to the same
+  control colour in both light and dark mode.
+
+Verification:
+- `.\gradlew.bat :app:assembleDebug --console=plain` failed once on a
+  nullable `ImageView` receiver in `AudioAttachmentAdapter`, then passed after
+  adding the intended non-null assertion.
+- `git diff --check` passed with CRLF conversion warnings only.
+- No device smoke test was run in this step.
+
+## 2026-05-26 - Dark mode baseline corrections
+
+Followed up on three user-reported baseline mismatches:
+- Restored `fragment_add_attachment.xml` light-mode icon baseline by removing
+  XML `drawableTint` and explicit semantic text colour from the four action
+  TextViews. The historical dark-mode-before baseline used the raw PNG icons;
+  dark mode still tints them at runtime in `AddAttachmentDialogFragment`.
+- Confirmed the pre-android-16 `master` baseline for `ThingDoingDialogFragment`
+  and `DateTimeDialogFragment`: the layout widths were already `280dp` /
+  `280dp + 20dp + 20dp`. The widening came from dialog theme/window minimum
+  width, so `EverythingDoneTheme.Dialog` now sets
+  `android:windowMinWidthMajor/Minor` to `0dp`.
+- Reverted snackbar visuals to the original dark `bg_snackbar` background and
+  white text, and aligned the snackbar semantic colours to the same non-adaptive
+  values.
+
+Verification:
+- `.\gradlew.bat :app:assembleDebug --console=plain` passed.
+- `git diff --check` passed with CRLF conversion warnings only.
+- No device smoke test was run in this step.
+
+## 2026-05-26 - Dialog width and DateTime recurrence colour correction
+
+Fixed the follow-up regressions after searching Android/AppCompat dialog sizing
+behaviour:
+- Replaced the ineffective generic `WRAP_CONTENT` dialog-window reset with a
+  BaseDialogFragment width hook. `ThingDoingDialogFragment` now sets an exact
+  `280dp` window width, and `DateTimeDialogFragment` sets an exact `320dp`
+  window width, matching the pre-android-16 layout baselines.
+- Kept dialog theme min-width overrides for both platform and AppCompat attrs
+  (`android:windowMinWidthMajor/Minor` and `windowMinWidthMajor/Minor`) so
+  future AppCompat/Material dialog contexts do not reintroduce the wide default.
+- Aligned the DateTimeDialog recurrence-tab "new reminder time" text and icon
+  with the same `app_chrome_on_surface_secondary` tint used by the first
+  reminder-time icons.
+
+Verification:
+- `.\gradlew.bat :app:assembleDebug --console=plain` passed.
+- `git diff --check` passed with CRLF conversion warnings only.
+- No device visual smoke test was run in this step.
+
+## 2026-05-26 - Search icon and DateTime recurrence foreground follow-up
+
+Fixed two reported visual mismatches:
+- `ColorPicker.updateAnchor()` now treats the hue-bucket all-colours sentinel as
+  a visual app-accent toolbar icon in dark mode, preventing the search action
+  icon from becoming a dim yellow when no colour bucket is filtering.
+- Added dedicated DateTime recurrence foreground resources: existing reminder
+  icons use the stronger `#C4...` level, and the "new reminder time" row uses
+  the weaker `#80...` level for both text and icon, matching the checklist
+  existing-item/new-item relationship.
+
+Verification:
+- `.\gradlew.bat :app:assembleDebug --console=plain` passed.
+- `git diff --check` passed with CRLF conversion warnings only.
+- No device visual smoke test was run in this step.
+
+Follow-up in the same area:
+- Tinted the ColorPicker "all colours" checkbox compound drawable in dark mode
+  with App Chrome secondary foreground; the PNG had previously stayed black.
+- Removed XML `drawableTint` from the DateTime "new reminder time" row to avoid
+  runtime tint plus XML tint stacking. Lowered the shared new-reminder foreground
+  to `#40...` so the text matches the already-accepted icon strength.
+
+Verification:
+- `.\gradlew.bat :app:assembleDebug --console=plain` passed.
+- `git diff --check` passed with CRLF conversion warnings only.
+- No device visual smoke test was run in this step.
+
+## 2026-05-26 - Search no-result dark-mode and state leak fix
+
+Fixed the reported home search no-result regressions:
+- `ThingsActivity` now tints the `img_no_result` raster at runtime in dark mode
+  with App Chrome hint foreground, while keeping the raw asset in light mode.
+- Added a `hideSearchNoResult()` path and made it run when leaving search,
+  resuming ThingsActivity outside search, or accidentally handling search
+  results while `App.isSearching == false`.
+- Replaced repeated `append("...")` in keyboard-driven no-result updates with a
+  stable `no_result + "..."` assignment so keyboard callbacks cannot accumulate
+  ellipses.
+
+Verification:
+- `.\gradlew.bat :app:assembleDebug --console=plain` passed.
+- `git diff --check` passed with CRLF conversion warnings only.
+- No device visual smoke test was run in this step.
+
+## 2026-05-26 - Detail follow-system dark-mode overlay refresh
+
+Fixed the reported DetailActivity follow-system dark-mode lifecycle issue:
+- Detail now records the current night-mode mask and detects real `uiMode`
+  appearance changes separately from orientation/layout changes.
+- On a night-mode change, Detail applies the AppCompat night mode update,
+  dismisses the toolbar overflow popup, dismisses Detail-owned DialogFragments,
+  dismisses old picker PopupWindows, recreates `ColorPicker` and
+  `quickRemindPicker` with the updated DayNight resources, reattaches their
+  listeners, preserves the current colour/quick-remind selection, and rebuilds
+  the reusable `DateTimeDialogFragment` instance.
+- Added Detail App Chrome theme items to the base, `values-v19`, and
+  `values-v21` `EverythingDoneTheme.Detail` definitions so overflow menus and
+  other floating Detail chrome resolve dark text/control/background resources
+  on high-version devices.
+- Completed the `values-v29` dialog theme override with the same window
+  background / floating background / min-width items as the base dialog theme.
+
+Verification:
+- `.\gradlew.bat :app:assembleDebug --console=plain` passed twice after the
+  implementation and versioned-style corrections.
+- `git diff --check` passed with CRLF conversion warnings only.
+- No device visual smoke test was run from the agent session.
+
+Follow-up investigation and correction:
+- Rechecked pre-Kotlin Java history for Detail checklist sizing. The legacy
+  implementation also used `findViewHolderForAdapterPosition()` to sum laid-out
+  non-finished rows when finished checklist items were collapsed, with fixed
+  fallbacks only for separator/count rows (`3`/`4`). It did not estimate
+  offscreen normal item heights.
+- Android Support Library 25.3.1, AndroidX RecyclerView 1.4.0, and the Kotlin
+  migration all keep the same Detail layout shape: a non-scrolling
+  `RecyclerView` inside `NestedScrollView`, with `layout_height="wrap_content"`
+  and inner nested scrolling disabled.
+- Replaced the height-estimation approach. Detail now keeps the checklist
+  RecyclerView height at `WRAP_CONTENT`; `CheckListAdapter.getItemCount()`
+  exposes only visible rows while finished items are collapsed and exposes the
+  complete item list when expanded.
+- Checklist structural edits now refresh the adapter data set instead of
+  combining granular insert/remove notifications with a changing collapsed item
+  count. EditText text changes still update the backing item and only request a
+  layout pass through Detail, so ordinary typing should not lose focus.
+
+Verification:
+- `.\gradlew.bat :app:assembleDebug --console=plain` passed twice after the
+  adapter-visible-row change.
+- `git diff --check` passed with CRLF conversion warnings only.
+- No device visual smoke test was run from the agent session.
+
+Follow-up keyboard focus correction:
+- Checklist "new item" insertion no longer actively hides the keyboard. The
+  add-row icon path returns before the checkbox-toggle `hideKeyboard()` call,
+  and `insertItem()` no longer clears focus before `DetailActivity.onInsert()`
+  focuses the created EditText.
+
+Verification:
+- `.\gradlew.bat :app:assembleDebug --console=plain` passed after the focus
+  correction.
+- `git diff --check` passed with CRLF conversion warnings only.
+
+Detail overflow follow-up:
+- Fixed `include_actionbar_detail.xml` still using
+  `app:popupTheme="@style/Theme.AppCompat.Light"`. Detail toolbar popups now
+  use `EverythingDoneTheme.Detail.Popup`, a DayNight overlay with App Chrome
+  floating background and foreground colours.
+
+Verification:
+- `.\gradlew.bat :app:assembleDebug --console=plain` passed after the popup
+  theme change.
+- `git diff --check` passed with CRLF conversion warnings only.
+
+Image viewer attachment-info follow-up:
+- Added `uiMode` to `ImageViewerActivity`'s handled config changes so switching
+  follow-system dark mode does not destroy the image viewer while a dialog is
+  open.
+- `ImageViewerActivity` now tracks night-mode changes, dismisses stale image
+  viewer dialogs, and reopens the attachment-info dialog for the current image
+  if it was visible during the mode switch.
+- `AttachmentInfoDialogFragment` no longer depends only on setter-injected
+  fields. Accent background/color and attachment info rows are persisted in
+  fragment arguments and restored after system recreation; its adapter now
+  treats missing rows as an empty list instead of crashing during measure.
+
+Verification:
+- `.\gradlew.bat :app:assembleDebug --console=plain` passed after the image
+  viewer/dialog fix.
+- `git diff --check` passed with CRLF conversion warnings only.
+
+Follow-up fixes in the same Detail area:
+- Preserved quick-remind popup position after follow-system light/dark changes
+  when the user left the default "15 minutes later" selection untouched. The
+  picker recreation path now infers the selected row from `rhParams` when the
+  old picker reports no explicit picked row, and AFTER_TIME pickers initialise
+  their adapter selection to row 8.
+- Fixed long editable checklists being clipped inside Detail. The checklist
+  RecyclerView remains non-scrollable, but Detail now updates its explicit
+  layout height from checklist data changes. It uses already-laid-out holder
+  heights when available and pure text/layout estimates for offscreen rows, so
+  the outer `NestedScrollView` can reveal all checklist rows and the "new item"
+  row without creating/binding item views during RecyclerView measurement.
+- Reverted the previous `LayoutManager.onMeasure()` row-binding approach after
+  it disturbed EditText focus/IME input and could race empty-row deletion.
+  Empty-row backspace with no target row now hides the keyboard directly
+  instead of asking RecyclerView for adapter position `-1`.
+
+Verification:
+- `.\gradlew.bat :app:assembleDebug --console=plain` passed.
+- `git diff --check` passed with CRLF conversion warnings only.
+- No device visual smoke test was run from the agent session.
+
+Noticeable notification ripple and Things return-animation follow-up:
+- `NoticeableNotificationActivity` now installs its action-button backgrounds
+  programmatically from the current `Appearance Mode`: light mode keeps the
+  existing black ripple, while dark mode uses the white ripple resource. It
+  also reapplies the DayNight delegate and repaints the shell on `uiMode`
+  changes so already-open noticeable notifications do not keep stale ripple
+  drawables.
+- `ThingsActivity` records whether it was restored from saved state, which is
+  the path hit when it is recreated in the background after a system light/dark
+  change. Restored lists no longer play the initial "appearing" card animation.
+- Reverted the experimental Detail-return payload refresh after device testing
+  showed it made the list jump back to the restored position without the normal
+  item update affordance. Same-type Detail returns again use ordinary
+  `notifyItemChanged(position)`; only the restored list-wide appearing animation
+  remains disabled.
+- Restored ThingsActivity instances now run the RecyclerView init runnable
+  synchronously instead of waiting 240 ms. Normal cold/open animations keep the
+  historical delay, but system-recreated home screens should not briefly expose
+  an empty list before RecyclerView restores its scroll state.
+
+Verification:
+- `.\gradlew.bat :app:assembleDebug --console=plain` passed.
+- `git diff --check` passed with CRLF conversion warnings only.
+- No device visual smoke test was run from the agent session.
+
+Audio attachment info icon dark-mode correction:
+- Repainted the audio attachment info icon during every
+  `AudioAttachmentAdapter.onBindViewHolder()` call. The play/delete/stop icons
+  were already rebound with the current App Chrome control colour, but the info
+  icon was only tinted in `ViewHolder` init, so existing holders could keep a
+  stale light-mode tint after a system dark-mode change and look too dim.
+
+Verification:
+- `.\gradlew.bat :app:assembleDebug --console=plain` passed.
+- `git diff --check` passed with CRLF conversion warnings only.
+
+Dark-mode ripple correction:
+- Replaced the API 21+ shared `selectable_item_background` and
+  `selectable_item_background_light` resources with direct `RippleDrawable`
+  XMLs using transparent content and an explicit mask. This covers the hardcoded
+  selectable backgrounds used by Settings, Help, App Chrome dialogs, popup
+  picker rows/buttons, attachment dialogs, chooser dialogs, DateTime controls,
+  and related button-like rows.
+- Added `app:rippleColor="@color/app_chrome_ripple"` to the audio-record dialog
+  Material FAB so it participates in the same App Chrome ripple policy as the
+  surrounding dialog controls.
+- Follow-up after device testing showed no visual change: the dark build was
+  still packaging `drawable-night/selectable_item_background.xml` as
+  `drawable-night-v8`, so dark mode bypassed the new `drawable-v21` ripple.
+  Added `drawable-night-v21/selectable_item_background.xml` with the same direct
+  masked ripple. Rebuilt debug resources confirmed only `drawable-night-v21` and
+  `drawable-v21` selectable backgrounds remain in packaged resources.
+
+Verification:
+- `.\gradlew.bat :app:assembleDebug --console=plain` passed.

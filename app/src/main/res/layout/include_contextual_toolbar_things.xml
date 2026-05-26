@@ -11,7 +11,7 @@
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         android:background="@color/app_accent"
-        android:theme="@style/Theme.AppCompat.Light.NoActionBar"
+        android:theme="@style/EverythingDoneTheme.AppAccentToolbar"
         app:titleTextAppearance="@style/ContextualToolbarText"
         app:contentInsetStart="72dp"/>
 

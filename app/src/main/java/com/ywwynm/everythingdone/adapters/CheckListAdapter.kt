@@ -445,7 +445,25 @@ open class CheckListAdapter(
             } else {
                 if (size <= mMaxItemCount) size else mMaxItemCount + 1
             }
-        } else size
+        } else {
+            getVisibleEditTextItemCount(size)
+        }
+    }
+
+    private fun getVisibleEditTextItemCount(size: Int): Int {
+        if (mExpanded) return size
+
+        val firstFinishedItemIndex = CheckListHelper.getFirstFinishedItemIndex(mItems)
+        val collapsedHeaderIndex = mItems!!.indexOf("4")
+        return if (firstFinishedItemIndex != -1 && collapsedHeaderIndex in 0 until firstFinishedItemIndex) {
+            firstFinishedItemIndex
+        } else {
+            size
+        }
+    }
+
+    private fun notifyChecklistStructureChanged() {
+        notifyDataSetChanged()
     }
 
     private class TextViewHolder(itemView: View?) : BaseViewHolder(itemView) {
@@ -492,6 +510,7 @@ open class CheckListAdapter(
         private fun setupIvListeners() {
             ivState!!.setOnTouchListener { _, event ->
                 val pos = adapterPosition
+                if (pos == RecyclerView.NO_POSITION || pos >= mItems!!.size) return@setOnTouchListener false
                 val item: String = mItems!![pos]!!
                 if (event.action == MotionEvent.ACTION_DOWN && mDragging
                     && item != "2" && item != "3" && item != "4"
@@ -508,8 +527,8 @@ open class CheckListAdapter(
                 val before: String = CheckListHelper.toCheckListStr(mItems)
 
                 var pos = adapterPosition
+                if (pos == RecyclerView.NO_POSITION || pos >= mItems!!.size) return@setOnClickListener
                 val posAfter: Int
-                KeyboardUtil.hideKeyboard(et)
 
                 val item: String = mItems!![pos]!!
                 var state = item[0]
@@ -517,6 +536,12 @@ open class CheckListAdapter(
                     return@setOnClickListener
                 }
 
+                if (state == '2') {
+                    insertItem(CheckListHelper.toCheckListStr(mItems), it, pos, "")
+                    return@setOnClickListener
+                }
+
+                KeyboardUtil.hideKeyboard(et)
                 if (state == '0') {
                     state = '1'
                     val size = mItems!!.size
@@ -524,8 +549,6 @@ open class CheckListAdapter(
                     if (firstFinishedItemIndex == -1) {
                         mItems!!.add(size, "3")
                         mItems!!.add(size + 1, "4")
-                        notifyItemInserted(size)
-                        notifyItemInserted(size + 1)
                         posAfter = size + 1
                     } else {
                         posAfter = firstFinishedItemIndex - 1
@@ -536,13 +559,10 @@ open class CheckListAdapter(
                     if (CheckListHelper.onlyOneFinishedItem(mItems)) {
                         val size = mItems!!.size
                         mItems!!.removeAt(size - 2)
-                        notifyItemRemoved(size - 2)
                         mItems!!.removeAt(size - 2)
-                        notifyItemRemoved(size - 2)
                         pos = size - 3
                     }
                 } else {
-                    insertItem(CheckListHelper.toCheckListStr(mItems), it, pos, "")
                     return@setOnClickListener
                 }
 
@@ -550,13 +570,10 @@ open class CheckListAdapter(
 
                 mWatchEditTextChange = false
                 mItems!!.removeAt(pos)
-                notifyItemRemoved(pos)
-
                 mItems!!.add(posAfter, itemAfter)
-                notifyItemInserted(posAfter)
                 mWatchEditTextChange = true
 
-                notifyItemChanged(mItems!!.indexOf("4"))
+                notifyChecklistStructureChanged()
 
                 if (mActionCallback != null) {
                     mActionCallback!!.onAction(
@@ -564,34 +581,30 @@ open class CheckListAdapter(
                     )
                 }
 
-                if (!mExpanded && mExpandShrinkCallback != null) {
-                    mExpandShrinkCallback!!.updateChecklistHeight(false, mItems, false)
+                if (mExpandShrinkCallback != null) {
+                    mExpandShrinkCallback!!.updateChecklistHeight(mExpanded, mItems, false)
                 }
             }
 
             ivDelete!!.setOnClickListener { v ->
-                removeItem(v, adapterPosition, true)
+                val pos = adapterPosition
+                if (pos != RecyclerView.NO_POSITION && pos < mItems!!.size) {
+                    removeItem(v, pos, true)
+                }
             }
 
             ivExpandShrink!!.setOnClickListener {
+                mExpanded = !mExpanded
                 if (mExpandShrinkCallback != null) {
-                    val expandDrawable: Drawable = ContextCompat.getDrawable(
-                        mContext!!, R.drawable.act_expand_checklist_finished_items
-                    )!!
-                    val isExpandDrawableAttaching = expandDrawable.constantState ===
-                            ivExpandShrink.drawable.constantState
-                    ivExpandShrink.animate()
-                        .rotation(if (isExpandDrawableAttaching == mExpanded) 0f else 180f)
-                        .setDuration(160).start()
-                    mExpandShrinkCallback!!.updateChecklistHeight(!mExpanded, mItems, true)
-                    mExpanded = !mExpanded
-                    if (mExpanded) {
-                        ivExpandShrink.contentDescription =
-                            mContext!!.getString(R.string.cd_checklist_shrink_finished_items)
-                    } else {
-                        ivExpandShrink.contentDescription =
-                            mContext!!.getString(R.string.cd_checklist_expand_finished_items)
-                    }
+                    mExpandShrinkCallback!!.updateChecklistHeight(mExpanded, mItems, true)
+                }
+                notifyChecklistStructureChanged()
+                if (mExpanded) {
+                    ivExpandShrink.contentDescription =
+                        mContext!!.getString(R.string.cd_checklist_shrink_finished_items)
+                } else {
+                    ivExpandShrink.contentDescription =
+                        mContext!!.getString(R.string.cd_checklist_expand_finished_items)
                 }
             }
         }
@@ -619,6 +632,7 @@ open class CheckListAdapter(
                 override fun afterTextChanged(s: Editable) {
                     if (!mWatchEditTextChange) return
                     val pos = adapterPosition
+                    if (pos == RecyclerView.NO_POSITION || pos >= mItems!!.size) return
                     val state = mItems!![pos]!![0]
                     if (state == '0' || state == '1') {
                         mItems!![pos] = state + s.toString()
@@ -629,9 +643,9 @@ open class CheckListAdapter(
                         )
                     }
 
-                    if (!mExpanded && mExpandShrinkCallback != null) {
+                    if (mExpandShrinkCallback != null) {
                         et.post {
-                            mExpandShrinkCallback!!.updateChecklistHeight(false, mItems, false)
+                            mExpandShrinkCallback!!.updateChecklistHeight(mExpanded, mItems, false)
                         }
                     }
                 }
@@ -640,9 +654,9 @@ open class CheckListAdapter(
             et.onFocusChangeListener = View.OnFocusChangeListener { v, hasFocus ->
                 if (hasFocus) {
                     val pos = adapterPosition
-                    if (mItems!![pos]!![0] == '2') {
+                    if (pos != RecyclerView.NO_POSITION && pos < mItems!!.size && mItems!![pos]!![0] == '2') {
                         insertItem(CheckListHelper.toCheckListStr(mItems), v, pos, "")
-                    } else {
+                    } else if (pos != RecyclerView.NO_POSITION && pos < mItems!!.size) {
                         v.post {
                             ivDelete!!.isClickable = true
                             ivDelete.visibility = View.VISIBLE
@@ -657,6 +671,7 @@ open class CheckListAdapter(
             et.setOnKeyListener listener@ { v, keyCode, event ->
                 val action = event.action
                 val pos = adapterPosition
+                if (pos == RecyclerView.NO_POSITION || pos >= mItems!!.size) return@listener false
                 if (action == KeyEvent.ACTION_DOWN) {
                     if (keyCode == KeyEvent.KEYCODE_ENTER) {
                         val cursorPos = et.selectionEnd
@@ -695,12 +710,10 @@ open class CheckListAdapter(
             if (state == '2') {
                 mItems!![pos] = "0"
                 mItems!!.add(pos + 1, "2")
-                notifyItemChanged(pos)
             } else {
                 mItems!!.add(pos + 1, state + preset)
             }
-            notifyItemInserted(pos + 1)
-            v.clearFocus()
+            notifyChecklistStructureChanged()
             if (mItemsChangeCallback != null) {
                 v.post {
                     mItemsChangeCallback!!.onInsert(if (state == '2') pos else pos + 1)
@@ -713,16 +726,15 @@ open class CheckListAdapter(
                 )
             }
 
-            if (!mExpanded && mExpandShrinkCallback != null) {
+            if (mExpandShrinkCallback != null) {
                 v.post {
-                    mExpandShrinkCallback!!.updateChecklistHeight(false, mItems, false)
+                    mExpandShrinkCallback!!.updateChecklistHeight(mExpanded, mItems, false)
                 }
             }
         }
 
         private fun removeItem(v: View, posIn: Int, deleteByClick: Boolean) {
             val before: String = CheckListHelper.toCheckListStr(mItems)
-            var justNotifyAll = false
             val current: String = mItems!![posIn]!!
             var pos = posIn
             val posToFocus: Int
@@ -734,7 +746,6 @@ open class CheckListAdapter(
                                 mItems!!.add(0, "0")
                                 pos++
                                 posToFocus = 0
-                                justNotifyAll = true
                             } else {
                                 posToFocus = -1
                             }
@@ -761,22 +772,15 @@ open class CheckListAdapter(
                 if (!deleteByClick && posToFocus != -1) {
                     val append = current.substring(1, current.length)
                     mItems!![posToFocus] = itemToFocus + append
-                    justNotifyAll = true
                 }
             }
 
             mItems!!.removeAt(pos)
-            if (justNotifyAll || pos == 0) {
-                notifyDataSetChanged()
-            } else {
-                notifyItemRemoved(pos)
-            }
-
-            val size = mItems!!.size
-            if (mItems!![size - 1]!! == "4") {
+            if (mItems!!.isNotEmpty() && mItems!![mItems!!.size - 1]!! == "4") {
                 mItems!!.remove("3")
                 mItems!!.remove("4")
             }
+            notifyChecklistStructureChanged()
 
             if (mItemsChangeCallback != null) {
                 if (deleteByClick) {
@@ -794,9 +798,9 @@ open class CheckListAdapter(
                 )
             }
 
-            if (!mExpanded && mExpandShrinkCallback != null) {
+            if (mExpandShrinkCallback != null) {
                 v.post {
-                    mExpandShrinkCallback!!.updateChecklistHeight(false, mItems, false)
+                    mExpandShrinkCallback!!.updateChecklistHeight(mExpanded, mItems, false)
                 }
             }
         }

@@ -34,12 +34,13 @@
                 android:layout_height="36dp"/>
 
             <TextView
-                android:id="@+id/tv_content_loading"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:layout_marginLeft="16dp"
-                android:textSize="16sp"/>
+            android:id="@+id/tv_content_loading"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginLeft="16dp"
+            android:textColor="@color/app_chrome_on_surface_secondary"
+            android:textSize="16sp"/>
 
         </LinearLayout>
 

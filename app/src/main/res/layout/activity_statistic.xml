@@ -11,7 +11,7 @@
         android:id="@+id/sv_statistic"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:theme="@style/Theme.AppCompat.Light">
+        android:theme="@style/Theme.AppCompat.DayNight">
 
         <FrameLayout
             android:layout_width="match_parent"

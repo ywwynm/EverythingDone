@@ -602,6 +602,8 @@
     <string name="settings_change_drawer_header">抽屉头部图片</string>
     <string name="default_drawer_header">默认图片</string>
     <string name="settings_app_language">语言</string>
+    <string name="settings_follow_system_dark_mode">跟随系统深色模式</string>
+    <string name="settings_force_dark_mode">开启深色模式</string>
     <string name="change_app_language">更改应用语言</string>
     <string-array name="languages" tools:ignore="MissingTranslation">
         <item>@string/follow_system_settings</item>

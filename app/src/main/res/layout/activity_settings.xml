@@ -6,7 +6,7 @@
     android:id="@+id/rl_settings_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#EEEEEE"
+    android:background="@color/app_chrome_surface"
     tools:context="com.ywwynm.everythingdone.activities.SettingsActivity">
 
     <View
@@ -21,6 +21,7 @@
         android:layout_height="?attr/actionBarSize"
         android:layout_below="@id/view_status_bar"
         android:background="@color/app_accent"
+        android:theme="@style/EverythingDoneTheme.AppAccentToolbar"
         app:contentInsetStart="72dp"
         app:titleTextColor="@color/black_54p"/>
 
@@ -42,7 +43,8 @@
                 android:layout_marginRight="@dimen/settings_card_margin_side"
                 android:layout_marginTop="@dimen/settings_card_margin_top"
                 app:contentPaddingBottom="2dp"
-                app:cardElevation="2dp">
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="@color/app_chrome_surface_elevated">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -84,7 +86,7 @@
                             android:id="@+id/tv_drawer_header_path"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:textColor="@color/black_26p"
+                            android:textColor="@color/app_chrome_on_surface_hint"
                             android:textSize="14sp"/>
 
                     </LinearLayout>
@@ -109,10 +111,76 @@
                             android:id="@+id/tv_app_language"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:textColor="@color/black_26p"
+                            android:textColor="@color/app_chrome_on_surface_hint"
                             android:textSize="14sp"/>
 
                     </LinearLayout>
+
+                    <RelativeLayout
+                        android:id="@+id/rl_follow_system_dark_mode_as_bt"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:background="@drawable/selectable_item_background">
+
+                        <CheckBox
+                            android:id="@+id/cb_follow_system_dark_mode"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentEnd="true"
+                            android:layout_alignParentRight="true"
+                            android:layout_centerVertical="true"
+                            android:clickable="false"
+                            android:focusable="false"
+                            android:focusableInTouchMode="false"/>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentStart="true"
+                            android:layout_alignParentLeft="true"
+                            android:layout_centerVertical="true"
+                            android:layout_toStartOf="@id/cb_follow_system_dark_mode"
+                            android:layout_toLeftOf="@id/cb_follow_system_dark_mode"
+                            android:text="@string/settings_follow_system_dark_mode"
+                            android:textSize="16sp"
+                            tools:ignore="RelativeOverlap"/>
+
+                    </RelativeLayout>
+
+                    <RelativeLayout
+                        android:id="@+id/rl_force_dark_mode_as_bt"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:background="@drawable/selectable_item_background">
+
+                        <CheckBox
+                            android:id="@+id/cb_force_dark_mode"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentEnd="true"
+                            android:layout_alignParentRight="true"
+                            android:layout_centerVertical="true"
+                            android:clickable="false"
+                            android:focusable="false"
+                            android:focusableInTouchMode="false"/>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentStart="true"
+                            android:layout_alignParentLeft="true"
+                            android:layout_centerVertical="true"
+                            android:layout_toStartOf="@id/cb_force_dark_mode"
+                            android:layout_toLeftOf="@id/cb_force_dark_mode"
+                            android:text="@string/settings_force_dark_mode"
+                            android:textSize="16sp"
+                            tools:ignore="RelativeOverlap"/>
+
+                    </RelativeLayout>
 
                     <RelativeLayout
                         android:id="@+id/rl_noticeable_notification_as_bt"
@@ -325,7 +393,8 @@
                 android:layout_marginRight="@dimen/settings_card_margin_side"
                 android:layout_marginTop="@dimen/settings_card_margin_top"
                 app:contentPaddingBottom="2dp"
-                app:cardElevation="2dp">
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="@color/app_chrome_surface_elevated">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -367,7 +436,7 @@
                             android:id="@+id/tv_post_notifications_status"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:textColor="@color/black_26p"
+                            android:textColor="@color/app_chrome_on_surface_hint"
                             android:textSize="14sp"/>
 
                     </LinearLayout>
@@ -392,7 +461,7 @@
                             android:id="@+id/tv_channels_status"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:textColor="@color/black_26p"
+                            android:textColor="@color/app_chrome_on_surface_hint"
                             android:textSize="14sp"/>
 
                     </LinearLayout>
@@ -417,7 +486,7 @@
                             android:id="@+id/tv_full_screen_intent_status"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:textColor="@color/black_26p"
+                            android:textColor="@color/app_chrome_on_surface_hint"
                             android:textSize="14sp"/>
 
                     </LinearLayout>
@@ -442,7 +511,7 @@
                             android:id="@+id/tv_battery_optimization_status"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:textColor="@color/black_26p"
+                            android:textColor="@color/app_chrome_on_surface_hint"
                             android:textSize="14sp"/>
 
                     </LinearLayout>
@@ -470,7 +539,7 @@
                             android:id="@+id/tv_autostart_status"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:textColor="@color/black_26p"
+                            android:textColor="@color/app_chrome_on_surface_hint"
                             android:textSize="14sp"/>
 
                     </LinearLayout>
@@ -486,7 +555,8 @@
                 android:layout_marginRight="@dimen/settings_card_margin_side"
                 android:layout_marginTop="@dimen/settings_card_margin_top"
                 app:contentPaddingBottom="2dp"
-                app:cardElevation="2dp">
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="@color/app_chrome_surface_elevated">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -529,7 +599,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:gravity="end"
-                            android:textColor="@color/black_26p"/>
+                            android:textColor="@color/app_chrome_on_surface_hint"/>
 
                     </LinearLayout>
 
@@ -554,7 +624,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:gravity="end"
-                            android:textColor="@color/black_26p"/>
+                            android:textColor="@color/app_chrome_on_surface_hint"/>
 
                     </LinearLayout>
 
@@ -579,7 +649,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:gravity="end"
-                            android:textColor="@color/black_26p"/>
+                            android:textColor="@color/app_chrome_on_surface_hint"/>
 
                     </LinearLayout>
 
@@ -594,7 +664,8 @@
                 android:layout_marginRight="@dimen/settings_card_margin_side"
                 android:layout_marginTop="@dimen/settings_card_margin_top"
                 app:contentPaddingBottom="2dp"
-                app:cardElevation="2dp">
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="@color/app_chrome_surface_elevated">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -660,7 +731,7 @@
                                 android:id="@+id/tv_auto_save_edits"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:textColor="@color/black_26p"
+                                android:textColor="@color/app_chrome_on_surface_hint"
                                 android:textSize="14sp"/>
 
                         </LinearLayout>
@@ -699,7 +770,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:textSize="14sp"
-                            android:textColor="@color/black_26p"/>
+                            android:textColor="@color/app_chrome_on_surface_hint"/>
 
                     </LinearLayout>
 
@@ -714,7 +785,8 @@
                 android:layout_marginRight="@dimen/settings_card_margin_side"
                 android:layout_marginTop="@dimen/settings_card_margin_top"
                 app:contentPaddingBottom="2dp"
-                app:cardElevation="2dp">
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="@color/app_chrome_surface_elevated">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -758,7 +830,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/set_app_password_detail"
-                            android:textColor="@color/black_26p"
+                            android:textColor="@color/app_chrome_on_surface_hint"
                             android:textSize="@dimen/tv_set_app_password_detail_text_size"/>
 
                     </LinearLayout>
@@ -804,7 +876,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/use_fingerprint_to_verify"
-                                android:textColor="@color/black_26p"
+                                android:textColor="@color/app_chrome_on_surface_hint"
                                 android:textSize="14sp"/>
 
                         </LinearLayout>
@@ -822,7 +894,8 @@
                 android:layout_marginRight="@dimen/settings_card_margin_side"
                 android:layout_marginTop="@dimen/settings_card_margin_top"
                 app:contentPaddingBottom="2dp"
-                app:cardElevation="2dp">
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="@color/app_chrome_surface_elevated">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -863,7 +936,7 @@
                             android:id="@+id/tv_auto_start_doing"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:textColor="@color/black_26p"
+                            android:textColor="@color/app_chrome_on_surface_hint"
                             android:textSize="14sp"/>
 
                     </LinearLayout>
@@ -889,7 +962,7 @@
                             android:id="@+id/tv_asd_time_reminder"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:textColor="@color/black_26p"
+                            android:textColor="@color/app_chrome_on_surface_hint"
                             android:textSize="14sp"/>
 
                     </LinearLayout>
@@ -915,7 +988,7 @@
                             android:id="@+id/tv_asd_time_habit"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:textColor="@color/black_26p"
+                            android:textColor="@color/app_chrome_on_surface_hint"
                             android:textSize="14sp"/>
 
                     </LinearLayout>
@@ -964,7 +1037,7 @@
                                 android:id="@+id/tv_auto_strict_mode"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:textColor="@color/black_26p"
+                                android:textColor="@color/app_chrome_on_surface_hint"
                                 android:textSize="14sp"/>
 
                         </LinearLayout>
@@ -983,7 +1056,8 @@
                 android:layout_marginTop="@dimen/settings_card_margin_top"
                 android:layout_marginBottom="8dp"
                 app:contentPaddingBottom="2dp"
-                app:cardElevation="2dp">
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="@color/app_chrome_surface_elevated">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -1044,7 +1118,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/quick_create_description"
-                                android:textColor="@color/black_26p"
+                                android:textColor="@color/app_chrome_on_surface_hint"
                                 android:textSize="14sp"/>
 
                         </LinearLayout>
@@ -1141,7 +1215,7 @@
                                 android:id="@+id/tv_daily_todo"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:textColor="@color/black_26p"
+                                android:textColor="@color/app_chrome_on_surface_hint"
                                 android:textSize="14sp"/>
 
                         </LinearLayout>
@@ -1184,7 +1258,7 @@
                                 android:id="@+id/tv_advanced_auto_notify_time"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:textColor="@color/black_26p"
+                                android:textColor="@color/app_chrome_on_surface_hint"
                                 android:textSize="14sp"/>
 
                         </LinearLayout>
@@ -1225,7 +1299,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:gravity="end"
-                            android:textColor="@color/black_26p"/>
+                            android:textColor="@color/app_chrome_on_surface_hint"/>
 
                     </LinearLayout>
 

@@ -3,9 +3,6 @@
 package com.ywwynm.everythingdone.adapters
 
 import android.app.Activity
-import android.graphics.Color
-import android.graphics.PorterDuff
-import android.graphics.drawable.Drawable
 import android.media.MediaPlayer
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
@@ -20,7 +17,9 @@ import android.widget.TextView
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.helpers.AttachmentHelper
 import com.ywwynm.everythingdone.model.ThingBackground
+import com.ywwynm.everythingdone.utils.AppearanceUtil
 import com.ywwynm.everythingdone.utils.DateTimeUtil
+import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.FileUtil
 
 import java.io.File
@@ -98,12 +97,23 @@ open class AudioAttachmentAdapter(
         holder.tvName!!.text = file.name
         val duration = FileUtil.getMediaDuration(pathName)
         holder.tvSize!!.text = DateTimeUtil.getDurationBriefStr(duration)
+        holder.cv!!.setCardBackgroundColor(
+            ContextCompat.getColor(mActivity!!, R.color.app_chrome_surface_elevated)
+        )
+        holder.tvName!!.setTextColor(
+            ContextCompat.getColor(mActivity!!, R.color.app_chrome_on_surface_secondary)
+        )
+        holder.tvSize!!.setTextColor(
+            ContextCompat.getColor(mActivity!!, R.color.app_chrome_on_surface_hint)
+        )
+        applyAudioRipples(holder)
+        setAudioIcon(holder.ivThird, R.drawable.act_show_attachment_info)
 
         if (mTakingScreenshot) {
             holder.ivFirst !!.visibility = View.VISIBLE
             holder.ivSecond!!.visibility = View.GONE
             holder.ivThird !!.visibility = View.GONE
-            holder.ivFirst!!.setImageResource(R.drawable.act_play)
+            setAudioIcon(holder.ivFirst, R.drawable.act_play)
         } else {
             val context = holder.itemView.context
             holder.ivSecond!!.visibility = View.VISIBLE
@@ -111,29 +121,29 @@ open class AudioAttachmentAdapter(
             if (mPlayingIndex == position) {
                 holder.ivFirst!!.visibility = View.VISIBLE
                 if (mPlayer!!.isPlaying) {
-                    holder.ivFirst!!.setImageResource(R.drawable.act_pause)
+                    setAudioIcon(holder.ivFirst, R.drawable.act_pause)
                     holder.ivFirst!!.contentDescription =
                         context.getString(R.string.cd_pause_play_audio_attachment)
                 } else {
-                    holder.ivFirst!!.setImageResource(R.drawable.act_play)
+                    setAudioIcon(holder.ivFirst, R.drawable.act_play)
                     holder.ivFirst!!.contentDescription =
                         context.getString(R.string.cd_play_audio_attachment)
                 }
-                holder.ivSecond!!.setImageResource(R.drawable.act_stop_playing_audio)
+                setAudioIcon(holder.ivSecond, R.drawable.act_stop_playing_audio)
                 holder.ivSecond!!.contentDescription =
                     context.getString(R.string.cd_stop_play_audio_attachment)
             } else {
                 if (mEditable) {
                     holder.ivFirst!!.visibility = View.VISIBLE
-                    holder.ivFirst!!.setImageResource(R.drawable.act_play)
+                    setAudioIcon(holder.ivFirst, R.drawable.act_play)
                     holder.ivFirst!!.contentDescription =
                         context.getString(R.string.cd_play_audio_attachment)
-                    holder.ivSecond!!.setImageResource(R.drawable.delete_audio)
+                    setAudioIcon(holder.ivSecond, R.drawable.delete_audio)
                     holder.ivSecond!!.contentDescription =
                         context.getString(R.string.cd_delete_audio_attachment)
                 } else {
                     holder.ivFirst!!.visibility = View.GONE
-                    holder.ivSecond!!.setImageResource(R.drawable.act_play)
+                    setAudioIcon(holder.ivSecond, R.drawable.act_play)
                     holder.ivSecond!!.contentDescription =
                         context.getString(R.string.cd_play_audio_attachment)
                 }
@@ -142,6 +152,31 @@ open class AudioAttachmentAdapter(
     }
 
     override fun getItemCount(): Int = mItems!!.size
+
+    private fun setAudioIcon(imageView: ImageView?, iconRes: Int) {
+        imageView!!.setImageDrawable(
+            DisplayUtil.opaqueTintDrawable(
+                mActivity!!,
+                ContextCompat.getDrawable(mActivity!!, iconRes),
+                ContextCompat.getColor(mActivity!!, R.color.app_chrome_control_unchecked)
+            )
+        )
+    }
+
+    private fun applyAudioRipples(holder: AudioCardViewHolder) {
+        val backgroundRes = if (AppearanceUtil.isDarkMode(mActivity!!)) {
+            R.drawable.selectable_item_background_light
+        } else {
+            R.drawable.selectable_item_background
+        }
+        holder.cv!!.foreground = selectableDrawable(backgroundRes)
+        holder.ivFirst!!.background = selectableDrawable(backgroundRes)
+        holder.ivSecond!!.background = selectableDrawable(backgroundRes)
+        holder.ivThird!!.background = selectableDrawable(backgroundRes)
+    }
+
+    private fun selectableDrawable(backgroundRes: Int) =
+        ContextCompat.getDrawable(mActivity!!, backgroundRes)?.mutate()
 
     private fun startPlaying(index: Int) {
         mPlayingIndex = index
@@ -178,18 +213,13 @@ open class AudioAttachmentAdapter(
         val ivThird: ImageView?  = f(R.id.iv_card_audio_third)
 
         init {
-            val d: Drawable? = ContextCompat.getDrawable(
-                mActivity!!, R.drawable.act_show_attachment_info
-            )
-            val d1: Drawable = d!!.mutate()
-            d1.setColorFilter(Color.parseColor("#8A000000"), PorterDuff.Mode.SRC_ATOP)
-            ivThird!!.setImageDrawable(d1)
+            setAudioIcon(ivThird, R.drawable.act_show_attachment_info)
 
             cv!!.setOnClickListener {
                 togglePlay()
             }
 
-            ivThird.setOnClickListener {
+            ivThird!!.setOnClickListener {
                 val item = mItems!![this@AudioCardViewHolder.adapterPosition]
                 val pathName = item!!.substring(1, item.length)
                 AttachmentHelper.showAttachmentInfoDialog(mActivity, mAccentBackground, pathName)

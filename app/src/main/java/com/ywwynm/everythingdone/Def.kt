@@ -53,6 +53,8 @@ object Def {
         const val KEY_AUTO_LINK: String                = "auto_link" // 2016/11/11
         const val KEY_TWICE_BACK: String               = "twice_back"
         const val KEY_LANGUAGE_CODE: String            = "language_code"
+        const val KEY_FOLLOW_SYSTEM_DARK_MODE: String  = "follow_system_dark_mode"
+        const val KEY_FORCE_DARK_MODE: String          = "force_dark_mode"
 
         const val KEY_RINGTONE_REMINDER: String        = "ringtone_reminder"
         const val KEY_RINGTONE_HABIT: String           = "ringtone_habit"

@@ -25,6 +25,9 @@
     <dimen name="settings_card_margin_top">8dp</dimen>
     <dimen name="settings_card_margin_side">-2dp</dimen>
 
+    <dimen name="dialog_width_thing_doing">280dp</dimen>
+    <dimen name="dialog_width_date_time">320dp</dimen>
+
     <dimen name="il_et_day_width_rec">132dp</dimen>
 
     <dimen name="tv_end_of_month_rec_text_size">12sp</dimen>

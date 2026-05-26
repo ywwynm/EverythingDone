@@ -38,7 +38,7 @@
             android:id="@+id/tv_auto_start_doing"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="@color/black_26p"
+            android:textColor="@color/app_chrome_on_surface_hint"
             android:textSize="14sp"/>
 
     </LinearLayout>
@@ -64,7 +64,7 @@
             android:id="@+id/tv_asd_time"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="@color/black_26p"
+            android:textColor="@color/app_chrome_on_surface_hint"
             android:textSize="14sp"/>
 
     </LinearLayout>
@@ -89,7 +89,7 @@
             android:id="@+id/tv_auto_strict_mode"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="@color/black_26p"
+            android:textColor="@color/app_chrome_on_surface_hint"
             android:textSize="14sp"/>
 
     </LinearLayout>
@@ -103,7 +103,7 @@
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:background="@color/black_14p"
+            android:background="@color/app_chrome_divider"
             android:layout_gravity="center_vertical"/>
 
         <TextView
@@ -111,7 +111,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
             android:textSize="16sp"
-            android:textColor="@color/black_26p"
+            android:textColor="@color/app_chrome_on_surface_hint"
             android:includeFontPadding="false"
             android:text="OR"/>
 

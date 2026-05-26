@@ -126,7 +126,9 @@ open class RecurrencePickerAdapter(
 
     override fun onBindViewHolder(viewHolder: BaseViewHolder, position: Int) {
         val unPickerColor = ContextCompat.getColor(mContext!!, R.color.bg_unpicked)
-        val black_54 = ContextCompat.getColor(mContext!!, R.color.black_54)
+        val black_54 = ContextCompat.getColor(
+            mContext!!, R.color.app_chrome_control_unchecked
+        )
         if (getItemViewType(position) == END_OF_MONTH) {
             val holder = viewHolder as EndOfMonthViewHolder
             val pill = GradientDrawable()

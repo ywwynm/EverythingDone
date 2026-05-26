@@ -56,7 +56,8 @@
                     android:enabled="false"
                     android:background="@null"
                     android:singleLine="true"
-                    android:textColor="@color/black_54p"
+                    android:textColor="@color/app_chrome_on_surface_secondary"
+                    android:textColorHint="@color/app_chrome_on_surface_hint"
                     android:textCursorDrawable="@null"
                     android:theme="@style/EverythingDoneTheme.Things.Search"/>
 
@@ -74,7 +75,7 @@
                 android:paddingRight="@dimen/thing_card_outer_spacing"
                 android:scrollbars="vertical"
                 android:scrollbarStyle="outsideOverlay"
-                android:theme="@style/Theme.AppCompat.Light"/>
+                android:theme="@style/Theme.AppCompat.DayNight"/>
 
             <View
                 android:id="@+id/actionbar_shadow"
@@ -109,7 +110,7 @@
             android:theme="@style/EverythingDoneTheme.Things.Drawer"
             app:headerLayout="@layout/drawer_header"
             app:menu="@menu/menu_drawer"
-            app:itemIconTint="#000000"/>
+            app:itemTextColor="@color/app_chrome_on_surface_primary"/>
 
     </androidx.drawerlayout.widget.DrawerLayout>
 
@@ -130,7 +131,7 @@
             android:drawablePadding="16dp"
             android:gravity="center_horizontal"
             android:textSize="28sp"
-            android:textColor="@color/black_26p"
+            android:textColor="@color/app_chrome_on_surface_hint"
             android:text="@string/no_result"
             android:drawableTop="@drawable/img_no_result"
             android:visibility="invisible"

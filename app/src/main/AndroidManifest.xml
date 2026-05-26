@@ -86,7 +86,7 @@
 
         <activity
             android:name=".activities.DetailActivity"
-            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:configChanges="orientation|keyboardHidden|screenSize|uiMode"
             android:exported="true"
             android:label="@string/thing"
             android:screenOrientation="user"
@@ -115,7 +115,7 @@
 
         <activity
             android:name=".activities.ImageViewerActivity"
-            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:configChanges="orientation|keyboardHidden|screenSize|uiMode"
             android:exported="false"
             android:label="@string/image_or_video_attachment"
             android:theme="@style/EverythingDoneTheme.ImageViewer"/>
@@ -170,7 +170,7 @@
 
         <activity
             android:name=".activities.SettingsActivity"
-            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:configChanges="orientation|keyboardHidden|screenSize|uiMode"
             android:exported="false"
             android:label="@string/title_activity_settings"
             android:theme="@style/EverythingDoneTheme.Settings"/>
@@ -328,7 +328,7 @@
 
         <activity
             android:name=".appwidgets.single.BaseThingWidgetConfiguration"
-            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:configChanges="orientation|keyboardHidden|screenSize|uiMode"
             android:exported="true"
             android:excludeFromRecents="true"
             android:label="@string/title_activity_thing_widget_configure"
@@ -341,7 +341,7 @@
 
         <activity
             android:name=".appwidgets.single.ThingWidgetConfigurationTiny"
-            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:configChanges="orientation|keyboardHidden|screenSize|uiMode"
             android:exported="true"
             android:excludeFromRecents="true"
             android:label="@string/title_activity_thing_widget_configure"
@@ -354,7 +354,7 @@
 
         <activity
             android:name=".appwidgets.single.ThingWidgetConfigurationSmall"
-            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:configChanges="orientation|keyboardHidden|screenSize|uiMode"
             android:exported="true"
             android:excludeFromRecents="true"
             android:label="@string/title_activity_thing_widget_configure"
@@ -367,7 +367,7 @@
 
         <activity
             android:name=".appwidgets.single.ThingWidgetConfigurationMiddle"
-            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:configChanges="orientation|keyboardHidden|screenSize|uiMode"
             android:exported="true"
             android:excludeFromRecents="true"
             android:label="@string/title_activity_thing_widget_configure"
@@ -380,7 +380,7 @@
 
         <activity
             android:name=".appwidgets.single.ThingWidgetConfigurationLarge"
-            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:configChanges="orientation|keyboardHidden|screenSize|uiMode"
             android:exported="true"
             android:excludeFromRecents="true"
             android:label="@string/title_activity_thing_widget_configure"
@@ -393,6 +393,7 @@
 
         <activity
             android:name=".appwidgets.list.ThingsListWidgetConfiguration"
+            android:configChanges="uiMode"
             android:exported="true"
             android:taskAffinity="com.ywwynm.everythingdone.task.thing_list_widget_config"
             android:excludeFromRecents="true"
@@ -457,6 +458,7 @@
 
         <activity
             android:name=".activities.DoingActivity"
+            android:configChanges="uiMode"
             android:exported="false"
             android:label="@string/title_activity_doing"
             android:launchMode="singleTask"
@@ -484,6 +486,7 @@
 
         <activity
             android:name=".activities.NoticeableNotificationActivity"
+            android:configChanges="uiMode"
             android:exported="false"
             android:taskAffinity="com.ywwynm.everythingdone.task.noticeable_notification"
             android:excludeFromRecents="true"

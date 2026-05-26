@@ -209,6 +209,9 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
 
     override fun getLayoutResource(): Int = R.layout.fragment_date_time
 
+    override fun getDialogWindowWidthPx(): Int =
+        resources.getDimensionPixelSize(R.dimen.dialog_width_date_time)
+
     private fun updateViewPagerHeight() {
         val params: ViewGroup.LayoutParams = mVpDateTime!!.layoutParams
         params.height = mTabHeights!![mVpDateTime!!.currentItem]
@@ -283,8 +286,12 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
         mAccentColor = if (mAccentBackground != null)
             mAccentBackground!!.representativeColor()
         else mActivity!!.getAccentColor()
-        black_54p = ContextCompat.getColor(mActivity!!, R.color.black_54p)
-        black_26p = ContextCompat.getColor(mActivity!!, R.color.black_26p)
+        black_54p = ContextCompat.getColor(
+            mActivity!!, R.color.app_chrome_on_surface_secondary
+        )
+        black_26p = ContextCompat.getColor(
+            mActivity!!, R.color.app_chrome_on_surface_hint
+        )
         confirmed = false
 
         mTabs = ArrayList()
@@ -525,14 +532,30 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
         DisplayUtil.tintView(mEtTimeAfter, black_26p)
         DisplayUtil.setSelectionHandlersColor(mEtTimeAfter, mAccentColor)
         mEtTimeAfter!!.setTextColor(black_54p)
+        applyDropdownIcon(mTvTimeAsBtAfter)
         mDtpAfter!!.setAnchor(mTvTimeAsBtAfter!!)
         mDtpAfter!!.pickForUI(0)
         improveComplex()
     }
 
     private fun initUIRec() {
+        applyDropdownIcon(mTvTimeAsBtRec)
         mDtpRec!!.setAnchor(mTvTimeAsBtRec!!)
         (mRvWmy!!.itemAnimator as SimpleItemAnimator).supportsChangeAnimations = false
+    }
+
+    private fun applyDropdownIcon(textView: TextView?) {
+        val tint = ContextCompat.getColor(mActivity!!, R.color.app_chrome_control_unchecked)
+        textView!!.setCompoundDrawablesRelativeWithIntrinsicBounds(
+            null,
+            null,
+            DisplayUtil.opaqueTintDrawable(
+                mActivity!!,
+                ContextCompat.getDrawable(mActivity!!, R.drawable.ic_dropdown),
+                tint
+            ),
+            null
+        )
     }
 
     private fun getHabitDetail(): String? {
@@ -718,11 +741,18 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
     }
 
     private fun updatePickAllButton(adapter: RecurrencePickerAdapter) {
-        if (adapter.getPickedCount() == adapter.itemCount) {
-            mIvPickAllAsBtRec!!.setImageResource(R.drawable.act_deselect_all)
+        val iconRes = if (adapter.getPickedCount() == adapter.itemCount) {
+            R.drawable.act_deselect_all
         } else {
-            mIvPickAllAsBtRec!!.setImageResource(R.drawable.act_select_all)
+            R.drawable.act_select_all
         }
+        mIvPickAllAsBtRec!!.setImageDrawable(
+            DisplayUtil.opaqueTintDrawable(
+                mActivity!!,
+                ContextCompat.getDrawable(mActivity!!, iconRes),
+                ContextCompat.getColor(mActivity!!, R.color.app_chrome_control_unchecked)
+            )
+        )
     }
 
     private fun setEvents() {

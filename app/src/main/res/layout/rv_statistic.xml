@@ -17,7 +17,7 @@
             android:layout_height="match_parent"
             android:gravity="center_vertical"
             android:drawablePadding="16dp"
-            android:textColor="@color/black_54p"
+            android:textColor="@color/app_chrome_on_surface_secondary"
             android:textSize="16sp"/>
 
         <TextView
@@ -28,7 +28,7 @@
             android:layout_centerVertical="true"
             android:layout_alignParentEnd="true"
             android:layout_alignParentRight="true"
-            android:textColor="@color/black_26p"
+            android:textColor="@color/app_chrome_on_surface_hint"
             android:textSize="16sp"/>
 
     </RelativeLayout>
@@ -37,6 +37,6 @@
         android:id="@+id/view_separator_statistic"
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="@color/black_10p"/>
+        android:background="@color/app_chrome_ripple"/>
 
 </LinearLayout>

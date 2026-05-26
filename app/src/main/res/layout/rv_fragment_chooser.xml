@@ -10,7 +10,7 @@
     android:paddingEnd="16dp"
     android:gravity="center_vertical"
     android:drawablePadding="4dp"
-    android:textColor="@color/black_54p"
+    android:textColor="@color/app_chrome_on_surface_secondary"
     android:textSize="16sp"
     android:maxLines="2"
     android:ellipsize="end"

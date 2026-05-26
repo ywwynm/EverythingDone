@@ -14,6 +14,7 @@
         android:drawableStart="@drawable/act_new_time_rec"
         android:drawableLeft="@drawable/act_new_time_rec"
         android:drawablePadding="12dp"
+        android:textColor="@color/date_time_rec_new_foreground"
         android:textSize="16sp"
         android:text="@string/new_reminder_time_rec"
         android:background="@drawable/selectable_item_background"/>

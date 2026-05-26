@@ -74,3 +74,11 @@ When a Material `FloatingActionButton` blocks gradient rendering
 clipped-to-oval `FrameLayout` + inner background `View` carrying a
 `GradientDrawable` + `setForeground(BackgroundUtil.circularRipple(...))`.
 Outline and clipping installed in code via `setOutlineProvider`.
+
+## Dark mode dialog polish
+
+When adding dark mode, do not stop at background resources. Dialogs,
+popups, pickers, snackbars, and dialog-like activities need explicit
+review of text, icons, ripple/pressed states, dividers, edit fields,
+progress indicators, and disabled states so their foreground UI adapts
+correctly in dark mode.

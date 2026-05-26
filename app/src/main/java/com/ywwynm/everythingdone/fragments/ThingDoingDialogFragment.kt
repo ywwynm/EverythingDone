@@ -50,6 +50,9 @@ open class ThingDoingDialogFragment : BaseDialogFragment() {
 
     override fun getLayoutResource(): Int = R.layout.fragment_thing_doing
 
+    override fun getDialogWindowWidthPx(): Int =
+        resources.getDimensionPixelSize(R.dimen.dialog_width_thing_doing)
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View? {
@@ -105,10 +108,14 @@ open class ThingDoingDialogFragment : BaseDialogFragment() {
     }
 
     private fun enableOrDisableASDTimeUi() {
-        val black_54p = ContextCompat.getColor(mActivity!!, R.color.black_54p)
-        val black_26p = ContextCompat.getColor(mActivity!!, R.color.black_26p)
-        val black_14p = ContextCompat.getColor(mActivity!!, R.color.black_14p)
-        val black_10p = ContextCompat.getColor(mActivity!!, R.color.black_10p)
+        val black_54p = ContextCompat.getColor(
+            mActivity!!, R.color.app_chrome_on_surface_secondary
+        )
+        val black_26p = ContextCompat.getColor(
+            mActivity!!, R.color.app_chrome_on_surface_hint
+        )
+        val black_14p = ContextCompat.getColor(mActivity!!, R.color.app_chrome_divider)
+        val black_10p = ContextCompat.getColor(mActivity!!, R.color.app_chrome_ripple)
 
         val tvTitle: TextView = f(R.id.tv_asd_time_title)!!
         if (mDoingHelper!!.shouldAutoStartDoing()) {

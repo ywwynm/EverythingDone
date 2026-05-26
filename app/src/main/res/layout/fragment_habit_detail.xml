@@ -23,7 +23,7 @@
         android:layout_marginTop="16dp"
         android:layout_marginLeft="24dp"
         android:layout_marginRight="24dp"
-        android:textColor="@color/black_26p"
+        android:textColor="@color/app_chrome_on_surface_hint"
         android:text="@string/habit_detail_completion_rate"/>
 
     <TextView
@@ -32,7 +32,7 @@
         android:layout_height="wrap_content"
         android:layout_marginLeft="24dp"
         android:layout_marginRight="24dp"
-        android:textColor="@color/black_54p"
+        android:textColor="@color/app_chrome_on_surface_secondary"
         android:textSize="16sp"/>
 
     <TextView
@@ -41,7 +41,7 @@
         android:layout_marginTop="16dp"
         android:layout_marginLeft="24dp"
         android:layout_marginRight="24dp"
-        android:textColor="@color/black_26p"
+        android:textColor="@color/app_chrome_on_surface_hint"
         android:text="@string/habit_detail_total_t"/>
 
     <TextView
@@ -50,7 +50,7 @@
         android:layout_height="wrap_content"
         android:layout_marginLeft="24dp"
         android:layout_marginRight="24dp"
-        android:textColor="@color/black_54p"
+        android:textColor="@color/app_chrome_on_surface_secondary"
         android:textSize="16sp"/>
 
     <TextView
@@ -59,7 +59,7 @@
         android:layout_marginTop="16dp"
         android:layout_marginLeft="24dp"
         android:layout_marginRight="24dp"
-        android:textColor="@color/black_26p"
+        android:textColor="@color/app_chrome_on_surface_hint"
         android:text="@string/habit_detail_persist_in"/>
 
     <TextView
@@ -68,7 +68,7 @@
         android:layout_height="wrap_content"
         android:layout_marginLeft="24dp"
         android:layout_marginRight="24dp"
-        android:textColor="@color/black_54p"
+        android:textColor="@color/app_chrome_on_surface_secondary"
         android:textSize="16sp"/>
 
     <TextView
@@ -77,7 +77,7 @@
         android:layout_marginTop="16dp"
         android:layout_marginLeft="24dp"
         android:layout_marginRight="24dp"
-        android:textColor="@color/black_26p"
+        android:textColor="@color/app_chrome_on_surface_hint"
         android:text="@string/habit_detail_record_count"/>
 
     <TextView
@@ -86,7 +86,7 @@
         android:layout_height="wrap_content"
         android:layout_marginLeft="24dp"
         android:layout_marginRight="24dp"
-        android:textColor="@color/black_54p"
+        android:textColor="@color/app_chrome_on_surface_secondary"
         android:textSize="16sp"/>
 
     <TextView
@@ -95,7 +95,7 @@
         android:layout_marginTop="16dp"
         android:layout_marginLeft="24dp"
         android:layout_marginRight="24dp"
-        android:textColor="@color/black_26p"
+        android:textColor="@color/app_chrome_on_surface_hint"
         android:text="@string/habit_detail_times"/>
 
     <TextView
@@ -105,7 +105,7 @@
         android:layout_marginLeft="24dp"
         android:layout_marginRight="24dp"
         android:layout_marginBottom="12dp"
-        android:textColor="@color/black_54p"
+        android:textColor="@color/app_chrome_on_surface_secondary"
         android:textSize="16sp"/>
 
     <TextView

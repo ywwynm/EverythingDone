@@ -45,7 +45,7 @@ open class InputLayout(
     private var raised: Boolean = false
 
     init {
-        black_26p = ContextCompat.getColor(mContext, R.color.black_26p)
+        black_26p = ContextCompat.getColor(mContext, R.color.app_chrome_on_surface_hint)
 
         setColors(black_26p)
 
@@ -131,7 +131,9 @@ open class InputLayout(
     }
 
     fun setColors(colorTo: Int) {
-        val black_54p: Int = ContextCompat.getColor(mContext, R.color.black_54p)
+        val black_54p: Int = ContextCompat.getColor(
+            mContext, R.color.app_chrome_on_surface_secondary
+        )
         val useGradientLine: Boolean = colorTo != black_26p
                 && mAccentBackground != null
                 && mAccentBackground!!.mode == ThingBackground.Mode.GRADIENT

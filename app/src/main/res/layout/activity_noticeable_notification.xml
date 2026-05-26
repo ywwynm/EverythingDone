@@ -5,6 +5,7 @@
     android:id="@+id/ll_root_noticeable_notification"
     android:layout_width="280dp"
     android:layout_height="match_parent"
+    android:background="@color/app_chrome_surface_elevated"
     android:orientation="vertical"
     tools:ignore="ContentDescription">
 
@@ -47,10 +48,12 @@
             android:background="@drawable/selectable_item_background">
 
             <ImageView
+                android:id="@+id/iv_noticeable_notification_cancel"
                 android:layout_width="28dp"
                 android:layout_height="28dp"
                 android:layout_gravity="center"
                 android:scaleType="centerInside"
+                android:tint="@color/app_chrome_control_unchecked"
                 android:src="@drawable/act_cancel_recording_audio"
                 android:contentDescription="@string/cd_cancel_noticeable_notification"/>
 

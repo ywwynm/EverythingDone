@@ -13,9 +13,12 @@ import androidx.core.view.WindowInsetsControllerCompat
 import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.content.res.Resources
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Point
 import android.graphics.PorterDuff
+import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.RippleDrawable
 import android.graphics.drawable.StateListDrawable
@@ -237,6 +240,60 @@ object DisplayUtil {
         val wrappedDrawable: Drawable = DrawableCompat.wrap(view!!.background.mutate())
         DrawableCompat.setTint(wrappedDrawable, color)
         view.background = wrappedDrawable
+    }
+
+    @JvmStatic
+    fun opaqueTintDrawable(context: Context, drawable: Drawable?, color: Int): Drawable? {
+        if (drawable == null) return null
+
+        val src = drawable.mutate()
+        val width = if (src.intrinsicWidth > 0) {
+            src.intrinsicWidth
+        } else {
+            (24 * getScreenDensity(context)).toInt()
+        }
+        val height = if (src.intrinsicHeight > 0) {
+            src.intrinsicHeight
+        } else {
+            (24 * getScreenDensity(context)).toInt()
+        }
+
+        val sourceBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val sourceCanvas = Canvas(sourceBitmap)
+        src.setBounds(0, 0, width, height)
+        src.draw(sourceCanvas)
+
+        val pixels = IntArray(width * height)
+        sourceBitmap.getPixels(pixels, 0, width, 0, 0, width, height)
+
+        var maxAlpha = 0
+        for (pixel in pixels) {
+            maxAlpha = max(maxAlpha, Color.alpha(pixel))
+        }
+        if (maxAlpha == 0) {
+            sourceBitmap.recycle()
+            return src
+        }
+
+        val targetAlpha = Color.alpha(color)
+        val targetRgb = color and 0x00ffffff
+        for (i in pixels.indices) {
+            val alpha = Color.alpha(pixels[i])
+            pixels[i] = if (alpha == 0) {
+                Color.TRANSPARENT
+            } else {
+                val scaledAlpha = (alpha * targetAlpha + maxAlpha / 2) / maxAlpha
+                (scaledAlpha shl 24) or targetRgb
+            }
+        }
+
+        val tintedBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        tintedBitmap.setPixels(pixels, 0, width, 0, 0, width, height)
+        sourceBitmap.recycle()
+
+        return BitmapDrawable(context.resources, tintedBitmap).also {
+            it.setBounds(0, 0, width, height)
+        }
     }
 
     @JvmStatic

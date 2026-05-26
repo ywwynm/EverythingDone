@@ -5,6 +5,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/app_chrome_surface"
     tools:context=".appwidgets.single.BaseThingWidgetConfiguration">
 
     <View
@@ -19,6 +20,7 @@
         android:layout_height="?attr/actionBarSize"
         android:layout_below="@id/view_status_bar"
         android:background="@color/app_accent"
+        android:theme="@style/EverythingDoneTheme.AppAccentToolbar"
         app:contentInsetStart="72dp"
         app:titleTextColor="@color/black_54p"/>
 
@@ -33,7 +35,7 @@
         android:paddingRight="@dimen/rv_things_padding"
         android:scrollbars="vertical"
         android:scrollbarStyle="outsideOverlay"
-        android:theme="@style/Theme.AppCompat.Light"/>
+        android:theme="@style/Theme.AppCompat.DayNight"/>
 
     <View
         android:id="@+id/actionbar_shadow"
@@ -68,7 +70,7 @@
             android:layout_height="60dp"
             android:layout_gravity="bottom"
             android:gravity="center_vertical"
-            android:background="@color/black_14p">
+            android:background="@color/app_chrome_divider">
 
             <TextView
                 android:layout_width="wrap_content"

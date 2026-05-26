@@ -8,6 +8,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
+import androidx.core.content.ContextCompat
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -19,7 +20,9 @@ import com.ywwynm.everythingdone.activities.DetailActivity
 import com.ywwynm.everythingdone.helpers.AttachmentHelper
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.permission.SimplePermissionCallback
+import com.ywwynm.everythingdone.utils.AppearanceUtil
 import com.ywwynm.everythingdone.utils.BackgroundUtil
+import com.ywwynm.everythingdone.utils.DisplayUtil
 
 import java.io.File
 
@@ -56,6 +59,7 @@ open class AddAttachmentDialogFragment : BaseDialogFragment() {
         mTvShootVideoAsBt       = f(R.id.tv_shoot_video_as_bt)
         mTvRecordAudioAsBt      = f(R.id.tv_record_audio_as_bt)
         mTvChooseMediaFilesAsBt = f(R.id.tv_choose_media_files_as_bt)
+        tintActionIconsForAppearance()
 
         setEvents()
 
@@ -63,6 +67,32 @@ open class AddAttachmentDialogFragment : BaseDialogFragment() {
     }
 
     override fun getLayoutResource(): Int = R.layout.fragment_add_attachment
+
+    private fun tintActionIconsForAppearance() {
+        if (!AppearanceUtil.isDarkMode(mActivity!!)) return
+
+        val tint = ContextCompat.getColor(mActivity!!, R.color.app_chrome_control_unchecked)
+        val views = arrayOf(
+            mTvTakePhotoAsBt, mTvShootVideoAsBt,
+            mTvRecordAudioAsBt, mTvChooseMediaFilesAsBt
+        )
+        for (view in views) {
+            val drawables = view!!.compoundDrawablesRelative
+            var changed = false
+            for (i in drawables.indices) {
+                val drawable = drawables[i]
+                if (drawable != null) {
+                    drawables[i] = DisplayUtil.opaqueTintDrawable(mActivity!!, drawable, tint)
+                    changed = true
+                }
+            }
+            if (changed) {
+                view.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                    drawables[0], drawables[1], drawables[2], drawables[3]
+                )
+            }
+        }
+    }
 
     private fun setEvents() {
         mTvTakePhotoAsBt!!.setOnClickListener {

@@ -9,6 +9,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ProgressBar
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.model.ThingBackground
@@ -36,6 +37,12 @@ open class LoadingDialogFragment : BaseDialogFragment() {
         val tvTitle: TextView      = f(R.id.tv_title_loading)!!
         val tvContent: TextView    = f(R.id.tv_content_loading)!!
         val pbLoading: ProgressBar = f(R.id.pb_loading_fragment)!!
+
+        if (mAccentColor == 0 && mAccentBackground == null) {
+            mAccentColor = ContextCompat.getColor(
+                activity!!, R.color.app_chrome_on_surface_strong
+            )
+        }
 
         if (mTitle != null) {
             tvTitle.text = mTitle

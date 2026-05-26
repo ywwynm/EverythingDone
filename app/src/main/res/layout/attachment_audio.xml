@@ -7,7 +7,7 @@
     android:layout_height="56dp"
     android:layout_margin="@dimen/card_audio_attachment_margin"
     android:foreground="@drawable/selectable_item_background"
-    app:cardBackgroundColor="#FFFFFF"
+    app:cardBackgroundColor="@color/app_chrome_surface_elevated"
     app:cardCornerRadius="2dp">
 
     <LinearLayout
@@ -25,7 +25,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textSize="16sp"
-            android:textColor="@color/black_54p"
+            android:textColor="@color/app_chrome_on_surface_secondary"
             android:singleLine="true"/>
 
         <TextView
@@ -34,7 +34,7 @@
             android:layout_height="wrap_content"
             android:textSize="12sp"
             android:includeFontPadding="false"
-            android:textColor="@color/black_26p"/>
+            android:textColor="@color/app_chrome_on_surface_hint"/>
 
     </LinearLayout>
 

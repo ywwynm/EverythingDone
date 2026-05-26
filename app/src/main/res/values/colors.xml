@@ -53,7 +53,25 @@
 
     <color name="bg_activity_things">#EEEEEE</color>
 
+    <color name="app_chrome_surface">#EEEEEE</color>
+    <color name="app_chrome_surface_elevated">#FFFFFF</color>
+    <color name="app_chrome_on_surface_strong">#FF000000</color>
+    <color name="app_chrome_on_surface_primary">#DE000000</color>
+    <color name="app_chrome_on_surface_high">#C4000000</color>
+    <color name="app_chrome_on_surface_medium">#B0000000</color>
+    <color name="app_chrome_on_surface_secondary">#8A000000</color>
+    <color name="app_chrome_control_unchecked">#6D6D6D</color>
+    <color name="app_chrome_on_surface_hint">#42000000</color>
+    <color name="app_chrome_on_surface_disabled">#42000000</color>
+    <color name="app_chrome_divider">#24000000</color>
+    <color name="app_chrome_ripple">#1A000000</color>
+    <color name="app_chrome_code_surface">#EEEEEE</color>
+    <color name="app_chrome_snackbar_background">#323232</color>
+    <color name="app_chrome_snackbar_text">#FFFFFF</color>
+
     <color name="app_accent">#FFEB3B</color>
+    <color name="date_time_rec_existing_foreground">#C4000000</color>
+    <color name="date_time_rec_new_foreground">#40000000</color>
 
     <color name="black_87p">#DE000000</color>
     <color name="black_86p">#DB000000</color>

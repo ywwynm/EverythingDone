@@ -13,13 +13,13 @@
         android:id="@+id/tv_rv_attachment_info_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textColor="@color/black_26p"/>
+        android:textColor="@color/app_chrome_on_surface_hint"/>
 
     <TextView
         android:id="@+id/tv_rv_attachment_info_content"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textColor="@color/black_54p"
+        android:textColor="@color/app_chrome_on_surface_secondary"
         android:textSize="16sp"/>
 
 </LinearLayout>

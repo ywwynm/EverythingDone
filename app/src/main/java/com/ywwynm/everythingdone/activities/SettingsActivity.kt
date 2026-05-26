@@ -10,9 +10,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.content.res.Resources
-import android.graphics.PorterDuff
-import android.graphics.drawable.Drawable
 import android.media.Ringtone
 import android.media.RingtoneManager
 import android.net.Uri
@@ -27,7 +26,9 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import android.view.View
+import android.view.ViewGroup
 import android.widget.CheckBox
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.RelativeLayout
 import android.widget.ScrollView
@@ -62,6 +63,7 @@ import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.permission.SimplePermissionCallback
 import com.ywwynm.everythingdone.receivers.LocaleChangeReceiver
 import com.ywwynm.everythingdone.services.DoingService
+import com.ywwynm.everythingdone.utils.AppearanceUtil
 import com.ywwynm.everythingdone.utils.DateTimeUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil
@@ -82,9 +84,13 @@ class SettingsActivity : EverythingDoneBaseActivity() {
     private var mPreferences: SharedPreferences? = null
 
     private var mAccentColor: Int = 0
+    private var mNightModeMask: Int = 0
 
     private var mTvDrawerHeader: TextView? = null
     private var mTvLanguage: TextView? = null
+    private var mCbFollowSystemDarkMode: CheckBox? = null
+    private var mRlForceDarkModeAsBt: RelativeLayout? = null
+    private var mCbForceDarkMode: CheckBox? = null
     private var mCbNn: CheckBox? = null
 
     private var mLlBatteryOptimization: LinearLayout? = null
@@ -348,6 +354,7 @@ class SettingsActivity : EverythingDoneBaseActivity() {
 
         mPreferences = getSharedPreferences(Def.Meta.PREFERENCES_NAME, MODE_PRIVATE)
         mAccentColor = ContextCompat.getColor(this, R.color.blue_deep)
+        mNightModeMask = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
 
         initMembersRingtone()
 
@@ -407,6 +414,9 @@ class SettingsActivity : EverythingDoneBaseActivity() {
     override fun findViews() {
         mTvDrawerHeader = f(R.id.tv_drawer_header_path)
         mTvLanguage     = f(R.id.tv_app_language)
+        mCbFollowSystemDarkMode = f(R.id.cb_follow_system_dark_mode)
+        mRlForceDarkModeAsBt    = f(R.id.rl_force_dark_mode_as_bt)
+        mCbForceDarkMode        = f(R.id.cb_force_dark_mode)
         mCbNn           = f(R.id.cb_noticeable_notification)
 
         mLlBatteryOptimization       = f(R.id.ll_battery_optimization_as_bt)
@@ -481,12 +491,55 @@ class SettingsActivity : EverythingDoneBaseActivity() {
         val svSettings: ScrollView = f(R.id.sv_settings)!!
         EdgeEffectUtil.forScrollView(svSettings, ContextCompat.getColor(this, R.color.blue_deep))
         DisplayUtil.applyBottomInsetAsScrollPadding(svSettings)
+        tintSettingsIconsForAppearance()
 
         initUiUserInterface()
         initUiRingtone()
         initUiData()
         initUiStartDoing()
         initUiAdvanced()
+    }
+
+    private fun tintSettingsIconsForAppearance() {
+        val tint = ContextCompat.getColor(this, R.color.app_chrome_control_unchecked)
+        tintSettingsIcons(f(R.id.sv_settings), tint)
+    }
+
+    private fun tintSettingsIcons(view: View?, tint: Int) {
+        when (view) {
+            is TextView -> tintTextViewCompoundDrawables(view)
+            is ImageView -> {
+                if (AppearanceUtil.isDarkMode(this)) {
+                    view.setImageDrawable(
+                        DisplayUtil.opaqueTintDrawable(this, view.drawable, tint)
+                    )
+                }
+            }
+            is ViewGroup -> {
+                for (i in 0 until view.childCount) {
+                    tintSettingsIcons(view.getChildAt(i), tint)
+                }
+            }
+        }
+    }
+
+    private fun tintTextViewCompoundDrawables(view: TextView) {
+        val drawables = view.compoundDrawablesRelative
+        var changed = false
+        for (i in drawables.indices) {
+            val drawable = drawables[i]
+            if (drawable != null) {
+                drawables[i] = DisplayUtil.opaqueTintDrawable(
+                    this, drawable, view.currentTextColor
+                )
+                changed = true
+            }
+        }
+        if (changed) {
+            view.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                drawables[0], drawables[1], drawables[2], drawables[3]
+            )
+        }
     }
 
     private fun initUiUserInterface() {
@@ -505,6 +558,14 @@ class SettingsActivity : EverythingDoneBaseActivity() {
             Def.Meta.KEY_LANGUAGE_CODE, LocaleUtil.LANGUAGE_CODE_FOLLOW_SYSTEM + "_"
         )!!
         mTvLanguage!!.text = LocaleUtil.getLanguageDescription(languageCode)
+
+        mCbFollowSystemDarkMode!!.isChecked = mPreferences!!.getBoolean(
+            Def.Meta.KEY_FOLLOW_SYSTEM_DARK_MODE, false
+        )
+        mCbForceDarkMode!!.isChecked = mPreferences!!.getBoolean(
+            Def.Meta.KEY_FORCE_DARK_MODE, false
+        )
+        updateUiAppearanceMode()
 
         val nn: Boolean = mPreferences!!.getBoolean(Def.Meta.KEY_NOTICEABLE_NOTIFICATION, true)
         mCbNn!!.isChecked = nn
@@ -565,8 +626,8 @@ class SettingsActivity : EverythingDoneBaseActivity() {
         if (password == null || !fph.isFingerprintReady()) {
             mRlFgprtAsBt!!.isEnabled = false
             mCbFgprt!!.isEnabled = false
-            tvTitle.setTextColor(ContextCompat.getColor(this, R.color.black_14p))
-            tvDscrpt.setTextColor(ContextCompat.getColor(this, R.color.black_10p))
+            tvTitle.setTextColor(ContextCompat.getColor(this, R.color.app_chrome_divider))
+            tvDscrpt.setTextColor(ContextCompat.getColor(this, R.color.app_chrome_ripple))
 
             if (password == null) {
                 tvDscrpt.setText(R.string.password_not_set)
@@ -583,8 +644,8 @@ class SettingsActivity : EverythingDoneBaseActivity() {
         } else {
             mRlFgprtAsBt!!.isEnabled = true
             mCbFgprt!!.isEnabled = true
-            tvTitle.setTextColor(ContextCompat.getColor(this, R.color.black_54p))
-            tvDscrpt.setTextColor(ContextCompat.getColor(this, R.color.black_26p))
+            tvTitle.setTextColor(ContextCompat.getColor(this, R.color.app_chrome_on_surface_secondary))
+            tvDscrpt.setTextColor(ContextCompat.getColor(this, R.color.app_chrome_on_surface_hint))
             tvDscrpt.setText(R.string.use_fingerprint_to_verify)
         }
 
@@ -622,10 +683,10 @@ class SettingsActivity : EverythingDoneBaseActivity() {
     }
 
     private fun enableOrDisableASDTimesUi() {
-        val black_54p = ContextCompat.getColor(this, R.color.black_54p)
-        val black_26p = ContextCompat.getColor(this, R.color.black_26p)
-        val black_14p = ContextCompat.getColor(this, R.color.black_14p)
-        val black_10p = ContextCompat.getColor(this, R.color.black_10p)
+        val black_54p = ContextCompat.getColor(this, R.color.app_chrome_on_surface_secondary)
+        val black_26p = ContextCompat.getColor(this, R.color.app_chrome_on_surface_hint)
+        val black_14p = ContextCompat.getColor(this, R.color.app_chrome_divider)
+        val black_10p = ContextCompat.getColor(this, R.color.app_chrome_ripple)
 
         val enabled = booleanArrayOf(mASDPicked % 2 != 0, mASDPicked >= 2)
         for (i in enabled.indices) {
@@ -643,10 +704,12 @@ class SettingsActivity : EverythingDoneBaseActivity() {
 
     private fun initStartDoingTitle() {
         val tvTitle: TextView = f(R.id.tv_title_group_start_doing_settings)!!
-        val d1: Drawable = ContextCompat.getDrawable(this, R.drawable.act_start_doing)!!
-        val d2: Drawable = d1.mutate()
-        d2.setColorFilter(mAccentColor, PorterDuff.Mode.SRC_ATOP)
-        tvTitle.setCompoundDrawablesRelativeWithIntrinsicBounds(d2, null, null, null)
+        val icon = DisplayUtil.opaqueTintDrawable(
+            this,
+            ContextCompat.getDrawable(this, R.drawable.act_start_doing),
+            mAccentColor
+        )
+        tvTitle.setCompoundDrawablesRelativeWithIntrinsicBounds(icon, null, null, null)
     }
 
     private fun initUiAdvanced() {
@@ -678,12 +741,12 @@ class SettingsActivity : EverythingDoneBaseActivity() {
         if (mANPicked == 0) {
             mTvAN!!.setText(R.string.disabled)
             mLlANRingtoneAsBt!!.isEnabled = false
-            mTvANRingtoneTitle!!.setTextColor(ContextCompat.getColor(this, R.color.black_14p))
+            mTvANRingtoneTitle!!.setTextColor(ContextCompat.getColor(this, R.color.app_chrome_divider))
             mTvANRingtone!!.text = ""
         } else {
             mTvAN!!.text = sANItems!![mANPicked - 1]
             mLlANRingtoneAsBt!!.isEnabled = true
-            mTvANRingtoneTitle!!.setTextColor(ContextCompat.getColor(this, R.color.black_54p))
+            mTvANRingtoneTitle!!.setTextColor(ContextCompat.getColor(this, R.color.app_chrome_on_surface_secondary))
             mTvANRingtone!!.text = mChosenRingtoneTitles!![mChosenRingtoneTitles!!.size - 1]
         }
     }
@@ -714,6 +777,17 @@ class SettingsActivity : EverythingDoneBaseActivity() {
 
         f<View>(R.id.ll_app_language_as_bt).setOnClickListener {
             showChooseLanguageDialog()
+        }
+
+        f<View>(R.id.rl_follow_system_dark_mode_as_bt).setOnClickListener {
+            mCbFollowSystemDarkMode!!.isChecked = !mCbFollowSystemDarkMode!!.isChecked
+            persistAppearanceModeAndApply()
+        }
+
+        mRlForceDarkModeAsBt!!.setOnClickListener {
+            if (!mRlForceDarkModeAsBt!!.isEnabled) return@setOnClickListener
+            mCbForceDarkMode!!.isChecked = !mCbForceDarkMode!!.isChecked
+            persistAppearanceModeAndApply()
         }
 
         f<View>(R.id.rl_noticeable_notification_as_bt).setOnClickListener {
@@ -792,6 +866,17 @@ class SettingsActivity : EverythingDoneBaseActivity() {
         f<View>(R.id.rl_create_animation_style_as_bt).setOnClickListener {
             mCbCreateAnimationStyle!!.isChecked = !mCbCreateAnimationStyle!!.isChecked
         }
+    }
+
+    private fun updateUiAppearanceMode() {
+        val followSystem = mCbFollowSystemDarkMode!!.isChecked
+        mRlForceDarkModeAsBt!!.visibility = if (followSystem) View.GONE else View.VISIBLE
+    }
+
+    private fun persistAppearanceModeAndApply() {
+        updateUiAppearanceMode()
+        storeConfiguration(false)
+        AppearanceUtil.applyDefaultNightMode()
     }
 
     private fun setRingtoneEvents() {
@@ -1323,7 +1408,7 @@ class SettingsActivity : EverythingDoneBaseActivity() {
         }
     }
 
-    private fun storeConfiguration() {
+    private fun storeConfiguration(requestNotificationPermission: Boolean = true) {
         val editor: SharedPreferences.Editor = mPreferences!!.edit()
 
         val headerBefore: String = mPreferences!!.getString(
@@ -1362,6 +1447,14 @@ class SettingsActivity : EverythingDoneBaseActivity() {
         val twiceBack: Boolean = mCbTwiceBack!!.isChecked
         FrequentSettings.put(Def.Meta.KEY_TWICE_BACK, twiceBack)
         editor.putBoolean(Def.Meta.KEY_TWICE_BACK, twiceBack)
+
+        val followSystemDarkMode: Boolean = mCbFollowSystemDarkMode!!.isChecked
+        FrequentSettings.put(Def.Meta.KEY_FOLLOW_SYSTEM_DARK_MODE, followSystemDarkMode)
+        editor.putBoolean(Def.Meta.KEY_FOLLOW_SYSTEM_DARK_MODE, followSystemDarkMode)
+
+        val forceDarkMode: Boolean = mCbForceDarkMode!!.isChecked
+        FrequentSettings.put(Def.Meta.KEY_FORCE_DARK_MODE, forceDarkMode)
+        editor.putBoolean(Def.Meta.KEY_FORCE_DARK_MODE, forceDarkMode)
 
         editor.putBoolean(Def.Meta.KEY_CREATE_ANIMATION_STYLE, mCbCreateAnimationStyle!!.isChecked)
 
@@ -1414,7 +1507,7 @@ class SettingsActivity : EverythingDoneBaseActivity() {
             || mCbCloseNotificationLater!!.isChecked
             || mCbOngoingLockscreen!!.isChecked
             || mANPicked != 0
-        if (anyNotificationFeatureEnabled
+        if (requestNotificationPermission && anyNotificationFeatureEnabled
             && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
                 != PackageManager.PERMISSION_GRANTED
         ) {
@@ -1424,6 +1517,16 @@ class SettingsActivity : EverythingDoneBaseActivity() {
                 Def.Communication.REQUEST_PERMISSION_NOTIFICATION,
                 Manifest.permission.POST_NOTIFICATIONS
             )
+        }
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        val newNightModeMask = newConfig.uiMode and Configuration.UI_MODE_NIGHT_MASK
+        if (newNightModeMask != mNightModeMask) {
+            mNightModeMask = newNightModeMask
+            storeConfiguration(false)
+            recreate()
         }
     }
 

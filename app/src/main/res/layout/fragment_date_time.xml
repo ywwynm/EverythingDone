@@ -42,7 +42,7 @@
             android:paddingRight="12dp"
             android:paddingBottom="8dp"
             android:background="@drawable/selectable_item_background"
-            android:textColor="@color/black_26p"
+            android:textColor="@color/app_chrome_on_surface_hint"
             android:text="@string/cancel"/>
 
         <TextView

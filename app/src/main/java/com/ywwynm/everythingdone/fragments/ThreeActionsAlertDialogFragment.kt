@@ -4,7 +4,6 @@ package com.ywwynm.everythingdone.fragments
 
 import android.app.Activity
 import android.content.DialogInterface
-import android.graphics.Color
 import android.os.Bundle
 import androidx.core.content.ContextCompat
 import android.view.LayoutInflater
@@ -26,7 +25,7 @@ import com.ywwynm.everythingdone.utils.DisplayUtil
  */
 open class ThreeActionsAlertDialogFragment : BaseDialogFragment() {
 
-    private var mColors: IntArray = intArrayOf(Color.BLACK, 0, Color.BLACK)
+    private var mColors: IntArray = intArrayOf(0, 0, 0)
     /** Phase 8: optional ThingBackground for title / first / second buttons. */
     private var mTitleBg: ThingBackground? = null
     private var mContinueBg: ThingBackground? = null
@@ -57,10 +56,16 @@ open class ThreeActionsAlertDialogFragment : BaseDialogFragment() {
     ): View? {
         super.onCreateView(inflater, container, savedInstanceState)
 
+        val activity: Activity = activity!!
+        if (mColors[0] == 0) {
+            mColors[0] = ContextCompat.getColor(activity, R.color.app_chrome_on_surface_strong)
+        }
         if (mColors[1] == 0) {
-            val activity: Activity = activity!!
-            val contentColor = ContextCompat.getColor(activity, R.color.black_54p)
+            val contentColor = ContextCompat.getColor(activity, R.color.app_chrome_on_surface_secondary)
             mColors[1] = contentColor
+        }
+        if (mColors[2] == 0) {
+            mColors[2] = ContextCompat.getColor(activity, R.color.app_chrome_on_surface_strong)
         }
 
         val tvTitle: TextView      = f(R.id.tv_title_alert)!!

@@ -6,12 +6,15 @@ import android.content.DialogInterface
 import android.os.Bundle
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
+import androidx.core.content.ContextCompat
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 
 import com.ywwynm.everythingdone.R
+import com.ywwynm.everythingdone.utils.AppearanceUtil
+import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.KeyboardUtil
 
 /**
@@ -43,6 +46,7 @@ open class TwoOptionsDialogFragment : BaseDialogFragment() {
         if (mIconResStart != 0) {
             tvStart.setCompoundDrawablesWithIntrinsicBounds(0, mIconResStart, 0, 0)
         }
+        tintActionIconForAppearance(tvStart)
         if (mActionResStart != 0) {
             tvStart.setText(mActionResStart)
         }
@@ -51,12 +55,33 @@ open class TwoOptionsDialogFragment : BaseDialogFragment() {
         if (mIconResEnd != 0) {
             tvEnd.setCompoundDrawablesWithIntrinsicBounds(0, mIconResEnd, 0, 0)
         }
+        tintActionIconForAppearance(tvEnd)
         if (mActionResEnd != 0) {
             tvEnd.setText(mActionResEnd)
         }
         tvEnd.setOnClickListener(mListenerEnd)
 
         return mContentView
+    }
+
+    private fun tintActionIconForAppearance(view: TextView) {
+        if (!AppearanceUtil.isDarkMode(activity!!)) return
+
+        val tint = ContextCompat.getColor(activity!!, R.color.app_chrome_control_unchecked)
+        val drawables = view.compoundDrawables
+        var changed = false
+        for (i in drawables.indices) {
+            val drawable = drawables[i]
+            if (drawable != null) {
+                drawables[i] = DisplayUtil.opaqueTintDrawable(activity!!, drawable, tint)
+                changed = true
+            }
+        }
+        if (changed) {
+            view.setCompoundDrawablesWithIntrinsicBounds(
+                drawables[0], drawables[1], drawables[2], drawables[3]
+            )
+        }
     }
 
     override fun getLayoutResource(): Int = R.layout.fragment_two_action_picker

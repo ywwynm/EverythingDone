@@ -26,6 +26,7 @@ import com.ywwynm.everythingdone.fragments.AlertDialogFragment
 import com.ywwynm.everythingdone.fragments.LicenseDialogFragment
 import com.ywwynm.everythingdone.fragments.ThreeActionsAlertDialogFragment
 import com.ywwynm.everythingdone.helpers.SendInfoHelper
+import com.ywwynm.everythingdone.utils.AppearanceUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.FontCache
 
@@ -82,7 +83,11 @@ open class AboutActivity : EverythingDoneBaseActivity() {
     override fun initUI() {
         DisplayUtil.expandLayoutToStatusBarAboveLollipop(this)
         DisplayUtil.expandStatusBarViewAboveKitkat(mStatusBar)
-        DisplayUtil.darkStatusBar(this)
+        if (AppearanceUtil.isDarkMode(this)) {
+            DisplayUtil.cancelDarkStatusBar(this)
+        } else {
+            DisplayUtil.darkStatusBar(this)
+        }
 
         DisplayUtil.applyBottomInsetAsMargin(mFab)
         DisplayUtil.applyBottomInsetAsPadding(mFlBottom)

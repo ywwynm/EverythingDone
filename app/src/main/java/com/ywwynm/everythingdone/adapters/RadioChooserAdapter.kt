@@ -59,7 +59,7 @@ open class RadioChooserAdapter(
         val item = mItems!![position]
         holder.tv!!.text = item
         val context = holder.tv.context
-        val uncheckedColor = ContextCompat.getColor(context, R.color.black_54)
+        val uncheckedColor = ContextCompat.getColor(context, R.color.app_chrome_control_unchecked)
         val d: Drawable?
         if (mPickedPosition == position) { // -15310698
             val srcChecked: Drawable? = ContextCompat.getDrawable(

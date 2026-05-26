@@ -45,8 +45,18 @@ open class TimeOfDayRecAdapter(
     private var mAccentColor: Int = accentColor
     /** Phase 8: full accent so the focused EditText's text can render gradient. */
     private var mAccentBackground: ThingBackground? = null
-    private var black_26p: Int = ContextCompat.getColor(mContext!!, R.color.black_26p)
-    private var black_54p: Int = ContextCompat.getColor(mContext!!, R.color.black_54p)
+    private var black_26p: Int = ContextCompat.getColor(
+        mContext!!, R.color.app_chrome_on_surface_hint
+    )
+    private var black_54p: Int = ContextCompat.getColor(
+        mContext!!, R.color.app_chrome_on_surface_secondary
+    )
+    private var existingReminderIconColor: Int = ContextCompat.getColor(
+        mContext!!, R.color.date_time_rec_existing_foreground
+    )
+    private var newReminderColor: Int = ContextCompat.getColor(
+        mContext!!, R.color.date_time_rec_new_foreground
+    )
 
     private var mItems: MutableList<Int?>? = null
 
@@ -121,7 +131,13 @@ open class TimeOfDayRecAdapter(
             val holder = viewHolder as EditTextHolder
             DisplayUtil.tintView(holder.etHour, black_26p)
             DisplayUtil.tintView(holder.etMinute, black_26p)
-            holder.ivReminder!!.setImageResource(mIcons[position])
+            holder.ivReminder!!.setImageDrawable(
+                DisplayUtil.opaqueTintDrawable(
+                    mContext!!,
+                    ContextCompat.getDrawable(mContext!!, mIcons[position]),
+                    existingReminderIconColor
+                )
+            )
             holder.ivReminder!!.contentDescription =
                 mContext!!.getString(R.string.cd_reminder_time) + (position + 1)
             val hour = mItems!![2 * position]!!
@@ -169,6 +185,14 @@ open class TimeOfDayRecAdapter(
         var ivDelete: ImageView? = f(R.id.iv_delete_reminder_as_bt_rec_day)
 
         init {
+            ivDelete!!.setImageDrawable(
+                DisplayUtil.opaqueTintDrawable(
+                    mContext!!,
+                    ContextCompat.getDrawable(mContext!!, R.drawable.act_delete_time_rec),
+                    black_54p
+                )
+            )
+
             DisplayUtil.setSelectionHandlersColor(etHour, mAccentColor)
             DisplayUtil.setSelectionHandlersColor(etMinute, mAccentColor)
 
@@ -269,6 +293,18 @@ open class TimeOfDayRecAdapter(
         var tvNewReminder: TextView? = f(R.id.tv_new_reminder_as_bt_rec_day)
 
         init {
+            tvNewReminder!!.setTextColor(newReminderColor)
+            tvNewReminder!!.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                DisplayUtil.opaqueTintDrawable(
+                    mContext!!,
+                    ContextCompat.getDrawable(mContext!!, R.drawable.act_new_time_rec),
+                    newReminderColor
+                ),
+                null,
+                null,
+                null
+            )
+
             tvNewReminder!!.setOnClickListener {
                 val size = mItems!!.size
                 val pos = adapterPosition

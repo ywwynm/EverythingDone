@@ -20,6 +20,7 @@ import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.adapters.BaseViewHolder
 import com.ywwynm.everythingdone.adapters.SingleChoiceAdapter
 import com.ywwynm.everythingdone.model.ThingBackground
+import com.ywwynm.everythingdone.utils.AppearanceUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 
 import java.util.Random
@@ -236,11 +237,11 @@ open class ColorPicker(
             // The DAO consumes the int as a hue-bucket hint via BackgroundUtil
             // .hueBucket(); returning the bucket's representative is correct.
             val picked: Int = mAdapter.getPickedPosition()
-            if (picked <= 0) return -1979711488
+            if (picked <= 0) return ALL_COLOR_SENTINEL
             return mColors[picked - 1]
         }
         val bg: ThingBackground? = getPickedBackground()
-        return bg?.representativeColor() ?: -1979711488
+        return bg?.representativeColor() ?: ALL_COLOR_SENTINEL
     }
 
     /**
@@ -342,11 +343,15 @@ open class ColorPicker(
         if (mTintTarget == null) return
         if (mType == Def.PickerType.COLOR_HAVE_ALL
                 || mType == Def.PickerType.HUE_BUCKET) {
-            val filterColor: Int = getPickedColor()
-            // -1979711488 ≈ 0x8A000000 is the "all colours" sentinel; for HUE_BUCKET
-            // the target icon should appear dark/neutral when nothing is filtering,
-            // then tint to the picked bucket's representative when a bucket is chosen.
-            mTintTarget!!.mutate().setColorFilter(filterColor, PorterDuff.Mode.SRC_ATOP)
+            var filterColor: Int = getPickedColor()
+            // In ThingsActivity search, "all colours" follows the toolbar
+            // foreground: neutral in light mode, app accent in dark mode.
+            if (mType == Def.PickerType.HUE_BUCKET
+                    && filterColor == ALL_COLOR_SENTINEL
+                    && AppearanceUtil.isDarkMode(mActivity)) {
+                filterColor = ContextCompat.getColor(mActivity, R.color.app_accent)
+            }
+            mTintTarget!!.mutate().setColorFilter(filterColor, PorterDuff.Mode.SRC_IN)
         }
     }
 
@@ -397,17 +402,29 @@ open class ColorPicker(
 
         private fun bindAllColor(viewHolder: BaseViewHolder) {
             val holder: AllColorViewHolder = viewHolder as AllColorViewHolder
+            val iconRes: Int
             if (mPickedPosition == 0) {
-                holder.bt.setCompoundDrawablesWithIntrinsicBounds(
-                        R.drawable.ic_checkbox_checked, 0, 0, 0)
+                iconRes = R.drawable.ic_checkbox_checked
                 holder.bt.setContentDescription(
                         mActivity.getString(R.string.cd_picked) + holder.bt.getText() + ",")
             } else {
-                holder.bt.setCompoundDrawablesWithIntrinsicBounds(
-                        R.drawable.ic_checkbox_unchecked, 0, 0, 0)
+                iconRes = R.drawable.ic_checkbox_unchecked
                 holder.bt.setContentDescription(
                         mActivity.getString(R.string.cd_unpicked) + holder.bt.getText() + ",")
             }
+            val icon: Drawable? = ContextCompat.getDrawable(mActivity, iconRes)
+            val displayIcon: Drawable? = if (AppearanceUtil.isDarkMode(mActivity)) {
+                DisplayUtil.opaqueTintDrawable(
+                    mActivity,
+                    icon,
+                    ContextCompat.getColor(mActivity, R.color.app_chrome_on_surface_secondary)
+                )
+            } else {
+                icon
+            }
+            holder.bt.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                displayIcon, null, null, null
+            )
             holder.bt.isClickable = mPickedPosition != 0
         }
 
@@ -648,6 +665,7 @@ open class ColorPicker(
 
     companion object {
         const val TAG: String = "ColorPicker"
+        private const val ALL_COLOR_SENTINEL: Int = -1979711488
 
         // Inner adapter view-type constants. Hoisted here because the
         // inner adapter class can't host a companion object in Kotlin.
