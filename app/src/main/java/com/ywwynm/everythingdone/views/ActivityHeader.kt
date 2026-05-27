@@ -14,7 +14,6 @@ import com.ywwynm.everythingdone.managers.ModeManager
 import com.ywwynm.everythingdone.managers.ThingManager
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.LocaleUtil
-import kotlin.math.abs
 
 /**
  * Created by ywwynm on 2015/7/5.
@@ -35,8 +34,9 @@ open class ActivityHeader(
 
     private var shouldListenToScroll: Boolean = true
 
-    private var headerTranslationYFactor: Float = 0f
+    private var collapsedHeaderTranslationY: Float = 0f
     private var titleShrinkFactor: Float = 0f
+    private var mActionbar: Toolbar? = null
 
     private var actionbarShadowAlpha: Float = 0f
 
@@ -59,36 +59,70 @@ open class ActivityHeader(
     }
 
     fun computeFactors(actionbar: Toolbar?) {
-        headerTranslationYFactor = 65f / 90
-        titleShrinkFactor = -1.0f / 540 / mScreenDensity
+        if (actionbar != null) {
+            mActionbar = actionbar
+        }
+
+        val toolbar: Toolbar? = actionbar ?: mActionbar
+        var headerTranslationYFactor = 65f / 90
+        var collapsedTitleScale = 5f / 6f
         val isTablet: Boolean = DisplayUtil.isTablet(mApp)
         val isLandscape: Boolean = mApp.resources!!.configuration!!.orientation ==
                 Configuration.ORIENTATION_LANDSCAPE
         if (isTablet) {
             headerTranslationYFactor = 62f / 90
-            titleShrinkFactor = -1.0f / 540 / mScreenDensity
+            collapsedTitleScale = 5f / 6f
         } else if (isLandscape) {
             headerTranslationYFactor = 68f / 90
-            titleShrinkFactor = -1.0f / 360 / mScreenDensity
+            collapsedTitleScale = 0.75f
         }
 
-        if (actionbar != null) {
-            val actionbarHeight: Int = actionbar.height
-            if (near(actionbarHeight, (mScreenDensity * 48).toInt())) {
+        if (toolbar != null) {
+            val actionbarHeight: Int = toolbar.height
+            if (nearToolbarHeight(actionbarHeight, 48)) {
                 headerTranslationYFactor = 68f / 90
-                titleShrinkFactor = -1.0f / 360 / mScreenDensity
-            } else if (near(actionbarHeight, (mScreenDensity * 56).toInt())) {
+                collapsedTitleScale = 0.75f
+            } else if (nearToolbarHeight(actionbarHeight, 56)) {
                 headerTranslationYFactor = 65f / 90
-                titleShrinkFactor = -1.0f / 540 / mScreenDensity
-            } else if (near(actionbarHeight, (mScreenDensity * 64).toInt())) {
+                collapsedTitleScale = 5f / 6f
+            } else if (nearToolbarHeight(actionbarHeight, 64)) {
                 headerTranslationYFactor = 62f / 90
-                titleShrinkFactor = -1.0f / 540 / mScreenDensity
+                collapsedTitleScale = 5f / 6f
             }
         }
+
+        val titleCollapseScrollY = getTitleCollapseScrollY()
+        titleShrinkFactor = (collapsedTitleScale - 1f) / titleCollapseScrollY
+        collapsedHeaderTranslationY = computeCollapsedHeaderTranslationY(
+            toolbar, collapsedTitleScale, headerTranslationYFactor
+        )
     }
 
-    private fun near(h1: Int, h2: Int): Boolean {
-        return abs(h1 - h2) < 8
+    private fun nearToolbarHeight(height: Int, dp: Int): Boolean {
+        return kotlin.math.abs(height - (mScreenDensity * dp).toInt()) < 8
+    }
+
+    private fun getTitleCollapseScrollY(): Float {
+        return mScreenDensity * 90
+    }
+
+    private fun computeCollapsedHeaderTranslationY(
+            actionbar: Toolbar?,
+            collapsedTitleScale: Float,
+            fallbackFactor: Float
+    ): Float {
+        val fallback = -fallbackFactor * getTitleCollapseScrollY()
+        if (actionbar == null || actionbar.height == 0 || mRelativeLayout.height == 0
+                || mTitle.height == 0) {
+            return fallback
+        }
+
+        mTitle.pivotY = TITLE_SCALE_PIVOT
+        val actionbarCenterY = actionbar.top + actionbar.height / 2f
+        val titleCenterInHeader = mTitle.top + mTitle.pivotY +
+                (mTitle.height / 2f - mTitle.pivotY) * collapsedTitleScale
+        val titleCenterBeforeTranslation = mRelativeLayout.top + titleCenterInHeader
+        return actionbarCenterY - titleCenterBeforeTranslation
     }
 
     fun updateAll(firstVisibleItemPosition: Int, anim: Boolean) {
@@ -98,7 +132,7 @@ open class ActivityHeader(
 
         var actionbarShadowAlphaAfter = 0f
         var scrollY: Int = -mBindingRecyclerView.getChildAt(0)!!.top
-        val titleAndShadowScrollY: Int = (mScreenDensity * 90).toInt()
+        val titleAndShadowScrollY: Int = getTitleCollapseScrollY().toInt()
         val shadowAppearCompletelyScrollY: Int = (mScreenDensity * 102).toInt()
 
         /*
@@ -155,6 +189,7 @@ open class ActivityHeader(
                 mTitle.setText(R.string.underway)
         }
         updateSubtitle()
+        mRelativeLayout.post { computeFactors(mActionbar) }
     }
 
     private fun updateSubtitle() {
@@ -208,11 +243,13 @@ open class ActivityHeader(
 
     private fun updateHeader(scrollY: Int, anim: Boolean) {
         val scale: Float = titleShrinkFactor * scrollY + 1
-        mTitle.pivotX = 1f
-        mTitle.pivotY = 1f
+        val progress: Float = scrollY / getTitleCollapseScrollY()
+        val translationY = collapsedHeaderTranslationY * progress
+        mTitle.pivotX = TITLE_SCALE_PIVOT
+        mTitle.pivotY = TITLE_SCALE_PIVOT
 
         if (anim) {
-            mRelativeLayout.animate()!!.translationY(-headerTranslationYFactor * scrollY)
+            mRelativeLayout.animate()!!.translationY(translationY)
 
             /*
              * Changing scaleX and scaleY of title is better than changing its textSize.
@@ -222,16 +259,17 @@ open class ActivityHeader(
 
             mTitle.animate()!!.scaleX(scale).setDuration(160)
             mTitle.animate()!!.scaleY(scale).setDuration(160)
-            mSubtitle.animate()!!.alpha(-1.0f / mScreenDensity / 90 * scrollY + 1).withLayer().setDuration(160)
+            mSubtitle.animate()!!.alpha(1f - progress).withLayer().setDuration(160)
         } else {
-            mRelativeLayout.translationY = (-headerTranslationYFactor * scrollY).toInt().toFloat()
+            mRelativeLayout.translationY = translationY
             mTitle.scaleX = scale
             mTitle.scaleY = scale
-            mSubtitle.setAlpha(-1.0f / mScreenDensity / 90 * scrollY + 1)
+            mSubtitle.setAlpha(1f - progress)
         }
     }
 
     companion object {
         const val TAG: String = "ActivityHeader"
+        private const val TITLE_SCALE_PIVOT = 1f
     }
 }

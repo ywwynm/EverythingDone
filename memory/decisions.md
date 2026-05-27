@@ -2,6 +2,20 @@
 
 ## 2026-05-27
 
+### ThingsActivity header collapse endpoint is measured, not density-guessed
+
+`ActivityHeader` should not rely on hard-coded `scrollY * factor` values to
+place the title inside the toolbar when the Things list collapses. Those factors
+only matched the original Chinese/English text metrics on common toolbar
+heights; they drift with other locales, fallback fonts, font scale, device
+metrics, and any toolbar height variant.
+
+Keep the legacy collapse distance and title scale timing, but compute the
+collapsed header `translationY` from measured coordinates: toolbar vertical
+centre minus the scaled title visual centre. Interpolate from `0` to that
+measured endpoint while scrolling. Recompute after title text changes so locale
+or drawer-category changes can update the endpoint.
+
 ### AppWidget collection click templates must be mutable
 AppWidget collection rows that use `RemoteViews.setPendingIntentTemplate(...)`
 plus `setOnClickFillInIntent(...)` need a mutable template `PendingIntent`.

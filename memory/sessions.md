@@ -1,5 +1,29 @@
 # Sessions
 
+## 2026-05-27 - ThingsActivity header collapse centering
+
+Committed the completed localization/language-switching work as `ebeb9aa`.
+
+Investigated the legacy ThingsActivity header issue where the title/subtitle
+collapse appeared vertically centred in the toolbar for Chinese and English but
+drifted in other locales or on some devices. Root cause: `ActivityHeader`
+converted the first-card scroll distance into header `translationY` through
+hard-coded density factors keyed to assumed toolbar heights. Those factors do
+not account for locale-dependent text metrics, fallback fonts, or font/device
+differences.
+
+Updated `ActivityHeader` so the collapsed endpoint is measured from live view
+geometry: toolbar centre minus the scaled title centre. The existing scroll
+distance and scale timing are preserved, but the final translation endpoint now
+tracks the actual title and toolbar layout. The endpoint is recomputed after
+header text updates.
+
+Verification:
+- `.\gradlew.bat :app:assembleDebug --console=plain` passed and produced
+  `app/build/outputs/apk/debug/app-debug.apk` at `2026-05-27 18:27:12`.
+- `git diff --check` passed with CRLF warnings only.
+- No device visual smoke test was run for the header alignment in this step.
+
 ## 2026-05-27 - App language support and language-selection fix
 
 Added app language support for Japanese, Korean, Italian, Spanish, Russian,
