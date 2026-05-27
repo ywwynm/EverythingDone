@@ -9,6 +9,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.res.Configuration
 import android.graphics.Color
+import android.graphics.Outline
 import android.graphics.PorterDuff
 import android.graphics.drawable.Drawable
 import androidx.core.app.NotificationManagerCompat
@@ -21,6 +22,7 @@ import android.text.Spanned
 import android.text.style.ForegroundColorSpan
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewOutlineProvider
 import android.view.ViewTreeObserver
 import android.widget.FrameLayout
 import android.widget.ImageView
@@ -255,9 +257,7 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
     }
 
     private fun applyDialogShellAppearance() {
-        mRoot!!.setBackgroundColor(
-            ContextCompat.getColor(this, R.color.app_chrome_surface_elevated)
-        )
+        applyRoundedShellBackground()
         applyActionButtonRipples()
 
         var cancelDrawable: Drawable =
@@ -268,6 +268,20 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
             PorterDuff.Mode.SRC_ATOP
         )
         mIvCancel!!.setImageDrawable(cancelDrawable)
+    }
+
+    private fun applyRoundedShellBackground() {
+        val root = mRoot ?: return
+        root.background = ContextCompat.getDrawable(
+            this, R.drawable.bg_app_chrome_surface_elevated_rounded
+        )
+        val radius = resources.getDimension(R.dimen.app_chrome_dialog_popup_corner_radius)
+        root.clipToOutline = true
+        root.outlineProvider = object : ViewOutlineProvider() {
+            override fun getOutline(view: View, outline: Outline) {
+                outline.setRoundRect(0, 0, view.width, view.height, radius)
+            }
+        }
     }
 
     private fun applyActionButtonRipples() {

@@ -4,6 +4,13 @@ Operational rules — ADB invocation, Gradle invocation, toolchain paths —
 have moved to `.claude/rules/`. This file holds **user preferences**
 (workflow attitudes, principles, conventions) only.
 
+## Communication
+
+Use professional, concise Chinese in agent-user conversation. When updating
+repository instruction, memory, planning, review, or analysis documents for
+this project workflow, write those updates in English unless the target file is
+explicitly a localisation resource or already requires another language.
+
 ## Workflow
 
 **Never commit unless explicitly asked.** Successful compile ≠ feature

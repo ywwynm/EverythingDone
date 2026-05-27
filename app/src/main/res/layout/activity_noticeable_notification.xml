@@ -5,7 +5,8 @@
     android:id="@+id/ll_root_noticeable_notification"
     android:layout_width="280dp"
     android:layout_height="match_parent"
-    android:background="@color/app_chrome_surface_elevated"
+    android:background="@drawable/bg_app_chrome_surface_elevated_rounded"
+    android:clipToOutline="true"
     android:orientation="vertical"
     tools:ignore="ContentDescription">
 

@@ -187,7 +187,7 @@
         <item name="android:windowMinWidthMinor">0dp</item>
         <item name="windowMinWidthMajor">0dp</item>
         <item name="windowMinWidthMinor">0dp</item>
-        <item name="android:windowBackground">@color/app_chrome_surface_elevated</item>
+        <item name="android:windowBackground">@drawable/bg_app_chrome_surface_elevated_rounded</item>
         <item name="colorBackgroundFloating">@color/app_chrome_surface_elevated</item>
         <item name="android:colorBackgroundFloating">@color/app_chrome_surface_elevated</item>
         <item name="colorAccent">@color/blue_deep</item>

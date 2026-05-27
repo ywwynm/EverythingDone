@@ -1,12 +1,14 @@
 package com.ywwynm.everythingdone.views.pickers
 
 import android.app.Activity
+import android.graphics.Outline
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewOutlineProvider
 import android.widget.PopupWindow
 
 import com.ywwynm.everythingdone.R
@@ -40,10 +42,12 @@ abstract class PopupPicker(activity: Activity, parent: View, popupAnimStyle: Int
     init {
         mPopupWindow = PopupWindow(mContentView,
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-        mPopupWindow.setBackgroundDrawable(ContextCompat.getDrawable(activity, R.drawable.bg_picker))
-        mContentView.setBackgroundColor(
-            ContextCompat.getColor(activity, R.color.app_chrome_surface_elevated)
+        mPopupWindow.setBackgroundDrawable(
+            ContextCompat.getDrawable(activity, R.drawable.bg_app_chrome_surface_elevated_rounded)
         )
+        mContentView.background =
+            ContextCompat.getDrawable(activity, R.drawable.bg_app_chrome_surface_elevated_rounded)
+        installRoundedOutline(mContentView)
         mContentView.setOnKeyListener(object : View.OnKeyListener {
             override fun onKey(v: View, keyCode: Int, event: KeyEvent): Boolean {
                 if (keyCode == KeyEvent.KEYCODE_BACK
@@ -69,6 +73,16 @@ abstract class PopupPicker(activity: Activity, parent: View, popupAnimStyle: Int
         // drops, popup auto-dismisses mid-show). Matches the pre-edge-to-
         // edge behaviour where the IME and these pickers happily coexisted.
         mPopupWindow.inputMethodMode = PopupWindow.INPUT_METHOD_NOT_NEEDED
+    }
+
+    private fun installRoundedOutline(view: View) {
+        val radius = view.resources.getDimension(R.dimen.app_chrome_dialog_popup_corner_radius)
+        view.clipToOutline = true
+        view.outlineProvider = object : ViewOutlineProvider() {
+            override fun getOutline(v: View, outline: Outline) {
+                outline.setRoundRect(0, 0, v.width, v.height, radius)
+            }
+        }
     }
 
     fun setAnchor(anchor: View) {

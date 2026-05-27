@@ -4,6 +4,29 @@ Things that were technically achievable but deferred to a later iteration
 because the work was disproportionate to the visual gain. Each entry
 notes the current fallback so you know what the app is doing today.
 
+## Dialog and popup visual QA
+
+### Device visual review for rounded dialog and popup shells (deferred 2026-05-27)
+
+**Scope:** Custom `BaseDialogFragment` dialogs, `PopupPicker` surfaces
+(`ColorPicker`, `DateTimePicker`, quick-remind/time-type pickers), and
+`NoticeableNotificationActivity`'s dialog-like shell after the rounded
+App Chrome surface change.
+
+**Current state:** Shared code paths now use
+`bg_app_chrome_surface_elevated_rounded.xml` and clip to
+`@dimen/app_chrome_dialog_popup_corner_radius`, currently `16dp`.
+`:app:assembleDebug` and `git diff --check` pass.
+
+**Deferred verification:** Install on an emulator or explicitly approved test
+device and visually open representative dialogs/popups in both light and dark
+Appearance Mode. Check corner clipping, ripple bounds, picker content, and
+NoticeableNotificationActivity shell edges.
+
+**Reason deferred:** `adb devices` showed physical devices only and no
+`emulator-5554`, so the agent did not take over the user's device UI for
+manual visual navigation.
+
 ## Localization
 
 ### Native-speaker review for new app languages (deferred 2026-05-27)

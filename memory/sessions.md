@@ -1,5 +1,35 @@
 # Sessions
 
+## 2026-05-27 - Rounded App Chrome dialogs and popup pickers
+
+Updated EverythingDone's custom App Chrome dialog and popup surfaces to render
+as rounded rectangles using a dedicated
+`@dimen/app_chrome_dialog_popup_corner_radius` token. The token is currently
+set to `16dp` for visual review, while home Thing cards keep
+`@dimen/thing_card_corner_radius` at `10dp`.
+
+Changes:
+- Added `bg_app_chrome_surface_elevated_rounded.xml`, backed by
+  `app_chrome_surface_elevated` and
+  `app_chrome_dialog_popup_corner_radius`.
+- `BaseDialogFragment` now installs that rounded window background and clips
+  dialog content to the same rounded outline, covering all custom
+  DialogFragment subclasses.
+- `PopupPicker` now uses the same rounded elevated surface for picker
+  PopupWindows and clips picker content to the rounded outline.
+- `NoticeableNotificationActivity`, a dialog-like hybrid chrome surface, now
+  uses the same rounded shell background and clipping.
+- Kept the legacy `bg_picker` night resource aligned to the dialog/popup-radius
+  token for any remaining resource-level references.
+
+Verification:
+- `E:\projects\EverythingDone\gradlew.bat :app:assembleDebug --console=plain`
+  passed outside the sandbox after sandboxed attempts timed out.
+- Fresh APK produced at `app\build\outputs\apk\debug\app-debug.apk`.
+- `git diff --check` passed with CRLF conversion warnings only.
+- No visual device smoke test was run; `adb devices` showed physical devices
+  only and no `emulator-5554`.
+
 ## 2026-05-27 - DetailActivity catches widget updates after Home
 
 Fixed the remote-widget path where a user could open a Thing in

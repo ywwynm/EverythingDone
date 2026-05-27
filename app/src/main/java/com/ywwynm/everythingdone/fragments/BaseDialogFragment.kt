@@ -5,7 +5,7 @@ package com.ywwynm.everythingdone.fragments
 import android.app.Dialog
 import android.app.DialogFragment
 import android.app.FragmentManager
-import android.graphics.drawable.ColorDrawable
+import android.graphics.Outline
 import android.os.Bundle
 import android.view.ContextThemeWrapper
 import androidx.annotation.IdRes
@@ -14,6 +14,7 @@ import androidx.core.content.ContextCompat
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewOutlineProvider
 import android.view.Window
 
 import com.ywwynm.everythingdone.R
@@ -40,6 +41,7 @@ abstract class BaseDialogFragment : DialogFragment() {
             dialog?.context ?: ContextThemeWrapper(activity!!, R.style.EverythingDoneTheme_Dialog)
         )
         mContentView = themedInflater.inflate(getLayoutResource(), container, false)
+        installRoundedOutline(mContentView)
         return mContentView
     }
 
@@ -67,14 +69,24 @@ abstract class BaseDialogFragment : DialogFragment() {
         super.onStart()
         val dialog = dialog ?: return
         dialog.window?.setBackgroundDrawable(
-            ColorDrawable(
-                ContextCompat.getColor(dialog.context, R.color.app_chrome_surface_elevated)
-            )
+            ContextCompat.getDrawable(dialog.context, R.drawable.bg_app_chrome_surface_elevated_rounded)
         )
+        installRoundedOutline(dialog.window?.decorView)
         dialog.window?.setLayout(
             getDialogWindowWidthPx(),
             ViewGroup.LayoutParams.WRAP_CONTENT
         )
+    }
+
+    private fun installRoundedOutline(view: View?) {
+        view ?: return
+        val radius = view.resources.getDimension(R.dimen.app_chrome_dialog_popup_corner_radius)
+        view.clipToOutline = true
+        view.outlineProvider = object : ViewOutlineProvider() {
+            override fun getOutline(v: View, outline: Outline) {
+                outline.setRoundRect(0, 0, v.width, v.height, radius)
+            }
+        }
     }
 
     override fun show(manager: FragmentManager, tag: String?) {

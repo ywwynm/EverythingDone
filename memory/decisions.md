@@ -2,6 +2,20 @@
 
 ## 2026-05-27
 
+### Dialog and popup corner radius has its own App Chrome token
+
+Custom App Chrome dialogs and popup pickers should use a dedicated corner-radius
+token, `@dimen/app_chrome_dialog_popup_corner_radius`, currently set to `16dp`
+for visual review. This keeps dialog and popup shape adjustable without
+changing the home Thing card radius.
+
+### EverythingDone remains the primary Android update target
+
+Future app updates should be made in the `EverythingDone` project. The
+`Everything-Android` directory can be used as a reference for designs, code, or
+new functionality, but it is not the target project for changes and may be
+deleted later.
+
 ### Background DetailActivity refreshes from storage after remote widget actions
 
 Launcher widget and notification actions should only be blocked when the
