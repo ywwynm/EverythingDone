@@ -35,6 +35,7 @@ import com.ywwynm.everythingdone.services.AlarmHealthWorker
 import com.ywwynm.everythingdone.services.PullAliveJobService
 import com.ywwynm.everythingdone.utils.FileUtil
 import com.ywwynm.everythingdone.utils.AppearanceUtil
+import com.ywwynm.everythingdone.utils.LocaleUtil
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil
 
 import java.io.File
@@ -70,6 +71,10 @@ open class App : Application() {
     private var mExecutor: ExecutorService? = null
 
     private var detailActivityRun: Boolean = false
+
+    override fun attachBaseContext(base: Context) {
+        super.attachBaseContext(LocaleUtil.getContextForLanguage(base))
+    }
 
     override fun onCreate() {
         super.onCreate()

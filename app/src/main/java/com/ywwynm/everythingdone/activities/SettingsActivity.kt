@@ -1195,12 +1195,15 @@ class SettingsActivity : EverythingDoneBaseActivity() {
         cdf.setShouldShowMore(false)
         val resources: Resources = resources
         val languages: Array<String> = resources.getStringArray(R.array.languages)
+        val languageCodes: Array<String> = resources.getStringArray(R.array.language_codes)
         cdf.setItems(languages.toMutableList() as MutableList<String?>)
 
-        val display: String = mTvLanguage!!.text.toString()
+        val currentLanguageCode: String = FrequentSettings.getString(
+            Def.Meta.KEY_LANGUAGE_CODE, LocaleUtil.LANGUAGE_CODE_FOLLOW_SYSTEM + "_"
+        )!!
         var index = 0
-        for (i in languages.indices) {
-            if (display == languages[i]) {
+        for (i in languageCodes.indices) {
+            if (LocaleUtil.sameLanguageCode(languageCodes[i], currentLanguageCode)) {
                 index = i
                 break
             }
@@ -1213,10 +1216,11 @@ class SettingsActivity : EverythingDoneBaseActivity() {
                 return@OnClickListener
             }
             val context: Context = this@SettingsActivity
-            val newLanguageCode: String = resources.getStringArray(R.array.language_codes)[pickedIndex]
+            val newLanguageCode: String = languageCodes[pickedIndex]
             FrequentSettings.put(Def.Meta.KEY_LANGUAGE_CODE, newLanguageCode)
             @SuppressLint("ApplySharedPref")
             mPreferences!!.edit().putString(Def.Meta.KEY_LANGUAGE_CODE, newLanguageCode).commit()
+            LocaleUtil.applyStoredLanguageToAppCompat(context)
             if (App.getDoingThingId() != -1L) {
                 Toast.makeText(context, R.string.doing_failed_change_language, Toast.LENGTH_LONG).show()
                 DoingService.sStopReason = DoingRecord.STOP_REASON_CANCEL_OTHER

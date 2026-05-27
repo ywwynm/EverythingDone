@@ -5,7 +5,11 @@ package com.ywwynm.everythingdone.utils
 import android.content.Context
 import android.content.res.Configuration
 import android.content.res.Resources
+import android.os.Build
+import android.os.LocaleList
 import android.util.DisplayMetrics
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
 
 import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.Def
@@ -23,6 +27,9 @@ import java.util.Locale
 object LocaleUtil {
 
     const val TAG: String = $$"EverythingDone$LocaleUtil"
+    const val LANGUAGE_CODE_FOLLOW_SYSTEM: String = "follow system"
+
+    private const val LANGUAGE_TAG_FOLLOW_SYSTEM: String = ""
 
     @JvmStatic
     fun getSystemLocale(context: Context?): Locale? {
@@ -51,15 +58,13 @@ object LocaleUtil {
                 .equals(Locale.TRADITIONAL_CHINESE.language)
     }
 
-    const val LANGUAGE_CODE_FOLLOW_SYSTEM: String = "follow system"
-
     @JvmStatic
     fun getLanguageDescription(languageCode: String?): String? {
         val res: Resources = App.getApp()!!.resources
         val lanCodes: Array<String?> = res.getStringArray(R.array.language_codes)
         var index = 0
         for (i in 0 until lanCodes.size) {
-            if (lanCodes[i].equals(languageCode)) {
+            if (sameLanguageCode(lanCodes[i], languageCode)) {
                 index = i
                 break
             }
@@ -69,14 +74,8 @@ object LocaleUtil {
 
     @JvmStatic
     fun changeLanguage() {
-        val languageCode: String = FrequentSettings.getString(
-                Def.Meta.KEY_LANGUAGE_CODE, LANGUAGE_CODE_FOLLOW_SYSTEM + "_")!!
-        var lanCon = languageCode.split("_".toRegex()).toTypedArray()
-        if (lanCon.size == 1) {
-            val lan = lanCon[0]
-            lanCon = arrayOf(lan, "")
-        }
-        changeLanguage(lanCon[0], lanCon[1])
+        val app: App = App.getApp() ?: return
+        syncAppCompatLocalesFromStorage(app, false)
     }
 
     @JvmStatic
@@ -92,6 +91,93 @@ object LocaleUtil {
         val configuration: Configuration = resources.configuration
         setAppLocale(configuration, Locale(lang, country))
         resources.updateConfiguration(configuration, dm)
+    }
+
+    @JvmStatic
+    fun attachBaseContext(base: Context): Context {
+        syncAppCompatLocalesFromStorage(base, true)
+        return getContextForLanguage(base)
+    }
+
+    @JvmStatic
+    fun syncAppCompatLocalesFromStorage(context: Context, beforeActivityOnCreate: Boolean) {
+        if (beforeActivityOnCreate && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            return
+        }
+        val tag: String = getStoredLanguageTag(context)
+        val locales: LocaleListCompat = LocaleListCompat.forLanguageTags(tag)
+        if (AppCompatDelegate.getApplicationLocales().toLanguageTags() != locales.toLanguageTags()) {
+            AppCompatDelegate.setApplicationLocales(locales)
+        }
+    }
+
+    @JvmStatic
+    fun applyStoredLanguageToAppCompat(context: Context) {
+        syncAppCompatLocalesFromStorage(context, false)
+    }
+
+    @JvmStatic
+    fun getStoredLanguageTag(context: Context): String {
+        return toLanguageTag(getStoredLanguageCode(context))
+    }
+
+    @JvmStatic
+    fun getStoredLanguageCode(context: Context): String {
+        return context.getSharedPreferences(Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE)
+                .getString(Def.Meta.KEY_LANGUAGE_CODE, LANGUAGE_CODE_FOLLOW_SYSTEM + "_")!!
+    }
+
+    @JvmStatic
+    fun sameLanguageCode(code1: String?, code2: String?): Boolean {
+        return toLanguageTag(code1) == toLanguageTag(code2)
+    }
+
+    @JvmStatic
+    fun getContextForLanguage(context: Context): Context {
+        val locale: Locale = getStoredLocale(context) ?: return context
+        Locale.setDefault(locale)
+
+        val configuration = Configuration(context.resources.configuration)
+        configuration.setLocale(locale)
+        configuration.setLocales(LocaleList(locale))
+        return context.createConfigurationContext(configuration)
+    }
+
+    private fun getStoredLocale(context: Context): Locale? {
+        val tag: String = getStoredLanguageTag(context)
+        if (tag == LANGUAGE_TAG_FOLLOW_SYSTEM) {
+            return null
+        }
+        return Locale.forLanguageTag(tag)
+    }
+
+    private fun toLanguageTag(languageCode: String?): String {
+        if (languageCode == null) {
+            return LANGUAGE_TAG_FOLLOW_SYSTEM
+        }
+        val trimmed: String = languageCode.trim()
+        if (trimmed.isEmpty() || trimmed == LANGUAGE_CODE_FOLLOW_SYSTEM
+                || trimmed == LANGUAGE_CODE_FOLLOW_SYSTEM + "_") {
+            return LANGUAGE_TAG_FOLLOW_SYSTEM
+        }
+
+        val normalized: String = trimmed.replace('_', '-')
+        val parts: List<String> = normalized.split("-")
+                .filter { it.isNotEmpty() }
+        if (parts.isEmpty()) {
+            return LANGUAGE_TAG_FOLLOW_SYSTEM
+        }
+        if (parts.size == 1) {
+            return parts[0].lowercase(Locale.US)
+        }
+
+        val b = StringBuilder(parts[0].lowercase(Locale.US))
+        for (i in 1 until parts.size) {
+            val part = parts[i]
+            b.append('-')
+            b.append(if (part.length == 2) part.uppercase(Locale.US) else part)
+        }
+        return b.toString()
     }
 
     @JvmStatic

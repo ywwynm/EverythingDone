@@ -15,6 +15,7 @@ import com.ywwynm.everythingdone.helpers.AuthenticationHelper
 import com.ywwynm.everythingdone.helpers.RemoteActionHelper
 import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.services.DoingService
+import com.ywwynm.everythingdone.utils.LocaleUtil
 
 /**
  * Created by ywwynm on 2016/6/21
@@ -22,6 +23,10 @@ import com.ywwynm.everythingdone.services.DoingService
  * An Activity used when user operated a private thing.
  */
 open class AuthenticationActivity : AppCompatActivity() {
+
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(LocaleUtil.attachBaseContext(newBase))
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

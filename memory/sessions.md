@@ -1,5 +1,31 @@
 # Sessions
 
+## 2026-05-27 - App language support and language-selection fix
+
+Added app language support for Japanese, Korean, Italian, Spanish, Russian,
+French, German, Hindi, and Portuguese. The resource work was corrected to use
+`values-zh-rCN/strings.xml` as the translation source after the Google
+Translate batch attempt produced mixed Chinese/token artifacts in long Help
+strings. The default English Help text was also translated from the Simplified
+Chinese source so non-Chinese locale fallbacks no longer expose Chinese Help
+content.
+
+Fixed Settings language selection by comparing stored language codes instead
+of displayed names, then syncing AppCompat per-app locales from the stored
+preference. Added base-context locale wrapping for the Application, the common
+base Activity, and AppCompat entry activities that do not inherit that base.
+Enabled AGP generated locale config and added `resources.properties` with
+English as the unqualified resource locale.
+
+Verification:
+- Cleared leftover translation protection tokens from the generated locale
+  resources.
+- `.\gradlew.bat :app:assembleDebug --console=plain` passed and produced
+  `app/build/outputs/apk/debug/app-debug.apk` at `2026-05-27 18:04:29`.
+- `git diff --check` passed with only the repository's existing CRLF warnings.
+- No device UI smoke test was run for the language picker or per-screen locale
+  switching in this step.
+
 ## 2026-05-27 - Android 16 AppWidget click action fix
 
 Investigated AppWidget click regressions after targeting Android 16 / SDK 36.

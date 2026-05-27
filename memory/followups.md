@@ -4,6 +4,24 @@ Things that were technically achievable but deferred to a later iteration
 because the work was disproportionate to the visual gain. Each entry
 notes the current fallback so you know what the app is doing today.
 
+## Localization
+
+### Native-speaker review for new app languages (deferred 2026-05-27)
+
+**Scope:** Japanese, Korean, Italian, Spanish, Russian, French, German, Hindi,
+and Portuguese string resources, especially long Help/About copy.
+
+**Current state:** Resources compile, visible Google-translation protection
+tokens were removed, and the long Help strings were reworked from the
+Simplified Chinese source instead of from the failed Google batch output.
+
+**Deferred verification:** Have native speakers review terminology, tone, and
+long-form Help readability. Also smoke-test Settings language switching on
+device across a few screens whose Activities do not share the common base class.
+
+**Reason deferred:** The current session could verify build/resource validity,
+but not human-level localization quality or on-device locale switching visuals.
+
 ## AppWidget verification
 
 ### Real launcher widget click smoke test (deferred 2026-05-27)

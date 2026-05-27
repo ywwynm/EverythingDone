@@ -18,6 +18,7 @@ import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.utils.DateTimeUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
+import com.ywwynm.everythingdone.utils.LocaleUtil
 
 import java.util.ArrayList
 import java.util.Calendar
@@ -41,6 +42,10 @@ open class DelayReminderActivity : AppCompatActivity() {
         Calendar.DATE
     )
     private val mTimes: IntArray = intArrayOf(5, 10, 15, 30, 45, 1, 2, 6, 1)
+
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(LocaleUtil.attachBaseContext(newBase))
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

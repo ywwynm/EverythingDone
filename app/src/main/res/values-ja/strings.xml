@@ -1,0 +1,804 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="everythingdone">EverythingDone</string>
+    <string name="yes">はい</string>
+    <string name="no">いいえ</string>
+    <string name="more">もっと見る</string>
+    <string name="after">その後</string>
+    <string name="at">で</string>
+    <string name="congratulations">おめでとうございます</string>
+    <string name="enable">有効にする</string>
+    <string name="disable">無効にする</string>
+    <string name="enabled">有効</string>
+    <string name="disabled">障害者</string>
+    <string-array name="time_type">
+        <item>@string/minute</item>
+        <item>@string/hour</item>
+        <item>@string/day</item>
+        <item>@string/week</item>
+        <item>@string/month</item>
+        <item>@string/year</item>
+    </string-array>
+    <string name="second">2番目</string>
+    <string name="minute">分</string>
+    <string name="hour">時間</string>
+    <string name="day">日</string>
+    <string name="week">週</string>
+    <string name="month">月</string>
+    <string name="year">年</string>
+    <string-array name="day_of_week">
+        <item>日曜日</item>
+        <item>月曜日</item>
+        <item>火曜日</item>
+        <item>水曜日</item>
+        <item>木曜日</item>
+        <item>金曜日</item>
+        <item>土曜日</item>
+    </string-array>
+    <string-array name="month_of_year">
+        <item>1月</item>
+        <item>2月</item>
+        <item>3月</item>
+        <item>4月</item>
+        <item>5月</item>
+        <item>6月</item>
+        <item>7月</item>
+        <item>8月</item>
+        <item>9月</item>
+        <item>10月</item>
+        <item>11月</item>
+        <item>12月</item>
+    </string-array>
+    <string-array name="time_period">
+        <item>夜明け前に</item>
+        <item>早朝に</item>
+        <item>朝に</item>
+        <item>正午に</item>
+        <item>午後に</item>
+        <item>夕暮れ時に</item>
+        <item>夜に</item>
+        <item>夜が深くなる</item>
+    </string-array>
+    <string name="today">今日</string>
+    <string name="tomorrow">明日</string>
+    <string name="yesterday">昨日</string>
+    <string name="end_of_month">月末</string>
+    <string name="this_month">今月</string>
+    <string name="this_week">今週</string>
+    <string name="this_year">今年は</string>
+    <string name="later">後で</string>
+    <string name="description_a">a</string>
+    <string name="every">ごとに</string>
+    <string name="times">時間</string>
+    <string name="hours">時間</string>
+    <string name="days">日</string>
+    <string name="weeks">週</string>
+    <string name="months">月</string>
+    <string name="from_everything_done">Android アプリ EverythingDone から</string>
+    <string name="title_create_thing">新しいものを生み出す</string>
+    <string name="title_edit_thing">編集</string>
+    <string name="title_activity_things_all">あらゆるもの</string>
+    <string name="image_or_video_attachment">画像またはビデオの添付ファイル</string>
+    <string name="title_activity_settings">設定</string>
+    <string name="title_activity_about">について</string>
+    <string name="title_activity_statistic">統計</string>
+    <string name="title_activity_thing_widget_configure">単一のものを選択する</string>
+    <string name="title_activity_things_list_widget_configuration">進行中のものを選択してください</string>
+    <string name="title_widget_things_list">進行中のもの</string>
+    <string name="title_activity_doing">現在行っている</string>
+    <string name="underway">進行中</string>
+    <string name="thing">もの</string>
+    <string name="all_things">あらゆるもの</string>
+    <string name="note">注記</string>
+    <string name="reminder">リマインダー</string>
+    <string name="habit">習慣</string>
+    <string name="goal">目標</string>
+    <string name="finished">完了しました</string>
+    <string name="deleted">削除されました</string>
+    <string name="drawer_deleted">削除されました</string>
+    <string name="settings">設定</string>
+    <string name="help">ヘルプ</string>
+    <string name="about">について</string>
+    <string name="private_thing">プライベートなこと</string>
+    <string name="sticky_thing">ベタベタしたもの</string>
+    <string name="ongoing_thing">進行中のもの</string>
+    <string name="welcome_underway_title">ようこそ</string>
+    <string name="welcome_underway_content">左にスワイプして終了し、右にスワイプして作業を開始します</string>
+    <string name="welcome_note_content">何か書いておけば、それは永遠に覚えられるだろう</string>
+    <string name="welcome_reminder_content">すべてを思い出させてください</string>
+    <string name="welcome_habit_content">習慣を身につけ、欠点を修正する</string>
+    <string name="welcome_goal_content">あなたの夢が広がっています</string>
+    <string name="empty_underway">すべて完了しました</string>
+    <string name="empty_note">過ぎ去った日々は懐かしいけど、来たるべき未来の方が好きだ</string>
+    <string name="empty_reminder">お役に立ててとてもうれしいです</string>
+    <string name="empty_habit">もっと良いあなたが見えます</string>
+    <string name="empty_goal">すべての目標を達成しました！疲れすぎないように、まずは自分に休暇をあげましょう！</string>
+    <string name="empty_finished">おっと！何も終わっていませんか？</string>
+    <string name="empty_deleted">ゴミ箱の掃除は好きですか?私もです！</string>
+    <string name="reminder_expired">期限切れ</string>
+    <string name="reminder_needless">必要ありません</string>
+    <string name="reminder_reminded">思い出した</string>
+    <string name="reminder_unavailable">利用不可</string>
+    <string name="habit_paused">一時停止した</string>
+    <string name="habit_last_five">過去5回:</string>
+    <string name="habit_next_reminder">次のリマインダー:</string>
+    <string name="alert_cannot_finish_habit_first_time">最初のサイクルをお待ちください</string>
+    <string name="alert_cannot_finish_habit_more_times">次のサイクルまでこれ以上終了できません</string>
+    <string name="alert_habit_paused">この習慣は一時停止されています</string>
+    <string name="goal_should_finish_before">%1$s より前に達成する必要があります</string>
+    <string name="goal_should_finish_in">%1$d 日以内に達成されるはずです</string>
+    <string name="goal_overdue">%1$d 日遅れています</string>
+    <string name="goal_finished_normal">達成までに%1$s日かかります</string>
+    <string name="goal_finished_in_advance">事前に達成するには%1$s日の費用がかかります</string>
+    <string name="goal_finished_overdue">達成までのコストは%1$s日、期限切れです</string>
+    <string name="images">画像</string>
+    <string name="videos">ビデオ</string>
+    <string name="audios">オーディオ</string>
+    <string name="some_checklist_items_finished">%1$d アイテムが完了しました</string>
+    <string-array name="thing_colors_names">
+        <item>@string/blue_grey_500</item>
+        <item>@string/my_cyan</item>
+        <item>@string/blue_grey_deep_blue</item>
+        <item>@string/blue_grey_deep_grey</item>
+        <item>@string/brown</item>
+        <item>@string/blue_deep</item>
+        <item>@string/pine_green</item>
+        <item>@string/my_purple</item>
+        <item>@string/elegant_orange</item>
+        <item>@string/Aein_red</item>
+    </string-array>
+    <string-array name="hue_bucket_names">
+        <item>@string/hue_bucket_red</item>
+        <item>@string/hue_bucket_orange</item>
+        <item>@string/hue_bucket_yellow</item>
+        <item>@string/hue_bucket_green</item>
+        <item>@string/hue_bucket_cyan</item>
+        <item>@string/hue_bucket_blue</item>
+        <item>@string/hue_bucket_purple</item>
+        <item>@string/hue_bucket_grey</item>
+    </string-array>
+    <string name="hue_bucket_red">赤</string>
+    <string name="hue_bucket_orange">オレンジ</string>
+    <string name="hue_bucket_yellow">黄色</string>
+    <string name="hue_bucket_green">緑</string>
+    <string name="hue_bucket_cyan">シアン</string>
+    <string name="hue_bucket_blue">ブルー</string>
+    <string name="hue_bucket_purple">紫</string>
+    <string name="hue_bucket_grey">グレー</string>
+    <string name="blue_grey_500">ブルーグレー</string>
+    <string name="my_cyan">シアン</string>
+    <string name="blue_grey_deep_blue">深いグレーブルー</string>
+    <string name="blue_grey_deep_grey">深いブルーグレー</string>
+    <string name="brown">茶色の</string>
+    <string name="blue_deep">ディープブルー</string>
+    <string name="pine_green">パイングリーン</string>
+    <string name="my_purple">グレーパープル</string>
+    <string name="elegant_orange">エレガントなオレンジ</string>
+    <string name="Aein_red">アインレッド</string>
+    <string name="share_i_work_hard_for">私はのために一生懸命働きます</string>
+    <string name="share_i_persist_in_for">私\'はそれをずっと続けてきました</string>
+    <string name="share_goal_finished">そしてついに目標を達成しました</string>
+    <string name="share_habit_developed">ついにこの習慣が身に付きました</string>
+    <string name="this_gai">これ</string>
+    <string name="will_remind">思い出させられます</string>
+    <string name="daily_todo_title_rest_part">やるべきこと</string>
+    <string name="completion_rate_all">すべての\' の完了率</string>
+    <string name="completion_rate_reminder">リマインダー\'の完了率</string>
+    <string name="completion_rate_note">「記録」の完了率</string>
+    <string name="completion_rate_habit">Habit\'s の完了率</string>
+    <string name="completion_rate_goal">目標\'の完了率</string>
+    <string name="act_share">シェアする</string>
+    <string name="act_get_it">入手してください</string>
+    <string name="confirm">確認する</string>
+    <string name="cancel">キャンセル</string>
+    <string name="act_search">検索</string>
+    <string name="act_finish_all">全部終わらせる</string>
+    <string name="act_delete_all">すべて削除</string>
+    <string name="act_clear_now">クリア</string>
+    <string name="act_sort_by_alarm">アラーム時刻で並べ替える</string>
+    <string name="act_select_color">色を選択してください</string>
+    <string name="act_select_all">すべて選択</string>
+    <string name="act_deselect_all">すべての選択を解除します</string>
+    <string name="act_delete_selected">選択したものを削除</string>
+    <string name="act_finish_selected">選択済みを終了</string>
+    <string name="act_export_to_sdcard">SDカードにエクスポート</string>
+    <string name="act_restore_selected">選択したものを復元する</string>
+    <string name="act_delete_selected_forever">選択したものを永久に削除</string>
+    <string name="act_sticky_on_top">上に粘着性がある</string>
+    <string name="act_cancel_sticky">スティッキーをキャンセル</string>
+    <string name="act_add_attachment">添付ファイルを追加する</string>
+    <string name="act_enable_check_list">チェックリストを有効にする</string>
+    <string name="act_disable_check_list">チェックリストを無効にする</string>
+    <string name="act_change_background">背景を変更する</string>
+    <string name="act_undo">元に戻す</string>
+    <string name="act_redo">やり直し</string>
+    <string name="act_abandon_new_thing">放棄する</string>
+    <string name="act_set_as_private_thing">プライベートなものとして設定</string>
+    <string name="act_cancel_private_thing">プライベートなものの設定をキャンセルする</string>
+    <string name="act_set_thing_as_ongoing">通知に表示</string>
+    <string name="act_cancel_set_thing_as_ongoing">通知への表示をキャンセルする</string>
+    <string name="act_finish">終了</string>
+    <string name="act_delete">削除</string>
+    <string name="act_pause_habit">習慣\'のリマインダーを一時停止する</string>
+    <string name="act_resume_habit">習慣\'のリマインダーを再開する</string>
+    <string name="act_check_habit_detail">習慣の詳細を確認する</string>
+    <string name="act_finish_once_habit">一度終了</string>
+    <string name="act_finish_this_time_habit">今回は終了</string>
+    <string name="act_habit_developed">私\'はこの習慣を身につけました</string>
+    <string name="act_restore">復元</string>
+    <string name="act_copy_content">コンテンツをコピーする</string>
+    <string name="act_feedback">フィードバックを送信する</string>
+    <string name="act_share_everythingdone">EverythingDone を共有する</string>
+    <string name="act_delay">遅延</string>
+    <string name="act_start_doing">スタート</string>
+    <string name="delay_reminder">遅延リマインダー</string>
+    <string name="act_take_photo">写真を撮る</string>
+    <string name="act_shoot_video">ビデオを撮影する</string>
+    <string name="act_record_audio">音声を録音する</string>
+    <string name="act_choose_media_files">メディア ファイルを選択する</string>
+    <string name="act_show_attachment_info">添付ファイルの詳細を確認する</string>
+    <string name="act_delete_attachment">この添付ファイルを削除します</string>
+    <string name="act_move_check_list">アイテムを配置する</string>
+    <string name="act_back_from_move_checklist">フィニッシュ＆バック</string>
+    <string name="act_check_update_habit_record">習慣記録の確認と更新</string>
+    <string name="act_open_in_browser">閲覧する</string>
+    <string name="act_dial">ダイヤル</string>
+    <string name="act_send_email">電子メールを送信する</string>
+    <string name="act_open_in_map">訪問</string>
+    <string name="act_edit">編集</string>
+    <string name="act_share_thing_text_image">テキストと画像</string>
+    <string name="act_share_thing_screenshot">スクリーンショット</string>
+    <string name="act_choose_image_as_drawer_header">引き出しヘッダーとして画像を選択</string>
+    <string name="act_support">サポート開発者</string>
+    <string name="act_sb_undo">元に戻す</string>
+    <string name="act_sb_undo_finish">まだです</string>
+    <string name="act_sb_undo_underway">完了しました</string>
+    <string name="act_shortcut_check_upcoming">これからのこと</string>
+    <string name="act_shortcut_check_sticky">一番上の粘着物</string>
+    <string name="success_clipboard">クリップボードに正常にコピーされました</string>
+    <string name="error_permission_denied">許可が与えられていません。続行できません。</string>
+    <string name="please_wait">お待ちください</string>
+    <string name="generating_screenshot">スクリーンショットを撮っています...</string>
+    <string name="error_activity_not_found">操作を続行するためのアプリケーションが見つかりません</string>
+    <string name="a_thing">もの</string>
+    <string name="empty">空の</string>
+    <string name="sb_finish_habit">この習慣を終えた</string>
+    <string name="press_again_to_exit">もう一度押すと終了します</string>
+    <string name="title_incorrect_reminder_habit">間違った状態が検出されました</string>
+    <string name="content_incorrect_reminder_habit">EverythingDone は、リマインダー、習慣、または目標の一部が間違った状態であることを検出しました。つまり、本来あるべき正しいタイミングで通知が受けられなかったのです。 \nEverythingDone がバックグラウンドで正常に実行できることを確認してください。タスク マネージャーでアプリのプロセスをロックし、バッテリー最適化アプリのホワイトリストに追加して、要求されたアクセス許可を許可して、プロセスが強制終了され、操作を通知する機能が失われるのを防ぐことができます。 \n詳細については、ヘルプにアクセスし、対応する FAQ を確認してください。 \n[アラームのリセット] ボタンをクリックして、エラー状態を修正し、習慣を再アクティブ化します。</string>
+    <string name="act_reset_alarms">アラームをリセットする</string>
+    <string name="alert_continue">続けてもよろしいですか?</string>
+    <string name="alert_find_habit_goal">これらには習慣や目標が含まれています。別の機会に、または個別に完了または放棄することもできます。</string>
+    <string name="continue_get_rid_of_habit_goal">習慣や目標を取り除き、継続する</string>
+    <string name="continue_for_alert">続ける</string>
+    <string name="sb_cannot_be_blank">空白のものは放棄されました</string>
+    <string name="sb_abandon_new_thing">新しいものは捨てられてしまった</string>
+    <string name="sb_delete">削除されました</string>
+    <string name="sb_delete_forever">永久に削除されました</string>
+    <string name="sb_finish">終わった</string>
+    <string name="sb_underway">復元された</string>
+    <string name="all_color">オールカラー</string>
+    <string name="no_result">結果はありません</string>
+    <string name="hint_title">タイトル</string>
+    <string name="hint_content">内容</string>
+    <string name="hint_new_item">新しいアイテム</string>
+    <string name="create_at">作成されました</string>
+    <string name="update_at">最終更新日</string>
+    <string name="finish_at_normal">%1$s を完了しました</string>
+    <string name="finish_at_habit">習慣ができてしまった</string>
+    <string name="finish_at_goal_normal">目標達成 %1$s</string>
+    <string name="finish_at_goal_in_advance">目標は事前に達成されました %1$s</string>
+    <string name="finish_at_goal_overdue">目標は%1$s達成、期限切れ</string>
+    <string name="remind_me">思い出させて</string>
+    <string-array name="quick_remind">
+        <item>@string/after_1_year</item>
+        <item>@string/after_1_month</item>
+        <item>@string/after_1_week</item>
+        <item>@string/after_2_days</item>
+        <item>@string/after_1_day</item>
+        <item>@string/after_2_hours</item>
+        <item>@string/after_1_hour</item>
+        <item>@string/after_30_minutes</item>
+        <item>@string/after_15_minutes</item>
+        <item>@string/custom</item>
+    </string-array>
+    <string name="after_1_year">1年</string>
+    <string name="after_1_month">1ヶ月</string>
+    <string name="after_1_week">1週間</string>
+    <string name="after_2_days">2日間</string>
+    <string name="after_1_day">1日</string>
+    <string name="after_2_hours">2時間</string>
+    <string name="after_1_hour">1時間</string>
+    <string name="after_30_minutes">30分</string>
+    <string name="after_15_minutes">15分</string>
+    <string name="custom">カスタム</string>
+    <string name="error_unsupported_file_type">サポートされていないファイル形式です</string>
+    <string name="error_cannot_add_from_network">インターネットから添付ファイルを追加できない</string>
+    <string name="alert_cannot_share_empty_thing">空のものは共有できない</string>
+    <string name="alert_shortcut_no_upcoming">今後のことは何もない</string>
+    <string name="alert_shortcut_no_sticky">ベタつくものはありません</string>
+    <string name="thing_doing_dialog_title">このことの自動開始設定を変更します</string>
+    <string name="auto_start_doing_time_title">自動開始時間</string>
+    <string name="auto_start_doing_follow_general">一般設定に従ってください</string>
+    <string name="input_file_name">ファイル名を入力してください</string>
+    <string name="quick_remind_title_after">後</string>
+    <string name="quick_remind_title_at">AT</string>
+    <string name="quick_remind_title_recurrence">再発</string>
+    <string name="new_reminder_time_rec">新しいリマインダー時間</string>
+    <string name="error_complete_time">時間情報を入力してください</string>
+    <string name="error_later">将来の時刻に設定してください</string>
+    <string name="error_number_too_big">数値が大きすぎます!</string>
+    <string name="error_too_late">その日が待ちきれません</string>
+    <string name="error_different">別の時間を設定してください</string>
+    <string name="habit_detail_completion_rate">完了率</string>
+    <string name="habit_detail_persist_in">永続的なサイクル</string>
+    <string name="habit_detail_total_t">合計サイクル</string>
+    <string name="habit_detail_record_count">レコード数</string>
+    <string name="habit_detail_times">終了時間</string>
+    <string name="habit_detail_title">習慣の詳細</string>
+    <string name="habit_record_last_30_change_6">過去30件、そのうち最新6件(最新6件)を変更可能</string>
+    <string name="attachment_info_title">添付ファイルの詳細</string>
+    <string name="audio_bitrate">ビットレート</string>
+    <string name="audio_duration">音声の長さ</string>
+    <string name="audio_sample_rate">サンプルレート</string>
+    <string name="file_last_modify_time">ファイルの最終変更時刻</string>
+    <string name="file_path">パス</string>
+    <string name="file_path_not_existed">未知のコーナー</string>
+    <string name="file_size">ファイルサイズ</string>
+    <string name="image_create_time">画像作成時間</string>
+    <string name="image_size">画像サイズ</string>
+    <string name="video_size">ビデオサイズ</string>
+    <string name="video_duration">動画の長さ</string>
+    <string name="video_create_time">ビデオ作成時間</string>
+    <string name="alert_cancel_habit_title">この習慣を本当にやめますか?</string>
+    <string name="alert_cancel_habit_content">この操作は元に戻すことができません。
+        EverythingDone は、この習慣を身につけることを監督したり支援したりすることはありません。</string>
+    <string name="alert_update_habit_title">この習慣を必ず更新しますか?</string>
+    <string name="alert_update_habit_content">EverythingDone がこの習慣を身につけていることを思い出させる時期が変わりつつあります。あなたの記録は削除されません。私たちはあなたの向上をサポートし続けます。</string>
+    <string name="alert_cancel_goal_title">本当にこの目標を諦めますか？</string>
+    <string name="alert_cancel_goal_content">この操作は元に戻すことができません。
+        EverythingDone は日数をカウントダウンする機能を失うだけでなく、
+        しかし、その達成を一緒に祝う機会もありません。</string>
+    <string name="alert_cancel_create_daily_todo_title">今日はTODOを作成しなくてもよろしいですか?</string>
+    <string name="alert_cancel_create_daily_todo_content">この習慣を継続的に身につけていくことをお勧めします。事前にやるべきことを決めておけば、時間を効率的に計画して使うことができます。</string>
+    <string name="start_doing_full_title">このことを始めてください</string>
+    <string name="start_doing_estimated_time">予想終了時間</string>
+    <string name="start_doing_time_not_sure">よくわからない</string>
+    <string name="start_doing_doing_this_thing">あなたはすでにこのことを行っています</string>
+    <string name="start_doing_time_long_alarm">推定時間が長すぎるため、次のアラームまでにこの時間の習慣を完了できません</string>
+    <string name="start_doing_time_long_t">推定時間が長すぎるため、このサイクルで習慣を 1 回完了することはできません</string>
+    <string name="start_doing_confirm">やり始める</string>
+    <string name="start_doing_notification_toast_doing_this">EverythingDone: たった今、\' のアラームが来ましたが、あなたはすでにそのことを行っています</string>
+    <string name="start_doing_notification_toast_doing_this_habit">EverythingDone: 今、Habit\' のアラームが来ましたが、あなたはすでにその時間のためにやっていました</string>
+    <string name="start_doing_stop_another_title">あなたは別のことをしています</string>
+    <string name="start_doing_stop_another_content">あのことをやめて、このことを始めたいですか？</string>
+    <string name="doing_swipe_to_finish">スワイプして終了します</string>
+    <string name="doing_currently_doing">現在行っているのは -</string>
+    <string name="doing_left_time">残り時間:</string>
+    <string name="doing_failed_careless">\' がこの作業を慎重に実行しなかったため、EverythingDone が実行状態をキャンセルしました</string>
+    <string name="doing_failed_next_alarm">この習慣の次のアラームが鳴っているため、EverythingDone が実行状態をキャンセルしました</string>
+    <string name="doing_failed_change_language">アプリの言語を変更したため、EverythingDone は実行状態をキャンセルしました</string>
+    <string name="doing_failed_restore">データを復元したため、EverythingDone は実行状態をキャンセルしました</string>
+    <string name="doing_click_to_dismiss">クリックしてこの通知を閉じます</string>
+    <string name="doing_alert_first_strict_mode_title">ストリクトモード</string>
+    <string name="doing_alert_first_strict_mode_content">現在は厳密モードになっています。 EverythingDone は、携帯電話を他の目的で使用しているかどうかを検出します。このページ (通知の確認とロック画面のみ許可) を 3 回または合計 5 分以上離れると、カウントダウンが停止し、未完了の状態のままになります。</string>
+    <string name="doing_alert_close_strict_twice_title">Strict モードを再度オフにすることはできません</string>
+    <string name="doing_alert_close_strict_twice_content">EverythingDone では厳格モードをオフにできるのは一度だけです。一度に一つのことに集中するのは良い習慣です。続けてください！</string>
+    <string name="doing_alert_stop_doing_content">このことを本当にやめますか？</string>
+    <string name="doing_toast_add5_time_long_alarm">5 分追加すると、次のアラームまでに習慣を終了することはできなくなります。</string>
+    <string name="doing_toast_add5_time_long_t">5 分追加すると、このサイクルで習慣を一度終了することはできなくなります。</string>
+    <string name="doing_toast_add5_above99">その未来には触れられない</string>
+    <string name="doing_toast_pass_data_error">アプリコンポーネント間でのデータの受け渡し中に問題が発生したため、実行を開始できません</string>
+    <string name="doing_toast_already_strict_mode">あなたは厳密モードです</string>
+    <string name="auto_start_doing_start">自動で実行を開始します</string>
+    <string name="auto_start_doing_notification_toast_doing_another">EverythingDone: たった今、\' のアラームが発生しました。そのことを自動的に開始しようとしましたが、別のことを行っているため失敗しました</string>
+    <string name="auto_start_doing_notification_toast_doing_habit_this">EverythingDone: 今、習慣\' のアラームが来ました。今回はその習慣を自動的に開始しようとしましたが、前回実行しているため失敗しました。</string>
+    <string name="alert_delete_attachment">この添付ファイルを削除してもよろしいですか?</string>
+    <string name="settings_group_ui">UI</string>
+    <string name="settings_group_ringtone">着信音</string>
+    <string name="settings_group_data">データ</string>
+    <string name="settings_group_privacy">プライバシー</string>
+    <string name="settings_group_start_doing">やり始める</string>
+    <string name="settings_group_advanced">上級者向け</string>
+    <string name="settings_change_drawer_header">ドロワーヘッダー画像</string>
+    <string name="default_drawer_header">デフォルト</string>
+    <string name="settings_app_language">言語</string>
+    <string name="settings_follow_system_dark_mode">システムのダークモードに従う</string>
+    <string name="settings_force_dark_mode">ダークモードを有効にする</string>
+    <string name="change_app_language">アプリの言語を変更する</string>
+    <string-array name="languages">
+        <item>@string/follow_system_settings</item>
+        <item>简体中文</item>
+        <item>繁體中文(香港)</item>
+        <item>繁體中文(台灣)</item>
+        <item>English</item>
+        <item>日本語</item>
+        <item>한국어</item>
+        <item>Italiano</item>
+        <item>Español</item>
+        <item>Русский</item>
+        <item>Français</item>
+        <item>Deutsch</item>
+        <item>हिन्दी</item>
+        <item>Português</item>
+    </string-array>
+    <string-array name="language_codes" translatable="false">
+        <item>follow system_</item>
+        <item>zh-CN</item>
+        <item>zh-HK</item>
+        <item>zh-TW</item>
+        <item>en</item>
+        <item>ja</item>
+        <item>ko</item>
+        <item>it</item>
+        <item>es</item>
+        <item>ru</item>
+        <item>fr</item>
+        <item>de</item>
+        <item>hi</item>
+        <item>pt</item>
+    </string-array>
+    <string name="follow_system_settings">フォローシステム</string>
+    <string name="settings_noticeable_notification">より目立つアラーム通知</string>
+    <string name="settings_notification_reliability">リマインダーの信頼性</string>
+    <string name="settings_group_notification_reliability">リマインダーの信頼性</string>
+    <string name="settings_battery_optimization">バッテリーの最適化を無視する</string>
+    <string name="settings_battery_optimization_off">オフ — システムによりリマインダーが遅れる可能性があります</string>
+    <string name="settings_battery_optimization_on">オン — リマインダーが時間通りに起動されます</string>
+    <string name="settings_autostart">自動起動/バックグラウンド許可</string>
+    <string name="settings_autostart_desc">タップして自動起動を許可すると、アプリをスワイプした後もリマインダーが引き続き起動されます。 Xiaomi / Huawei / OPPO / Vivo / Honor および同様のベンダーの ROM で必要です。</string>
+    <string name="settings_autostart_not_needed">お使いのデバイスではこれは必要ありません。Pixel / AOSP スタイルの ROM は、すぐにアラームのスケジュールを尊重します。</string>
+    <string name="settings_autostart_unavailable">ベンダー固有のページが見つかりません。代わりに開いたアプリ情報が表示されます。そこから「バッテリー」または「バックグラウンドアクティビティ」を見つけてください。</string>
+    <string name="settings_notifications_enabled">通知許可</string>
+    <string name="settings_notifications_enabled_off">オフ — リマインダーは表示されません。タップして付与します。</string>
+    <string name="settings_notifications_enabled_on">オン — リマインダーを表示できます</string>
+    <string name="settings_full_screen_intent">全画面アラーム許可</string>
+    <string name="settings_full_screen_intent_off">オフ — 「より顕著なアラーム」によりダイアログは表示されません。タップして付与します。</string>
+    <string name="settings_full_screen_intent_on">オン — 全画面アラーム ダイアログを表示できます</string>
+    <string name="settings_channels_status">リマインダー/習慣/目標チャンネル</string>
+    <string name="settings_channels_all_on">すべての %1$d チャネルが有効になりました</string>
+    <string name="settings_channels_some_off">%1$d/%2$d はあなたによって無効にされました。タップして修正します。</string>
+    <string name="post_notifications_rationale_title">通知を許可する</string>
+    <string name="post_notifications_rationale_content">EverythingDone には、リマインダー、習慣、目標のアラームを起動するための通知権限が必要です。これがないとアラームは鳴りますが、何も表示されません。</string>
+    <string name="settings_toggle_checklist_thing_card">モノカードのチェックリスト項目を切り替えます</string>
+    <string name="settings_simple_finished_checklist">完了したチェックリストの項目を進行中のものカードに折り込みます</string>
+    <string name="settings_auto_link">確認時に電話番号やウェブページなどを自動的にリンク</string>
+    <string name="settings_twice_back">「戻る」を 2 回押して終了します</string>
+    <string name="settings_create_animation_style">新しいものを作成するときのボーダーライトアニメーション</string>
+    <string name="cd_random_pure_background">ランダムな純色</string>
+    <string name="cd_random_gradient_background">ランダムなグラデーションカラー</string>
+    <string name="chooser_ringtone">着信音の選択</string>
+    <string name="ringtone_loading">着信音を読み込んでいます...</string>
+    <string name="auto_save_edits_title">モノの編集時にデータを自動保存する</string>
+    <string name="auto_save_edits_help_info">\' が Thing を作成または更新しているときにインターフェイスを離れると、EverythingDone は Thing\' のコンテンツに関する編集内容を自動的に保存します。
+        \n\n注意: EverythingDone は、リマインダー、習慣、または目標に関する編集を保存しません。たとえば、Thing\' のアラーム時刻を変更した場合、\' は自動的に保存されません。</string>
+    <string name="backup">バックアップ</string>
+    <string name="backup_content">あなたの持ち物や好みがバックアップされます。バックアップ後、EverythingDone はあらゆるリマインダー、習慣、目標を思い出させ続けます。ただし、添付ファイルはバックアップされません。必要な場合はお客様ご自身でバックアップを行ってください。添付ファイルは sdcard/EverythingDone にあります。</string>
+    <string name="backup_failed_content">もう一度試すか、開発者にフィードバックを送信してください</string>
+    <string name="backup_failed_title">バックアップに失敗しました</string>
+    <string name="backup_loading_content">しばらくお待ちください。何か飲んでもいいかもしれません。</string>
+    <string name="backup_loading_title">バックアップ中</string>
+    <string name="backup_start">バックアップの開始</string>
+    <string name="backup_success_content">バックアップ ファイルは sdcard/EverythingDone/backup にあり、その名前は \\"ED_backup_\\" で始まり、接尾辞は \\".bak\\" です。</string>
+    <string name="backup_success_title">正常にバックアップされました</string>
+    <string name="last_backup">最後のバックアップ:</string>
+    <string name="no_backup_before">以前にバックアップがありませんでした</string>
+    <string name="restore">復元</string>
+    <string name="restore_content">有効な EverythingDone バックアップ ファイルを選択してください。接尾辞は \\".bak\\" である必要があります。バックアップのデフォルトの場所は sdcard/EverythingDone/backup です。</string>
+    <string name="restore_failed_other">バックアップ ファイルが有効であることを確認してください。</string>
+    <string name="restore_failed_title">復元に失敗しました</string>
+    <string name="restore_loading_content">しばらくお待ちください。何か食べてみませんか？</string>
+    <string name="restore_loading_title">復元中</string>
+    <string name="restore_choose_backup_file">バックアップファイルを選択</string>
+    <string name="restore_success_content">アプリが再起動するまでお待ちください。データを安全に保つために、アプリが完全に再起動されるまでは何もしないでください。</string>
+    <string name="restore_success_title">正常に復元されました</string>
+    <string name="set_app_password">EverythingDone のパスワードを設定する</string>
+    <string name="change_app_password">EverythingDone のパスワードを変更する</string>
+    <string name="set_app_password_detail">パスワードは、プライベートなものの設定や確認、バックアップ、復元などの際に本人認証に使用されます。</string>
+    <string name="use_fingerprint">指紋を使用する</string>
+    <string name="password_not_set">パスワードが設定されていません。</string>
+    <string name="draw_pattern">模様を描く</string>
+    <string name="relax_finger_when_finish">完了したら指を放します</string>
+    <string name="draw_pattern_again">もう一度パターンを描いて確認します</string>
+    <string name="pattern_not_same">柄が違う</string>
+    <string name="draw_pattern_finished">パターンを記録しました</string>
+    <string name="done">完了</string>
+    <string name="last">戻る</string>
+    <string name="confirm_pattern">パターンを確認する</string>
+    <string name="wrong_pattern">間違ったパターン</string>
+    <string name="not_support_fgprt">お使いのデバイスは標準の Android 指紋モジュールをサポートしていません</string>
+    <string name="system_fgprt_not_set">システム フィンガープリント モジュールが有効になっていません。 [設定] -&gt; [セキュリティ] -&gt; [指紋] に移動して有効にしてください。</string>
+    <string name="fgprt_not_enrolled">指紋はありません。 「設定」→「セキュリティ」→「指紋」に移動し、少なくとも 1 つの指紋を登録してください。</string>
+    <string name="check_private_thing">プライベートなものをチェックする</string>
+    <string name="confirm_fingerprint">続行するには指紋を確認してください</string>
+    <string name="touch_sensor">タッチ指紋センサー</string>
+    <string name="use_fingerprint_to_verify">身元を確認する簡単な方法として、あらかじめ決められた指紋を使用する</string>
+    <string name="use_pattern">使用パターン</string>
+    <string name="fingerprint_error_part_1">まだお試しいただけます</string>
+    <string name="fingerprint_cannot_use_to_verify">現在、指紋を使用して本人確認を行うことはできません</string>
+    <string name="fingerprint_verify_success">本人確認が無事完了しました！</string>
+    <string name="warning_title_should_not_be_empty">これを非公開に設定したい場合は、最初にタイトルを設定してください。</string>
+    <string name="warning_should_set_password_first">EverythingDone のパスワードが設定されていません。 [設定] -&gt; [プライバシー] -&gt; [EverythingDone のパスワードを設定] に移動し、最初にパターンを設定してください。</string>
+    <string name="cannot_set_as_private_thing_title">プライベートなものとして設定できません</string>
+    <string name="auto_start_doing_title">目覚ましが鳴ったらやり始める</string>
+    <string-array name="auto_start_doing_options">
+        <item>無効にする</item>
+        <item>リマインダーを有効にする</item>
+        <item>習慣を有効にする</item>
+        <item>両方を有効にする</item>
+    </string-array>
+    <string-array name="auto_start_doing_states">
+        <item>障害者</item>
+        <item>リマインダーが有効になっています</item>
+        <item>習慣に対して有効化</item>
+        <item>両方で有効</item>
+    </string-array>
+    <string name="auto_start_doing_time_reminder_title">リマインダーの時間を自動で開始します</string>
+    <string name="auto_start_doing_time_habit_title">習慣の時間を自動で開始</string>
+    <string name="auto_strict_mode_title">実行を開始するときに厳密モードに入る</string>
+    <string name="auto_strict_mode_help_content">何かを始めて厳密モードを有効にすると、EverythingDone は携帯電話を他の作業に使用しているかどうかを検出します。カウントダウン ページ (通知の確認とロック画面のみ許可) を 3 回または合計 5 分以上放置すると、カウントダウンが停止し、未完了の状態のままになります。</string>
+    <string name="quick_create_title">新しいものを素早く作成する</string>
+    <string name="quick_create_description">進行中の通知を表示してクイック作成アクセスを提供します</string>
+    <string name="ongoing_lockscreen">thing\' の進行中の通知をロック画面にも表示する</string>
+    <string name="close_notification_later">Don\' 表示されてから 2 秒後までは目立つ通知を閉じることを許可しないでください</string>
+    <string name="create_daily_todo_automatically">毎朝、毎日のTODOを作成する</string>
+    <string name="create_daily_todo_help_info">EverythingDone は毎朝、\\"Things to do on MM d, yyyy\\" というタイトルの Thing を自動的に作成します。その内容はユーザーが決定できます (\'t を実行せず、内容と添付ファイルの両方を空のままにすると、Thing は作成されません)。
+        \n\nまた、計画や TODO の完了を思い出してもらいたい場合があるため、午後 2 時にこのことに対するリマインダーを設定します。</string>
+    <string name="auto_notify">自動リマインダー</string>
+    <string name="auto_notify_help_info">EverythingDone は、新しいものが作成されると自動的に通知します。 \' がレコードを作成しなかった場合、\' は、\' のリマインダー時間に従って自動リマインダーを設定するかどうかを決定します。</string>
+    <string name="auto_notify_set_time">自動リマインダー時間を設定する</string>
+    <string name="auto_notify_ringtone">自動リマインダー\n着信音</string>
+    <string name="statistic_start_from_part_1">それ以来 EverythingDone を使用しています</string>
+    <string name="statistic_start_from_part_2">。中に</string>
+    <string name="statistic_start_from_part_3">、完成して作成しました：</string>
+    <string name="statistic_note_audio_count">オーディオ</string>
+    <string name="statistic_note_char_count">キャラクター</string>
+    <string name="statistic_note_image_count">画像</string>
+    <string name="statistic_note_video_count">ビデオ</string>
+    <string name="statistic_note_record">これらのことをメモに記録しました。</string>
+    <string name="statistic_reminder_completion_rate">リマインダー\'s \n完了率</string>
+    <string name="statistic_reminder_finish_time">平均\n終了時間</string>
+    <string name="statistic_reminder_in_advance">\n事前に完了</string>
+    <string name="statistic_reminder_notify_time">平均\nリマインダー時間</string>
+    <string name="statistic_reminder_record">リマインダーに関するデータは次のとおりです。</string>
+    <string name="statistic_second">s</string>
+    <string name="statistic_year">y</string>
+    <string name="statistic_hour">h</string>
+    <string name="statistic_minute">m</string>
+    <string name="statistic_day">d</string>
+    <string name="statistic_habit_completion_rate">完了率</string>
+    <string name="statistic_habit_longest_pit">最長\n永続サイクル</string>
+    <string name="statistic_habit_record">いくつかの習慣を身につけてみることにしました。私の作品は以下の通りです。</string>
+    <string name="statistic_habit_longest_finish_times">最長連続\n終了時間</string>
+    <string name="statistic_habit_developed_rate">習慣\'s\n育成率</string>
+    <string name="statistic_habit_finished_all">終了時間\n/合計時間</string>
+    <string name="statistic_goal_record">いくつかの目標を設定しました。 \' に私のパフォーマンスを見てもらいましょう:</string>
+    <string name="statistic_goal_completion_rate">目標\'s\n完了率</string>
+    <string name="statistic_goal_notify_time">平均期間</string>
+    <string name="share_statistic">私の使用事例を共有する</string>
+    <string name="send_feedback_to_developer">開発者にフィードバックをメールで送信する</string>
+    <string name="support_donate">私のために寄付してください</string>
+    <string name="support_star">マーケットでこのアプリを評価する</string>
+    <string name="support_content">このアプリを友達と共有したり、私にフィードバックを送ったりすることができます。さらに、アプリ マーケットで EverythingDone を評価することも良い選択です。もし私のために寄付していただけるのであれば、大変感謝いたします。</string>
+    <string name="support_select_market">アプリマーケットを選択</string>
+    <string name="support_donate_clip_content">532061865@qq.com</string>
+    <string name="support_donate_clip_title">アリペイアカウント</string>
+    <string name="support_donate_content">私の Alipay アカウントは 532061865@qq.com です。あなたの寄付は私にとって大きな励みになります。ありがとう！</string>
+    <string name="support_donate_copy_name">アカウントをコピー</string>
+    <string name="month_day">日</string>
+    <string name="about_motto">忘れずに終了してください、\nそして物事を終わらせてください</string>
+    <string name="about_version">バージョン:</string>
+    <string name="about_license">オープンソースライセンス</string>
+    <string name="app_share_info">すべてを覚えて終わらせるのは難しいですか? EverythingDone は、すべてのアクティビティを思い出させ、習慣を身につけ、目標を達成するのに役立ちます。ここでストーリーを書いたり、ライブを記録したりすることもできます。 Google Playで「EverythingDone」を検索してインストールしてください。</string>
+    <string name="all">すべて</string>
+    <string name="app_widget_config_alpha">アルファ:</string>
+    <string name="things_list_config_alpha_header">透明なトップバー</string>
+    <string name="things_list_config_simple_view">よりシンプルなモノビューを使用する</string>
+    <string name="notification_has_attachment">【付属品】</string>
+    <string name="notification_private_thing_content">【プライベートなこと】</string>
+    <string name="notification_toast_checking_when_alarm_comes">EverythingDone: あなたがチェックしているときに、\' のアラームが今来ました</string>
+    <string name="notification_toast_checking_action">あなたはこのことをチェックしています</string>
+    <string name="app_crash_title">クラッシュが検出されました</string>
+    <string name="app_crash_content">開発者に今すぐフィードバックを送信して、昼食や睡眠が取れていない場合でも、できるだけ早くバグを修正してもらいます。\nまた、[概要] ページでいつでもフィードバックを送信できます。このとき、関連するログ ファイル (sdcard/EverythingDone/log 内で、作成時間に応じて最も関連性の高いログ ファイルを選択でき、名前に表示されます) をフィードバック メールの添付ファイルとして追加するだけです。</string>
+    <string name="app_crash_send_now">今すぐフィードバック</string>
+    <string name="celebration_habit_part_1">あなた\'は長年この習慣を続けてきました</string>
+    <string name="celebration_habit_part_2">、完成しました</string>
+    <string name="celebration_habit_part_3">そして今日ついに開発しました。なんて険しいけれど美しい道でしょう！</string>
+    <string name="celebration_goal_part_1">あなたは費やしました</string>
+    <string name="celebration_goal_part_2">その目標を達成しました。今こそお祝いしましょう！</string>
+    <string name="celebration_goal_part_3">成長と成功への道をあなたと共に歩めることは EverythingDone の光栄です。これからも頑張ってください。</string>
+    <string name="celebration_habit_part_4">より良いあなたを見られてうれしいです。EverythingDone はこれからもあなたの成長を助けます。</string>
+    <string name="export_loading_title">SDカードにエクスポート中...</string>
+    <string name="export_loading_content">少し楽しいことをして待っていてください~</string>
+    <string name="export_success_title">正常にエクスポートされました</string>
+    <string name="export_success_content_part_1">%1$d のものをエクスポートしました</string>
+    <string name="export_success_content_part_2">。 sdcard/EverythingDone/export に移動し、関連する zip ファイルを確認してください。</string>
+    <string name="export_failed_title">エクスポートに失敗しました</string>
+    <string name="export_failed_content">後でもう一度試してください</string>
+    <string name="cd_open_drawer">ナビゲーションドロワーを開く</string>
+    <string name="cd_close_drawer">ナビゲーションドロワーを閉じる</string>
+    <string name="cd_quit_searching">検索をやめる</string>
+    <string name="cd_habit_unfinished">未完成</string>
+    <string name="cd_habit_finished">完了しました</string>
+    <string name="cd_habit_unknown">不明</string>
+    <string name="cd_drawer_header">クリックして使用状況の詳細を確認してください。簡単な統計:</string>
+    <string name="cd_statistic_header">私の使用状況の統計</string>
+    <string name="cd_back_note">物はメモです、戻る</string>
+    <string name="cd_back_reminder">それはリマインダーです、戻ってください</string>
+    <string name="cd_back_habit">物事は習慣だ、戻って</string>
+    <string name="cd_back_goal">物はゴールだ、戻る</string>
+    <string name="cd_day">日</string>
+    <string name="cd_checklist_unfinished_item">未完成品</string>
+    <string name="cd_checklist_finished_item">完成品</string>
+    <string name="cd_checklist_more_items">その他のチェックリスト項目</string>
+    <string name="cd_checklist_unfinished_item_clickable">未完成のアイテム、クリックして完了</string>
+    <string name="cd_checklist_finished_item_clickable">完成したアイテム、クリックして終了</string>
+    <string name="cd_checklist_move">クリックしてドラッグしてこの項目を移動します</string>
+    <string name="cd_checklist_expand_finished_items">完了したチェックリストの項目を展開する</string>
+    <string name="cd_checklist_shrink_finished_items">完了したチェックリスト項目を縮小する</string>
+    <string name="cd_delete_checklist_item">項目を削除する</string>
+    <string name="cd_help_auto_strict_mode">自動厳密モードのヘルプ</string>
+    <string name="cd_help_automatic_reminder">自動リマインダーのヘルプ</string>
+    <string name="cd_chosen_item">選ばれた、</string>
+    <string name="cd_not_chosen_item">選ばれなかった、</string>
+    <string name="cd_pattern_area">9ドットパターンエリア</string>
+    <string name="cd_image_attachment">画像添付ファイル</string>
+    <string name="cd_video_attachment">ビデオ添付ファイル</string>
+    <string name="cd_audio_attachment">オーディオ添付ファイル</string>
+    <string name="cd_play_video_attachment">ビデオを再生する</string>
+    <string name="cd_play_audio_attachment">オーディオを再生する</string>
+    <string name="cd_pause_play_audio_attachment">オーディオの再生を一時停止する</string>
+    <string name="cd_stop_play_audio_attachment">オーディオの再生を停止する</string>
+    <string name="cd_delete_audio_attachment">この音声添付ファイルを削除します</string>
+    <string name="cd_audio_attachment_info">音声ファイルの詳細</string>
+    <string name="cd_start_record_audio">録音を開始する</string>
+    <string name="cd_stop_record_audio">録音を停止する</string>
+    <string name="cd_save_recorded_audio_file">録音したファイルを保存して戻す</string>
+    <string name="cd_re_recording_audio">再録音</string>
+    <string name="cd_cancel_recording_audio">記録をキャンセルする</string>
+    <string name="cd_delete_image_attachment">この添付画像を削除します</string>
+    <string name="cd_delete_video_attachment">このビデオ添付ファイルを削除します</string>
+    <string name="cd_reminder_time">リマインダー時間</string>
+    <string name="cd_delete_reminder_time_day_rec">このリマインダー時間を削除します</string>
+    <string name="cd_picked">選んだ、</string>
+    <string name="cd_unpicked">選択されていない、</string>
+    <string name="gradient_orientation_title">勾配の方向</string>
+    <string name="cd_gradient_orientation_l_r">左から右へ</string>
+    <string name="cd_gradient_orientation_t_b">上から下へ</string>
+    <string name="cd_gradient_orientation_lt_rb">左上から右下へ</string>
+    <string name="cd_gradient_orientation_rt_lb">右上から左下へ</string>
+    <string name="cd_gradient_orientation_lb_rt">左下から右上へ</string>
+    <string name="cd_gradient_orientation_rb_lt">右下から左上へ</string>
+    <string name="cd_gradient_orientation_r_l">右から左へ</string>
+    <string name="cd_gradient_orientation_b_t">下から上へ</string>
+    <string name="act_change_gradient_orientation">方向を変える</string>
+    <string name="cd_app_widget_preview_background">アプリウィジェットのプレビュー背景</string>
+    <string name="cd_things_list_widget_setting">モノリストアプリウィジェットの設定</string>
+    <string name="cd_doing">現在\n実施中</string>
+    <string name="cd_doing_add_5_min">5分追加</string>
+    <string name="cd_doing_strict_mode_off">厳密モードに入る</string>
+    <string name="cd_doing_strict_mode_on">厳密モードを終了する</string>
+    <string name="cd_doing_cancel_doing">このことをキャンセルする</string>
+    <string name="cd_cancel_noticeable_notification">この通知をキャンセルする</string>
+    <string name="help_detail">ヘルプの詳細</string>
+    <string-array name="help_titles">
+        <item>このページはなぜあるのですか？</item>
+        <item>開発者に意見を伝えるには？</item>
+        <item>記録、リマインダー、習慣、目標はどう分類されますか？</item>
+        <item>なぜ記事を手動でリマインダー、習慣、目標に設定できないのですか？</item>
+        <item>なぜリマインダーを受け取れないのですか？</item>
+        <item>EverythingDone にはどの権限が必要で、なぜ必要ですか？</item>
+        <item>全部完了した後に新しい記事が出て、消せないのはなぜですか？強迫観念が泣きそうです。</item>
+        <item>リマインダーや習慣の統計を見られますか？</item>
+        <item>記事を削除したのに完了率が変わらないのはなぜですか？</item>
+        <item>習慣のリマインダーが 1 日 4 回までなのはなぜですか？数周期ごとに何回、という設定はなぜできないのですか？</item>
+        <item>なぜ「記録」の完了数と作成数は完了率に入るのに、各周期の「習慣」の完了回数は入らないのですか？</item>
+        <item>なぜ同期機能はまだないのですか？</item>
+        <item>記事の色はもっと増えますか？</item>
+        <item>なぜ旧暦に対応していないのですか？</item>
+        <item>画像添付のサムネイルの切り抜き位置が不自然で、大きな画像もあまり鮮明でないのはなぜですか？</item>
+        <item>EverythingDone に隠し要素はありますか？(,,• ₃ •,,)</item>
+    </string-array>
+    <string-array name="help_contents" formatted="false">
+        <item>まず、このページでは EverythingDone を使う中で生まれそうな疑問に答え、できるだけ早く問題を解決できるようにしたいと思っています。
+
+次に、人によって考え方は違い、開発者の考えとユーザーの考えも大きく違うことがあります。そこで、このページでは EverythingDone のいくつかの設定に込めた考えも説明します。ある機能を設計するとき、私が何を考えていたのかを伝えるためです。その考えはあなたの考えと違うかもしれませんし、少し変に見えるものもあるかもしれません。しかし、それらがこのアプリらしさを作っています。その「違い」と「変化」を理解し、楽しんでもらえればうれしいです。
+
+このページは今後も更新します。</item>
+        <item>方法はいくつかあります。
+
+1. ヘルプまたは「About」画面右上のフィードバックボタンからメールを送る。ここにない問題に出会ったときや、新しい提案や考えがあるときに使ってください。
+
+2. Coolapk の EverythingDone ページにコメントする。あなたの疑問や提案について、他の人の意見も聞きたいときに向いています。
+
+3. 寄付するときに伝えたい言葉を添える。このアプリを気に入って、どうしても感謝を伝えたいときにどうぞ ^_^。</item>
+        <item>記録: 人、出来事、風景など、生活の中の小さなことを書き留めます。リマインダーは不要です。
+
+リマインダー: EverythingDone がその記事の内容を知らせます。この通知は記事作成後 4 週間、つまり 28 日以内に起こるべきものです。
+
+習慣: EverythingDone がその記事の内容を繰り返し知らせます。周期は 1 日、1 週間、1 か月、1 年から選べ、繰り返し回数は周期の種類によって変わります。
+
+目標: EverythingDone がその記事の内容を知らせますが、その通知は記事作成から少なくとも 4 週間後に起こるべきものです。通常、長期的な努力が必要な記事です。</item>
+        <item>一番大きな理由は、あなたに「やること」そのものだけを見てほしいからです。それがどの種類なのかを決めるために、余計な時間や労力を使ってほしくありません。EverythingDone には、いつ知らせてほしいか、そして一度だけ知らせるのか繰り返し知らせるのかを伝えるだけで十分です。知らせる時点が「始める時」なのか「終えるべき時」なのかは分けていませんが、記事の性質には影響しないはずです。EverythingDone はその情報から種類を判断します。リマインダーは短期、習慣は反復、目標は長期です。
+
+もう一つの理由は、今手動で種類を変えられるようにすると、アプリ全体に大量の不整合が出るからです。たとえ要望があっても、アプリ全体の構造を設計し直し、多くのコードを書き直す必要があります。EverythingDone 2.0 までは、おそらくやりたくない作業です。</item>
+        <item>MIUI、flyme、EMUI などのサードパーティ製 Android を使っている場合は、EverythingDone に必要な権限をすべて与えてください。起動時の自動起動、バックグラウンド実行、バックグラウンドからの自動起動、通知の表示ができるようにする必要があります。スマートフォンに省電力アシスタントがある場合は、その設定で EverythingDone をホワイトリストに入れてください。
+
+360 Mobile Assistant や Greenify のような最適化、クリーニングアプリを使っている場合も、EverythingDone が最適化やクリーニングの対象に入っていないことを確認してください。
+
+Nevolution や 360 Notification Box のような通知管理アプリを入れている場合も、通知が消えないように EverythingDone をホワイトリストへ追加してください。
+
+それでもリマインダーを受け取れない場合は、機種名、システムの種類、バージョン番号を書いてフィードバックを送ってください。さらに確認します。
+
+現在の多くの ROM、特にローカライズが進んだ ROM は、サードパーティアプリの動作を細かく管理したがります。悪質なアプリへの強い防御ですが、EverythingDone が悪質ではないことをメーカーは知りませんし、特例も作ってくれません。そのため、リマインダー機能が多少影響を受けることがあります。私とメーカーの事情を理解してもらえると助かります。</item>
+        <item>現在、バージョン 1.3.8 の EverythingDone が必要とする権限は次の通りです。
+
+1. 起動時の自動起動。リマインダーを設定するために使います。この権限がないと、端末の再起動後に予定、習慣、目標の通知を続けられません。
+
+2. ストレージの読み書き。添付ファイルの追加や、使用状況を共有するときのスクリーンショット保存などに使います。
+
+3. 録音。音声ファイルを記事の添付として録音するために使います。
+
+4. バイブレーション。記事の完了をより分かりやすく知らせるために使います。
+
+5. Android 6.0 以降の指紋権限。指紋でプライベート記事を解除するために使います。
+
+6. 端末を起動状態に保つ権限。作業開始後のカウントダウンを正確に保つために使います。
+
+端末の権限管理や最適化アプリでは、EverythingDone にバックグラウンド起動権限が必要だと表示されることもあります。これもリマインダーを正常に動かすためです。
+
+約束します。無関係な権限は絶対に要求せず、許可された権限を悪いことには使いません。</item>
+        <item>ある種類の記事をすべて完了した後は、お祝いの表示があるべきです。私の設計では、自動的に新しい記事を作成することでこの機能を実現しています。
+
+この記事がないと画面はとても空っぽに見えます。また、「進行中」のような文字が画面上部ではなく縦方向の中央寄りにあるため、画面のバランスも取りにくくなります。空の状態の表示を設計するのも難しいです。アプリの雰囲気に合い、新鮮で見た目もよく、さらに「進行中」ページで全部完了した空状態なのか、「完了」ページでまだ何も完了していない空状態なのか、状況にも合っていなければなりません。かなり時間のかかる課題です。
+
+最後に、この設計を今変えるには多くのコード変更も必要です。だから、強迫観念のある皆さんには理解してもらうしかありません……
+
+実は、私も強迫観念があります！</item>
+        <item>はい。アプリのドロワーを開き、上部の画像をタップすると統計画面へ移動できます。そこで EverythingDone を使った時間、書いた文字数、平均リマインダー時間、習慣の形成率などを確認できます。</item>
+        <item>通常、完了率の計算式は「完了した記事数（各周期の習慣完了回数は含まない）/ 作成した記事数」です。記事を削除しても、それが作成されたという事実は変わらないため、完了率も変わりません。</item>
+        <item>最初は、数周期ごとに何回知らせるかを入力できるようにしようと考えていました。しかし重要な問題があります。いつ知らせるべきなのでしょうか。毎回の正確な時刻をあなたが入力するのか、それとも EverythingDone が判断するのか。
+
+前者なら入力項目が多くなり、その形式も標準化しにくくなります。たとえば 3 日に 1 回知らせたい場合、その 3 日のうち何日目の何時に知らせるべきでしょうか。どう入力すれば期待を伝えられるでしょうか。
+
+後者なら、私には最適な時刻を賢く決めることができません。さらに Android の制限により、繰り返し通知の間隔は同じ長さにしかできません。つまり均等に割るしかなく、その時刻が毎回最適とは限りません。繰り返し方式を使わず、通知のたびに次の時刻を計算しても、どの時刻が適切かを決めるのはやはり難しいです。
+
+そのため今は、日、週、月、年あたり何回という形式だけを提供しています。比較的柔軟な「毎日」でも、最大 4 回に制限しています。なぜ 4 回かというと、当時は薬を飲むのは多くても 1 日 4 回くらいだと思ったからです……十分な理由ではないかもしれませんが、これも EverythingDone らしさの一部で、当面は変わらないと思います。</item>
+        <item>私たちは、ときどきやるべきことを気軽に書き留めますが、それをいつ終えるべきかは分からないことがあります。だから「記録」の数も完了率の計算に入れることにしました。
+
+もう一つの問題は、記事が 1 件だけで、それが「習慣」だった場合です。その習慣を何回完了しても、「その習慣を身につける」までは全体の完了率は増えません。実は最初の設計では、各周期の習慣完了回数も完了率に入れていました。しかし、それでは習慣を完全に身につけるという重要な操作が、完了率に相応の影響を与えなくなります。そのため現在の計算式に変えました。
+
+習慣の本当の完了率を知りたい場合は統計画面で確認できます。特定の習慣の完了率を知りたい場合は、その習慣の詳細画面でも確認できます。</item>
+        <item>記録やリマインダーのアプリにとって、同期は本当に重要です。ただ、開発者の力がまだ足りないため、完成までにはもう少し時間が必要です。理解してもらえるとうれしいです。</item>
+        <item>デザイン案には柔らかい色調と落ち着いた色調がありましたが、落ち着いた色調にどの色を入れるか選ぶだけで、ほぼ 1 週間かかりました……
+
+今さらに柔らかい色を増やすなら、既存の色との調和、フォントやダイアログとの組み合わせ、多すぎる色で画面が散らからないことなども考えなければなりません。
+
+緑と紫はバージョン 1.2.2 で、オレンジと赤はバージョン 1.3.5 で追加しました。将来は複数テーマという形で、さらに多くの色を提供するかもしれません。</item>
+        <item>今の私にとって、ある日の旧暦の日付を求めるアルゴリズムは深くて難しすぎます。ユーザーにとっても旧暦の日付を入力するのは面倒です。旧暦対応は、珍しくどこから手を付ければいいか分からない機能なので、10 年以内に入るかどうかを期待していてください。</item>
+        <item>画像には違いがあります。主な内容が中央にあるものもあれば、端にあるものもあります。プログラムではそれを判断できないため、サムネイルには正直に画像中央の部分を表示するしかありません。
+
+大きな画像が鮮明でないのは、元画像の読み込みに多くのリソースが必要で、Android が 1 つのアプリに端末の大部分のハードウェア資源を使わせないからです。そのため、できるだけ細部を失わないように元画像を圧縮しています。ただし、この圧縮はシステム標準のアルゴリズムで、QuickPic のような独自アルゴリズムではないため、最適な結果にするのは難しいです。</item>
+        <item>意図的に 3 つの隠し要素を入れてあります。全部見つけたら連絡してください。賞品を送りますよ〜
+
+まあ、全部見つけることはできないと思いますけどね。ハハハハハ。</item>
+    </string-array>
+    <string name="title_important_alert">重要なお知らせです</string>
+    <string name="content_important_reminder_permission">システム最適化アプリを使用している場合、または端末にそのようなアプリが最初から入っている場合は、EverythingDone をそれらのホワイトリストに追加してください。リマインダーを正常に動かすためです。\n\nまた、システムの権限管理で EverythingDone が要求する権限を許可してください。\n(1) 起動時の自動起動。アラームとリマインダーの設定に使います。\n(2) ストレージの読み書き。添付ファイルの追加や共有時のスクリーンショット保存に使います。\n(3) 録音。音声添付を作成するために使います。\n(4) バイブレーション。完了時により分かりやすく知らせるために使います。\nEverythingDone はこれらの権限を悪意のある目的には使用しません。</string>
+    <string name="from_1_1_4_to_1_1_5_title">元に戻す/やり直しがサポートされるようになりました</string>
+    <string name="from_1_1_4_to_1_1_5_content">メニューボタンをクリックすると、「元に戻す」と「やり直し」が表示されます。必要に応じていつでも過去や未来に戻すことができます。</string>
+    <string name="from_1_2_7_to_1_3_0_title">藤堂？する！</string>
+    <string name="from_1_2_7_to_1_3_0_content">things\' アラームの通知がより目立つようになります。準備ができている場合は、通知後すぐに作業を開始できます。EverythingDone が作業を慎重に完了するのに役立ちます。</string>
+    <string name="from_1_3_0_to_1_3_1_title">いつでも、または自動的に何かを開始する</string>
+    <string name="from_1_3_0_to_1_3_1_content">これで、いつでも Thing カードを右にスワイプして、その作業を開始できます。\n\nさらに、リマインダーが来たときに自動的にその作業を開始することもできるようになりました。別の新機能、自動で厳密モードに入る機能を使用すると、EverythingDone により、「\\"後でやる\\"」と言うのをやめることもできます。</string>
+    <string name="from_1_3_3_to_1_3_4_title">編集内容を自動的に保存し、習慣の記録を変更します</string>
+    <string name="from_1_3_3_to_1_3_4_content">モノの作成時または更新時に編集内容を自動的に保存できるようになりました。
+    \n\n最新の習慣記録を変更して、間違いを修正したり、失われた記憶を取り戻すこともできます。習慣を確認し、メニューを開き、\\"習慣の詳細を確認\\" をクリックすると、そのアクションが表示されます。</string>
+    <string name="channel_reminder">リマインダー</string>
+    <string name="channel_habit">習慣</string>
+    <string name="channel_goal">目標</string>
+    <string name="channel_doing">実行モード</string>
+    <string name="channel_quick_create">クイック作成</string>
+    <string name="channel_ongoing">進行中の通知</string>
+    <string name="channel_auto_notify">自動通知</string>
+</resources>

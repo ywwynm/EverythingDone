@@ -22,6 +22,13 @@ used by recent commits:
 
 `Co-authored-by: GPT-5.5 <gpt-5.5@openai.com>`
 
+## Localization
+
+When adding or revising translations, use `values-zh-rCN/strings.xml` as the
+source of truth. Do not use Google Translate for this project unless the user
+explicitly re-authorizes it. Prefer direct agent-authored translations over
+API-generated batches, especially for long Help/About text.
+
 ## Color migration & UI gradients
 
 **Principle: "If it can render gradient, make it render gradient."**

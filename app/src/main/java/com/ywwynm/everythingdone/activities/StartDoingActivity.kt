@@ -24,6 +24,7 @@ import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.services.DoingService
 import com.ywwynm.everythingdone.utils.DateTimeUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
+import com.ywwynm.everythingdone.utils.LocaleUtil
 
 import java.util.GregorianCalendar
 
@@ -39,6 +40,10 @@ open class StartDoingActivity : AppCompatActivity() {
     private var mStartType: Int = 0
     /** Phase 8: accent decoded from the intent. */
     private var mAccentBackground: ThingBackground? = null
+
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(LocaleUtil.attachBaseContext(newBase))
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

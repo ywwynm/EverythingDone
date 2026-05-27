@@ -1,6 +1,7 @@
 package com.ywwynm.everythingdone.appwidgets.list
 
 import android.appwidget.AppWidgetManager
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
@@ -21,6 +22,7 @@ import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper
 import com.ywwynm.everythingdone.database.AppWidgetDAO
 import com.ywwynm.everythingdone.model.ThingWidgetInfo
 import com.ywwynm.everythingdone.utils.DisplayUtil
+import com.ywwynm.everythingdone.utils.LocaleUtil
 
 import java.util.ArrayList
 import kotlin.math.abs
@@ -41,6 +43,10 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
     private var mAppWidgetId: Int = 0
 
     private var mIsSetting: Boolean = false
+
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(LocaleUtil.attachBaseContext(newBase))
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

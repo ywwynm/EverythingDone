@@ -1,5 +1,6 @@
 package com.ywwynm.everythingdone.activities
 
+import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.annotation.IdRes
@@ -20,10 +21,14 @@ import com.ywwynm.everythingdone.utils.LocaleUtil
  */
 abstract class EverythingDoneBaseActivity : AppCompatActivity() {
 
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(LocaleUtil.attachBaseContext(newBase))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Call this before setContentView so that NavigationView can update its language correctly.
+        // Keep AppCompat's per-app locale state in sync before inflating views.
         LocaleUtil.changeLanguage()
 
         beforeSetContentView()

@@ -611,13 +611,31 @@
         <item>繁體中文(香港)</item>
         <item>繁體中文(台灣)</item>
         <item>English</item>
+        <item>日本語</item>
+        <item>한국어</item>
+        <item>Italiano</item>
+        <item>Español</item>
+        <item>Русский</item>
+        <item>Français</item>
+        <item>Deutsch</item>
+        <item>हिन्दी</item>
+        <item>Português</item>
     </string-array>
-    <string-array name="language_codes" tools:ignore="MissingTranslation">
+    <string-array name="language_codes" translatable="false">
         <item>follow system_</item>
-        <item>zh_cn</item>
-        <item>zh_hk</item>
-        <item>zh_tw</item>
-        <item>en_</item>
+        <item>zh-CN</item>
+        <item>zh-HK</item>
+        <item>zh-TW</item>
+        <item>en</item>
+        <item>ja</item>
+        <item>ko</item>
+        <item>it</item>
+        <item>es</item>
+        <item>ru</item>
+        <item>fr</item>
+        <item>de</item>
+        <item>hi</item>
+        <item>pt</item>
     </string-array>
     <string name="follow_system_settings">跟隨系統設置</string>
     <string name="settings_noticeable_notification">更突出的記事提醒通知</string>

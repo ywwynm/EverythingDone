@@ -1,0 +1,750 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="everythingdone">EverythingDone</string>
+    <string name="yes">Да</string>
+    <string name="no">Нет</string>
+    <string name="more">Более</string>
+    <string name="after">после</string>
+    <string name="at">в</string>
+    <string name="congratulations">Поздравления</string>
+    <string name="enable">Давать возможность</string>
+    <string name="disable">Запрещать</string>
+    <string name="enabled">Включено</string>
+    <string name="disabled">Неполноценный</string>
+    <string-array name="time_type">
+        <item>@string/minute</item>
+        <item>@string/hour</item>
+        <item>@string/day</item>
+        <item>@string/week</item>
+        <item>@string/month</item>
+        <item>@string/year</item>
+    </string-array>
+    <string name="second">Второй</string>
+    <string name="minute">минута</string>
+    <string name="hour">Час</string>
+    <string name="day">День</string>
+    <string name="week">неделя</string>
+    <string name="month">Месяц</string>
+    <string name="year">Год</string>
+    <string-array name="day_of_week">
+        <item>Воскресенье</item>
+        <item>Понедельник</item>
+        <item>Вторник</item>
+        <item>Среда</item>
+        <item>Четверг</item>
+        <item>Пятница</item>
+        <item>Суббота</item>
+    </string-array>
+    <string-array name="month_of_year">
+        <item>январь</item>
+        <item>февраль</item>
+        <item>Маршировать</item>
+        <item>апрель</item>
+        <item>Может</item>
+        <item>Июнь</item>
+        <item>Июль</item>
+        <item>Август</item>
+        <item>Сентябрь</item>
+        <item>Октябрь</item>
+        <item>ноябрь</item>
+        <item>декабрь</item>
+    </string-array>
+    <string-array name="time_period">
+        <item>перед рассветом</item>
+        <item>ранним утром</item>
+        <item>утром</item>
+        <item>а потом</item>
+        <item>днем</item>
+        <item>в сумерках</item>
+        <item>ночью</item>
+        <item>глубокой ночью</item>
+    </string-array>
+    <string name="today">сегодня</string>
+    <string name="tomorrow">завтра</string>
+    <string name="yesterday">вчера</string>
+    <string name="end_of_month">КОНЕЦ МЕСЯЦА</string>
+    <string name="this_month">в этом месяце</string>
+    <string name="this_week">На этой неделе</string>
+    <string name="this_year">в этом году</string>
+    <string name="later">позже</string>
+    <string name="description_a">a</string>
+    <string name="every">каждый</string>
+    <string name="times">время</string>
+    <string name="hours">час</string>
+    <string name="days">день</string>
+    <string name="weeks">неделя</string>
+    <string name="months">месяц</string>
+    <string name="from_everything_done">из приложения для Android EverythingDone</string>
+    <string name="title_create_thing">Создать новую вещь</string>
+    <string name="title_edit_thing">Редактировать</string>
+    <string name="title_activity_things_all">Все вещи</string>
+    <string name="image_or_video_attachment">Изображение или видео вложение</string>
+    <string name="title_activity_settings">Настройки</string>
+    <string name="title_activity_about">О</string>
+    <string name="title_activity_statistic">Статистика</string>
+    <string name="title_activity_thing_widget_configure">Выберите одну вещь</string>
+    <string name="title_activity_things_list_widget_configuration">Выберите текущие дела</string>
+    <string name="title_widget_things_list">В процессе</string>
+    <string name="title_activity_doing">В настоящее время делаю</string>
+    <string name="underway">В процессе</string>
+    <string name="thing">Вещь</string>
+    <string name="all_things">Все вещи</string>
+    <string name="note">Примечание</string>
+    <string name="reminder">Напоминания</string>
+    <string name="habit">Привычка</string>
+    <string name="goal">Цель</string>
+    <string name="finished">Законченный</string>
+    <string name="deleted">Удалено</string>
+    <string name="drawer_deleted">Удалено</string>
+    <string name="settings">Настройки</string>
+    <string name="help">Помощь</string>
+    <string name="about">О</string>
+    <string name="private_thing">личное дело</string>
+    <string name="sticky_thing">Липкая вещь</string>
+    <string name="ongoing_thing">Текущее дело</string>
+    <string name="welcome_underway_title">Добро пожаловать</string>
+    <string name="welcome_underway_content">Проведите пальцем влево, чтобы закончить, или вправо, чтобы начать делать.</string>
+    <string name="welcome_note_content">Напиши что-нибудь и я запомню это навсегда</string>
+    <string name="welcome_reminder_content">Позвольте мне напомнить вам все</string>
+    <string name="welcome_habit_content">Развивайте привычки и исправляйте недостатки.</string>
+    <string name="welcome_goal_content">Ваша мечта растет</string>
+    <string name="empty_underway">Все готово</string>
+    <string name="empty_note">Я скучаю по прошедшим дням, но предпочитаю грядущее будущее</string>
+    <string name="empty_reminder">Так рада помочь вам</string>
+    <string name="empty_habit">Я вижу тебя лучше</string>
+    <string name="empty_goal">Все цели достигнуты! Какой удивительный день! Я думаю, мы сможем провести отпуск вместе. Пусть \' пойдут наслаждаться солнышком~</string>
+    <string name="empty_finished">Упс! Ничего не закончено?</string>
+    <string name="empty_deleted">Вам нравится чистить мусорную корзину? Я тоже!</string>
+    <string name="reminder_expired">истекший</string>
+    <string name="reminder_needless">не нужен</string>
+    <string name="reminder_reminded">напомнил</string>
+    <string name="reminder_unavailable">недоступен</string>
+    <string name="habit_paused">остановился</string>
+    <string name="habit_last_five">Последние пять раз:</string>
+    <string name="habit_next_reminder">Следующее напоминание:</string>
+    <string name="alert_cannot_finish_habit_first_time">Пожалуйста, подождите первого цикла</string>
+    <string name="alert_cannot_finish_habit_more_times">Невозможно закончить больше раз до следующего цикла</string>
+    <string name="alert_habit_paused">Эта привычка приостановлена</string>
+    <string name="goal_should_finish_before">должно быть достигнуто до %1$s</string>
+    <string name="goal_should_finish_in">должно быть достигнуто через %1$d дней</string>
+    <string name="goal_overdue">Просрочка на %1$d дней</string>
+    <string name="goal_finished_normal">достижение стоимости %1$s дней</string>
+    <string name="goal_finished_in_advance">достижение заранее стоит %1$s дней</string>
+    <string name="goal_finished_overdue">достижение стоимости %1$s дней, просрочено</string>
+    <string name="images">изображение</string>
+    <string name="videos">видео</string>
+    <string name="audios">аудио</string>
+    <string name="some_checklist_items_finished">%1$d объектов завершено</string>
+    <string-array name="thing_colors_names">
+        <item>@string/blue_grey_500</item>
+        <item>@string/my_cyan</item>
+        <item>@string/blue_grey_deep_blue</item>
+        <item>@string/blue_grey_deep_grey</item>
+        <item>@string/brown</item>
+        <item>@string/blue_deep</item>
+        <item>@string/pine_green</item>
+        <item>@string/my_purple</item>
+        <item>@string/elegant_orange</item>
+        <item>@string/Aein_red</item>
+    </string-array>
+    <string-array name="hue_bucket_names">
+        <item>@string/hue_bucket_red</item>
+        <item>@string/hue_bucket_orange</item>
+        <item>@string/hue_bucket_yellow</item>
+        <item>@string/hue_bucket_green</item>
+        <item>@string/hue_bucket_cyan</item>
+        <item>@string/hue_bucket_blue</item>
+        <item>@string/hue_bucket_purple</item>
+        <item>@string/hue_bucket_grey</item>
+    </string-array>
+    <string name="hue_bucket_red">Красный</string>
+    <string name="hue_bucket_orange">Оранжевый</string>
+    <string name="hue_bucket_yellow">Желтый</string>
+    <string name="hue_bucket_green">Зеленый</string>
+    <string name="hue_bucket_cyan">Голубой</string>
+    <string name="hue_bucket_blue">Синий</string>
+    <string name="hue_bucket_purple">Фиолетовый</string>
+    <string name="hue_bucket_grey">Серый</string>
+    <string name="blue_grey_500">сине-серый</string>
+    <string name="my_cyan">голубой</string>
+    <string name="blue_grey_deep_blue">глубокий серо-синий</string>
+    <string name="blue_grey_deep_grey">темно-синий серый</string>
+    <string name="brown">коричневый</string>
+    <string name="blue_deep">темно-синий</string>
+    <string name="pine_green">сосновый зеленый</string>
+    <string name="my_purple">серо-фиолетовый</string>
+    <string name="elegant_orange">элегантный оранжевый</string>
+    <string name="Aein_red">Эйн красный</string>
+    <string name="share_i_work_hard_for">Я много работаю ради</string>
+    <string name="share_i_persist_in_for">Я\'ve упорствовал в этом</string>
+    <string name="share_goal_finished">и наконец достиг цели</string>
+    <string name="share_habit_developed">наконец-то выработал эту привычку</string>
+    <string name="this_gai">это</string>
+    <string name="will_remind">будет напоминать</string>
+    <string name="daily_todo_title_rest_part">Чем заняться на</string>
+    <string name="completion_rate_all">Уровень завершения всех\'s</string>
+    <string name="completion_rate_reminder">Напоминание\', процент завершения</string>
+    <string name="completion_rate_note">Примечание\'s процент завершения</string>
+    <string name="completion_rate_habit">Коэффициент выполнения привычки\'s</string>
+    <string name="completion_rate_goal">Коэффициент выполнения цели\'</string>
+    <string name="act_share">Поделиться</string>
+    <string name="act_get_it">Получите это</string>
+    <string name="confirm">ПОДТВЕРДИТЬ</string>
+    <string name="cancel">ОТМЕНА</string>
+    <string name="act_search">Поиск</string>
+    <string name="act_finish_all">Завершить все</string>
+    <string name="act_delete_all">Удалить все</string>
+    <string name="act_clear_now">Очистить</string>
+    <string name="act_sort_by_alarm">Сортировать по времени будильника</string>
+    <string name="act_select_color">Выберите цвет</string>
+    <string name="act_select_all">Выбрать все</string>
+    <string name="act_deselect_all">Отменить выбор всех</string>
+    <string name="act_delete_selected">Удалить выбранное</string>
+    <string name="act_finish_selected">Завершить выбранное</string>
+    <string name="act_export_to_sdcard">Экспорт на SD-карту</string>
+    <string name="act_restore_selected">Восстановить выбранное</string>
+    <string name="act_delete_selected_forever">Удалить выбранное навсегда</string>
+    <string name="act_sticky_on_top">Липкий сверху</string>
+    <string name="act_cancel_sticky">Отменить прикрепление</string>
+    <string name="act_add_attachment">Добавить вложение</string>
+    <string name="act_enable_check_list">Включить контрольный список</string>
+    <string name="act_disable_check_list">Отключить контрольный список</string>
+    <string name="act_change_background">Изменить фон</string>
+    <string name="act_undo">Отменить</string>
+    <string name="act_redo">Повторить</string>
+    <string name="act_abandon_new_thing">Отказаться</string>
+    <string name="act_set_as_private_thing">Установить как личное</string>
+    <string name="act_cancel_private_thing">Отменить Установить личное</string>
+    <string name="act_set_thing_as_ongoing">Показать в уведомлениях</string>
+    <string name="act_cancel_set_thing_as_ongoing">Отменить показ в уведомлениях</string>
+    <string name="act_finish">Готово</string>
+    <string name="act_delete">Удалить</string>
+    <string name="act_pause_habit">Приостановить напоминания о привычке\'</string>
+    <string name="act_resume_habit">Возобновить напоминания о привычке\'</string>
+    <string name="act_check_habit_detail">Проверьте детали привычки</string>
+    <string name="act_finish_once_habit">Закончить один раз</string>
+    <string name="act_finish_this_time_habit">Закончи на этот раз</string>
+    <string name="act_habit_developed">У меня\' появилась эта привычка</string>
+    <string name="act_restore">Восстановить</string>
+    <string name="act_copy_content">Копировать контент</string>
+    <string name="act_feedback">Отправить отзыв</string>
+    <string name="act_share_everythingdone">поделиться EverythingDone</string>
+    <string name="act_delay">Задержка</string>
+    <string name="act_start_doing">Старт</string>
+    <string name="delay_reminder">Напоминание о задержке</string>
+    <string name="act_take_photo">Сфотографироваться</string>
+    <string name="act_shoot_video">Снимать видео</string>
+    <string name="act_record_audio">Запись звука</string>
+    <string name="act_choose_media_files">Выберите медиафайлы</string>
+    <string name="act_show_attachment_info">Проверьте детали вложения</string>
+    <string name="act_delete_attachment">Удалить это вложение</string>
+    <string name="act_move_check_list">Упорядочить предметы</string>
+    <string name="act_back_from_move_checklist">Финиш и возвращение</string>
+    <string name="act_check_update_habit_record">Проверьте и обновите записи о привычках</string>
+    <string name="act_open_in_browser">Обзор</string>
+    <string name="act_dial">Циферблат</string>
+    <string name="act_send_email">Отправить электронное письмо</string>
+    <string name="act_open_in_map">Посетите</string>
+    <string name="act_edit">Редактировать</string>
+    <string name="act_share_thing_text_image">Текст и изображение</string>
+    <string name="act_share_thing_screenshot">Скриншот</string>
+    <string name="act_choose_image_as_drawer_header">Выберите изображение в качестве заголовка ящика</string>
+    <string name="act_support">Поддержка разработчика</string>
+    <string name="act_sb_undo">ОТМЕНИТЬ</string>
+    <string name="act_sb_undo_finish">ЕЩЕ НЕ</string>
+    <string name="act_sb_undo_underway">ЗАВЕРШЕНО</string>
+    <string name="act_shortcut_check_upcoming">Предстоящая вещь</string>
+    <string name="act_shortcut_check_sticky">Самая липкая вещь</string>
+    <string name="success_clipboard">Копировано в буфер обмена успешно.</string>
+    <string name="error_permission_denied">Разрешение не предоставлено. Невозможно продолжить.</string>
+    <string name="please_wait">Пожалуйста, подождите</string>
+    <string name="generating_screenshot">Делаем скриншот...</string>
+    <string name="error_activity_not_found">Приложение не найдено для продолжения работы</string>
+    <string name="a_thing">вещь</string>
+    <string name="empty">пустой</string>
+    <string name="sb_finish_habit">покончил с этой привычкой</string>
+    <string name="press_again_to_exit">Нажмите еще раз, чтобы выйти</string>
+    <string name="title_incorrect_reminder_habit">Обнаружено неправильное положение вещей</string>
+    <string name="content_incorrect_reminder_habit">EverythingDone обнаружил, что некоторые из ваших напоминаний, привычек или целей находятся в неправильном состоянии. То есть они не были уведомлены в нужное время, как должно быть. \nУбедитесь, что EverythingDone может нормально работать в фоновом режиме. Вы можете заблокировать процесс приложения в диспетчере задач, добавить его в белый список в приложениях для оптимизации заряда батареи и разрешить запрошенные им разрешения, чтобы предотвратить его завершение и потерю возможности уведомлять вас о каких-либо действиях. \nДля получения дополнительной информации посетите раздел «Справка» и ознакомьтесь с соответствующими часто задаваемыми вопросами. \nНажмите кнопку «Сбросить сигналы тревоги», чтобы исправить состояние ошибки и повторно активировать привычки.</string>
+    <string name="act_reset_alarms">Сбросить сигналы тревоги</string>
+    <string name="alert_continue">Вы уверены, что продолжите?</string>
+    <string name="alert_find_habit_goal">Эти вещи содержат в себе какие-то привычки или цели. Возможно, вы захотите закончить или отказаться от них в другое время или отдельно.</string>
+    <string name="continue_get_rid_of_habit_goal">УДАЛИТЬ ПРИВЫЧКИ/ЦЕЛИ И ПРОДОЛЖИТЬ</string>
+    <string name="continue_for_alert">ПРОДОЛЖИТЬ</string>
+    <string name="sb_cannot_be_blank">Пустая вещь была заброшена</string>
+    <string name="sb_abandon_new_thing">Новая вещь была заброшена</string>
+    <string name="sb_delete">удалено</string>
+    <string name="sb_delete_forever">удален навсегда</string>
+    <string name="sb_finish">закончено</string>
+    <string name="sb_underway">восстановлен</string>
+    <string name="all_color">ВСЕ ЦВЕТА</string>
+    <string name="no_result">Нет результата</string>
+    <string name="hint_title">титул</string>
+    <string name="hint_content">содержание</string>
+    <string name="hint_new_item">новый предмет</string>
+    <string name="create_at">Создано</string>
+    <string name="update_at">Последнее обновление</string>
+    <string name="finish_at_normal">Завершено %1$s</string>
+    <string name="finish_at_habit">Привычка выработана</string>
+    <string name="finish_at_goal_normal">Цель достигнута %1$s</string>
+    <string name="finish_at_goal_in_advance">Цель заранее достигнута %1$s</string>
+    <string name="finish_at_goal_overdue">Цель достигнута %1$s, срок просрочен</string>
+    <string name="remind_me">Напомни мне</string>
+    <string-array name="quick_remind">
+        <item>@string/after_1_year</item>
+        <item>@string/after_1_month</item>
+        <item>@string/after_1_week</item>
+        <item>@string/after_2_days</item>
+        <item>@string/after_1_day</item>
+        <item>@string/after_2_hours</item>
+        <item>@string/after_1_hour</item>
+        <item>@string/after_30_minutes</item>
+        <item>@string/after_15_minutes</item>
+        <item>@string/custom</item>
+    </string-array>
+    <string name="after_1_year">1 год</string>
+    <string name="after_1_month">1 месяц</string>
+    <string name="after_1_week">1 неделя</string>
+    <string name="after_2_days">2 дня</string>
+    <string name="after_1_day">1 день</string>
+    <string name="after_2_hours">2 часа</string>
+    <string name="after_1_hour">1 час</string>
+    <string name="after_30_minutes">30 минут</string>
+    <string name="after_15_minutes">15 минут</string>
+    <string name="custom">обычай</string>
+    <string name="error_unsupported_file_type">Неподдерживаемый тип файла</string>
+    <string name="error_cannot_add_from_network">Невозможно добавить вложение из Интернета</string>
+    <string name="alert_cannot_share_empty_thing">Не могу поделиться пустой вещью</string>
+    <string name="alert_shortcut_no_upcoming">Ничего предстоящего</string>
+    <string name="alert_shortcut_no_sticky">Нет липкой вещи</string>
+    <string name="thing_doing_dialog_title">Изменить настройки автозапуска для этой штуки</string>
+    <string name="auto_start_doing_time_title">Автоматическое начало отсчета времени</string>
+    <string name="auto_start_doing_follow_general">Следуйте общим настройкам</string>
+    <string name="input_file_name">Пожалуйста, введите имя файла</string>
+    <string name="quick_remind_title_after">ПОСЛЕ</string>
+    <string name="quick_remind_title_at">АТ</string>
+    <string name="quick_remind_title_recurrence">ПОВТОРЕНИЕ</string>
+    <string name="new_reminder_time_rec">новое время напоминания</string>
+    <string name="error_complete_time">Пожалуйста, заполните информацию о времени</string>
+    <string name="error_later">Пожалуйста, установите будущее время</string>
+    <string name="error_number_too_big">Число слишком велико!</string>
+    <string name="error_too_late">Не могу дождаться этого дня</string>
+    <string name="error_different">Пожалуйста, установите другое время</string>
+    <string name="habit_detail_completion_rate">Скорость завершения</string>
+    <string name="habit_detail_persist_in">Постоянный цикл</string>
+    <string name="habit_detail_total_t">Общий цикл</string>
+    <string name="habit_detail_record_count">Количество записей</string>
+    <string name="habit_detail_times">Завершенное время</string>
+    <string name="habit_detail_title">Детали привычки</string>
+    <string name="habit_record_last_30_change_6">Последние 30 записей, вы можете изменить последние 6 из них (последние 6 позиций)</string>
+    <string name="attachment_info_title">Подробности вложения</string>
+    <string name="audio_bitrate">Битрейт</string>
+    <string name="audio_duration">Продолжительность звука</string>
+    <string name="audio_sample_rate">Частота дискретизации</string>
+    <string name="file_last_modify_time">Время последнего изменения файла</string>
+    <string name="file_path">Путь</string>
+    <string name="file_path_not_existed">Неизвестный угол</string>
+    <string name="file_size">Размер файла</string>
+    <string name="image_create_time">Время создания изображения</string>
+    <string name="image_size">Размер изображения</string>
+    <string name="video_size">Размер видео</string>
+    <string name="video_duration">Продолжительность видео</string>
+    <string name="video_create_time">Время создания видео</string>
+    <string name="alert_cancel_habit_title">Вы уверены, что откажетесь от этой привычки?</string>
+    <string name="alert_cancel_habit_content">Это действие невозможно отменить.
+        EverythingDone больше не будет контролировать вас или помогать вам развивать эту привычку.</string>
+    <string name="alert_update_habit_title">Вы уверены, что захотите обновить эту привычку?</string>
+    <string name="alert_update_habit_content">Вы меняете время, когда EverythingDone будет напоминать вам о развитии этой привычки. Ваши записи не будут удалены, и мы продолжим помогать вам совершенствоваться.</string>
+    <string name="alert_cancel_goal_title">Вы уверены, что откажетесь от этой цели?</string>
+    <string name="alert_cancel_goal_content">Это действие невозможно отменить.
+        EverythingDone не только потеряет возможность отсчитывать дни,
+        но также не имеют возможности отпраздновать его достижение вместе с вами.</string>
+    <string name="alert_cancel_create_daily_todo_title">Вы уверены, что не создадите TODO сегодня?</string>
+    <string name="alert_cancel_create_daily_todo_content">Мы предлагаем вам настойчиво развивать эту привычку. Если вы заранее решите, что делать, это поможет вам организовать и использовать время более эффективно.</string>
+    <string name="start_doing_full_title">Начни делать это</string>
+    <string name="start_doing_estimated_time">Примерное время окончания</string>
+    <string name="start_doing_time_not_sure">Не уверен</string>
+    <string name="start_doing_doing_this_thing">Вы уже делали это</string>
+    <string name="start_doing_time_long_alarm">Расчетное время настолько велико, что вы не сможете завершить выполнение привычки за это время до следующего сигнала тревоги.</string>
+    <string name="start_doing_time_long_t">Предполагаемое время настолько велико, что вы не сможете выполнить Привычку ни разу за этот цикл.</string>
+    <string name="start_doing_confirm">Начни делать</string>
+    <string name="start_doing_notification_toast_doing_this">EverythingDone: Только что прозвучал сигнал тревоги \', но вы уже делали это</string>
+    <string name="start_doing_notification_toast_doing_this_habit">EverythingDone: Тревога привычки\' прозвучала только сейчас, но вы уже все сделали за это время.</string>
+    <string name="start_doing_stop_another_title">Ты делаешь другое дело</string>
+    <string name="start_doing_stop_another_content">Хотели бы вы перестать делать это и начать делать это?</string>
+    <string name="doing_swipe_to_finish">Проведите пальцем, чтобы закончить</string>
+    <string name="doing_currently_doing">Сейчас делаю -</string>
+    <string name="doing_left_time">Осталось времени:</string>
+    <string name="doing_failed_careless">Вы \' не сделали это тщательно, поэтому EverythingDone отменил выполнение состояния</string>
+    <string name="doing_failed_next_alarm">Звонит следующий сигнал этой привычки, поэтому EverythingDone отменил состояние выполнения.</string>
+    <string name="doing_failed_change_language">Вы изменили язык приложения, поэтому EverythingDone отменил выполнение состояния.</string>
+    <string name="doing_failed_restore">Вы восстановили данные, поэтому EverythingDone отменил состояние выполнения.</string>
+    <string name="doing_click_to_dismiss">Нажмите, чтобы закрыть это уведомление</string>
+    <string name="doing_alert_first_strict_mode_title">Строгий режим</string>
+    <string name="doing_alert_first_strict_mode_content">У вас сейчас строгий режим. EverythingDone определит, используете ли вы свой телефон для других дел. Если вы покинули эту страницу (разрешена только проверка уведомлений и блокировка экрана) 3 раза или суммарно более 5 минут, обратный отсчет остановится и дело останется незавершенным.</string>
+    <string name="doing_alert_close_strict_twice_title">Невозможно снова отключить строгий режим</string>
+    <string name="doing_alert_close_strict_twice_content">Вы можете выключить строгий режим только один раз. Это \' — хорошая привычка тщательно делать одно дело за раз, поэтому продолжайте в том же духе.</string>
+    <string name="doing_alert_stop_doing_content">Вы уверены, что перестанете это делать?</string>
+    <string name="doing_toast_add5_time_long_alarm">Вы не сможете завершить Привычку один раз до следующего будильника после добавления 5 минут.</string>
+    <string name="doing_toast_add5_time_long_t">Вы не сможете завершить привычку ни разу в этом цикле после добавления 5 минут.</string>
+    <string name="doing_toast_add5_above99">Я не могу коснуться этого будущего</string>
+    <string name="doing_toast_pass_data_error">Невозможно начать делать, потому что во время передачи данных между компонентами приложения произошло что-то плохое.</string>
+    <string name="doing_toast_already_strict_mode">У вас строгий режим</string>
+    <string name="auto_start_doing_start">Автоматически начать делать</string>
+    <string name="auto_start_doing_notification_toast_doing_another">EverythingDone: Только что прозвучал сигнал тревоги \', попытайтесь автоматически начать делать это, но не удалось, потому что вы делаете другое дело</string>
+    <string name="auto_start_doing_notification_toast_doing_habit_this">EverythingDone: Только что поступил сигнал тревоги по привычке\'. Попробуйте автоматически начать выполнять эту привычку в этот раз, но это не удалось, потому что вы делаете это в последний раз.</string>
+    <string name="alert_delete_attachment">Вы уверены, что удалите это вложение?</string>
+    <string name="settings_group_ui">пользовательский интерфейс</string>
+    <string name="settings_group_ringtone">Рингтон</string>
+    <string name="settings_group_data">Данные</string>
+    <string name="settings_group_privacy">Конфиденциальность</string>
+    <string name="settings_group_start_doing">Начни делать</string>
+    <string name="settings_group_advanced">Расширенный</string>
+    <string name="settings_change_drawer_header">Изображение заголовка ящика</string>
+    <string name="default_drawer_header">По умолчанию</string>
+    <string name="settings_app_language">Язык</string>
+    <string name="settings_follow_system_dark_mode">Следуйте темному режиму системы</string>
+    <string name="settings_force_dark_mode">Включить темный режим</string>
+    <string name="change_app_language">Изменить язык приложения</string>
+    <string-array name="languages">
+        <item>@string/follow_system_settings</item>
+        <item>简体中文</item>
+        <item>繁體中文(香港)</item>
+        <item>繁體中文(台灣)</item>
+        <item>English</item>
+        <item>日本語</item>
+        <item>한국어</item>
+        <item>Italiano</item>
+        <item>Español</item>
+        <item>Русский</item>
+        <item>Français</item>
+        <item>Deutsch</item>
+        <item>हिन्दी</item>
+        <item>Português</item>
+    </string-array>
+    <string-array name="language_codes" translatable="false">
+        <item>follow system_</item>
+        <item>zh-CN</item>
+        <item>zh-HK</item>
+        <item>zh-TW</item>
+        <item>en</item>
+        <item>ja</item>
+        <item>ko</item>
+        <item>it</item>
+        <item>es</item>
+        <item>ru</item>
+        <item>fr</item>
+        <item>de</item>
+        <item>hi</item>
+        <item>pt</item>
+    </string-array>
+    <string name="follow_system_settings">Следовать за системой</string>
+    <string name="settings_noticeable_notification">Более заметное уведомление о тревоге</string>
+    <string name="settings_notification_reliability">Напоминание о надежности</string>
+    <string name="settings_group_notification_reliability">Напоминание о надежности</string>
+    <string name="settings_battery_optimization">Игнорировать оптимизацию батареи</string>
+    <string name="settings_battery_optimization_off">Выкл. — напоминания могут задерживаться системой.</string>
+    <string name="settings_battery_optimization_on">Включено — напоминания срабатывают вовремя</string>
+    <string name="settings_autostart">Разрешение автозапуска/фона</string>
+    <string name="settings_autostart_desc">Нажмите, чтобы разрешить автозапуск, чтобы напоминания продолжали активироваться после смахивания приложения. Требуется для прошивок Xiaomi/Huawei/OPPO/Vivo/Honor и аналогичных производителей.</string>
+    <string name="settings_autostart_not_needed">Вашему устройству это не требуется — ПЗУ в стиле Pixel/AOSP поддерживают планирование сигналов тревоги «из коробки».</string>
+    <string name="settings_autostart_unavailable">Страница конкретного поставщика не найдена. Вместо этого открылась информация о приложении — найдите там «Батарея» или «Фоновая активность».</string>
+    <string name="settings_notifications_enabled">Разрешение на уведомление</string>
+    <string name="settings_notifications_enabled_off">Выкл. — ваши напоминания не отображаются. Нажмите, чтобы предоставить.</string>
+    <string name="settings_notifications_enabled_on">Вкл. — напоминания могут отображаться.</string>
+    <string name="settings_full_screen_intent">Разрешение полноэкранного режима тревоги</string>
+    <string name="settings_full_screen_intent_off">Выкл. — «более заметная тревога» не будет вызывать диалог. Нажмите, чтобы предоставить.</string>
+    <string name="settings_full_screen_intent_on">Вкл. — может отображаться полноэкранное диалоговое окно тревоги.</string>
+    <string name="settings_channels_status">Каналы напоминаний/привычек/целей</string>
+    <string name="settings_channels_all_on">Все каналы %1$d включены.</string>
+    <string name="settings_channels_some_off">%1$d из %2$d отключен вами. Нажмите, чтобы исправить.</string>
+    <string name="post_notifications_rationale_title">Разрешить уведомления</string>
+    <string name="post_notifications_rationale_content">EverythingDone требуется разрешение на уведомления, чтобы активировать сигналы напоминаний, привычек и целей. Без него сработает сигнализация, но ничего не появится.</string>
+    <string name="settings_toggle_checklist_thing_card">Переключить элемент контрольного списка на карточке вещи</string>
+    <string name="settings_simple_finished_checklist">Сложите готовые пункты контрольного списка на карточке текущих дел</string>
+    <string name="settings_auto_link">Автоматически связывать номер телефона, веб-страницу и многое другое при проверке чего-либо</string>
+    <string name="settings_twice_back">Нажмите «Назад» дважды, чтобы выйти.</string>
+    <string name="settings_create_animation_style">Анимация граничного света при создании новой вещи</string>
+    <string name="cd_random_pure_background">Случайный чистый цвет</string>
+    <string name="cd_random_gradient_background">Случайный цвет градиента</string>
+    <string name="chooser_ringtone">Выберите рингтон</string>
+    <string name="ringtone_loading">Загрузка мелодии...</string>
+    <string name="auto_save_edits_title">Автоматически сохранять данные при редактировании вещи</string>
+    <string name="auto_save_edits_help_info">Если вы\'создаете или обновляете вещь и выходите из интерфейса, EverythingDone автоматически сохранит ваши изменения в содержимом Thing\'.
+        \n\nПримечание: EverythingDone не сохраняет изменения, связанные с напоминанием, привычкой или целью. Например, если вы измените время будильника Thing\'s, оно\' не будет сохранено автоматически.</string>
+    <string name="backup">Резервное копирование</string>
+    <string name="backup_content">Ваши вещи и предпочтения будут сохранены. После резервного копирования EverythingDone будет продолжать напоминать вам обо всех напоминаниях, привычках и целях. Однако мы не будем создавать резервные копии вложений. Если они необходимы, сделайте их резервную копию самостоятельно. Файлы вложений находятся в папке sdcard/EverythingDone.</string>
+    <string name="backup_failed_content">Пожалуйста, попробуйте еще раз или отправьте отзыв разработчику.</string>
+    <string name="backup_failed_title">Резервное копирование не удалось</string>
+    <string name="backup_loading_content">Пожалуйста, подождите некоторое время. Может быть, ты можешь выпить что-нибудь.</string>
+    <string name="backup_loading_title">Резервное копирование</string>
+    <string name="backup_start">Начать резервное копирование</string>
+    <string name="backup_success_content">Файл резервной копии находится по адресу sdcard/EverythingDone/backup, имя которого начинается с \\"ED_backup_\\", а постфикс — \\".bak\\".</string>
+    <string name="backup_success_title">Резервное копирование успешно выполнено</string>
+    <string name="last_backup">Последняя резервная копия:</string>
+    <string name="no_backup_before">Никакой резервной копии раньше</string>
+    <string name="restore">Восстановить</string>
+    <string name="restore_content">Выберите действительный файл резервной копии EverythingDone, постфикс которого должен быть \\".bak\\". Местоположение резервных копий по умолчанию — sdcard/EverythingDone/backup.</string>
+    <string name="restore_failed_other">Убедитесь, что файл резервной копии действителен.</string>
+    <string name="restore_failed_title">Восстановление не удалось</string>
+    <string name="restore_loading_content">Пожалуйста, подождите некоторое время. Как насчет того, чтобы съесть что-нибудь?</string>
+    <string name="restore_loading_title">Восстановление</string>
+    <string name="restore_choose_backup_file">Выберите файл резервной копии</string>
+    <string name="restore_success_content">Пожалуйста, дождитесь перезапуска приложения. Не делайте ничего, пока приложение не будет полностью перезапущено, чтобы сохранить ваши данные в безопасности.</string>
+    <string name="restore_success_title">Восстановить успешно</string>
+    <string name="set_app_password">Установите пароль для EverythingDone</string>
+    <string name="change_app_password">Изменить пароль для EverythingDone</string>
+    <string name="set_app_password_detail">Пароль будет использоваться для аутентификации вашей личности при настройке или проверке личных вещей, резервном копировании, восстановлении и т. д.</string>
+    <string name="use_fingerprint">Использовать отпечаток пальца</string>
+    <string name="password_not_set">Пароль не установлен.</string>
+    <string name="draw_pattern">Нарисуйте узор</string>
+    <string name="relax_finger_when_finish">Отпустите палец, когда закончите</string>
+    <string name="draw_pattern_again">Нарисуйте рисунок еще раз для подтверждения.</string>
+    <string name="pattern_not_same">Узор другой</string>
+    <string name="draw_pattern_finished">Шаблон записан</string>
+    <string name="done">Готово</string>
+    <string name="last">Назад</string>
+    <string name="confirm_pattern">Подтвердите свой шаблон</string>
+    <string name="wrong_pattern">Неправильный шаблон</string>
+    <string name="not_support_fgprt">Ваше устройство не поддерживает стандартный модуль отпечатков пальцев Android.</string>
+    <string name="system_fgprt_not_set">Системный модуль отпечатков пальцев не включен. Пожалуйста, перейдите в «Настройки» -&gt; «Безопасность» -&gt; «Отпечаток пальца», чтобы включить его.</string>
+    <string name="fgprt_not_enrolled">Отпечаток пальца отсутствует. Пожалуйста, перейдите в «Настройки» -&gt; «Безопасность» -&gt; «Отпечаток пальца» и зарегистрируйте хотя бы один отпечаток пальца.</string>
+    <string name="check_private_thing">Проверить личную вещь</string>
+    <string name="confirm_fingerprint">Подтвердите отпечаток пальца, чтобы продолжить</string>
+    <string name="touch_sensor">Сенсорный датчик отпечатков пальцев</string>
+    <string name="use_fingerprint_to_verify">Используйте заранее заданный отпечаток пальца как более простой способ подтвердить свою личность.</string>
+    <string name="use_pattern">Использовать шаблон</string>
+    <string name="fingerprint_error_part_1">Вы все еще можете попробовать</string>
+    <string name="fingerprint_cannot_use_to_verify">Сейчас вы не можете использовать отпечаток пальца для подтверждения своей личности.</string>
+    <string name="fingerprint_verify_success">Подтвердите свою личность успешно!</string>
+    <string name="warning_title_should_not_be_empty">Если вы хотите сделать эту вещь частной, сначала задайте для нее название.</string>
+    <string name="warning_should_set_password_first">Вы не установили пароль для EverythingDone. Пожалуйста, перейдите в «Настройки» -&gt; «Конфиденциальность» -&gt; «Установить пароль для EverythingDone» и сначала установите шаблон.</string>
+    <string name="cannot_set_as_private_thing_title">Невозможно установить как личное</string>
+    <string name="auto_start_doing_title">Начни делать, когда зазвенит будильник</string>
+    <string-array name="auto_start_doing_options">
+        <item>Запрещать</item>
+        <item>Включить для напоминания</item>
+        <item>Включить по привычке</item>
+        <item>Включить для обоих</item>
+    </string-array>
+    <string-array name="auto_start_doing_states">
+        <item>Неполноценный</item>
+        <item>Включено для напоминания</item>
+        <item>Включено по привычке</item>
+        <item>Включено для обоих</item>
+    </string-array>
+    <string name="auto_start_doing_time_reminder_title">Автоматическое начало отсчета времени для напоминания</string>
+    <string name="auto_start_doing_time_habit_title">Автоматический запуск времени для привычки</string>
+    <string name="auto_strict_mode_title">Войдите в строгий режим, когда начнете делать</string>
+    <string name="auto_strict_mode_help_content">Когда вы начнете что-то делать и включите строгий режим, EverythingDone определит, используете ли вы свой телефон для других дел. Если вы покинули страницу обратного отсчета (разрешены только проверка уведомлений и блокировка экрана) 3 раза или суммарно более чем на 5 минут, обратный отсчет остановится и дело останется незавершенным.</string>
+    <string name="quick_create_title">Создавайте новое быстро</string>
+    <string name="quick_create_description">Показывать постоянное уведомление, чтобы обеспечить доступ к быстрому созданию.</string>
+    <string name="ongoing_lockscreen">Показывать постоянное уведомлениеthing\' также на экране блокировки</string>
+    <string name="close_notification_later">Не разрешайте \' закрывать заметное уведомление в течение 2 секунд после его появления.</string>
+    <string name="create_daily_todo_automatically">Создавайте ежедневные TODO каждое утро</string>
+    <string name="create_daily_todo_help_info">EverythingDone каждое утро автоматически создаст объект с заголовком \\"Things to do на MM d, yyyy\\", и вы сможете определить его содержание (если вы не сделаете \'t и оставите содержимое и вложение пустыми, объект не будет создан).
+        \n\nМы также установим напоминание об этом в 14:00, потому что вы, возможно, захотите получать напоминание о завершении своих планов и задач.</string>
+    <string name="auto_notify">Автоматическое напоминание</string>
+    <string name="auto_notify_help_info">EverythingDone автоматически напомнит вам после создания новой вещи. Если вы не \' не создавали запись, EverythingDone решит, следует ли устанавливать автоматическое напоминание в соответствии со временем напоминания вещи\'.</string>
+    <string name="auto_notify_set_time">Установите время автоматического напоминания</string>
+    <string name="auto_notify_ringtone">Автоматическое напоминание\nРингтон</string>
+    <string name="statistic_start_from_part_1">Я использую EverythingDone с тех пор</string>
+    <string name="statistic_start_from_part_2">. Во время</string>
+    <string name="statistic_start_from_part_3">, я закончил и создал:</string>
+    <string name="statistic_note_audio_count">Аудио</string>
+    <string name="statistic_note_char_count">Персонаж</string>
+    <string name="statistic_note_image_count">Изображение</string>
+    <string name="statistic_note_video_count">Видео</string>
+    <string name="statistic_note_record">Я записал эти вещи в Note:</string>
+    <string name="statistic_reminder_completion_rate">Напоминание\'s \nПроцент выполнения</string>
+    <string name="statistic_reminder_finish_time">Среднее \nвремя окончания</string>
+    <string name="statistic_reminder_in_advance">Завершено \n заранее</string>
+    <string name="statistic_reminder_notify_time">Среднее время напоминания \n</string>
+    <string name="statistic_reminder_record">Вот некоторые данные о напоминании:</string>
+    <string name="statistic_second">s</string>
+    <string name="statistic_year">y</string>
+    <string name="statistic_hour">h</string>
+    <string name="statistic_minute">m</string>
+    <string name="statistic_day">d</string>
+    <string name="statistic_habit_completion_rate">Скорость завершения</string>
+    <string name="statistic_habit_longest_pit">Самый длинный\nПостоянный цикл</string>
+    <string name="statistic_habit_record">Я решил выработать некоторые привычки. Мои работы следующие:</string>
+    <string name="statistic_habit_longest_finish_times">Самый длинный непрерывный\nВремя окончания</string>
+    <string name="statistic_habit_developed_rate">Привычка\'s\nУровень заботы</string>
+    <string name="statistic_habit_finished_all">Время завершения\n/Общее время</string>
+    <string name="statistic_goal_record">Я поставил перед собой некоторые цели. Пусть \'s увидит мое выступление:</string>
+    <string name="statistic_goal_completion_rate">Цель\'s\nПроцент выполнения</string>
+    <string name="statistic_goal_notify_time">Средний срок</string>
+    <string name="share_statistic">Поделюсь своей историей использования</string>
+    <string name="send_feedback_to_developer">Отправьте письмо разработчику для обратной связи</string>
+    <string name="support_donate">ПОЖЕРТВОВАТЬ ДЛЯ МЕНЯ</string>
+    <string name="support_star">ОЦЕНИТЕ ЭТО ПРИЛОЖЕНИЕ НА РЫНКЕ</string>
+    <string name="support_content">Вы можете поделиться этим приложением с друзьями или отправить мне отзыв. Кроме того, рейтинг EverythingDone на рынке приложений также является хорошим выбором. Если вы даже готовы пожертвовать для меня, я буду очень признателен за это.</string>
+    <string name="support_select_market">Выберите рынок приложений</string>
+    <string name="support_donate_clip_content">532061865@qq.com</string>
+    <string name="support_donate_clip_title">Счет Alipay</string>
+    <string name="support_donate_content">Моя учетная запись Alipay — 532061865@qq.com. Ваше пожертвование меня очень воодушевит. Спасибо!</string>
+    <string name="support_donate_copy_name">КОПИРОВАТЬ АККАУНТ</string>
+    <string name="month_day">день</string>
+    <string name="about_motto">Не забудьте закончить, \n и закончить дела</string>
+    <string name="about_version">версия:</string>
+    <string name="about_license">ЛИЦЕНЗИИ С ОТКРЫТЫМ ИСТОЧНИКОМ</string>
+    <string name="app_share_info">Вам трудно все запомнить и закончить? EverythingDone может напоминать вам обо всех занятиях, помогать развивать привычки и достигать целей. Здесь вы также можете писать истории и записывать жизни. Чтобы установить, выполните поиск «EverythingDone» в Google Play.</string>
+    <string name="all">Все</string>
+    <string name="app_widget_config_alpha">Альфа:</string>
+    <string name="things_list_config_alpha_header">Прозрачная верхняя панель</string>
+    <string name="things_list_config_simple_view">Используйте более простой вид вещей</string>
+    <string name="notification_has_attachment">[Вложение]</string>
+    <string name="notification_private_thing_content">[Личное дело]</string>
+    <string name="notification_toast_checking_when_alarm_comes">EverythingDone: Только что поступил сигнал тревоги от вещи\', пока вы ее проверяли.</string>
+    <string name="notification_toast_checking_action">Вы проверяете эту вещь</string>
+    <string name="app_crash_title">Обнаружен сбой</string>
+    <string name="app_crash_content">Вы можете отправить отзыв разработчику прямо сейчас, чтобы он исправил ошибку как можно скорее, даже если он еще не обедал и не спал.\nВы также можете отправить отзыв в любое другое удобное для вас время на странице «О программе». В этот момент вам просто нужно добавить связанный файл журнала (в sdcard/EverythingDone/log вы можете выбрать наиболее связанный файл в соответствии со временем их создания, которое будет указано в их именах) в качестве вложения к электронному письму с отзывом.</string>
+    <string name="app_crash_send_now">Отправьте отзыв сейчас</string>
+    <string name="celebration_habit_part_1">Вы\'е придерживаетесь этой привычки уже</string>
+    <string name="celebration_habit_part_2">, закончил</string>
+    <string name="celebration_habit_part_3">и, наконец, разработал его сегодня. Какая трудная, но красивая дорога!</string>
+    <string name="celebration_goal_part_1">Вы потратили</string>
+    <string name="celebration_goal_part_2">достижение цели. Теперь \' пришло время праздновать!</string>
+    <string name="celebration_goal_part_3">Для меня \' большая честь оставаться с вами, когда вы\' идете по пути к успеху, и помогать вам. Я искренне надеюсь, что ты сможешь стать еще лучше.</string>
+    <string name="celebration_habit_part_4">Он\' так рад видеть тебя лучше. EverythingDone всегда поможет вам стать лучше.</string>
+    <string name="export_loading_title">Экспорт на SD-карту...</string>
+    <string name="export_loading_content">Пожалуйста, подождите некоторое время. Пусть \'s поиграют ОЙ!!!</string>
+    <string name="export_success_title">Экспортировать успешно</string>
+    <string name="export_success_content_part_1">Экспортированная вещь %1$d</string>
+    <string name="export_success_content_part_2">. Перейдите в sdcard/EverythingDone/export и проверьте соответствующий zip-файл.</string>
+    <string name="export_failed_title">Экспорт не выполнен</string>
+    <string name="export_failed_content">Пожалуйста, повторите попытку позже</string>
+    <string name="cd_open_drawer">Открыть панель навигации</string>
+    <string name="cd_close_drawer">Закрыть панель навигации</string>
+    <string name="cd_quit_searching">Завершить поиск</string>
+    <string name="cd_habit_unfinished">Незаконченный</string>
+    <string name="cd_habit_finished">Законченный</string>
+    <string name="cd_habit_unknown">Неизвестно</string>
+    <string name="cd_drawer_header">Нажмите, чтобы проверить мои данные об использовании. Краткая статистика:</string>
+    <string name="cd_statistic_header">Статистика моего использования</string>
+    <string name="cd_back_note">Дело в записке, назад</string>
+    <string name="cd_back_reminder">Дело в напоминании, назад</string>
+    <string name="cd_back_habit">Дело в привычке, назад</string>
+    <string name="cd_back_goal">Дело в том, что цель, назад</string>
+    <string name="cd_day">День</string>
+    <string name="cd_checklist_unfinished_item">Незавершенная вещь</string>
+    <string name="cd_checklist_finished_item">Готовая вещь</string>
+    <string name="cd_checklist_more_items">Больше пунктов контрольного списка</string>
+    <string name="cd_checklist_unfinished_item_clickable">Незаконченный элемент, нажмите, чтобы закончить</string>
+    <string name="cd_checklist_finished_item_clickable">Готовая вещь, нажмите, чтобы отменить завершение</string>
+    <string name="cd_checklist_move">нажмите и перетащите, чтобы переместить этот элемент</string>
+    <string name="cd_checklist_expand_finished_items">Развернуть готовые элементы чек-листа</string>
+    <string name="cd_checklist_shrink_finished_items">Уменьшите готовые элементы контрольного списка</string>
+    <string name="cd_delete_checklist_item">удалить элемент</string>
+    <string name="cd_help_auto_strict_mode">Помощь по автоматическому строгому режиму</string>
+    <string name="cd_help_automatic_reminder">Помощь для автоматического напоминания</string>
+    <string name="cd_chosen_item">Выбранный,</string>
+    <string name="cd_not_chosen_item">Не избранный,</string>
+    <string name="cd_pattern_area">Область узора из девяти точек</string>
+    <string name="cd_image_attachment">вложение изображения</string>
+    <string name="cd_video_attachment">видео вложение</string>
+    <string name="cd_audio_attachment">аудио вложение</string>
+    <string name="cd_play_video_attachment">Воспроизвести видео</string>
+    <string name="cd_play_audio_attachment">Воспроизвести аудио</string>
+    <string name="cd_pause_play_audio_attachment">Приостановить воспроизведение звука</string>
+    <string name="cd_stop_play_audio_attachment">Остановить воспроизведение звука</string>
+    <string name="cd_delete_audio_attachment">Удалить это аудиоприложение</string>
+    <string name="cd_audio_attachment_info">Подробности об аудиофайле</string>
+    <string name="cd_start_record_audio">Начать запись</string>
+    <string name="cd_stop_record_audio">Остановить запись</string>
+    <string name="cd_save_recorded_audio_file">Сохранить записанный файл и вернуться обратно</string>
+    <string name="cd_re_recording_audio">перезаписать</string>
+    <string name="cd_cancel_recording_audio">отменить запись</string>
+    <string name="cd_delete_image_attachment">удалите это вложение с изображением</string>
+    <string name="cd_delete_video_attachment">удалите это видео вложение</string>
+    <string name="cd_reminder_time">Время напоминания</string>
+    <string name="cd_delete_reminder_time_day_rec">Удалить это время напоминания</string>
+    <string name="cd_picked">Выбранный,</string>
+    <string name="cd_unpicked">Невыбранный,</string>
+    <string name="gradient_orientation_title">Направление градиента</string>
+    <string name="cd_gradient_orientation_l_r">слева направо</string>
+    <string name="cd_gradient_orientation_t_b">сверху вниз</string>
+    <string name="cd_gradient_orientation_lt_rb">сверху слева в низ справа</string>
+    <string name="cd_gradient_orientation_rt_lb">сверху справа в низ слева</string>
+    <string name="cd_gradient_orientation_lb_rt">снизу слева вверху справа</string>
+    <string name="cd_gradient_orientation_rb_lt">из нижнего правого в верхний левый</string>
+    <string name="cd_gradient_orientation_r_l">справа налево</string>
+    <string name="cd_gradient_orientation_b_t">снизу вверх</string>
+    <string name="act_change_gradient_orientation">Изменить направление</string>
+    <string name="cd_app_widget_preview_background">Фон предварительного просмотра виджета приложения</string>
+    <string name="cd_things_list_widget_setting">настройки виджета приложения списка вещей</string>
+    <string name="cd_doing">В настоящее время\nВ работе</string>
+    <string name="cd_doing_add_5_min">Добавьте 5 минут</string>
+    <string name="cd_doing_strict_mode_off">Войдите в строгий режим</string>
+    <string name="cd_doing_strict_mode_on">Выйти из строгого режима</string>
+    <string name="cd_doing_cancel_doing">Отменить выполнение этого действия</string>
+    <string name="cd_cancel_noticeable_notification">Отменить это уведомление</string>
+    <string name="help_detail">Подробности помощи</string>
+    <string-array name="help_titles">
+        <item>Зачем нужна эта страница?</item>
+        <item>Как рассказать разработчику о своих мыслях?</item>
+        <item>Как классифицируются записи, напоминания, привычки и цели?</item>
+        <item>Почему я не могу вручную сделать запись напоминанием, привычкой или целью?</item>
+        <item>Почему я не получаю напоминания?</item>
+        <item>Какие разрешения нужны EverythingDone и почему?</item>
+        <item>Почему после завершения всего появляется новая запись и её нельзя смахнуть? Моё ОКР почти плачет.</item>
+        <item>Можно ли посмотреть статистику по напоминаниям и привычкам?</item>
+        <item>Почему процент завершения не изменился после удаления записи?</item>
+        <item>Почему привычка может напоминать максимум 4 раза в день? Почему нельзя настроить несколько напоминаний через несколько циклов?</item>
+        <item>Почему завершённые и созданные записи входят в формулу процента завершения, а выполнения привычек в циклах нет?</item>
+        <item>Почему ещё нет синхронизации?</item>
+        <item>Будет ли больше цветов записей?</item>
+        <item>Почему не поддерживается лунный календарь?</item>
+        <item>Почему миниатюры изображений обрезаются неудачно, а большие изображения недостаточно чёткие?</item>
+        <item>Есть ли пасхалки в EverythingDone? (,,• ₃ •,,)</item>
+    </string-array>
+    <string-array name="help_contents" formatted="false">
+        <item>Эта страница отвечает на вопросы, которые могут возникнуть при использовании EverythingDone, и объясняет некоторые идеи за настройками. Мысли разработчика могут отличаться от мыслей пользователя, но именно эти отличия формируют характер приложения. Страница будет обновляться.</item>
+        <item>Можно отправить письмо через кнопку обратной связи в разделе помощи или о приложении, оставить комментарий на странице EverythingDone в Coolapk или приложить сообщение к пожертвованию, если вы хотите поблагодарить разработчика.</item>
+        <item>Запись: фиксирует людей, события или сцены из жизни без напоминаний.
+
+Напоминание: EverythingDone уведомляет в течение 4 недель, то есть 28 дней, после создания.
+
+Привычка: EverythingDone повторяет уведомления с дневным, недельным, месячным или годовым циклом.
+
+Цель: EverythingDone уведомляет минимум через 4 недели после создания; обычно это требует долгосрочных усилий.</item>
+        <item>Главная причина в том, что вы должны сосредоточиться на самой задаче, а не на выборе её типа. Укажите, когда напомнить и должно ли напоминание быть разовым или повторяющимся; EverythingDone сам определит тип: краткосрочное напоминание, повторяющаяся привычка или долгосрочная цель.
+
+Ручное изменение типа сейчас создало бы много ошибок и потребовало бы серьёзной переработки, вероятно не раньше EverythingDone 2.0.</item>
+        <item>В системах вроде MIUI, flyme или EMUI дайте EverythingDone разрешения на автозапуск, работу в фоне, запуск из фона и уведомления. Добавьте приложение в белые списки энергосбережения, очистки, оптимизации и управления уведомлениями. Если напоминаний всё ещё нет, отправьте модель телефона, тип системы и версию.</item>
+        <item>EverythingDone нужны автозапуск для напоминаний, доступ к хранилищу для вложений и снимков экрана, запись звука для аудиовложений, вибрация для лучшего уведомления, отпечаток пальца на Android 6.0+ для приватных записей и удержание устройства активным для таймера. Лишние разрешения не запрашиваются и не используются неправильно.</item>
+        <item>После завершения всех записей одного типа приложение показывает поздравление, автоматически создавая новую запись. Без неё страница выглядела бы пустой и несбалансированной; хорошее пустое состояние требует времени. Менять это поведение сейчас означало бы переписать много кода.
+
+На самом деле у меня тоже есть немного ОКР.</item>
+        <item>Да. Откройте боковое меню и нажмите верхнее изображение, чтобы перейти к статистике: время использования, число написанных слов, среднее время напоминаний, показатель формирования привычек и другое.</item>
+        <item>Обычная формула: завершённые записи, без учёта выполнений привычек внутри циклов, делятся на созданные записи. Удаление записи не отменяет факт её создания, поэтому процент не меняется.</item>
+        <item>Напоминания вроде несколько раз каждые несколько циклов требуют точного времени каждого уведомления. Пользователю вводить это сложно, приложение не сможет выбрать время достаточно умно, а Android требует равные интервалы повторения. Поэтому сейчас доступны частоты по дням, неделям, месяцам или годам, максимум 4 раза в день.</item>
+        <item>Иногда мы записываем дела, не зная, когда они должны быть завершены, поэтому записи входят в формулу. Привычки же не увеличивают общий процент при каждом выполнении; он меняется, когда привычка сформирована. Подробная статистика привычек доступна в статистике и на странице привычки.</item>
+        <item>Для приложения заметок и напоминаний синхронизация важна, но разработчику ещё нужно время, чтобы её завершить.</item>
+        <item>В макете были мягкая и спокойная палитры, но выбор спокойных цветов занял почти неделю. Новые цвета нужно согласовать с существующими цветами, текстом и диалогами. Зелёный и фиолетовый появились в 1.2.2, оранжевый и красный в 1.3.5; позже возможны дополнительные темы.</item>
+        <item>Вычислять лунную дату сложно, а вводить её пользователю неудобно. Это редкая функция, с которой я пока не знаю, с чего начать; возможно, она появится в течение 10 лет.</item>
+        <item>У разных изображений главный объект находится в разных местах, и программа не может это определить, поэтому миниатюра берётся из центра. Большие изображения сжимаются, потому что оригинал требует слишком много ресурсов Android; системный алгоритм не так хорош, как у специализированных приложений.</item>
+        <item>Я специально спрятал три пасхалки. Если найдёте все, свяжитесь со мной, и я пришлю приз~
+
+Хотя все вы всё равно не найдёте. Хахахаха.</item>
+    </string-array>
+    <string name="title_important_alert">ЭТО ВАЖНОЕ УВЕДОМЛЕНИЕ</string>
+    <string name="content_important_reminder_permission">Если вы используете приложения, которые могут улучшить вашу систему Android, или на вашем телефоне есть такие предустановленные приложения, добавьте EverythingDone в их белый список, в противном случае вы не сможете получать уведомления от EverythingDone.\n\n Кроме того, предоставьте разрешения, которые EverythingDone запрашивает в диспетчере разрешений. Эти разрешения: \n (1) Автоматическая загрузка после загрузки телефона, используется для создания уведомлений для напоминаний, привычек и целей; \n (2) Чтение/запись внешнего хранилища, используется для вставки файла в качестве вложения к вещам; \n (3) Запись звука, используется для записи звука в качестве вложения к вещам; \n (4) Вибрация, помогает генерировать более качественные уведомления, чтобы вы могли закончить дела. \nEverythingDone обещает, что это не сможет\' использовать эти разрешения для совершения плохих поступков. Спасибо.</string>
+    <string name="from_1_1_4_to_1_1_5_title">Отмена/Повтор теперь поддерживаются.</string>
+    <string name="from_1_1_4_to_1_1_5_content">Нажмите кнопку меню, вы увидите там «Отменить» и «Повторить». Теперь вы можете в любой момент вернуть свои вещи в прошлое или будущее, если захотите.</string>
+    <string name="from_1_2_7_to_1_3_0_title">Дела? Делать!</string>
+    <string name="from_1_2_7_to_1_3_0_content">Будет более заметное уведомление о сигналах тревоги Things\'. Если вы готовы, можете приступить к делу сразу после уведомления, EverythingDone поможет вам аккуратно его завершить.</string>
+    <string name="from_1_3_0_to_1_3_1_title">Начните делать что-то в любой момент или автоматически</string>
+    <string name="from_1_3_0_to_1_3_1_content">Теперь вы можете смахнуть карточку предмета вправо, чтобы начать делать это в любой момент.\n\nКроме того, теперь вы также можете включить автоматическое начало выполнения дела, когда приходит напоминание, с помощью еще одной новой функции, автоматического перехода в строгий режим, EverythingDone может помочь вам больше не говорить \\"сделать это позже\\".</string>
+    <string name="from_1_3_3_to_1_3_4_title">Автоматически сохраняйте изменения и меняйте записи о привычках</string>
+    <string name="from_1_3_3_to_1_3_4_content">Теперь вы можете включить автоматическое сохранение правок при создании или обновлении вещи.
+    \n\nВы также можете изменить свои последние записи о привычках, чтобы исправить ошибки или восстановить потерянные воспоминания. Проверьте привычку, откройте меню, нажмите \\"проверить подробности привычки\\", и вы увидите это действие.</string>
+    <string name="channel_reminder">Напоминания</string>
+    <string name="channel_habit">Привычки</string>
+    <string name="channel_goal">Цели</string>
+    <string name="channel_doing">Режим работы</string>
+    <string name="channel_quick_create">Быстрое создание</string>
+    <string name="channel_ongoing">Постоянное уведомление</string>
+    <string name="channel_auto_notify">Автоматическое уведомление</string>
+</resources>

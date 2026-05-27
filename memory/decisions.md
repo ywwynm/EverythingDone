@@ -675,3 +675,20 @@ black color filter on light backgrounds, white-side assets or a white color
 filter on dark backgrounds. This covers checklist state, private lock,
 sticky/ongoing, reminder/goal, habit, habit record, audio attachment, and
 finished/deleted state icons.
+
+## 2026-05-27 - App language selection uses AppCompat locales plus context wrapping
+
+The old in-app language path mutated only `App.getApp().resources` through
+`Resources.updateConfiguration(...)`. That is not a reliable Activity
+localisation boundary after the Android 16 / AppCompat update, especially when
+the selected app language differs from the system language.
+
+Use a two-layer locale path instead:
+- wrap `Application` and Activity base contexts from the stored app-language
+  preference so resources are correct before layout inflation;
+- keep `AppCompatDelegate.setApplicationLocales(...)` in sync so AppCompat and
+  Android's per-app language machinery see the same locale.
+
+Settings language preselection must compare saved language codes, not displayed
+language names, because displayed names are locale-dependent and can belong to
+the previous resource configuration.

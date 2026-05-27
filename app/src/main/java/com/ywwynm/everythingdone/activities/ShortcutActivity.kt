@@ -1,5 +1,6 @@
 package com.ywwynm.everythingdone.activities
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
@@ -13,6 +14,7 @@ import com.ywwynm.everythingdone.database.ThingDAO
 import com.ywwynm.everythingdone.model.Reminder
 import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.model.ThingBackground
+import com.ywwynm.everythingdone.utils.LocaleUtil
 import com.ywwynm.everythingdone.utils.ThingsSorter
 
 import java.util.ArrayList
@@ -24,6 +26,10 @@ import java.util.Collections
  * Used to handle shortcut actions.
  */
 open class ShortcutActivity : AppCompatActivity() {
+
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(LocaleUtil.attachBaseContext(newBase))
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
