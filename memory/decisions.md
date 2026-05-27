@@ -2,6 +2,20 @@
 
 ## 2026-05-27
 
+### Background DetailActivity refreshes from storage after remote widget actions
+
+Launcher widget and notification actions should only be blocked when the
+matching `DetailActivity` is actually visible in the foreground. A stopped but
+still alive Detail screen, such as one left by pressing Home, must not prevent
+the remote action from writing the database.
+
+`DetailActivity` should keep a rendered Thing snapshot and, when returning to
+the foreground, compare that snapshot with the latest Thing from the manager or
+DAO. If the same Thing was changed externally while Detail was stopped, rebuild
+the screen instead of calling `initUI()` directly. `initUI()` is not a safe
+standalone refresh entry point because it assumes freshly initialised views,
+adapters, watchers, and undo/redo state.
+
 ### ThingsActivity header collapse endpoint is measured, not density-guessed
 
 `ActivityHeader` should not rely on hard-coded `scrollY * factor` values to

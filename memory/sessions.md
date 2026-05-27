@@ -1,5 +1,33 @@
 # Sessions
 
+## 2026-05-27 - DetailActivity catches widget updates after Home
+
+Fixed the remote-widget path where a user could open a Thing in
+`DetailActivity`, press Home, change that same Thing from a desktop widget, and
+return through Recents to a stale Detail screen.
+
+Changes:
+- `App` now tracks Detail screens that are actually foreground-visible, not
+  only alive in the task.
+- Reminder/goal and habit widget finish actions are blocked only when the
+  matching Detail screen is visible. A stopped Detail left by pressing Home no
+  longer prevents the receiver from writing the database.
+- `DetailActivity` records a rendered Thing snapshot, marks matching remote UI
+  broadcasts while stopped, and on resume compares the snapshot with the latest
+  Thing from the manager/DAO. If the Thing changed externally, Detail disables
+  its pause-time autosave for that recreation and calls `recreate()` rather
+  than treating `initUI()` as a standalone refresh API.
+- Added a short bounded retry for the async state-update path so returning very
+  quickly after a widget finish does not miss the database write.
+
+Verification:
+- `git diff --check` passed with CRLF warnings only.
+- `.\gradlew.bat :app:assembleDebug --console=plain` passed twice after the
+  implementation and retry correction.
+- The debug APK was produced at
+  `app/build/outputs/apk/debug/app-debug.apk` at `2026-05-27 20:01:14`.
+- No device Recents/widget smoke test was run from the agent session.
+
 ## 2026-05-27 - ThingsActivity header collapse centering
 
 Committed the completed localization/language-switching work as `ebeb9aa`.

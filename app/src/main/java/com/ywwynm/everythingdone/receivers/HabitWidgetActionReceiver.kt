@@ -27,7 +27,7 @@ open class HabitWidgetActionReceiver : BroadcastReceiver() {
             val id: Long = intent.getLongExtra(Def.Communication.KEY_ID, -1)
             var position: Int = intent.getIntExtra(Def.Communication.KEY_POSITION, -1)
 
-            for (dId in App.getRunningDetailActivities()) if (dId == id) {
+            if (App.isDetailActivityVisible(id)) {
                 return
             }
 

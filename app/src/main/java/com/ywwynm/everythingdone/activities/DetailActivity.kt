@@ -182,6 +182,9 @@ class DetailActivity : EverythingDoneBaseActivity() {
     private var mDateTimeDialogFragment: DateTimeDialogFragment? = null
     private var mLimit: Int = -1
     private var mNightModeMask: Int = 0
+    private var mRenderedThingSnapshot: ThingSnapshot? = null
+    private var mReloadFromStorageOnResume: Boolean = false
+    private var mExternalUpdateRefreshRetries: Int = 0
 
     private var mFlRoot: FrameLayout? = null
     private var mColorPicker: ColorPicker? = null
@@ -229,6 +232,21 @@ class DetailActivity : EverythingDoneBaseActivity() {
 
     private var mShouldAutoLink: Boolean = false
 
+    private data class ThingSnapshot(
+        val id: Long,
+        val type: Int,
+        val state: Int,
+        val color: Int,
+        val background: String?,
+        val title: String?,
+        val content: String?,
+        val attachment: String?,
+        val location: Long,
+        val createTime: Long,
+        val updateTime: Long,
+        val finishTime: Long
+    )
+
     /**
      * This OnTouchListener will listen to click events that should be handled by
      * link/phoneNum/email/maps in mEtContent and other EditTexts.
@@ -253,6 +271,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
                     if (thing != null && mThing != null) {
                         val thingId = mThing!!.id
                         if (thing.id == thingId) {
+                            markReloadFromStorageOnResume()
                             if (Thing.isReminderType(thing.type)) {
                                 mReminder = ReminderDAO.getInstance(App.getApp())!!.getReminderById(thingId)
                                 updateBottomBarForReminder()
@@ -268,7 +287,11 @@ class DetailActivity : EverythingDoneBaseActivity() {
                 } else if (resultCode == Def.Communication.RESULT_UPDATE_THING_STATE_DIFFERENT) {
                     val thing: Thing? = intent.getParcelableExtra(Def.Communication.KEY_THING)
                     if (thing != null && mThing != null && thing.id == mThing!!.id) {
-                        finish()
+                        if (App.isDetailActivityVisible(mThing!!.id)) {
+                            finish()
+                        } else {
+                            markReloadFromStorageOnResume()
+                        }
                     }
                 }
             } else if (Def.Communication.BROADCAST_ACTION_FINISH_DETAILACTIVITY == action) {
@@ -291,6 +314,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
         if (mThing != null) {
             findViews()
             initUI()
+            recordRenderedThingSnapshot()
             setActionbar()
             setEvents()
 
@@ -460,6 +484,83 @@ class DetailActivity : EverythingDoneBaseActivity() {
         val pair: Pair<Thing, Int> = App.getThingAndPosition(mApp, oriId, -1)
         mThing = pair.first
         mPosition = pair.second ?: -1
+    }
+
+    private fun recordRenderedThingSnapshot() {
+        mRenderedThingSnapshot = createThingSnapshot(mThing)
+        mReloadFromStorageOnResume = false
+        mExternalUpdateRefreshRetries = 0
+    }
+
+    private fun createThingSnapshot(thing: Thing?): ThingSnapshot? {
+        if (thing == null) return null
+        return ThingSnapshot(
+            thing.id,
+            thing.type,
+            thing.state,
+            thing.getColor(),
+            thing.getBackground()?.toJson(),
+            thing.title,
+            thing.content,
+            thing.attachment,
+            thing.location,
+            thing.createTime,
+            thing.updateTime,
+            thing.finishTime
+        )
+    }
+
+    private fun loadLatestThingAndPosition(id: Long): Pair<Thing?, Int> {
+        val pair: Pair<Thing, Int> = App.getThingAndPosition(mApp, id, mPosition)
+        if (pair.first != null) {
+            return Pair(pair.first, pair.second ?: -1)
+        }
+
+        return Pair(ThingDAO.getInstance(mApp)!!.getThingById(id), -1)
+    }
+
+    private fun refreshFromExternalUpdateIfNeeded() {
+        if (mType != UPDATE || mThing == null) return
+
+        val renderedSnapshot = mRenderedThingSnapshot ?: createThingSnapshot(mThing)
+        if (renderedSnapshot == null) return
+
+        val pair = loadLatestThingAndPosition(mThing!!.id)
+        val latestThing = pair.first
+        if (latestThing == null) {
+            finish()
+            return
+        }
+
+        val latestSnapshot = createThingSnapshot(latestThing)
+        if (!mReloadFromStorageOnResume && latestSnapshot == renderedSnapshot) return
+        if (latestSnapshot == renderedSnapshot) {
+            if (mExternalUpdateRefreshRetries < EXTERNAL_UPDATE_REFRESH_MAX_RETRIES) {
+                mExternalUpdateRefreshRetries++
+                mFlRoot!!.postDelayed({ refreshFromExternalUpdateIfNeeded() }, 180)
+            } else {
+                mReloadFromStorageOnResume = false
+                mExternalUpdateRefreshRetries = 0
+            }
+            return
+        }
+
+        mReloadFromStorageOnResume = false
+        mExternalUpdateRefreshRetries = 0
+        mPosition = pair.second ?: -1
+        // Prevent stale old-instance data from auto-saving during this recreate.
+        dontSaveAfterOnPause = true
+        recreate()
+    }
+
+    private fun markReloadFromStorageOnResume() {
+        mReloadFromStorageOnResume = true
+        mExternalUpdateRefreshRetries = 0
+    }
+
+    private fun updateDetailActivityVisibility(visible: Boolean) {
+        val thing = mThing ?: return
+        App.setDetailActivityVisible(thing.id, visible)
     }
 
     private fun initAutoLink() {
@@ -1893,6 +1994,16 @@ class DetailActivity : EverythingDoneBaseActivity() {
 
     private var dontSaveAfterOnPause: Boolean = false
 
+    override fun onStart() {
+        super.onStart()
+        updateDetailActivityVisibility(true)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        refreshFromExternalUpdateIfNeeded()
+    }
+
     override fun onPause() {
         super.onPause()
         if (mEditable && mExecutor != null && !dontSaveAfterOnPause
@@ -1903,6 +2014,11 @@ class DetailActivity : EverythingDoneBaseActivity() {
                 savedAfterOnPause = b
             }
         }
+    }
+
+    override fun onStop() {
+        updateDetailActivityVisibility(false)
+        super.onStop()
     }
 
     private var savedAfterOnPause: Boolean = false
@@ -1974,6 +2090,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
         }
 
         afterCreateOrUpdateThing(intent, resultCode)
+        recordRenderedThingSnapshot()
         return true
     }
 
@@ -1983,6 +2100,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
             return
         }
 
+        updateDetailActivityVisibility(false)
         unregisterReceiver(mReceiver)
         Log.i(TAG, "onDestroy() called, id[" + mThing!!.id + "]")
         if (!mRemoveDetailActivityInstance) {
@@ -3660,6 +3778,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
 
     companion object {
         const val TAG: String = "DetailActivity"
+        private const val EXTERNAL_UPDATE_REFRESH_MAX_RETRIES: Int = 3
 
         const val CREATE: Int = 0
         const val UPDATE: Int = 1

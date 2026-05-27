@@ -46,7 +46,7 @@ open class ReminderNotificationActionReceiver : BroadcastReceiver() {
             return
         }
 
-        for (dId in App.getRunningDetailActivities()) if (dId == thingId) {
+        if (App.isDetailActivityVisible(thingId)) {
             Toast.makeText(context, R.string.notification_toast_checking_action,
                     Toast.LENGTH_LONG).show()
             return

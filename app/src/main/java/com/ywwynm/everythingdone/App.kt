@@ -318,6 +318,8 @@ open class App : Application() {
         @JvmField
         var runningDetailActivities: MutableList<Long?> = ArrayList()
 
+        private var visibleDetailActivities: MutableList<Long?> = ArrayList()
+
         private var somethingUpdatedSpecially: Boolean = false
         private var justNotifyAll: Boolean = false
 
@@ -353,6 +355,19 @@ open class App : Application() {
         @JvmStatic
         fun getRunningDetailActivities(): MutableList<Long?> {
             return runningDetailActivities
+        }
+
+        @JvmStatic
+        fun setDetailActivityVisible(id: Long, visible: Boolean) {
+            visibleDetailActivities.remove(id)
+            if (visible) {
+                visibleDetailActivities.add(id)
+            }
+        }
+
+        @JvmStatic
+        fun isDetailActivityVisible(id: Long): Boolean {
+            return visibleDetailActivities.contains(id)
         }
 
         @JvmStatic
