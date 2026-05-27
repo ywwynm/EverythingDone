@@ -2,7 +2,9 @@
 
 This is an Android application named "EverythingDone" or "完事儿". The project contains a directory "Everything-Android", which had been an upgraded version of EverythingDone written in kotlin. However, I decide to still use EverythingDone project for any update instead of Everything-Android. We can borrow some designs/codes/new-functionalities from Everything-Android, but that directory may be deleted after some time.
 
-**When a new session begins, read memory files at first.**
+**When a new session begins, read memory files and files under .agents/rules/ at first.**
+
+**Git commit message should be in detail and in both English and Chinese.**
 
 ### Operational rules
 
