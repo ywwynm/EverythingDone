@@ -40,7 +40,6 @@ import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.receivers.HabitNotificationActionReceiver
 import com.ywwynm.everythingdone.receivers.ReminderNotificationActionReceiver
-import com.ywwynm.everythingdone.utils.AppearanceUtil
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DeviceUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
@@ -285,19 +284,14 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
     }
 
     private fun applyActionButtonRipples() {
-        val backgroundRes = if (AppearanceUtil.isDarkMode(this)) {
-            R.drawable.selectable_item_background_light
-        } else {
-            R.drawable.selectable_item_background
-        }
-        applyActionButtonRipple(mFlCancelAsBt, backgroundRes)
+        applyActionButtonRipple(mFlCancelAsBt)
         for (button in mFlActions ?: emptyArray<FrameLayout?>()) {
-            applyActionButtonRipple(button, backgroundRes)
+            applyActionButtonRipple(button)
         }
     }
 
-    private fun applyActionButtonRipple(button: View?, backgroundRes: Int) {
-        button?.background = ContextCompat.getDrawable(this, backgroundRes)?.mutate()
+    private fun applyActionButtonRipple(button: View?) {
+        BackgroundUtil.installAppChromeCircleRipple(button, this)
     }
 
     @SuppressLint("SetTextI18n")

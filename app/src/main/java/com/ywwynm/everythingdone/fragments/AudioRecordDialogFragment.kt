@@ -75,6 +75,8 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         mFabMain           = f(R.id.fab_record_main)
         mIvReRecording     = f(R.id.iv_re_recording_audio)
         mIvCancelRecording = f(R.id.iv_cancel_recording_audio)
+        BackgroundUtil.installAppChromeCircleRipple(mIvReRecording, mActivity!!)
+        BackgroundUtil.installAppChromeCircleRipple(mIvCancelRecording, mActivity!!)
 
         if (AppearanceUtil.isDarkMode(mActivity!!)) {
             mIvReRecording!!.setImageDrawable(

@@ -449,6 +449,7 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
         mVpDateTime!!.offscreenPageLimit = 2
         mVpDateTime!!.adapter = mTabAdapter
         mTabLayout!!.setupWithViewPager(mVpDateTime)
+        installTabRippleShapes()
 
         if (mAccentBackground != null
             && mAccentBackground!!.mode === ThingBackground.Mode.GRADIENT
@@ -464,6 +465,14 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
                     }
                     override fun onTabReselected(tab: TabLayout.Tab) { }
                 })
+        }
+    }
+
+    private fun installTabRippleShapes() {
+        val tabLayout = mTabLayout ?: return
+        val rippleColor = BackgroundUtil.appChromeRippleColor(mActivity!!)
+        for (i in 0 until tabLayout.tabCount) {
+            BackgroundUtil.installPillRipple(tabLayout.getTabAt(i)?.view, rippleColor)
         }
     }
 
@@ -533,6 +542,7 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
         DisplayUtil.setSelectionHandlersColor(mEtTimeAfter, mAccentColor)
         mEtTimeAfter!!.setTextColor(black_54p)
         applyDropdownIcon(mTvTimeAsBtAfter)
+        BackgroundUtil.installAppChromePillRipple(mTvTimeAsBtAfter, mActivity!!)
         mDtpAfter!!.setAnchor(mTvTimeAsBtAfter!!)
         mDtpAfter!!.pickForUI(0)
         improveComplex()
@@ -540,6 +550,8 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
 
     private fun initUIRec() {
         applyDropdownIcon(mTvTimeAsBtRec)
+        BackgroundUtil.installAppChromePillRipple(mTvTimeAsBtRec, mActivity!!)
+        BackgroundUtil.installAppChromeCircleRipple(mIvPickAllAsBtRec, mActivity!!)
         mDtpRec!!.setAnchor(mTvTimeAsBtRec!!)
         (mRvWmy!!.itemAnimator as SimpleItemAnimator).supportsChangeAnimations = false
     }

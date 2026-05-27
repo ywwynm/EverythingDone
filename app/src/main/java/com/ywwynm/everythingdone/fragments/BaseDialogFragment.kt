@@ -16,8 +16,10 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.ViewOutlineProvider
 import android.view.Window
+import android.widget.TextView
 
 import com.ywwynm.everythingdone.R
+import com.ywwynm.everythingdone.utils.BackgroundUtil
 
 /**
  * Created by ywwynm on 2015/9/29.
@@ -42,6 +44,7 @@ abstract class BaseDialogFragment : DialogFragment() {
         )
         mContentView = themedInflater.inflate(getLayoutResource(), container, false)
         installRoundedOutline(mContentView)
+        installCompactDialogButtonRipples(mContentView)
         return mContentView
     }
 
@@ -87,6 +90,33 @@ abstract class BaseDialogFragment : DialogFragment() {
                 outline.setRoundRect(0, 0, v.width, v.height, radius)
             }
         }
+    }
+
+    private fun installCompactDialogButtonRipples(view: View?) {
+        view ?: return
+        if (view is TextView && isCompactDialogButton(view)) {
+            BackgroundUtil.installAppChromePillRipple(view, view.context)
+        }
+        if (view is ViewGroup) {
+            for (i in 0 until view.childCount) {
+                installCompactDialogButtonRipples(view.getChildAt(i))
+            }
+        }
+    }
+
+    private fun isCompactDialogButton(view: TextView): Boolean {
+        if (view.id == View.NO_ID) return false
+        val entryName = try {
+            view.resources.getResourceEntryName(view.id)
+        } catch (_: Exception) {
+            return false
+        }
+        if (!entryName.contains("_as_bt")) return false
+
+        val lp = view.layoutParams ?: return false
+        if (lp.width != ViewGroup.LayoutParams.WRAP_CONTENT) return false
+
+        return true
     }
 
     override fun show(manager: FragmentManager, tag: String?) {

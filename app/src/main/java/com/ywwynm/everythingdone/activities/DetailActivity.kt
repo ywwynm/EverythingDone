@@ -2663,6 +2663,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
                     android.content.res.ColorStateList.valueOf(Color.BLACK)
                 else null
             )
+            BackgroundUtil.installThingPillRipple(mTvMoveChecklistAsBt, color)
         }
 
         val tvRemindMe: TextView? = f(R.id.tv_remind_me)
@@ -2721,26 +2722,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
     }
 
     private fun installQuickRemindPillRipple(thingColor: Int) {
-        mFlQuickRemindAsBt!!.clipToOutline = true
-        mFlQuickRemindAsBt!!.outlineProvider = object : android.view.ViewOutlineProvider() {
-            override fun getOutline(v: View, outline: android.graphics.Outline) {
-                outline.setRoundRect(0, 0, v.width, v.height, v.height / 2f)
-            }
-        }
-
-        val mask = android.graphics.drawable.GradientDrawable()
-        mask.shape = android.graphics.drawable.GradientDrawable.RECTANGLE
-        mask.cornerRadius = 1000f
-        mask.setColor(Color.WHITE)
-
-        val rippleTint = if (BackgroundUtil.isLight(thingColor)) 0x29000000
-        else 0x29FFFFFF
-        val ripple = android.graphics.drawable.RippleDrawable(
-            android.content.res.ColorStateList.valueOf(rippleTint),
-            null,
-            mask
-        )
-        mFlQuickRemindAsBt!!.foreground = ripple
+        BackgroundUtil.installThingPillRipple(mFlQuickRemindAsBt, thingColor)
     }
 
     private fun setQuickRemindEvents() {

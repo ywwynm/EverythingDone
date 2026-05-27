@@ -159,3 +159,23 @@ right Java call site to hit `null`. The original cross-language
 N1 audit trail principle holds; widening these is behavior-preserving
 (Java already accepts null at runtime — Kotlin's intrinsic check is
 the regression, not the param itself).
+
+## UI visual QA
+
+### Button-like shaped ripple device pass (deferred 2026-05-27)
+
+**Scope:** Shaped ripple controls added in the button-like control pass:
+compact dialog text buttons, DateTimeDialog tabs and dropdown entry controls,
+DateTime recurrence icon/text actions, NoticeableNotification action icons,
+Detail quick-remind/checklist controls, Settings help icons, AudioRecord side
+icons, and the converted HabitDetail "Got it" button.
+
+**Path:** Install the debug APK and smoke-test light App Chrome, dark App
+Chrome, light Thing Background, dark Thing Background, and a gradient Thing
+Background. Verify that press feedback is pill/circular, that text/icon visual
+positions did not shift, and that full-row/full-card surfaces still use their
+original full-row feedback.
+
+**Risk if left undone:** compile verifies the helper wiring, but it does not
+prove the ripple mask is visually correct on Material TabLayout internals or on
+all shaped foreground hosts.

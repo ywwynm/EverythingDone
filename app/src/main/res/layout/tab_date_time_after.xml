@@ -33,6 +33,8 @@
         android:layout_toRightOf="@id/et_time_after"
         android:paddingStart="4dp"
         android:paddingLeft="4dp"
+        android:paddingEnd="10dp"
+        android:paddingRight="10dp"
         android:gravity="center_vertical"
         android:drawableEnd="@drawable/ic_dropdown"
         android:drawableRight="@drawable/ic_dropdown"

@@ -27,6 +27,7 @@ import com.ywwynm.everythingdone.FrequentSettings
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.helpers.CheckListHelper
 import com.ywwynm.everythingdone.helpers.LineSpacingHelper
+import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DeviceUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.KeyboardUtil
@@ -168,7 +169,7 @@ open class CheckListAdapter(
     /** True when the foreground should be drawn black-side rather than white-side. */
     private fun dark(): Boolean {
         if (mThingColor == 0) return false  // unset → keep legacy white behaviour
-        return com.ywwynm.everythingdone.utils.BackgroundUtil.isLight(mThingColor)
+        return BackgroundUtil.isLight(mThingColor)
     }
 
     private fun textColorSecondary(): Int {
@@ -191,6 +192,15 @@ open class CheckListAdapter(
         } else {
             androidx.core.widget.ImageViewCompat.setImageTintList(iv, null)
         }
+    }
+
+    private fun installIconRipple(iv: ImageView?) {
+        val rippleColor = if (mThingColor == 0) {
+            BackgroundUtil.RIPPLE_LIGHT
+        } else {
+            BackgroundUtil.thingRippleColor(mThingColor)
+        }
+        BackgroundUtil.installCircleRipple(iv, rippleColor)
     }
 
     private fun removeItemsForTextView() {
@@ -315,6 +325,9 @@ open class CheckListAdapter(
             tintRowIcon(holder.ivState)
             tintRowIcon(holder.ivDelete)
             tintRowIcon(holder.ivExpandShrink)
+            installIconRipple(holder.ivState)
+            installIconRipple(holder.ivDelete)
+            installIconRipple(holder.ivExpandShrink)
             val stateContent: String = mItems!![position]!!
             val state = stateContent[0]
             if (state == '0') {

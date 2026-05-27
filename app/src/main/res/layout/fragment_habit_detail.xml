@@ -110,14 +110,19 @@
 
     <TextView
         android:id="@+id/tv_get_it_as_bt"
-        android:layout_width="280dp"
-        android:layout_height="wrap_content"
-        android:minHeight="48dp"
-        android:paddingLeft="20dp"
-        android:paddingRight="20dp"
+        android:layout_width="wrap_content"
+        android:layout_height="36dp"
+        android:layout_gravity="end"
+        android:layout_marginTop="4dp"
+        android:layout_marginLeft="8dp"
+        android:layout_marginRight="8dp"
         android:layout_marginBottom="8dp"
-        android:gravity="center_vertical|end"
+        android:paddingLeft="12dp"
+        android:paddingTop="8dp"
+        android:paddingRight="12dp"
+        android:paddingBottom="8dp"
         android:text="@string/act_get_it"
+        android:textStyle="bold"
         android:background="@drawable/selectable_item_background"
         android:textAllCaps="true"/>
 

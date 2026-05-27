@@ -137,7 +137,10 @@ object LocaleUtil {
         val locale: Locale = getStoredLocale(context) ?: return context
         Locale.setDefault(locale)
 
-        val configuration = Configuration(context.resources.configuration)
+        // Override only locale fields. Copying the full Configuration freezes
+        // uiMode and can block follow-system dark mode changes from reaching
+        // the wrapped Activity context.
+        val configuration = Configuration()
         configuration.setLocale(locale)
         configuration.setLocales(LocaleList(locale))
         return context.createConfigurationContext(configuration)

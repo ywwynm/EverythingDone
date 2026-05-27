@@ -4,19 +4,26 @@ package com.ywwynm.everythingdone.utils
 
 import android.animation.ArgbEvaluator
 import android.animation.ValueAnimator
+import android.content.Context
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.LinearGradient
 import android.graphics.Matrix
+import android.graphics.Outline
 import android.graphics.Shader
 import android.view.ViewTreeObserver
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.RippleDrawable
 import android.view.View
+import android.view.ViewOutlineProvider
 import android.widget.TextView
 import androidx.annotation.Keep
+import androidx.core.content.ContextCompat
 
 import androidx.cardview.widget.CardView
 
+import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.model.ThingBackground
 import kotlin.math.ceil
 
@@ -692,6 +699,81 @@ object BackgroundUtil {
                 android.content.res.ColorStateList.valueOf(rippleColor),
                 null,
                 mask)
+    }
+
+    @JvmStatic
+    fun appChromeRippleColor(context: Context): Int {
+        return ContextCompat.getColor(context, R.color.app_chrome_ripple)
+    }
+
+    @JvmStatic
+    fun thingRippleColor(thingColor: Int): Int {
+        return if (isLight(thingColor)) 0x29000000 else 0x29FFFFFF
+    }
+
+    @JvmStatic
+    fun installAppChromePillRipple(view: View?, context: Context) {
+        installPillRipple(view, appChromeRippleColor(context))
+    }
+
+    @JvmStatic
+    fun installAppChromeCircleRipple(view: View?, context: Context) {
+        installCircleRipple(view, appChromeRippleColor(context))
+    }
+
+    @JvmStatic
+    fun installThingPillRipple(view: View?, thingColor: Int) {
+        installPillRipple(view, thingRippleColor(thingColor))
+    }
+
+    @JvmStatic
+    fun installThingCircleRipple(view: View?, thingColor: Int) {
+        installCircleRipple(view, thingRippleColor(thingColor))
+    }
+
+    @JvmStatic
+    fun installPillRipple(view: View?, rippleColor: Int) {
+        if (view == null) return
+        val paddingStart = view.paddingStart
+        val paddingTop = view.paddingTop
+        val paddingEnd = view.paddingEnd
+        val paddingBottom = view.paddingBottom
+        view.background = null
+        view.setPaddingRelative(paddingStart, paddingTop, paddingEnd, paddingBottom)
+        view.clipToOutline = true
+        view.outlineProvider = object : ViewOutlineProvider() {
+            override fun getOutline(v: View, outline: Outline) {
+                outline.setRoundRect(0, 0, v.width, v.height, v.height / 2f)
+            }
+        }
+
+        val mask = GradientDrawable()
+        mask.shape = GradientDrawable.RECTANGLE
+        mask.cornerRadius = 1000f
+        mask.setColor(Color.WHITE)
+        view.foreground = RippleDrawable(
+            ColorStateList.valueOf(rippleColor),
+            null,
+            mask
+        )
+    }
+
+    @JvmStatic
+    fun installCircleRipple(view: View?, rippleColor: Int) {
+        if (view == null) return
+        val paddingStart = view.paddingStart
+        val paddingTop = view.paddingTop
+        val paddingEnd = view.paddingEnd
+        val paddingBottom = view.paddingBottom
+        view.background = null
+        view.setPaddingRelative(paddingStart, paddingTop, paddingEnd, paddingBottom)
+        view.clipToOutline = true
+        view.outlineProvider = object : ViewOutlineProvider() {
+            override fun getOutline(v: View, outline: Outline) {
+                outline.setOval(0, 0, v.width, v.height)
+            }
+        }
+        view.foreground = circularRipple(rippleColor)
     }
 
     /**

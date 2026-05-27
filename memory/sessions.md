@@ -1918,6 +1918,57 @@ Fixed the issues reported after testing the first regression pass:
 Verification:
 - `.\gradlew.bat :app:assembleDebug --console=plain` passed.
 - `git diff --check` passed with CRLF conversion warnings only.
+
+Follow-system dark-mode diagnosis:
+- Traced the "follow system stays light after system dark-mode change" symptom
+  to the in-app language context wrapper. `LocaleUtil.getContextForLanguage()`
+  copied the full current `Configuration` before setting the stored locale,
+  which could snapshot `uiMode` and block later system night-mode changes from
+  reaching wrapped Activity contexts.
+- Changed the wrapper to create a locale-only `Configuration` override instead,
+  leaving `uiMode` and other non-locale fields to flow from the base context.
+- Noted that `ThingsActivity` still uses a non-DayNight theme by design, so the
+  home screen remains separate planned Appearance Mode work rather than part of
+  this locale-wrapper fix.
+
+Verification:
+- `.\gradlew.bat :app:assembleDebug --console=plain` passed.
+- `git diff --check` passed with CRLF conversion warnings only.
+- Device-level system night-mode verification was not run because only physical
+  devices were connected and no emulator was available.
+
+Button-like ripple correction pass:
+- Restored compact confirm dialog buttons to symmetric horizontal padding so
+  the confirm text remains visually centered inside the pill ripple.
+- Added a small end/right margin to those confirm buttons instead of changing
+  their internal padding, increasing the right-side dialog spacing without
+  moving the text inside the pill.
+- Kept the already-confirmed DateTime recurrence "new reminder time" clipping
+  fix in place and did not change the deferred follow-system dark-mode issue.
+
+Verification:
+- `.\gradlew.bat :app:assembleDebug --console=plain` passed.
+- `git diff --check` passed with CRLF conversion warnings only.
+
+Button-like control ripple correction pass:
+- Kept the first two user-confirmed fixes from the shaped-ripple pass: full-row
+  dialog action rows are no longer auto-shaped as compact buttons, and
+  `TwoOptionsDialogFragment` no longer gets a pill ripple.
+- Tightened compact dialog cancel/confirm spacing by reducing the left padding
+  on the right-side confirm button in paired button rows. This keeps the
+  confirm text's right-side distance stable while reducing the cancel/confirm
+  text gap.
+- Preserved the negative-margin alignment for DateTime recurrence's "new
+  reminder time" pill, but disabled clipping on the recurrence tab, its
+  RecyclerView, and the item root so the left side of the pill ripple is not
+  cut off.
+- Reverted an over-broad attempt to switch `EverythingDoneTheme.Things` to a
+  DayNight parent. Home theme conversion belongs to the dark-mode plan and
+  requires dedicated light-mode visual regression.
+
+Verification:
+- `.\gradlew.bat :app:assembleDebug --console=plain` passed.
+- `git diff --check` passed with CRLF conversion warnings only.
 - `adb devices` showed one physical device and no emulator; no visual
   screenshot pass was run to avoid taking over the attached device.
 
@@ -2280,4 +2331,28 @@ Verification:
 - `.\gradlew.bat :app:assembleDebug --console=plain` passed after the final
   create-action correction and produced `app\build\outputs\apk\debug\app-debug.apk`
   at 2026-05-27 15:35:00.
+- `git diff --check` passed with CRLF conversion warnings only.
+
+Button-like control ripple shaping:
+- Resolved the scope through a grill-with-docs pass: shaped ripple work targets
+  local command controls only. Full-row, full-card, and full-width dialog
+  action-row surfaces stay rectangular and are excluded. Dialog "Got it" buttons
+  that were accidentally implemented as full-row rows are layout debt and should
+  become compact bottom-end text buttons.
+- Added shared `BackgroundUtil` helpers for App Chrome and Thing-owned pill or
+  circular ripple drawables. Pill outlines use the laid-out height divided by
+  two; icon-only controls use oval/circular masks. App Chrome controls resolve
+  `app_chrome_ripple`; Thing-owned controls derive black/white translucent
+  ripple from the Thing representative colour.
+- Applied the helpers to compact BaseDialogFragment text buttons, DateTimeDialog
+  tabs and dropdown entry controls, DateTime recurrence add/delete/select-all
+  controls, NoticeableNotification action icons, Detail quick-remind and
+  checklist controls, Settings help icons, AudioRecord side icons, and the
+  two-option dialog's icon+text actions. `HabitDetailDialog`'s full-width
+  "Got it" action was converted to the compact bottom-end dialog-button shape.
+- Kept popup picker internal selection rows and other full-row/full-card
+  surfaces on their existing full-row feedback.
+
+Verification:
+- `.\gradlew.bat :app:assembleDebug --console=plain` passed.
 - `git diff --check` passed with CRLF conversion warnings only.

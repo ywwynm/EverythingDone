@@ -64,6 +64,7 @@ import com.ywwynm.everythingdone.permission.SimplePermissionCallback
 import com.ywwynm.everythingdone.receivers.LocaleChangeReceiver
 import com.ywwynm.everythingdone.services.DoingService
 import com.ywwynm.everythingdone.utils.AppearanceUtil
+import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DateTimeUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil
@@ -492,12 +493,20 @@ class SettingsActivity : EverythingDoneBaseActivity() {
         EdgeEffectUtil.forScrollView(svSettings, ContextCompat.getColor(this, R.color.blue_deep))
         DisplayUtil.applyBottomInsetAsScrollPadding(svSettings)
         tintSettingsIconsForAppearance()
+        installLocalButtonRipples()
 
         initUiUserInterface()
         initUiRingtone()
         initUiData()
         initUiStartDoing()
         initUiAdvanced()
+    }
+
+    private fun installLocalButtonRipples() {
+        BackgroundUtil.installAppChromeCircleRipple(f(R.id.iv_auto_save_edits_help_as_bt), this)
+        BackgroundUtil.installAppChromeCircleRipple(f(R.id.iv_auto_strict_mode_help_as_bt), this)
+        BackgroundUtil.installAppChromeCircleRipple(f(R.id.iv_daily_todo_help_as_bt), this)
+        BackgroundUtil.installAppChromeCircleRipple(f(R.id.iv_auto_notify_help_as_bt), this)
     }
 
     private fun tintSettingsIconsForAppearance() {

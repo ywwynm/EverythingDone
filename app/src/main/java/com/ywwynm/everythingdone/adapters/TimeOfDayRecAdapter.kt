@@ -192,6 +192,7 @@ open class TimeOfDayRecAdapter(
                     black_54p
                 )
             )
+            BackgroundUtil.installAppChromeCircleRipple(ivDelete, mContext!!)
 
             DisplayUtil.setSelectionHandlersColor(etHour, mAccentColor)
             DisplayUtil.setSelectionHandlersColor(etMinute, mAccentColor)
@@ -304,6 +305,7 @@ open class TimeOfDayRecAdapter(
                 null,
                 null
             )
+            BackgroundUtil.installAppChromePillRipple(tvNewReminder, mContext!!)
 
             tvNewReminder!!.setOnClickListener {
                 val size = mItems!!.size

@@ -2,6 +2,62 @@
 
 ## 2026-05-27
 
+### Locale override contexts must not freeze non-locale configuration
+
+In-app language support should wrap contexts with a locale-only
+`Configuration` override. Do not copy the full current `Configuration` into
+`createConfigurationContext(...)` and then change just the locale, because that
+also snapshots fields such as `uiMode`. A copied override can prevent
+follow-system Appearance Mode changes from reaching Activity resources when a
+specific app language is selected.
+
+### Do not change ThingsActivity theme opportunistically
+
+`EverythingDoneTheme.Things` must not be converted to a DayNight parent as an
+incidental fix for unrelated UI work. The dark-mode plan treats home App Chrome
+theme conversion as planned dark-mode work that needs explicit light-mode visual
+regression, not as a side effect of button-like ripple changes.
+
+### Button-like control ripple work excludes full-row and full-card surfaces
+
+Button-like control ripple shaping should target local command controls: compact
+text actions, icon+text actions, and icon-only actions that behave like buttons
+even when they are built from plain views. Full-row and full-card clickable
+surfaces are not part of this change and should keep their current interaction
+surface unless handled by a separate design pass. Full-width dialog action rows
+count as full-row surfaces and are excluded too.
+
+Compact text buttons on dialogs and dialog-like surfaces, including affirmative
+buttons such as "Got it" as well as cancel/confirm buttons, are included in the
+button-like control ripple shaping pass.
+
+Full-row affirmative "Got it" buttons in dialogs are treated as layout debt, not
+as intentionally full-row action surfaces. Convert them to the same bottom-end
+compact text-button form used by most dialogs, then apply the pill ripple.
+
+DateTimeDialog's TabLayout tabs are included only for touch-feedback shaping.
+Keep their existing selected-state semantics: accent or gradient tab text and
+the bottom indicator stay unchanged; only the pressed ripple should become a
+pill-shaped rounded rectangle.
+
+DateTimePicker popup entry controls, such as the visible time-unit TextView with
+its dropdown icon, are included. The full-row selection items inside the popup
+are excluded and keep their current full-row feedback.
+
+### Button-like control ripple colour follows its owning surface
+
+Button-like controls on App Chrome should use Appearance Mode-owned ripple
+colours. Button-like controls drawn directly on a Thing Background should use
+the Thing representative colour's lightness to choose black or white translucent
+ripple feedback. Gradient Thing Backgrounds still use a representative single
+colour for the ripple waveform, because Android `RippleDrawable` exposes ripple
+colour as a `ColorStateList`, not a gradient.
+
+Button-like control ripple drawables are dynamic state, not one-time XML chrome.
+Reinstall or retint them when their owning surface changes colour ownership:
+Thing-background controls must update when the Thing colour/background changes,
+and App Chrome controls must update when Appearance Mode changes in-place.
+
 ### Dialog and popup corner radius has its own App Chrome token
 
 Custom App Chrome dialogs and popup pickers should use a dedicated corner-radius
