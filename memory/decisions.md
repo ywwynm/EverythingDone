@@ -1,5 +1,42 @@
 # Decisions
 
+## 2026-05-27
+
+### AppWidget collection click templates must be mutable
+AppWidget collection rows that use `RemoteViews.setPendingIntentTemplate(...)`
+plus `setOnClickFillInIntent(...)` need a mutable template `PendingIntent`.
+The launcher/widget host supplies the row-specific fill-in intent at send time;
+if the template is created with `FLAG_IMMUTABLE`, Android ignores that
+additional intent data and row extras such as thing id and checklist position
+never reach the app.
+
+Keep ordinary direct widget click actions immutable. Use `FLAG_MUTABLE` only
+for explicit-component templates whose behavior depends on collection row
+fill-in extras.
+
+### AppWidget activity PendingIntents must opt in to BAL creator delegation
+For widget clicks that launch an Activity, the app is the `PendingIntent`
+creator and the launcher is the sender. With target SDK 35+ / Android 16-era
+background activity launch hardening, the creator can no longer rely on the
+launcher to contribute sender-side privileges. Widget `getActivity(...)`
+PendingIntents should therefore be created with an `ActivityOptions` bundle
+using `setPendingIntentCreatorBackgroundActivityStartMode(...)`.
+
+Apply this only to widget Activity launches. Broadcast-only widget actions
+that update app state in-place should remain normal broadcast PendingIntents.
+
+### Do not add new AppWidget-adjacent resource ids for animation bookkeeping
+An attempted fix for duplicate-looking home-card update animation added
+`res/values/ids.xml` and keyed view tags for `ThingsAdapter` appearing
+animation bookkeeping. That build immediately caused existing AppWidget
+RemoteViews to display incorrect/stale-looking checklist and Things-list data
+after install. The change was rolled back.
+
+For AppWidget regressions, avoid fixes that add new resource ids or perturb the
+resource table unless the AppWidget update/install lifecycle is explicitly
+smoke-tested on device. Keep future animation fixes inside existing code paths
+or existing resources.
+
 ## 2026-05-21
 
 ### Post-migration Kotlin cleanup: scope + risk boundaries (grilling session)
@@ -601,3 +638,40 @@ Settings should present the Appearance Mode controls as "Follow system dark
 mode" and "Enable dark mode". When follow-system is checked, the enable-dark row
 is hidden rather than disabled/dimmed. When follow-system is unchecked, the
 enable-dark row is visible again and keeps its previous checked state.
+
+## 2026-05-27 - Background full-list refresh should not replay Things appearing animation
+
+`ThingsActivity.justNotifyAll()` remains the conservative full-list reload path
+for stale or coalesced remote updates, but the `onResume()` path that consumes a
+background `App.justNotifyAll()` should call it without enabling the
+`things_show` first-bind animation. Returning from a launcher widget update is a
+data catch-up, not a fresh list presentation, and replaying the bottom-up card
+appearance reads as a second update animation.
+
+## 2026-05-27 - Widget create actions should resolve the new-thing colour at click time
+
+Launcher widget PendingIntents must not keep using the same precomputed
+`App.newThingBackground` forever. The new-thing background changes when
+`DetailActivity` opens in CREATE mode, while widget RemoteViews may keep the
+same PendingIntent for a long time.
+
+Correction after device testing: the standalone Create widget should mirror the
+Things List widget create action, not open `DetailActivity` directly. The direct
+`DetailActivity` plus standalone-widget refresh attempt still allowed repeated
+colour/task staleness after abandoning an empty created thing and pressing Home.
+
+Both create-widget entry points should go through `ShortcutActivity` with
+`SHORTCUT_ACTION_CREATE`. The list widget carries its selected limit; the
+standalone Create widget carries `KEY_LIMIT = ALL_UNDERWAY`. This keeps the
+background resolved at click time and follows the entry path the user verified
+as repeatedly opening the create page correctly.
+
+## 2026-05-27 - Widget card icons must be luminance-adaptive like card text
+
+RemoteViews do not inherit the normal `BaseThingsAdapter` icon tint pipeline.
+Every widget card icon that sits directly on a Thing background should therefore
+be set explicitly from the Thing representative colour: black-side assets or a
+black color filter on light backgrounds, white-side assets or a white color
+filter on dark backgrounds. This covers checklist state, private lock,
+sticky/ongoing, reminder/goal, habit, habit record, audio attachment, and
+finished/deleted state icons.

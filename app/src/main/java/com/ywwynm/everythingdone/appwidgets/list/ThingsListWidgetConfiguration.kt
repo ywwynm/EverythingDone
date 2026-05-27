@@ -110,6 +110,10 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
         var alpha = 100
         if (info != null) {
             alpha = info.alpha
+            val limit: Int = (-info.thingId - 1).toInt()
+            if (limit >= 0 && limit < items.size) {
+                mAdapter!!.pick(limit)
+            }
             mCbSimpleView!!.setChecked(info.style == ThingWidgetInfo.STYLE_SIMPLE)
             mCbAlphaHeader!!.setChecked(alpha < 0)
         }

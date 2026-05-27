@@ -58,13 +58,17 @@
 
             <TextView
                 android:id="@+id/tv_thing_reminder_time"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_below="@id/view_reminder_separator"
                 android:layout_toEndOf="@id/iv_thing_reminder"
                 android:layout_toRightOf="@id/iv_thing_reminder"
+                android:layout_alignParentEnd="true"
+                android:layout_alignParentRight="true"
                 android:layout_marginStart="8dp"
                 android:layout_marginLeft="8dp"
+                android:ellipsize="end"
+                android:singleLine="true"
                 android:textColor="@color/white_66p"/>
 
         </RelativeLayout>
@@ -94,21 +98,27 @@
 
             <TextView
                 android:id="@+id/tv_thing_habit_summary"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_below="@id/view_habit_separator_1"
                 android:layout_toEndOf="@id/iv_thing_habit"
                 android:layout_toRightOf="@id/iv_thing_habit"
+                android:layout_alignParentEnd="true"
+                android:layout_alignParentRight="true"
                 android:layout_marginStart="8dp"
                 android:layout_marginLeft="8dp"
+                android:ellipsize="end"
+                android:singleLine="true"
                 android:textColor="@color/white_66p"/>
 
             <TextView
                 android:id="@+id/tv_thing_habit_next_reminder"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
                 android:layout_below="@id/tv_thing_habit_summary"
+                android:ellipsize="end"
+                android:singleLine="true"
                 android:textSize="12sp"
                 android:textColor="@color/white_54p"/>
 
@@ -179,11 +189,15 @@
 
             <TextView
                 android:id="@+id/tv_thing_state"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_below="@id/view_state_separator"
                 android:layout_toEndOf="@id/iv_thing_state"
                 android:layout_toRightOf="@id/iv_thing_state"
+                android:layout_alignParentEnd="true"
+                android:layout_alignParentRight="true"
+                android:ellipsize="end"
+                android:singleLine="true"
                 android:textColor="@color/white_66p"
                 android:textSize="14dp"
                 tools:ignore="SpUsage"/>
@@ -326,6 +340,7 @@
             tools:ignore="UseCompoundDrawables">
 
             <ImageView
+                android:id="@+id/iv_thing_audio_attachment_count"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_vertical"
@@ -354,6 +369,7 @@
             tools:ignore="UseCompoundDrawables">
 
             <ImageView
+                android:id="@+id/iv_thing_audio_attachment_count_large"
                 android:layout_width="wrap_content"
                 android:layout_height="16dp"
                 android:layout_marginTop="1dp"

@@ -3,6 +3,7 @@
 package com.ywwynm.everythingdone.appwidgets
 
 import android.app.PendingIntent
+import android.app.ActivityOptions
 import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.Intent
@@ -10,6 +11,8 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.net.Uri
+import android.os.Build
+import android.os.Bundle
 import androidx.annotation.DrawableRes
 import androidx.core.content.ContextCompat
 import android.text.SpannableString
@@ -30,6 +33,7 @@ import com.ywwynm.everythingdone.FrequentSettings
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.activities.AuthenticationActivity
 import com.ywwynm.everythingdone.activities.DetailActivity
+import com.ywwynm.everythingdone.activities.ShortcutActivity
 import com.ywwynm.everythingdone.activities.ThingsActivity
 import com.ywwynm.everythingdone.appwidgets.list.ThingsListWidget
 import com.ywwynm.everythingdone.appwidgets.list.ThingsListWidgetConfiguration
@@ -53,6 +57,7 @@ import com.ywwynm.everythingdone.model.ThingWidgetInfo
 import com.ywwynm.everythingdone.receivers.HabitWidgetActionReceiver
 import com.ywwynm.everythingdone.receivers.ReminderNotificationActionReceiver
 import com.ywwynm.everythingdone.utils.DateTimeUtil
+import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import kotlin.math.abs
 import kotlin.math.min
@@ -69,6 +74,12 @@ object AppWidgetHelper {
     private val screenDensity: Float = DisplayUtil.getScreenDensity(App.getApp())
 
     private val dp12: Int = (screenDensity * 12).toInt()
+
+    private val COLLECTION_TEMPLATE_PENDING_INTENT_FLAGS: Int =
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+
+    private val WIDGET_ACTIVITY_PENDING_INTENT_FLAGS: Int =
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
 
     private val ROOT_WIDGET_THING: Int         = R.id.root_widget_thing
     /** Phase 8: backing ImageView for the widget background. RemoteViews can't
@@ -96,8 +107,10 @@ object AppWidgetHelper {
     private val TV_CONTENT_CHECK_LIST: Int     = R.id.tv_check_list
 
     private val LL_AUDIO_ATTACHMENT: Int       = R.id.ll_thing_audio_attachment
+    private val IV_AUDIO_COUNT: Int            = R.id.iv_thing_audio_attachment_count
     private val TV_AUDIO_COUNT: Int            = R.id.tv_thing_audio_attachment_count
     private val LL_AUDIO_ATTACHMENT_LARGE: Int = R.id.ll_thing_audio_attachment_large
+    private val IV_AUDIO_COUNT_LARGE: Int      = R.id.iv_thing_audio_attachment_count_large
     private val TV_AUDIO_COUNT_LARGE: Int      = R.id.tv_thing_audio_attachment_count_large
 
     private val RL_REMINDER: Int               = R.id.rl_thing_reminder
@@ -107,6 +120,7 @@ object AppWidgetHelper {
 
     private val RL_HABIT: Int                  = R.id.rl_thing_habit
     private val V_HABIT_SEPARATOR_1: Int       = R.id.view_habit_separator_1
+    private val IV_HABIT: Int                  = R.id.iv_thing_habit
     private val TV_HABIT_SUMMARY: Int          = R.id.tv_thing_habit_summary
     private val TV_HABIT_NEXT_REMINDER: Int    = R.id.tv_thing_habit_next_reminder
     private val V_HABIT_SEPARATOR_2: Int       = R.id.view_habit_separator_2
@@ -240,6 +254,27 @@ object AppWidgetHelper {
     }
 
     @JvmStatic
+    fun getActivityPendingIntentForWidget(
+            context: Context, requestCode: Int, intent: Intent, flags: Int): PendingIntent {
+        val options: Bundle? = getActivityOptionsForWidgetPendingIntent()
+        return if (options == null) {
+            PendingIntent.getActivity(context, requestCode, intent, flags)
+        } else {
+            PendingIntent.getActivity(context, requestCode, intent, flags, options)
+        }
+    }
+
+    private fun getActivityOptionsForWidgetPendingIntent(): Bundle? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            return null
+        }
+        return ActivityOptions.makeBasic()
+                .setPendingIntentCreatorBackgroundActivityStartMode(
+                        ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED)
+                .toBundle()
+    }
+
+    @JvmStatic
     fun createRemoteViewsForSingleThing(
             context: Context?, thing: Thing?, position: Int, appWidgetId: Int, clazz: Class<*>?): RemoteViews {
         val dao: AppWidgetDAO = AppWidgetDAO.getInstance(context)!!
@@ -256,9 +291,8 @@ object AppWidgetHelper {
                 context, TAG, thing!!.id, position,
                 Def.Communication.AUTHENTICATE_ACTION_VIEW,
                 context.getString(R.string.check_private_thing))
-        val pendingIntent: PendingIntent = PendingIntent.getActivity(
-                context, appWidgetId, contentIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val pendingIntent: PendingIntent = getActivityPendingIntentForWidget(
+                context, appWidgetId, contentIntent, WIDGET_ACTIVITY_PENDING_INTENT_FLAGS)
         remoteViews.setOnClickPendingIntent(ROOT_WIDGET_THING, pendingIntent)
         remoteViews.setOnClickPendingIntent(FL_DOING, pendingIntent)
         return remoteViews
@@ -289,26 +323,23 @@ object AppWidgetHelper {
 
         var intent = Intent(context, ThingsActivity::class.java)
         intent.putExtra(Def.Communication.KEY_LIMIT, limit)
-        var pendingIntent: PendingIntent = PendingIntent.getActivity(
-                context, appWidgetId, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        var pendingIntent: PendingIntent = getActivityPendingIntentForWidget(
+                context, appWidgetId, intent, WIDGET_ACTIVITY_PENDING_INTENT_FLAGS)
         remoteViews.setOnClickPendingIntent(LL_THINGS_LIST_HEADER, pendingIntent)
 
         // setting image view click event
         intent = Intent(context, ThingsListWidgetConfiguration::class.java)
         intent.putExtra(Def.Communication.KEY_WIDGET_ID, appWidgetId)
-        pendingIntent = PendingIntent.getActivity(
-                context, appWidgetId, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        pendingIntent = getActivityPendingIntentForWidget(
+                context, appWidgetId, intent, WIDGET_ACTIVITY_PENDING_INTENT_FLAGS)
         remoteViews.setOnClickPendingIntent(IV_THINGS_LIST_SETTING, pendingIntent)
 
         // create image view click event
-        // Phase 7: prefer ThingBackground so a GRADIENT new-thing keeps its gradient.
-        intent = DetailActivity.getOpenIntentForCreate(context, TAG,
-                if (App.newThingBackground != null)
-                        App.newThingBackground
-                else com.ywwynm.everythingdone.model.ThingBackground.pure(App.newThingColor))
+        intent = Intent(context, ShortcutActivity::class.java)
+        intent.setAction(Def.Communication.SHORTCUT_ACTION_CREATE)
         intent.putExtra(Def.Communication.KEY_LIMIT, limit)
-        pendingIntent = PendingIntent.getActivity(
-                context, appWidgetId, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        pendingIntent = getActivityPendingIntentForWidget(
+                context, appWidgetId, intent, WIDGET_ACTIVITY_PENDING_INTENT_FLAGS)
         remoteViews.setOnClickPendingIntent(IV_THINGS_LIST_CREATE, pendingIntent)
 
         // adapter for things
@@ -329,8 +360,8 @@ object AppWidgetHelper {
         intent.putExtra(Def.Communication.KEY_DETAIL_ACTIVITY_TYPE,
                 DetailActivity.UPDATE)
         intent.setData(Uri.parse(intent.toUri(Intent.URI_INTENT_SCHEME)))
-        pendingIntent = PendingIntent.getActivity(context, appWidgetId, intent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        pendingIntent = getActivityPendingIntentForWidget(context, appWidgetId, intent,
+                COLLECTION_TEMPLATE_PENDING_INTENT_FLAGS)
         remoteViews.setPendingIntentTemplate(LV_THINGS_LIST, pendingIntent)
 
         remoteViews.setScrollPosition(LV_THINGS_LIST, 0)
@@ -395,7 +426,7 @@ object AppWidgetHelper {
         val text: String = item.substring(1, item.length)
         val textColor: Int
         if (state == '0') {
-            rv.setImageViewResource(IV_STATE_CHECK_LIST, R.drawable.checklist_unchecked_card)
+            rv.setImageViewResource(IV_STATE_CHECK_LIST, checklistIconResource(thing, false))
             if (isSingleThingWidget) {
                 rv.setContentDescription(IV_STATE_CHECK_LIST,
                         context.getString(R.string.cd_checklist_unfinished_item_clickable))
@@ -409,7 +440,7 @@ object AppWidgetHelper {
             rv.setTextColor(TV_CONTENT_CHECK_LIST, textColor)
             rv.setTextViewText(TV_CONTENT_CHECK_LIST, text)
         } else if (state == '1') {
-            rv.setImageViewResource(IV_STATE_CHECK_LIST, R.drawable.checklist_checked_card)
+            rv.setImageViewResource(IV_STATE_CHECK_LIST, checklistIconResource(thing, true))
             if (isSingleThingWidget) {
                 rv.setContentDescription(IV_STATE_CHECK_LIST,
                         context.getString(R.string.cd_checklist_finished_item_clickable))
@@ -439,6 +470,17 @@ object AppWidgetHelper {
         return rv
     }
 
+    private fun checklistIconResource(thing: Thing?, finished: Boolean): Int {
+        val dark: Boolean = thing != null && shouldUseDarkForeground(thing)
+        return if (finished) {
+            if (dark) R.drawable.checklist_checked_card_black
+            else R.drawable.checklist_checked_card
+        } else {
+            if (dark) R.drawable.checklist_unchecked_card_black
+            else R.drawable.checklist_unchecked_card
+        }
+    }
+
     /**
      * Phase 8: apply luminance-adaptive text colours to every text view on the
      * widget card.
@@ -446,7 +488,7 @@ object AppWidgetHelper {
     private fun applyAdaptiveTextColors(
             context: Context, rv: RemoteViews, thing: Thing) {
         val color: Int = thing.getColor()
-        val light: Boolean = com.ywwynm.everythingdone.utils.BackgroundUtil.isLight(color)
+        val light: Boolean = BackgroundUtil.isLight(color)
         val primary: Int   = if (light)
                 ContextCompat.getColor(context, R.color.black_86p)
         else ContextCompat.getColor(context, R.color.white_86p)
@@ -478,13 +520,25 @@ object AppWidgetHelper {
      * Phase 8: text-colour tier for an individual checklist item.
      */
     internal fun checklistItemTextColor(context: Context, thing: Thing, finished: Boolean): Int {
-        val light: Boolean = com.ywwynm.everythingdone.utils.BackgroundUtil.isLight(thing.getColor())
+        val light: Boolean = BackgroundUtil.isLight(thing.getColor())
         if (finished) {
             // 50%-alpha strike-through colour — no res entry, use literal hex.
             return if (light) 0x80000000.toInt() else 0x80FFFFFF.toInt()
         }
         return ContextCompat.getColor(context,
                 if (light) R.color.black_76p else R.color.white_76p)
+    }
+
+    private fun shouldUseDarkForeground(thing: Thing): Boolean {
+        return BackgroundUtil.isLight(thing.getColor())
+    }
+
+    private fun adaptiveIconColor(thing: Thing): Int {
+        return if (shouldUseDarkForeground(thing)) Color.BLACK else Color.WHITE
+    }
+
+    private fun setAdaptiveIconColor(remoteViews: RemoteViews, viewId: Int, thing: Thing) {
+        remoteViews.setInt(viewId, "setColorFilter", adaptiveIconColor(thing))
     }
 
     private fun setAppearance(
@@ -502,7 +556,7 @@ object AppWidgetHelper {
         remoteViews.setInt(ROOT_WIDGET_THING, "setBackgroundColor",
                 Color.TRANSPARENT)
         // 64×64 ≈ 16KB; saves RemoteViews bitmap budget.
-        val bgBm: Bitmap? = com.ywwynm.everythingdone.utils.BackgroundUtil
+        val bgBm: Bitmap? = BackgroundUtil
                 .renderBackgroundBitmap(thing!!.getBackground(), 64, 64, a)
         if (bgBm != null) {
             remoteViews.setImageViewBitmap(IV_WIDGET_BG, bgBm)
@@ -564,12 +618,14 @@ object AppWidgetHelper {
                 remoteViews.setViewVisibility(IV_STICKY_ONGOING_SMALL, View.VISIBLE)
                 remoteViews.setInt(IV_STICKY_ONGOING_SMALL, "setImageAlpha", alpha)
                 remoteViews.setImageViewResource(IV_STICKY_ONGOING_SMALL, ivRes)
+                setAdaptiveIconColor(remoteViews, IV_STICKY_ONGOING_SMALL, thing)
                 remoteViews.setContentDescription(IV_STICKY_ONGOING_SMALL, cd)
             } else {
                 remoteViews.setViewVisibility(IV_STICKY_ONGOING, View.VISIBLE)
                 remoteViews.setViewVisibility(IV_STICKY_ONGOING_SMALL, View.GONE)
                 remoteViews.setInt(IV_STICKY_ONGOING, "setImageAlpha", alpha)
                 remoteViews.setImageViewResource(IV_STICKY_ONGOING, ivRes)
+                setAdaptiveIconColor(remoteViews, IV_STICKY_ONGOING, thing)
                 remoteViews.setContentDescription(IV_STICKY_ONGOING, cd)
             }
         }
@@ -670,8 +726,7 @@ object AppWidgetHelper {
             if (title != null) {
                 remoteViews.setViewVisibility(TV_TITLE, View.VISIBLE)
                 // Phase 8: simple-style title uses a muted tertiary tier.
-                val light: Boolean = com.ywwynm.everythingdone.utils.BackgroundUtil
-                        .isLight(thing.getColor())
+                val light: Boolean = BackgroundUtil.isLight(thing.getColor())
                 remoteViews.setTextColor(TV_TITLE, ContextCompat.getColor(
                         context, if (light) R.color.black_66p else R.color.white_66p))
                 remoteViews.setTextViewText(TV_TITLE, title)
@@ -690,6 +745,7 @@ object AppWidgetHelper {
         } else {
             remoteViews.setViewVisibility(R.id.view_private_helper_1, View.VISIBLE)
             remoteViews.setViewVisibility(IV_PRIVATE_THING, View.VISIBLE)
+            setAdaptiveIconColor(remoteViews, IV_PRIVATE_THING, thing)
             remoteViews.setViewVisibility(R.id.view_private_helper_2, View.VISIBLE)
         }
     }
@@ -765,7 +821,7 @@ object AppWidgetHelper {
         intent.setAction(Def.Communication.BROADCAST_ACTION_UPDATE_CHECKLIST)
         intent.setData(Uri.parse(intent.toUri(Intent.URI_INTENT_SCHEME)))
         val pendingIntent: PendingIntent = PendingIntent.getBroadcast(context, appWidgetId, intent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+                COLLECTION_TEMPLATE_PENDING_INTENT_FLAGS)
         remoteViews.setPendingIntentTemplate(R.id.lv_thing_check_list, pendingIntent)
     }
 
@@ -798,6 +854,8 @@ object AppWidgetHelper {
             val rvItem = RemoteViews(context.packageName, R.layout.check_list_tv_app_widget)
             rvItem.setViewVisibility(IV_STATE_CHECK_LIST, View.GONE)
             rvItem.setTextViewText(TV_CONTENT_CHECK_LIST, "...")
+            rvItem.setTextColor(TV_CONTENT_CHECK_LIST,
+                    checklistItemTextColor(context, thing, false))
             rvItem.setContentDescription(TV_CONTENT_CHECK_LIST,
                     context.getString(R.string.cd_checklist_more_items))
             rvItem.setTextViewTextSize(TV_CONTENT_CHECK_LIST, TypedValue.COMPLEX_UNIT_SP, 18f)
@@ -815,17 +873,25 @@ object AppWidgetHelper {
             return
         }
 
+        val iconRes: Int = if (shouldUseDarkForeground(thing)) {
+            R.drawable.card_audio_attachment_black
+        } else {
+            R.drawable.card_audio_attachment
+        }
+
         if (thing.getTitleToDisplay()!!.isEmpty()
                 && thing.content!!.isEmpty()
                 && AttachmentHelper.isAllAudio(thing.attachment)) {
             remoteViews.setViewVisibility(LL_AUDIO_ATTACHMENT, View.GONE)
             remoteViews.setViewVisibility(LL_AUDIO_ATTACHMENT_LARGE, View.VISIBLE)
             remoteViews.setViewPadding(LL_AUDIO_ATTACHMENT_LARGE, dp12, dp12, dp12, 0)
+            remoteViews.setImageViewResource(IV_AUDIO_COUNT_LARGE, iconRes)
             remoteViews.setTextViewText(TV_AUDIO_COUNT_LARGE, str)
         } else {
             remoteViews.setViewVisibility(LL_AUDIO_ATTACHMENT_LARGE, View.GONE)
             remoteViews.setViewVisibility(LL_AUDIO_ATTACHMENT, View.VISIBLE)
             remoteViews.setViewPadding(LL_AUDIO_ATTACHMENT, dp12, (screenDensity * 9).toInt(), dp12, 0)
+            remoteViews.setImageViewResource(IV_AUDIO_COUNT, iconRes)
             remoteViews.setTextViewText(TV_AUDIO_COUNT, str)
         }
 
@@ -845,11 +911,13 @@ object AppWidgetHelper {
         remoteViews.setTextViewText(TV_THING_STATE, Thing.getStateStr(state, context))
         if (state == Thing.FINISHED) {
             remoteViews.setImageViewResource(IV_THING_STATE, R.drawable.ic_finished_widget)
+            setAdaptiveIconColor(remoteViews, IV_THING_STATE, thing)
             remoteViews.setContentDescription(IV_THING_STATE, context.getString(R.string.finished))
             remoteViews.setViewPadding(IV_THING_STATE, 0, (screenDensity * 2.5).toInt(),
                     (screenDensity * 12).toInt(), 0)
         } else if (state == Thing.DELETED) {
             remoteViews.setImageViewResource(IV_THING_STATE, R.drawable.ic_deleted_widget)
+            setAdaptiveIconColor(remoteViews, IV_THING_STATE, thing)
             remoteViews.setContentDescription(IV_THING_STATE, context.getString(R.string.deleted))
             remoteViews.setViewPadding(IV_THING_STATE, 0, (screenDensity * 1.5).toInt(),
                     (screenDensity * 12).toInt(), 0)
@@ -922,6 +990,7 @@ object AppWidgetHelper {
         if (thingType == Thing.REMINDER) {
             remoteViews.setViewPadding(IV_REMINDER, 0, (screenDensity * 2).toInt(), 0, 0)
             remoteViews.setImageViewResource(IV_REMINDER, R.drawable.card_reminder)
+            setAdaptiveIconColor(remoteViews, IV_REMINDER, thing)
             remoteViews.setContentDescription(IV_REMINDER, context.getString(R.string.reminder))
             remoteViews.setTextViewTextSize(TV_REMINDER_TIME, TypedValue.COMPLEX_UNIT_SP, 12f)
 
@@ -930,6 +999,7 @@ object AppWidgetHelper {
         } else {
             remoteViews.setViewPadding(IV_REMINDER, 0, (screenDensity * 1.6).toInt(), 0, 0)
             remoteViews.setImageViewResource(IV_REMINDER, R.drawable.card_goal)
+            setAdaptiveIconColor(remoteViews, IV_REMINDER, thing)
             remoteViews.setContentDescription(IV_REMINDER, context.getString(R.string.goal))
             remoteViews.setTextViewTextSize(TV_REMINDER_TIME, TypedValue.COMPLEX_UNIT_SP, 16f)
 
@@ -957,6 +1027,7 @@ object AppWidgetHelper {
             summary += ", " + habit.getStateDescription(context)
         }
         remoteViews.setTextViewText(TV_HABIT_SUMMARY, summary)
+        setAdaptiveIconColor(remoteViews, IV_HABIT, thing)
 
         if (thing.state == Thing.UNDERWAY && !habit.isPaused()) {
             remoteViews.setViewVisibility(TV_HABIT_NEXT_REMINDER, View.VISIBLE)
@@ -989,7 +1060,7 @@ object AppWidgetHelper {
                     lastFive.append("?")
                 }
             }
-            setHabitLastFive(remoteViews, context, lastFive.toString())
+            setHabitLastFive(remoteViews, context, thing, lastFive.toString())
 
             remoteViews.setTextViewText(TV_HABIT_FINISHED_THIS_T,
                     habit.getFinishedTimesThisTStr(context))
@@ -1004,7 +1075,7 @@ object AppWidgetHelper {
         remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE)
     }
 
-    private fun setHabitLastFive(remoteViews: RemoteViews, context: Context, lastFive: String) {
+    private fun setHabitLastFive(remoteViews: RemoteViews, context: Context, thing: Thing, lastFive: String) {
         val ids: IntArray = intArrayOf(
                 R.id.iv_thing_habit_record_1,
                 R.id.iv_thing_habit_record_2,
@@ -1016,14 +1087,17 @@ object AppWidgetHelper {
         for (i in 0 until states.size) {
             if (states[i] == '0') {
                 remoteViews.setImageViewResource(ids[i], R.drawable.card_habit_unfinished)
+                setAdaptiveIconColor(remoteViews, ids[i], thing)
                 remoteViews.setContentDescription(ids[i],
                         context.getString(R.string.cd_habit_unfinished))
             } else if (states[i] == '1') {
                 remoteViews.setImageViewResource(ids[i], R.drawable.card_habit_finished)
+                setAdaptiveIconColor(remoteViews, ids[i], thing)
                 remoteViews.setContentDescription(ids[i],
                         context.getString(R.string.cd_habit_finished))
             } else {
                 remoteViews.setImageViewResource(ids[i], R.drawable.card_habit_unknown)
+                setAdaptiveIconColor(remoteViews, ids[i], thing)
                 remoteViews.setContentDescription(ids[i],
                         context.getString(R.string.cd_habit_unknown))
             }

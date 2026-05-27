@@ -13,6 +13,15 @@ commit", "commit this"). Reverting an unrequested commit was needed
 once on 2026-05-18; avoid the same mistake. Applies even when code
 compiles and tasks look "done".
 
+## Commit messages
+
+When writing bilingual commit messages, do not prefix paragraphs with
+`EN:` / `中文：`. Do not include Gradle command output or APK verification
+details in the commit message body. Add the standard collaborator trailer
+used by recent commits:
+
+`Co-authored-by: GPT-5.5 <gpt-5.5@openai.com>`
+
 ## Color migration & UI gradients
 
 **Principle: "If it can render gradient, make it render gradient."**

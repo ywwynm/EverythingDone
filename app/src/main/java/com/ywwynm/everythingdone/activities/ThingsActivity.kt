@@ -209,18 +209,58 @@ class ThingsActivity : EverythingDoneBaseActivity() {
                 + "canSeeThingsActivity[" + mCanSeeUi + "], "
                 + mRemoteIntentInfo)
             if (!mCanSeeUi) {
-                if (mRemoteIntent != null) {
-                    updateMainUi(mRemoteIntent!!)
-                    mDrawerLayout!!.postDelayed({
-                        mRemoteIntent = intent
-                    }, 600)
-                } else {
-                    mRemoteIntent = intent
-                }
+                handleUpdateMainUiIntentWhileHidden(intent)
                 return
             }
             updateMainUi(intent)
         }
+    }
+
+    private fun handleUpdateMainUiIntentWhileHidden(intent: Intent) {
+        val remoteIntent: Intent? = mRemoteIntent
+        if (remoteIntent == null || canReplaceHiddenRemoteIntent(remoteIntent, intent)) {
+            mRemoteIntent = intent
+            return
+        }
+
+        updateMainUi(remoteIntent)
+        mDrawerLayout!!.postDelayed({
+            mRemoteIntent = intent
+        }, 600)
+    }
+
+    private fun canReplaceHiddenRemoteIntent(oldIntent: Intent, newIntent: Intent): Boolean {
+        if (App.justNotifyAll()) {
+            return true
+        }
+
+        val oldResultCode: Int = oldIntent.getIntExtra(
+            Def.Communication.KEY_RESULT_CODE,
+            Def.Communication.RESULT_NO_UPDATE
+        )
+        if (oldResultCode == Def.Communication.RESULT_NO_UPDATE) {
+            return true
+        }
+
+        val newResultCode: Int = newIntent.getIntExtra(
+            Def.Communication.KEY_RESULT_CODE,
+            Def.Communication.RESULT_NO_UPDATE
+        )
+        if (oldResultCode != newResultCode) {
+            return false
+        }
+
+        val oldThingId: Long = getRemoteIntentThingId(oldIntent)
+        val newThingId: Long = getRemoteIntentThingId(newIntent)
+        return oldThingId != -1L && oldThingId == newThingId
+    }
+
+    private fun getRemoteIntentThingId(intent: Intent): Long {
+        val thing: Thing? = intent.getParcelableExtra(Def.Communication.KEY_THING)
+        if (thing != null) {
+            return thing.id
+        }
+        return intent.getLongExtra(Def.Communication.KEY_ID, -1L)
     }
 
     private var mShouldCloseDrawer: Boolean = false
@@ -413,7 +453,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         if (mUpdateMainUiInOnResume) {
             if (App.justNotifyAll()) {
                 mRecyclerView!!.postDelayed({
-                    justNotifyAll()
+                    justNotifyAll(false)
                     mRemoteIntent = null
                 }, 540)
             } else if (mRemoteIntent != null) {
@@ -944,7 +984,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         }, 560)
     }
 
-    private fun justNotifyAll() {
+    private fun justNotifyAll(shouldThingsAnimWhenAppearing: Boolean = true) {
         if (App.isSearching) {
             mThingManager!!.searchThings(mEtSearch!!.text.toString(), mColorPicker!!.getPickedColor())
             handleSearchResults()
@@ -959,7 +999,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
             updateSelectingUi(false)
         }
 
-        mAdapter!!.setShouldThingsAnimWhenAppearing(true)
+        mAdapter!!.setShouldThingsAnimWhenAppearing(shouldThingsAnimWhenAppearing)
         mAdapter!!.notifyDataSetChanged()
 
         if (mCanSeeUi) {

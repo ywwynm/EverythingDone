@@ -4,6 +4,33 @@ Things that were technically achievable but deferred to a later iteration
 because the work was disproportionate to the visual gain. Each entry
 notes the current fallback so you know what the app is doing today.
 
+## AppWidget verification
+
+### Real launcher widget click smoke test (deferred 2026-05-27)
+
+**Scope:** Single Thing widgets with checklist rows, Things List widget row
+clicks, header/settings/create buttons, Create widget, Check Upcoming widget,
+and direct reminder/habit widget action buttons.
+
+**Current state:** Source-level guards verify the Android 16-sensitive
+contracts: collection templates are mutable, all AppWidget Activity
+PendingIntents go through the BAL creator-opt-in helper, create actions resolve
+the new-thing background at click time, and widget card icons are explicitly
+luminance-adaptive. `:app:assembleDebug` also passes.
+
+**Deferred verification:** Install the APK on an emulator or explicitly
+approved test device, place fresh widgets on the launcher, and click each
+button path while watching logcat for `ActivityTaskManager` background-activity
+launch blocks and app receiver/action logs.
+Also visually check light and dark Thing backgrounds for every card subtype
+(note, reminder, habit, goal, private, checklist, attachment-only, finished /
+deleted) and verify long reminder/habit text is visible or ellipsized next to
+its icon.
+
+**Reason deferred:** No emulator was attached in the 2026-05-27 session; only a
+physical device was listed by ADB, so the agent did not take over the user's
+launcher state for widget placement and manual-click verification.
+
 ## Color migration
 
 ### Real-gradient ripple waveform (deferred 2026-05-18)

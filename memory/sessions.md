@@ -1,5 +1,93 @@
 # Sessions
 
+## 2026-05-27 - Android 16 AppWidget click action fix
+
+Investigated AppWidget click regressions after targeting Android 16 / SDK 36.
+The affected widget surface has two distinct PendingIntent requirements:
+
+- Collection rows (`ThingsListWidget` list rows and single-thing checklist
+  rows) use `setPendingIntentTemplate(...)` plus `setOnClickFillInIntent(...)`.
+  Their template PendingIntent must be mutable so launcher-provided fill-in
+  extras such as thing id and checklist item position reach the app.
+- Widget Activity launches are sent by the launcher. Added a shared
+  `AppWidgetHelper.getActivityPendingIntentForWidget(...)` helper that attaches
+  creator-side background-activity-launch `ActivityOptions` on Android 14+,
+  then routed all widget `getActivity` PendingIntents through it.
+
+Changed files:
+- `AppWidgetHelper.kt`
+- `CreateWidget.kt`
+- `CheckUpcomingWidget.kt`
+- `memory/decisions.md`
+
+Verification:
+- Source guard for AppWidget collection templates passed: both templates now
+  use the mutable collection-template flag.
+- Source guard for raw widget `PendingIntent.getActivity` usage passed: all
+  AppWidget activity launches now go through the BAL helper.
+- The first sandboxed Gradle attempts did not produce a fresh APK: one wrapper
+  run timed out while trying to download Gradle, and later runs failed writing
+  `swirl/build/intermediates/...` with access denied.
+- Re-ran the project wrapper outside the sandbox using
+  `.\gradlew.bat :app:assembleDebug --console=plain`; it completed with
+  `BUILD SUCCESSFUL in 31s` and produced
+  `app/build/outputs/apk/debug/app-debug.apk` at `2026-05-27 11:45:51`.
+- `git diff --check` passed with only existing LF-to-CRLF warnings.
+
+No real launcher widget click smoke test was run in this session because no
+emulator was attached; `adb devices` showed only the physical device.
+
+Follow-up after user reported duplicate home-card update animation:
+- Root cause: while `ThingsActivity` was stopped but still alive, its dynamic
+  `UPDATE_MAIN_UI` receiver could receive widget checklist-toggle broadcasts.
+  If a previous `mRemoteIntent` was already pending, the hidden receiver branch
+  immediately called `updateMainUi(mRemoteIntent)`, which could enqueue a
+  RecyclerView notify while the adapter was in wait-notify mode, then store the
+  newer widget intent for `onResume()`. Returning to home could therefore replay
+  a stale queued notify plus the fresh widget update.
+- First attempted fix was too broad: it always replaced the pending hidden
+  `mRemoteIntent` with the latest intent, which could drop meaningful distinct
+  remote events. User correctly flagged this as risky.
+- Revised fix: hidden remote updates now go through an explicit coalescing
+  helper. The pending intent is replaced only when replacement is safe:
+  `App.justNotifyAll()` is already true, the old result is `RESULT_NO_UPDATE`,
+  or both intents are the same result for the same Thing. Otherwise the legacy
+  behavior is preserved: process the older pending intent, then store the newer
+  one after the delay.
+- Verification: source guard confirmed the hidden branch uses the coalescing
+  helper and that the helper covers the no-update and same-Thing replacement
+  cases; `.\gradlew.bat :app:assembleDebug --console=plain` passed outside the
+  sandbox (`BUILD SUCCESSFUL in 2s`) and produced
+  `app/build/outputs/apk/debug/app-debug.apk` at `2026-05-27 11:57:34`.
+
+Second follow-up after the duplicate animation remained hard to reproduce:
+- Found another plausible independent cause: `ThingsAdapter.onBindViewHolder()`
+  replayed `things_show` on every bind while
+  `mShouldThingsAnimWhenAppearing == true`. A remote widget
+  `notifyItemChanged(...)` can therefore combine RecyclerView's change
+  animation with the adapter's delayed appear animation. Because
+  `playAppearingAnimation()` starts via `Handler.postDelayed(position * 30)`,
+  stale delayed appear runnables can also fire after a later content-update
+  bind, which explains the intermittent nature.
+- Fix: `ThingsAdapter` now tracks which Thing ids have already played the
+  appearing animation during the current appear cycle, clears that set when a
+  new explicit appear cycle is requested, and uses a per-view keyed tag token
+  to cancel stale delayed appear runnables on later non-appearing binds.
+- Added `app/src/main/res/values/ids.xml` for the keyed animation token tag.
+- Verification: source guard confirmed the appeared-id guard and per-view token
+  cancellation are present; `.\gradlew.bat :app:assembleDebug --console=plain`
+  passed outside the sandbox (`BUILD SUCCESSFUL in 4s`) and produced
+  `app/build/outputs/apk/debug/app-debug.apk` at `2026-05-27 12:57:32`.
+- Rolled this second follow-up back after device testing showed severe
+  AppWidget data/rendering regressions: tapping checklist item A could update B,
+  checklist rows could show checked text with an unchecked icon, and Things-list
+  widgets could show wrong thing data. `ThingsAdapter.kt` was restored to its
+  pre-follow-up state and `app/src/main/res/values/ids.xml` was deleted.
+- Rebuilt the rollback APK with
+  `.\gradlew.bat :app:assembleDebug --console=plain`; it passed
+  (`BUILD SUCCESSFUL in 1s`) and produced
+  `app/build/outputs/apk/debug/app-debug.apk` at `2026-05-27 13:03:57`.
+
 ## 2026-05-25 — Homepage thing-card UI refresh, step 1
 
 Updated EverythingDone's homepage thing cards using Everything-Android's
@@ -2014,3 +2102,74 @@ Dark-mode ripple correction:
 
 Verification:
 - `.\gradlew.bat :app:assembleDebug --console=plain` passed.
+
+Launcher widget Android 16 follow-up:
+- User clarified that the repeat animation after toggling a checklist item from
+  a widget looked like the whole Things list reloading from the bottom, not a
+  RecyclerView `notifyItemChanged()` change animation.
+- Traced that visual path to `ThingsActivity.justNotifyAll()`, which reloads
+  the Things data and always enabled `things_show` before
+  `notifyDataSetChanged()`.
+- Kept the full reload behavior for correctness, but parameterized
+  `justNotifyAll()` and made the `onResume()` branch that consumes background
+  `App.justNotifyAll()` call `justNotifyAll(false)`, so widget/background
+  catch-up refreshes do not replay the list appearing animation.
+- Confirmed the previous `ThingsAdapter.kt` / `ids.xml` experiment remains
+  rolled back; this change does not touch widget RemoteViews data generation or
+  adapter resource ids.
+
+Verification:
+- `.\gradlew.bat :app:assembleDebug --console=plain` passed and produced
+  `app\build\outputs\apk\debug\app-debug.apk` at 2026-05-27 13:11:49.
+- `git diff --check` passed with CRLF conversion warnings only.
+
+Launcher widget rendering follow-up:
+- Fixed Create widget and Things List widget create-button colour staleness by
+  routing create clicks through `ShortcutActivity`. The RemoteViews PendingIntent
+  now carries only the create action (and the list limit when applicable), so
+  each click resolves the current `App.newThingBackground` immediately before
+  opening `DetailActivity`.
+- Added explicit luminance-adaptive icon rendering in `AppWidgetHelper` for
+  widget card icons that sit on Thing backgrounds: checklist state icons,
+  private lock, sticky/ongoing markers, reminder/goal icons, habit icon, habit
+  record dots, audio attachment icon, and finished/deleted state icons.
+- Added ids for the widget audio attachment ImageViews so RemoteViews can swap
+  the black/white audio assets just like the normal card adapter does.
+- Tightened widget reminder/habit/state text layout constraints by giving text
+  next to icons the remaining row width plus single-line ellipsizing. This
+  targets the intermittent launcher rendering case where a reminder icon showed
+  but the adjacent reminder time text was missing.
+- Did not modify `ThingsAdapter.kt` and did not recreate `values/ids.xml`.
+
+Verification:
+- `.\gradlew.bat :app:assembleDebug --console=plain` passed and produced
+  `app\build\outputs\apk\debug\app-debug.apk` at 2026-05-27 14:36:32.
+- `git diff --check` passed with CRLF conversion warnings only.
+
+Launcher widget create/configuration correction:
+- User found the standalone Create widget could fail on the second click in this
+  sequence: keep ThingsActivity alive by pressing Home, click Create widget,
+  press Back to abandon the empty created Thing and return to the Things home
+  screen with the abandon snackbar, press Home again, then click Create widget.
+  The second click resumed the Things home screen instead of opening
+  `DetailActivity` in CREATE mode.
+- First tried restoring the standalone Create widget to a direct
+  `DetailActivity` PendingIntent plus refreshing standalone Create widgets
+  after `App.newThingBackground` rolls. Device testing showed that approach did
+  not fix the repeated task/colour staleness.
+- Replaced the direct path by copying the Things List widget create action:
+  standalone Create now opens `ShortcutActivity` with
+  `SHORTCUT_ACTION_CREATE`, carries `KEY_LIMIT = ALL_UNDERWAY`, and uses the
+  shared widget BAL PendingIntent helper. The Things List widget keeps the same
+  `ShortcutActivity` create path with its selected list limit.
+- Removed the temporary `AppWidgetHelper.updateCreateAppWidgets()` helper and
+  the `DetailActivity` call site added by the failed direct-path attempt.
+- Fixed `ThingsListWidgetConfiguration` so reopening settings reads the stored
+  negative `ThingWidgetInfo.thingId` and preselects the saved limit instead of
+  always showing "All".
+
+Verification:
+- `.\gradlew.bat :app:assembleDebug --console=plain` passed after the final
+  create-action correction and produced `app\build\outputs\apk\debug\app-debug.apk`
+  at 2026-05-27 15:35:00.
+- `git diff --check` passed with CRLF conversion warnings only.

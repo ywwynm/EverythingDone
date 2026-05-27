@@ -37,6 +37,10 @@ open class ShortcutActivity : AppCompatActivity() {
                     App.newThingBackground
                 else ThingBackground.pure(App.newThingColor)
             )
+            val limit = intent.getIntExtra(Def.Communication.KEY_LIMIT, -1)
+            if (limit != -1) {
+                openIntent.putExtra(Def.Communication.KEY_LIMIT, limit)
+            }
         } else if (Def.Communication.SHORTCUT_ACTION_CHECK_UPCOMING == action) {
             var canCheck = false
             val things: MutableList<Thing?> = ArrayList(ThingDAO.getInstance(this)!!

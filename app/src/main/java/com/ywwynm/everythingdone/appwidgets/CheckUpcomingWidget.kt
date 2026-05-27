@@ -31,8 +31,9 @@ open class CheckUpcomingWidget : AppWidgetProvider() {
             // Well, this is not very elegant but I don't want to change more code.
             // And today is programmer's day, who cares about this?
             contentIntent.setAction(Def.Communication.SHORTCUT_ACTION_CHECK_UPCOMING)
-            val pendingIntent: PendingIntent = PendingIntent.getActivity(context,
-                    appWidgetId, contentIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+            val pendingIntent: PendingIntent = AppWidgetHelper.getActivityPendingIntentForWidget(
+                    context, appWidgetId, contentIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
             remoteViews.setOnClickPendingIntent(R.id.iv_widget_simple, pendingIntent)
             appWidgetManager.updateAppWidget(appWidgetId, remoteViews)
         }
