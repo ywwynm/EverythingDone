@@ -542,6 +542,7 @@
     <string name="ongoing_lockscreen">Показывать постоянное уведомлениеthing\' также на экране блокировки</string>
     <string name="close_notification_later">Не разрешайте \' закрывать заметное уведомление в течение 2 секунд после его появления.</string>
     <string name="create_daily_todo_automatically">Создавайте ежедневные TODO каждое утро</string>
+    <string name="daily_todo_set_time_title">Настроить время автосоздания</string>
     <string name="create_daily_todo_help_info">EverythingDone каждое утро автоматически создаст объект с заголовком \\"Things to do на MM d, yyyy\\", и вы сможете определить его содержание (если вы не сделаете \'t и оставите содержимое и вложение пустыми, объект не будет создан).
         \n\nМы также установим напоминание об этом в 14:00, потому что вы, возможно, захотите получать напоминание о завершении своих планов и задач.</string>
     <string name="auto_notify">Автоматическое напоминание</string>

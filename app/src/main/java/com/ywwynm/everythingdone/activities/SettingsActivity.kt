@@ -1126,7 +1126,7 @@ class SettingsActivity : EverythingDoneBaseActivity() {
         val cdf = ChooserDialogFragment()
         cdf.setAccentColor(mAccentColor)
         cdf.setShouldShowMore(false)
-        cdf.setTitle(getString(R.string.auto_notify_set_time))
+        cdf.setTitle(getString(R.string.daily_todo_set_time_title))
         cdf.setItems(sDTItems)
         cdf.setInitialIndex(mDTPicked)
         cdf.setConfirmListener {

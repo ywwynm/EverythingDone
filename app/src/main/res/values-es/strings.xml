@@ -542,6 +542,7 @@
     <string name="ongoing_lockscreen">Mostrar la notificación en curso de thing\'s también en la pantalla de bloqueo</string>
     <string name="close_notification_later">No\'t permite cerrar una notificación notable hasta 2 segundos después de que se mostró</string>
     <string name="create_daily_todo_automatically">Crea TODO diario cada mañana</string>
+    <string name="daily_todo_set_time_title">Configurar hora de creación automática</string>
     <string name="create_daily_todo_help_info">EverythingDone creará un objeto cuyo título será \\"Cosas que hacer en MM d, yyyy\\" automáticamente todas las mañanas, y usted puede decidir su contenido (si no \'t y deja el contenido y el archivo adjunto vacíos, entonces el objeto no se creará).
         \n\nTambién estableceremos un recordatorio para esto a las 2:00 de la tarde porque es posible que desee que le recuerden que debe terminar sus planes y tareas pendientes.</string>
     <string name="auto_notify">Recordatorio automático</string>

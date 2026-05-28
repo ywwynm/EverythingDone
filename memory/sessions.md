@@ -2051,6 +2051,17 @@ Verification:
 - `.\gradlew.bat :app:assembleDebug --console=plain` passed.
 - `git diff --check` passed with CRLF conversion warnings only.
 
+Daily TODO auto-create time title:
+- Split the Daily TODO auto-create time picker title from the automatic
+  notification time title by adding `daily_todo_set_time_title` in every
+  supported `strings.xml` locale and wiring `SettingsActivity` to use it.
+- Kept the user's existing `DailyTodoHelper.kt` work untouched.
+
+Verification:
+- `E:\projects\EverythingDone\gradlew.bat :app:assembleDebug --console=plain`
+  passed.
+- `git diff --check` passed with CRLF conversion warnings only.
+
 Follow-system dark-mode diagnosis:
 - Traced the "follow system stays light after system dark-mode change" symptom
   to the in-app language context wrapper. `LocaleUtil.getContextForLanguage()`

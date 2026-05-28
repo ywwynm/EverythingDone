@@ -542,6 +542,7 @@
     <string name="ongoing_lockscreen">thing\' の進行中の通知をロック画面にも表示する</string>
     <string name="close_notification_later">Don\' 表示されてから 2 秒後までは目立つ通知を閉じることを許可しないでください</string>
     <string name="create_daily_todo_automatically">毎朝、毎日のTODOを作成する</string>
+    <string name="daily_todo_set_time_title">自動作成時間を設定</string>
     <string name="create_daily_todo_help_info">EverythingDone は毎朝、\\"Things to do on MM d, yyyy\\" というタイトルの Thing を自動的に作成します。その内容はユーザーが決定できます (\'t を実行せず、内容と添付ファイルの両方を空のままにすると、Thing は作成されません)。
         \n\nまた、計画や TODO の完了を思い出してもらいたい場合があるため、午後 2 時にこのことに対するリマインダーを設定します。</string>
     <string name="auto_notify">自動リマインダー</string>

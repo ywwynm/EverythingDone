@@ -542,6 +542,7 @@
     <string name="ongoing_lockscreen">잠금 화면에도 thing\'의 지속적인 알림 표시</string>
     <string name="close_notification_later">Don\'표시된 후 2초가 될 때까지 눈에 띄는 알림을 닫는 것을 허용하지 마세요.</string>
     <string name="create_daily_todo_automatically">매일 아침 매일 TODO를 생성하세요</string>
+    <string name="daily_todo_set_time_title">자동 생성 시간 설정</string>
     <string name="create_daily_todo_help_info">EverythingDone은 매일 아침 자동으로 제목이 \\"Things to do on MM d, yyyy\\"인 항목을 생성하고 내용을 결정할 수 있습니다. (\'t를 사용하지 않고 콘텐츠와 첨부 파일을 모두 비워두면 해당 항목이 생성되지 않습니다.)
         \n\n또한 계획과 TODO 완료에 대해 알림을 받고 싶으실 수 있으므로 오후 2시에 이 알림을 설정하겠습니다.</string>
     <string name="auto_notify">자동 알림</string>

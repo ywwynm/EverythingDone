@@ -542,6 +542,7 @@
     <string name="ongoing_lockscreen">लॉकस्क्रीन पर thing\' की चालू अधिसूचना भी दिखाएं</string>
     <string name="close_notification_later">Don\'t ध्यान देने योग्य अधिसूचना को प्रदर्शित होने के 2 सेकंड बाद तक बंद करने की अनुमति नहीं देता है</string>
     <string name="create_daily_todo_automatically">हर सुबह दैनिक TODO बनाएं</string>
+    <string name="daily_todo_set_time_title">स्वतः बनाने का समय सेट करें</string>
     <string name="create_daily_todo_help_info">EverythingDone एक चीज़ बनाएगा जिसका शीर्षक होगा \\"हर सुबह MM d, yyyy\\" पर करने योग्य चीज़ें स्वचालित रूप से, और आप इसकी सामग्री तय कर सकते हैं (यदि आप \'t नहीं करते हैं और सामग्री और अनुलग्नक दोनों को खाली छोड़ देते हैं, तो चीज़ नहीं बनाई जाएगी)।
         \n\n हम इस चीज़ के लिए दोपहर 2:00 बजे एक अनुस्मारक भी सेट करेंगे क्योंकि आप शायद अपनी योजनाओं और TODO को पूरा करने की याद दिलाना चाहेंगे।</string>
     <string name="auto_notify">स्वचालित अनुस्मारक</string>

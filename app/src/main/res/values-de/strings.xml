@@ -542,6 +542,7 @@
     <string name="ongoing_lockscreen">Zeigen Sie die laufende Benachrichtigung von thing\' auch auf dem Sperrbildschirm an</string>
     <string name="close_notification_later">Don\'t das Schließen einer auffälligen Benachrichtigung erst 2 Sekunden nach der Anzeige zulassen</string>
     <string name="create_daily_todo_automatically">Erstellen Sie jeden Morgen ein tägliches TODO</string>
+    <string name="daily_todo_set_time_title">Automatische Erstellzeit festlegen</string>
     <string name="create_daily_todo_help_info">EverythingDone erstellt jeden Morgen automatisch ein Ding mit dem Titel \\"Things to do on MM d, yyyy\\", und Sie können den Inhalt festlegen (Wenn Sie nicht \'t und sowohl den Inhalt als auch den Anhang leer lassen, wird das Ding nicht erstellt).
         \n\nWir werden auch um 14:00 Uhr nachmittags eine Erinnerung an diese Sache einrichten, weil Sie vielleicht daran erinnert werden möchten, Ihre Pläne und TODOs zu erledigen.</string>
     <string name="auto_notify">Automatische Erinnerung</string>

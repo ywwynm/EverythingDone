@@ -542,6 +542,7 @@
     <string name="ongoing_lockscreen">Afficher la notification en cours de thing\' également sur l\'écran de verrouillage</string>
     <string name="close_notification_later">Ne\'t autoriser la fermeture d\'une notification visible jusqu\'à 2 secondes après son affichage</string>
     <string name="create_daily_todo_automatically">Créez des TODO quotidiennes chaque matin</string>
+    <string name="daily_todo_set_time_title">Définir l’heure de création automatique</string>
     <string name="create_daily_todo_help_info">EverythingDone créera automatiquement chaque matin une chose dont le titre sera \\"Things to do on MM d, yyyy\\", et vous pourrez décider de son contenu (si vous ne \'t et laissez le contenu et la pièce jointe vides, alors la chose ne sera pas créée).
         \n\nNous définirons également un rappel pour cette chose à 14h00 de l\'après-midi, car vous voudrez peut-être qu\'on vous rappelle la fin de vos plans et de vos TODO.</string>
     <string name="auto_notify">Rappel automatique</string>
