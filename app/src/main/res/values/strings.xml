@@ -859,6 +859,37 @@
     <string name="about_motto">Remember to finish, \nand finish things</string>
     <string name="about_version">version: </string>
     <string name="about_license">OPEN SOURCE LICENSES</string>
+    <string name="about_check_update">CHECK UPDATE</string>
+    <string name="debug_update_source_not_configured">Debug update source is not configured.</string>
+    <string name="debug_update_checking_title">Checking update</string>
+    <string name="debug_update_checking_content">Looking for the latest debug APK…</string>
+    <string name="debug_update_already_latest">Already up to date.</string>
+    <string name="debug_update_available_title">New debug update</string>
+    <string name="debug_update_version_label">Version: %1$s</string>
+    <string name="debug_update_build_label">Build: %1$s</string>
+    <string name="debug_update_size_label">Size: %1$s</string>
+    <string name="debug_update_published_label">Published: %1$s</string>
+    <string name="debug_update_release_notes_label">Release notes</string>
+    <string name="debug_update_download_install">Download and install</string>
+    <string name="debug_update_check_failed_title">Update check failed</string>
+    <string name="debug_update_check_failed_content">%1$s</string>
+    <string name="debug_update_metadata_invalid">The update metadata is invalid.</string>
+    <string name="debug_update_download_title">Downloading update</string>
+    <string name="debug_update_download_progress">%1$s / %2$s (%3$d%%)</string>
+    <string name="debug_update_download_speed">%1$s/s</string>
+    <string name="debug_update_download_canceled">Download canceled.</string>
+    <string name="debug_update_download_failed_title">Download failed</string>
+    <string name="debug_update_download_failed_content">%1$s</string>
+    <string name="debug_update_verification_failed_title">Verification failed</string>
+    <string name="debug_update_verification_failed_content">The downloaded APK did not pass verification and was deleted.</string>
+    <string name="debug_update_package_invalid_title">APK rejected</string>
+    <string name="debug_update_package_invalid_content">The downloaded APK does not match this app or cannot upgrade the installed version.</string>
+    <string name="debug_update_install_permission_title">Allow APK installation</string>
+    <string name="debug_update_install_permission_content">Allow EverythingDone to install unknown apps, then return here to continue installing the downloaded update.</string>
+    <string name="debug_update_open_settings">Open settings</string>
+    <string name="debug_update_install_permission_missing">APK installation permission is still disabled.</string>
+    <string name="debug_update_installer_failed_title">Cannot open installer</string>
+    <string name="debug_update_installer_failed_content">%1$s</string>
     <string name="app_share_info">Is it hard for you to remember everything and finish them? EverythingDone can remind you all activities, help you develop habits and achieve goals. You can also write stories and record lives here. Search "EverythingDone" in Google Play to install.</string>
 
 

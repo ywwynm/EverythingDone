@@ -851,6 +851,37 @@
     <string name="about_motto">记住事情，完成事情</string>
     <string name="about_version">版本：</string>
     <string name="about_license">开源许可</string>
+    <string name="about_check_update">检查更新</string>
+    <string name="debug_update_source_not_configured">尚未配置 Debug 更新源。</string>
+    <string name="debug_update_checking_title">正在检查更新</string>
+    <string name="debug_update_checking_content">正在寻找最新的 Debug APK…</string>
+    <string name="debug_update_already_latest">已经是最新版本。</string>
+    <string name="debug_update_available_title">新的 Debug 更新</string>
+    <string name="debug_update_version_label">版本：%1$s</string>
+    <string name="debug_update_build_label">构建：%1$s</string>
+    <string name="debug_update_size_label">大小：%1$s</string>
+    <string name="debug_update_published_label">发布于：%1$s</string>
+    <string name="debug_update_release_notes_label">更新说明</string>
+    <string name="debug_update_download_install">下载并安装</string>
+    <string name="debug_update_check_failed_title">检查更新失败</string>
+    <string name="debug_update_check_failed_content">%1$s</string>
+    <string name="debug_update_metadata_invalid">更新元数据无效。</string>
+    <string name="debug_update_download_title">正在下载更新</string>
+    <string name="debug_update_download_progress">%1$s / %2$s（%3$d%%）</string>
+    <string name="debug_update_download_speed">%1$s/s</string>
+    <string name="debug_update_download_canceled">已取消下载。</string>
+    <string name="debug_update_download_failed_title">下载失败</string>
+    <string name="debug_update_download_failed_content">%1$s</string>
+    <string name="debug_update_verification_failed_title">校验失败</string>
+    <string name="debug_update_verification_failed_content">下载的 APK 未通过校验，已被删除。</string>
+    <string name="debug_update_package_invalid_title">APK 已被拒绝</string>
+    <string name="debug_update_package_invalid_content">下载的 APK 与本应用不匹配，或无法升级当前已安装版本。</string>
+    <string name="debug_update_install_permission_title">允许安装 APK</string>
+    <string name="debug_update_install_permission_content">请允许完事儿安装未知应用，然后返回这里继续安装已下载的更新。</string>
+    <string name="debug_update_open_settings">打开设置</string>
+    <string name="debug_update_install_permission_missing">APK 安装权限仍未开启。</string>
+    <string name="debug_update_installer_failed_title">无法打开安装器</string>
+    <string name="debug_update_installer_failed_content">%1$s</string>
     <string name="app_share_info">记住事情，完成事情，这对你来说算一个挑战吗？完事儿能够为你提醒日程活动、帮你养成习惯、督促你完成目标，你也可以在完事儿里记下身边的故事与风景，留下美好的回忆。\n\n遵循 Material Design 的界面设计让你领略 Android 应用的美，在精致的细节中享受流畅的操作。\n\n前往 Google Play、酷安网、豌豆荚、小米应用商店等搜索“完事儿”即可下载。</string>
 
 

@@ -930,3 +930,176 @@ Use a two-layer locale path instead:
 Settings language preselection must compare saved language codes, not displayed
 language names, because displayed names are locale-dependent and can belong to
 the previous resource configuration.
+
+## 2026-05-28 - App update flow starts as a debug test update channel
+
+The About-screen "check for updates" feature should first be designed as a
+debug test update channel, not as a formal public release channel. Each
+published debug build can expose the latest APK and metadata from the user's
+Aliyun server, and the app can use that channel for manual tester-initiated
+updates.
+
+The Aliyun side should start as a static update source instead of a long-running
+API service. The server can host a version metadata JSON file and APK assets,
+with repository-side docs or scripts under `server/` for upload and hosting
+conventions.
+
+Publishing should be an explicit Gradle task rather than a side effect of every
+`:app:assembleDebug` run. Normal debug assembly should stay local; the publish
+task should assemble the debug APK, generate update metadata, and upload the
+APK plus metadata to the static Aliyun update source.
+
+The explicit Gradle task should live under the app module as
+`:app:publishDebugUpdate`, matching the APK it publishes and avoiding an
+over-broad root-project task name.
+
+The debug update channel should not use the Android manifest `versionCode` as
+the publishing cadence, because the user wants to avoid inflating the normal app
+version code for frequent debug builds. Use a separate debug update identifier
+for update-channel comparison instead.
+
+The debug update identifier should be a UTC timestamp number in `yyyyMMddHHmm`
+form. This keeps the channel naturally increasing without maintaining a counter
+file and without touching Android `versionCode`.
+
+The installed app should read its current debug update identifier from the APK
+itself, not from a value written before launching the package installer. This
+prevents cancelled installs, failed installs, or manual ADB installs from
+desynchronising the app's idea of the currently running debug build.
+
+Ordinary `:app:assembleDebug` builds should carry `debugUpdateCode = 0`. Only
+`:app:publishDebugUpdate` should inject a real UTC timestamp identifier, so
+local debug builds are not mistaken for published update-channel artifacts.
+
+The app-side update flow should automate checking, downloading, SHA-256
+verification, and launching the system package installer, but it must leave the
+final install confirmation and unknown-source authorization to Android's system
+UI.
+
+The APK download UI should be an app-owned `DialogFragment` following the
+existing `BaseDialogFragment` / App Chrome styling. It should show download
+progress and current speed, and it must adapt to light and dark Appearance Mode.
+
+The download dialog should expose an explicit cancel button while preventing
+accidental dismissal via Back or outside taps. Cancelling should stop the
+download and delete any partial APK file.
+
+Downloaded APKs must pass SHA-256 verification against `latest.json` before
+installation is launched. The app should also parse the APK package information
+first and reject files whose package name is not `com.ywwynm.everythingdone` or
+whose Android `versionCode` is lower than the currently installed app.
+Signature mismatch can be left to Android's package installer to reject.
+
+The initial Aliyun update source may use debug-only HTTP access by bare IP so
+the feature can start before a domain or automated IP-address certificate setup
+exists. Cleartext allowance should be scoped to the debug update channel and
+removed once HTTPS hosting is available.
+
+The static update source should expose versioned APK files under a debug update
+directory, for example `debug/apk/app-debug-<debugUpdateCode>.apk`, with
+`debug/latest.json` pointing at the current file. Avoid overwriting a single
+fixed APK filename while a device may still be downloading it.
+
+Publishing should retain only the most recent five debug APK files on the
+server by default while keeping `latest.json` pointed at the newest build.
+
+Aliyun publishing connection details should be read from untracked
+`local.properties`, including host, user, remote directory, public base URL, and
+optional SSH key path. Do not hardcode those values in committed Gradle or
+server files.
+
+The Gradle publish task should use the system `ssh` and `scp` commands for
+uploading and remote cleanup rather than introducing a Gradle SSH plugin or
+server-side deployment service.
+
+The app's debug update metadata URL should be injected into debug builds from
+untracked `local.properties` via `BuildConfig`, not hardcoded in source. Local
+debug builds without that property can leave the URL empty and report that the
+update source is not configured.
+
+The About-screen "check for updates" entry should be visible only in debug
+builds for now. Release builds should not expose the debug update channel,
+especially while the initial source may use debug-only HTTP by bare IP.
+
+APK downloads should be performed by app-owned HTTP streaming on a background
+thread rather than Android `DownloadManager`, because the app needs direct
+control over dialog progress, speed display, cancellation, temporary files, and
+post-download verification.
+
+Installation should launch Android's package installer with
+`Intent.ACTION_INSTALL_PACKAGE` and a `FileProvider` `content://` URI. The app
+should declare `REQUEST_INSTALL_PACKAGES`, check
+`PackageManager.canRequestPackageInstalls()`, and route the user to
+`Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES` when unknown-source authorization
+is missing.
+
+When unknown-source authorization is missing after a verified APK download, the
+app should keep the verified APK as a pending install and route the user to
+settings. When AboutActivity resumes and the permission is granted, it should
+reuse that APK and relaunch the installer instead of forcing another download.
+
+The About screen should place the existing open-source license action and the
+debug-only check-update action in a horizontally centered row. Both should be
+underlined text buttons using the existing About visual tone. When the update
+action is hidden in release builds, the license action should remain centered.
+
+Because the update feature adds only a small number of user-facing strings,
+localize them across all existing app language resource directories with
+agent-authored translations rather than limiting the change to English and
+Chinese fallback.
+
+Server-side files for the debug APK update channel should live under a dedicated
+subdirectory inside `server/`, because the project may add unrelated server
+features later. Keep this channel's static-hosting docs and helper scripts
+scoped to that subdirectory rather than placing them directly at `server/`.
+
+Use `server/update-debug-apk/` as the dedicated server-side directory for this
+debug APK update channel.
+
+App-side network update behavior should live in a new focused helper such as
+`DebugApkUpdateHelper`, not in the existing `AppUpdateHelper`, whose current
+role is old-version migration and post-upgrade informational dialogs.
+
+The debug update metadata contract should use `channel`, `debugUpdateCode`,
+`versionCode`, `versionName`, `apkUrl`, `sha256`, `sizeBytes`, `publishedAt`,
+and optional `releaseNotes`. The channel must be `debug`, `debugUpdateCode`
+uses UTC `yyyyMMddHHmm`, and `sha256` is lowercase hex.
+
+Downloaded debug APK files should live under `cacheDir/debug-updates/`. Active
+downloads should write to `.apk.part`, verified downloads should be renamed to
+`.apk`, stale partial files should be removed before a new download, and the app
+should keep only the most recent verified APK in that cache.
+
+The check-update UI should explicitly handle unconfigured source, checking,
+already-up-to-date, update-available, metadata/network failure, download
+failure, verification failure, and installer-launch failure states with
+localized user-facing feedback. Update-available feedback should include
+version, size, published time, and optional release notes before the user starts
+download and install.
+
+The initial debug update downloader should not retry automatically. Failures
+should be reported clearly, and the user can retry manually.
+
+`:app:publishDebugUpdate` should fail the Gradle build when any required
+configuration, assembly, metadata generation, checksum, upload, remote setup, or
+cleanup step fails. A successful task must mean the static update source now
+points at a usable latest debug APK.
+
+Published debug update metadata should use UTC consistently: `publishedAt` is
+UTC ISO-8601 with a `Z` suffix, and `debugUpdateCode` is derived from the same
+UTC timestamp. The app can format the timestamp into the device locale and time
+zone for display.
+
+Debug update release notes are optional and may be long. The publish task should
+support both `-PdebugUpdateNotes=...` and `-PdebugUpdateNotesFile=...`, with the
+file input taking precedence when both are present.
+
+The update-available confirmation UI should use a dedicated dialog fragment
+with a bounded scrollable content area for long release notes. Its title and
+bottom action area should remain visually stable while content scrolls, using
+separator behavior consistent with the app language chooser and colour
+information dialogs.
+
+The download-progress dialog should stay fixed-height and non-scrollable. It
+should show determinate progress, downloaded/total size, current speed, and a
+cancel action, with App Chrome light/dark colours and ripple behavior.

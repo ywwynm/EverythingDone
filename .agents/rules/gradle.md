@@ -2,11 +2,12 @@
 
 See [toolchain.md](toolchain.md) for the wrapper path.
 
-## Pre-allowed in settings
+## Sandbox escalation
 
-Gradle commands are pre-allowed in `.claude/settings.local.json` via
-`PowerShell(*gradlew*)`. No need to ask permission — the rule covers any
-compile / build / assemble invocation.
+Gradle wrapper invocations may require sandbox escalation in Codex sessions.
+If an in-sandbox Gradle run is blocked, interrupted, or appears unable to run
+normally because of the sandbox, rerun the same Gradle command with elevated
+permissions and the appropriate Gradle command prefix.
 
 ## Standard PowerShell invocation pattern
 
@@ -40,6 +41,27 @@ The APK from a vanilla `assembleDebug` does **not** carry
 "Run" / instant-deploy path) — the project's `build.gradle` has no
 `testOnly` config and the manifest doesn't set it either, so `adb install`
 works on any device without `-t`.
+
+## Debug update publish task: `:app:publishDebugUpdate`
+
+When the goal is to publish a debug update APK to the configured Aliyun static
+update channel, use `:app:publishDebugUpdate` instead of `:app:assembleDebug`.
+That task assembles the debug APK, injects the debug update code for the APK
+being published, generates `latest.json`, uploads the versioned APK and
+metadata, and points the remote debug channel at the new build.
+
+Do not run the publish task without update notes. Prefer a notes file when the
+content is more than a short sentence:
+
+```powershell
+.\gradlew.bat :app:publishDebugUpdate -PdebugUpdateNotesFile=memory\debug-update-notes.md
+```
+
+For a very short note, pass it inline:
+
+```powershell
+.\gradlew.bat :app:publishDebugUpdate -PdebugUpdateNotes="Describe the debug update"
+```
 
 ## Don't pre-announce compile commands
 

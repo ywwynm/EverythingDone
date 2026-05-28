@@ -2051,6 +2051,61 @@ Verification:
 - `.\gradlew.bat :app:assembleDebug --console=plain` passed.
 - `git diff --check` passed with CRLF conversion warnings only.
 
+Debug APK update channel publish task:
+- Recorded the workflow preference that debug update APK publishing should use
+  `:app:publishDebugUpdate`, not ordinary `:app:assembleDebug`.
+- Fixed the publish task's command execution path after Gradle 9 rejected the
+  previous `project.exec()` use at task execution time. The task now shells out
+  through `ProcessBuilder`, converts Groovy interpolated values to strings, and
+  reads optional release-note Gradle properties without execution-time
+  `project` access.
+- Ran `.\gradlew.bat :app:publishDebugUpdate --console=plain` with elevated
+  permissions. The task succeeded, assembled the debug APK, uploaded the APK and
+  metadata to the configured static Aliyun update source, and published debug
+  update code `202605281147`.
+- Ran the publish task again at the user's request to prepare an app-side update
+  test. It published debug update code `202605281150` and the public
+  `latest.json` endpoint returned that metadata successfully from
+  the configured Aliyun static update endpoint.
+- User corrected the future workflow: every `:app:publishDebugUpdate` run should
+  include update notes through `-PdebugUpdateNotes=...` or
+  `-PdebugUpdateNotesFile=...`, instead of publishing without release notes.
+
+Debug APK update channel:
+- Ran a grill-with-docs design pass and recorded the debug-only static update
+  channel decisions in memory and in
+  `docs/adr/0001-static-debug-apk-update-channel.md`.
+- Added `:app:publishDebugUpdate`, which assembles the debug APK, injects a
+  UTC timestamp `debugUpdateCode`, writes `latest.json`, uploads the versioned
+  APK and metadata with system `ssh` / `scp`, and cleans old server APKs.
+- Added `server/update-debug-apk/` with setup notes, an Nginx example, and a
+  directory setup helper for the Aliyun static source.
+- Added debug-only manifest/network configuration for HTTP/IP update checks,
+  `INTERNET`, and `REQUEST_INSTALL_PACKAGES`; release builds do not expose the
+  update entry.
+- Added About-screen "Check update" next to "Open source licenses", all
+  localized strings, `DebugApkUpdateHelper`, the update-available dialog, and
+  the fixed-height download progress dialog.
+- The app now checks `latest.json`, compares `debugUpdateCode`, downloads to
+  `cacheDir/debug-updates/*.apk.part`, verifies SHA-256, prechecks package name
+  and Android `versionCode`, handles unknown-source authorization, and launches
+  the system installer with the existing `FileProvider`.
+- Updated `AGENTS.md` and `.agents/rules/gradle.md` to record that Gradle
+  wrapper invocations may need sandbox escalation in Codex sessions.
+
+Verification:
+- `.\gradlew.bat :app:assembleDebug --console=plain` passed with elevated
+  permissions and produced `app\build\outputs\apk\debug\app-debug.apk` at
+  2026-05-28 19:28:19.
+- `.\gradlew.bat :app:publishDebugUpdate --dry-run --console=plain` passed and
+  confirmed the publish task graph without uploading.
+- Debug merged manifest includes `INTERNET`, `REQUEST_INSTALL_PACKAGES`,
+  `@xml/debug_network_security_config`, and `usesCleartextTraffic="true"`.
+  The generated ordinary debug build carries `debug_update_code = 0`.
+- `git diff --check` passed with CRLF conversion warnings only.
+- Real Aliyun upload and device end-to-end install flow were deferred until the
+  server IP/SSH configuration is available.
+
 Daily TODO auto-create time title:
 - Split the Daily TODO auto-create time picker title from the automatic
   notification time title by adding `daily_todo_set_time_title` in every

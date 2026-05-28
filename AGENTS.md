@@ -13,6 +13,11 @@ other "how to call the toolchain" knowledge live under `.agents/rules/`.
 Read those files when you need to invoke a tool — not `memory/`, which
 holds user preferences and session history, not operational rules.
 
+Gradle wrapper invocations may require sandbox escalation in Codex sessions.
+When an in-sandbox Gradle run is blocked, interrupted, or behaves as if the
+sandbox is preventing normal execution, rerun it with elevated permissions and
+the appropriate Gradle command prefix.
+
 ### Auto-Update Memory (MANDATORY)
 
 **Update memory files AS YOU GO, not at the end.** When you learn something new, update immediately. If any following file does not exist, create it at the first time.

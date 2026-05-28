@@ -1,0 +1,19 @@
+server {
+    listen 80;
+    server_name _;
+
+    location /everythingdone-updates/ {
+        alias /var/www/everythingdone-updates/;
+        default_type application/octet-stream;
+
+        location ~* \.json$ {
+            default_type application/json;
+            add_header Cache-Control "no-cache";
+        }
+
+        location ~* \.apk$ {
+            default_type application/vnd.android.package-archive;
+            add_header Cache-Control "public, max-age=31536000, immutable";
+        }
+    }
+}

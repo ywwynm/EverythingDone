@@ -25,6 +25,7 @@ import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.fragments.AlertDialogFragment
 import com.ywwynm.everythingdone.fragments.LicenseDialogFragment
 import com.ywwynm.everythingdone.fragments.ThreeActionsAlertDialogFragment
+import com.ywwynm.everythingdone.helpers.DebugApkUpdateHelper
 import com.ywwynm.everythingdone.helpers.SendInfoHelper
 import com.ywwynm.everythingdone.utils.AppearanceUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
@@ -43,9 +44,11 @@ open class AboutActivity : EverythingDoneBaseActivity() {
     private var mFab: FloatingActionButton? = null
 
     private var mFlBottom: FrameLayout? = null
+    private var mTvCheckUpdate: TextView? = null
 
     private var mSupportDf: ThreeActionsAlertDialogFragment? = null
     private var mDonateDf: AlertDialogFragment? = null
+    private var mDebugUpdateHelper: DebugApkUpdateHelper? = null
 
     override fun getLayoutResource(): Int = R.layout.activity_about
 
@@ -78,6 +81,7 @@ open class AboutActivity : EverythingDoneBaseActivity() {
         mFab = f(R.id.fab_support)
 
         mFlBottom = f(R.id.fl_bottom_about)
+        mTvCheckUpdate = f(R.id.tv_check_update_as_bt)
     }
 
     override fun initUI() {
@@ -101,6 +105,11 @@ open class AboutActivity : EverythingDoneBaseActivity() {
         val tvLicense: TextView = f(R.id.tv_license_as_bt)!!
         val paint: Paint = tvLicense.paint
         paint.flags = paint.flags or Paint.UNDERLINE_TEXT_FLAG
+        val checkUpdatePaint: Paint = mTvCheckUpdate!!.paint
+        checkUpdatePaint.flags = checkUpdatePaint.flags or Paint.UNDERLINE_TEXT_FLAG
+        if (!BuildConfig.DEBUG) {
+            mTvCheckUpdate!!.visibility = View.GONE
+        }
     }
 
     override fun setActionbar() {
@@ -134,6 +143,15 @@ open class AboutActivity : EverythingDoneBaseActivity() {
             }
             mSupportDf!!.show(fragmentManager, ThreeActionsAlertDialogFragment.TAG)
         }
+
+        mTvCheckUpdate!!.setOnClickListener {
+            getDebugUpdateHelper().checkForUpdate()
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        mDebugUpdateHelper?.continuePendingInstallIfAllowed()
     }
 
     private fun initSupportDialog() {
@@ -188,6 +206,13 @@ open class AboutActivity : EverythingDoneBaseActivity() {
     open fun showLicenseDialog(view: View?) {
         val ldf = LicenseDialogFragment()
         ldf.show(fragmentManager, LicenseDialogFragment.TAG)
+    }
+
+    private fun getDebugUpdateHelper(): DebugApkUpdateHelper {
+        if (mDebugUpdateHelper == null) {
+            mDebugUpdateHelper = DebugApkUpdateHelper(this)
+        }
+        return mDebugUpdateHelper!!
     }
 
     companion object {

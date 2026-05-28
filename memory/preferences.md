@@ -20,6 +20,22 @@ commit", "commit this"). Reverting an unrequested commit was needed
 once on 2026-05-18; avoid the same mistake. Applies even when code
 compiles and tasks look "done".
 
+For the debug APK update channel, do not use frequent internal debug publishes
+as a reason to inflate the main Android `versionCode` in `app/build.gradle`.
+Keep debug update cadence separate from the app's normal versioning policy.
+
+Debug update release notes may be relatively long, similar in substance to a
+commit message, so publishing should support reading notes from a file instead
+of forcing everything through a single command-line property.
+
+For publishing a debug update APK, use the dedicated Gradle task
+`:app:publishDebugUpdate`. Do not treat ordinary `:app:assembleDebug` as the
+publishing path.
+
+Every `:app:publishDebugUpdate` invocation should include update notes. Prefer
+`-PdebugUpdateNotesFile=...` for longer notes; use `-PdebugUpdateNotes=...`
+only for short one-line notes.
+
 ## Commit messages
 
 When writing bilingual commit messages, do not prefix paragraphs with
@@ -116,6 +132,10 @@ popups, pickers, snackbars, and dialog-like activities need explicit
 review of text, icons, ripple/pressed states, dividers, edit fields,
 progress indicators, and disabled states so their foreground UI adapts
 correctly in dark mode.
+
+For app-owned long-running flows such as debug update downloads, prefer a
+project `DialogFragment` that follows App Chrome light/dark styling and exposes
+live progress details over a detached system-style progress surface.
 
 ## Button-like control ripple shape
 
