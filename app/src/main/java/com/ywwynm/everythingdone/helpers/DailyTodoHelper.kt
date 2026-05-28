@@ -25,7 +25,9 @@ object DailyTodoHelper {
             "7:00",
             "7:30",
             "8:00",
-            "8:30"
+            "8:30",
+            "9:00",
+            "9:30"
         )
     }
 
@@ -40,7 +42,9 @@ object DailyTodoHelper {
             Pair(7, 0),
             Pair(7, 30),
             Pair(8, 0),
-            Pair(8, 30)
+            Pair(8, 30),
+            Pair(9, 0),
+            Pair(9, 30)
         )
     }
 
