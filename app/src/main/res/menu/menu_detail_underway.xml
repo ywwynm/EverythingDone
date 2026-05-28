@@ -72,4 +72,9 @@
         android:title="@string/act_export_to_sdcard"
         app:showAsAction="never"/>
 
+    <item
+        android:id="@+id/act_color_info"
+        android:title="@string/act_color_info"
+        app:showAsAction="never"/>
+
 </menu>

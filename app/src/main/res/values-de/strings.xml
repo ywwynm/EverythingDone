@@ -671,7 +671,8 @@
     <string name="cd_gradient_orientation_rb_lt">von unten rechts nach oben links</string>
     <string name="cd_gradient_orientation_r_l">von rechts nach links</string>
     <string name="cd_gradient_orientation_b_t">von unten nach oben</string>
-    <string name="act_change_gradient_orientation">Richtung ändern</string>
+    <string name="act_change_gradient_orientation">Farbverlaufsrichtung</string>
+    <string name="act_pick_color_from_camera">Aus der Welt wählen</string>
     <string name="cd_app_widget_preview_background">Hintergrund der App-Widget-Vorschau</string>
     <string name="cd_things_list_widget_setting">Einstellungen für das App-Widget „Dingeliste“.</string>
     <string name="cd_doing">Derzeit\nIn Arbeit</string>

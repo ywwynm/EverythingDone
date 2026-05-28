@@ -242,6 +242,28 @@
     <string name="my_purple">grey purple</string>
     <string name="elegant_orange">elegant orange</string>
     <string name="Aein_red">Aein red</string>
+    <string name="act_color_info">Color information</string>
+    <string name="act_pick_color_from_camera">Pick from world</string>
+    <string name="act_use_color">Use Color</string>
+    <string name="color_info_title">Color information</string>
+    <string name="color_info_current">Current color</string>
+    <string name="color_info_gradient_start">Gradient start</string>
+    <string name="color_info_gradient_end">Gradient end</string>
+    <string name="color_info_representative">Representative color</string>
+    <string name="color_info_name">Name</string>
+    <string name="color_info_english_name">English name</string>
+    <string name="color_info_rgb">RGB</string>
+    <string name="color_info_hex">Hex</string>
+    <string name="color_info_hsl">HSL</string>
+    <string name="color_info_matched_entry">Matched entry</string>
+    <string name="color_info_source">Name source</string>
+    <string name="color_info_source_value">meodai/color-names full list v14.38.0 (MIT)</string>
+    <string name="color_info_match">Match</string>
+    <string name="color_info_match_value">nearest by CIEDE2000 ΔE, distance %1$s</string>
+    <string name="color_info_translation_pending">Chinese colour-name translations are pending; English source names are shown.</string>
+    <string name="camera_color_title">Camera color</string>
+    <string name="camera_color_waiting">Point the center at a color</string>
+    <string name="camera_color_unavailable">Camera unavailable</string>
 
     <!--Sharing a Thing-->
     <string name="share_i_work_hard_for">I work hard for</string>
@@ -976,7 +998,7 @@
     <string name="cd_gradient_orientation_rb_lt">bottom-right to top-left</string>
     <string name="cd_gradient_orientation_r_l">right to left</string>
     <string name="cd_gradient_orientation_b_t">bottom to top</string>
-    <string name="act_change_gradient_orientation">Change direction</string>
+    <string name="act_change_gradient_orientation">Gradient direction</string>
 
     <!--BaseThingWidgetConfiguration-->
     <string name="cd_app_widget_preview_background">App widget preview background</string>

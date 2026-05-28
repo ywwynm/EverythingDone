@@ -671,7 +671,8 @@
     <string name="cd_gradient_orientation_rb_lt">из нижнего правого в верхний левый</string>
     <string name="cd_gradient_orientation_r_l">справа налево</string>
     <string name="cd_gradient_orientation_b_t">снизу вверх</string>
-    <string name="act_change_gradient_orientation">Изменить направление</string>
+    <string name="act_change_gradient_orientation">Направление градиента</string>
+    <string name="act_pick_color_from_camera">Взять из мира</string>
     <string name="cd_app_widget_preview_background">Фон предварительного просмотра виджета приложения</string>
     <string name="cd_things_list_widget_setting">настройки виджета приложения списка вещей</string>
     <string name="cd_doing">В настоящее время\nВ работе</string>

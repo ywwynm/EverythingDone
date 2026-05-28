@@ -671,7 +671,8 @@
     <string name="cd_gradient_orientation_rb_lt">오른쪽 아래에서 왼쪽 위로</string>
     <string name="cd_gradient_orientation_r_l">오른쪽에서 왼쪽으로</string>
     <string name="cd_gradient_orientation_b_t">아래에서 위로</string>
-    <string name="act_change_gradient_orientation">방향 변경</string>
+    <string name="act_change_gradient_orientation">그라데이션 방향</string>
+    <string name="act_pick_color_from_camera">세상에서 색 가져오기</string>
     <string name="cd_app_widget_preview_background">앱 위젯 미리보기 배경</string>
     <string name="cd_things_list_widget_setting">사물 목록 앱 위젯 설정</string>
     <string name="cd_doing">현재\n수행 중</string>

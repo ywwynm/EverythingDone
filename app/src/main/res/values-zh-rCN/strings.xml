@@ -13,7 +13,7 @@
     <string name="cd_gradient_orientation_rb_lt">从右下到左上</string>
     <string name="cd_gradient_orientation_r_l">从右到左</string>
     <string name="cd_gradient_orientation_b_t">从下到上</string>
-    <string name="act_change_gradient_orientation">改变渐变方向</string>
+    <string name="act_change_gradient_orientation">渐变方向</string>
 
 
     <!--——————————————————————General strings——————————————————————-->
@@ -228,6 +228,28 @@
     <string name="my_purple">紫色</string>
     <string name="elegant_orange">淡雅橙</string>
     <string name="Aein_red">女神红</string>
+    <string name="act_color_info">颜色信息</string>
+    <string name="act_pick_color_from_camera">从世界取色</string>
+    <string name="act_use_color">使用颜色</string>
+    <string name="color_info_title">颜色信息</string>
+    <string name="color_info_current">当前颜色</string>
+    <string name="color_info_gradient_start">渐变起点</string>
+    <string name="color_info_gradient_end">渐变终点</string>
+    <string name="color_info_representative">代表色</string>
+    <string name="color_info_name">名称</string>
+    <string name="color_info_english_name">英文名称</string>
+    <string name="color_info_rgb">RGB</string>
+    <string name="color_info_hex">Hex</string>
+    <string name="color_info_hsl">HSL</string>
+    <string name="color_info_matched_entry">匹配条目</string>
+    <string name="color_info_source">名称来源</string>
+    <string name="color_info_source_value">meodai/color-names full list v14.38.0 (MIT)</string>
+    <string name="color_info_match">匹配方式</string>
+    <string name="color_info_match_value">CIEDE2000 ΔE 最近匹配，距离 %1$s</string>
+    <string name="color_info_translation_pending">中文颜色名翻译仍待生成；当前显示英文源名称。</string>
+    <string name="camera_color_title">相机取色</string>
+    <string name="camera_color_waiting">将中心点对准颜色</string>
+    <string name="camera_color_unavailable">相机不可用</string>
 
     <!--Sharing a Thing-->
     <string name="share_i_work_hard_for">我努力了</string>

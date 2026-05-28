@@ -4,6 +4,48 @@ Things that were technically achievable but deferred to a later iteration
 because the work was disproportionate to the visual gain. Each entry
 notes the current fallback so you know what the app is doing today.
 
+## Detail colour sampling and information
+
+### Device QA for CameraX colour sampling and colour information (deferred 2026-05-28)
+
+**Scope:** DetailActivity's editable ColorPicker "Pick from world" camera
+colour-sampling entry, full-width rounded-square CameraX preview dialog with
+an internal live colour preview strip, final Use Color commit semantics, and
+the colour-information overflow action across create, underway, habit,
+finished, and deleted Detail states.
+
+**Current state:** Implementation is present and `:app:assembleDebug` passed
+outside the sandbox after Android Studio sync and after the follow-up UI
+refinement. The APK was produced at
+`app/build/outputs/apk/debug/app-debug.apk` on 2026-05-28 09:01:42.
+
+**Deferred verification:** Install on a real device or emulator and verify the
+camera permission prompt, preview orientation, centre sampling marker, dialog
+colour preview strip, Use Color text tint, Cancel/Back/outside dismissal
+without Detail-side background changes, single undo entry on Use Color, and
+colour-info formatting/scrolling for pure and gradient Thing Backgrounds.
+
+**Risk:** CameraX behaviour is device-sensitive. Compile proves API wiring but
+not camera selection, frame sampling correctness, preview rotation, or dialog
+layout on varied aspect ratios.
+
+### Native review for machine-translated Simplified Chinese colour names (deferred 2026-05-28)
+
+**Scope:** The bundled `color-name-list` 14.38.0 TSV now has a populated `zh`
+column for Simplified Chinese translations of the upstream English colour
+names.
+
+**Current state:** All 31,902 colour-name rows were translated with Google
+Translate on 2026-05-28. The first successful batches used
+`translate.googleapis.com`; after that endpoint returned HTTP 429, the
+remaining rows were translated through Google Translate's mobile web endpoint
+with stable marker parsing. The runtime can now show Chinese colour names in
+Chinese locales.
+
+**Deferred verification:** Native-speaker and colour-domain review of machine
+translations. Some upstream names are puns, brands, place names, or invented
+labels, so Google Translate can produce literal or mixed English/Chinese names.
+
 ## Dialog and popup visual QA
 
 ### Device visual review for rounded dialog and popup shells (deferred 2026-05-27)

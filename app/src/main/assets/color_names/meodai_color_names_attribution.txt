@@ -1,0 +1,12 @@
+meodai/color-names full list
+Package: color-name-list
+Locked version: 14.38.0
+Downloaded: 2026-05-27
+Source package URL: https://unpkg.com/color-name-list@14.38.0/dist/colornames.json
+Project URL: https://github.com/meodai/color-names
+License: MIT
+Copyright (c) 2017 David Aerne
+
+The bundled TSV is generated from the locked upstream JSON and is stored as a plain asset so AssetManager can open it by the same path packaged in the APK.
+
+The zh column contains Simplified Chinese translations generated from the upstream English names with Google Translate on 2026-05-28. Translation generation was machine-assisted and has not received native-speaker or domain-specific colour-name review.

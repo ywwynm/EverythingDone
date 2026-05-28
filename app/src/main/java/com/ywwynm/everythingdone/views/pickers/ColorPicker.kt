@@ -53,7 +53,10 @@ open class ColorPicker(
     /** Phase 8: bottom button to open the gradient-orientation dialog.
      *  Only visible in COLOR_EDIT mode when the current pick is a GRADIENT. */
     private val mOrientationBt: android.widget.TextView?
+    private val mToolDivider: View?
+    private val mCameraBt: android.widget.TextView?
     private var mOnChangeOrientationListener: Runnable? = null
+    private var mOnPickFromCameraListener: Runnable? = null
 
     /**
      * Optional [Drawable] that gets re-tinted to track the picked colour.
@@ -149,6 +152,17 @@ open class ColorPicker(
                 mOnChangeOrientationListener?.run()
             }
         }
+        mToolDivider = mContentView.findViewById(R.id.v_color_picker_tool_divider)
+        mCameraBt = mContentView.findViewById(R.id.bt_pick_color_from_camera)
+        if (mType == Def.PickerType.COLOR_EDIT) {
+            mToolDivider?.visibility = View.VISIBLE
+            mCameraBt?.visibility = View.VISIBLE
+            mCameraBt?.setText(R.string.act_pick_color_from_camera)
+            mCameraBt?.setOnClickListener {
+                dismiss()
+                mOnPickFromCameraListener?.run()
+            }
+        }
     }
 
     /**
@@ -158,6 +172,10 @@ open class ColorPicker(
      */
     fun setOnChangeOrientationListener(listener: Runnable) {
         mOnChangeOrientationListener = listener
+    }
+
+    fun setOnPickFromCameraListener(listener: Runnable) {
+        mOnPickFromCameraListener = listener
     }
 
     /**
@@ -171,13 +189,23 @@ open class ColorPicker(
         val bg: ThingBackground? = getPickedBackground()
         if (bg != null && bg.mode == ThingBackground.Mode.GRADIENT) {
             mOrientationBt.visibility = View.VISIBLE
+            setToolDividerTopMargin(true)
             // Tint the button text to match the gradient (uses applyTextBackground
             // for a shader on the rendered glyphs).
             com.ywwynm.everythingdone.utils.BackgroundUtil.applyTextBackground(
                     mOrientationBt, bg)
         } else {
             mOrientationBt.visibility = View.GONE
+            setToolDividerTopMargin(false)
         }
+    }
+
+    private fun setToolDividerTopMargin(hasOrientationButton: Boolean) {
+        val divider = mToolDivider ?: return
+        val lp = divider.layoutParams as? ViewGroup.MarginLayoutParams ?: return
+        val dp = mScreenDensity
+        lp.topMargin = if (hasOrientationButton) (6 * dp).toInt() else (-10 * dp).toInt()
+        divider.layoutParams = lp
     }
 
     override fun show() {

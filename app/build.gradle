@@ -50,6 +50,10 @@ dependencies {
     implementation 'androidx.drawerlayout:drawerlayout:1.2.0'
     implementation 'androidx.biometric:biometric:1.1.0'
     implementation 'androidx.work:work-runtime:2.9.1'
+    implementation 'androidx.camera:camera-core:1.6.1'
+    implementation 'androidx.camera:camera-camera2:1.6.1'
+    implementation 'androidx.camera:camera-lifecycle:1.6.1'
+    implementation 'androidx.camera:camera-view:1.6.1'
 
     implementation 'com.github.chrisbanes:PhotoView:2.3.0'
 

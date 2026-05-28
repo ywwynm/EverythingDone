@@ -12,6 +12,10 @@ _Avoid_: note as the blanket term for all things
 The colour or gradient owned by a Thing and used as the highest-priority visual background when displaying that Thing.
 _Avoid_: app theme colour, page background
 
+**Thing Background Information**:
+A user-facing description of a Thing Background's colour identity, including its recognised colour name and numeric colour values.
+_Avoid_: app theme information, debug colour data
+
 **Thing Foreground**:
 Text, icons, and other adaptive foreground content drawn directly on top of a Thing Background. Its colour is chosen from the existing Thing Background lightness logic and does not depend on Appearance Mode.
 _Avoid_: dark-mode foreground
@@ -39,6 +43,7 @@ _Avoid_: full-row clickable surface, full-card clickable surface, full-row actio
 ## Relationships
 
 - A **Thing** has one **Thing Background**.
+- A **Thing Background** can be described by **Thing Background Information**.
 - A **Thing Background** overrides **Appearance Mode** for Thing-owned surfaces.
 - A **Thing Foreground** adapts to **Thing Background**, not to **Appearance Mode**.
 - **Appearance Mode** applies to **App Chrome**.

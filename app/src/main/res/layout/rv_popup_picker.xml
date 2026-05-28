@@ -37,4 +37,30 @@
         android:background="@drawable/selectable_item_background"
         android:visibility="gone"/>
 
+    <View
+        android:id="@+id/v_color_picker_tool_divider"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginLeft="16dp"
+        android:layout_marginTop="-10dp"
+        android:layout_marginRight="16dp"
+        android:layout_marginBottom="6dp"
+        android:background="@color/app_chrome_divider"
+        android:visibility="gone"/>
+
+    <TextView
+        android:id="@+id/bt_pick_color_from_camera"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:gravity="center"
+        android:paddingLeft="12dp"
+        android:paddingRight="12dp"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:textAllCaps="false"
+        android:singleLine="true"
+        android:ellipsize="end"
+        android:background="@drawable/selectable_item_background"
+        android:visibility="gone"/>
+
 </LinearLayout>

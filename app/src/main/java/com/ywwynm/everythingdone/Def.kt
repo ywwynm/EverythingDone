@@ -213,6 +213,7 @@ object Def {
         // On some sony/oneplus devices, reading ringtone's title needs READ_EXTERNAL_SDCARD
         // permission, so we request it directly before SettingsActivity's init.
         const val REQUEST_PERMISSION_OPEN_SETTINGS: Int       = 16
+        const val REQUEST_PERMISSION_CAMERA_COLOR: Int        = 18
 
         // added on 2017/3/28 to implement restore2
         const val REQUEST_CHOOSE_BACKUP_FILE: Int             = 17

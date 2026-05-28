@@ -4,6 +4,7 @@ package com.ywwynm.everythingdone.activities
 
 import android.animation.ArgbEvaluator
 import android.animation.ObjectAnimator
+import android.Manifest
 import androidx.activity.OnBackPressedCallback
 import android.annotation.SuppressLint
 import android.app.ActivityManager
@@ -81,7 +82,9 @@ import com.ywwynm.everythingdone.fragments.AddAttachmentDialogFragment
 import com.ywwynm.everythingdone.fragments.AlertDialogFragment
 import com.ywwynm.everythingdone.fragments.AttachmentInfoDialogFragment
 import com.ywwynm.everythingdone.fragments.AudioRecordDialogFragment
+import com.ywwynm.everythingdone.fragments.CameraColorSamplingDialogFragment
 import com.ywwynm.everythingdone.fragments.ChooserDialogFragment
+import com.ywwynm.everythingdone.fragments.ColorInfoDialogFragment
 import com.ywwynm.everythingdone.fragments.DateTimeDialogFragment
 import com.ywwynm.everythingdone.fragments.GradientOrientationDialogFragment
 import com.ywwynm.everythingdone.fragments.HabitDetailDialogFragment
@@ -1339,6 +1342,8 @@ class DetailActivity : EverythingDoneBaseActivity() {
         } else if (itemId == R.id.act_change_color) {
             mColorPicker!!.setAnchor(findViewById(R.id.act_change_color))
             mColorPicker!!.show()
+        } else if (itemId == R.id.act_color_info) {
+            showColorInfoDialog()
         } else if (itemId == R.id.act_set_as_private_thing) {
             togglePrivateThing()
         } else if (itemId == R.id.act_undo) {
@@ -1973,7 +1978,9 @@ class DetailActivity : EverythingDoneBaseActivity() {
             AlertDialogFragment.TAG,
             AttachmentInfoDialogFragment.TAG,
             AudioRecordDialogFragment.TAG,
+            CameraColorSamplingDialogFragment.TAG,
             ChooserDialogFragment.TAG,
+            ColorInfoDialogFragment.TAG,
             DateTimeDialogFragment.TAG,
             GradientOrientationDialogFragment.TAG,
             HabitDetailDialogFragment.TAG,
@@ -2553,6 +2560,82 @@ class DetailActivity : EverythingDoneBaseActivity() {
             })
             df.show(fragmentManager, GradientOrientationDialogFragment.TAG)
         })
+        mColorPicker!!.setOnPickFromCameraListener(Runnable {
+            openCameraColorSampler()
+        })
+    }
+
+    private fun showColorInfoDialog() {
+        val df = ColorInfoDialogFragment()
+        df.setThingBackground(getAccentBackground())
+        df.show(fragmentManager, ColorInfoDialogFragment.TAG)
+    }
+
+    private fun openCameraColorSampler() {
+        doWithPermissionChecked(
+            object : SimplePermissionCallback(this) {
+                override fun onGranted() {
+                    showCameraColorSampler()
+                }
+
+                override fun onDenied() {
+                    showNormalSnackbar(R.string.error_permission_denied)
+                }
+            },
+            Def.Communication.REQUEST_PERMISSION_CAMERA_COLOR,
+            Manifest.permission.CAMERA
+        )
+    }
+
+    private fun showCameraColorSampler() {
+        val bgBefore: ThingBackground? = getAccentBackground()
+        val df = CameraColorSamplingDialogFragment()
+        df.setInitialColor(getAccentColor())
+        df.setOnColorListener(object : CameraColorSamplingDialogFragment.OnColorListener {
+            override fun onPreviewColor(color: Int) {
+                // Live sampling is shown inside the dialog; Detail commits only once.
+            }
+
+            override fun onUseColor(color: Int) {
+                commitCameraPreviewBackground(bgBefore, ThingBackground.pure(color))
+            }
+
+            override fun onCancelColorSampling() {
+                // No Detail-side preview state needs restoring.
+            }
+        })
+        df.show(fragmentManager, CameraColorSamplingDialogFragment.TAG)
+    }
+
+    private fun renderCameraPreviewBackground(bg: ThingBackground?) {
+        bg ?: return
+        val color = bg.representativeColor()
+        quickRemindPicker?.setAccentBackground(bg)
+        if (quickRemindPicker != null) {
+            quickRemindPicker!!.pickForUI(quickRemindPicker!!.getPickedIndex())
+        }
+        BackgroundUtil.applyBackground(mFlRoot, bg)
+        updateDescriptions(color)
+        applyForegroundColors(color)
+        setActionbarOverlayColor(color)
+    }
+
+    private fun commitCameraPreviewBackground(bgFrom: ThingBackground?, bgTo: ThingBackground) {
+        val from = bgFrom ?: getAccentBackground()
+        if (from != null && from == bgTo) {
+            renderCameraPreviewBackground(bgTo)
+            return
+        }
+        mChangeColorTo = bgTo.representativeColor()
+        mChangeBackgroundTo = bgTo
+        mLastAnimatedBackground = bgTo
+        mColorPicker!!.pickForBackground(bgTo)
+        renderCameraPreviewBackground(bgTo)
+        if (shouldAddToActionList) {
+            mActionList!!.addAction(ThingAction(
+                ThingAction.UPDATE_COLOR, from, bgTo
+            ))
+        }
     }
 
     private fun changeBackground(bgTo: ThingBackground?) {
@@ -2582,6 +2665,13 @@ class DetailActivity : EverythingDoneBaseActivity() {
             ArgbEvaluator(), abFrom, abTo).setDuration(600).start()
         ObjectAnimator.ofObject(mStatusBar, "backgroundColor",
             ArgbEvaluator(), abFrom, abTo).setDuration(600).start()
+    }
+
+    private fun setActionbarOverlayColor(color: Int) {
+        val abAlpha = currentDrawableAlpha(mActionbar!!.background)
+        val abColor = DisplayUtil.getTransparentColor(color, abAlpha)
+        mActionbar!!.setBackgroundColor(abColor)
+        mStatusBar!!.setBackgroundColor(abColor)
     }
 
     private fun currentDrawableAlpha(d: Drawable?): Int {

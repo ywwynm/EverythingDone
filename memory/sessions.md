@@ -1,5 +1,137 @@
 # Sessions
 
+## 2026-05-28 - Detail camera colour sampling and colour information
+
+Implemented DetailActivity colour sampling and colour information after a
+grill-with-docs planning pass.
+
+Changes:
+- Added CameraX dependencies and `android.permission.CAMERA`.
+- Bundled locked `color-name-list` 14.38.0 data under
+  `app/src/main/assets/color_names/`, with attribution metadata.
+- Added `ColorNameMatcher`, including lazy asset loading, Lab precomputation,
+  full CIEDE2000 nearest-colour matching, RGB/Hex/HSL formatting, and an LRU
+  match cache.
+- Added `ColorInfoDialogFragment` and a Detail overflow menu action available
+  in create, underway, habit, finished, and deleted menus. The dialog supports
+  pure colours and gradient start/end/representative sections.
+- Added a `COLOR_EDIT` ColorPicker bottom tool area with a divider and
+  "Pick from camera" action.
+- Added `CameraColorSamplingDialogFragment` with a rounded square CameraX
+  preview, centre-area YUV sampling, throttled live name updates, live
+  Detail background preview, Cancel restore, and Use Color single-commit path.
+- Updated `CONTEXT.md`, `memory/decisions.md`, `memory/preferences.md`, and
+  `memory/followups.md` for the new Thing Background Information terminology
+  and deferred device/translation verification.
+
+Verification:
+- `E:\projects\EverythingDone\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`
+  passed outside the sandbox after Android Studio sync.
+- Debug APK produced at `app/build/outputs/apk/debug/app-debug.apk` with
+  timestamp 2026-05-28 00:10:36.
+- `git diff --check` passed with CRLF warnings only.
+
+Deferred:
+- No on-device CameraX/UI smoke test was run in this agent session.
+- Google Translate's unauthenticated endpoint returned a reCAPTCHA block, so
+  the Chinese dataset column is reserved but currently falls back to English.
+
+Follow-up crash fix:
+- User hit `FileNotFoundException:
+  color_names/meodai_color_names_14_38_0.tsv.gz` when opening colour
+  information.
+- Root cause: AGP expands `.gz` assets during merge and packages the file as
+  `meodai_color_names_14_38_0.tsv`, while runtime code tried to open the
+  original `.tsv.gz` path.
+- Fixed by storing the source asset as plain
+  `app/src/main/assets/color_names/meodai_color_names_14_38_0.tsv` and opening
+  that exact path from `ColorNameMatcher`.
+
+Follow-up UI refinement:
+- Changed the ColorPicker bottom entry text from "Pick from camera" to
+  "Pick from world", shortened the gradient-orientation action text, added the
+  new short strings to all supported app locales, and moved the tool divider so
+  it separates only the world-colour sampling entry from the actions above it.
+- Made the camera sampling preview fill the dialog width, added an internal
+  colour preview strip, tint the Use Color action with the sampled colour, and
+  stopped live camera samples from repainting the underlying DetailActivity.
+- Aligned the camera sampling Cancel / Use Color action row margins with the
+  common cancel/confirm dialog pattern.
+- Simplified the colour-information dialog to user-facing fields only: preview,
+  recognised name, RGB, Hex, and HSL. Removed matched entry, matching method,
+  and source rows; made the preview pill-shaped; and height-bounded gradient
+  content so the final action remains visible.
+- Moved the Detail colour-information overflow action to the final item in all
+  Detail menu variants.
+
+Verification:
+- `git diff --check` passed with CRLF warnings only.
+- `E:\projects\EverythingDone\gradlew.bat :app:assembleDebug --console=plain`
+  passed outside the sandbox and produced
+  `app/build/outputs/apk/debug/app-debug.apk` at 2026-05-28 09:01:42.
+
+Follow-up camera preview corner correction:
+- Removed the camera preview frame's own rounded outline. The full-width
+  preview is now clipped only by the outer dialog shell, so the preview's top
+  corners follow the dialog corners while the preview bottom edge remains
+  straight.
+
+Verification:
+- `git diff --check` passed with CRLF warnings only.
+- `E:\projects\EverythingDone\gradlew.bat :app:assembleDebug --console=plain`
+  passed outside the sandbox and produced
+  `app/build/outputs/apk/debug/app-debug.apk` at 2026-05-28 09:09:38.
+
+Follow-up colour-information preview refinement:
+- Matched the camera sampling dialog's live colour preview-strip height to the
+  colour-information preview-strip height.
+- Removed the redundant "Current color" section heading for pure-colour Thing
+  Background information.
+- For gradient Thing Background information, replaced the single combined
+  preview strip with three separate pill preview strips placed above the
+  gradient start, gradient end, and representative-colour sections.
+
+Verification:
+- `git diff --check` passed with CRLF warnings only.
+- `E:\projects\EverythingDone\gradlew.bat :app:assembleDebug --console=plain`
+  passed outside the sandbox and produced
+  `app/build/outputs/apk/debug/app-debug.apk` at 2026-05-28 09:27:35.
+
+Follow-up scroll separators and preview-strip height:
+- Raised all colour-preview strip heights in the camera sampling and colour
+  information dialogs to `36dp`.
+- Added top and bottom scroll separators to `ColorInfoDialogFragment`, using
+  the same show/hide behavior as the app-language chooser dialog: separators
+  are enabled only when the content is scrollable and update as the user scrolls
+  to the top or bottom.
+
+Verification:
+- `git diff --check` passed with CRLF warnings only.
+- `E:\projects\EverythingDone\gradlew.bat :app:assembleDebug --console=plain`
+  passed outside the sandbox and produced
+  `app/build/outputs/apk/debug/app-debug.apk` at 2026-05-28 09:39:03.
+
+Follow-up Simplified Chinese colour-name translation:
+- Populated the `zh` column for all 31,902 `color-name-list` 14.38.0 rows using
+  Google Translate on 2026-05-28.
+- The first 6,420 rows were translated through `translate.googleapis.com`
+  before that endpoint returned HTTP 429. The remaining rows were translated
+  through Google Translate's mobile web endpoint with stable marker parsing.
+- Kept a generation cache at `memory/color_name_zh_cache.tsv` for resumability
+  and future inspection.
+- Updated the bundled attribution file to describe the machine-generated
+  Simplified Chinese names and the remaining native-review risk.
+
+Verification:
+- TSV integrity check passed: 31,902 rows, 0 blank `zh` values, and 0 malformed
+  column counts.
+- Final commit preparation kept the user's unrelated
+  `DailyTodoHelper.kt` changes unstaged. After the user's manual translation
+  correction pass, TSV integrity still passed and
+  `E:\projects\EverythingDone\gradlew.bat :app:assembleDebug --console=plain`
+  produced `app/build/outputs/apk/debug/app-debug.apk` at
+  2026-05-28 16:43:10.
+
 ## 2026-05-27 - Rounded App Chrome dialogs and popup pickers
 
 Updated EverythingDone's custom App Chrome dialog and popup surfaces to render

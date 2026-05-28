@@ -671,7 +671,8 @@
     <string name="cd_gradient_orientation_rb_lt">नीचे-दाएँ से ऊपर-बाएँ</string>
     <string name="cd_gradient_orientation_r_l">दाएं से बाएं</string>
     <string name="cd_gradient_orientation_b_t">नीचे से ऊपर तक</string>
-    <string name="act_change_gradient_orientation">दिशा बदलें</string>
+    <string name="act_change_gradient_orientation">ग्रेडिएंट दिशा</string>
+    <string name="act_pick_color_from_camera">दुनिया से रंग लें</string>
     <string name="cd_app_widget_preview_background">ऐप विजेट पूर्वावलोकन पृष्ठभूमि</string>
     <string name="cd_things_list_widget_setting">चीज़ें सूची ऐप विजेट के लिए सेटिंग्स</string>
     <string name="cd_doing">वर्तमान में\nकर रहा हूँ</string>

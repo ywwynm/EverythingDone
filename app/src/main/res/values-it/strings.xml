@@ -671,7 +671,8 @@
     <string name="cd_gradient_orientation_rb_lt">dal basso a destra in alto a sinistra</string>
     <string name="cd_gradient_orientation_r_l">da destra a sinistra</string>
     <string name="cd_gradient_orientation_b_t">dal basso verso l\'alto</string>
-    <string name="act_change_gradient_orientation">Cambiare direzione</string>
+    <string name="act_change_gradient_orientation">Direzione del gradiente</string>
+    <string name="act_pick_color_from_camera">Prendi dal mondo</string>
     <string name="cd_app_widget_preview_background">Sfondo dell\'anteprima del widget dell\'app</string>
     <string name="cd_things_list_widget_setting">impostazioni per il widget dell\'app elenco cose</string>
     <string name="cd_doing">Attualmente\nLo sto facendo</string>

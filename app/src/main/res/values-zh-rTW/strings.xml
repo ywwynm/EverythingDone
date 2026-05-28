@@ -13,7 +13,8 @@
     <string name="cd_gradient_orientation_rb_lt">從右下到左上</string>
     <string name="cd_gradient_orientation_r_l">從右到左</string>
     <string name="cd_gradient_orientation_b_t">從下到上</string>
-    <string name="act_change_gradient_orientation">改變漸變方向</string>
+    <string name="act_change_gradient_orientation">漸變方向</string>
+    <string name="act_pick_color_from_camera">從世界取色</string>
 
 
     <!--——————————————————————General strings——————————————————————-->

@@ -20,4 +20,9 @@
         android:title="@string/act_copy_content"
         app:showAsAction="never"/>
 
+    <item
+        android:id="@+id/act_color_info"
+        android:title="@string/act_color_info"
+        app:showAsAction="never"/>
+
 </menu>
