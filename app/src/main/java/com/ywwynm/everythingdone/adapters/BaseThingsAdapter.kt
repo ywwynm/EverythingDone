@@ -12,6 +12,7 @@ import androidx.collection.LongSparseArray
 import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -67,6 +68,7 @@ abstract class BaseThingsAdapter(context: Context?) :
     private var mContext: Context? = context
 
     private var mCheckListAdapters: LongSparseArray<CheckListAdapter?>? = LongSparseArray()
+    private var mRecyclerView: RecyclerView? = null
 
     private var mReminderDAO: ReminderDAO? = ReminderDAO.getInstance(context)
     private var mHabitDAO: HabitDAO? = HabitDAO.getInstance(context)
@@ -134,6 +136,35 @@ abstract class BaseThingsAdapter(context: Context?) :
         mChecklistMaxItemCount = checklistMaxItemCount
     }
 
+    override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
+        super.onAttachedToRecyclerView(recyclerView)
+        mRecyclerView = recyclerView
+        refreshCardWidthFromRecyclerView()
+    }
+
+    override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
+        if (mRecyclerView === recyclerView) {
+            mRecyclerView = null
+        }
+        super.onDetachedFromRecyclerView(recyclerView)
+    }
+
+    private fun refreshCardWidthFromRecyclerView() {
+        val recyclerView = mRecyclerView ?: return
+        val width = recyclerView.width - recyclerView.paddingLeft - recyclerView.paddingRight
+        if (width <= 0) return
+
+        val layoutManager = recyclerView.layoutManager as? StaggeredGridLayoutManager ?: return
+        val spanCount = layoutManager.spanCount
+        if (spanCount <= 0) return
+
+        val spacing = mContext!!.resources.getDimensionPixelSize(R.dimen.thing_card_outer_spacing)
+        val cardWidth = (width - spacing * 2 * (spanCount + 1)) / spanCount
+        if (cardWidth > 0) {
+            mCardWidth = cardWidth
+        }
+    }
+
     private fun setNormalCardGeometry(cv: CardView) {
         cv.animate().cancel()
         cv.scaleX = 1.0f
@@ -182,6 +213,8 @@ abstract class BaseThingsAdapter(context: Context?) :
     }
 
     override fun onBindViewHolder(holder: BaseThingViewHolder, position: Int) {
+        refreshCardWidthFromRecyclerView()
+
         val thing: Thing = getThings()!![position]!!
         setContentViewAppearance(holder, thing)
         setCardAppearance(holder, thing.getBackground(), thing.isSelected())
@@ -192,6 +225,8 @@ abstract class BaseThingsAdapter(context: Context?) :
         updateCardForTitle(holder, thing)
 
         if (thing.isPrivate() && !mShouldShowPrivateContent) {
+            holder.llContent!!.minimumWidth = mCardWidth
+            holder.cv!!.setShouldInterceptTouchEvent(true)
             holder.ivPrivateThing!!.visibility = View.VISIBLE
             androidx.core.widget.ImageViewCompat.setImageTintList(
                 holder.ivPrivateThing,
@@ -205,7 +240,9 @@ abstract class BaseThingsAdapter(context: Context?) :
             holder.llAudioAttachment!!.visibility = View.GONE
             holder.rlReminder!!.visibility = View.GONE
             holder.rlHabit!!.visibility = View.GONE
+            holder.vPaddingBottom!!.visibility = View.VISIBLE
         } else {
+            holder.llContent!!.minimumWidth = 0
             holder.ivPrivateThing!!.visibility = View.GONE
 
             updateCardForContent(holder, thing)

@@ -36,6 +36,10 @@ Every `:app:publishDebugUpdate` invocation should include update notes. Prefer
 `-PdebugUpdateNotesFile=...` for longer notes; use `-PdebugUpdateNotes=...`
 only for short one-line notes.
 
+After a debug change compiles successfully, default to publishing the resulting
+debug APK to the configured Aliyun update server with `:app:publishDebugUpdate`
+unless the user explicitly asks to keep it local.
+
 ## Commit messages
 
 When writing bilingual commit messages, do not prefix paragraphs with

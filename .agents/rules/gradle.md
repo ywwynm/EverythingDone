@@ -50,6 +50,10 @@ That task assembles the debug APK, injects the debug update code for the APK
 being published, generates `latest.json`, uploads the versioned APK and
 metadata, and points the remote debug channel at the new build.
 
+For debug app changes, once compilation succeeds, default to publishing the
+debug APK to the configured update server with `:app:publishDebugUpdate` unless
+the user explicitly asks to keep the build local.
+
 Do not run the publish task without update notes. Prefer a notes file when the
 content is more than a short sentence:
 

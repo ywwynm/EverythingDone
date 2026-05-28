@@ -2071,6 +2071,33 @@ Debug APK update channel publish task:
   include update notes through `-PdebugUpdateNotes=...` or
   `-PdebugUpdateNotesFile=...`, instead of publishing without release notes.
 
+Private card width regression:
+- Investigated an intermittent home-list issue where hidden private Thing cards
+  could appear very narrow after repeated touch bounce animations on other
+  cards and then scrolling down.
+- The likely minimal cause was the hidden-private bind path: `card_thing.xml`
+  uses `wrap_content`, and private cards hide every wide content surface, leaving
+  only the title and lock icon to define width. Added a bind-time minimum width
+  on `ll_thing_content` for hidden private cards and reset it for all other
+  cards, while also restoring card touch interception for that recycled state.
+- Verified with `.\gradlew.bat :app:assembleDebug --console=plain`.
+- User set the default workflow that debug changes should be published to the
+  configured update server after successful compilation. Published this fix with
+  `:app:publishDebugUpdate` and inline update notes. The task succeeded and
+  published debug update code `202605281213`; the public metadata endpoint
+  returned the matching release notes.
+- User questioned whether the static `mCardWidth` value remains correct after
+  rotation and multi-window transitions. Tightened the fix so
+  `BaseThingsAdapter` refreshes `mCardWidth` from the currently attached
+  RecyclerView width and current `StaggeredGridLayoutManager.spanCount` during
+  binding, rather than relying only on startup display metrics. Published the
+  follow-up as debug update code `202605281216`.
+- Fixed a second recycled-state issue in the hidden private card branch: the
+  bottom padding spacer could stay `GONE` when a holder was reused from an
+  image-only card. The private branch now explicitly restores
+  `view_thing_padding_bottom` visibility. Published the fix as debug update
+  code `202605281220`.
+
 Debug APK update channel:
 - Ran a grill-with-docs design pass and recorded the debug-only static update
   channel decisions in memory and in
