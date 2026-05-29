@@ -2,6 +2,16 @@
 
 ## 2026-05-29
 
+### Dynamic home-card width must account for RecyclerView padding exactly once
+
+`BaseThingsAdapter` may refresh `mCardWidth` from the attached RecyclerView so
+private hidden cards, image cards, and rotation/multi-window cases use the live
+span width. When deriving that width from `RecyclerView.width - paddingLeft -
+paddingRight`, the formula must subtract only per-item left/right margins. Do
+not reuse the full-screen `DisplayUtil.getThingCardWidth(...)` spacing formula
+with `(spanCount + 1)`, because the RecyclerView outer padding has already been
+removed and would be double-counted.
+
 ### Thing-owned local controls use contrast foregrounds
 
 When a local control paints its own background with a Thing Background or Thing

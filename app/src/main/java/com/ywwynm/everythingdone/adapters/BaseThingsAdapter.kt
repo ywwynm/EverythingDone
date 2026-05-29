@@ -159,7 +159,8 @@ abstract class BaseThingsAdapter(context: Context?) :
         if (spanCount <= 0) return
 
         val spacing = mContext!!.resources.getDimensionPixelSize(R.dimen.thing_card_outer_spacing)
-        val cardWidth = (width - spacing * 2 * (spanCount + 1)) / spanCount
+        // width already excludes RecyclerView padding, so only subtract item margins here.
+        val cardWidth = (width - spacing * 2 * spanCount) / spanCount
         if (cardWidth > 0) {
             mCardWidth = cardWidth
         }

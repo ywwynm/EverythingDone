@@ -2658,4 +2658,26 @@ Debug update notes language correction:
 - Rewrote `memory/debug-update-notes.md` for the Thing-background foreground
   contrast fix in Chinese before republishing the debug update.
 
-Verification:`n- `git diff --check` passed with CRLF conversion warnings only.`n- Re-ran `:app:publishDebugUpdate` with Chinese `memory/debug-update-notes.md`; published debug update `202605290114` to `http://120.25.194.207/everythingdone-updates/debug/latest.json`.
+Verification:
+- `git diff --check` passed with CRLF conversion warnings only.
+- Re-ran `:app:publishDebugUpdate` with Chinese `memory/debug-update-notes.md`; published debug update `202605290114` to `http://120.25.194.207/everythingdone-updates/debug/latest.json`.
+
+## 2026-05-29 - Home image-card width correction
+
+User reported that image attachments on home Thing cards no longer filled the
+full card width, and asked whether the earlier hidden-private-card width fix had
+caused it. Diagnosis confirmed the regression was in the dynamic card-width
+refresh added by that fix: `refreshCardWidthFromRecyclerView()` first subtracted
+RecyclerView left/right padding, then reused the full-screen spacing formula
+with `(spanCount + 1)`, double-counting the outer spacing. `updateCardForImageAttachment()`
+uses `mCardWidth` directly, so image surfaces became narrower than the actual
+card.
+
+Change:
+- Updated `BaseThingsAdapter.refreshCardWidthFromRecyclerView()` so the dynamic
+  path subtracts only per-item margins after RecyclerView padding has already
+  been removed: `(width - spacing * 2 * spanCount) / spanCount`.
+
+Verification:
+- `git diff --check` passed with CRLF conversion warnings only.
+- `:app:publishDebugUpdate` passed and published debug update `202605290623` to `http://120.25.194.207/everythingdone-updates/debug/latest.json`.
