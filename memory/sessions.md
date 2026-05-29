@@ -2051,6 +2051,30 @@ Verification:
 - `.\gradlew.bat :app:assembleDebug --console=plain` passed.
 - `git diff --check` passed with CRLF conversion warnings only.
 
+NoticeableNotificationActivity embedded Thing row corner fix:
+- User reported that the Thing row inside `NoticeableNotificationActivity`'s
+  rounded dialog shell had become a rounded rectangle, even though it is an
+  embedded full-row Thing card and should remain square.
+- Root cause: `BaseThingsAdapter` first installed a rounded
+  `GradientDrawable` into `CardView.background` through
+  `BackgroundUtil.applyCardBackground()`. `NoticeableNotificationActivity`
+  then set `holder.cv.radius = 0f`, but its PURE colour branch used
+  `setCardBackgroundColor()`, which did not replace that existing
+  `View.background`, leaving the previous rounded outline in place.
+- Fix: after setting the embedded card radius and elevation to zero,
+  `NoticeableNotificationActivity` now reapplies the Thing Background through
+  `BackgroundUtil.applyCardBackground(holder.cv, bg)`, synchronising the
+  runtime drawable corner radius to `0f` for both pure and gradient
+  backgrounds.
+
+Verification:
+- `git diff --check` passed with CRLF conversion warnings only.
+- In-sandbox `:app:assembleDebug` was blocked by `.gradle` configuration-cache
+  lock permissions; the same Gradle command passed with sandbox escalation.
+- Published the debug update with `:app:publishDebugUpdate` using
+  `memory/debug-update-notes.md`; debug update code `202605282346` now points
+  at `http://120.25.194.207/everythingdone-updates/debug/latest.json`.
+
 Debug APK update channel publish task:
 - Recorded the workflow preference that debug update APK publishing should use
   `:app:publishDebugUpdate`, not ordinary `:app:assembleDebug`.
@@ -2581,3 +2605,57 @@ Button-like control ripple shaping:
 Verification:
 - `.\gradlew.bat :app:assembleDebug --console=plain` passed.
 - `git diff --check` passed with CRLF conversion warnings only.
+
+Gradle debug update notes rule update:
+- User asked to update the Gradle operational rules so debug app changes default
+  to `:app:publishDebugUpdate` and every publish task run uses
+  `memory/debug-update-notes.md` as a conversation-summary notes file.
+- Updated `.agents/rules/gradle.md`: `:app:publishDebugUpdate` is now the
+  default debug Gradle task, while `:app:assembleDebug` is documented as a
+  local compile/diagnostic task only. The rules now require updating
+  `memory/debug-update-notes.md` before each publish with the user's request,
+  the analysis, important file/code changes, user follow-up corrections, the
+  agent response, and verification/publish status.
+- Updated `memory/preferences.md` with the same publishing preference.
+- Rewrote `memory/debug-update-notes.md` from a one-line NoticeableNotification
+  fix note into the new concise conversation-summary format for the most recent
+  debug update.
+
+Verification:
+- `git diff --check` passed with CRLF conversion warnings only.
+
+## 2026-05-29 - Thing-background foreground sweep follow-up
+
+User reported that ThingDoingDialog's bottom "Start doing" action used a Thing
+Background but kept a fixed white label. The user asked to first report any
+additional omissions before changing them. Static inspection found two concrete
+misses: the ThingDoingDialog bottom action card, and RecurrencePickerAdapter's
+picked recurrence cells / end-of-month pill, whose selected backgrounds use the
+Thing accent or gradient while their labels stayed fixed white.
+
+Changes:
+- Added an id to the ThingDoingDialog bottom action label and bound it in
+  `ThingDoingDialogFragment`.
+- `ThingDoingDialogFragment` now applies `BackgroundUtil.onColor(...)` to the
+  bottom action label and installs a Thing-owned rounded ripple after applying
+  the current Thing Background to the CardView.
+- `RecurrencePickerAdapter` now uses the same on-colour contrast rule for
+  picked normal cells and the picked end-of-month pill instead of fixed white
+  labels.
+
+Verification:
+- `git diff --check` passed with CRLF conversion warnings only.
+- The first publish command used a backslash notes path and Gradle misparsed it as an extra `.md` task; `.agents/rules/gradle.md` now documents the forward-slash property path.
+- `:app:publishDebugUpdate` passed with `-PdebugUpdateNotesFile=memory/debug-update-notes.md` and published debug update `202605290108` to `http://120.25.194.207/everythingdone-updates/debug/latest.json`.
+
+Debug update notes language correction:
+- User reviewed `memory/debug-update-notes.md` and clarified that debug update
+  notes should be written in Chinese by default, while preserving code symbols,
+  file paths, Gradle task names, class names, and other technical proper names
+  in English when appropriate.
+- Updated `memory/preferences.md` and `.agents/rules/gradle.md` with that
+  notes-language rule.
+- Rewrote `memory/debug-update-notes.md` for the Thing-background foreground
+  contrast fix in Chinese before republishing the debug update.
+
+Verification:`n- `git diff --check` passed with CRLF conversion warnings only.`n- Re-ran `:app:publishDebugUpdate` with Chinese `memory/debug-update-notes.md`; published debug update `202605290114` to `http://120.25.194.207/everythingdone-updates/debug/latest.json`.

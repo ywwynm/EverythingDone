@@ -2,6 +2,10 @@
 
 package com.ywwynm.everythingdone.fragments
 
+import android.content.res.ColorStateList
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.RippleDrawable
 import android.os.Bundle
 import androidx.core.content.ContextCompat
 import androidx.cardview.widget.CardView
@@ -47,6 +51,7 @@ open class ThingDoingDialogFragment : BaseDialogFragment() {
     private var mTvASM: TextView? = null
 
     private var mCvStartAsBt: CardView? = null
+    private var mTvStartAsBt: TextView? = null
 
     override fun getLayoutResource(): Int = R.layout.fragment_thing_doing
 
@@ -78,6 +83,7 @@ open class ThingDoingDialogFragment : BaseDialogFragment() {
         mTvASM     = f(R.id.tv_auto_strict_mode)
 
         mCvStartAsBt = f(R.id.cv_start_doing_as_bt_dialog)
+        mTvStartAsBt = f(R.id.tv_start_doing_as_bt_dialog)
     }
 
     private fun initUI() {
@@ -95,8 +101,29 @@ open class ThingDoingDialogFragment : BaseDialogFragment() {
 
         enableOrDisableASDTimeUi()
 
-        BackgroundUtil.applyCardBackground(
-            mCvStartAsBt, bg ?: mThing!!.getBackground()
+        applyStartDoingButtonAppearance(bg ?: mThing!!.getBackground())
+    }
+
+    private fun applyStartDoingButtonAppearance(bg: ThingBackground?) {
+        BackgroundUtil.applyCardBackground(mCvStartAsBt, bg)
+        if (bg == null) {
+            mTvStartAsBt!!.setTextColor(Color.WHITE)
+            return
+        }
+
+        val thingColor = bg.representativeColor()
+        mTvStartAsBt!!.setTextColor(
+            BackgroundUtil.onColor(thingColor, BackgroundUtil.ON_ALPHA_PRIMARY)
+        )
+
+        val mask = GradientDrawable()
+        mask.shape = GradientDrawable.RECTANGLE
+        mask.cornerRadius = mCvStartAsBt!!.radius
+        mask.setColor(Color.WHITE)
+        mCvStartAsBt!!.foreground = RippleDrawable(
+            ColorStateList.valueOf(BackgroundUtil.thingRippleColor(thingColor)),
+            null,
+            mask
         )
     }
 

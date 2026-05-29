@@ -4,7 +4,6 @@ package com.ywwynm.everythingdone.adapters
 
 import android.content.Context
 import android.content.res.ColorStateList
-import android.graphics.Color
 import android.graphics.Outline
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.RippleDrawable
@@ -67,6 +66,9 @@ open class RecurrencePickerAdapter(
             notifyDataSetChanged()
         }
     }
+
+    private fun pickedTextColor(): Int =
+        BackgroundUtil.onColor(mAccentColor, BackgroundUtil.ON_ALPHA_PRIMARY)
 
     init {
         mCdPicked = mContext!!.getString(R.string.cd_picked)
@@ -148,7 +150,7 @@ open class RecurrencePickerAdapter(
                 holder.cv.background = pill
                 holder.cv.contentDescription = mCdPicked + mCds!![position] + ","
                 DisplayUtil.setRippleColorForCardView(holder.cv, unPickerColor)
-                holder.tv!!.setTextColor(Color.WHITE)
+                holder.tv!!.setTextColor(pickedTextColor())
             } else {
                 pill.setColor(unPickerColor)
                 holder.cv.background = pill
@@ -180,7 +182,7 @@ open class RecurrencePickerAdapter(
                     holder.bg.setBackgroundColor(mAccentColor)
                 }
                 setRippleColor(holder.cell, unPickerColor)
-                holder.tvDate.setTextColor(Color.WHITE)
+                holder.tvDate.setTextColor(pickedTextColor())
                 holder.cell!!.contentDescription = mCdPicked + mCds!![position] + ","
             } else {
                 holder.bg!!.background = null

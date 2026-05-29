@@ -8,7 +8,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.res.Configuration
-import android.graphics.Color
 import android.graphics.Outline
 import android.graphics.PorterDuff
 import android.graphics.drawable.Drawable
@@ -333,13 +332,7 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
                 val bg: ThingBackground = mThing!!.getBackground()!!
                 holder.cv!!.radius = 0f
                 holder.cv.cardElevation = 0f
-                if (bg.mode === ThingBackground.Mode.PURE) {
-                    holder.cv.setCardBackgroundColor(bg.color)
-                } else {
-                    holder.cv.setCardBackgroundColor(Color.TRANSPARENT)
-                    holder.cv.background =
-                        BackgroundUtil.makeTranslucentGradient(bg, 255)
-                }
+                BackgroundUtil.applyCardBackground(holder.cv, bg)
 
                 holder.tvTitle!!.maxLines = Int.MAX_VALUE
                 holder.tvContent!!.maxLines = Int.MAX_VALUE

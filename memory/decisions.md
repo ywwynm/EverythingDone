@@ -1,5 +1,24 @@
 # Decisions
 
+## 2026-05-29
+
+### Thing-owned local controls use contrast foregrounds
+
+When a local control paints its own background with a Thing Background or Thing
+accent, any text or icon drawn directly on that control must use the same
+lightness-based foreground rule as Thing cards. Use `BackgroundUtil.onColor(...)`
+for text on the painted surface, and use Thing-owned ripple colours for press
+feedback. This applies to compact dialog action cards such as ThingDoingDialog's
+"Start doing" button and to picked recurrence cells in DateTimeDialog.
+
+### NoticeableNotificationActivity keeps its embedded Thing row square
+
+`NoticeableNotificationActivity` is a Hybrid Chrome Surface: the outer
+dialog-like App Chrome shell may be rounded, but the embedded full-row Thing
+card inside the dialog is still Thing Background content and should remain a
+square full-row surface. Do not let normal home-card corner radius or App Chrome
+dialog corner clipping leak into that embedded card.
+
 ## 2026-05-28
 
 ### Camera colour sampling previews stay inside the dialog

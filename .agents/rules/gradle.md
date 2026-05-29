@@ -28,7 +28,56 @@ For deeper inspection, write the full output to a temp file under
                               $out, [System.Text.Encoding]::UTF8)
 ```
 
-## Default compile task: `:app:assembleDebug`
+## Default debug task: `:app:publishDebugUpdate`
+
+For debug app changes, the default Gradle task is now
+`:app:publishDebugUpdate`, not plain `:app:assembleDebug`, unless the user
+explicitly asks to keep the build local. The publish task assembles the debug
+APK, injects the debug update code for the APK being published, generates
+`latest.json`, uploads the versioned APK and metadata, and points the remote
+debug channel at the new build.
+
+Run a local `:app:assembleDebug` first only when it is useful as a faster
+compile check or when diagnosing a build failure. A successful local assemble
+does not replace the default publish step for a debug app change.
+
+### Debug update notes
+
+Do not run `:app:publishDebugUpdate` until `memory/debug-update-notes.md` has
+been updated for the current change. The notes file should summarise the
+conversation that led to the update:
+
+- what the user asked for;
+- what analysis or diagnosis was performed;
+- what code or resource changes were made, including important file names and
+  key implementation details;
+- what follow-up concerns or corrections the user raised after seeing an
+  earlier attempt;
+- how those corrections were addressed;
+- the verification or publish status when relevant.
+
+The notes do not need to be exhaustive, but they should be comprehensive enough
+that a tester reading the debug update understands the actual change history,
+not just a one-line feature label.
+
+Write debug update notes in Chinese by default. Keep code symbols, file paths,
+Gradle task names, class names, and other proper technical names in English
+where that is clearer.
+
+Use the notes file path by default:
+
+```powershell
+.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md"
+```
+
+Use inline `-PdebugUpdateNotes=...` only when the user explicitly asks for a
+short inline note.
+
+Use a forward-slash path for `-PdebugUpdateNotesFile` in PowerShell. A
+Windows backslash path can be misparsed by the wrapper/Gradle command line and
+show up as an extra task such as `.md` instead of a project property.
+
+## Local compile task: `:app:assembleDebug`
 
 **Not** `:app:compileDebugJavaWithJavac` and **not**
 `:app:compileDebugKotlin`. Each successful compile should produce an
@@ -41,31 +90,6 @@ The APK from a vanilla `assembleDebug` does **not** carry
 "Run" / instant-deploy path) — the project's `build.gradle` has no
 `testOnly` config and the manifest doesn't set it either, so `adb install`
 works on any device without `-t`.
-
-## Debug update publish task: `:app:publishDebugUpdate`
-
-When the goal is to publish a debug update APK to the configured Aliyun static
-update channel, use `:app:publishDebugUpdate` instead of `:app:assembleDebug`.
-That task assembles the debug APK, injects the debug update code for the APK
-being published, generates `latest.json`, uploads the versioned APK and
-metadata, and points the remote debug channel at the new build.
-
-For debug app changes, once compilation succeeds, default to publishing the
-debug APK to the configured update server with `:app:publishDebugUpdate` unless
-the user explicitly asks to keep the build local.
-
-Do not run the publish task without update notes. Prefer a notes file when the
-content is more than a short sentence:
-
-```powershell
-.\gradlew.bat :app:publishDebugUpdate -PdebugUpdateNotesFile=memory\debug-update-notes.md
-```
-
-For a very short note, pass it inline:
-
-```powershell
-.\gradlew.bat :app:publishDebugUpdate -PdebugUpdateNotes="Describe the debug update"
-```
 
 ## Don't pre-announce compile commands
 
