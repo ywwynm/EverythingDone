@@ -166,6 +166,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
     private var mEditable: Boolean = false
 
     private var mThing: Thing? = null
+    private var mHomeCardSpanMode: Int = Thing.HOME_CARD_SPAN_NORMAL
     private var mPosition: Int = 0
     private var mReminder: Reminder? = null
     private var mHabit: Habit? = null
@@ -247,7 +248,8 @@ class DetailActivity : EverythingDoneBaseActivity() {
         val location: Long,
         val createTime: Long,
         val updateTime: Long,
-        val finishTime: Long
+        val finishTime: Long,
+        val homeCardSpanMode: Int
     )
 
     /**
@@ -398,6 +400,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
         mEditable = mThing!!.type != Thing.HEADER
                 && mThing!!.type < Thing.NOTIFICATION_UNDERWAY
                 && mThing!!.state == Thing.UNDERWAY
+        mHomeCardSpanMode = mThing!!.homeCardSpanMode
         if (mEditable) {
             mShowNormalSnackbar = Runnable {
                 mNormalSnackbar!!.show()
@@ -509,7 +512,8 @@ class DetailActivity : EverythingDoneBaseActivity() {
             thing.location,
             thing.createTime,
             thing.updateTime,
-            thing.finishTime
+            thing.finishTime,
+            thing.homeCardSpanMode
         )
     }
 
@@ -1311,6 +1315,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
                     toggleCheckListActionItem(menu, true)
                 }
                 togglePrivateThingActionItem(menu, !mThing!!.isPrivate())
+                toggleHomeCardSpanModeActionItem(menu)
                 toggleStickyActionItem(menu)
                 toggleOngoingActionItem(menu)
                 togglePauseResumeHabitActionItem(menu)
@@ -1346,6 +1351,8 @@ class DetailActivity : EverythingDoneBaseActivity() {
             showColorInfoDialog()
         } else if (itemId == R.id.act_set_as_private_thing) {
             togglePrivateThing()
+        } else if (itemId == R.id.act_toggle_home_card_span) {
+            toggleHomeCardSpanMode()
         } else if (itemId == R.id.act_undo) {
             undoOrRedo(mActionList!!.undo(), true)
         } else if (itemId == R.id.act_redo) {
@@ -1430,6 +1437,15 @@ class DetailActivity : EverythingDoneBaseActivity() {
             item.setTitle(R.string.act_set_as_private_thing)
         } else {
             item.setTitle(R.string.act_cancel_private_thing)
+        }
+    }
+
+    private fun toggleHomeCardSpanModeActionItem(menu: Menu) {
+        val item: MenuItem = menu.findItem(R.id.act_toggle_home_card_span) ?: return
+        if (mHomeCardSpanMode == Thing.HOME_CARD_SPAN_FULL) {
+            item.setTitle(R.string.act_cancel_full_span_home_card)
+        } else {
+            item.setTitle(R.string.act_set_full_span_home_card)
         }
     }
 
@@ -1624,6 +1640,40 @@ class DetailActivity : EverythingDoneBaseActivity() {
         }
     }
 
+    private fun toggleHomeCardSpanMode() {
+        val before = mHomeCardSpanMode
+        val after = if (before == Thing.HOME_CARD_SPAN_FULL) {
+            Thing.HOME_CARD_SPAN_NORMAL
+        } else {
+            Thing.HOME_CARD_SPAN_FULL
+        }
+        setHomeCardSpanModeForEdit(after)
+        showHomeCardSpanModeFeedback(after)
+        if (shouldAddToActionList) {
+            mActionList!!.addAction(ThingAction(ThingAction.UPDATE_HOME_CARD_SPAN_MODE, before, after))
+        }
+    }
+
+    private fun showHomeCardSpanModeFeedback(@Thing.HomeCardSpanMode spanMode: Int) {
+        val msgRes = if (spanMode == Thing.HOME_CARD_SPAN_FULL) {
+            R.string.msg_home_card_span_enlarged
+        } else {
+            R.string.msg_home_card_span_shrunk
+        }
+        val snackbar = mNormalSnackbar
+        if (snackbar != null) {
+            snackbar.setMessage(msgRes)
+            snackbar.show()
+        } else {
+            Toast.makeText(this, msgRes, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun setHomeCardSpanModeForEdit(@Thing.HomeCardSpanMode spanMode: Int) {
+        mHomeCardSpanMode = spanMode
+        toggleHomeCardSpanModeActionItem(mActionbar!!.menu)
+    }
+
     private fun alertNoTitleWhenSetPrivateThing() {
         val adf = AlertDialogFragment()
         adf.setShowCancel(false)
@@ -1707,6 +1757,8 @@ class DetailActivity : EverythingDoneBaseActivity() {
                 undoOrRedoReminderHabit(action, undo)
             ThingAction.TOGGLE_PRIVATE ->
                 togglePrivateThing()
+            ThingAction.UPDATE_HOME_CARD_SPAN_MODE ->
+                setHomeCardSpanModeForEdit(to as Int)
             else -> {}
         }
         updateUndoRedoActionButtonState()
@@ -2043,6 +2095,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
         mThing!!.title = title
         mThing!!.content = content
         mThing!!.attachment = attachment
+        mThing!!.homeCardSpanMode = mHomeCardSpanMode
         if (mChangeBackgroundTo != null) {
             mThing!!.setBackground(mChangeBackgroundTo)
         } else {
@@ -3086,7 +3139,9 @@ class DetailActivity : EverythingDoneBaseActivity() {
             val proposedBg: ThingBackground? = if (mChangeBackgroundTo != null)
                 mChangeBackgroundTo
             else mThing!!.getBackground()
-            val noUpdate = Thing.noUpdate(mThing, title, content, attachment, typeAfter, proposedBg)
+            val noUpdate = Thing.noUpdate(
+                mThing, title, content, attachment, typeAfter, proposedBg, mHomeCardSpanMode
+            )
                 && !reminderUpdated && !habitUpdated && !mHabitFinishedThisTime
                 && !mHabitRecordEdited
             if (noUpdate) {
@@ -3167,6 +3222,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
             updateThingAndItsPosition(mThing!!.id)
             App.setJustNotifyAll(true)
         }
+        mThing!!.homeCardSpanMode = mHomeCardSpanMode
 
         intent.putExtra(Def.Communication.KEY_POSITION, mPosition)
         intent.putExtra(Def.Communication.KEY_STATE_AFTER, stateAfter)
@@ -3379,6 +3435,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
         mThing!!.content = content
         mThing!!.attachment = attachment
         mThing!!.type = typeAfter
+        mThing!!.homeCardSpanMode = mHomeCardSpanMode
         if (mChangeBackgroundTo != null) {
             mThing!!.setBackground(mChangeBackgroundTo)
         } else {
@@ -3412,6 +3469,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
         mThing!!.content = content
         mThing!!.attachment = attachment
         mThing!!.type = typeAfter
+        mThing!!.homeCardSpanMode = mHomeCardSpanMode
         if (mChangeBackgroundTo != null) {
             mThing!!.setBackground(mChangeBackgroundTo)
         } else {

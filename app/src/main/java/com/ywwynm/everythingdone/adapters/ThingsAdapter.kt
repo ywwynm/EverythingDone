@@ -94,9 +94,8 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
     }
 
     override fun onBindViewHolder(holder: BaseThingViewHolder, position: Int) {
-        distinguishHeaderAndOthers(
-            getThings()!![position]!!.type == Thing.HEADER, holder.cv
-        )
+        val thing = getThings()!![position]!!
+        distinguishHeaderAndOthers(thing, holder.cv)
         super.onBindViewHolder(holder, position)
 
         val armed = isArmedFor(position)
@@ -146,7 +145,14 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         })
     }
 
-    private fun distinguishHeaderAndOthers(header: Boolean, cv: CardView?) {
+    override fun isFullSpanHomeCard(thing: Thing): Boolean {
+        return thing.type != Thing.HEADER
+                && thing.type < Thing.NOTIFICATION_UNDERWAY
+                && thing.homeCardSpanMode == Thing.HOME_CARD_SPAN_FULL
+    }
+
+    private fun distinguishHeaderAndOthers(thing: Thing, cv: CardView?) {
+        val header = thing.type == Thing.HEADER
         val mX = mApp!!.resources.getDimensionPixelSize(R.dimen.thing_card_outer_spacing)
         val mY = if (header) 0 else mX
 
@@ -160,7 +166,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         val lp = cv.layoutParams as StaggeredGridLayoutManager.LayoutParams
         lp.height = height
         lp.setMargins(mX, mY, mX, mY)
-        lp.isFullSpan = header
+        lp.isFullSpan = header || isFullSpanHomeCard(thing)
     }
 
     private fun animateCardOnTouch(v: View?, event: MotionEvent?) {

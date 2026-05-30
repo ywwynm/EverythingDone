@@ -97,7 +97,29 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
                 db.execSQL(SQL_ADD_COLUMN_BACKGROUND_THINGS)
             }
         }
-        // released version should be 1, 3, 5, 6, 7, 8, 9.
+        if (oldVersion < 9 && !columnExists(
+                db, Def.Database.TABLE_THINGS, Def.Database.COLUMN_BACKGROUND_THINGS
+            )) {
+            db.execSQL(SQL_ADD_COLUMN_BACKGROUND_THINGS)
+        }
+        if (oldVersion < 10 && !columnExists(
+                db, Def.Database.TABLE_THINGS, Def.Database.COLUMN_HOME_CARD_SPAN_MODE_THINGS
+            )) {
+            db.execSQL(SQL_ADD_COLUMN_HOME_CARD_SPAN_MODE_THINGS)
+        }
+        // released version should be 1, 3, 5, 6, 7, 8, 9, 10.
+    }
+
+    private fun columnExists(db: SQLiteDatabase, tableName: String, columnName: String): Boolean {
+        db.rawQuery("pragma table_info($tableName)", null).use { cursor ->
+            val nameIndex = cursor.getColumnIndex("name")
+            if (nameIndex < 0) return false
+
+            while (cursor.moveToNext()) {
+                if (cursor.getString(nameIndex) == columnName) return true
+            }
+        }
+        return false
     }
 
     override fun onDowngrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
@@ -110,8 +132,8 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
     private fun generateInsertInitialSQL(id: Int, type: Int, titleRes: Int, contentRes: Int): String {
         // Phase 3+: roll a full ThingBackground (50/50 PURE vs GRADIENT) and
         // write both the legacy int colour column and the new background JSON
-        // column. Previously this inserted only 11 values for a 12-column
-        // table — broken on fresh installs since v9 added COLUMN_BACKGROUND_THINGS.
+        // column. Previously this inserted only 11 values for the widened table,
+        // which broke fresh installs after new Thing columns were added.
         val bg: com.ywwynm.everythingdone.model.ThingBackground =
                 com.ywwynm.everythingdone.model.ThingBackground.fromRandom()
         return "insert into " + Def.Database.TABLE_THINGS + " values(" + "'" +
@@ -126,7 +148,8 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
                 System.currentTimeMillis() + "', '" +
                 System.currentTimeMillis() + "', " +
                 "'0', '" +
-                bg.toJson() + "')"
+                bg.toJson() + "', '" +
+                Thing.HOME_CARD_SPAN_NORMAL + "')"
     }
 
 //    private String generateTestSQL(int id, String title, String content) {
@@ -160,7 +183,9 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
                     Def.Database.COLUMN_CREATE_TIME_THINGS + " integer, " +
                     Def.Database.COLUMN_UPDATE_TIME_THINGS + " integer, " +
                     Def.Database.COLUMN_FINISH_TIME_THINGS + " integer, " +
-                    Def.Database.COLUMN_BACKGROUND_THINGS  + " text" /* added in version 9 */ +
+                    Def.Database.COLUMN_BACKGROUND_THINGS  + " text, " /* added in version 9 */ +
+                    Def.Database.COLUMN_HOME_CARD_SPAN_MODE_THINGS +
+                        " integer not null default 0" /* added in version 10 */ +
                 ")"
 
         private const val SQL_CREATE_TABLE_REMINDERS: String = "create table if not exists " +
@@ -237,9 +262,10 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
                     Def.Database.COLUMN_SHOULD_ASM_DOING         + " integer not null default 0" +
                 ")"
 
-        // Phase 3+: the things table grew a 12th column `background TEXT` (added
-        // in DB v9). Fresh installs run onCreate() with the 12-column schema, so
-        // this INSERT must provide 12 values — trailing NULL means Thing(Cursor)
+        // Phase 3+: the things table grew extra trailing columns after the
+        // original schema. Fresh installs run onCreate() with the latest schema,
+        // so this INSERT must provide values for all columns. The NULL background
+        // means Thing(Cursor)
         // falls back to ThingBackground.pure(color) for this header row, which
         // matches plan §4.1.8 ("header row's color = -14784871 is a valid PURE
         // colour, background field NULL is fine").
@@ -251,7 +277,8 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
                 Thing.UNDERWAY +
                 "', '-14784871', 'Let this be my last words', 'I trust thy love', 'to QQ', '7', '" +
                 System.currentTimeMillis() + "', '" +
-                System.currentTimeMillis() + "', '0', NULL)"
+                System.currentTimeMillis() + "', '0', NULL, '" +
+                Thing.HOME_CARD_SPAN_NORMAL + "')"
 
         private const val SQL_ADD_COLUMN_ALPHA_APP_WIDGET: String = "alter table " +
                 Def.Database.TABLE_APP_WIDGET +
@@ -276,6 +303,11 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
         private const val SQL_ADD_COLUMN_BACKGROUND_THINGS: String = "alter table " +
                 Def.Database.TABLE_THINGS +
                 " add column " + Def.Database.COLUMN_BACKGROUND_THINGS + " text"
+
+        private const val SQL_ADD_COLUMN_HOME_CARD_SPAN_MODE_THINGS: String = "alter table " +
+                Def.Database.TABLE_THINGS +
+                " add column " + Def.Database.COLUMN_HOME_CARD_SPAN_MODE_THINGS +
+                " integer not null default 0"
 
         private const val SQL_DROP_TABLE_THINGS: String = "drop table if exists " +
                 Def.Database.TABLE_THINGS

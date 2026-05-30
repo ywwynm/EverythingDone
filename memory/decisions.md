@@ -1,6 +1,142 @@
 # Decisions
 
+## 2026-05-30
+
+### Full-span home-card entry lives in Detail overflow
+
+Home Card Span Mode should be toggled from DetailActivity's overflow menu for
+real editable Things. The create screen should not expose the action in the
+initial implementation; users can create the Thing first, then change its home
+card span after it has a stable persisted identity.
+
+The Simplified Chinese menu labels should be "放大记事卡片" for switching from
+normal span to full span, and "缩小记事卡片" for switching from full span back to
+normal span.
+
+Use `homeCardSpanMode` naming consistently for this state. Do not use the
+broader name `style`, because the value only controls card span and should not
+imply image placement, typography, or a full layout style.
+The database column follows existing schema style as `home_card_span_mode`,
+while Kotlin properties and helpers use `homeCardSpanMode`.
+
+Changing Home Card Span Mode should participate in DetailActivity's normal
+edit lifecycle and undo/redo stack. It should not behave like sticky or
+ongoing, which write immediately and finish the Detail screen. The overflow
+label updates immediately after the toggle, while persistence happens through
+the existing create/update return flow.
+
+Clicking the Detail overflow action to enlarge or shrink a Home Card should
+show immediate feedback because the visual result is only visible after
+returning to the home list. Use DetailActivity's normal Snackbar when it is
+available; fall back to Toast only if the Snackbar has not been initialized.
+The Simplified Chinese messages are "已放大记事卡片" and "已缩小记事卡片".
+
+Changing Home Card Span Mode does not change a Thing's `location` or business
+ordering. Returning from Detail should treat the change as an update to the
+same item; the home list may relayout the waterfall spans, but it should not
+delete/reinsert the Thing or replay the whole-list appearing animation.
+
+Implement the first iteration as reliable full-span behavior plus conservative
+width adaptation. Keep the existing card content order: image, title, private
+lock, content/checklist, audio, reminder/habit, padding, and doing cover. Do
+not include magazine-style text centering, artistic typography, or manual image
+placement in the first implementation.
+
+Full-span image cards keep the existing top-image and `centerCrop` behavior in
+the first iteration. Normal cards keep the existing `cardWidth * 3 / 4` image
+height. Full-span cards should bound image height, for example around
+`min(fullCardWidth * 9 / 16, screenHeight * 0.36)` with a reasonable dp
+minimum, so wide cards do not become excessively tall. This visual ratio can be
+revisited later.
+
+Full-span text cards should keep the first iteration's normal card typography:
+left-aligned title/content, existing length-based content text-size formula,
+and existing Thing Foreground colour logic. Do not add centred text, artistic
+fonts, or a separate text-poster layout yet. The first iteration may increase
+the content `maxLines` for full-span cards so wider cards do not truncate too
+aggressively.
+
+Full-span checklist cards keep the existing single-column checklist rendering
+and existing card-level checklist toggle behavior. Normal span keeps the
+current maximum of 8 visible checklist rows; full span may raise the visible
+maximum to 12. Do not introduce a two-column checklist or a full-span-specific
+checklist layout in the first iteration.
+
+Full-span audio, reminder, goal, and habit sections keep their existing
+vertical block structure in the first iteration. Audio-only cards may continue
+using the existing enlarged audio layout. Reminder/goal and habit metadata
+should gain horizontal room from the wider card, but should not become a
+separate horizontal information bar yet. The doing cover continues to cover the
+final measured card bounds.
+
+Full-span hidden private cards still hide all private content. They should use
+the full-span width, keep the existing title behavior, and enlarge the lock
+icon so the card does not read as an overly wide, shallow strip. The first
+iteration should not reveal any image, content, checklist, audio, reminder, or
+habit metadata for locked private Things.
+
+Full-span cards with sparse visible content should have an adjustable minimum
+content height so they do not become overly wide, shallow strips. Apply this to
+hidden private cards, title-only or short-text cards, and audio-only cards.
+Avoid forcing the minimum height onto image, checklist, reminder, habit, or
+long-text cards. Keep the height value in a resource token rather than hardcoding
+it in adapter logic.
+
+Home Card Span Mode affects only the ThingsActivity home list in the first
+iteration. It should not change DoingActivity's embedded cards,
+NoticeableNotificationActivity's embedded Thing row, single-Thing widgets,
+Things List widgets, or widget configuration previews. Shared card binding code
+may support full-span sizing, but the decision to apply full span belongs to
+the home-list adapter.
+Search results are still a filtered home list, so they should respect each
+Thing's Home Card Span Mode.
+
+Existing Things and newly created Things default to normal span. Database
+upgrade should add `home_card_span_mode` with default `0`, and no migration
+should automatically promote existing rows to full span.
+
+Toggling Home Card Span Mode updates the Thing's `updateTime`, matching other
+Detail visual edits such as changing the Thing Background.
+
+Implementation must handle both upgrade and fresh-install database paths. The
+schema version should increase, old databases should receive
+`home_card_span_mode integer not null default 0`, fresh installs should create
+the column directly, and every fixed-column initial insert/header insert path
+must provide the new normal-span value.
+
+The v10 migration should guard new trailing Thing columns with a column-exists
+check before executing `ALTER TABLE`. This keeps v9 -> v10 simple while also
+allowing older restored databases that skipped an intermediate app version to
+receive any missing trailing columns without duplicate-column failures.
+
+Backup and restore do not need a separate format layer for this feature,
+because backups copy the database file. Restored older databases should be
+handled by the normal SQLiteOpenHelper upgrade path, which adds
+`home_card_span_mode` with default normal span.
+
 ## 2026-05-29
+
+### Full-span home-card state belongs to the Thing
+
+The new full-span home-card feature should be a persistent Thing-level
+presentation preference, not a temporary RecyclerView state and not a property
+of one home-list filter. When a real user-created Thing is marked as a
+Full-Span Home Card, that preference should apply wherever the Thing appears in
+the home list: all underway lists, type-specific lists, finished, and deleted.
+System rows such as the invisible header, empty-list notification rows, welcome
+items, and notification pseudo-things are outside the feature unless explicitly
+revisited later.
+
+Use an integer field for this persistent state rather than a boolean. The
+initial feature still starts from the full-span need, but the stored shape
+should leave room for future home-card presentation modes without another
+schema rename. The field represents only the Home Card Span Mode, not the
+full rendering style: `0 = NORMAL`, `1 = FULL_SPAN`. Image placement,
+text-centering, font treatment, checklist density, and other visual choices are
+rendering strategies derived from the Thing's content and current span mode.
+The mode is available to every real, normally editable Thing, including the
+initial welcome Things if they enter the normal edit path. It is not available
+to the invisible header row, empty-list rows, or notification pseudo-things.
 
 ### Dynamic home-card width must account for RecyclerView padding exactly once
 

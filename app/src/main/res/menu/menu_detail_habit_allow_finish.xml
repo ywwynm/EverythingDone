@@ -28,6 +28,11 @@
         app:showAsAction="never"/>
 
     <item
+        android:id="@+id/act_toggle_home_card_span"
+        android:title="@string/act_set_full_span_home_card"
+        app:showAsAction="never"/>
+
+    <item
         android:id="@+id/act_sticky"
         android:title="@string/act_sticky_on_top"
         app:showAsAction="never" />

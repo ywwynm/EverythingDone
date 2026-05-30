@@ -31,7 +31,7 @@ object Def {
         const val FEEDBACK_ERROR_FILE_NAME: String = "feedback_error.dat"
 
         const val DATABASE_NAME: String = "EverythingDoneData.db"
-        const val DATABASE_VERSION: Int = 9
+        const val DATABASE_VERSION: Int = 10
 
         const val ONGOING_NOTIFICATION_ID: Int = Int.MAX_VALUE
 
@@ -121,6 +121,7 @@ object Def {
         const val COLUMN_UPDATE_TIME_THINGS: String = "update_time"
         const val COLUMN_FINISH_TIME_THINGS: String = "finish_time"
         const val COLUMN_BACKGROUND_THINGS: String  = "background" /* added in version 9 */
+        const val COLUMN_HOME_CARD_SPAN_MODE_THINGS: String = "home_card_span_mode" /* added in version 10 */
 
         const val TABLE_REMINDERS: String                 = "reminders"
         const val COLUMN_ID_REMINDERS: String             = "id"

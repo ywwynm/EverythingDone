@@ -51,6 +51,8 @@ import com.ywwynm.everythingdone.views.HabitRecordPresenter
 import com.ywwynm.everythingdone.views.InterceptTouchCardView
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
+import kotlin.math.max
+import kotlin.math.min
 
 /**
  * Created by ywwynm on 2016/7/31.
@@ -76,11 +78,14 @@ abstract class BaseThingsAdapter(context: Context?) :
     private var mImageRequestManager: RequestManager? = Glide.with(context!!)
 
     private var mCardWidth: Int = DisplayUtil.getThingCardWidth(context)
+    private var mFullSpanCardWidth: Int = DisplayUtil.getThingCardWidth(context)
     private var mShouldShowPrivateContent: Boolean = false
     private var mChecklistMaxItemCount: Int = 8
 
     protected abstract fun getCurrentMode(): Int
     protected abstract fun getThings(): List<Thing?>?
+
+    protected open fun isFullSpanHomeCard(thing: Thing): Boolean = false
 
     /**
      * Pick a text/foreground colour to draw on top of a card whose background
@@ -164,6 +169,36 @@ abstract class BaseThingsAdapter(context: Context?) :
         if (cardWidth > 0) {
             mCardWidth = cardWidth
         }
+        val fullSpanCardWidth = width - spacing * 2
+        if (fullSpanCardWidth > 0) {
+            mFullSpanCardWidth = fullSpanCardWidth
+        }
+    }
+
+    private fun getCardContentWidth(thing: Thing): Int {
+        return if (isFullSpanHomeCard(thing)) mFullSpanCardWidth else mCardWidth
+    }
+
+    private fun applyCardContentGeometry(holder: BaseThingViewHolder, thing: Thing) {
+        val fullSpan = isFullSpanHomeCard(thing)
+        val lp = holder.llContent!!.layoutParams
+        lp.width = if (fullSpan) getCardContentWidth(thing) else ViewGroup.LayoutParams.WRAP_CONTENT
+        holder.llContent.layoutParams = lp
+        holder.llContent.minimumWidth = 0
+        holder.llContent.minimumHeight = 0
+
+        holder.tvContent!!.maxLines =
+            if (fullSpan) FULL_SPAN_TEXT_MAX_LINES else NORMAL_TEXT_MAX_LINES
+
+        val iconSize = if (fullSpan) {
+            mContext!!.resources.getDimensionPixelSize(R.dimen.thing_card_full_span_private_icon_size)
+        } else {
+            (mDensity * PRIVATE_THING_ICON_NORMAL_DP).toInt()
+        }
+        val iconLp = holder.ivPrivateThing!!.layoutParams as LinearLayout.LayoutParams
+        iconLp.width = iconSize
+        iconLp.height = iconSize
+        holder.ivPrivateThing.layoutParams = iconLp
     }
 
     private fun setNormalCardGeometry(cv: CardView) {
@@ -222,11 +257,13 @@ abstract class BaseThingsAdapter(context: Context?) :
     }
 
     private fun setContentViewAppearance(holder: BaseThingViewHolder, thing: Thing) {
+        applyCardContentGeometry(holder, thing)
+
         updateCardForStickyOrOngoingNotification(holder, thing)
         updateCardForTitle(holder, thing)
 
         if (thing.isPrivate() && !mShouldShowPrivateContent) {
-            holder.llContent!!.minimumWidth = mCardWidth
+            holder.llContent!!.minimumWidth = getCardContentWidth(thing)
             holder.cv!!.setShouldInterceptTouchEvent(true)
             holder.ivPrivateThing!!.visibility = View.VISIBLE
             androidx.core.widget.ImageViewCompat.setImageTintList(
@@ -242,8 +279,8 @@ abstract class BaseThingsAdapter(context: Context?) :
             holder.rlReminder!!.visibility = View.GONE
             holder.rlHabit!!.visibility = View.GONE
             holder.vPaddingBottom!!.visibility = View.VISIBLE
+            updateFullSpanSparseMinHeight(holder, thing)
         } else {
-            holder.llContent!!.minimumWidth = 0
             holder.ivPrivateThing!!.visibility = View.GONE
 
             updateCardForContent(holder, thing)
@@ -255,6 +292,7 @@ abstract class BaseThingsAdapter(context: Context?) :
             updateCardSeparatorsIfNeeded(holder)
 
             enlargeAudioLayoutIfNeeded(holder)
+            updateFullSpanSparseMinHeight(holder, thing)
         }
 
         updateCardForDoing(holder, thing)
@@ -331,7 +369,12 @@ abstract class BaseThingsAdapter(context: Context?) :
                     adapter.setItems(items)
                 }
                 adapter.setThingColor(thing.getColor())
-                adapter.setMaxItemCount(mChecklistMaxItemCount)
+                adapter.setMaxItemCount(
+                    if (isFullSpanHomeCard(thing))
+                        FULL_SPAN_CHECKLIST_MAX_ITEM_COUNT
+                    else
+                        mChecklistMaxItemCount
+                )
                 onChecklistAdapterInitialized(holder, adapter, thing)
                 holder.rvChecklist.adapter = adapter
                 holder.rvChecklist.layoutManager = LinearLayoutManager(mContext)
@@ -462,8 +505,8 @@ abstract class BaseThingsAdapter(context: Context?) :
         if (firstImageTypePathName != null) {
             holder.flImageAttachment!!.visibility = View.VISIBLE
 
-            val imageW = mCardWidth
-            val imageH = imageW * 3 / 4
+            val imageW = getCardContentWidth(thing)
+            val imageH = getImageHeight(thing, imageW)
 
             val paramsLayout = holder.flImageAttachment.layoutParams as LinearLayout.LayoutParams
             paramsLayout.width = imageW
@@ -520,6 +563,17 @@ abstract class BaseThingsAdapter(context: Context?) :
             holder.vPaddingBottom!!.visibility = View.VISIBLE
             holder.flImageAttachment!!.visibility = View.GONE
         }
+    }
+
+    private fun getImageHeight(thing: Thing, imageW: Int): Int {
+        if (!isFullSpanHomeCard(thing)) return imageW * 3 / 4
+
+        val minHeight = mContext!!.resources.getDimensionPixelSize(
+            R.dimen.thing_card_full_span_image_min_height
+        )
+        val maxHeight = (DisplayUtil.getScreenSize(mContext).y *
+                FULL_SPAN_IMAGE_MAX_SCREEN_HEIGHT_RATIO).toInt()
+        return max(minHeight, min(imageW * 9 / 16, maxHeight))
     }
 
     private fun updateCardForAudioAttachment(holder: BaseThingViewHolder, thing: Thing) {
@@ -600,6 +654,29 @@ abstract class BaseThingsAdapter(context: Context?) :
             holder.llAudioAttachment.setPadding(dp16, dp16 / 4 * 3, dp16, 0)
         }
         holder.ivAudioCount.requestLayout()
+    }
+
+    private fun updateFullSpanSparseMinHeight(holder: BaseThingViewHolder, thing: Thing) {
+        if (!isFullSpanHomeCard(thing)) return
+        if (holder.flImageAttachment!!.isVisible
+            || holder.rvChecklist!!.isVisible
+            || holder.rlReminder!!.isVisible
+            || holder.rlHabit!!.isVisible
+        ) {
+            return
+        }
+        if (holder.tvContent!!.isVisible && thing.content!!.length > SHORT_TEXT_MAX_LENGTH) {
+            return
+        }
+        if (holder.tvTitle!!.isVisible
+            || holder.tvContent!!.isVisible
+            || holder.llAudioAttachment!!.isVisible
+            || holder.ivPrivateThing!!.isVisible
+        ) {
+            holder.llContent!!.minimumHeight = mContext!!.resources.getDimensionPixelSize(
+                R.dimen.thing_card_full_span_sparse_min_height
+            )
+        }
     }
 
     private fun updateCardForDoing(holder: BaseThingViewHolder, thing: Thing) {
@@ -752,6 +829,12 @@ abstract class BaseThingsAdapter(context: Context?) :
 
         private const val UNSELECTED_DARK_CONTENT_ALPHA = 0.32f
         private const val UNSELECTED_LIGHT_CONTENT_ALPHA = 0.64f
+        private const val NORMAL_TEXT_MAX_LINES = 9
+        private const val FULL_SPAN_TEXT_MAX_LINES = 14
+        private const val FULL_SPAN_CHECKLIST_MAX_ITEM_COUNT = 12
+        private const val SHORT_TEXT_MAX_LENGTH = 60
+        private const val PRIVATE_THING_ICON_NORMAL_DP = 48
+        private const val FULL_SPAN_IMAGE_MAX_SCREEN_HEIGHT_RATIO = 0.36f
 
         init {
             val context: Context = App.getApp()!!

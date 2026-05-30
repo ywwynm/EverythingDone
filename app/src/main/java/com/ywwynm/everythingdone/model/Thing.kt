@@ -31,7 +31,8 @@ open class Thing(
     var location: Long,
     var createTime: Long,
     var updateTime: Long,
-    var finishTime: Long
+    var finishTime: Long,
+    var homeCardSpanMode: Int = HOME_CARD_SPAN_NORMAL
 ) : Parcelable {
 
     private var _color: Int = color
@@ -53,7 +54,7 @@ open class Thing(
     constructor(thing: Thing) : this(
         thing.id, thing.type, thing.state, thing._color,
         thing.title, thing.content, thing.attachment, thing.location,
-        thing.createTime, thing.updateTime, thing.finishTime
+        thing.createTime, thing.updateTime, thing.finishTime, thing.homeCardSpanMode
     ) {
         _background = thing._background
         selected = thing.selected
@@ -76,6 +77,11 @@ open class Thing(
         val bgJson = `in`.readString()
         val bg = ThingBackground.fromJson(bgJson)
         _background = bg ?: ThingBackground.pure(_color)
+        homeCardSpanMode = if (`in`.dataAvail() > 0) {
+            `in`.readInt()
+        } else {
+            HOME_CARD_SPAN_NORMAL
+        }
     }
 
     constructor(c: Cursor?) : this(
@@ -95,6 +101,10 @@ open class Thing(
         if (bgCol >= 0 && !c.isNull(bgCol)) {
             val bg = ThingBackground.fromJson(c.getString(bgCol))
             if (bg != null) this._background = bg
+        }
+        val spanModeCol = c.getColumnIndex(Def.Database.COLUMN_HOME_CARD_SPAN_MODE_THINGS)
+        if (spanModeCol >= 0 && !c.isNull(spanModeCol)) {
+            homeCardSpanMode = c.getInt(spanModeCol)
         }
     }
 
@@ -196,6 +206,7 @@ open class Thing(
         dest.writeLong(finishTime)
         // NEW (Phase 3): trailing background JSON.
         dest.writeString(if (_background != null) _background!!.toJson() else null)
+        dest.writeInt(homeCardSpanMode)
     }
 
     @IntDef(-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)
@@ -205,6 +216,10 @@ open class Thing(
     @IntDef(0, 1, 2, 3)
     @Retention(AnnotationRetention.SOURCE)
     annotation class State
+
+    @IntDef(0, 1)
+    @Retention(AnnotationRetention.SOURCE)
+    annotation class HomeCardSpanMode
 
     companion object {
         const val HEADER: Int                = -1
@@ -235,6 +250,9 @@ open class Thing(
         const val FINISHED: Int        = 1
         const val DELETED: Int         = 2
         const val DELETED_FOREVER: Int = 3
+
+        const val HOME_CARD_SPAN_NORMAL: Int = 0
+        const val HOME_CARD_SPAN_FULL: Int = 1
 
         @JvmField
         val PRIVATE_THING_PREFIX: String = App.getApp()!!.getString(R.string.base_signal) + "L"
@@ -418,12 +436,13 @@ open class Thing(
          */
         @JvmStatic
         fun noUpdate(thing: Thing?, title: String?, content: String?, attachment: String?,
-                     type: Int, background: ThingBackground?): Boolean {
+                     type: Int, background: ThingBackground?, homeCardSpanMode: Int): Boolean {
             return thing!!.title!! == title &&
                     thing.content!! == content &&
                     thing.attachment!! == attachment &&
                     thing.type == type &&
-                    thing.getBackground()!! == background
+                    thing.getBackground()!! == background &&
+                    thing.homeCardSpanMode == homeCardSpanMode
         }
 
         @JvmStatic

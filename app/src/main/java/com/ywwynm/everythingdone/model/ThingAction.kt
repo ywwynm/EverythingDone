@@ -28,7 +28,7 @@ open class ThingAction(private val type: Int, private val before: Any?, private 
         return extras
     }
 
-    @IntDef(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
+    @IntDef(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
     @Retention(AnnotationRetention.SOURCE)
     annotation class Type
 
@@ -45,6 +45,7 @@ open class ThingAction(private val type: Int, private val before: Any?, private 
         const val TOGGLE_REMINDER_OR_HABIT: Int = 9
         const val UPDATE_REMINDER_OR_HABIT: Int = 10
         const val TOGGLE_PRIVATE: Int           = 11
+        const val UPDATE_HOME_CARD_SPAN_MODE: Int = 12
 
         const val KEY_ATTACHMENT_TYPE: String   = "attachment_type"
         const val KEY_CHECKBOX_STATE: String    = "checkbox_state"

@@ -215,6 +215,10 @@
     <string name="act_abandon_new_thing">छोड़ दो</string>
     <string name="act_set_as_private_thing">निजी चीज़ के रूप में सेट करें</string>
     <string name="act_cancel_private_thing">निजी चीज़ सेट करना रद्द करें</string>
+    <string name="act_set_full_span_home_card">कार्ड बड़ा करें</string>
+    <string name="act_cancel_full_span_home_card">कार्ड छोटा करें</string>
+    <string name="msg_home_card_span_enlarged">कार्ड बड़ा कर दिया गया</string>
+    <string name="msg_home_card_span_shrunk">कार्ड छोटा कर दिया गया</string>
     <string name="act_set_thing_as_ongoing">अधिसूचनाओं में दिखाएँ</string>
     <string name="act_cancel_set_thing_as_ongoing">सूचनाओं में दिखाना रद्द करें</string>
     <string name="act_finish">ख़त्म करो</string>
