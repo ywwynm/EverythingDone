@@ -2730,3 +2730,33 @@ Verification:
 - `:app:assembleDebug` passed.
 - `:app:publishDebugUpdate` passed and published debug update `202605300306`
   to `http://120.25.194.207/everythingdone-updates/debug/latest.json`.
+
+## 2026-05-30 - Home card fixed-width ownership correction
+
+User reported that the manually adjusted hidden-private-card width still
+affected image widths on image Thing cards. Device package was not installed
+under the expected app id, so the feedback loop was code-path audit plus debug
+build/publish rather than direct UI reproduction.
+
+Diagnosis:
+- Hidden private cards and image cards were using two separate fixed-width
+  mechanisms on recycled `card_thing.xml` holders.
+- Hidden private cards set `llContent.minimumWidth`, while image cards set
+  `flImageAttachment.layoutParams.width`.
+- That split left width responsibility shared between the parent content
+  container and the image child container, making holder reuse sensitive to the
+  previously bound card state.
+
+Change:
+- `BaseThingsAdapter.applyCardContentGeometry()` now decides whether the card
+  needs fixed content width in one place.
+- Full-span cards, hidden private cards, and image cards all fix
+  `llContent.layoutParams.width` to the current card content width.
+- The image attachment container is reset to `MATCH_PARENT`, so image cards fill
+  the parent content width instead of carrying their own separate width state.
+
+Verification:
+- `git diff --check` passed with CRLF conversion warnings only.
+- `:app:assembleDebug` passed.
+- `:app:publishDebugUpdate` passed and published debug update `202605300353`
+  to `http://120.25.194.207/everythingdone-updates/debug/latest.json`.

@@ -179,13 +179,27 @@ abstract class BaseThingsAdapter(context: Context?) :
         return if (isFullSpanHomeCard(thing)) mFullSpanCardWidth else mCardWidth
     }
 
+    private fun shouldUseFixedCardContentWidth(thing: Thing): Boolean {
+        return isFullSpanHomeCard(thing)
+                || thing.isPrivate() && !mShouldShowPrivateContent
+                || AttachmentHelper.getFirstImageTypePathName(thing.attachment) != null
+    }
+
     private fun applyCardContentGeometry(holder: BaseThingViewHolder, thing: Thing) {
         val fullSpan = isFullSpanHomeCard(thing)
         val lp = holder.llContent!!.layoutParams
-        lp.width = if (fullSpan) getCardContentWidth(thing) else ViewGroup.LayoutParams.WRAP_CONTENT
+        lp.width = if (shouldUseFixedCardContentWidth(thing)) {
+            getCardContentWidth(thing)
+        } else {
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        }
         holder.llContent.layoutParams = lp
         holder.llContent.minimumWidth = 0
         holder.llContent.minimumHeight = 0
+
+        val imageLp = holder.flImageAttachment!!.layoutParams as LinearLayout.LayoutParams
+        imageLp.width = ViewGroup.LayoutParams.MATCH_PARENT
+        holder.flImageAttachment.layoutParams = imageLp
 
         holder.tvContent!!.maxLines =
             if (fullSpan) FULL_SPAN_TEXT_MAX_LINES else NORMAL_TEXT_MAX_LINES
@@ -263,7 +277,6 @@ abstract class BaseThingsAdapter(context: Context?) :
         updateCardForTitle(holder, thing)
 
         if (thing.isPrivate() && !mShouldShowPrivateContent) {
-            holder.llContent!!.minimumWidth = getCardContentWidth(thing)
             holder.cv!!.setShouldInterceptTouchEvent(true)
             holder.ivPrivateThing!!.visibility = View.VISIBLE
             androidx.core.widget.ImageViewCompat.setImageTintList(
@@ -509,7 +522,7 @@ abstract class BaseThingsAdapter(context: Context?) :
             val imageH = getImageHeight(thing, imageW)
 
             val paramsLayout = holder.flImageAttachment.layoutParams as LinearLayout.LayoutParams
-            paramsLayout.width = imageW
+            paramsLayout.width = ViewGroup.LayoutParams.MATCH_PARENT
 
             val paramsImage = holder.ivImageAttachment!!.layoutParams as FrameLayout.LayoutParams
             paramsImage.height = imageH

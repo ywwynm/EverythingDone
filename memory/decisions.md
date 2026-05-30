@@ -75,6 +75,14 @@ icon so the card does not read as an overly wide, shallow strip. The first
 iteration should not reveal any image, content, checklist, audio, reminder, or
 habit metadata for locked private Things.
 
+Home card fixed-width ownership should stay on the card content container
+(`llContent`) rather than being split across content minimum width and image
+child width. Full-span cards, hidden private cards, and image cards all need a
+known content width; set that on `llContent.layoutParams.width`, reset stale
+minimums during bind, and let the image container use `MATCH_PARENT` inside the
+content container. This prevents recycled hidden-private holders from affecting
+image-card image measurement.
+
 Full-span cards with sparse visible content should have an adjustable minimum
 content height so they do not become overly wide, shallow strips. Apply this to
 hidden private cards, title-only or short-text cards, and audio-only cards.
