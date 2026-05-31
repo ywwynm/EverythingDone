@@ -346,6 +346,17 @@
     <string name="act_cancel_full_span_home_card">Shrink thing card</string>
     <string name="msg_home_card_span_enlarged">Thing card enlarged</string>
     <string name="msg_home_card_span_shrunk">Thing card shrunk</string>
+    <string name="title_home_card_image_placement">Home card image position</string>
+    <string name="option_home_card_image_placement_default">Default (image on top)</string>
+    <string name="option_home_card_image_placement_top">Image on top</string>
+    <string name="option_home_card_image_placement_bottom">Image on bottom</string>
+    <string name="option_home_card_image_placement_left">Image on left</string>
+    <string name="option_home_card_image_placement_right">Image on right</string>
+    <string name="msg_home_card_image_placement_default">Image position set to the thing card default</string>
+    <string name="msg_home_card_image_placement_top">Image placed at the top of the thing card</string>
+    <string name="msg_home_card_image_placement_bottom">Image placed at the bottom of the thing card</string>
+    <string name="msg_home_card_image_placement_left">Image placed on the left side of the thing card</string>
+    <string name="msg_home_card_image_placement_right">Image placed on the right side of the thing card</string>
     <string name="act_set_thing_as_ongoing">Show in Notifications</string>
     <string name="act_cancel_set_thing_as_ongoing">Cancel showing in Notifications</string>
     <string name="act_finish">Finish</string>
@@ -1015,6 +1026,8 @@
 
     <string name="cd_delete_image_attachment">delete this image attachment</string>
     <string name="cd_delete_video_attachment">delete this video attachment</string>
+    <string name="cd_set_home_card_image_placement">set image position on the thing card</string>
+    <string name="cd_set_home_card_video_placement">set video thumbnail position on the thing card</string>
 
     <!--time of day rec item-->
     <string name="cd_reminder_time">Reminder time</string>

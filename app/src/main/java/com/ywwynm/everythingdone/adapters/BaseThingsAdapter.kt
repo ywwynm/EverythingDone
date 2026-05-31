@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import android.util.Log
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -76,6 +77,9 @@ abstract class BaseThingsAdapter(context: Context?) :
     private var mHabitDAO: HabitDAO? = HabitDAO.getInstance(context)
 
     private var mImageRequestManager: RequestManager? = Glide.with(context!!)
+    private val mSideImageHeightCache: LongSparseArray<HomeCardSideImageHeightCache> =
+        LongSparseArray()
+    private val mLoadedHomeCardImageKeys: MutableSet<String> = HashSet()
 
     private var mCardWidth: Int = DisplayUtil.getThingCardWidth(context)
     private var mFullSpanCardWidth: Int = DisplayUtil.getThingCardWidth(context)
@@ -187,8 +191,10 @@ abstract class BaseThingsAdapter(context: Context?) :
 
     private fun applyCardContentGeometry(holder: BaseThingViewHolder, thing: Thing) {
         val fullSpan = isFullSpanHomeCard(thing)
+        holder.llContent!!.orientation = LinearLayout.VERTICAL
         val lp = holder.llContent!!.layoutParams
-        lp.width = if (shouldUseFixedCardContentWidth(thing)) {
+        val fixedWidth = shouldUseFixedCardContentWidth(thing)
+        lp.width = if (fixedWidth) {
             getCardContentWidth(thing)
         } else {
             ViewGroup.LayoutParams.WRAP_CONTENT
@@ -197,8 +203,20 @@ abstract class BaseThingsAdapter(context: Context?) :
         holder.llContent.minimumWidth = 0
         holder.llContent.minimumHeight = 0
 
+        val textLp = holder.llTextContent!!.layoutParams as LinearLayout.LayoutParams
+        textLp.width = if (fixedWidth) {
+            ViewGroup.LayoutParams.MATCH_PARENT
+        } else {
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        }
+        textLp.height = ViewGroup.LayoutParams.WRAP_CONTENT
+        textLp.weight = 0f
+        holder.llTextContent.layoutParams = textLp
+
         val imageLp = holder.flImageAttachment!!.layoutParams as LinearLayout.LayoutParams
         imageLp.width = ViewGroup.LayoutParams.MATCH_PARENT
+        imageLp.height = ViewGroup.LayoutParams.WRAP_CONTENT
+        imageLp.weight = 0f
         holder.flImageAttachment.layoutParams = imageLp
 
         holder.tvContent!!.maxLines =
@@ -512,43 +530,349 @@ abstract class BaseThingsAdapter(context: Context?) :
         }
     }
 
+    private fun getEffectiveHomeCardImagePlacement(thing: Thing): Int {
+        val placement = when (thing.homeCardImagePlacement) {
+            Thing.HOME_CARD_IMAGE_PLACEMENT_TOP,
+            Thing.HOME_CARD_IMAGE_PLACEMENT_BOTTOM,
+            Thing.HOME_CARD_IMAGE_PLACEMENT_LEFT,
+            Thing.HOME_CARD_IMAGE_PLACEMENT_RIGHT -> thing.homeCardImagePlacement
+            else -> Thing.HOME_CARD_IMAGE_PLACEMENT_TOP
+        }
+        if (!isFullSpanHomeCard(thing)
+            && (placement == Thing.HOME_CARD_IMAGE_PLACEMENT_LEFT
+                    || placement == Thing.HOME_CARD_IMAGE_PLACEMENT_RIGHT)
+        ) {
+            return Thing.HOME_CARD_IMAGE_PLACEMENT_TOP
+        }
+        return placement
+    }
+
+    private fun isSideImagePlacement(@Thing.HomeCardImagePlacement placement: Int): Boolean {
+        return placement == Thing.HOME_CARD_IMAGE_PLACEMENT_LEFT
+                || placement == Thing.HOME_CARD_IMAGE_PLACEMENT_RIGHT
+    }
+
+    private fun moveHomeCardChild(parent: LinearLayout, child: View, index: Int) {
+        if (parent.indexOfChild(child) == index) return
+
+        parent.removeView(child)
+        parent.addView(child, index)
+    }
+
+    private fun hasMainContentAboveImage(holder: BaseThingViewHolder): Boolean {
+        return holder.tvTitle!!.isVisible
+                || holder.tvContent!!.isVisible
+                || holder.rvChecklist!!.isVisible
+                || holder.llAudioAttachment!!.isVisible
+                || holder.rlReminder!!.isVisible
+                || holder.rlHabit!!.isVisible
+                || holder.ivPrivateThing!!.isVisible
+    }
+
+    private fun setHomeCardImageFrameSize(
+        holder: BaseThingViewHolder,
+        width: Int,
+        height: Int
+    ) {
+        val imageLp = holder.ivImageAttachment!!.layoutParams as FrameLayout.LayoutParams
+        if (imageLp.width != width || imageLp.height != height) {
+            imageLp.width = width
+            imageLp.height = height
+            holder.ivImageAttachment.layoutParams = imageLp
+        }
+        if (holder.ivImageAttachment.scaleType != ImageView.ScaleType.CENTER_CROP) {
+            holder.ivImageAttachment.scaleType = ImageView.ScaleType.CENTER_CROP
+        }
+
+        val coverLp = holder.vImageCover!!.layoutParams as FrameLayout.LayoutParams
+        if (coverLp.width != width || coverLp.height != height) {
+            coverLp.width = width
+            coverLp.height = height
+            holder.vImageCover.layoutParams = coverLp
+        }
+    }
+
+    private fun loadHomeCardImage(
+        holder: BaseThingViewHolder,
+        pathName: String,
+        imageW: Int,
+        imageH: Int
+    ) {
+        val loadKey = "$pathName:$imageW:$imageH"
+        if (holder.ivImageAttachment!!.getTag(R.id.tag_home_card_image_load_key) == loadKey) {
+            holder.pbLoading!!.visibility = View.GONE
+            return
+        }
+
+        val imageWasLoaded = mLoadedHomeCardImageKeys.contains(loadKey)
+        holder.pbLoading!!.visibility = if (imageWasLoaded) View.GONE else View.VISIBLE
+        mImageRequestManager!!.clear(holder.ivImageAttachment!!)
+        holder.ivImageAttachment.setTag(R.id.tag_home_card_image_load_key, loadKey)
+        mImageRequestManager!!
+            .load(pathName)
+            .override(imageW, imageH)
+            .listener(object : RequestListener<Drawable> {
+                override fun onLoadFailed(
+                    e: GlideException?, model: Any?, target: Target<Drawable>,
+                    isFirstResource: Boolean
+                ): Boolean {
+                    if (holder.ivImageAttachment!!.getTag(
+                            R.id.tag_home_card_image_load_key
+                        ) == loadKey
+                    ) {
+                        holder.pbLoading!!.visibility = View.GONE
+                    }
+                    return false
+                }
+
+                override fun onResourceReady(
+                    resource: Drawable, model: Any, target: Target<Drawable>?,
+                    dataSource: DataSource, isFirstResource: Boolean
+                ): Boolean {
+                    mLoadedHomeCardImageKeys.add(loadKey)
+                    if (holder.ivImageAttachment!!.getTag(
+                            R.id.tag_home_card_image_load_key
+                        ) == loadKey
+                    ) {
+                        holder.pbLoading!!.visibility = View.GONE
+                    }
+                    return false
+                }
+            })
+            .centerCrop()
+            .dontAnimate()
+            .into(holder.ivImageAttachment!!)
+    }
+
+    private fun syncSideImageHeightAfterMeasure(
+        holder: BaseThingViewHolder,
+        bindToken: String,
+        thingId: Long,
+        heightCacheKey: String,
+        pathName: String,
+        imageW: Int,
+        minHeight: Int
+    ) {
+        holder.llContent!!.post {
+            if (holder.flImageAttachment!!.getTag(
+                    R.id.tag_home_card_side_image_bind_token
+                ) != bindToken
+            ) {
+                return@post
+            }
+            if (!holder.flImageAttachment.isVisible) return@post
+
+            val targetHeight = max(holder.llTextContent!!.measuredHeight, minHeight)
+            mSideImageHeightCache.put(
+                thingId, HomeCardSideImageHeightCache(heightCacheKey, targetHeight)
+            )
+            val imageLp = holder.flImageAttachment.layoutParams as LinearLayout.LayoutParams
+            if (imageLp.height == targetHeight) return@post
+
+            imageLp.height = targetHeight
+            imageLp.width = imageW
+            imageLp.weight = 0f
+            imageLp.setMargins(0, 0, 0, 0)
+            holder.flImageAttachment.layoutParams = imageLp
+            setHomeCardImageFrameSize(
+                holder, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
+            )
+            loadHomeCardImage(holder, pathName, imageW, targetHeight)
+        }
+    }
+
+    private fun applyHomeCardImagePlacementLayout(
+        holder: BaseThingViewHolder,
+        thing: Thing,
+        @Thing.HomeCardImagePlacement placement: Int,
+        sideImageHeight: Int? = null
+    ) {
+        val parent = holder.llContent!!
+        val image = holder.flImageAttachment!!
+        val textContent = holder.llTextContent!!
+
+        if (isSideImagePlacement(placement)) {
+            parent.orientation = LinearLayout.HORIZONTAL
+            parent.layoutDirection = View.LAYOUT_DIRECTION_LTR
+            textContent.layoutDirection = View.LAYOUT_DIRECTION_LOCALE
+            if (placement == Thing.HOME_CARD_IMAGE_PLACEMENT_LEFT) {
+                moveHomeCardChild(parent, image, 0)
+                moveHomeCardChild(parent, textContent, 1)
+            } else {
+                moveHomeCardChild(parent, textContent, 0)
+                moveHomeCardChild(parent, image, 1)
+            }
+
+            val imageWidth = getSideImageWidth(thing)
+            val sideMinHeight = getSideImageMinHeight()
+            val imageHeight = sideImageHeight ?: sideMinHeight
+            parent.minimumHeight = sideMinHeight
+
+            val imageLp = image.layoutParams as LinearLayout.LayoutParams
+            imageLp.width = imageWidth
+            imageLp.height = imageHeight
+            imageLp.weight = 0f
+            imageLp.setMargins(0, 0, 0, 0)
+            image.layoutParams = imageLp
+
+            val textLp = textContent.layoutParams as LinearLayout.LayoutParams
+            textLp.width = max(1, getCardContentWidth(thing) - imageWidth)
+            textLp.height = ViewGroup.LayoutParams.WRAP_CONTENT
+            textLp.weight = 0f
+            textLp.setMargins(0, 0, 0, 0)
+            textContent.layoutParams = textLp
+        } else {
+            parent.orientation = LinearLayout.VERTICAL
+            parent.layoutDirection = View.LAYOUT_DIRECTION_LOCALE
+            textContent.layoutDirection = View.LAYOUT_DIRECTION_LOCALE
+            if (placement == Thing.HOME_CARD_IMAGE_PLACEMENT_BOTTOM) {
+                moveHomeCardChild(parent, textContent, 0)
+                moveHomeCardChild(parent, image, 1)
+            } else {
+                moveHomeCardChild(parent, image, 0)
+                moveHomeCardChild(parent, textContent, 1)
+            }
+
+            val imageLp = image.layoutParams as LinearLayout.LayoutParams
+            imageLp.width = ViewGroup.LayoutParams.MATCH_PARENT
+            imageLp.height = ViewGroup.LayoutParams.WRAP_CONTENT
+            imageLp.weight = 0f
+            imageLp.setMargins(
+                0,
+                if (placement == Thing.HOME_CARD_IMAGE_PLACEMENT_BOTTOM
+                    && hasMainContentAboveImage(holder)
+                ) {
+                    (mDensity * 16).toInt()
+                } else {
+                    0
+                },
+                0,
+                0
+            )
+            image.layoutParams = imageLp
+
+            val textLp = textContent.layoutParams as LinearLayout.LayoutParams
+            textLp.width = ViewGroup.LayoutParams.MATCH_PARENT
+            textLp.height = ViewGroup.LayoutParams.WRAP_CONTENT
+            textLp.weight = 0f
+            textLp.setMargins(0, 0, 0, 0)
+            textContent.layoutParams = textLp
+        }
+    }
+
+    private fun getSideImageWidth(thing: Thing): Int {
+        val imagePercent = mContext!!.resources.getInteger(
+            R.integer.thing_card_full_span_side_image_width_percent
+        )
+        return max(1, getCardContentWidth(thing) * imagePercent / 100)
+    }
+
+    private fun getSideImageMinHeight(): Int {
+        return mContext!!.resources.getDimensionPixelSize(
+            R.dimen.thing_card_full_span_side_image_min_height
+        )
+    }
+
+    private fun getSideImageHeightCacheKey(
+        thing: Thing,
+        @Thing.HomeCardImagePlacement placement: Int,
+        pathName: String,
+        imageW: Int
+    ): String {
+        return thing.updateTime.toString() +
+                ":" + thing.type +
+                ":" + thing.state +
+                ":" + thing.homeCardSpanMode +
+                ":" + placement +
+                ":" + pathName +
+                ":" + getCardContentWidth(thing) +
+                ":" + imageW
+    }
+
+    private fun getCachedSideImageHeight(thingId: Long, heightCacheKey: String): Int? {
+        val cached = mSideImageHeightCache.get(thingId) ?: return null
+        return if (cached.key == heightCacheKey) cached.height else null
+    }
+
+    private fun updateHomeCardImageCountLayout(
+        holder: BaseThingViewHolder,
+        @Thing.HomeCardImagePlacement placement: Int
+    ) {
+        val countLp = holder.tvImageCount!!.layoutParams as FrameLayout.LayoutParams
+        val gravityHorizontal = if (placement == Thing.HOME_CARD_IMAGE_PLACEMENT_RIGHT) {
+            Gravity.RIGHT
+        } else {
+            Gravity.LEFT
+        }
+        val gravity = Gravity.BOTTOM or gravityHorizontal
+        if (countLp.gravity != gravity) {
+            countLp.gravity = gravity
+            holder.tvImageCount.layoutParams = countLp
+        }
+    }
+
     private fun updateCardForImageAttachment(holder: BaseThingViewHolder, thing: Thing) {
         val attachment: String? = thing.attachment
         val firstImageTypePathName: String? = AttachmentHelper.getFirstImageTypePathName(attachment)
         if (firstImageTypePathName != null) {
             holder.flImageAttachment!!.visibility = View.VISIBLE
+            val placement = getEffectiveHomeCardImagePlacement(thing)
+            val pathName = firstImageTypePathName.substring(1, firstImageTypePathName.length)
 
-            val imageW = getCardContentWidth(thing)
+            val sideImage = isSideImagePlacement(placement)
+            val sideImageHeightCacheKey = if (sideImage) {
+                getSideImageHeightCacheKey(thing, placement, pathName, getSideImageWidth(thing))
+            } else {
+                null
+            }
+            applyHomeCardImagePlacementLayout(
+                holder,
+                thing,
+                placement,
+                if (sideImage) {
+                    getCachedSideImageHeight(thing.id, sideImageHeightCacheKey!!)
+                } else {
+                    null
+                }
+            )
+
+            val imageW = if (sideImage) {
+                (holder.flImageAttachment.layoutParams as LinearLayout.LayoutParams).width
+            } else {
+                getCardContentWidth(thing)
+            }
             val imageH = getImageHeight(thing, imageW)
 
             val paramsLayout = holder.flImageAttachment.layoutParams as LinearLayout.LayoutParams
-            paramsLayout.width = ViewGroup.LayoutParams.MATCH_PARENT
+            if (!sideImage) {
+                paramsLayout.width = ViewGroup.LayoutParams.MATCH_PARENT
+                paramsLayout.height = ViewGroup.LayoutParams.WRAP_CONTENT
+            }
+            holder.flImageAttachment.layoutParams = paramsLayout
 
-            val paramsImage = holder.ivImageAttachment!!.layoutParams as FrameLayout.LayoutParams
-            paramsImage.height = imageH
+            val bindToken = thing.id.toString() + ":" + placement + ":" + pathName
+            holder.flImageAttachment.setTag(R.id.tag_home_card_side_image_bind_token, bindToken)
 
-            val paramsCover = holder.vImageCover!!.layoutParams as FrameLayout.LayoutParams
-            paramsCover.height = imageH
-
-            val pathName = firstImageTypePathName.substring(1, firstImageTypePathName.length)
-            mImageRequestManager!!
-                .load(pathName)
-                .listener(object : RequestListener<Drawable> {
-                    override fun onLoadFailed(
-                        e: GlideException?, model: Any?, target: Target<Drawable>,
-                        isFirstResource: Boolean
-                    ): Boolean = false
-
-                    override fun onResourceReady(
-                        resource: Drawable, model: Any, target: Target<Drawable>?,
-                        dataSource: DataSource, isFirstResource: Boolean
-                    ): Boolean {
-                        holder.pbLoading!!.visibility = View.GONE
-                        return false
-                    }
-                })
-                .centerCrop()
-                .into(holder.ivImageAttachment)
+            if (sideImage) {
+                val initialHeight = paramsLayout.height
+                setHomeCardImageFrameSize(
+                    holder,
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                )
+                loadHomeCardImage(holder, pathName, imageW, initialHeight)
+                syncSideImageHeightAfterMeasure(
+                    holder, bindToken, thing.id, sideImageHeightCacheKey!!,
+                    pathName, imageW, initialHeight
+                )
+            } else {
+                setHomeCardImageFrameSize(
+                    holder,
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    imageH
+                )
+                loadHomeCardImage(holder, pathName, imageW, imageH)
+            }
 
             if (holder.tvTitle!!.isGone
                 && holder.tvContent!!.isGone
@@ -558,6 +882,8 @@ abstract class BaseThingsAdapter(context: Context?) :
                 && holder.rlHabit!!.isGone
             ) {
                 holder.vPaddingBottom!!.visibility = View.GONE
+            } else if (placement == Thing.HOME_CARD_IMAGE_PLACEMENT_BOTTOM) {
+                holder.vPaddingBottom!!.visibility = View.GONE
             } else {
                 holder.vPaddingBottom!!.visibility = View.VISIBLE
             }
@@ -565,14 +891,18 @@ abstract class BaseThingsAdapter(context: Context?) :
             holder.tvImageCount!!.text =
                 AttachmentHelper.getImageAttachmentCountStr(attachment, mContext)
             holder.tvImageCount.setTextColor(textColorSecondary(thing.getColor()))
+            updateHomeCardImageCountLayout(holder, placement)
 
             if (getCurrentMode() == ModeManager.NORMAL) {
-                holder.vImageCover.visibility = View.GONE
+                holder.vImageCover!!.visibility = View.GONE
             } else {
-                holder.vImageCover.visibility =
+                holder.vImageCover!!.visibility =
                     if (thing.isSelected()) View.GONE else View.VISIBLE
             }
         } else {
+            holder.flImageAttachment!!.setTag(R.id.tag_home_card_side_image_bind_token, null)
+            holder.ivImageAttachment!!.setTag(R.id.tag_home_card_image_load_key, null)
+            mImageRequestManager!!.clear(holder.ivImageAttachment!!)
             holder.vPaddingBottom!!.visibility = View.VISIBLE
             holder.flImageAttachment!!.visibility = View.GONE
         }
@@ -779,6 +1109,7 @@ abstract class BaseThingsAdapter(context: Context?) :
 
         @JvmField val cv: InterceptTouchCardView? = f(R.id.cv_thing)
         @JvmField val llContent: LinearLayout? = f(R.id.ll_thing_content)
+        @JvmField val llTextContent: LinearLayout? = f(R.id.ll_thing_text_content)
         @JvmField val vPaddingBottom: View? = f(R.id.view_thing_padding_bottom)
 
         @JvmField val ivStickyOngoing: ImageView?   = f(R.id.iv_thing_sticky_ongoing)
@@ -827,6 +1158,11 @@ abstract class BaseThingsAdapter(context: Context?) :
             pbLoading!!.indeterminateDrawable.setColorFilter(pbColor, PorterDuff.Mode.SRC_IN)
         }
     }
+
+    private data class HomeCardSideImageHeightCache(
+        val key: String,
+        val height: Int
+    )
 
     companion object {
         const val TAG: String = "BaseThingsAdapter"

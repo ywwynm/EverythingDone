@@ -50,6 +50,7 @@ open class ChooserDialogFragment : BaseDialogFragment() {
 
     private var mShouldOverScroll: Boolean          = false
     private var mShouldShowMore: Boolean            = true
+    private var mShouldShowActions: Boolean         = true
     private var mShouldDismissAfterConfirm: Boolean = true
 
     private var mSeparator1: View? = null
@@ -113,6 +114,12 @@ open class ChooserDialogFragment : BaseDialogFragment() {
             mTvMoreAsBt!!.visibility = View.GONE
         } else {
             applyAccent(mTvMoreAsBt!!)
+        }
+        if (!mShouldShowActions) {
+            (mTvConfirmAsBt!!.parent as View).visibility = View.GONE
+            val params = mRecyclerView!!.layoutParams as LinearLayout.LayoutParams
+            params.bottomMargin = (12 * DisplayUtil.getScreenDensity(App.getApp())).toInt()
+            mRecyclerView!!.layoutParams = params
         }
 
         if (mItems!!.size > 9) {
@@ -227,6 +234,10 @@ open class ChooserDialogFragment : BaseDialogFragment() {
 
     open fun setShouldShowMore(shouldShowMore: Boolean) {
         mShouldShowMore = shouldShowMore
+    }
+
+    open fun setShouldShowActions(shouldShowActions: Boolean) {
+        mShouldShowActions = shouldShowActions
     }
 
     open fun setShouldDismissAfterConfirm(shouldDismissAfterConfirm: Boolean) {

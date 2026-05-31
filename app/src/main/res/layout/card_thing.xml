@@ -34,9 +34,9 @@
                 android:id="@+id/tv_thing_image_attachment_count"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginLeft="12dp"
-                android:layout_marginRight="12dp"
-                android:layout_marginBottom="8dp"
+                android:layout_marginLeft="10dp"
+                android:layout_marginRight="10dp"
+                android:layout_marginBottom="10dp"
                 android:paddingLeft="4dp"
                 android:paddingRight="4dp"
                 android:paddingTop="3dp"
@@ -62,6 +62,12 @@
                 android:background="@color/white_66p"/>
 
         </FrameLayout>
+
+        <LinearLayout
+            android:id="@+id/ll_thing_text_content"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
 
         <TextView
             android:id="@+id/tv_thing_title"
@@ -242,6 +248,8 @@
             android:id="@+id/view_thing_padding_bottom"
             android:layout_width="wrap_content"
             android:layout_height="16dp"/>
+
+        </LinearLayout>
 
     </LinearLayout>
 

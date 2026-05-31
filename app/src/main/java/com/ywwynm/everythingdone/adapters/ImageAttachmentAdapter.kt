@@ -33,7 +33,8 @@ open class ImageAttachmentAdapter(
     editable: Boolean,
     items: List<String?>?,
     clickCallback: ClickCallback?,
-    removeCallback: RemoveCallback?
+    removeCallback: RemoveCallback?,
+    placementCallback: PlacementCallback?
 ) : RecyclerView.Adapter<ImageAttachmentAdapter.ImageViewHolder>() {
 
     private var mEditable: Boolean = editable
@@ -53,6 +54,11 @@ open class ImageAttachmentAdapter(
         fun onRemove(pos: Int)
     }
     private var mRemoveCallback: RemoveCallback? = removeCallback
+
+    interface PlacementCallback {
+        fun onEditPlacement()
+    }
+    private var mPlacementCallback: PlacementCallback? = placementCallback
 
     private var mTakingScreenshot: Boolean = false
 
@@ -76,6 +82,7 @@ open class ImageAttachmentAdapter(
     override fun onBindViewHolder(holder: ImageViewHolder, position: Int) {
         val typePathName = mItems!![position]
         val pathName = typePathName!!.substring(1, typePathName.length)
+        holder.pbLoading!!.visibility = View.VISIBLE
 
         val size = AttachmentHelper.calculateImageSize(mContext, itemCount)
         val params = holder.itemView.layoutParams as GridLayoutManager.LayoutParams
@@ -88,12 +95,16 @@ open class ImageAttachmentAdapter(
                 mContext!!.getString(R.string.cd_image_attachment)
             holder.ivDelete!!.contentDescription =
                 mContext!!.getString(R.string.cd_delete_image_attachment)
+            holder.ivPlacement!!.contentDescription =
+                mContext!!.getString(R.string.cd_set_home_card_image_placement)
             holder.ivVideoSignal!!.visibility = View.GONE
         } else {
             holder.ivImage!!.contentDescription =
                 mContext!!.getString(R.string.cd_video_attachment)
             holder.ivDelete!!.contentDescription =
                 mContext!!.getString(R.string.cd_delete_video_attachment)
+            holder.ivPlacement!!.contentDescription =
+                mContext!!.getString(R.string.cd_set_home_card_video_placement)
             holder.ivVideoSignal!!.visibility = View.VISIBLE
         }
 
@@ -110,7 +121,14 @@ open class ImageAttachmentAdapter(
                     resource: Drawable, model: Any, target: Target<Drawable>?,
                     dataSource: DataSource, isFirstResource: Boolean
                 ): Boolean {
-                    holder.ivDelete.visibility = View.VISIBLE
+                    val currentPosition = holder.adapterPosition
+                    holder.ivDelete.visibility =
+                        if (!mTakingScreenshot && mEditable) View.VISIBLE else View.GONE
+                    holder.ivPlacement.visibility =
+                        if (!mTakingScreenshot && mEditable && currentPosition == 0)
+                            View.VISIBLE
+                        else
+                            View.GONE
                     holder.pbLoading!!.visibility = View.GONE
                     return false
                 }
@@ -119,8 +137,10 @@ open class ImageAttachmentAdapter(
 
         if (!mTakingScreenshot && mEditable) {
             holder.ivDelete.visibility = View.VISIBLE
+            holder.ivPlacement.visibility = if (position == 0) View.VISIBLE else View.GONE
         } else {
             holder.ivDelete.visibility = View.GONE
+            holder.ivPlacement.visibility = View.GONE
         }
     }
 
@@ -131,6 +151,7 @@ open class ImageAttachmentAdapter(
         val fl: FrameLayout? = f(R.id.fl_image_attachment)
         val ivImage: ImageView? = f(R.id.iv_image_attachment)
         val ivVideoSignal: ImageView? = f(R.id.iv_video_signal)
+        val ivPlacement: ImageView? = f(R.id.iv_home_card_image_placement)
         val ivDelete: ImageView? = f(R.id.iv_delete_image_attachment)
         val pbLoading: ProgressBar? = f(R.id.pb_image_attachment)
 
@@ -146,6 +167,12 @@ open class ImageAttachmentAdapter(
 
             if (mEditable) {
                 ivDelete!!.visibility = View.VISIBLE
+                ivPlacement!!.visibility = View.VISIBLE
+                ivPlacement.setOnClickListener {
+                    if (mPlacementCallback != null) {
+                        mPlacementCallback!!.onEditPlacement()
+                    }
+                }
                 ivDelete.setOnClickListener {
                     if (mRemoveCallback != null) {
                         mRemoveCallback!!.onRemove(adapterPosition)
@@ -153,6 +180,7 @@ open class ImageAttachmentAdapter(
                 }
             } else {
                 ivDelete!!.visibility = View.GONE
+                ivPlacement!!.visibility = View.GONE
             }
         }
     }

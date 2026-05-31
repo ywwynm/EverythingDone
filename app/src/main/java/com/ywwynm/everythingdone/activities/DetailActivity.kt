@@ -167,6 +167,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
 
     private var mThing: Thing? = null
     private var mHomeCardSpanMode: Int = Thing.HOME_CARD_SPAN_NORMAL
+    private var mHomeCardImagePlacement: Int = Thing.HOME_CARD_IMAGE_PLACEMENT_DEFAULT
     private var mPosition: Int = 0
     private var mReminder: Reminder? = null
     private var mHabit: Habit? = null
@@ -249,7 +250,8 @@ class DetailActivity : EverythingDoneBaseActivity() {
         val createTime: Long,
         val updateTime: Long,
         val finishTime: Long,
-        val homeCardSpanMode: Int
+        val homeCardSpanMode: Int,
+        val homeCardImagePlacement: Int
     )
 
     /**
@@ -401,6 +403,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
                 && mThing!!.type < Thing.NOTIFICATION_UNDERWAY
                 && mThing!!.state == Thing.UNDERWAY
         mHomeCardSpanMode = mThing!!.homeCardSpanMode
+        mHomeCardImagePlacement = mThing!!.homeCardImagePlacement
         if (mEditable) {
             mShowNormalSnackbar = Runnable {
                 mNormalSnackbar!!.show()
@@ -513,7 +516,8 @@ class DetailActivity : EverythingDoneBaseActivity() {
             thing.createTime,
             thing.updateTime,
             thing.finishTime,
-            thing.homeCardSpanMode
+            thing.homeCardSpanMode,
+            thing.homeCardImagePlacement
         )
     }
 
@@ -1674,6 +1678,123 @@ class DetailActivity : EverythingDoneBaseActivity() {
         toggleHomeCardSpanModeActionItem(mActionbar!!.menu)
     }
 
+    private fun showHomeCardImagePlacementDialog() {
+        val values = getAvailableHomeCardImagePlacements()
+        val items = ArrayList<String?>(values.size)
+        for (value in values) {
+            items.add(getHomeCardImagePlacementLabel(value))
+        }
+
+        val cdf = ChooserDialogFragment()
+        cdf.setTitle(getString(R.string.title_home_card_image_placement))
+        cdf.setItems(items)
+        cdf.setInitialIndex(getHomeCardImagePlacementInitialIndex(values))
+        cdf.setAccentBackground(getAccentBackground())
+        cdf.setShouldShowMore(false)
+        cdf.setShouldShowActions(false)
+        cdf.setOnItemClickListener {
+            val pickedIndex = cdf.getPickedIndex()
+            val placement = values[pickedIndex]
+            cdf.dismiss()
+            updateHomeCardImagePlacement(placement)
+        }
+        cdf.show(fragmentManager, ChooserDialogFragment.TAG)
+    }
+
+    private fun getAvailableHomeCardImagePlacements(): IntArray {
+        return if (mHomeCardSpanMode == Thing.HOME_CARD_SPAN_FULL) {
+            intArrayOf(
+                Thing.HOME_CARD_IMAGE_PLACEMENT_DEFAULT,
+                Thing.HOME_CARD_IMAGE_PLACEMENT_TOP,
+                Thing.HOME_CARD_IMAGE_PLACEMENT_BOTTOM,
+                Thing.HOME_CARD_IMAGE_PLACEMENT_LEFT,
+                Thing.HOME_CARD_IMAGE_PLACEMENT_RIGHT
+            )
+        } else {
+            intArrayOf(
+                Thing.HOME_CARD_IMAGE_PLACEMENT_DEFAULT,
+                Thing.HOME_CARD_IMAGE_PLACEMENT_TOP,
+                Thing.HOME_CARD_IMAGE_PLACEMENT_BOTTOM
+            )
+        }
+    }
+
+    private fun getHomeCardImagePlacementInitialIndex(values: IntArray): Int {
+        val current = if (mHomeCardSpanMode == Thing.HOME_CARD_SPAN_FULL) {
+            mHomeCardImagePlacement
+        } else {
+            when (mHomeCardImagePlacement) {
+                Thing.HOME_CARD_IMAGE_PLACEMENT_LEFT,
+                Thing.HOME_CARD_IMAGE_PLACEMENT_RIGHT ->
+                    Thing.HOME_CARD_IMAGE_PLACEMENT_DEFAULT
+                else -> mHomeCardImagePlacement
+            }
+        }
+        val index = values.indexOf(current)
+        return if (index >= 0) index else 0
+    }
+
+    private fun getHomeCardImagePlacementLabel(
+        @Thing.HomeCardImagePlacement placement: Int
+    ): String {
+        return getString(when (placement) {
+            Thing.HOME_CARD_IMAGE_PLACEMENT_TOP ->
+                R.string.option_home_card_image_placement_top
+            Thing.HOME_CARD_IMAGE_PLACEMENT_BOTTOM ->
+                R.string.option_home_card_image_placement_bottom
+            Thing.HOME_CARD_IMAGE_PLACEMENT_LEFT ->
+                R.string.option_home_card_image_placement_left
+            Thing.HOME_CARD_IMAGE_PLACEMENT_RIGHT ->
+                R.string.option_home_card_image_placement_right
+            else -> R.string.option_home_card_image_placement_default
+        })
+    }
+
+    private fun updateHomeCardImagePlacement(
+        @Thing.HomeCardImagePlacement placement: Int
+    ) {
+        val before = mHomeCardImagePlacement
+        if (before == placement) {
+            return
+        }
+        setHomeCardImagePlacementForEdit(placement)
+        showHomeCardImagePlacementFeedback(placement)
+        if (shouldAddToActionList) {
+            mActionList!!.addAction(ThingAction(
+                ThingAction.UPDATE_HOME_CARD_IMAGE_PLACEMENT, before, placement
+            ))
+        }
+    }
+
+    private fun showHomeCardImagePlacementFeedback(
+        @Thing.HomeCardImagePlacement placement: Int
+    ) {
+        val msgRes = when (placement) {
+            Thing.HOME_CARD_IMAGE_PLACEMENT_TOP ->
+                R.string.msg_home_card_image_placement_top
+            Thing.HOME_CARD_IMAGE_PLACEMENT_BOTTOM ->
+                R.string.msg_home_card_image_placement_bottom
+            Thing.HOME_CARD_IMAGE_PLACEMENT_LEFT ->
+                R.string.msg_home_card_image_placement_left
+            Thing.HOME_CARD_IMAGE_PLACEMENT_RIGHT ->
+                R.string.msg_home_card_image_placement_right
+            else -> R.string.msg_home_card_image_placement_default
+        }
+        val snackbar = mNormalSnackbar
+        if (snackbar != null) {
+            snackbar.setMessage(msgRes)
+            snackbar.show()
+        } else {
+            Toast.makeText(this, msgRes, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun setHomeCardImagePlacementForEdit(
+        @Thing.HomeCardImagePlacement placement: Int
+    ) {
+        mHomeCardImagePlacement = placement
+    }
+
     private fun alertNoTitleWhenSetPrivateThing() {
         val adf = AlertDialogFragment()
         adf.setShowCancel(false)
@@ -1759,6 +1880,8 @@ class DetailActivity : EverythingDoneBaseActivity() {
                 togglePrivateThing()
             ThingAction.UPDATE_HOME_CARD_SPAN_MODE ->
                 setHomeCardSpanModeForEdit(to as Int)
+            ThingAction.UPDATE_HOME_CARD_IMAGE_PLACEMENT ->
+                setHomeCardImagePlacementForEdit(to as Int)
             else -> {}
         }
         updateUndoRedoActionButtonState()
@@ -2096,6 +2219,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
         mThing!!.content = content
         mThing!!.attachment = attachment
         mThing!!.homeCardSpanMode = mHomeCardSpanMode
+        mThing!!.homeCardImagePlacement = mHomeCardImagePlacement
         if (mChangeBackgroundTo != null) {
             mThing!!.setBackground(mChangeBackgroundTo)
         } else {
@@ -2345,7 +2469,8 @@ class DetailActivity : EverythingDoneBaseActivity() {
         mImageAttachmentAdapter = ImageAttachmentAdapter(
             this, mEditable, items,
             ImageAttachmentClickCallback(),
-            if (mEditable) ImageAttachmentRemoveCallback() else null
+            if (mEditable) ImageAttachmentRemoveCallback() else null,
+            if (mEditable) ImageAttachmentPlacementCallback() else null
         )
         mImageLayoutManager = GridLayoutManager(this, if (size < mMaxSpanImage) size else mMaxSpanImage)
         mRvImageAttachment!!.adapter = mImageAttachmentAdapter
@@ -2374,7 +2499,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
             items.add(position, attachmentTypePathName)
             AttachmentHelper.setImageRecyclerViewHeight(mRvImageAttachment, sizeAfter, mMaxSpanImage)
             if (spanAfter == spanBefore) {
-                if (sizeBefore == mMaxSpanImage) {
+                if (sizeBefore == mMaxSpanImage || position == 0) {
                     mImageAttachmentAdapter!!.notifyDataSetChanged()
                 } else {
                     mImageAttachmentAdapter!!.notifyItemInserted(position)
@@ -2393,7 +2518,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
             }
             AttachmentHelper.setImageRecyclerViewHeight(mRvImageAttachment, sizeAfter, mMaxSpanImage)
             if (spanAfter == spanBefore) {
-                if (sizeBefore == mMaxSpanImage + 1) {
+                if (sizeBefore == mMaxSpanImage + 1 || position == 0) {
                     mImageAttachmentAdapter!!.notifyDataSetChanged()
                 } else {
                     mImageAttachmentAdapter!!.notifyItemRemoved(position)
@@ -3140,7 +3265,8 @@ class DetailActivity : EverythingDoneBaseActivity() {
                 mChangeBackgroundTo
             else mThing!!.getBackground()
             val noUpdate = Thing.noUpdate(
-                mThing, title, content, attachment, typeAfter, proposedBg, mHomeCardSpanMode
+                mThing, title, content, attachment, typeAfter, proposedBg,
+                mHomeCardSpanMode, mHomeCardImagePlacement
             )
                 && !reminderUpdated && !habitUpdated && !mHabitFinishedThisTime
                 && !mHabitRecordEdited
@@ -3223,6 +3349,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
             App.setJustNotifyAll(true)
         }
         mThing!!.homeCardSpanMode = mHomeCardSpanMode
+        mThing!!.homeCardImagePlacement = mHomeCardImagePlacement
 
         intent.putExtra(Def.Communication.KEY_POSITION, mPosition)
         intent.putExtra(Def.Communication.KEY_STATE_AFTER, stateAfter)
@@ -3436,6 +3563,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
         mThing!!.attachment = attachment
         mThing!!.type = typeAfter
         mThing!!.homeCardSpanMode = mHomeCardSpanMode
+        mThing!!.homeCardImagePlacement = mHomeCardImagePlacement
         if (mChangeBackgroundTo != null) {
             mThing!!.setBackground(mChangeBackgroundTo)
         } else {
@@ -3470,6 +3598,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
         mThing!!.attachment = attachment
         mThing!!.type = typeAfter
         mThing!!.homeCardSpanMode = mHomeCardSpanMode
+        mThing!!.homeCardImagePlacement = mHomeCardImagePlacement
         if (mChangeBackgroundTo != null) {
             mThing!!.setBackground(mChangeBackgroundTo)
         } else {
@@ -3763,6 +3892,13 @@ class DetailActivity : EverythingDoneBaseActivity() {
         }
     }
 
+    private inner class ImageAttachmentPlacementCallback : ImageAttachmentAdapter.PlacementCallback {
+
+        override fun onEditPlacement() {
+            showHomeCardImagePlacementDialog()
+        }
+    }
+
     private inner class AudioAttachmentRemoveCallback : AudioAttachmentAdapter.RemoveCallback {
 
         override fun onRemoved(pos: Int) {
@@ -3851,6 +3987,9 @@ class DetailActivity : EverythingDoneBaseActivity() {
 
         if (isImageAttachment) {
             mImageAttachmentAdapter!!.notifyItemMoved(from, to)
+            if (from == 0 || to == 0) {
+                mImageAttachmentAdapter!!.notifyDataSetChanged()
+            }
         } else {
             mAudioAttachmentAdapter!!.notifyItemMoved(from, to)
             if (mAudioAttachmentAdapter!!.getPlayingIndex() != -1) {

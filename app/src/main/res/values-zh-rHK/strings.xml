@@ -311,6 +311,17 @@
     <string name="act_cancel_full_span_home_card">縮小記事卡片</string>
     <string name="msg_home_card_span_enlarged">已放大記事卡片</string>
     <string name="msg_home_card_span_shrunk">已縮小記事卡片</string>
+    <string name="title_home_card_image_placement">記事卡片圖片位置</string>
+    <string name="option_home_card_image_placement_default">預設（圖片在上）</string>
+    <string name="option_home_card_image_placement_top">圖片在上</string>
+    <string name="option_home_card_image_placement_bottom">圖片在下</string>
+    <string name="option_home_card_image_placement_left">圖片在左</string>
+    <string name="option_home_card_image_placement_right">圖片在右</string>
+    <string name="msg_home_card_image_placement_default">已將圖片位置設為記事卡片預設位置</string>
+    <string name="msg_home_card_image_placement_top">已將圖片放置於記事卡片上方</string>
+    <string name="msg_home_card_image_placement_bottom">已將圖片放置於記事卡片下方</string>
+    <string name="msg_home_card_image_placement_left">已將圖片放置於記事卡片左側</string>
+    <string name="msg_home_card_image_placement_right">已將圖片放置於記事卡片右側</string>
     <string name="act_set_thing_as_ongoing">在通知欄中顯示</string>
     <string name="act_cancel_set_thing_as_ongoing">取消在通知欄中顯示</string>
     <string name="act_finish">完成</string>
@@ -984,6 +995,8 @@
 
     <string name="cd_delete_image_attachment">删除該圖片附件</string>
     <string name="cd_delete_video_attachment">刪除該視頻附件</string>
+    <string name="cd_set_home_card_image_placement">設定圖片在記事卡片中的位置</string>
+    <string name="cd_set_home_card_video_placement">設定視頻縮略圖在記事卡片中的位置</string>
 
     <!--time of day rec item-->
     <string name="cd_reminder_time">提醒時刻</string>

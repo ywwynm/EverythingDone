@@ -32,6 +32,10 @@ _Avoid_: temporary wide row, per-filter layout state
 The persistent presentation choice that determines whether a Thing Home Card uses normal waterfall span or full home-list span.
 _Avoid_: complete layout style, image placement mode
 
+**Home Card Image Placement**:
+The persistent presentation choice that determines where the first image attachment appears within a Thing Home Card relative to the card's other visible content.
+_Avoid_: attachment order, image crop ratio, image crop focus
+
 **App Chrome**:
 The surrounding interface outside a Thing Background, including home, settings, help, popups, dialogs, drawers, and other navigation or configuration surfaces.
 _Avoid_: thing UI
@@ -61,6 +65,7 @@ _Avoid_: full-row clickable surface, full-card clickable surface, full-row actio
 - A **Thing** has one **Thing Home Card** wherever it appears in the home list.
 - A **Full-Span Home Card** is a presentation preference of a **Thing**, not of a home-list filter.
 - A **Thing Home Card** has one **Home Card Span Mode**.
+- A **Thing Home Card** may have one **Home Card Image Placement** when the Thing has an image attachment.
 - **Appearance Mode** applies to **App Chrome**.
 - A **Button-like Control** can appear on **App Chrome** or directly on a **Thing Background**.
 - **Thing Background Surfaces** do not recreate solely because **Appearance Mode** changes.

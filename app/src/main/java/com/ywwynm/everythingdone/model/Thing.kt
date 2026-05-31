@@ -32,7 +32,8 @@ open class Thing(
     var createTime: Long,
     var updateTime: Long,
     var finishTime: Long,
-    var homeCardSpanMode: Int = HOME_CARD_SPAN_NORMAL
+    var homeCardSpanMode: Int = HOME_CARD_SPAN_NORMAL,
+    var homeCardImagePlacement: Int = HOME_CARD_IMAGE_PLACEMENT_DEFAULT
 ) : Parcelable {
 
     private var _color: Int = color
@@ -54,7 +55,8 @@ open class Thing(
     constructor(thing: Thing) : this(
         thing.id, thing.type, thing.state, thing._color,
         thing.title, thing.content, thing.attachment, thing.location,
-        thing.createTime, thing.updateTime, thing.finishTime, thing.homeCardSpanMode
+        thing.createTime, thing.updateTime, thing.finishTime,
+        thing.homeCardSpanMode, thing.homeCardImagePlacement
     ) {
         _background = thing._background
         selected = thing.selected
@@ -82,6 +84,11 @@ open class Thing(
         } else {
             HOME_CARD_SPAN_NORMAL
         }
+        homeCardImagePlacement = if (`in`.dataAvail() > 0) {
+            `in`.readInt()
+        } else {
+            HOME_CARD_IMAGE_PLACEMENT_DEFAULT
+        }
     }
 
     constructor(c: Cursor?) : this(
@@ -105,6 +112,10 @@ open class Thing(
         val spanModeCol = c.getColumnIndex(Def.Database.COLUMN_HOME_CARD_SPAN_MODE_THINGS)
         if (spanModeCol >= 0 && !c.isNull(spanModeCol)) {
             homeCardSpanMode = c.getInt(spanModeCol)
+        }
+        val imagePlacementCol = c.getColumnIndex(Def.Database.COLUMN_HOME_CARD_IMAGE_PLACEMENT_THINGS)
+        if (imagePlacementCol >= 0 && !c.isNull(imagePlacementCol)) {
+            homeCardImagePlacement = c.getInt(imagePlacementCol)
         }
     }
 
@@ -207,6 +218,7 @@ open class Thing(
         // NEW (Phase 3): trailing background JSON.
         dest.writeString(if (_background != null) _background!!.toJson() else null)
         dest.writeInt(homeCardSpanMode)
+        dest.writeInt(homeCardImagePlacement)
     }
 
     @IntDef(-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)
@@ -220,6 +232,10 @@ open class Thing(
     @IntDef(0, 1)
     @Retention(AnnotationRetention.SOURCE)
     annotation class HomeCardSpanMode
+
+    @IntDef(0, 1, 2, 3, 4)
+    @Retention(AnnotationRetention.SOURCE)
+    annotation class HomeCardImagePlacement
 
     companion object {
         const val HEADER: Int                = -1
@@ -253,6 +269,12 @@ open class Thing(
 
         const val HOME_CARD_SPAN_NORMAL: Int = 0
         const val HOME_CARD_SPAN_FULL: Int = 1
+
+        const val HOME_CARD_IMAGE_PLACEMENT_DEFAULT: Int = 0
+        const val HOME_CARD_IMAGE_PLACEMENT_TOP: Int = 1
+        const val HOME_CARD_IMAGE_PLACEMENT_BOTTOM: Int = 2
+        const val HOME_CARD_IMAGE_PLACEMENT_LEFT: Int = 3
+        const val HOME_CARD_IMAGE_PLACEMENT_RIGHT: Int = 4
 
         @JvmField
         val PRIVATE_THING_PREFIX: String = App.getApp()!!.getString(R.string.base_signal) + "L"
@@ -436,13 +458,15 @@ open class Thing(
          */
         @JvmStatic
         fun noUpdate(thing: Thing?, title: String?, content: String?, attachment: String?,
-                     type: Int, background: ThingBackground?, homeCardSpanMode: Int): Boolean {
+                     type: Int, background: ThingBackground?, homeCardSpanMode: Int,
+                     homeCardImagePlacement: Int): Boolean {
             return thing!!.title!! == title &&
                     thing.content!! == content &&
                     thing.attachment!! == attachment &&
                     thing.type == type &&
                     thing.getBackground()!! == background &&
-                    thing.homeCardSpanMode == homeCardSpanMode
+                    thing.homeCardSpanMode == homeCardSpanMode &&
+                    thing.homeCardImagePlacement == homeCardImagePlacement
         }
 
         @JvmStatic

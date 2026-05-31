@@ -89,6 +89,10 @@ open class ThingDAO private constructor(context: Context?) {
         values.put(Def.Database.COLUMN_UPDATE_TIME_THINGS, System.currentTimeMillis())
         values.put(Def.Database.COLUMN_FINISH_TIME_THINGS, 0)
         values.put(Def.Database.COLUMN_HOME_CARD_SPAN_MODE_THINGS, Thing.HOME_CARD_SPAN_NORMAL)
+        values.put(
+            Def.Database.COLUMN_HOME_CARD_IMAGE_PLACEMENT_THINGS,
+            Thing.HOME_CARD_IMAGE_PLACEMENT_DEFAULT
+        )
 
         db!!.insert(Def.Database.TABLE_THINGS, null, values)
     }
@@ -182,7 +186,7 @@ open class ThingDAO private constructor(context: Context?) {
             deleteNotifyEmpty(type, state, handleCurrentLimit)
         }
 
-        val values = ContentValues(13)
+        val values = ContentValues(14)
         values.put(Def.Database.COLUMN_ID_THINGS,          thing.id)
         values.put(Def.Database.COLUMN_TYPE_THINGS,        type)
         values.put(Def.Database.COLUMN_STATE_THINGS,       state)
@@ -196,6 +200,10 @@ open class ThingDAO private constructor(context: Context?) {
         values.put(Def.Database.COLUMN_FINISH_TIME_THINGS, thing.finishTime)
         values.put(Def.Database.COLUMN_BACKGROUND_THINGS,  thing.getBackground()!!.toJson())
         values.put(Def.Database.COLUMN_HOME_CARD_SPAN_MODE_THINGS, thing.homeCardSpanMode)
+        values.put(
+            Def.Database.COLUMN_HOME_CARD_IMAGE_PLACEMENT_THINGS,
+            thing.homeCardImagePlacement
+        )
 
         try {
             db!!.insert(Def.Database.TABLE_THINGS, null, values)
@@ -224,6 +232,10 @@ open class ThingDAO private constructor(context: Context?) {
         values.put(Def.Database.COLUMN_COLOR_THINGS, updatedThing.getColor())
         values.put(Def.Database.COLUMN_BACKGROUND_THINGS, updatedThing.getBackground()!!.toJson())
         values.put(Def.Database.COLUMN_HOME_CARD_SPAN_MODE_THINGS, updatedThing.homeCardSpanMode)
+        values.put(
+            Def.Database.COLUMN_HOME_CARD_IMAGE_PLACEMENT_THINGS,
+            updatedThing.homeCardImagePlacement
+        )
         values.put(Def.Database.COLUMN_TITLE_THINGS, updatedThing.title)
         values.put(Def.Database.COLUMN_CONTENT_THINGS, updatedThing.content)
         values.put(Def.Database.COLUMN_ATTACHMENT_THINGS, updatedThing.attachment)
@@ -270,6 +282,10 @@ open class ThingDAO private constructor(context: Context?) {
             values.put(Def.Database.COLUMN_UPDATE_TIME_THINGS, thing.updateTime)
             values.put(Def.Database.COLUMN_FINISH_TIME_THINGS, thing.finishTime)
             values.put(Def.Database.COLUMN_HOME_CARD_SPAN_MODE_THINGS, thing.homeCardSpanMode)
+            values.put(
+                Def.Database.COLUMN_HOME_CARD_IMAGE_PLACEMENT_THINGS,
+                thing.homeCardImagePlacement
+            )
 
             db!!.insert(Def.Database.TABLE_THINGS, null, values)
         } else {
@@ -295,6 +311,10 @@ open class ThingDAO private constructor(context: Context?) {
                 values.put(Def.Database.COLUMN_CONTENT_THINGS, thing.content)
                 values.put(Def.Database.COLUMN_STATE_THINGS, stateAfter)
                 values.put(Def.Database.COLUMN_HOME_CARD_SPAN_MODE_THINGS, thing.homeCardSpanMode)
+                values.put(
+                    Def.Database.COLUMN_HOME_CARD_IMAGE_PLACEMENT_THINGS,
+                    thing.homeCardImagePlacement
+                )
                 db!!.update(Def.Database.TABLE_THINGS, values, "id=$id", null)
             } else {
                 val temp: Thing? = getThingById(id)
