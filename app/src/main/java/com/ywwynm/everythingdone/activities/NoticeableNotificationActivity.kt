@@ -49,6 +49,8 @@ import java.time.format.DateTimeFormatter
 import java.util.ArrayList
 import java.util.Collections
 import androidx.core.view.isVisible
+import kotlin.math.max
+import kotlin.math.min
 
 /**
  * Created by qiizhang on 2016/11/10.
@@ -126,8 +128,6 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
     override fun getLayoutResource(): Int = R.layout.activity_noticeable_notification
 
     override fun initMembers() {
-        mDialogWidth = (DisplayUtil.getScreenDensity(this) * 280).toInt()
-
         val intent: Intent = getIntent()
         mIsHabit = intent.getBooleanExtra(KEY_IS_HABIT, false)
         val thingId: Long
@@ -147,8 +147,30 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
         mPosition = pair.second ?: -1
 
         if (mThing != null) {
+            mDialogWidth = getNoticeableThingCardWidth(mThing!!)
             initMemberActions()
         }
+    }
+
+    private fun getNoticeableThingCardWidth(thing: Thing): Int {
+        val configuredWidth = resources.getDimensionPixelSize(
+            if (isFullSpanThingCard(thing)) {
+                R.dimen.thing_card_single_surface_full_span_width
+            } else {
+                R.dimen.thing_card_single_surface_normal_width
+            }
+        )
+        val horizontalMargin = resources.getDimensionPixelSize(
+            R.dimen.thing_card_single_surface_horizontal_margin
+        )
+        val screenLimitedWidth = max(1, DisplayUtil.getScreenSize(this).x - horizontalMargin * 2)
+        return min(screenLimitedWidth, configuredWidth)
+    }
+
+    private fun isFullSpanThingCard(thing: Thing): Boolean {
+        return thing.type != Thing.HEADER
+                && thing.type < Thing.NOTIFICATION_UNDERWAY
+                && thing.thingCardSpanMode == Thing.THING_CARD_SPAN_FULL
     }
 
     private fun initMemberActions() {
@@ -255,6 +277,12 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
     }
 
     private fun applyDialogShellAppearance() {
+        val lp = mRoot!!.layoutParams
+        if (lp.width != mDialogWidth) {
+            lp.width = mDialogWidth
+            mRoot!!.layoutParams = lp
+        }
+
         applyRoundedShellBackground()
         applyActionButtonRipples()
 
@@ -325,6 +353,10 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
             override fun getCurrentMode(): Int = ModeManager.NORMAL
 
             override fun getThings(): List<Thing?> = singleThing
+
+            override fun isFullSpanThingCard(thing: Thing): Boolean {
+                return this@NoticeableNotificationActivity.isFullSpanThingCard(thing)
+            }
 
             override fun onBindViewHolder(holder: BaseThingViewHolder, position: Int) {
                 super.onBindViewHolder(holder, position)

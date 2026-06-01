@@ -9,6 +9,10 @@
     <dimen name="thing_card_full_span_private_icon_size">72dp</dimen>
     <dimen name="thing_card_full_span_image_min_height">160dp</dimen>
     <dimen name="thing_card_full_span_side_image_min_height">128dp</dimen>
+    <dimen name="thing_card_single_surface_normal_width">256dp</dimen>
+    <dimen name="thing_card_single_surface_full_span_width">300dp</dimen>
+    <dimen name="thing_card_single_surface_horizontal_margin">16dp</dimen>
+    <dimen name="doing_thing_card_vertical_margin">32dp</dimen>
     <dimen name="app_chrome_dialog_popup_corner_radius">16dp</dimen>
 
     <dimen name="fab_margin">0dp</dimen>

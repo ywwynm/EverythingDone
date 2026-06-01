@@ -2710,6 +2710,25 @@ Verification:
 - `git diff --check` passed with CRLF conversion warnings only.
 - `:app:assembleDebug` passed.
 
+## 2026-05-31 - Notification action color state review
+
+Reviewed current notification action coloring after the user noticed that
+reminder/habit notification actions appear to use one shared color.
+
+Findings:
+- System notifications are built through `SystemNotificationUtil`.
+- Reminder, habit, ongoing thing, and doing notifications set a single
+  notification-level accent with `NotificationCompat.Builder.setColor(...)`.
+- Their actions are added with plain `builder.addAction(...)`; there is no
+  per-action color, custom notification action layout, or `NotificationCompat.Action`
+  styling in the current code.
+- The color/background arguments in the reminder/habit action helper overloads
+  are used for PendingIntent payloads and downstream dialogs, not for the visual
+  style of the notification action buttons.
+- The full-screen `NoticeableNotificationActivity` is separate from the system
+  notification shade and tints its custom action icons with the neutral
+  `app_chrome_control_unchecked` color.
+
 ## 2026-05-31 - Home card image placement numeric tuning
 
 User requested final numeric tuning for the placement chooser and full-span
@@ -2987,3 +3006,69 @@ Change:
 Verification:
 - `git diff --check` passed with CRLF conversion warnings only.
 - `:app:assembleDebug` passed.
+
+## 2026-06-01 - Thing Card rename and non-home presentation surfaces
+
+User clarified that card presentation settings no longer belong only to the
+home list. Renamed the persistent Home Card state to Thing Card state across
+the Kotlin model, DAO writes, action names, resources, menu ids, keyed tags,
+context glossary, and the image-placement plan document.
+
+Database work:
+- Bumped the app database version to 12.
+- Fresh installs now create `thing_card_span_mode` and
+  `thing_card_image_placement`.
+- Upgrades add the new columns when needed and copy values from legacy
+  `home_card_span_mode` / `home_card_image_placement` columns.
+- Cursor reads prefer the new columns and fall back to the legacy columns for
+  transition compatibility.
+
+Presentation work:
+- `DoingActivity` now participates in Thing Card Span Mode and Thing Card Image
+  Placement. Normal cards and full-span cards use fixed shared dp width
+  resources, and long content is capped against the space above the bottom
+  buttons with a configurable vertical margin.
+- `NoticeableNotificationActivity` now participates in the same placement
+  rules. It uses the same fixed normal/full-span widths as `DoingActivity`
+  regardless of whether the image is placed top, bottom, left, or right.
+- `BaseThingsAdapter` exposes the full-span decision to non-home single-card
+  surfaces while keeping the home list's measured staggered-grid width refresh.
+
+Follow-up width adjustment:
+- User clarified that `DoingActivity` and `NoticeableNotificationActivity`
+  should share identical fixed dp card widths, with normal-span and full-span
+  still distinct.
+- Added shared dimens:
+  `thing_card_single_surface_normal_width = 256dp`,
+  `thing_card_single_surface_full_span_width = 288dp`, and
+  `thing_card_single_surface_horizontal_margin = 16dp`.
+- `DoingActivity.getDoingThingCardWidth(...)` and
+  `NoticeableNotificationActivity.getNoticeableThingCardWidth(...)` now read
+  those shared resources and cap them against the screen width minus side
+  margins.
+- `activity_noticeable_notification.xml` now uses the shared normal width for
+  its initial layout width.
+- Reorganized `memory/debug-update-notes.md` into a clearer chronological
+  release note before publishing the follow-up debug update.
+
+Verification:
+- `git diff --check` passed with CRLF conversion warnings only.
+- `:app:assembleDebug` passed.
+- `:app:publishDebugUpdate` passed and published debug update `202605311631`
+  to `http://120.25.194.207/everythingdone-updates/debug/latest.json`.
+- After the fixed-width follow-up, `:app:assembleDebug` passed again and
+  `:app:publishDebugUpdate` published debug update `202605311648` to
+  `http://120.25.194.207/everythingdone-updates/debug/latest.json`.
+- User then requested narrower fixed widths: normal-span 256dp and full-span
+  288dp. Updated the shared dimens accordingly, reorganized
+  `memory/debug-update-notes.md` into a clearer chronological release note,
+  reran `git diff --check` and `:app:assembleDebug`, and published final debug
+  update `202606010137` to
+  `http://120.25.194.207/everythingdone-updates/debug/latest.json`. An earlier
+  publish `202606010136` was immediately superseded because the release notes
+  still had a pending-publish sentence.
+- User then requested full-span single-card width at 300dp while keeping
+  normal-span at 256dp. Updated `thing_card_single_surface_full_span_width` to
+  300dp, refreshed the debug update notes, reran `git diff --check` and
+  `:app:assembleDebug`, and published debug update `202606011558` to
+  `http://120.25.194.207/everythingdone-updates/debug/latest.json`.

@@ -1,14 +1,14 @@
-# Home Card Image Placement Plan
+﻿# Thing Card Image Placement Plan
 
 ## Goal
 
 Allow users to choose where the first image/video attachment appears inside a
-Thing Home Card.
+Thing Card.
 
 ## Scope
 
-- Add persistent Thing-level state named `homeCardImagePlacement`.
-- Store it in SQLite as `home_card_image_placement`.
+- Add persistent Thing-level state named `thingCardImagePlacement`.
+- Store it in SQLite as `thing_card_image_placement`.
 - Supported values:
   - `0 = DEFAULT`
   - `1 = TOP`
@@ -22,7 +22,7 @@ Thing Home Card.
 
 ## Out Of Scope
 
-- Choosing which attachment is used by the home card.
+- Choosing which attachment is used by the thing card.
 - Crop ratio, crop focus, crop region, or focal-point editing.
 - Multi-image gallery or carousel layout.
 - User-adjustable side-image/content ratio.
@@ -30,10 +30,11 @@ Thing Home Card.
 
 ## Data Model
 
-- Add `homeCardImagePlacement` to `Thing`.
-- Add `home_card_image_placement INTEGER NOT NULL DEFAULT 0` to both database
+- Add `thingCardImagePlacement` to `Thing`.
+- Add `thing_card_image_placement INTEGER NOT NULL DEFAULT 0` to both database
   creation and upgrade paths.
-- Existing rows migrate to `DEFAULT`.
+- Existing rows migrate to `DEFAULT`, except version 11 databases copy from
+  the legacy `home_card_image_placement` column during the version 12 rename.
 - Keep placement after all image attachments are removed; the value remains
   dormant until another image/video attachment is available.
 - Include the field in DAO insert/update/copy paths, Parcelable handling, and
@@ -74,9 +75,9 @@ Feedback messages:
 
 Prefer Snackbar; fall back to Toast if no Snackbar host is available.
 
-## Home Card Rendering
+## Thing Card Rendering
 
-- Hidden-private home cards ignore image placement and keep the existing lock
+- Hidden-private thing cards ignore image placement and keep the existing lock
   presentation.
 - Top/bottom placement keeps the existing image sizing strategy for the current
   span mode.
@@ -96,24 +97,25 @@ Prefer Snackbar; fall back to Toast if no Snackbar host is available.
 
 ## Implementation Notes
 
-- Restructure the home-card layout around an explicit image container and
+- Restructure the thing-card layout around an explicit image container and
   content container.
 - Vertical placement can reorder image/content containers.
 - Full-span side placement can use a horizontal parent with fixed
   image/content ratio.
-- Keep existing card width ownership rules: hidden-private rendering must not
-  leak full-span/image widths into unrelated image sizing.
+- Keep existing card width ownership rules: hidden-private rendering and
+  embedded single-card surfaces must not leak one surface's width into unrelated
+  image sizing.
 
 ## Verification
 
 - Build `:app:assembleDebug`.
 - Verify first-install schema and migration path include
-  `home_card_image_placement`.
+  `thing_card_image_placement`.
 - Verify Detail create/update retains placement through save, undo, redo, and
   result return.
 - Verify normal-span image top/default/bottom rendering.
 - Verify full-span top/default/bottom/left/right rendering.
-- Verify hidden-private home card ignores image placement.
+- Verify hidden-private thing card ignores image placement.
 - Verify deleting, adding, and reordering image attachments updates the visible
   placement icon correctly.
 - Verify screenshot mode hides the placement icon.

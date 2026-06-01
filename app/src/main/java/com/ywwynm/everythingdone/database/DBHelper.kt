@@ -1,4 +1,4 @@
-package com.ywwynm.everythingdone.database
+﻿package com.ywwynm.everythingdone.database
 
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
@@ -102,17 +102,41 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
             )) {
             db.execSQL(SQL_ADD_COLUMN_BACKGROUND_THINGS)
         }
-        if (oldVersion < 10 && !columnExists(
-                db, Def.Database.TABLE_THINGS, Def.Database.COLUMN_HOME_CARD_SPAN_MODE_THINGS
-            )) {
-            db.execSQL(SQL_ADD_COLUMN_HOME_CARD_SPAN_MODE_THINGS)
+        if (oldVersion < 12) {
+            migrateThingCardSettingsColumns(db)
         }
-        if (oldVersion < 11 && !columnExists(
-                db, Def.Database.TABLE_THINGS, Def.Database.COLUMN_HOME_CARD_IMAGE_PLACEMENT_THINGS
+        // released version should be 1, 3, 5, 6, 7, 8, 9, 10, 11, 12.
+    }
+
+    private fun migrateThingCardSettingsColumns(db: SQLiteDatabase) {
+        val hasLegacySpanMode = columnExists(
+            db, Def.Database.TABLE_THINGS,
+            Def.Database.COLUMN_LEGACY_HOME_CARD_SPAN_MODE_THINGS
+        )
+        val hasLegacyImagePlacement = columnExists(
+            db, Def.Database.TABLE_THINGS,
+            Def.Database.COLUMN_LEGACY_HOME_CARD_IMAGE_PLACEMENT_THINGS
+        )
+
+        if (!columnExists(
+                db, Def.Database.TABLE_THINGS,
+                Def.Database.COLUMN_THING_CARD_SPAN_MODE_THINGS
             )) {
-            db.execSQL(SQL_ADD_COLUMN_HOME_CARD_IMAGE_PLACEMENT_THINGS)
+            db.execSQL(SQL_ADD_COLUMN_THING_CARD_SPAN_MODE_THINGS)
         }
-        // released version should be 1, 3, 5, 6, 7, 8, 9, 10, 11.
+        if (!columnExists(
+                db, Def.Database.TABLE_THINGS,
+                Def.Database.COLUMN_THING_CARD_IMAGE_PLACEMENT_THINGS
+            )) {
+            db.execSQL(SQL_ADD_COLUMN_THING_CARD_IMAGE_PLACEMENT_THINGS)
+        }
+
+        if (hasLegacySpanMode) {
+            db.execSQL(SQL_COPY_THING_CARD_SPAN_MODE_FROM_LEGACY)
+        }
+        if (hasLegacyImagePlacement) {
+            db.execSQL(SQL_COPY_THING_CARD_IMAGE_PLACEMENT_FROM_LEGACY)
+        }
     }
 
     private fun columnExists(db: SQLiteDatabase, tableName: String, columnName: String): Boolean {
@@ -154,8 +178,8 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
                 System.currentTimeMillis() + "', " +
                 "'0', '" +
                 bg.toJson() + "', '" +
-                Thing.HOME_CARD_SPAN_NORMAL + "', '" +
-                Thing.HOME_CARD_IMAGE_PLACEMENT_DEFAULT + "')"
+                Thing.THING_CARD_SPAN_NORMAL + "', '" +
+                Thing.THING_CARD_IMAGE_PLACEMENT_DEFAULT + "')"
     }
 
 //    private String generateTestSQL(int id, String title, String content) {
@@ -190,10 +214,10 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
                     Def.Database.COLUMN_UPDATE_TIME_THINGS + " integer, " +
                     Def.Database.COLUMN_FINISH_TIME_THINGS + " integer, " +
                     Def.Database.COLUMN_BACKGROUND_THINGS  + " text, " /* added in version 9 */ +
-                    Def.Database.COLUMN_HOME_CARD_SPAN_MODE_THINGS +
-                        " integer not null default 0, " /* added in version 10 */ +
-                    Def.Database.COLUMN_HOME_CARD_IMAGE_PLACEMENT_THINGS +
-                        " integer not null default 0" /* added in version 11 */ +
+                    Def.Database.COLUMN_THING_CARD_SPAN_MODE_THINGS +
+                        " integer not null default 0, " /* renamed in version 12 */ +
+                    Def.Database.COLUMN_THING_CARD_IMAGE_PLACEMENT_THINGS +
+                        " integer not null default 0" /* renamed in version 12 */ +
                 ")"
 
         private const val SQL_CREATE_TABLE_REMINDERS: String = "create table if not exists " +
@@ -286,8 +310,8 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
                 "', '-14784871', 'Let this be my last words', 'I trust thy love', 'to QQ', '7', '" +
                 System.currentTimeMillis() + "', '" +
                 System.currentTimeMillis() + "', '0', NULL, '" +
-                Thing.HOME_CARD_SPAN_NORMAL + "', '" +
-                Thing.HOME_CARD_IMAGE_PLACEMENT_DEFAULT + "')"
+                Thing.THING_CARD_SPAN_NORMAL + "', '" +
+                Thing.THING_CARD_IMAGE_PLACEMENT_DEFAULT + "')"
 
         private const val SQL_ADD_COLUMN_ALPHA_APP_WIDGET: String = "alter table " +
                 Def.Database.TABLE_APP_WIDGET +
@@ -313,15 +337,28 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
                 Def.Database.TABLE_THINGS +
                 " add column " + Def.Database.COLUMN_BACKGROUND_THINGS + " text"
 
-        private const val SQL_ADD_COLUMN_HOME_CARD_SPAN_MODE_THINGS: String = "alter table " +
+        private const val SQL_ADD_COLUMN_THING_CARD_SPAN_MODE_THINGS: String = "alter table " +
                 Def.Database.TABLE_THINGS +
-                " add column " + Def.Database.COLUMN_HOME_CARD_SPAN_MODE_THINGS +
+                " add column " + Def.Database.COLUMN_THING_CARD_SPAN_MODE_THINGS +
                 " integer not null default 0"
 
-        private const val SQL_ADD_COLUMN_HOME_CARD_IMAGE_PLACEMENT_THINGS: String = "alter table " +
+        private const val SQL_ADD_COLUMN_THING_CARD_IMAGE_PLACEMENT_THINGS: String = "alter table " +
                 Def.Database.TABLE_THINGS +
-                " add column " + Def.Database.COLUMN_HOME_CARD_IMAGE_PLACEMENT_THINGS +
+                " add column " + Def.Database.COLUMN_THING_CARD_IMAGE_PLACEMENT_THINGS +
                 " integer not null default 0"
+
+        private const val SQL_COPY_THING_CARD_SPAN_MODE_FROM_LEGACY: String = "update " +
+                Def.Database.TABLE_THINGS +
+                " set " + Def.Database.COLUMN_THING_CARD_SPAN_MODE_THINGS + " = " +
+                Def.Database.COLUMN_LEGACY_HOME_CARD_SPAN_MODE_THINGS +
+                " where " + Def.Database.COLUMN_LEGACY_HOME_CARD_SPAN_MODE_THINGS + " is not null"
+
+        private const val SQL_COPY_THING_CARD_IMAGE_PLACEMENT_FROM_LEGACY: String = "update " +
+                Def.Database.TABLE_THINGS +
+                " set " + Def.Database.COLUMN_THING_CARD_IMAGE_PLACEMENT_THINGS + " = " +
+                Def.Database.COLUMN_LEGACY_HOME_CARD_IMAGE_PLACEMENT_THINGS +
+                " where " + Def.Database.COLUMN_LEGACY_HOME_CARD_IMAGE_PLACEMENT_THINGS +
+                " is not null"
 
         private const val SQL_DROP_TABLE_THINGS: String = "drop table if exists " +
                 Def.Database.TABLE_THINGS

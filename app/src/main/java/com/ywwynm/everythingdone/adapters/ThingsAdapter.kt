@@ -1,4 +1,4 @@
-@file:Suppress("DEPRECATION")
+﻿@file:Suppress("DEPRECATION")
 
 package com.ywwynm.everythingdone.adapters
 
@@ -145,10 +145,10 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         })
     }
 
-    override fun isFullSpanHomeCard(thing: Thing): Boolean {
+    override fun isFullSpanThingCard(thing: Thing): Boolean {
         return thing.type != Thing.HEADER
                 && thing.type < Thing.NOTIFICATION_UNDERWAY
-                && thing.homeCardSpanMode == Thing.HOME_CARD_SPAN_FULL
+                && thing.thingCardSpanMode == Thing.THING_CARD_SPAN_FULL
     }
 
     private fun distinguishHeaderAndOthers(thing: Thing, cv: CardView?) {
@@ -166,7 +166,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         val lp = cv.layoutParams as StaggeredGridLayoutManager.LayoutParams
         lp.height = height
         lp.setMargins(mX, mY, mX, mY)
-        lp.isFullSpan = header || isFullSpanHomeCard(thing)
+        lp.isFullSpan = header || isFullSpanThingCard(thing)
     }
 
     private fun animateCardOnTouch(v: View?, event: MotionEvent?) {

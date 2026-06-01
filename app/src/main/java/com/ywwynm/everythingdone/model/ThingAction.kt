@@ -1,4 +1,4 @@
-package com.ywwynm.everythingdone.model
+﻿package com.ywwynm.everythingdone.model
 
 import android.os.Bundle
 import androidx.annotation.IntDef
@@ -45,8 +45,8 @@ open class ThingAction(private val type: Int, private val before: Any?, private 
         const val TOGGLE_REMINDER_OR_HABIT: Int = 9
         const val UPDATE_REMINDER_OR_HABIT: Int = 10
         const val TOGGLE_PRIVATE: Int           = 11
-        const val UPDATE_HOME_CARD_SPAN_MODE: Int = 12
-        const val UPDATE_HOME_CARD_IMAGE_PLACEMENT: Int = 13
+        const val UPDATE_THING_CARD_SPAN_MODE: Int = 12
+        const val UPDATE_THING_CARD_IMAGE_PLACEMENT: Int = 13
 
         const val KEY_ATTACHMENT_TYPE: String   = "attachment_type"
         const val KEY_CHECKBOX_STATE: String    = "checkbox_state"

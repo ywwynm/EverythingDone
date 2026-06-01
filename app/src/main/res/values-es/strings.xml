@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="everythingdone">EverythingDone</string>
     <string name="yes">si</string>
@@ -215,10 +215,10 @@
     <string name="act_abandon_new_thing">abandonar</string>
     <string name="act_set_as_private_thing">Establecer como algo privado</string>
     <string name="act_cancel_private_thing">Cancelar Establecer cosa privada</string>
-    <string name="act_set_full_span_home_card">Ampliar tarjeta</string>
-    <string name="act_cancel_full_span_home_card">Reducir tarjeta</string>
-    <string name="msg_home_card_span_enlarged">Tarjeta ampliada</string>
-    <string name="msg_home_card_span_shrunk">Tarjeta reducida</string>
+    <string name="act_set_full_span_thing_card">Ampliar tarjeta</string>
+    <string name="act_cancel_full_span_thing_card">Reducir tarjeta</string>
+    <string name="msg_thing_card_span_enlarged">Tarjeta ampliada</string>
+    <string name="msg_thing_card_span_shrunk">Tarjeta reducida</string>
     <string name="act_set_thing_as_ongoing">Mostrar en notificaciones</string>
     <string name="act_cancel_set_thing_as_ongoing">Cancelar mostrar en Notificaciones</string>
     <string name="act_finish">terminar</string>

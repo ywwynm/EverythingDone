@@ -1,4 +1,4 @@
-@file:Suppress("DEPRECATION")
+﻿@file:Suppress("DEPRECATION")
 
 package com.ywwynm.everythingdone.adapters
 
@@ -96,7 +96,7 @@ open class ImageAttachmentAdapter(
             holder.ivDelete!!.contentDescription =
                 mContext!!.getString(R.string.cd_delete_image_attachment)
             holder.ivPlacement!!.contentDescription =
-                mContext!!.getString(R.string.cd_set_home_card_image_placement)
+                mContext!!.getString(R.string.cd_set_thing_card_image_placement)
             holder.ivVideoSignal!!.visibility = View.GONE
         } else {
             holder.ivImage!!.contentDescription =
@@ -104,7 +104,7 @@ open class ImageAttachmentAdapter(
             holder.ivDelete!!.contentDescription =
                 mContext!!.getString(R.string.cd_delete_video_attachment)
             holder.ivPlacement!!.contentDescription =
-                mContext!!.getString(R.string.cd_set_home_card_video_placement)
+                mContext!!.getString(R.string.cd_set_thing_card_video_placement)
             holder.ivVideoSignal!!.visibility = View.VISIBLE
         }
 
@@ -151,7 +151,7 @@ open class ImageAttachmentAdapter(
         val fl: FrameLayout? = f(R.id.fl_image_attachment)
         val ivImage: ImageView? = f(R.id.iv_image_attachment)
         val ivVideoSignal: ImageView? = f(R.id.iv_video_signal)
-        val ivPlacement: ImageView? = f(R.id.iv_home_card_image_placement)
+        val ivPlacement: ImageView? = f(R.id.iv_thing_card_image_placement)
         val ivDelete: ImageView? = f(R.id.iv_delete_image_attachment)
         val pbLoading: ProgressBar? = f(R.id.pb_image_attachment)
 

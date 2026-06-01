@@ -1467,3 +1467,29 @@ and both attachment action icons use the same oval-mask ripple drawable.
 2026-05-31: Detail image attachment action icons should keep a 40dp touch target,
 but their visible circular ripple should be slightly inset so it does not touch
 the image tile edge. Use a 2dp inset on the circular ripple mask.
+
+2026-06-01: Rename the persistent card presentation settings from Home Card to
+Thing Card because the settings now apply beyond the home list. Kotlin should
+use `thingCardSpanMode` and `thingCardImagePlacement`; SQLite should use
+`thing_card_span_mode` and `thing_card_image_placement`. Database version 12
+should add the new columns and copy values from the legacy
+`home_card_span_mode` and `home_card_image_placement` columns when present.
+
+2026-06-01: DoingActivity should support Thing Card Span Mode and Thing Card
+Image Placement. Normal-span cards keep the current width, while full-span
+cards use a wider width with configurable horizontal margins. The card region
+should grow to show as much content as possible, then cap itself against the
+space above the bottom buttons with a configurable vertical margin.
+
+2026-06-01: NoticeableNotificationActivity should also support Thing Card Span
+Mode and Thing Card Image Placement. Normal-span cards keep the current 280dp
+dialog width. Full-span cards use one consistently wider dialog/card width
+regardless of whether the image is placed top, bottom, left, or right. Left and
+right image placement remains full-span-only across card surfaces.
+
+2026-06-01: DoingActivity and NoticeableNotificationActivity should use the
+same fixed dp widths for their single Thing Card surfaces. Normal-span cards use
+`thing_card_single_surface_normal_width` at 256dp. Full-span cards use
+`thing_card_single_surface_full_span_width` at 300dp. Both surfaces still cap the
+configured width against the screen width minus
+`thing_card_single_surface_horizontal_margin` on each side.

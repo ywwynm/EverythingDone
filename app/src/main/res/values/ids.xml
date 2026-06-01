@@ -1,5 +1,5 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <item name="tag_home_card_image_load_key" type="id"/>
-    <item name="tag_home_card_side_image_bind_token" type="id"/>
+    <item name="tag_thing_card_image_load_key" type="id"/>
+    <item name="tag_thing_card_side_image_bind_token" type="id"/>
 </resources>

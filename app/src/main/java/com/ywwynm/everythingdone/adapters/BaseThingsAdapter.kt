@@ -1,4 +1,4 @@
-@file:Suppress("DEPRECATION")
+﻿@file:Suppress("DEPRECATION")
 
 package com.ywwynm.everythingdone.adapters
 
@@ -77,9 +77,9 @@ abstract class BaseThingsAdapter(context: Context?) :
     private var mHabitDAO: HabitDAO? = HabitDAO.getInstance(context)
 
     private var mImageRequestManager: RequestManager? = Glide.with(context!!)
-    private val mSideImageHeightCache: LongSparseArray<HomeCardSideImageHeightCache> =
+    private val mSideImageHeightCache: LongSparseArray<ThingCardSideImageHeightCache> =
         LongSparseArray()
-    private val mLoadedHomeCardImageKeys: MutableSet<String> = HashSet()
+    private val mLoadedThingCardImageKeys: MutableSet<String> = HashSet()
 
     private var mCardWidth: Int = DisplayUtil.getThingCardWidth(context)
     private var mFullSpanCardWidth: Int = DisplayUtil.getThingCardWidth(context)
@@ -89,7 +89,7 @@ abstract class BaseThingsAdapter(context: Context?) :
     protected abstract fun getCurrentMode(): Int
     protected abstract fun getThings(): List<Thing?>?
 
-    protected open fun isFullSpanHomeCard(thing: Thing): Boolean = false
+    protected open fun isFullSpanThingCard(thing: Thing): Boolean = false
 
     /**
      * Pick a text/foreground colour to draw on top of a card whose background
@@ -135,6 +135,11 @@ abstract class BaseThingsAdapter(context: Context?) :
 
     open fun setCardWidth(cardWidth: Int) {
         mCardWidth = cardWidth
+        mFullSpanCardWidth = cardWidth
+    }
+
+    open fun setFullSpanCardWidth(cardWidth: Int) {
+        mFullSpanCardWidth = cardWidth
     }
 
     open fun setShouldShowPrivateContent(shouldShowPrivateContent: Boolean) {
@@ -180,17 +185,17 @@ abstract class BaseThingsAdapter(context: Context?) :
     }
 
     private fun getCardContentWidth(thing: Thing): Int {
-        return if (isFullSpanHomeCard(thing)) mFullSpanCardWidth else mCardWidth
+        return if (isFullSpanThingCard(thing)) mFullSpanCardWidth else mCardWidth
     }
 
     private fun shouldUseFixedCardContentWidth(thing: Thing): Boolean {
-        return isFullSpanHomeCard(thing)
+        return isFullSpanThingCard(thing)
                 || thing.isPrivate() && !mShouldShowPrivateContent
                 || AttachmentHelper.getFirstImageTypePathName(thing.attachment) != null
     }
 
     private fun applyCardContentGeometry(holder: BaseThingViewHolder, thing: Thing) {
-        val fullSpan = isFullSpanHomeCard(thing)
+        val fullSpan = isFullSpanThingCard(thing)
         holder.llContent!!.orientation = LinearLayout.VERTICAL
         val lp = holder.llContent!!.layoutParams
         val fixedWidth = shouldUseFixedCardContentWidth(thing)
@@ -401,7 +406,7 @@ abstract class BaseThingsAdapter(context: Context?) :
                 }
                 adapter.setThingColor(thing.getColor())
                 adapter.setMaxItemCount(
-                    if (isFullSpanHomeCard(thing))
+                    if (isFullSpanThingCard(thing))
                         FULL_SPAN_CHECKLIST_MAX_ITEM_COUNT
                     else
                         mChecklistMaxItemCount
@@ -530,29 +535,29 @@ abstract class BaseThingsAdapter(context: Context?) :
         }
     }
 
-    private fun getEffectiveHomeCardImagePlacement(thing: Thing): Int {
-        val placement = when (thing.homeCardImagePlacement) {
-            Thing.HOME_CARD_IMAGE_PLACEMENT_TOP,
-            Thing.HOME_CARD_IMAGE_PLACEMENT_BOTTOM,
-            Thing.HOME_CARD_IMAGE_PLACEMENT_LEFT,
-            Thing.HOME_CARD_IMAGE_PLACEMENT_RIGHT -> thing.homeCardImagePlacement
-            else -> Thing.HOME_CARD_IMAGE_PLACEMENT_TOP
+    private fun getEffectiveThingCardImagePlacement(thing: Thing): Int {
+        val placement = when (thing.thingCardImagePlacement) {
+            Thing.THING_CARD_IMAGE_PLACEMENT_TOP,
+            Thing.THING_CARD_IMAGE_PLACEMENT_BOTTOM,
+            Thing.THING_CARD_IMAGE_PLACEMENT_LEFT,
+            Thing.THING_CARD_IMAGE_PLACEMENT_RIGHT -> thing.thingCardImagePlacement
+            else -> Thing.THING_CARD_IMAGE_PLACEMENT_TOP
         }
-        if (!isFullSpanHomeCard(thing)
-            && (placement == Thing.HOME_CARD_IMAGE_PLACEMENT_LEFT
-                    || placement == Thing.HOME_CARD_IMAGE_PLACEMENT_RIGHT)
+        if (!isFullSpanThingCard(thing)
+            && (placement == Thing.THING_CARD_IMAGE_PLACEMENT_LEFT
+                    || placement == Thing.THING_CARD_IMAGE_PLACEMENT_RIGHT)
         ) {
-            return Thing.HOME_CARD_IMAGE_PLACEMENT_TOP
+            return Thing.THING_CARD_IMAGE_PLACEMENT_TOP
         }
         return placement
     }
 
-    private fun isSideImagePlacement(@Thing.HomeCardImagePlacement placement: Int): Boolean {
-        return placement == Thing.HOME_CARD_IMAGE_PLACEMENT_LEFT
-                || placement == Thing.HOME_CARD_IMAGE_PLACEMENT_RIGHT
+    private fun isSideImagePlacement(@Thing.ThingCardImagePlacement placement: Int): Boolean {
+        return placement == Thing.THING_CARD_IMAGE_PLACEMENT_LEFT
+                || placement == Thing.THING_CARD_IMAGE_PLACEMENT_RIGHT
     }
 
-    private fun moveHomeCardChild(parent: LinearLayout, child: View, index: Int) {
+    private fun moveThingCardChild(parent: LinearLayout, child: View, index: Int) {
         if (parent.indexOfChild(child) == index) return
 
         parent.removeView(child)
@@ -569,7 +574,7 @@ abstract class BaseThingsAdapter(context: Context?) :
                 || holder.ivPrivateThing!!.isVisible
     }
 
-    private fun setHomeCardImageFrameSize(
+    private fun setThingCardImageFrameSize(
         holder: BaseThingViewHolder,
         width: Int,
         height: Int
@@ -592,22 +597,22 @@ abstract class BaseThingsAdapter(context: Context?) :
         }
     }
 
-    private fun loadHomeCardImage(
+    private fun loadThingCardImage(
         holder: BaseThingViewHolder,
         pathName: String,
         imageW: Int,
         imageH: Int
     ) {
         val loadKey = "$pathName:$imageW:$imageH"
-        if (holder.ivImageAttachment!!.getTag(R.id.tag_home_card_image_load_key) == loadKey) {
+        if (holder.ivImageAttachment!!.getTag(R.id.tag_thing_card_image_load_key) == loadKey) {
             holder.pbLoading!!.visibility = View.GONE
             return
         }
 
-        val imageWasLoaded = mLoadedHomeCardImageKeys.contains(loadKey)
+        val imageWasLoaded = mLoadedThingCardImageKeys.contains(loadKey)
         holder.pbLoading!!.visibility = if (imageWasLoaded) View.GONE else View.VISIBLE
         mImageRequestManager!!.clear(holder.ivImageAttachment!!)
-        holder.ivImageAttachment.setTag(R.id.tag_home_card_image_load_key, loadKey)
+        holder.ivImageAttachment.setTag(R.id.tag_thing_card_image_load_key, loadKey)
         mImageRequestManager!!
             .load(pathName)
             .override(imageW, imageH)
@@ -617,7 +622,7 @@ abstract class BaseThingsAdapter(context: Context?) :
                     isFirstResource: Boolean
                 ): Boolean {
                     if (holder.ivImageAttachment!!.getTag(
-                            R.id.tag_home_card_image_load_key
+                            R.id.tag_thing_card_image_load_key
                         ) == loadKey
                     ) {
                         holder.pbLoading!!.visibility = View.GONE
@@ -629,9 +634,9 @@ abstract class BaseThingsAdapter(context: Context?) :
                     resource: Drawable, model: Any, target: Target<Drawable>?,
                     dataSource: DataSource, isFirstResource: Boolean
                 ): Boolean {
-                    mLoadedHomeCardImageKeys.add(loadKey)
+                    mLoadedThingCardImageKeys.add(loadKey)
                     if (holder.ivImageAttachment!!.getTag(
-                            R.id.tag_home_card_image_load_key
+                            R.id.tag_thing_card_image_load_key
                         ) == loadKey
                     ) {
                         holder.pbLoading!!.visibility = View.GONE
@@ -655,7 +660,7 @@ abstract class BaseThingsAdapter(context: Context?) :
     ) {
         holder.llContent!!.post {
             if (holder.flImageAttachment!!.getTag(
-                    R.id.tag_home_card_side_image_bind_token
+                    R.id.tag_thing_card_side_image_bind_token
                 ) != bindToken
             ) {
                 return@post
@@ -664,7 +669,7 @@ abstract class BaseThingsAdapter(context: Context?) :
 
             val targetHeight = max(holder.llTextContent!!.measuredHeight, minHeight)
             mSideImageHeightCache.put(
-                thingId, HomeCardSideImageHeightCache(heightCacheKey, targetHeight)
+                thingId, ThingCardSideImageHeightCache(heightCacheKey, targetHeight)
             )
             val imageLp = holder.flImageAttachment.layoutParams as LinearLayout.LayoutParams
             if (imageLp.height == targetHeight) return@post
@@ -674,17 +679,17 @@ abstract class BaseThingsAdapter(context: Context?) :
             imageLp.weight = 0f
             imageLp.setMargins(0, 0, 0, 0)
             holder.flImageAttachment.layoutParams = imageLp
-            setHomeCardImageFrameSize(
+            setThingCardImageFrameSize(
                 holder, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
             )
-            loadHomeCardImage(holder, pathName, imageW, targetHeight)
+            loadThingCardImage(holder, pathName, imageW, targetHeight)
         }
     }
 
-    private fun applyHomeCardImagePlacementLayout(
+    private fun applyThingCardImagePlacementLayout(
         holder: BaseThingViewHolder,
         thing: Thing,
-        @Thing.HomeCardImagePlacement placement: Int,
+        @Thing.ThingCardImagePlacement placement: Int,
         sideImageHeight: Int? = null
     ) {
         val parent = holder.llContent!!
@@ -695,12 +700,12 @@ abstract class BaseThingsAdapter(context: Context?) :
             parent.orientation = LinearLayout.HORIZONTAL
             parent.layoutDirection = View.LAYOUT_DIRECTION_LTR
             textContent.layoutDirection = View.LAYOUT_DIRECTION_LOCALE
-            if (placement == Thing.HOME_CARD_IMAGE_PLACEMENT_LEFT) {
-                moveHomeCardChild(parent, image, 0)
-                moveHomeCardChild(parent, textContent, 1)
+            if (placement == Thing.THING_CARD_IMAGE_PLACEMENT_LEFT) {
+                moveThingCardChild(parent, image, 0)
+                moveThingCardChild(parent, textContent, 1)
             } else {
-                moveHomeCardChild(parent, textContent, 0)
-                moveHomeCardChild(parent, image, 1)
+                moveThingCardChild(parent, textContent, 0)
+                moveThingCardChild(parent, image, 1)
             }
 
             val imageWidth = getSideImageWidth(thing)
@@ -725,12 +730,12 @@ abstract class BaseThingsAdapter(context: Context?) :
             parent.orientation = LinearLayout.VERTICAL
             parent.layoutDirection = View.LAYOUT_DIRECTION_LOCALE
             textContent.layoutDirection = View.LAYOUT_DIRECTION_LOCALE
-            if (placement == Thing.HOME_CARD_IMAGE_PLACEMENT_BOTTOM) {
-                moveHomeCardChild(parent, textContent, 0)
-                moveHomeCardChild(parent, image, 1)
+            if (placement == Thing.THING_CARD_IMAGE_PLACEMENT_BOTTOM) {
+                moveThingCardChild(parent, textContent, 0)
+                moveThingCardChild(parent, image, 1)
             } else {
-                moveHomeCardChild(parent, image, 0)
-                moveHomeCardChild(parent, textContent, 1)
+                moveThingCardChild(parent, image, 0)
+                moveThingCardChild(parent, textContent, 1)
             }
 
             val imageLp = image.layoutParams as LinearLayout.LayoutParams
@@ -739,7 +744,7 @@ abstract class BaseThingsAdapter(context: Context?) :
             imageLp.weight = 0f
             imageLp.setMargins(
                 0,
-                if (placement == Thing.HOME_CARD_IMAGE_PLACEMENT_BOTTOM
+                if (placement == Thing.THING_CARD_IMAGE_PLACEMENT_BOTTOM
                     && hasMainContentAboveImage(holder)
                 ) {
                     (mDensity * 16).toInt()
@@ -775,14 +780,14 @@ abstract class BaseThingsAdapter(context: Context?) :
 
     private fun getSideImageHeightCacheKey(
         thing: Thing,
-        @Thing.HomeCardImagePlacement placement: Int,
+        @Thing.ThingCardImagePlacement placement: Int,
         pathName: String,
         imageW: Int
     ): String {
         return thing.updateTime.toString() +
                 ":" + thing.type +
                 ":" + thing.state +
-                ":" + thing.homeCardSpanMode +
+                ":" + thing.thingCardSpanMode +
                 ":" + placement +
                 ":" + pathName +
                 ":" + getCardContentWidth(thing) +
@@ -794,12 +799,12 @@ abstract class BaseThingsAdapter(context: Context?) :
         return if (cached.key == heightCacheKey) cached.height else null
     }
 
-    private fun updateHomeCardImageCountLayout(
+    private fun updateThingCardImageCountLayout(
         holder: BaseThingViewHolder,
-        @Thing.HomeCardImagePlacement placement: Int
+        @Thing.ThingCardImagePlacement placement: Int
     ) {
         val countLp = holder.tvImageCount!!.layoutParams as FrameLayout.LayoutParams
-        val gravityHorizontal = if (placement == Thing.HOME_CARD_IMAGE_PLACEMENT_RIGHT) {
+        val gravityHorizontal = if (placement == Thing.THING_CARD_IMAGE_PLACEMENT_RIGHT) {
             Gravity.RIGHT
         } else {
             Gravity.LEFT
@@ -816,7 +821,7 @@ abstract class BaseThingsAdapter(context: Context?) :
         val firstImageTypePathName: String? = AttachmentHelper.getFirstImageTypePathName(attachment)
         if (firstImageTypePathName != null) {
             holder.flImageAttachment!!.visibility = View.VISIBLE
-            val placement = getEffectiveHomeCardImagePlacement(thing)
+            val placement = getEffectiveThingCardImagePlacement(thing)
             val pathName = firstImageTypePathName.substring(1, firstImageTypePathName.length)
 
             val sideImage = isSideImagePlacement(placement)
@@ -825,7 +830,7 @@ abstract class BaseThingsAdapter(context: Context?) :
             } else {
                 null
             }
-            applyHomeCardImagePlacementLayout(
+            applyThingCardImagePlacementLayout(
                 holder,
                 thing,
                 placement,
@@ -851,27 +856,27 @@ abstract class BaseThingsAdapter(context: Context?) :
             holder.flImageAttachment.layoutParams = paramsLayout
 
             val bindToken = thing.id.toString() + ":" + placement + ":" + pathName
-            holder.flImageAttachment.setTag(R.id.tag_home_card_side_image_bind_token, bindToken)
+            holder.flImageAttachment.setTag(R.id.tag_thing_card_side_image_bind_token, bindToken)
 
             if (sideImage) {
                 val initialHeight = paramsLayout.height
-                setHomeCardImageFrameSize(
+                setThingCardImageFrameSize(
                     holder,
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT
                 )
-                loadHomeCardImage(holder, pathName, imageW, initialHeight)
+                loadThingCardImage(holder, pathName, imageW, initialHeight)
                 syncSideImageHeightAfterMeasure(
                     holder, bindToken, thing.id, sideImageHeightCacheKey!!,
                     pathName, imageW, initialHeight
                 )
             } else {
-                setHomeCardImageFrameSize(
+                setThingCardImageFrameSize(
                     holder,
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     imageH
                 )
-                loadHomeCardImage(holder, pathName, imageW, imageH)
+                loadThingCardImage(holder, pathName, imageW, imageH)
             }
 
             if (holder.tvTitle!!.isGone
@@ -882,7 +887,7 @@ abstract class BaseThingsAdapter(context: Context?) :
                 && holder.rlHabit!!.isGone
             ) {
                 holder.vPaddingBottom!!.visibility = View.GONE
-            } else if (placement == Thing.HOME_CARD_IMAGE_PLACEMENT_BOTTOM) {
+            } else if (placement == Thing.THING_CARD_IMAGE_PLACEMENT_BOTTOM) {
                 holder.vPaddingBottom!!.visibility = View.GONE
             } else {
                 holder.vPaddingBottom!!.visibility = View.VISIBLE
@@ -891,7 +896,7 @@ abstract class BaseThingsAdapter(context: Context?) :
             holder.tvImageCount!!.text =
                 AttachmentHelper.getImageAttachmentCountStr(attachment, mContext)
             holder.tvImageCount.setTextColor(textColorSecondary(thing.getColor()))
-            updateHomeCardImageCountLayout(holder, placement)
+            updateThingCardImageCountLayout(holder, placement)
 
             if (getCurrentMode() == ModeManager.NORMAL) {
                 holder.vImageCover!!.visibility = View.GONE
@@ -900,8 +905,8 @@ abstract class BaseThingsAdapter(context: Context?) :
                     if (thing.isSelected()) View.GONE else View.VISIBLE
             }
         } else {
-            holder.flImageAttachment!!.setTag(R.id.tag_home_card_side_image_bind_token, null)
-            holder.ivImageAttachment!!.setTag(R.id.tag_home_card_image_load_key, null)
+            holder.flImageAttachment!!.setTag(R.id.tag_thing_card_side_image_bind_token, null)
+            holder.ivImageAttachment!!.setTag(R.id.tag_thing_card_image_load_key, null)
             mImageRequestManager!!.clear(holder.ivImageAttachment!!)
             holder.vPaddingBottom!!.visibility = View.VISIBLE
             holder.flImageAttachment!!.visibility = View.GONE
@@ -909,7 +914,7 @@ abstract class BaseThingsAdapter(context: Context?) :
     }
 
     private fun getImageHeight(thing: Thing, imageW: Int): Int {
-        if (!isFullSpanHomeCard(thing)) return imageW * 3 / 4
+        if (!isFullSpanThingCard(thing)) return imageW * 3 / 4
 
         val minHeight = mContext!!.resources.getDimensionPixelSize(
             R.dimen.thing_card_full_span_image_min_height
@@ -1000,7 +1005,7 @@ abstract class BaseThingsAdapter(context: Context?) :
     }
 
     private fun updateFullSpanSparseMinHeight(holder: BaseThingViewHolder, thing: Thing) {
-        if (!isFullSpanHomeCard(thing)) return
+        if (!isFullSpanThingCard(thing)) return
         if (holder.flImageAttachment!!.isVisible
             || holder.rvChecklist!!.isVisible
             || holder.rlReminder!!.isVisible
@@ -1159,7 +1164,7 @@ abstract class BaseThingsAdapter(context: Context?) :
         }
     }
 
-    private data class HomeCardSideImageHeightCache(
+    private data class ThingCardSideImageHeightCache(
         val key: String,
         val height: Int
     )

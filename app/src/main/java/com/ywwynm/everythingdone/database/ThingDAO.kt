@@ -1,4 +1,4 @@
-package com.ywwynm.everythingdone.database
+﻿package com.ywwynm.everythingdone.database
 
 import android.content.ContentValues
 import android.content.Context
@@ -88,10 +88,10 @@ open class ThingDAO private constructor(context: Context?) {
         values.put(Def.Database.COLUMN_CREATE_TIME_THINGS, System.currentTimeMillis())
         values.put(Def.Database.COLUMN_UPDATE_TIME_THINGS, System.currentTimeMillis())
         values.put(Def.Database.COLUMN_FINISH_TIME_THINGS, 0)
-        values.put(Def.Database.COLUMN_HOME_CARD_SPAN_MODE_THINGS, Thing.HOME_CARD_SPAN_NORMAL)
+        values.put(Def.Database.COLUMN_THING_CARD_SPAN_MODE_THINGS, Thing.THING_CARD_SPAN_NORMAL)
         values.put(
-            Def.Database.COLUMN_HOME_CARD_IMAGE_PLACEMENT_THINGS,
-            Thing.HOME_CARD_IMAGE_PLACEMENT_DEFAULT
+            Def.Database.COLUMN_THING_CARD_IMAGE_PLACEMENT_THINGS,
+            Thing.THING_CARD_IMAGE_PLACEMENT_DEFAULT
         )
 
         db!!.insert(Def.Database.TABLE_THINGS, null, values)
@@ -199,10 +199,10 @@ open class ThingDAO private constructor(context: Context?) {
         values.put(Def.Database.COLUMN_UPDATE_TIME_THINGS, thing.updateTime)
         values.put(Def.Database.COLUMN_FINISH_TIME_THINGS, thing.finishTime)
         values.put(Def.Database.COLUMN_BACKGROUND_THINGS,  thing.getBackground()!!.toJson())
-        values.put(Def.Database.COLUMN_HOME_CARD_SPAN_MODE_THINGS, thing.homeCardSpanMode)
+        values.put(Def.Database.COLUMN_THING_CARD_SPAN_MODE_THINGS, thing.thingCardSpanMode)
         values.put(
-            Def.Database.COLUMN_HOME_CARD_IMAGE_PLACEMENT_THINGS,
-            thing.homeCardImagePlacement
+            Def.Database.COLUMN_THING_CARD_IMAGE_PLACEMENT_THINGS,
+            thing.thingCardImagePlacement
         )
 
         try {
@@ -231,10 +231,10 @@ open class ThingDAO private constructor(context: Context?) {
         values.put(Def.Database.COLUMN_TYPE_THINGS, typeAfter)
         values.put(Def.Database.COLUMN_COLOR_THINGS, updatedThing.getColor())
         values.put(Def.Database.COLUMN_BACKGROUND_THINGS, updatedThing.getBackground()!!.toJson())
-        values.put(Def.Database.COLUMN_HOME_CARD_SPAN_MODE_THINGS, updatedThing.homeCardSpanMode)
+        values.put(Def.Database.COLUMN_THING_CARD_SPAN_MODE_THINGS, updatedThing.thingCardSpanMode)
         values.put(
-            Def.Database.COLUMN_HOME_CARD_IMAGE_PLACEMENT_THINGS,
-            updatedThing.homeCardImagePlacement
+            Def.Database.COLUMN_THING_CARD_IMAGE_PLACEMENT_THINGS,
+            updatedThing.thingCardImagePlacement
         )
         values.put(Def.Database.COLUMN_TITLE_THINGS, updatedThing.title)
         values.put(Def.Database.COLUMN_CONTENT_THINGS, updatedThing.content)
@@ -281,10 +281,10 @@ open class ThingDAO private constructor(context: Context?) {
             values.put(Def.Database.COLUMN_CREATE_TIME_THINGS, thing.createTime)
             values.put(Def.Database.COLUMN_UPDATE_TIME_THINGS, thing.updateTime)
             values.put(Def.Database.COLUMN_FINISH_TIME_THINGS, thing.finishTime)
-            values.put(Def.Database.COLUMN_HOME_CARD_SPAN_MODE_THINGS, thing.homeCardSpanMode)
+            values.put(Def.Database.COLUMN_THING_CARD_SPAN_MODE_THINGS, thing.thingCardSpanMode)
             values.put(
-                Def.Database.COLUMN_HOME_CARD_IMAGE_PLACEMENT_THINGS,
-                thing.homeCardImagePlacement
+                Def.Database.COLUMN_THING_CARD_IMAGE_PLACEMENT_THINGS,
+                thing.thingCardImagePlacement
             )
 
             db!!.insert(Def.Database.TABLE_THINGS, null, values)
@@ -310,10 +310,10 @@ open class ThingDAO private constructor(context: Context?) {
 
                 values.put(Def.Database.COLUMN_CONTENT_THINGS, thing.content)
                 values.put(Def.Database.COLUMN_STATE_THINGS, stateAfter)
-                values.put(Def.Database.COLUMN_HOME_CARD_SPAN_MODE_THINGS, thing.homeCardSpanMode)
+                values.put(Def.Database.COLUMN_THING_CARD_SPAN_MODE_THINGS, thing.thingCardSpanMode)
                 values.put(
-                    Def.Database.COLUMN_HOME_CARD_IMAGE_PLACEMENT_THINGS,
-                    thing.homeCardImagePlacement
+                    Def.Database.COLUMN_THING_CARD_IMAGE_PLACEMENT_THINGS,
+                    thing.thingCardImagePlacement
                 )
                 db!!.update(Def.Database.TABLE_THINGS, values, "id=$id", null)
             } else {

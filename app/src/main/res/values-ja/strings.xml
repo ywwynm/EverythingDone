@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="everythingdone">EverythingDone</string>
     <string name="yes">はい</string>
@@ -215,10 +215,10 @@
     <string name="act_abandon_new_thing">放棄する</string>
     <string name="act_set_as_private_thing">プライベートなものとして設定</string>
     <string name="act_cancel_private_thing">プライベートなものの設定をキャンセルする</string>
-    <string name="act_set_full_span_home_card">カードを拡大</string>
-    <string name="act_cancel_full_span_home_card">カードを縮小</string>
-    <string name="msg_home_card_span_enlarged">カードを拡大しました</string>
-    <string name="msg_home_card_span_shrunk">カードを縮小しました</string>
+    <string name="act_set_full_span_thing_card">カードを拡大</string>
+    <string name="act_cancel_full_span_thing_card">カードを縮小</string>
+    <string name="msg_thing_card_span_enlarged">カードを拡大しました</string>
+    <string name="msg_thing_card_span_shrunk">カードを縮小しました</string>
     <string name="act_set_thing_as_ongoing">通知に表示</string>
     <string name="act_cancel_set_thing_as_ongoing">通知への表示をキャンセルする</string>
     <string name="act_finish">終了</string>

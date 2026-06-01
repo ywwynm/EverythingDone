@@ -1,4 +1,4 @@
-<menu xmlns:android="http://schemas.android.com/apk/res/android"
+﻿<menu xmlns:android="http://schemas.android.com/apk/res/android"
       xmlns:app="http://schemas.android.com/apk/res-auto"
       xmlns:tools="http://schemas.android.com/tools"
       tools:context="com.ywwynm.everythingdone.activities.DetailActivity"
@@ -28,8 +28,8 @@
         app:showAsAction="never"/>
 
     <item
-        android:id="@+id/act_toggle_home_card_span"
-        android:title="@string/act_set_full_span_home_card"
+        android:id="@+id/act_toggle_thing_card_span"
+        android:title="@string/act_set_full_span_thing_card"
         app:showAsAction="never"/>
 
     <item

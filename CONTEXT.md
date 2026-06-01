@@ -20,20 +20,20 @@ _Avoid_: app theme information, debug colour data
 Text, icons, and other adaptive foreground content drawn directly on top of a Thing Background. Its colour is chosen from the existing Thing Background lightness logic and does not depend on Appearance Mode.
 _Avoid_: dark-mode foreground
 
-**Thing Home Card**:
-The home-list representation of a Thing, whose layout may differ from the Detail screen while preserving the Thing's identity.
+**Thing Card**:
+A compact card representation of a Thing, used by the home list and embedded single-card surfaces such as Doing and noticeable reminder surfaces. Its layout may differ from the Detail screen while preserving the Thing's identity.
 _Avoid_: note card as the blanket term
 
-**Full-Span Home Card**:
-A Thing Home Card that is intentionally presented across the full home-list width as a persistent preference of that Thing.
+**Full-Span Thing Card**:
+A Thing Card that is intentionally presented with a wider card span as a persistent presentation preference of that Thing.
 _Avoid_: temporary wide row, per-filter layout state
 
-**Home Card Span Mode**:
-The persistent presentation choice that determines whether a Thing Home Card uses normal waterfall span or full home-list span.
+**Thing Card Span Mode**:
+The persistent presentation choice that determines whether a Thing Card uses normal span or full span in surfaces that support wider cards.
 _Avoid_: complete layout style, image placement mode
 
-**Home Card Image Placement**:
-The persistent presentation choice that determines where the first image attachment appears within a Thing Home Card relative to the card's other visible content.
+**Thing Card Image Placement**:
+The persistent presentation choice that determines where the first image attachment appears within a Thing Card relative to the card's other visible content.
 _Avoid_: attachment order, image crop ratio, image crop focus
 
 **App Chrome**:
@@ -62,10 +62,10 @@ _Avoid_: full-row clickable surface, full-card clickable surface, full-row actio
 - A **Thing Background** can be described by **Thing Background Information**.
 - A **Thing Background** overrides **Appearance Mode** for Thing-owned surfaces.
 - A **Thing Foreground** adapts to **Thing Background**, not to **Appearance Mode**.
-- A **Thing** has one **Thing Home Card** wherever it appears in the home list.
-- A **Full-Span Home Card** is a presentation preference of a **Thing**, not of a home-list filter.
-- A **Thing Home Card** has one **Home Card Span Mode**.
-- A **Thing Home Card** may have one **Home Card Image Placement** when the Thing has an image attachment.
+- A **Thing** has one **Thing Card** presentation preference that can be reused by card-based surfaces.
+- A **Full-Span Thing Card** is a presentation preference of a **Thing**, not of a home-list filter.
+- A **Thing Card** has one **Thing Card Span Mode**.
+- A **Thing Card** may have one **Thing Card Image Placement** when the Thing has an image attachment.
 - **Appearance Mode** applies to **App Chrome**.
 - A **Button-like Control** can appear on **App Chrome** or directly on a **Thing Background**.
 - **Thing Background Surfaces** do not recreate solely because **Appearance Mode** changes.
@@ -82,4 +82,4 @@ _Avoid_: full-row clickable surface, full-card clickable surface, full-row actio
 
 - "Dark mode settings" could mean two independent booleans; resolved as **Appearance Mode**, where follow-system has priority and disables manual dark-mode selection.
 - "Button" can mean either a local command control or an entire clickable row/card; resolved as **Button-like Control** for local command controls only.
-- "Note card" can mean only a Note-type Thing or any home-list card; resolved as **Thing Home Card** when discussing the shared home-list presentation.
+- "Note card" can mean only a Note-type Thing or any card representation; resolved as **Thing Card** when discussing shared card presentation.

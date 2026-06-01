@@ -51,6 +51,8 @@ import java.util.Collections
 
 import jp.wasabeef.blurry.Blurry
 import androidx.core.graphics.toColorInt
+import kotlin.math.max
+import kotlin.math.min
 
 /**
  * Created by qiizhang on 2016/10/31.
@@ -62,7 +64,6 @@ open class DoingActivity : EverythingDoneBaseActivity() {
     private var mApp: App? = null
 
     private var mCardWidth: Int = 0
-    private var mRvMaxHeight: Int = 0
 
     private var mDoingBinder: DoingService.DoingBinder? = null
 
@@ -95,6 +96,7 @@ open class DoingActivity : EverythingDoneBaseActivity() {
     private var mTimelyViews: Array<TimelyView?>? = null
 
     private var mRecyclerView: RecyclerView? = null
+    private var mTvSwipeToFinish: TextView? = null
 
     private var mLlBottom: LinearLayout? = null
     private var mFlAdd5Min: FrameLayout? = null
@@ -173,10 +175,27 @@ open class DoingActivity : EverythingDoneBaseActivity() {
 
     override fun initMembers() {
         mApp = App.getApp()
+    }
 
-        val base = DisplayUtil.getThingCardWidth(mApp)
-        mCardWidth   = (base * 1.2f).toInt()
-        mRvMaxHeight = (mCardWidth * 3 / 4f).toInt()
+    private fun getDoingThingCardWidth(thing: Thing): Int {
+        val configuredWidth = resources.getDimensionPixelSize(
+            if (isFullSpanThingCard(thing)) {
+                R.dimen.thing_card_single_surface_full_span_width
+            } else {
+                R.dimen.thing_card_single_surface_normal_width
+            }
+        )
+        val horizontalMargin = resources.getDimensionPixelSize(
+            R.dimen.thing_card_single_surface_horizontal_margin
+        )
+        val maxWidth = max(1, DisplayUtil.getScreenSize(mApp).x - horizontalMargin * 2)
+        return min(maxWidth, configuredWidth)
+    }
+
+    private fun isFullSpanThingCard(thing: Thing): Boolean {
+        return thing.type != Thing.HEADER
+                && thing.type < Thing.NOTIFICATION_UNDERWAY
+                && thing.thingCardSpanMode == Thing.THING_CARD_SPAN_FULL
     }
 
     override fun findViews() {
@@ -188,6 +207,7 @@ open class DoingActivity : EverythingDoneBaseActivity() {
         mLlSecond   = f(R.id.ll_second_doing)
 
         mRecyclerView = f(R.id.rv_thing_doing)
+        mTvSwipeToFinish = f(R.id.tv_swipe_to_finish_doing)
 
         mLlBottom      = f(R.id.ll_bottom_buttons_doing)
         mFlAdd5Min     = f(R.id.fl_add_5_min)
@@ -240,15 +260,37 @@ open class DoingActivity : EverythingDoneBaseActivity() {
 
     private fun setRecyclerViewEvent() {
         mRecyclerView!!.viewTreeObserver.addOnGlobalLayoutListener {
-            val height = mRecyclerView!!.height
-            if (height > mRvMaxHeight) {
+            val maxHeight = getThingCardRegionMaxHeight()
+            if (maxHeight > 0 && mRecyclerView!!.height > maxHeight) {
                 val vlp: ViewGroup.LayoutParams = mRecyclerView!!.layoutParams
-                vlp.height = mRvMaxHeight
+                vlp.height = maxHeight
                 mRecyclerView!!.requestLayout()
+                mRecyclerView!!.overScrollMode = View.OVER_SCROLL_ALWAYS
             }
         }
         val helper = ItemTouchHelper(CardTouchCallback())
         helper.attachToRecyclerView(mRecyclerView)
+    }
+
+    private fun getThingCardRegionMaxHeight(): Int {
+        val rvLocation = IntArray(2)
+        val bottomLocation = IntArray(2)
+        mRecyclerView!!.getLocationOnScreen(rvLocation)
+        mLlBottom!!.getLocationOnScreen(bottomLocation)
+
+        val bottomLimit = bottomLocation[1]
+        if (bottomLimit <= rvLocation[1]) return 0
+
+        val verticalMargin = resources.getDimensionPixelSize(
+            R.dimen.doing_thing_card_vertical_margin
+        )
+        return bottomLimit - rvLocation[1] - getSwipeToFinishReservedHeight() - verticalMargin
+    }
+
+    private fun getSwipeToFinishReservedHeight(): Int {
+        val view = mTvSwipeToFinish ?: return 0
+        val lp = view.layoutParams as? ViewGroup.MarginLayoutParams
+        return view.height + (lp?.topMargin ?: 0)
     }
 
     private fun initAfterBindService() {
@@ -326,8 +368,11 @@ open class DoingActivity : EverythingDoneBaseActivity() {
     }
 
     private fun initRecyclerView() {
-        val p = (DisplayUtil.getScreenSize(mApp).x - mCardWidth) / 2
-        mRecyclerView!!.setPadding(p, 0, p, 0)
+        mCardWidth = getDoingThingCardWidth(mThing!!)
+        val p = max(0, (DisplayUtil.getScreenSize(mApp).x - mCardWidth) / 2)
+        mRecyclerView!!.setPadding(
+            p, mRecyclerView!!.paddingTop, p, mRecyclerView!!.paddingBottom
+        )
 
         val singleThing: List<Thing?> = Collections.singletonList(mThing)
         val adapter: BaseThingsAdapter = object : BaseThingsAdapter(this@DoingActivity) {
@@ -335,6 +380,10 @@ open class DoingActivity : EverythingDoneBaseActivity() {
             override fun getCurrentMode(): Int = ModeManager.NORMAL
 
             override fun getThings(): List<Thing?> = singleThing
+
+            override fun isFullSpanThingCard(thing: Thing): Boolean {
+                return this@DoingActivity.isFullSpanThingCard(thing)
+            }
 
             override fun onBindViewHolder(holder: BaseThingViewHolder, position: Int) {
                 super.onBindViewHolder(holder, position)
