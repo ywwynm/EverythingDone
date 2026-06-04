@@ -215,10 +215,33 @@
     <string name="act_abandon_new_thing">Отказаться</string>
     <string name="act_set_as_private_thing">Установить как личное</string>
     <string name="act_cancel_private_thing">Отменить Установить личное</string>
-    <string name="act_set_full_span_thing_card">Увеличить карточку</string>
-    <string name="act_cancel_full_span_thing_card">Уменьшить карточку</string>
-    <string name="msg_thing_card_span_enlarged">Карточка увеличена</string>
-    <string name="msg_thing_card_span_shrunk">Карточка уменьшена</string>
+    <string name="act_customize_card_appearance">Customize card appearance</string>
+    <string name="thing_card_appearance_panel_title">Card appearance</string>
+    <string name="thing_card_appearance_media_image">Image</string>
+    <string name="thing_card_appearance_media_video">Video</string>
+    <string name="thing_card_appearance_source_format">%1$s · %2$s</string>
+    <string name="thing_card_appearance_source_default">Auto select</string>
+    <string name="thing_card_appearance_cover_media">Cover image</string>
+    <string name="thing_card_appearance_span_normal">Normal</string>
+    <string name="thing_card_appearance_span_full">Wide</string>
+    <string name="thing_card_appearance_card_width">Card width</string>
+    <string name="thing_card_appearance_placement_default">Default placement</string>
+    <string name="thing_card_appearance_placement_top">Top</string>
+    <string name="thing_card_appearance_placement_bottom">Bottom</string>
+    <string name="thing_card_appearance_placement_left">Left</string>
+    <string name="thing_card_appearance_placement_right">Right</string>
+    <string name="thing_card_appearance_mode_thumbnail">Thumbnail</string>
+    <string name="thing_card_appearance_media_position">Image/video position</string>
+    <string name="thing_card_appearance_mode_background">Background</string>
+    <string name="thing_card_appearance_side_width_format">Side image width · %1$d%%</string>
+    <string name="thing_card_appearance_precise_crop">Crop cover image</string>
+    <string name="thing_card_appearance_thumbnail_shape">Cover image ratio</string>
+    <string name="thing_card_appearance_background_mask">Background mask</string>
+    <string name="thing_card_appearance_background_height">Card height</string>
+    <string name="thing_card_appearance_video_frame">Video frame</string>
+    <string name="thing_card_appearance_video_frame_preview">Video frame preview</string>
+    <string name="thing_card_appearance_video_frame_previous">Previous frame</string>
+    <string name="thing_card_appearance_video_frame_next">Next frame</string>
     <string name="act_set_thing_as_ongoing">Показать в уведомлениях</string>
     <string name="act_cancel_set_thing_as_ongoing">Отменить показ в уведомлениях</string>
     <string name="act_finish">Готово</string>
@@ -483,12 +506,12 @@
     <string name="backup_loading_content">Пожалуйста, подождите некоторое время. Может быть, ты можешь выпить что-нибудь.</string>
     <string name="backup_loading_title">Резервное копирование</string>
     <string name="backup_start">Начать резервное копирование</string>
-    <string name="backup_success_content">Файл резервной копии находится по адресу sdcard/EverythingDone/backup, имя которого начинается с \\"ED_backup_\\", а постфикс — \\".bak\\".</string>
+    <string name="backup_success_content">Файл резервной копии находится по адресу sdcard/EverythingDone/backup, имя которого начинается с \"ED_backup_\", а постфикс — \".bak\".</string>
     <string name="backup_success_title">Резервное копирование успешно выполнено</string>
     <string name="last_backup">Последняя резервная копия:</string>
     <string name="no_backup_before">Никакой резервной копии раньше</string>
     <string name="restore">Восстановить</string>
-    <string name="restore_content">Выберите действительный файл резервной копии EverythingDone, постфикс которого должен быть \\".bak\\". Местоположение резервных копий по умолчанию — sdcard/EverythingDone/backup.</string>
+    <string name="restore_content">Выберите действительный файл резервной копии EverythingDone, постфикс которого должен быть \".bak\". Местоположение резервных копий по умолчанию — sdcard/EverythingDone/backup.</string>
     <string name="restore_failed_other">Убедитесь, что файл резервной копии действителен.</string>
     <string name="restore_failed_title">Восстановление не удалось</string>
     <string name="restore_loading_content">Пожалуйста, подождите некоторое время. Как насчет того, чтобы съесть что-нибудь?</string>
@@ -547,7 +570,7 @@
     <string name="close_notification_later">Не разрешайте \' закрывать заметное уведомление в течение 2 секунд после его появления.</string>
     <string name="create_daily_todo_automatically">Создавайте ежедневные TODO каждое утро</string>
     <string name="daily_todo_set_time_title">Настроить время автосоздания</string>
-    <string name="create_daily_todo_help_info">EverythingDone каждое утро автоматически создаст объект с заголовком \\"Things to do на MM d, yyyy\\", и вы сможете определить его содержание (если вы не сделаете \'t и оставите содержимое и вложение пустыми, объект не будет создан).
+    <string name="create_daily_todo_help_info">EverythingDone каждое утро автоматически создаст объект с заголовком \"Things to do на MM d, yyyy\", и вы сможете определить его содержание (если вы не сделаете \'t и оставите содержимое и вложение пустыми, объект не будет создан).
         \n\nМы также установим напоминание об этом в 14:00, потому что вы, возможно, захотите получать напоминание о завершении своих планов и задач.</string>
     <string name="auto_notify">Автоматическое напоминание</string>
     <string name="auto_notify_help_info">EverythingDone автоматически напомнит вам после создания новой вещи. Если вы не \' не создавали запись, EverythingDone решит, следует ли устанавливать автоматическое напоминание в соответствии со временем напоминания вещи\'.</string>
@@ -773,10 +796,10 @@
     <string name="from_1_2_7_to_1_3_0_title">Дела? Делать!</string>
     <string name="from_1_2_7_to_1_3_0_content">Будет более заметное уведомление о сигналах тревоги Things\'. Если вы готовы, можете приступить к делу сразу после уведомления, EverythingDone поможет вам аккуратно его завершить.</string>
     <string name="from_1_3_0_to_1_3_1_title">Начните делать что-то в любой момент или автоматически</string>
-    <string name="from_1_3_0_to_1_3_1_content">Теперь вы можете смахнуть карточку предмета вправо, чтобы начать делать это в любой момент.\n\nКроме того, теперь вы также можете включить автоматическое начало выполнения дела, когда приходит напоминание, с помощью еще одной новой функции, автоматического перехода в строгий режим, EverythingDone может помочь вам больше не говорить \\"сделать это позже\\".</string>
+    <string name="from_1_3_0_to_1_3_1_content">Теперь вы можете смахнуть карточку предмета вправо, чтобы начать делать это в любой момент.\n\nКроме того, теперь вы также можете включить автоматическое начало выполнения дела, когда приходит напоминание, с помощью еще одной новой функции, автоматического перехода в строгий режим, EverythingDone может помочь вам больше не говорить \"сделать это позже\".</string>
     <string name="from_1_3_3_to_1_3_4_title">Автоматически сохраняйте изменения и меняйте записи о привычках</string>
     <string name="from_1_3_3_to_1_3_4_content">Теперь вы можете включить автоматическое сохранение правок при создании или обновлении вещи.
-    \n\nВы также можете изменить свои последние записи о привычках, чтобы исправить ошибки или восстановить потерянные воспоминания. Проверьте привычку, откройте меню, нажмите \\"проверить подробности привычки\\", и вы увидите это действие.</string>
+    \n\nВы также можете изменить свои последние записи о привычках, чтобы исправить ошибки или восстановить потерянные воспоминания. Проверьте привычку, откройте меню, нажмите \"проверить подробности привычки\", и вы увидите это действие.</string>
     <string name="channel_reminder">Напоминания</string>
     <string name="channel_habit">Привычки</string>
     <string name="channel_goal">Цели</string>

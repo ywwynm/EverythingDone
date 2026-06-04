@@ -5,6 +5,7 @@ package com.ywwynm.everythingdone.activities
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.app.ActivityManager
+import android.app.Dialog
 import android.os.Build
 import androidx.activity.OnBackPressedCallback
 import android.content.BroadcastReceiver
@@ -12,12 +13,17 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
+import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Point
+import android.graphics.Typeface
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
+import android.graphics.drawable.GradientDrawable
+import android.media.MediaMetadataRetriever
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -26,6 +32,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.app.ActivityOptionsCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.GravityCompat
+import androidx.core.widget.TextViewCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.appcompat.app.ActionBar
 import androidx.appcompat.app.ActionBarDrawerToggle
@@ -42,18 +49,26 @@ import android.view.MenuItem
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewAnimationUtils
+import android.view.ViewGroup
 import android.view.ViewTreeObserver
+import android.view.Window
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
 import android.widget.EditText
 import android.widget.FrameLayout
+import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.RelativeLayout
+import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.content.res.AppCompatResources
 
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.resource.bitmap.VideoDecoder
+import com.bumptech.glide.request.RequestOptions
+import com.bumptech.glide.signature.ObjectKey
 import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.FrequentSettings
@@ -69,8 +84,10 @@ import com.ywwynm.everythingdone.fragments.LongTextDialogFragment
 import com.ywwynm.everythingdone.fragments.ThreeActionsAlertDialogFragment
 import com.ywwynm.everythingdone.helpers.AlarmHelper
 import com.ywwynm.everythingdone.helpers.AppUpdateHelper
+import com.ywwynm.everythingdone.helpers.AttachmentHelper
 import com.ywwynm.everythingdone.helpers.AuthenticationHelper
 import com.ywwynm.everythingdone.helpers.CheckListHelper
+import com.ywwynm.everythingdone.helpers.ThingCardMediaHelper
 import com.ywwynm.everythingdone.helpers.SendInfoHelper
 import com.ywwynm.everythingdone.helpers.ThingDoingHelper
 import com.ywwynm.everythingdone.helpers.ThingExporter
@@ -81,6 +98,7 @@ import com.ywwynm.everythingdone.model.Habit
 import com.ywwynm.everythingdone.model.HabitRecord
 import com.ywwynm.everythingdone.model.Reminder
 import com.ywwynm.everythingdone.model.Thing
+import com.ywwynm.everythingdone.model.ThingCardAppearance
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.model.ThingsCounts
 import com.ywwynm.everythingdone.permission.PermissionUtil
@@ -88,6 +106,7 @@ import com.ywwynm.everythingdone.permission.SimplePermissionCallback
 import com.ywwynm.everythingdone.services.DoingService
 import com.ywwynm.everythingdone.utils.AppearanceUtil
 import com.ywwynm.everythingdone.utils.BackgroundUtil
+import com.ywwynm.everythingdone.utils.BitmapUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil
 import com.ywwynm.everythingdone.utils.FileUtil
@@ -99,14 +118,25 @@ import com.ywwynm.everythingdone.views.DrawerHeader
 import com.ywwynm.everythingdone.views.FloatingActionButton
 import com.ywwynm.everythingdone.views.Snackbar
 import com.ywwynm.everythingdone.views.ThingsStaggeredLayoutManager
+import com.ywwynm.everythingdone.views.ThingCardCropEditorController
+import com.ywwynm.everythingdone.views.ThingCardCropEditorView
+import com.ywwynm.everythingdone.views.ThingCardRatioTicksView
+import com.ywwynm.everythingdone.views.ThingCardVideoCropEditorView
+import com.ywwynm.everythingdone.views.pickers.ThingCardAppearanceSourcePicker
 import com.ywwynm.everythingdone.views.pickers.ColorPicker
 import com.ywwynm.everythingdone.views.reveal.RevealLayout
 import com.ywwynm.everythingdone.views.reveal.ShiningBorder
 
 import java.io.File
 import java.util.ArrayList
+import java.util.HashMap
 import java.util.HashSet
+import kotlin.math.abs
+import kotlin.math.ceil
 import kotlin.math.hypot
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.roundToInt
 import androidx.core.view.get
 import androidx.core.graphics.toColorInt
 
@@ -149,6 +179,63 @@ class ThingsActivity : EverythingDoneBaseActivity() {
     private var mAdapter: ThingsAdapterWrapper? = null
     private var mThingsTouchHelper: ItemTouchHelper? = null
     private var mStaggeredGridLayoutManager: ThingsStaggeredLayoutManager? = null
+    private var mThingCardAppearancePanel: View? = null
+    private var mTvThingCardAppearanceTitle: TextView? = null
+    private var mTvThingCardAppearanceSource: TextView? = null
+    private var mLlThingCardAppearanceVideoFrame: View? = null
+    private var mIvThingCardAppearanceVideoFramePreview: ImageView? = null
+    private var mBtThingCardAppearanceVideoFramePrevious: TextView? = null
+    private var mBtThingCardAppearanceVideoFrameNext: TextView? = null
+    private var mSeekThingCardAppearanceVideoFrame: SeekBar? = null
+    private var mBtThingCardAppearanceSpanNormal: TextView? = null
+    private var mBtThingCardAppearanceSpanFull: TextView? = null
+    private var mBtThingCardAppearancePlacementTop: TextView? = null
+    private var mBtThingCardAppearancePlacementBottom: TextView? = null
+    private var mBtThingCardAppearancePlacementLeft: TextView? = null
+    private var mBtThingCardAppearancePlacementRight: TextView? = null
+    private var mBtThingCardAppearancePlacementBackground: TextView? = null
+    private var mLlThingCardAppearanceSideWidth: View? = null
+    private var mTvThingCardAppearanceSideWidth: TextView? = null
+    private var mSeekThingCardAppearanceSideWidth: SeekBar? = null
+    private var mBtThingCardAppearancePreciseCrop: TextView? = null
+    private var mLlThingCardAppearanceThumbnailRatio: View? = null
+    private var mSeekThingCardAppearanceThumbnailRatio: SeekBar? = null
+    private var mVThingCardAppearanceThumbnailRatioTicks: ThingCardRatioTicksView? = null
+    private var mLlThingCardAppearanceBackgroundControls: View? = null
+    private var mSeekThingCardAppearanceBackgroundMask: SeekBar? = null
+    private var mSeekThingCardAppearanceBackgroundHeight: SeekBar? = null
+    private var mBtCancelThingCardAppearance: TextView? = null
+    private var mBtConfirmThingCardAppearance: TextView? = null
+    private var mThingCardAppearancePanelOriginalPaddingBottom: Int = 0
+    private var mThingCardAppearancePanelThing: Thing? = null
+    private var mThingCardAppearanceOriginal: ThingCardAppearance? = null
+    private var mThingCardAppearanceDraft: ThingCardAppearance? = null
+    private var mThingCardAppearanceSelectedPosition: Int = -1
+    private var mThingCardAppearanceMediaSources: List<ThingCardMediaHelper.MediaSource> =
+            emptyList()
+    private var mThingCardAppearanceSourcePicker: ThingCardAppearanceSourcePicker? = null
+    private var mThingCardAppearanceVideoDurationCache: MutableMap<String, Int> = HashMap()
+    private var mBindingThingCardAppearancePanel: Boolean = false
+    private var mThingCardAppearancePreviewRefreshPosted: Boolean = false
+    private var mThingCardAppearanceBackgroundHeightSliderMinPercent: Int = 0
+    private val mThingCardRatioPresetValues = doubleArrayOf(
+            1.0 / 2.0,
+            9.0 / 16.0,
+            3.0 / 4.0,
+            1.0,
+            4.0 / 3.0,
+            16.0 / 9.0,
+            2.0
+    )
+    private val mThingCardRatioPresetLabels = arrayOf(
+            "1:2",
+            "9:16",
+            "3:4",
+            "1:1",
+            "4:3",
+            "16:9",
+            "2:1"
+    )
 
     private var mSpan: Int = 0
 
@@ -1057,6 +1144,44 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         mFab = f(R.id.fab_create)
 
         mRecyclerView  = f(R.id.rv_things)
+        mThingCardAppearancePanel = f(R.id.thing_card_appearance_panel)
+        mThingCardAppearancePanel!!.setOnTouchListener { _, _ -> true }
+        mTvThingCardAppearanceTitle = f(R.id.tv_thing_card_appearance_title)
+        mTvThingCardAppearanceSource = f(R.id.tv_thing_card_appearance_source)
+        mLlThingCardAppearanceVideoFrame = f(R.id.ll_thing_card_appearance_video_frame)
+        mIvThingCardAppearanceVideoFramePreview =
+                f(R.id.iv_thing_card_appearance_video_frame_preview)
+        mBtThingCardAppearanceVideoFramePrevious =
+                f(R.id.bt_thing_card_appearance_video_frame_previous)
+        mBtThingCardAppearanceVideoFrameNext =
+                f(R.id.bt_thing_card_appearance_video_frame_next)
+        mSeekThingCardAppearanceVideoFrame = f(R.id.seek_thing_card_appearance_video_frame)
+        mBtThingCardAppearanceSpanNormal = f(R.id.bt_thing_card_appearance_span_normal)
+        mBtThingCardAppearanceSpanFull = f(R.id.bt_thing_card_appearance_span_full)
+        mBtThingCardAppearancePlacementTop = f(R.id.bt_thing_card_appearance_placement_top)
+        mBtThingCardAppearancePlacementBottom = f(R.id.bt_thing_card_appearance_placement_bottom)
+        mBtThingCardAppearancePlacementLeft = f(R.id.bt_thing_card_appearance_placement_left)
+        mBtThingCardAppearancePlacementRight = f(R.id.bt_thing_card_appearance_placement_right)
+        mBtThingCardAppearancePlacementBackground =
+                f(R.id.bt_thing_card_appearance_placement_background)
+        mLlThingCardAppearanceSideWidth = f(R.id.ll_thing_card_appearance_side_width)
+        mTvThingCardAppearanceSideWidth = f(R.id.tv_thing_card_appearance_side_width)
+        mSeekThingCardAppearanceSideWidth = f(R.id.seek_thing_card_appearance_side_width)
+        mBtThingCardAppearancePreciseCrop = f(R.id.bt_thing_card_appearance_precise_crop)
+        mLlThingCardAppearanceThumbnailRatio =
+                f(R.id.ll_thing_card_appearance_thumbnail_ratio)
+        mSeekThingCardAppearanceThumbnailRatio =
+                f(R.id.seek_thing_card_appearance_thumbnail_ratio)
+        mVThingCardAppearanceThumbnailRatioTicks =
+                f(R.id.v_thing_card_appearance_thumbnail_ratio_ticks)
+        mLlThingCardAppearanceBackgroundControls =
+                f(R.id.ll_thing_card_appearance_background_controls)
+        mSeekThingCardAppearanceBackgroundMask =
+                f(R.id.seek_thing_card_appearance_background_mask)
+        mSeekThingCardAppearanceBackgroundHeight =
+                f(R.id.seek_thing_card_appearance_background_height)
+        mBtCancelThingCardAppearance = f(R.id.bt_cancel_thing_card_appearance)
+        mBtConfirmThingCardAppearance = f(R.id.bt_confirm_thing_card_appearance)
         val adapter = ThingsAdapter(mApp, OnThingTouchedListener())
         mAdapter = ThingsAdapterWrapper(adapter)
 
@@ -1078,6 +1203,10 @@ class ThingsActivity : EverythingDoneBaseActivity() {
             rlContextualToolbar, contextualToolbar, OnNavigationIconClickedListener(),
             OnContextualMenuClickedListener(), mRecyclerView, adapter
         )
+        mModeManager!!.setShouldShowPrivateContent(adapter.shouldShowPrivateContent())
+        mModeManager!!.setBackNormalModeCallback {
+            cancelThingCardAppearancePanel(false)
+        }
         adapter.setModeManager(mModeManager)
         mActivityHeader!!.setModeManager(mModeManager!!)
     }
@@ -1131,6 +1260,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         }
 
         DisplayUtil.applyBottomInsetAsMargin(mFab)
+        DisplayUtil.applyBottomInsetAsMargin(mThingCardAppearancePanel)
         DisplayUtil.applyBottomInsetAsScrollPadding(mRecyclerView)
     }
 
@@ -1234,6 +1364,10 @@ class ThingsActivity : EverythingDoneBaseActivity() {
                 if (mDrawerLayout!!.isDrawerOpen(GravityCompat.START)) {
                     mDrawerLayout!!.closeDrawer(GravityCompat.START)
                 } else {
+                    if (isThingCardAppearancePanelShowing()) {
+                        cancelThingCardAppearancePanel(true)
+                        return
+                    }
                     if (mModeManager!!.getCurrentMode() == ModeManager.SELECTING) {
                         mModeManager!!.backNormalMode(0)
                         return
@@ -1273,6 +1407,1916 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         setRecyclerViewEvents()
         setUndoSnackbarEvents()
         setSearchEvents()
+        setThingCardAppearancePanelEvents()
+    }
+
+    private fun setThingCardAppearancePanelEvents() {
+        mTvThingCardAppearanceSource!!.setOnClickListener {
+            showThingCardAppearanceSourceMenu()
+        }
+        mSeekThingCardAppearanceVideoFrame!!.setOnSeekBarChangeListener(
+                object : SeekBar.OnSeekBarChangeListener {
+                    override fun onProgressChanged(
+                            seekBar: SeekBar?,
+                            progress: Int,
+                            fromUser: Boolean
+                    ) {
+                        if (!fromUser || mBindingThingCardAppearancePanel) return
+                        bindThingCardAppearanceVideoFramePreviewForCurrentSource(progress.toLong())
+                    }
+
+                    override fun onStartTrackingTouch(seekBar: SeekBar?) {
+                    }
+
+                    override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                        if (mBindingThingCardAppearancePanel || seekBar == null) return
+                        updateThingCardVideoFrame(seekBar.progress.toLong())
+                    }
+                }
+        )
+        mBtThingCardAppearanceVideoFramePrevious!!.setOnClickListener {
+            stepThingCardVideoFrame(-1)
+        }
+        mBtThingCardAppearanceVideoFrameNext!!.setOnClickListener {
+            stepThingCardVideoFrame(1)
+        }
+        mBtThingCardAppearanceSpanNormal!!.setOnClickListener {
+            updateThingCardAppearanceDraft(
+                    mThingCardAppearanceDraft?.withSpanMode(Thing.THING_CARD_SPAN_NORMAL)
+            )
+        }
+        mBtThingCardAppearanceSpanFull!!.setOnClickListener {
+            updateThingCardAppearanceDraft(
+                    mThingCardAppearanceDraft?.withSpanMode(Thing.THING_CARD_SPAN_FULL)
+            )
+        }
+        mBtThingCardAppearancePlacementTop!!.setOnClickListener {
+            updateThingCardAppearanceDraft(
+                    mThingCardAppearanceDraft?.withImagePlacement(
+                            Thing.THING_CARD_IMAGE_PLACEMENT_TOP
+                    )?.copy(mediaBackgroundEnabled = false)
+            )
+        }
+        mBtThingCardAppearancePlacementBottom!!.setOnClickListener {
+            updateThingCardAppearanceDraft(
+                    mThingCardAppearanceDraft?.withImagePlacement(
+                            Thing.THING_CARD_IMAGE_PLACEMENT_BOTTOM
+                    )?.copy(mediaBackgroundEnabled = false)
+            )
+        }
+        mBtThingCardAppearancePlacementLeft!!.setOnClickListener {
+            if (mThingCardAppearanceDraft?.spanMode == Thing.THING_CARD_SPAN_FULL) {
+                updateThingCardAppearanceDraft(
+                        mThingCardAppearanceDraft?.withImagePlacement(
+                                Thing.THING_CARD_IMAGE_PLACEMENT_LEFT
+                        )?.copy(mediaBackgroundEnabled = false)
+                )
+            }
+        }
+        mBtThingCardAppearancePlacementRight!!.setOnClickListener {
+            if (mThingCardAppearanceDraft?.spanMode == Thing.THING_CARD_SPAN_FULL) {
+                updateThingCardAppearanceDraft(
+                        mThingCardAppearanceDraft?.withImagePlacement(
+                                Thing.THING_CARD_IMAGE_PLACEMENT_RIGHT
+                        )?.copy(mediaBackgroundEnabled = false)
+                )
+            }
+        }
+        mBtThingCardAppearancePlacementBackground!!.setOnClickListener {
+            updateThingCardAppearanceDraft(
+                    mThingCardAppearanceDraft?.copy(mediaBackgroundEnabled = true)
+            )
+        }
+        mSeekThingCardAppearanceSideWidth!!.max =
+                getThingCardAppearanceSideMediaWidthMaxPercent() -
+                        getThingCardAppearanceSideMediaWidthMinPercent()
+        mSeekThingCardAppearanceSideWidth!!.setOnSeekBarChangeListener(
+                object : SeekBar.OnSeekBarChangeListener {
+                    override fun onProgressChanged(
+                            seekBar: SeekBar?,
+                            progress: Int,
+                            fromUser: Boolean
+                    ) {
+                        if (!fromUser || mBindingThingCardAppearancePanel) {
+                            return
+                        }
+                        val widthPercent =
+                                getThingCardAppearanceSideMediaWidthMinPercent() + progress
+                        updateThingCardAppearanceDraft(
+                                mThingCardAppearanceDraft?.copy(
+                                        sideMediaWidthPercent =
+                                                normalizeThingCardAppearanceSideMediaWidth(widthPercent)
+                                )
+                        )
+                    }
+
+                    override fun onStartTrackingTouch(seekBar: SeekBar?) {
+                    }
+
+                    override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                    }
+                }
+        )
+        mBtThingCardAppearancePreciseCrop!!.setOnClickListener {
+            openThingCardCropEditor()
+        }
+        mSeekThingCardAppearanceThumbnailRatio!!.max = THING_CARD_RATIO_SLIDER_MAX
+        mSeekThingCardAppearanceThumbnailRatio!!.setOnSeekBarChangeListener(
+                object : SeekBar.OnSeekBarChangeListener {
+                    override fun onProgressChanged(
+                            seekBar: SeekBar?,
+                            progress: Int,
+                            fromUser: Boolean
+                    ) {
+                        if (!fromUser || mBindingThingCardAppearancePanel) return
+                        updateThingCardThumbnailSourceAspectRatio(
+                                getSnappedThingCardRatioForSeekBar(seekBar, progress)
+                        )
+                    }
+
+                    override fun onStartTrackingTouch(seekBar: SeekBar?) {
+                    }
+
+                    override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                        seekBar ?: return
+                        val snappedRatio = getSnappedThingCardRatioForSeekBar(
+                                seekBar,
+                                seekBar.progress
+                        )
+                        updateThingCardThumbnailSourceAspectRatio(snappedRatio)
+                    }
+                }
+        )
+        mSeekThingCardAppearanceBackgroundMask!!.max = 100
+        mSeekThingCardAppearanceBackgroundMask!!.setOnSeekBarChangeListener(
+                object : SeekBar.OnSeekBarChangeListener {
+                    override fun onProgressChanged(
+                            seekBar: SeekBar?,
+                            progress: Int,
+                            fromUser: Boolean
+                    ) {
+                        if (!fromUser || mBindingThingCardAppearancePanel) return
+                        updateThingCardBackgroundMask(progress / 100.0)
+                    }
+
+                    override fun onStartTrackingTouch(seekBar: SeekBar?) {
+                    }
+
+                    override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                    }
+                }
+        )
+        mSeekThingCardAppearanceBackgroundHeight!!.setOnSeekBarChangeListener(
+                object : SeekBar.OnSeekBarChangeListener {
+                    override fun onProgressChanged(
+                            seekBar: SeekBar?,
+                            progress: Int,
+                            fromUser: Boolean
+                    ) {
+                        if (!fromUser || mBindingThingCardAppearancePanel) return
+                        updateThingCardBackgroundHeight(progress)
+                    }
+
+                    override fun onStartTrackingTouch(seekBar: SeekBar?) {
+                    }
+
+                    override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                    }
+                }
+        )
+        mBtCancelThingCardAppearance!!.setOnClickListener {
+            cancelThingCardAppearancePanel(true)
+        }
+        mBtConfirmThingCardAppearance!!.setOnClickListener {
+            confirmThingCardAppearancePanel()
+        }
+    }
+
+    private fun openThingCardAppearancePanel() {
+        val thing: Thing = getSingleSelectedThingForAppearance() ?: return
+        if (thing.id == App.getDoingThingId() || thing.isPrivate()) {
+            return
+        }
+
+        mThingCardAppearanceMediaSources = ThingCardMediaHelper.getAvailableMediaSources(
+                thing.attachment
+        )
+        if (mThingCardAppearanceMediaSources.isEmpty()) {
+            return
+        }
+
+        mThingCardAppearancePanelThing = thing
+        mThingCardAppearanceOriginal = thing.thingCardAppearance
+        mThingCardAppearanceDraft = thing.thingCardAppearance
+        mThingCardAppearanceSelectedPosition = mThingManager!!.getSingleSelectedPosition()
+
+        val panel: View = mThingCardAppearancePanel!!
+        if (panel.visibility != View.VISIBLE) {
+            mThingCardAppearancePanelOriginalPaddingBottom = mRecyclerView!!.paddingBottom
+        }
+        mAdapter!!.setThingCardSurfaceAvailableHeight(
+                getThingCardAppearancePreviewAvailableHeight()
+        )
+        bindThingCardAppearancePanel()
+        if (panel.visibility != View.VISIBLE) {
+            panel.visibility = View.VISIBLE
+        }
+        panel.post {
+            updateRecyclerViewBottomPaddingForThingCardAppearancePanel()
+        }
+    }
+
+    private fun bindThingCardAppearancePanel() {
+        val thing = mThingCardAppearancePanelThing ?: return
+        val draft = mThingCardAppearanceDraft ?: return
+        val mediaSource = ThingCardMediaHelper.resolveEffectiveMediaSource(
+                thing.attachment,
+                draft.mediaSourceKey
+        ) ?: return
+
+        mBindingThingCardAppearancePanel = true
+        mTvThingCardAppearanceTitle!!.text = getString(R.string.thing_card_appearance_panel_title)
+        applyThingCardAppearanceAccentText(mTvThingCardAppearanceTitle)
+
+        mTvThingCardAppearanceSource!!.text = getThingCardAppearanceSourceText(
+                mediaSource,
+                draft.mediaSourceKey == null
+        )
+        bindThingCardAppearanceAccentControls()
+        bindThingCardAppearanceVideoFrameControls()
+        bindThingCardAppearanceControls(draft)
+        mBindingThingCardAppearancePanel = false
+    }
+
+    private fun bindThingCardAppearanceVideoFrameControls() {
+        clearThingCardAppearanceVideoFramePreview()
+        mLlThingCardAppearanceVideoFrame!!.visibility = View.GONE
+    }
+
+    private fun clearThingCardAppearanceVideoFramePreview() {
+        val preview = mIvThingCardAppearanceVideoFramePreview ?: return
+        Glide.with(this).clear(preview)
+    }
+
+    private fun bindThingCardAppearanceVideoFramePreviewForCurrentSource(frameMs: Long) {
+        val source = getCurrentThingCardAppearanceMediaSource() ?: return
+        if (!source.isVideo) return
+        bindThingCardAppearanceVideoFramePreview(source.pathName, frameMs)
+    }
+
+    private fun bindThingCardAppearanceVideoFramePreview(pathName: String, frameMs: Long) {
+        val preview = mIvThingCardAppearanceVideoFramePreview ?: return
+        val targetW = if (preview.width > 0) preview.width else DisplayUtil.getThingCardWidth(this)
+        val targetH = if (preview.height > 0) preview.height else (72 * resources.displayMetrics.density).toInt()
+        Glide.with(this)
+                .load(pathName)
+                .signature(
+                        getThingCardAppearanceMediaCacheSignature(
+                                pathName,
+                                targetW,
+                                targetH,
+                                frameMs
+                        )
+                )
+                .apply(
+                        RequestOptions.frameOf(max(0L, frameMs) * 1000L)
+                                .set(
+                                        VideoDecoder.FRAME_OPTION,
+                                        MediaMetadataRetriever.OPTION_CLOSEST
+                                )
+                )
+                .centerCrop()
+                .into(preview)
+    }
+
+    private fun stepThingCardVideoFrame(direction: Int) {
+        val seekBar = mSeekThingCardAppearanceVideoFrame ?: return
+        val durationMs = seekBar.max
+        if (durationMs <= 0) return
+
+        val stepMs = getThingCardVideoFrameStepMs(durationMs)
+        val progress = clampThingCardAppearanceSeekProgress(
+                seekBar.progress + direction * stepMs,
+                durationMs
+        )
+        seekBar.progress = progress
+        updateThingCardVideoFrame(progress.toLong())
+    }
+
+    private fun getThingCardVideoFrameStepMs(durationMs: Int): Int {
+        return max(1, min(1000, max(1, durationMs / 30)))
+    }
+
+    private fun getThingCardAppearanceMediaCacheSignature(
+            pathName: String,
+            targetW: Int,
+            targetH: Int,
+            videoFrameMs: Long?
+    ): ObjectKey {
+        val file = File(pathName)
+        val fileSize = if (file.exists()) file.length() else 0L
+        val lastModified = if (file.exists()) file.lastModified() else 0L
+        return ObjectKey("$pathName:$fileSize:$lastModified:$videoFrameMs:$targetW:$targetH")
+    }
+
+    private fun getThingCardAppearanceVideoDurationMs(pathName: String): Int {
+        val cached = mThingCardAppearanceVideoDurationCache[pathName]
+        if (cached != null) return cached
+
+        val duration = AttachmentHelper.getVideoDurationMs(pathName)
+        val durationInt = if (duration > Int.MAX_VALUE) Int.MAX_VALUE else duration.toInt()
+        mThingCardAppearanceVideoDurationCache[pathName] = durationInt
+        return durationInt
+    }
+
+    private fun bindThingCardAppearanceControls(draft: ThingCardAppearance) {
+        val fullSpan = draft.spanMode == Thing.THING_CARD_SPAN_FULL
+        val mediaBackgroundEnabled = draft.mediaBackgroundEnabled
+        bindThingCardAppearanceChoice(
+                mBtThingCardAppearanceSpanNormal!!,
+                draft.spanMode == Thing.THING_CARD_SPAN_NORMAL,
+                true
+        )
+        bindThingCardAppearanceChoice(mBtThingCardAppearanceSpanFull!!, fullSpan, true)
+
+        val placement = draft.imagePlacement
+        val sidePlacement = placement == Thing.THING_CARD_IMAGE_PLACEMENT_LEFT ||
+                placement == Thing.THING_CARD_IMAGE_PLACEMENT_RIGHT
+        val placementForUi = if (!fullSpan && sidePlacement) {
+            Thing.THING_CARD_IMAGE_PLACEMENT_TOP
+        } else {
+            placement
+        }
+        bindThingCardAppearanceChoice(
+                mBtThingCardAppearancePlacementTop!!,
+                !mediaBackgroundEnabled &&
+                        (placementForUi == Thing.THING_CARD_IMAGE_PLACEMENT_TOP ||
+                                placementForUi == Thing.THING_CARD_IMAGE_PLACEMENT_DEFAULT),
+                true
+        )
+        bindThingCardAppearanceChoice(
+                mBtThingCardAppearancePlacementBottom!!,
+                !mediaBackgroundEnabled &&
+                        placementForUi == Thing.THING_CARD_IMAGE_PLACEMENT_BOTTOM,
+                true
+        )
+        bindThingCardAppearanceChoice(
+                mBtThingCardAppearancePlacementLeft!!,
+                !mediaBackgroundEnabled &&
+                        placementForUi == Thing.THING_CARD_IMAGE_PLACEMENT_LEFT,
+                fullSpan
+        )
+        bindThingCardAppearanceChoice(
+                mBtThingCardAppearancePlacementRight!!,
+                !mediaBackgroundEnabled &&
+                        placementForUi == Thing.THING_CARD_IMAGE_PLACEMENT_RIGHT,
+                fullSpan
+        )
+        bindThingCardAppearanceChoice(
+                mBtThingCardAppearancePlacementBackground!!,
+                mediaBackgroundEnabled,
+                true
+        )
+
+        mLlThingCardAppearanceSideWidth!!.visibility =
+                if (!mediaBackgroundEnabled && fullSpan && sidePlacement) {
+                    View.VISIBLE
+                } else {
+                    View.GONE
+                }
+
+        val sideWidth = normalizeThingCardAppearanceSideMediaWidth(
+                draft.sideMediaWidthPercent
+        )
+        mTvThingCardAppearanceSideWidth!!.text = getString(
+                R.string.thing_card_appearance_side_width_format,
+                sideWidth
+        )
+        mSeekThingCardAppearanceSideWidth!!.progress =
+                sideWidth - getThingCardAppearanceSideMediaWidthMinPercent()
+
+        bindThingCardAppearanceCropControls(draft, fullSpan, sidePlacement)
+        bindThingCardAppearanceBackgroundControls(draft)
+    }
+
+    private fun bindThingCardAppearanceCropControls(
+            draft: ThingCardAppearance,
+            fullSpan: Boolean,
+            sidePlacement: Boolean
+    ) {
+        val source = getCurrentThingCardAppearanceMediaSource() ?: run {
+            mBtThingCardAppearancePreciseCrop!!.visibility = View.GONE
+            mLlThingCardAppearanceThumbnailRatio!!.visibility = View.GONE
+            return
+        }
+
+        mBtThingCardAppearancePreciseCrop!!.visibility = View.VISIBLE
+        mBtThingCardAppearancePreciseCrop!!.setText(
+                getThingCardAppearancePreciseCropTextRes(source)
+        )
+        val sourceAppearance = draft.sources[source.typePathName]
+        if (draft.mediaBackgroundEnabled) {
+            mLlThingCardAppearanceThumbnailRatio!!.visibility = View.GONE
+        } else {
+            val crop = sourceAppearance?.thumbnailCrop
+                    ?: ThingCardAppearance.ThingCardThumbnailCrop()
+            mLlThingCardAppearanceThumbnailRatio!!.visibility =
+                    if (!fullSpan || !sidePlacement) View.VISIBLE else View.GONE
+            val aspectRatio = crop.sourceAspectRatio
+                    ?: if (fullSpan) 16.0 / 9.0 else 4.0 / 3.0
+            bindThingCardRatioTicks(mVThingCardAppearanceThumbnailRatioTicks)
+            mSeekThingCardAppearanceThumbnailRatio!!.progress =
+                    getThingCardRatioProgress(aspectRatio)
+        }
+    }
+
+    private fun bindThingCardRatioTicks(ticksView: ThingCardRatioTicksView?) {
+        ticksView ?: return
+        val range = getThingCardThumbnailRatioRange()
+        ticksView.setColors(
+                getThingCardAppearanceAccentColor(),
+                ContextCompat.getColor(this, R.color.app_chrome_on_surface_hint)
+        )
+        ticksView.setRatios(
+                range.minRatio,
+                range.maxRatio,
+                mThingCardRatioPresetValues,
+                mThingCardRatioPresetLabels
+        )
+    }
+
+    private data class ThingCardRatioRange(
+            val minRatio: Double,
+            val maxRatio: Double
+    )
+
+    private fun getThingCardThumbnailRatioRange(): ThingCardRatioRange {
+        val draft = mThingCardAppearanceDraft
+        val cardWidth = getThingCardAppearancePreviewCardWidth()
+        val availableHeight = getThingCardAppearancePreviewAvailableHeight()
+        if (draft == null || cardWidth <= 0 || availableHeight <= 0) {
+            return ThingCardRatioRange(0.5, 2.0)
+        }
+
+        val minHeightPercent = resources.getInteger(
+                if (draft.spanMode == Thing.THING_CARD_SPAN_FULL) {
+                    R.integer.thing_card_full_span_thumbnail_min_height_percent
+                } else {
+                    R.integer.thing_card_normal_thumbnail_min_height_percent
+                }
+        )
+        val maxHeightPercent = resources.getInteger(
+                R.integer.thing_card_thumbnail_max_height_percent
+        )
+        val minHeight = max(1, availableHeight * minHeightPercent / 100)
+        val maxHeight = max(
+                minHeight,
+                availableHeight * maxHeightPercent / 100
+        )
+        val minRatio = max(0.1, cardWidth.toDouble() / maxHeight.toDouble())
+        val maxRatio = min(10.0, cardWidth.toDouble() / minHeight.toDouble())
+        if (maxRatio <= minRatio) {
+            return ThingCardRatioRange(minRatio, minRatio + 0.01)
+        }
+        return ThingCardRatioRange(minRatio, maxRatio)
+    }
+
+    private fun getThingCardRatioProgress(ratio: Double): Int {
+        val range = getThingCardThumbnailRatioRange()
+        val clampedRatio = max(range.minRatio, min(range.maxRatio, ratio))
+        val progress = ((clampedRatio - range.minRatio) /
+                (range.maxRatio - range.minRatio) * THING_CARD_RATIO_SLIDER_MAX).roundToInt()
+        return clampThingCardAppearanceSeekProgress(progress, THING_CARD_RATIO_SLIDER_MAX)
+    }
+
+    private fun getThingCardRatioFromProgress(progress: Int): Double {
+        val range = getThingCardThumbnailRatioRange()
+        val clampedProgress = clampThingCardAppearanceSeekProgress(
+                progress,
+                THING_CARD_RATIO_SLIDER_MAX
+        )
+        return range.minRatio + (range.maxRatio - range.minRatio) *
+                clampedProgress / THING_CARD_RATIO_SLIDER_MAX.toDouble()
+    }
+
+    private fun snapThingCardRatio(ratio: Double): Double {
+        val range = getThingCardThumbnailRatioRange()
+        var closestRatio = ratio
+        var closestProgressDistance = Int.MAX_VALUE
+        for (preset in mThingCardRatioPresetValues) {
+            if (preset < range.minRatio || preset > range.maxRatio) continue
+            val distance = abs(getThingCardRatioProgress(preset) - getThingCardRatioProgress(ratio))
+            if (distance < closestProgressDistance) {
+                closestProgressDistance = distance
+                closestRatio = preset
+            }
+        }
+        return if (closestProgressDistance <= THING_CARD_RATIO_SNAP_PROGRESS_DISTANCE) {
+            closestRatio
+        } else {
+            ratio
+        }
+    }
+
+    private fun getSnappedThingCardRatioForSeekBar(
+            seekBar: SeekBar?,
+            progress: Int
+    ): Double {
+        val ratio = getThingCardRatioFromProgress(progress)
+        val snappedRatio = snapThingCardRatio(ratio)
+        val snappedProgress = getThingCardRatioProgress(snappedRatio)
+        if (seekBar != null && seekBar.progress != snappedProgress) {
+            seekBar.progress = snappedProgress
+        }
+        return snappedRatio
+    }
+
+    private fun clampThingCardAppearanceSeekProgress(value: Int, maxValue: Int): Int {
+        return max(0, min(maxValue, value))
+    }
+
+    private fun normalizeThingCardAppearanceSideMediaWidth(widthPercent: Int): Int {
+        return max(
+                getThingCardAppearanceSideMediaWidthMinPercent(),
+                min(getThingCardAppearanceSideMediaWidthMaxPercent(), widthPercent)
+        )
+    }
+
+    private fun getThingCardAppearanceSideMediaWidthMinPercent(): Int {
+        return resources.getInteger(R.integer.thing_card_side_media_width_min_percent)
+    }
+
+    private fun getThingCardAppearanceSideMediaWidthMaxPercent(): Int {
+        return resources.getInteger(R.integer.thing_card_side_media_width_max_percent)
+    }
+
+    private fun getThingCardAppearanceDefaultMaskStrength(): Double {
+        return resources.getInteger(
+                R.integer.thing_card_media_background_default_mask_strength_percent
+        ) / 100.0
+    }
+
+    private fun bindThingCardAppearanceBackgroundControls(draft: ThingCardAppearance) {
+        if (!draft.mediaBackgroundEnabled) {
+            mThingCardAppearanceBackgroundHeightSliderMinPercent = 0
+            mLlThingCardAppearanceBackgroundControls!!.visibility = View.GONE
+            return
+        }
+
+        val source = getCurrentThingCardAppearanceMediaSource() ?: run {
+            mThingCardAppearanceBackgroundHeightSliderMinPercent = 0
+            mLlThingCardAppearanceBackgroundControls!!.visibility = View.GONE
+            return
+        }
+        val sourceAppearance = draft.sources[source.typePathName]
+        mLlThingCardAppearanceBackgroundControls!!.visibility = View.VISIBLE
+        mSeekThingCardAppearanceBackgroundMask!!.progress =
+                clampThingCardAppearanceSeekProgress(
+                        ((sourceAppearance?.mediaBackgroundMaskStrength
+                                ?: getThingCardAppearanceDefaultMaskStrength()) * 100).toInt(),
+                        100
+                )
+        val maxPercent = resources.getInteger(
+                R.integer.thing_card_media_background_home_max_height_percent
+        )
+        val minPercent = getThingCardBackgroundHeightSliderMinPercent(maxPercent)
+        mThingCardAppearanceBackgroundHeightSliderMinPercent = minPercent
+        mSeekThingCardAppearanceBackgroundHeight!!.max = maxPercent
+        mSeekThingCardAppearanceBackgroundHeight!!.min = minPercent
+        val savedPercent = getThingCardBackgroundHeightPercent(
+                sourceAppearance?.mediaBackgroundHeightRatio
+        )
+        mSeekThingCardAppearanceBackgroundHeight!!.progress = max(
+                minPercent,
+                clampThingCardAppearanceSeekProgress(savedPercent, maxPercent)
+        )
+    }
+
+    private fun bindThingCardAppearanceChoice(
+            view: TextView,
+            selected: Boolean,
+            enabled: Boolean
+    ) {
+        view.isEnabled = enabled
+        view.alpha = if (enabled) 1.0f else 0.38f
+        if (selected && enabled) {
+            applyThingCardAppearanceSelectedPill(view)
+        } else {
+            view.background = null
+            setThingCardAppearancePlainTextColor(
+                    view,
+                    ContextCompat.getColor(this, R.color.app_chrome_on_surface_secondary)
+            )
+        }
+    }
+
+    private fun applyThingCardAppearanceSelectedPill(textView: TextView) {
+        val accentBackground = getThingCardAppearanceAccentBackground()
+        val background = if (accentBackground != null) {
+            BackgroundUtil.makeTranslucentGradient(accentBackground, 255)
+        } else {
+            GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                setColor(getThingCardAppearanceAccentColor())
+            }
+        }
+        background.cornerRadius = 1000f
+        textView.background = background
+
+        val representativeColor = accentBackground?.representativeColor()
+                ?: getThingCardAppearanceAccentColor()
+        val foregroundColor = ContextCompat.getColor(
+                this,
+                if (BackgroundUtil.isLight(representativeColor)) {
+                    R.color.black_86p
+                } else {
+                    R.color.white_86p
+                }
+        )
+        setThingCardAppearancePlainTextColor(textView, foregroundColor)
+    }
+
+    private fun bindThingCardAppearanceAccentControls() {
+        val accentBackground = getThingCardAppearanceAccentBackground()
+        val accentColor = getThingCardAppearanceAccentColor()
+        val uncheckedColor = ContextCompat.getColor(
+                this,
+                R.color.app_chrome_on_surface_secondary
+        )
+        val hintColor = ContextCompat.getColor(this, R.color.app_chrome_on_surface_hint)
+
+        TextViewCompat.setCompoundDrawableTintList(
+                mTvThingCardAppearanceSource!!,
+                ColorStateList.valueOf(uncheckedColor)
+        )
+        setThingCardAppearancePlainTextColor(
+                mTvThingCardAppearanceSource,
+                uncheckedColor
+        )
+
+        listOf(
+                mSeekThingCardAppearanceVideoFrame,
+                mSeekThingCardAppearanceSideWidth,
+                mSeekThingCardAppearanceThumbnailRatio,
+                mSeekThingCardAppearanceBackgroundMask,
+                mSeekThingCardAppearanceBackgroundHeight
+        ).forEach { seekBar ->
+            if (seekBar != null) {
+                DisplayUtil.setSeekBarBackground(
+                        seekBar,
+                        accentBackground ?: ThingBackground.pure(accentColor)
+                )
+            }
+        }
+
+        applyThingCardAppearanceAccentText(mBtThingCardAppearanceVideoFramePrevious)
+        applyThingCardAppearanceAccentText(mBtThingCardAppearanceVideoFrameNext)
+        applyThingCardAppearanceAccentText(mBtThingCardAppearancePreciseCrop)
+        applyThingCardAppearanceAccentText(mBtConfirmThingCardAppearance)
+        setThingCardAppearancePlainTextColor(mBtCancelThingCardAppearance, hintColor)
+        installThingCardAppearanceRipples()
+    }
+
+    private fun installThingCardAppearanceRipples() {
+        listOf(
+                mTvThingCardAppearanceSource,
+                mBtThingCardAppearanceVideoFramePrevious,
+                mBtThingCardAppearanceVideoFrameNext,
+                mBtThingCardAppearanceSpanNormal,
+                mBtThingCardAppearanceSpanFull,
+                mBtThingCardAppearancePlacementTop,
+                mBtThingCardAppearancePlacementBottom,
+                mBtThingCardAppearancePlacementLeft,
+                mBtThingCardAppearancePlacementRight,
+                mBtThingCardAppearancePlacementBackground,
+                mBtThingCardAppearancePreciseCrop,
+                mBtConfirmThingCardAppearance
+        ).forEach { view ->
+            BackgroundUtil.installAppChromePillRipple(view, this)
+        }
+        BackgroundUtil.installAppChromePillRipple(mBtCancelThingCardAppearance, this)
+    }
+
+    private fun applyThingCardAppearanceAccentText(textView: TextView?) {
+        if (textView == null) return
+        val accentBackground = getThingCardAppearanceAccentBackground()
+        if (accentBackground != null) {
+            BackgroundUtil.applyTextBackground(textView, accentBackground)
+        } else {
+            setThingCardAppearancePlainTextColor(textView, getThingCardAppearanceAccentColor())
+        }
+    }
+
+    private fun setThingCardAppearancePlainTextColor(textView: TextView?, color: Int) {
+        if (textView == null) return
+        textView.paint.setShader(null)
+        textView.setTextColor(color)
+        textView.invalidate()
+    }
+
+    private fun getThingCardAppearanceAccentBackground(): ThingBackground? {
+        return mThingCardAppearancePanelThing?.getBackground()
+    }
+
+    private fun getThingCardAppearanceAccentColor(): Int {
+        return getThingCardAppearanceAccentBackground()?.representativeColor()
+                ?: ContextCompat.getColor(this, R.color.app_accent)
+    }
+
+    private fun getThingCardAppearanceSourceText(
+            mediaSource: ThingCardMediaHelper.MediaSource,
+            defaultSource: Boolean
+    ): String {
+        val fileName = File(mediaSource.pathName).name
+        val displayName = if (fileName.isEmpty()) mediaSource.pathName else fileName
+        val mediaType = if (defaultSource) {
+            getString(R.string.thing_card_appearance_source_default)
+        } else {
+            getThingCardAppearanceMediaTypeText(mediaSource)
+        }
+        return getString(R.string.thing_card_appearance_source_format, mediaType, displayName)
+    }
+
+    private fun getThingCardAppearanceMediaTypeText(
+            mediaSource: ThingCardMediaHelper.MediaSource
+    ): String {
+        return getString(
+                if (mediaSource.isVideo) {
+                    R.string.thing_card_appearance_media_video
+                } else {
+                    R.string.thing_card_appearance_media_image
+                }
+        )
+    }
+
+    private fun getThingCardAppearancePreciseCropTextRes(
+            mediaSource: ThingCardMediaHelper.MediaSource
+    ): Int {
+        return if (mediaSource.isVideo) {
+            R.string.thing_card_appearance_precise_crop_video
+        } else {
+            R.string.thing_card_appearance_precise_crop
+        }
+    }
+
+    private fun showThingCardAppearanceSourceMenu() {
+        val draft = mThingCardAppearanceDraft ?: return
+        val thing = mThingCardAppearancePanelThing ?: return
+        val sourceView = mTvThingCardAppearanceSource ?: return
+        val defaultSource = ThingCardMediaHelper.resolveEffectiveMediaSource(
+                thing.attachment,
+                null
+        ) ?: return
+        val items = ArrayList<ThingCardAppearanceSourcePicker.Item>()
+        items.add(
+                ThingCardAppearanceSourcePicker.Item(
+                        getThingCardAppearanceSourceText(defaultSource, true),
+                        null
+                )
+        )
+        var pickedIndex = 0
+        for (i in mThingCardAppearanceMediaSources.indices) {
+            val source = mThingCardAppearanceMediaSources[i]
+            if (source.typePathName == draft.mediaSourceKey) {
+                pickedIndex = i + 1
+            }
+            items.add(
+                    ThingCardAppearanceSourcePicker.Item(
+                            getThingCardAppearanceSourceText(source, false),
+                            source.typePathName
+                    )
+            )
+        }
+
+        mThingCardAppearanceSourcePicker?.dismiss()
+        val picker = ThingCardAppearanceSourcePicker(
+                this,
+                window.decorView,
+                items,
+                pickedIndex,
+                getThingCardAppearanceAccentBackground()
+        ) { item ->
+            updateThingCardAppearanceDraft(
+                    mThingCardAppearanceDraft?.copy(mediaSourceKey = item.sourceKey)
+            )
+        }
+        picker.setAnchor(sourceView)
+        mThingCardAppearanceSourcePicker = picker
+        picker.show()
+    }
+
+    private fun getCurrentThingCardAppearanceMediaSource(): ThingCardMediaHelper.MediaSource? {
+        val thing = mThingCardAppearancePanelThing ?: return null
+        val draft = mThingCardAppearanceDraft ?: return null
+        return ThingCardMediaHelper.resolveEffectiveMediaSource(
+                thing.attachment,
+                draft.mediaSourceKey
+        )
+    }
+
+    private fun updateThingCardCurrentCrop(
+            centerX: Double? = null,
+            centerY: Double? = null,
+            scale: Double? = null,
+            sourceAspectRatio: Double? = null,
+            videoFrameMs: Long? = null
+    ) {
+        val draft = mThingCardAppearanceDraft ?: return
+        if (draft.mediaBackgroundEnabled) {
+            updateCurrentThingCardSourceAppearance { sourceAppearance ->
+                val crop = sourceAppearance.backgroundCrop
+                        ?: ThingCardAppearance.ThingCardMediaBackgroundCrop()
+                sourceAppearance.copy(
+                        videoFrameMs = videoFrameMs ?: sourceAppearance.videoFrameMs,
+                        backgroundCrop = crop.copy(
+                                centerX = centerX ?: crop.centerX,
+                                centerY = centerY ?: crop.centerY,
+                                scale = scale ?: crop.scale
+                        )
+                )
+            }
+        } else {
+            updateCurrentThingCardSourceAppearance { sourceAppearance ->
+                val crop = sourceAppearance.thumbnailCrop
+                        ?: ThingCardAppearance.ThingCardThumbnailCrop()
+                sourceAppearance.copy(
+                        videoFrameMs = videoFrameMs ?: sourceAppearance.videoFrameMs,
+                        thumbnailCrop = crop.copy(
+                                centerX = centerX ?: crop.centerX,
+                                centerY = centerY ?: crop.centerY,
+                                scale = scale ?: crop.scale,
+                                sourceAspectRatio = sourceAspectRatio ?: crop.sourceAspectRatio
+                        )
+                )
+            }
+        }
+    }
+
+    private fun openThingCardCropEditor() {
+        val draft = mThingCardAppearanceDraft ?: return
+        val source = getCurrentThingCardAppearanceMediaSource() ?: return
+        val bitmap = loadThingCardCropEditorBitmap(source) ?: return
+        val sourceAppearance = draft.sources[source.typePathName]
+        val cropCenterX: Double
+        val cropCenterY: Double
+        val cropScale: Double
+        if (draft.mediaBackgroundEnabled) {
+            val crop = sourceAppearance?.backgroundCrop
+                    ?: ThingCardAppearance.ThingCardMediaBackgroundCrop()
+            cropCenterX = crop.centerX
+            cropCenterY = crop.centerY
+            cropScale = crop.scale
+        } else {
+            val crop = sourceAppearance?.thumbnailCrop
+                    ?: ThingCardAppearance.ThingCardThumbnailCrop()
+            cropCenterX = crop.centerX
+            cropCenterY = crop.centerY
+            cropScale = crop.scale
+        }
+
+        val dialog = Dialog(this, R.style.EverythingDoneTheme_Dialog)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        val density = resources.displayMetrics.density
+        val windowHorizontalMargin = (density * 16).toInt()
+        val contentHorizontalMargin = (density * 16).toInt()
+        val dialogWidth = DisplayUtil.getScreenSize(this).x - windowHorizontalMargin * 2
+        val root = LinearLayout(this)
+        root.orientation = LinearLayout.VERTICAL
+        root.setBackgroundResource(R.drawable.bg_app_chrome_surface_elevated_rounded)
+
+        val title = TextView(this)
+        title.setText(getThingCardAppearancePreciseCropTextRes(source))
+        applyThingCardAppearanceAccentText(title)
+        title.textSize = 20f
+        title.setTypeface(title.typeface, Typeface.BOLD)
+        title.gravity = android.view.Gravity.CENTER_VERTICAL
+        root.addView(
+                title,
+                LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    setMargins(
+                            (density * 20).toInt(),
+                            (density * 20).toInt(),
+                            (density * 20).toInt(),
+                            0
+                    )
+                }
+        )
+
+        val canResizeFrame = canResizeThingCardCropEditorFrame(draft)
+        val rawTargetAspectRatio = getThingCardCropEditorTargetAspectRatio(draft, source)
+        val targetAspectRatio = if (canResizeFrame) {
+            getThingCardRatioFromProgress(getThingCardRatioProgress(rawTargetAspectRatio))
+        } else {
+            rawTargetAspectRatio
+        }
+        val initialVideoFrameMs = if (source.isVideo) {
+            sourceAppearance?.videoFrameMs ?: 0L
+        } else {
+            null
+        }
+        val videoCropView: ThingCardVideoCropEditorView?
+        val cropEditor: ThingCardCropEditorController
+        val cropEditorView: View
+        if (source.isVideo) {
+            val view = ThingCardVideoCropEditorView(this)
+            view.setAccentBackground(
+                    getThingCardAppearanceAccentBackground()
+                            ?: ThingBackground.pure(getThingCardAppearanceAccentColor())
+            )
+            view.setCropVideo(
+                    source.pathName,
+                    targetAspectRatio,
+                    cropCenterX,
+                    cropCenterY,
+                    cropScale,
+                    initialVideoFrameMs ?: 0L,
+                    bitmap,
+                    bitmap.width,
+                    bitmap.height
+            )
+            videoCropView = view
+            cropEditor = view
+            cropEditorView = view
+        } else {
+            val view = ThingCardCropEditorView(this)
+            view.setCropBitmap(
+                    bitmap,
+                    targetAspectRatio,
+                    cropCenterX,
+                    cropCenterY,
+                    cropScale
+            )
+            videoCropView = null
+            cropEditor = view
+            cropEditorView = view
+        }
+        root.addView(
+                cropEditorView,
+                LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        getThingCardCropEditorPreviewHeight(
+                                bitmap,
+                                dialogWidth,
+                                contentHorizontalMargin
+                        )
+                ).apply {
+                    setMargins(
+                            contentHorizontalMargin,
+                            (density * 16).toInt(),
+                            contentHorizontalMargin,
+                            0
+                        )
+                }
+        )
+        val videoFrameControls = if (source.isVideo && videoCropView != null) {
+            createThingCardCropEditorVideoFrameControls(
+                    videoCropView,
+                    source,
+                    initialVideoFrameMs ?: 0L
+            )
+        } else {
+            null
+        }
+        if (videoFrameControls != null) {
+            root.addView(
+                    videoFrameControls.view,
+                    LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT
+                    ).apply {
+                        setMargins(
+                                contentHorizontalMargin,
+                                (density * 12).toInt(),
+                                contentHorizontalMargin,
+                                0
+                        )
+                    }
+            )
+        }
+        if (canResizeFrame) {
+            root.addView(
+                    createThingCardCropEditorRatioControls(cropEditor, targetAspectRatio),
+                    LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT
+                    ).apply {
+                        setMargins(
+                                contentHorizontalMargin,
+                                (density * 12).toInt(),
+                                contentHorizontalMargin,
+                                0
+                        )
+                    }
+            )
+        }
+
+        val buttons = LinearLayout(this)
+        buttons.gravity = android.view.Gravity.RIGHT or android.view.Gravity.CENTER_VERTICAL
+        buttons.orientation = LinearLayout.HORIZONTAL
+        buttons.addView(createThingCardCropEditorButton(R.string.cancel, false) {
+            dialog.dismiss()
+        })
+        buttons.addView(createThingCardCropEditorButton(R.string.confirm) {
+            val confirmedAspectRatio = if (canResizeFrame) {
+                cropEditor.getTargetAspectRatio()
+            } else {
+                null
+            }
+            val ratioChanged = confirmedAspectRatio != null &&
+                    abs(confirmedAspectRatio - targetAspectRatio) > 0.0001
+            val confirmedVideoFrameMs = videoFrameControls?.getFrameMs?.invoke()
+            val videoFrameChanged = confirmedVideoFrameMs != null &&
+                    confirmedVideoFrameMs != initialVideoFrameMs
+            updateThingCardCurrentCrop(
+                    centerX = cropEditor.getCropCenterX(),
+                    centerY = cropEditor.getCropCenterY(),
+                    scale = cropEditor.getCropUserScale(),
+                    sourceAspectRatio = confirmedAspectRatio,
+                    videoFrameMs = confirmedVideoFrameMs
+            )
+            if (!ratioChanged && !videoFrameChanged) {
+                applyCurrentThingCardCropToVisiblePreview()
+            }
+            dialog.dismiss()
+        })
+        root.addView(
+                buttons,
+                LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    setMargins(
+                            (density * 8).toInt(),
+                            (density * 20).toInt(),
+                            (density * 8).toInt(),
+                            (density * 8).toInt()
+                    )
+                }
+        )
+
+        dialog.setOnDismissListener {
+            videoFrameControls?.stopPlayback?.invoke()
+            videoCropView?.release()
+        }
+        dialog.setContentView(root)
+        dialog.show()
+        dialog.window?.setBackgroundDrawable(
+                ContextCompat.getDrawable(
+                        this,
+                        R.drawable.bg_app_chrome_surface_elevated_rounded
+                )
+        )
+        dialog.window?.setLayout(
+                dialogWidth,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+    }
+
+    private fun getThingCardCropEditorPreviewHeight(
+            bitmap: Bitmap,
+            dialogWidth: Int,
+            contentHorizontalMargin: Int
+    ): Int {
+        val screenSize = DisplayUtil.getScreenSize(this)
+        val contentWidth = max(1, dialogWidth - contentHorizontalMargin * 2)
+        val rawHeight = (contentWidth * bitmap.height.toDouble() /
+                max(1, bitmap.width).toDouble()).toInt()
+        val minHeight = (resources.displayMetrics.density * 160).toInt()
+        val maxHeight = (screenSize.y * 0.52f).toInt()
+        return max(minHeight, min(maxHeight, rawHeight))
+    }
+
+    private fun canResizeThingCardCropEditorFrame(draft: ThingCardAppearance): Boolean {
+        if (draft.mediaBackgroundEnabled) return false
+        val sidePlacement = draft.imagePlacement == Thing.THING_CARD_IMAGE_PLACEMENT_LEFT ||
+                draft.imagePlacement == Thing.THING_CARD_IMAGE_PLACEMENT_RIGHT
+        return draft.spanMode != Thing.THING_CARD_SPAN_FULL || !sidePlacement
+    }
+
+    private data class ThingCardCropEditorVideoFrameControls(
+            val view: View,
+            val getFrameMs: () -> Long,
+            val stopPlayback: () -> Unit
+    )
+
+    private fun createThingCardCropEditorVideoFrameControls(
+            cropView: ThingCardVideoCropEditorView,
+            source: ThingCardMediaHelper.MediaSource,
+            initialFrameMs: Long
+    ): ThingCardCropEditorVideoFrameControls? {
+        val durationMs = getThingCardAppearanceVideoDurationMs(source.pathName)
+        if (durationMs <= 0) return null
+        val maxFrameMs = getThingCardVideoFrameMaxMs(durationMs)
+
+        val density = resources.displayMetrics.density
+        var frameMs = clampThingCardVideoFrameMs(initialFrameMs, durationMs)
+        var updatingSeekBarFromVideo = false
+
+        val container = LinearLayout(this)
+        container.orientation = LinearLayout.HORIZONTAL
+        container.gravity = android.view.Gravity.CENTER_VERTICAL
+
+        lateinit var playPauseButton: ImageView
+        lateinit var seekBar: SeekBar
+
+        fun updatePlayPauseButton(isPlaying: Boolean = cropView.isPlaying()) {
+            playPauseButton.setImageResource(
+                    if (isPlaying) {
+                        R.drawable.ic_thing_card_crop_pause
+                    } else {
+                        R.drawable.ic_thing_card_crop_play
+                    }
+            )
+            playPauseButton.contentDescription = getString(
+                    if (isPlaying) {
+                        R.string.thing_card_appearance_video_frame_pause
+                    } else {
+                        R.string.thing_card_appearance_video_frame_play
+                    }
+            )
+            playPauseButton.setColorFilter(
+                    ContextCompat.getColor(this, R.color.app_chrome_on_surface_secondary)
+            )
+        }
+
+        fun setFrameMs(newFrameMs: Long, seekVideo: Boolean = true) {
+            frameMs = clampThingCardVideoFrameMs(newFrameMs, durationMs)
+            if (seekBar.progress != frameMs.toInt()) {
+                updatingSeekBarFromVideo = !seekVideo
+                seekBar.progress = frameMs.toInt()
+                updatingSeekBarFromVideo = false
+            }
+            if (seekVideo) {
+                cropView.seekTo(frameMs)
+            }
+        }
+
+        playPauseButton = createThingCardCropEditorIconButton(
+                R.drawable.ic_thing_card_crop_play,
+                R.string.thing_card_appearance_video_frame_play
+        )
+        playPauseButton.setOnClickListener {
+            if (cropView.isPlaying()) {
+                cropView.pause()
+            } else {
+                if (frameMs >= maxFrameMs) {
+                    setFrameMs(0L, true)
+                }
+                cropView.play()
+            }
+            updatePlayPauseButton()
+        }
+        updatePlayPauseButton()
+        container.addView(
+                playPauseButton,
+                LinearLayout.LayoutParams(
+                        (density * 40).toInt(),
+                        (density * 40).toInt()
+                )
+        )
+
+        val stopButton = createThingCardCropEditorIconButton(
+                R.drawable.ic_thing_card_crop_stop,
+                R.string.thing_card_appearance_video_frame_stop
+        )
+        stopButton.setOnClickListener {
+            cropView.stopPlayback()
+            setFrameMs(0L, false)
+            updatePlayPauseButton()
+        }
+        container.addView(
+                stopButton,
+                LinearLayout.LayoutParams(
+                        (density * 40).toInt(),
+                        (density * 40).toInt()
+                ).apply {
+                    marginEnd = (density * 6).toInt()
+                    rightMargin = (density * 6).toInt()
+                }
+        )
+
+        seekBar = SeekBar(this)
+        seekBar.max = maxFrameMs
+        seekBar.progress = frameMs.toInt()
+        DisplayUtil.setSeekBarBackground(
+                seekBar,
+                getThingCardAppearanceAccentBackground()
+                        ?: ThingBackground.pure(getThingCardAppearanceAccentColor())
+        )
+        seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(
+                    seekBar: SeekBar?,
+                    progress: Int,
+                    fromUser: Boolean
+            ) {
+                if (fromUser && !updatingSeekBarFromVideo) {
+                    setFrameMs(progress.toLong())
+                }
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {
+                cropView.pause()
+                updatePlayPauseButton()
+            }
+
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                seekBar ?: return
+                setFrameMs(seekBar.progress.toLong())
+            }
+        })
+        cropView.onPositionChanged = { currentFrameMs ->
+            setFrameMs(currentFrameMs, false)
+        }
+        cropView.onPlayingChanged = { isPlaying ->
+            updatePlayPauseButton(isPlaying)
+        }
+        cropView.seekTo(frameMs)
+        container.addView(
+                seekBar,
+                LinearLayout.LayoutParams(
+                        0,
+                        (density * 40).toInt(),
+                        1f
+                )
+        )
+
+        return ThingCardCropEditorVideoFrameControls(
+                view = container,
+                getFrameMs = { cropView.getCurrentFrameMs() },
+                stopPlayback = { cropView.pause() }
+        )
+    }
+
+    private fun createThingCardCropEditorIconButton(
+            iconRes: Int,
+            contentDescriptionRes: Int
+    ): ImageView {
+        val button = ImageView(this)
+        button.setImageResource(iconRes)
+        button.contentDescription = getString(contentDescriptionRes)
+        button.setColorFilter(
+                ContextCompat.getColor(this, R.color.app_chrome_on_surface_secondary)
+        )
+        button.scaleType = ImageView.ScaleType.CENTER
+        button.isClickable = true
+        button.isFocusable = true
+        val padding = (resources.displayMetrics.density * 8).toInt()
+        button.setPadding(padding, padding, padding, padding)
+        BackgroundUtil.installAppChromeCircleRipple(button, this)
+        return button
+    }
+
+    private fun createThingCardCropEditorRatioControls(
+            cropView: ThingCardCropEditorController,
+            initialAspectRatio: Double
+    ): View {
+        val container = LinearLayout(this)
+        container.orientation = LinearLayout.VERTICAL
+
+        val label = TextView(this)
+        label.setText(R.string.thing_card_appearance_thumbnail_shape)
+        label.setTextColor(ContextCompat.getColor(this, R.color.app_chrome_on_surface_secondary))
+        label.textSize = 13f
+        label.gravity = android.view.Gravity.CENTER_VERTICAL
+        container.addView(
+                label,
+                LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        (resources.displayMetrics.density * 22).toInt()
+                )
+        )
+
+        val ratioSeekBar = SeekBar(this)
+        val accentBackground = getThingCardAppearanceAccentBackground()
+        val accentColor = getThingCardAppearanceAccentColor()
+        DisplayUtil.setSeekBarBackground(
+                ratioSeekBar,
+                accentBackground ?: ThingBackground.pure(accentColor)
+        )
+        ratioSeekBar.max = THING_CARD_RATIO_SLIDER_MAX
+        ratioSeekBar.progress = getThingCardRatioProgress(initialAspectRatio)
+        ratioSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(
+                    seekBar: SeekBar?,
+                    progress: Int,
+                    fromUser: Boolean
+            ) {
+                if (!fromUser) return
+                cropView.setTargetAspectRatio(
+                        getSnappedThingCardRatioForSeekBar(seekBar, progress)
+                )
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {
+            }
+
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                seekBar ?: return
+                val snappedRatio = getSnappedThingCardRatioForSeekBar(
+                        seekBar,
+                        seekBar.progress
+                )
+                cropView.setTargetAspectRatio(snappedRatio)
+            }
+        })
+
+        val sliderFrame = FrameLayout(this)
+        sliderFrame.addView(
+                ratioSeekBar,
+                FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                )
+        )
+        val ticksView = ThingCardRatioTicksView(this)
+        bindThingCardRatioTicks(ticksView)
+        ticksView.isClickable = false
+        ticksView.isFocusable = false
+        ticksView.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+        sliderFrame.addView(
+                ticksView,
+                FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                )
+        )
+        container.addView(
+                sliderFrame,
+                LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        (resources.displayMetrics.density * 52).toInt()
+                )
+        )
+        return container
+    }
+
+    private fun createThingCardCropEditorButton(
+            textRes: Int,
+            useAccent: Boolean = true,
+            onClick: () -> Unit
+    ): TextView {
+        val button = TextView(this)
+        if (textRes != 0) {
+            button.setText(textRes)
+        }
+        if (useAccent) {
+            applyThingCardAppearanceAccentText(button)
+        } else {
+            setThingCardAppearancePlainTextColor(
+                    button,
+                    ContextCompat.getColor(this, R.color.app_chrome_on_surface_hint)
+            )
+        }
+        button.gravity = android.view.Gravity.CENTER
+        button.includeFontPadding = false
+        button.setAllCaps(true)
+        button.minWidth = (resources.displayMetrics.density * 64).toInt()
+        button.setPadding(
+                (resources.displayMetrics.density * 12).toInt(),
+                (resources.displayMetrics.density * 8).toInt(),
+                (resources.displayMetrics.density * 12).toInt(),
+                (resources.displayMetrics.density * 8).toInt()
+        )
+        button.layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                (resources.displayMetrics.density * 36).toInt()
+        ).apply {
+            if (useAccent) {
+                marginEnd = (resources.displayMetrics.density * 4).toInt()
+                rightMargin = (resources.displayMetrics.density * 4).toInt()
+            }
+        }
+        BackgroundUtil.installAppChromePillRipple(button, this)
+        button.setOnClickListener { onClick() }
+        return button
+    }
+
+    private fun applyCurrentThingCardCropToVisiblePreview() {
+        val thing = mThingCardAppearancePanelThing ?: return
+        val recyclerView = mRecyclerView ?: return
+        val position = mThingCardAppearanceSelectedPosition
+        if (position < 0) return
+        val holder = recyclerView.findViewHolderForAdapterPosition(position)
+                as? BaseThingsAdapter.BaseThingViewHolder
+        mAdapter?.applyThingCardMediaCropToBoundHolder(holder, thing)
+    }
+
+    private fun applyCurrentThingCardMediaBackgroundHeightToVisiblePreview(): Boolean {
+        val thing = mThingCardAppearancePanelThing ?: return false
+        val recyclerView = mRecyclerView ?: return false
+        val position = mThingCardAppearanceSelectedPosition
+        if (position < 0) return false
+        val holder = recyclerView.findViewHolderForAdapterPosition(position)
+                as? BaseThingsAdapter.BaseThingViewHolder
+        val applied = mAdapter?.applyThingCardMediaBackgroundHeightToBoundHolder(holder, thing) == true
+        if (applied) {
+            holder?.itemView?.requestLayout()
+            recyclerView.requestLayout()
+        }
+        return applied
+    }
+
+    private fun getThingCardCropEditorTargetAspectRatio(
+            draft: ThingCardAppearance,
+            source: ThingCardMediaHelper.MediaSource
+    ): Double {
+        val holder = if (mThingCardAppearanceSelectedPosition >= 0) {
+            mRecyclerView!!.findViewHolderForAdapterPosition(
+                    mThingCardAppearanceSelectedPosition
+            ) as? BaseThingsAdapter.BaseThingViewHolder
+        } else {
+            null
+        }
+        if (draft.mediaBackgroundEnabled) {
+            val targetW = holder?.cv?.width?.takeIf { it > 0 }
+                    ?: getThingCardAppearancePreviewCardWidth()
+            val targetH = getThingCardMediaBackgroundCropTargetHeight(draft, source, holder, targetW)
+            if (targetW > 0 && targetH > 0) {
+                return targetW.toDouble() / targetH.toDouble()
+            }
+        }
+        val targetView = if (draft.mediaBackgroundEnabled) holder?.cv else holder?.flImageAttachment
+        val targetW = targetView?.width ?: 0
+        val targetH = targetView?.height ?: 0
+        if (targetW > 0 && targetH > 0) {
+            return targetW.toDouble() / targetH.toDouble()
+        }
+
+        val sourceAppearance = draft.sources[source.typePathName]
+        if (draft.mediaBackgroundEnabled) {
+            val heightRatio = sourceAppearance?.mediaBackgroundHeightRatio
+            if (heightRatio != null && heightRatio > 0.0) {
+                return 1.0 / heightRatio
+            }
+            return 1.0
+        }
+
+        val crop = sourceAppearance?.thumbnailCrop
+                ?: ThingCardAppearance.ThingCardThumbnailCrop()
+        return crop.sourceAspectRatio
+                ?: if (draft.spanMode == Thing.THING_CARD_SPAN_FULL) 16.0 / 9.0 else 4.0 / 3.0
+    }
+
+    private fun getThingCardMediaBackgroundCropTargetHeight(
+            draft: ThingCardAppearance,
+            source: ThingCardMediaHelper.MediaSource,
+            holder: BaseThingsAdapter.BaseThingViewHolder?,
+            cardWidth: Int
+    ): Int {
+        if (cardWidth <= 0) return holder?.cv?.height ?: 0
+
+        val sourceAppearance = draft.sources[source.typePathName]
+        val targetHeightRatio = sourceAppearance?.mediaBackgroundHeightRatio
+        var targetMinHeight = 0
+        if (targetHeightRatio != null && targetHeightRatio > 0.0) {
+            val maxHeight = getThingCardAppearancePreviewAvailableHeight() *
+                    resources.getInteger(
+                            R.integer.thing_card_media_background_home_max_height_percent
+                    ) / 100
+            targetMinHeight = min((cardWidth * targetHeightRatio).toInt(), maxHeight)
+        }
+
+        val naturalHeight = holder?.let {
+            measureThingCardMediaBackgroundNaturalHeight(it, cardWidth)
+        } ?: 0
+        val measuredHeight = holder?.cv?.height ?: 0
+        val computedHeight = max(targetMinHeight, naturalHeight)
+        return if (computedHeight > 0) computedHeight else measuredHeight
+    }
+
+    private fun measureThingCardCropEditorNaturalHeight(view: View, width: Int): Int {
+        if (width <= 0) return view.height
+        val widthSpec = View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY)
+        val heightSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        view.measure(widthSpec, heightSpec)
+        return view.measuredHeight
+    }
+
+    private fun measureThingCardMediaBackgroundNaturalHeight(
+            holder: BaseThingsAdapter.BaseThingViewHolder,
+            width: Int
+    ): Int {
+        val textContent = holder.llTextContent ?: return 0
+        val spacer = holder.vBottomStatusSpacer
+        val textLp = textContent.layoutParams as LinearLayout.LayoutParams
+        val oldTextHeight = textLp.height
+        val oldTextWeight = textLp.weight
+        val spacerLp = spacer?.layoutParams as? LinearLayout.LayoutParams
+        val oldSpacerVisibility = spacer?.visibility
+        val oldSpacerHeight = spacerLp?.height
+        val oldSpacerWeight = spacerLp?.weight
+
+        return try {
+            if (textLp.height != ViewGroup.LayoutParams.WRAP_CONTENT || textLp.weight != 0f) {
+                textLp.height = ViewGroup.LayoutParams.WRAP_CONTENT
+                textLp.weight = 0f
+                textContent.layoutParams = textLp
+            }
+            if (spacer != null && spacerLp != null &&
+                    (spacer.visibility != View.GONE ||
+                            spacerLp.height != 0 ||
+                            spacerLp.weight != 0f)) {
+                spacer.visibility = View.GONE
+                spacerLp.height = 0
+                spacerLp.weight = 0f
+                spacer.layoutParams = spacerLp
+            }
+            measureThingCardCropEditorNaturalHeight(textContent, width)
+        } finally {
+            if (textLp.height != oldTextHeight || textLp.weight != oldTextWeight) {
+                textLp.height = oldTextHeight
+                textLp.weight = oldTextWeight
+                textContent.layoutParams = textLp
+            }
+            if (spacer != null && spacerLp != null) {
+                if (oldSpacerVisibility != null && spacer.visibility != oldSpacerVisibility) {
+                    spacer.visibility = oldSpacerVisibility
+                }
+                if (oldSpacerHeight != null && oldSpacerWeight != null &&
+                        (spacerLp.height != oldSpacerHeight ||
+                                spacerLp.weight != oldSpacerWeight)) {
+                    spacerLp.height = oldSpacerHeight
+                    spacerLp.weight = oldSpacerWeight
+                    spacer.layoutParams = spacerLp
+                }
+            }
+        }
+    }
+
+    private fun loadThingCardCropEditorBitmap(
+            source: ThingCardMediaHelper.MediaSource
+    ): Bitmap? {
+        return if (source.isVideo) {
+            loadThingCardCropEditorVideoFrame(source)
+        } else {
+            decodeThingCardCropEditorImage(source.pathName)
+        }
+    }
+
+    private fun loadThingCardCropEditorVideoFrame(
+            source: ThingCardMediaHelper.MediaSource
+    ): Bitmap? {
+        val frameMs = mThingCardAppearanceDraft
+                ?.sources
+                ?.get(source.typePathName)
+                ?.videoFrameMs
+                ?: 0L
+        val retriever = MediaMetadataRetriever()
+        return try {
+            retriever.setDataSource(source.pathName)
+            val durationMs = getThingCardAppearanceVideoDurationMs(source.pathName)
+            val clampedFrameMs = clampThingCardVideoFrameMs(frameMs, durationMs)
+            retriever.getFrameAtTime(
+                    clampedFrameMs * 1000L,
+                    MediaMetadataRetriever.OPTION_CLOSEST
+            )
+        } finally {
+            retriever.release()
+        }
+    }
+
+    private fun decodeThingCardCropEditorImage(pathName: String): Bitmap? {
+        val maxSize = 2048
+        val bounds = BitmapFactory.Options()
+        bounds.inJustDecodeBounds = true
+        BitmapFactory.decodeFile(pathName, bounds)
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
+            val decoded = BitmapFactory.decodeFile(pathName) ?: return null
+            return BitmapUtil.tryToGetRotatedBitmap(decoded, pathName)
+        }
+
+        val options = BitmapFactory.Options()
+        options.inSampleSize = getThingCardCropEditorImageSampleSize(
+                bounds.outWidth,
+                bounds.outHeight,
+                maxSize
+        )
+        val decoded = BitmapFactory.decodeFile(pathName, options) ?: return null
+        return BitmapUtil.tryToGetRotatedBitmap(decoded, pathName)
+    }
+
+    private fun getThingCardCropEditorImageSampleSize(
+            width: Int,
+            height: Int,
+            maxSize: Int
+    ): Int {
+        var sampleSize = 1
+        var sampledWidth = width
+        var sampledHeight = height
+        while (sampledWidth / 2 >= maxSize || sampledHeight / 2 >= maxSize) {
+            sampleSize *= 2
+            sampledWidth /= 2
+            sampledHeight /= 2
+        }
+        return sampleSize
+    }
+
+    private fun updateThingCardThumbnailSourceAspectRatio(sourceAspectRatio: Double) {
+        updateCurrentThingCardSourceAppearance { sourceAppearance ->
+            val crop = sourceAppearance.thumbnailCrop
+                    ?: ThingCardAppearance.ThingCardThumbnailCrop()
+            sourceAppearance.copy(
+                    thumbnailCrop = crop.copy(sourceAspectRatio = sourceAspectRatio)
+            )
+        }
+    }
+
+    private fun updateThingCardBackgroundMask(maskStrength: Double) {
+        updateCurrentThingCardSourceAppearance { sourceAppearance ->
+            sourceAppearance.copy(mediaBackgroundMaskStrength = maskStrength)
+        }
+    }
+
+    private fun updateThingCardBackgroundHeight(heightPercent: Int) {
+        val draft = mThingCardAppearanceDraft ?: return
+        val source = getCurrentThingCardAppearanceMediaSource() ?: return
+        val minPercent = mThingCardAppearanceBackgroundHeightSliderMinPercent
+        val heightRatio = if (heightPercent <= 0) {
+            null
+        } else if (heightPercent <= minPercent) {
+            null
+        } else {
+            getThingCardBackgroundHeightRatio(heightPercent)
+        }
+
+        val current = draft.sources[source.typePathName]
+                ?: ThingCardAppearance.SourceAppearance(
+                        fileSize = source.fileSize,
+                        lastModified = source.lastModified
+                )
+        val newSources = LinkedHashMap(draft.sources)
+        newSources[source.typePathName] = current.copy(mediaBackgroundHeightRatio = heightRatio)
+        updateThingCardAppearanceDraft(draft.copy(sources = newSources), false, false)
+        if (!applyCurrentThingCardMediaBackgroundHeightToVisiblePreview()) {
+            requestThingCardAppearancePreviewRefresh()
+        }
+    }
+
+    private fun updateThingCardVideoFrame(videoFrameMs: Long) {
+        val source = getCurrentThingCardAppearanceMediaSource() ?: return
+        if (!source.isVideo) return
+        val durationMs = getThingCardAppearanceVideoDurationMs(source.pathName)
+        val clampedFrameMs = clampThingCardVideoFrameMs(videoFrameMs, durationMs)
+
+        updateCurrentThingCardSourceAppearance { sourceAppearance ->
+            sourceAppearance.copy(videoFrameMs = clampedFrameMs)
+        }
+    }
+
+    private fun getThingCardVideoFrameMaxMs(durationMs: Int): Int {
+        if (durationMs <= 0) return 0
+        return max(0, durationMs - THING_CARD_VIDEO_END_FRAME_GUARD_MS)
+    }
+
+    private fun clampThingCardVideoFrameMs(valueMs: Long, durationMs: Int): Long {
+        val value = when {
+            valueMs < 0L -> 0
+            valueMs > Int.MAX_VALUE -> Int.MAX_VALUE
+            else -> valueMs.toInt()
+        }
+        return clampThingCardAppearanceSeekProgress(
+                value,
+                getThingCardVideoFrameMaxMs(durationMs)
+        ).toLong()
+    }
+
+    private fun getThingCardBackgroundHeightSliderMinPercent(
+            maxPercent: Int = resources.getInteger(
+                    R.integer.thing_card_media_background_home_max_height_percent
+            )
+    ): Int {
+        val availableHeight = getThingCardAppearancePreviewAvailableHeight()
+        if (availableHeight <= 0) return 0
+        val naturalHeight = getThingCardBackgroundNaturalHeight()
+        if (naturalHeight <= 0) return 0
+        val minPercent = ceil(naturalHeight * 100.0 / availableHeight).toInt()
+        return max(0, min(maxPercent, minPercent))
+    }
+
+    private fun getThingCardBackgroundNaturalHeight(): Int {
+        val recyclerView = mRecyclerView ?: return 0
+        val position = mThingCardAppearanceSelectedPosition
+        if (position < 0) return 0
+        val holder = recyclerView.findViewHolderForAdapterPosition(position)
+                as? BaseThingsAdapter.BaseThingViewHolder
+                ?: return 0
+        val width = (holder.llContent?.layoutParams?.width ?: 0).takeIf { it > 0 }
+                ?: getThingCardAppearancePreviewCardWidth()
+        if (width <= 0) return 0
+        return measureThingCardMediaBackgroundNaturalHeight(holder, width)
+    }
+
+    private fun getThingCardBackgroundHeightRatio(heightPercent: Int): Double? {
+        val availableHeight = getThingCardAppearancePreviewAvailableHeight()
+        val cardWidth = getThingCardAppearancePreviewCardWidth()
+        if (availableHeight <= 0 || cardWidth <= 0) return null
+
+        val maxPercent = resources.getInteger(
+                R.integer.thing_card_media_background_home_max_height_percent
+        )
+        val targetPercent = max(1, min(maxPercent, heightPercent))
+        return availableHeight * targetPercent / 100.0 / cardWidth
+    }
+
+    private fun getThingCardBackgroundHeightPercent(heightRatio: Double?): Int {
+        if (heightRatio == null || heightRatio <= 0.0) {
+            return 0
+        }
+        val availableHeight = getThingCardAppearancePreviewAvailableHeight()
+        val cardWidth = getThingCardAppearancePreviewCardWidth()
+        if (availableHeight <= 0 || cardWidth <= 0) return 0
+
+        return (cardWidth * heightRatio / availableHeight * 100.0).toInt()
+    }
+
+    private fun getThingCardAppearancePreviewAvailableHeight(): Int {
+        val recyclerView = mRecyclerView ?: return DisplayUtil.getScreenSize(this).y
+        val height = recyclerView.height -
+                recyclerView.paddingTop -
+                mThingCardAppearancePanelOriginalPaddingBottom
+        if (height > 0) return height
+        return DisplayUtil.getScreenSize(this).y
+    }
+
+    private fun getThingCardAppearancePreviewCardWidth(): Int {
+        if (mThingCardAppearanceSelectedPosition >= 0) {
+            val holder = mRecyclerView!!.findViewHolderForAdapterPosition(
+                    mThingCardAppearanceSelectedPosition
+            )
+            val width = holder?.itemView?.width ?: 0
+            if (width > 0) return width
+        }
+        return DisplayUtil.getThingCardWidth(this)
+    }
+
+    private fun updateCurrentThingCardSourceAppearance(
+            updater: (ThingCardAppearance.SourceAppearance) ->
+                    ThingCardAppearance.SourceAppearance
+    ) {
+        val draft = mThingCardAppearanceDraft ?: return
+        val source = getCurrentThingCardAppearanceMediaSource() ?: return
+        val current = draft.sources[source.typePathName]
+                ?: ThingCardAppearance.SourceAppearance(
+                        fileSize = source.fileSize,
+                        lastModified = source.lastModified
+                )
+        val newSources = LinkedHashMap(draft.sources)
+        newSources[source.typePathName] = updater(current)
+        updateThingCardAppearanceDraft(draft.copy(sources = newSources))
+    }
+
+    private fun updateThingCardAppearanceDraft(
+            newDraft: ThingCardAppearance?,
+            requestPreviewRefresh: Boolean = true,
+            bindPanel: Boolean = true
+    ) {
+        val thing = mThingCardAppearancePanelThing ?: return
+        if (newDraft == null) return
+
+        mThingCardAppearanceDraft = newDraft
+        thing.thingCardAppearance = newDraft
+        if (requestPreviewRefresh) {
+            requestThingCardAppearancePreviewRefresh()
+        }
+        if (bindPanel) {
+            bindThingCardAppearancePanel()
+            mThingCardAppearancePanel!!.post {
+                updateRecyclerViewBottomPaddingForThingCardAppearancePanel()
+            }
+        }
+    }
+
+    private fun requestThingCardAppearancePreviewRefresh() {
+        val recyclerView = mRecyclerView ?: return
+        if (mThingCardAppearancePreviewRefreshPosted) return
+        mThingCardAppearancePreviewRefreshPosted = true
+        recyclerView.postOnAnimation {
+            mThingCardAppearancePreviewRefreshPosted = false
+            refreshThingCardAppearancePreviewNow()
+        }
+    }
+
+    private fun refreshThingCardAppearancePreviewNow() {
+        if (!isThingCardAppearancePanelShowing()) return
+        val recyclerView = mRecyclerView ?: return
+        val position = mThingCardAppearanceSelectedPosition
+        if (position < 0 || position >= mAdapter!!.getItemCount()) return
+
+        if (recyclerView.isComputingLayout) {
+            requestThingCardAppearancePreviewRefresh()
+            return
+        }
+        if (recyclerView.hasPendingAdapterUpdates()
+                || recyclerView.scrollState != RecyclerView.SCROLL_STATE_IDLE) {
+            requestThingCardAppearancePreviewRefresh()
+            return
+        }
+        recyclerView.itemAnimator?.endAnimations()
+
+        mAdapter!!.notifyItemChanged(position)
+    }
+
+    private fun confirmThingCardAppearancePanel() {
+        val thing = mThingCardAppearancePanelThing ?: return
+        val draft = mThingCardAppearanceDraft ?: return
+
+        thing.thingCardAppearance = draft
+        hideThingCardAppearancePanel()
+        clearThingCardAppearanceDraft()
+        mThingManager!!.updateThingCardAppearance(thing)
+        if (mModeManager!!.getCurrentMode() == ModeManager.SELECTING) {
+            mModeManager!!.backNormalMode(0)
+        }
+    }
+
+    private fun cancelThingCardAppearancePanel(shouldBackNormalMode: Boolean) {
+        val thing = mThingCardAppearancePanelThing
+        val original = mThingCardAppearanceOriginal
+        if (thing != null && original != null) {
+            thing.thingCardAppearance = original
+            if (mThingCardAppearanceSelectedPosition >= 0) {
+                mAdapter!!.notifyItemChanged(mThingCardAppearanceSelectedPosition)
+            }
+        }
+        hideThingCardAppearancePanel()
+        clearThingCardAppearanceDraft()
+
+        if (shouldBackNormalMode && mModeManager!!.getCurrentMode() == ModeManager.SELECTING) {
+            mModeManager!!.backNormalMode(0)
+        }
+    }
+
+    private fun hideThingCardAppearancePanel() {
+        mThingCardAppearanceSourcePicker?.dismiss()
+        mThingCardAppearanceSourcePicker = null
+        if (isThingCardAppearancePanelShowing()) {
+            mThingCardAppearancePanel!!.visibility = View.GONE
+            mRecyclerView!!.setPadding(
+                    mRecyclerView!!.paddingLeft,
+                    mRecyclerView!!.paddingTop,
+                    mRecyclerView!!.paddingRight,
+                    mThingCardAppearancePanelOriginalPaddingBottom
+            )
+        }
+        mAdapter!!.setThingCardSurfaceAvailableHeight(0)
+    }
+
+    private fun clearThingCardAppearanceDraft() {
+        mThingCardAppearancePanelThing = null
+        mThingCardAppearanceOriginal = null
+        mThingCardAppearanceDraft = null
+        mThingCardAppearanceSelectedPosition = -1
+        mThingCardAppearanceMediaSources = emptyList()
+        mThingCardAppearanceSourcePicker?.dismiss()
+        mThingCardAppearanceSourcePicker = null
+        mThingCardAppearancePreviewRefreshPosted = false
+    }
+
+    private fun updateRecyclerViewBottomPaddingForThingCardAppearancePanel() {
+        if (!isThingCardAppearancePanelShowing()) {
+            return
+        }
+
+        val panelHeight = mThingCardAppearancePanel!!.height
+        if (panelHeight <= 0) {
+            return
+        }
+
+        val extra = panelHeight + resources.getDimensionPixelSize(R.dimen.thing_card_outer_spacing)
+        val desiredPaddingBottom = mThingCardAppearancePanelOriginalPaddingBottom + extra
+        val paddingChanged = mRecyclerView!!.paddingBottom != desiredPaddingBottom
+        if (paddingChanged) {
+            mRecyclerView!!.setPadding(
+                    mRecyclerView!!.paddingLeft,
+                    mRecyclerView!!.paddingTop,
+                    mRecyclerView!!.paddingRight,
+                    desiredPaddingBottom
+            )
+        }
+        val selectedPosition = mThingManager!!.getSingleSelectedPosition()
+        if (paddingChanged && selectedPosition > 0) {
+            mRecyclerView!!.smoothScrollToPosition(selectedPosition)
+        }
+    }
+
+    private fun isThingCardAppearancePanelShowing(): Boolean {
+        return mThingCardAppearancePanel != null &&
+                mThingCardAppearancePanel!!.visibility == View.VISIBLE
+    }
+
+    private fun getSingleSelectedThingForAppearance(): Thing? {
+        if (mThingManager!!.getSelectedCount() != 1) {
+            return null
+        }
+
+        val selectedThings = mThingManager!!.getSelectedThings() ?: return null
+        if (selectedThings.isEmpty()) {
+            return null
+        }
+        return selectedThings[0]
     }
 
     private fun setFabEvents() {
@@ -2284,6 +4328,9 @@ class ThingsActivity : EverythingDoneBaseActivity() {
             } else {
                 val thing: Thing = things[position]!!
                 if (App.getDoingThingId() != thing.id) {
+                    if (isThingCardAppearancePanelShowing()) {
+                        cancelThingCardAppearancePanel(false)
+                    }
                     thing.selected = !thing.isSelected()
                     mAdapter!!.notifyItemChanged(position)
                     mModeManager!!.updateSelectedCount()
@@ -2684,6 +4731,9 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         override fun onMenuItemClick(item: MenuItem): Boolean {
             val itemId = item.itemId
             if (itemId == R.id.act_select_all) {
+                if (isThingCardAppearancePanelShowing()) {
+                    cancelThingCardAppearancePanel(false)
+                }
                 if (mThingManager!!.getSelectedCount() == mThingManager!!.getThings()!!.size - 1) {
                     mThingManager!!.setSelectedTo(false)
                 } else {
@@ -2721,6 +4771,8 @@ class ThingsActivity : EverythingDoneBaseActivity() {
                         }, mRecyclerView!!.itemAnimator!!.moveDuration)
                     }, 160)
                 }
+            } else if (itemId == R.id.act_customize_card_appearance) {
+                openThingCardAppearancePanel()
             } else if (itemId == R.id.act_export) {
                 val accentColor = DisplayUtil.getRandomColor(App.getApp())
                 ThingExporter.startExporting(
@@ -2736,5 +4788,8 @@ class ThingsActivity : EverythingDoneBaseActivity() {
 
     companion object {
         const val TAG: String = "ThingsActivity"
+        private const val THING_CARD_RATIO_SLIDER_MAX = 1000
+        private const val THING_CARD_RATIO_SNAP_PROGRESS_DISTANCE = 28
+        private const val THING_CARD_VIDEO_END_FRAME_GUARD_MS = 50
     }
 }

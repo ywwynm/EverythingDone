@@ -215,10 +215,33 @@
     <string name="act_abandon_new_thing">포기하다</string>
     <string name="act_set_as_private_thing">비공개 항목으로 설정</string>
     <string name="act_cancel_private_thing">취소 비공개 항목 설정</string>
-    <string name="act_set_full_span_thing_card">카드 확대</string>
-    <string name="act_cancel_full_span_thing_card">카드 축소</string>
-    <string name="msg_thing_card_span_enlarged">카드를 확대했습니다</string>
-    <string name="msg_thing_card_span_shrunk">카드를 축소했습니다</string>
+    <string name="act_customize_card_appearance">Customize card appearance</string>
+    <string name="thing_card_appearance_panel_title">Card appearance</string>
+    <string name="thing_card_appearance_media_image">Image</string>
+    <string name="thing_card_appearance_media_video">Video</string>
+    <string name="thing_card_appearance_source_format">%1$s · %2$s</string>
+    <string name="thing_card_appearance_source_default">Auto select</string>
+    <string name="thing_card_appearance_cover_media">Cover image</string>
+    <string name="thing_card_appearance_span_normal">Normal</string>
+    <string name="thing_card_appearance_span_full">Wide</string>
+    <string name="thing_card_appearance_card_width">Card width</string>
+    <string name="thing_card_appearance_placement_default">Default placement</string>
+    <string name="thing_card_appearance_placement_top">Top</string>
+    <string name="thing_card_appearance_placement_bottom">Bottom</string>
+    <string name="thing_card_appearance_placement_left">Left</string>
+    <string name="thing_card_appearance_placement_right">Right</string>
+    <string name="thing_card_appearance_mode_thumbnail">Thumbnail</string>
+    <string name="thing_card_appearance_media_position">Image/video position</string>
+    <string name="thing_card_appearance_mode_background">Background</string>
+    <string name="thing_card_appearance_side_width_format">Side image width · %1$d%%</string>
+    <string name="thing_card_appearance_precise_crop">Crop cover image</string>
+    <string name="thing_card_appearance_thumbnail_shape">Cover image ratio</string>
+    <string name="thing_card_appearance_background_mask">Background mask</string>
+    <string name="thing_card_appearance_background_height">Card height</string>
+    <string name="thing_card_appearance_video_frame">Video frame</string>
+    <string name="thing_card_appearance_video_frame_preview">Video frame preview</string>
+    <string name="thing_card_appearance_video_frame_previous">Previous frame</string>
+    <string name="thing_card_appearance_video_frame_next">Next frame</string>
     <string name="act_set_thing_as_ongoing">알림에 표시</string>
     <string name="act_cancel_set_thing_as_ongoing">알림 표시 취소</string>
     <string name="act_finish">마침</string>
@@ -457,7 +480,7 @@
     <string name="settings_notifications_enabled_off">꺼짐 — 미리 알림이 표시되지 않습니다. 부여하려면 탭하세요.</string>
     <string name="settings_notifications_enabled_on">켜기 - 알림을 표시할 수 있습니다.</string>
     <string name="settings_full_screen_intent">전체 화면 알람 권한</string>
-    <string name="settings_full_screen_intent_off">끄기 - \"더 눈에 띄는 경보\"는 대화 상자를 표시하지 않습니다. 부여하려면 탭하세요.</string>
+    <string name="settings_full_screen_intent_off">끄기 - "더 눈에 띄는 경보"는 대화 상자를 표시하지 않습니다. 부여하려면 탭하세요.</string>
     <string name="settings_full_screen_intent_on">켜기 - 전체 화면 알람 대화 상자를 표시할 수 있습니다.</string>
     <string name="settings_channels_status">알림/습관/목표 채널</string>
     <string name="settings_channels_all_on">모든 %1$d 채널이 활성화되었습니다.</string>
@@ -483,12 +506,12 @@
     <string name="backup_loading_content">잠시만 기다려 주십시오. 어쩌면 뭔가를 마실 수도 있습니다.</string>
     <string name="backup_loading_title">백업 중</string>
     <string name="backup_start">백업 시작</string>
-    <string name="backup_success_content">백업 파일은 이름이 \\"ED_backup_\\"로 시작하고 접미사가 \\".bak\\"인 sdcard/EverythingDone/backup에 있습니다.</string>
+    <string name="backup_success_content">백업 파일은 이름이 \"ED_backup_\"로 시작하고 접미사가 \".bak\"인 sdcard/EverythingDone/backup에 있습니다.</string>
     <string name="backup_success_title">성공적으로 백업</string>
     <string name="last_backup">마지막 백업:</string>
     <string name="no_backup_before">이전에는 백업이 없습니다.</string>
     <string name="restore">복원</string>
-    <string name="restore_content">접미사가 \\".bak\\"여야 하는 유효한 EverythingDone 백업 파일을 선택하십시오. 기본 백업 위치는 sdcard/EverythingDone/backup입니다.</string>
+    <string name="restore_content">접미사가 \".bak\"여야 하는 유효한 EverythingDone 백업 파일을 선택하십시오. 기본 백업 위치는 sdcard/EverythingDone/backup입니다.</string>
     <string name="restore_failed_other">백업 파일이 유효한지 확인하세요.</string>
     <string name="restore_failed_title">복원 실패</string>
     <string name="restore_loading_content">잠시만 기다려 주십시오. 뭐 좀 먹어보는 건 어때요?</string>
@@ -547,7 +570,7 @@
     <string name="close_notification_later">Don\'표시된 후 2초가 될 때까지 눈에 띄는 알림을 닫는 것을 허용하지 마세요.</string>
     <string name="create_daily_todo_automatically">매일 아침 매일 TODO를 생성하세요</string>
     <string name="daily_todo_set_time_title">자동 생성 시간 설정</string>
-    <string name="create_daily_todo_help_info">EverythingDone은 매일 아침 자동으로 제목이 \\"Things to do on MM d, yyyy\\"인 항목을 생성하고 내용을 결정할 수 있습니다. (\'t를 사용하지 않고 콘텐츠와 첨부 파일을 모두 비워두면 해당 항목이 생성되지 않습니다.)
+    <string name="create_daily_todo_help_info">EverythingDone은 매일 아침 자동으로 제목이 \"Things to do on MM d, yyyy\"인 항목을 생성하고 내용을 결정할 수 있습니다. (\'t를 사용하지 않고 콘텐츠와 첨부 파일을 모두 비워두면 해당 항목이 생성되지 않습니다.)
         \n\n또한 계획과 TODO 완료에 대해 알림을 받고 싶으실 수 있으므로 오후 2시에 이 알림을 설정하겠습니다.</string>
     <string name="auto_notify">자동 알림</string>
     <string name="auto_notify_help_info">EverythingDone은 새로운 것이 생성되면 자동으로 알려줍니다. \'기록을 생성하지 않은 경우 EverythingDone은 \'의 알림 시간에 따라 자동 알림을 설정해야 하는지 여부를 결정합니다.</string>
@@ -827,10 +850,10 @@ Nevolution, 360 Notification Box 같은 알림 관리 앱을 설치했다면 알
     <string name="from_1_2_7_to_1_3_0_title">토도? 하다!</string>
     <string name="from_1_2_7_to_1_3_0_content">things\' 알람에 대한 알림이 더 눈에 띄게 표시됩니다. 준비가 되었다면 알림 후 바로 작업을 시작할 수 있으며, EverythingDone이 신중하게 완료할 수 있도록 도와드립니다.</string>
     <string name="from_1_3_0_to_1_3_1_title">언제든지 또는 자동으로 작업을 시작하세요.</string>
-    <string name="from_1_3_0_to_1_3_1_content">이제 항목 카드를 오른쪽으로 스와이프하여 언제든지 해당 작업을 시작할 수 있습니다.\n\n게다가 이제 알림이 올 때 작업 자동 시작을 활성화할 수도 있습니다. 또 다른 새로운 기능인 자동으로 엄격 모드로 들어가는 기능인 EverythingDone을 사용하면 더 이상 \\"나중에 하세요\\"라고 말하는 것을 중지할 수 있습니다.</string>
+    <string name="from_1_3_0_to_1_3_1_content">이제 항목 카드를 오른쪽으로 스와이프하여 언제든지 해당 작업을 시작할 수 있습니다.\n\n게다가 이제 알림이 올 때 작업 자동 시작을 활성화할 수도 있습니다. 또 다른 새로운 기능인 자동으로 엄격 모드로 들어가는 기능인 EverythingDone을 사용하면 더 이상 \"나중에 하세요\"라고 말하는 것을 중지할 수 있습니다.</string>
     <string name="from_1_3_3_to_1_3_4_title">편집 내용을 자동으로 저장하고 습관 기록을 변경합니다.</string>
     <string name="from_1_3_3_to_1_3_4_content">이제 항목을 생성하거나 업데이트할 때 자동으로 편집 내용을 저장할 수 있습니다.
-    \n\n최신 습관 기록을 변경하여 실수를 수정하거나 잃어버린 기억을 선택할 수도 있습니다. 습관을 확인하고 메뉴를 열고 \\"습관 세부정보 확인\\"을 클릭하면 해당 작업이 표시됩니다.</string>
+    \n\n최신 습관 기록을 변경하여 실수를 수정하거나 잃어버린 기억을 선택할 수도 있습니다. 습관을 확인하고 메뉴를 열고 \"습관 세부정보 확인\"을 클릭하면 해당 작업이 표시됩니다.</string>
     <string name="channel_reminder">알림</string>
     <string name="channel_habit">습관</string>
     <string name="channel_goal">목표</string>

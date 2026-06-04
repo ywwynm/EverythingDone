@@ -215,10 +215,33 @@
     <string name="act_abandon_new_thing">Aufgeben</string>
     <string name="act_set_as_private_thing">Als private Sache festlegen</string>
     <string name="act_cancel_private_thing">Abbrechen „Private Sache festlegen“.</string>
-    <string name="act_set_full_span_thing_card">Karte vergrößern</string>
-    <string name="act_cancel_full_span_thing_card">Karte verkleinern</string>
-    <string name="msg_thing_card_span_enlarged">Karte vergrößert</string>
-    <string name="msg_thing_card_span_shrunk">Karte verkleinert</string>
+    <string name="act_customize_card_appearance">Customize card appearance</string>
+    <string name="thing_card_appearance_panel_title">Card appearance</string>
+    <string name="thing_card_appearance_media_image">Image</string>
+    <string name="thing_card_appearance_media_video">Video</string>
+    <string name="thing_card_appearance_source_format">%1$s · %2$s</string>
+    <string name="thing_card_appearance_source_default">Auto select</string>
+    <string name="thing_card_appearance_cover_media">Cover image</string>
+    <string name="thing_card_appearance_span_normal">Normal</string>
+    <string name="thing_card_appearance_span_full">Wide</string>
+    <string name="thing_card_appearance_card_width">Card width</string>
+    <string name="thing_card_appearance_placement_default">Default placement</string>
+    <string name="thing_card_appearance_placement_top">Top</string>
+    <string name="thing_card_appearance_placement_bottom">Bottom</string>
+    <string name="thing_card_appearance_placement_left">Left</string>
+    <string name="thing_card_appearance_placement_right">Right</string>
+    <string name="thing_card_appearance_mode_thumbnail">Thumbnail</string>
+    <string name="thing_card_appearance_media_position">Image/video position</string>
+    <string name="thing_card_appearance_mode_background">Background</string>
+    <string name="thing_card_appearance_side_width_format">Side image width · %1$d%%</string>
+    <string name="thing_card_appearance_precise_crop">Crop cover image</string>
+    <string name="thing_card_appearance_thumbnail_shape">Cover image ratio</string>
+    <string name="thing_card_appearance_background_mask">Background mask</string>
+    <string name="thing_card_appearance_background_height">Card height</string>
+    <string name="thing_card_appearance_video_frame">Video frame</string>
+    <string name="thing_card_appearance_video_frame_preview">Video frame preview</string>
+    <string name="thing_card_appearance_video_frame_previous">Previous frame</string>
+    <string name="thing_card_appearance_video_frame_next">Next frame</string>
     <string name="act_set_thing_as_ongoing">In Benachrichtigungen anzeigen</string>
     <string name="act_cancel_set_thing_as_ongoing">Anzeige in Benachrichtigungen abbrechen</string>
     <string name="act_finish">Fertig</string>
@@ -483,12 +506,12 @@
     <string name="backup_loading_content">Bitte warten Sie eine Weile. Vielleicht kannst du etwas trinken.</string>
     <string name="backup_loading_title">Sichern</string>
     <string name="backup_start">Sicherung starten</string>
-    <string name="backup_success_content">Die Sicherungsdatei befindet sich unter sdcard/EverythingDone/backup, deren Name mit \\"ED_backup_\\" beginnt und das Postfix \\".bak\\" ist.</string>
+    <string name="backup_success_content">Die Sicherungsdatei befindet sich unter sdcard/EverythingDone/backup, deren Name mit \"ED_backup_\" beginnt und das Postfix \".bak\" ist.</string>
     <string name="backup_success_title">Erfolgreich sichern</string>
     <string name="last_backup">Letzte Sicherung:</string>
     <string name="no_backup_before">Vorher kein Backup</string>
     <string name="restore">Wiederherstellen</string>
-    <string name="restore_content">Bitte wählen Sie eine gültige EverythingDone-Sicherungsdatei aus, deren Postfix \\".bak\\" lauten sollte. Der Standardspeicherort für Sicherungen ist sdcard/EverythingDone/backup.</string>
+    <string name="restore_content">Bitte wählen Sie eine gültige EverythingDone-Sicherungsdatei aus, deren Postfix \".bak\" lauten sollte. Der Standardspeicherort für Sicherungen ist sdcard/EverythingDone/backup.</string>
     <string name="restore_failed_other">Bitte stellen Sie sicher, dass die Sicherungsdatei gültig ist.</string>
     <string name="restore_failed_title">Wiederherstellung fehlgeschlagen</string>
     <string name="restore_loading_content">Bitte warten Sie eine Weile. Wie wäre es, etwas zu essen?</string>
@@ -547,7 +570,7 @@
     <string name="close_notification_later">Don\'t das Schließen einer auffälligen Benachrichtigung erst 2 Sekunden nach der Anzeige zulassen</string>
     <string name="create_daily_todo_automatically">Erstellen Sie jeden Morgen ein tägliches TODO</string>
     <string name="daily_todo_set_time_title">Automatische Erstellzeit festlegen</string>
-    <string name="create_daily_todo_help_info">EverythingDone erstellt jeden Morgen automatisch ein Ding mit dem Titel \\"Things to do on MM d, yyyy\\", und Sie können den Inhalt festlegen (Wenn Sie nicht \'t und sowohl den Inhalt als auch den Anhang leer lassen, wird das Ding nicht erstellt).
+    <string name="create_daily_todo_help_info">EverythingDone erstellt jeden Morgen automatisch ein Ding mit dem Titel \"Things to do on MM d, yyyy\", und Sie können den Inhalt festlegen (Wenn Sie nicht \'t und sowohl den Inhalt als auch den Anhang leer lassen, wird das Ding nicht erstellt).
         \n\nWir werden auch um 14:00 Uhr nachmittags eine Erinnerung an diese Sache einrichten, weil Sie vielleicht daran erinnert werden möchten, Ihre Pläne und TODOs zu erledigen.</string>
     <string name="auto_notify">Automatische Erinnerung</string>
     <string name="auto_notify_help_info">EverythingDone erinnert Sie automatisch daran, nachdem eine neue Sache erstellt wurde. Wenn Sie\'keinen Datensatz erstellt haben, entscheidet EverythingDone, ob eine automatische Erinnerung entsprechend der Erinnerungszeit von thing\' eingestellt werden soll.</string>
@@ -773,10 +796,10 @@ Nun, du wirst sie sowieso nie alle finden. Hahahahaha.</item>
     <string name="from_1_2_7_to_1_3_0_title">Todo? Tun!</string>
     <string name="from_1_2_7_to_1_3_0_content">Es wird eine auffälligere Benachrichtigung für „things\'“-Alarme geben. Wenn Sie bereit sind, können Sie direkt nach der Benachrichtigung mit der Arbeit beginnen. EverythingDone hilft Ihnen dabei, sie sorgfältig abzuschließen.</string>
     <string name="from_1_3_0_to_1_3_1_title">Beginnen Sie jederzeit oder automatisch damit, etwas zu tun</string>
-    <string name="from_1_3_0_to_1_3_1_content">Jetzt können Sie eine Ding-Karte nach rechts wischen, um jederzeit mit der Ausführung dieser Sache zu beginnen.\n\nAußerdem können Sie jetzt auch das automatische Starten der Ausführung der Sache aktivieren, wenn die Erinnerung kommt. Mit einer weiteren neuen Funktion, dem automatischen Wechsel in den strengen Modus, kann EverythingDone Ihnen dabei helfen, nicht mehr zu sagen: \\"erledige es später\\".</string>
+    <string name="from_1_3_0_to_1_3_1_content">Jetzt können Sie eine Ding-Karte nach rechts wischen, um jederzeit mit der Ausführung dieser Sache zu beginnen.\n\nAußerdem können Sie jetzt auch das automatische Starten der Ausführung der Sache aktivieren, wenn die Erinnerung kommt. Mit einer weiteren neuen Funktion, dem automatischen Wechsel in den strengen Modus, kann EverythingDone Ihnen dabei helfen, nicht mehr zu sagen: \"erledige es später\".</string>
     <string name="from_1_3_3_to_1_3_4_title">Speichern Sie Änderungen automatisch und ändern Sie Gewohnheitsdatensätze</string>
     <string name="from_1_3_3_to_1_3_4_content">Jetzt können Sie das automatische Speichern von Änderungen aktivieren, wenn Sie ein Ding erstellen oder aktualisieren.
-    \n\nSie können auch Ihre neuesten Gewohnheitsaufzeichnungen ändern, um Fehler zu korrigieren oder verlorene Erinnerungen hervorzuheben. Überprüfen Sie eine Gewohnheit, öffnen Sie das Menü, klicken Sie auf \\"Details zur Gewohnheit prüfen\\" und Sie werden diese Aktion sehen.</string>
+    \n\nSie können auch Ihre neuesten Gewohnheitsaufzeichnungen ändern, um Fehler zu korrigieren oder verlorene Erinnerungen hervorzuheben. Überprüfen Sie eine Gewohnheit, öffnen Sie das Menü, klicken Sie auf \"Details zur Gewohnheit prüfen\" und Sie werden diese Aktion sehen.</string>
     <string name="channel_reminder">Erinnerungen</string>
     <string name="channel_habit">Gewohnheiten</string>
     <string name="channel_goal">Ziele</string>

@@ -148,7 +148,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
     override fun isFullSpanThingCard(thing: Thing): Boolean {
         return thing.type != Thing.HEADER
                 && thing.type < Thing.NOTIFICATION_UNDERWAY
-                && thing.thingCardSpanMode == Thing.THING_CARD_SPAN_FULL
+                && thing.thingCardAppearance.spanMode == Thing.THING_CARD_SPAN_FULL
     }
 
     private fun distinguishHeaderAndOthers(thing: Thing, cv: CardView?) {

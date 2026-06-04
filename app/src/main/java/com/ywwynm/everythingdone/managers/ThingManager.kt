@@ -577,6 +577,13 @@ open class ThingManager private constructor(context: Context?) {
         }
     }
 
+    open fun updateThingCardAppearance(thing: Thing?) {
+        if (thing == null) return
+        mExecutor!!.execute {
+            mDao!!.updateThingCardAppearance(thing)
+        }
+    }
+
     /**
      * update locations of [mThings] according to Reminder and Habits' alarms time.
      * This method will put the thing that is related to most urgent alarm in front of things list.

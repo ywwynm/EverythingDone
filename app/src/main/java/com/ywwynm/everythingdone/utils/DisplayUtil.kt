@@ -16,10 +16,19 @@ import android.content.res.Resources
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.ColorFilter
+import android.graphics.LinearGradient
+import android.graphics.Paint
+import android.graphics.PixelFormat
 import android.graphics.Point
 import android.graphics.PorterDuff
+import android.graphics.Rect
+import android.graphics.RectF
+import android.graphics.Shader
 import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.ClipDrawable
 import android.graphics.drawable.Drawable
+import android.graphics.drawable.LayerDrawable
 import android.graphics.drawable.RippleDrawable
 import android.graphics.drawable.StateListDrawable
 import androidx.core.content.ContextCompat
@@ -30,6 +39,7 @@ import androidx.cardview.widget.CardView
 import android.text.Layout
 import android.util.SparseArray
 import android.view.Display
+import android.view.Gravity
 import android.view.KeyCharacterMap
 import android.view.KeyEvent
 import android.view.View
@@ -43,6 +53,7 @@ import android.widget.EditText
 import android.widget.SeekBar
 
 import com.ywwynm.everythingdone.R
+import com.ywwynm.everythingdone.model.ThingBackground
 
 import java.util.Random
 import kotlin.math.abs
@@ -631,8 +642,142 @@ object DisplayUtil {
 
     @JvmStatic
     fun setSeekBarColor(seekBar: SeekBar?, color: Int) {
-        seekBar!!.setProgressTintList(ColorStateList.valueOf(color))
-        seekBar.thumb!!.setColorFilter(color, PorterDuff.Mode.SRC_IN)
+        setSeekBarBackground(seekBar, ThingBackground.pure(color))
+    }
+
+    @JvmStatic
+    fun setSeekBarBackground(seekBar: SeekBar?, background: ThingBackground?) {
+        if (seekBar == null) return
+        val safeBackground = background ?: ThingBackground.pure(
+                ContextCompat.getColor(seekBar.context, R.color.app_accent)
+        )
+        seekBar.progressTintList = null
+        seekBar.progressBackgroundTintList = null
+        seekBar.secondaryProgressTintList = null
+        seekBar.progressDrawable = buildSeekBarProgressDrawable(seekBar, safeBackground)
+        seekBar.thumb!!.setColorFilter(
+                safeBackground.representativeColor(),
+                PorterDuff.Mode.SRC_IN
+        )
+    }
+
+    private fun buildSeekBarProgressDrawable(
+            seekBar: SeekBar,
+            background: ThingBackground
+    ): Drawable {
+        val density = seekBar.resources.displayMetrics.density
+        val trackHeight = max(2, (4f * density).toInt())
+        val activeTrack = ClipDrawable(
+                SeekBarTrackDrawable(background, trackHeight),
+                Gravity.LEFT,
+                ClipDrawable.HORIZONTAL
+        ).apply {
+            level = (seekBar.progress * 10000f / max(1, seekBar.max)).toInt()
+        }
+        return LayerDrawable(
+                arrayOf(
+                        SeekBarTrackDrawable(
+                                ThingBackground.pure(ContextCompat.getColor(
+                                        seekBar.context,
+                                        R.color.app_chrome_on_surface_hint
+                                )),
+                                trackHeight
+                        ),
+                        SeekBarTrackDrawable(ThingBackground.pure(Color.TRANSPARENT), trackHeight),
+                        activeTrack
+                )
+        ).apply {
+            setId(0, android.R.id.background)
+            setId(1, android.R.id.secondaryProgress)
+            setId(2, android.R.id.progress)
+        }
+    }
+
+    private class SeekBarTrackDrawable(
+            private val background: ThingBackground,
+            private val trackHeight: Int
+    ) : Drawable() {
+        private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        private val trackRect = RectF()
+
+        init {
+            updatePaint()
+        }
+
+        override fun draw(canvas: Canvas) {
+            val currentBounds = bounds
+            if (currentBounds.width() <= 0 || currentBounds.height() <= 0) return
+
+            val centerY = currentBounds.exactCenterY()
+            val top = centerY - trackHeight / 2f
+            val bottom = centerY + trackHeight / 2f
+            val radius = trackHeight / 2f
+            trackRect.set(
+                    currentBounds.left.toFloat(),
+                    top,
+                    currentBounds.right.toFloat(),
+                    bottom
+            )
+            canvas.drawRoundRect(trackRect, radius, radius, paint)
+        }
+
+        override fun onBoundsChange(bounds: Rect) {
+            super.onBoundsChange(bounds)
+            updatePaint()
+        }
+
+        override fun setAlpha(alpha: Int) {
+            paint.alpha = alpha
+            invalidateSelf()
+        }
+
+        @Deprecated("Deprecated in Drawable")
+        override fun setColorFilter(colorFilter: ColorFilter?) {
+            paint.colorFilter = colorFilter
+            invalidateSelf()
+        }
+
+        @Deprecated("Deprecated in Drawable")
+        override fun getOpacity(): Int = PixelFormat.TRANSLUCENT
+
+        override fun getIntrinsicHeight(): Int = trackHeight
+
+        private fun updatePaint() {
+            paint.shader = null
+            if (background.mode === ThingBackground.Mode.GRADIENT && bounds.width() > 0) {
+                paint.shader = createGradientShader(bounds, background)
+            } else {
+                paint.color = background.representativeColor()
+            }
+        }
+    }
+
+    private fun createGradientShader(bounds: Rect, background: ThingBackground): LinearGradient {
+        val left = bounds.left.toFloat()
+        val top = bounds.top.toFloat()
+        val right = bounds.right.toFloat()
+        val bottom = bounds.bottom.toFloat()
+        val centerX = bounds.exactCenterX()
+        val centerY = bounds.exactCenterY()
+        val points = when (background.orientation) {
+            ThingBackground.Orientation.L_R -> floatArrayOf(left, centerY, right, centerY)
+            ThingBackground.Orientation.T_B -> floatArrayOf(centerX, top, centerX, bottom)
+            ThingBackground.Orientation.LT_RB -> floatArrayOf(left, top, right, bottom)
+            ThingBackground.Orientation.RT_LB -> floatArrayOf(right, top, left, bottom)
+            ThingBackground.Orientation.LB_RT -> floatArrayOf(left, bottom, right, top)
+            ThingBackground.Orientation.RB_LT -> floatArrayOf(right, bottom, left, top)
+            ThingBackground.Orientation.R_L -> floatArrayOf(right, centerY, left, centerY)
+            ThingBackground.Orientation.B_T -> floatArrayOf(centerX, bottom, centerX, top)
+        }
+        return LinearGradient(
+                points[0],
+                points[1],
+                points[2],
+                points[3],
+                background.color,
+                background.endColor,
+                Shader.TileMode.CLAMP
+        )
     }
 
     @JvmStatic

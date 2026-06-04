@@ -17,6 +17,7 @@ import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.adapters.ThingsAdapter
+import com.ywwynm.everythingdone.helpers.ThingCardMediaHelper
 import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.views.ActivityHeader
 import com.ywwynm.everythingdone.views.FloatingActionButton
@@ -71,8 +72,10 @@ open class ModeManager(app: App?,
 
     private var mAdapter: ThingsAdapter? = adapter
     //private WeakReference<ThingsAdapter> mWrAdapter;
+    private var mShouldShowPrivateContent: Boolean = false
 
     private var backNormalModeListener: View.OnClickListener? = null
+    private var backNormalModeCallback: (() -> Unit)? = null
 
     private var notifyDataSetRunnable: Runnable? = null
     private var hideActionBarShadowRunnable: Runnable? = null
@@ -101,6 +104,7 @@ open class ModeManager(app: App?,
         }
         beforeMode = currentMode
         currentMode = MOVING
+        prepareRecyclerViewForModeRebind()
         notifyThingsSelected(position)
     }
 
@@ -114,6 +118,7 @@ open class ModeManager(app: App?,
         currentMode = SELECTING
 
         val rv: RecyclerView = mRecyclerView!!
+        prepareRecyclerViewForModeRebind()
         if (beforeMode == NORMAL) {
             notifyThingsSelected(position)
         } else {
@@ -128,11 +133,21 @@ open class ModeManager(app: App?,
                 ObjectAnimator.ofFloat(cv, "scaleY", 1.0f).setDuration(96).start()
             }
         }
-        (rv.itemAnimator as SimpleItemAnimator).supportsChangeAnimations = false
         updateMenuItems()
     }
 
+    private fun prepareRecyclerViewForModeRebind() {
+        val rv: RecyclerView = mRecyclerView!!
+        rv.itemAnimator?.endAnimations()
+        (rv.itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
+    }
+
+    open fun setBackNormalModeCallback(callback: (() -> Unit)?) {
+        backNormalModeCallback = callback
+    }
+
     open fun backNormalMode(position: Int) {
+        backNormalModeCallback?.invoke()
         val isSearching: Boolean = App.isSearching
         if (!isSearching) {
             mDrawerLayout!!.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED)
@@ -221,9 +236,15 @@ open class ModeManager(app: App?,
 
     open fun updateMenuItems() {
         updateMenuItemSelectAll()
+        updateMenuItemCustomizeCardAppearance()
         if (mApp!!.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
             updateMenuItemStickyOnTop()
         }
+    }
+
+    open fun setShouldShowPrivateContent(shouldShowPrivateContent: Boolean) {
+        mShouldShowPrivateContent = shouldShowPrivateContent
+        updateMenuItems()
     }
 
     private fun updateMenuItemSelectAll() {
@@ -252,6 +273,33 @@ open class ModeManager(app: App?,
                 item.setTitle(R.string.act_sticky_on_top)
             }
         }
+    }
+
+    private fun updateMenuItemCustomizeCardAppearance() {
+        val item: MenuItem = mContextualToolbar!!.getMenu()
+                .findItem(R.id.act_customize_card_appearance) ?: return
+        item.isVisible = canCustomizeSelectedThingCardAppearance()
+    }
+
+    private fun canCustomizeSelectedThingCardAppearance(): Boolean {
+        if (mThingManager!!.getSelectedCount() != 1) {
+            return false
+        }
+
+        val selectedThings = mThingManager!!.getSelectedThings() ?: return false
+        if (selectedThings.isEmpty()) {
+            return false
+        }
+
+        val thing: Thing = selectedThings[0] ?: return false
+        if (thing.id == App.getDoingThingId()) {
+            return false
+        }
+        if (thing.isPrivate() && !mShouldShowPrivateContent) {
+            return false
+        }
+
+        return ThingCardMediaHelper.resolveEffectiveMediaSource(thing) != null
     }
 
     open fun updateTitleTextSize() {

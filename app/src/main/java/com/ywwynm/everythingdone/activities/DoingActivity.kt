@@ -195,7 +195,7 @@ open class DoingActivity : EverythingDoneBaseActivity() {
     private fun isFullSpanThingCard(thing: Thing): Boolean {
         return thing.type != Thing.HEADER
                 && thing.type < Thing.NOTIFICATION_UNDERWAY
-                && thing.thingCardSpanMode == Thing.THING_CARD_SPAN_FULL
+                && thing.thingCardAppearance.spanMode == Thing.THING_CARD_SPAN_FULL
     }
 
     override fun findViews() {
@@ -422,6 +422,31 @@ open class DoingActivity : EverythingDoneBaseActivity() {
         adapter.setChecklistMaxItemCount(-1)
         mRecyclerView!!.layoutManager = SlowScrollLinearLayoutManager(this)
         mRecyclerView!!.adapter = adapter
+        updateThingCardSurfaceAvailableHeight(adapter)
+    }
+
+    private fun updateThingCardSurfaceAvailableHeight(adapter: BaseThingsAdapter) {
+        mRecyclerView!!.post {
+            adapter.setThingCardSurfaceAvailableHeight(getDoingThingCardAvailableHeight())
+            adapter.notifyDataSetChanged()
+        }
+    }
+
+    private fun getDoingThingCardAvailableHeight(): Int {
+        val recyclerView = mRecyclerView ?: return DisplayUtil.getScreenSize(mApp).y
+        val bottomButtons = mLlBottom ?: return DisplayUtil.getScreenSize(mApp).y
+        val recyclerLocation = IntArray(2)
+        val bottomLocation = IntArray(2)
+        recyclerView.getLocationOnScreen(recyclerLocation)
+        bottomButtons.getLocationOnScreen(bottomLocation)
+        val height = bottomLocation[1] - recyclerLocation[1]
+        if (height > 0) return height
+
+        val parent = recyclerView.parent as? View
+        if (parent != null && parent.height > 0) {
+            return parent.height
+        }
+        return DisplayUtil.getScreenSize(mApp).y
     }
 
     private fun updateBottomButtons() {

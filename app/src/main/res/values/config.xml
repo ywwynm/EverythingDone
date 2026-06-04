@@ -2,4 +2,12 @@
 <resources>
     <bool name="isTablet">false</bool>
     <integer name="thing_card_full_span_side_image_width_percent">42</integer>
+    <integer name="thing_card_side_media_width_default_percent">42</integer>
+    <integer name="thing_card_side_media_width_min_percent">30</integer>
+    <integer name="thing_card_side_media_width_max_percent">60</integer>
+    <integer name="thing_card_normal_thumbnail_min_height_percent">12</integer>
+    <integer name="thing_card_full_span_thumbnail_min_height_percent">18</integer>
+    <integer name="thing_card_thumbnail_max_height_percent">72</integer>
+    <integer name="thing_card_media_background_home_max_height_percent">96</integer>
+    <integer name="thing_card_media_background_default_mask_strength_percent">45</integer>
 </resources>

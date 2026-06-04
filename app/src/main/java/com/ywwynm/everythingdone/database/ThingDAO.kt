@@ -7,7 +7,9 @@ import android.database.sqlite.SQLiteConstraintException
 import android.database.sqlite.SQLiteDatabase
 
 import com.ywwynm.everythingdone.Def
+import com.ywwynm.everythingdone.helpers.ThingCardMediaHelper
 import com.ywwynm.everythingdone.model.Thing
+import com.ywwynm.everythingdone.model.ThingCardAppearance
 import com.ywwynm.everythingdone.model.ThingsCounts
 import com.ywwynm.everythingdone.utils.ThingsSorter
 
@@ -88,10 +90,9 @@ open class ThingDAO private constructor(context: Context?) {
         values.put(Def.Database.COLUMN_CREATE_TIME_THINGS, System.currentTimeMillis())
         values.put(Def.Database.COLUMN_UPDATE_TIME_THINGS, System.currentTimeMillis())
         values.put(Def.Database.COLUMN_FINISH_TIME_THINGS, 0)
-        values.put(Def.Database.COLUMN_THING_CARD_SPAN_MODE_THINGS, Thing.THING_CARD_SPAN_NORMAL)
         values.put(
-            Def.Database.COLUMN_THING_CARD_IMAGE_PLACEMENT_THINGS,
-            Thing.THING_CARD_IMAGE_PLACEMENT_DEFAULT
+            Def.Database.COLUMN_THING_CARD_APPEARANCE_THINGS,
+            ThingCardAppearance.default().toJson()
         )
 
         db!!.insert(Def.Database.TABLE_THINGS, null, values)
@@ -186,7 +187,7 @@ open class ThingDAO private constructor(context: Context?) {
             deleteNotifyEmpty(type, state, handleCurrentLimit)
         }
 
-        val values = ContentValues(14)
+        val values = ContentValues(13)
         values.put(Def.Database.COLUMN_ID_THINGS,          thing.id)
         values.put(Def.Database.COLUMN_TYPE_THINGS,        type)
         values.put(Def.Database.COLUMN_STATE_THINGS,       state)
@@ -199,10 +200,9 @@ open class ThingDAO private constructor(context: Context?) {
         values.put(Def.Database.COLUMN_UPDATE_TIME_THINGS, thing.updateTime)
         values.put(Def.Database.COLUMN_FINISH_TIME_THINGS, thing.finishTime)
         values.put(Def.Database.COLUMN_BACKGROUND_THINGS,  thing.getBackground()!!.toJson())
-        values.put(Def.Database.COLUMN_THING_CARD_SPAN_MODE_THINGS, thing.thingCardSpanMode)
         values.put(
-            Def.Database.COLUMN_THING_CARD_IMAGE_PLACEMENT_THINGS,
-            thing.thingCardImagePlacement
+            Def.Database.COLUMN_THING_CARD_APPEARANCE_THINGS,
+            thing.thingCardAppearance.toJson()
         )
 
         try {
@@ -227,14 +227,15 @@ open class ThingDAO private constructor(context: Context?) {
             deleteNotifyEmpty(typeAfter, state, handleCurrentLimit)
         }
 
+        prepareThingCardAppearanceForContentUpdate(updatedThing)
+
         val values = ContentValues()
         values.put(Def.Database.COLUMN_TYPE_THINGS, typeAfter)
         values.put(Def.Database.COLUMN_COLOR_THINGS, updatedThing.getColor())
         values.put(Def.Database.COLUMN_BACKGROUND_THINGS, updatedThing.getBackground()!!.toJson())
-        values.put(Def.Database.COLUMN_THING_CARD_SPAN_MODE_THINGS, updatedThing.thingCardSpanMode)
         values.put(
-            Def.Database.COLUMN_THING_CARD_IMAGE_PLACEMENT_THINGS,
-            updatedThing.thingCardImagePlacement
+            Def.Database.COLUMN_THING_CARD_APPEARANCE_THINGS,
+            updatedThing.thingCardAppearance.toJson()
         )
         values.put(Def.Database.COLUMN_TITLE_THINGS, updatedThing.title)
         values.put(Def.Database.COLUMN_CONTENT_THINGS, updatedThing.content)
@@ -281,10 +282,9 @@ open class ThingDAO private constructor(context: Context?) {
             values.put(Def.Database.COLUMN_CREATE_TIME_THINGS, thing.createTime)
             values.put(Def.Database.COLUMN_UPDATE_TIME_THINGS, thing.updateTime)
             values.put(Def.Database.COLUMN_FINISH_TIME_THINGS, thing.finishTime)
-            values.put(Def.Database.COLUMN_THING_CARD_SPAN_MODE_THINGS, thing.thingCardSpanMode)
             values.put(
-                Def.Database.COLUMN_THING_CARD_IMAGE_PLACEMENT_THINGS,
-                thing.thingCardImagePlacement
+                Def.Database.COLUMN_THING_CARD_APPEARANCE_THINGS,
+                thing.thingCardAppearance.toJson()
             )
 
             db!!.insert(Def.Database.TABLE_THINGS, null, values)
@@ -310,11 +310,6 @@ open class ThingDAO private constructor(context: Context?) {
 
                 values.put(Def.Database.COLUMN_CONTENT_THINGS, thing.content)
                 values.put(Def.Database.COLUMN_STATE_THINGS, stateAfter)
-                values.put(Def.Database.COLUMN_THING_CARD_SPAN_MODE_THINGS, thing.thingCardSpanMode)
-                values.put(
-                    Def.Database.COLUMN_THING_CARD_IMAGE_PLACEMENT_THINGS,
-                    thing.thingCardImagePlacement
-                )
                 db!!.update(Def.Database.TABLE_THINGS, values, "id=$id", null)
             } else {
                 val temp: Thing? = getThingById(id)
@@ -414,6 +409,30 @@ open class ThingDAO private constructor(context: Context?) {
             e.printStackTrace()
         } finally {
             db!!.endTransaction()
+        }
+    }
+
+    open fun updateThingCardAppearance(thing: Thing?) {
+        if (thing == null) return
+        val appearance = thing.thingCardAppearance.withAppearanceUpdateTime(System.currentTimeMillis())
+        thing.thingCardAppearance = appearance
+        val values = ContentValues(1)
+        values.put(Def.Database.COLUMN_THING_CARD_APPEARANCE_THINGS, appearance.toJson())
+        db!!.update(Def.Database.TABLE_THINGS, values, "id=" + thing.id, null)
+    }
+
+    private fun prepareThingCardAppearanceForContentUpdate(updatedThing: Thing) {
+        val oldThing = getThingById(updatedThing.id) ?: return
+        if (oldThing.attachment != updatedThing.attachment) {
+            val availableKeys = ThingCardMediaHelper.getMediaSourceKeysFromAttachment(
+                updatedThing.attachment
+            )
+            updatedThing.thingCardAppearance = updatedThing.thingCardAppearance
+                .retainSources(availableKeys)
+        }
+        if (!oldThing.thingCardAppearance.hasSamePresentationAs(updatedThing.thingCardAppearance)) {
+            updatedThing.thingCardAppearance = updatedThing.thingCardAppearance
+                .withAppearanceUpdateTime(System.currentTimeMillis())
         }
     }
 

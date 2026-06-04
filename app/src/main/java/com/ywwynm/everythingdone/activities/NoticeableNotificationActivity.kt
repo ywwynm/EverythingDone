@@ -170,7 +170,7 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
     private fun isFullSpanThingCard(thing: Thing): Boolean {
         return thing.type != Thing.HEADER
                 && thing.type < Thing.NOTIFICATION_UNDERWAY
-                && thing.thingCardSpanMode == Thing.THING_CARD_SPAN_FULL
+                && thing.thingCardAppearance.spanMode == Thing.THING_CARD_SPAN_FULL
     }
 
     private fun initMemberActions() {
@@ -406,6 +406,37 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
         adapter.setChecklistMaxItemCount(-1)
         mRvThing!!.layoutManager = LinearLayoutManager(this)
         mRvThing!!.adapter = adapter
+        updateThingCardSurfaceAvailableHeight(adapter)
+    }
+
+    private fun updateThingCardSurfaceAvailableHeight(adapter: BaseThingsAdapter) {
+        mRvThing!!.post {
+            adapter.setThingCardSurfaceAvailableHeight(getNoticeableThingCardAvailableHeight())
+            adapter.notifyDataSetChanged()
+        }
+    }
+
+    private fun getNoticeableThingCardAvailableHeight(): Int {
+        val recyclerView = mRvThing ?: return DisplayUtil.getScreenSize(this).y
+        val recyclerLocation = IntArray(2)
+        recyclerView.getLocationOnScreen(recyclerLocation)
+
+        val actionContainer = mFlActions?.firstOrNull()?.parent as? View
+        if (actionContainer != null) {
+            val actionLocation = IntArray(2)
+            actionContainer.getLocationOnScreen(actionLocation)
+            val height = actionLocation[1] - recyclerLocation[1]
+            if (height > 0) return height
+        }
+
+        val root = mRoot
+        if (root != null && root.height > 0) {
+            val rootLocation = IntArray(2)
+            root.getLocationOnScreen(rootLocation)
+            val height = rootLocation[1] + root.height - recyclerLocation[1]
+            if (height > 0) return height
+        }
+        return DisplayUtil.getScreenSize(this).y
     }
 
     private fun initActionsUI() {

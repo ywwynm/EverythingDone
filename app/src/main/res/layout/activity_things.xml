@@ -85,6 +85,8 @@
                 android:alpha="0.0"
                 android:background="@drawable/actionbar_shadow"/>
 
+            <include layout="@layout/panel_thing_card_appearance" />
+
             <com.ywwynm.everythingdone.views.FloatingActionButton
                 android:id="@+id/fab_create"
                 android:layout_width="wrap_content"

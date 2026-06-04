@@ -326,9 +326,41 @@
     <string name="act_export_to_sdcard">Export to sdcard</string>
     <string name="act_restore_selected">Restore selected</string>
     <string name="act_delete_selected_forever">Delete selected forever</string>
+    <string name="act_customize_card_appearance">Customize card appearance</string>
 
     <string name="act_sticky_on_top">Sticky on top</string>
     <string name="act_cancel_sticky">Cancel sticky</string>
+
+    <string name="thing_card_appearance_panel_title">Card appearance</string>
+    <string name="thing_card_appearance_media_image">Image</string>
+    <string name="thing_card_appearance_media_video">Video</string>
+    <string name="thing_card_appearance_source_format">%1$s · %2$s</string>
+    <string name="thing_card_appearance_source_default">Auto select</string>
+    <string name="thing_card_appearance_cover_media">Cover image</string>
+    <string name="thing_card_appearance_span_normal">Normal</string>
+    <string name="thing_card_appearance_span_full">Wide</string>
+    <string name="thing_card_appearance_card_width">Card width</string>
+    <string name="thing_card_appearance_placement_default">Default placement</string>
+    <string name="thing_card_appearance_placement_top">Top</string>
+    <string name="thing_card_appearance_placement_bottom">Bottom</string>
+    <string name="thing_card_appearance_placement_left">Left</string>
+    <string name="thing_card_appearance_placement_right">Right</string>
+    <string name="thing_card_appearance_mode_thumbnail">Thumbnail</string>
+    <string name="thing_card_appearance_media_position">Image/video position</string>
+    <string name="thing_card_appearance_mode_background">Background</string>
+    <string name="thing_card_appearance_side_width_format">Side image width · %1$d%%</string>
+    <string name="thing_card_appearance_precise_crop">Crop cover image</string>
+    <string name="thing_card_appearance_precise_crop_video">Crop cover video</string>
+    <string name="thing_card_appearance_thumbnail_shape">Cover image ratio</string>
+    <string name="thing_card_appearance_background_mask">Background mask</string>
+    <string name="thing_card_appearance_background_height">Card height</string>
+    <string name="thing_card_appearance_video_frame">Video frame</string>
+    <string name="thing_card_appearance_video_frame_preview">Video frame preview</string>
+    <string name="thing_card_appearance_video_frame_play">Play video frame preview</string>
+    <string name="thing_card_appearance_video_frame_pause">Pause video frame preview</string>
+    <string name="thing_card_appearance_video_frame_stop">Stop video frame preview</string>
+    <string name="thing_card_appearance_video_frame_previous">Previous frame</string>
+    <string name="thing_card_appearance_video_frame_next">Next frame</string>
 
     <!--DetailActivity create-->
     <string name="act_add_attachment">Add attachment</string>
@@ -342,21 +374,6 @@
     <!--DetailActivity underway-->
     <string name="act_set_as_private_thing">Set As Private Thing</string>
     <string name="act_cancel_private_thing">Cancel Set Private Thing</string>
-    <string name="act_set_full_span_thing_card">Enlarge thing card</string>
-    <string name="act_cancel_full_span_thing_card">Shrink thing card</string>
-    <string name="msg_thing_card_span_enlarged">Thing card enlarged</string>
-    <string name="msg_thing_card_span_shrunk">Thing card shrunk</string>
-    <string name="title_thing_card_image_placement">Thing card image position</string>
-    <string name="option_thing_card_image_placement_default">Default (image on top)</string>
-    <string name="option_thing_card_image_placement_top">Image on top</string>
-    <string name="option_thing_card_image_placement_bottom">Image on bottom</string>
-    <string name="option_thing_card_image_placement_left">Image on left</string>
-    <string name="option_thing_card_image_placement_right">Image on right</string>
-    <string name="msg_thing_card_image_placement_default">Image position set to the thing card default</string>
-    <string name="msg_thing_card_image_placement_top">Image placed at the top of the thing card</string>
-    <string name="msg_thing_card_image_placement_bottom">Image placed at the bottom of the thing card</string>
-    <string name="msg_thing_card_image_placement_left">Image placed on the left side of the thing card</string>
-    <string name="msg_thing_card_image_placement_right">Image placed on the right side of the thing card</string>
     <string name="act_set_thing_as_ongoing">Show in Notifications</string>
     <string name="act_cancel_set_thing_as_ongoing">Cancel showing in Notifications</string>
     <string name="act_finish">Finish</string>
@@ -1026,8 +1043,6 @@
 
     <string name="cd_delete_image_attachment">delete this image attachment</string>
     <string name="cd_delete_video_attachment">delete this video attachment</string>
-    <string name="cd_set_thing_card_image_placement">set image position on the thing card</string>
-    <string name="cd_set_thing_card_video_placement">set video thumbnail position on the thing card</string>
 
     <!--time of day rec item-->
     <string name="cd_reminder_time">Reminder time</string>

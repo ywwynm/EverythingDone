@@ -312,9 +312,41 @@
     <string name="act_export_to_sdcard">导出到 SD 卡</string>
     <string name="act_restore_selected">还原选中的记事</string>
     <string name="act_delete_selected_forever">彻底删除选中的记事</string>
+    <string name="act_customize_card_appearance">自定义卡片外观</string>
 
     <string name="act_sticky_on_top">置顶</string>
     <string name="act_cancel_sticky">取消置顶</string>
+
+    <string name="thing_card_appearance_panel_title">卡片外观</string>
+    <string name="thing_card_appearance_media_image">图片</string>
+    <string name="thing_card_appearance_media_video">视频</string>
+    <string name="thing_card_appearance_source_format">%1$s · %2$s</string>
+    <string name="thing_card_appearance_source_default">自动选择</string>
+    <string name="thing_card_appearance_cover_media">封面图片</string>
+    <string name="thing_card_appearance_span_normal">正常</string>
+    <string name="thing_card_appearance_span_full">宽</string>
+    <string name="thing_card_appearance_card_width">卡片宽度</string>
+    <string name="thing_card_appearance_placement_default">默认位置</string>
+    <string name="thing_card_appearance_placement_top">上方</string>
+    <string name="thing_card_appearance_placement_bottom">下方</string>
+    <string name="thing_card_appearance_placement_left">左侧</string>
+    <string name="thing_card_appearance_placement_right">右侧</string>
+    <string name="thing_card_appearance_mode_thumbnail">缩略图</string>
+    <string name="thing_card_appearance_media_position">图片/视频位置</string>
+    <string name="thing_card_appearance_mode_background">背景</string>
+    <string name="thing_card_appearance_side_width_format">侧边图片宽度 · %1$d%%</string>
+    <string name="thing_card_appearance_precise_crop">裁切封面图片</string>
+    <string name="thing_card_appearance_precise_crop_video">裁切封面视频</string>
+    <string name="thing_card_appearance_thumbnail_shape">封面图片比例</string>
+    <string name="thing_card_appearance_background_mask">背景遮罩</string>
+    <string name="thing_card_appearance_background_height">卡片高度</string>
+    <string name="thing_card_appearance_video_frame">视频选帧</string>
+    <string name="thing_card_appearance_video_frame_preview">视频帧预览</string>
+    <string name="thing_card_appearance_video_frame_play">播放视频帧预览</string>
+    <string name="thing_card_appearance_video_frame_pause">暂停视频帧预览</string>
+    <string name="thing_card_appearance_video_frame_stop">停止视频帧预览</string>
+    <string name="thing_card_appearance_video_frame_previous">上一帧</string>
+    <string name="thing_card_appearance_video_frame_next">下一帧</string>
 
     <!--DetailActivity create-->
     <string name="act_add_attachment">添加附件</string>
@@ -328,21 +360,6 @@
     <!--DetailActivity underway-->
     <string name="act_set_as_private_thing">设为私密记事</string>
     <string name="act_cancel_private_thing">取消设置私密记事</string>
-    <string name="act_set_full_span_thing_card">放大记事卡片</string>
-    <string name="act_cancel_full_span_thing_card">缩小记事卡片</string>
-    <string name="msg_thing_card_span_enlarged">已放大记事卡片</string>
-    <string name="msg_thing_card_span_shrunk">已缩小记事卡片</string>
-    <string name="title_thing_card_image_placement">记事卡片图片位置</string>
-    <string name="option_thing_card_image_placement_default">默认（图片在上）</string>
-    <string name="option_thing_card_image_placement_top">图片在上</string>
-    <string name="option_thing_card_image_placement_bottom">图片在下</string>
-    <string name="option_thing_card_image_placement_left">图片在左</string>
-    <string name="option_thing_card_image_placement_right">图片在右</string>
-    <string name="msg_thing_card_image_placement_default">已将图片位置设为记事卡片默认位置</string>
-    <string name="msg_thing_card_image_placement_top">已将图片放置于记事卡片上方</string>
-    <string name="msg_thing_card_image_placement_bottom">已将图片放置于记事卡片下方</string>
-    <string name="msg_thing_card_image_placement_left">已将图片放置于记事卡片左侧</string>
-    <string name="msg_thing_card_image_placement_right">已将图片放置于记事卡片右侧</string>
     <string name="act_set_thing_as_ongoing">在通知栏中显示</string>
     <string name="act_cancel_set_thing_as_ongoing">取消在通知栏中显示</string>
     <string name="act_finish">完成</string>
@@ -1016,8 +1033,6 @@
 
     <string name="cd_delete_image_attachment">删除该图片附件</string>
     <string name="cd_delete_video_attachment">删除该视频附件</string>
-    <string name="cd_set_thing_card_image_placement">设置图片在记事卡片中的位置</string>
-    <string name="cd_set_thing_card_video_placement">设置视频缩略图在记事卡片中的位置</string>
 
     <!--time of day rec item-->
     <string name="cd_reminder_time">提醒时刻</string>

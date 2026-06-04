@@ -215,10 +215,33 @@
     <string name="act_abandon_new_thing">放棄する</string>
     <string name="act_set_as_private_thing">プライベートなものとして設定</string>
     <string name="act_cancel_private_thing">プライベートなものの設定をキャンセルする</string>
-    <string name="act_set_full_span_thing_card">カードを拡大</string>
-    <string name="act_cancel_full_span_thing_card">カードを縮小</string>
-    <string name="msg_thing_card_span_enlarged">カードを拡大しました</string>
-    <string name="msg_thing_card_span_shrunk">カードを縮小しました</string>
+    <string name="act_customize_card_appearance">Customize card appearance</string>
+    <string name="thing_card_appearance_panel_title">Card appearance</string>
+    <string name="thing_card_appearance_media_image">Image</string>
+    <string name="thing_card_appearance_media_video">Video</string>
+    <string name="thing_card_appearance_source_format">%1$s · %2$s</string>
+    <string name="thing_card_appearance_source_default">Auto select</string>
+    <string name="thing_card_appearance_cover_media">Cover image</string>
+    <string name="thing_card_appearance_span_normal">Normal</string>
+    <string name="thing_card_appearance_span_full">Wide</string>
+    <string name="thing_card_appearance_card_width">Card width</string>
+    <string name="thing_card_appearance_placement_default">Default placement</string>
+    <string name="thing_card_appearance_placement_top">Top</string>
+    <string name="thing_card_appearance_placement_bottom">Bottom</string>
+    <string name="thing_card_appearance_placement_left">Left</string>
+    <string name="thing_card_appearance_placement_right">Right</string>
+    <string name="thing_card_appearance_mode_thumbnail">Thumbnail</string>
+    <string name="thing_card_appearance_media_position">Image/video position</string>
+    <string name="thing_card_appearance_mode_background">Background</string>
+    <string name="thing_card_appearance_side_width_format">Side image width · %1$d%%</string>
+    <string name="thing_card_appearance_precise_crop">Crop cover image</string>
+    <string name="thing_card_appearance_thumbnail_shape">Cover image ratio</string>
+    <string name="thing_card_appearance_background_mask">Background mask</string>
+    <string name="thing_card_appearance_background_height">Card height</string>
+    <string name="thing_card_appearance_video_frame">Video frame</string>
+    <string name="thing_card_appearance_video_frame_preview">Video frame preview</string>
+    <string name="thing_card_appearance_video_frame_previous">Previous frame</string>
+    <string name="thing_card_appearance_video_frame_next">Next frame</string>
     <string name="act_set_thing_as_ongoing">通知に表示</string>
     <string name="act_cancel_set_thing_as_ongoing">通知への表示をキャンセルする</string>
     <string name="act_finish">終了</string>
@@ -483,12 +506,12 @@
     <string name="backup_loading_content">しばらくお待ちください。何か飲んでもいいかもしれません。</string>
     <string name="backup_loading_title">バックアップ中</string>
     <string name="backup_start">バックアップの開始</string>
-    <string name="backup_success_content">バックアップ ファイルは sdcard/EverythingDone/backup にあり、その名前は \\"ED_backup_\\" で始まり、接尾辞は \\".bak\\" です。</string>
+    <string name="backup_success_content">バックアップ ファイルは sdcard/EverythingDone/backup にあり、その名前は \"ED_backup_\" で始まり、接尾辞は \".bak\" です。</string>
     <string name="backup_success_title">正常にバックアップされました</string>
     <string name="last_backup">最後のバックアップ:</string>
     <string name="no_backup_before">以前にバックアップがありませんでした</string>
     <string name="restore">復元</string>
-    <string name="restore_content">有効な EverythingDone バックアップ ファイルを選択してください。接尾辞は \\".bak\\" である必要があります。バックアップのデフォルトの場所は sdcard/EverythingDone/backup です。</string>
+    <string name="restore_content">有効な EverythingDone バックアップ ファイルを選択してください。接尾辞は \".bak\" である必要があります。バックアップのデフォルトの場所は sdcard/EverythingDone/backup です。</string>
     <string name="restore_failed_other">バックアップ ファイルが有効であることを確認してください。</string>
     <string name="restore_failed_title">復元に失敗しました</string>
     <string name="restore_loading_content">しばらくお待ちください。何か食べてみませんか？</string>
@@ -547,7 +570,7 @@
     <string name="close_notification_later">Don\' 表示されてから 2 秒後までは目立つ通知を閉じることを許可しないでください</string>
     <string name="create_daily_todo_automatically">毎朝、毎日のTODOを作成する</string>
     <string name="daily_todo_set_time_title">自動作成時間を設定</string>
-    <string name="create_daily_todo_help_info">EverythingDone は毎朝、\\"Things to do on MM d, yyyy\\" というタイトルの Thing を自動的に作成します。その内容はユーザーが決定できます (\'t を実行せず、内容と添付ファイルの両方を空のままにすると、Thing は作成されません)。
+    <string name="create_daily_todo_help_info">EverythingDone は毎朝、\"Things to do on MM d, yyyy\" というタイトルの Thing を自動的に作成します。その内容はユーザーが決定できます (\'t を実行せず、内容と添付ファイルの両方を空のままにすると、Thing は作成されません)。
         \n\nまた、計画や TODO の完了を思い出してもらいたい場合があるため、午後 2 時にこのことに対するリマインダーを設定します。</string>
     <string name="auto_notify">自動リマインダー</string>
     <string name="auto_notify_help_info">EverythingDone は、新しいものが作成されると自動的に通知します。 \' がレコードを作成しなかった場合、\' は、\' のリマインダー時間に従って自動リマインダーを設定するかどうかを決定します。</string>
@@ -827,10 +850,10 @@ Nevolution や 360 Notification Box のような通知管理アプリを入れ�
     <string name="from_1_2_7_to_1_3_0_title">藤堂？する！</string>
     <string name="from_1_2_7_to_1_3_0_content">things\' アラームの通知がより目立つようになります。準備ができている場合は、通知後すぐに作業を開始できます。EverythingDone が作業を慎重に完了するのに役立ちます。</string>
     <string name="from_1_3_0_to_1_3_1_title">いつでも、または自動的に何かを開始する</string>
-    <string name="from_1_3_0_to_1_3_1_content">これで、いつでも Thing カードを右にスワイプして、その作業を開始できます。\n\nさらに、リマインダーが来たときに自動的にその作業を開始することもできるようになりました。別の新機能、自動で厳密モードに入る機能を使用すると、EverythingDone により、「\\"後でやる\\"」と言うのをやめることもできます。</string>
+    <string name="from_1_3_0_to_1_3_1_content">これで、いつでも Thing カードを右にスワイプして、その作業を開始できます。\n\nさらに、リマインダーが来たときに自動的にその作業を開始することもできるようになりました。別の新機能、自動で厳密モードに入る機能を使用すると、EverythingDone により、「\"後でやる\"」と言うのをやめることもできます。</string>
     <string name="from_1_3_3_to_1_3_4_title">編集内容を自動的に保存し、習慣の記録を変更します</string>
     <string name="from_1_3_3_to_1_3_4_content">モノの作成時または更新時に編集内容を自動的に保存できるようになりました。
-    \n\n最新の習慣記録を変更して、間違いを修正したり、失われた記憶を取り戻すこともできます。習慣を確認し、メニューを開き、\\"習慣の詳細を確認\\" をクリックすると、そのアクションが表示されます。</string>
+    \n\n最新の習慣記録を変更して、間違いを修正したり、失われた記憶を取り戻すこともできます。習慣を確認し、メニューを開き、\"習慣の詳細を確認\" をクリックすると、そのアクションが表示されます。</string>
     <string name="channel_reminder">リマインダー</string>
     <string name="channel_habit">習慣</string>
     <string name="channel_goal">目標</string>

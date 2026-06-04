@@ -8,6 +8,7 @@ import android.util.Log
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.model.Thing
+import com.ywwynm.everythingdone.model.ThingCardAppearance
 
 /**
  * Created by ywwynm on 2015/5/21.
@@ -102,10 +103,11 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
             )) {
             db.execSQL(SQL_ADD_COLUMN_BACKGROUND_THINGS)
         }
-        if (oldVersion < 12) {
+        if (oldVersion < 13) {
             migrateThingCardSettingsColumns(db)
+            migrateThingCardAppearanceColumn(db)
         }
-        // released version should be 1, 3, 5, 6, 7, 8, 9, 10, 11, 12.
+        // released version should be 1, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13.
     }
 
     private fun migrateThingCardSettingsColumns(db: SQLiteDatabase) {
@@ -137,6 +139,16 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
         if (hasLegacyImagePlacement) {
             db.execSQL(SQL_COPY_THING_CARD_IMAGE_PLACEMENT_FROM_LEGACY)
         }
+    }
+
+    private fun migrateThingCardAppearanceColumn(db: SQLiteDatabase) {
+        if (!columnExists(
+                db, Def.Database.TABLE_THINGS,
+                Def.Database.COLUMN_THING_CARD_APPEARANCE_THINGS
+            )) {
+            db.execSQL(SQL_ADD_COLUMN_THING_CARD_APPEARANCE_THINGS)
+        }
+        db.execSQL(SQL_MIGRATE_THING_CARD_APPEARANCE_FROM_LEGACY_COLUMNS)
     }
 
     private fun columnExists(db: SQLiteDatabase, tableName: String, columnName: String): Boolean {
@@ -179,7 +191,8 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
                 "'0', '" +
                 bg.toJson() + "', '" +
                 Thing.THING_CARD_SPAN_NORMAL + "', '" +
-                Thing.THING_CARD_IMAGE_PLACEMENT_DEFAULT + "')"
+                Thing.THING_CARD_IMAGE_PLACEMENT_DEFAULT + "', '" +
+                ThingCardAppearance.default().toJson() + "')"
     }
 
 //    private String generateTestSQL(int id, String title, String content) {
@@ -217,7 +230,9 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
                     Def.Database.COLUMN_THING_CARD_SPAN_MODE_THINGS +
                         " integer not null default 0, " /* renamed in version 12 */ +
                     Def.Database.COLUMN_THING_CARD_IMAGE_PLACEMENT_THINGS +
-                        " integer not null default 0" /* renamed in version 12 */ +
+                        " integer not null default 0, " /* renamed in version 12 */ +
+                    Def.Database.COLUMN_THING_CARD_APPEARANCE_THINGS +
+                        " text" /* added in version 13 */ +
                 ")"
 
         private const val SQL_CREATE_TABLE_REMINDERS: String = "create table if not exists " +
@@ -311,7 +326,8 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
                 System.currentTimeMillis() + "', '" +
                 System.currentTimeMillis() + "', '0', NULL, '" +
                 Thing.THING_CARD_SPAN_NORMAL + "', '" +
-                Thing.THING_CARD_IMAGE_PLACEMENT_DEFAULT + "')"
+                Thing.THING_CARD_IMAGE_PLACEMENT_DEFAULT + "', '" +
+                ThingCardAppearance.default().toJson() + "')"
 
         private const val SQL_ADD_COLUMN_ALPHA_APP_WIDGET: String = "alter table " +
                 Def.Database.TABLE_APP_WIDGET +
@@ -347,6 +363,10 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
                 " add column " + Def.Database.COLUMN_THING_CARD_IMAGE_PLACEMENT_THINGS +
                 " integer not null default 0"
 
+        private const val SQL_ADD_COLUMN_THING_CARD_APPEARANCE_THINGS: String = "alter table " +
+                Def.Database.TABLE_THINGS +
+                " add column " + Def.Database.COLUMN_THING_CARD_APPEARANCE_THINGS + " text"
+
         private const val SQL_COPY_THING_CARD_SPAN_MODE_FROM_LEGACY: String = "update " +
                 Def.Database.TABLE_THINGS +
                 " set " + Def.Database.COLUMN_THING_CARD_SPAN_MODE_THINGS + " = " +
@@ -359,6 +379,18 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
                 Def.Database.COLUMN_LEGACY_HOME_CARD_IMAGE_PLACEMENT_THINGS +
                 " where " + Def.Database.COLUMN_LEGACY_HOME_CARD_IMAGE_PLACEMENT_THINGS +
                 " is not null"
+
+        private const val SQL_MIGRATE_THING_CARD_APPEARANCE_FROM_LEGACY_COLUMNS: String = "update " +
+                Def.Database.TABLE_THINGS +
+                " set " + Def.Database.COLUMN_THING_CARD_APPEARANCE_THINGS + " = " +
+                "'{\"version\":1,\"spanMode\":' || " +
+                "coalesce(" + Def.Database.COLUMN_THING_CARD_SPAN_MODE_THINGS + ",0) || " +
+                "',\"imagePlacement\":' || " +
+                "coalesce(" + Def.Database.COLUMN_THING_CARD_IMAGE_PLACEMENT_THINGS + ",0) || " +
+                "',\"sideMediaWidthPercent\":42,\"appearanceUpdateTime\":0," +
+                "\"mediaSourceKey\":null,\"mediaBackgroundEnabled\":false,\"sources\":{}}' " +
+                " where " + Def.Database.COLUMN_THING_CARD_APPEARANCE_THINGS + " is null " +
+                "or trim(" + Def.Database.COLUMN_THING_CARD_APPEARANCE_THINGS + ") = ''"
 
         private const val SQL_DROP_TABLE_THINGS: String = "drop table if exists " +
                 Def.Database.TABLE_THINGS

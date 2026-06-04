@@ -177,3 +177,19 @@ this button-like control pass.
 Treat shaped ripple drawables as dynamic UI state. Reinstall or retint them
 when a Thing Background changes and when an Activity handles light/dark
 Appearance Mode changes in place.
+
+## Debugging and exception handling
+
+Do not add silent exception catches to hide newly observed runtime crashes.
+For RecyclerView/layout crashes and similar framework errors, fix the caller
+state/update path so the error disappears; if an error still happens, it should
+remain visible in crash logs rather than being swallowed by a new broad catch.
+Existing legacy catches should not be expanded without an explicit product or
+technical reason.
+
+## Publishing and commits
+
+When the user asks to "submit" during a debug-testing cycle, interpret it as
+publishing a debug update, not creating a Git commit. Only create a Git commit
+when the user explicitly asks for `commit`, `git commit`, or says the tested
+version has no obvious bugs and is ready to commit.

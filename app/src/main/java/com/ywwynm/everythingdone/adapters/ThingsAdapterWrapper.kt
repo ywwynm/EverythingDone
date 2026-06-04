@@ -1,6 +1,7 @@
 package com.ywwynm.everythingdone.adapters
 
 import androidx.recyclerview.widget.RecyclerView
+import com.ywwynm.everythingdone.model.Thing
 
 import java.util.ArrayList
 
@@ -45,6 +46,24 @@ open class ThingsAdapterWrapper(adapter: ThingsAdapter?) {
 
     open fun setShouldThingsAnimWhenAppearing(shouldThingsAnimWhenAppearing: Boolean) {
         mAdapter!!.setShouldThingsAnimWhenAppearing(shouldThingsAnimWhenAppearing)
+    }
+
+    open fun setThingCardSurfaceAvailableHeight(height: Int) {
+        mAdapter!!.setThingCardSurfaceAvailableHeight(height)
+    }
+
+    open fun applyThingCardMediaCropToBoundHolder(
+        holder: BaseThingsAdapter.BaseThingViewHolder?,
+        thing: Thing?
+    ): Boolean {
+        return mAdapter!!.applyThingCardMediaCropToBoundHolder(holder, thing)
+    }
+
+    open fun applyThingCardMediaBackgroundHeightToBoundHolder(
+        holder: BaseThingsAdapter.BaseThingViewHolder?,
+        thing: Thing?
+    ): Boolean {
+        return mAdapter!!.applyThingCardMediaBackgroundHeightToBoundHolder(holder, thing)
     }
 
     open fun notifyDataSetChanged() {

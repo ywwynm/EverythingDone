@@ -13,6 +13,20 @@
     app:cardMaxElevation="@dimen/thing_card_dragging_elevation"
     app:cardPreventCornerOverlap="false">
 
+    <ImageView
+        android:id="@+id/iv_thing_media_background"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:contentDescription="@string/image_or_video_attachment"
+        android:visibility="gone" />
+
+    <View
+        android:id="@+id/view_thing_media_background_mask"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@android:color/black"
+        android:visibility="gone" />
+
     <LinearLayout
         android:id="@+id/ll_thing_content"
         android:layout_width="wrap_content"
@@ -99,6 +113,12 @@
             android:id="@+id/rv_check_list"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"/>
+
+        <View
+            android:id="@+id/view_thing_bottom_status_spacer"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:visibility="gone"/>
 
         <LinearLayout
             android:id="@+id/ll_thing_audio_attachment"
@@ -250,6 +270,46 @@
             android:layout_height="16dp"/>
 
         </LinearLayout>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/ll_thing_media_attachment_count"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|start"
+        android:layout_marginStart="16dp"
+        android:layout_marginLeft="16dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginRight="16dp"
+        android:layout_marginBottom="12dp"
+        android:orientation="horizontal"
+        android:visibility="gone"
+        tools:ignore="UseCompoundDrawables">
+
+        <ImageView
+            android:id="@+id/iv_thing_media_attachment_count"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:adjustViewBounds="true"
+            android:contentDescription="@string/cd_image_attachment"
+            android:scaleType="centerCrop"
+            android:src="@drawable/card_image_attachment_count"/>
+
+        <TextView
+            android:id="@+id/tv_thing_media_attachment_count"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:layout_marginStart="8dp"
+            android:layout_marginLeft="8dp"
+            android:singleLine="true"
+            android:ellipsize="end"
+            android:textColor="@color/white_66p"
+            android:textSize="11sp"
+            tools:ignore="SmallSp"/>
 
     </LinearLayout>
 

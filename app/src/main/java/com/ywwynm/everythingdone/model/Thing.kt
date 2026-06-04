@@ -32,8 +32,9 @@ open class Thing(
     var createTime: Long,
     var updateTime: Long,
     var finishTime: Long,
-    var thingCardSpanMode: Int = THING_CARD_SPAN_NORMAL,
-    var thingCardImagePlacement: Int = THING_CARD_IMAGE_PLACEMENT_DEFAULT
+    thingCardSpanMode: Int = THING_CARD_SPAN_NORMAL,
+    thingCardImagePlacement: Int = THING_CARD_IMAGE_PLACEMENT_DEFAULT,
+    thingCardAppearance: ThingCardAppearance? = null
 ) : Parcelable {
 
     private var _color: Int = color
@@ -47,6 +48,21 @@ open class Thing(
 
     var selected: Boolean = false
 
+    var thingCardAppearance: ThingCardAppearance = thingCardAppearance
+        ?: ThingCardAppearance.fromLegacy(thingCardSpanMode, thingCardImagePlacement)
+
+    var thingCardSpanMode: Int
+        @ThingCardSpanMode get() = thingCardAppearance.spanMode
+        set(@ThingCardSpanMode value) {
+            thingCardAppearance = thingCardAppearance.withSpanMode(value)
+        }
+
+    var thingCardImagePlacement: Int
+        @ThingCardImagePlacement get() = thingCardAppearance.imagePlacement
+        set(@ThingCardImagePlacement value) {
+            thingCardAppearance = thingCardAppearance.withImagePlacement(value)
+        }
+
     constructor(id: Long, type: Int, color: Int, location: Long) : this(
         id, type, UNDERWAY, color, "", "", "", location,
         System.currentTimeMillis(), System.currentTimeMillis(), 0L
@@ -56,7 +72,8 @@ open class Thing(
         thing.id, thing.type, thing.state, thing._color,
         thing.title, thing.content, thing.attachment, thing.location,
         thing.createTime, thing.updateTime, thing.finishTime,
-        thing.thingCardSpanMode, thing.thingCardImagePlacement
+        thing.thingCardSpanMode, thing.thingCardImagePlacement,
+        thing.thingCardAppearance
     ) {
         _background = thing._background
         selected = thing.selected
@@ -88,6 +105,12 @@ open class Thing(
             `in`.readInt()
         } else {
             THING_CARD_IMAGE_PLACEMENT_DEFAULT
+        }
+        if (`in`.dataAvail() > 0) {
+            val appearance = ThingCardAppearance.fromJson(`in`.readString())
+            if (appearance != null) {
+                thingCardAppearance = appearance
+            }
         }
     }
 
@@ -124,6 +147,13 @@ open class Thing(
         )
         if (imagePlacementCol >= 0 && !c.isNull(imagePlacementCol)) {
             thingCardImagePlacement = c.getInt(imagePlacementCol)
+        }
+        val appearanceCol = c.getColumnIndex(Def.Database.COLUMN_THING_CARD_APPEARANCE_THINGS)
+        if (appearanceCol >= 0 && !c.isNull(appearanceCol)) {
+            val appearance = ThingCardAppearance.fromJson(c.getString(appearanceCol))
+            if (appearance != null) {
+                thingCardAppearance = appearance
+            }
         }
     }
 
@@ -235,6 +265,7 @@ open class Thing(
         dest.writeString(if (_background != null) _background!!.toJson() else null)
         dest.writeInt(thingCardSpanMode)
         dest.writeInt(thingCardImagePlacement)
+        dest.writeString(thingCardAppearance.toJson())
     }
 
     @IntDef(-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)

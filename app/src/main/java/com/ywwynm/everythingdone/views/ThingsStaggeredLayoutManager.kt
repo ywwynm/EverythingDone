@@ -36,7 +36,8 @@ open class ThingsStaggeredLayoutManager : StaggeredGridLayoutManager {
     override fun onLayoutChildren(recycler: RecyclerView.Recycler, state: RecyclerView.State) {
         try {
             super.onLayoutChildren(recycler, state)
-        } catch (_: IndexOutOfBoundsException) { }
+        } catch (_: IndexOutOfBoundsException) {
+        }
     }
 
     override fun smoothScrollToPosition(recyclerView: RecyclerView, state: RecyclerView.State, position: Int) {

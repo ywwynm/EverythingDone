@@ -25,11 +25,10 @@ import android.graphics.Rect
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
-import android.media.MediaPlayer
+import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
 import androidx.annotation.StringRes
-import androidx.core.content.FileProvider
 import androidx.core.app.ActivityCompat
 import androidx.core.app.ActivityOptionsCompat
 import androidx.core.content.ContextCompat
@@ -1319,7 +1318,6 @@ class DetailActivity : EverythingDoneBaseActivity() {
                     toggleCheckListActionItem(menu, true)
                 }
                 togglePrivateThingActionItem(menu, !mThing!!.isPrivate())
-                toggleThingCardSpanModeActionItem(menu)
                 toggleStickyActionItem(menu)
                 toggleOngoingActionItem(menu)
                 togglePauseResumeHabitActionItem(menu)
@@ -1355,8 +1353,6 @@ class DetailActivity : EverythingDoneBaseActivity() {
             showColorInfoDialog()
         } else if (itemId == R.id.act_set_as_private_thing) {
             togglePrivateThing()
-        } else if (itemId == R.id.act_toggle_thing_card_span) {
-            toggleThingCardSpanMode()
         } else if (itemId == R.id.act_undo) {
             undoOrRedo(mActionList!!.undo(), true)
         } else if (itemId == R.id.act_redo) {
@@ -1441,15 +1437,6 @@ class DetailActivity : EverythingDoneBaseActivity() {
             item.setTitle(R.string.act_set_as_private_thing)
         } else {
             item.setTitle(R.string.act_cancel_private_thing)
-        }
-    }
-
-    private fun toggleThingCardSpanModeActionItem(menu: Menu) {
-        val item: MenuItem = menu.findItem(R.id.act_toggle_thing_card_span) ?: return
-        if (mThingCardSpanMode == Thing.THING_CARD_SPAN_FULL) {
-            item.setTitle(R.string.act_cancel_full_span_thing_card)
-        } else {
-            item.setTitle(R.string.act_set_full_span_thing_card)
         }
     }
 
@@ -1644,157 +1631,6 @@ class DetailActivity : EverythingDoneBaseActivity() {
         }
     }
 
-    private fun toggleThingCardSpanMode() {
-        val before = mThingCardSpanMode
-        val after = if (before == Thing.THING_CARD_SPAN_FULL) {
-            Thing.THING_CARD_SPAN_NORMAL
-        } else {
-            Thing.THING_CARD_SPAN_FULL
-        }
-        setThingCardSpanModeForEdit(after)
-        showThingCardSpanModeFeedback(after)
-        if (shouldAddToActionList) {
-            mActionList!!.addAction(ThingAction(ThingAction.UPDATE_THING_CARD_SPAN_MODE, before, after))
-        }
-    }
-
-    private fun showThingCardSpanModeFeedback(@Thing.ThingCardSpanMode spanMode: Int) {
-        val msgRes = if (spanMode == Thing.THING_CARD_SPAN_FULL) {
-            R.string.msg_thing_card_span_enlarged
-        } else {
-            R.string.msg_thing_card_span_shrunk
-        }
-        val snackbar = mNormalSnackbar
-        if (snackbar != null) {
-            snackbar.setMessage(msgRes)
-            snackbar.show()
-        } else {
-            Toast.makeText(this, msgRes, Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun setThingCardSpanModeForEdit(@Thing.ThingCardSpanMode spanMode: Int) {
-        mThingCardSpanMode = spanMode
-        toggleThingCardSpanModeActionItem(mActionbar!!.menu)
-    }
-
-    private fun showThingCardImagePlacementDialog() {
-        val values = getAvailableThingCardImagePlacements()
-        val items = ArrayList<String?>(values.size)
-        for (value in values) {
-            items.add(getThingCardImagePlacementLabel(value))
-        }
-
-        val cdf = ChooserDialogFragment()
-        cdf.setTitle(getString(R.string.title_thing_card_image_placement))
-        cdf.setItems(items)
-        cdf.setInitialIndex(getThingCardImagePlacementInitialIndex(values))
-        cdf.setAccentBackground(getAccentBackground())
-        cdf.setShouldShowMore(false)
-        cdf.setShouldShowActions(false)
-        cdf.setOnItemClickListener {
-            val pickedIndex = cdf.getPickedIndex()
-            val placement = values[pickedIndex]
-            cdf.dismiss()
-            updateThingCardImagePlacement(placement)
-        }
-        cdf.show(fragmentManager, ChooserDialogFragment.TAG)
-    }
-
-    private fun getAvailableThingCardImagePlacements(): IntArray {
-        return if (mThingCardSpanMode == Thing.THING_CARD_SPAN_FULL) {
-            intArrayOf(
-                Thing.THING_CARD_IMAGE_PLACEMENT_DEFAULT,
-                Thing.THING_CARD_IMAGE_PLACEMENT_TOP,
-                Thing.THING_CARD_IMAGE_PLACEMENT_BOTTOM,
-                Thing.THING_CARD_IMAGE_PLACEMENT_LEFT,
-                Thing.THING_CARD_IMAGE_PLACEMENT_RIGHT
-            )
-        } else {
-            intArrayOf(
-                Thing.THING_CARD_IMAGE_PLACEMENT_DEFAULT,
-                Thing.THING_CARD_IMAGE_PLACEMENT_TOP,
-                Thing.THING_CARD_IMAGE_PLACEMENT_BOTTOM
-            )
-        }
-    }
-
-    private fun getThingCardImagePlacementInitialIndex(values: IntArray): Int {
-        val current = if (mThingCardSpanMode == Thing.THING_CARD_SPAN_FULL) {
-            mThingCardImagePlacement
-        } else {
-            when (mThingCardImagePlacement) {
-                Thing.THING_CARD_IMAGE_PLACEMENT_LEFT,
-                Thing.THING_CARD_IMAGE_PLACEMENT_RIGHT ->
-                    Thing.THING_CARD_IMAGE_PLACEMENT_DEFAULT
-                else -> mThingCardImagePlacement
-            }
-        }
-        val index = values.indexOf(current)
-        return if (index >= 0) index else 0
-    }
-
-    private fun getThingCardImagePlacementLabel(
-        @Thing.ThingCardImagePlacement placement: Int
-    ): String {
-        return getString(when (placement) {
-            Thing.THING_CARD_IMAGE_PLACEMENT_TOP ->
-                R.string.option_thing_card_image_placement_top
-            Thing.THING_CARD_IMAGE_PLACEMENT_BOTTOM ->
-                R.string.option_thing_card_image_placement_bottom
-            Thing.THING_CARD_IMAGE_PLACEMENT_LEFT ->
-                R.string.option_thing_card_image_placement_left
-            Thing.THING_CARD_IMAGE_PLACEMENT_RIGHT ->
-                R.string.option_thing_card_image_placement_right
-            else -> R.string.option_thing_card_image_placement_default
-        })
-    }
-
-    private fun updateThingCardImagePlacement(
-        @Thing.ThingCardImagePlacement placement: Int
-    ) {
-        val before = mThingCardImagePlacement
-        if (before == placement) {
-            return
-        }
-        setThingCardImagePlacementForEdit(placement)
-        showThingCardImagePlacementFeedback(placement)
-        if (shouldAddToActionList) {
-            mActionList!!.addAction(ThingAction(
-                ThingAction.UPDATE_THING_CARD_IMAGE_PLACEMENT, before, placement
-            ))
-        }
-    }
-
-    private fun showThingCardImagePlacementFeedback(
-        @Thing.ThingCardImagePlacement placement: Int
-    ) {
-        val msgRes = when (placement) {
-            Thing.THING_CARD_IMAGE_PLACEMENT_TOP ->
-                R.string.msg_thing_card_image_placement_top
-            Thing.THING_CARD_IMAGE_PLACEMENT_BOTTOM ->
-                R.string.msg_thing_card_image_placement_bottom
-            Thing.THING_CARD_IMAGE_PLACEMENT_LEFT ->
-                R.string.msg_thing_card_image_placement_left
-            Thing.THING_CARD_IMAGE_PLACEMENT_RIGHT ->
-                R.string.msg_thing_card_image_placement_right
-            else -> R.string.msg_thing_card_image_placement_default
-        }
-        val snackbar = mNormalSnackbar
-        if (snackbar != null) {
-            snackbar.setMessage(msgRes)
-            snackbar.show()
-        } else {
-            Toast.makeText(this, msgRes, Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun setThingCardImagePlacementForEdit(
-        @Thing.ThingCardImagePlacement placement: Int
-    ) {
-        mThingCardImagePlacement = placement
-    }
-
     private fun alertNoTitleWhenSetPrivateThing() {
         val adf = AlertDialogFragment()
         adf.setShowCancel(false)
@@ -1878,10 +1714,6 @@ class DetailActivity : EverythingDoneBaseActivity() {
                 undoOrRedoReminderHabit(action, undo)
             ThingAction.TOGGLE_PRIVATE ->
                 togglePrivateThing()
-            ThingAction.UPDATE_THING_CARD_SPAN_MODE ->
-                setThingCardSpanModeForEdit(to as Int)
-            ThingAction.UPDATE_THING_CARD_IMAGE_PLACEMENT ->
-                setThingCardImagePlacementForEdit(to as Int)
             else -> {}
         }
         updateUndoRedoActionButtonState()
@@ -2331,7 +2163,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
                     return
                 }
                 Log.d(TAG, "chooseMediaFile pathName=$pathName postfix=" + FileUtil.getPostfix(pathName) + " mimeFallback=$mimeFallback")
-                attachmentTypePathName = getTypePathName(pathName, mimeFallback)
+                attachmentTypePathName = getTypePathName(pathName, mimeFallback, uri)
                 Log.d(TAG, "chooseMediaFile attachmentTypePathName=$attachmentTypePathName")
                 if (attachmentTypePathName == null) {
                     Log.w(TAG, "chooseMediaFile getTypePathName returned null, showing error")
@@ -2375,45 +2207,67 @@ class DetailActivity : EverythingDoneBaseActivity() {
         mNormalSnackbar!!.show()
     }
 
-    private fun getTypePathName(pathName: String, mimePostfix: String?): String? {
+    private fun getTypePathName(
+            pathName: String,
+            mimePostfix: String?,
+            sourceUri: Uri? = null
+    ): String? {
         val postfix: String? = FileUtil.getPostfix(pathName)
+        val normalizedMimePostfix = normalizeAttachmentPostfix(mimePostfix)
         if (AttachmentHelper.isImageFile(postfix)
-            || (mimePostfix != null && AttachmentHelper.isImageFile(
-                if (mimePostfix.startsWith(".")) mimePostfix.substring(1) else mimePostfix
-            ))
+            || AttachmentHelper.isImageFile(normalizedMimePostfix)
         ) {
             return AttachmentHelper.IMAGE.toString() + pathName
         } else if (AttachmentHelper.isVideoFile(postfix)
-            || (mimePostfix != null && AttachmentHelper.isVideoFile(
-                if (mimePostfix.startsWith(".")) mimePostfix.substring(1) else mimePostfix
-            ))
+            || AttachmentHelper.isVideoFile(normalizedMimePostfix)
         ) {
-            val file = File(pathName)
-            val player: MediaPlayer = MediaPlayer.create(
-                this,
-                FileProvider.getUriForFile(this, "com.ywwynm.everythingdone", file)
-            )
-            var ret: String? = null
-            if (player.videoHeight != 0) {
-                ret = AttachmentHelper.VIDEO.toString() + pathName
+            val hasVideoTrack = hasVideoTrack(pathName, sourceUri)
+            if (hasVideoTrack != false) {
+                return AttachmentHelper.VIDEO.toString() + pathName
             } else if (AttachmentHelper.isAudioFile(postfix)
-                || (mimePostfix != null && AttachmentHelper.isAudioFile(
-                    if (mimePostfix.startsWith(".")) mimePostfix.substring(1) else mimePostfix
-                ))
+                || AttachmentHelper.isAudioFile(normalizedMimePostfix)
             ) {
-                ret = AttachmentHelper.AUDIO.toString() + pathName
+                return AttachmentHelper.AUDIO.toString() + pathName
             }
-            player.reset()
-            player.release()
-            return ret
         } else if (AttachmentHelper.isAudioFile(postfix)
-            || (mimePostfix != null && AttachmentHelper.isAudioFile(
-                if (mimePostfix.startsWith(".")) mimePostfix.substring(1) else mimePostfix
-            ))
+            || AttachmentHelper.isAudioFile(normalizedMimePostfix)
         ) {
             return AttachmentHelper.AUDIO.toString() + pathName
         }
         return null
+    }
+
+    private fun normalizeAttachmentPostfix(postfix: String?): String? {
+        return postfix?.let {
+            if (it.startsWith(".")) it.substring(1) else it
+        }
+    }
+
+    private fun hasVideoTrack(pathName: String, sourceUri: Uri?): Boolean? {
+        val retriever = MediaMetadataRetriever()
+        return try {
+            if (sourceUri != null) {
+                retriever.setDataSource(this, sourceUri)
+            } else {
+                retriever.setDataSource(pathName)
+            }
+            val width = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)
+                ?.toIntOrNull()
+                ?: 0
+            val height = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)
+                ?.toIntOrNull()
+                ?: 0
+            width > 0 && height > 0
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to inspect media video track: $pathName", e)
+            null
+        } finally {
+            try {
+                retriever.release()
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to release media metadata retriever", e)
+            }
+        }
     }
 
     fun addAttachment(position: Int) {
@@ -2469,8 +2323,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
         mImageAttachmentAdapter = ImageAttachmentAdapter(
             this, mEditable, items,
             ImageAttachmentClickCallback(),
-            if (mEditable) ImageAttachmentRemoveCallback() else null,
-            if (mEditable) ImageAttachmentPlacementCallback() else null
+            if (mEditable) ImageAttachmentRemoveCallback() else null
         )
         mImageLayoutManager = GridLayoutManager(this, if (size < mMaxSpanImage) size else mMaxSpanImage)
         mRvImageAttachment!!.adapter = mImageAttachmentAdapter
@@ -3889,13 +3742,6 @@ class DetailActivity : EverythingDoneBaseActivity() {
                     ThingAction.DELETE_ATTACHMENT, pos, item
                 ))
             }
-        }
-    }
-
-    private inner class ImageAttachmentPlacementCallback : ImageAttachmentAdapter.PlacementCallback {
-
-        override fun onEditPlacement() {
-            showThingCardImagePlacementDialog()
         }
     }
 

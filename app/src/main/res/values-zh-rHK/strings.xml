@@ -291,9 +291,37 @@
     <string name="act_export_to_sdcard">導出到 SD 卡</string>
     <string name="act_restore_selected">還原選中的記事</string>
     <string name="act_delete_selected_forever">徹底删除選中的記事</string>
+    <string name="act_customize_card_appearance">自訂卡片外觀</string>
 
     <string name="act_sticky_on_top">置頂</string>
     <string name="act_cancel_sticky">取消置頂</string>
+
+    <string name="thing_card_appearance_panel_title">卡片外觀</string>
+    <string name="thing_card_appearance_media_image">圖片</string>
+    <string name="thing_card_appearance_media_video">影片</string>
+    <string name="thing_card_appearance_source_format">%1$s · %2$s</string>
+    <string name="thing_card_appearance_source_default">自動選擇</string>
+    <string name="thing_card_appearance_cover_media">封面圖片</string>
+    <string name="thing_card_appearance_span_normal">正常</string>
+    <string name="thing_card_appearance_span_full">寬</string>
+    <string name="thing_card_appearance_card_width">卡片寬度</string>
+    <string name="thing_card_appearance_placement_default">預設位置</string>
+    <string name="thing_card_appearance_placement_top">上方</string>
+    <string name="thing_card_appearance_placement_bottom">下方</string>
+    <string name="thing_card_appearance_placement_left">左側</string>
+    <string name="thing_card_appearance_placement_right">右側</string>
+    <string name="thing_card_appearance_mode_thumbnail">縮圖</string>
+    <string name="thing_card_appearance_media_position">圖片/影片位置</string>
+    <string name="thing_card_appearance_mode_background">背景</string>
+    <string name="thing_card_appearance_side_width_format">側邊圖片寬度 · %1$d%%</string>
+    <string name="thing_card_appearance_precise_crop">裁切封面圖片</string>
+    <string name="thing_card_appearance_thumbnail_shape">封面圖片比例</string>
+    <string name="thing_card_appearance_background_mask">背景遮罩</string>
+    <string name="thing_card_appearance_background_height">卡片高度</string>
+    <string name="thing_card_appearance_video_frame">影片選幀</string>
+    <string name="thing_card_appearance_video_frame_preview">影片幀預覽</string>
+    <string name="thing_card_appearance_video_frame_previous">上一幀</string>
+    <string name="thing_card_appearance_video_frame_next">下一幀</string>
 
     <!--DetailActivity create-->
     <string name="act_add_attachment">添加附件</string>
@@ -307,21 +335,6 @@
     <!--DetailActivity underway-->
     <string name="act_set_as_private_thing">設為私密記事</string>
     <string name="act_cancel_private_thing">取消設置私密記事</string>
-    <string name="act_set_full_span_thing_card">放大記事卡片</string>
-    <string name="act_cancel_full_span_thing_card">縮小記事卡片</string>
-    <string name="msg_thing_card_span_enlarged">已放大記事卡片</string>
-    <string name="msg_thing_card_span_shrunk">已縮小記事卡片</string>
-    <string name="title_thing_card_image_placement">記事卡片圖片位置</string>
-    <string name="option_thing_card_image_placement_default">預設（圖片在上）</string>
-    <string name="option_thing_card_image_placement_top">圖片在上</string>
-    <string name="option_thing_card_image_placement_bottom">圖片在下</string>
-    <string name="option_thing_card_image_placement_left">圖片在左</string>
-    <string name="option_thing_card_image_placement_right">圖片在右</string>
-    <string name="msg_thing_card_image_placement_default">已將圖片位置設為記事卡片預設位置</string>
-    <string name="msg_thing_card_image_placement_top">已將圖片放置於記事卡片上方</string>
-    <string name="msg_thing_card_image_placement_bottom">已將圖片放置於記事卡片下方</string>
-    <string name="msg_thing_card_image_placement_left">已將圖片放置於記事卡片左側</string>
-    <string name="msg_thing_card_image_placement_right">已將圖片放置於記事卡片右側</string>
     <string name="act_set_thing_as_ongoing">在通知欄中顯示</string>
     <string name="act_cancel_set_thing_as_ongoing">取消在通知欄中顯示</string>
     <string name="act_finish">完成</string>
@@ -995,8 +1008,6 @@
 
     <string name="cd_delete_image_attachment">删除該圖片附件</string>
     <string name="cd_delete_video_attachment">刪除該視頻附件</string>
-    <string name="cd_set_thing_card_image_placement">設定圖片在記事卡片中的位置</string>
-    <string name="cd_set_thing_card_video_placement">設定視頻縮略圖在記事卡片中的位置</string>
 
     <!--time of day rec item-->
     <string name="cd_reminder_time">提醒時刻</string>

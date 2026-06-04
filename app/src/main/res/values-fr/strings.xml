@@ -215,10 +215,33 @@
     <string name="act_abandon_new_thing">Abandonner</string>
     <string name="act_set_as_private_thing">Définir comme chose privée</string>
     <string name="act_cancel_private_thing">Annuler la définition d\'un élément privé</string>
-    <string name="act_set_full_span_thing_card">Agrandir la carte</string>
-    <string name="act_cancel_full_span_thing_card">Réduire la carte</string>
-    <string name="msg_thing_card_span_enlarged">Carte agrandie</string>
-    <string name="msg_thing_card_span_shrunk">Carte réduite</string>
+    <string name="act_customize_card_appearance">Customize card appearance</string>
+    <string name="thing_card_appearance_panel_title">Card appearance</string>
+    <string name="thing_card_appearance_media_image">Image</string>
+    <string name="thing_card_appearance_media_video">Video</string>
+    <string name="thing_card_appearance_source_format">%1$s · %2$s</string>
+    <string name="thing_card_appearance_source_default">Auto select</string>
+    <string name="thing_card_appearance_cover_media">Cover image</string>
+    <string name="thing_card_appearance_span_normal">Normal</string>
+    <string name="thing_card_appearance_span_full">Wide</string>
+    <string name="thing_card_appearance_card_width">Card width</string>
+    <string name="thing_card_appearance_placement_default">Default placement</string>
+    <string name="thing_card_appearance_placement_top">Top</string>
+    <string name="thing_card_appearance_placement_bottom">Bottom</string>
+    <string name="thing_card_appearance_placement_left">Left</string>
+    <string name="thing_card_appearance_placement_right">Right</string>
+    <string name="thing_card_appearance_mode_thumbnail">Thumbnail</string>
+    <string name="thing_card_appearance_media_position">Image/video position</string>
+    <string name="thing_card_appearance_mode_background">Background</string>
+    <string name="thing_card_appearance_side_width_format">Side image width · %1$d%%</string>
+    <string name="thing_card_appearance_precise_crop">Crop cover image</string>
+    <string name="thing_card_appearance_thumbnail_shape">Cover image ratio</string>
+    <string name="thing_card_appearance_background_mask">Background mask</string>
+    <string name="thing_card_appearance_background_height">Card height</string>
+    <string name="thing_card_appearance_video_frame">Video frame</string>
+    <string name="thing_card_appearance_video_frame_preview">Video frame preview</string>
+    <string name="thing_card_appearance_video_frame_previous">Previous frame</string>
+    <string name="thing_card_appearance_video_frame_next">Next frame</string>
     <string name="act_set_thing_as_ongoing">Afficher dans les notifications</string>
     <string name="act_cancel_set_thing_as_ongoing">Annuler l\'affichage dans les notifications</string>
     <string name="act_finish">Terminer</string>
@@ -452,7 +475,7 @@
     <string name="settings_autostart">Démarrage automatique/autorisation en arrière-plan</string>
     <string name="settings_autostart_desc">Appuyez pour autoriser le démarrage automatique afin que les rappels se déclenchent toujours une fois l\'application supprimée. Requis sur les ROM Xiaomi / Huawei / OPPO / Vivo / Honor et de fournisseurs similaires.</string>
     <string name="settings_autostart_not_needed">Votre appareil n\'en a pas besoin : les ROM de style Pixel/AOSP respectent la planification des alarmes dès la sortie de la boîte.</string>
-    <string name="settings_autostart_unavailable">Aucune page spécifique au fournisseur trouvée. Informations sur l\'application ouverte à la place : veuillez rechercher \"Batterie\" ou \"Activité en arrière-plan\" à partir de là.</string>
+    <string name="settings_autostart_unavailable">Aucune page spécifique au fournisseur trouvée. Informations sur l\'application ouverte à la place : veuillez rechercher "Batterie" ou "Activité en arrière-plan" à partir de là.</string>
     <string name="settings_notifications_enabled">Autorisation de notification</string>
     <string name="settings_notifications_enabled_off">Désactivé : vos rappels ne peuvent pas apparaître. Appuyez pour accorder.</string>
     <string name="settings_notifications_enabled_on">Activé : des rappels peuvent être affichés</string>
@@ -483,12 +506,12 @@
     <string name="backup_loading_content">Veuillez patienter un moment. Peut-être que tu peux boire quelque chose.</string>
     <string name="backup_loading_title">Sauvegarde</string>
     <string name="backup_start">Démarrer la sauvegarde</string>
-    <string name="backup_success_content">Le fichier de sauvegarde se trouve dans sdcard/EverythingDone/backup dont le nom commence par \\"ED_backup_\\" et le suffixe est \\".bak\\"</string>
+    <string name="backup_success_content">Le fichier de sauvegarde se trouve dans sdcard/EverythingDone/backup dont le nom commence par \"ED_backup_\" et le suffixe est \".bak\"</string>
     <string name="backup_success_title">Sauvegarder avec succès</string>
     <string name="last_backup">Dernière sauvegarde :</string>
     <string name="no_backup_before">Aucune sauvegarde avant</string>
     <string name="restore">Restaurer</string>
-    <string name="restore_content">Veuillez choisir un fichier de sauvegarde EverythingDone valide, dont le suffixe doit être \\".bak\\". L\'emplacement par défaut des sauvegardes est sdcard/EverythingDone/backup.</string>
+    <string name="restore_content">Veuillez choisir un fichier de sauvegarde EverythingDone valide, dont le suffixe doit être \".bak\". L\'emplacement par défaut des sauvegardes est sdcard/EverythingDone/backup.</string>
     <string name="restore_failed_other">Veuillez vous assurer que le fichier de sauvegarde est valide.</string>
     <string name="restore_failed_title">La restauration a échoué</string>
     <string name="restore_loading_content">Veuillez patienter un moment. Et si tu mangeais quelque chose ?</string>
@@ -547,7 +570,7 @@
     <string name="close_notification_later">Ne\'t autoriser la fermeture d\'une notification visible jusqu\'à 2 secondes après son affichage</string>
     <string name="create_daily_todo_automatically">Créez des TODO quotidiennes chaque matin</string>
     <string name="daily_todo_set_time_title">Définir l’heure de création automatique</string>
-    <string name="create_daily_todo_help_info">EverythingDone créera automatiquement chaque matin une chose dont le titre sera \\"Things to do on MM d, yyyy\\", et vous pourrez décider de son contenu (si vous ne \'t et laissez le contenu et la pièce jointe vides, alors la chose ne sera pas créée).
+    <string name="create_daily_todo_help_info">EverythingDone créera automatiquement chaque matin une chose dont le titre sera \"Things to do on MM d, yyyy\", et vous pourrez décider de son contenu (si vous ne \'t et laissez le contenu et la pièce jointe vides, alors la chose ne sera pas créée).
         \n\nNous définirons également un rappel pour cette chose à 14h00 de l\'après-midi, car vous voudrez peut-être qu\'on vous rappelle la fin de vos plans et de vos TODO.</string>
     <string name="auto_notify">Rappel automatique</string>
     <string name="auto_notify_help_info">EverythingDone vous le rappellera automatiquement après la création d\'un nouvel élément. Si vous n\'avez pas \'créer un enregistrement, EverythingDone décidera si un rappel automatique doit être défini en fonction de l\'heure de rappel de l\'objet\'.</string>
@@ -773,10 +796,10 @@ Enfin, vous ne les trouverez jamais tous. Hahahahaha.</item>
     <string name="from_1_2_7_to_1_3_0_title">À faire ? Faire!</string>
     <string name="from_1_2_7_to_1_3_0_content">Il y aura une notification plus visible pour les alarmes Things\'. Si vous êtes prêt, vous pouvez commencer à faire la chose directement après la notification, EverythingDone vous aidera à la terminer avec soin.</string>
     <string name="from_1_3_0_to_1_3_1_title">Commencez à faire quelque chose à tout moment ou automatiquement</string>
-    <string name="from_1_3_0_to_1_3_1_content">Désormais, vous pouvez faire glisser une carte de chose vers la droite pour commencer à faire cette chose à tout moment.\n\nEn outre, vous pouvez désormais également activer le démarrage automatique de la chose lorsque son rappel arrive, avec une autre nouvelle fonction, l\'entrée automatique en mode strict, EverythingDone peut vous aider à arrêter de dire \\"faire plus tard\\".</string>
+    <string name="from_1_3_0_to_1_3_1_content">Désormais, vous pouvez faire glisser une carte de chose vers la droite pour commencer à faire cette chose à tout moment.\n\nEn outre, vous pouvez désormais également activer le démarrage automatique de la chose lorsque son rappel arrive, avec une autre nouvelle fonction, l\'entrée automatique en mode strict, EverythingDone peut vous aider à arrêter de dire \"faire plus tard\".</string>
     <string name="from_1_3_3_to_1_3_4_title">Enregistrez automatiquement les modifications et modifiez les enregistrements d\'habitudes</string>
     <string name="from_1_3_3_to_1_3_4_content">Vous pouvez désormais activer l\'enregistrement automatique des modifications lors de la création ou de la mise à jour d\'un objet.
-    \n\nVous pouvez également modifier vos derniers enregistrements d\'habitudes pour corriger des erreurs ou récupérer la mémoire perdue. Vérifiez une habitude, ouvrez le menu, cliquez sur \\"vérifier les détails de l\'habitude\\" et vous verrez cette action.</string>
+    \n\nVous pouvez également modifier vos derniers enregistrements d\'habitudes pour corriger des erreurs ou récupérer la mémoire perdue. Vérifiez une habitude, ouvrez le menu, cliquez sur \"vérifier les détails de l\'habitude\" et vous verrez cette action.</string>
     <string name="channel_reminder">Rappels</string>
     <string name="channel_habit">Habitudes</string>
     <string name="channel_goal">Objectifs</string>

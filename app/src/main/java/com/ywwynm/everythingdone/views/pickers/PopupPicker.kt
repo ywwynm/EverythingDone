@@ -2,6 +2,7 @@ package com.ywwynm.everythingdone.views.pickers
 
 import android.app.Activity
 import android.graphics.Outline
+import android.os.Build
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import android.view.KeyEvent
@@ -48,6 +49,11 @@ abstract class PopupPicker(activity: Activity, parent: View, popupAnimStyle: Int
         mContentView.background =
             ContextCompat.getDrawable(activity, R.drawable.bg_app_chrome_surface_elevated_rounded)
         installRoundedOutline(mContentView)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            val popupElevation = 12f * mScreenDensity
+            mPopupWindow.elevation = popupElevation
+            mContentView.elevation = popupElevation
+        }
         mContentView.setOnKeyListener(object : View.OnKeyListener {
             override fun onKey(v: View, keyCode: Int, event: KeyEvent): Boolean {
                 if (keyCode == KeyEvent.KEYCODE_BACK

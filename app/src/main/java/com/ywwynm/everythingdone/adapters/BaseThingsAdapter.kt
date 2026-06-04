@@ -5,7 +5,10 @@ package com.ywwynm.everythingdone.adapters
 import android.animation.ObjectAnimator
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.Color
+import android.graphics.Matrix
 import android.graphics.PorterDuff
+import android.media.MediaMetadataRetriever
 import androidx.annotation.StringRes
 import androidx.core.content.ContextCompat
 import androidx.collection.LongSparseArray
@@ -18,6 +21,7 @@ import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewTreeObserver
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -30,8 +34,11 @@ import com.bumptech.glide.RequestManager
 import android.graphics.drawable.Drawable
 import com.bumptech.glide.load.DataSource
 import com.bumptech.glide.load.engine.GlideException
+import com.bumptech.glide.load.resource.bitmap.VideoDecoder
 import com.bumptech.glide.request.RequestListener
+import com.bumptech.glide.request.RequestOptions
 import com.bumptech.glide.request.target.Target
+import com.bumptech.glide.signature.ObjectKey
 import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.FrequentSettings
@@ -40,10 +47,12 @@ import com.ywwynm.everythingdone.database.HabitDAO
 import com.ywwynm.everythingdone.database.ReminderDAO
 import com.ywwynm.everythingdone.helpers.AttachmentHelper
 import com.ywwynm.everythingdone.helpers.CheckListHelper
+import com.ywwynm.everythingdone.helpers.ThingCardMediaHelper
 import com.ywwynm.everythingdone.managers.ModeManager
 import com.ywwynm.everythingdone.model.Habit
 import com.ywwynm.everythingdone.model.Reminder
 import com.ywwynm.everythingdone.model.Thing
+import com.ywwynm.everythingdone.model.ThingCardAppearance
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DateTimeUtil
@@ -52,6 +61,7 @@ import com.ywwynm.everythingdone.views.HabitRecordPresenter
 import com.ywwynm.everythingdone.views.InterceptTouchCardView
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
+import java.io.File
 import kotlin.math.max
 import kotlin.math.min
 
@@ -83,6 +93,7 @@ abstract class BaseThingsAdapter(context: Context?) :
 
     private var mCardWidth: Int = DisplayUtil.getThingCardWidth(context)
     private var mFullSpanCardWidth: Int = DisplayUtil.getThingCardWidth(context)
+    private var mThingCardSurfaceAvailableHeightOverride: Int = 0
     private var mShouldShowPrivateContent: Boolean = false
     private var mChecklistMaxItemCount: Int = 8
 
@@ -142,8 +153,16 @@ abstract class BaseThingsAdapter(context: Context?) :
         mFullSpanCardWidth = cardWidth
     }
 
+    open fun setThingCardSurfaceAvailableHeight(height: Int) {
+        mThingCardSurfaceAvailableHeightOverride = max(0, height)
+    }
+
     open fun setShouldShowPrivateContent(shouldShowPrivateContent: Boolean) {
         mShouldShowPrivateContent = shouldShowPrivateContent
+    }
+
+    open fun shouldShowPrivateContent(): Boolean {
+        return mShouldShowPrivateContent
     }
 
     open fun setChecklistMaxItemCount(checklistMaxItemCount: Int) {
@@ -191,7 +210,17 @@ abstract class BaseThingsAdapter(context: Context?) :
     private fun shouldUseFixedCardContentWidth(thing: Thing): Boolean {
         return isFullSpanThingCard(thing)
                 || thing.isPrivate() && !mShouldShowPrivateContent
-                || AttachmentHelper.getFirstImageTypePathName(thing.attachment) != null
+                || ThingCardMediaHelper.resolveEffectiveMediaSource(thing) != null
+    }
+
+    private fun shouldUseMediaBackgroundForeground(thing: Thing): Boolean {
+        return thing.thingCardAppearance.mediaBackgroundEnabled
+                && ThingCardMediaHelper.resolveEffectiveMediaSource(thing) != null
+                && !(thing.isPrivate() && !mShouldShowPrivateContent)
+    }
+
+    private fun getThingCardForegroundBaseColor(thing: Thing): Int {
+        return if (shouldUseMediaBackgroundForeground(thing)) Color.BLACK else thing.getColor()
     }
 
     private fun applyCardContentGeometry(holder: BaseThingViewHolder, thing: Thing) {
@@ -217,6 +246,14 @@ abstract class BaseThingsAdapter(context: Context?) :
         textLp.height = ViewGroup.LayoutParams.WRAP_CONTENT
         textLp.weight = 0f
         holder.llTextContent.layoutParams = textLp
+        holder.llTextContent.minimumHeight = 0
+        holder.vBottomStatusSpacer!!.visibility = View.GONE
+        val spacerLp = holder.vBottomStatusSpacer.layoutParams as LinearLayout.LayoutParams
+        spacerLp.height = 0
+        spacerLp.weight = 0f
+        holder.vBottomStatusSpacer.layoutParams = spacerLp
+        holder.llMediaCount!!.visibility = View.GONE
+        setThingCardPaddingBottomHeight(holder, THING_CARD_DEFAULT_PADDING_BOTTOM_DP)
 
         val imageLp = holder.flImageAttachment!!.layoutParams as LinearLayout.LayoutParams
         imageLp.width = ViewGroup.LayoutParams.MATCH_PARENT
@@ -272,6 +309,8 @@ abstract class BaseThingsAdapter(context: Context?) :
 
         holder.tvTitle!!.alpha = adaptiveAlpha
         holder.tvImageCount!!.alpha = adaptiveAlpha
+        holder.llMediaCount!!.alpha = adaptiveAlpha
+        holder.ivMediaBackground!!.alpha = adaptiveAlpha
         holder.ivPrivateThing!!.alpha = adaptiveAlpha
         holder.tvContent!!.alpha = adaptiveAlpha
         holder.rvChecklist!!.alpha = adaptiveAlpha
@@ -304,11 +343,12 @@ abstract class BaseThingsAdapter(context: Context?) :
             holder.ivPrivateThing!!.visibility = View.VISIBLE
             androidx.core.widget.ImageViewCompat.setImageTintList(
                 holder.ivPrivateThing,
-                if (BackgroundUtil.isLight(thing.getColor()))
+                if (BackgroundUtil.isLight(getThingCardForegroundBaseColor(thing)))
                     android.content.res.ColorStateList.valueOf(android.graphics.Color.BLACK)
                 else null
             )
             holder.flImageAttachment!!.visibility = View.GONE
+            hideThingCardMediaBackground(holder)
             holder.tvContent!!.visibility = View.GONE
             holder.rvChecklist!!.visibility = View.GONE
             holder.llAudioAttachment!!.visibility = View.GONE
@@ -354,7 +394,7 @@ abstract class BaseThingsAdapter(context: Context?) :
             }
             @StringRes val cdRes = if (sticky) R.string.sticky_thing else R.string.ongoing_thing
             holder.ivStickyOngoing.contentDescription = mContext!!.getString(cdRes)
-            tintCardIcon(holder.ivStickyOngoing, thing.getColor())
+            tintCardIcon(holder.ivStickyOngoing, getThingCardForegroundBaseColor(thing))
         }
     }
 
@@ -365,7 +405,7 @@ abstract class BaseThingsAdapter(context: Context?) :
             holder.tvTitle!!.visibility = View.VISIBLE
             holder.tvTitle.setPadding(p, p, p, 0)
             holder.tvTitle.text = title
-            holder.tvTitle.setTextColor(textColorPrimary(thing.getColor()))
+            holder.tvTitle.setTextColor(textColorPrimary(getThingCardForegroundBaseColor(thing)))
         } else {
             holder.tvTitle!!.visibility = View.GONE
         }
@@ -389,7 +429,9 @@ abstract class BaseThingsAdapter(context: Context?) :
 
                 holder.tvContent.setPadding(p, p, p, 0)
                 holder.tvContent.text = content
-                holder.tvContent.setTextColor(textColorSecondary(thing.getColor()))
+                holder.tvContent.setTextColor(
+                    textColorSecondary(getThingCardForegroundBaseColor(thing))
+                )
             } else {
                 holder.tvContent!!.visibility = View.GONE
                 holder.rvChecklist!!.visibility = View.VISIBLE
@@ -404,7 +446,7 @@ abstract class BaseThingsAdapter(context: Context?) :
                 } else {
                     adapter.setItems(items)
                 }
-                adapter.setThingColor(thing.getColor())
+                adapter.setThingColor(getThingCardForegroundBaseColor(thing))
                 adapter.setMaxItemCount(
                     if (isFullSpanThingCard(thing))
                         FULL_SPAN_CHECKLIST_MAX_ITEM_COUNT
@@ -465,9 +507,10 @@ abstract class BaseThingsAdapter(context: Context?) :
             holder.tvReminderTime.text =
                 DateTimeUtil.getDateTimeStrGoal(mContext, thing, reminder)
         }
-        holder.tvReminderTime.setTextColor(textColorTertiary(thing.getColor()))
-        tintCardIcon(holder.ivReminder, thing.getColor())
-        tintCardSeparator(holder.vReminderSeparator, thing.getColor())
+        val foregroundBaseColor = getThingCardForegroundBaseColor(thing)
+        holder.tvReminderTime.setTextColor(textColorTertiary(foregroundBaseColor))
+        tintCardIcon(holder.ivReminder, foregroundBaseColor)
+        tintCardSeparator(holder.vReminderSeparator, foregroundBaseColor)
     }
 
     @SuppressLint("SetTextI18n")
@@ -492,14 +535,15 @@ abstract class BaseThingsAdapter(context: Context?) :
             summary += ", " + habit.getStateDescription(mContext)
         }
         holder.tvHabitSummary!!.text = summary
-        holder.tvHabitSummary.setTextColor(textColorTertiary(thing.getColor()))
-        holder.tvHabitNextReminder!!.setTextColor(textColorDisabled(thing.getColor()))
-        holder.tvHabitLastFive!!.setTextColor(textColorDisabled(thing.getColor()))
-        holder.tvHabitFinishedThisT!!.setTextColor(textColorTertiary(thing.getColor()))
-        tintCardIcon(holder.ivHabit, thing.getColor())
-        tintCardSeparator(holder.vHabitSeparator1, thing.getColor())
-        tintCardSeparator(holder.vHabitSeparator2, thing.getColor())
-        holder.habitRecordPresenter.setThingColor(thing.getColor())
+        val foregroundBaseColor = getThingCardForegroundBaseColor(thing)
+        holder.tvHabitSummary.setTextColor(textColorTertiary(foregroundBaseColor))
+        holder.tvHabitNextReminder!!.setTextColor(textColorDisabled(foregroundBaseColor))
+        holder.tvHabitLastFive!!.setTextColor(textColorDisabled(foregroundBaseColor))
+        holder.tvHabitFinishedThisT!!.setTextColor(textColorTertiary(foregroundBaseColor))
+        tintCardIcon(holder.ivHabit, foregroundBaseColor)
+        tintCardSeparator(holder.vHabitSeparator1, foregroundBaseColor)
+        tintCardSeparator(holder.vHabitSeparator2, foregroundBaseColor)
+        holder.habitRecordPresenter.setThingColor(foregroundBaseColor)
 
         if (thing.state == Thing.UNDERWAY && !habit.isPaused()) {
             holder.tvHabitNextReminder.visibility = View.VISIBLE
@@ -536,11 +580,12 @@ abstract class BaseThingsAdapter(context: Context?) :
     }
 
     private fun getEffectiveThingCardImagePlacement(thing: Thing): Int {
-        val placement = when (thing.thingCardImagePlacement) {
+        val savedPlacement = thing.thingCardAppearance.imagePlacement
+        val placement = when (savedPlacement) {
             Thing.THING_CARD_IMAGE_PLACEMENT_TOP,
             Thing.THING_CARD_IMAGE_PLACEMENT_BOTTOM,
             Thing.THING_CARD_IMAGE_PLACEMENT_LEFT,
-            Thing.THING_CARD_IMAGE_PLACEMENT_RIGHT -> thing.thingCardImagePlacement
+            Thing.THING_CARD_IMAGE_PLACEMENT_RIGHT -> savedPlacement
             else -> Thing.THING_CARD_IMAGE_PLACEMENT_TOP
         }
         if (!isFullSpanThingCard(thing)
@@ -597,15 +642,50 @@ abstract class BaseThingsAdapter(context: Context?) :
         }
     }
 
+    private fun getThingCardThumbnailCrop(
+        thing: Thing,
+        mediaSource: ThingCardMediaHelper.MediaSource
+    ): ThingCardAppearance.ThingCardThumbnailCrop {
+        return thing.thingCardAppearance.sources[mediaSource.typePathName]
+            ?.thumbnailCrop
+            ?: ThingCardAppearance.ThingCardThumbnailCrop()
+    }
+
+    private fun getThingCardMediaBackgroundCrop(
+        thing: Thing,
+        mediaSource: ThingCardMediaHelper.MediaSource
+    ): ThingCardAppearance.ThingCardMediaBackgroundCrop {
+        return thing.thingCardAppearance.sources[mediaSource.typePathName]
+            ?.backgroundCrop
+            ?: ThingCardAppearance.ThingCardMediaBackgroundCrop()
+    }
+
+    private fun getThingCardVideoFrameMs(
+        thing: Thing,
+        mediaSource: ThingCardMediaHelper.MediaSource
+    ): Long? {
+        if (!mediaSource.isVideo) return null
+        val frameMs = thing.thingCardAppearance.sources[mediaSource.typePathName]?.videoFrameMs
+        return if (frameMs != null && frameMs >= 0L) frameMs else null
+    }
+
     private fun loadThingCardImage(
         holder: BaseThingViewHolder,
         pathName: String,
         imageW: Int,
-        imageH: Int
+        imageH: Int,
+        crop: ThingCardAppearance.ThingCardThumbnailCrop,
+        videoFrameMs: Long?
     ) {
-        val loadKey = "$pathName:$imageW:$imageH"
+        val loadKey = "$pathName:$imageW:$imageH:$videoFrameMs"
+        val renderRequest = ThingCardThumbnailRenderRequest(loadKey, imageW, imageH, crop)
+        holder.ivImageAttachment!!.setTag(
+            R.id.tag_thing_card_image_render_request,
+            renderRequest
+        )
         if (holder.ivImageAttachment!!.getTag(R.id.tag_thing_card_image_load_key) == loadKey) {
             holder.pbLoading!!.visibility = View.GONE
+            applyCurrentThingCardThumbnailRenderRequest(holder.ivImageAttachment)
             return
         }
 
@@ -613,9 +693,18 @@ abstract class BaseThingsAdapter(context: Context?) :
         holder.pbLoading!!.visibility = if (imageWasLoaded) View.GONE else View.VISIBLE
         mImageRequestManager!!.clear(holder.ivImageAttachment!!)
         holder.ivImageAttachment.setTag(R.id.tag_thing_card_image_load_key, loadKey)
-        mImageRequestManager!!
+        val request = mImageRequestManager!!
             .load(pathName)
             .override(imageW, imageH)
+            .dontTransform()
+            .signature(getThingCardMediaCacheSignature(pathName, imageW, imageH, videoFrameMs))
+        if (videoFrameMs != null) {
+            request.apply(
+                RequestOptions.frameOf(videoFrameMs * 1000L)
+                    .set(VideoDecoder.FRAME_OPTION, MediaMetadataRetriever.OPTION_CLOSEST)
+            )
+        }
+        request
             .listener(object : RequestListener<Drawable> {
                 override fun onLoadFailed(
                     e: GlideException?, model: Any?, target: Target<Drawable>,
@@ -626,6 +715,14 @@ abstract class BaseThingsAdapter(context: Context?) :
                         ) == loadKey
                     ) {
                         holder.pbLoading!!.visibility = View.GONE
+                        holder.flImageAttachment!!.visibility = View.GONE
+                        holder.tvImageCount!!.visibility = View.GONE
+                        holder.vImageCover!!.visibility = View.GONE
+                        holder.vPaddingBottom!!.visibility = View.VISIBLE
+                        holder.ivImageAttachment!!.setTag(
+                            R.id.tag_thing_card_image_render_request,
+                            null
+                        )
                     }
                     return false
                 }
@@ -640,13 +737,355 @@ abstract class BaseThingsAdapter(context: Context?) :
                         ) == loadKey
                     ) {
                         holder.pbLoading!!.visibility = View.GONE
+                        holder.ivImageAttachment.post {
+                            val request = holder.ivImageAttachment!!.getTag(
+                                R.id.tag_thing_card_image_render_request
+                            ) as? ThingCardThumbnailRenderRequest
+                            if (request?.loadKey == loadKey) {
+                                applyCurrentThingCardThumbnailRenderRequest(
+                                    holder.ivImageAttachment
+                                )
+                            }
+                        }
                     }
                     return false
                 }
             })
-            .centerCrop()
             .dontAnimate()
             .into(holder.ivImageAttachment!!)
+    }
+
+    private fun loadThingCardMediaBackground(
+        holder: BaseThingViewHolder,
+        thing: Thing,
+        pathName: String,
+        imageW: Int,
+        imageH: Int,
+        crop: ThingCardAppearance.ThingCardMediaBackgroundCrop,
+        videoFrameMs: Long?
+    ) {
+        val imageView = holder.ivMediaBackground ?: return
+        val loadKey = "background:$pathName:$imageW:$imageH:$videoFrameMs"
+        val renderRequest = ThingCardMediaBackgroundRenderRequest(loadKey, imageW, imageH, crop)
+        imageView.setTag(
+            R.id.tag_thing_card_media_background_render_request,
+            renderRequest
+        )
+        val reusableDrawable = imageView.drawable?.takeIf {
+            isSameThingCardMediaBackgroundSource(
+                imageView.getTag(R.id.tag_thing_card_media_background_load_key) as? String,
+                pathName,
+                videoFrameMs
+            )
+        }
+        if (reusableDrawable != null) {
+            applyCurrentThingCardMediaBackgroundRenderRequest(imageView)
+        }
+        if (imageView.getTag(R.id.tag_thing_card_media_background_load_key) == loadKey) {
+            applyCurrentThingCardMediaBackgroundRenderRequest(imageView)
+            return
+        }
+
+        if (reusableDrawable == null) {
+            mImageRequestManager!!.clear(imageView)
+        }
+        imageView.setTag(R.id.tag_thing_card_media_background_load_key, loadKey)
+        val request = mImageRequestManager!!
+            .load(pathName)
+            .override(imageW, imageH)
+            .dontTransform()
+            .signature(getThingCardMediaCacheSignature(pathName, imageW, imageH, videoFrameMs))
+        if (reusableDrawable != null) {
+            request.placeholder(reusableDrawable)
+        }
+        if (videoFrameMs != null) {
+            request.apply(
+                RequestOptions.frameOf(videoFrameMs * 1000L)
+                    .set(VideoDecoder.FRAME_OPTION, MediaMetadataRetriever.OPTION_CLOSEST)
+            )
+        }
+        request
+            .listener(object : RequestListener<Drawable> {
+                override fun onLoadFailed(
+                    e: GlideException?, model: Any?, target: Target<Drawable>,
+                    isFirstResource: Boolean
+                ): Boolean {
+                    if (imageView.getTag(R.id.tag_thing_card_media_background_load_key) == loadKey) {
+                        imageView.visibility = View.GONE
+                        holder.vMediaBackgroundMask!!.visibility = View.GONE
+                        resetThingCardMediaBackgroundOverlaySize(holder)
+                        applyThingCardForegroundColors(holder, thing, thing.getColor())
+                        imageView.setTag(
+                            R.id.tag_thing_card_media_background_render_request,
+                            null
+                        )
+                    }
+                    return false
+                }
+
+                override fun onResourceReady(
+                    resource: Drawable, model: Any, target: Target<Drawable>?,
+                    dataSource: DataSource, isFirstResource: Boolean
+                ): Boolean {
+                    if (imageView.getTag(R.id.tag_thing_card_media_background_load_key) == loadKey) {
+                        imageView.post {
+                            val request = imageView.getTag(
+                                R.id.tag_thing_card_media_background_render_request
+                            ) as? ThingCardMediaBackgroundRenderRequest
+                            if (request?.loadKey == loadKey) {
+                                applyCurrentThingCardMediaBackgroundRenderRequest(imageView)
+                            }
+                        }
+                    }
+                    return false
+                }
+            })
+            .dontAnimate()
+            .into(imageView)
+    }
+
+    private fun isSameThingCardMediaBackgroundSource(
+        loadKey: String?,
+        pathName: String,
+        videoFrameMs: Long?
+    ): Boolean {
+        if (loadKey == null) return false
+        return loadKey.startsWith("background:$pathName:") &&
+                loadKey.endsWith(":$videoFrameMs")
+    }
+
+    private fun applyThingCardForegroundColors(
+        holder: BaseThingViewHolder,
+        thing: Thing,
+        foregroundBaseColor: Int
+    ) {
+        holder.tvTitle!!.setTextColor(textColorPrimary(foregroundBaseColor))
+        holder.tvContent!!.setTextColor(textColorSecondary(foregroundBaseColor))
+        holder.tvImageCount!!.setTextColor(textColorSecondary(foregroundBaseColor))
+        val mediaCountColor = textColorTertiary(foregroundBaseColor)
+        holder.tvMediaCount!!.setTextColor(mediaCountColor)
+        applyThingCardMediaCountIcon(holder, foregroundBaseColor)
+        holder.tvAudioCount!!.setTextColor(textColorTertiary(foregroundBaseColor))
+        holder.tvReminderTime!!.setTextColor(textColorTertiary(foregroundBaseColor))
+        holder.tvHabitSummary!!.setTextColor(textColorTertiary(foregroundBaseColor))
+        holder.tvHabitNextReminder!!.setTextColor(textColorDisabled(foregroundBaseColor))
+        holder.tvHabitLastFive!!.setTextColor(textColorDisabled(foregroundBaseColor))
+        holder.tvHabitFinishedThisT!!.setTextColor(textColorTertiary(foregroundBaseColor))
+
+        tintCardIcon(holder.ivStickyOngoing, foregroundBaseColor)
+        tintCardIcon(holder.ivReminder, foregroundBaseColor)
+        tintCardIcon(holder.ivHabit, foregroundBaseColor)
+        tintCardSeparator(holder.vReminderSeparator, foregroundBaseColor)
+        tintCardSeparator(holder.vHabitSeparator1, foregroundBaseColor)
+        tintCardSeparator(holder.vHabitSeparator2, foregroundBaseColor)
+        holder.habitRecordPresenter.setThingColor(foregroundBaseColor)
+
+        mCheckListAdapters!!.get(thing.id)?.setThingColor(foregroundBaseColor)
+        holder.rvChecklist!!.adapter?.notifyDataSetChanged()
+        val dark = BackgroundUtil.isLight(foregroundBaseColor)
+        holder.ivAudioCount!!.setImageResource(
+            if (dark) {
+                R.drawable.card_audio_attachment_black
+            } else {
+                R.drawable.card_audio_attachment
+            }
+        )
+    }
+
+    private fun applyThingCardMediaCountIcon(
+        holder: BaseThingViewHolder,
+        foregroundBaseColor: Int
+    ) {
+        val icon = holder.ivMediaCount ?: return
+        androidx.core.widget.ImageViewCompat.setImageTintList(icon, null)
+        icon.clearColorFilter()
+        icon.setImageResource(
+            if (BackgroundUtil.isLight(foregroundBaseColor)) {
+                R.drawable.card_image_attachment_count_black
+            } else {
+                R.drawable.card_image_attachment_count
+            }
+        )
+    }
+
+    private fun getThingCardMediaCacheSignature(
+        pathName: String,
+        imageW: Int,
+        imageH: Int,
+        videoFrameMs: Long?
+    ): ObjectKey {
+        val file = File(pathName)
+        val fileSize = if (file.exists()) file.length() else 0L
+        val lastModified = if (file.exists()) file.lastModified() else 0L
+        return ObjectKey("$pathName:$fileSize:$lastModified:$videoFrameMs:$imageW:$imageH")
+    }
+
+    private data class ThingCardThumbnailRenderRequest(
+        val loadKey: String,
+        val imageW: Int,
+        val imageH: Int,
+        val crop: ThingCardAppearance.ThingCardThumbnailCrop
+    )
+
+    private data class ThingCardMediaBackgroundRenderRequest(
+        val loadKey: String,
+        val imageW: Int,
+        val imageH: Int,
+        val crop: ThingCardAppearance.ThingCardMediaBackgroundCrop
+    )
+
+    private fun applyThingCardThumbnailCrop(
+        imageView: ImageView?,
+        crop: ThingCardAppearance.ThingCardThumbnailCrop,
+        targetW: Int,
+        targetH: Int
+    ) {
+        applyThingCardMediaCrop(imageView, crop.centerX, crop.centerY, crop.scale, targetW, targetH)
+    }
+
+    private fun applyThingCardMediaBackgroundCrop(
+        imageView: ImageView?,
+        crop: ThingCardAppearance.ThingCardMediaBackgroundCrop,
+        targetW: Int,
+        targetH: Int
+    ) {
+        applyThingCardMediaCrop(imageView, crop.centerX, crop.centerY, crop.scale, targetW, targetH)
+    }
+
+    private fun applyCurrentThingCardThumbnailRenderRequest(imageView: ImageView?) {
+        val request = imageView?.getTag(
+            R.id.tag_thing_card_image_render_request
+        ) as? ThingCardThumbnailRenderRequest ?: return
+        applyThingCardThumbnailCrop(imageView, request.crop, request.imageW, request.imageH)
+    }
+
+    private fun applyCurrentThingCardMediaBackgroundRenderRequest(imageView: ImageView?) {
+        val request = imageView?.getTag(
+            R.id.tag_thing_card_media_background_render_request
+        ) as? ThingCardMediaBackgroundRenderRequest ?: return
+        applyThingCardMediaBackgroundCrop(imageView, request.crop, request.imageW, request.imageH)
+    }
+
+    fun applyThingCardMediaBackgroundHeightToBoundHolder(
+        holder: BaseThingViewHolder?,
+        thing: Thing?
+    ): Boolean {
+        if (holder == null || thing == null) return false
+        if (!thing.thingCardAppearance.mediaBackgroundEnabled) return false
+        if (holder.ivMediaBackground?.isVisible != true) return false
+
+        val mediaSource = ThingCardMediaHelper.resolveEffectiveMediaSource(thing) ?: return false
+        updateCardForMediaBackground(holder, thing, mediaSource, false)
+        return true
+    }
+
+    fun applyThingCardMediaCropToBoundHolder(
+        holder: BaseThingViewHolder?,
+        thing: Thing?
+    ): Boolean {
+        if (holder == null || thing == null) return false
+        val mediaSource = ThingCardMediaHelper.resolveEffectiveMediaSource(thing) ?: return false
+        if (thing.thingCardAppearance.mediaBackgroundEnabled) {
+            val targetW = holder.cv?.width ?: 0
+            val targetH = getThingCardMediaBackgroundEffectiveTargetHeight(
+                holder, thing, mediaSource
+            )
+            if (targetW <= 0 || targetH <= 0 || holder.ivMediaBackground?.isVisible != true) {
+                return false
+            }
+            val crop = getThingCardMediaBackgroundCrop(thing, mediaSource)
+            val imageView = holder.ivMediaBackground
+            setThingCardMediaBackgroundOverlayHeight(holder, targetH)
+            val oldRequest = imageView?.getTag(
+                R.id.tag_thing_card_media_background_render_request
+            ) as? ThingCardMediaBackgroundRenderRequest
+            val loadKey = oldRequest?.loadKey
+                ?: (imageView?.getTag(R.id.tag_thing_card_media_background_load_key) as? String)
+                ?: "manual-background:${thing.id}:${mediaSource.typePathName}"
+            imageView?.setTag(
+                R.id.tag_thing_card_media_background_render_request,
+                ThingCardMediaBackgroundRenderRequest(loadKey, targetW, targetH, crop)
+            )
+            applyCurrentThingCardMediaBackgroundRenderRequest(imageView)
+            return true
+        }
+
+        val targetW = holder.flImageAttachment?.width ?: 0
+        val targetH = holder.flImageAttachment?.height ?: 0
+        if (targetW <= 0 || targetH <= 0 || holder.flImageAttachment?.isVisible != true) {
+            return false
+        }
+        val crop = getThingCardThumbnailCrop(thing, mediaSource)
+        val imageView = holder.ivImageAttachment
+        val oldRequest = imageView?.getTag(
+            R.id.tag_thing_card_image_render_request
+        ) as? ThingCardThumbnailRenderRequest
+        val loadKey = oldRequest?.loadKey
+            ?: (imageView?.getTag(R.id.tag_thing_card_image_load_key) as? String)
+            ?: "manual-thumbnail:${thing.id}:${mediaSource.typePathName}"
+        imageView?.setTag(
+            R.id.tag_thing_card_image_render_request,
+            ThingCardThumbnailRenderRequest(loadKey, targetW, targetH, crop)
+        )
+        applyCurrentThingCardThumbnailRenderRequest(imageView)
+        return true
+    }
+
+    private fun applyThingCardMediaCrop(
+        imageView: ImageView?,
+        centerXValue: Double,
+        centerYValue: Double,
+        userScaleValue: Double,
+        targetW: Int,
+        targetH: Int
+    ) {
+        if (imageView == null || targetW <= 0 || targetH <= 0) return
+
+        val drawable = imageView.drawable ?: return
+        val sourceW = drawable.intrinsicWidth
+        val sourceH = drawable.intrinsicHeight
+        if (sourceW <= 0 || sourceH <= 0) {
+            imageView.scaleType = ImageView.ScaleType.CENTER_CROP
+            return
+        }
+
+        val coverScale = max(
+            targetW.toFloat() / sourceW.toFloat(),
+            targetH.toFloat() / sourceH.toFloat()
+        )
+        val userScale = normalizeThingCardCropUserScale(userScaleValue)
+        val effectiveScale = coverScale * userScale
+        val scaledW = sourceW * effectiveScale
+        val scaledH = sourceH * effectiveScale
+
+        val centerX = normalizeThingCardCropRatio(centerXValue) * scaledW
+        val centerY = normalizeThingCardCropRatio(centerYValue) * scaledH
+        val left = clampThingCardCropOffset(targetW / 2f - centerX, targetW - scaledW, 0f)
+        val top = clampThingCardCropOffset(targetH / 2f - centerY, targetH - scaledH, 0f)
+
+        val matrix = Matrix()
+        matrix.setScale(effectiveScale, effectiveScale)
+        matrix.postTranslate(left, top)
+        imageView.scaleType = ImageView.ScaleType.MATRIX
+        imageView.imageMatrix = matrix
+    }
+
+    private fun normalizeThingCardCropRatio(value: Double): Float {
+        if (value.isNaN() || value.isInfinite()) {
+            return ThingCardAppearance.DEFAULT_CROP_CENTER.toFloat()
+        }
+        return max(0.0, min(1.0, value)).toFloat()
+    }
+
+    private fun normalizeThingCardCropUserScale(value: Double): Float {
+        if (value.isNaN() || value.isInfinite()) {
+            return ThingCardAppearance.DEFAULT_USER_SCALE.toFloat()
+        }
+        return max(ThingCardAppearance.DEFAULT_USER_SCALE, value).toFloat()
+    }
+
+    private fun clampThingCardCropOffset(value: Float, minValue: Float, maxValue: Float): Float {
+        return max(minValue, min(maxValue, value))
     }
 
     private fun syncSideImageHeightAfterMeasure(
@@ -656,7 +1095,9 @@ abstract class BaseThingsAdapter(context: Context?) :
         heightCacheKey: String,
         pathName: String,
         imageW: Int,
-        minHeight: Int
+        minHeight: Int,
+        crop: ThingCardAppearance.ThingCardThumbnailCrop,
+        videoFrameMs: Long?
     ) {
         holder.llContent!!.post {
             if (holder.flImageAttachment!!.getTag(
@@ -682,7 +1123,7 @@ abstract class BaseThingsAdapter(context: Context?) :
             setThingCardImageFrameSize(
                 holder, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
             )
-            loadThingCardImage(holder, pathName, imageW, targetHeight)
+            loadThingCardImage(holder, pathName, imageW, targetHeight, crop, videoFrameMs)
         }
     }
 
@@ -766,10 +1207,20 @@ abstract class BaseThingsAdapter(context: Context?) :
     }
 
     private fun getSideImageWidth(thing: Thing): Int {
-        val imagePercent = mContext!!.resources.getInteger(
-            R.integer.thing_card_full_span_side_image_width_percent
+        val imagePercent = normalizeThingCardSideMediaWidth(
+            thing.thingCardAppearance.sideMediaWidthPercent
         )
         return max(1, getCardContentWidth(thing) * imagePercent / 100)
+    }
+
+    private fun normalizeThingCardSideMediaWidth(widthPercent: Int): Int {
+        val minPercent = mContext!!.resources.getInteger(
+            R.integer.thing_card_side_media_width_min_percent
+        )
+        val maxPercent = mContext!!.resources.getInteger(
+            R.integer.thing_card_side_media_width_max_percent
+        )
+        return max(minPercent, min(maxPercent, widthPercent))
     }
 
     private fun getSideImageMinHeight(): Int {
@@ -787,11 +1238,46 @@ abstract class BaseThingsAdapter(context: Context?) :
         return thing.updateTime.toString() +
                 ":" + thing.type +
                 ":" + thing.state +
-                ":" + thing.thingCardSpanMode +
+                ":" + thing.thingCardAppearance.spanMode +
                 ":" + placement +
                 ":" + pathName +
                 ":" + getCardContentWidth(thing) +
                 ":" + imageW
+    }
+
+    private fun getThumbnailSourceAspectRatio(thing: Thing): Float {
+        val mediaSource = ThingCardMediaHelper.resolveEffectiveMediaSource(thing)
+        val sourceAspectRatio = mediaSource?.let {
+            thing.thingCardAppearance.sources[it.typePathName]
+                ?.thumbnailCrop
+                ?.sourceAspectRatio
+        }
+        if (sourceAspectRatio != null && sourceAspectRatio > 0.0) {
+            return sourceAspectRatio.toFloat()
+        }
+        return if (isFullSpanThingCard(thing)) 16f / 9f else 4f / 3f
+    }
+
+    private fun getThingCardSurfaceAvailableHeight(): Int {
+        if (mThingCardSurfaceAvailableHeightOverride > 0) {
+            return mThingCardSurfaceAvailableHeightOverride
+        }
+        val recyclerView = mRecyclerView
+        if (recyclerView != null) {
+            val height = recyclerView.height - recyclerView.paddingTop - recyclerView.paddingBottom
+            if (height > 0) return height
+        }
+        return DisplayUtil.getScreenSize(mContext).y
+    }
+
+    private fun getThumbnailHeightMinPercent(thing: Thing): Int {
+        return mContext!!.resources.getInteger(
+            if (isFullSpanThingCard(thing)) {
+                R.integer.thing_card_full_span_thumbnail_min_height_percent
+            } else {
+                R.integer.thing_card_normal_thumbnail_min_height_percent
+            }
+        )
     }
 
     private fun getCachedSideImageHeight(thingId: Long, heightCacheKey: String): Int? {
@@ -816,13 +1302,413 @@ abstract class BaseThingsAdapter(context: Context?) :
         }
     }
 
+    private fun getThingCardMediaBackgroundTargetMinHeight(
+        thing: Thing,
+        mediaSource: ThingCardMediaHelper.MediaSource
+    ): Int {
+        val sourceAppearance = thing.thingCardAppearance.sources[mediaSource.typePathName]
+        val targetHeightRatio = sourceAppearance?.mediaBackgroundHeightRatio
+        if (targetHeightRatio == null || targetHeightRatio <= 0.0) return 0
+
+        val targetHeight = (getCardContentWidth(thing) * targetHeightRatio).toInt()
+        val maxHeight = getThingCardSurfaceAvailableHeight() *
+                mContext!!.resources.getInteger(
+                        R.integer.thing_card_media_background_home_max_height_percent
+                ) / 100
+        return min(targetHeight, maxHeight)
+    }
+
+    private fun updateCardForMediaBackground(
+        holder: BaseThingViewHolder,
+        thing: Thing,
+        mediaSource: ThingCardMediaHelper.MediaSource,
+        resetContentExpansion: Boolean = true
+    ) {
+        holder.flImageAttachment!!.setTag(R.id.tag_thing_card_side_image_bind_token, null)
+        holder.ivImageAttachment!!.setTag(R.id.tag_thing_card_image_load_key, null)
+        holder.ivImageAttachment!!.setTag(R.id.tag_thing_card_image_render_request, null)
+        mImageRequestManager!!.clear(holder.ivImageAttachment!!)
+        holder.flImageAttachment.visibility = View.GONE
+        holder.tvImageCount!!.visibility = View.GONE
+        holder.vImageCover!!.visibility = View.GONE
+
+        val sourceAppearance = thing.thingCardAppearance.sources[mediaSource.typePathName]
+        val targetMinHeight = getThingCardMediaBackgroundTargetMinHeight(thing, mediaSource)
+        val mediaBackground = holder.ivMediaBackground!!
+        val mediaBackgroundMask = holder.vMediaBackgroundMask!!
+        if (resetContentExpansion) {
+            resetThingCardMediaBackgroundContentExpansion(holder)
+        }
+        updateThingCardMediaBackgroundInlineCount(holder, thing)
+        val effectiveTargetHeight = getThingCardMediaBackgroundEffectiveTargetHeight(
+            holder, targetMinHeight
+        )
+        holder.llContent!!.minimumHeight = 0
+        setThingCardMediaBackgroundOverlayHeight(holder, effectiveTargetHeight)
+        holder.llContent!!.requestLayout()
+        holder.cv!!.requestLayout()
+
+        mediaBackground.visibility = View.VISIBLE
+        mediaBackgroundMask.visibility = View.VISIBLE
+        mediaBackgroundMask.alpha = normalizeThingCardMaskStrength(
+                sourceAppearance?.mediaBackgroundMaskStrength
+                        ?: getThingCardDefaultMaskStrength()
+        )
+
+        val backgroundCrop = getThingCardMediaBackgroundCrop(thing, mediaSource)
+        val videoFrameMs = getThingCardVideoFrameMs(thing, mediaSource)
+        val bindToken = thing.id.toString() + ":" + mediaSource.typePathName +
+                ":" + effectiveTargetHeight + ":" + backgroundCrop.toString() + ":" + videoFrameMs
+        mediaBackground.setTag(R.id.tag_thing_card_media_background_bind_token, bindToken)
+
+        updateThingCardMediaBackgroundBottomStatusLayout(
+            holder, bindToken, effectiveTargetHeight
+        )
+        loadThingCardMediaBackgroundAfterLayout(
+                holder,
+                thing,
+                mediaSource.pathName,
+                backgroundCrop,
+                videoFrameMs,
+                effectiveTargetHeight,
+                bindToken
+        )
+
+        holder.vPaddingBottom!!.visibility = View.VISIBLE
+    }
+
+    private fun loadThingCardMediaBackgroundAfterLayout(
+        holder: BaseThingViewHolder,
+        thing: Thing,
+        pathName: String,
+        backgroundCrop: ThingCardAppearance.ThingCardMediaBackgroundCrop,
+        videoFrameMs: Long?,
+        intendedTargetHeight: Int,
+        bindToken: String
+    ) {
+        val card = holder.cv ?: return
+        val mediaBackground = holder.ivMediaBackground ?: return
+        val listener = object : ViewTreeObserver.OnPreDrawListener {
+            override fun onPreDraw(): Boolean {
+                val observer = card.viewTreeObserver
+                if (observer.isAlive) {
+                    observer.removeOnPreDrawListener(this)
+                }
+                if (mediaBackground.getTag(
+                        R.id.tag_thing_card_media_background_bind_token
+                    ) != bindToken
+                ) {
+                    return true
+                }
+                if (!mediaBackground.isVisible) return true
+
+                val targetW = card.width
+                val targetH = getThingCardMediaBackgroundEffectiveTargetHeight(
+                    holder, intendedTargetHeight
+                )
+                if (targetW <= 0 || targetH <= 0) return true
+                setThingCardMediaBackgroundOverlayHeight(holder, targetH)
+                loadThingCardMediaBackground(
+                        holder,
+                        thing,
+                        pathName,
+                        targetW,
+                        targetH,
+                        backgroundCrop,
+                        videoFrameMs
+                )
+                return true
+            }
+        }
+        val observer = card.viewTreeObserver
+        if (observer.isAlive) {
+            observer.addOnPreDrawListener(listener)
+        } else {
+            card.post {
+                if (mediaBackground.getTag(
+                        R.id.tag_thing_card_media_background_bind_token
+                    ) != bindToken
+                ) {
+                    return@post
+                }
+                if (!mediaBackground.isVisible) return@post
+                val targetW = card.width
+                val targetH = getThingCardMediaBackgroundEffectiveTargetHeight(
+                    holder, intendedTargetHeight
+                )
+                if (targetW <= 0 || targetH <= 0) return@post
+                setThingCardMediaBackgroundOverlayHeight(holder, targetH)
+                loadThingCardMediaBackground(
+                        holder,
+                        thing,
+                        pathName,
+                        targetW,
+                        targetH,
+                        backgroundCrop,
+                        videoFrameMs
+                )
+            }
+        }
+    }
+
+    private fun getThingCardMediaBackgroundEffectiveTargetHeight(
+        holder: BaseThingViewHolder,
+        thing: Thing,
+        mediaSource: ThingCardMediaHelper.MediaSource
+    ): Int {
+        return getThingCardMediaBackgroundEffectiveTargetHeight(
+            holder,
+            getThingCardMediaBackgroundTargetMinHeight(thing, mediaSource)
+        )
+    }
+
+    private fun getThingCardMediaBackgroundEffectiveTargetHeight(
+        holder: BaseThingViewHolder,
+        targetMinHeight: Int
+    ): Int {
+        return max(
+            targetMinHeight,
+            measureThingCardMediaBackgroundNaturalContentHeight(holder)
+        )
+    }
+
+    private fun setThingCardMediaBackgroundOverlayHeight(
+        holder: BaseThingViewHolder,
+        height: Int
+    ) {
+        setThingCardMediaBackgroundOverlayHeight(holder.ivMediaBackground, height)
+        setThingCardMediaBackgroundOverlayHeight(holder.vMediaBackgroundMask, height)
+    }
+
+    private fun setThingCardMediaBackgroundOverlayHeight(
+        view: View?,
+        height: Int
+    ) {
+        if (view == null) return
+        val lp = view.layoutParams as FrameLayout.LayoutParams
+        val targetHeight = if (height > 0) height else ViewGroup.LayoutParams.MATCH_PARENT
+        if (lp.width != ViewGroup.LayoutParams.MATCH_PARENT || lp.height != targetHeight) {
+            lp.width = ViewGroup.LayoutParams.MATCH_PARENT
+            lp.height = targetHeight
+            view.layoutParams = lp
+        }
+    }
+
+    private fun resetThingCardMediaBackgroundOverlaySize(holder: BaseThingViewHolder) {
+        resetThingCardMediaBackgroundOverlaySize(holder.ivMediaBackground)
+        resetThingCardMediaBackgroundOverlaySize(holder.vMediaBackgroundMask)
+    }
+
+    private fun resetThingCardMediaBackgroundOverlaySize(view: View?) {
+        if (view == null) return
+        val lp = view.layoutParams as FrameLayout.LayoutParams
+        if (lp.width != ViewGroup.LayoutParams.MATCH_PARENT ||
+                lp.height != ViewGroup.LayoutParams.MATCH_PARENT) {
+            lp.width = ViewGroup.LayoutParams.MATCH_PARENT
+            lp.height = ViewGroup.LayoutParams.MATCH_PARENT
+            view.layoutParams = lp
+        }
+    }
+
+    private fun resetThingCardMediaBackgroundContentExpansion(holder: BaseThingViewHolder) {
+        val textLp = holder.llTextContent!!.layoutParams as LinearLayout.LayoutParams
+        if (textLp.height != ViewGroup.LayoutParams.WRAP_CONTENT || textLp.weight != 0f) {
+            textLp.height = ViewGroup.LayoutParams.WRAP_CONTENT
+            textLp.weight = 0f
+            holder.llTextContent.layoutParams = textLp
+        }
+
+        val spacer = holder.vBottomStatusSpacer!!
+        val spacerLp = spacer.layoutParams as LinearLayout.LayoutParams
+        if (spacer.visibility != View.GONE || spacerLp.height != 0 || spacerLp.weight != 0f) {
+            spacer.visibility = View.GONE
+            spacerLp.height = 0
+            spacerLp.weight = 0f
+            spacer.layoutParams = spacerLp
+        }
+    }
+
+    private fun updateThingCardMediaBackgroundInlineCount(
+        holder: BaseThingViewHolder,
+        thing: Thing
+    ) {
+        val str = AttachmentHelper.getImageAttachmentCountStr(thing.attachment, mContext)
+        if (str == null) {
+            holder.llMediaCount!!.visibility = View.GONE
+            setThingCardPaddingBottomHeight(holder, THING_CARD_DEFAULT_PADDING_BOTTOM_DP)
+            return
+        }
+
+        val p = (mDensity * 16).toInt()
+        val topMargin = (mDensity * 8).toInt()
+        val bottomMargin = (mDensity * 12).toInt()
+        val countLp = holder.llMediaCount!!.layoutParams as FrameLayout.LayoutParams
+        val gravity = Gravity.BOTTOM or Gravity.LEFT
+        if (countLp.gravity != gravity ||
+                countLp.leftMargin != p ||
+                countLp.topMargin != topMargin ||
+                countLp.rightMargin != p ||
+                countLp.bottomMargin != bottomMargin) {
+            countLp.gravity = gravity
+            countLp.setMargins(p, topMargin, p, bottomMargin)
+            holder.llMediaCount.layoutParams = countLp
+        }
+        holder.llMediaCount!!.visibility = View.VISIBLE
+        holder.llMediaCount.alpha = 1.0f
+        holder.tvMediaCount!!.setPadding(0, 0, 0, 0)
+        holder.tvMediaCount.text = str
+        val foregroundBaseColor = getThingCardForegroundBaseColor(thing)
+        val mediaCountColor = textColorTertiary(foregroundBaseColor)
+        holder.tvMediaCount.setTextColor(mediaCountColor)
+        applyThingCardMediaCountIcon(holder, foregroundBaseColor)
+        setThingCardPaddingBottomHeight(holder, THING_CARD_MEDIA_COUNT_PADDING_BOTTOM_DP)
+    }
+
+    private fun setThingCardPaddingBottomHeight(holder: BaseThingViewHolder, heightDp: Int) {
+        val targetHeight = (mDensity * heightDp).toInt()
+        val lp = holder.vPaddingBottom!!.layoutParams as LinearLayout.LayoutParams
+        if (lp.height != targetHeight) {
+            lp.height = targetHeight
+            holder.vPaddingBottom.layoutParams = lp
+        }
+    }
+
+    private fun updateThingCardMediaBackgroundBottomStatusLayout(
+        holder: BaseThingViewHolder,
+        bindToken: String,
+        targetHeight: Int
+    ) {
+        if (!hasThingCardBottomStatus(holder)) {
+            holder.vBottomStatusSpacer!!.visibility = View.GONE
+            return
+        }
+
+        holder.llTextContent!!.post {
+            val mediaBackground = holder.ivMediaBackground!!
+            if (!mediaBackground.isVisible) return@post
+            if (mediaBackground.getTag(R.id.tag_thing_card_media_background_bind_token) !=
+                    bindToken) {
+                return@post
+            }
+
+            val naturalHeight = measureThingCardMediaBackgroundNaturalContentHeight(holder)
+            val expandedHeight = max(targetHeight, naturalHeight)
+            if (expandedHeight <= 0) return@post
+
+            val textLp = holder.llTextContent.layoutParams as LinearLayout.LayoutParams
+            if (textLp.height != expandedHeight) {
+                textLp.height = expandedHeight
+                textLp.weight = 0f
+                holder.llTextContent.layoutParams = textLp
+            }
+
+            val spacer = holder.vBottomStatusSpacer!!
+            val spacerLp = spacer.layoutParams as LinearLayout.LayoutParams
+            if (spacer.visibility != View.VISIBLE || spacerLp.weight != 1f) {
+                spacer.visibility = View.VISIBLE
+                spacerLp.height = 0
+                spacerLp.weight = 1f
+                spacer.layoutParams = spacerLp
+            }
+        }
+    }
+
+    private fun hasThingCardBottomStatus(holder: BaseThingViewHolder): Boolean {
+        return holder.llAudioAttachment!!.isVisible
+                || holder.rlReminder!!.isVisible
+                || holder.rlHabit!!.isVisible
+    }
+
+    private fun measureThingCardMediaBackgroundNaturalContentHeight(
+        holder: BaseThingViewHolder
+    ): Int {
+        val textContent = holder.llTextContent ?: return 0
+        val width = getCardContentWidthForMeasuredHolder(holder)
+            .takeIf { it > 0 }
+            ?: textContent.width.takeIf { it > 0 }
+            ?: holder.cv?.width?.takeIf { it > 0 }
+            ?: 0
+        if (width <= 0) return textContent.measuredHeight
+
+        val textLp = textContent.layoutParams as LinearLayout.LayoutParams
+        val oldTextHeight = textLp.height
+        val oldTextWeight = textLp.weight
+        val spacer = holder.vBottomStatusSpacer
+        val spacerLp = spacer?.layoutParams as? LinearLayout.LayoutParams
+        val oldSpacerVisibility = spacer?.visibility
+        val oldSpacerHeight = spacerLp?.height
+        val oldSpacerWeight = spacerLp?.weight
+
+        return try {
+            textLp.height = ViewGroup.LayoutParams.WRAP_CONTENT
+            textLp.weight = 0f
+            if (spacer != null && spacerLp != null) {
+                spacer.visibility = View.GONE
+                spacerLp.height = 0
+                spacerLp.weight = 0f
+            }
+            val widthSpec = View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY)
+            val heightSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+            textContent.measure(widthSpec, heightSpec)
+            textContent.measuredHeight
+        } finally {
+            textLp.height = oldTextHeight
+            textLp.weight = oldTextWeight
+            if (spacer != null && spacerLp != null) {
+                if (oldSpacerVisibility != null) {
+                    spacer.visibility = oldSpacerVisibility
+                }
+                if (oldSpacerHeight != null && oldSpacerWeight != null) {
+                    spacerLp.height = oldSpacerHeight
+                    spacerLp.weight = oldSpacerWeight
+                }
+            }
+        }
+    }
+
+    private fun getCardContentWidthForMeasuredHolder(holder: BaseThingViewHolder): Int {
+        val lpWidth = holder.llContent?.layoutParams?.width ?: 0
+        return if (lpWidth > 0) lpWidth else 0
+    }
+
+    private fun hideThingCardMediaBackground(holder: BaseThingViewHolder) {
+        val mediaBackground = holder.ivMediaBackground!!
+        mediaBackground.setTag(R.id.tag_thing_card_media_background_load_key, null)
+        mediaBackground.setTag(R.id.tag_thing_card_media_background_render_request, null)
+        mediaBackground.setTag(R.id.tag_thing_card_media_background_bind_token, null)
+        mImageRequestManager!!.clear(mediaBackground)
+        mediaBackground.visibility = View.GONE
+        resetThingCardMediaBackgroundOverlaySize(holder)
+        holder.vMediaBackgroundMask!!.visibility = View.GONE
+        holder.llMediaCount!!.visibility = View.GONE
+    }
+
+    private fun normalizeThingCardMaskStrength(value: Double): Float {
+        if (value.isNaN() || value.isInfinite()) {
+            return getThingCardDefaultMaskStrength().toFloat()
+        }
+        return max(0.0, min(1.0, value)).toFloat()
+    }
+
+    private fun getThingCardDefaultMaskStrength(): Double {
+        return mContext!!.resources.getInteger(
+            R.integer.thing_card_media_background_default_mask_strength_percent
+        ) / 100.0
+    }
+
     private fun updateCardForImageAttachment(holder: BaseThingViewHolder, thing: Thing) {
         val attachment: String? = thing.attachment
-        val firstImageTypePathName: String? = AttachmentHelper.getFirstImageTypePathName(attachment)
-        if (firstImageTypePathName != null) {
+        val mediaSource = ThingCardMediaHelper.resolveEffectiveMediaSource(thing)
+        if (mediaSource != null) {
+            if (thing.thingCardAppearance.mediaBackgroundEnabled) {
+                updateCardForMediaBackground(holder, thing, mediaSource)
+                return
+            }
+
+            hideThingCardMediaBackground(holder)
             holder.flImageAttachment!!.visibility = View.VISIBLE
             val placement = getEffectiveThingCardImagePlacement(thing)
-            val pathName = firstImageTypePathName.substring(1, firstImageTypePathName.length)
+            val pathName = mediaSource.pathName
 
             val sideImage = isSideImagePlacement(placement)
             val sideImageHeightCacheKey = if (sideImage) {
@@ -847,6 +1733,8 @@ abstract class BaseThingsAdapter(context: Context?) :
                 getCardContentWidth(thing)
             }
             val imageH = getImageHeight(thing, imageW)
+            val thumbnailCrop = getThingCardThumbnailCrop(thing, mediaSource)
+            val videoFrameMs = getThingCardVideoFrameMs(thing, mediaSource)
 
             val paramsLayout = holder.flImageAttachment.layoutParams as LinearLayout.LayoutParams
             if (!sideImage) {
@@ -855,7 +1743,7 @@ abstract class BaseThingsAdapter(context: Context?) :
             }
             holder.flImageAttachment.layoutParams = paramsLayout
 
-            val bindToken = thing.id.toString() + ":" + placement + ":" + pathName
+            val bindToken = thing.id.toString() + ":" + placement + ":" + mediaSource.typePathName
             holder.flImageAttachment.setTag(R.id.tag_thing_card_side_image_bind_token, bindToken)
 
             if (sideImage) {
@@ -865,10 +1753,12 @@ abstract class BaseThingsAdapter(context: Context?) :
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT
                 )
-                loadThingCardImage(holder, pathName, imageW, initialHeight)
+                loadThingCardImage(
+                    holder, pathName, imageW, initialHeight, thumbnailCrop, videoFrameMs
+                )
                 syncSideImageHeightAfterMeasure(
                     holder, bindToken, thing.id, sideImageHeightCacheKey!!,
-                    pathName, imageW, initialHeight
+                    pathName, imageW, initialHeight, thumbnailCrop, videoFrameMs
                 )
             } else {
                 setThingCardImageFrameSize(
@@ -876,7 +1766,7 @@ abstract class BaseThingsAdapter(context: Context?) :
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     imageH
                 )
-                loadThingCardImage(holder, pathName, imageW, imageH)
+                loadThingCardImage(holder, pathName, imageW, imageH, thumbnailCrop, videoFrameMs)
             }
 
             if (holder.tvTitle!!.isGone
@@ -895,7 +1785,10 @@ abstract class BaseThingsAdapter(context: Context?) :
 
             holder.tvImageCount!!.text =
                 AttachmentHelper.getImageAttachmentCountStr(attachment, mContext)
-            holder.tvImageCount.setTextColor(textColorSecondary(thing.getColor()))
+            holder.tvImageCount.visibility = View.VISIBLE
+            holder.tvImageCount.setTextColor(
+                textColorSecondary(getThingCardForegroundBaseColor(thing))
+            )
             updateThingCardImageCountLayout(holder, placement)
 
             if (getCurrentMode() == ModeManager.NORMAL) {
@@ -905,8 +1798,10 @@ abstract class BaseThingsAdapter(context: Context?) :
                     if (thing.isSelected()) View.GONE else View.VISIBLE
             }
         } else {
+            hideThingCardMediaBackground(holder)
             holder.flImageAttachment!!.setTag(R.id.tag_thing_card_side_image_bind_token, null)
             holder.ivImageAttachment!!.setTag(R.id.tag_thing_card_image_load_key, null)
+            holder.ivImageAttachment!!.setTag(R.id.tag_thing_card_image_render_request, null)
             mImageRequestManager!!.clear(holder.ivImageAttachment!!)
             holder.vPaddingBottom!!.visibility = View.VISIBLE
             holder.flImageAttachment!!.visibility = View.GONE
@@ -914,14 +1809,17 @@ abstract class BaseThingsAdapter(context: Context?) :
     }
 
     private fun getImageHeight(thing: Thing, imageW: Int): Int {
-        if (!isFullSpanThingCard(thing)) return imageW * 3 / 4
-
-        val minHeight = mContext!!.resources.getDimensionPixelSize(
-            R.dimen.thing_card_full_span_image_min_height
+        val aspectRatio = getThumbnailSourceAspectRatio(thing)
+        val rawHeight = max(1, (imageW / aspectRatio).toInt())
+        val availableHeight = getThingCardSurfaceAvailableHeight()
+        val minHeight = max(1, availableHeight * getThumbnailHeightMinPercent(thing) / 100)
+        val maxHeight = max(
+            minHeight,
+            availableHeight * mContext!!.resources.getInteger(
+                R.integer.thing_card_thumbnail_max_height_percent
+            ) / 100
         )
-        val maxHeight = (DisplayUtil.getScreenSize(mContext).y *
-                FULL_SPAN_IMAGE_MAX_SCREEN_HEIGHT_RATIO).toInt()
-        return max(minHeight, min(imageW * 9 / 16, maxHeight))
+        return max(minHeight, min(rawHeight, maxHeight))
     }
 
     private fun updateCardForAudioAttachment(holder: BaseThingViewHolder, thing: Thing) {
@@ -936,13 +1834,14 @@ abstract class BaseThingsAdapter(context: Context?) :
 
             holder.tvAudioCount!!.text = str
 
-            val dark = BackgroundUtil.isLight(thing.getColor())
+            val foregroundBaseColor = getThingCardForegroundBaseColor(thing)
+            val dark = BackgroundUtil.isLight(foregroundBaseColor)
             holder.ivAudioCount!!.setImageResource(
                 if (dark)
                     R.drawable.card_audio_attachment_black
                 else R.drawable.card_audio_attachment
             )
-            holder.tvAudioCount.setTextColor(textColorTertiary(thing.getColor()))
+            holder.tvAudioCount.setTextColor(textColorTertiary(foregroundBaseColor))
         }
     }
 
@@ -1006,6 +1905,7 @@ abstract class BaseThingsAdapter(context: Context?) :
 
     private fun updateFullSpanSparseMinHeight(holder: BaseThingViewHolder, thing: Thing) {
         if (!isFullSpanThingCard(thing)) return
+        if (holder.ivMediaBackground!!.isVisible) return
         if (holder.flImageAttachment!!.isVisible
             || holder.rvChecklist!!.isVisible
             || holder.rlReminder!!.isVisible
@@ -1113,6 +2013,8 @@ abstract class BaseThingsAdapter(context: Context?) :
     open class BaseThingViewHolder(item: View?) : BaseViewHolder(item) {
 
         @JvmField val cv: InterceptTouchCardView? = f(R.id.cv_thing)
+        @JvmField val ivMediaBackground: ImageView? = f(R.id.iv_thing_media_background)
+        @JvmField val vMediaBackgroundMask: View? = f(R.id.view_thing_media_background_mask)
         @JvmField val llContent: LinearLayout? = f(R.id.ll_thing_content)
         @JvmField val llTextContent: LinearLayout? = f(R.id.ll_thing_text_content)
         @JvmField val vPaddingBottom: View? = f(R.id.view_thing_padding_bottom)
@@ -1131,6 +2033,11 @@ abstract class BaseThingsAdapter(context: Context?) :
 
         @JvmField val tvContent: TextView?     = f(R.id.tv_thing_content)
         @JvmField val rvChecklist: RecyclerView? = f(R.id.rv_check_list)
+
+        @JvmField val vBottomStatusSpacer: View? = f(R.id.view_thing_bottom_status_spacer)
+        @JvmField val llMediaCount: LinearLayout? = f(R.id.ll_thing_media_attachment_count)
+        @JvmField val ivMediaCount: ImageView? = f(R.id.iv_thing_media_attachment_count)
+        @JvmField val tvMediaCount: TextView? = f(R.id.tv_thing_media_attachment_count)
 
         @JvmField val llAudioAttachment: LinearLayout? = f(R.id.ll_thing_audio_attachment)
         @JvmField val ivAudioCount: ImageView?    = f(R.id.iv_thing_audio_attachment_count)
@@ -1188,6 +2095,8 @@ abstract class BaseThingsAdapter(context: Context?) :
         private const val FULL_SPAN_CHECKLIST_MAX_ITEM_COUNT = 12
         private const val SHORT_TEXT_MAX_LENGTH = 60
         private const val PRIVATE_THING_ICON_NORMAL_DP = 48
+        private const val THING_CARD_DEFAULT_PADDING_BOTTOM_DP = 16
+        private const val THING_CARD_MEDIA_COUNT_PADDING_BOTTOM_DP = 44
         private const val FULL_SPAN_IMAGE_MAX_SCREEN_HEIGHT_RATIO = 0.36f
 
         init {

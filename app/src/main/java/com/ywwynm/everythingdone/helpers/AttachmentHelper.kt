@@ -298,6 +298,26 @@ object AttachmentHelper {
     }
 
     @JvmStatic
+    fun getVideoDurationMs(pathName: String?): Long {
+        val retriever = MediaMetadataRetriever()
+        try {
+            retriever.setDataSource(pathName)
+            return retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+                ?.toLongOrNull()
+                ?: 0L
+        } catch (e: Exception) {
+            e.printStackTrace()
+        } finally {
+            try {
+                retriever.release()
+            } catch (e: IOException) {
+                e.printStackTrace()
+            }
+        }
+        return 0L
+    }
+
+    @JvmStatic
     fun setImageRecyclerViewHeight(recyclerView: RecyclerView?, itemSize: Int, maxSpan: Int) {
         val height: Int
         val itemHeight: Int = calculateImageSize(recyclerView!!.context, itemSize)[1]
