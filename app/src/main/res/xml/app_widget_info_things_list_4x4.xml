@@ -5,8 +5,8 @@
     android:minHeight="250dp"
     android:targetCellWidth="4"
     android:targetCellHeight="4"
-    android:updatePeriodMillis="0"
-    android:configure="com.ywwynm.everythingdone.appwidgets.single.ThingWidgetConfigurationLarge"
-    android:initialLayout="@layout/app_widget_thing"
-    android:previewImage="@drawable/widget_thing_preview_large"
+    android:updatePeriodMillis="2147483467"
+    android:configure="com.ywwynm.everythingdone.appwidgets.list.ThingsListWidgetConfiguration"
+    android:previewImage="@drawable/widget_things_list_preview"
+    android:initialLayout="@layout/app_widget_things_list"
     android:resizeMode="horizontal|vertical"/>

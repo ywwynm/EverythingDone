@@ -3282,13 +3282,70 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         val thing = mThingCardAppearancePanelThing ?: return
         val draft = mThingCardAppearanceDraft ?: return
 
-        thing.thingCardAppearance = draft
+        val confirmedDraft = withCurrentSideMediaDisplayAspectRatioHint(thing, draft)
+        thing.thingCardAppearance = confirmedDraft
         hideThingCardAppearancePanel()
         clearThingCardAppearanceDraft()
         mThingManager!!.updateThingCardAppearance(thing)
+        AppWidgetHelper.updateSingleThingAppWidgets(this, thing.id)
+        AppWidgetHelper.updateAllThingsListAppWidgets(this)
+        SystemNotificationUtil.tryToCreateThingOngoingNotification(mApp)
         if (mModeManager!!.getCurrentMode() == ModeManager.SELECTING) {
             mModeManager!!.backNormalMode(0)
         }
+    }
+
+    private fun withCurrentSideMediaDisplayAspectRatioHint(
+            thing: Thing,
+            draft: ThingCardAppearance
+    ): ThingCardAppearance {
+        val source = ThingCardMediaHelper.resolveEffectiveMediaSource(
+                thing.attachment,
+                draft.mediaSourceKey
+        ) ?: return draft
+        val current = draft.sources[source.typePathName]
+        if (!shouldCaptureSideMediaDisplayAspectRatioHint(thing, draft)) {
+            if (current?.sideMediaDisplayAspectRatioHint == null) return draft
+            val newSources = LinkedHashMap(draft.sources)
+            newSources[source.typePathName] =
+                    current.copy(sideMediaDisplayAspectRatioHint = null)
+            return draft.copy(sources = newSources)
+        }
+
+        val ratio = getCurrentSideMediaDisplayAspectRatio() ?: return draft
+        val newSources = LinkedHashMap(draft.sources)
+        newSources[source.typePathName] = (current
+                ?: ThingCardAppearance.SourceAppearance(
+                        fileSize = source.fileSize,
+                        lastModified = source.lastModified
+                )).copy(sideMediaDisplayAspectRatioHint = ratio)
+        return draft.copy(sources = newSources)
+    }
+
+    private fun shouldCaptureSideMediaDisplayAspectRatioHint(
+            thing: Thing,
+            draft: ThingCardAppearance
+    ): Boolean {
+        if (thing.isPrivate() || draft.mediaBackgroundEnabled) return false
+        return draft.imagePlacement == Thing.THING_CARD_IMAGE_PLACEMENT_LEFT
+                || draft.imagePlacement == Thing.THING_CARD_IMAGE_PLACEMENT_RIGHT
+    }
+
+    private fun getCurrentSideMediaDisplayAspectRatio(): Double? {
+        val recyclerView = mRecyclerView ?: return null
+        val position = mThingCardAppearanceSelectedPosition
+        if (position < 0) return null
+        val holder = recyclerView.findViewHolderForAdapterPosition(position)
+                as? BaseThingsAdapter.BaseThingViewHolder
+                ?: return null
+        val image = holder.flImageAttachment ?: return null
+        if (image.visibility != View.VISIBLE) return null
+        val width = image.width
+        val height = image.height
+        if (width <= 0 || height <= 0) return null
+        val ratio = width.toDouble() / height.toDouble()
+        if (ratio.isNaN() || ratio.isInfinite() || ratio <= 0.0) return null
+        return max(0.05, min(4.0, ratio))
     }
 
     private fun cancelThingCardAppearancePanel(shouldBackNormalMode: Boolean) {

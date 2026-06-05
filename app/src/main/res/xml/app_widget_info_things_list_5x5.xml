@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <appwidget-provider
     xmlns:android="http://schemas.android.com/apk/res/android"
-    android:minWidth="180dp"
-    android:minHeight="180dp"
-    android:targetCellWidth="3"
-    android:targetCellHeight="3"
+    android:minWidth="320dp"
+    android:minHeight="320dp"
+    android:targetCellWidth="5"
+    android:targetCellHeight="5"
     android:updatePeriodMillis="2147483467"
     android:configure="com.ywwynm.everythingdone.appwidgets.list.ThingsListWidgetConfiguration"
     android:previewImage="@drawable/widget_things_list_preview"

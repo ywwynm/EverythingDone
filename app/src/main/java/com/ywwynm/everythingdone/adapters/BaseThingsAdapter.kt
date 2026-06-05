@@ -1120,7 +1120,10 @@ abstract class BaseThingsAdapter(context: Context?) :
             }
             if (!holder.flImageAttachment.isVisible) return@post
 
-            val targetHeight = max(holder.llTextContent!!.measuredHeight, minHeight)
+            val targetHeight = max(
+                max(holder.llContent!!.measuredHeight, holder.llTextContent!!.measuredHeight),
+                minHeight
+            )
             mSideImageHeightCache.put(
                 thingId, ThingCardSideImageHeightCache(heightCacheKey, targetHeight)
             )

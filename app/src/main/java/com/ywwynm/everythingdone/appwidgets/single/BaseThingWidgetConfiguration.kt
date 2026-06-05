@@ -8,6 +8,7 @@ import android.appwidget.AppWidgetManager
 import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Color
+import android.graphics.Outline
 import android.graphics.drawable.Drawable
 import androidx.core.content.ContextCompat
 import androidx.appcompat.app.ActionBar
@@ -18,6 +19,7 @@ import androidx.appcompat.widget.Toolbar
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewOutlineProvider
 import android.view.Window
 import android.view.WindowManager
 import android.widget.Button
@@ -37,13 +39,16 @@ import com.ywwynm.everythingdone.database.AppWidgetDAO
 import com.ywwynm.everythingdone.database.ThingDAO
 import com.ywwynm.everythingdone.managers.ModeManager
 import com.ywwynm.everythingdone.model.Thing
+import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.model.ThingWidgetInfo
 import com.ywwynm.everythingdone.permission.PermissionUtil
 import com.ywwynm.everythingdone.permission.SimplePermissionCallback
+import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil
 
-import java.util.Collections
+import kotlin.math.max
+import kotlin.math.min
 
 /**
  * Translated to Kotlin by ywwynm and Claude Opus 4.7 on 2026/5/20.
@@ -51,7 +56,19 @@ import java.util.Collections
 open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
 
     protected open fun getSenderClass(): Class<*>? {
-        return BaseThingWidget::class.java
+        return try {
+            val provider = AppWidgetManager.getInstance(this)
+                    .getAppWidgetInfo(mAppWidgetId)
+                    ?.provider
+                    ?.className
+            if (provider == null) {
+                BaseThingWidget::class.java
+            } else {
+                Class.forName(provider)
+            }
+        } catch (_: Exception) {
+            BaseThingWidget::class.java
+        }
     }
 
     private var mActionBar: Toolbar? = null
@@ -224,42 +241,10 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
             ivBackground.setBackgroundColor(0xCC000000.toInt())
         }
 
-        val singleThing: List<Thing?> = Collections.singletonList(Thing(thing))
-        val adapter: BaseThingsAdapter = object : BaseThingsAdapter(this@BaseThingWidgetConfiguration) {
-
-            override fun getCurrentMode(): Int {
-                return ModeManager.NORMAL
-            }
-
-            override fun getThings(): MutableList<Thing?> {
-                return singleThing.toMutableList()
-            }
-
-            override fun onBindViewHolder(holder: BaseThingViewHolder, position: Int) {
-                super.onBindViewHolder(holder, position)
-                holder.cv!!.radius = 0f
-                holder.cv.cardElevation = 0f
-                val alpha: Int = (mWidgetAlpha / 100f * 255).toInt()
-                // Phase 4.d: preview supports gradient backgrounds.
-                val bg: com.ywwynm.everythingdone.model.ThingBackground = thing.getBackground()!!
-                val s: Int = DisplayUtil.getTransparentColor(bg.color,    alpha)
-                val e: Int = DisplayUtil.getTransparentColor(bg.endColor, alpha)
-                val tinted: com.ywwynm.everythingdone.model.ThingBackground =
-                        if (bg.mode === com.ywwynm.everythingdone.model.ThingBackground.Mode.PURE)
-                                com.ywwynm.everythingdone.model.ThingBackground.pure(s)
-                        else com.ywwynm.everythingdone.model.ThingBackground.gradient(s, e, bg.orientation)
-                com.ywwynm.everythingdone.utils.BackgroundUtil.applyCardBackground(
-                        holder.cv, tinted)
-                holder.ivStickyOngoing!!.imageAlpha = alpha
-            }
-        }
-        val rvPreview: RecyclerView = f(R.id.rv_app_widget_preview)
-        val flp: FrameLayout.LayoutParams = rvPreview.layoutParams as FrameLayout.LayoutParams
-        flp.width = DisplayUtil.getThingCardWidth(this)
-        rvPreview.requestLayout()
-        rvPreview.setAdapter(adapter)
-        rvPreview.setLayoutManager(LinearLayoutManager(this))
-        rvPreview.setOnTouchListener(object : View.OnTouchListener {
+        val previewContainer: FrameLayout = f(R.id.fl_app_widget_preview)
+        layoutPreviewContainer(previewContainer, getSenderClass())
+        renderPreviewAppWidget(previewContainer, thing)
+        previewContainer.setOnTouchListener(object : View.OnTouchListener {
             private var mDx: Int = 0
             private var mDy: Int = 0
             override fun onTouch(v: View, event: MotionEvent): Boolean {
@@ -268,17 +253,17 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
                         val flp: FrameLayout.LayoutParams =
-                                rvPreview.layoutParams as FrameLayout.LayoutParams
+                                previewContainer.layoutParams as FrameLayout.LayoutParams
                         mDx = rawX - flp.leftMargin
                         mDy = rawY - flp.topMargin
                         return true
                     }
                     MotionEvent.ACTION_MOVE -> {
                         val flp: FrameLayout.LayoutParams =
-                                rvPreview.layoutParams as FrameLayout.LayoutParams
+                                previewContainer.layoutParams as FrameLayout.LayoutParams
                         flp.leftMargin = rawX - mDx
                         flp.topMargin  = rawY - mDy
-                        rvPreview.requestLayout()
+                        previewContainer.requestLayout()
                         return true
                     }
                 }
@@ -294,7 +279,7 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
             override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
                     mWidgetAlpha = progress
-                    adapter.notifyDataSetChanged()
+                    renderPreviewAppWidget(previewContainer, thing)
                 }
             }
 
@@ -309,6 +294,114 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
         com.ywwynm.everythingdone.utils.BackgroundUtil.applyTextBackground(
                 btFinish, thing.getBackground())
         btFinish.setOnClickListener { _ -> endSelectThing(thing) }
+    }
+
+    private fun layoutPreviewContainer(previewContainer: FrameLayout, clazz: Class<*>?) {
+        val sizeDp = AppWidgetHelper.getDefaultSizeDpByProviderClass(clazz)
+        val density = DisplayUtil.getScreenDensity(this)
+        val targetWidth = max(1, (sizeDp[0] * density).toInt())
+        val targetHeight = max(1, (sizeDp[1] * density).toInt())
+        val maxWidth = max(1, resources.displayMetrics.widthPixels - (32 * density).toInt())
+        val maxHeight = max(1, resources.displayMetrics.heightPixels - (128 * density).toInt())
+        val scale = min(
+                1f,
+                min(maxWidth.toFloat() / targetWidth, maxHeight.toFloat() / targetHeight))
+
+        val flp: FrameLayout.LayoutParams =
+                previewContainer.layoutParams as FrameLayout.LayoutParams
+        flp.width = max(1, (targetWidth * scale).toInt())
+        flp.height = max(1, (targetHeight * scale).toInt())
+        flp.leftMargin = 0
+        flp.topMargin = 0
+        previewContainer.requestLayout()
+        installPreviewContainerOutline(previewContainer)
+    }
+
+    private fun installPreviewContainerOutline(previewContainer: FrameLayout) {
+        val radius = resources.getDimension(R.dimen.thing_card_corner_radius)
+        previewContainer.outlineProvider = object : ViewOutlineProvider() {
+            override fun getOutline(view: View, outline: Outline) {
+                outline.setRoundRect(0, 0, view.width, view.height, radius)
+            }
+        }
+        previewContainer.clipToOutline = true
+        previewContainer.invalidateOutline()
+        previewContainer.post { previewContainer.invalidateOutline() }
+    }
+
+    private fun renderPreviewAppWidget(previewContainer: FrameLayout, thing: Thing) {
+        try {
+            val views = AppWidgetHelper.createRemoteViewsForSingleThingPreview(
+                    this, Thing(thing), mAppWidgetId, getSenderClass(), mWidgetAlpha)
+            val rendered = views.apply(this, previewContainer)
+            previewContainer.removeAllViews()
+            previewContainer.addView(rendered, FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT))
+        } catch (e: Exception) {
+            e.printStackTrace()
+            renderFallbackThingCardPreview(previewContainer, thing)
+        }
+    }
+
+    private fun renderFallbackThingCardPreview(previewContainer: FrameLayout, thing: Thing) {
+        previewContainer.removeAllViews()
+
+        val rvPreview = RecyclerView(this)
+        rvPreview.overScrollMode = View.OVER_SCROLL_NEVER
+        rvPreview.isVerticalScrollBarEnabled = false
+        rvPreview.layoutManager = object : LinearLayoutManager(this) {
+            override fun canScrollVertically(): Boolean {
+                return false
+            }
+        }
+        previewContainer.addView(rvPreview, FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT))
+
+        val previewThings = mutableListOf<Thing?>(Thing(thing))
+        val adapter: BaseThingsAdapter = object : BaseThingsAdapter(this@BaseThingWidgetConfiguration) {
+
+            override fun getCurrentMode(): Int {
+                return ModeManager.NORMAL
+            }
+
+            override fun getThings(): MutableList<Thing?> {
+                return previewThings
+            }
+
+            override fun isFullSpanThingCard(thing: Thing): Boolean {
+                return thing.type != Thing.HEADER
+                        && thing.type < Thing.NOTIFICATION_UNDERWAY
+                        && thing.thingCardAppearance.spanMode == Thing.THING_CARD_SPAN_FULL
+            }
+
+            override fun onBindViewHolder(holder: BaseThingViewHolder, position: Int) {
+                super.onBindViewHolder(holder, position)
+                holder.cv!!.radius = 0f
+                holder.cv.cardElevation = 0f
+
+                val alpha: Int = (mWidgetAlpha / 100f * 255).toInt()
+                val bg: ThingBackground = thing.getBackground()!!
+                val s: Int = DisplayUtil.getTransparentColor(bg.color, alpha)
+                val e: Int = DisplayUtil.getTransparentColor(bg.endColor, alpha)
+                val tinted: ThingBackground =
+                        if (bg.mode === ThingBackground.Mode.PURE) {
+                            ThingBackground.pure(s)
+                        } else {
+                            ThingBackground.gradient(s, e, bg.orientation)
+                        }
+                BackgroundUtil.applyCardBackground(holder.cv, tinted)
+                holder.ivStickyOngoing!!.imageAlpha = alpha
+            }
+        }
+
+        val previewWidth = max(1, previewContainer.layoutParams.width)
+        val previewHeight = max(1, previewContainer.layoutParams.height)
+        adapter.setCardWidth(previewWidth)
+        adapter.setFullSpanCardWidth(previewWidth)
+        adapter.setThingCardSurfaceAvailableHeight(previewHeight)
+        rvPreview.adapter = adapter
     }
 
     private fun endPreviewAppWidget() {
@@ -346,6 +439,12 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
             return mThings
         }
 
+        override fun isFullSpanThingCard(thing: Thing): Boolean {
+            return thing.type != Thing.HEADER
+                    && thing.type < Thing.NOTIFICATION_UNDERWAY
+                    && thing.thingCardAppearance.spanMode == Thing.THING_CARD_SPAN_FULL
+        }
+
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BaseThingViewHolder {
             return Holder(mInflater!!.inflate(R.layout.card_thing, parent, false))
         }
@@ -356,6 +455,7 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
             val lp: StaggeredGridLayoutManager.LayoutParams =
                     holder.itemView.layoutParams as StaggeredGridLayoutManager.LayoutParams
             lp.setMargins(m, m, m, m)
+            lp.isFullSpan = isFullSpanThingCard(mThings!![position]!!)
 
             super.onBindViewHolder(holder, position)
         }

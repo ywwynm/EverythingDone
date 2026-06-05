@@ -8,7 +8,6 @@ import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.net.Uri
 import android.os.Build
@@ -23,10 +22,6 @@ import android.util.TypedValue
 import android.view.View
 import android.widget.RemoteViews
 
-import com.bumptech.glide.Glide
-import com.bumptech.glide.RequestBuilder
-import com.bumptech.glide.request.FutureTarget
-import com.bumptech.glide.request.target.AppWidgetTarget
 import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.FrequentSettings
@@ -35,21 +30,15 @@ import com.ywwynm.everythingdone.activities.AuthenticationActivity
 import com.ywwynm.everythingdone.activities.DetailActivity
 import com.ywwynm.everythingdone.activities.ShortcutActivity
 import com.ywwynm.everythingdone.activities.ThingsActivity
-import com.ywwynm.everythingdone.appwidgets.list.ThingsListWidget
-import com.ywwynm.everythingdone.appwidgets.list.ThingsListWidgetConfiguration
-import com.ywwynm.everythingdone.appwidgets.list.ThingsListWidgetService
-import com.ywwynm.everythingdone.appwidgets.single.BaseThingWidget
-import com.ywwynm.everythingdone.appwidgets.single.ChecklistWidgetService
-import com.ywwynm.everythingdone.appwidgets.single.ThingWidgetLarge
-import com.ywwynm.everythingdone.appwidgets.single.ThingWidgetMiddle
-import com.ywwynm.everythingdone.appwidgets.single.ThingWidgetSmall
-import com.ywwynm.everythingdone.appwidgets.single.ThingWidgetTiny
+import com.ywwynm.everythingdone.appwidgets.list.*
+import com.ywwynm.everythingdone.appwidgets.single.*
 import com.ywwynm.everythingdone.database.AppWidgetDAO
 import com.ywwynm.everythingdone.database.HabitDAO
 import com.ywwynm.everythingdone.database.ReminderDAO
 import com.ywwynm.everythingdone.helpers.AttachmentHelper
 import com.ywwynm.everythingdone.helpers.CheckListHelper
-import com.ywwynm.everythingdone.helpers.PossibleMistakeHelper
+import com.ywwynm.everythingdone.helpers.RemoteThingCardMediaRenderer
+import com.ywwynm.everythingdone.helpers.ThingCardMediaHelper
 import com.ywwynm.everythingdone.model.Habit
 import com.ywwynm.everythingdone.model.Reminder
 import com.ywwynm.everythingdone.model.Thing
@@ -60,7 +49,10 @@ import com.ywwynm.everythingdone.utils.DateTimeUtil
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import kotlin.math.abs
+import kotlin.math.ceil
+import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 /**
  * Created by ywwynm on 2016/7/27.
@@ -74,6 +66,12 @@ object AppWidgetHelper {
     private val screenDensity: Float = DisplayUtil.getScreenDensity(App.getApp())
 
     private val dp12: Int = (screenDensity * 12).toInt()
+
+    private const val WIDGET_LIST_SIDE_MEDIA_MIN_HEIGHT_DP: Int = 128
+    private const val WIDGET_LIST_MEDIA_BACKGROUND_FALLBACK_HEIGHT_DP: Int = 160
+    private const val WIDGET_LIST_MEDIA_BACKGROUND_MAX_HEIGHT_DP: Int = 360
+    private const val WIDGET_LIST_MEDIA_HARD_MAX_HEIGHT_DP: Int = 720
+    private const val WIDGET_REMOTE_BITMAP_MAX_DIMENSION_DP: Int = 720
 
     private val COLLECTION_TEMPLATE_PENDING_INTENT_FLAGS: Int =
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
@@ -92,8 +90,20 @@ object AppWidgetHelper {
     private val IV_STICKY_ONGOING_SMALL: Int   = R.id.iv_thing_sticky_ongoing_smaller
     private val FL_DOING: Int                  = R.id.fl_thing_doing_cover
 
+    private val FL_IMAGE_ATTACHMENT: Int       = R.id.fl_thing_image
     private val IV_IMAGE_ATTACHMENT: Int       = R.id.iv_thing_image
     private val TV_IMAGE_COUNT: Int            = R.id.tv_thing_image_attachment_count
+    private val FL_IMAGE_ATTACHMENT_BOTTOM: Int = R.id.fl_thing_image_bottom
+    private val IV_IMAGE_ATTACHMENT_BOTTOM: Int = R.id.iv_thing_image_bottom
+    private val TV_IMAGE_COUNT_BOTTOM: Int      = R.id.tv_thing_image_attachment_count_bottom
+    private val FL_IMAGE_ATTACHMENT_LEFT: Int   = R.id.fl_thing_image_left
+    private val IV_IMAGE_ATTACHMENT_LEFT: Int   = R.id.iv_thing_image_left
+    private val TV_IMAGE_COUNT_LEFT: Int        = R.id.tv_thing_image_attachment_count_left
+    private val FL_IMAGE_ATTACHMENT_RIGHT: Int  = R.id.fl_thing_image_right
+    private val IV_IMAGE_ATTACHMENT_RIGHT: Int  = R.id.iv_thing_image_right
+    private val TV_IMAGE_COUNT_RIGHT: Int       = R.id.tv_thing_image_attachment_count_right
+    private val TV_MEDIA_BACKGROUND_COUNT: Int  =
+            R.id.tv_thing_media_background_attachment_count
 
     private val TV_TITLE: Int                  = R.id.tv_thing_title
     private val IV_PRIVATE_THING: Int          = R.id.iv_private_thing
@@ -234,23 +244,82 @@ object AppWidgetHelper {
             ThingWidgetInfo.SIZE_SMALL -> ThingWidgetSmall::class.java
             ThingWidgetInfo.SIZE_MIDDLE -> ThingWidgetMiddle::class.java
             ThingWidgetInfo.SIZE_LARGE -> ThingWidgetLarge::class.java
-            else -> BaseThingWidget::class.java
+            ThingWidgetInfo.SIZE_4X2 -> ThingWidget4x2::class.java
+            ThingWidgetInfo.SIZE_2X4 -> ThingWidget2x4::class.java
+            ThingWidgetInfo.SIZE_4X3 -> ThingWidget4x3::class.java
+            ThingWidgetInfo.SIZE_3X4 -> ThingWidget3x4::class.java
+            ThingWidgetInfo.SIZE_5X2 -> ThingWidget5x2::class.java
+            ThingWidgetInfo.SIZE_2X5 -> ThingWidget2x5::class.java
+            ThingWidgetInfo.SIZE_5X3 -> ThingWidget5x3::class.java
+            ThingWidgetInfo.SIZE_3X5 -> ThingWidget3x5::class.java
+            ThingWidgetInfo.SIZE_5X4 -> ThingWidget5x4::class.java
+            ThingWidgetInfo.SIZE_4X5 -> ThingWidget4x5::class.java
+            ThingWidgetInfo.SIZE_5X5 -> ThingWidget5x5::class.java
+            ThingWidgetInfo.SIZE_6X2 -> ThingWidget6x2::class.java
+            ThingWidgetInfo.SIZE_2X6 -> ThingWidget2x6::class.java
+            ThingWidgetInfo.SIZE_6X3 -> ThingWidget6x3::class.java
+            ThingWidgetInfo.SIZE_3X6 -> ThingWidget3x6::class.java
+            ThingWidgetInfo.SIZE_6X4 -> ThingWidget6x4::class.java
+            ThingWidgetInfo.SIZE_4X6 -> ThingWidget4x6::class.java
+            ThingWidgetInfo.SIZE_6X5 -> ThingWidget6x5::class.java
+            ThingWidgetInfo.SIZE_5X6 -> ThingWidget5x6::class.java
+            ThingWidgetInfo.SIZE_6X6 -> ThingWidget6x6::class.java
+            else -> ThingWidgetMiddle::class.java
         }
     }
 
     @JvmStatic
     @ThingWidgetInfo.Size
     fun getSizeByProviderClass(clazz: Class<*>?): Int {
-        if (clazz!! == ThingWidgetTiny::class.java) {
-            return ThingWidgetInfo.SIZE_TINY
-        } else if (clazz == ThingWidgetSmall::class.java) {
-            return ThingWidgetInfo.SIZE_SMALL
-        } else if (clazz == ThingWidgetMiddle::class.java) {
-            return ThingWidgetInfo.SIZE_MIDDLE
-        } else if (clazz == ThingWidgetLarge::class.java) {
-            return ThingWidgetInfo.SIZE_LARGE
+        return when (clazz) {
+            ThingWidgetTiny::class.java -> ThingWidgetInfo.SIZE_TINY
+            ThingWidgetSmall::class.java -> ThingWidgetInfo.SIZE_SMALL
+            ThingWidgetMiddle::class.java -> ThingWidgetInfo.SIZE_MIDDLE
+            ThingWidgetLarge::class.java -> ThingWidgetInfo.SIZE_LARGE
+            ThingWidget4x2::class.java -> ThingWidgetInfo.SIZE_4X2
+            ThingWidget2x4::class.java -> ThingWidgetInfo.SIZE_2X4
+            ThingWidget4x3::class.java -> ThingWidgetInfo.SIZE_4X3
+            ThingWidget3x4::class.java -> ThingWidgetInfo.SIZE_3X4
+            ThingWidget5x2::class.java -> ThingWidgetInfo.SIZE_5X2
+            ThingWidget2x5::class.java -> ThingWidgetInfo.SIZE_2X5
+            ThingWidget5x3::class.java -> ThingWidgetInfo.SIZE_5X3
+            ThingWidget3x5::class.java -> ThingWidgetInfo.SIZE_3X5
+            ThingWidget5x4::class.java -> ThingWidgetInfo.SIZE_5X4
+            ThingWidget4x5::class.java -> ThingWidgetInfo.SIZE_4X5
+            ThingWidget5x5::class.java -> ThingWidgetInfo.SIZE_5X5
+            ThingWidget6x2::class.java -> ThingWidgetInfo.SIZE_6X2
+            ThingWidget2x6::class.java -> ThingWidgetInfo.SIZE_2X6
+            ThingWidget6x3::class.java -> ThingWidgetInfo.SIZE_6X3
+            ThingWidget3x6::class.java -> ThingWidgetInfo.SIZE_3X6
+            ThingWidget6x4::class.java -> ThingWidgetInfo.SIZE_6X4
+            ThingWidget4x6::class.java -> ThingWidgetInfo.SIZE_4X6
+            ThingWidget6x5::class.java -> ThingWidgetInfo.SIZE_6X5
+            ThingWidget5x6::class.java -> ThingWidgetInfo.SIZE_5X6
+            ThingWidget6x6::class.java -> ThingWidgetInfo.SIZE_6X6
+            else -> ThingWidgetInfo.SIZE_MIDDLE
         }
-        return ThingWidgetInfo.SIZE_MIDDLE
+    }
+
+    @JvmStatic
+    fun getDefaultSizeDpByProviderClass(clazz: Class<*>?): IntArray {
+        return intArrayOf(getWidgetDefaultWidthDp(clazz), getWidgetDefaultHeightDp(clazz))
+    }
+
+    private fun getProviderClassForAppWidgetId(
+            context: Context, appWidgetId: Int, fallback: Class<*>): Class<*> {
+        return try {
+            val className = AppWidgetManager.getInstance(context)
+                    .getAppWidgetInfo(appWidgetId)
+                    ?.provider
+                    ?.className
+            if (className == null) {
+                fallback
+            } else {
+                Class.forName(className)
+            }
+        } catch (_: Exception) {
+            fallback
+        }
     }
 
     @JvmStatic
@@ -295,6 +364,16 @@ object AppWidgetHelper {
                 context, appWidgetId, contentIntent, WIDGET_ACTIVITY_PENDING_INTENT_FLAGS)
         remoteViews.setOnClickPendingIntent(ROOT_WIDGET_THING, pendingIntent)
         remoteViews.setOnClickPendingIntent(FL_DOING, pendingIntent)
+        return remoteViews
+    }
+
+    @JvmStatic
+    fun createRemoteViewsForSingleThingPreview(
+            context: Context, thing: Thing, appWidgetId: Int, clazz: Class<*>?,
+            alpha: Int): RemoteViews {
+        val remoteViews = RemoteViews(context.packageName, R.layout.app_widget_thing)
+        setAppearance(context, remoteViews, thing, appWidgetId, clazz, alpha,
+                ThingWidgetInfo.STYLE_NORMAL)
         return remoteViews
     }
 
@@ -397,8 +476,10 @@ object AppWidgetHelper {
             alpha = info.alpha
             style = info.style
         }
+        val clazz = getProviderClassForAppWidgetId(
+                context, appWidgetId, ThingsListWidget::class.java)
         setAppearance(context, remoteViews, thing, appWidgetId,
-                ThingsListWidget::class.java, alpha, style)
+                clazz, alpha, style)
         return remoteViews
     }
 
@@ -486,9 +567,13 @@ object AppWidgetHelper {
      * widget card.
      */
     private fun applyAdaptiveTextColors(
-            context: Context, rv: RemoteViews, thing: Thing) {
-        val color: Int = thing.getColor()
-        val light: Boolean = BackgroundUtil.isLight(color)
+            context: Context, rv: RemoteViews, thing: Thing,
+            mediaBackgroundForeground: Boolean) {
+        val light: Boolean = if (mediaBackgroundForeground) {
+            false
+        } else {
+            BackgroundUtil.isLight(thing.getColor())
+        }
         val primary: Int   = if (light)
                 ContextCompat.getColor(context, R.color.black_86p)
         else ContextCompat.getColor(context, R.color.white_86p)
@@ -520,7 +605,7 @@ object AppWidgetHelper {
      * Phase 8: text-colour tier for an individual checklist item.
      */
     internal fun checklistItemTextColor(context: Context, thing: Thing, finished: Boolean): Int {
-        val light: Boolean = BackgroundUtil.isLight(thing.getColor())
+        val light: Boolean = shouldUseDarkForeground(thing)
         if (finished) {
             // 50%-alpha strike-through colour — no res entry, use literal hex.
             return if (light) 0x80000000.toInt() else 0x80FFFFFF.toInt()
@@ -530,7 +615,16 @@ object AppWidgetHelper {
     }
 
     private fun shouldUseDarkForeground(thing: Thing): Boolean {
+        if (shouldUseMediaBackgroundForeground(thing)) {
+            return false
+        }
         return BackgroundUtil.isLight(thing.getColor())
+    }
+
+    private fun shouldUseMediaBackgroundForeground(thing: Thing): Boolean {
+        if (!thing.thingCardAppearance.mediaBackgroundEnabled) return false
+        val context = App.getApp() ?: return false
+        return RemoteThingCardMediaRenderer.resolveRenderableMediaSource(context, thing) != null
     }
 
     private fun adaptiveIconColor(thing: Thing): Int {
@@ -551,24 +645,19 @@ object AppWidgetHelper {
             abs(a)
         }
         a = (a / 100f * 255).toInt()
-        // Phase 8: rasterise the (possibly gradient) ThingBackground to a
-        // small bitmap and push it through RemoteViews → background ImageView.
         remoteViews.setInt(ROOT_WIDGET_THING, "setBackgroundColor",
                 Color.TRANSPARENT)
-        // 64×64 ≈ 16KB; saves RemoteViews bitmap budget.
-        val bgBm: Bitmap? = BackgroundUtil
-                .renderBackgroundBitmap(thing!!.getBackground(), 64, 64, a)
-        if (bgBm != null) {
-            remoteViews.setImageViewBitmap(IV_WIDGET_BG, bgBm)
-        }
+        val mediaBackground = renderWidgetMediaBackground(context, thing!!, appWidgetId, clazz)
+        setWidgetBackground(remoteViews, thing, a, mediaBackground)
 
         // Phase 8: adapt all text colours on the widget card to the thing's
         // luminance.
-        applyAdaptiveTextColors(context, remoteViews, thing)
+        applyAdaptiveTextColors(context, remoteViews, thing, mediaBackground != null)
 
         setStickyOrOngoing(context, remoteViews, thing, a, clazz, style)
 
-        setImageAttachment(context, remoteViews, thing, appWidgetId, clazz)
+        setImageAttachment(context, remoteViews, thing, appWidgetId, clazz,
+                mediaBackground != null, style)
 
         setTitleAndPrivate(context, remoteViews, thing, style)
 
@@ -587,14 +676,179 @@ object AppWidgetHelper {
             remoteViews.setViewVisibility(LL_CHECK_LIST_ITEMS,       View.GONE)
             remoteViews.setViewVisibility(TV_CONTENT,                View.GONE)
 
-            remoteViews.setViewVisibility(IV_IMAGE_ATTACHMENT,       View.GONE)
-            remoteViews.setViewVisibility(TV_IMAGE_COUNT,            View.GONE)
             remoteViews.setViewVisibility(LL_AUDIO_ATTACHMENT,       View.GONE)
             remoteViews.setViewVisibility(LL_AUDIO_ATTACHMENT_LARGE, View.GONE)
         }
 
         setDoing(remoteViews, thing)
     }
+
+    private fun setWidgetBackground(
+            remoteViews: RemoteViews, thing: Thing, alpha: Int, mediaBackground: Bitmap?) {
+        if (mediaBackground != null) {
+            remoteViews.setImageViewBitmap(IV_WIDGET_BG, mediaBackground)
+            return
+        }
+
+        // 64×64 ≈ 16KB; saves RemoteViews bitmap budget for plain / gradient
+        // backgrounds.
+        val bgBm: Bitmap? = BackgroundUtil
+                .renderBackgroundBitmap(thing.getBackground(), 64, 64, alpha)
+        if (bgBm != null) {
+            remoteViews.setImageViewBitmap(IV_WIDGET_BG, bgBm)
+        }
+    }
+
+    private fun renderWidgetMediaBackground(
+            context: Context, thing: Thing, appWidgetId: Int, clazz: Class<*>?): Bitmap? {
+        if (!thing.thingCardAppearance.mediaBackgroundEnabled) return null
+        val mediaSource = RemoteThingCardMediaRenderer.resolveRenderableMediaSource(context, thing)
+                ?: return null
+        val targetWidth = getWidgetContentTargetWidth(context, appWidgetId, clazz)
+        val targetHeight = getWidgetMediaBackgroundTargetHeight(
+                context, thing, mediaSource, targetWidth, appWidgetId, clazz)
+        return RemoteThingCardMediaRenderer.renderMediaBackground(
+                context, thing, targetWidth, targetHeight)?.bitmap
+    }
+
+    private fun getWidgetContentTargetWidth(
+            context: Context, appWidgetId: Int, clazz: Class<*>?): Int {
+        val defaultDp = getWidgetDefaultWidthDp(clazz)
+        val widthDp = getWidgetOptionDp(
+                context, appWidgetId, AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH, defaultDp)
+        val widthPx = (max(1, widthDp) * screenDensity).toInt()
+        return max(1, min(widthPx, dpToPx(WIDGET_REMOTE_BITMAP_MAX_DIMENSION_DP)))
+    }
+
+    private fun getWidgetMediaBackgroundTargetHeight(
+            context: Context, thing: Thing, mediaSource: ThingCardMediaHelper.MediaSource,
+            targetWidth: Int, appWidgetId: Int, clazz: Class<*>?): Int {
+        if (isSingleThingWidgetClass(clazz)) {
+            val widgetHeightDp = getWidgetHeightBudgetDp(context, appWidgetId, clazz)
+            return dpToPx(min(widgetHeightDp, WIDGET_REMOTE_BITMAP_MAX_DIMENSION_DP))
+        }
+
+        val sourceAppearance = thing.thingCardAppearance.sources[mediaSource.typePathName]
+        val ratio = sourceAppearance?.mediaBackgroundHeightRatio
+        val fallbackDp = WIDGET_LIST_MEDIA_BACKGROUND_FALLBACK_HEIGHT_DP
+        val fallbackPx = (fallbackDp * screenDensity).toInt()
+        val rawHeight = if (ratio != null && ratio > 0.0) {
+            (targetWidth * ratio).toInt()
+        } else {
+            fallbackPx
+        }
+        val maxHeightDp = WIDGET_LIST_MEDIA_BACKGROUND_MAX_HEIGHT_DP
+        val maxHeightPx = max(1, (maxHeightDp * screenDensity).toInt())
+        return max(1, min(rawHeight, maxHeightPx))
+    }
+
+    private fun getWidgetOptionDp(
+            context: Context, appWidgetId: Int, key: String, defaultValue: Int): Int {
+        return try {
+            val options: Bundle = AppWidgetManager.getInstance(context)
+                    .getAppWidgetOptions(appWidgetId)
+            val value = options.getInt(key, 0)
+            if (value > 0) value else defaultValue
+        } catch (_: Exception) {
+            defaultValue
+        }
+    }
+
+    private fun getWidgetHeightBudgetDp(
+            context: Context, appWidgetId: Int, clazz: Class<*>?): Int {
+        val defaultHeightDp = getWidgetDefaultHeightDp(clazz)
+        val minHeightDp = getWidgetOptionDp(
+                context, appWidgetId, AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0)
+        if (minHeightDp > 0) return minHeightDp
+        return getWidgetOptionDp(
+                context, appWidgetId, AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT,
+                defaultHeightDp)
+    }
+
+    private fun isSingleThingWidgetClass(clazz: Class<*>?): Boolean {
+        return clazz != null && BaseThingWidget::class.java.isAssignableFrom(clazz)
+    }
+
+    private fun isThingsListWidgetClass(clazz: Class<*>?): Boolean {
+        return clazz != null && ThingsListWidget::class.java.isAssignableFrom(clazz)
+    }
+
+    private fun getWidgetDefaultWidthDp(clazz: Class<*>?): Int {
+        return cellsToWidgetMinDp(getWidgetCellSpan(clazz).width)
+    }
+
+    private fun getWidgetDefaultHeightDp(clazz: Class<*>?): Int {
+        return cellsToWidgetMinDp(getWidgetCellSpan(clazz).height)
+    }
+
+    private fun getWidgetCellSpan(clazz: Class<*>?): WidgetCellSpan {
+        return when {
+            isSingleThingWidgetClass(clazz) -> getSingleWidgetCellSpan(clazz)
+            isThingsListWidgetClass(clazz) -> getThingsListWidgetCellSpan(clazz)
+            else -> WidgetCellSpan(3, 3)
+        }
+    }
+
+    private fun getSingleWidgetCellSpan(clazz: Class<*>?): WidgetCellSpan {
+        return when (clazz) {
+            ThingWidgetTiny::class.java -> WidgetCellSpan(1, 1)
+            ThingWidgetSmall::class.java -> WidgetCellSpan(2, 2)
+            ThingWidgetMiddle::class.java -> WidgetCellSpan(3, 3)
+            ThingWidgetLarge::class.java -> WidgetCellSpan(4, 4)
+            ThingWidget4x2::class.java -> WidgetCellSpan(4, 2)
+            ThingWidget2x4::class.java -> WidgetCellSpan(2, 4)
+            ThingWidget4x3::class.java -> WidgetCellSpan(4, 3)
+            ThingWidget3x4::class.java -> WidgetCellSpan(3, 4)
+            ThingWidget5x2::class.java -> WidgetCellSpan(5, 2)
+            ThingWidget2x5::class.java -> WidgetCellSpan(2, 5)
+            ThingWidget5x3::class.java -> WidgetCellSpan(5, 3)
+            ThingWidget3x5::class.java -> WidgetCellSpan(3, 5)
+            ThingWidget5x4::class.java -> WidgetCellSpan(5, 4)
+            ThingWidget4x5::class.java -> WidgetCellSpan(4, 5)
+            ThingWidget5x5::class.java -> WidgetCellSpan(5, 5)
+            ThingWidget6x2::class.java -> WidgetCellSpan(6, 2)
+            ThingWidget2x6::class.java -> WidgetCellSpan(2, 6)
+            ThingWidget6x3::class.java -> WidgetCellSpan(6, 3)
+            ThingWidget3x6::class.java -> WidgetCellSpan(3, 6)
+            ThingWidget6x4::class.java -> WidgetCellSpan(6, 4)
+            ThingWidget4x6::class.java -> WidgetCellSpan(4, 6)
+            ThingWidget6x5::class.java -> WidgetCellSpan(6, 5)
+            ThingWidget5x6::class.java -> WidgetCellSpan(5, 6)
+            ThingWidget6x6::class.java -> WidgetCellSpan(6, 6)
+            else -> WidgetCellSpan(3, 3)
+        }
+    }
+
+    private fun getThingsListWidgetCellSpan(clazz: Class<*>?): WidgetCellSpan {
+        return when (clazz) {
+            ThingsListWidget4x4::class.java -> WidgetCellSpan(4, 4)
+            ThingsListWidget5x4::class.java -> WidgetCellSpan(5, 4)
+            ThingsListWidget4x5::class.java -> WidgetCellSpan(4, 5)
+            ThingsListWidget5x5::class.java -> WidgetCellSpan(5, 5)
+            ThingsListWidget6x4::class.java -> WidgetCellSpan(6, 4)
+            ThingsListWidget4x6::class.java -> WidgetCellSpan(4, 6)
+            ThingsListWidget6x5::class.java -> WidgetCellSpan(6, 5)
+            ThingsListWidget5x6::class.java -> WidgetCellSpan(5, 6)
+            ThingsListWidget6x6::class.java -> WidgetCellSpan(6, 6)
+            else -> WidgetCellSpan(3, 3)
+        }
+    }
+
+    private fun cellsToWidgetMinDp(cells: Int): Int {
+        return max(1, 70 * cells - 30)
+    }
+
+    private fun dpToPx(dp: Int): Int {
+        return max(1, (dp * screenDensity).toInt())
+    }
+
+    private fun pxToDp(px: Int): Int {
+        return max(1, (px / screenDensity).roundToInt())
+    }
+
+    private data class WidgetCellSpan(
+            val width: Int,
+            val height: Int)
 
     private fun setSeparatorVisibilities(
             remoteViews: RemoteViews, visibility: Int) {
@@ -613,7 +867,7 @@ object AppWidgetHelper {
         } else {
             @DrawableRes val ivRes: Int = if (sticky) R.drawable.ic_sticky else R.drawable.ic_ongoing_notication
             val cd: String = context.getString(if (sticky) R.string.sticky_thing else R.string.ongoing_thing)
-            if (clazz!! == ThingsListWidget::class.java && style == ThingWidgetInfo.STYLE_SIMPLE) {
+            if (isThingsListWidgetClass(clazz) && style == ThingWidgetInfo.STYLE_SIMPLE) {
                 remoteViews.setViewVisibility(IV_STICKY_ONGOING, View.GONE)
                 remoteViews.setViewVisibility(IV_STICKY_ONGOING_SMALL, View.VISIBLE)
                 remoteViews.setInt(IV_STICKY_ONGOING_SMALL, "setImageAlpha", alpha)
@@ -632,80 +886,329 @@ object AppWidgetHelper {
     }
 
     private fun setImageAttachment(
-            context: Context, remoteViews: RemoteViews, thing: Thing, appWidgetId: Int, clazz: Class<*>?) {
+            context: Context, remoteViews: RemoteViews, thing: Thing, appWidgetId: Int,
+            clazz: Class<*>?, mediaBackgroundApplied: Boolean,
+            @ThingWidgetInfo.Style style: Int) {
+        hideForegroundMediaSlots(remoteViews)
+        remoteViews.setViewVisibility(TV_MEDIA_BACKGROUND_COUNT, View.GONE)
+
         if (thing.isPrivate()) {
-            remoteViews.setViewVisibility(IV_IMAGE_ATTACHMENT, View.GONE)
-            remoteViews.setViewVisibility(TV_IMAGE_COUNT,      View.GONE)
-            remoteViews.setViewVisibility(V_PADDING_BOTTOM,    View.VISIBLE)
+            remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE)
             return
         }
 
         val attachment: String = thing.attachment!!
-        val firstImageTypePathName: String? = AttachmentHelper.getFirstImageTypePathName(attachment)
-        if (firstImageTypePathName == null) {
-            remoteViews.setViewVisibility(IV_IMAGE_ATTACHMENT,  View.GONE)
-            remoteViews.setViewVisibility(TV_IMAGE_COUNT,       View.GONE)
-            remoteViews.setViewVisibility(V_PADDING_BOTTOM,     View.VISIBLE)
+        val mediaSource = RemoteThingCardMediaRenderer.resolveRenderableMediaSource(context, thing)
+        if (mediaSource == null) {
+            remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE)
             return
         }
 
-        remoteViews.setViewVisibility(IV_IMAGE_ATTACHMENT,  View.VISIBLE)
-        remoteViews.setViewVisibility(TV_IMAGE_COUNT,       View.VISIBLE)
-
-        val pathName: String = firstImageTypePathName.substring(1, firstImageTypePathName.length)
-        if (clazz!!.getSuperclass()!! == BaseThingWidget::class.java) {
-            loadImageForSingleThing(context, pathName, remoteViews, appWidgetId)
-        } else {
-            loadImageForThingsListItem(context, pathName, remoteViews)
+        if (mediaBackgroundApplied) {
+            setMediaBackgroundAttachmentCount(remoteViews, attachment, context)
+            remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE)
+            return
         }
 
-        remoteViews.setTextViewText(TV_IMAGE_COUNT,
-                AttachmentHelper.getImageAttachmentCountStr(attachment, context))
+        val placement = getRemoteImagePlacement(thing)
+        val rendered = renderImageForWidgetSlot(context, thing, appWidgetId, clazz, placement, style)
+        if (rendered == null) {
+            remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE)
+            return
+        }
 
-        remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.GONE)
+        val slot = getImageAttachmentSlot(placement)
+        remoteViews.setViewVisibility(slot.containerId, View.VISIBLE)
+        remoteViews.setViewVisibility(slot.imageId, View.VISIBLE)
+        remoteViews.setImageViewBitmap(slot.imageId, rendered.bitmap)
+        setImageAttachmentCount(remoteViews, slot.countId, attachment, context)
+
+        remoteViews.setViewVisibility(V_PADDING_BOTTOM,
+                if (placement == Thing.THING_CARD_IMAGE_PLACEMENT_BOTTOM) View.GONE else View.VISIBLE)
         setSeparatorVisibilities(remoteViews, View.GONE)
     }
 
-    private fun loadImageForSingleThing(
-            context: Context, pathName: String, remoteViews: RemoteViews, appWidgetId: Int) {
-        val options: BitmapFactory.Options = BitmapFactory.Options()
-        options.inJustDecodeBounds = true
-        BitmapFactory.decodeFile(pathName, options)
-        if (options.outWidth <= 0) {
-            return
+    private data class ImageAttachmentSlot(
+            val containerId: Int,
+            val imageId: Int,
+            val countId: Int)
+
+    private fun hideForegroundMediaSlots(remoteViews: RemoteViews) {
+        val slots = arrayOf(
+                ImageAttachmentSlot(FL_IMAGE_ATTACHMENT, IV_IMAGE_ATTACHMENT, TV_IMAGE_COUNT),
+                ImageAttachmentSlot(
+                        FL_IMAGE_ATTACHMENT_BOTTOM, IV_IMAGE_ATTACHMENT_BOTTOM,
+                        TV_IMAGE_COUNT_BOTTOM),
+                ImageAttachmentSlot(
+                        FL_IMAGE_ATTACHMENT_LEFT, IV_IMAGE_ATTACHMENT_LEFT,
+                        TV_IMAGE_COUNT_LEFT),
+                ImageAttachmentSlot(
+                        FL_IMAGE_ATTACHMENT_RIGHT, IV_IMAGE_ATTACHMENT_RIGHT,
+                        TV_IMAGE_COUNT_RIGHT)
+        )
+        for (slot in slots) {
+            remoteViews.setViewVisibility(slot.containerId, View.GONE)
+            remoteViews.setViewVisibility(slot.imageId, View.GONE)
+            remoteViews.setViewVisibility(slot.countId, View.GONE)
         }
-        // Cap the bitmap dimensions — RemoteViews enforces a per-update bitmap
-        // memory budget (~26MB on most devices; varies by OEM).
-        val maxWidth: Int  = (screenDensity * 360).toInt()
-        val reqWidth: Int  = min(options.outWidth, maxWidth)
-        val reqHeight: Int = reqWidth * 3 / 4
-        Glide.with(context)
-                .asBitmap()
-                .load(pathName)
-                .override(reqWidth, reqHeight)
-                .centerCrop()
-                .into(AppWidgetTarget(
-                        context, IV_IMAGE_ATTACHMENT, remoteViews, appWidgetId))
     }
 
-    private fun loadImageForThingsListItem(
-            context: Context, pathName: String, remoteViews: RemoteViews) {
-        val width: Int  = (screenDensity * 180).toInt()
-        val height: Int = width * 3 / 4
-        val builder: RequestBuilder<Bitmap> =
-                Glide.with(context)
-                        .asBitmap()
-                        .load(pathName)
-                        .override(width, height)
-                        .centerCrop()
-        val futureTarget: FutureTarget<Bitmap> = builder.submit(width, height)
-        try {
-            remoteViews.setImageViewBitmap(IV_IMAGE_ATTACHMENT, futureTarget.get() as Bitmap)
-        } catch (e: Exception) {
-            // TODO: 2017/4/16 RemoteViews for widget update exceeds maximum bitmap memory usage
-            e.printStackTrace()
-            PossibleMistakeHelper.outputNewMistakeInBackground(e)
+    private fun setImageAttachmentCount(
+            remoteViews: RemoteViews, viewId: Int, attachment: String, context: Context) {
+        val count = AttachmentHelper.getImageAttachmentCountStr(attachment, context)
+        if (count == null) {
+            remoteViews.setViewVisibility(viewId, View.GONE)
+        } else {
+            remoteViews.setViewVisibility(viewId, View.VISIBLE)
+            remoteViews.setTextViewText(viewId, count)
         }
+    }
+
+    private fun setMediaBackgroundAttachmentCount(
+            remoteViews: RemoteViews, attachment: String, context: Context) {
+        val count = AttachmentHelper.getImageAttachmentCountStr(attachment, context)
+        if (count == null) {
+            remoteViews.setViewVisibility(TV_MEDIA_BACKGROUND_COUNT, View.GONE)
+        } else {
+            remoteViews.setViewVisibility(TV_MEDIA_BACKGROUND_COUNT, View.VISIBLE)
+            remoteViews.setTextViewText(TV_MEDIA_BACKGROUND_COUNT, count)
+        }
+    }
+
+    private fun getImageAttachmentSlot(
+            @Thing.ThingCardImagePlacement placement: Int): ImageAttachmentSlot {
+        return when (placement) {
+            Thing.THING_CARD_IMAGE_PLACEMENT_BOTTOM -> ImageAttachmentSlot(
+                    FL_IMAGE_ATTACHMENT_BOTTOM, IV_IMAGE_ATTACHMENT_BOTTOM, TV_IMAGE_COUNT_BOTTOM)
+            Thing.THING_CARD_IMAGE_PLACEMENT_LEFT -> ImageAttachmentSlot(
+                    FL_IMAGE_ATTACHMENT_LEFT, IV_IMAGE_ATTACHMENT_LEFT, TV_IMAGE_COUNT_LEFT)
+            Thing.THING_CARD_IMAGE_PLACEMENT_RIGHT -> ImageAttachmentSlot(
+                    FL_IMAGE_ATTACHMENT_RIGHT, IV_IMAGE_ATTACHMENT_RIGHT, TV_IMAGE_COUNT_RIGHT)
+            else -> ImageAttachmentSlot(FL_IMAGE_ATTACHMENT, IV_IMAGE_ATTACHMENT, TV_IMAGE_COUNT)
+        }
+    }
+
+    @Thing.ThingCardImagePlacement
+    private fun getRemoteImagePlacement(thing: Thing): Int {
+        return when (thing.thingCardAppearance.imagePlacement) {
+            Thing.THING_CARD_IMAGE_PLACEMENT_BOTTOM,
+            Thing.THING_CARD_IMAGE_PLACEMENT_LEFT,
+            Thing.THING_CARD_IMAGE_PLACEMENT_RIGHT -> thing.thingCardAppearance.imagePlacement
+            else -> Thing.THING_CARD_IMAGE_PLACEMENT_TOP
+        }
+    }
+
+    private fun renderImageForWidgetSlot(
+            context: Context, thing: Thing, appWidgetId: Int, clazz: Class<*>?,
+            @Thing.ThingCardImagePlacement placement: Int,
+            @ThingWidgetInfo.Style style: Int
+    ): RemoteThingCardMediaRenderer.ThumbnailRequest? {
+        val target = getWidgetMediaSlotTarget(context, thing, appWidgetId, clazz, placement, style)
+        return RemoteThingCardMediaRenderer.renderThumbnail(
+                context, thing, target.width, target.height)
+    }
+
+    private fun isSideImagePlacement(@Thing.ThingCardImagePlacement placement: Int): Boolean {
+        return placement == Thing.THING_CARD_IMAGE_PLACEMENT_LEFT
+                || placement == Thing.THING_CARD_IMAGE_PLACEMENT_RIGHT
+    }
+
+    private fun getWidgetMediaSlotTarget(
+            context: Context, thing: Thing, appWidgetId: Int, clazz: Class<*>?,
+            @Thing.ThingCardImagePlacement placement: Int,
+            @ThingWidgetInfo.Style style: Int): WidgetMediaSlotTarget {
+        val contentWidth = getWidgetContentTargetWidth(context, appWidgetId, clazz)
+        if (placement != Thing.THING_CARD_IMAGE_PLACEMENT_LEFT
+                && placement != Thing.THING_CARD_IMAGE_PLACEMENT_RIGHT) {
+            return WidgetMediaSlotTarget(
+                    contentWidth,
+                    RemoteThingCardMediaRenderer.getThumbnailTargetHeight(
+                            thing,
+                            contentWidth,
+                            getWidgetTopBottomMediaSlotMaxHeight(context, appWidgetId, clazz)))
+        }
+
+        val percentWidth = getWidgetSideMediaPercentWidth(context, thing, contentWidth)
+        val ratioHint = getWidgetSideMediaDisplayAspectRatioHint(thing)
+        if (isSingleThingWidgetClass(clazz)) {
+            val height = getSingleWidgetSideMediaSlotTargetHeight(context, appWidgetId, clazz)
+            val width = if (ratioHint == null) {
+                percentWidth
+            } else {
+                val hintedWidth = (height * ratioHint).roundToInt()
+                min(
+                        getWidgetSideMediaMaxWidth(context, contentWidth),
+                        max(getWidgetSideMediaMinWidth(context, contentWidth), hintedWidth))
+            }
+            return WidgetMediaSlotTarget(width, height)
+        }
+
+        val height = if (ratioHint == null) {
+            getThingsListWidgetSideMediaSlotTargetHeight(
+                    context, thing, contentWidth, percentWidth, style)
+        } else {
+            min(
+                    dpToPx(WIDGET_LIST_MEDIA_HARD_MAX_HEIGHT_DP),
+                    max(dpToPx(WIDGET_LIST_SIDE_MEDIA_MIN_HEIGHT_DP),
+                            (percentWidth / ratioHint).roundToInt()))
+        }
+        return WidgetMediaSlotTarget(percentWidth, height)
+    }
+
+    private fun getSingleWidgetSideMediaSlotTargetHeight(
+            context: Context, appWidgetId: Int, clazz: Class<*>?): Int {
+        val heightDp = getWidgetHeightBudgetDp(context, appWidgetId, clazz)
+        return dpToPx(min(heightDp, WIDGET_REMOTE_BITMAP_MAX_DIMENSION_DP))
+    }
+
+    private fun getThingsListWidgetSideMediaSlotTargetHeight(
+            context: Context, thing: Thing, contentWidth: Int, targetWidth: Int,
+            @ThingWidgetInfo.Style style: Int): Int {
+        val rawHeight = dpToPx(estimateThingsListWidgetSideMediaRowHeightDp(
+                context, thing, contentWidth, targetWidth, style))
+        return min(
+                max(rawHeight, dpToPx(WIDGET_LIST_SIDE_MEDIA_MIN_HEIGHT_DP)),
+                dpToPx(WIDGET_LIST_MEDIA_HARD_MAX_HEIGHT_DP))
+    }
+
+    private fun estimateThingsListWidgetSideMediaRowHeightDp(
+            context: Context, thing: Thing, contentWidth: Int, targetWidth: Int,
+            @ThingWidgetInfo.Style style: Int): Int {
+        if (thing.isPrivate()) return WIDGET_LIST_SIDE_MEDIA_MIN_HEIGHT_DP
+
+        val textWidthDp = max(80, pxToDp(contentWidth - targetWidth) - 24)
+        if (style == ThingWidgetInfo.STYLE_SIMPLE) {
+            val simpleTitle = getTitleToDisplayForSimpleStyle(thing)
+            if (simpleTitle != null) {
+                return 12 + estimateWidgetTextHeightDp(simpleTitle, textWidthDp, 16f, 2) + 12
+            }
+        }
+
+        var height = 0
+        val title = thing.getTitleToDisplay()!!
+        if (title.isNotEmpty()) {
+            height += 12 + 22
+        }
+
+        val content = thing.content!!
+        if (content.isNotEmpty()) {
+            height += if (CheckListHelper.isCheckListStr(content)) {
+                12 + estimateWidgetChecklistHeightDp(content)
+            } else {
+                val textSize = if (content.length <= 60) {
+                    -0.14f * content.length + 24.14f
+                } else {
+                    16f
+                }
+                12 + estimateWidgetTextHeightDp(content, textWidthDp, textSize, 9)
+            }
+        }
+
+        val audioCount = AttachmentHelper.getAudioAttachmentCountStr(thing.attachment!!, context)
+        if (audioCount != null) {
+            height += if (title.isEmpty()
+                    && content.isEmpty()
+                    && AttachmentHelper.isAllAudio(thing.attachment)) {
+                12 + 28
+            } else {
+                9 + 18
+            }
+        }
+
+        if (thing.state != Thing.UNDERWAY && thing.type != Thing.GOAL) {
+            height += 12 + 34
+        }
+        if (ReminderDAO.getInstance(context)!!.getReminderById(thing.id) != null) {
+            height += 12 + 34
+        }
+        val habit = HabitDAO.getInstance(context)!!.getHabitById(thing.id)
+        if (habit != null) {
+            height += if (style == ThingWidgetInfo.STYLE_SIMPLE
+                    || thing.state != Thing.UNDERWAY
+                    || habit.isPaused()) {
+                70
+            } else {
+                132
+            }
+        }
+
+        return max(WIDGET_LIST_SIDE_MEDIA_MIN_HEIGHT_DP, height + 12)
+    }
+
+    private fun estimateWidgetChecklistHeightDp(checklistStr: String): Int {
+        val items = CheckListHelper.toCheckListItems(checklistStr, false)
+        items.remove("2")
+        items.remove("3")
+        items.remove("4")
+        val visibleCount = min(8, items.size)
+        val moreCount = if (items.size > 8) 1 else 0
+        return (visibleCount + moreCount) * 24
+    }
+
+    private fun estimateWidgetTextHeightDp(
+            text: String, widthDp: Int, textSizeSp: Float, maxLines: Int): Int {
+        val charsPerLine = max(6, (widthDp / 8f).toInt())
+        val paragraphLines = text.split('\n').sumOf { paragraph ->
+            max(1, ceil(paragraph.length.toDouble() / charsPerLine).toInt())
+        }
+        val lines = min(maxLines, paragraphLines)
+        return max(18, ceil(lines * textSizeSp * 1.25).toInt())
+    }
+
+    private fun getWidgetSideMediaPercentWidth(
+            context: Context, thing: Thing, contentWidth: Int): Int {
+        val sidePercent = normalizeWidgetSideMediaWidth(context, thing)
+        return max(1, contentWidth * sidePercent / 100)
+    }
+
+    private fun getWidgetSideMediaMinWidth(context: Context, contentWidth: Int): Int {
+        val minPercent = context.resources.getInteger(
+                R.integer.thing_card_side_media_width_min_percent)
+        return max(1, contentWidth * minPercent / 100)
+    }
+
+    private fun getWidgetSideMediaMaxWidth(context: Context, contentWidth: Int): Int {
+        val maxPercent = context.resources.getInteger(
+                R.integer.thing_card_side_media_width_max_percent)
+        return max(1, contentWidth * maxPercent / 100)
+    }
+
+    private fun getWidgetSideMediaDisplayAspectRatioHint(thing: Thing): Double? {
+        val source = ThingCardMediaHelper.resolveEffectiveMediaSource(thing) ?: return null
+        val ratio = thing.thingCardAppearance.sources[source.typePathName]
+                ?.sideMediaDisplayAspectRatioHint
+                ?: return null
+        if (ratio.isNaN() || ratio.isInfinite() || ratio <= 0.0) return null
+        return max(0.05, min(4.0, ratio))
+    }
+
+    private data class WidgetMediaSlotTarget(
+            val width: Int,
+            val height: Int)
+
+    private fun getWidgetTopBottomMediaSlotMaxHeight(
+            context: Context, appWidgetId: Int, clazz: Class<*>?): Int {
+        if (!isSingleThingWidgetClass(clazz)) {
+            return dpToPx(WIDGET_LIST_MEDIA_HARD_MAX_HEIGHT_DP)
+        }
+
+        val widgetHeightDp = getWidgetHeightBudgetDp(context, appWidgetId, clazz)
+        val contentFloorDp = getSingleWidgetContentFloorDp(widgetHeightDp)
+        return dpToPx(min(
+                max(1, widgetHeightDp - contentFloorDp),
+                WIDGET_REMOTE_BITMAP_MAX_DIMENSION_DP))
+    }
+
+    private fun getSingleWidgetContentFloorDp(widgetHeightDp: Int): Int {
+        return min(widgetHeightDp - 1, max(72, min(144, widgetHeightDp / 3)))
+    }
+
+    private fun normalizeWidgetSideMediaWidth(context: Context, thing: Thing): Int {
+        val minPercent = context.resources.getInteger(
+                R.integer.thing_card_side_media_width_min_percent)
+        val maxPercent = context.resources.getInteger(
+                R.integer.thing_card_side_media_width_max_percent)
+        return max(minPercent, min(maxPercent, thing.thingCardAppearance.sideMediaWidthPercent))
     }
 
     private fun setTitleAndPrivate(
@@ -791,7 +1294,7 @@ object AppWidgetHelper {
                 remoteViews.setTextViewTextSize(TV_CONTENT, TypedValue.COMPLEX_UNIT_SP, 16f)
             }
         } else {
-            if (clazz!!.getSuperclass()!! == BaseThingWidget::class.java) {
+            if (isSingleThingWidgetClass(clazz)) {
                 setChecklistForSingleThing(context, remoteViews, thing, appWidgetId, clazz)
             } else {
                 setChecklistForThingsListItem(context, remoteViews, content, thing)
@@ -937,7 +1440,7 @@ object AppWidgetHelper {
 
         if (thing.isPrivate() || thing.state != Thing.UNDERWAY
                 || (type != Thing.REMINDER && type != Thing.GOAL && type != Thing.HABIT)
-                || clazz!!.getSuperclass()!! != BaseThingWidget::class.java
+                || !isSingleThingWidgetClass(clazz)
         ) {
             remoteViews.setViewVisibility(LL_THING_ACTION, View.GONE)
             return

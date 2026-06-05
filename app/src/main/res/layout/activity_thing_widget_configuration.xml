@@ -57,12 +57,11 @@
             android:scaleType="centerCrop"
             android:contentDescription="@string/cd_app_widget_preview_background"/>
 
-        <com.ywwynm.everythingdone.views.StablerRecyclerView
-            android:id="@+id/rv_app_widget_preview"
+        <FrameLayout
+            android:id="@+id/fl_app_widget_preview"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:overScrollMode="never"/>
+            android:layout_gravity="center"/>
 
         <LinearLayout
             android:id="@+id/ll_widget_ui_config"

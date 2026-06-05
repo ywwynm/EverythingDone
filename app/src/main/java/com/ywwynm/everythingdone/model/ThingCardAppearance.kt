@@ -97,7 +97,8 @@ data class ThingCardAppearance(
         val mediaBackgroundHeightRatio: Double? = null,
         val thumbnailCrop: ThingCardThumbnailCrop? = null,
         val backgroundCrop: ThingCardMediaBackgroundCrop? = null,
-        val videoFrameMs: Long? = null
+        val videoFrameMs: Long? = null,
+        val sideMediaDisplayAspectRatioHint: Double? = null
     ) {
 
         fun toJsonObject(): JSONObject {
@@ -121,6 +122,11 @@ data class ThingCardAppearance(
                 o.put(K_BACKGROUND_CROP, backgroundCrop.toJsonObject())
             }
             putNullableLong(o, K_VIDEO_FRAME_MS, videoFrameMs)
+            putNullableDouble(
+                o,
+                K_SIDE_MEDIA_DISPLAY_ASPECT_RATIO_HINT,
+                positiveOrNull(sideMediaDisplayAspectRatioHint)
+            )
             return o
         }
 
@@ -142,7 +148,10 @@ data class ThingCardAppearance(
                     backgroundCrop = ThingCardMediaBackgroundCrop.fromJsonObject(
                         o.optJSONObject(K_BACKGROUND_CROP)
                     ),
-                    videoFrameMs = nullableLong(o, K_VIDEO_FRAME_MS)
+                    videoFrameMs = nullableLong(o, K_VIDEO_FRAME_MS),
+                    sideMediaDisplayAspectRatioHint = positiveOrNull(
+                        nullableDouble(o, K_SIDE_MEDIA_DISPLAY_ASPECT_RATIO_HINT)
+                    )
                 )
             }
         }
@@ -229,6 +238,8 @@ data class ThingCardAppearance(
         private const val K_THUMBNAIL_CROP = "thumbnailCrop"
         private const val K_BACKGROUND_CROP = "backgroundCrop"
         private const val K_VIDEO_FRAME_MS = "videoFrameMs"
+        private const val K_SIDE_MEDIA_DISPLAY_ASPECT_RATIO_HINT =
+            "sideMediaDisplayAspectRatioHint"
 
         private const val K_CENTER_X = "centerX"
         private const val K_CENTER_Y = "centerY"

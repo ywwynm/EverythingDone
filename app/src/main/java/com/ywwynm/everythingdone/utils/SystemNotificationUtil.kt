@@ -8,7 +8,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.graphics.Bitmap
-import android.graphics.Point
 import android.graphics.drawable.BitmapDrawable
 import android.media.RingtoneManager
 import android.net.Uri
@@ -30,10 +29,10 @@ import com.ywwynm.everythingdone.activities.StartDoingActivity
 import com.ywwynm.everythingdone.database.HabitDAO
 import com.ywwynm.everythingdone.helpers.AttachmentHelper
 import com.ywwynm.everythingdone.helpers.CheckListHelper
+import com.ywwynm.everythingdone.helpers.RemoteThingCardMediaRenderer
 import com.ywwynm.everythingdone.model.Habit
 import com.ywwynm.everythingdone.model.HabitReminder
 import com.ywwynm.everythingdone.model.Thing
-import com.ywwynm.everythingdone.permission.PermissionUtil
 import com.ywwynm.everythingdone.receivers.DoingNotificationActionReceiver
 import com.ywwynm.everythingdone.receivers.HabitNotificationActionReceiver
 import com.ywwynm.everythingdone.receivers.ReminderNotificationActionReceiver
@@ -146,22 +145,19 @@ object SystemNotificationUtil {
             builder.setStyle(NotificationCompat.BigTextStyle().bigText(contentText))
         }
 
-        val firstImageUri: String? = AttachmentHelper.getFirstImageTypePathName(attachment)
-        if (firstImageUri != null && PermissionUtil.hasImagePermission(context)) {
-            val pathName: String = firstImageUri.substring(1, firstImageUri.length)
-            val bigPicture: Bitmap?
-            val display: Point = DisplayUtil.getDisplaySize(context)
+        if (RemoteThingCardMediaRenderer.resolveRenderableMediaSource(context, thing) != null) {
+            val display = DisplayUtil.getDisplaySize(context)
             val width: Int = min(display.x, display.y)
             val height: Int = width / 2
-            bigPicture = if (firstImageUri[0] == '0') {
-                BitmapUtil.decodeFileWithRequiredSize(pathName, width, height)
+            val bigPicture: Bitmap? = RemoteThingCardMediaRenderer.renderThumbnail(
+                    context, thing, width, height)?.bitmap
+            if (bigPicture != null) {
+                builder.setStyle(NotificationCompat.BigPictureStyle()
+                        .bigPicture(bigPicture)
+                        .setSummaryText(contentText))
             } else {
-                BitmapUtil.createCroppedBitmap(
-                    AttachmentHelper.getImageFromVideo(pathName), width, height)
+                extendWearable(builder, type, thing.getBackground(), autoNotify, context)
             }
-            builder.setStyle(NotificationCompat.BigPictureStyle()
-                    .bigPicture(bigPicture)
-                    .setSummaryText(contentText))
         } else {
             extendWearable(builder, type, thing.getBackground(), autoNotify, context)
         }

@@ -254,7 +254,7 @@
         <receiver
             android:name=".appwidgets.single.ThingWidgetTiny"
             android:exported="true"
-            android:label="@string/thing">
+            android:label="@string/title_widget_thing_1x1">
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/app_widget_info_thing_tiny"/>
@@ -270,7 +270,7 @@
         <receiver
             android:name=".appwidgets.single.ThingWidgetSmall"
             android:exported="true"
-            android:label="@string/thing">
+            android:label="@string/title_widget_thing_2x2">
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/app_widget_info_thing_small"/>
@@ -286,7 +286,7 @@
         <receiver
             android:name=".appwidgets.single.ThingWidgetMiddle"
             android:exported="true"
-            android:label="@string/thing">
+            android:label="@string/title_widget_thing_3x3">
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/app_widget_info_thing_middle"/>
@@ -302,7 +302,7 @@
         <receiver
             android:name=".appwidgets.single.ThingWidgetLarge"
             android:exported="true"
-            android:label="@string/thing">
+            android:label="@string/title_widget_thing_4x4">
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/app_widget_info_thing_large"/>
@@ -316,12 +316,420 @@
         </receiver>
 
         <receiver
+            android:name=".appwidgets.single.ThingWidget4x2"
+            android:exported="true"
+            android:label="@string/title_widget_thing_4x2">
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/app_widget_info_thing_4x2"/>
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.ywwynm.everythingdone.action.broadcast.update_checklist"/>
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".appwidgets.single.ThingWidget2x4"
+            android:exported="true"
+            android:label="@string/title_widget_thing_2x4">
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/app_widget_info_thing_2x4"/>
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.ywwynm.everythingdone.action.broadcast.update_checklist"/>
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".appwidgets.single.ThingWidget4x3"
+            android:exported="true"
+            android:label="@string/title_widget_thing_4x3">
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/app_widget_info_thing_4x3"/>
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.ywwynm.everythingdone.action.broadcast.update_checklist"/>
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".appwidgets.single.ThingWidget3x4"
+            android:exported="true"
+            android:label="@string/title_widget_thing_3x4">
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/app_widget_info_thing_3x4"/>
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.ywwynm.everythingdone.action.broadcast.update_checklist"/>
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".appwidgets.single.ThingWidget5x2"
+            android:exported="true"
+            android:label="@string/title_widget_thing_5x2">
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/app_widget_info_thing_5x2"/>
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.ywwynm.everythingdone.action.broadcast.update_checklist"/>
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".appwidgets.single.ThingWidget2x5"
+            android:exported="true"
+            android:label="@string/title_widget_thing_2x5">
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/app_widget_info_thing_2x5"/>
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.ywwynm.everythingdone.action.broadcast.update_checklist"/>
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".appwidgets.single.ThingWidget5x3"
+            android:exported="true"
+            android:label="@string/title_widget_thing_5x3">
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/app_widget_info_thing_5x3"/>
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.ywwynm.everythingdone.action.broadcast.update_checklist"/>
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".appwidgets.single.ThingWidget3x5"
+            android:exported="true"
+            android:label="@string/title_widget_thing_3x5">
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/app_widget_info_thing_3x5"/>
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.ywwynm.everythingdone.action.broadcast.update_checklist"/>
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".appwidgets.single.ThingWidget5x4"
+            android:exported="true"
+            android:label="@string/title_widget_thing_5x4">
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/app_widget_info_thing_5x4"/>
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.ywwynm.everythingdone.action.broadcast.update_checklist"/>
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".appwidgets.single.ThingWidget4x5"
+            android:exported="true"
+            android:label="@string/title_widget_thing_4x5">
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/app_widget_info_thing_4x5"/>
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.ywwynm.everythingdone.action.broadcast.update_checklist"/>
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".appwidgets.single.ThingWidget5x5"
+            android:exported="true"
+            android:label="@string/title_widget_thing_5x5">
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/app_widget_info_thing_5x5"/>
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.ywwynm.everythingdone.action.broadcast.update_checklist"/>
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".appwidgets.single.ThingWidget6x2"
+            android:exported="true"
+            android:label="@string/title_widget_thing_6x2">
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/app_widget_info_thing_6x2"/>
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.ywwynm.everythingdone.action.broadcast.update_checklist"/>
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".appwidgets.single.ThingWidget2x6"
+            android:exported="true"
+            android:label="@string/title_widget_thing_2x6">
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/app_widget_info_thing_2x6"/>
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.ywwynm.everythingdone.action.broadcast.update_checklist"/>
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".appwidgets.single.ThingWidget6x3"
+            android:exported="true"
+            android:label="@string/title_widget_thing_6x3">
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/app_widget_info_thing_6x3"/>
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.ywwynm.everythingdone.action.broadcast.update_checklist"/>
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".appwidgets.single.ThingWidget3x6"
+            android:exported="true"
+            android:label="@string/title_widget_thing_3x6">
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/app_widget_info_thing_3x6"/>
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.ywwynm.everythingdone.action.broadcast.update_checklist"/>
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".appwidgets.single.ThingWidget6x4"
+            android:exported="true"
+            android:label="@string/title_widget_thing_6x4">
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/app_widget_info_thing_6x4"/>
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.ywwynm.everythingdone.action.broadcast.update_checklist"/>
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".appwidgets.single.ThingWidget4x6"
+            android:exported="true"
+            android:label="@string/title_widget_thing_4x6">
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/app_widget_info_thing_4x6"/>
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.ywwynm.everythingdone.action.broadcast.update_checklist"/>
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".appwidgets.single.ThingWidget6x5"
+            android:exported="true"
+            android:label="@string/title_widget_thing_6x5">
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/app_widget_info_thing_6x5"/>
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.ywwynm.everythingdone.action.broadcast.update_checklist"/>
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".appwidgets.single.ThingWidget5x6"
+            android:exported="true"
+            android:label="@string/title_widget_thing_5x6">
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/app_widget_info_thing_5x6"/>
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.ywwynm.everythingdone.action.broadcast.update_checklist"/>
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".appwidgets.single.ThingWidget6x6"
+            android:exported="true"
+            android:label="@string/title_widget_thing_6x6">
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/app_widget_info_thing_6x6"/>
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.ywwynm.everythingdone.action.broadcast.update_checklist"/>
+            </intent-filter>
+        </receiver>
+
+        <receiver
             android:name=".appwidgets.list.ThingsListWidget"
             android:exported="true"
-            android:label="@string/title_widget_things_list">
+            android:label="@string/title_widget_things_list_3x3">
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/app_widget_info_things_list"/>
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".appwidgets.list.ThingsListWidget4x4"
+            android:exported="true"
+            android:label="@string/title_widget_things_list_4x4">
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/app_widget_info_things_list_4x4"/>
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".appwidgets.list.ThingsListWidget5x4"
+            android:exported="true"
+            android:label="@string/title_widget_things_list_5x4">
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/app_widget_info_things_list_5x4"/>
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".appwidgets.list.ThingsListWidget4x5"
+            android:exported="true"
+            android:label="@string/title_widget_things_list_4x5">
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/app_widget_info_things_list_4x5"/>
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".appwidgets.list.ThingsListWidget5x5"
+            android:exported="true"
+            android:label="@string/title_widget_things_list_5x5">
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/app_widget_info_things_list_5x5"/>
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".appwidgets.list.ThingsListWidget6x4"
+            android:exported="true"
+            android:label="@string/title_widget_things_list_6x4">
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/app_widget_info_things_list_6x4"/>
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".appwidgets.list.ThingsListWidget4x6"
+            android:exported="true"
+            android:label="@string/title_widget_things_list_4x6">
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/app_widget_info_things_list_4x6"/>
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".appwidgets.list.ThingsListWidget6x5"
+            android:exported="true"
+            android:label="@string/title_widget_things_list_6x5">
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/app_widget_info_things_list_6x5"/>
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".appwidgets.list.ThingsListWidget5x6"
+            android:exported="true"
+            android:label="@string/title_widget_things_list_5x6">
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/app_widget_info_things_list_5x6"/>
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".appwidgets.list.ThingsListWidget6x6"
+            android:exported="true"
+            android:label="@string/title_widget_things_list_6x6">
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/app_widget_info_things_list_6x6"/>
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
             </intent-filter>

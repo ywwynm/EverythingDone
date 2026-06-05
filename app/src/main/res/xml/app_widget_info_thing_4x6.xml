@@ -2,11 +2,11 @@
 <appwidget-provider
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="250dp"
-    android:minHeight="250dp"
+    android:minHeight="390dp"
     android:targetCellWidth="4"
-    android:targetCellHeight="4"
+    android:targetCellHeight="6"
     android:updatePeriodMillis="0"
-    android:configure="com.ywwynm.everythingdone.appwidgets.single.ThingWidgetConfigurationLarge"
+    android:configure="com.ywwynm.everythingdone.appwidgets.single.BaseThingWidgetConfiguration"
     android:initialLayout="@layout/app_widget_thing"
     android:previewImage="@drawable/widget_thing_preview_large"
     android:resizeMode="horizontal|vertical"/>
