@@ -1,6 +1,7 @@
 package com.ywwynm.everythingdone.helpers
 
 import com.ywwynm.everythingdone.model.Thing
+import com.ywwynm.everythingdone.model.ThingCardAppearance
 import java.io.File
 
 object ThingCardMediaHelper {
@@ -30,6 +31,7 @@ object ThingCardMediaHelper {
         attachment: String?,
         mediaSourceKey: String?
     ): MediaSource? {
+        if (ThingCardAppearance.isMediaSourceNone(mediaSourceKey)) return null
         val sources = getAvailableMediaSources(attachment)
         if (sources.isEmpty()) return null
         if (!mediaSourceKey.isNullOrEmpty()) {

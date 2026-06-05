@@ -1,37 +1,31 @@
-# 自定义卡片外观视频裁切预览反馈修复
+# 图片/视频数量 icon 宽度和文本 margin 调整
 
-本次 debug update 回应用户在“裁切封面视频”dialog 里的反馈：
+本次 debug update 回应用户对图片/视频数量 icon 对齐方式的新判断：
 
-- 双指缩放、拖动视频区域实际上会改变裁切参数；
-- 但预览画面没有跟着展示缩放程度和裁切位置，用户不知道当前裁切区域选到了哪里。
-
-诊断结论：
-
-- 当前 `ThingCardVideoCropEditorView` 使用真实 `TextureView` + `MediaPlayer` 预览视频。
-- 之前的实现把 `TextureView` 固定布局在整张预览区域里，再通过 `TextureView.setTransform(...)` 尝试模拟最终裁切矩阵。
-- 在暂停帧、首帧尚未输出、或者部分设备没有及时重绘 TextureView 的情况下，手势会更新 `centerX` / `centerY` / `userScale`，但画面不会给出可靠反馈。
-- loading 状态还会隐藏裁切 overlay，因此即使手势有效，用户也看不到裁切框和遮罩。
+- 图片/视频数量 icon 由于自身图形差异，视觉上仍然比音频 icon 小。
+- 希望把图片/视频数量 icon 的控件宽度在 X 方向增加 `2dp`，让图形看起来更大一些。
+- 同时把右侧文本 margin 减小 `2dp`，保持后面的数量文本仍然和音频数量文本左对齐。
 
 实现修改：
 
-- `ThingCardVideoCropEditorView` 不再依赖固定大小 `TextureView` 的内容 transform。
-- 视频裁切 view 现在直接把 `TextureView` 本身布局到当前缩放后的源媒体矩形位置：
-  `imageLeft` / `imageTop` / `scaled source width` / `scaled source height`。
-- 这样暂停时拖动和双指缩放会立即改变屏幕上的视频几何位置，和图片裁切编辑器的预览逻辑一致。
-- 打开 dialog 时已经解码出的那张视频帧现在会传入 `ThingCardVideoCropEditorView`，作为首帧前的 fallback 预览图。
-- loading 或首帧回调缺失时，fallback 预览图会显示在同一个裁切 overlay 下，裁切框和非选区遮罩保持可见，用户仍能看见缩放比例和裁切中心。
-- 如果设备没有触发首帧 `onSurfaceTextureUpdated`，fallback timeout 不再切到空白 TextureView；它只去掉 loading spinner，继续保留 fallback 预览，直到真正有视频帧输出。
-- 更新 `docs/plans/THING_CARD_APPEARANCE_EXECUTION.md` 和 `memory/decisions.md`。
+- 音频数量 icon 保持不变：
+  - 普通：`14x14dp`，文本 start margin `8dp`
+  - 大号：`16x16dp`，文本 start margin `12dp`
+- 图片/视频数量 icon 单独改为：
+  - 普通：`16x14dp`，文本 start margin `6dp`
+  - 大号：`18x16dp`，文本 start margin `10dp`
+- 因此文本起点仍然保持一致：
+  - 普通：音频 `14 + 8 = 22dp`，图片/视频 `16 + 6 = 22dp`
+  - 大号：音频 `16 + 12 = 28dp`，图片/视频 `18 + 10 = 28dp`
+- hidden media inline 图片/视频数量行和 media-background overlay 图片/视频数量行都使用这套规则。
+- 图片/视频 icon 继续使用 `fitCenter` 和 `1dp` left/top padding，避免裁切并保持轻微右下偏移。
+- 更新 `memory/decisions.md` 记录新的尺寸和 margin 对齐规则。
 
-验证：
+验证和发布状态：
 
-- `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache` 已通过。
 - `git diff --check` 已通过，仅有仓库既有的 LF/CRLF 提示。
-- source guard 确认 `FallbackFrameView`、`showFallbackPreviewOnly()`、fallback bitmap 传入、以及 `TextureView` 动态布局路径已接入。
-- 尚未进行真机/模拟器视频裁切 smoke test；需要用户在设备上确认暂停、缩放、拖动、loading/首帧前的裁切预览反馈。
-
-发布状态：
-
-- 本次构建使用
+- 已使用
   `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`
-  发布到 debug update 通道。
+  编译、打包并发布到 debug update 通道。
+- 已发布 debug update `202606050023` 到
+  `http://120.25.194.207/everythingdone-updates/debug/latest.json`。

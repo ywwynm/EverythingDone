@@ -65,7 +65,9 @@ data class ThingCardAppearance(
         for ((key, value) in sources) {
             if (!keysToRemove.contains(key)) kept[key] = value
         }
-        val newSourceKey = if (mediaSourceKey != null && keysToRemove.contains(mediaSourceKey)) {
+        val newSourceKey = if (isMediaSourceNone(mediaSourceKey)) {
+            mediaSourceKey
+        } else if (mediaSourceKey != null && keysToRemove.contains(mediaSourceKey)) {
             null
         } else {
             mediaSourceKey
@@ -78,7 +80,9 @@ data class ThingCardAppearance(
         for ((key, value) in sources) {
             if (availableKeys.contains(key)) kept[key] = value
         }
-        val newSourceKey = if (mediaSourceKey != null && !availableKeys.contains(mediaSourceKey)) {
+        val newSourceKey = if (isMediaSourceNone(mediaSourceKey)) {
+            mediaSourceKey
+        } else if (mediaSourceKey != null && !availableKeys.contains(mediaSourceKey)) {
             null
         } else {
             mediaSourceKey
@@ -207,6 +211,7 @@ data class ThingCardAppearance(
         const val DEFAULT_MASK_STRENGTH: Double = 0.45
         const val DEFAULT_CROP_CENTER: Double = 0.5
         const val DEFAULT_USER_SCALE: Double = 1.0
+        const val MEDIA_SOURCE_NONE: String = "__thing_card_media_none__"
 
         private const val K_VERSION = "version"
         private const val K_SPAN_MODE = "spanMode"
@@ -244,6 +249,11 @@ data class ThingCardAppearance(
                 spanMode = normalizeSpanMode(spanMode),
                 imagePlacement = normalizeImagePlacement(imagePlacement)
             )
+        }
+
+        @JvmStatic
+        fun isMediaSourceNone(mediaSourceKey: String?): Boolean {
+            return mediaSourceKey == MEDIA_SOURCE_NONE
         }
 
         @JvmStatic

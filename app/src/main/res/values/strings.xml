@@ -336,6 +336,7 @@
     <string name="thing_card_appearance_media_video">Video</string>
     <string name="thing_card_appearance_source_format">%1$s · %2$s</string>
     <string name="thing_card_appearance_source_default">Auto select</string>
+    <string name="thing_card_appearance_source_none">None</string>
     <string name="thing_card_appearance_cover_media">Cover image</string>
     <string name="thing_card_appearance_span_normal">Normal</string>
     <string name="thing_card_appearance_span_full">Wide</string>

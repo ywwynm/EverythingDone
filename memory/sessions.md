@@ -4672,3 +4672,171 @@ Verification:
   renderer, appearance panel/crop editors, media-background/video support, and
   persistence/data-model changes rather than enumerating every small bug fixed
   during device feedback.
+
+## 2026-06-04 - Thing Card Appearance hidden image/video media
+
+- Added a persistent None source state for Thing Card Appearance media:
+  `mediaSourceKey = null` remains Auto select, explicit source keys still pick a
+  concrete image/video, and `ThingCardAppearance.MEDIA_SOURCE_NONE` hides all
+  image/video media on the card.
+- Preserved per-source crop, video-frame, background, and sizing settings while
+  hidden, so selecting Auto or a concrete source later restores the previous
+  media-specific appearance.
+- Kept the Card width controls visible while media is hidden; only
+  media-dependent controls such as position, crop, ratio, background mask, and
+  background height are hidden.
+- Changed the customize-card-appearance action gating to check available media
+  attachments rather than the current effective media source, so users can
+  reopen the panel after choosing None.
+- Added an inline image/video count row for the hidden-media card state, using
+  the same content-flow margins and sparse-card enlargement behavior as the
+  audio attachment count row. Media-background cards still use their existing
+  bottom overlay count row.
+- Updated Simplified Chinese, Traditional Chinese, and default English strings
+  for the new None source option.
+
+Verification:
+- `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`
+  passed and published debug update `202606041437` to
+  `http://120.25.194.207/everythingdone-updates/debug/latest.json`.
+- No Git commit was created.
+
+## 2026-06-04 - Hidden media appearance follow-up
+
+- User corrected three details after the first hidden-media debug build:
+  None should appear at the bottom of the source popup, hidden-media cards need
+  a full card re-layout after side-media layouts, and ordinary no-image/video
+  Things should also support Thing Card Appearance for Card width only.
+- Moved the None source picker item after Auto and all concrete media sources.
+- Changed the customize-card-appearance action to be available for any eligible
+  real selected Thing, not only Things with image/video attachments.
+- Let `openThingCardAppearancePanel()` open with an empty media-source list.
+  The no-media panel hides the cover-source row and all media-dependent
+  controls while keeping Card width and cancel/confirm actions.
+- The normal appearance preview path still uses `notifyItemChanged`, so
+  selecting None rebinds the holder and reruns `applyCardContentGeometry()`,
+  clearing any stale side-media content widths/orientation.
+
+Verification:
+- `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`
+  passed and published debug update `202606041447` to
+  `http://120.25.194.207/everythingdone-updates/debug/latest.json`.
+- No Git commit was created.
+
+## 2026-06-04 - Hidden media attachment count row alignment
+
+- User reported that the hidden image/video count row's bottom spacing looked
+  large and that its icon was wider than the audio attachment-count icon, which
+  shifted the image/video count text to the right relative to audio count text.
+- Confirmed the audio-only card uses zero row bottom padding plus the standard
+  `view_thing_padding_bottom` spacer (`THING_CARD_DEFAULT_PADDING_BOTTOM_DP`,
+  16dp). Hidden image/video count should keep that same strategy.
+- Confirmed icon intrinsic sizes differ substantially: `card_audio_attachment`
+  is about `11.5x13dp`, while `card_image_attachment_count` is about
+  `17x13.5dp`.
+- Added fixed shared count-icon view dimensions for inline image/video and
+  audio count rows: `12x14dp` normal and `14x16dp` large, with the existing
+  `1dp` large-state top margin.
+- Set the inline image/video count icon to `fitCenter`, so the wider PNG scales
+  inside the shared icon view instead of shifting the text start.
+- Explicitly resets hidden-media bottom spacer height to the default 16dp when
+  the inline count row is visible.
+
+Verification:
+- `git diff --check` passed with only the repository's existing LF/CRLF
+  warnings.
+- `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`
+  passed and published debug update `202606041501` to
+  `http://120.25.194.207/everythingdone-updates/debug/latest.json`.
+- No Git commit was created.
+
+## 2026-06-04 - Wide hidden-media count row spacing follow-up
+
+- User reported that the hidden image/video count row still had extra bottom
+  space, apparently only for wide Thing Cards, and that the `fitCenter` icon
+  looked undersized and vertically off relative to the text.
+- Confirmed `thing_card_full_span_sparse_min_height` is 120dp and
+  `updateFullSpanSparseMinHeight()` had allowed `llInlineMediaAttachment` to
+  trigger that minimum height, producing the apparent bottom margin in wide
+  hidden-media cards.
+- Changed full-span sparse minimum-height handling to skip while the hidden
+  media inline count row is visible. Title/text/audio-only wide cards keep the
+  existing sparse minimum-height behavior.
+- Kept the shared fixed icon view dimensions for text-start alignment, but
+  changed the count icon scale type back to `centerCrop` so the image/video icon
+  fills the shared bounds instead of looking smaller under `fitCenter`.
+
+Verification:
+- `git diff --check` passed with only the repository's existing LF/CRLF
+  warnings before publish.
+- `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`
+  passed and published debug update `202606041510` to
+  `http://120.25.194.207/everythingdone-updates/debug/latest.json`.
+- No Git commit was created.
+
+## 2026-06-04 - Hidden media count icon scale adjustment
+
+- User rejected `centerCrop` for the hidden image/video count icon because it
+  clipped the image-count indicator.
+- Reverted the inline image/video count icon and runtime shared count-icon
+  helper to `fitCenter`.
+- Increased only the icon view width by 2dp as requested: normal count icons
+  are now `14x14dp` and large count icons are now `16x16dp`; heights stayed at
+  14dp and 16dp respectively.
+- Kept the previous full-span sparse minimum-height skip for visible hidden
+  media count rows.
+
+Verification:
+- `git diff --check` passed with only the repository's existing LF/CRLF
+  warnings before publish.
+- `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`
+  passed and published debug update `202606041520` to
+  `http://120.25.194.207/everythingdone-updates/debug/latest.json`.
+- No Git commit was created.
+
+## 2026-06-05 - Image/video count icon nudge and overlay size unification
+
+- User reported that image/video count icons still looked visually misaligned
+  from audio count icons and asked to try 1dp left/top padding while keeping
+  `fitCenter`, nudging the fitted drawable slightly right/down.
+- User also reported that media-background overlay image/video count icons
+  were larger than other image/video count rows.
+- Added a media-count-icon helper that reuses the fixed count-icon dimensions
+  and applies `1dp` left/top padding only to image/video count icons.
+- Applied the same helper to both hidden-media inline count icons and
+  media-background overlay count icons, so overlay no longer uses PNG intrinsic
+  size.
+- Audio count icons keep the shared dimensions but do not receive the media
+  icon nudge.
+
+Verification:
+- `git diff --check` passed with only the repository's existing LF/CRLF
+  warnings before publish.
+- `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`
+  passed and published debug update `202606050013` to
+  `http://120.25.194.207/everythingdone-updates/debug/latest.json`.
+- No Git commit was created.
+
+## 2026-06-05 - Image/video count icon width and text-start alignment
+
+- User decided that the image/video count icon should get 2dp more horizontal
+  view width, while its right-side text margin should shrink by 2dp so the
+  count text still aligns with the audio count text.
+- Kept audio count rows unchanged: `14x14dp` normal icons with an `8dp` text
+  start margin, and `16x16dp` large icons with a `12dp` text start margin.
+- Added media-specific count-row dimensions: image/video count icons now use
+  `16x14dp` normal and `18x16dp` large view bounds, with `6dp` and `10dp` text
+  start margins respectively.
+- Applied the same media-specific dimensions and margins to hidden-media inline
+  count rows and media-background overlay count rows.
+- Preserved the image/video icon's `fitCenter` behavior and 1dp left/top
+  padding nudge so the wider PNG is not clipped.
+
+Verification:
+- `git diff --check` passed with only the repository's existing LF/CRLF
+  warnings before publish.
+- `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`
+  passed and published debug update `202606050023` to
+  `http://120.25.194.207/everythingdone-updates/debug/latest.json`.
+- Committed the hidden-media and count-icon follow-up changes immediately
+  after publish.

@@ -301,6 +301,7 @@
     <string name="thing_card_appearance_media_video">影片</string>
     <string name="thing_card_appearance_source_format">%1$s · %2$s</string>
     <string name="thing_card_appearance_source_default">自動選擇</string>
+    <string name="thing_card_appearance_source_none">無</string>
     <string name="thing_card_appearance_cover_media">封面圖片</string>
     <string name="thing_card_appearance_span_normal">正常</string>
     <string name="thing_card_appearance_span_full">寬</string>

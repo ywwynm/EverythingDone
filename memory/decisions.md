@@ -2444,3 +2444,50 @@ image crop editor's geometry. During initial loading or missing first-frame
 callbacks, draw the already decoded opening frame as a fallback layer under the
 same crop overlay, and keep the crop frame visible so panning and pinch zoom
 show the current crop position even before the live texture is ready.
+
+2026-06-04: Thing Card Appearance source selection now has three distinct
+states: `mediaSourceKey = null` means Auto select, an explicit source key means
+that specific image/video, and `ThingCardAppearance.MEDIA_SOURCE_NONE` means
+hide all image/video media on the Thing Card. The None state is a persistent
+user choice and should survive attachment cleanup/reordering, while per-source
+crop, frame, background, and sizing settings remain preserved for when the user
+selects Auto or a concrete media source again. Hiding media only affects media
+display and media-dependent controls; Card width controls remain available so a
+hidden-media card can still be normal or wide.
+
+2026-06-04: Thing Card Appearance is not only a media-appearance editor. Any
+eligible real Thing Card may open the panel to adjust Card width, even if the
+Thing has no image/video attachments. In no-media cases, the panel hides the
+cover-source row and every media-dependent control, leaving only the title,
+Card width controls, and cancel/confirm actions. When media sources do exist,
+the source popup order is Auto select, explicit image/video sources in
+attachment order, and None as the final row.
+
+2026-06-04: Inline image/video attachment-count rows and audio attachment-count
+rows should use the same bottom-spacing strategy: the row itself has zero
+bottom padding and the standard `view_thing_padding_bottom` spacer supplies the
+bottom gap (`THING_CARD_DEFAULT_PADDING_BOTTOM_DP`, 16dp). Their icons should
+share fixed view dimensions (`12x14dp` normal, `14x16dp` large) instead of using
+the PNG intrinsic widths, because `card_image_attachment_count` is much wider
+than `card_audio_attachment` and otherwise shifts the count text to the right.
+
+2026-06-04: A hidden-media inline image/video count row should not participate
+in full-span sparse-card minimum height. `thing_card_full_span_sparse_min_height`
+is 120dp and is useful for title/text/audio-only wide cards, but applying it
+when hidden-media count chrome is present makes the count row appear to have a
+large bottom margin. Keep the count row's normal bottom spacer at 16dp and skip
+the full-span sparse minimum while that row is visible. The shared count-icon
+view dimensions stay fixed for text-start alignment. Use `fitCenter` so the
+wider image/video count PNG is not clipped, but make the icon view slightly
+wider (`14x14dp` normal, `16x16dp` large) so the image/video icon does not look
+too small.
+
+2026-06-05: Image/video count icons use the same fixed view dimensions in
+inline hidden-media rows and media-background overlay rows. The media-background
+overlay must not fall back to PNG intrinsic size, because that makes the icon
+larger than the inline count row. Image/video count icons keep `fitCenter` and
+receive `1dp` left/top padding to nudge the fitted drawable slightly right and
+down; audio count icons do not receive that padding. Image/video count icon
+views are 2dp wider than audio count icon views (`16x14dp` normal and
+`18x16dp` large), while their text start margins are 2dp smaller (`6dp` normal
+and `10dp` large), keeping the following text aligned with audio count text.

@@ -253,6 +253,7 @@ abstract class BaseThingsAdapter(context: Context?) :
         spacerLp.weight = 0f
         holder.vBottomStatusSpacer.layoutParams = spacerLp
         holder.llMediaCount!!.visibility = View.GONE
+        holder.llInlineMediaAttachment!!.visibility = View.GONE
         setThingCardPaddingBottomHeight(holder, THING_CARD_DEFAULT_PADDING_BOTTOM_DP)
 
         val imageLp = holder.flImageAttachment!!.layoutParams as LinearLayout.LayoutParams
@@ -310,6 +311,7 @@ abstract class BaseThingsAdapter(context: Context?) :
         holder.tvTitle!!.alpha = adaptiveAlpha
         holder.tvImageCount!!.alpha = adaptiveAlpha
         holder.llMediaCount!!.alpha = adaptiveAlpha
+        holder.llInlineMediaAttachment!!.alpha = adaptiveAlpha
         holder.ivMediaBackground!!.alpha = adaptiveAlpha
         holder.ivPrivateThing!!.alpha = adaptiveAlpha
         holder.tvContent!!.alpha = adaptiveAlpha
@@ -367,6 +369,7 @@ abstract class BaseThingsAdapter(context: Context?) :
 
             updateCardSeparatorsIfNeeded(holder)
 
+            enlargeHiddenMediaCountLayoutIfNeeded(holder)
             enlargeAudioLayoutIfNeeded(holder)
             updateFullSpanSparseMinHeight(holder, thing)
         }
@@ -865,6 +868,8 @@ abstract class BaseThingsAdapter(context: Context?) :
         val mediaCountColor = textColorTertiary(foregroundBaseColor)
         holder.tvMediaCount!!.setTextColor(mediaCountColor)
         applyThingCardMediaCountIcon(holder, foregroundBaseColor)
+        holder.tvInlineMediaCount!!.setTextColor(mediaCountColor)
+        applyThingCardMediaCountIcon(holder.ivInlineMediaCount, foregroundBaseColor)
         holder.tvAudioCount!!.setTextColor(textColorTertiary(foregroundBaseColor))
         holder.tvReminderTime!!.setTextColor(textColorTertiary(foregroundBaseColor))
         holder.tvHabitSummary!!.setTextColor(textColorTertiary(foregroundBaseColor))
@@ -896,7 +901,14 @@ abstract class BaseThingsAdapter(context: Context?) :
         holder: BaseThingViewHolder,
         foregroundBaseColor: Int
     ) {
-        val icon = holder.ivMediaCount ?: return
+        applyThingCardMediaCountIcon(holder.ivMediaCount, foregroundBaseColor)
+    }
+
+    private fun applyThingCardMediaCountIcon(
+        icon: ImageView?,
+        foregroundBaseColor: Int
+    ) {
+        icon ?: return
         androidx.core.widget.ImageViewCompat.setImageTintList(icon, null)
         icon.clearColorFilter()
         icon.setImageResource(
@@ -1331,6 +1343,7 @@ abstract class BaseThingsAdapter(context: Context?) :
         holder.flImageAttachment.visibility = View.GONE
         holder.tvImageCount!!.visibility = View.GONE
         holder.vImageCover!!.visibility = View.GONE
+        holder.llInlineMediaAttachment!!.visibility = View.GONE
 
         val sourceAppearance = thing.thingCardAppearance.sources[mediaSource.typePathName]
         val targetMinHeight = getThingCardMediaBackgroundTargetMinHeight(thing, mediaSource)
@@ -1560,6 +1573,16 @@ abstract class BaseThingsAdapter(context: Context?) :
         val foregroundBaseColor = getThingCardForegroundBaseColor(thing)
         val mediaCountColor = textColorTertiary(foregroundBaseColor)
         holder.tvMediaCount.setTextColor(mediaCountColor)
+        setThingCardMediaCountIconLayout(
+            holder.ivMediaCount,
+            THING_CARD_MEDIA_COUNT_ICON_NORMAL_WIDTH_DP,
+            THING_CARD_COUNT_ICON_NORMAL_HEIGHT_DP,
+            0
+        )
+        setThingCardCountTextStartMargin(
+            holder.tvMediaCount,
+            THING_CARD_MEDIA_COUNT_TEXT_NORMAL_MARGIN_START_DP
+        )
         applyThingCardMediaCountIcon(holder, foregroundBaseColor)
         setThingCardPaddingBottomHeight(holder, THING_CARD_MEDIA_COUNT_PADDING_BOTTOM_DP)
     }
@@ -1700,6 +1723,7 @@ abstract class BaseThingsAdapter(context: Context?) :
         val attachment: String? = thing.attachment
         val mediaSource = ThingCardMediaHelper.resolveEffectiveMediaSource(thing)
         if (mediaSource != null) {
+            holder.llInlineMediaAttachment!!.visibility = View.GONE
             if (thing.thingCardAppearance.mediaBackgroundEnabled) {
                 updateCardForMediaBackground(holder, thing, mediaSource)
                 return
@@ -1805,7 +1829,37 @@ abstract class BaseThingsAdapter(context: Context?) :
             mImageRequestManager!!.clear(holder.ivImageAttachment!!)
             holder.vPaddingBottom!!.visibility = View.VISIBLE
             holder.flImageAttachment!!.visibility = View.GONE
+            holder.tvImageCount!!.visibility = View.GONE
+            holder.vImageCover!!.visibility = View.GONE
+            updateCardForHiddenMediaAttachmentCount(holder, thing)
         }
+    }
+
+    private fun updateCardForHiddenMediaAttachmentCount(
+        holder: BaseThingViewHolder,
+        thing: Thing
+    ) {
+        if (!ThingCardAppearance.isMediaSourceNone(thing.thingCardAppearance.mediaSourceKey)) {
+            holder.llInlineMediaAttachment!!.visibility = View.GONE
+            return
+        }
+
+        val str = AttachmentHelper.getImageAttachmentCountStr(thing.attachment, mContext)
+        if (str == null) {
+            holder.llInlineMediaAttachment!!.visibility = View.GONE
+            return
+        }
+
+        holder.llInlineMediaAttachment!!.visibility = View.VISIBLE
+        holder.llInlineMediaAttachment.alpha = 1.0f
+        val dp16 = (mDensity * 16).toInt()
+        holder.llInlineMediaAttachment.setPadding(dp16, dp16 / 4 * 3, dp16, 0)
+        setThingCardPaddingBottomHeight(holder, THING_CARD_DEFAULT_PADDING_BOTTOM_DP)
+        holder.tvInlineMediaCount!!.text = str
+
+        val foregroundBaseColor = getThingCardForegroundBaseColor(thing)
+        holder.tvInlineMediaCount.setTextColor(textColorTertiary(foregroundBaseColor))
+        applyThingCardMediaCountIcon(holder.ivInlineMediaCount, foregroundBaseColor)
     }
 
     private fun getImageHeight(thing: Thing, imageW: Int): Int {
@@ -1850,6 +1904,7 @@ abstract class BaseThingsAdapter(context: Context?) :
             && holder.tvTitle!!.isGone
             && holder.tvContent!!.isGone
             && holder.rvChecklist!!.isGone
+            && holder.llInlineMediaAttachment!!.isGone
             && holder.llAudioAttachment!!.isGone
         ) {
             if (holder.rlReminder!!.isVisible) {
@@ -1866,14 +1921,57 @@ abstract class BaseThingsAdapter(context: Context?) :
         }
     }
 
+    private fun enlargeHiddenMediaCountLayoutIfNeeded(holder: BaseThingViewHolder) {
+        if (holder.llInlineMediaAttachment!!.visibility != View.VISIBLE) {
+            return
+        }
+
+        val llp2 = holder.tvInlineMediaCount!!.layoutParams as LinearLayout.LayoutParams
+        val dp16 = (mDensity * 16).toInt()
+        if (holder.flImageAttachment!!.isGone
+            && holder.tvTitle!!.isGone
+            && holder.tvContent!!.isGone
+            && holder.rvChecklist!!.isGone
+            && holder.llAudioAttachment!!.isGone
+        ) {
+            setThingCardMediaCountIconLayout(
+                holder.ivInlineMediaCount,
+                THING_CARD_MEDIA_COUNT_ICON_LARGE_WIDTH_DP,
+                THING_CARD_COUNT_ICON_LARGE_HEIGHT_DP,
+                THING_CARD_COUNT_ICON_LARGE_TOP_MARGIN_DP
+            )
+            holder.tvInlineMediaCount.textSize = 18f
+
+            val marginStart = (mDensity *
+                    THING_CARD_MEDIA_COUNT_TEXT_LARGE_MARGIN_START_DP).toInt()
+            llp2.setMargins(marginStart, llp2.topMargin, llp2.rightMargin, llp2.bottomMargin)
+            llp2.marginStart = marginStart
+
+            holder.llInlineMediaAttachment.setPadding(dp16, dp16, dp16, 0)
+        } else {
+            setThingCardMediaCountIconLayout(
+                holder.ivInlineMediaCount,
+                THING_CARD_MEDIA_COUNT_ICON_NORMAL_WIDTH_DP,
+                THING_CARD_COUNT_ICON_NORMAL_HEIGHT_DP,
+                0
+            )
+            holder.tvInlineMediaCount.textSize = 11f
+
+            val marginStart = (mDensity *
+                    THING_CARD_MEDIA_COUNT_TEXT_NORMAL_MARGIN_START_DP).toInt()
+            llp2.setMargins(marginStart, llp2.topMargin, llp2.rightMargin, llp2.bottomMargin)
+            llp2.marginStart = marginStart
+
+            holder.llInlineMediaAttachment.setPadding(dp16, dp16 / 4 * 3, dp16, 0)
+        }
+    }
+
     private fun enlargeAudioLayoutIfNeeded(holder: BaseThingViewHolder) {
         if (holder.llAudioAttachment!!.visibility != View.VISIBLE) {
             return
         }
 
-        val llp1 = holder.ivAudioCount!!.layoutParams as LinearLayout.LayoutParams
         val llp2 = holder.tvAudioCount!!.layoutParams as LinearLayout.LayoutParams
-        val dp1  = (mDensity * 1).toInt()
         val dp8  = (mDensity * 8).toInt()
         val dp12 = (mDensity * 12).toInt()
         val dp16 = (mDensity * 16).toInt()
@@ -1881,9 +1979,14 @@ abstract class BaseThingsAdapter(context: Context?) :
             && holder.tvTitle!!.isGone
             && holder.tvContent!!.isGone
             && holder.rvChecklist!!.isGone
+            && holder.llInlineMediaAttachment!!.isGone
         ) {
-            llp1.height = (mDensity * 16).toInt()
-            llp1.topMargin = dp1
+            setThingCardAttachmentCountIconLayout(
+                holder.ivAudioCount,
+                THING_CARD_COUNT_ICON_LARGE_WIDTH_DP,
+                THING_CARD_COUNT_ICON_LARGE_HEIGHT_DP,
+                THING_CARD_COUNT_ICON_LARGE_TOP_MARGIN_DP
+            )
             holder.tvAudioCount.textSize = 18f
 
             llp2.setMargins(dp12, llp2.topMargin, llp2.rightMargin, llp2.bottomMargin)
@@ -1891,8 +1994,12 @@ abstract class BaseThingsAdapter(context: Context?) :
 
             holder.llAudioAttachment.setPadding(dp16, dp16, dp16, 0)
         } else {
-            llp1.height = ViewGroup.LayoutParams.WRAP_CONTENT
-            llp1.topMargin = 0
+            setThingCardAttachmentCountIconLayout(
+                holder.ivAudioCount,
+                THING_CARD_COUNT_ICON_NORMAL_WIDTH_DP,
+                THING_CARD_COUNT_ICON_NORMAL_HEIGHT_DP,
+                0
+            )
             holder.tvAudioCount.textSize = 11f
 
             llp2.setMargins(dp8, llp2.topMargin, llp2.rightMargin, llp2.bottomMargin)
@@ -1900,12 +2007,60 @@ abstract class BaseThingsAdapter(context: Context?) :
 
             holder.llAudioAttachment.setPadding(dp16, dp16 / 4 * 3, dp16, 0)
         }
-        holder.ivAudioCount.requestLayout()
+    }
+
+    private fun setThingCardAttachmentCountIconLayout(
+        icon: ImageView?,
+        widthDp: Int,
+        heightDp: Int,
+        topMarginDp: Int
+    ) {
+        icon ?: return
+        icon.scaleType = ImageView.ScaleType.FIT_CENTER
+        val lp = icon.layoutParams as LinearLayout.LayoutParams
+        val width = (mDensity * widthDp).toInt()
+        val height = (mDensity * heightDp).toInt()
+        val topMargin = (mDensity * topMarginDp).toInt()
+        if (lp.width != width || lp.height != height || lp.topMargin != topMargin) {
+            lp.width = width
+            lp.height = height
+            lp.topMargin = topMargin
+            icon.layoutParams = lp
+        }
+    }
+
+    private fun setThingCardMediaCountIconLayout(
+        icon: ImageView?,
+        widthDp: Int,
+        heightDp: Int,
+        topMarginDp: Int
+    ) {
+        setThingCardAttachmentCountIconLayout(icon, widthDp, heightDp, topMarginDp)
+        val shift = (mDensity * THING_CARD_MEDIA_COUNT_ICON_SHIFT_DP).toInt()
+        if (icon != null && (
+                icon.paddingLeft != shift ||
+                icon.paddingTop != shift ||
+                icon.paddingRight != 0 ||
+                icon.paddingBottom != 0)) {
+            icon.setPadding(shift, shift, 0, 0)
+        }
+    }
+
+    private fun setThingCardCountTextStartMargin(textView: TextView?, marginStartDp: Int) {
+        textView ?: return
+        val lp = textView.layoutParams as LinearLayout.LayoutParams
+        val marginStart = (mDensity * marginStartDp).toInt()
+        if (lp.leftMargin != marginStart || lp.marginStart != marginStart) {
+            lp.setMargins(marginStart, lp.topMargin, lp.rightMargin, lp.bottomMargin)
+            lp.marginStart = marginStart
+            textView.layoutParams = lp
+        }
     }
 
     private fun updateFullSpanSparseMinHeight(holder: BaseThingViewHolder, thing: Thing) {
         if (!isFullSpanThingCard(thing)) return
         if (holder.ivMediaBackground!!.isVisible) return
+        if (holder.llInlineMediaAttachment!!.isVisible) return
         if (holder.flImageAttachment!!.isVisible
             || holder.rvChecklist!!.isVisible
             || holder.rlReminder!!.isVisible
@@ -2039,6 +2194,13 @@ abstract class BaseThingsAdapter(context: Context?) :
         @JvmField val ivMediaCount: ImageView? = f(R.id.iv_thing_media_attachment_count)
         @JvmField val tvMediaCount: TextView? = f(R.id.tv_thing_media_attachment_count)
 
+        @JvmField val llInlineMediaAttachment: LinearLayout? =
+            f(R.id.ll_thing_inline_media_attachment_count)
+        @JvmField val ivInlineMediaCount: ImageView? =
+            f(R.id.iv_thing_inline_media_attachment_count)
+        @JvmField val tvInlineMediaCount: TextView? =
+            f(R.id.tv_thing_inline_media_attachment_count)
+
         @JvmField val llAudioAttachment: LinearLayout? = f(R.id.ll_thing_audio_attachment)
         @JvmField val ivAudioCount: ImageView?    = f(R.id.iv_thing_audio_attachment_count)
         @JvmField val tvAudioCount: TextView?     = f(R.id.tv_thing_audio_attachment_count)
@@ -2097,6 +2259,16 @@ abstract class BaseThingsAdapter(context: Context?) :
         private const val PRIVATE_THING_ICON_NORMAL_DP = 48
         private const val THING_CARD_DEFAULT_PADDING_BOTTOM_DP = 16
         private const val THING_CARD_MEDIA_COUNT_PADDING_BOTTOM_DP = 44
+        private const val THING_CARD_COUNT_ICON_NORMAL_WIDTH_DP = 14
+        private const val THING_CARD_COUNT_ICON_NORMAL_HEIGHT_DP = 14
+        private const val THING_CARD_COUNT_ICON_LARGE_WIDTH_DP = 16
+        private const val THING_CARD_COUNT_ICON_LARGE_HEIGHT_DP = 16
+        private const val THING_CARD_COUNT_ICON_LARGE_TOP_MARGIN_DP = 1
+        private const val THING_CARD_MEDIA_COUNT_ICON_NORMAL_WIDTH_DP = 16
+        private const val THING_CARD_MEDIA_COUNT_ICON_LARGE_WIDTH_DP = 18
+        private const val THING_CARD_MEDIA_COUNT_TEXT_NORMAL_MARGIN_START_DP = 6
+        private const val THING_CARD_MEDIA_COUNT_TEXT_LARGE_MARGIN_START_DP = 10
+        private const val THING_CARD_MEDIA_COUNT_ICON_SHIFT_DP = 1
         private const val FULL_SPAN_IMAGE_MAX_SCREEN_HEIGHT_RATIO = 0.36f
 
         init {

@@ -17,7 +17,6 @@ import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.adapters.ThingsAdapter
-import com.ywwynm.everythingdone.helpers.ThingCardMediaHelper
 import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.views.ActivityHeader
 import com.ywwynm.everythingdone.views.FloatingActionButton
@@ -299,7 +298,7 @@ open class ModeManager(app: App?,
             return false
         }
 
-        return ThingCardMediaHelper.resolveEffectiveMediaSource(thing) != null
+        return true
     }
 
     open fun updateTitleTextSize() {

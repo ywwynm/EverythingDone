@@ -121,6 +121,41 @@
             android:visibility="gone"/>
 
         <LinearLayout
+            android:id="@+id/ll_thing_inline_media_attachment_count"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:visibility="gone"
+            tools:ignore="UseCompoundDrawables">
+
+            <ImageView
+                android:id="@+id/iv_thing_inline_media_attachment_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:paddingLeft="1dp"
+                android:paddingTop="1dp"
+                android:scaleType="fitCenter"
+                android:adjustViewBounds="true"
+                android:contentDescription="@string/cd_image_attachment"
+                android:src="@drawable/card_image_attachment_count"/>
+
+            <TextView
+                android:id="@+id/tv_thing_inline_media_attachment_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:layout_marginStart="8dp"
+                android:layout_marginLeft="8dp"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:textColor="@color/white_66p"
+                android:textSize="11sp"
+                tools:ignore="SmallSp"/>
+
+        </LinearLayout>
+
+        <LinearLayout
             android:id="@+id/ll_thing_audio_attachment"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -295,7 +330,9 @@
             android:layout_gravity="center_vertical"
             android:adjustViewBounds="true"
             android:contentDescription="@string/cd_image_attachment"
-            android:scaleType="centerCrop"
+            android:paddingLeft="1dp"
+            android:paddingTop="1dp"
+            android:scaleType="fitCenter"
             android:src="@drawable/card_image_attachment_count"/>
 
         <TextView

@@ -181,14 +181,18 @@ class ThingsActivity : EverythingDoneBaseActivity() {
     private var mStaggeredGridLayoutManager: ThingsStaggeredLayoutManager? = null
     private var mThingCardAppearancePanel: View? = null
     private var mTvThingCardAppearanceTitle: TextView? = null
+    private var mLlThingCardAppearanceSource: View? = null
     private var mTvThingCardAppearanceSource: TextView? = null
     private var mLlThingCardAppearanceVideoFrame: View? = null
     private var mIvThingCardAppearanceVideoFramePreview: ImageView? = null
     private var mBtThingCardAppearanceVideoFramePrevious: TextView? = null
     private var mBtThingCardAppearanceVideoFrameNext: TextView? = null
     private var mSeekThingCardAppearanceVideoFrame: SeekBar? = null
+    private var mLlThingCardAppearanceSpanControls: View? = null
     private var mBtThingCardAppearanceSpanNormal: TextView? = null
     private var mBtThingCardAppearanceSpanFull: TextView? = null
+    private var mTvThingCardAppearanceMediaPosition: TextView? = null
+    private var mLlThingCardAppearancePlacementControls: View? = null
     private var mBtThingCardAppearancePlacementTop: TextView? = null
     private var mBtThingCardAppearancePlacementBottom: TextView? = null
     private var mBtThingCardAppearancePlacementLeft: TextView? = null
@@ -1147,6 +1151,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         mThingCardAppearancePanel = f(R.id.thing_card_appearance_panel)
         mThingCardAppearancePanel!!.setOnTouchListener { _, _ -> true }
         mTvThingCardAppearanceTitle = f(R.id.tv_thing_card_appearance_title)
+        mLlThingCardAppearanceSource = f(R.id.ll_thing_card_appearance_source)
         mTvThingCardAppearanceSource = f(R.id.tv_thing_card_appearance_source)
         mLlThingCardAppearanceVideoFrame = f(R.id.ll_thing_card_appearance_video_frame)
         mIvThingCardAppearanceVideoFramePreview =
@@ -1156,8 +1161,14 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         mBtThingCardAppearanceVideoFrameNext =
                 f(R.id.bt_thing_card_appearance_video_frame_next)
         mSeekThingCardAppearanceVideoFrame = f(R.id.seek_thing_card_appearance_video_frame)
+        mLlThingCardAppearanceSpanControls =
+                f(R.id.ll_thing_card_appearance_span_controls)
         mBtThingCardAppearanceSpanNormal = f(R.id.bt_thing_card_appearance_span_normal)
         mBtThingCardAppearanceSpanFull = f(R.id.bt_thing_card_appearance_span_full)
+        mTvThingCardAppearanceMediaPosition =
+                f(R.id.tv_thing_card_appearance_media_position)
+        mLlThingCardAppearancePlacementControls =
+                f(R.id.ll_thing_card_appearance_placement_controls)
         mBtThingCardAppearancePlacementTop = f(R.id.bt_thing_card_appearance_placement_top)
         mBtThingCardAppearancePlacementBottom = f(R.id.bt_thing_card_appearance_placement_bottom)
         mBtThingCardAppearancePlacementLeft = f(R.id.bt_thing_card_appearance_placement_left)
@@ -1601,9 +1612,6 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         mThingCardAppearanceMediaSources = ThingCardMediaHelper.getAvailableMediaSources(
                 thing.attachment
         )
-        if (mThingCardAppearanceMediaSources.isEmpty()) {
-            return
-        }
 
         mThingCardAppearancePanelThing = thing
         mThingCardAppearanceOriginal = thing.thingCardAppearance
@@ -1629,23 +1637,59 @@ class ThingsActivity : EverythingDoneBaseActivity() {
     private fun bindThingCardAppearancePanel() {
         val thing = mThingCardAppearancePanelThing ?: return
         val draft = mThingCardAppearanceDraft ?: return
-        val mediaSource = ThingCardMediaHelper.resolveEffectiveMediaSource(
-                thing.attachment,
-                draft.mediaSourceKey
-        ) ?: return
+        val hasMediaSources = mThingCardAppearanceMediaSources.isNotEmpty()
+        val mediaSourceHidden = hasMediaSources &&
+                ThingCardAppearance.isMediaSourceNone(draft.mediaSourceKey)
+        val mediaSource = if (hasMediaSources) {
+            getCurrentThingCardAppearanceMediaSource()
+        } else {
+            null
+        }
+        if (hasMediaSources && !mediaSourceHidden && mediaSource == null) return
 
         mBindingThingCardAppearancePanel = true
         mTvThingCardAppearanceTitle!!.text = getString(R.string.thing_card_appearance_panel_title)
         applyThingCardAppearanceAccentText(mTvThingCardAppearanceTitle)
 
-        mTvThingCardAppearanceSource!!.text = getThingCardAppearanceSourceText(
-                mediaSource,
-                draft.mediaSourceKey == null
-        )
+        mLlThingCardAppearanceSource!!.visibility =
+                if (hasMediaSources) View.VISIBLE else View.GONE
+        if (hasMediaSources) {
+            mTvThingCardAppearanceSource!!.text = if (mediaSourceHidden) {
+                getString(R.string.thing_card_appearance_source_none)
+            } else {
+                getThingCardAppearanceSourceText(
+                        mediaSource!!,
+                        draft.mediaSourceKey == null
+                )
+            }
+        }
         bindThingCardAppearanceAccentControls()
+        if (!hasMediaSources || mediaSourceHidden) {
+            bindThingCardAppearanceSpanControls(draft)
+            bindThingCardAppearanceMediaDependentControls(true)
+            mBindingThingCardAppearancePanel = false
+            return
+        }
+        bindThingCardAppearanceMediaDependentControls(false)
         bindThingCardAppearanceVideoFrameControls()
         bindThingCardAppearanceControls(draft)
         mBindingThingCardAppearancePanel = false
+    }
+
+    private fun bindThingCardAppearanceMediaDependentControls(mediaSourceHidden: Boolean) {
+        val rootVisibility = if (mediaSourceHidden) View.GONE else View.VISIBLE
+        mLlThingCardAppearanceVideoFrame!!.visibility = View.GONE
+        mLlThingCardAppearanceSpanControls!!.visibility = View.VISIBLE
+        mTvThingCardAppearanceMediaPosition!!.visibility = rootVisibility
+        mLlThingCardAppearancePlacementControls!!.visibility = rootVisibility
+        if (mediaSourceHidden) {
+            clearThingCardAppearanceVideoFramePreview()
+            mLlThingCardAppearanceSideWidth!!.visibility = View.GONE
+            mBtThingCardAppearancePreciseCrop!!.visibility = View.GONE
+            mLlThingCardAppearanceThumbnailRatio!!.visibility = View.GONE
+            mLlThingCardAppearanceBackgroundControls!!.visibility = View.GONE
+            mThingCardAppearanceBackgroundHeightSliderMinPercent = 0
+        }
     }
 
     private fun bindThingCardAppearanceVideoFrameControls() {
@@ -1732,12 +1776,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
     private fun bindThingCardAppearanceControls(draft: ThingCardAppearance) {
         val fullSpan = draft.spanMode == Thing.THING_CARD_SPAN_FULL
         val mediaBackgroundEnabled = draft.mediaBackgroundEnabled
-        bindThingCardAppearanceChoice(
-                mBtThingCardAppearanceSpanNormal!!,
-                draft.spanMode == Thing.THING_CARD_SPAN_NORMAL,
-                true
-        )
-        bindThingCardAppearanceChoice(mBtThingCardAppearanceSpanFull!!, fullSpan, true)
+        bindThingCardAppearanceSpanControls(draft)
 
         val placement = draft.imagePlacement
         val sidePlacement = placement == Thing.THING_CARD_IMAGE_PLACEMENT_LEFT ||
@@ -1797,6 +1836,17 @@ class ThingsActivity : EverythingDoneBaseActivity() {
 
         bindThingCardAppearanceCropControls(draft, fullSpan, sidePlacement)
         bindThingCardAppearanceBackgroundControls(draft)
+    }
+
+    private fun bindThingCardAppearanceSpanControls(draft: ThingCardAppearance) {
+        val fullSpan = draft.spanMode == Thing.THING_CARD_SPAN_FULL
+        mLlThingCardAppearanceSpanControls!!.visibility = View.VISIBLE
+        bindThingCardAppearanceChoice(
+                mBtThingCardAppearanceSpanNormal!!,
+                draft.spanMode == Thing.THING_CARD_SPAN_NORMAL,
+                true
+        )
+        bindThingCardAppearanceChoice(mBtThingCardAppearanceSpanFull!!, fullSpan, true)
     }
 
     private fun bindThingCardAppearanceCropControls(
@@ -2186,6 +2236,15 @@ class ThingsActivity : EverythingDoneBaseActivity() {
                             source.typePathName
                     )
             )
+        }
+        items.add(
+                ThingCardAppearanceSourcePicker.Item(
+                        getString(R.string.thing_card_appearance_source_none),
+                        ThingCardAppearance.MEDIA_SOURCE_NONE
+                )
+        )
+        if (ThingCardAppearance.isMediaSourceNone(draft.mediaSourceKey)) {
+            pickedIndex = items.size - 1
         }
 
         mThingCardAppearanceSourcePicker?.dismiss()
