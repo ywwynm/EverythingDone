@@ -88,6 +88,12 @@ publishing a debug update, not creating a Git commit. Only create a Git commit
 when the user explicitly asks for `commit`, `git commit`, or says the tested
 version has no obvious bugs and is ready to commit.
 
+For small bug fixes, after implementing the fix and running the appropriate
+verification, publish the debug update directly by default. The user has granted
+standing permission for the Gradle debug update publish task in this small-bug
+workflow; still respect sandbox/escalation policy prompts if the environment
+requires them.
+
 ## Memory and feature documentation
 
 - Keep `memory/*.md` lightweight and cross-feature. Do not store detailed feature implementation history here.

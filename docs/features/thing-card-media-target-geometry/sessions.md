@@ -2,6 +2,40 @@
 
 Migrated from global `memory/sessions.md` on 2026-06-06. This file keeps feature-scoped history out of startup memory while preserving the original notes.
 
+## 2026-06-06 - Suppress appearing animation during appearance preview after rotation
+
+- User reported that opening the Thing Card Appearance panel and adjusting media
+  ratio normally does not play `thingsAppearingAnimation`, but after rotating
+  the screen, adjusting the same card makes only that card play the upward
+  appearing animation.
+- Diagnosed the cause in `ThingsActivity.onConfigurationChanged()`: rotation
+  reset `shouldThingsAnimWhenAppearing` to `true`, and subsequent live-preview
+  changes call `notifyItemChanged()` only for the selected appearance-preview
+  card.
+- Kept the existing rotation behavior for normal list use, but when the
+  appearance panel is already showing, configuration changes leave the adapter
+  appearing-animation flag disabled.
+- Added a second guard in `refreshThingCardAppearancePreviewNow()` so every
+  appearance preview rebind disables list appearing animation before notifying
+  the selected item.
+- Verified with `git diff --check` and
+  `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`.
+- Published debug update `202606061322` with
+  `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md"
+  --console=plain --no-configuration-cache`.
+
+## 2026-06-06 - Tablet width cap for appearance panel and crop dialog
+
+- User reported that the Thing Card Appearance UI and precise cover crop dialog
+  use too much horizontal space on tablets when they expand to match-parent
+  width.
+- Added `thing_card_appearance_max_width` at `480dp`.
+- Constrained the bottom appearance panel to `min(available width, 480dp)`,
+  centered it at the bottom, and recompute its width when opened or when
+  configuration changes.
+- Constrained the precise crop editor dialog to the same width cap and reused
+  the constrained width for crop-preview height calculation.
+
 ## 2026-06-06 - Cover preview flicker fix
 
 - Implemented the ordinary thumbnail / side-panel cover-image half of the

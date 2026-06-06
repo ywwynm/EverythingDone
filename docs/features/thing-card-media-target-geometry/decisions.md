@@ -2,6 +2,25 @@
 
 Migrated from global `memory/decisions.md` on 2026-06-06. This file keeps feature-scoped history out of startup memory while preserving the original notes.
 
+## 2026-06-06 - Suppress list appearing animation during appearance previews
+
+Thing Card Appearance live preview refreshes should not trigger the home-list
+`thingsAppearingAnimation`, including after configuration changes. The preview
+workflow rebinds only the selected card with `notifyItemChanged`, so if the
+adapter-level appearing-animation flag is left enabled after rotation, only the
+actively edited Thing animates upward while other cards remain stable. While the
+appearance panel is showing, configuration changes and preview refreshes should
+keep that adapter flag disabled.
+
+## 2026-06-06 - Cap Thing Card Appearance editor surfaces at 480dp
+
+The home-list Thing Card Appearance bottom panel and the precise crop editor
+dialog should not expand to full tablet width. Keep their phone behavior by
+using the available window width on narrow screens, but cap the editor surface
+width at `480dp` on larger screens. The bottom panel remains bottom-attached
+and centered, while the crop editor uses the same constrained width for both
+its window and preview-height calculation.
+
 ## 2026-05-28 - App update flow starts as a debug test update channel
 
 The About-screen "check for updates" feature should first be designed as a

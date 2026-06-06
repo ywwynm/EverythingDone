@@ -2,6 +2,21 @@
 
 Migrated from global `memory/sessions.md` on 2026-06-06. This file keeps feature-scoped history out of startup memory while preserving the original notes.
 
+## 2026-06-06 - DateTime dialog tab strip start alignment
+
+User reported that the DateTime dialog tab row ("某个时刻" / "一段时间之后" /
+"重复") looked centered as a group. Updated `fragment_date_time.xml` so the
+`TabLayout` keeps `tabMode="scrollable"` but uses `tabGravity="start"`, aligning
+the tab strip itself to the left while preserving each tab's internal label
+alignment and existing selected-state/ripple styling.
+
+Follow-up feedback noted that aligning the first tab pill's left edge with the
+content column still made the tab label itself look indented. Adjusted the
+`TabLayout` start margin from `20dp` to `4dp`, allowing the pill/ripple to extend
+left while the first tab label visually aligns with the dialog content below.
+After visual testing, `4dp` was too aggressive, so the start margin was relaxed
+to `12dp`.
+
 ## 2026-05-27 - Rounded App Chrome dialogs and popup pickers
 
 Updated EverythingDone's custom App Chrome dialog and popup surfaces to render

@@ -5,7 +5,7 @@
     android:id="@+id/thing_card_appearance_panel"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_gravity="bottom"
+    android:layout_gravity="bottom|center_horizontal"
     android:layout_marginLeft="@dimen/thing_card_outer_spacing"
     android:layout_marginRight="@dimen/thing_card_outer_spacing"
     android:layout_marginBottom="@dimen/thing_card_outer_spacing"

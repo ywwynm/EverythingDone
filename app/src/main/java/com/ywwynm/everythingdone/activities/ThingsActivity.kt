@@ -1335,6 +1335,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         finishNewItemShiningBorderAnimationIfNeeded()
+        val thingCardAppearancePanelShowing = isThingCardAppearancePanelShowing()
         dismissSnackbars()
         mColorPicker!!.dismiss()
 
@@ -1344,7 +1345,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         }
 
         mRecyclerView!!.visibility = View.INVISIBLE
-        mAdapter!!.setShouldThingsAnimWhenAppearing(true)
+        mAdapter!!.setShouldThingsAnimWhenAppearing(!thingCardAppearancePanelShowing)
         mRecyclerView!!.visibility = View.VISIBLE
         computeSpanCount()
         if (mStaggeredGridLayoutManager != null) {
@@ -1354,6 +1355,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
             mRecyclerView!!.scrollToPosition(0)
         }
         mAdapter!!.notifyDataSetChanged()
+        updateThingCardAppearancePanelWidth()
 
         mModeManager!!.updateTitleTextSize()
         if (mModeManager!!.getCurrentMode() != ModeManager.SELECTING && !App.isSearching
@@ -1647,6 +1649,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         if (panel.visibility != View.VISIBLE) {
             mThingCardAppearancePanelOriginalPaddingBottom = mRecyclerView!!.paddingBottom
         }
+        updateThingCardAppearancePanelWidth()
         mAdapter!!.setThingCardSurfaceAvailableHeight(
                 getThingCardAppearancePreviewAvailableHeight()
         )
@@ -1655,6 +1658,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
             panel.visibility = View.VISIBLE
         }
         panel.post {
+            updateThingCardAppearancePanelWidth()
             updateRecyclerViewBottomPaddingForThingCardAppearancePanel()
         }
     }
@@ -2673,7 +2677,9 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         val density = resources.displayMetrics.density
         val windowHorizontalMargin = (density * 16).toInt()
         val contentHorizontalMargin = (density * 16).toInt()
-        val dialogWidth = DisplayUtil.getScreenSize(this).x - windowHorizontalMargin * 2
+        val dialogWidth = getThingCardAppearanceConstrainedWidth(
+                DisplayUtil.getScreenSize(this).x - windowHorizontalMargin * 2
+        )
         val root = LinearLayout(this)
         root.orientation = LinearLayout.VERTICAL
         root.setBackgroundResource(R.drawable.bg_app_chrome_surface_elevated_rounded)
@@ -2856,6 +2862,31 @@ class ThingsActivity : EverythingDoneBaseActivity() {
                 dialogWidth,
                 ViewGroup.LayoutParams.WRAP_CONTENT
         )
+    }
+
+    private fun updateThingCardAppearancePanelWidth() {
+        val panel = mThingCardAppearancePanel ?: return
+        val lp = panel.layoutParams as? FrameLayout.LayoutParams ?: return
+        val parentWidth = (panel.parent as? View)?.width ?: 0
+        val containerWidth = if (parentWidth > 0) {
+            parentWidth
+        } else {
+            DisplayUtil.getScreenSize(this).x
+        }
+        val availableWidth = containerWidth - lp.leftMargin - lp.rightMargin
+        val targetWidth = getThingCardAppearanceConstrainedWidth(availableWidth)
+        val targetGravity = android.view.Gravity.BOTTOM or
+                android.view.Gravity.CENTER_HORIZONTAL
+        if (lp.width != targetWidth || lp.gravity != targetGravity) {
+            lp.width = targetWidth
+            lp.gravity = targetGravity
+            panel.layoutParams = lp
+        }
+    }
+
+    private fun getThingCardAppearanceConstrainedWidth(availableWidth: Int): Int {
+        val maxWidth = resources.getDimensionPixelSize(R.dimen.thing_card_appearance_max_width)
+        return min(max(1, availableWidth), maxWidth)
     }
 
     private fun getThingCardCropEditorPreviewHeight(
@@ -3672,6 +3703,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         recyclerView.itemAnimator?.endAnimations()
 
         finishNewItemShiningBorderAnimationIfNeeded()
+        mAdapter!!.setShouldThingsAnimWhenAppearing(false)
         mAdapter!!.notifyItemChanged(position)
     }
 
