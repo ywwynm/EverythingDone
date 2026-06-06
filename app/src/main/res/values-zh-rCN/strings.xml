@@ -369,7 +369,7 @@
     <string name="thing_card_appearance_mode_thumbnail">缩略图</string>
     <string name="thing_card_appearance_media_position">图片/视频位置</string>
     <string name="thing_card_appearance_mode_background">背景</string>
-    <string name="thing_card_appearance_side_width_format">侧边图片宽度 · %1$d%%</string>
+    <string name="thing_card_appearance_cover_image_width_format">封面图片宽度 · %1$d%%</string>
     <string name="thing_card_appearance_precise_crop">裁切封面图片</string>
     <string name="thing_card_appearance_precise_crop_video">裁切封面视频</string>
     <string name="thing_card_appearance_thumbnail_shape">封面图片比例</string>

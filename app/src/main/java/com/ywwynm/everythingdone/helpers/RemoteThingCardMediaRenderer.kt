@@ -69,12 +69,13 @@ object RemoteThingCardMediaRenderer {
         context: Context,
         thing: Thing,
         targetWidth: Int,
-        targetHeight: Int
+        targetHeight: Int,
+        presentationKey: String = ThingCardAppearance.PRESENTATION_THUMBNAIL
     ): ThumbnailRequest? {
         val source = resolveRenderableMediaSource(context, thing) ?: return null
         val width = max(MIN_TARGET_SIZE, targetWidth)
         val height = max(MIN_TARGET_SIZE, targetHeight)
-        val crop = getThingCardThumbnailCrop(thing, source)
+        val crop = getThingCardThumbnailCrop(thing, source, presentationKey)
         val frameMs = getThingCardVideoFrameMs(thing, source)
         val sourceBitmap = decodeSourceBitmap(source, crop.scale, width, height, frameMs)
             ?: return null
@@ -119,28 +120,41 @@ object RemoteThingCardMediaRenderer {
 
     private fun getThumbnailSourceAspectRatio(thing: Thing): Float {
         val source = ThingCardMediaHelper.resolveEffectiveMediaSource(thing)
+        val defaultRatio = if (thing.thingCardAppearance.spanMode == Thing.THING_CARD_SPAN_FULL) {
+            16.0 / 9.0
+        } else {
+            4.0 / 3.0
+        }
         val sourceAspectRatio = source?.let {
             thing.thingCardAppearance.sources[it.typePathName]
-                ?.thumbnailCrop
+                ?.thumbnailCropWithTargetRatio(defaultRatio)
                 ?.sourceAspectRatio
         }
         if (sourceAspectRatio != null && sourceAspectRatio > 0.0) {
             return sourceAspectRatio.toFloat()
         }
-        return if (thing.thingCardAppearance.spanMode == Thing.THING_CARD_SPAN_FULL) {
-            16f / 9f
-        } else {
-            4f / 3f
-        }
+        return defaultRatio.toFloat()
     }
 
     private fun getThingCardThumbnailCrop(
         thing: Thing,
-        mediaSource: ThingCardMediaHelper.MediaSource
+        mediaSource: ThingCardMediaHelper.MediaSource,
+        presentationKey: String
     ): ThingCardAppearance.ThingCardThumbnailCrop {
-        return thing.thingCardAppearance.sources[mediaSource.typePathName]
-            ?.thumbnailCrop
-            ?: ThingCardAppearance.ThingCardThumbnailCrop()
+        val sourceAppearance = thing.thingCardAppearance.sources[mediaSource.typePathName]
+        return if (presentationKey == ThingCardAppearance.PRESENTATION_SIDE_PANEL) {
+            sourceAppearance?.sidePanelCrop()
+                ?: ThingCardAppearance.ThingCardThumbnailCrop()
+        } else {
+            val defaultRatio =
+                if (thing.thingCardAppearance.spanMode == Thing.THING_CARD_SPAN_FULL) {
+                    16.0 / 9.0
+                } else {
+                    4.0 / 3.0
+                }
+            sourceAppearance?.thumbnailCropWithTargetRatio(defaultRatio)
+                ?: ThingCardAppearance.ThingCardThumbnailCrop(sourceAspectRatio = defaultRatio)
+        }
     }
 
     private fun getThingCardMediaBackgroundCrop(
@@ -148,7 +162,7 @@ object RemoteThingCardMediaRenderer {
         mediaSource: ThingCardMediaHelper.MediaSource
     ): ThingCardAppearance.ThingCardMediaBackgroundCrop {
         return thing.thingCardAppearance.sources[mediaSource.typePathName]
-            ?.backgroundCrop
+            ?.mediaBackgroundCrop()
             ?: ThingCardAppearance.ThingCardMediaBackgroundCrop()
     }
 
@@ -157,7 +171,7 @@ object RemoteThingCardMediaRenderer {
         mediaSource: ThingCardMediaHelper.MediaSource
     ): Double {
         val value = thing.thingCardAppearance.sources[mediaSource.typePathName]
-            ?.mediaBackgroundMaskStrength
+            ?.mediaBackgroundMaskStrength()
             ?: ThingCardAppearance.DEFAULT_MASK_STRENGTH
         if (value.isNaN() || value.isInfinite()) {
             return ThingCardAppearance.DEFAULT_MASK_STRENGTH

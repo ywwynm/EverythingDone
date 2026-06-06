@@ -1,5 +1,144 @@
 # Sessions
 
+## 2026-06-06 - AppWidget resize option change refresh
+
+- Added direct `onAppWidgetOptionsChanged` handling for single-Thing
+  AppWidgets and Things List AppWidgets.
+- Single-Thing widgets now reuse the normal update path when launcher resize
+  options change, so RemoteViews and pre-rendered media bitmaps are regenerated
+  with the latest `AppWidgetManager` size options.
+- Things List widgets now notify collection row data changed and update the
+  outer RemoteViews when launcher resize options change, so visible rows can be
+  re-created with the latest widget size options.
+- Verified with `git diff --check` and
+  `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`.
+- Published debug update `202606060214` with
+  `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md"
+  --console=plain --no-configuration-cache`.
+
+## 2026-06-06 - AppWidget media clamp reason logs
+
+- Added structured debug logs around AppWidget media projection guardrails in
+  `AppWidgetHelper`.
+- Media-background logs now distinguish content-width bitmap dimension limits,
+  list media-background target-height floors/caps, list media-background bitmap
+  dimension caps, and list media-background pixel-budget caps.
+- Side-panel logs now distinguish invalid/normalised target ratios, min/max
+  side-media width guardrails, and best-effort list side-media projection.
+- Marked the execution checklist item for debug-friendly clamp reason
+  boundaries as complete.
+- Verified with `git diff --check` and
+  `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`.
+- Published debug update `202606060201` with
+  `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md"
+  --console=plain --no-configuration-cache`.
+
+## 2026-06-06 - Cover image width string resource cleanup
+
+- Renamed the Thing Card Appearance cover-width string resource from the legacy
+  `thing_card_appearance_side_width_format` key to
+  `thing_card_appearance_cover_image_width_format` across all locale resource
+  files.
+- Updated `ThingsActivity` to reference the new string resource key.
+- Marked the Phase 8 execution checklist item for removing old side-width
+  string resources as complete.
+
+## 2026-06-06 - Things List media-background row height projection
+
+- User reported that the same media-background Thing preserved crop center in a
+  4x2 single-Thing AppWidget but appeared stretched in a Things List AppWidget
+  row.
+- Diagnosed the cause as a surface mismatch: single-Thing widgets render the
+  media-background bitmap to the fixed widget surface, while Things List rows
+  previously rendered a ratio-projected bitmap but let the actual row height be
+  driven only by text content. The row then compressed the bitmap through
+  `fitXY`.
+- Updated `AppWidgetHelper` so Things List media-background rows compute an
+  effective row target height from the saved media-background target ratio and
+  estimated natural content height, then set that as the row root
+  `minimumHeight` through RemoteViews.
+- Kept the list media-background bitmap pixel-budget clamp. The pre-rendered
+  bitmap is still downscaled for RemoteViews safety, but keeps the same target
+  aspect ratio as the reserved row surface.
+- Verified with `git diff --check` and
+  `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`.
+- Published debug update `202606060130` with
+  `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md"
+  --console=plain --no-configuration-cache`.
+
+## 2026-06-05 - Remote AppWidget fixed-surface projection refinement
+
+- User reported widget and home-list regressions after the first Remote Thing
+  Card Appearance debug build: left/right media did not fill card height,
+  top/bottom widget media with tall ratios could consume the whole widget, and
+  the single-Thing widget configuration picker did not reflect wide cards,
+  placement, media backgrounds, or other Thing Card Appearance choices.
+- Resolved that left/right Thing Card Media is a full-height side media panel
+  across home-list cards, Things List AppWidget rows, and single-Thing
+  AppWidgets.
+- Resolved that saved Thing Card Appearance remains unchanged in the database.
+  AppWidgets render a Thing Card Surface Projection of the saved appearance, and
+  single-Thing widgets may clamp media target height to fit their fixed widget
+  surface without writing those clamps back to the Thing.
+- Resolved that single-Thing AppWidget top/bottom media projection is
+  content-floor first: reserve title/private state, at least one body/checklist
+  line when present, required reminder/habit/state/action regions, and bottom
+  padding before assigning the remaining height to media.
+- Resolved that Things List AppWidget rows do not need a product-level row-height
+  clamp for tall top/bottom media ratios because the list widget already scrolls
+  through collection rows. Rows may grow to honor the saved desired media ratio,
+  subject to hard RemoteViews bitmap/IPC and launcher-compatibility caps.
+- Clarified that hard safety caps are platform transport limits, not visual row
+  height limits: first try to honor saved row media ratios, then reduce or
+  degrade only when bitmap size, RemoteViews IPC, or launcher compatibility would
+  make the row unsafe to update.
+- Resolved the single-Thing widget configuration split: the candidate list
+  should reuse home-list Thing Card rendering for recognition, while the
+  post-selection preview should render the actual single-Thing AppWidget
+  projection with widget alpha, size/aspect, square widget chrome, and
+  RemoteViews-compatible media projection.
+- Resolved AppWidget size preset expansion up to 6 cells for tablets and
+  large-grid launchers. Single-Thing keeps existing 1x1 through 4x4 square
+  entries and adds 4x2, 2x4, 4x3, 3x4, 5x2, 2x5, 5x3, 3x5, 5x4, 4x5, 5x5,
+  6x2, 2x6, 6x3, 3x6, 6x4, 4x6, 6x5, 5x6, and 6x6; extra 1xN/Nx1 media presets
+  are intentionally not added. Things List keeps the existing 3x3 entry and
+  adds 4x4, 5x4, 4x5, 5x5, 6x4, 4x6, 6x5, 5x6, and 6x6. Existing providers
+  remain resizable.
+- Resolved AppWidget Size Preset labeling: existing provider labels may be
+  renamed to include their cell shape because label changes do not affect placed
+  widget instance identity. Existing single-Thing entries become 1x1, 2x2, 3x3,
+  and 4x4; new single-Thing entries are labeled with their exact shapes up to
+  6x6; Things List uses 3x3 for the existing provider and exact-shape labels for
+  new entries up to 6x6.
+- Resolved AppWidget Size Preset sizing metadata: each provider should declare
+  Android 12+ `targetCellWidth` / `targetCellHeight` plus `minWidth` /
+  `minHeight` fallbacks for Android 11 and below and launchers that still infer
+  picker size from minimum dimensions.
+- Implemented new single-Thing provider classes and Things List provider
+  classes up to 6x6. New single-Thing presets share
+  `BaseThingWidgetConfiguration`, which now resolves the actual provider class
+  from `AppWidgetManager` before saving widget size.
+- Implemented RemoteViews projection refinements: single-Thing top/bottom media
+  now uses a content-floor-first height budget, Things List top/bottom media
+  can grow rows up to hard bitmap safety caps, side media slots fill the row or
+  widget content height, and media backgrounds render across the single-Thing
+  widget surface.
+- Updated the single-Thing widget configuration screen so the candidate list
+  honors home-list full-span Thing Cards and the post-selection preview applies
+  the actual single-Thing RemoteViews projection at the selected alpha and
+  provider aspect.
+- Verified with `.\gradlew.bat :app:assembleDebug`.
+- Published debug update `202606050916` with
+  `.\gradlew.bat :app:publishDebugUpdate
+  "-PdebugUpdateNotesFile=memory/debug-update-notes.md"` after rerunning with
+  elevated permissions because the sandbox denied `.gradle/configuration-cache.lock`.
+- Resolved that arbitrary nested widget scrolling is not the default solution
+  for oversized media. Things List rows rely on the parent collection scroller,
+  and redesigning the single-Thing AppWidget as a collection widget is deferred.
+- Updated `CONTEXT.md`, `memory/decisions.md`,
+  `docs/plans/REMOTE_THING_CARD_APPEARANCE_PLAN.md`, and
+  `memory/followups.md`.
+
 ## 2026-05-28 - Detail camera colour sampling and colour information
 
 Implemented DetailActivity colour sampling and colour information after a
@@ -4840,3 +4979,371 @@ Verification:
   `http://120.25.194.207/everythingdone-updates/debug/latest.json`.
 - Committed the hidden-media and count-icon follow-up changes immediately
   after publish.
+
+# 2026-06-05 - Remote Thing Card Appearance feasibility analysis
+
+- User asked to analyze porting the recently implemented Thing Card Appearance
+  features to AppWidgets and notifications, with a preference for complete
+  support even if implementation takes longer.
+- Read project memory, `.agents/rules/`, `CONTEXT.md`,
+  `docs/plans/THING_CARD_APPEARANCE_PLAN.md`,
+  `docs/plans/THING_CARD_APPEARANCE_EXECUTION.md`, the unified appearance ADR,
+  `AppWidgetHelper`, widget layouts, `SystemNotificationUtil`, and relevant
+  home-list card rendering paths.
+- Confirmed existing v1 scope deliberately left AppWidget image regions and
+  system notification big-picture behavior unchanged, but treated that as future
+  scope rather than a hard product rejection.
+- Initial conclusion: AppWidget support can likely implement many appearance
+  choices through RemoteViews plus app-side bitmap pre-rendering, but exact side
+  media width and media-background height are constrained on API 26-30 because
+  dynamic RemoteViews layout sizing APIs arrive in API 31. System notifications
+  are much more constrained: target SDK 36 prevents fully custom notifications,
+  custom content is RemoteViews-based and height-limited, and standard
+  BigPictureStyle can realistically support selected media, crop, and video
+  frame but not the whole card layout/background model.
+- Updated `memory/preferences.md` to record the user's completeness-first
+  preference for this remote-surface porting discussion.
+- After iterative grilling, resolved scope and wrote
+  `docs/plans/REMOTE_THING_CARD_APPEARANCE_PLAN.md`, covering support matrix,
+  rendering strategy, degradation rules, implementation phases, and verification
+  checklist.
+
+## 2026-06-05 - Remote Thing Card Appearance implementation pass
+
+- Implemented `RemoteThingCardMediaRenderer` for remote surfaces. It resolves
+  the effective Thing Card media source, checks image/video permissions,
+  decodes selected images or exact video frames with
+  `MediaMetadataRetriever.OPTION_CLOSEST`, applies saved thumbnail/background
+  crop values, and bakes media-background mask strength into the output bitmap.
+- Updated standard Thing notifications to use the renderer for
+  `BigPictureStyle`, so selected source, thumbnail crop, and saved video frame
+  are respected. Full custom notification card layout remains out of scope.
+- Reworked single-Thing and Things-list AppWidget layouts with dedicated
+  top/bottom/left/right media slots and a media-background count overlay.
+- Updated `AppWidgetHelper` so AppWidgets follow Thing Card Appearance for
+  selected media source, top/bottom/left/right placement, side width, thumbnail
+  crop ratio/focus, media backgrounds, background mask, and video frame. The
+  structured RemoteViews text/checklist/state/action regions remain
+  interactive.
+- AppWidget side media width is expressed through the pre-rendered bitmap's
+  intrinsic width plus `wrap_content` side slots, avoiding a dependency on
+  newer RemoteViews layout-sizing APIs.
+- Media-background rendering now degrades back to normal foreground media if
+  the background bitmap cannot be produced, rather than hiding media on a plain
+  Thing background.
+
+Verification:
+- `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`
+  passed after implementation and again after the side-width layout adjustment.
+- No launcher/widget or notification visual smoke test was run on a device in
+  this session.
+
+Publish:
+- Updated `memory/debug-update-notes.md` with Chinese debug update notes for the
+  remote Thing Card Appearance widget/notification port.
+- The first sandboxed
+  `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`
+  attempt reached `:app:publishDebugUpdate` but timed out during the upload
+  phase.
+- Re-ran the same command with elevated permissions so `ssh`/`scp` could access
+  the configured update server. The task passed and published debug update
+  `202606050729` to
+  `http://120.25.194.207/everythingdone-updates/debug/latest.json`.
+
+## 2026-06-05 - Remote widget appearance follow-up fixes
+
+- User reported three follow-up problems after testing the remote Thing Card
+  Appearance widget build:
+  - the single-Thing widget preview showed only a gray background;
+  - left/right media layouts in single-Thing widgets and Things-list widget rows
+    still left reminder, habit, state, and action sections full width instead
+    of keeping them in the non-media content column;
+  - custom Thing Card Appearance operations needed a check for widget refresh.
+- Diagnosed the preview issue as a `RemoteViews.apply()` failure path in
+  `BaseThingWidgetConfiguration`: exceptions were printed but the preview
+  container stayed empty.
+- Updated `app_widget_item_thing.xml` so `ll_reminder_habit_state` and
+  `view_thing_padding_bottom` live inside `ll_thing_text_content_widget`. This
+  makes Things-list widget rows use the same media-column/content-column shape
+  as home cards for left/right media.
+- Updated `app_widget_thing.xml` so `ll_reminder_habit_state`,
+  `ll_thing_action`, and `view_thing_padding_bottom` live inside the single
+  widget text content column, and removed the old root-level bottom anchor.
+- Updated `BaseThingWidgetConfiguration.kt` so the single-widget preview still
+  tries the actual widget `RemoteViews` first, but falls back to a single local
+  `card_thing` preview if applying the `RemoteViews` fails. The fallback keeps
+  provider-sized preview geometry, alpha background tinting, full-span card
+  support, media placement, and media backgrounds visible instead of leaving a
+  gray blank screen.
+- Updated `ThingsActivity.confirmThingCardAppearancePanel()` to refresh the
+  edited single-Thing widgets, all Things-list widgets, and the ongoing Thing
+  notification immediately after persisting the confirmed appearance draft.
+- Recorded the refresh decision in `memory/decisions.md`.
+
+Verification:
+- `git diff --check` passed with only the repository's existing LF/CRLF
+  warnings.
+- `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`
+  passed.
+- The first sandboxed
+  `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`
+  attempt timed out during `:app:publishDebugUpdate`.
+- Re-ran the same publish command with elevated permissions. It passed and
+  published debug update `202606051046` to
+  `http://120.25.194.207/everythingdone-updates/debug/latest.json`.
+
+## 2026-06-05 - Widget preview rounding and side media aspect hint
+
+- User agreed to two follow-up implementation directions:
+  - the single-Thing widget configuration preview should prioritise the actual
+    provider-sized RemoteViews/widget surface rather than expanding or scrolling
+    to show all Thing content;
+  - side media in widgets should use a derived final display aspect ratio hint
+    where possible, with the saved side-width percent kept as a clamp/fallback.
+- Updated `BaseThingWidgetConfiguration.kt`:
+  - installs a rounded outline on `fl_app_widget_preview` and enables
+    `clipToOutline`, so both actual RemoteViews previews and fallback previews
+    are clipped to the Thing Card corner radius;
+  - disables vertical scrolling in the fallback single-card RecyclerView, so
+    fallback preview also behaves like a fixed widget frame.
+- Updated `ThingCardAppearance.SourceAppearance` with optional
+  `sideMediaDisplayAspectRatioHint`, including JSON read/write support with
+  old-data compatibility.
+- Updated `ThingsActivity.confirmThingCardAppearancePanel()`:
+  - before persisting the confirmed draft, it captures the currently visible
+    home-card side-media width/height ratio when the draft uses left/right media
+    and the side media view has been measured;
+  - clears an old hint for the current source when the confirmed draft no
+    longer uses left/right foreground media;
+  - leaves the hint absent when the view cannot be measured, preserving the old
+    percentage-based widget behaviour.
+- Updated `AppWidgetHelper` side-media sizing:
+  - single-Thing widgets use fixed widget height plus the hint to infer side
+    media width, clamped by the configured min/max side-width percent;
+  - Things-list widget rows use side width plus the hint to infer media height;
+  - widgets fall back to the previous side-width percent logic when no hint is
+    available.
+- Recorded the design rule in `memory/decisions.md` and the user's
+  discuss-before-implementation preference in `memory/preferences.md`.
+
+Verification:
+- `git diff --check` passed with only the repository's existing LF/CRLF
+  warnings.
+- `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`
+  passed.
+- The first sandboxed
+  `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`
+  attempt timed out during `:app:publishDebugUpdate`.
+- Re-ran the same publish command with elevated permissions. It passed and
+  published debug update `202606051117` to
+  `http://120.25.194.207/everythingdone-updates/debug/latest.json`.
+
+## 2026-06-05 - Things List widget side media geometry fix
+
+- User provided a root-cause analysis for left/right media stretching in Things
+  List widgets:
+  - list widget rows were still using an old 320dp fallback width in some
+    cases, so `sideMediaWidthPercent` could become too large for smaller
+    widgets;
+  - `getThingsListWidgetSideMediaSlotTargetHeight()` fell back to thumbnail
+    source aspect ratio, which is appropriate for top/bottom thumbnails but not
+    for full-height side panels;
+  - side `ImageView`s used `fitXY`, so any bitmap/layout mismatch became
+    non-uniform media stretching.
+- Adjusted the diagnosis slightly: `RemoteViewsFactory.getViewAt()` cannot
+  access the parent collection row's measured width directly, so the
+  implementation resolves the concrete list widget provider from `appWidgetId`
+  and uses launcher options first, then provider preset defaults as the width
+  fallback.
+- Updated `AppWidgetHelper.kt`:
+  - resolves the actual Things List provider class in
+    `createRemoteViewsForThingsListItem()` instead of hardcoding
+    `ThingsListWidget`;
+  - derives default widget width/height from both single-Thing and Things List
+    provider cell spans;
+  - replaces the Things List side-media no-hint height fallback with a content
+    projection estimate based on title/content/checklist/audio/reminder/habit/
+    state rows, then clamps only to the RemoteViews hard bitmap safety cap;
+  - keeps the saved side-media display aspect hint path when it exists.
+- Updated `app_widget_item_thing.xml` and `app_widget_thing.xml` so left/right
+  side media `ImageView`s use `centerCrop` instead of `fitXY`.
+- Recorded the side-media fallback geometry decision in `memory/decisions.md`.
+
+Verification:
+- `git diff --check` passed with only the repository's existing LF/CRLF
+  warnings.
+- The first sandboxed
+  `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`
+  attempt failed because the sandbox blocked Kotlin daemon temp-file access
+  under `C:\Users\ywwynm\AppData\Local\kotlin\daemon`.
+- Re-ran the same assemble command with elevated permissions. It passed.
+
+Publish:
+- Ran
+  `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`
+  with elevated permissions. It first published debug update `202606051259`.
+- Corrected `memory/debug-update-notes.md` to remove a misleading pending
+  publish line, then re-ran the same publish task. It passed and published
+  debug update `202606051300` to
+  `http://120.25.194.207/everythingdone-updates/debug/latest.json`.
+
+## 2026-06-05 - Single-Thing widget side media width analysis
+
+- User reported that a full-span habit with left-side media and a saved
+  `sideMediaWidthPercent` of 42% appears narrower than 42% in a 4x4
+  single-Thing AppWidget, even though the right-side content column seems to
+  have enough space.
+- Performed static diagnosis only; no functional code was changed.
+- Reviewed `docs/plans/REMOTE_THING_CARD_APPEARANCE_PLAN.md`,
+  `CONTEXT.md`, `docs/adr/0002-unified-thing-card-appearance.md`,
+  `AppWidgetHelper.kt`, `app_widget_thing.xml`, `app_widget_item_thing.xml`,
+  `RemoteThingCardMediaRenderer.kt`, `ThingsActivity.kt`, and
+  `BaseThingsAdapter.kt`.
+- Main finding: single-Thing AppWidgets currently let
+  `sideMediaDisplayAspectRatioHint` override the saved side-width percent by
+  deriving bitmap width from widget height. This can shrink side media below the
+  saved percent when the hint captured from the home card is narrower than the
+  4x4 widget projection.
+- Secondary findings: AppWidget sizing depends on launcher-provided
+  `OPTION_APPWIDGET_*` values with provider-cell fallback; right-side content
+  padding and habit chrome affect readability but do not currently participate
+  in side-media width budgeting; top/bottom and media-background placement have
+  separate height clamps and should be audited independently.
+
+## 2026-06-05 - Thing Card media target geometry planning
+
+- User invoked `grill-with-docs` to stress-test replacing the Thing Card
+  Appearance side image width and media-background card height controls with the
+  same ratio-style UI used by cover image ratio.
+- Resolved terminology in `CONTEXT.md`: the canonical concept is
+  **Thing Card Media Target Aspect Ratio**, not crop ratio, side width percent,
+  or card height percent. Target ratio determines the media target shape; crop
+  determines crop center and user zoom inside that target.
+- Resolved that target ratio and crop are stored per media source and per media
+  presentation: foreground thumbnail, side panel, and media background.
+- Resolved that presentation seeding is non-destructive: switching to a
+  presentation without saved values may seed from the previous presentation and
+  clamp to the new presentation's guardrails, but switching back before confirm
+  restores the previous presentation's exact draft state.
+- Resolved that confirmation is the only durable write point. Confirmed saves
+  should normalise JSON into nested presentation entries, omit migrated legacy
+  geometry fields, and save only existing/migrated/touched/seeded presentation
+  entries.
+- Resolved that `sideMediaDisplayAspectRatioHint` should be removed because the
+  new target ratio becomes the canonical value for AppWidget projection.
+- Committed the already implemented remote AppWidget/notification appearance
+  work before starting the new model implementation:
+  `de8bdd6 Port Thing Card Appearance to AppWidgets and notifications / 将记事卡片外观移植到小组件和通知`.
+- Created `docs/adr/0003-thing-card-media-target-presentation-geometry.md`.
+- Created `docs/plans/THING_CARD_MEDIA_TARGET_GEOMETRY_PLAN.md`.
+- Created `docs/plans/THING_CARD_MEDIA_TARGET_GEOMETRY_EXECUTION.md`.
+- Ran `git diff --check` for the new docs and related context/memory files; it
+  passed with only the repository's existing LF/CRLF warnings.
+
+## 2026-06-05 - Thing Card media target geometry implementation
+
+- Implemented `ThingCardAppearance` version 2 nested media presentations:
+  `thumbnail`, `sidePanel`, and `mediaBackground`, each with target aspect ratio
+  and optional crop; media background also carries mask strength.
+- Kept legacy JSON fields readable, but new serialization omits migrated
+  geometry writer fields including `sideMediaWidthPercent`,
+  `thumbnailCrop.sourceAspectRatio`, `mediaBackgroundHeightRatio`,
+  `backgroundCrop`, `mediaBackgroundMaskStrength`, and
+  `sideMediaDisplayAspectRatioHint`.
+- Updated the Thing Card Appearance panel so the existing ratio slider binds to
+  the active presentation. The old side-width row is hidden, the old background
+  height row is hidden, and background mask remains available.
+- Added non-destructive presentation seeding when switching modes. Missing
+  target presentations seed from the previous presentation and clamp to the new
+  presentation's range without mutating the source presentation.
+- Updated home-card, remote renderer, and AppWidget media projection to read
+  presentation target ratios and crops. Single-Thing and Things List AppWidget
+  side media no longer use `sideMediaDisplayAspectRatioHint`.
+- Updated docs to mark old side-width/background-height geometry plans as
+  superseded by ADR 0003 and the media target geometry plan.
+- Verified with `.\gradlew.bat :app:assembleDebug --console=plain
+  --no-configuration-cache` and `git diff --check`; both passed, with only
+  existing LF/CRLF warnings from Git.
+
+## 2026-06-05 - Thing Card media target geometry review fixes and debug publish
+
+- Fixed the review finding where confirmation called transition seeding with
+  the same draft as both source and target. Confirmation now materializes the
+  active presentation and legacy side-panel presentation explicitly.
+- Fixed first-time side-panel seeding for upgraded users by preserving legacy
+  `sideMediaWidthPercent` as a `sidePanel.targetAspectRatio` before new JSON
+  drops the legacy field.
+- Renamed the misleading media-background helper from
+  `getThingCardMediaBackgroundTargetMinHeight` to
+  `getThingCardMediaBackgroundClampedTargetHeight` and clarified the effective
+  height parameter naming.
+- Verified the fixes with `git diff --check` and
+  `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`.
+- Published debug update `202606051514` with
+  `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md"
+  --console=plain --no-configuration-cache`.
+
+## 2026-06-05 - Side-panel target-ratio projection stabilization
+
+- Diagnosed the side-panel feedback loop where changing
+  `sidePanel.targetAspectRatio` changes media width, which changes text column
+  width and wrapping, which changes card height and then media width again.
+- Updated `BaseThingsAdapter` so side-panel home cards calculate a deterministic
+  projection containing media width, content width, and media height, then apply
+  all three together during initial layout and post-measure correction.
+- Removed the old side-image height cache and `getSideImageWidth()` height
+  back-projection path so side-panel rendering no longer depends on the current
+  live side-media View height.
+- Updated `ThingsActivity` so side-panel ratio slider ranges are derived from
+  side-width guardrails plus measured content height at the min/max widths.
+  Main-panel and crop-dialog ratio sliders now freeze their active range while
+  dragging to avoid tick/progress remapping during preview refreshes.
+- Updated `AppWidgetHelper` so Things List widget side media uses a finite
+  projection loop over the existing RemoteViews row-height estimator.
+- Verified with `git diff --check` and
+  `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`.
+- Published debug update `202606051547` with
+  `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md"
+  --console=plain --no-configuration-cache`.
+
+## 2026-06-05 - Side-panel cover image width slider
+
+- Added a side-panel-only "cover image width" control under the target-ratio
+  slider in the Thing Card Appearance panel.
+- Reused the old side-width row and seekbar, but changed its behavior so it no
+  longer writes legacy `sideMediaWidthPercent`. Width changes are converted
+  through the side-panel projection into `sidePanel.targetAspectRatio`.
+- Added `ThingsActivity` side-panel projection helpers so the ratio slider and
+  width slider can update each other from the same bounded content measurement.
+- Kept slider dragging stable by sharing the frozen active ratio range while
+  either side-panel slider is being dragged.
+- Updated side-width strings from side-image wording to cover-image width
+  wording across available locale resource files.
+- Verified with `git diff --check` and
+  `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`.
+- Published debug update `202606051559` with
+  `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md"
+  --console=plain --no-configuration-cache`.
+
+## 2026-06-06 - Crop dialog ratio slider and list-widget background bitmap guard
+
+- Updated `ThingsActivity` crop editor so the ratio slider is shown for every
+  active presentation, including `sidePanel` and `mediaBackground`.
+- Preserved video crop dialog ordering: video-frame controls appear first, then
+  the target-ratio slider below them.
+- Removed the old crop-editor `canResizeThingCardCropEditorFrame()` gate and
+  now always save the active presentation target ratio when confirming crop.
+- Diagnosed Things List AppWidget row disappearance after a media-background
+  item as likely oversized RemoteViews bitmap pressure: the previous list media
+  background cap could produce multi-megabyte per-row bitmaps on high-density
+  screens.
+- Updated `AppWidgetHelper` to clamp list-widget media-background bitmaps to a
+  row pixel budget and to degrade to ordinary widget background rendering on
+  `OutOfMemoryError` or render exceptions.
+- Added debug logs for media-background clamp/skip decisions so launcher checks
+  can confirm whether bitmap limits were hit.
+- Verified with `git diff --check` and
+  `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`.
+- Published debug update `202606051623` with
+  `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md"
+  --console=plain --no-configuration-cache`.

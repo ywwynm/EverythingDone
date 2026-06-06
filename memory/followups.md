@@ -4,6 +4,42 @@ Things that were technically achievable but deferred to a later iteration
 because the work was disproportionate to the visual gain. Each entry
 notes the current fallback so you know what the app is doing today.
 
+## Remote Thing Card Appearance
+
+### Single-Thing AppWidget collection-widget scrolling (deferred 2026-06-05)
+
+**Scope:** Redesign the single-Thing AppWidget as a collection widget so the
+widget could expose top-level scrolling for long content or very tall
+top/bottom media projections.
+
+**Current fallback:** The current remote-surface direction keeps the
+single-Thing AppWidget as a fixed card surface. Thing Card Appearance is
+projected into the widget's available height, and oversized media targets are
+clamped without rewriting saved Thing Card Appearance fields.
+
+**Reason deferred:** AppWidget scrolling is reliable through collection views,
+not arbitrary nested `ScrollView` content inside a normal widget. Rebuilding
+the single-Thing widget as a collection widget would change widget structure,
+adapter lifecycle, update behavior, and testing scope. It remains possible, but
+it is not the default fix for the current appearance-height problems.
+
+### Fully custom system notification card layout (deferred 2026-06-05)
+
+**Scope:** Reproduce the full Thing Card Appearance model inside system
+notifications, including left/right media placement, media background, saved
+mask strength, foreground adaptation, and card-height semantics.
+
+**Current fallback:** The remote-surface plan keeps system notifications on the
+standard notification style path. Ordinary Thing notifications and ongoing Thing
+notifications should upgrade `BigPictureStyle` to respect Thing Card Media
+Source, Thing Card Video Frame, and Thing Card Thumbnail Crop, but they do not
+try to reproduce the full card layout or media-background model.
+
+**Reason deferred:** Modern Android custom notifications are RemoteViews-based,
+height-limited, and wrapped by system templates for target SDK 31+. Fully custom
+card visuals would be fragile across devices and notification surfaces, and
+could conflict with notification readability expectations.
+
 ## Home card span mode
 
 ### Full-span home-card rich layout strategies (deferred 2026-05-30)
@@ -289,3 +325,47 @@ installer.
 **Risk if left undone:** Compile proves the code paths link, but it does not
 prove server hosting, metadata URL injection, HTTP/IP access, APK installer
 handoff, or real-device permission recovery.
+
+## Remote Thing Card Appearance
+
+### Single-Thing widget side media width should keep saved percent as primary (resolved 2026-06-05)
+
+**Scope:** Left/right Thing Card Media in single-Thing AppWidgets, especially
+4x4 widgets showing full-span habits with short text but visible habit status
+chrome.
+
+**Resolved state:** `AppWidgetHelper.getWidgetMediaSlotTarget()` no longer reads
+`sideMediaDisplayAspectRatioHint`. Existing legacy cards without a side-panel
+target aspect ratio fall back to the saved `sideMediaWidthPercent`, while new
+confirmed edits project side media from `sidePanel.targetAspectRatio` and clamp
+only to the existing widget-side min/max guardrails.
+
+**Verification done:** `.\gradlew.bat :app:assembleDebug --console=plain
+--no-configuration-cache` and `git diff --check`.
+
+**Residual risk:** Manual launcher checks across 1x1-6x6 cell presets, side/top/
+bottom/background placement, and normal/simple widget styles are still useful
+before publishing a debug build.
+
+### Stabilize side-panel target-ratio layout solving (resolved 2026-06-05)
+
+**Scope:** Full-span Thing Cards with left/right media in the home preview and
+AppWidgets. Changing `sidePanel.targetAspectRatio` changes media width, which
+changes the content column width, which can change text wrapping and card
+height, which feeds back into media width.
+
+**Resolved state:** Home-card side panels now use a deterministic projection
+that applies image width, content width, and image height together. The
+projection approximates the side-panel fixed point with bounded measurements and
+does not read the live side-media View height. The appearance panel computes
+side-panel slider range from min/max side-media widths and measured content
+height, and freezes the active ratio range while the user drags. Things List
+AppWidgets now use the same finite projection idea over the existing RemoteViews
+height estimator.
+
+**Verification done:** `git diff --check` and
+`.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`.
+
+**Residual risk:** Manual preview and launcher checks around sharp text wrapping
+thresholds are still useful because Android layout measurement and RemoteViews
+row estimation are not identical.

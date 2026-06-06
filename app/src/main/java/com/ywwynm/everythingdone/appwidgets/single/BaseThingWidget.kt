@@ -6,6 +6,7 @@ import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.content.Intent
+import android.os.Bundle
 import androidx.core.util.Pair
 import android.util.Log
 
@@ -39,13 +40,28 @@ abstract class BaseThingWidget : AppWidgetProvider() {
     }
 
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
+        for (appWidgetId in appWidgetIds) {
+            updateSingleThingAppWidget(context, appWidgetManager, appWidgetId)
+        }
+    }
+
+    override fun onAppWidgetOptionsChanged(
+            context: Context,
+            appWidgetManager: AppWidgetManager,
+            appWidgetId: Int,
+            newOptions: Bundle) {
+        super.onAppWidgetOptionsChanged(context, appWidgetManager, appWidgetId, newOptions)
+        Log.i(getTag(), "onAppWidgetOptionsChanged is called, appWidgetId[$appWidgetId]")
+        updateSingleThingAppWidget(context, appWidgetManager, appWidgetId)
+    }
+
+    private fun updateSingleThingAppWidget(
+            context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
         val thingManager: ThingManager = ThingManager.getInstance(context)!!
         val thingDAO: ThingDAO = ThingDAO.getInstance(context)!!
         val appWidgetDAO: AppWidgetDAO = AppWidgetDAO.getInstance(context)!!
-        for (appWidgetId in appWidgetIds) {
-            updateSingleThingAppWidget(
-                    thingManager, thingDAO, appWidgetDAO, appWidgetManager, context, appWidgetId)
-        }
+        updateSingleThingAppWidget(
+                thingManager, thingDAO, appWidgetDAO, appWidgetManager, context, appWidgetId)
     }
 
     private fun updateSingleThingAppWidget(

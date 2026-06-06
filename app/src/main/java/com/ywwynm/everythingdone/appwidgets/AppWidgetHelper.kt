@@ -42,6 +42,7 @@ import com.ywwynm.everythingdone.helpers.ThingCardMediaHelper
 import com.ywwynm.everythingdone.model.Habit
 import com.ywwynm.everythingdone.model.Reminder
 import com.ywwynm.everythingdone.model.Thing
+import com.ywwynm.everythingdone.model.ThingCardAppearance
 import com.ywwynm.everythingdone.model.ThingWidgetInfo
 import com.ywwynm.everythingdone.receivers.HabitWidgetActionReceiver
 import com.ywwynm.everythingdone.receivers.ReminderNotificationActionReceiver
@@ -53,6 +54,7 @@ import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
+import kotlin.math.sqrt
 
 /**
  * Created by ywwynm on 2016/7/27.
@@ -70,8 +72,12 @@ object AppWidgetHelper {
     private const val WIDGET_LIST_SIDE_MEDIA_MIN_HEIGHT_DP: Int = 128
     private const val WIDGET_LIST_MEDIA_BACKGROUND_FALLBACK_HEIGHT_DP: Int = 160
     private const val WIDGET_LIST_MEDIA_BACKGROUND_MAX_HEIGHT_DP: Int = 360
+    private const val WIDGET_LIST_MEDIA_BACKGROUND_MAX_BITMAP_DIMENSION_PX: Int = 960
+    private const val WIDGET_LIST_MEDIA_BACKGROUND_MAX_BITMAP_PIXELS: Int = 240_000
     private const val WIDGET_LIST_MEDIA_HARD_MAX_HEIGHT_DP: Int = 720
     private const val WIDGET_REMOTE_BITMAP_MAX_DIMENSION_DP: Int = 720
+    private const val WIDGET_SIDE_MEDIA_PROJECTION_MAX_ITERATIONS: Int = 6
+    private const val WIDGET_SIDE_MEDIA_PROJECTION_TOLERANCE_PX: Int = 1
 
     private val COLLECTION_TEMPLATE_PENDING_INTENT_FLAGS: Int =
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
@@ -647,7 +653,14 @@ object AppWidgetHelper {
         a = (a / 100f * 255).toInt()
         remoteViews.setInt(ROOT_WIDGET_THING, "setBackgroundColor",
                 Color.TRANSPARENT)
-        val mediaBackground = renderWidgetMediaBackground(context, thing!!, appWidgetId, clazz)
+        val mediaBackground = renderWidgetMediaBackground(
+                context, thing!!, appWidgetId, clazz, style)
+        if (isThingsListWidgetClass(clazz)) {
+            remoteViews.setInt(
+                    ROOT_WIDGET_THING,
+                    "setMinimumHeight",
+                    mediaBackground?.layoutMinHeight ?: 0)
+        }
         setWidgetBackground(remoteViews, thing, a, mediaBackground)
 
         // Phase 8: adapt all text colours on the widget card to the thing's
@@ -684,9 +697,10 @@ object AppWidgetHelper {
     }
 
     private fun setWidgetBackground(
-            remoteViews: RemoteViews, thing: Thing, alpha: Int, mediaBackground: Bitmap?) {
+            remoteViews: RemoteViews, thing: Thing, alpha: Int,
+            mediaBackground: WidgetMediaBackground?) {
         if (mediaBackground != null) {
-            remoteViews.setImageViewBitmap(IV_WIDGET_BG, mediaBackground)
+            remoteViews.setImageViewBitmap(IV_WIDGET_BG, mediaBackground.bitmap)
             return
         }
 
@@ -700,15 +714,97 @@ object AppWidgetHelper {
     }
 
     private fun renderWidgetMediaBackground(
-            context: Context, thing: Thing, appWidgetId: Int, clazz: Class<*>?): Bitmap? {
+            context: Context, thing: Thing, appWidgetId: Int, clazz: Class<*>?,
+            @ThingWidgetInfo.Style style: Int): WidgetMediaBackground? {
         if (!thing.thingCardAppearance.mediaBackgroundEnabled) return null
         val mediaSource = RemoteThingCardMediaRenderer.resolveRenderableMediaSource(context, thing)
                 ?: return null
-        val targetWidth = getWidgetContentTargetWidth(context, appWidgetId, clazz)
-        val targetHeight = getWidgetMediaBackgroundTargetHeight(
-                context, thing, mediaSource, targetWidth, appWidgetId, clazz)
-        return RemoteThingCardMediaRenderer.renderMediaBackground(
-                context, thing, targetWidth, targetHeight)?.bitmap
+        val rawTargetWidth = getWidgetContentTargetWidth(context, appWidgetId, clazz)
+        val heightTarget = getWidgetMediaBackgroundTargetHeight(
+                context, thing, mediaSource, rawTargetWidth, appWidgetId, clazz, style)
+        val rawTargetHeight = heightTarget.height
+        if (heightTarget.clampReasons.isNotEmpty()) {
+            Log.d(
+                    TAG,
+                    "Project widget media background for thing ${thing.id}: " +
+                            "height=${heightTarget.height}, reasons=" +
+                            heightTarget.clampReasons.joinToString("+")
+            )
+        }
+        val targetSize = if (isThingsListWidgetClass(clazz)) {
+            clampThingsListWidgetMediaBackgroundTargetSize(rawTargetWidth, rawTargetHeight)
+        } else {
+            WidgetBitmapTargetSize(rawTargetWidth, rawTargetHeight)
+        }
+        if (targetSize.width != rawTargetWidth || targetSize.height != rawTargetHeight) {
+            Log.i(
+                    TAG,
+                    "Clamp widget media background for thing ${thing.id}: " +
+                            "${rawTargetWidth}x${rawTargetHeight} -> " +
+                            "${targetSize.width}x${targetSize.height}, reasons=" +
+                            targetSize.clampReasons.joinToString("+")
+            )
+        }
+        return try {
+            val rendered = RemoteThingCardMediaRenderer.renderMediaBackground(
+                    context, thing, targetSize.width, targetSize.height)
+                    ?: return null
+            WidgetMediaBackground(
+                    rendered.bitmap,
+                    if (isThingsListWidgetClass(clazz)) rawTargetHeight else null)
+        } catch (e: OutOfMemoryError) {
+            Log.w(
+                    TAG,
+                    "Skip widget media background for thing ${thing.id}; " +
+                            "target ${targetSize.width}x${targetSize.height} is too large",
+                    e
+            )
+            null
+        } catch (e: Exception) {
+            Log.w(
+                    TAG,
+                    "Skip widget media background for thing ${thing.id}; render failed",
+                    e
+            )
+            null
+        }
+    }
+
+    private fun clampThingsListWidgetMediaBackgroundTargetSize(
+            width: Int,
+            height: Int): WidgetBitmapTargetSize {
+        val safeWidth = max(1, width)
+        val safeHeight = max(1, height)
+        val reasons = mutableListOf<String>()
+        val dimensionScale = min(
+                1.0,
+                min(
+                        WIDGET_LIST_MEDIA_BACKGROUND_MAX_BITMAP_DIMENSION_PX.toDouble() /
+                                safeWidth.toDouble(),
+                        WIDGET_LIST_MEDIA_BACKGROUND_MAX_BITMAP_DIMENSION_PX.toDouble() /
+                                safeHeight.toDouble()
+                )
+        )
+        if (dimensionScale < 1.0) {
+            reasons += "list-media-background-max-bitmap-dimension:" +
+                    WIDGET_LIST_MEDIA_BACKGROUND_MAX_BITMAP_DIMENSION_PX
+        }
+        val pixels = safeWidth.toDouble() * safeHeight.toDouble()
+        val pixelScale = if (pixels <= WIDGET_LIST_MEDIA_BACKGROUND_MAX_BITMAP_PIXELS) {
+            1.0
+        } else {
+            sqrt(WIDGET_LIST_MEDIA_BACKGROUND_MAX_BITMAP_PIXELS.toDouble() / pixels)
+        }
+        if (pixelScale < 1.0) {
+            reasons += "list-media-background-pixel-budget:" +
+                    WIDGET_LIST_MEDIA_BACKGROUND_MAX_BITMAP_PIXELS
+        }
+        val scale = min(dimensionScale, pixelScale)
+        return WidgetBitmapTargetSize(
+                max(1, (safeWidth * scale).roundToInt()),
+                max(1, (safeHeight * scale).roundToInt()),
+                reasons
+        )
     }
 
     private fun getWidgetContentTargetWidth(
@@ -717,29 +813,74 @@ object AppWidgetHelper {
         val widthDp = getWidgetOptionDp(
                 context, appWidgetId, AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH, defaultDp)
         val widthPx = (max(1, widthDp) * screenDensity).toInt()
-        return max(1, min(widthPx, dpToPx(WIDGET_REMOTE_BITMAP_MAX_DIMENSION_DP)))
+        val maxWidth = dpToPx(WIDGET_REMOTE_BITMAP_MAX_DIMENSION_DP)
+        val targetWidth = max(1, min(widthPx, maxWidth))
+        if (targetWidth != widthPx) {
+            Log.d(
+                    TAG,
+                    "Clamp widget content width for appWidgetId[$appWidgetId]: " +
+                            "$widthPx -> $targetWidth, reason=remote-bitmap-max-dimension:" +
+                            WIDGET_REMOTE_BITMAP_MAX_DIMENSION_DP
+            )
+        }
+        return targetWidth
     }
 
     private fun getWidgetMediaBackgroundTargetHeight(
             context: Context, thing: Thing, mediaSource: ThingCardMediaHelper.MediaSource,
-            targetWidth: Int, appWidgetId: Int, clazz: Class<*>?): Int {
+            targetWidth: Int, appWidgetId: Int, clazz: Class<*>?,
+            @ThingWidgetInfo.Style style: Int): WidgetMediaBackgroundTargetHeight {
+        val sourceAppearance = thing.thingCardAppearance.sources[mediaSource.typePathName]
+        val ratio = sourceAppearance?.mediaBackgroundTargetAspectRatio()
+        val reasons = mutableListOf<String>()
         if (isSingleThingWidgetClass(clazz)) {
             val widgetHeightDp = getWidgetHeightBudgetDp(context, appWidgetId, clazz)
-            return dpToPx(min(widgetHeightDp, WIDGET_REMOTE_BITMAP_MAX_DIMENSION_DP))
+            val maxHeightPx = dpToPx(min(widgetHeightDp, WIDGET_REMOTE_BITMAP_MAX_DIMENSION_DP))
+            val contentFloorPx = dpToPx(getSingleWidgetContentFloorDp(widgetHeightDp))
+            val rawHeight = if (ratio != null && ratio > 0.0) {
+                (targetWidth / ratio).toInt()
+            } else {
+                maxHeightPx
+            }
+            val flooredHeight = max(contentFloorPx, rawHeight)
+            if (flooredHeight != rawHeight) {
+                reasons += "single-widget-content-floor:$contentFloorPx"
+            }
+            val targetHeight = min(maxHeightPx, flooredHeight)
+            if (targetHeight != flooredHeight) {
+                reasons += "single-widget-height-budget:$maxHeightPx"
+            }
+            return WidgetMediaBackgroundTargetHeight(targetHeight, reasons)
         }
 
-        val sourceAppearance = thing.thingCardAppearance.sources[mediaSource.typePathName]
-        val ratio = sourceAppearance?.mediaBackgroundHeightRatio
         val fallbackDp = WIDGET_LIST_MEDIA_BACKGROUND_FALLBACK_HEIGHT_DP
         val fallbackPx = (fallbackDp * screenDensity).toInt()
         val rawHeight = if (ratio != null && ratio > 0.0) {
-            (targetWidth * ratio).toInt()
+            (targetWidth / ratio).toInt()
         } else {
             fallbackPx
         }
         val maxHeightDp = WIDGET_LIST_MEDIA_BACKGROUND_MAX_HEIGHT_DP
         val maxHeightPx = max(1, (maxHeightDp * screenDensity).toInt())
-        return max(1, min(rawHeight, maxHeightPx))
+        val desiredHeight = max(1, min(rawHeight, maxHeightPx))
+        if (desiredHeight != rawHeight) {
+            reasons += "list-media-background-max-height:$maxHeightPx"
+        }
+        val contentHeight = dpToPx(estimateThingsListWidgetContentRowHeightDp(
+                context,
+                thing,
+                max(80, pxToDp(targetWidth) - 24),
+                style))
+        val flooredHeight = max(contentHeight, desiredHeight)
+        if (flooredHeight != desiredHeight) {
+            reasons += "list-media-background-content-floor:$contentHeight"
+        }
+        val hardMaxHeight = dpToPx(WIDGET_LIST_MEDIA_HARD_MAX_HEIGHT_DP)
+        val targetHeight = min(hardMaxHeight, flooredHeight)
+        if (targetHeight != flooredHeight) {
+            reasons += "list-media-background-hard-height:$hardMaxHeight"
+        }
+        return WidgetMediaBackgroundTargetHeight(targetHeight, reasons)
     }
 
     private fun getWidgetOptionDp(
@@ -1004,8 +1145,13 @@ object AppWidgetHelper {
             @ThingWidgetInfo.Style style: Int
     ): RemoteThingCardMediaRenderer.ThumbnailRequest? {
         val target = getWidgetMediaSlotTarget(context, thing, appWidgetId, clazz, placement, style)
+        val presentationKey = if (isSideImagePlacement(placement)) {
+            ThingCardAppearance.PRESENTATION_SIDE_PANEL
+        } else {
+            ThingCardAppearance.PRESENTATION_THUMBNAIL
+        }
         return RemoteThingCardMediaRenderer.renderThumbnail(
-                context, thing, target.width, target.height)
+                context, thing, target.width, target.height, presentationKey)
     }
 
     private fun isSideImagePlacement(@Thing.ThingCardImagePlacement placement: Int): Boolean {
@@ -1029,30 +1175,68 @@ object AppWidgetHelper {
         }
 
         val percentWidth = getWidgetSideMediaPercentWidth(context, thing, contentWidth)
-        val ratioHint = getWidgetSideMediaDisplayAspectRatioHint(thing)
+        val targetRatio = getWidgetSideMediaTargetAspectRatio(thing)
         if (isSingleThingWidgetClass(clazz)) {
             val height = getSingleWidgetSideMediaSlotTargetHeight(context, appWidgetId, clazz)
-            val width = if (ratioHint == null) {
+            val width = if (targetRatio == null) {
                 percentWidth
             } else {
-                val hintedWidth = (height * ratioHint).roundToInt()
-                min(
-                        getWidgetSideMediaMaxWidth(context, contentWidth),
-                        max(getWidgetSideMediaMinWidth(context, contentWidth), hintedWidth))
+                val hintedWidth = (height * targetRatio).roundToInt()
+                val widthClamp = clampWidgetSideMediaWidthWithReason(
+                        context, contentWidth, hintedWidth)
+                if (widthClamp.reason != null) {
+                    Log.d(
+                            TAG,
+                            "Clamp widget side media for thing ${thing.id}: " +
+                                    "$hintedWidth -> ${widthClamp.width}, " +
+                                    "targetRatio=$targetRatio, height=$height, " +
+                                    "contentWidth=$contentWidth, reason=${widthClamp.reason}"
+                    )
+                }
+                widthClamp.width
             }
             return WidgetMediaSlotTarget(width, height)
         }
 
-        val height = if (ratioHint == null) {
-            getThingsListWidgetSideMediaSlotTargetHeight(
+        if (targetRatio == null) {
+            val height = getThingsListWidgetSideMediaSlotTargetHeight(
                     context, thing, contentWidth, percentWidth, style)
-        } else {
-            min(
-                    dpToPx(WIDGET_LIST_MEDIA_HARD_MAX_HEIGHT_DP),
-                    max(dpToPx(WIDGET_LIST_SIDE_MEDIA_MIN_HEIGHT_DP),
-                            (percentWidth / ratioHint).roundToInt()))
+            return WidgetMediaSlotTarget(percentWidth, height)
         }
-        return WidgetMediaSlotTarget(percentWidth, height)
+
+        val estimatedHeight = getThingsListWidgetSideMediaSlotTargetHeight(
+                context, thing, contentWidth, percentWidth, style)
+        val target = projectThingsListWidgetSideMediaSlotTarget(
+                context, thing, contentWidth, percentWidth, estimatedHeight,
+                targetRatio, style)
+        logWidgetSideMediaProjectionBoundary(
+                context, thing, contentWidth, target, targetRatio)
+        return target
+    }
+
+    private fun projectThingsListWidgetSideMediaSlotTarget(
+            context: Context, thing: Thing, contentWidth: Int, initialWidth: Int,
+            initialHeight: Int, targetRatio: Double,
+            @ThingWidgetInfo.Style style: Int): WidgetMediaSlotTarget {
+        var width = clampWidgetSideMediaWidth(context, contentWidth, initialWidth)
+        var bestTarget = WidgetMediaSlotTarget(width, initialHeight)
+        var bestError = Int.MAX_VALUE
+        repeat(WIDGET_SIDE_MEDIA_PROJECTION_MAX_ITERATIONS) {
+            val height = getThingsListWidgetSideMediaSlotTargetHeight(
+                    context, thing, contentWidth, width, style)
+            val nextWidth = clampWidgetSideMediaWidth(
+                    context, contentWidth, (height * targetRatio).roundToInt())
+            val error = abs(nextWidth - width)
+            if (error < bestError) {
+                bestTarget = WidgetMediaSlotTarget(width, height)
+                bestError = error
+            }
+            if (error <= WIDGET_SIDE_MEDIA_PROJECTION_TOLERANCE_PX) {
+                return WidgetMediaSlotTarget(width, height)
+            }
+            width = nextWidth
+        }
+        return bestTarget
     }
 
     private fun getSingleWidgetSideMediaSlotTargetHeight(
@@ -1077,6 +1261,17 @@ object AppWidgetHelper {
         if (thing.isPrivate()) return WIDGET_LIST_SIDE_MEDIA_MIN_HEIGHT_DP
 
         val textWidthDp = max(80, pxToDp(contentWidth - targetWidth) - 24)
+        return max(
+                WIDGET_LIST_SIDE_MEDIA_MIN_HEIGHT_DP,
+                estimateThingsListWidgetContentRowHeightDp(
+                        context, thing, textWidthDp, style))
+    }
+
+    private fun estimateThingsListWidgetContentRowHeightDp(
+            context: Context, thing: Thing, textWidthDp: Int,
+            @ThingWidgetInfo.Style style: Int): Int {
+        if (thing.isPrivate()) return WIDGET_LIST_SIDE_MEDIA_MIN_HEIGHT_DP
+
         if (style == ThingWidgetInfo.STYLE_SIMPLE) {
             val simpleTitle = getTitleToDisplayForSimpleStyle(thing)
             if (simpleTitle != null) {
@@ -1132,7 +1327,7 @@ object AppWidgetHelper {
             }
         }
 
-        return max(WIDGET_LIST_SIDE_MEDIA_MIN_HEIGHT_DP, height + 12)
+        return max(1, height + 12)
     }
 
     private fun estimateWidgetChecklistHeightDp(checklistStr: String): Int {
@@ -1173,18 +1368,88 @@ object AppWidgetHelper {
         return max(1, contentWidth * maxPercent / 100)
     }
 
-    private fun getWidgetSideMediaDisplayAspectRatioHint(thing: Thing): Double? {
+    private fun clampWidgetSideMediaWidth(context: Context, contentWidth: Int, width: Int): Int {
+        return clampWidgetSideMediaWidthWithReason(context, contentWidth, width).width
+    }
+
+    private fun clampWidgetSideMediaWidthWithReason(
+            context: Context, contentWidth: Int, width: Int): WidgetSideMediaWidthClamp {
+        val minWidth = getWidgetSideMediaMinWidth(context, contentWidth)
+        val maxWidth = getWidgetSideMediaMaxWidth(context, contentWidth)
+        val clampedWidth = min(maxWidth, max(minWidth, width))
+        val reason = when {
+            width < minWidth -> "side-media-min-width:$minWidth"
+            width > maxWidth -> "side-media-max-width:$maxWidth"
+            else -> null
+        }
+        return WidgetSideMediaWidthClamp(clampedWidth, reason)
+    }
+
+    private fun logWidgetSideMediaProjectionBoundary(
+            context: Context, thing: Thing, contentWidth: Int,
+            target: WidgetMediaSlotTarget, targetRatio: Double) {
+        val desiredWidth = (target.height * targetRatio).roundToInt()
+        val minWidth = getWidgetSideMediaMinWidth(context, contentWidth)
+        val maxWidth = getWidgetSideMediaMaxWidth(context, contentWidth)
+        val reason = when {
+            desiredWidth < minWidth -> "side-media-min-width:$minWidth"
+            desiredWidth > maxWidth -> "side-media-max-width:$maxWidth"
+            abs(target.width - desiredWidth) > WIDGET_SIDE_MEDIA_PROJECTION_TOLERANCE_PX ->
+                "side-media-projection-best-effort"
+            else -> null
+        } ?: return
+        Log.d(
+                TAG,
+                "Project widget side media for thing ${thing.id}: " +
+                        "desiredWidth=$desiredWidth, target=${target.width}x${target.height}, " +
+                        "targetRatio=$targetRatio, contentWidth=$contentWidth, reason=$reason"
+        )
+    }
+
+    private fun getWidgetSideMediaTargetAspectRatio(thing: Thing): Double? {
         val source = ThingCardMediaHelper.resolveEffectiveMediaSource(thing) ?: return null
         val ratio = thing.thingCardAppearance.sources[source.typePathName]
-                ?.sideMediaDisplayAspectRatioHint
+                ?.sidePanelTargetAspectRatio()
                 ?: return null
-        if (ratio.isNaN() || ratio.isInfinite() || ratio <= 0.0) return null
-        return max(0.05, min(4.0, ratio))
+        if (ratio.isNaN() || ratio.isInfinite() || ratio <= 0.0) {
+            Log.d(
+                    TAG,
+                    "Ignore widget side media target ratio for thing ${thing.id}: " +
+                            "value=$ratio, reason=invalid"
+            )
+            return null
+        }
+        val normalizedRatio = max(0.05, min(4.0, ratio))
+        if (normalizedRatio != ratio) {
+            Log.d(
+                    TAG,
+                    "Clamp widget side media target ratio for thing ${thing.id}: " +
+                            "$ratio -> $normalizedRatio, reason=remote-side-ratio-boundary"
+            )
+        }
+        return normalizedRatio
     }
 
     private data class WidgetMediaSlotTarget(
             val width: Int,
             val height: Int)
+
+    private data class WidgetSideMediaWidthClamp(
+            val width: Int,
+            val reason: String?)
+
+    private data class WidgetMediaBackground(
+            val bitmap: Bitmap,
+            val layoutMinHeight: Int?)
+
+    private data class WidgetMediaBackgroundTargetHeight(
+            val height: Int,
+            val clampReasons: List<String>)
+
+    private data class WidgetBitmapTargetSize(
+            val width: Int,
+            val height: Int,
+            val clampReasons: List<String> = emptyList())
 
     private fun getWidgetTopBottomMediaSlotMaxHeight(
             context: Context, appWidgetId: Int, clazz: Class<*>?): Int {

@@ -22,7 +22,6 @@ data class ThingCardAppearance(
             o.put(K_VERSION, VERSION)
             o.put(K_SPAN_MODE, normalizeSpanMode(spanMode))
             o.put(K_IMAGE_PLACEMENT, normalizeImagePlacement(imagePlacement))
-            o.put(K_SIDE_MEDIA_WIDTH, normalizeSideMediaWidth(sideMediaWidthPercent))
             o.put(K_APPEARANCE_UPDATE_TIME, max(0L, appearanceUpdateTime))
             if (mediaSourceKey == null) {
                 o.put(K_MEDIA_SOURCE_KEY, JSONObject.NULL)
@@ -46,7 +45,8 @@ data class ThingCardAppearance(
     }
 
     fun hasSamePresentationAs(other: ThingCardAppearance): Boolean {
-        return copy(appearanceUpdateTime = 0L) == other.copy(appearanceUpdateTime = 0L)
+        return copy(appearanceUpdateTime = 0L).toJson() ==
+                other.copy(appearanceUpdateTime = 0L).toJson()
     }
 
     fun withSpanMode(@Thing.ThingCardSpanMode spanMode: Int): ThingCardAppearance {
@@ -98,41 +98,165 @@ data class ThingCardAppearance(
         val thumbnailCrop: ThingCardThumbnailCrop? = null,
         val backgroundCrop: ThingCardMediaBackgroundCrop? = null,
         val videoFrameMs: Long? = null,
-        val sideMediaDisplayAspectRatioHint: Double? = null
+        val sideMediaDisplayAspectRatioHint: Double? = null,
+        val presentations: Map<String, MediaPresentationAppearance> = emptyMap()
     ) {
 
         fun toJsonObject(): JSONObject {
             val o = JSONObject()
             putNullableLong(o, K_FILE_SIZE, fileSize)
             putNullableLong(o, K_LAST_MODIFIED, lastModified)
-            o.put(K_BACKGROUND_MASK, normalizeMaskStrength(mediaBackgroundMaskStrength))
-            putNullableDouble(
-                o,
-                K_BACKGROUND_HEIGHT_RATIO,
-                positiveOrNull(mediaBackgroundHeightRatio)
-            )
-            if (thumbnailCrop == null) {
-                o.put(K_THUMBNAIL_CROP, JSONObject.NULL)
-            } else {
-                o.put(K_THUMBNAIL_CROP, thumbnailCrop.toJsonObject())
-            }
-            if (backgroundCrop == null) {
-                o.put(K_BACKGROUND_CROP, JSONObject.NULL)
-            } else {
-                o.put(K_BACKGROUND_CROP, backgroundCrop.toJsonObject())
-            }
             putNullableLong(o, K_VIDEO_FRAME_MS, videoFrameMs)
-            putNullableDouble(
-                o,
-                K_SIDE_MEDIA_DISPLAY_ASPECT_RATIO_HINT,
-                positiveOrNull(sideMediaDisplayAspectRatioHint)
-            )
+            val presentationsJson = presentationsForJson()
+            if (presentationsJson.isNotEmpty()) {
+                val po = JSONObject()
+                for ((key, value) in presentationsJson) {
+                    po.put(key, value.toJsonObject())
+                }
+                o.put(K_PRESENTATIONS, po)
+            }
             return o
+        }
+
+        fun presentation(key: String): MediaPresentationAppearance? {
+            return presentations[key] ?: legacyPresentation(key)
+        }
+
+        fun withPresentation(
+            key: String,
+            presentation: MediaPresentationAppearance?
+        ): SourceAppearance {
+            val newPresentations = LinkedHashMap(presentations)
+            if (presentation == null) {
+                newPresentations.remove(key)
+            } else {
+                newPresentations[key] = presentation
+            }
+            return copy(presentations = newPresentations)
+        }
+
+        fun thumbnailCropWithTargetRatio(defaultTargetAspectRatio: Double): ThingCardThumbnailCrop {
+            val presentation = presentation(PRESENTATION_THUMBNAIL)
+            val crop = presentation?.crop ?: thumbnailCrop?.toMediaCrop()
+            return ThingCardThumbnailCrop(
+                centerX = crop?.centerX ?: DEFAULT_CROP_CENTER,
+                centerY = crop?.centerY ?: DEFAULT_CROP_CENTER,
+                scale = crop?.scale ?: DEFAULT_USER_SCALE,
+                sourceAspectRatio = positiveOrNull(
+                    presentation?.targetAspectRatio
+                        ?: thumbnailCrop?.sourceAspectRatio
+                        ?: defaultTargetAspectRatio
+                )
+            )
+        }
+
+        fun sidePanelCrop(): ThingCardThumbnailCrop {
+            val presentation = presentation(PRESENTATION_SIDE_PANEL)
+            val crop = presentation?.crop ?: thumbnailCrop?.toMediaCrop()
+            return ThingCardThumbnailCrop(
+                centerX = crop?.centerX ?: DEFAULT_CROP_CENTER,
+                centerY = crop?.centerY ?: DEFAULT_CROP_CENTER,
+                scale = crop?.scale ?: DEFAULT_USER_SCALE,
+                sourceAspectRatio = positiveOrNull(presentation?.targetAspectRatio)
+            )
+        }
+
+        fun sidePanelTargetAspectRatio(defaultTargetAspectRatio: Double? = null): Double? {
+            return positiveOrNull(
+                presentation(PRESENTATION_SIDE_PANEL)?.targetAspectRatio
+                    ?: defaultTargetAspectRatio
+            )
+        }
+
+        fun mediaBackgroundCrop(): ThingCardMediaBackgroundCrop {
+            val crop = presentation(PRESENTATION_MEDIA_BACKGROUND)?.crop
+                ?: backgroundCrop?.toMediaCrop()
+            return ThingCardMediaBackgroundCrop(
+                centerX = crop?.centerX ?: DEFAULT_CROP_CENTER,
+                centerY = crop?.centerY ?: DEFAULT_CROP_CENTER,
+                scale = crop?.scale ?: DEFAULT_USER_SCALE
+            )
+        }
+
+        fun mediaBackgroundMaskStrength(): Double {
+            return normalizeMaskStrength(
+                presentation(PRESENTATION_MEDIA_BACKGROUND)?.maskStrength
+                    ?: mediaBackgroundMaskStrength
+            )
+        }
+
+        fun mediaBackgroundTargetAspectRatio(): Double? {
+            val ratio = positiveOrNull(
+                presentation(PRESENTATION_MEDIA_BACKGROUND)?.targetAspectRatio
+            )
+            if (ratio != null) return ratio
+            val legacyHeightRatio = positiveOrNull(mediaBackgroundHeightRatio)
+            return if (legacyHeightRatio == null) null else 1.0 / legacyHeightRatio
+        }
+
+        private fun presentationsForJson(): Map<String, MediaPresentationAppearance> {
+            val normalized = LinkedHashMap<String, MediaPresentationAppearance>()
+            normalized.putAll(presentations)
+            legacyPresentation(PRESENTATION_THUMBNAIL)?.let {
+                if (!normalized.containsKey(PRESENTATION_THUMBNAIL)) {
+                    normalized[PRESENTATION_THUMBNAIL] = it
+                }
+            }
+            legacyPresentation(PRESENTATION_MEDIA_BACKGROUND)?.let {
+                if (!normalized.containsKey(PRESENTATION_MEDIA_BACKGROUND)) {
+                    normalized[PRESENTATION_MEDIA_BACKGROUND] = it
+                }
+            }
+            return normalized
+        }
+
+        private fun legacyPresentation(key: String): MediaPresentationAppearance? {
+            return when (key) {
+                PRESENTATION_THUMBNAIL -> legacyThumbnailPresentation()
+                PRESENTATION_MEDIA_BACKGROUND -> legacyMediaBackgroundPresentation()
+                else -> null
+            }
+        }
+
+        private fun legacyThumbnailPresentation(): MediaPresentationAppearance? {
+            val crop = thumbnailCrop ?: return null
+            return MediaPresentationAppearance(
+                targetAspectRatio = positiveOrNull(crop.sourceAspectRatio),
+                crop = crop.toMediaCrop()
+            )
+        }
+
+        private fun legacyMediaBackgroundPresentation(): MediaPresentationAppearance? {
+            val targetAspectRatio = positiveOrNull(mediaBackgroundHeightRatio)?.let { 1.0 / it }
+            val crop = backgroundCrop?.toMediaCrop()
+            val mask = normalizeMaskStrength(mediaBackgroundMaskStrength)
+            if (targetAspectRatio == null && crop == null && mask == DEFAULT_MASK_STRENGTH) {
+                return null
+            }
+            return MediaPresentationAppearance(
+                targetAspectRatio = targetAspectRatio,
+                crop = crop,
+                maskStrength = mask
+            )
         }
 
         companion object {
             fun fromJsonObject(o: JSONObject?): SourceAppearance? {
                 if (o == null) return null
+                val presentations = LinkedHashMap<String, MediaPresentationAppearance>()
+                val presentationsJson = o.optJSONObject(K_PRESENTATIONS)
+                if (presentationsJson != null) {
+                    val keys = presentationsJson.keys()
+                    while (keys.hasNext()) {
+                        val key = keys.next()
+                        val value = MediaPresentationAppearance.fromJsonObject(
+                            presentationsJson.optJSONObject(key)
+                        )
+                        if (value != null && isKnownPresentation(key)) {
+                            presentations[key] = value
+                        }
+                    }
+                }
                 return SourceAppearance(
                     fileSize = nullableLong(o, K_FILE_SIZE),
                     lastModified = nullableLong(o, K_LAST_MODIFIED),
@@ -151,7 +275,66 @@ data class ThingCardAppearance(
                     videoFrameMs = nullableLong(o, K_VIDEO_FRAME_MS),
                     sideMediaDisplayAspectRatioHint = positiveOrNull(
                         nullableDouble(o, K_SIDE_MEDIA_DISPLAY_ASPECT_RATIO_HINT)
-                    )
+                    ),
+                    presentations = presentations
+                )
+            }
+        }
+    }
+
+    data class MediaPresentationAppearance(
+        val targetAspectRatio: Double? = null,
+        val crop: ThingCardMediaCrop? = null,
+        val maskStrength: Double? = null
+    ) {
+
+        fun toJsonObject(): JSONObject {
+            val o = JSONObject()
+            putNullableDouble(o, K_TARGET_ASPECT_RATIO, positiveOrNull(targetAspectRatio))
+            if (crop == null) {
+                o.put(K_CROP, JSONObject.NULL)
+            } else {
+                o.put(K_CROP, crop.toJsonObject())
+            }
+            putNullableDouble(o, K_MASK_STRENGTH, maskStrength?.let { normalizeMaskStrength(it) })
+            return o
+        }
+
+        companion object {
+            fun fromJsonObject(o: JSONObject?): MediaPresentationAppearance? {
+                if (o == null) return null
+                return MediaPresentationAppearance(
+                    targetAspectRatio = positiveOrNull(nullableDouble(o, K_TARGET_ASPECT_RATIO)),
+                    crop = ThingCardMediaCrop.fromJsonObject(o.optJSONObject(K_CROP)),
+                    maskStrength = nullableDouble(o, K_MASK_STRENGTH)?.let {
+                        normalizeMaskStrength(it)
+                    }
+                )
+            }
+        }
+    }
+
+    data class ThingCardMediaCrop(
+        val centerX: Double = DEFAULT_CROP_CENTER,
+        val centerY: Double = DEFAULT_CROP_CENTER,
+        val scale: Double = DEFAULT_USER_SCALE
+    ) {
+
+        fun toJsonObject(): JSONObject {
+            val o = JSONObject()
+            o.put(K_CENTER_X, normalizeRatio(centerX))
+            o.put(K_CENTER_Y, normalizeRatio(centerY))
+            o.put(K_SCALE, normalizeUserScale(scale))
+            return o
+        }
+
+        companion object {
+            fun fromJsonObject(o: JSONObject?): ThingCardMediaCrop? {
+                if (o == null) return null
+                return ThingCardMediaCrop(
+                    centerX = normalizeRatio(o.optDouble(K_CENTER_X, DEFAULT_CROP_CENTER)),
+                    centerY = normalizeRatio(o.optDouble(K_CENTER_Y, DEFAULT_CROP_CENTER)),
+                    scale = normalizeUserScale(o.optDouble(K_SCALE, DEFAULT_USER_SCALE))
                 )
             }
         }
@@ -171,6 +354,14 @@ data class ThingCardAppearance(
             o.put(K_SCALE, normalizeUserScale(scale))
             putNullableDouble(o, K_SOURCE_ASPECT_RATIO, positiveOrNull(sourceAspectRatio))
             return o
+        }
+
+        fun toMediaCrop(): ThingCardMediaCrop {
+            return ThingCardMediaCrop(
+                centerX = centerX,
+                centerY = centerY,
+                scale = scale
+            )
         }
 
         companion object {
@@ -200,6 +391,14 @@ data class ThingCardAppearance(
             return o
         }
 
+        fun toMediaCrop(): ThingCardMediaCrop {
+            return ThingCardMediaCrop(
+                centerX = centerX,
+                centerY = centerY,
+                scale = scale
+            )
+        }
+
         companion object {
             fun fromJsonObject(o: JSONObject?): ThingCardMediaBackgroundCrop? {
                 if (o == null) return null
@@ -213,7 +412,7 @@ data class ThingCardAppearance(
     }
 
     companion object {
-        const val VERSION: Int = 1
+        const val VERSION: Int = 2
         const val DEFAULT_SIDE_MEDIA_WIDTH_PERCENT: Int = 42
         const val MIN_SIDE_MEDIA_WIDTH_PERCENT: Int = 30
         const val MAX_SIDE_MEDIA_WIDTH_PERCENT: Int = 60
@@ -221,6 +420,9 @@ data class ThingCardAppearance(
         const val DEFAULT_CROP_CENTER: Double = 0.5
         const val DEFAULT_USER_SCALE: Double = 1.0
         const val MEDIA_SOURCE_NONE: String = "__thing_card_media_none__"
+        const val PRESENTATION_THUMBNAIL: String = "thumbnail"
+        const val PRESENTATION_SIDE_PANEL: String = "sidePanel"
+        const val PRESENTATION_MEDIA_BACKGROUND: String = "mediaBackground"
 
         private const val K_VERSION = "version"
         private const val K_SPAN_MODE = "spanMode"
@@ -240,6 +442,10 @@ data class ThingCardAppearance(
         private const val K_VIDEO_FRAME_MS = "videoFrameMs"
         private const val K_SIDE_MEDIA_DISPLAY_ASPECT_RATIO_HINT =
             "sideMediaDisplayAspectRatioHint"
+        private const val K_PRESENTATIONS = "presentations"
+        private const val K_TARGET_ASPECT_RATIO = "targetAspectRatio"
+        private const val K_CROP = "crop"
+        private const val K_MASK_STRENGTH = "maskStrength"
 
         private const val K_CENTER_X = "centerX"
         private const val K_CENTER_Y = "centerY"
@@ -249,6 +455,13 @@ data class ThingCardAppearance(
         @JvmStatic
         fun default(): ThingCardAppearance {
             return ThingCardAppearance()
+        }
+
+        @JvmStatic
+        fun isKnownPresentation(key: String?): Boolean {
+            return key == PRESENTATION_THUMBNAIL
+                    || key == PRESENTATION_SIDE_PANEL
+                    || key == PRESENTATION_MEDIA_BACKGROUND
         }
 
         @JvmStatic

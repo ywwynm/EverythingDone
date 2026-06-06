@@ -1,5 +1,11 @@
 # Remote Thing Card Appearance Plan
 
+> Superseded geometry note: remote surfaces now project from the saved
+> per-presentation Thing Card Media Target Aspect Ratio and crop. They should
+> not use AppWidget side-media display hints as canonical geometry. See
+> `docs/plans/THING_CARD_MEDIA_TARGET_GEOMETRY_PLAN.md` and
+> `docs/adr/0003-thing-card-media-target-presentation-geometry.md`.
+
 ## Goal
 
 Port Thing Card Appearance to remote card surfaces:

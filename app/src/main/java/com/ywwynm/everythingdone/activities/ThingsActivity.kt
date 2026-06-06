@@ -222,6 +222,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
     private var mBindingThingCardAppearancePanel: Boolean = false
     private var mThingCardAppearancePreviewRefreshPosted: Boolean = false
     private var mThingCardAppearanceBackgroundHeightSliderMinPercent: Int = 0
+    private var mThingCardActiveRatioDragRange: ThingCardRatioRange? = null
     private val mThingCardRatioPresetValues = doubleArrayOf(
             1.0 / 2.0,
             9.0 / 16.0,
@@ -1513,18 +1514,21 @@ class ThingsActivity : EverythingDoneBaseActivity() {
                         }
                         val widthPercent =
                                 getThingCardAppearanceSideMediaWidthMinPercent() + progress
-                        updateThingCardAppearanceDraft(
-                                mThingCardAppearanceDraft?.copy(
-                                        sideMediaWidthPercent =
-                                                normalizeThingCardAppearanceSideMediaWidth(widthPercent)
-                                )
-                        )
+                        updateThingCardSidePanelTargetWidthPercent(widthPercent)
                     }
 
                     override fun onStartTrackingTouch(seekBar: SeekBar?) {
+                        mThingCardActiveRatioDragRange = getThingCardThumbnailRatioRange()
                     }
 
                     override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                        if (seekBar != null) {
+                            val widthPercent =
+                                    getThingCardAppearanceSideMediaWidthMinPercent() +
+                                            seekBar.progress
+                            updateThingCardSidePanelTargetWidthPercent(widthPercent)
+                        }
+                        mThingCardActiveRatioDragRange = null
                     }
                 }
         )
@@ -1540,21 +1544,24 @@ class ThingsActivity : EverythingDoneBaseActivity() {
                             fromUser: Boolean
                     ) {
                         if (!fromUser || mBindingThingCardAppearancePanel) return
-                        updateThingCardThumbnailSourceAspectRatio(
+                        updateThingCardActiveTargetAspectRatio(
                                 getSnappedThingCardRatioForSeekBar(seekBar, progress)
                         )
                     }
 
                     override fun onStartTrackingTouch(seekBar: SeekBar?) {
+                        mThingCardActiveRatioDragRange = getThingCardThumbnailRatioRange()
                     }
 
                     override fun onStopTrackingTouch(seekBar: SeekBar?) {
-                        seekBar ?: return
-                        val snappedRatio = getSnappedThingCardRatioForSeekBar(
-                                seekBar,
-                                seekBar.progress
-                        )
-                        updateThingCardThumbnailSourceAspectRatio(snappedRatio)
+                        if (seekBar != null) {
+                            val snappedRatio = getSnappedThingCardRatioForSeekBar(
+                                    seekBar,
+                                    seekBar.progress
+                            )
+                            updateThingCardActiveTargetAspectRatio(snappedRatio)
+                        }
+                        mThingCardActiveRatioDragRange = null
                     }
                 }
         )
@@ -1817,24 +1824,8 @@ class ThingsActivity : EverythingDoneBaseActivity() {
                 true
         )
 
-        mLlThingCardAppearanceSideWidth!!.visibility =
-                if (!mediaBackgroundEnabled && fullSpan && sidePlacement) {
-                    View.VISIBLE
-                } else {
-                    View.GONE
-                }
-
-        val sideWidth = normalizeThingCardAppearanceSideMediaWidth(
-                draft.sideMediaWidthPercent
-        )
-        mTvThingCardAppearanceSideWidth!!.text = getString(
-                R.string.thing_card_appearance_side_width_format,
-                sideWidth
-        )
-        mSeekThingCardAppearanceSideWidth!!.progress =
-                sideWidth - getThingCardAppearanceSideMediaWidthMinPercent()
-
         bindThingCardAppearanceCropControls(draft, fullSpan, sidePlacement)
+        bindThingCardAppearanceSideWidthControls(draft)
         bindThingCardAppearanceBackgroundControls(draft)
     }
 
@@ -1865,19 +1856,45 @@ class ThingsActivity : EverythingDoneBaseActivity() {
                 getThingCardAppearancePreciseCropTextRes(source)
         )
         val sourceAppearance = draft.sources[source.typePathName]
-        if (draft.mediaBackgroundEnabled) {
-            mLlThingCardAppearanceThumbnailRatio!!.visibility = View.GONE
-        } else {
-            val crop = sourceAppearance?.thumbnailCrop
-                    ?: ThingCardAppearance.ThingCardThumbnailCrop()
-            mLlThingCardAppearanceThumbnailRatio!!.visibility =
-                    if (!fullSpan || !sidePlacement) View.VISIBLE else View.GONE
-            val aspectRatio = crop.sourceAspectRatio
-                    ?: if (fullSpan) 16.0 / 9.0 else 4.0 / 3.0
-            bindThingCardRatioTicks(mVThingCardAppearanceThumbnailRatioTicks)
-            mSeekThingCardAppearanceThumbnailRatio!!.progress =
-                    getThingCardRatioProgress(aspectRatio)
+        val presentationKey = getActiveThingCardPresentationKey(draft)
+        val aspectRatio = getThingCardPresentationTargetAspectRatio(
+                draft,
+                source,
+                presentationKey,
+                sourceAppearance
+        )
+        mLlThingCardAppearanceThumbnailRatio!!.visibility = View.VISIBLE
+        bindThingCardRatioTicks(mVThingCardAppearanceThumbnailRatioTicks)
+        mSeekThingCardAppearanceThumbnailRatio!!.progress =
+                getThingCardRatioProgress(aspectRatio)
+    }
+
+    private fun bindThingCardAppearanceSideWidthControls(draft: ThingCardAppearance) {
+        val source = getCurrentThingCardAppearanceMediaSource()
+        val activePresentation = getActiveThingCardPresentationKey(draft)
+        if (source == null || activePresentation != ThingCardAppearance.PRESENTATION_SIDE_PANEL) {
+            mLlThingCardAppearanceSideWidth!!.visibility = View.GONE
+            return
         }
+
+        val sourceAppearance = draft.sources[source.typePathName]
+        val aspectRatio = getThingCardPresentationTargetAspectRatio(
+                draft,
+                source,
+                activePresentation,
+                sourceAppearance
+        )
+        val widthPercent = getThingCardSidePanelProjectedWidthPercent(aspectRatio)
+        mLlThingCardAppearanceSideWidth!!.visibility = View.VISIBLE
+        mTvThingCardAppearanceSideWidth!!.text = getString(
+                R.string.thing_card_appearance_cover_image_width_format,
+                widthPercent
+        )
+        mSeekThingCardAppearanceSideWidth!!.max =
+                getThingCardAppearanceSideMediaWidthMaxPercent() -
+                        getThingCardAppearanceSideMediaWidthMinPercent()
+        mSeekThingCardAppearanceSideWidth!!.progress =
+                widthPercent - getThingCardAppearanceSideMediaWidthMinPercent()
     }
 
     private fun bindThingCardRatioTicks(ticksView: ThingCardRatioTicksView?) {
@@ -1900,11 +1917,40 @@ class ThingsActivity : EverythingDoneBaseActivity() {
             val maxRatio: Double
     )
 
+    private data class ThingCardSidePanelProjection(
+            val imageWidth: Int,
+            val imageHeight: Int,
+            val textWidth: Int
+    )
+
     private fun getThingCardThumbnailRatioRange(): ThingCardRatioRange {
+        mThingCardActiveRatioDragRange?.let { return it }
         val draft = mThingCardAppearanceDraft
+        val source = getCurrentThingCardAppearanceMediaSource()
+        if (draft == null) return ThingCardRatioRange(0.5, 2.0)
+        return getThingCardRatioRange(draft, getActiveThingCardPresentationKey(draft), source)
+    }
+
+    private fun getThingCardRatioRange(
+            draft: ThingCardAppearance,
+            presentationKey: String,
+            source: ThingCardMediaHelper.MediaSource?
+    ): ThingCardRatioRange {
+        return when (presentationKey) {
+            ThingCardAppearance.PRESENTATION_SIDE_PANEL ->
+                getThingCardSidePanelRatioRange()
+            ThingCardAppearance.PRESENTATION_MEDIA_BACKGROUND ->
+                getThingCardMediaBackgroundRatioRange()
+            else -> getThingCardTopBottomRatioRange(draft)
+        }
+    }
+
+    private fun getThingCardTopBottomRatioRange(
+            draft: ThingCardAppearance
+    ): ThingCardRatioRange {
         val cardWidth = getThingCardAppearancePreviewCardWidth()
         val availableHeight = getThingCardAppearancePreviewAvailableHeight()
-        if (draft == null || cardWidth <= 0 || availableHeight <= 0) {
+        if (cardWidth <= 0 || availableHeight <= 0) {
             return ThingCardRatioRange(0.5, 2.0)
         }
 
@@ -1925,6 +1971,187 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         )
         val minRatio = max(0.1, cardWidth.toDouble() / maxHeight.toDouble())
         val maxRatio = min(10.0, cardWidth.toDouble() / minHeight.toDouble())
+        if (maxRatio <= minRatio) {
+            return ThingCardRatioRange(minRatio, minRatio + 0.01)
+        }
+        return ThingCardRatioRange(minRatio, maxRatio)
+    }
+
+    private fun getThingCardSidePanelRatioRange(): ThingCardRatioRange {
+        val contentWidth = getThingCardAppearancePreviewCardWidth()
+        if (contentWidth <= 0) {
+            return ThingCardRatioRange(0.2, 2.0)
+        }
+
+        val minWidth = getThingCardSidePanelWidthForPercent(
+                getThingCardAppearanceSideMediaWidthMinPercent(),
+                contentWidth
+        )
+        val maxWidth = getThingCardSidePanelWidthForPercent(
+                getThingCardAppearanceSideMediaWidthMaxPercent(),
+                contentWidth
+        )
+        val minHeight = getThingCardSidePanelMeasuredHeightForMediaWidth(minWidth)
+        val maxHeight = getThingCardSidePanelMeasuredHeightForMediaWidth(maxWidth)
+        val minBoundaryRatio = minWidth.toDouble() / minHeight.toDouble()
+        val maxBoundaryRatio = max(minWidth + 1, maxWidth).toDouble() / maxHeight.toDouble()
+        val minRatio = max(0.05, min(minBoundaryRatio, maxBoundaryRatio))
+        val maxRatio = min(10.0, max(minBoundaryRatio, maxBoundaryRatio))
+        if (maxRatio <= minRatio) {
+            return ThingCardRatioRange(minRatio, minRatio + 0.01)
+        }
+        return ThingCardRatioRange(minRatio, maxRatio)
+    }
+
+    private fun getThingCardSidePanelProjectedWidthPercent(
+            targetAspectRatio: Double
+    ): Int {
+        val contentWidth = getThingCardAppearancePreviewCardWidth()
+        if (contentWidth <= 0) {
+            return normalizeThingCardAppearanceSideMediaWidth(
+                    mThingCardAppearanceDraft?.sideMediaWidthPercent
+                            ?: ThingCardAppearance.DEFAULT_SIDE_MEDIA_WIDTH_PERCENT
+            )
+        }
+        val projection = getThingCardSidePanelProjection(targetAspectRatio, contentWidth)
+        val widthPercent = (projection.imageWidth * 100.0 / contentWidth.toDouble()).roundToInt()
+        return normalizeThingCardAppearanceSideMediaWidth(widthPercent)
+    }
+
+    private fun getThingCardSidePanelTargetAspectRatioForWidthPercent(
+            widthPercent: Int
+    ): Double {
+        val contentWidth = getThingCardAppearancePreviewCardWidth()
+        if (contentWidth <= 0) return 0.75
+        val imageWidth = getThingCardSidePanelWidthForPercent(widthPercent, contentWidth)
+        val imageHeight = getThingCardSidePanelMeasuredHeightForMediaWidth(imageWidth)
+        return max(0.05, min(10.0, imageWidth.toDouble() / imageHeight.toDouble()))
+    }
+
+    private fun getThingCardSidePanelProjection(
+            targetAspectRatio: Double,
+            contentWidth: Int = getThingCardAppearancePreviewCardWidth()
+    ): ThingCardSidePanelProjection {
+        val fallbackWidth = getThingCardSidePanelWidthForPercent(
+                mThingCardAppearanceDraft?.sideMediaWidthPercent
+                        ?: ThingCardAppearance.DEFAULT_SIDE_MEDIA_WIDTH_PERCENT,
+                contentWidth
+        )
+        if (contentWidth <= 0 || targetAspectRatio <= 0.0 ||
+                targetAspectRatio.isNaN() || targetAspectRatio.isInfinite()) {
+            return getThingCardSidePanelProjectionForWidth(fallbackWidth, max(1, contentWidth))
+        }
+
+        var width = fallbackWidth
+        var bestProjection = getThingCardSidePanelProjectionForWidth(width, contentWidth)
+        var bestError = Int.MAX_VALUE
+        repeat(THING_CARD_SIDE_PANEL_PROJECTION_MAX_ITERATIONS) {
+            val projection = getThingCardSidePanelProjectionForWidth(width, contentWidth)
+            val nextWidth = clampThingCardSidePanelMediaWidth(
+                    (projection.imageHeight * targetAspectRatio).roundToInt(),
+                    contentWidth
+            )
+            val error = abs(nextWidth - projection.imageWidth)
+            if (error < bestError) {
+                bestProjection = projection
+                bestError = error
+            }
+            if (error <= THING_CARD_SIDE_PANEL_PROJECTION_TOLERANCE_PX) {
+                return projection
+            }
+            width = nextWidth
+        }
+        return bestProjection
+    }
+
+    private fun getThingCardSidePanelProjectionForWidth(
+            imageWidth: Int,
+            contentWidth: Int
+    ): ThingCardSidePanelProjection {
+        val clampedWidth = clampThingCardSidePanelMediaWidth(imageWidth, contentWidth)
+        val textWidth = max(1, contentWidth - clampedWidth)
+        val imageHeight = getThingCardSidePanelMeasuredHeightForMediaWidth(clampedWidth)
+        return ThingCardSidePanelProjection(
+                imageWidth = clampedWidth,
+                imageHeight = imageHeight,
+                textWidth = textWidth
+        )
+    }
+
+    private fun getThingCardSidePanelWidthForPercent(
+            widthPercent: Int,
+            contentWidth: Int
+    ): Int {
+        if (contentWidth <= 0) return 1
+        val normalizedPercent = normalizeThingCardAppearanceSideMediaWidth(widthPercent)
+        return clampThingCardSidePanelMediaWidth(
+                contentWidth * normalizedPercent / 100,
+                contentWidth
+        )
+    }
+
+    private fun clampThingCardSidePanelMediaWidth(width: Int, contentWidth: Int): Int {
+        if (contentWidth <= 0) return 1
+        val minWidth = max(1, contentWidth * getThingCardAppearanceSideMediaWidthMinPercent() / 100)
+        val maxWidth = max(minWidth, contentWidth * getThingCardAppearanceSideMediaWidthMaxPercent() / 100)
+        return max(minWidth, min(maxWidth, width))
+    }
+
+    private fun getThingCardSidePanelMeasuredHeightForMediaWidth(mediaWidth: Int): Int {
+        val minHeight = resources.getDimensionPixelSize(
+                R.dimen.thing_card_full_span_side_image_min_height
+        )
+        val contentWidth = getThingCardAppearancePreviewCardWidth()
+        if (contentWidth <= 0) return minHeight
+
+        val holder = getThingCardAppearanceSelectedHolder() ?: return minHeight
+        val textWidth = max(1, contentWidth - mediaWidth)
+        val textContent = holder.llTextContent ?: return minHeight
+        val textLp = textContent.layoutParams as LinearLayout.LayoutParams
+        val oldTextWidth = textLp.width
+        val oldTextHeight = textLp.height
+        val oldTextWeight = textLp.weight
+        val measuredHeight = try {
+            textLp.width = textWidth
+            textLp.height = ViewGroup.LayoutParams.WRAP_CONTENT
+            textLp.weight = 0f
+            val widthSpec = View.MeasureSpec.makeMeasureSpec(textWidth, View.MeasureSpec.EXACTLY)
+            val heightSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+            textContent.measure(widthSpec, heightSpec)
+            textContent.measuredHeight
+        } finally {
+            textLp.width = oldTextWidth
+            textLp.height = oldTextHeight
+            textLp.weight = oldTextWeight
+        }
+        return max(minHeight, measuredHeight)
+    }
+
+    private fun getThingCardAppearanceSelectedHolder():
+            BaseThingsAdapter.BaseThingViewHolder? {
+        val recyclerView = mRecyclerView ?: return null
+        val position = mThingCardAppearanceSelectedPosition
+        if (position < 0) return null
+        return recyclerView.findViewHolderForAdapterPosition(position)
+                as? BaseThingsAdapter.BaseThingViewHolder
+    }
+
+    private fun getThingCardMediaBackgroundRatioRange(): ThingCardRatioRange {
+        val cardWidth = getThingCardAppearancePreviewCardWidth()
+        val availableHeight = getThingCardAppearancePreviewAvailableHeight()
+        if (cardWidth <= 0 || availableHeight <= 0) {
+            return ThingCardRatioRange(0.5, 2.0)
+        }
+
+        val naturalHeight = max(1, getThingCardBackgroundNaturalHeight())
+        val maxHeight = max(
+                naturalHeight,
+                availableHeight * resources.getInteger(
+                        R.integer.thing_card_media_background_home_max_height_percent
+                ) / 100
+        )
+        val minRatio = max(0.05, cardWidth.toDouble() / maxHeight.toDouble())
+        val maxRatio = min(10.0, cardWidth.toDouble() / naturalHeight.toDouble())
         if (maxRatio <= minRatio) {
             return ThingCardRatioRange(minRatio, minRatio + 0.01)
         }
@@ -1985,6 +2212,24 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         return max(0, min(maxValue, value))
     }
 
+    private fun clampThingCardTargetAspectRatio(
+            draft: ThingCardAppearance,
+            source: ThingCardMediaHelper.MediaSource?,
+            presentationKey: String,
+            targetAspectRatio: Double
+    ): Double {
+        if (targetAspectRatio.isNaN() || targetAspectRatio.isInfinite() ||
+                targetAspectRatio <= 0.0) {
+            return getThingCardPresentationTargetAspectRatio(
+                    draft,
+                    source ?: return 1.0,
+                    presentationKey
+            )
+        }
+        val range = getThingCardRatioRange(draft, presentationKey, source)
+        return max(range.minRatio, min(range.maxRatio, targetAspectRatio))
+    }
+
     private fun normalizeThingCardAppearanceSideMediaWidth(widthPercent: Int): Int {
         return max(
                 getThingCardAppearanceSideMediaWidthMinPercent(),
@@ -2020,26 +2265,13 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         }
         val sourceAppearance = draft.sources[source.typePathName]
         mLlThingCardAppearanceBackgroundControls!!.visibility = View.VISIBLE
+        (mSeekThingCardAppearanceBackgroundHeight!!.parent as? View)?.visibility = View.GONE
         mSeekThingCardAppearanceBackgroundMask!!.progress =
                 clampThingCardAppearanceSeekProgress(
-                        ((sourceAppearance?.mediaBackgroundMaskStrength
+                        ((sourceAppearance?.mediaBackgroundMaskStrength()
                                 ?: getThingCardAppearanceDefaultMaskStrength()) * 100).toInt(),
                         100
                 )
-        val maxPercent = resources.getInteger(
-                R.integer.thing_card_media_background_home_max_height_percent
-        )
-        val minPercent = getThingCardBackgroundHeightSliderMinPercent(maxPercent)
-        mThingCardAppearanceBackgroundHeightSliderMinPercent = minPercent
-        mSeekThingCardAppearanceBackgroundHeight!!.max = maxPercent
-        mSeekThingCardAppearanceBackgroundHeight!!.min = minPercent
-        val savedPercent = getThingCardBackgroundHeightPercent(
-                sourceAppearance?.mediaBackgroundHeightRatio
-        )
-        mSeekThingCardAppearanceBackgroundHeight!!.progress = max(
-                minPercent,
-                clampThingCardAppearanceSeekProgress(savedPercent, maxPercent)
-        )
     }
 
     private fun bindThingCardAppearanceChoice(
@@ -2273,6 +2505,104 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         )
     }
 
+    private fun getActiveThingCardPresentationKey(
+            draft: ThingCardAppearance
+    ): String {
+        if (draft.mediaBackgroundEnabled) {
+            return ThingCardAppearance.PRESENTATION_MEDIA_BACKGROUND
+        }
+        return if (draft.spanMode == Thing.THING_CARD_SPAN_FULL &&
+                (draft.imagePlacement == Thing.THING_CARD_IMAGE_PLACEMENT_LEFT ||
+                        draft.imagePlacement == Thing.THING_CARD_IMAGE_PLACEMENT_RIGHT)) {
+            ThingCardAppearance.PRESENTATION_SIDE_PANEL
+        } else {
+            ThingCardAppearance.PRESENTATION_THUMBNAIL
+        }
+    }
+
+    private fun getThingCardPresentationTargetAspectRatio(
+            draft: ThingCardAppearance,
+            source: ThingCardMediaHelper.MediaSource,
+            presentationKey: String = getActiveThingCardPresentationKey(draft),
+            sourceAppearance: ThingCardAppearance.SourceAppearance? =
+                    draft.sources[source.typePathName]
+    ): Double {
+        val savedRatio = sourceAppearance
+                ?.presentation(presentationKey)
+                ?.targetAspectRatio
+                ?.takeIf { it > 0.0 && !it.isNaN() && !it.isInfinite() }
+        if (savedRatio != null) return savedRatio
+
+        return when (presentationKey) {
+            ThingCardAppearance.PRESENTATION_MEDIA_BACKGROUND ->
+                sourceAppearance?.mediaBackgroundTargetAspectRatio()
+                        ?: getCurrentMediaBackgroundDisplayAspectRatio()
+                        ?: 1.0
+            ThingCardAppearance.PRESENTATION_SIDE_PANEL ->
+                sourceAppearance?.sidePanelTargetAspectRatio()
+                        ?: getLegacySidePanelTargetAspectRatio(draft)
+                        ?: 0.75
+            else -> {
+                val defaultRatio = getDefaultThingCardThumbnailTargetAspectRatio(draft)
+                sourceAppearance?.thumbnailCropWithTargetRatio(defaultRatio)?.sourceAspectRatio
+                        ?: defaultRatio
+            }
+        }
+    }
+
+    private fun getDefaultThingCardThumbnailTargetAspectRatio(
+            draft: ThingCardAppearance
+    ): Double {
+        return if (draft.spanMode == Thing.THING_CARD_SPAN_FULL) 16.0 / 9.0 else 4.0 / 3.0
+    }
+
+    private fun getLegacySidePanelTargetAspectRatio(
+            draft: ThingCardAppearance
+    ): Double? {
+        val contentWidth = getThingCardAppearancePreviewCardWidth()
+        if (contentWidth <= 0) return null
+        val sideWidth = contentWidth * normalizeThingCardAppearanceSideMediaWidth(
+                draft.sideMediaWidthPercent
+        ) / 100
+        val measuredSideHeight = getThingCardSidePanelMeasuredHeightForMediaWidth(sideWidth)
+        return max(0.05, min(10.0, sideWidth.toDouble() / measuredSideHeight.toDouble()))
+    }
+
+    private fun getThingCardPresentationCrop(
+            sourceAppearance: ThingCardAppearance.SourceAppearance?,
+            presentationKey: String
+    ): ThingCardAppearance.ThingCardMediaCrop {
+        val presentationCrop = sourceAppearance?.presentation(presentationKey)?.crop
+        if (presentationCrop != null) return presentationCrop
+        return when (presentationKey) {
+            ThingCardAppearance.PRESENTATION_MEDIA_BACKGROUND ->
+                toThingCardMediaCrop(sourceAppearance?.mediaBackgroundCrop())
+            ThingCardAppearance.PRESENTATION_SIDE_PANEL ->
+                toThingCardMediaCrop(sourceAppearance?.sidePanelCrop())
+            else -> toThingCardMediaCrop(sourceAppearance?.thumbnailCropWithTargetRatio(1.0))
+        }
+    }
+
+    private fun toThingCardMediaCrop(
+            crop: ThingCardAppearance.ThingCardThumbnailCrop?
+    ): ThingCardAppearance.ThingCardMediaCrop {
+        return ThingCardAppearance.ThingCardMediaCrop(
+                centerX = crop?.centerX ?: ThingCardAppearance.DEFAULT_CROP_CENTER,
+                centerY = crop?.centerY ?: ThingCardAppearance.DEFAULT_CROP_CENTER,
+                scale = crop?.scale ?: ThingCardAppearance.DEFAULT_USER_SCALE
+        )
+    }
+
+    private fun toThingCardMediaCrop(
+            crop: ThingCardAppearance.ThingCardMediaBackgroundCrop?
+    ): ThingCardAppearance.ThingCardMediaCrop {
+        return ThingCardAppearance.ThingCardMediaCrop(
+                centerX = crop?.centerX ?: ThingCardAppearance.DEFAULT_CROP_CENTER,
+                centerY = crop?.centerY ?: ThingCardAppearance.DEFAULT_CROP_CENTER,
+                scale = crop?.scale ?: ThingCardAppearance.DEFAULT_USER_SCALE
+        )
+    }
+
     private fun updateThingCardCurrentCrop(
             centerX: Double? = null,
             centerY: Double? = null,
@@ -2281,33 +2611,31 @@ class ThingsActivity : EverythingDoneBaseActivity() {
             videoFrameMs: Long? = null
     ) {
         val draft = mThingCardAppearanceDraft ?: return
-        if (draft.mediaBackgroundEnabled) {
-            updateCurrentThingCardSourceAppearance { sourceAppearance ->
-                val crop = sourceAppearance.backgroundCrop
-                        ?: ThingCardAppearance.ThingCardMediaBackgroundCrop()
-                sourceAppearance.copy(
-                        videoFrameMs = videoFrameMs ?: sourceAppearance.videoFrameMs,
-                        backgroundCrop = crop.copy(
-                                centerX = centerX ?: crop.centerX,
-                                centerY = centerY ?: crop.centerY,
-                                scale = scale ?: crop.scale
-                        )
-                )
-            }
-        } else {
-            updateCurrentThingCardSourceAppearance { sourceAppearance ->
-                val crop = sourceAppearance.thumbnailCrop
-                        ?: ThingCardAppearance.ThingCardThumbnailCrop()
-                sourceAppearance.copy(
-                        videoFrameMs = videoFrameMs ?: sourceAppearance.videoFrameMs,
-                        thumbnailCrop = crop.copy(
-                                centerX = centerX ?: crop.centerX,
-                                centerY = centerY ?: crop.centerY,
-                                scale = scale ?: crop.scale,
-                                sourceAspectRatio = sourceAspectRatio ?: crop.sourceAspectRatio
-                        )
-                )
-            }
+        val source = getCurrentThingCardAppearanceMediaSource() ?: return
+        val presentationKey = getActiveThingCardPresentationKey(draft)
+        updateCurrentThingCardSourceAppearance { sourceAppearance ->
+            val existing = sourceAppearance.presentation(presentationKey)
+            val crop = getThingCardPresentationCrop(sourceAppearance, presentationKey)
+            val newCrop = crop.copy(
+                    centerX = centerX ?: crop.centerX,
+                    centerY = centerY ?: crop.centerY,
+                    scale = scale ?: crop.scale
+            )
+            val presentation = (existing ?: ThingCardAppearance.MediaPresentationAppearance())
+                    .copy(
+                            targetAspectRatio = sourceAspectRatio
+                                    ?: existing?.targetAspectRatio
+                                    ?: getThingCardPresentationTargetAspectRatio(
+                                            draft,
+                                            source,
+                                            presentationKey,
+                                            sourceAppearance
+                                    ),
+                            crop = newCrop
+                    )
+            sourceAppearance
+                    .withPresentation(presentationKey, presentation)
+                    .copy(videoFrameMs = videoFrameMs ?: sourceAppearance.videoFrameMs)
         }
     }
 
@@ -2316,22 +2644,11 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         val source = getCurrentThingCardAppearanceMediaSource() ?: return
         val bitmap = loadThingCardCropEditorBitmap(source) ?: return
         val sourceAppearance = draft.sources[source.typePathName]
-        val cropCenterX: Double
-        val cropCenterY: Double
-        val cropScale: Double
-        if (draft.mediaBackgroundEnabled) {
-            val crop = sourceAppearance?.backgroundCrop
-                    ?: ThingCardAppearance.ThingCardMediaBackgroundCrop()
-            cropCenterX = crop.centerX
-            cropCenterY = crop.centerY
-            cropScale = crop.scale
-        } else {
-            val crop = sourceAppearance?.thumbnailCrop
-                    ?: ThingCardAppearance.ThingCardThumbnailCrop()
-            cropCenterX = crop.centerX
-            cropCenterY = crop.centerY
-            cropScale = crop.scale
-        }
+        val presentationKey = getActiveThingCardPresentationKey(draft)
+        val crop = getThingCardPresentationCrop(sourceAppearance, presentationKey)
+        val cropCenterX = crop.centerX
+        val cropCenterY = crop.centerY
+        val cropScale = crop.scale
 
         val dialog = Dialog(this, R.style.EverythingDoneTheme_Dialog)
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
@@ -2364,13 +2681,9 @@ class ThingsActivity : EverythingDoneBaseActivity() {
                 }
         )
 
-        val canResizeFrame = canResizeThingCardCropEditorFrame(draft)
         val rawTargetAspectRatio = getThingCardCropEditorTargetAspectRatio(draft, source)
-        val targetAspectRatio = if (canResizeFrame) {
-            getThingCardRatioFromProgress(getThingCardRatioProgress(rawTargetAspectRatio))
-        } else {
-            rawTargetAspectRatio
-        }
+        val targetAspectRatio =
+                getThingCardRatioFromProgress(getThingCardRatioProgress(rawTargetAspectRatio))
         val initialVideoFrameMs = if (source.isVideo) {
             sourceAppearance?.videoFrameMs ?: 0L
         } else {
@@ -2455,22 +2768,20 @@ class ThingsActivity : EverythingDoneBaseActivity() {
                     }
             )
         }
-        if (canResizeFrame) {
-            root.addView(
-                    createThingCardCropEditorRatioControls(cropEditor, targetAspectRatio),
-                    LinearLayout.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.WRAP_CONTENT
-                    ).apply {
-                        setMargins(
-                                contentHorizontalMargin,
-                                (density * 12).toInt(),
-                                contentHorizontalMargin,
-                                0
-                        )
-                    }
-            )
-        }
+        root.addView(
+                createThingCardCropEditorRatioControls(cropEditor, targetAspectRatio),
+                LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    setMargins(
+                            contentHorizontalMargin,
+                            (density * 12).toInt(),
+                            contentHorizontalMargin,
+                            0
+                    )
+                }
+        )
 
         val buttons = LinearLayout(this)
         buttons.gravity = android.view.Gravity.RIGHT or android.view.Gravity.CENTER_VERTICAL
@@ -2479,13 +2790,8 @@ class ThingsActivity : EverythingDoneBaseActivity() {
             dialog.dismiss()
         })
         buttons.addView(createThingCardCropEditorButton(R.string.confirm) {
-            val confirmedAspectRatio = if (canResizeFrame) {
-                cropEditor.getTargetAspectRatio()
-            } else {
-                null
-            }
-            val ratioChanged = confirmedAspectRatio != null &&
-                    abs(confirmedAspectRatio - targetAspectRatio) > 0.0001
+            val confirmedAspectRatio = cropEditor.getTargetAspectRatio()
+            val ratioChanged = abs(confirmedAspectRatio - targetAspectRatio) > 0.0001
             val confirmedVideoFrameMs = videoFrameControls?.getFrameMs?.invoke()
             val videoFrameChanged = confirmedVideoFrameMs != null &&
                     confirmedVideoFrameMs != initialVideoFrameMs
@@ -2546,13 +2852,6 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         val minHeight = (resources.displayMetrics.density * 160).toInt()
         val maxHeight = (screenSize.y * 0.52f).toInt()
         return max(minHeight, min(maxHeight, rawHeight))
-    }
-
-    private fun canResizeThingCardCropEditorFrame(draft: ThingCardAppearance): Boolean {
-        if (draft.mediaBackgroundEnabled) return false
-        val sidePlacement = draft.imagePlacement == Thing.THING_CARD_IMAGE_PLACEMENT_LEFT ||
-                draft.imagePlacement == Thing.THING_CARD_IMAGE_PLACEMENT_RIGHT
-        return draft.spanMode != Thing.THING_CARD_SPAN_FULL || !sidePlacement
     }
 
     private data class ThingCardCropEditorVideoFrameControls(
@@ -2770,15 +3069,18 @@ class ThingsActivity : EverythingDoneBaseActivity() {
             }
 
             override fun onStartTrackingTouch(seekBar: SeekBar?) {
+                mThingCardActiveRatioDragRange = getThingCardThumbnailRatioRange()
             }
 
             override fun onStopTrackingTouch(seekBar: SeekBar?) {
-                seekBar ?: return
-                val snappedRatio = getSnappedThingCardRatioForSeekBar(
-                        seekBar,
-                        seekBar.progress
-                )
-                cropView.setTargetAspectRatio(snappedRatio)
+                if (seekBar != null) {
+                    val snappedRatio = getSnappedThingCardRatioForSeekBar(
+                            seekBar,
+                            seekBar.progress
+                    )
+                    cropView.setTargetAspectRatio(snappedRatio)
+                }
+                mThingCardActiveRatioDragRange = null
             }
         })
 
@@ -2882,41 +3184,13 @@ class ThingsActivity : EverythingDoneBaseActivity() {
             draft: ThingCardAppearance,
             source: ThingCardMediaHelper.MediaSource
     ): Double {
-        val holder = if (mThingCardAppearanceSelectedPosition >= 0) {
-            mRecyclerView!!.findViewHolderForAdapterPosition(
-                    mThingCardAppearanceSelectedPosition
-            ) as? BaseThingsAdapter.BaseThingViewHolder
-        } else {
-            null
-        }
-        if (draft.mediaBackgroundEnabled) {
-            val targetW = holder?.cv?.width?.takeIf { it > 0 }
-                    ?: getThingCardAppearancePreviewCardWidth()
-            val targetH = getThingCardMediaBackgroundCropTargetHeight(draft, source, holder, targetW)
-            if (targetW > 0 && targetH > 0) {
-                return targetW.toDouble() / targetH.toDouble()
-            }
-        }
-        val targetView = if (draft.mediaBackgroundEnabled) holder?.cv else holder?.flImageAttachment
-        val targetW = targetView?.width ?: 0
-        val targetH = targetView?.height ?: 0
-        if (targetW > 0 && targetH > 0) {
-            return targetW.toDouble() / targetH.toDouble()
-        }
-
         val sourceAppearance = draft.sources[source.typePathName]
-        if (draft.mediaBackgroundEnabled) {
-            val heightRatio = sourceAppearance?.mediaBackgroundHeightRatio
-            if (heightRatio != null && heightRatio > 0.0) {
-                return 1.0 / heightRatio
-            }
-            return 1.0
-        }
-
-        val crop = sourceAppearance?.thumbnailCrop
-                ?: ThingCardAppearance.ThingCardThumbnailCrop()
-        return crop.sourceAspectRatio
-                ?: if (draft.spanMode == Thing.THING_CARD_SPAN_FULL) 16.0 / 9.0 else 4.0 / 3.0
+        return getThingCardPresentationTargetAspectRatio(
+                draft,
+                source,
+                getActiveThingCardPresentationKey(draft),
+                sourceAppearance
+        )
     }
 
     private fun getThingCardMediaBackgroundCropTargetHeight(
@@ -2928,14 +3202,14 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         if (cardWidth <= 0) return holder?.cv?.height ?: 0
 
         val sourceAppearance = draft.sources[source.typePathName]
-        val targetHeightRatio = sourceAppearance?.mediaBackgroundHeightRatio
+        val targetAspectRatio = sourceAppearance?.mediaBackgroundTargetAspectRatio()
         var targetMinHeight = 0
-        if (targetHeightRatio != null && targetHeightRatio > 0.0) {
+        if (targetAspectRatio != null && targetAspectRatio > 0.0) {
             val maxHeight = getThingCardAppearancePreviewAvailableHeight() *
                     resources.getInteger(
                             R.integer.thing_card_media_background_home_max_height_percent
                     ) / 100
-            targetMinHeight = min((cardWidth * targetHeightRatio).toInt(), maxHeight)
+            targetMinHeight = min((cardWidth / targetAspectRatio).toInt(), maxHeight)
         }
 
         val naturalHeight = holder?.let {
@@ -3073,42 +3347,81 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         return sampleSize
     }
 
-    private fun updateThingCardThumbnailSourceAspectRatio(sourceAspectRatio: Double) {
+    private fun updateThingCardActiveTargetAspectRatio(targetAspectRatio: Double) {
+        val draft = mThingCardAppearanceDraft ?: return
+        val source = getCurrentThingCardAppearanceMediaSource() ?: return
+        val presentationKey = getActiveThingCardPresentationKey(draft)
         updateCurrentThingCardSourceAppearance { sourceAppearance ->
-            val crop = sourceAppearance.thumbnailCrop
-                    ?: ThingCardAppearance.ThingCardThumbnailCrop()
-            sourceAppearance.copy(
-                    thumbnailCrop = crop.copy(sourceAspectRatio = sourceAspectRatio)
+            val current = sourceAppearance.presentation(presentationKey)
+                    ?: ThingCardAppearance.MediaPresentationAppearance(
+                            crop = getThingCardPresentationCrop(sourceAppearance, presentationKey)
+                    )
+            sourceAppearance.withPresentation(
+                    presentationKey,
+                    current.copy(
+                            targetAspectRatio = clampThingCardTargetAspectRatio(
+                                    draft,
+                                    source,
+                                    presentationKey,
+                                    targetAspectRatio
+                            )
+                    )
+            )
+        }
+    }
+
+    private fun updateThingCardSidePanelTargetWidthPercent(widthPercent: Int) {
+        val draft = mThingCardAppearanceDraft ?: return
+        val source = getCurrentThingCardAppearanceMediaSource() ?: return
+        val presentationKey = getActiveThingCardPresentationKey(draft)
+        if (presentationKey != ThingCardAppearance.PRESENTATION_SIDE_PANEL) return
+
+        val targetAspectRatio = getThingCardSidePanelTargetAspectRatioForWidthPercent(
+                normalizeThingCardAppearanceSideMediaWidth(widthPercent)
+        )
+        updateCurrentThingCardSourceAppearance { sourceAppearance ->
+            val current = sourceAppearance.presentation(presentationKey)
+                    ?: ThingCardAppearance.MediaPresentationAppearance(
+                            crop = getThingCardPresentationCrop(sourceAppearance, presentationKey)
+                    )
+            sourceAppearance.withPresentation(
+                    presentationKey,
+                    current.copy(
+                            targetAspectRatio = clampThingCardTargetAspectRatio(
+                                    draft,
+                                    source,
+                                    presentationKey,
+                                    targetAspectRatio
+                            )
+                    )
             )
         }
     }
 
     private fun updateThingCardBackgroundMask(maskStrength: Double) {
+        val draft = mThingCardAppearanceDraft ?: return
+        val source = getCurrentThingCardAppearanceMediaSource() ?: return
         updateCurrentThingCardSourceAppearance { sourceAppearance ->
-            sourceAppearance.copy(mediaBackgroundMaskStrength = maskStrength)
+            val presentationKey = ThingCardAppearance.PRESENTATION_MEDIA_BACKGROUND
+            val current = sourceAppearance.presentation(presentationKey)
+                    ?: ThingCardAppearance.MediaPresentationAppearance(
+                            targetAspectRatio = getThingCardPresentationTargetAspectRatio(
+                                    draft,
+                                    source,
+                                    presentationKey,
+                                    sourceAppearance
+                            ),
+                            crop = getThingCardPresentationCrop(sourceAppearance, presentationKey)
+                    )
+            sourceAppearance.withPresentation(
+                    presentationKey,
+                    current.copy(maskStrength = maskStrength)
+            )
         }
     }
 
     private fun updateThingCardBackgroundHeight(heightPercent: Int) {
-        val draft = mThingCardAppearanceDraft ?: return
-        val source = getCurrentThingCardAppearanceMediaSource() ?: return
-        val minPercent = mThingCardAppearanceBackgroundHeightSliderMinPercent
-        val heightRatio = if (heightPercent <= 0) {
-            null
-        } else if (heightPercent <= minPercent) {
-            null
-        } else {
-            getThingCardBackgroundHeightRatio(heightPercent)
-        }
-
-        val current = draft.sources[source.typePathName]
-                ?: ThingCardAppearance.SourceAppearance(
-                        fileSize = source.fileSize,
-                        lastModified = source.lastModified
-                )
-        val newSources = LinkedHashMap(draft.sources)
-        newSources[source.typePathName] = current.copy(mediaBackgroundHeightRatio = heightRatio)
-        updateThingCardAppearanceDraft(draft.copy(sources = newSources), false, false)
+        updateThingCardActiveTargetAspectRatio(getThingCardRatioFromProgress(heightPercent))
         if (!applyCurrentThingCardMediaBackgroundHeightToVisiblePreview()) {
             requestThingCardAppearancePreviewRefresh()
         }
@@ -3235,8 +3548,13 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         val thing = mThingCardAppearancePanelThing ?: return
         if (newDraft == null) return
 
-        mThingCardAppearanceDraft = newDraft
-        thing.thingCardAppearance = newDraft
+        val preparedDraft = seedThingCardPresentationForDraftTransition(
+                thing,
+                mThingCardAppearanceDraft,
+                newDraft
+        )
+        mThingCardAppearanceDraft = preparedDraft
+        thing.thingCardAppearance = preparedDraft
         if (requestPreviewRefresh) {
             requestThingCardAppearancePreviewRefresh()
         }
@@ -3246,6 +3564,66 @@ class ThingsActivity : EverythingDoneBaseActivity() {
                 updateRecyclerViewBottomPaddingForThingCardAppearancePanel()
             }
         }
+    }
+
+    private fun seedThingCardPresentationForDraftTransition(
+            thing: Thing,
+            oldDraft: ThingCardAppearance?,
+            newDraft: ThingCardAppearance
+    ): ThingCardAppearance {
+        val source = ThingCardMediaHelper.resolveEffectiveMediaSource(
+                thing.attachment,
+                newDraft.mediaSourceKey
+        ) ?: return newDraft
+        val targetKey = getActiveThingCardPresentationKey(newDraft)
+        val current = newDraft.sources[source.typePathName]
+                ?: ThingCardAppearance.SourceAppearance(
+                        fileSize = source.fileSize,
+                        lastModified = source.lastModified
+                )
+        if (current.presentation(targetKey) != null) return newDraft
+
+        val oldKey = oldDraft?.let { getActiveThingCardPresentationKey(it) }
+        val oldSourceAppearance = oldDraft?.sources?.get(source.typePathName)
+        val seedPresentation = oldKey?.let { oldSourceAppearance?.presentation(it) }
+        val seedCrop = seedPresentation?.crop
+                ?: oldKey?.let { getThingCardPresentationCrop(oldSourceAppearance, it) }
+                ?: getThingCardPresentationCrop(current, targetKey)
+        val legacySideRatio = if (targetKey == ThingCardAppearance.PRESENTATION_SIDE_PANEL) {
+            getLegacySidePanelTargetAspectRatio(newDraft)
+        } else {
+            null
+        }
+        val seedRatio = legacySideRatio
+                ?: seedPresentation?.targetAspectRatio
+                ?: oldKey?.let {
+                    getThingCardPresentationTargetAspectRatio(
+                            oldDraft,
+                            source,
+                            it,
+                            oldSourceAppearance
+                    )
+                }
+                ?: getThingCardPresentationTargetAspectRatio(newDraft, source, targetKey, current)
+        val clampedRatio = clampThingCardTargetAspectRatio(
+                newDraft,
+                source,
+                targetKey,
+                seedRatio
+        )
+        val seededPresentation = ThingCardAppearance.MediaPresentationAppearance(
+                targetAspectRatio = clampedRatio,
+                crop = seedCrop,
+                maskStrength = if (targetKey == ThingCardAppearance.PRESENTATION_MEDIA_BACKGROUND) {
+                    seedPresentation?.maskStrength
+                            ?: current.mediaBackgroundMaskStrength()
+                } else {
+                    null
+                }
+        )
+        val newSources = LinkedHashMap(newDraft.sources)
+        newSources[source.typePathName] = current.withPresentation(targetKey, seededPresentation)
+        return newDraft.copy(sources = newSources)
     }
 
     private fun requestThingCardAppearancePreviewRefresh() {
@@ -3282,7 +3660,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         val thing = mThingCardAppearancePanelThing ?: return
         val draft = mThingCardAppearanceDraft ?: return
 
-        val confirmedDraft = withCurrentSideMediaDisplayAspectRatioHint(thing, draft)
+        val confirmedDraft = materializeThingCardPresentationsForConfirm(thing, draft)
         thing.thingCardAppearance = confirmedDraft
         hideThingCardAppearancePanel()
         clearThingCardAppearanceDraft()
@@ -3295,57 +3673,77 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         }
     }
 
-    private fun withCurrentSideMediaDisplayAspectRatioHint(
+    private fun materializeThingCardPresentationsForConfirm(
             thing: Thing,
             draft: ThingCardAppearance
     ): ThingCardAppearance {
+        val activeMaterialized = materializeActiveThingCardPresentation(thing, draft)
+        return materializeLegacySidePanelPresentationIfNeeded(thing, activeMaterialized)
+    }
+
+    private fun materializeActiveThingCardPresentation(
+            thing: Thing,
+            draft: ThingCardAppearance
+    ): ThingCardAppearance {
+        return seedThingCardPresentationForDraftTransition(thing, null, draft)
+    }
+
+    private fun materializeLegacySidePanelPresentationIfNeeded(
+            thing: Thing,
+            draft: ThingCardAppearance
+    ): ThingCardAppearance {
+        if (draft.sideMediaWidthPercent == ThingCardAppearance.DEFAULT_SIDE_MEDIA_WIDTH_PERCENT) {
+            return draft
+        }
         val source = ThingCardMediaHelper.resolveEffectiveMediaSource(
                 thing.attachment,
                 draft.mediaSourceKey
         ) ?: return draft
         val current = draft.sources[source.typePathName]
-        if (!shouldCaptureSideMediaDisplayAspectRatioHint(thing, draft)) {
-            if (current?.sideMediaDisplayAspectRatioHint == null) return draft
-            val newSources = LinkedHashMap(draft.sources)
-            newSources[source.typePathName] =
-                    current.copy(sideMediaDisplayAspectRatioHint = null)
-            return draft.copy(sources = newSources)
-        }
-
-        val ratio = getCurrentSideMediaDisplayAspectRatio() ?: return draft
-        val newSources = LinkedHashMap(draft.sources)
-        newSources[source.typePathName] = (current
                 ?: ThingCardAppearance.SourceAppearance(
                         fileSize = source.fileSize,
                         lastModified = source.lastModified
-                )).copy(sideMediaDisplayAspectRatioHint = ratio)
+                )
+        if (current.presentation(ThingCardAppearance.PRESENTATION_SIDE_PANEL) != null) {
+            return draft
+        }
+
+        val legacyRatio = getLegacySidePanelTargetAspectRatio(draft) ?: return draft
+        val sidePresentation = ThingCardAppearance.MediaPresentationAppearance(
+                targetAspectRatio = clampThingCardTargetAspectRatio(
+                        draft,
+                        source,
+                        ThingCardAppearance.PRESENTATION_SIDE_PANEL,
+                        legacyRatio
+                ),
+                crop = getThingCardPresentationCrop(
+                        current,
+                        ThingCardAppearance.PRESENTATION_SIDE_PANEL
+                )
+        )
+        val newSources = LinkedHashMap(draft.sources)
+        newSources[source.typePathName] = current.withPresentation(
+                ThingCardAppearance.PRESENTATION_SIDE_PANEL,
+                sidePresentation
+        )
         return draft.copy(sources = newSources)
     }
 
-    private fun shouldCaptureSideMediaDisplayAspectRatioHint(
-            thing: Thing,
-            draft: ThingCardAppearance
-    ): Boolean {
-        if (thing.isPrivate() || draft.mediaBackgroundEnabled) return false
-        return draft.imagePlacement == Thing.THING_CARD_IMAGE_PLACEMENT_LEFT
-                || draft.imagePlacement == Thing.THING_CARD_IMAGE_PLACEMENT_RIGHT
-    }
-
-    private fun getCurrentSideMediaDisplayAspectRatio(): Double? {
+    private fun getCurrentMediaBackgroundDisplayAspectRatio(): Double? {
         val recyclerView = mRecyclerView ?: return null
         val position = mThingCardAppearanceSelectedPosition
         if (position < 0) return null
         val holder = recyclerView.findViewHolderForAdapterPosition(position)
                 as? BaseThingsAdapter.BaseThingViewHolder
                 ?: return null
-        val image = holder.flImageAttachment ?: return null
-        if (image.visibility != View.VISIBLE) return null
-        val width = image.width
-        val height = image.height
+        val background = holder.ivMediaBackground ?: return null
+        if (background.visibility != View.VISIBLE) return null
+        val width = background.width.takeIf { it > 0 } ?: holder.cv?.width ?: 0
+        val height = background.height
         if (width <= 0 || height <= 0) return null
         val ratio = width.toDouble() / height.toDouble()
         if (ratio.isNaN() || ratio.isInfinite() || ratio <= 0.0) return null
-        return max(0.05, min(4.0, ratio))
+        return max(0.05, min(10.0, ratio))
     }
 
     private fun cancelThingCardAppearancePanel(shouldBackNormalMode: Boolean) {
@@ -4906,6 +5304,8 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         const val TAG: String = "ThingsActivity"
         private const val THING_CARD_RATIO_SLIDER_MAX = 1000
         private const val THING_CARD_RATIO_SNAP_PROGRESS_DISTANCE = 28
+        private const val THING_CARD_SIDE_PANEL_PROJECTION_MAX_ITERATIONS = 6
+        private const val THING_CARD_SIDE_PANEL_PROJECTION_TOLERANCE_PX = 1
         private const val THING_CARD_VIDEO_END_FRAME_GUARD_MS = 50
     }
 }

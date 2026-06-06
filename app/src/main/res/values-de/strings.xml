@@ -233,7 +233,7 @@
     <string name="thing_card_appearance_mode_thumbnail">Thumbnail</string>
     <string name="thing_card_appearance_media_position">Image/video position</string>
     <string name="thing_card_appearance_mode_background">Background</string>
-    <string name="thing_card_appearance_side_width_format">Side image width · %1$d%%</string>
+    <string name="thing_card_appearance_cover_image_width_format">Cover image width · %1$d%%</string>
     <string name="thing_card_appearance_precise_crop">Crop cover image</string>
     <string name="thing_card_appearance_thumbnail_shape">Cover image ratio</string>
     <string name="thing_card_appearance_background_mask">Background mask</string>

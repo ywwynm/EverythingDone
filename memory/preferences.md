@@ -20,6 +20,11 @@ commit", "commit this"). Reverting an unrequested commit was needed
 once on 2026-05-18; avoid the same mistake. Applies even when code
 compiles and tasks look "done".
 
+When evaluating whether to port Thing Card Appearance behavior to remote
+surfaces such as AppWidgets and notifications, prefer complete visual support
+over a shorter implementation timeline, as long as the added complexity has a
+clear path to correctness and maintainability.
+
 For the debug APK update channel, do not use frequent internal debug publishes
 as a reason to inflate the main Android `versionCode` in `app/build.gradle`.
 Keep debug update cadence separate from the app's normal versioning policy.
@@ -37,6 +42,12 @@ step.
 When a broad UI sweep finds additional candidate omissions beyond the user's
 explicitly reported bug, report those candidates first and wait for user
 confirmation before modifying them.
+
+For AppWidget size preset expansion, prefer broader launcher-visible default
+size coverage, including larger presets up to 6 cells for tablets and large-grid
+launchers, over minimizing the number of widget picker entries. The added
+provider entries are acceptable when they can share the existing AppWidget
+rendering and update infrastructure.
 
 Debug update notes should be written in Chinese by default. Keep code symbols,
 file paths, Gradle task names, class names, and other proper technical names in
@@ -193,3 +204,9 @@ When the user asks to "submit" during a debug-testing cycle, interpret it as
 publishing a debug update, not creating a Git commit. Only create a Git commit
 when the user explicitly asks for `commit`, `git commit`, or says the tested
 version has no obvious bugs and is ready to commit.
+
+## Widget appearance follow-up discussion
+
+2026-06-05: For follow-up issues around widget preview geometry and media
+aspect handling, discuss constraints and design options first instead of
+rushing into implementation.

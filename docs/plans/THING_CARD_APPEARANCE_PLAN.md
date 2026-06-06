@@ -1,5 +1,12 @@
 # Thing Card Appearance Plan
 
+> Superseded geometry note: side media width, thumbnail source aspect ratio,
+> and media-background height ratio were the original v1 geometry controls.
+> New implementation work should use
+> `docs/plans/THING_CARD_MEDIA_TARGET_GEOMETRY_PLAN.md` and
+> `docs/adr/0003-thing-card-media-target-presentation-geometry.md` as the
+> canonical model for media target aspect ratio and per-presentation crop.
+
 ## Goal
 
 Build a unified Thing Card Appearance editor for card presentation settings,

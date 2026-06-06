@@ -1,5 +1,209 @@
 # Decisions
 
+## 2026-06-05
+
+### Remote Thing Card Appearance scope
+
+When porting Thing Card Appearance to remote surfaces, AppWidgets should aim
+for complete visual support where practical, even if that requires app-side
+bitmap pre-rendering for media crop, video frame selection, media backgrounds,
+and other RemoteViews-limited features.
+
+System notifications should first stay on standard notification styles and
+upgrade the existing BigPictureStyle path to respect Thing Card Media Source,
+Thing Card Video Frame, and Thing Card Thumbnail Crop. They should not try to
+fully reproduce the Thing Card layout, left/right media placement, or media
+background model in the first remote-surface pass, because custom notification
+RemoteViews are height-limited, system-templated on modern Android, and more
+fragile for readability.
+This notification scope applies to ordinary Thing notifications and the ongoing
+Thing notification path that reuses the general Thing notification builder. It
+does not apply to Doing notifications or quick-create notifications, because
+those notification forms are not Thing Card Media display surfaces.
+
+Thing Card Span Mode should not be copied directly into AppWidgets as the home
+list's normal-vs-wide span behavior. AppWidget geometry is owned by the widget
+size class and the launcher's actual allocated cell size. Widget rendering
+should use the widget's current target area, while media source, placement,
+crop, background, mask, and related Thing Card Appearance preferences may still
+apply. Span Mode may be used only as a secondary default/aspect reference, or
+ignored where the widget surface already provides clearer geometry.
+
+AppWidget rendering should preserve the existing interaction granularity rather
+than replacing the whole widget card with one pre-rendered card bitmap. The
+primary implementation path should keep structured RemoteViews for text,
+checklist rows, reminder/habit/action regions, Doing overlays, and row clicks,
+while pre-rendering only the media/background imagery that RemoteViews cannot
+draw natively. Whole-card bitmap rendering is only a last-resort fallback for a
+surface or feature that cannot be expressed safely through structured
+RemoteViews.
+
+Both single-Thing AppWidgets and Things List AppWidget rows should aim to
+support Thing Card Appearance fully. The Things List widget should not
+intentionally omit media backgrounds, left/right placement, side media width, or
+crop/video-frame behavior merely to reduce ordinary update cost. Implementation
+may still need hard safety guards for RemoteViews bitmap/IPC limits and launcher
+compatibility, but the product direction is complete visual support for both
+widget classes.
+
+When a Things List AppWidget update would exceed RemoteViews bitmap/IPC limits
+or otherwise fail because of complete media rendering, degrade per row rather
+than allowing the whole widget update to fail. Preserve text, click behavior,
+state, and action regions first. If necessary, degrade a row's media background
+to a regular thumbnail; if that is still unsafe, hide the media image while
+keeping the image/video attachment count indicator where possible.
+
+AppWidgets should follow Thing Card Appearance by default without adding a new
+widget-specific "follow card appearance" setting. Existing AppWidget normal vs
+simple style remains an information-density choice for the widget surface; it
+does not opt the widget out of rendering visible media according to Thing Card
+Appearance where the widget style still shows media.
+
+AppWidget media-background rendering should preserve the Thing Card Media
+Background meaning. When media background is enabled and safe to render, the
+selected image/video frame is drawn behind the whole widget card or list row,
+with the saved mask strength applied and widget text/icons adapted to the
+masked media background. It should not be treated merely as a larger thumbnail
+region.
+
+Remote-surface video rendering should preserve Thing Card Video Frame exact
+frame semantics. AppWidgets and standard notification BigPicture media should
+decode the saved `videoFrameMs` with the same closest-frame behavior used by the
+Thing Card Appearance renderer, rather than falling back to sync-frame-only
+thumbnails.
+
+### Remote AppWidget side media sizing
+
+AppWidget left/right media placement should express the saved
+`sideMediaWidthPercent` through the pre-rendered bitmap's intrinsic width rather
+than depending on API 31+ RemoteViews layout-sizing methods. The widget XML
+uses `wrap_content` media slots and a weighted text column, so the rendered
+bitmap width determines the side panel width while the existing text/checklist
+and action RemoteViews remain interactive on API 26+.
+
+Superseding the intrinsic-height part of that approach, left/right Thing Card
+Media is a full-height side media panel. It should span the final visible
+Thing Card content height in home-list cards, Things List AppWidget rows, and
+single-Thing AppWidgets. Single-Thing AppWidgets cannot freely grow, so side
+media height there must be derived from the fixed widget height budget. Things
+List AppWidget rows live inside the widget collection scroller, so a row may
+grow with its projected content and the side media panel should fill that final
+row height.
+
+### Remote AppWidget surface projection
+
+Thing Card Appearance remains the stored visual intent. AppWidgets render a
+Thing Card Surface Projection of that intent onto a widget or list-row surface;
+the projection must not write widget-adapted media dimensions back to the Thing's
+saved appearance fields.
+
+AppWidget projections should preserve media source, media source None, top /
+bottom / left / right placement, crop center, user zoom, exact video frame,
+media background, media-background mask, and side media width. Saved thumbnail
+or media-background aspect ratios are treated as desired media target ratios.
+When following the desired ratio would consume the widget's usable content area,
+single-Thing AppWidget rendering may clamp the rendered media target height to
+its fixed widget budget while keeping the saved crop semantics inside that
+clamped target. This adaptive clamp is a surface rendering decision, not a
+change to home-list Thing Card rendering and not a database value change.
+
+Single-Thing AppWidget media-height projection is content-floor first. For
+top/bottom media, the renderer should reserve enough vertical space for the
+widget card to remain recognizable as a Thing: title or private state, at least
+one line of body text or checklist content when present, required reminder,
+habit, state, or action regions, and bottom padding. Media receives the
+remaining height budget. If the saved desired ratio would exceed that budget,
+the media target is reduced before content is sacrificed; if needed it may fall
+back to a small thumbnail target rather than letting the fixed AppWidget show
+only media.
+
+Things List AppWidget rows should not use a product-level row-height clamp just
+because top/bottom media has a tall saved ratio. The list widget already scrolls
+through its collection rows, so a row may grow to honor the saved desired media
+ratio and content layout. Hard safety caps for RemoteViews bitmap dimensions,
+IPC limits, and launcher compatibility still apply; if those caps are hit,
+degrade the affected row rather than changing saved Thing Card Appearance.
+These safety caps are platform transport limits, not visual design limits:
+first attempt to honor the saved ratio, then reduce or degrade only when the
+rendered bitmap would be too large to send safely through RemoteViews or too
+risky for launcher compatibility.
+
+Do not rely on arbitrary nested scrolling inside AppWidget rows or ordinary
+single-Thing AppWidgets to support unbounded top/bottom media height. The
+reliable AppWidget scrolling primitive is a collection view. Things List rows
+should rely on the parent collection scroller rather than row-level nested
+scrolling, and converting the single-Thing AppWidget into a collection widget is
+a separate feature trade-off rather than the default answer for this appearance
+port.
+
+Single-Thing AppWidget configuration has two different card surfaces. The Thing
+candidate list is an App Chrome selection surface and should reuse home-list
+Thing Card rendering so users can recognize wide cards, placement, media
+backgrounds, crops, and video frames while choosing a Thing. The post-selection
+preview is a widget preview surface and should render the single-Thing
+AppWidget projection instead of a plain home-list card: apply widget alpha,
+widget size/aspect, square widget chrome, RemoteViews-compatible media
+projection, and the fixed-surface content-floor budget for top/bottom media.
+
+Add additional launcher-visible AppWidget size presets for media-heavy Thing
+Cards and tablet or large-grid launcher use. Existing AppWidget providers remain
+resizable, but separate provider entries improve discoverability and give
+launcher pickers better default cell shapes. Single-Thing AppWidgets should keep
+the existing 1x1, 2x2, 3x3, and 4x4 presets and add 4x2, 2x4, 4x3, 3x4, 5x2,
+2x5, 5x3, 3x5, 5x4, 4x5, 5x5, 6x2, 2x6, 6x3, 3x6, 6x4, 4x6, 6x5, 5x6, and
+6x6. Do not add 1xN or Nx1 single-Thing media presets beyond the existing 1x1,
+because they are too narrow for the media-heavy Thing Card surfaces that drive
+this expansion. Things List AppWidget should keep the existing 3x3 provider and
+add 4x4, 5x4, 4x5, 5x5, 6x4, 4x6, 6x5, 5x6, and 6x6 presets.
+
+AppWidget Size Preset labels should show the cell shape in the launcher picker.
+Renaming provider labels is acceptable because it does not change existing
+receiver classes, provider XML bindings, widget ids, or saved Thing/widget
+relations. Existing single-Thing providers should be relabeled as 1x1, 2x2,
+3x3, and 4x4 presets; new single-Thing providers should be labeled with their
+cell shapes up to 6x6. The existing Things List provider should be relabeled
+3x3, and new Things List providers should be labeled with their cell shapes up
+to 6x6.
+
+Every AppWidget Size Preset provider should declare both the Android 12+
+`targetCellWidth` / `targetCellHeight` default grid shape and `minWidth` /
+`minHeight` fallback dimensions. `targetCell*` expresses the intended launcher
+cell preset on Android 12+, while `minWidth` / `minHeight` remains the fallback
+for Android 11 and below and for launchers that still derive picker size from
+minimum dimensions.
+
+Implementation decision: new single-Thing AppWidget size preset providers may
+reuse `BaseThingWidgetConfiguration` instead of registering one configuration
+Activity per size. The base configuration screen resolves the actual provider
+class from `AppWidgetManager.getAppWidgetInfo(appWidgetId).provider.className`
+and writes the corresponding saved widget `size` through
+`AppWidgetHelper.getSizeByProviderClass`. This keeps provider entries distinct
+for launcher pickers while avoiding duplicated configuration classes.
+
+### Remote AppWidget side media fallback geometry
+
+Things List AppWidget left/right media fallback sizing must not use thumbnail
+source aspect ratio to derive side-panel height. Source aspect ratio belongs to
+top/bottom thumbnail projection; side media is a full-height panel whose height
+comes from the visible list-row content projection. When a saved
+`sideMediaDisplayAspectRatioHint` is unavailable, Things List rows should
+estimate the text/reminder/habit/state content height and render the side media
+bitmap for that row height, subject only to RemoteViews bitmap safety caps.
+
+Things List AppWidget item rendering should resolve the concrete provider class
+from the `appWidgetId` before estimating widget width. `RemoteViewsFactory`
+cannot directly read the parent collection row's measured width in `getViewAt`,
+so the practical fallback is launcher options when present, otherwise the
+provider preset's default cell width. The old single 320dp list fallback is too
+wide for smaller list widgets and can make saved side-media width percentages
+project as a much larger actual row fraction.
+
+Remote AppWidget side media `ImageView`s should use `centerCrop`, not `fitXY`.
+The pre-rendered bitmap target should still be close to the expected slot, but
+RemoteViews and launcher measurement can leave small mismatches between bitmap
+size and final view size. `centerCrop` preserves media proportions in those
+mismatches; `fitXY` turns the mismatch into visible non-uniform stretching.
+
 ## 2026-05-31
 
 ### Home Card Image Placement scope
@@ -2491,3 +2695,181 @@ down; audio count icons do not receive that padding. Image/video count icon
 views are 2dp wider than audio count icon views (`16x14dp` normal and
 `18x16dp` large), while their text start margins are 2dp smaller (`6dp` normal
 and `10dp` large), keeping the following text aligned with audio count text.
+
+2026-06-05: Thing Card Appearance confirmation is the single durable update
+point for custom card appearance operations. After `ThingsActivity` persists the
+draft with `updateThingCardAppearance`, remote surfaces that depend on saved
+appearance must be refreshed immediately: single-Thing widgets for the edited
+Thing, all Things-list widgets, and the ongoing Thing notification. Individual
+appearance controls should continue to update only the in-memory draft and home
+card preview until the user confirms.
+
+2026-06-05: Single-Thing widget configuration preview should prioritise showing
+the actual provider-sized widget surface rather than expanding to show the full
+Thing content. The preview frame should clip to the Thing Card corner radius,
+and fallback previews should be clipped/non-scrolling so they do not imply a
+different widget reading surface. For remote side media, keep the user's saved
+side-width percent as a clamp but store an optional per-source display aspect
+ratio hint at Thing Card Appearance confirmation time. AppWidgets may use that
+derived hint to reduce left/right media stretching caused by widget widths that
+do not match home-list card widths; the hint is not a primary user setting and
+should degrade back to the percent-based behaviour when unavailable.
+
+2026-06-05: Thing Card Appearance should distinguish the media target aspect
+ratio from media crop. The target aspect ratio controls the shape of the area
+where Thing Card Media is drawn across top/bottom thumbnails, side media
+panels, and media backgrounds. Crop remains a per-source presentation choice
+that controls crop center and user zoom inside the chosen target ratio, and
+video frame selection remains independent from both.
+
+2026-06-05: Thing Card Media Target Aspect Ratio should be stored per media
+source, not as one card-wide value. Different image/video attachments can have
+different natural presentation shapes, and switching the Thing Card Media Source
+should restore the target ratio and crop choices that were tuned for that
+source.
+
+2026-06-05: Thing Card Media Target Aspect Ratio is a preferred target that
+surfaces should respect as strongly as possible. Home cards, AppWidgets, and
+other card projections may apply explicit guardrails only to keep the rest of
+the Thing Card readable and to stay within platform rendering limits. Those
+guardrails adapt the current surface projection and must not rewrite the saved
+target ratio.
+
+2026-06-05: The unified Thing Card Media Target Aspect Ratio slider should use
+the same visual control style as the current cover-image ratio slider, but its
+effective min/max range should be derived from the active media placement's
+existing guardrails. Top/bottom derives the range from thumbnail height
+constraints, side placement derives it from side-media width constraints, and
+media background derives it from background height constraints. The slider ends
+should correspond to the active min/max values instead of using one fixed
+global ratio preset range for every placement.
+
+2026-06-05: Legacy Thing Card Appearance geometry fields should be read for
+compatibility but should not be preserved after the user confirms a new edit in
+the Thing Card Appearance UI. Once the user changes and saves card appearance,
+the app should write the new per-source media target aspect ratio field and omit
+the migrated legacy geometry fields from the saved JSON where possible.
+
+2026-06-05: The legacy geometry fields to remove from newly confirmed Thing
+Card Appearance JSON include the card-wide `sideMediaWidthPercent`,
+per-source `mediaBackgroundHeightRatio`, `thumbnailCrop.sourceAspectRatio`, and
+`sideMediaDisplayAspectRatioHint`. The crop objects should keep crop center and
+user zoom only; the new per-source media target aspect ratio should carry target
+shape across foreground thumbnails, side media, media backgrounds, home cards,
+and AppWidget projections.
+
+2026-06-05: Thing Card Media Target Aspect Ratio should be stored per media
+source and per presentation mode. The same image/video source may have separate
+target ratios for foreground thumbnails, side panels, and media backgrounds.
+This preserves the existing separation between thumbnail and background tuning,
+while moving side media away from the old card-wide width percentage.
+
+2026-06-05: Missing Thing Card Media Target Aspect Ratio values should be
+initialised lazily per source and per presentation mode. Foreground thumbnails
+default to the existing span-based ratios (`16:9` for full-span cards and `4:3`
+for normal cards). Side panels derive their first ratio from legacy
+`sideMediaWidthPercent` and the measured preview side-panel height when
+available, falling back to the old default side width if measurement is not
+available. Media backgrounds derive their first ratio from legacy
+`mediaBackgroundHeightRatio` when available, otherwise from the current natural
+card height. Initialising one presentation mode must not overwrite target ratio
+values for the other modes.
+
+2026-06-05: Thing Card Media Crop should also be stored per media source and
+per presentation mode. Foreground thumbnails, side panels, and media
+backgrounds each keep their own crop center and user zoom, so adjusting one
+presentation does not overwrite the crop tuned for another presentation.
+
+2026-06-05: When the user switches Thing Card Media presentation and the new
+presentation has no saved target ratio or crop values for the current source,
+the app should seed the new presentation from the previously active
+presentation. The seeding should preserve target ratio, crop center, and user
+zoom as much as possible, while clamping the target ratio to the new
+presentation's active min/max guardrails. This is an initialisation step only;
+after the new presentation has saved values, switching back and forth should
+restore each presentation's own values.
+
+2026-06-05: During presentation seeding, crop center should be preserved where
+possible because it represents the user's chosen subject. Crop user zoom should
+also be preserved unless the new target ratio would fail to cover the target
+area; in that case the app should raise zoom only as much as needed for cover
+rendering. The app should not shrink zoom during seeding unless a separate hard
+maximum requires it.
+
+2026-06-05: New per-presentation Thing Card Media Target Aspect Ratio and Crop
+values should follow the existing Thing Card Appearance draft workflow. Slider
+changes, media presentation switches, and crop edits update only the in-memory
+draft and live preview. Cancelling restores the original appearance. Confirming
+the panel is the only durable write point, and confirmation should normalise the
+JSON into the new model, omit migrated legacy geometry fields, and refresh
+remote surfaces that depend on saved appearance.
+
+2026-06-05: The new per-source Thing Card Appearance JSON should group media
+geometry by presentation instead of flattening fields directly under
+`SourceAppearance`. Each source should have presentation entries such as
+`thumbnail`, `sidePanel`, and `mediaBackground`, where each entry can hold its
+own target aspect ratio and crop. Media-background-only settings such as mask
+strength belong to the media background presentation entry.
+
+2026-06-05: Presentation seeding must be non-destructive. When the user switches
+from one media presentation to another and the target presentation has no saved
+draft values, the app may derive an initial target presentation state from the
+source presentation and clamp it to the target presentation's guardrails.
+However, the source presentation's draft values must remain unchanged. If the
+user switches back before confirming, the original presentation should restore
+its exact previous draft state rather than inheriting any clamped values created
+for the target presentation. None of these seeded values are durable unless the
+user confirms the Thing Card Appearance panel.
+
+2026-06-05: Thing Card Appearance confirmation should save only media
+presentation entries that already existed, were migrated from legacy fields, or
+were touched/seeded during the user's current edit session. It should not eagerly
+write all possible presentation entries for every media source. Untouched
+presentations should remain absent so future defaulting and migration rules can
+continue to evolve.
+
+2026-06-05: `ThingCardAppearance.hasSamePresentationAs` should compare
+normalised JSON rather than raw data-class equality. Legacy compatibility fields
+can remain readable in memory, but they should not affect presentation-change
+detection once new serialization omits them.
+
+2026-06-05: Side-panel Thing Card media should use a deterministic geometry
+projection instead of deriving slider ranges and render widths from the current
+live side-media View height. The saved `sidePanel.targetAspectRatio` remains the
+user intent; min/max side-width percentages are render guardrails. During slider
+dragging, the active ratio range and preset tick mapping should stay stable, and
+home cards plus AppWidgets should share the same conceptual projection rules.
+
+2026-06-05: The Thing Card Appearance panel should expose a side-panel-only
+"cover image width" slider below the target-ratio slider. This slider is an
+alternate projection control for `sidePanel.targetAspectRatio`: it displays and
+accepts the projected side media width as a percentage of the card width, but it
+must not restore `sideMediaWidthPercent` as a canonical saved field.
+
+2026-06-06: The Thing Card crop editor dialog should always expose the
+target-ratio slider for the active presentation. Video sources should show the
+video-frame slider first and the ratio slider below it. The side-panel cover
+image width slider remains a main appearance-panel control only and should not
+be duplicated inside the crop dialog.
+
+2026-06-06: Things List AppWidget media-background bitmaps should be capped by
+pixel budget, not only by dp-based dimensions. Collection rows should degrade to
+ordinary widget backgrounds if media-background rendering fails, because
+oversized RemoteViews bitmaps can cause the affected row and following rows to
+disappear in launchers.
+
+2026-06-06: Things List AppWidget rows that use Thing Card Media Background
+should reserve the projected media-background target height with
+`View.setMinimumHeight` through RemoteViews. The reserved height is the maximum
+of the saved `mediaBackground.targetAspectRatio` projection and the estimated
+natural content height, bounded by the existing hard widget bitmap height cap.
+The bitmap may still be downscaled for the collection-row pixel budget, but it
+must keep the same target aspect ratio as the reserved row surface so `fitXY`
+does not turn crop-preserving output into visible stretching.
+
+2026-06-06: AppWidgets should directly respond to Android launcher resize
+events via `onAppWidgetOptionsChanged`. Single-Thing widgets should regenerate
+their RemoteViews immediately so media bitmaps are re-rendered against the new
+widget options. Things List widgets should notify their collection data changed
+and update the outer RemoteViews so visible rows are re-created with the new
+size options.

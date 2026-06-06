@@ -5,6 +5,8 @@ package com.ywwynm.everythingdone.appwidgets.list
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
+import android.os.Bundle
+import android.util.Log
 
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper
@@ -20,19 +22,33 @@ open class ThingsListWidget : AppWidgetProvider() {
 
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
         super.onUpdate(context, appWidgetManager, appWidgetIds)
-        val appWidgetDAO: AppWidgetDAO = AppWidgetDAO.getInstance(context)!!
         for (appWidgetId in appWidgetIds) {
-            val info: ThingWidgetInfo = appWidgetDAO.getThingWidgetInfoById(appWidgetId) ?: break
-
-            // notify data set changed for things list
-            // _(:3」∠)_, it seems this line should be written above next line....
-            appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetId, R.id.lv_things_list)
-
-            val limit: Int = -1 * info.thingId.toInt() - 1
-            appWidgetManager.updateAppWidget(appWidgetId,
-                    AppWidgetHelper.createRemoteViewsForThingsList(context, limit, appWidgetId))
-
+            updateThingsListAppWidget(context, appWidgetManager, appWidgetId)
         }
+    }
+
+    override fun onAppWidgetOptionsChanged(
+            context: Context,
+            appWidgetManager: AppWidgetManager,
+            appWidgetId: Int,
+            newOptions: Bundle) {
+        super.onAppWidgetOptionsChanged(context, appWidgetManager, appWidgetId, newOptions)
+        Log.i(TAG, "onAppWidgetOptionsChanged is called, appWidgetId[$appWidgetId]")
+        updateThingsListAppWidget(context, appWidgetManager, appWidgetId)
+    }
+
+    private fun updateThingsListAppWidget(
+            context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
+        val appWidgetDAO: AppWidgetDAO = AppWidgetDAO.getInstance(context)!!
+        val info: ThingWidgetInfo = appWidgetDAO.getThingWidgetInfoById(appWidgetId) ?: return
+
+        // notify data set changed for things list
+        // _(:3」∠)_, it seems this line should be written above next line....
+        appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetId, R.id.lv_things_list)
+
+        val limit: Int = -1 * info.thingId.toInt() - 1
+        appWidgetManager.updateAppWidget(appWidgetId,
+                AppWidgetHelper.createRemoteViewsForThingsList(context, limit, appWidgetId))
     }
 
     override fun onDeleted(context: Context, appWidgetIds: IntArray) {

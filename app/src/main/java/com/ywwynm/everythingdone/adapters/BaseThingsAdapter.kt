@@ -62,8 +62,10 @@ import com.ywwynm.everythingdone.views.InterceptTouchCardView
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import java.io.File
+import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 /**
  * Created by ywwynm on 2016/7/31.
@@ -87,8 +89,6 @@ abstract class BaseThingsAdapter(context: Context?) :
     private var mHabitDAO: HabitDAO? = HabitDAO.getInstance(context)
 
     private var mImageRequestManager: RequestManager? = Glide.with(context!!)
-    private val mSideImageHeightCache: LongSparseArray<ThingCardSideImageHeightCache> =
-        LongSparseArray()
     private val mLoadedThingCardImageKeys: MutableSet<String> = HashSet()
 
     private var mCardWidth: Int = DisplayUtil.getThingCardWidth(context)
@@ -650,7 +650,18 @@ abstract class BaseThingsAdapter(context: Context?) :
         mediaSource: ThingCardMediaHelper.MediaSource
     ): ThingCardAppearance.ThingCardThumbnailCrop {
         return thing.thingCardAppearance.sources[mediaSource.typePathName]
-            ?.thumbnailCrop
+            ?.thumbnailCropWithTargetRatio(getDefaultThingCardThumbnailTargetAspectRatio(thing))
+            ?: ThingCardAppearance.ThingCardThumbnailCrop(
+                sourceAspectRatio = getDefaultThingCardThumbnailTargetAspectRatio(thing)
+            )
+    }
+
+    private fun getThingCardSidePanelCrop(
+        thing: Thing,
+        mediaSource: ThingCardMediaHelper.MediaSource
+    ): ThingCardAppearance.ThingCardThumbnailCrop {
+        return thing.thingCardAppearance.sources[mediaSource.typePathName]
+            ?.sidePanelCrop()
             ?: ThingCardAppearance.ThingCardThumbnailCrop()
     }
 
@@ -659,7 +670,7 @@ abstract class BaseThingsAdapter(context: Context?) :
         mediaSource: ThingCardMediaHelper.MediaSource
     ): ThingCardAppearance.ThingCardMediaBackgroundCrop {
         return thing.thingCardAppearance.sources[mediaSource.typePathName]
-            ?.backgroundCrop
+            ?.mediaBackgroundCrop()
             ?: ThingCardAppearance.ThingCardMediaBackgroundCrop()
     }
 
@@ -1100,14 +1111,11 @@ abstract class BaseThingsAdapter(context: Context?) :
         return max(minValue, min(maxValue, value))
     }
 
-    private fun syncSideImageHeightAfterMeasure(
+    private fun syncSideImageProjectionAfterMeasure(
         holder: BaseThingViewHolder,
         bindToken: String,
-        thingId: Long,
-        heightCacheKey: String,
+        thing: Thing,
         pathName: String,
-        imageW: Int,
-        minHeight: Int,
         crop: ThingCardAppearance.ThingCardThumbnailCrop,
         videoFrameMs: Long?
     ) {
@@ -1120,25 +1128,22 @@ abstract class BaseThingsAdapter(context: Context?) :
             }
             if (!holder.flImageAttachment.isVisible) return@post
 
-            val targetHeight = max(
-                max(holder.llContent!!.measuredHeight, holder.llTextContent!!.measuredHeight),
-                minHeight
-            )
-            mSideImageHeightCache.put(
-                thingId, ThingCardSideImageHeightCache(heightCacheKey, targetHeight)
-            )
+            val projection = getSideImageProjection(holder, thing)
             val imageLp = holder.flImageAttachment.layoutParams as LinearLayout.LayoutParams
-            if (imageLp.height == targetHeight) return@post
+            val textLp = holder.llTextContent!!.layoutParams as LinearLayout.LayoutParams
+            if (imageLp.height == projection.imageHeight &&
+                    imageLp.width == projection.imageWidth &&
+                    textLp.width == projection.textWidth) {
+                return@post
+            }
 
-            imageLp.height = targetHeight
-            imageLp.width = imageW
-            imageLp.weight = 0f
-            imageLp.setMargins(0, 0, 0, 0)
-            holder.flImageAttachment.layoutParams = imageLp
+            applySideImageProjectionLayout(holder, projection)
             setThingCardImageFrameSize(
                 holder, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
             )
-            loadThingCardImage(holder, pathName, imageW, targetHeight, crop, videoFrameMs)
+            loadThingCardImage(
+                holder, pathName, projection.imageWidth, projection.imageHeight, crop, videoFrameMs
+            )
         }
     }
 
@@ -1146,7 +1151,7 @@ abstract class BaseThingsAdapter(context: Context?) :
         holder: BaseThingViewHolder,
         thing: Thing,
         @Thing.ThingCardImagePlacement placement: Int,
-        sideImageHeight: Int? = null
+        sideImageProjection: ThingCardSideImageProjection? = null
     ) {
         val parent = holder.llContent!!
         val image = holder.flImageAttachment!!
@@ -1164,24 +1169,10 @@ abstract class BaseThingsAdapter(context: Context?) :
                 moveThingCardChild(parent, image, 1)
             }
 
-            val imageWidth = getSideImageWidth(thing)
-            val sideMinHeight = getSideImageMinHeight()
-            val imageHeight = sideImageHeight ?: sideMinHeight
-            parent.minimumHeight = sideMinHeight
-
-            val imageLp = image.layoutParams as LinearLayout.LayoutParams
-            imageLp.width = imageWidth
-            imageLp.height = imageHeight
-            imageLp.weight = 0f
-            imageLp.setMargins(0, 0, 0, 0)
-            image.layoutParams = imageLp
-
-            val textLp = textContent.layoutParams as LinearLayout.LayoutParams
-            textLp.width = max(1, getCardContentWidth(thing) - imageWidth)
-            textLp.height = ViewGroup.LayoutParams.WRAP_CONTENT
-            textLp.weight = 0f
-            textLp.setMargins(0, 0, 0, 0)
-            textContent.layoutParams = textLp
+            parent.minimumHeight = getSideImageMinHeight()
+            applySideImageProjectionLayout(
+                holder, sideImageProjection ?: getSideImageProjection(holder, thing)
+            )
         } else {
             parent.orientation = LinearLayout.VERTICAL
             parent.layoutDirection = View.LAYOUT_DIRECTION_LOCALE
@@ -1221,11 +1212,133 @@ abstract class BaseThingsAdapter(context: Context?) :
         }
     }
 
-    private fun getSideImageWidth(thing: Thing): Int {
+    private fun applySideImageProjectionLayout(
+        holder: BaseThingViewHolder,
+        projection: ThingCardSideImageProjection
+    ) {
+        val imageLp = holder.flImageAttachment!!.layoutParams as LinearLayout.LayoutParams
+        imageLp.width = projection.imageWidth
+        imageLp.height = projection.imageHeight
+        imageLp.weight = 0f
+        imageLp.setMargins(0, 0, 0, 0)
+        holder.flImageAttachment.layoutParams = imageLp
+
+        val textLp = holder.llTextContent!!.layoutParams as LinearLayout.LayoutParams
+        textLp.width = projection.textWidth
+        textLp.height = ViewGroup.LayoutParams.WRAP_CONTENT
+        textLp.weight = 0f
+        textLp.setMargins(0, 0, 0, 0)
+        holder.llTextContent.layoutParams = textLp
+    }
+
+    private fun getSideImageTargetAspectRatio(thing: Thing): Double? {
+        val mediaSource = ThingCardMediaHelper.resolveEffectiveMediaSource(thing)
+            ?: return null
+        return thing.thingCardAppearance.sources[mediaSource.typePathName]
+            ?.sidePanelTargetAspectRatio()
+    }
+
+    private fun clampSideImageWidth(width: Int, contentWidth: Int): Int {
+        return max(
+            getSideImageMinWidth(contentWidth),
+            min(getSideImageMaxWidth(contentWidth), width)
+        )
+    }
+
+    private fun getSideImageProjection(
+        holder: BaseThingViewHolder,
+        thing: Thing
+    ): ThingCardSideImageProjection {
+        val contentWidth = max(1, getCardContentWidth(thing))
+        val percentWidth = getSideImagePercentWidth(thing, contentWidth)
+        val targetRatio = getSideImageTargetAspectRatio(thing)
+        if (targetRatio == null || targetRatio <= 0.0 ||
+                targetRatio.isNaN() || targetRatio.isInfinite()) {
+            return getSideImageProjectionForWidth(holder, contentWidth, percentWidth)
+        }
+
+        var width = percentWidth
+        var bestProjection = getSideImageProjectionForWidth(holder, contentWidth, width)
+        var bestError = Int.MAX_VALUE
+        repeat(SIDE_IMAGE_PROJECTION_MAX_ITERATIONS) {
+            val projection = getSideImageProjectionForWidth(holder, contentWidth, width)
+            val nextWidth = clampSideImageWidth(
+                (projection.imageHeight * targetRatio).roundToInt(),
+                contentWidth
+            )
+            val error = abs(nextWidth - projection.imageWidth)
+            if (error < bestError) {
+                bestProjection = projection
+                bestError = error
+            }
+            if (error <= SIDE_IMAGE_PROJECTION_TOLERANCE_PX) {
+                return projection
+            }
+            width = nextWidth
+        }
+        return bestProjection
+    }
+
+    private fun getSideImageProjectionForWidth(
+        holder: BaseThingViewHolder,
+        contentWidth: Int,
+        imageWidth: Int
+    ): ThingCardSideImageProjection {
+        val clampedWidth = clampSideImageWidth(imageWidth, contentWidth)
+        val textWidth = max(1, contentWidth - clampedWidth)
+        val textHeight = measureThingCardSideTextContentHeight(holder, textWidth)
+        return ThingCardSideImageProjection(
+            imageWidth = clampedWidth,
+            imageHeight = max(getSideImageMinHeight(), textHeight),
+            textWidth = textWidth
+        )
+    }
+
+    private fun measureThingCardSideTextContentHeight(
+        holder: BaseThingViewHolder,
+        width: Int
+    ): Int {
+        val textContent = holder.llTextContent ?: return 0
+        if (width <= 0) return textContent.measuredHeight
+
+        val textLp = textContent.layoutParams as LinearLayout.LayoutParams
+        val oldTextWidth = textLp.width
+        val oldTextHeight = textLp.height
+        val oldTextWeight = textLp.weight
+        return try {
+            textLp.width = width
+            textLp.height = ViewGroup.LayoutParams.WRAP_CONTENT
+            textLp.weight = 0f
+            val widthSpec = View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY)
+            val heightSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+            textContent.measure(widthSpec, heightSpec)
+            textContent.measuredHeight
+        } finally {
+            textLp.width = oldTextWidth
+            textLp.height = oldTextHeight
+            textLp.weight = oldTextWeight
+        }
+    }
+
+    private fun getSideImagePercentWidth(thing: Thing, contentWidth: Int): Int {
         val imagePercent = normalizeThingCardSideMediaWidth(
             thing.thingCardAppearance.sideMediaWidthPercent
         )
-        return max(1, getCardContentWidth(thing) * imagePercent / 100)
+        return clampSideImageWidth(contentWidth * imagePercent / 100, contentWidth)
+    }
+
+    private fun getSideImageMinWidth(contentWidth: Int): Int {
+        val minPercent = mContext!!.resources.getInteger(
+            R.integer.thing_card_side_media_width_min_percent
+        )
+        return max(1, contentWidth * minPercent / 100)
+    }
+
+    private fun getSideImageMaxWidth(contentWidth: Int): Int {
+        val maxPercent = mContext!!.resources.getInteger(
+            R.integer.thing_card_side_media_width_max_percent
+        )
+        return max(1, contentWidth * maxPercent / 100)
     }
 
     private fun normalizeThingCardSideMediaWidth(widthPercent: Int): Int {
@@ -1244,33 +1357,22 @@ abstract class BaseThingsAdapter(context: Context?) :
         )
     }
 
-    private fun getSideImageHeightCacheKey(
-        thing: Thing,
-        @Thing.ThingCardImagePlacement placement: Int,
-        pathName: String,
-        imageW: Int
-    ): String {
-        return thing.updateTime.toString() +
-                ":" + thing.type +
-                ":" + thing.state +
-                ":" + thing.thingCardAppearance.spanMode +
-                ":" + placement +
-                ":" + pathName +
-                ":" + getCardContentWidth(thing) +
-                ":" + imageW
-    }
-
     private fun getThumbnailSourceAspectRatio(thing: Thing): Float {
         val mediaSource = ThingCardMediaHelper.resolveEffectiveMediaSource(thing)
+        val defaultRatio = getDefaultThingCardThumbnailTargetAspectRatio(thing)
         val sourceAspectRatio = mediaSource?.let {
             thing.thingCardAppearance.sources[it.typePathName]
-                ?.thumbnailCrop
+                ?.thumbnailCropWithTargetRatio(defaultRatio)
                 ?.sourceAspectRatio
         }
         if (sourceAspectRatio != null && sourceAspectRatio > 0.0) {
             return sourceAspectRatio.toFloat()
         }
-        return if (isFullSpanThingCard(thing)) 16f / 9f else 4f / 3f
+        return defaultRatio.toFloat()
+    }
+
+    private fun getDefaultThingCardThumbnailTargetAspectRatio(thing: Thing): Double {
+        return if (isFullSpanThingCard(thing)) 16.0 / 9.0 else 4.0 / 3.0
     }
 
     private fun getThingCardSurfaceAvailableHeight(): Int {
@@ -1295,11 +1397,6 @@ abstract class BaseThingsAdapter(context: Context?) :
         )
     }
 
-    private fun getCachedSideImageHeight(thingId: Long, heightCacheKey: String): Int? {
-        val cached = mSideImageHeightCache.get(thingId) ?: return null
-        return if (cached.key == heightCacheKey) cached.height else null
-    }
-
     private fun updateThingCardImageCountLayout(
         holder: BaseThingViewHolder,
         @Thing.ThingCardImagePlacement placement: Int
@@ -1317,15 +1414,15 @@ abstract class BaseThingsAdapter(context: Context?) :
         }
     }
 
-    private fun getThingCardMediaBackgroundTargetMinHeight(
+    private fun getThingCardMediaBackgroundClampedTargetHeight(
         thing: Thing,
         mediaSource: ThingCardMediaHelper.MediaSource
     ): Int {
         val sourceAppearance = thing.thingCardAppearance.sources[mediaSource.typePathName]
-        val targetHeightRatio = sourceAppearance?.mediaBackgroundHeightRatio
-        if (targetHeightRatio == null || targetHeightRatio <= 0.0) return 0
+        val targetAspectRatio = sourceAppearance?.mediaBackgroundTargetAspectRatio()
+        if (targetAspectRatio == null || targetAspectRatio <= 0.0) return 0
 
-        val targetHeight = (getCardContentWidth(thing) * targetHeightRatio).toInt()
+        val targetHeight = (getCardContentWidth(thing) / targetAspectRatio).toInt()
         val maxHeight = getThingCardSurfaceAvailableHeight() *
                 mContext!!.resources.getInteger(
                         R.integer.thing_card_media_background_home_max_height_percent
@@ -1349,7 +1446,9 @@ abstract class BaseThingsAdapter(context: Context?) :
         holder.llInlineMediaAttachment!!.visibility = View.GONE
 
         val sourceAppearance = thing.thingCardAppearance.sources[mediaSource.typePathName]
-        val targetMinHeight = getThingCardMediaBackgroundTargetMinHeight(thing, mediaSource)
+        val clampedTargetHeight = getThingCardMediaBackgroundClampedTargetHeight(
+            thing, mediaSource
+        )
         val mediaBackground = holder.ivMediaBackground!!
         val mediaBackgroundMask = holder.vMediaBackgroundMask!!
         if (resetContentExpansion) {
@@ -1357,7 +1456,7 @@ abstract class BaseThingsAdapter(context: Context?) :
         }
         updateThingCardMediaBackgroundInlineCount(holder, thing)
         val effectiveTargetHeight = getThingCardMediaBackgroundEffectiveTargetHeight(
-            holder, targetMinHeight
+            holder, clampedTargetHeight
         )
         holder.llContent!!.minimumHeight = 0
         setThingCardMediaBackgroundOverlayHeight(holder, effectiveTargetHeight)
@@ -1367,7 +1466,7 @@ abstract class BaseThingsAdapter(context: Context?) :
         mediaBackground.visibility = View.VISIBLE
         mediaBackgroundMask.visibility = View.VISIBLE
         mediaBackgroundMask.alpha = normalizeThingCardMaskStrength(
-                sourceAppearance?.mediaBackgroundMaskStrength
+                sourceAppearance?.mediaBackgroundMaskStrength()
                         ?: getThingCardDefaultMaskStrength()
         )
 
@@ -1474,16 +1573,16 @@ abstract class BaseThingsAdapter(context: Context?) :
     ): Int {
         return getThingCardMediaBackgroundEffectiveTargetHeight(
             holder,
-            getThingCardMediaBackgroundTargetMinHeight(thing, mediaSource)
+            getThingCardMediaBackgroundClampedTargetHeight(thing, mediaSource)
         )
     }
 
     private fun getThingCardMediaBackgroundEffectiveTargetHeight(
         holder: BaseThingViewHolder,
-        targetMinHeight: Int
+        clampedTargetHeight: Int
     ): Int {
         return max(
-            targetMinHeight,
+            clampedTargetHeight,
             measureThingCardMediaBackgroundNaturalContentHeight(holder)
         )
     }
@@ -1738,8 +1837,8 @@ abstract class BaseThingsAdapter(context: Context?) :
             val pathName = mediaSource.pathName
 
             val sideImage = isSideImagePlacement(placement)
-            val sideImageHeightCacheKey = if (sideImage) {
-                getSideImageHeightCacheKey(thing, placement, pathName, getSideImageWidth(thing))
+            val sideImageProjection = if (sideImage) {
+                getSideImageProjection(holder, thing)
             } else {
                 null
             }
@@ -1747,11 +1846,7 @@ abstract class BaseThingsAdapter(context: Context?) :
                 holder,
                 thing,
                 placement,
-                if (sideImage) {
-                    getCachedSideImageHeight(thing.id, sideImageHeightCacheKey!!)
-                } else {
-                    null
-                }
+                sideImageProjection
             )
 
             val imageW = if (sideImage) {
@@ -1760,7 +1855,11 @@ abstract class BaseThingsAdapter(context: Context?) :
                 getCardContentWidth(thing)
             }
             val imageH = getImageHeight(thing, imageW)
-            val thumbnailCrop = getThingCardThumbnailCrop(thing, mediaSource)
+            val thumbnailCrop = if (sideImage) {
+                getThingCardSidePanelCrop(thing, mediaSource)
+            } else {
+                getThingCardThumbnailCrop(thing, mediaSource)
+            }
             val videoFrameMs = getThingCardVideoFrameMs(thing, mediaSource)
 
             val paramsLayout = holder.flImageAttachment.layoutParams as LinearLayout.LayoutParams
@@ -1774,18 +1873,17 @@ abstract class BaseThingsAdapter(context: Context?) :
             holder.flImageAttachment.setTag(R.id.tag_thing_card_side_image_bind_token, bindToken)
 
             if (sideImage) {
-                val initialHeight = paramsLayout.height
                 setThingCardImageFrameSize(
                     holder,
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT
                 )
                 loadThingCardImage(
-                    holder, pathName, imageW, initialHeight, thumbnailCrop, videoFrameMs
+                    holder, pathName, imageW, sideImageProjection!!.imageHeight,
+                    thumbnailCrop, videoFrameMs
                 )
-                syncSideImageHeightAfterMeasure(
-                    holder, bindToken, thing.id, sideImageHeightCacheKey!!,
-                    pathName, imageW, initialHeight, thumbnailCrop, videoFrameMs
+                syncSideImageProjectionAfterMeasure(
+                    holder, bindToken, thing, pathName, thumbnailCrop, videoFrameMs
                 )
             } else {
                 setThingCardImageFrameSize(
@@ -2236,9 +2334,10 @@ abstract class BaseThingsAdapter(context: Context?) :
         }
     }
 
-    private data class ThingCardSideImageHeightCache(
-        val key: String,
-        val height: Int
+    private data class ThingCardSideImageProjection(
+        val imageWidth: Int,
+        val imageHeight: Int,
+        val textWidth: Int
     )
 
     companion object {
@@ -2273,6 +2372,8 @@ abstract class BaseThingsAdapter(context: Context?) :
         private const val THING_CARD_MEDIA_COUNT_TEXT_LARGE_MARGIN_START_DP = 10
         private const val THING_CARD_MEDIA_COUNT_ICON_SHIFT_DP = 1
         private const val FULL_SPAN_IMAGE_MAX_SCREEN_HEIGHT_RATIO = 0.36f
+        private const val SIDE_IMAGE_PROJECTION_MAX_ITERATIONS = 6
+        private const val SIDE_IMAGE_PROJECTION_TOLERANCE_PX = 1
 
         init {
             val context: Context = App.getApp()!!

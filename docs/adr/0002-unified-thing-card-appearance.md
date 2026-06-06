@@ -1,5 +1,11 @@
 # Unified Thing Card Appearance
 
+Superseded geometry note: ADR 0003 replaces the v1 side-width,
+thumbnail-source-ratio, media-background-height-ratio, and AppWidget side hint
+geometry with per-presentation Thing Card Media Target Aspect Ratio plus crop.
+Keep this ADR as the broader appearance-editor decision, but use ADR 0003 for
+media target geometry.
+
 Thing Card presentation will move to a unified `thing_card_appearance` JSON model and a list-side Thing Card Appearance editor. This deliberately replaces scattered card-appearance entry points and long-term separate span / image-placement fields, because the new feature combines span, media placement, media source, independent thumbnail/background crop, media background, mask strength, and video frame selection into one interactive draft-and-preview workflow.
 
 The old `thing_card_span_mode` and `thing_card_image_placement` columns are migrated into the JSON model and become semantic legacy fields; upgraded databases may physically retain them, but runtime reads prefer JSON and runtime writes use JSON as the source of truth. The editor stays in the thing list with a bottom panel and uses the real selected Thing Card as a live preview, because media-background crop depends on the card's measured height and existing content layout.
