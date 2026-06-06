@@ -2,7 +2,10 @@
 
 This is an Android application named "EverythingDone" or "完事儿". The project contains a directory "Everything-Android", which had been an upgraded version of EverythingDone written in kotlin. However, I decide to still use EverythingDone project for any update instead of Everything-Android. We can borrow some designs/codes/new-functionalities from Everything-Android, but that directory may be deleted after some time.
 
-**When a new session begins, read memory files and files under .agents/rules/ at first.**
+**When a new session begins, read the lightweight memory index files and files
+under `.claude/rules/` at first. When a task touches an existing feature, also
+read the relevant `docs/features/<kebab-case-feature-slug>/` directory before
+planning or editing.**
 
 **Git commit message should be in detail and in both English and Chinese.**
 
@@ -13,19 +16,29 @@ other "how to call the toolchain" knowledge live under `.claude/rules/`.
 Read those files when you need to invoke a tool — not `memory/`, which
 holds user preferences and session history, not operational rules.
 
-### Auto-Update Memory (MANDATORY)
+### Auto-Update Memory And Feature Docs (MANDATORY)
 
-**Update memory files AS YOU GO, not at the end.** When you learn something new, update immediately. If any following file does not exist, create it at the first time.
+**Update memory or feature docs AS YOU GO, not at the end.** When you learn
+something new, update immediately. Keep `memory/*.md` lightweight and
+cross-feature; put feature-specific details under
+`docs/features/<kebab-case-feature-slug>/`.
 
 | Trigger | Action |
 |---------|--------|
 | User shares a fact about themselves | → Update `memory/profile.md` |
-| User states a preference | → Update `memory/preferences.md` |
-| A decision is made | → Update `memory/decisions.md` with date |
-| Completing substantive work | → Add to `memory/sessions.md` |
-| A non-trivial task is technically possible but deferred | → Add to `memory/followups.md` |
+| User states a cross-feature preference | → Update `memory/preferences.md` |
+| User states a feature-specific preference | → Update `docs/features/<slug>/preferences.md` |
+| A cross-feature decision is made | → Update `memory/decisions.md` with date |
+| A feature-specific decision is made | → Update `docs/features/<slug>/decisions.md` with date |
+| Completing cross-feature or documentation-system work | → Add a concise entry to `memory/sessions.md` |
+| Completing feature-specific substantive work | → Add to `docs/features/<slug>/sessions.md` |
+| A cross-feature task is technically possible but deferred | → Add to `memory/followups.md` |
+| A feature-specific task is technically possible but deferred | → Add to `docs/features/<slug>/followups.md` |
 
-Project planning / review / analysis docs live under `docs/plans/`.
+Feature-specific planning, review, analysis, execution, and debug-note archive
+docs live under `docs/features/<kebab-case-feature-slug>/`. Create one
+directory per new feature or substantial technical initiative. Do not add new
+feature plans to `docs/plans/`.
 
 **Skip:** Quick factual questions, trivial tasks with no new info.
 

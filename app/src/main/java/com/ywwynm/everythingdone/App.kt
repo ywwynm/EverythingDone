@@ -509,7 +509,8 @@ open class App : Application() {
          *
          * Phase 3 of color migration:
          * - Generates a PURE-mode [ThingBackground] with completely random RGB
-         *   (per Q5 of COLOR_MIGRATION_PLAN.md — full spectrum, no HSL clamp).
+         *   (per Q5 of docs/features/color-system-migration/plan.md: full
+         *   spectrum, no HSL clamp).
          * - Avoids landing on the same color as the previous [newThingColor],
          *   or any of the colors in the up-to-4 neighbouring rows around the
          *   prospective insertion point (so a new card doesn't sit next to a

@@ -4,7 +4,7 @@
 
 Use this document as the implementation ledger for Thing Card Appearance v1.
 Check items off only when the behavior has been implemented and verified against
-the product decisions in `THING_CARD_APPEARANCE_PLAN.md` and the architecture
+the product decisions in `plan.md` and the architecture
 decision in `docs/adr/0002-unified-thing-card-appearance.md`.
 
 ## Scope Lock
@@ -47,7 +47,7 @@ foreground readability all affect the final preview.
 
 ## Phase 0 - Preflight
 
-- [x] Re-read `CONTEXT.md`, `THING_CARD_APPEARANCE_PLAN.md`, and
+- [x] Re-read `CONTEXT.md`, `plan.md`, and
       `0002-unified-thing-card-appearance.md` before changing code.
 - [x] Inspect current card binding and measurement in `BaseThingsAdapter.kt`,
       especially image height, placement, span mode, load-key, count badge,

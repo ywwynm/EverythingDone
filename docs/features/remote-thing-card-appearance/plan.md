@@ -3,7 +3,7 @@
 > Superseded geometry note: remote surfaces now project from the saved
 > per-presentation Thing Card Media Target Aspect Ratio and crop. They should
 > not use AppWidget side-media display hints as canonical geometry. See
-> `docs/plans/THING_CARD_MEDIA_TARGET_GEOMETRY_PLAN.md` and
+> `docs/features/thing-card-media-target-geometry/plan.md` and
 > `docs/adr/0003-thing-card-media-target-presentation-geometry.md`.
 
 ## Goal
@@ -14,7 +14,7 @@ Port Thing Card Appearance to remote card surfaces:
 - Things List AppWidget rows.
 - Standard system Thing notifications where the platform style can carry media.
 
-This plan follows `docs/plans/THING_CARD_APPEARANCE_PLAN.md` and
+This plan follows `docs/features/thing-card-appearance/plan.md` and
 `docs/adr/0002-unified-thing-card-appearance.md`. The previous v1 scope kept
 AppWidget image regions and system notification big pictures unchanged; this
 plan is the follow-up scope for those remote surfaces.

@@ -36,16 +36,17 @@ import kotlin.math.ceil
  * [DisplayUtil.getDarkColor] so the app can
  * accept any thing color, not just the 10 fixed palette entries.
  *
- * Phase 1 of the color-system migration — see COLOR_MIGRATION_PLAN.md.
+ * Phase 1 of the color-system migration — see
+ * docs/features/color-system-migration/plan.md.
  *
  * Translated to Kotlin by ywwynm and Claude Opus 4.7 on 2026/5/20.
  */
 object BackgroundUtil {
 
     // ---------------------------------------------------------------------------
-    // Hue buckets — used by search-by-similar-color. See COLOR_MIGRATION_PLAN.md
-    // section 4.5. Values are stable ints persisted/transmitted via Intent / DAO
-    // calls; do not reorder.
+    // Hue buckets — used by search-by-similar-color. See
+    // docs/features/color-system-migration/plan.md section 4.5. Values are
+    // stable ints persisted/transmitted via Intent / DAO calls; do not reorder.
     // ---------------------------------------------------------------------------
     const val HUE_BUCKET_NONE: Int   = 0 // sentinel: no filter
     const val HUE_BUCKET_RED: Int    = 1

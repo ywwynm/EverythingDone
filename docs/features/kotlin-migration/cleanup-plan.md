@@ -3,7 +3,7 @@
 Status: **in progress** — started 2026-05-21, branch `kotlin`.
 
 After the 17-group Java→Kotlin migration (see
-[KOTLIN_MIGRATION_PLAN.md](KOTLIN_MIGRATION_PLAN.md)) every source under
+[plan.md](plan.md)) every source under
 `app/src/main/java/com/ywwynm/everythingdone/` is `.kt` (158 files, 0
 `.java`). The migration was deliberately mechanical and defensive
 (rule N1: `T?` on every reference, `!!` on every deref; C-class idioms

@@ -7,7 +7,7 @@ and per-presentation crop. This replaces the current split between top/bottom
 cover ratio, left/right side width percent, media-background card height, and
 AppWidget side-media display hints.
 
-Execution checklist: `docs/plans/THING_CARD_MEDIA_TARGET_GEOMETRY_EXECUTION.md`.
+Execution checklist: `execution.md`.
 
 ## Confirmed Product Decisions
 

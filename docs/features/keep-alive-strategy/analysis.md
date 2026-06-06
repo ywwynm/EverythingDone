@@ -1,7 +1,7 @@
-# EverythingDone Android 应用保活策略深度分析
+﻿# EverythingDone Android 应用保活策略深度分析
 
-> **分析时间**：2026-05-11  
-> **分析范围**：根目录下 `app/`、`Everything-Android/`、`swirl/`、`timelytextview/` 全部模块  
+> **分析时间**：2026-05-11
+> **分析范围**：根目录下 `app/`、`Everything-Android/`、`swirl/`、`timelytextview/` 全部模块
 > **分析结论**：该项目采用**多层防御式保活架构**，核心思路不是"让进程一直活着"，而是通过**多种机制确保闹钟/提醒 reliably 被重建**，整体策略合规且相对优雅，未使用双进程守护、Native fork 等灰色手段。
 
 ---
@@ -93,7 +93,7 @@ mContext.startForegroundService(serviceIntent);
 @Override
 public int onStartCommand(Intent intent, int flags, int startId) {
     // ... 业务逻辑 ...
-    
+
     // 立即调用 startForeground，避免 ForegroundServiceDidNotStartInTimeException
     Notification initialNotification = SystemNotificationUtil.createDoingNotification(
             this, mThing, STATE_DOING, getInitialLeftTimeStr(), sHrTime, 0);
@@ -103,7 +103,7 @@ public int onStartCommand(Intent intent, int flags, int startId) {
     } else {
         startForeground((int) mThing.getId(), initialNotification);
     }
-    
+
     // 不依赖系统 sticky 重启
     return START_NOT_STICKY;
 }
@@ -196,9 +196,9 @@ private static void scheduleUserVisibleAlarm(
 ```kotlin
 object Alarm : Feature {
     fun setExactAlarm(
-        context: Context, 
-        time: Long, 
-        requestCode: Int, 
+        context: Context,
+        time: Long,
+        requestCode: Int,
         intent: Intent,
         pendingIntentFlags: Int = PendingIntent.FLAG_UPDATE_CURRENT
     ) {
@@ -495,14 +495,14 @@ public static void killMeAndRestart(Context context, Class toLaunch, long time) 
         intent = new Intent(context, toLaunch);
     }
     intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-    
+
     // 用 AlarmManager 设置一个精确闹钟，延迟重启
     PendingIntent pendingIntent = PendingIntent.getActivity(context,
             0, intent, PendingIntent.FLAG_CANCEL_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-    am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, 
+    am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,
             System.currentTimeMillis() + time + 100, pendingIntent);
-    
+
     // 延迟结束当前进程
     Handler handler = new Handler(Looper.getMainLooper());
     handler.postDelayed(new Runnable() {
@@ -530,7 +530,7 @@ public static void killMeAndRestart(Context context, Class toLaunch, long time) 
 
 ```kotlin
 class EtherealNotificationService : AccessibilityService(), MetaversalLoggable {
-    override fun onServiceConnected() { 
+    override fun onServiceConnected() {
         // 初始化无障碍服务
     }
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {

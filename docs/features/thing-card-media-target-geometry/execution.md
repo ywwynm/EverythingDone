@@ -3,7 +3,7 @@
 ## Purpose
 
 Track the implementation of the per-source, per-presentation target ratio and
-crop model described in `THING_CARD_MEDIA_TARGET_GEOMETRY_PLAN.md` and
+crop model described in `plan.md` and
 `docs/adr/0003-thing-card-media-target-presentation-geometry.md`.
 
 ## Phase 0 - Preflight
@@ -137,8 +137,8 @@ crop model described in `THING_CARD_MEDIA_TARGET_GEOMETRY_PLAN.md` and
       wording where appropriate.
 - [x] Remove obsolete background-height row wiring once ratio UI replaces it.
 - [x] Remove legacy model writer fields that should no longer serialize.
-- [x] Update docs/plans/THING_CARD_APPEARANCE_PLAN.md if it still describes the
-      old geometry as canonical.
+- [x] Update `docs/features/thing-card-appearance/plan.md` if it still
+      describes the old geometry as canonical.
 - [x] Update debug update notes before publishing any debug build.
 
 ## Verification

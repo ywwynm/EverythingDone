@@ -8,7 +8,8 @@ import org.json.JSONObject
  * The visual background of a thing — either a single (PURE) color, or a two-color
  * linear GRADIENT. Eventually persisted as a JSON string in the `background`
  * column of the `things` table (added in Phase 3 of the color-system migration;
- * see COLOR_MIGRATION_PLAN.md). For now, Phase 2 only wraps the legacy int color.
+ * see docs/features/color-system-migration/plan.md). For now, Phase 2 only
+ * wraps the legacy int color.
  *
  * Immutable. Create with the [pure] / [gradient] factories. Use
  * [com.ywwynm.everythingdone.utils.BackgroundUtil.applyBackground] /
@@ -120,9 +121,9 @@ class ThingBackground private constructor(
         /**
          * A random [ThingBackground] matching the production new-thing
          * distribution: 50/50 PURE vs GRADIENT, fully random RGB (per the
-         * COLOR_MIGRATION_PLAN.md "no HSL clamp" rule). Convenience for callers
-         * that need a one-shot random bg without going through App.rollBackground —
-         * notably `DBHelper.generateInsertInitialSQL` on fresh install.
+         * color migration plan's "no HSL clamp" rule). Convenience for callers
+         * that need a one-shot random bg without going through App.rollBackground
+         * — notably `DBHelper.generateInsertInitialSQL` on fresh install.
          */
         @JvmStatic
         fun fromRandom(): ThingBackground {

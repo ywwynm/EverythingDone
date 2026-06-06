@@ -186,7 +186,8 @@ object DisplayUtil {
      * existing data). For any other color, falls back to algorithmic blending via
      * [BackgroundUtil.darker].
      *
-     * Phase 1 of the color-system migration; see COLOR_MIGRATION_PLAN.md.
+     * Phase 1 of the color-system migration; see
+     * docs/features/color-system-migration/plan.md.
      */
     @JvmStatic
     fun getDarkColor(color: Int, context: Context?): Int {
