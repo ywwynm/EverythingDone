@@ -160,14 +160,14 @@ open class ActivityHeader(
             updateHeader((90 * mScreenDensity).toInt(), anim)
             actionbarShadowAlphaAfter = 1.0f
         }
+        actionbarShadowAlpha = actionbarShadowAlphaAfter
         if (mModeManager!!.getCurrentMode() != ModeManager.SELECTING) {
             if (anim) {
                 mActionbarShadow.animate()!!.alpha(actionbarShadowAlphaAfter).withLayer().setDuration(160)
             } else {
+                mActionbarShadow.animate()!!.cancel()
                 mActionbarShadow.setAlpha(actionbarShadowAlphaAfter)
             }
-        } else {
-            actionbarShadowAlpha = actionbarShadowAlphaAfter
         }
     }
 

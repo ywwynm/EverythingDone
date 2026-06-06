@@ -1,3 +1,24 @@
+# 自定义卡片外观 UI 隐藏后刷新首页 header 与 actionbar 阴影
+
+本次 debug update 修正自定义记事卡片外观 UI 隐藏后，首页 header 展开/折叠状态和 actionbar 动态阴影可能仍按旧 RecyclerView padding 或旧卡片布局计算的问题。
+
+实现修正：
+
+- 更新 `ThingsActivity.kt`：
+  - 在 Thing Card Appearance panel 实际隐藏并恢复 RecyclerView bottom padding 后，请求重新计算 ActivityHeader 状态；
+  - 确认、取消、返回关闭和其它隐藏入口都会走同一条刷新路径；
+  - 刷新操作 post 到 RecyclerView 下一帧执行，确保先等待 panel 消失、padding 恢复和卡片 relayout；
+  - 重新读取当前 first visible position，并调用 `ActivityHeader.updateAll(..., false)` 同步 header 位置和阴影状态。
+- 更新 `ActivityHeader.kt`：
+  - `updateAll()` 每次重新计算时都会同步最新 actionbar shadow alpha 缓存；
+  - 非动画刷新 actionbar shadow 时会先取消仍在运行的 shadow 动画，再写入新的 alpha，避免退出 selecting mode 时旧动画覆盖新阴影状态。
+
+验证状态：
+
+- `git diff --check` 已通过，仅有仓库既有 LF/CRLF warning。
+- `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache` 已通过。
+- 已发布 debug update `202606060339` 到 `http://120.25.194.207/everythingdone-updates/debug/latest.json`。
+
 # 小组件调整大小后重新投影媒体
 
 本次 debug update 让桌面小组件在 launcher 调整大小后直接重新生成 RemoteViews 和媒体 bitmap。

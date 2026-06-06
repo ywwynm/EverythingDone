@@ -1,5 +1,31 @@
 # Sessions
 
+## 2026-06-06 - Refresh home header after card appearance panel hides
+
+- User requested recalculating the home header state after customising a Thing
+  Card Appearance, then clarified that cancellation and every panel-hide path
+  should do the same because the panel changes RecyclerView bottom padding.
+- Updated `ThingsActivity.hideThingCardAppearancePanel()` to request an
+  ActivityHeader state refresh after the panel is hidden and RecyclerView
+  bottom padding is restored.
+- The refresh is posted to the RecyclerView so the header is recalculated after
+  panel removal, padding restoration, and any card relayout caused by
+  appearance changes.
+- Updated `ActivityHeader.updateAll()` to keep the actionbar shadow alpha cache
+  in sync on every recalculation and to cancel an in-flight shadow animation
+  before applying a non-animated recalculated alpha. This prevents an old
+  selecting-mode shadow animation from overriding the recalculated shadow after
+  the card appearance panel hides.
+- Verified with `git diff --check` and
+  `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`.
+- Published debug update `202606060318` with
+  `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md"
+  --console=plain --no-configuration-cache`.
+- Published debug update `202606060332` for the later panel-hide unification
+  with the same publish task.
+- Published debug update `202606060339` for the later actionbar shadow alpha
+  synchronisation with the same publish task.
+
 ## 2026-06-06 - AppWidget resize option change refresh
 
 - Added direct `onAppWidgetOptionsChanged` handling for single-Thing

@@ -3673,6 +3673,16 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         }
     }
 
+    private fun requestActivityHeaderStateRefresh() {
+        val recyclerView = mRecyclerView ?: return
+        recyclerView.post {
+            val layoutManager = mStaggeredGridLayoutManager ?: return@post
+            val positions = IntArray(mSpan)
+            layoutManager.findFirstVisibleItemPositions(positions)
+            mActivityHeader?.updateAll(positions[0], false)
+        }
+    }
+
     private fun materializeThingCardPresentationsForConfirm(
             thing: Thing,
             draft: ThingCardAppearance
@@ -3766,6 +3776,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
     private fun hideThingCardAppearancePanel() {
         mThingCardAppearanceSourcePicker?.dismiss()
         mThingCardAppearanceSourcePicker = null
+        val wasShowing = isThingCardAppearancePanelShowing()
         if (isThingCardAppearancePanelShowing()) {
             mThingCardAppearancePanel!!.visibility = View.GONE
             mRecyclerView!!.setPadding(
@@ -3776,6 +3787,9 @@ class ThingsActivity : EverythingDoneBaseActivity() {
             )
         }
         mAdapter!!.setThingCardSurfaceAvailableHeight(0)
+        if (wasShowing) {
+            requestActivityHeaderStateRefresh()
+        }
     }
 
     private fun clearThingCardAppearanceDraft() {
