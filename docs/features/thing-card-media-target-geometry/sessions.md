@@ -2,6 +2,59 @@
 
 Migrated from global `memory/sessions.md` on 2026-06-06. This file keeps feature-scoped history out of startup memory while preserving the original notes.
 
+## 2026-06-06 - Cover preview flicker fix
+
+- Implemented the ordinary thumbnail / side-panel cover-image half of the
+  previous flicker analysis.
+- Updated `BaseThingsAdapter.loadThingCardImage()` so same-source target-size
+  changes reuse the current drawable immediately, reapply the current crop
+  matrix for the new target size, and pass that drawable to Glide as a
+  placeholder instead of clearing the `ImageView` first.
+- Hid the loading spinner during same-source placeholder reuse so rapid slider
+  changes keep showing the existing cover image instead of swapping to progress
+  chrome for every new target size.
+- Kept the existing exact-load-key fast path and current render-request tag
+  guard, so identical requests still avoid new Glide work and stale Glide
+  callbacks still apply only the latest crop/size request.
+- Strengthened side-panel post-measure bind tokens with the projected cover
+  width/height, crop, and video frame. This prevents older same-source posted
+  corrections from issuing a second image load after a newer slider tick has
+  rebound the card.
+- Verified with `.\gradlew.bat :app:assembleDebug --console=plain
+  --no-configuration-cache`; the first sandboxed run failed while compiling the
+  `swirl` module because Javac could not create output directories, and the
+  elevated rerun passed.
+- Attempted to run `:app:publishDebugUpdate` after updating
+  `memory/debug-update-notes.md`, but the escalation reviewer rejected the
+  external upload because it would publish APK, metadata, and notes outside the
+  sandbox. Publishing is waiting for explicit user approval after that risk is
+  stated.
+- After the user explicitly approved the external upload, published debug
+  update `202606060912` with
+  `.\gradlew.bat :app:publishDebugUpdate
+  "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain
+  --no-configuration-cache` to
+  `http://120.25.194.207/everythingdone-updates/debug/latest.json`.
+
+## 2026-06-06 - Cover preview flicker analysis
+
+- User reported that dragging cover-image ratio or side-panel cover width in
+  the Thing Card Appearance panel can make the live preview cover image flicker
+  and briefly expose the underlying Thing Background.
+- Read the appearance/media-target feature docs, ADR 0002, and the current
+  `ThingsActivity` / `BaseThingsAdapter` preview and media-loading paths.
+- Found that ordinary cover thumbnails still clear the current Glide target
+  whenever the size-based load key changes. Ratio and side-width dragging
+  continuously changes `override(width, height)`, so `loadThingCardImage()`
+  clears the `ImageView` before the new drawable and crop matrix are ready.
+- Compared this with media-background loading, which already reuses the current
+  same-source drawable as a placeholder during target-size changes. That
+  mitigation was not applied to ordinary thumbnail / side-panel cover images.
+- Noted an additional side-panel risk: the post-measure side-image bind token
+  only contains Thing id, placement, and media source, so same-source width or
+  target-ratio edits do not invalidate older posted correction work.
+- No business code was changed in this analysis pass.
+
 ## 2026-06-04 - Thing Card Appearance crop, ratio slider, and background-height fixes
 
 - Read the Thing Card Appearance plan, execution checklist, ADR, memory files,

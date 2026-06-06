@@ -691,27 +691,45 @@ abstract class BaseThingsAdapter(context: Context?) :
         crop: ThingCardAppearance.ThingCardThumbnailCrop,
         videoFrameMs: Long?
     ) {
+        val imageView = holder.ivImageAttachment ?: return
         val loadKey = "$pathName:$imageW:$imageH:$videoFrameMs"
         val renderRequest = ThingCardThumbnailRenderRequest(loadKey, imageW, imageH, crop)
-        holder.ivImageAttachment!!.setTag(
+        imageView.setTag(
             R.id.tag_thing_card_image_render_request,
             renderRequest
         )
-        if (holder.ivImageAttachment!!.getTag(R.id.tag_thing_card_image_load_key) == loadKey) {
+        if (imageView.getTag(R.id.tag_thing_card_image_load_key) == loadKey) {
             holder.pbLoading!!.visibility = View.GONE
-            applyCurrentThingCardThumbnailRenderRequest(holder.ivImageAttachment)
+            applyCurrentThingCardThumbnailRenderRequest(imageView)
             return
         }
 
+        val reusableDrawable = imageView.drawable?.takeIf {
+            isSameThingCardImageSource(
+                imageView.getTag(R.id.tag_thing_card_image_load_key) as? String,
+                pathName,
+                videoFrameMs
+            )
+        }
+        if (reusableDrawable != null) {
+            applyCurrentThingCardThumbnailRenderRequest(imageView)
+        }
+
         val imageWasLoaded = mLoadedThingCardImageKeys.contains(loadKey)
-        holder.pbLoading!!.visibility = if (imageWasLoaded) View.GONE else View.VISIBLE
-        mImageRequestManager!!.clear(holder.ivImageAttachment!!)
-        holder.ivImageAttachment.setTag(R.id.tag_thing_card_image_load_key, loadKey)
+        holder.pbLoading!!.visibility =
+            if (imageWasLoaded || reusableDrawable != null) View.GONE else View.VISIBLE
+        if (reusableDrawable == null) {
+            mImageRequestManager!!.clear(imageView)
+        }
+        imageView.setTag(R.id.tag_thing_card_image_load_key, loadKey)
         val request = mImageRequestManager!!
             .load(pathName)
             .override(imageW, imageH)
             .dontTransform()
             .signature(getThingCardMediaCacheSignature(pathName, imageW, imageH, videoFrameMs))
+        if (reusableDrawable != null) {
+            request.placeholder(reusableDrawable)
+        }
         if (videoFrameMs != null) {
             request.apply(
                 RequestOptions.frameOf(videoFrameMs * 1000L)
@@ -724,7 +742,7 @@ abstract class BaseThingsAdapter(context: Context?) :
                     e: GlideException?, model: Any?, target: Target<Drawable>,
                     isFirstResource: Boolean
                 ): Boolean {
-                    if (holder.ivImageAttachment!!.getTag(
+                    if (imageView.getTag(
                             R.id.tag_thing_card_image_load_key
                         ) == loadKey
                     ) {
@@ -733,7 +751,7 @@ abstract class BaseThingsAdapter(context: Context?) :
                         holder.tvImageCount!!.visibility = View.GONE
                         holder.vImageCover!!.visibility = View.GONE
                         holder.vPaddingBottom!!.visibility = View.VISIBLE
-                        holder.ivImageAttachment!!.setTag(
+                        imageView.setTag(
                             R.id.tag_thing_card_image_render_request,
                             null
                         )
@@ -746,18 +764,18 @@ abstract class BaseThingsAdapter(context: Context?) :
                     dataSource: DataSource, isFirstResource: Boolean
                 ): Boolean {
                     mLoadedThingCardImageKeys.add(loadKey)
-                    if (holder.ivImageAttachment!!.getTag(
+                    if (imageView.getTag(
                             R.id.tag_thing_card_image_load_key
                         ) == loadKey
                     ) {
                         holder.pbLoading!!.visibility = View.GONE
-                        holder.ivImageAttachment.post {
-                            val request = holder.ivImageAttachment!!.getTag(
+                        imageView.post {
+                            val request = imageView.getTag(
                                 R.id.tag_thing_card_image_render_request
                             ) as? ThingCardThumbnailRenderRequest
                             if (request?.loadKey == loadKey) {
                                 applyCurrentThingCardThumbnailRenderRequest(
-                                    holder.ivImageAttachment
+                                    imageView
                                 )
                             }
                         }
@@ -766,7 +784,7 @@ abstract class BaseThingsAdapter(context: Context?) :
                 }
             })
             .dontAnimate()
-            .into(holder.ivImageAttachment!!)
+            .into(imageView)
     }
 
     private fun loadThingCardMediaBackground(
@@ -865,6 +883,16 @@ abstract class BaseThingsAdapter(context: Context?) :
     ): Boolean {
         if (loadKey == null) return false
         return loadKey.startsWith("background:$pathName:") &&
+                loadKey.endsWith(":$videoFrameMs")
+    }
+
+    private fun isSameThingCardImageSource(
+        loadKey: String?,
+        pathName: String,
+        videoFrameMs: Long?
+    ): Boolean {
+        if (loadKey == null) return false
+        return loadKey.startsWith("$pathName:") &&
                 loadKey.endsWith(":$videoFrameMs")
     }
 
@@ -1869,7 +1897,23 @@ abstract class BaseThingsAdapter(context: Context?) :
             }
             holder.flImageAttachment.layoutParams = paramsLayout
 
-            val bindToken = thing.id.toString() + ":" + placement + ":" + mediaSource.typePathName
+            val bindToken = buildString {
+                append(thing.id)
+                append(":")
+                append(placement)
+                append(":")
+                append(mediaSource.typePathName)
+                if (sideImage && sideImageProjection != null) {
+                    append(":")
+                    append(sideImageProjection.imageWidth)
+                    append("x")
+                    append(sideImageProjection.imageHeight)
+                    append(":")
+                    append(thumbnailCrop)
+                    append(":")
+                    append(videoFrameMs)
+                }
+            }
             holder.flImageAttachment.setTag(R.id.tag_thing_card_side_image_bind_token, bindToken)
 
             if (sideImage) {
