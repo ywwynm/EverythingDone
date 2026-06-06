@@ -9,6 +9,7 @@ Global startup follow-up index only. Feature-specific follow-ups live in `docs/f
 - `debug-update-channel`: `docs/features/debug-update-channel/followups.md`
 - `detail-color-sampling`: `docs/features/detail-color-sampling/followups.md`
 - `home-card-span-mode`: `docs/features/home-card-span-mode/followups.md`
+- `home-new-item-animation`: `docs/features/home-new-item-animation/followups.md`
 - `kotlin-migration`: `docs/features/kotlin-migration/followups.md`
 - `localization`: `docs/features/localization/followups.md`
 - `popup-picker-insets`: `docs/features/popup-picker-insets/followups.md`

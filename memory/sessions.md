@@ -15,6 +15,7 @@ Global startup session index only. Detailed feature history lives in `docs/featu
 - `debug-update-channel`: `docs/features/debug-update-channel/sessions.md`
 - `documentation-organization`: `docs/features/documentation-organization/sessions.md`
 - `home-card-span-mode`: `docs/features/home-card-span-mode/sessions.md`
+- `home-new-item-animation`: `docs/features/home-new-item-animation/sessions.md`
 - `kotlin-migration`: `docs/features/kotlin-migration/sessions.md`
 - `localization`: `docs/features/localization/sessions.md`
 - `popup-picker-insets`: `docs/features/popup-picker-insets/sessions.md`

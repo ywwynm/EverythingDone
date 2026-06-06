@@ -266,6 +266,10 @@ class ThingsActivity : EverythingDoneBaseActivity() {
      * is playing or not.
      */
     private var mIsRevealAnimPlaying: Boolean = false
+    private var mIsNewItemShiningBorderActive: Boolean = false
+    private var mIsNewItemShiningBorderAnimating: Boolean = false
+    private var mNewItemShiningBorderCard: View? = null
+    private var mNewItemShiningBorderToken: Int = 0
 
     private var mCanSeeUi: Boolean = false
     private var mUpdateMainUiInOnResume: Boolean = true
@@ -491,6 +495,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
                 ltdf.setConfirmListener {
                     AlarmHelper.createAllAlarms(App.getApp(), true)
                     if (mAdapter != null) {
+                        finishNewItemShiningBorderAnimationIfNeeded()
                         mAdapter!!.notifyDataSetChanged()
                     }
                 }
@@ -509,6 +514,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
                     override fun onConfirm() {
                         AlarmHelper.createAllAlarms(App.getApp(), true)
                         if (mAdapter != null) {
+                            finishNewItemShiningBorderAnimationIfNeeded()
                             mAdapter!!.notifyDataSetChanged()
                         }
                     }
@@ -568,6 +574,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
 
     override fun onPause() {
         super.onPause()
+        finishNewItemShiningBorderAnimationIfNeeded()
         dismissSnackbars()
         mScrollCausedByFinger = false
 
@@ -691,6 +698,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
                 handleUpdateStates(Thing.DELETED_FOREVER)
             }
         } else if (itemId == R.id.act_sort_by_alarm) {
+            finishNewItemShiningBorderAnimationIfNeeded()
             mRecyclerView!!.scrollToPosition(0)
             mActivityHeader!!.reset(true)
             mFab!!.showFromBottom()
@@ -728,6 +736,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
 
     private fun updateMainUi(data: Intent, resultCode: Int) {
         Log.i(TAG, "updateMainUi called, resultCode[$resultCode]")
+        finishNewItemShiningBorderAnimationIfNeeded()
         mUpdateMainUiInOnResume = false
         dismissSnackbars()
         when (resultCode) {
@@ -829,6 +838,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
                 mThingManager!!.create(thingToCreate, true, true)
             }
             mRecyclerView!!.postDelayed({
+                finishNewItemShiningBorderAnimationIfNeeded()
                 val newPos = mThingManager!!.getPositionToInsertNewThing()
                 val newId = thingToCreate.id
                 val bg: ThingBackground? = thingToCreate.getBackground()
@@ -875,6 +885,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
             + "typeBefore[" + typeBefore + "], "
             + "justNotifyAll[" + justNotifyAll + "]")
         mDrawerLayout!!.postDelayed({
+            finishNewItemShiningBorderAnimationIfNeeded()
             Log.i(TAG, "updateMainUiForUpdateSameType: delayed Runnable started.")
             @Thing.State var thingState: Int = Thing.UNDERWAY
             if (contentUpdatedThing != null) {
@@ -927,6 +938,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
 
         val justNotifyAll = App.justNotifyAll()
         mDrawerLayout!!.postDelayed({
+            finishNewItemShiningBorderAnimationIfNeeded()
             val type = thing.type
             val curLimit = mApp!!.getLimit()
             val limitMatched = Thing.isTypeStateMatchLimit(type, Thing.UNDERWAY, curLimit)
@@ -984,6 +996,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         celebrateHabitGoalFinish(thing, thing.state, stateAfter)
 
         mDrawerLayout!!.postDelayed({
+            finishNewItemShiningBorderAnimationIfNeeded()
             Log.i(TAG, "updateMainUiForUpdateDifferentState: delayed Runnable started.")
             val type = thing.type
             val curLimit = mApp!!.getLimit()
@@ -1035,12 +1048,14 @@ class ThingsActivity : EverythingDoneBaseActivity() {
             + "justNotifyAll[" + justNotifyAll + "]")
 
         mDrawerLayout!!.postDelayed({
+            finishNewItemShiningBorderAnimationIfNeeded()
             Log.i(TAG, "updateMainUiForStickyOrCancel: delayed Runnable started.")
             if (justNotifyAll) {
                 justNotifyAll()
             } else if (oldPosition != -1 && newPosition != -1) {
                 mAdapter!!.notifyItemMoved(oldPosition, newPosition)
                 mDrawerLayout!!.postDelayed({
+                    finishNewItemShiningBorderAnimationIfNeeded()
                     mAdapter!!.notifyItemChanged(newPosition)
                 }, mRecyclerView!!.itemAnimator!!.moveDuration)
             }
@@ -1059,6 +1074,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         val thing: Thing = data.getParcelableExtra(Def.Communication.KEY_THING)!!
         val justNotifyAll = App.justNotifyAll()
         mDrawerLayout!!.postDelayed({
+            finishNewItemShiningBorderAnimationIfNeeded()
             Log.i(TAG, "updateMainUiForDoingOrCancel: delayed Runnable started.")
             if (justNotifyAll) {
                 justNotifyAll()
@@ -1077,6 +1093,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
     }
 
     private fun justNotifyAll(shouldThingsAnimWhenAppearing: Boolean = true) {
+        finishNewItemShiningBorderAnimationIfNeeded()
         if (App.isSearching) {
             mThingManager!!.searchThings(mEtSearch!!.text.toString(), mColorPicker!!.getPickedColor())
             handleSearchResults()
@@ -1317,6 +1334,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
      */
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
+        finishNewItemShiningBorderAnimationIfNeeded()
         dismissSnackbars()
         mColorPicker!!.dismiss()
 
@@ -3653,6 +3671,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         }
         recyclerView.itemAnimator?.endAnimations()
 
+        finishNewItemShiningBorderAnimationIfNeeded()
         mAdapter!!.notifyItemChanged(position)
     }
 
@@ -3762,6 +3781,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         if (thing != null && original != null) {
             thing.thingCardAppearance = original
             if (mThingCardAppearanceSelectedPosition >= 0) {
+                finishNewItemShiningBorderAnimationIfNeeded()
                 mAdapter!!.notifyItemChanged(mThingCardAppearanceSelectedPosition)
             }
         }
@@ -3952,18 +3972,40 @@ class ThingsActivity : EverythingDoneBaseActivity() {
     private fun playNewItemAnimation(
         holder: BaseThingsAdapter.BaseThingViewHolder, bg: ThingBackground
     ) {
+        finishNewItemShiningBorderAnimationIfNeeded()
         val useShining = getSharedPreferences(Def.Meta.PREFERENCES_NAME, MODE_PRIVATE)
             .getBoolean(Def.Meta.KEY_CREATE_ANIMATION_STYLE, false)
-        holder.cv!!.clearAnimation()
-        holder.cv.visibility = View.INVISIBLE
+        val card = holder.cv!!
+        var shiningBorderToken = 0
+        if (useShining) {
+            shiningBorderToken = ++mNewItemShiningBorderToken
+            mIsNewItemShiningBorderActive = true
+            mIsNewItemShiningBorderAnimating = false
+            mNewItemShiningBorderCard = card
+            mRecyclerView?.stopScroll()
+            mRecyclerView?.requestDisallowInterceptTouchEvent(true)
+        }
+        card.clearAnimation()
+        card.visibility = View.INVISIBLE
         mIsRevealAnimPlaying = true
-        holder.cv.postDelayed({
-            if (holder.cv.windowToken == null) {
-                mIsRevealAnimPlaying = false
+        card.postDelayed({
+            if (useShining && (
+                    !mIsNewItemShiningBorderActive
+                        || shiningBorderToken != mNewItemShiningBorderToken
+                )
+            ) {
                 return@postDelayed
             }
-            holder.cv.clearAnimation()
-            holder.cv.visibility = View.INVISIBLE
+            if (card.windowToken == null) {
+                if (useShining) {
+                    finishNewItemShiningBorderAnimationIfNeeded()
+                } else {
+                    mIsRevealAnimPlaying = false
+                }
+                return@postDelayed
+            }
+            card.clearAnimation()
+            card.visibility = View.INVISIBLE
             if (useShining) {
                 playNewItemShiningBorder(holder, bg)
             } else {
@@ -3975,14 +4017,17 @@ class ThingsActivity : EverythingDoneBaseActivity() {
     private fun playNewItemShiningBorder(
         holder: BaseThingsAdapter.BaseThingViewHolder, bg: ThingBackground
     ) {
+        val card = holder.cv!!
+        mNewItemShiningBorderCard = card
+        mRecyclerView?.stopScroll()
         val cardLoc = IntArray(2)
-        holder.cv!!.getLocationInWindow(cardLoc)
+        card.getLocationInWindow(cardLoc)
         val borderLoc = IntArray(2)
         mShiningBorder!!.getLocationInWindow(borderLoc)
         val left   = cardLoc[0] - borderLoc[0]
         val top    = cardLoc[1] - borderLoc[1]
-        val right  = left + holder.cv.width
-        val bottom = top  + holder.cv.height
+        val right  = left + card.width
+        val bottom = top  + card.height
 
         val density = DisplayUtil.getScreenDensity(this)
 
@@ -4007,23 +4052,26 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         mShiningBorder!!.setParticleBaseSize(density * 0.6f)
         mShiningBorder!!.setMaxParticles(80)
         mShiningBorder!!.assignPathAndFrame(left, top, right, bottom)
+        mIsNewItemShiningBorderAnimating = true
 
         // Card stays INVISIBLE for the whole trace; only at the end do we reveal it.
         mShiningBorder!!.setOnProgressUpdateListener(null)
-        mShiningBorder!!.setOnAnimationEndListener(object : ShiningBorder.OnAnimationEndListener {
+        mShiningBorder!!.setOnAnimationEndListener(null)
+        val endListener = object : ShiningBorder.OnAnimationEndListener {
             override fun onAnimationEnd(border: ShiningBorder) {
-                holder.cv.alpha = 0f
-                holder.cv.visibility = View.VISIBLE
-                holder.cv.animate().alpha(1f).setDuration(220).start()
+                card.alpha = 0f
+                card.visibility = View.VISIBLE
+                card.animate().alpha(1f).setDuration(220).start()
                 mShiningBorder!!.visibility = View.INVISIBLE
                 mShiningBorder!!.resetTrace()
                 mShiningBorder!!.setOnAnimationEndListener(null)
                 restoreShiningBorderDefaults()
-                mIsRevealAnimPlaying = false
+                clearNewItemShiningBorderAnimationState()
             }
-        })
+        }
         mShiningBorder!!.visibility = View.VISIBLE
         mShiningBorder!!.startAnimation()
+        mShiningBorder!!.setOnAnimationEndListener(endListener)
     }
 
     private fun restoreShiningBorderDefaults() {
@@ -4033,6 +4081,35 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         mShiningBorder!!.setParticleBaseSize(mShiningBorderDefaultParticleBaseSize)
         mShiningBorder!!.setMaxParticles(mShiningBorderDefaultMaxParticles)
         mShiningBorder!!.assignPathAndFrame()
+    }
+
+    private fun finishNewItemShiningBorderAnimationIfNeeded() {
+        if (!mIsNewItemShiningBorderActive) {
+            return
+        }
+
+        mNewItemShiningBorderToken++
+        val card = mNewItemShiningBorderCard
+        if (mIsNewItemShiningBorderAnimating) {
+            mShiningBorder!!.setOnAnimationEndListener(null)
+            mShiningBorder!!.setOnProgressUpdateListener(null)
+            mShiningBorder!!.stopAnimation()
+            mShiningBorder!!.visibility = View.INVISIBLE
+            mShiningBorder!!.resetTrace()
+            restoreShiningBorderDefaults()
+        }
+        card?.animate()?.cancel()
+        card?.alpha = 1f
+        card?.visibility = View.VISIBLE
+        clearNewItemShiningBorderAnimationState()
+    }
+
+    private fun clearNewItemShiningBorderAnimationState() {
+        mIsNewItemShiningBorderActive = false
+        mIsNewItemShiningBorderAnimating = false
+        mNewItemShiningBorderCard = null
+        mRecyclerView?.requestDisallowInterceptTouchEvent(false)
+        mIsRevealAnimPlaying = false
     }
 
     private fun playNewItemReveal(holder: BaseThingsAdapter.BaseThingViewHolder) {
@@ -4069,6 +4146,12 @@ class ThingsActivity : EverythingDoneBaseActivity() {
     private fun setRecyclerViewEvents() {
         mRecyclerView!!.setOnTouchListener { _, event ->
             val action = event.action
+            if (mIsNewItemShiningBorderActive) {
+                if (action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_MOVE) {
+                    mRecyclerView!!.stopScroll()
+                }
+                return@setOnTouchListener true
+            }
             if (action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_UP
                 || action == MotionEvent.ACTION_MOVE
             ) {
@@ -4115,6 +4198,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
                 return@OnClickListener
             }
 
+            finishNewItemShiningBorderAnimationIfNeeded()
             val stateAfter = mUndoThings!![0].state
             mScrollCausedByFinger = false
 
@@ -4179,6 +4263,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         })
         mHabitSnackbar!!.setUndoListener {
             if (!mUndoHabitRecords!!.isEmpty()) {
+                finishNewItemShiningBorderAnimationIfNeeded()
                 var size = mUndoHabitRecords!!.size
                 val hr: HabitRecord = mUndoHabitRecords!![size - 1]
                 val position = mUndoPositions!![size - 1]
@@ -4306,6 +4391,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
     }
 
     private fun searchThings() {
+        finishNewItemShiningBorderAnimationIfNeeded()
         mThingManager!!.searchThings(mEtSearch!!.text.toString(), mColorPicker!!.getPickedColor())
         mAdapter!!.setShouldThingsAnimWhenAppearing(false)
         mAdapter!!.notifyDataSetChanged()
@@ -4384,6 +4470,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
     }
 
     private fun changeToLimit(newLimit: Int, updateDrawerItem: Boolean) {
+        finishNewItemShiningBorderAnimationIfNeeded()
         if (updateDrawerItem) {
             val menuItem: MenuItem = mDrawer!!.menu[newLimit]
             checkDrawerItem(menuItem)
@@ -4396,6 +4483,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         mActivityHeader!!.reset(true)
 
         mRecyclerView!!.postDelayed({
+            finishNewItemShiningBorderAnimationIfNeeded()
             mRecyclerView!!.visibility = View.VISIBLE
             mAdapter!!.setShouldThingsAnimWhenAppearing(true)
             mThingManager!!.loadThings()
@@ -4534,6 +4622,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         if (mUndoThings!!.isEmpty()) {
             return
         }
+        finishNewItemShiningBorderAnimationIfNeeded()
         mStateToUndoFrom = stateAfter
         @Suppress("UNCHECKED_CAST")
         mUndoPositions = mThingManager!!.updateStates(
@@ -4685,6 +4774,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
     }
 
     private fun toggleSearching(shouldThingsAnimWhenAppearing: Boolean) {
+        finishNewItemShiningBorderAnimationIfNeeded()
         dismissSnackbars()
         val toNormal = App.isSearching
         if (toNormal) {
@@ -4801,6 +4891,12 @@ class ThingsActivity : EverythingDoneBaseActivity() {
     internal inner class OnThingTouchedListener : ThingsAdapter.OnItemTouchedListener {
         override fun onItemTouch(v: View?, event: MotionEvent?): Boolean {
             val action = event!!.action
+            if (mIsNewItemShiningBorderActive) {
+                if (action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_MOVE) {
+                    mRecyclerView!!.stopScroll()
+                }
+                return true
+            }
             if (action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_UP
                 || action == MotionEvent.ACTION_MOVE
             ) {
@@ -4881,6 +4977,9 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         }
 
         override fun onItemLongClick(v: View?, position: Int): Boolean {
+            if (mIsNewItemShiningBorderActive) {
+                return true
+            }
             if (position == 0) {
                 return false
             }
@@ -4926,6 +5025,9 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         override fun getMovementFlags(
             recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder
         ): Int {
+            if (mIsNewItemShiningBorderActive) {
+                return 0
+            }
             val dragFlags = ItemTouchHelper.UP or ItemTouchHelper.DOWN or
                 ItemTouchHelper.START or ItemTouchHelper.END
             val swipeFlags = ItemTouchHelper.START or ItemTouchHelper.END
@@ -4980,6 +5082,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
             return mApp!!.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY
                 && mModeManager!!.getCurrentMode() != ModeManager.SELECTING
                 && !mThingManager!!.isThingsEmpty()
+                && !mIsNewItemShiningBorderActive
         }
 
         override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {

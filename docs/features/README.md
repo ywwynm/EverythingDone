@@ -54,6 +54,7 @@ memory files.
 - `detail-color-sampling/`
 - `documentation-organization/`
 - `home-card-span-mode/`
+- `home-new-item-animation/`
 - `keep-alive-strategy/`
 - `kotlin-migration/`
 - `localization/`
