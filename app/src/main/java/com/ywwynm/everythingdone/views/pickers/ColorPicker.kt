@@ -521,17 +521,22 @@ open class ColorPicker(
             val m8: Int = (8 * mScreenDensity).toInt()
             val m4: Int = m8 shr 1
             val m16: Int = m8 shl 1
+            val m12: Int = m16 - m4
             val params: GridLayoutManager.LayoutParams =
                     itemRoot.layoutParams as GridLayoutManager.LayoutParams
             when (index) {
                 0 ->
-                    if (mType == Def.PickerType.COLOR_HAVE_ALL) {
+                    if (mType == Def.PickerType.HUE_BUCKET) {
+                        params.setMargins(m16, m8, m8, m4)
+                    } else if (mType == Def.PickerType.COLOR_HAVE_ALL) {
                         params.setMargins(m16, m8, m8, m4)
                     } else {
                         params.setMargins(m16, m16, m8, m4)
                     }
                 1 ->
-                    if (mType == Def.PickerType.COLOR_HAVE_ALL) {
+                    if (mType == Def.PickerType.HUE_BUCKET) {
+                        params.setMargins(m8, m8, m16, m4)
+                    } else if (mType == Def.PickerType.COLOR_HAVE_ALL) {
                         params.setMargins(m8, m8, m16, m4)
                     } else {
                         params.setMargins(m8, m16, m16, m4)
@@ -543,13 +548,13 @@ open class ColorPicker(
                 6 ->
                     // HUE_BUCKET's last row is at FAB indices 6/7 (8 buckets).
                     if (mType == Def.PickerType.HUE_BUCKET) {
-                        params.setMargins(m16, m4, m8, m16)
+                        params.setMargins(m16, m4, m8, m12)
                     } else {
                         params.setMargins(m16, m4, m8, m4)
                     }
                 7 ->
                     if (mType == Def.PickerType.HUE_BUCKET) {
-                        params.setMargins(m8, m4, m16, m16)
+                        params.setMargins(m8, m4, m16, m12)
                     } else {
                         params.setMargins(m8, m4, m16, m4)
                     }

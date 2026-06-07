@@ -2,6 +2,121 @@
 
 Migrated from global `memory/sessions.md` on 2026-06-06. This file keeps feature-scoped history out of startup memory while preserving the original notes.
 
+## 2026-06-07 - Search HUE_BUCKET spacing finalized before commit
+
+User confirmed the previous `HUE_BUCKET` target, asked to soften it, then made
+one final local visual adjustment before requesting a Git commit. The committed
+spacing follows that final local state.
+
+Change:
+- `HUE_BUCKET` first-row top margin changed from 0dp to 8dp, still below the
+  original 16dp.
+- `HUE_BUCKET` final-row bottom margin changed from 20dp to 12dp after the
+  user's final visual tuning.
+- `HUE_BUCKET` fixed RecyclerView height remains 256dp.
+- Updated feature preferences to record the finalized spacing.
+
+Verification:
+- `git diff --check` passed with LF/CRLF conversion warnings only.
+- `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`
+  had previously passed for the pre-final-tuning `HUE_BUCKET` path and
+  published debug update `202606070448` to
+  `http://120.25.194.207/everythingdone-updates/debug/latest.json`; no new
+  debug update was published after the user's final local adjustment before the
+  commit request.
+
+## 2026-06-07 - Search ColorPicker spacing targets HUE_BUCKET
+
+User reported that even changing `COLOR_HAVE_ALL` height to 400dp did not
+change the search ColorPicker, and asked for a careful check of whether some
+other path rewrites the popup height or margins.
+
+Finding:
+- `ThingsActivity` creates the search ColorPicker as
+  `ColorPicker(this, window.decorView, Def.PickerType.HUE_BUCKET)`.
+- `COLOR_HAVE_ALL` is not used by the current search UI, so changing its fixed
+  height or row margins has no effect on the popup being tested.
+- The search popup's "all colours" row is the `HUE_BUCKET` all-filter row, and
+  the FAB grid contains eight hue-bucket FABs in four rows.
+
+Change:
+- Restored `COLOR_HAVE_ALL` height and margins to their baseline values.
+- Updated `HUE_BUCKET` margins instead: first bucket row top margin is 0dp, and
+  the final bucket row bottom margin is 20dp, slightly larger than the 16dp
+  left-edge margin.
+- Updated feature preferences to record that search ColorPicker spacing belongs
+  to `HUE_BUCKET`.
+
+Verification:
+- `git diff --check` passed with LF/CRLF conversion warnings only.
+- `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`
+  passed and published debug update `202606070439` to
+  `http://120.25.194.207/everythingdone-updates/debug/latest.json`.
+
+## 2026-06-07 - Search ColorPicker explicit margin correction
+
+User reported that the search ColorPicker spacing still felt wrong and asked
+for the direct correction: first-row FAB top margin should be 0dp, and final-row
+FAB bottom margin should be larger.
+
+Change:
+- `COLOR_HAVE_ALL` first-row FAB top margins changed from 4dp to 0dp.
+- `COLOR_HAVE_ALL` final-row FAB bottom margins changed from 16dp to 24dp.
+- The search picker fixed RecyclerView height remains 312dp.
+- Updated the feature preference to match the direct margin rule.
+
+Verification:
+- `git diff --check` passed with LF/CRLF conversion warnings only.
+- `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`
+  passed and published debug update `202606070430` to
+  `http://120.25.194.207/everythingdone-updates/debug/latest.json`.
+
+## 2026-06-07 - Search ColorPicker bottom space uses fixed height
+
+User tested the `202606070415` spacing polish and reported little visual
+difference. The follow-up pointed out that FAB height/margins were not the main
+problem: since the search ColorPicker RecyclerView has a fixed height, bottom
+breathing room should come from increasing that fixed height while still
+reducing the first FAB row's top margin.
+
+Finding:
+- `COLOR_HAVE_ALL` has one 48dp "all colours" row plus ten colour FABs in five
+  two-column rows.
+- The previous adjustment moved 4dp from first-row top margin to final-row
+  bottom margin, keeping the content height effectively unchanged and leaving
+  the fixed RecyclerView height at 304dp.
+
+Change:
+- `COLOR_HAVE_ALL` RecyclerView height changed from 304dp to 312dp.
+- First FAB row top margin remains reduced from 8dp to 4dp.
+- Final FAB row bottom margin is restored to the normal 16dp; the extra bottom
+  space now comes from the RecyclerView viewport height instead.
+
+Verification:
+- `git diff --check` passed with LF/CRLF conversion warnings only.
+- `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`
+  passed and published debug update `202606070426` to
+  `http://120.25.194.207/everythingdone-updates/debug/latest.json`.
+
+## 2026-06-07 - Search ColorPicker vertical spacing polish
+
+User reported that in the search-mode ColorPicker, the gap between the "all
+colours" row and the FAB grid felt slightly too large, while the gap between
+the final FAB row and the popup bottom felt slightly too small.
+
+Change:
+- Added a feature preference for search ColorPicker spacing.
+- For `Def.PickerType.COLOR_HAVE_ALL`, first-row FAB top margins changed from
+  8dp to 4dp, and final-row FAB bottom margins changed from 16dp to 20dp.
+- The total popup height remains unchanged because the 4dp removed above the
+  grid is moved to the bottom breathing room.
+
+Verification:
+- `git diff --check` passed with LF/CRLF conversion warnings only.
+- `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`
+  passed and published debug update `202606070415` to
+  `http://120.25.194.207/everythingdone-updates/debug/latest.json`.
+
 ## 2026-06-07 - ColorPicker anchors to trigger top-right
 
 User confirmed the latest source picker placement and asked for one final

@@ -1,5 +1,57 @@
 # Current Debug Update Notes
 
+## 2026-06-07 - 用户手调后提交搜索 HUE_BUCKET ColorPicker 间距
+
+用户在上一版基础上又做了一次本地视觉调整，并要求直接 Git 提交。
+
+本次提交采用用户最终手调后的状态：搜索页实际使用的仍是 `Def.PickerType.HUE_BUCKET`；第一行 hue bucket FAB 的 top margin 为 8dp，仍小于原始 16dp；最后一行 hue bucket FAB 的 bottom margin 为 12dp；`HUE_BUCKET` 的 RecyclerView 固定高度保持 256dp。同步清理了不再使用的局部 margin 变量。
+
+同步更新 `docs/features/popup-picker-insets/preferences.md` 与 `sessions.md`，确保文档记录的是最终提交值，而不是上一版发布测试时的 18dp/262dp。用户本轮只要求提交，因此没有在最终手调后重新发布 debug update。
+
+## 2026-06-07 - 搜索 HUE_BUCKET ColorPicker 间距回调到中间值
+
+用户确认上一版已经改到实际搜索使用的 `HUE_BUCKET`，但要求把第一行 FAB 的 top margin 从 0 恢复到比最开始小一些，底部 margin 也恢复到比当前小一些，并考虑是否需要调整整个 popup 高度。
+
+本次修改：`HUE_BUCKET` 第一行 FAB 的 top margin 从 0dp 调整为 8dp，仍小于最初的 16dp；最后一行 FAB 的 bottom margin 从 20dp 调整为 18dp，仍略大于左侧 FAB 到 popup 左侧的 16dp margin；`HUE_BUCKET` 的 RecyclerView 固定高度从 256dp 调整为 262dp，用来吸收行高增加并保留底部留白。
+
+同步更新 `docs/features/popup-picker-insets/preferences.md` 与 `sessions.md`。`git diff --check` 已通过，仅有仓库既有 LF/CRLF warning；已执行 `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`，发布 debug update `202606070448` 到 `http://120.25.194.207/everythingdone-updates/debug/latest.json`。请重点测试首页搜索模式 ColorPicker 的第一行 FAB 间距、底部留白和 popup 总高度。
+
+## 2026-06-07 - 修正搜索 ColorPicker 实际使用的 HUE_BUCKET 间距
+
+用户反馈：即使手动把 `COLOR_HAVE_ALL` 的 `params.height` 改成 400dp，搜索 ColorPicker 的高度和间距仍然没有变化；要求仔细检查是否还有其它地方更新高度和 margin，并明确实现目标：缩小“全部颜色”和第一行 FAB 的间距，放大最后一行 FAB 和 popup 底部的间距，底部间距要比左侧 FAB 到 popup 左侧的 16dp margin 稍大一点。
+
+本次诊断：搜索页实际创建的是 `ColorPicker(this, window.decorView, Def.PickerType.HUE_BUCKET)`，不是 `COLOR_HAVE_ALL`。因此之前调整 `COLOR_HAVE_ALL` 的 fixed height 或 margin，不会影响正在测试的首页搜索 ColorPicker。搜索 popup 里的“全部颜色”是 `HUE_BUCKET` 的 all-filter row，下方 FAB 是 8 个 hue bucket，分成 4 行。
+
+本次修改：恢复 `COLOR_HAVE_ALL` 的高度和 margin 基线；改为调整 `HUE_BUCKET`。第一行 hue bucket FAB 的 top margin 改为 0dp，让它更贴近“全部颜色”；最后一行 hue bucket FAB 的 bottom margin 改为 20dp，比左侧 FAB 到 popup 左侧的 16dp margin 稍大一点。`HUE_BUCKET` 的 RecyclerView 固定高度保持 256dp。
+
+同步更新 `docs/features/popup-picker-insets/preferences.md` 与 `sessions.md`，记录首页搜索 ColorPicker 对应的是 `HUE_BUCKET`。`git diff --check` 已通过，仅有仓库既有 LF/CRLF warning；已执行 `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`，发布 debug update `202606070439` 到 `http://120.25.194.207/everythingdone-updates/debug/latest.json`。请重点测试首页搜索模式 ColorPicker 的第一行 hue bucket FAB 间距和底部留白。
+
+## 2026-06-07 - 直接修正搜索 ColorPicker FAB 间距
+
+用户反馈上一版仍然很怪，并明确要求：第一行 FAB 的 top margin 直接改成 0，最后一行 margin 加大。
+
+本次修改：`COLOR_HAVE_ALL` 第一行两个 FAB 的 top margin 从 4dp 改为 0dp；最后一行两个 FAB 的 bottom margin 从 16dp 改为 24dp；搜索 ColorPicker 的 RecyclerView 固定高度继续保持 312dp。这样“全部颜色”和第一行 FAB 之间会明显收紧，最后一行 FAB 到 popup 底部的留白也会明确加大。
+
+同步更新 `docs/features/popup-picker-insets/preferences.md` 与 `sessions.md`。`git diff --check` 已通过，仅有仓库既有 LF/CRLF warning；已执行 `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`，发布 debug update `202606070430` 到 `http://120.25.194.207/everythingdone-updates/debug/latest.json`。请重点测试首页搜索模式 ColorPicker 的第一行 FAB 贴近程度和底部留白。
+
+## 2026-06-07 - 重新调整搜索 ColorPicker 底部留白来源
+
+用户测试 `202606070415` 后反馈视觉区别不大，并指出 FAB 的高度、margin 本身没问题；因为 ColorPicker 的 RecyclerView 高度是写死的，要增加底部留白更应该增大 RecyclerView 固定高度，同时第一行 FAB top margin 仍然要减小。
+
+本次诊断：`COLOR_HAVE_ALL` 由一个 48dp 的“全部颜色”行，加 10 个颜色 FAB 组成的 5 行双列网格构成。上一版只是把第一行 FAB 上方 4dp 挪到最后一行 FAB 的 bottom margin，整体内容高度基本不变，RecyclerView 固定高度仍是 304dp，所以实际底部留白变化不明显。
+
+本次修改：`COLOR_HAVE_ALL` 的 RecyclerView 固定高度从 304dp 增加到 312dp；第一行 FAB 的 top margin 保持从 8dp 减到 4dp；最后一行 FAB 的 bottom margin 恢复普通的 16dp，不再把最后一行 item 自己撑大。这样底部新增空间来自 RecyclerView viewport，而不是来自 FAB item margin。
+
+同步更新 `docs/features/popup-picker-insets/preferences.md` 与 `sessions.md`。`git diff --check` 已通过，仅有仓库既有 LF/CRLF warning；已执行 `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`，发布 debug update `202606070426` 到 `http://120.25.194.207/everythingdone-updates/debug/latest.json`。请重点测试首页搜索模式 ColorPicker 的整体高度、全部颜色到第一行 FAB 的间距，以及最后一行 FAB 到 popup 底部的留白。
+
+## 2026-06-07 - 微调搜索 ColorPicker 的垂直间距
+
+用户反馈：搜索时的 ColorPicker 里，“全部颜色”和下方 FAB 网格之间的间距稍微大了点，而最下方 FAB 和 popup 底部的间距又稍微小了一点。
+
+本次修改：只调整 `Def.PickerType.COLOR_HAVE_ALL`，不影响详情页改色 ColorPicker、Hue bucket picker 或 COLOR_EDIT picker。第一行 FAB 的 top margin 从 8dp 改为 4dp，让“全部颜色”和 FAB 网格之间更紧一点；最后一行 FAB 的 bottom margin 从 16dp 改为 20dp，让 popup 底部留白更足一点。由于上方减少的 4dp 正好移动到底部，搜索 ColorPicker 的总高度保持不变。
+
+同步新增 `docs/features/popup-picker-insets/preferences.md`，并更新 `sessions.md`。`git diff --check` 已通过，仅有仓库既有 LF/CRLF warning；已执行 `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`，发布 debug update `202606070415` 到 `http://120.25.194.207/everythingdone-updates/debug/latest.json`。请重点测试首页搜索模式 ColorPicker 的“全部颜色”到第一行 FAB 间距、最后一行 FAB 到 popup 底部间距，以及 popup 总体高度是否仍稳定。
+
 ## 2026-06-07 - ColorPicker 改为从 anchor 右上角出现
 
 用户确认 `202606070356` 中自定义卡片外观选择封面来源 popup 的位置 OK，并提出最后一个调整：ColorPicker 不要再从 anchor center 显示，改为直接从 anchor 右上角显示，但动画方向保持不变。
