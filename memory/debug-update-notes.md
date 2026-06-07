@@ -1,5 +1,15 @@
 # Current Debug Update Notes
 
+## 2026-06-07 - 优化首页记事卡片图片重复显示
+
+用户提供了 DeepSeek 的代码审查结果，并反馈首页记事列表支持不同封面比例后，图片首次加载完成后再滚动回来仍经常出现图片区域空白，需要等待 Glide 再次填充。用户期望首次加载可以等待，但已加载过的同一记事卡片再次出现时应直接显示图片。
+
+本次诊断确认：`BaseThingsAdapter.loadThingCardImage()` 在复用到不同图片 source 的 `ImageView` 时会先 `clear(imageView)`，然后再启动 Glide request。即使 `mLoadedThingCardImageKeys` 已隐藏 loading spinner，`ImageView` 仍会在 Glide 回调前短暂为空。DeepSeek 提到的 `dontTransform()` 不适合移除，因为当前 Thing Card media crop 由应用自己的 matrix 渲染负责；移除它会破坏自定义裁剪中心和缩放行为。`ThingsActivity` 滚动时暂停 Glide request 的逻辑本轮也不改，先聚焦已加载后再次显示的问题。
+
+本次修改集中在 `app/src/main/java/com/ywwynm/everythingdone/adapters/BaseThingsAdapter.kt`：新增 adapter 级 `LruCache<String, Bitmap>`，容量按设备 memory class 计算并限制在 8MB 到 24MB；cache key 统一包含 media path、文件大小、lastModified、目标宽高和 `videoFrameMs`，media background 额外使用 `background:` 前缀。普通缩略图和 media background 在启动新的 Glide request 前先查 adapter bitmap cache，命中时取消旧 request、立即 `setImageBitmap()`、应用当前 crop matrix 并跳过 Glide reload；未命中时保留现有 same-source placeholder、`dontTransform()` 和 `dontAnimate()` 流程。成功加载的 `BitmapDrawable` 会复制为软件 bitmap 后写入 cache，GIF 或非 bitmap drawable 仍走原 Glide 行为。
+
+同步更新 `docs/features/thing-card-media-target-geometry/sessions.md`，记录本次首页卡片媒体 bitmap reuse cache 的范围和保留项。`git diff --check` 已通过，仅有仓库既有 LF/CRLF warning；`.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache` 已通过。用户随后明确要求发布测试包，已执行 `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`，发布 debug update `202606071039` 到 `http://120.25.194.207/everythingdone-updates/debug/latest.json`。请重点测试首页普通 top/bottom 图片卡、full-span left/right 图片卡、media background 卡片滚远再滚回时是否直接显示已加载图片，并确认隐藏私密记事、无图片记事和图片加载失败路径没有旧图残留。
+
 ## 2026-06-07 - 用户手调后提交搜索 HUE_BUCKET ColorPicker 间距
 
 用户在上一版基础上又做了一次本地视觉调整，并要求直接 Git 提交。

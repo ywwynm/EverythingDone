@@ -4,10 +4,14 @@ package com.ywwynm.everythingdone.adapters
 
 import android.animation.ObjectAnimator
 import android.annotation.SuppressLint
+import android.app.ActivityManager
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.Matrix
 import android.graphics.PorterDuff
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import android.media.MediaMetadataRetriever
 import androidx.annotation.StringRes
 import androidx.core.content.ContextCompat
@@ -17,6 +21,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import android.util.Log
+import android.util.LruCache
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -31,7 +36,6 @@ import android.widget.TextView
 
 import com.bumptech.glide.Glide
 import com.bumptech.glide.RequestManager
-import android.graphics.drawable.Drawable
 import com.bumptech.glide.load.DataSource
 import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.load.resource.bitmap.VideoDecoder
@@ -90,6 +94,10 @@ abstract class BaseThingsAdapter(context: Context?) :
 
     private var mImageRequestManager: RequestManager? = Glide.with(context!!)
     private val mLoadedThingCardImageKeys: MutableSet<String> = HashSet()
+    private val mThingCardMediaBitmapCache: LruCache<String, Bitmap> =
+        object : LruCache<String, Bitmap>(getThingCardMediaBitmapCacheMaxBytes(context)) {
+            override fun sizeOf(key: String, value: Bitmap): Int = value.byteCount
+        }
 
     private var mCardWidth: Int = DisplayUtil.getThingCardWidth(context)
     private var mFullSpanCardWidth: Int = DisplayUtil.getThingCardWidth(context)
@@ -692,13 +700,22 @@ abstract class BaseThingsAdapter(context: Context?) :
         videoFrameMs: Long?
     ) {
         val imageView = holder.ivImageAttachment ?: return
-        val loadKey = "$pathName:$imageW:$imageH:$videoFrameMs"
+        val loadKey = getThingCardImageLoadKey(pathName, imageW, imageH, videoFrameMs)
         val renderRequest = ThingCardThumbnailRenderRequest(loadKey, imageW, imageH, crop)
         imageView.setTag(
             R.id.tag_thing_card_image_render_request,
             renderRequest
         )
         if (imageView.getTag(R.id.tag_thing_card_image_load_key) == loadKey) {
+            holder.pbLoading!!.visibility = View.GONE
+            applyCurrentThingCardThumbnailRenderRequest(imageView)
+            return
+        }
+        if (applyCachedThingCardMediaBitmap(
+                imageView, loadKey, R.id.tag_thing_card_image_load_key
+            )
+        ) {
+            mLoadedThingCardImageKeys.add(loadKey)
             holder.pbLoading!!.visibility = View.GONE
             applyCurrentThingCardThumbnailRenderRequest(imageView)
             return
@@ -726,7 +743,8 @@ abstract class BaseThingsAdapter(context: Context?) :
             .load(pathName)
             .override(imageW, imageH)
             .dontTransform()
-            .signature(getThingCardMediaCacheSignature(pathName, imageW, imageH, videoFrameMs))
+            .disallowHardwareConfig()
+            .signature(getThingCardMediaCacheSignature(loadKey))
         if (reusableDrawable != null) {
             request.placeholder(reusableDrawable)
         }
@@ -763,6 +781,7 @@ abstract class BaseThingsAdapter(context: Context?) :
                     resource: Drawable, model: Any, target: Target<Drawable>?,
                     dataSource: DataSource, isFirstResource: Boolean
                 ): Boolean {
+                    cacheThingCardMediaBitmap(loadKey, resource)
                     mLoadedThingCardImageKeys.add(loadKey)
                     if (imageView.getTag(
                             R.id.tag_thing_card_image_load_key
@@ -797,12 +816,24 @@ abstract class BaseThingsAdapter(context: Context?) :
         videoFrameMs: Long?
     ) {
         val imageView = holder.ivMediaBackground ?: return
-        val loadKey = "background:$pathName:$imageW:$imageH:$videoFrameMs"
+        val loadKey = getThingCardMediaBackgroundLoadKey(pathName, imageW, imageH, videoFrameMs)
         val renderRequest = ThingCardMediaBackgroundRenderRequest(loadKey, imageW, imageH, crop)
         imageView.setTag(
             R.id.tag_thing_card_media_background_render_request,
             renderRequest
         )
+        if (imageView.getTag(R.id.tag_thing_card_media_background_load_key) == loadKey) {
+            applyCurrentThingCardMediaBackgroundRenderRequest(imageView)
+            return
+        }
+        if (applyCachedThingCardMediaBitmap(
+                imageView, loadKey, R.id.tag_thing_card_media_background_load_key
+            )
+        ) {
+            applyCurrentThingCardMediaBackgroundRenderRequest(imageView)
+            return
+        }
+
         val reusableDrawable = imageView.drawable?.takeIf {
             isSameThingCardMediaBackgroundSource(
                 imageView.getTag(R.id.tag_thing_card_media_background_load_key) as? String,
@@ -813,10 +844,6 @@ abstract class BaseThingsAdapter(context: Context?) :
         if (reusableDrawable != null) {
             applyCurrentThingCardMediaBackgroundRenderRequest(imageView)
         }
-        if (imageView.getTag(R.id.tag_thing_card_media_background_load_key) == loadKey) {
-            applyCurrentThingCardMediaBackgroundRenderRequest(imageView)
-            return
-        }
 
         if (reusableDrawable == null) {
             mImageRequestManager!!.clear(imageView)
@@ -826,7 +853,8 @@ abstract class BaseThingsAdapter(context: Context?) :
             .load(pathName)
             .override(imageW, imageH)
             .dontTransform()
-            .signature(getThingCardMediaCacheSignature(pathName, imageW, imageH, videoFrameMs))
+            .disallowHardwareConfig()
+            .signature(getThingCardMediaCacheSignature(loadKey))
         if (reusableDrawable != null) {
             request.placeholder(reusableDrawable)
         }
@@ -859,6 +887,7 @@ abstract class BaseThingsAdapter(context: Context?) :
                     resource: Drawable, model: Any, target: Target<Drawable>?,
                     dataSource: DataSource, isFirstResource: Boolean
                 ): Boolean {
+                    cacheThingCardMediaBitmap(loadKey, resource)
                     if (imageView.getTag(R.id.tag_thing_card_media_background_load_key) == loadKey) {
                         imageView.post {
                             val request = imageView.getTag(
@@ -882,8 +911,9 @@ abstract class BaseThingsAdapter(context: Context?) :
         videoFrameMs: Long?
     ): Boolean {
         if (loadKey == null) return false
-        return loadKey.startsWith("background:$pathName:") &&
-                loadKey.endsWith(":$videoFrameMs")
+        return loadKey.startsWith(
+            "background:${getThingCardMediaSourceKey(pathName, videoFrameMs)}:"
+        )
     }
 
     private fun isSameThingCardImageSource(
@@ -892,8 +922,7 @@ abstract class BaseThingsAdapter(context: Context?) :
         videoFrameMs: Long?
     ): Boolean {
         if (loadKey == null) return false
-        return loadKey.startsWith("$pathName:") &&
-                loadKey.endsWith(":$videoFrameMs")
+        return loadKey.startsWith("${getThingCardMediaSourceKey(pathName, videoFrameMs)}:")
     }
 
     private fun applyThingCardForegroundColors(
@@ -959,16 +988,77 @@ abstract class BaseThingsAdapter(context: Context?) :
         )
     }
 
-    private fun getThingCardMediaCacheSignature(
+    private fun getThingCardMediaBitmapCacheMaxBytes(context: Context?): Int {
+        val activityManager = context?.getSystemService(
+            Context.ACTIVITY_SERVICE
+        ) as? ActivityManager
+        val memoryClassBytes = (activityManager?.memoryClass ?: DEFAULT_MEMORY_CLASS_MB) *
+                BYTES_PER_MEGABYTE
+        return min(
+            THING_CARD_MEDIA_BITMAP_CACHE_MAX_BYTES,
+            max(THING_CARD_MEDIA_BITMAP_CACHE_MIN_BYTES, memoryClassBytes / 8)
+        )
+    }
+
+    private fun getThingCardMediaSourceKey(
+        pathName: String,
+        videoFrameMs: Long?
+    ): String {
+        val file = File(pathName)
+        val exists = file.exists()
+        val fileSize = if (exists) file.length() else 0L
+        val lastModified = if (exists) file.lastModified() else 0L
+        return "$pathName:$fileSize:$lastModified:$videoFrameMs"
+    }
+
+    private fun getThingCardImageLoadKey(
         pathName: String,
         imageW: Int,
         imageH: Int,
         videoFrameMs: Long?
-    ): ObjectKey {
-        val file = File(pathName)
-        val fileSize = if (file.exists()) file.length() else 0L
-        val lastModified = if (file.exists()) file.lastModified() else 0L
-        return ObjectKey("$pathName:$fileSize:$lastModified:$videoFrameMs:$imageW:$imageH")
+    ): String {
+        return "${getThingCardMediaSourceKey(pathName, videoFrameMs)}:$imageW:$imageH"
+    }
+
+    private fun getThingCardMediaBackgroundLoadKey(
+        pathName: String,
+        imageW: Int,
+        imageH: Int,
+        videoFrameMs: Long?
+    ): String {
+        return "background:${getThingCardImageLoadKey(pathName, imageW, imageH, videoFrameMs)}"
+    }
+
+    private fun getThingCardMediaCacheSignature(loadKey: String): ObjectKey {
+        return ObjectKey(loadKey)
+    }
+
+    private fun applyCachedThingCardMediaBitmap(
+        imageView: ImageView,
+        loadKey: String,
+        loadKeyTagId: Int
+    ): Boolean {
+        val bitmap = mThingCardMediaBitmapCache.get(loadKey) ?: return false
+        if (bitmap.isRecycled) {
+            mThingCardMediaBitmapCache.remove(loadKey)
+            return false
+        }
+        mImageRequestManager!!.clear(imageView)
+        imageView.setImageBitmap(bitmap)
+        imageView.setTag(loadKeyTagId, loadKey)
+        return true
+    }
+
+    private fun cacheThingCardMediaBitmap(loadKey: String, drawable: Drawable) {
+        val bitmap = (drawable as? BitmapDrawable)?.bitmap ?: return
+        if (bitmap.isRecycled) return
+
+        val estimatedSoftwareBytes = bitmap.width.toLong() *
+                bitmap.height.toLong() * BYTES_PER_ARGB_8888_PIXEL
+        if (estimatedSoftwareBytes > mThingCardMediaBitmapCache.maxSize()) return
+
+        val cachedBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, false) ?: return
+        mThingCardMediaBitmapCache.put(loadKey, cachedBitmap)
     }
 
     private data class ThingCardThumbnailRenderRequest(
@@ -2418,6 +2508,11 @@ abstract class BaseThingsAdapter(context: Context?) :
         private const val FULL_SPAN_IMAGE_MAX_SCREEN_HEIGHT_RATIO = 0.36f
         private const val SIDE_IMAGE_PROJECTION_MAX_ITERATIONS = 6
         private const val SIDE_IMAGE_PROJECTION_TOLERANCE_PX = 1
+        private const val DEFAULT_MEMORY_CLASS_MB = 64
+        private const val BYTES_PER_MEGABYTE = 1024 * 1024
+        private const val BYTES_PER_ARGB_8888_PIXEL = 4
+        private const val THING_CARD_MEDIA_BITMAP_CACHE_MIN_BYTES = 8 * BYTES_PER_MEGABYTE
+        private const val THING_CARD_MEDIA_BITMAP_CACHE_MAX_BYTES = 24 * BYTES_PER_MEGABYTE
 
         init {
             val context: Context = App.getApp()!!

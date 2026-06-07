@@ -2,6 +2,38 @@
 
 Migrated from global `memory/sessions.md` on 2026-06-06. This file keeps feature-scoped history out of startup memory while preserving the original notes.
 
+## 2026-06-07 - Home-list Thing Card media bitmap reuse cache
+
+- User reported that home-list Thing Cards with loaded images can show an empty
+  media region again after scrolling away and back, especially after the recent
+  multi-ratio cover-image work.
+- Reviewed the supplied code review and confirmed the high-risk path:
+  `BaseThingsAdapter.loadThingCardImage()` clears a recycled `ImageView` before
+  Glide refills it, so a previously loaded card can still flash blank while the
+  new target waits behind Glide's request lifecycle.
+- Kept the existing `dontTransform()` requests because final Thing Card media
+  crop is owned by the app's matrix renderer; removing it would break custom
+  crop center / zoom behavior.
+- Added an adapter-scoped, bounded `LruCache<String, Bitmap>` for Thing Card
+  media bitmaps. The cache key includes source path, file size, last-modified
+  time, target width/height, and video frame time; media backgrounds add a
+  `background:` prefix.
+- Updated foreground thumbnails and media-background loads to synchronously
+  refill from that adapter cache before clearing/restarting Glide. Cache misses
+  keep the existing same-source placeholder path and normal Glide loading.
+- Left `ThingsActivity`'s scroll-time `pauseRequests()` behavior unchanged for
+  this first pass because the target fix is repeat display after a successful
+  load, not first-load preloading.
+- Verified with `git diff --check` and
+  `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`.
+- Attempted `:app:publishDebugUpdate`, but the escalation reviewer rejected the
+  external upload because this turn did not explicitly request publishing.
+- After the user explicitly requested publishing, published debug update
+  `202606071039` with
+  `.\gradlew.bat :app:publishDebugUpdate
+  "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain
+  --no-configuration-cache`.
+
 ## 2026-06-06 - Suppress appearing animation during appearance preview after rotation
 
 - User reported that opening the Thing Card Appearance panel and adjusting media
