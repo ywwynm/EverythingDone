@@ -2,6 +2,113 @@
 
 Migrated from global `memory/decisions.md` on 2026-06-06. This file keeps feature-scoped history out of startup memory while preserving the original notes.
 
+## 2026-06-07 - Popup picker placement aligns surface pivots to intended anchor points
+
+PopupPicker subclasses should position from an explicit, picker-specific anchor
+point in window coordinates, then align the visible popup surface's transition
+pivot to that point. This preserves the visual "emerges from the tapped
+control" relationship without falling back to display-global coordinates.
+
+`PopupPicker` owns shared helpers for measuring the current popup content and
+installing content-surface scale transitions. Subclasses own their anchor point
+and transition pivot because those values mirror the intended visual origin:
+- `ColorPicker`: top-right corner pinned to the anchor view's top-right corner,
+  with its visible rounded content surface scaling from `pivotX = width`,
+  `pivotY = 0`.
+- `DateTimePicker` quick-remind (`AFTER_TIME`): left-bottom corner pinned to
+  the anchor TextView's left edge and vertical centre, with its visible rounded
+  content surface scaling from `pivotX = 0`, `pivotY = height`.
+- `DateTimePicker` time-type popups: left-top corner pinned to the anchor
+  TextView's left-top corner, with its visible rounded content surface scaling
+  from `pivotX = 0`, `pivotY = 0`.
+- `ThingCardAppearanceSourcePicker`: right-bottom corner pinned to the anchor
+  TextView's right-bottom corner, with its visible rounded content surface
+  scaling from `pivotX = width`, `pivotY = height`.
+
+This supersedes the earlier quick-remind rule that the popup bottom should land
+on the anchor vertical centre as a DateTimePicker-only special case. That
+relationship is now part of the common DateTimePicker visual origin: popup
+bottom = anchor vertical centre, popup left = anchor left. Bottom-gravity
+DateTimePicker popups still compensate for `navBottom`, but the compensated
+bottom coordinate is the last step after first computing the desired popup top.
+
+Follow-up visual testing found ColorPicker's perceived opening point still sat
+slightly up-left of the trigger icon. The likely cause is that toolbar colour
+actions usually sit near the window's top-right corner; positioning by an
+interior pivot (`86%, 10%`) can compute a popup region that wants to exceed the
+window bounds, after which clamping separates the perceived animation origin
+from the tapped icon. ColorPicker therefore uses an explicit top-right-corner
+model instead of a view-size-relative visual correction.
+
+The top-right-corner model should use `PopupWindow.showAsDropDown(anchor, ...)`
+for valid anchors, not a manual `showAtLocation(...)` offset. Android's
+`showAsDropDown` path converts `anchor.getLocationOnScreen()` back into
+app-window coordinates by subtracting the app root's screen location before it
+sets `WindowManager.LayoutParams.x/y`. Reimplementing that conversion with
+`getLocationInWindow()` plus `showAtLocation()` can drift in edge-to-edge or
+multi-window cases. For ColorPicker's desired geometry, pass explicit measured
+popup width/height to `PopupWindow`, then use `xoff = 0`,
+`yoff = -anchor.height`, and `Gravity.END`; that makes the popup's top-right
+corner land on the anchor view's top-right corner using the platform's
+coordinate conversion.
+
+Do not use ColorPicker's `PopupWindow` window animation for anchor-origin
+surface motion. Android applies `PopupWindow.setAnimationStyle(...)` as window
+enter/exit animation through `WindowManager.LayoutParams.windowAnimations`, and
+the popup may be wrapped in `PopupDecorView` / `PopupBackgroundView` with
+background/elevation surface insets. That makes percentage pivots describe the
+window/decor surface rather than the visible rounded picker surface, so visual
+origin can drift from the intended anchor corner.
+
+ColorPicker should instead disable window animation (`popupAnimStyle = 0`),
+clear the PopupWindow background, keep the rounded elevated background on
+`mContentView`, and install `enterTransition` / `exitTransition` on the
+PopupWindow. The transition targets the visible content surface, so the popup
+surface itself animates on both show and dismiss while `showAsDropDown(...)`
+continues to own final geometry and anchor tracking. The old
+`R.style.ColorPickerAnimation` and `color_picker_show` / `color_picker_hide`
+resources were removed to avoid reintroducing window-animation pivot drift.
+
+DateTimePicker follows the same content-surface transition rule. It no longer
+uses `QuickRemindPickerAnimation` or `TimeTypePickerAnimation`; both animation
+styles and their resource files were removed once all local users moved to
+content-surface transitions. Quick-remind still unfolds from the left side of
+the label and grows rightward/upward from its left-bottom surface corner.
+Time-type popups unfold from the label's left-top corner and grow
+rightward/downward from the surface's left-top corner.
+
+ThingCardAppearanceSourcePicker also follows the content-surface transition
+rule. It unfolds from the source TextView's right-bottom corner and grows
+leftward/upward from the popup surface's right-bottom corner. Its first and last
+rows carry the same 8dp outer top/bottom margins used by quick-remind-style
+picker rows, so the list content breathes inside the rounded popup shell.
+
+Content-surface popups must not clamp their origin to the parent view's current
+height when the product requirement is an exact anchor point. DateTimeDialog's
+"after" tab can be shorter than the time-type popup; if DateTimePicker clamps
+the popup top to `mParent.height - popupHeight`, the popup origin moves above
+the tapped pill. Use exact anchor offsets and set
+`PopupWindow.isClippingEnabled = false` for content-surface transitions so
+short dialog tabs can let the popup extend beyond their local content height
+without changing the dialog size.
+
+`clipToOutline` does not shrink an anchor view's geometry. For pill-ripple
+TextViews, the pill touch area is still the TextView's measured rectangle; the
+outline only shapes drawing and ripple clipping. Therefore source-picker
+right-bottom anchoring should use the TextView's measured right/bottom directly
+and avoid extra screen-margin clamps unless a separate product rule explicitly
+prefers edge padding over exact anchoring.
+
+When a content-surface popup has `PopupWindow.isClippingEnabled = false`, avoid
+using `Gravity.BOTTOM` plus nav-bar compensation for exact right/bottom source
+picker anchoring. The unclipped popup window can resolve bottom gravity against
+the full parent/window bottom, so subtracting `navBottom` can leave the popup
+surface visually below the anchor by roughly one system-bar inset. For
+ThingCardAppearanceSourcePicker, use top-gravity coordinates instead:
+`x = anchorRight - popupWidth`, `y = anchorBottom - popupHeight`. This makes the
+right-bottom relationship direct and independent of bottom-gravity inset
+semantics.
+
 ## 2026-05-29 - Thing-owned local controls use contrast foregrounds
 
 When a local control paints its own background with a Thing Background or Thing

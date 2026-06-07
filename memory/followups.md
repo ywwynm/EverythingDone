@@ -14,6 +14,7 @@ Global startup follow-up index only. Feature-specific follow-ups live in `docs/f
 - `localization`: `docs/features/localization/followups.md`
 - `popup-picker-insets`: `docs/features/popup-picker-insets/followups.md`
 - `remote-thing-card-appearance`: `docs/features/remote-thing-card-appearance/followups.md`
+- `system-bar-insets`: `docs/features/system-bar-insets/followups.md`
 - `thing-card-media-target-geometry`: `docs/features/thing-card-media-target-geometry/followups.md`
 
 ## Update rule

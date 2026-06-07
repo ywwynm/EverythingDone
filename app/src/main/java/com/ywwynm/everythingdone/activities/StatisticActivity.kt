@@ -60,6 +60,7 @@ open class StatisticActivity : EverythingDoneBaseActivity() {
 
     private var mScreenDensity: Float = 0f
     private var mHeaderHeight: Float = 0f
+    private var mStatusBarTopInset: Int = 0
 
     private var mStatusbar: View? = null
     private var mActionbar: Toolbar? = null
@@ -118,7 +119,13 @@ open class StatisticActivity : EverythingDoneBaseActivity() {
 
     private fun initHeaderUI() {
         DisplayUtil.expandLayoutToStatusBarAboveLollipop(this)
-        DisplayUtil.expandStatusBarViewAboveKitkat(mStatusbar)
+        DisplayUtil.expandStatusBarViewAboveKitkat(mStatusbar) { topInset ->
+            if (mStatusBarTopInset != topInset) {
+                mStatusBarTopInset = topInset
+                updateFabState()
+                updateActionbarState()
+            }
+        }
 
         val D = SettingsActivity.DEFAULT_DRAWER_HEADER
         val header: String = mPreferences!!.getString(Def.Meta.KEY_DRAWER_HEADER, D)!!
@@ -270,10 +277,9 @@ open class StatisticActivity : EverythingDoneBaseActivity() {
     }
 
     private fun updateFabState() {
-        val statusbarSize = DisplayUtil.getStatusbarHeight(this@StatisticActivity)
         val scrollY = mScrollView!!.scrollY
         val actionbarSize = mActionbar!!.height
-        val fabY: Float = mHeaderHeight - statusbarSize - actionbarSize - actionbarSize
+        val fabY: Float = mHeaderHeight - mStatusBarTopInset - actionbarSize - actionbarSize
         if (scrollY >= fabY) {
             mFab!!.shrink()
         } else {
@@ -282,11 +288,10 @@ open class StatisticActivity : EverythingDoneBaseActivity() {
     }
 
     private fun updateActionbarState() {
-        val statusbarSize = DisplayUtil.getStatusbarHeight(mApp)
         val scrollY = mScrollView!!.scrollY
         var color = ContextCompat.getColor(mApp!!, R.color.blue_grey_deep_grey)
         val actionbarSize = mActionbar!!.height
-        val abSY: Float = mHeaderHeight - statusbarSize - 2 * actionbarSize
+        val abSY: Float = mHeaderHeight - mStatusBarTopInset - 2 * actionbarSize
         val abTY: Float = abSY + actionbarSize
         if (scrollY <= abSY) {
             mStatusbar!!.setBackgroundColor(0)

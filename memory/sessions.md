@@ -15,11 +15,13 @@ Global startup session index only. Detailed feature history lives in `docs/featu
 - `debug-update-channel`: `docs/features/debug-update-channel/sessions.md`
 - `documentation-organization`: `docs/features/documentation-organization/sessions.md`
 - `home-card-span-mode`: `docs/features/home-card-span-mode/sessions.md`
+- `home-contextual-toolbar`: `docs/features/home-contextual-toolbar/sessions.md`
 - `home-new-item-animation`: `docs/features/home-new-item-animation/sessions.md`
 - `kotlin-migration`: `docs/features/kotlin-migration/sessions.md`
 - `localization`: `docs/features/localization/sessions.md`
 - `popup-picker-insets`: `docs/features/popup-picker-insets/sessions.md`
 - `remote-thing-card-appearance`: `docs/features/remote-thing-card-appearance/sessions.md`
+- `system-bar-insets`: `docs/features/system-bar-insets/sessions.md`
 - `thing-card-appearance`: `docs/features/thing-card-appearance/sessions.md`
 - `thing-card-image-placement`: `docs/features/thing-card-image-placement/sessions.md`
 - `thing-card-media-target-geometry`: `docs/features/thing-card-media-target-geometry/sessions.md`

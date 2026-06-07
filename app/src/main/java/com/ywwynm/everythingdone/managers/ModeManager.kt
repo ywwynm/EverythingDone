@@ -75,6 +75,7 @@ open class ModeManager(app: App?,
 
     private var backNormalModeListener: View.OnClickListener? = null
     private var backNormalModeCallback: (() -> Unit)? = null
+    private var contextualToolbarVisibilityCallback: ((Boolean) -> Unit)? = null
 
     private var notifyDataSetRunnable: Runnable? = null
     private var hideActionBarShadowRunnable: Runnable? = null
@@ -145,6 +146,10 @@ open class ModeManager(app: App?,
         backNormalModeCallback = callback
     }
 
+    open fun setContextualToolbarVisibilityCallback(callback: ((Boolean) -> Unit)?) {
+        contextualToolbarVisibilityCallback = callback
+    }
+
     open fun backNormalMode(position: Int) {
         backNormalModeCallback?.invoke()
         val isSearching: Boolean = App.isSearching
@@ -204,6 +209,7 @@ open class ModeManager(app: App?,
         }
 
         val rl: RelativeLayout = mRlContextualToolbar!!
+        contextualToolbarVisibilityCallback?.invoke(true)
         rl.visibility = View.VISIBLE
         if (anim) {
             rl.setAnimation(showContextualToolbar)
@@ -223,6 +229,7 @@ open class ModeManager(app: App?,
         rl.setAnimation(hideContextualToolbar)
         hideContextualToolbar!!.start()
         rl.visibility = View.INVISIBLE
+        contextualToolbarVisibilityCallback?.invoke(false)
         tb.getMenu().clear()
     }
 

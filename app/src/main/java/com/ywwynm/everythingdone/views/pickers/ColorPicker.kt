@@ -4,7 +4,6 @@ package com.ywwynm.everythingdone.views.pickers
 
 import android.app.Activity
 import android.graphics.PorterDuff
-import android.graphics.Rect
 import android.graphics.drawable.Drawable
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.GridLayoutManager
@@ -33,7 +32,7 @@ import java.util.Random
  */
 open class ColorPicker(
         activity: Activity, parent: View, type: Int
-) : PopupPicker(activity, parent, R.style.ColorPickerAnimation) {
+) : PopupPicker(activity, parent, 0) {
 
     private val mColors: IntArray
     private val mColorsNames: Array<String>
@@ -41,7 +40,6 @@ open class ColorPicker(
     private val mType: Int = type
     private var mOnClickListener: View.OnClickListener? = null
     private val mAdapter: ColorPickerAdapter
-    private val mWindowRect: Rect
 
     // Phase 6 — state for the two "random" FABs that only exist when
     // mType == COLOR_EDIT. Pre-rolled once at construction so the FABs show
@@ -77,6 +75,8 @@ open class ColorPicker(
     }
 
     init {
+        installContentSurfaceScaleTransition(pivotXFraction = 1f, pivotYFraction = 0f)
+
         if (type == Def.PickerType.HUE_BUCKET) {
             mColors = HUE_BUCKET_COLORS
             mColorsNames = activity.resources!!
@@ -135,7 +135,6 @@ open class ColorPicker(
         mAdapter = ColorPickerAdapter()
         mAdapter.setHasStableIds(true)
         mRecyclerView.setAdapter(mAdapter)
-        mWindowRect = Rect()
 
         // Phase 8: the COLOR_EDIT popup hosts a "change gradient direction"
         // button beneath the colour grid. Hidden by default; only shown when
@@ -209,47 +208,23 @@ open class ColorPicker(
     }
 
     override fun show() {
-        var xOffset = 0
-        val location = IntArray(2)
-        mParent.getLocationOnScreen(location)
-        // if we are in multi-window mode, we should detect which part we are in, left or right.
-        val isRightWindow: Boolean = location[0] != 0
+        val popupWidth = getPopupContentWidthForPositioning()
+        val popupHeight = getPopupContentHeightForPositioning()
+        mPopupWindow.width = popupWidth
+        mPopupWindow.height = popupHeight
 
-        mParent.getWindowVisibleDisplayFrame(mWindowRect)
-        if (mType == Def.PickerType.COLOR_NO_ALL) {
-            xOffset += (mScreenDensity * 36).toInt()
-            if (DisplayUtil.isTablet(this.mActivity)) {
-                xOffset += (mScreenDensity * 12).toInt()
-            }
-        }
-        if (mWindowRect.right != DisplayUtil.getDisplaySize(this.mActivity).x) {
-            if (isRightWindow) {
-                xOffset += (mScreenDensity * 40).toInt()
-            }
-        }
-
-        // When an anchor view is registered, align the popup's end edge to the
-        // anchor's end edge (in window coordinates) instead of the window's
-        // own end. Needed wherever the picker's trigger icon isn't the
-        // rightmost action — e.g. DetailActivity's actionbar where it sits
-        // to the left of undo / redo / overflow. On screens where the icon
-        // is already the last item (ThingsActivity search), this lands at
-        // xOffset = 0, same as the legacy "pin to window end" path.
-        //
-        // Uses getLocationInWindow + mParent.getWidth() rather than
-        // getLocationOnScreen + display.x so multi-window splits compute
-        // correctly: the popup is positioned relative to its parent window,
-        // not the whole display.
+        // Pin the popup's top-right corner to the trigger view's top-right.
         val anchor: View? = mAnchor
         if (anchor != null && anchor.isAttachedToWindow) {
-            val anchorLoc = IntArray(2)
-            anchor.getLocationInWindow(anchorLoc)
-            val anchorRightInWindow: Int = anchorLoc[0] + anchor.width
-            xOffset = mParent.width - anchorRightInWindow
+            mPopupWindow.showAsDropDown(
+                    anchor, 0, -anchor.height, Gravity.END)
+            return
         }
 
-        mPopupWindow.showAtLocation(mParent, Gravity.TOP or Gravity.END,
-                xOffset, DisplayUtil.getStatusbarHeight(this.mActivity))
+        val xOffset = (mParent.width - popupWidth).coerceAtLeast(0)
+        val yOffset = DisplayUtil.getCurrentTopSystemInset(mParent)
+        mPopupWindow.showAtLocation(mParent, Gravity.TOP or Gravity.START,
+                xOffset, yOffset)
     }
 
     fun setPickedListener(listener: View.OnClickListener) {
@@ -634,7 +609,7 @@ open class ColorPicker(
 
             init {
                 bt.setOnClickListener {
-                    mPopupWindow.dismiss()
+                    dismiss()
                     pickForUI(0)
                     mOnClickListener?.onClick(it)
                 }
@@ -682,7 +657,7 @@ open class ColorPicker(
                             mRandomGradientBg = rollGradientBackground()
                         }
                     }
-                    mPopupWindow.dismiss()
+                    dismiss()
                     pickForUI(pos)
                     mOnClickListener?.onClick(it)
                 }

@@ -40,10 +40,7 @@ import android.text.Layout
 import android.util.SparseArray
 import android.view.Display
 import android.view.Gravity
-import android.view.KeyCharacterMap
-import android.view.KeyEvent
 import android.view.View
-import android.view.ViewConfiguration
 import android.view.ViewGroup
 import android.view.Window
 import android.view.WindowManager
@@ -97,64 +94,6 @@ object DisplayUtil {
     @JvmStatic
     fun isTablet(context: Context?): Boolean { // improved on 2016/5/11~
         return context!!.resources.getBoolean(R.bool.isTablet)
-    }
-
-    @JvmStatic
-    fun getStatusbarHeight(context: Context?): Int {
-        val resources: Resources = context!!.resources
-        val resourceId: Int = resources.getIdentifier("status_bar_height", "dimen", "android")
-        return if (resourceId > 0) {
-            resources.getDimensionPixelSize(resourceId)
-        } else 0
-    }
-
-    @JvmStatic
-    fun hasNavigationBar(context: Context?): Boolean { // improved on 2016/11/21
-        val hasMenuKey: Boolean = ViewConfiguration.get(context!!).hasPermanentMenuKey()
-        val hasBackKey: Boolean = KeyCharacterMap.deviceHasKey(KeyEvent.KEYCODE_BACK)
-        val con1: Boolean = !hasMenuKey && !hasBackKey
-
-        val resources: Resources = context.resources
-        val id: Int = resources.getIdentifier("config_showNavigationBar", "bool", "android")
-        val con2: Boolean = id > 0 && resources.getBoolean(id)
-
-        val con3: Boolean
-        val displaySize = Point()
-        val display: Display = (context.getSystemService(Context.WINDOW_SERVICE) as WindowManager)
-                .defaultDisplay
-        display.getSize(displaySize)
-        val screenSize: Point = getScreenSize(context)
-        con3 = if (context.resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT) {
-            displaySize.y != screenSize.y
-        } else {
-            displaySize.x != screenSize.x
-        }
-
-        return con1 || con2 || con3
-    }
-
-    @JvmStatic
-    fun getNavigationBarHeight(context: Context?): Int { // improved on 2016/11/21
-        var res1 = 0
-        val resources: Resources = context!!.resources
-        val resourceId: Int = resources.getIdentifier("navigation_bar_height", "dimen", "android")
-        if (resourceId > 0) {
-            res1 = resources.getDimensionPixelSize(resourceId)
-        }
-
-        val res2: Int
-        val displaySize = Point()
-        val display: Display = (context.getSystemService(Context.WINDOW_SERVICE) as WindowManager)
-                .defaultDisplay
-        display.getSize(displaySize)
-        val screenSize: Point = getScreenSize(context)
-        res2 = if (context.resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT) {
-            screenSize.y - displaySize.y
-        } else {
-            screenSize.x - displaySize.x
-        }
-
-        return max(res1, res2)
     }
 
     // This method has a sexy history~
@@ -320,14 +259,52 @@ object DisplayUtil {
 
     @JvmStatic
     fun expandStatusBarViewAboveKitkat(statusBar: View?) {
-        ViewCompat.setOnApplyWindowInsetsListener(statusBar!!) { v, insets ->
-            val topInset: Int = insets.getInsets(WindowInsetsCompat.Type.systemBars()).top
-            val vlp: ViewGroup.LayoutParams = v.layoutParams
-            vlp.height = topInset
-            v.requestLayout()
-            insets
+        expandStatusBarViewAboveKitkat(statusBar, null)
+    }
+
+    @JvmStatic
+    fun expandStatusBarViewAboveKitkat(
+            statusBar: View?,
+            onTopInsetChanged: java.util.function.IntConsumer?) {
+        val target = statusBar!!
+        chainDecorInsetsCallback(target, callbackKey(target, TAG_TOP_INSET_HEIGHT_CALLBACK)) {
+            insets ->
+            val topInset: Int = computeTopInset(insets)
+            val vlp: ViewGroup.LayoutParams = target.layoutParams
+            if (vlp.height != topInset) {
+                vlp.height = topInset
+                target.requestLayout()
+            }
+            onTopInsetChanged?.accept(topInset)
         }
-        statusBar.requestApplyInsets()
+    }
+
+    @JvmStatic
+    fun getCurrentTopSystemInset(view: View?): Int {
+        val insets: WindowInsetsCompat = ViewCompat.getRootWindowInsets(view!!) ?: return 0
+        return computeTopInset(insets)
+    }
+
+    @JvmStatic
+    fun applyTopInsetAsMargin(view: View?) {
+        val target = view!!
+        val initial: ViewGroup.MarginLayoutParams =
+                target.layoutParams as ViewGroup.MarginLayoutParams
+        if (target.getTag(TAG_TOP_INSET_MARGIN_ORIGINAL_TOP) == null) {
+            target.setTag(TAG_TOP_INSET_MARGIN_ORIGINAL_TOP, initial.topMargin)
+        }
+        val originalTop = target.getTag(TAG_TOP_INSET_MARGIN_ORIGINAL_TOP) as Int
+        chainDecorInsetsCallback(target, callbackKey(target, TAG_TOP_INSET_MARGIN_CALLBACK)) {
+            insets ->
+            val top: Int = computeTopInset(insets)
+            val mlp: ViewGroup.MarginLayoutParams =
+                    target.layoutParams as ViewGroup.MarginLayoutParams
+            val newTop = originalTop + top
+            if (mlp.topMargin != newTop) {
+                mlp.topMargin = newTop
+                target.layoutParams = mlp
+            }
+        }
     }
 
     /**
@@ -341,15 +318,38 @@ object DisplayUtil {
      */
     @JvmStatic
     fun applyBottomInsetAsMargin(view: View?) {
+        val target = view!!
         val initial: ViewGroup.MarginLayoutParams =
-                view!!.layoutParams as ViewGroup.MarginLayoutParams
-        val originalBottom: Int = initial.bottomMargin
-        chainDecorInsetsCallback(view) { insets ->
+                target.layoutParams as ViewGroup.MarginLayoutParams
+        if (target.getTag(TAG_BOTTOM_INSET_MARGIN_ORIGINAL_BOTTOM) == null) {
+            target.setTag(TAG_BOTTOM_INSET_MARGIN_ORIGINAL_BOTTOM, initial.bottomMargin)
+        }
+        val originalBottom = target.getTag(TAG_BOTTOM_INSET_MARGIN_ORIGINAL_BOTTOM) as Int
+        chainDecorInsetsCallback(target, callbackKey(target, TAG_BOTTOM_INSET_MARGIN_CALLBACK)) {
+            insets ->
             val bottom: Int = computeBottomInset(insets)
             val mlp: ViewGroup.MarginLayoutParams =
-                    view.layoutParams as ViewGroup.MarginLayoutParams
-            mlp.bottomMargin = originalBottom + bottom
-            view.setLayoutParams(mlp)
+                    target.layoutParams as ViewGroup.MarginLayoutParams
+            val newBottom = originalBottom + bottom
+            if (mlp.bottomMargin != newBottom) {
+                mlp.bottomMargin = newBottom
+                target.layoutParams = mlp
+            }
+        }
+    }
+
+    @JvmStatic
+    fun clearBottomInsetAsMargin(view: View?) {
+        val target = view!!
+        removeDecorInsetsCallback(target, callbackKey(target, TAG_BOTTOM_INSET_MARGIN_CALLBACK))
+        val originalBottom = target.getTag(TAG_BOTTOM_INSET_MARGIN_ORIGINAL_BOTTOM) as Int?
+        if (originalBottom != null) {
+            val mlp: ViewGroup.MarginLayoutParams =
+                    target.layoutParams as ViewGroup.MarginLayoutParams
+            if (mlp.bottomMargin != originalBottom) {
+                mlp.bottomMargin = originalBottom
+                target.layoutParams = mlp
+            }
         }
     }
 
@@ -365,13 +365,20 @@ object DisplayUtil {
      */
     @JvmStatic
     fun applyBottomInsetAsPadding(view: View?) {
-        val origLeft: Int = view!!.getPaddingLeft()
-        val origTop: Int = view.paddingTop
-        val origRight: Int = view.getPaddingRight()
-        val origBottom: Int = view.paddingBottom
-        chainDecorInsetsCallback(view) { insets ->
+        val target = view!!
+        if (target.getTag(TAG_BOTTOM_INSET_PADDING_ORIGINAL) == null) {
+            target.setTag(TAG_BOTTOM_INSET_PADDING_ORIGINAL, intArrayOf(
+                    target.paddingLeft,
+                    target.paddingTop,
+                    target.paddingRight,
+                    target.paddingBottom
+            ))
+        }
+        val original = target.getTag(TAG_BOTTOM_INSET_PADDING_ORIGINAL) as IntArray
+        chainDecorInsetsCallback(target, callbackKey(target, TAG_BOTTOM_INSET_PADDING_CALLBACK)) {
+            insets ->
             val bottom: Int = computeBottomInset(insets)
-            view.setPadding(origLeft, origTop, origRight, origBottom + bottom)
+            target.setPadding(original[0], original[1], original[2], original[3] + bottom)
         }
     }
 
@@ -393,28 +400,51 @@ object DisplayUtil {
      */
     @JvmStatic
     fun applyBottomInsetAsScrollPadding(view: View?) {
-        val origLeft: Int = view!!.getPaddingLeft()
-        val origTop: Int = view.paddingTop
-        val origRight: Int = view.getPaddingRight()
-        val origBottom: Int = view.paddingBottom
-        if (view is ViewGroup) {
-            view.clipToPadding = false
+        val target = view!!
+        if (target.getTag(TAG_BOTTOM_INSET_SCROLL_PADDING_ORIGINAL) == null) {
+            target.setTag(TAG_BOTTOM_INSET_SCROLL_PADDING_ORIGINAL, intArrayOf(
+                    target.paddingLeft,
+                    target.paddingTop,
+                    target.paddingRight,
+                    target.paddingBottom
+            ))
         }
-        chainDecorInsetsCallback(view) { insets ->
-            val bars: androidx.core.graphics.Insets = insets.getInsets(
-                    WindowInsetsCompat.Type.systemBars()
-                            or WindowInsetsCompat.Type.displayCutout())
-            view.setPadding(origLeft, origTop, origRight, origBottom + bars.bottom)
+        val original = target.getTag(TAG_BOTTOM_INSET_SCROLL_PADDING_ORIGINAL) as IntArray
+        if (target is ViewGroup) {
+            target.clipToPadding = false
+        }
+        chainDecorInsetsCallback(target, callbackKey(target, TAG_BOTTOM_INSET_SCROLL_PADDING_CALLBACK)) {
+            insets ->
+            val bars: androidx.core.graphics.Insets = computeBarsInset(insets)
+            target.setPadding(original[0], original[1], original[2], original[3] + bars.bottom)
         }
     }
 
     /**
-     * Tag id used by [chainDecorInsetsCallback] to attach a list of
-     * per-target callbacks onto the activity's decor view. Hash of a stable
+     * Tag id used by [chainDecorInsetsCallback] to attach keyed per-target
+     * callbacks onto the activity's decor view. Hash of a stable
      * unique string — no R.id.* dependency needed.
      */
     private val TAG_DECOR_INSETS_CHAIN: Int =
             "DisplayUtil#decorInsetsChain".hashCode()
+    private val TAG_TOP_INSET_HEIGHT_CALLBACK: Int =
+            "DisplayUtil#topInsetHeightCallback".hashCode()
+    private val TAG_TOP_INSET_MARGIN_ORIGINAL_TOP: Int =
+            "DisplayUtil#topInsetMarginOriginalTop".hashCode()
+    private val TAG_TOP_INSET_MARGIN_CALLBACK: Int =
+            "DisplayUtil#topInsetMarginCallback".hashCode()
+    private val TAG_BOTTOM_INSET_MARGIN_ORIGINAL_BOTTOM: Int =
+            "DisplayUtil#bottomInsetMarginOriginalBottom".hashCode()
+    private val TAG_BOTTOM_INSET_MARGIN_CALLBACK: Int =
+            "DisplayUtil#bottomInsetMarginCallback".hashCode()
+    private val TAG_BOTTOM_INSET_PADDING_ORIGINAL: Int =
+            "DisplayUtil#bottomInsetPaddingOriginal".hashCode()
+    private val TAG_BOTTOM_INSET_PADDING_CALLBACK: Int =
+            "DisplayUtil#bottomInsetPaddingCallback".hashCode()
+    private val TAG_BOTTOM_INSET_SCROLL_PADDING_ORIGINAL: Int =
+            "DisplayUtil#bottomInsetScrollPaddingOriginal".hashCode()
+    private val TAG_BOTTOM_INSET_SCROLL_PADDING_CALLBACK: Int =
+            "DisplayUtil#bottomInsetScrollPaddingCallback".hashCode()
 
     /**
      * Register `callback` so it runs with the activity decor view's raw
@@ -442,16 +472,17 @@ object DisplayUtil {
     @Suppress("UNCHECKED_CAST")
     private fun chainDecorInsetsCallback(
             target: View,
+            callbackKey: Int,
             callback: java.util.function.Consumer<WindowInsetsCompat>) {
         val install: Runnable = object : Runnable {
             override fun run() {
                 val decor: View = target.getRootView()
-                var chain: MutableList<java.util.function.Consumer<WindowInsetsCompat>>? =
+                var chain: MutableMap<Int, java.util.function.Consumer<WindowInsetsCompat>>? =
                         decor.getTag(TAG_DECOR_INSETS_CHAIN)
-                                as MutableList<java.util.function.Consumer<WindowInsetsCompat>>?
+                                as MutableMap<Int, java.util.function.Consumer<WindowInsetsCompat>>?
                 if (chain == null) {
-                    val list: MutableList<java.util.function.Consumer<WindowInsetsCompat>> =
-                            java.util.ArrayList<java.util.function.Consumer<WindowInsetsCompat>>()
+                    val map: MutableMap<Int, java.util.function.Consumer<WindowInsetsCompat>> =
+                            java.util.LinkedHashMap<Int, java.util.function.Consumer<WindowInsetsCompat>>()
                     // Shared "an IME animation is in flight" flag. The platform
                     // dispatches the *target* insets to the apply listener
                     // BEFORE the animation starts to play (between onPrepare
@@ -465,8 +496,8 @@ object DisplayUtil {
                     // chain entirely under onProgress's control for the
                     // duration of the animation.
                     val imeAnimating: BooleanArray = booleanArrayOf(false)
-                    decor.setTag(TAG_DECOR_INSETS_CHAIN, list)
-                    chain = list
+                    decor.setTag(TAG_DECOR_INSETS_CHAIN, map)
+                    chain = map
                     // Stable-state path — fired on insets changes outside an
                     // IME animation (rotation, multi-window, gesture-nav
                     // entering / leaving). Skipped during IME animations to
@@ -474,7 +505,7 @@ object DisplayUtil {
                     // above.
                     ViewCompat.setOnApplyWindowInsetsListener(decor) { _, insets ->
                         if (!imeAnimating[0]) {
-                            for (c in java.util.ArrayList(list)) {
+                            for (c in java.util.ArrayList(map.values)) {
                                 c.accept(insets)
                             }
                         }
@@ -503,7 +534,7 @@ object DisplayUtil {
                                 override fun onProgress(
                                         insets: WindowInsetsCompat,
                                         running: MutableList<androidx.core.view.WindowInsetsAnimationCompat>): WindowInsetsCompat {
-                                    for (c in java.util.ArrayList(list)) {
+                                    for (c in java.util.ArrayList(map.values)) {
                                         c.accept(insets)
                                     }
                                     return insets
@@ -546,7 +577,7 @@ object DisplayUtil {
                                         val current: WindowInsetsCompat? =
                                                 ViewCompat.getRootWindowInsets(decor)
                                         if (current != null) {
-                                            for (c in java.util.ArrayList(list)) {
+                                            for (c in java.util.ArrayList(map.values)) {
                                                 c.accept(current)
                                             }
                                         }
@@ -554,7 +585,7 @@ object DisplayUtil {
                                 }
                             })
                 }
-                chain.add(callback)
+                chain[callbackKey] = callback
                 decor.requestApplyInsets()
             }
         }
@@ -571,16 +602,37 @@ object DisplayUtil {
         }
     }
 
+    @Suppress("UNCHECKED_CAST")
+    private fun removeDecorInsetsCallback(target: View, callbackKey: Int) {
+        val decor: View = target.rootView ?: return
+        val chain: MutableMap<Int, java.util.function.Consumer<WindowInsetsCompat>>? =
+                decor.getTag(TAG_DECOR_INSETS_CHAIN)
+                        as MutableMap<Int, java.util.function.Consumer<WindowInsetsCompat>>?
+        chain?.remove(callbackKey)
+    }
+
+    private fun callbackKey(target: View, helperTag: Int): Int {
+        return System.identityHashCode(target) * 31 + helperTag
+    }
+
     /** `max(systemBars.bottom + displayCutout.bottom, ime.bottom)` —
      *  picks the larger of "gesture / 3-button nav bar" or "soft-keyboard
      *  height" so a sticky bottom view sits above either system overlay. */
     private fun computeBottomInset(insets: WindowInsetsCompat): Int {
-        val bars: androidx.core.graphics.Insets = insets.getInsets(
-                WindowInsetsCompat.Type.systemBars()
-                        or WindowInsetsCompat.Type.displayCutout())
+        val bars: androidx.core.graphics.Insets = computeBarsInset(insets)
         val ime: androidx.core.graphics.Insets = insets.getInsets(
                 WindowInsetsCompat.Type.ime())
         return max(bars.bottom, ime.bottom)
+    }
+
+    private fun computeTopInset(insets: WindowInsetsCompat): Int {
+        return computeBarsInset(insets).top
+    }
+
+    private fun computeBarsInset(insets: WindowInsetsCompat): androidx.core.graphics.Insets {
+        return insets.getInsets(
+                WindowInsetsCompat.Type.systemBars()
+                        or WindowInsetsCompat.Type.displayCutout())
     }
 
     @JvmStatic

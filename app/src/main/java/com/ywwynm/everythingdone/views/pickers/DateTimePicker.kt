@@ -37,8 +37,7 @@ import java.util.Calendar
  */
 open class DateTimePicker(
         activity: Activity, parent: View, type: Int, accentColor: Int
-) : PopupPicker(activity, parent, if (type == Def.PickerType.AFTER_TIME)
-        R.style.QuickRemindPickerAnimation else R.style.TimeTypePickerAnimation) {
+) : PopupPicker(activity, parent, 0) {
 
     private val mType: Int = type
     private var mAccentColor: Int = accentColor
@@ -51,6 +50,12 @@ open class DateTimePicker(
     private var mPreviousIndex: Int = 8
 
     init {
+        if (mType == Def.PickerType.AFTER_TIME) {
+            installContentSurfaceScaleTransition(pivotXFraction = 0f, pivotYFraction = 1f)
+        } else {
+            installContentSurfaceScaleTransition(pivotXFraction = 0f, pivotYFraction = 0f)
+        }
+
         val params: ViewGroup.LayoutParams = mRecyclerView.layoutParams!!
         if (mType == Def.PickerType.AFTER_TIME) {
             params.width = (mScreenDensity * 168).toInt()
@@ -183,24 +188,36 @@ open class DateTimePicker(
             params.height = recyclerViewHeight
         }
 
-        val pos = IntArray(2)
         val anchor: View = mAnchor as View
-        anchor.getLocationInWindow(pos)
+        if (!anchor.isAttachedToWindow) {
+            return
+        }
+        val anchorLoc = IntArray(2)
+        anchor.getLocationInWindow(anchorLoc)
+        val anchorLeft = anchorLoc[0]
+        val anchorTop = anchorLoc[1]
+        val anchorCenterY = anchorLoc[1] + anchor.height / 2
+        val popupWidth = getPopupContentWidthForPositioning()
+        val popupHeight = getPopupContentHeightForPositioning()
+        mPopupWindow.width = popupWidth
+        mPopupWindow.height = popupHeight
+
+        val xOffset = anchorLeft.coerceAtLeast(0)
         if (mType == Def.PickerType.AFTER_TIME) {
-            // popup bottom lands at the anchor's vertical centre.
+            // Bottom-gravity PopupWindow coordinates use the inset popup
+            // window bottom, so convert the desired anchor bottom back to a
+            // bottom offset after applying navBottom. Do not clamp to the
+            // parent height here: short DateTimeDialog tabs should not move
+            // the visual origin away from the tapped pill.
             //
-            // Why subtract navBottom: PopupWindow is created without
-            // FLAG_LAYOUT_IN_SCREEN, so WindowManager insets the popup's
-            // own window by the bottom system bars (gesture / 3-button
+            // PopupWindow is created without FLAG_LAYOUT_IN_SCREEN, so
+            // WindowManager insets the popup's own window by the bottom
+            // system bars (gesture / 3-button
             // nav) — meaning the popup's reference "bottom" is
             // `mParent.getHeight() - navBottom`, not `mParent.getHeight()`.
-            // Without the subtraction, the popup ends up navBottom px
-            // higher than intended (popup.bottom lands at anchor.top
-            // instead of anchor.center). Legacy non-edge-to-edge windows
-            // had `mParent.getHeight() == display.height - navbar`
-            // already, so the old formula happened to land in the right
-            // spot; in edge-to-edge `mParent.getHeight() == display.height`
-            // and we have to compensate explicitly.
+            // Legacy non-edge-to-edge windows had `mParent.getHeight() ==
+            // display.height - navbar` already. Edge-to-edge makes the
+            // compensation explicit before aligning the popup pivot.
             val insets: androidx.core.view.WindowInsetsCompat? =
                     androidx.core.view.ViewCompat.getRootWindowInsets(mParent)
             var navBottom = 0
@@ -210,13 +227,14 @@ open class DateTimePicker(
                                 or androidx.core.view.WindowInsetsCompat.Type
                                         .displayCutout()).bottom
             }
+            val bottomReference = (mParent.height - navBottom).coerceAtLeast(0)
+            val yOffset = (bottomReference - anchorCenterY).coerceAtLeast(0)
             mPopupWindow.showAtLocation(mParent, Gravity.BOTTOM or Gravity.START,
-                    (pos[0] - mScreenDensity * 16).toInt(),
-                    mParent.height - navBottom - pos[1] - anchor.height / 2)
+                    xOffset, yOffset)
         } else {
+            val yOffset = anchorTop.coerceAtLeast(0)
             mPopupWindow.showAtLocation(mParent, Gravity.TOP or Gravity.START,
-                    pos[0] - DisplayUtil.getStatusbarHeight(mActivity),
-                    (pos[1] - mScreenDensity * 56).toInt())
+                    xOffset, yOffset)
         }
 
     }
@@ -334,7 +352,7 @@ open class DateTimePicker(
 
             init {
                 bt.setOnClickListener {
-                    mPopupWindow.dismiss()
+                    dismiss()
                     pickForUI(adapterPosition)
                     mOnClickListener?.onClick(it)
                 }

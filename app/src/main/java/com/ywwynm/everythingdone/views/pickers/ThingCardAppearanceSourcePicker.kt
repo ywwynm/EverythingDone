@@ -1,11 +1,9 @@
 package com.ywwynm.everythingdone.views.pickers
 
 import android.app.Activity
-import android.graphics.Point
 import android.graphics.Typeface
 import androidx.core.content.ContextCompat
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
+import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.LinearLayoutManager
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -30,7 +28,7 @@ class ThingCardAppearanceSourcePicker(
         pickedIndex: Int,
         private val accentBackground: ThingBackground?,
         private val onPicked: (Item) -> Unit
-) : PopupPicker(activity, parent, R.style.QuickRemindPickerAnimation) {
+) : PopupPicker(activity, parent, 0) {
 
     data class Item(
             val label: String,
@@ -43,6 +41,8 @@ class ThingCardAppearanceSourcePicker(
     private val adapter = SourceAdapter()
 
     init {
+        installContentSurfaceScaleTransition(pivotXFraction = 1f, pivotYFraction = 1f)
+
         val params = mRecyclerView.layoutParams!!
         val displayWidth = DisplayUtil.getDisplaySize(activity).x
         params.width = min(
@@ -79,23 +79,20 @@ class ThingCardAppearanceSourcePicker(
         val params = mRecyclerView.layoutParams!!
         params.height = getRecyclerViewHeight()
         mRecyclerView.layoutParams = params
+        val popupWidth = getPopupContentWidthForPositioning()
+        val popupHeight = getPopupContentHeightForPositioning()
+        mPopupWindow.width = popupWidth
+        mPopupWindow.height = popupHeight
 
-        val display: Point = DisplayUtil.getDisplaySize(mActivity)
         val anchor = mAnchor!!
         val pos = IntArray(2)
         anchor.getLocationInWindow(pos)
+        val anchorRight = pos[0] + anchor.width
+        val anchorBottom = pos[1] + anchor.height
 
-        val margin = (mScreenDensity * 8).toInt()
-        var x = pos[0] - (mScreenDensity * 8).toInt()
-        x = max(margin, min(x, display.x - params.width - margin))
-
-        val insets = ViewCompat.getRootWindowInsets(mParent)
-        val navBottom = insets?.getInsets(
-                WindowInsetsCompat.Type.systemBars()
-                        or WindowInsetsCompat.Type.displayCutout()
-        )?.bottom ?: 0
-        val y = mParent.height - navBottom - pos[1] + margin
-        mPopupWindow.showAtLocation(mParent, Gravity.BOTTOM or Gravity.START, x, y)
+        val x = anchorRight - popupWidth
+        val y = anchorBottom - popupHeight
+        mPopupWindow.showAtLocation(mParent, Gravity.TOP or Gravity.START, x, y)
     }
 
     override fun pickForUI(index: Int) {
@@ -129,6 +126,14 @@ class ThingCardAppearanceSourcePicker(
 
         override fun onBindViewHolder(viewHolder: BaseViewHolder, position: Int) {
             val holder = viewHolder as SourceViewHolder
+            val m8: Int = (mScreenDensity * 8).toInt()
+            val params: RecyclerView.LayoutParams =
+                    holder.text.layoutParams as RecyclerView.LayoutParams
+            when (position) {
+                0 -> params.setMargins(0, m8, 0, 0)
+                itemCount - 1 -> params.setMargins(0, 0, 0, m8)
+                else -> params.setMargins(0, 0, 0, 0)
+            }
             holder.text.text = items[position].label
             if (mPickedPosition == position) {
                 holder.text.setTypeface(Typeface.DEFAULT_BOLD)
@@ -162,7 +167,7 @@ class ThingCardAppearanceSourcePicker(
                 text.setOnClickListener {
                     val position = bindingAdapterPosition
                     if (position < 0 || position >= items.size) return@setOnClickListener
-                    mPopupWindow.dismiss()
+                    dismiss()
                     pickForUI(position)
                     onPicked(items[position])
                 }

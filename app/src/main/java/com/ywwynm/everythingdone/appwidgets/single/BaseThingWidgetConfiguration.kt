@@ -103,8 +103,6 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
             mRecyclerView!!.scrollToPosition(0)
         }
         mAdapter!!.notifyDataSetChanged()
-
-        DisplayUtil.applyBottomInsetAsMargin(mLlConfig)
     }
 
     override fun initMembers() {
@@ -170,6 +168,7 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
         val flp: FrameLayout.LayoutParams = mLlConfig!!.layoutParams as FrameLayout.LayoutParams
 
         if (selecting) {
+            DisplayUtil.clearBottomInsetAsMargin(mLlConfig)
             window.statusBarColor = ContextCompat.getColor(this, R.color.bg_statusbar_lollipop)
             window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION)
             flp.bottomMargin = 0

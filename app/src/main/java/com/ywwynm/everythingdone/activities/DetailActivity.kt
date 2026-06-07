@@ -189,6 +189,8 @@ class DetailActivity : EverythingDoneBaseActivity() {
     private var mRenderedThingSnapshot: ThingSnapshot? = null
     private var mReloadFromStorageOnResume: Boolean = false
     private var mExternalUpdateRefreshRetries: Int = 0
+    private var mStatusBarTopInset: Int = 0
+    private var mScrollViewHasStatusBarMarginTop: Boolean = true
 
     private var mFlRoot: FrameLayout? = null
     private var mColorPicker: ColorPicker? = null
@@ -740,7 +742,16 @@ class DetailActivity : EverythingDoneBaseActivity() {
 
     override fun initUI() {
         DisplayUtil.expandLayoutToStatusBarAboveLollipop(this)
-        DisplayUtil.expandStatusBarViewAboveKitkat(mStatusBar)
+        DisplayUtil.expandStatusBarViewAboveKitkat(mStatusBar) { topInset ->
+            if (mStatusBarTopInset != topInset) {
+                mStatusBarTopInset = topInset
+                applyScrollViewMarginTop()
+                if (mImageCover!!.visibility == View.VISIBLE) {
+                    updateImageCoverHeight()
+                }
+                updateBottomBarShadow()
+            }
+        }
         DisplayUtil.applyBottomInsetAsPadding(mFlRoot)
 
         val color = mThing!!.getColor()
@@ -2303,10 +2314,15 @@ class DetailActivity : EverythingDoneBaseActivity() {
      * Set margins to mScrollView. If there is an image, marginTop will be set to 0.
      */
     private fun setScrollViewMarginTop(hasMarginTop: Boolean) {
+        mScrollViewHasStatusBarMarginTop = hasMarginTop
+        applyScrollViewMarginTop()
+    }
+
+    private fun applyScrollViewMarginTop() {
         val params = mScrollView!!.layoutParams as FrameLayout.LayoutParams
-        if (hasMarginTop) {
-            val mt: Float = screenDensity * 56 + DisplayUtil.getStatusbarHeight(this)
-            params.setMargins(0, mt.toInt(), 0, params.bottomMargin)
+        if (mScrollViewHasStatusBarMarginTop) {
+            val mt: Int = (screenDensity * 56).toInt() + mStatusBarTopInset
+            params.setMargins(0, mt, 0, params.bottomMargin)
         } else {
             params.setMargins(0, 0, 0, params.bottomMargin)
         }
@@ -2435,9 +2451,13 @@ class DetailActivity : EverythingDoneBaseActivity() {
     }
 
     private fun setImageCover() {
-        val fl = mImageCover!!.layoutParams as FrameLayout.LayoutParams
-        fl.height = (66 * screenDensity).toInt() + DisplayUtil.getStatusbarHeight(this)
+        updateImageCoverHeight()
         mImageCover!!.visibility = View.VISIBLE
+    }
+
+    private fun updateImageCoverHeight() {
+        val fl = mImageCover!!.layoutParams as FrameLayout.LayoutParams
+        fl.height = (66 * screenDensity).toInt() + mStatusBarTopInset
     }
 
     fun getAccentColor(): Int {
@@ -2462,9 +2482,6 @@ class DetailActivity : EverythingDoneBaseActivity() {
         }
 
         val barsHeight = (screenDensity * 56).toInt()
-        val statusBarHeight = DisplayUtil.getStatusbarHeight(this)
-
-        val statusBarOffset = statusBarHeight // if is in translucent mode, we should also consider height of status bar.
 
         mScrollView!!.setOnScrollChangeListener(NestedScrollView.OnScrollChangeListener {
                 _, _, scrollY, _, _ ->
@@ -2479,7 +2496,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
                 screenDensity * 14
             } else {
                 imageHeight -
-                        barsHeight - statusBarOffset + screenDensity * 20
+                        barsHeight - mStatusBarTopInset + screenDensity * 20
             }
             val shadowTY: Float = shadowAY + screenDensity * 20
             if (scrollY >= shadowTY) {
@@ -2527,15 +2544,14 @@ class DetailActivity : EverythingDoneBaseActivity() {
 
         val bottomBarShadow: View = f(R.id.bottom_bar_shadow)!!
         val bottomBarHeight = (screenDensity * 56).toInt()
-        val statusBarHeight = DisplayUtil.getStatusbarHeight(this)
 
         val scrollY = mScrollView!!.scrollY
         val childHeight = mScrollView!!.getChildAt(0).height
-        var marginTop = statusBarHeight
+        var marginTop = mStatusBarTopInset
         if (mRvImageAttachment!!.visibility != View.VISIBLE) {
             marginTop += bottomBarHeight
         } else {
-            marginTop -= statusBarHeight
+            marginTop -= mStatusBarTopInset
         }
 
         val aY: Float = childHeight - windowRect.bottom +

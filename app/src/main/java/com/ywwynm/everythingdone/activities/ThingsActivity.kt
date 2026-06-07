@@ -32,6 +32,8 @@ import androidx.core.app.ActivityCompat
 import androidx.core.app.ActivityOptionsCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.GravityCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.widget.TextViewCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.appcompat.app.ActionBar
@@ -1236,28 +1238,24 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         mModeManager!!.setBackNormalModeCallback {
             cancelThingCardAppearancePanel(false)
         }
+        mModeManager!!.setContextualToolbarVisibilityCallback { isShowing ->
+            if (isShowing) {
+                applyContextualStatusBarChrome()
+            } else {
+                applyHomeStatusBarChrome()
+            }
+        }
         adapter.setModeManager(mModeManager)
         mActivityHeader!!.setModeManager(mModeManager!!)
     }
 
     override fun initUI() {
-        if (AppearanceUtil.isDarkMode(this)) {
-            DisplayUtil.cancelDarkStatusBar(this)
-        } else {
-            DisplayUtil.darkStatusBar(this)
-        }
+        applyHomeStatusBarChrome()
 
         DisplayUtil.expandLayoutToStatusBarAboveLollipop(this)
 
-        val statusbar: View = f(R.id.view_status_bar)!!
-        val dlp1 = statusbar.layoutParams as DrawerLayout.LayoutParams
-        dlp1.height = DisplayUtil.getStatusbarHeight(this)
-        statusbar.requestLayout()
-
-        val fl: FrameLayout = f(R.id.fl_things)!!
-        val dlp2 = fl.layoutParams as DrawerLayout.LayoutParams
-        dlp2.setMargins(0, dlp1.height, 0, 0)
-        fl.requestLayout()
+        installStatusBarLayoutOffsetListener()
+        updateStatusBarLayoutOffsets()
 
         // These two lines can make layout expand into statusbar on Kitkat and will not
         // influence the ui above Lollipop
@@ -1291,6 +1289,90 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         DisplayUtil.applyBottomInsetAsMargin(mFab)
         DisplayUtil.applyBottomInsetAsMargin(mThingCardAppearancePanel)
         DisplayUtil.applyBottomInsetAsScrollPadding(mRecyclerView)
+    }
+
+    private fun installStatusBarLayoutOffsetListener() {
+        val statusbar: View = f(R.id.view_status_bar)!!
+        ViewCompat.setOnApplyWindowInsetsListener(statusbar) { _, insets ->
+            updateStatusBarLayoutOffsets(resolveStatusBarTopInset(insets))
+            insets
+        }
+        statusbar.requestApplyInsets()
+    }
+
+    private fun updateStatusBarLayoutOffsets() {
+        val insets = ViewCompat.getRootWindowInsets(window.decorView)
+        updateStatusBarLayoutOffsets(
+                if (insets != null) {
+                    resolveStatusBarTopInset(insets)
+                } else {
+                    DisplayUtil.getCurrentTopSystemInset(window.decorView)
+                }
+        )
+    }
+
+    private fun resolveStatusBarTopInset(insets: WindowInsetsCompat): Int {
+        return getStatusBarTopInset(insets)
+                .takeIf { it > 0 }
+                ?: DisplayUtil.getCurrentTopSystemInset(window.decorView)
+    }
+
+    private fun getStatusBarTopInset(insets: WindowInsetsCompat): Int {
+        return insets.getInsets(
+                WindowInsetsCompat.Type.systemBars()
+                        or WindowInsetsCompat.Type.displayCutout()
+        ).top
+    }
+
+    private fun updateStatusBarLayoutOffsets(statusBarHeight: Int) {
+        val statusbar: View = f(R.id.view_status_bar)!!
+        val dlp1 = statusbar.layoutParams as DrawerLayout.LayoutParams
+        if (dlp1.height != statusBarHeight) {
+            dlp1.height = statusBarHeight
+            statusbar.requestLayout()
+        }
+
+        val contextualStatusbar: View = f(R.id.view_contextual_status_bar)!!
+        val contextualStatusbarLp = contextualStatusbar.layoutParams
+        if (contextualStatusbarLp.height != statusBarHeight) {
+            contextualStatusbarLp.height = statusBarHeight
+            contextualStatusbar.requestLayout()
+        }
+
+        val contextualToolbarWrapper: RelativeLayout = f(R.id.rl_contextual_toolbar)!!
+        val contextualToolbarLp =
+                contextualToolbarWrapper.layoutParams as ViewGroup.MarginLayoutParams
+        if (contextualToolbarLp.topMargin != 0) {
+            contextualToolbarLp.topMargin = 0
+            contextualToolbarWrapper.layoutParams = contextualToolbarLp
+        }
+
+        val fl: FrameLayout = f(R.id.fl_things)!!
+        val dlp2 = fl.layoutParams as DrawerLayout.LayoutParams
+        if (dlp2.topMargin != statusBarHeight) {
+            dlp2.setMargins(dlp2.leftMargin, statusBarHeight, dlp2.rightMargin, dlp2.bottomMargin)
+            fl.requestLayout()
+        }
+    }
+
+    private fun applyHomeStatusBarChrome() {
+        f<View>(R.id.view_status_bar)!!.setBackgroundResource(R.color.bg_activity_things)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            window.statusBarColor = ContextCompat.getColor(this, R.color.bg_statusbar_lollipop)
+        }
+        if (AppearanceUtil.isDarkMode(this)) {
+            DisplayUtil.cancelDarkStatusBar(this)
+        } else {
+            DisplayUtil.darkStatusBar(this)
+        }
+    }
+
+    private fun applyContextualStatusBarChrome() {
+        f<View>(R.id.view_contextual_status_bar)!!.visibility = View.VISIBLE
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            window.statusBarColor = ContextCompat.getColor(this, R.color.app_accent)
+        }
+        DisplayUtil.darkStatusBar(this)
     }
 
     private fun initRecyclerViewUi() {
@@ -1339,6 +1421,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         dismissSnackbars()
         mColorPicker!!.dismiss()
 
+        updateStatusBarLayoutOffsets()
         mActivityHeader!!.computeFactors(mActionbar)
         if (!App.isSearching) {
             mActivityHeader!!.reset(false)

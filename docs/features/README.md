@@ -54,6 +54,7 @@ memory files.
 - `detail-color-sampling/`
 - `documentation-organization/`
 - `home-card-span-mode/`
+- `home-contextual-toolbar/`
 - `home-new-item-animation/`
 - `keep-alive-strategy/`
 - `kotlin-migration/`
@@ -61,6 +62,7 @@ memory files.
 - `popup-picker-insets/`
 - `project-maintenance/`
 - `remote-thing-card-appearance/`
+- `system-bar-insets/`
 - `thing-card-appearance/`
 - `thing-card-image-placement/`
 - `thing-card-media-target-geometry/`

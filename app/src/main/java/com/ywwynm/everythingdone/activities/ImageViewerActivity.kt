@@ -18,7 +18,6 @@ import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
-import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.ProgressBar
 
@@ -201,9 +200,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
     }
 
     override fun setActionbar() {
-        val params = mActionbar!!.layoutParams as FrameLayout.LayoutParams
-        params.setMargins(0, DisplayUtil.getStatusbarHeight(this), 0, 0)
-        mActionbar!!.requestLayout()
+        DisplayUtil.applyTopInsetAsMargin(mActionbar)
 
         setSupportActionBar(mActionbar)
         val actionBar: ActionBar? = supportActionBar

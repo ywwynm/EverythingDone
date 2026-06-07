@@ -2,6 +2,295 @@
 
 Migrated from global `memory/sessions.md` on 2026-06-06. This file keeps feature-scoped history out of startup memory while preserving the original notes.
 
+## 2026-06-07 - ColorPicker anchors to trigger top-right
+
+User confirmed the latest source picker placement and asked for one final
+ColorPicker adjustment: keep the current top-right popup surface animation
+direction, but show from the anchor view's top-right corner instead of the
+anchor centre.
+
+Change:
+- ColorPicker keeps `installContentSurfaceScaleTransition(1, 0)`, so the
+  visible popup surface still expands from its top-right corner.
+- The valid-anchor `showAsDropDown(...)` call now uses `xoff = 0`,
+  `yoff = -anchor.height`, and `Gravity.END`, pinning the popup's top-right
+  corner to the trigger view's top-right corner.
+
+Verification:
+- `git diff --check` passed with LF/CRLF conversion warnings only.
+- `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`
+  passed and published debug update `202606070400` to
+  `http://120.25.194.207/everythingdone-updates/debug/latest.json`.
+
+## 2026-06-07 - Source picker right-bottom anchor uses top-gravity coordinates
+
+User tested debug update `202606070343` and reported that
+ThingCardAppearanceSourcePicker still did not appear from the source TextView's
+right-bottom corner; it looked lower than the anchor.
+
+Finding:
+- The source picker had moved to content-surface transitions with
+  `PopupWindow.isClippingEnabled = false`, but still used
+  `Gravity.BOTTOM | Gravity.START` and subtracted `navBottom` from the bottom
+  reference.
+- With clipping disabled, bottom gravity can resolve against the full
+  parent/window bottom. The extra `navBottom` subtraction therefore makes the
+  popup bottom land below the desired anchor by about one system-bar inset.
+
+Change:
+- ThingCardAppearanceSourcePicker now positions with `Gravity.TOP |
+  Gravity.START` and computes `x = anchorRight - popupWidth`,
+  `y = anchorBottom - popupHeight`, so the popup right-bottom corner maps
+  directly to the anchor TextView's right-bottom corner.
+
+Verification:
+- `git diff --check` passed with LF/CRLF conversion warnings only.
+- `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`
+  passed and published debug update `202606070356` to
+  `http://120.25.194.207/everythingdone-updates/debug/latest.json`.
+
+## 2026-06-07 - Exact content-surface popup anchors
+
+User observed that ThingCardAppearanceSourcePicker's right-bottom origin did
+not match the imagined pill touch-area corner, and that DateTimePicker's
+time-type popup in the "after" tab appeared above the pill's left-top corner,
+while the recurrence tab did not show the same issue.
+
+Finding:
+- Pill ripples are shaped by `clipToOutline`, but that does not change the
+  TextView's measured bounds; the pill touch area remains the whole TextView.
+- The DateTimePicker after-tab issue came from clamping popup top to the short
+  dialog content height. The recurrence tab is taller, so the clamp was not
+  visible there.
+
+Change:
+- `installContentSurfaceScaleTransition(...)` now disables PopupWindow
+  clipping for content-surface transition popups.
+- DateTimePicker now uses exact anchor offsets: quick-remind bottom aligns to
+  anchor vertical centre, and time-type top aligns to anchor top, without
+  clamping to parent height.
+- ThingCardAppearanceSourcePicker now aligns popup right/bottom directly to
+  the anchor TextView right/bottom, without the previous 8dp screen-margin
+  clamp.
+
+Verification:
+- `git diff --check` passed with LF/CRLF conversion warnings only.
+- `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`
+  passed and published debug update `202606070343` to
+  `http://120.25.194.207/everythingdone-updates/debug/latest.json`.
+
+## 2026-06-07 - Remaining popup pickers use content-surface transitions
+
+User pointed out that more popups still used the original PopupWindow animation
+styles and requested explicit placement/pivot rules for each.
+
+Change:
+- Quick-remind DateTimePicker keeps the left-side / vertical-centre placement
+  and left-bottom content-surface transition.
+- Time-type DateTimePicker now places the popup at the anchor TextView's
+  left-top corner and uses a left-top content-surface transition.
+- ThingCardAppearanceSourcePicker now places the popup at the anchor TextView's
+  right-bottom corner and uses a right-bottom content-surface transition.
+- ThingCardAppearanceSourcePicker rows now add an 8dp top margin to the first
+  item and an 8dp bottom margin to the last item, matching quick-remind row
+  spacing.
+- Removed the obsolete quick-remind PopupWindow animation style/resources after
+  moving ThingCardAppearanceSourcePicker off them.
+
+Verification:
+- `git diff --check` passed with LF/CRLF conversion warnings only.
+- `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`
+  passed and published debug update `202606070330` to
+  `http://120.25.194.207/everythingdone-updates/debug/latest.json`.
+
+## 2026-06-07 - DateTimePicker uses left-bottom content-surface transition
+
+User confirmed the ColorPicker content-surface transition is acceptable and
+asked to apply the same idea to DateTimePicker. DateTimePicker should expand
+from bottom-left toward top-right, but its origin should be the left side of the
+anchor TextView and the TextView's vertical centre, not the horizontal centre.
+
+Change:
+- Moved the reusable scale transition into `PopupPicker` as
+  `installContentSurfaceScaleTransition(...)`.
+- ColorPicker now uses the shared helper with top-right pivot `(1, 0)`.
+- DateTimePicker now disables PopupWindow window animation and uses the shared
+  content-surface transition with left-bottom pivot `(0, 1)`.
+- DateTimePicker now positions both quick-remind and time-type popups from the
+  anchor TextView's left edge and vertical centre. The AFTER_TIME branch still
+  compensates for bottom system-bar insets before converting to
+  `Gravity.BOTTOM`.
+- Removed the obsolete `TimeTypePickerAnimation` style and
+  `time_type_picker_show` / `time_type_picker_hide` resources. Kept
+  `QuickRemindPickerAnimation` because `ThingCardAppearanceSourcePicker` still
+  uses it.
+
+Verification:
+- `git diff --check` passed with LF/CRLF conversion warnings only.
+- `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`
+  passed and published debug update `202606070321` to
+  `http://120.25.194.207/everythingdone-updates/debug/latest.json`.
+
+## 2026-06-07 - ColorPicker uses content-surface transition instead of window animation
+
+User reported that restoring `PopupWindow` window animation fixed show/hide
+animation layering but again made the popup appear not to originate from the
+anchor centre. Reviewed Android official docs and AOSP source: animation style
+is applied as `WindowManager.LayoutParams.windowAnimations`, while popup content
+is hosted in `PopupDecorView` / optional background wrappers. That makes the
+window animation pivot too coarse for ColorPicker's precise anchor-origin
+surface motion.
+
+Change:
+- ColorPicker now passes `0` for the PopupWindow animation style.
+- ColorPicker clears the PopupWindow background and keeps the visible rounded
+  elevated surface on `mContentView`.
+- Added `ColorPickerSurfaceTransition`, installed through PopupWindow
+  `enterTransition` / `exitTransition`, scaling the visible content surface
+  from its top-right corner on show and dismiss.
+- Removed the obsolete `ColorPickerAnimation` style and
+  `color_picker_show` / `color_picker_hide` animation resources.
+
+Verification:
+- `git diff --check` passed with LF/CRLF conversion warnings only.
+- `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`
+  passed and published debug update `202606070312` to
+  `http://120.25.194.207/everythingdone-updates/debug/latest.json`.
+
+## 2026-06-07 - Restore ColorPicker popup-window animation
+
+User confirmed the content-level animation fixed the placement but produced the
+wrong feel: the popup surface appeared instantly, only the content scaled from
+top-right, and dismissal had no popup animation. The desired behaviour is the
+popup surface itself animating in and out.
+
+Change:
+- Restored `R.style.ColorPickerAnimation` as ColorPicker's PopupWindow
+  animation style.
+- Removed the temporary `mContentView` scale/alpha animation helper.
+- Kept the validated `showAsDropDown(...)` positioning and explicit
+  PopupWindow width/height.
+
+Verification:
+- `git diff --check` passed with LF/CRLF conversion warnings only.
+- `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`
+  passed and published debug update `202606070304` to
+  `http://120.25.194.207/everythingdone-updates/debug/latest.json`.
+
+## 2026-06-07 - ColorPicker animates picker content instead of popup window
+
+User clarified that the ColorPicker trigger is the toolbar menu item icon view,
+not a text layout concern. Treated the remaining offset as a mismatch between
+`PopupWindow` window animation bounds and the actual picker content surface,
+rather than as an anchor-view centre problem.
+
+Change:
+- ColorPicker now passes `0` as its `PopupPicker` animation style, disabling
+  the `PopupWindow` window enter/exit animation for this picker.
+- `ColorPicker.show()` still positions the popup through
+  `showAsDropDown(anchor, -anchor.width / 2, -anchor.height / 2, Gravity.END)`
+  when a valid anchor exists.
+- After the popup is placed, ColorPicker runs a content-level scale/alpha
+  animation on `mContentView`, with `pivotX = mContentView.width` and
+  `pivotY = 0`, so the actual picker surface grows from its top-right corner.
+
+Verification:
+- `git diff --check` passed with LF/CRLF conversion warnings only.
+- `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`
+  passed and published debug update `202606070258` to
+  `http://120.25.194.207/everythingdone-updates/debug/latest.json`.
+
+## 2026-06-07 - ColorPicker uses platform anchor positioning
+
+User asked why ColorPicker still did not appear from the anchor view centre and
+whether the anchor calculation itself was wrong. Reviewed Android 36
+`PopupWindow` source: `showAsDropDown` converts `anchor.getLocationOnScreen()`
+into app-window coordinates by subtracting the app root's screen location,
+whereas the current ColorPicker path manually combined
+`getLocationInWindow()` with `showAtLocation(...)`.
+
+Change:
+- `ColorPicker.show()` now writes the measured popup width/height to
+  `mPopupWindow` before showing so right-gravity dropdown alignment has
+  absolute dimensions.
+- With a valid anchor, ColorPicker now calls
+  `showAsDropDown(anchor, -anchor.width / 2, -anchor.height / 2, Gravity.END)`.
+  This pins the popup's top-right corner to the anchor centre using
+  PopupWindow's platform coordinate conversion.
+- The manual `showAtLocation(...)` top-right fallback remains only for the
+  no-anchor case.
+
+Verification:
+- `git diff --check` passed with LF/CRLF conversion warnings only.
+- `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`
+  passed and published debug update `202606070247` to
+  `http://120.25.194.207/everythingdone-updates/debug/latest.json`.
+
+## 2026-06-07 - ColorPicker top-right corner animation model
+
+User proposed that ColorPicker's toolbar anchor usually lives near the
+top-right corner, so an interior popup pivot may first compute a placement that
+extends past the right edge and then gets adjusted by clamping or platform
+window bounds. That matches the observed "opening point still biased up-left"
+behaviour better than a simple visual nudge.
+
+Changes:
+- Updated `color_picker_show.xml` and `color_picker_hide.xml` to scale from
+  `pivotX="100%"` and `pivotY="0%"`.
+- Updated `ColorPicker.show()` so the popup's top-right corner is pinned to the
+  anchor view's centre, with x/y offsets clamped to the parent window.
+- Removed the previous `0.25 * anchor size` visual correction constants from
+  `ColorPicker`.
+
+Verification:
+- `git diff --check` passed with LF/CRLF conversion warnings only.
+- `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`
+  passed and published debug update `202606070239` to
+  `http://120.25.194.207/everythingdone-updates/debug/latest.json`.
+
+## 2026-06-07 - ColorPicker anchor visual correction follow-up
+
+User reported that ColorPicker's popup opening anchor still appeared biased
+up-left after the anchor-centre/pivot pass. Treated this as a visual calibration
+issue specific to toolbar colour actions rather than a reason to change the
+shared popup positioning rule.
+
+Change:
+- `ColorPicker.show()` now shifts the target point by
+  `+0.25 * anchor.width` and `+0.25 * anchor.height` before converting the
+  target into popup offsets. This moves the perceived opening point down-right
+  while keeping the placement window-relative and anchor-driven.
+
+Verification:
+- `git diff --check` passed with LF/CRLF conversion warnings only.
+- `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`
+  passed and published debug update `202606070232` to
+  `http://120.25.194.207/everythingdone-updates/debug/latest.json`.
+
+## 2026-06-07 - Anchor-centred ColorPicker and DateTimePicker placement
+
+User reported that ColorPicker and DateTimePicker popups appeared to be
+positioned from the trigger view's top-left rather than its centre. Reviewed the
+existing popup positioning rule and corrected both pickers to use the anchor
+view centre in window coordinates.
+
+Changes:
+- Added shared `PopupPicker` helpers for measuring the current popup content,
+  reading the anchor centre, and computing clamped anchor-pivot offsets.
+- Updated `ColorPicker.show()` to remove the remaining display-global fallback
+  math and align its animation pivot to the anchor centre while keeping a
+  right-edge fallback when no valid anchor is available.
+- Updated `DateTimePicker.show()` so both quick-remind and time-type pickers
+  align their animation pivots to the anchor centre; quick-remind keeps the
+  bottom-inset compensation before converting the computed popup top back to a
+  bottom-gravity offset.
+
+Verification:
+- `git diff --check` passed with LF/CRLF conversion warnings only.
+- `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`
+  passed and published debug update `202606070222` to
+  `http://120.25.194.207/everythingdone-updates/debug/latest.json`.
+
 ## 2026-06-06 - DateTime dialog tab strip start alignment
 
 User reported that the DateTime dialog tab row ("某个时刻" / "一段时间之后" /
