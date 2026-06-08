@@ -24,6 +24,18 @@
         android:visibility="gone"/>
 
     <ImageView
+        android:id="@+id/iv_edit_image_attachment_appearance"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:scaleType="center"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="40dp"
+        android:src="@drawable/ic_thing_card_image_placement"
+        android:contentDescription="@string/cd_edit_image_attachment_appearance"
+        android:background="@drawable/ripple_attachment_icon_circle_light"
+        android:visibility="gone"/>
+
+    <ImageView
         android:id="@+id/iv_delete_image_attachment"
         android:layout_width="40dp"
         android:layout_height="40dp"

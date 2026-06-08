@@ -100,6 +100,14 @@ _Avoid_: app dark overlay, selection cover
 The full-height media target used when Thing Card Media is placed on the left or right side of a Thing Card.
 _Avoid_: intrinsic image-size thumbnail, partial side thumbnail
 
+**Detail Attachment Media Appearance**:
+The persistent presentation choices that control how a Thing's image and video attachments are shown inside the Detail screen attachment list.
+_Avoid_: Thing Card Appearance, attachment file editing
+
+**Detail Attachment Media Crop**:
+The persistent presentation choice that determines crop center and user zoom for an image or video attachment shown inside the Detail screen attachment list.
+_Avoid_: Thing Card Media Crop, editing the attachment file
+
 **App Chrome**:
 The surrounding interface outside a Thing Background, including home, settings, help, popups, dialogs, drawers, and other navigation or configuration surfaces.
 _Avoid_: thing UI
@@ -154,6 +162,8 @@ _Avoid_: full-row clickable surface, full-card clickable surface, full-row actio
 - **Thing Card Media Background** does not replace a Thing's **Thing Background**.
 - **Thing Card** presentation choices are shared card preferences, not home-list-only preferences.
 - Hidden private **Thing Cards** do not expose **Thing Card Media**.
+- A **Thing** may have **Detail Attachment Media Appearance** for image and video attachments shown in its Detail screen.
+- **Detail Attachment Media Crop** changes Detail attachment presentation only and does not modify the underlying attachment file.
 - **Appearance Mode** applies to **App Chrome**.
 - A **Button-like Control** can appear on **App Chrome** or directly on a **Thing Background**.
 - **Thing Background Surfaces** do not recreate solely because **Appearance Mode** changes.

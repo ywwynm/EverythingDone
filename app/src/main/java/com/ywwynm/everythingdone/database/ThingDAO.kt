@@ -8,6 +8,7 @@ import android.database.sqlite.SQLiteDatabase
 
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.helpers.ThingCardMediaHelper
+import com.ywwynm.everythingdone.model.DetailAttachmentMediaAppearance
 import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.model.ThingCardAppearance
 import com.ywwynm.everythingdone.model.ThingsCounts
@@ -93,6 +94,10 @@ open class ThingDAO private constructor(context: Context?) {
         values.put(
             Def.Database.COLUMN_THING_CARD_APPEARANCE_THINGS,
             ThingCardAppearance.default().toJson()
+        )
+        values.put(
+            Def.Database.COLUMN_DETAIL_ATTACHMENT_MEDIA_APPEARANCE_THINGS,
+            DetailAttachmentMediaAppearance.default().toJson()
         )
 
         db!!.insert(Def.Database.TABLE_THINGS, null, values)
@@ -187,7 +192,7 @@ open class ThingDAO private constructor(context: Context?) {
             deleteNotifyEmpty(type, state, handleCurrentLimit)
         }
 
-        val values = ContentValues(13)
+        val values = ContentValues(14)
         values.put(Def.Database.COLUMN_ID_THINGS,          thing.id)
         values.put(Def.Database.COLUMN_TYPE_THINGS,        type)
         values.put(Def.Database.COLUMN_STATE_THINGS,       state)
@@ -203,6 +208,10 @@ open class ThingDAO private constructor(context: Context?) {
         values.put(
             Def.Database.COLUMN_THING_CARD_APPEARANCE_THINGS,
             thing.thingCardAppearance.toJson()
+        )
+        values.put(
+            Def.Database.COLUMN_DETAIL_ATTACHMENT_MEDIA_APPEARANCE_THINGS,
+            thing.detailAttachmentMediaAppearance.toJson()
         )
 
         try {
@@ -227,7 +236,7 @@ open class ThingDAO private constructor(context: Context?) {
             deleteNotifyEmpty(typeAfter, state, handleCurrentLimit)
         }
 
-        prepareThingCardAppearanceForContentUpdate(updatedThing)
+        prepareAppearanceForContentUpdate(updatedThing)
 
         val values = ContentValues()
         values.put(Def.Database.COLUMN_TYPE_THINGS, typeAfter)
@@ -236,6 +245,10 @@ open class ThingDAO private constructor(context: Context?) {
         values.put(
             Def.Database.COLUMN_THING_CARD_APPEARANCE_THINGS,
             updatedThing.thingCardAppearance.toJson()
+        )
+        values.put(
+            Def.Database.COLUMN_DETAIL_ATTACHMENT_MEDIA_APPEARANCE_THINGS,
+            updatedThing.detailAttachmentMediaAppearance.toJson()
         )
         values.put(Def.Database.COLUMN_TITLE_THINGS, updatedThing.title)
         values.put(Def.Database.COLUMN_CONTENT_THINGS, updatedThing.content)
@@ -285,6 +298,10 @@ open class ThingDAO private constructor(context: Context?) {
             values.put(
                 Def.Database.COLUMN_THING_CARD_APPEARANCE_THINGS,
                 thing.thingCardAppearance.toJson()
+            )
+            values.put(
+                Def.Database.COLUMN_DETAIL_ATTACHMENT_MEDIA_APPEARANCE_THINGS,
+                thing.detailAttachmentMediaAppearance.toJson()
             )
 
             db!!.insert(Def.Database.TABLE_THINGS, null, values)
@@ -421,7 +438,7 @@ open class ThingDAO private constructor(context: Context?) {
         db!!.update(Def.Database.TABLE_THINGS, values, "id=" + thing.id, null)
     }
 
-    private fun prepareThingCardAppearanceForContentUpdate(updatedThing: Thing) {
+    private fun prepareAppearanceForContentUpdate(updatedThing: Thing) {
         val oldThing = getThingById(updatedThing.id) ?: return
         if (oldThing.attachment != updatedThing.attachment) {
             val availableKeys = ThingCardMediaHelper.getMediaSourceKeysFromAttachment(
@@ -429,6 +446,8 @@ open class ThingDAO private constructor(context: Context?) {
             )
             updatedThing.thingCardAppearance = updatedThing.thingCardAppearance
                 .retainSources(availableKeys)
+            updatedThing.detailAttachmentMediaAppearance =
+                updatedThing.detailAttachmentMediaAppearance.retainSources(availableKeys)
         }
         if (!oldThing.thingCardAppearance.hasSamePresentationAs(updatedThing.thingCardAppearance)) {
             updatedThing.thingCardAppearance = updatedThing.thingCardAppearance

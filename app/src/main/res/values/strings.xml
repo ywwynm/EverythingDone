@@ -396,6 +396,13 @@
     <string name="thing_card_appearance_video_frame_stop">Stop video frame preview</string>
     <string name="thing_card_appearance_video_frame_previous">Previous frame</string>
     <string name="thing_card_appearance_video_frame_next">Next frame</string>
+    <string name="detail_attachment_media_appearance_title">Attachment appearance</string>
+    <string name="detail_attachment_media_appearance_display_width">Image width</string>
+    <string name="detail_attachment_media_appearance_width_normal">Normal</string>
+    <string name="detail_attachment_media_appearance_width_wide">Wide</string>
+    <string name="detail_attachment_media_appearance_full_span">Wide</string>
+    <string name="detail_attachment_media_appearance_crop">Crop attachment</string>
+    <string name="detail_attachment_media_appearance_full_span_ratio">Image ratio</string>
 
     <!--DetailActivity create-->
     <string name="act_add_attachment">Add attachment</string>
@@ -1078,6 +1085,8 @@
 
     <string name="cd_delete_image_attachment">delete this image attachment</string>
     <string name="cd_delete_video_attachment">delete this video attachment</string>
+    <string name="cd_edit_image_attachment_appearance">edit this image attachment appearance</string>
+    <string name="cd_edit_video_attachment_appearance">edit this video attachment appearance</string>
 
     <!--time of day rec item-->
     <string name="cd_reminder_time">Reminder time</string>

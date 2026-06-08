@@ -13,6 +13,7 @@ Global startup session index only. Detailed feature history lives in `docs/featu
 - `android-16-migration`: `docs/features/android-16-migration/sessions.md`
 - `dark-mode`: `docs/features/dark-mode/sessions.md`
 - `debug-update-channel`: `docs/features/debug-update-channel/sessions.md`
+- `detail-attachment-media-appearance`: `docs/features/detail-attachment-media-appearance/sessions.md`
 - `documentation-organization`: `docs/features/documentation-organization/sessions.md`
 - `home-card-span-mode`: `docs/features/home-card-span-mode/sessions.md`
 - `home-contextual-toolbar`: `docs/features/home-contextual-toolbar/sessions.md`

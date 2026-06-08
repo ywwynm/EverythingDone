@@ -201,6 +201,10 @@ class ThingCardVideoCropEditorView @JvmOverloads constructor(
         fallbackWidth: Int,
         fallbackHeight: Int
     ) {
+        val sourceChanged = this.pathName != null && this.pathName != pathName
+        if (sourceChanged) {
+            releasePlayer()
+        }
         this.pathName = pathName
         this.targetAspectRatio = clampTargetAspectRatio(targetAspectRatio.toFloat())
         this.centerX = clampRatio(centerX.toFloat())
@@ -211,11 +215,22 @@ class ThingCardVideoCropEditorView @JvmOverloads constructor(
         this.videoWidth = max(1, fallbackWidth)
         this.videoHeight = max(1, fallbackHeight)
         this.fallbackView.setFallbackBitmap(fallbackBitmap)
-        this.firstFrameVisible = false
         mainHandler.removeCallbacks(firstFrameFallbackRunnable)
-        setLoadingVisible(true)
         updateGeometry()
         invalidateCrop()
+        if (player != null) {
+            if (prepared) {
+                firstFrameVisible = true
+                setLoadingVisible(false)
+                seekTo(this.pendingSeekMs)
+            } else {
+                firstFrameVisible = false
+                setLoadingVisible(true)
+            }
+            return
+        }
+        firstFrameVisible = false
+        setLoadingVisible(true)
         textureView.surfaceTexture?.let { preparePlayer(it) }
     }
 

@@ -1,5 +1,63 @@
 # Current Debug Update Notes
 
+## 2026-06-08 - 修复视频附件外观编辑器切换宽度后 loading 不消失
+
+用户反馈：对于视频附件，在 Detail 附件外观编辑器里切换“正常”和“宽”之后，预览区域会一直显示加载圈。
+
+本次诊断确认：Detail 编辑器切换“正常/宽”时会调用 `loadActivePresentationIntoEditor()`，视频分支会再次调用 `ThingCardVideoCropEditorView.setCropVideo(...)`，以载入另一套 presentation 的 ratio/crop。`setCropVideo(...)` 原实现每次都会把 `firstFrameVisible` 置为 false 并 `setLoadingVisible(true)`，然后调用 `preparePlayer(...)`。但当同一个 `ThingCardVideoCropEditorView` 已经有 `MediaPlayer` 时，`preparePlayer(...)` 会因为 `player != null` 直接返回，不会触发新的 `onPrepared`、`onSeekComplete` 或首帧更新逻辑来关闭 loading。因此切换正常/宽后 loading 被打开，但没有收尾事件，表现为加载圈一直转。
+
+本次修改集中在 `ThingCardVideoCropEditorView.kt`：`setCropVideo(...)` 现在会先判断视频源是否变化；如果源变化则释放旧 player 并重新 prepare。如果同一视频源已有 player 且已经 prepared，就只更新 ratio/crop/frame、隐藏 loading，并执行 `seekTo(...)`，不再重启播放器准备流程；如果 player 存在但还没 prepared，则保持 loading，等待原 prepare 流程完成。这让 Detail 切换“正常/宽”能够复用已有播放器，同时避免 loading 状态卡住。该修复也让首页 Thing Card Appearance 未来如果二次调用 `setCropVideo(...)` 时更稳。
+
+验证状态：已执行 `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`，结果 `BUILD SUCCESSFUL in 3s`；随后执行 `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`，发布 debug update `202606081448` 到 `http://120.25.194.207/everythingdone-updates/debug/latest.json`。尚未做真机视觉验证。请重点测试：视频附件外观编辑器中反复切换“正常/宽”、拖动图片显示比例 slider、切换后再拖动裁切中心，以及播放/暂停状态下切换 presentation，预览 loading 是否会正常消失。
+
+## 2026-06-08 - 修复自动保存丢失 Detail 附件外观草稿
+
+用户指出一个关键自动保存 bug：`DetailActivity.saveAfterOnPause()` 会在 `onPause` 时自动保存当前编辑内容，它直接把 title、content、attachment、Thing Card span/placement 和颜色写入 `mThing`，随后调用 `ThingManager.create/update` 或 `ThingDAO.update`。但 Detail 附件外观编辑器确认后的 crop/fullSpan/ratio/videoFrame 修改只存在于草稿 `mDetailAttachmentMediaAppearance` 中，`saveAfterOnPause()` 没有把该草稿同步到 `mThing.detailAttachmentMediaAppearance`，因此用户编辑附件 appearance 后切到其他 app 触发自动保存，会把旧 appearance 写入数据库，导致本次 appearance 编辑丢失。
+
+本次诊断复查了正常保存路径 `returnToThingsActivity -> createOrUpdateThing -> createThing/updateThing`，该路径会执行 `mDetailAttachmentMediaAppearance = normalizedDetailAttachmentMediaAppearance(attachment)` 并写回 `mThing.detailAttachmentMediaAppearance`。对比确认 `saveAfterOnPause()` 是独立保存路径，之前没有执行同样的 normalize-and-write-back 步骤。
+
+本次修改集中在 `DetailActivity.kt`：新增 `applyDetailAttachmentMediaAppearanceDraftToThing(attachment)`，内部先用当前附件列表 normalize `mDetailAttachmentMediaAppearance`，再写入 `mThing.detailAttachmentMediaAppearance`。`saveAfterOnPause()` 在写入 `mThing.attachment`、`thingCardSpanMode`、`thingCardImagePlacement` 后、任何 `ThingManager.create/update` 或 `ThingDAO.update` 调用前调用该 helper。`createThing(...)` 和 `updateThing(...)` 也改为调用同一个 helper，避免正常保存和自动保存再次分叉。
+
+验证状态：已执行 `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`，结果 `BUILD SUCCESSFUL in 5s`；随后执行 `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`，发布 debug update `202606081353` 到 `http://120.25.194.207/everythingdone-updates/debug/latest.json`。当前没有合适的本地单元测试 seam 能真实覆盖 Android 生命周期里的 `onPause -> saveAfterOnPause -> ThingManager/DAO` 路径；这次用代码链路核对和 assemble 作为反馈 loop。请重点测试：打开 Detail 后编辑附件 appearance 并 confirm，直接切到其他 app 触发自动保存，再杀回/重新进入时，crop/fullSpan/ratio/videoFrame 是否保留。
+
+## 2026-06-08 - 修正 Detail 附件裁切持久化与渲染重应用
+
+用户继续反馈两点：第一，“图片显示宽度”提示文字在用户设备上会换成两行，希望 label 宽度再大一些；第二，调整裁切中心仍然不生效，并建议对照首页记事卡片自定义外观的实现，分清到底是数据没有写进数据库，还是显示链路没有应用 crop。
+
+本次诊断对照了首页 `ThingsActivity.openThingCardCropEditor()`、`updateThingCardCurrentCrop()` 与 `BaseThingsAdapter.loadThingCardImage()` / `applyThingCardMediaCrop()` 的链路。首页做法有两个关键点：外观编辑时先更新独立 draft，不提前污染原始 `Thing`；缩略图渲染时把 load key、目标尺寸和 crop 存成 `ImageView` tag 上的 render request，Glide 默认 target 更新 drawable 后再 post 应用 matrix，并且同一图片源复用时会直接重套当前 crop。对照 Detail 实现后确认了两个问题：Detail 编辑确认和删除附件时会提前把 `mThing.detailAttachmentMediaAppearance` 改成 draft 值，而保存时 `Thing.noUpdate(...)` 又拿 `mThing` 作为旧值比较，这会让只改 Detail 附件外观的场景被误判为 no-update，从而不写数据库；同时 `ImageAttachmentAdapter` 之前只在 Glide 成功回调的一次时机应用 crop，没有像首页那样保存 render request，也没有在同源重绑、crop 变化但图片源不变时立即重应用 matrix。
+
+本次修改：`DetailActivity` 中 `setDetailAttachmentMediaAppearanceFromJson(...)`、`applyDetailAttachmentMediaAppearance(...)` 和图片/视频附件删除路径不再提前写回 `mThing.detailAttachmentMediaAppearance`，只维护 `mDetailAttachmentMediaAppearance` 作为 Detail draft；只有 `createThing(...)` / `updateThing(...)` 真正保存时，才 normalize 当前附件 source 并写回 `mThing`。这样 `Thing.noUpdate(...)` 会正确把旧 `mThing.detailAttachmentMediaAppearance` 与新的 Detail draft 比较，只改裁切中心也会触发数据库更新。UI 上，“图片显示宽度” label 列宽从 76dp 增加到 104dp，并设置单行显示。
+
+显示链路方面，`ImageAttachmentAdapter` 新增 `tag_detail_attachment_image_load_key` 与 `tag_detail_attachment_image_render_request`，自定义 Detail 附件缩略图现在保存与首页类似的 render request，包含 load key、目标宽高和 crop。绑定时如果图片源和尺寸没变但 crop 变了，会直接对现有 drawable 重套 matrix；Glide 加载完成后返回默认 target 路径，并在 post 中根据当前 render request 应用 crop，避免被 drawable 更新或 RecyclerView 复用时机覆盖。legacy 未自定义附件仍使用原来的 Glide `centerCrop()` 路径。
+
+验证状态：已执行 `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`，结果 `BUILD SUCCESSFUL in 5s`；随后执行 `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`，发布 debug update `202606081259` 到 `http://120.25.194.207/everythingdone-updates/debug/latest.json`。尚未做真机视觉验证。请重点测试：只调整 Detail 附件裁切中心后保存/返回/重新进入是否仍保留；确认后当前 Detail 缩略图是否立即变化；同一图片改多次 crop 是否不需要换图也能刷新；“图片显示宽度”是否保持单行；删除/撤销删除附件外观是否仍正常。
+
+## 2026-06-08 - 修正详情页附件外观编辑器 UI 与裁切中心生效问题
+
+用户测试详情页图片/视频附件自定义外观后反馈两类问题：第一，编辑器 UI 不应直接展示 `full-span` 术语，而应像首页“自定义卡片外观”一样使用 pill 按钮选择；提示文字应为“图片显示宽度”，选项为“正常”和“宽”，比例拖动条上方文字应为“图片显示比例”；标题需要适配当前记事 background，并顺带检查暗色模式。第二，调整裁切中心后看起来没有生效。
+
+本次诊断确认：详情页编辑器之前临时使用 `CheckBox + Full-span` 文案控制 full-span，视觉和首页卡片外观的 pill 选择不一致；标题也只是普通 `app_chrome_on_surface_primary` 文本色，没有像卡片外观精确裁切 dialog 那样使用当前记事 background/accent。暗色模式相关的 App Chrome surface、on-surface 文本色和 ripple 已有 `values-night` 资源，本轮继续使用这些资源，不硬编码浅色。裁切中心问题的最可能原因在 `ImageAttachmentAdapter`：自定义模式下 `onResourceReady()` 里先 `post` 应用 matrix，但返回 `false`，Glide 随后仍会执行默认的 `setImageDrawable()`，容易覆盖我们刚设置的 matrix/scaleType，因此 Detail 缩略图最终看起来仍像普通居中裁切。
+
+本次修改：`DetailActivity` 的 Detail 附件外观编辑器新增与 Thing Card Appearance 同风格的宽度 pill 行，显示“图片显示宽度 / 正常 / 宽”，选中态使用当前记事 background 或纯色 accent 填充，文字按背景亮暗自动切换黑/白；未选中态使用 App Chrome secondary 文本色。full-span 技术词不再出现在可见 UI。比例控制的 label 改为“图片显示比例”。编辑器 root 改为使用 `bg_app_chrome_surface_elevated_rounded`，dialog window 背景改为透明，标题改为通过 `BackgroundUtil.applyTextBackground(...)` 或 accent color 适配当前记事 background。`values/strings.xml` 与 `values-zh-rCN/strings.xml` 已同步更新。
+
+裁切中心修复集中在 `ImageAttachmentAdapter`：自定义 Detail 附件缩略图加载完成后，listener 现在先手动 `setImageDrawable(resource)`，再在当前 item 仍匹配时应用 Detail crop matrix，并返回 `true` 拦截 Glide 默认 target 更新；legacy 非自定义模式仍走原来的 Glide `centerCrop()` 和默认返回路径。这样用户在编辑器里拖动得到的 `centerX/centerY/scale` 会保留到 Detail 缩略图渲染端。
+
+验证状态：已执行 `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`，结果 `BUILD SUCCESSFUL in 8s`；随后执行 `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`，发布 debug update `202606081231` 到 `http://120.25.194.207/everythingdone-updates/debug/latest.json`。尚未做真机视觉验证。请重点测试详情页附件外观编辑器的宽度 pill UI、标题在纯色/渐变记事 background 下的颜色、暗色模式 surface/text/ripple、图片和视频附件裁切中心是否会在确认后立即影响 Detail 缩略图，以及 legacy 未自定义附件是否仍保持旧布局。
+
+## 2026-06-08 - 详情页图片/视频附件支持自定义显示外观
+
+用户希望 DetailActivity 中带图片/视频附件的记事，也能像首页“自定义卡片外观”一样调整媒体显示外观：位于第一个位置的图片/视频可以设置是否 full-span、目标宽高比、裁切区域和裁切缩放；其余图片/视频保持 1:1 网格显示，但可以调整裁切中心和缩放比例。用户在方案确认中补充了多个关键约束：单附件当前默认 full-span 的设计保持不变；不要把概念命名为 first，而是命名为 full-span；full-span 比例范围允许从 1:2 到 65:24（Hasselblad XPan 超宽画幅）；fullSpan crop 可以从已有 grid crop 种子化，但目标比例仍可保持 1:1；grid 的 ratio 也保存，给未来扩展留空间；不需要 reset；不设置裁切缩放上限。
+
+本次实现新增 Detail 专用附件媒体外观模型 `DetailAttachmentMediaAppearance`，并在 `things` 表增加 `detail_attachment_media_appearance` 字段，数据库版本升级到 14。外观数据按附件 source key 保存，包含弱文件身份 `fileSize/lastModified`、`fullSpanEnabled`、共享的 `videoFrameMs`，以及 `grid` / `fullSpan` 两套 presentation；每套 presentation 保存 `targetAspectRatio` 和 crop 的 `centerX/centerY/scale`。附件变更时会通过 `ThingCardMediaHelper.getMediaSourceKeysFromAttachment(...)` 只保留当前仍存在的 source；删除图片/视频附件时会移除对应外观，并把 before/after JSON 写入 undo action，保证撤销删除时可以恢复。备份/恢复通过数据库字段自然携带该外观；`ThingExporter` 的 txt/zip 导出仍保持原有单向内容导出，不额外输出外观 JSON。
+
+详情页渲染改动集中在 `DetailActivity` 和 `ImageAttachmentAdapter`。没有保存过 Detail 附件外观的旧记事仍走原来的布局逻辑：单媒体保持当前 full-width 4:3，多媒体保持原有网格；这样历史记事不会因为新增字段默认值而改变显示。存在当前附件的 saved appearance 后，列表进入自定义布局：单附件固定 full-span 且不能关闭；多附件中只有当前位置 0 的附件可以启用 full-span，启用后占满首行，其余附件从下一行继续 1:1 网格显示；非首位附件始终按 1:1 网格显示，但可编辑裁切中心和缩放。长按拖拽重排保持原逻辑，不自动改写外观：如果原 first full-span 附件被移走，它不会把 full-span/crop 继承给新的第一项；如果一个原本保存了 full-span 外观的附件被移动到第一位，则会按自身保存的 fullSpan 配置显示。
+
+本次新增的编辑 UI 使用 App Chrome Dialog，视觉和交互参考首页“自定义卡片外观”。图片附件使用 `ThingCardCropEditorView` 预览裁切，视频附件使用 `ThingCardVideoCropEditorView`，并复用 play/pause/stop、seekbar 和视频帧选择能力。第一个多附件会显示 full-span 开关；单附件不显示可关闭的开关但可编辑 full-span 比例和 crop；普通网格附件只显示 grid crop 编辑。ratio 滑条支持 1:2、1:1、4:3、3:2、16:9、2:1、65:24 等刻度；grid 当前渲染仍固定 1:1，但已保存 grid ratio 字段。确认编辑会写入 `ThingAction.UPDATE_DETAIL_ATTACHMENT_MEDIA_APPEARANCE`，支持撤销/重做；取消编辑不会污染当前记事草稿。
+
+代码与资源主要涉及：`app/src/main/java/com/ywwynm/everythingdone/model/DetailAttachmentMediaAppearance.kt`、`Def.kt`、`DBHelper.kt`、`Thing.kt`、`ThingDAO.kt`、`ThingAction.kt`、`DetailActivity.kt`、`ImageAttachmentAdapter.kt`、`app/src/main/res/layout/attachment_image.xml`、`values/strings.xml` 和 `values-zh-rCN/strings.xml`。同步更新了 `docs/features/detail-attachment-media-appearance/`、`docs/adr/0004-detail-attachment-media-appearance.md`、`CONTEXT.md`、`memory/decisions.md`、`memory/preferences.md` 与 `memory/sessions.md`。
+
+验证状态：已经执行 `.\gradlew.bat :app:assembleDebug` 并通过，最终输出 `BUILD SUCCESSFUL in 2s`；`git diff --check` 也已通过，仅有仓库既有 LF/CRLF warning 与本机 `.config/git/ignore` 权限 warning。尚未在真机/模拟器上做视觉测试。用户本轮要求使用 Gradle task 往阿里云发布一个版本，已执行 `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`，发布 debug update `202606081117` 到 `http://120.25.194.207/everythingdone-updates/debug/latest.json`。请重点测试详情页单附件默认 full-span 是否保持旧行为、多附件首位 full-span 开关、非首位 1:1 crop、图片和视频裁切预览、视频帧选择、删除/撤销删除、拖拽重排后 full-span 外观不错误继承，以及 1:2 到 65:24 的极端比例显示。
+
 ## 2026-06-07 - 优化首页记事卡片图片重复显示
 
 用户提供了 DeepSeek 的代码审查结果，并反馈首页记事列表支持不同封面比例后，图片首次加载完成后再滚动回来仍经常出现图片区域空白，需要等待 Glide 再次填充。用户期望首次加载可以等待，但已加载过的同一记事卡片再次出现时应直接显示图片。

@@ -34,7 +34,8 @@ open class Thing(
     var finishTime: Long,
     thingCardSpanMode: Int = THING_CARD_SPAN_NORMAL,
     thingCardImagePlacement: Int = THING_CARD_IMAGE_PLACEMENT_DEFAULT,
-    thingCardAppearance: ThingCardAppearance? = null
+    thingCardAppearance: ThingCardAppearance? = null,
+    detailAttachmentMediaAppearance: DetailAttachmentMediaAppearance? = null
 ) : Parcelable {
 
     private var _color: Int = color
@@ -50,6 +51,9 @@ open class Thing(
 
     var thingCardAppearance: ThingCardAppearance = thingCardAppearance
         ?: ThingCardAppearance.fromLegacy(thingCardSpanMode, thingCardImagePlacement)
+
+    var detailAttachmentMediaAppearance: DetailAttachmentMediaAppearance =
+        detailAttachmentMediaAppearance ?: DetailAttachmentMediaAppearance.default()
 
     var thingCardSpanMode: Int
         @ThingCardSpanMode get() = thingCardAppearance.spanMode
@@ -73,7 +77,8 @@ open class Thing(
         thing.title, thing.content, thing.attachment, thing.location,
         thing.createTime, thing.updateTime, thing.finishTime,
         thing.thingCardSpanMode, thing.thingCardImagePlacement,
-        thing.thingCardAppearance
+        thing.thingCardAppearance,
+        thing.detailAttachmentMediaAppearance
     ) {
         _background = thing._background
         selected = thing.selected
@@ -110,6 +115,12 @@ open class Thing(
             val appearance = ThingCardAppearance.fromJson(`in`.readString())
             if (appearance != null) {
                 thingCardAppearance = appearance
+            }
+        }
+        if (`in`.dataAvail() > 0) {
+            val detailAppearance = DetailAttachmentMediaAppearance.fromJson(`in`.readString())
+            if (detailAppearance != null) {
+                detailAttachmentMediaAppearance = detailAppearance
             }
         }
     }
@@ -153,6 +164,17 @@ open class Thing(
             val appearance = ThingCardAppearance.fromJson(c.getString(appearanceCol))
             if (appearance != null) {
                 thingCardAppearance = appearance
+            }
+        }
+        val detailAppearanceCol = c.getColumnIndex(
+            Def.Database.COLUMN_DETAIL_ATTACHMENT_MEDIA_APPEARANCE_THINGS
+        )
+        if (detailAppearanceCol >= 0 && !c.isNull(detailAppearanceCol)) {
+            val appearance = DetailAttachmentMediaAppearance.fromJson(
+                c.getString(detailAppearanceCol)
+            )
+            if (appearance != null) {
+                detailAttachmentMediaAppearance = appearance
             }
         }
     }
@@ -266,6 +288,7 @@ open class Thing(
         dest.writeInt(thingCardSpanMode)
         dest.writeInt(thingCardImagePlacement)
         dest.writeString(thingCardAppearance.toJson())
+        dest.writeString(detailAttachmentMediaAppearance.toJson())
     }
 
     @IntDef(-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)
@@ -506,14 +529,16 @@ open class Thing(
         @JvmStatic
         fun noUpdate(thing: Thing?, title: String?, content: String?, attachment: String?,
                      type: Int, background: ThingBackground?, thingCardSpanMode: Int,
-                     thingCardImagePlacement: Int): Boolean {
+                     thingCardImagePlacement: Int,
+                     detailAttachmentMediaAppearance: DetailAttachmentMediaAppearance): Boolean {
             return thing!!.title!! == title &&
                     thing.content!! == content &&
                     thing.attachment!! == attachment &&
                     thing.type == type &&
                     thing.getBackground()!! == background &&
                     thing.thingCardSpanMode == thingCardSpanMode &&
-                    thing.thingCardImagePlacement == thingCardImagePlacement
+                    thing.thingCardImagePlacement == thingCardImagePlacement &&
+                    thing.detailAttachmentMediaAppearance == detailAttachmentMediaAppearance
         }
 
         @JvmStatic

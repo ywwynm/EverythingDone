@@ -382,6 +382,13 @@
     <string name="thing_card_appearance_video_frame_stop">停止视频帧预览</string>
     <string name="thing_card_appearance_video_frame_previous">上一帧</string>
     <string name="thing_card_appearance_video_frame_next">下一帧</string>
+    <string name="detail_attachment_media_appearance_title">附件外观</string>
+    <string name="detail_attachment_media_appearance_display_width">图片显示宽度</string>
+    <string name="detail_attachment_media_appearance_width_normal">正常</string>
+    <string name="detail_attachment_media_appearance_width_wide">宽</string>
+    <string name="detail_attachment_media_appearance_full_span">宽</string>
+    <string name="detail_attachment_media_appearance_crop">裁切附件</string>
+    <string name="detail_attachment_media_appearance_full_span_ratio">图片显示比例</string>
 
     <!--DetailActivity create-->
     <string name="act_add_attachment">添加附件</string>
@@ -1068,6 +1075,8 @@
 
     <string name="cd_delete_image_attachment">删除该图片附件</string>
     <string name="cd_delete_video_attachment">删除该视频附件</string>
+    <string name="cd_edit_image_attachment_appearance">编辑该图片附件外观</string>
+    <string name="cd_edit_video_attachment_appearance">编辑该视频附件外观</string>
 
     <!--time of day rec item-->
     <string name="cd_reminder_time">提醒时刻</string>

@@ -107,6 +107,7 @@ requires them.
 - `color-system-migration`: `docs/features/color-system-migration/preferences.md`
 - `dark-mode`: `docs/features/dark-mode/preferences.md`
 - `debug-update-channel`: `docs/features/debug-update-channel/preferences.md`
+- `detail-attachment-media-appearance`: `docs/features/detail-attachment-media-appearance/preferences.md`
 - `kotlin-migration`: `docs/features/kotlin-migration/preferences.md`
 - `localization`: `docs/features/localization/preferences.md`
 - `remote-thing-card-appearance`: `docs/features/remote-thing-card-appearance/preferences.md`

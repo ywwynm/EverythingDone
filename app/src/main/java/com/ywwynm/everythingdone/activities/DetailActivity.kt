@@ -8,6 +8,7 @@ import android.Manifest
 import androidx.activity.OnBackPressedCallback
 import android.annotation.SuppressLint
 import android.app.ActivityManager
+import android.app.Dialog
 import android.content.ActivityNotFoundException
 import android.content.BroadcastReceiver
 import android.content.ClipData
@@ -19,12 +20,14 @@ import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.PorterDuff
 import android.graphics.Rect
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
+import android.graphics.drawable.GradientDrawable
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
@@ -60,6 +63,7 @@ import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.content.res.AppCompatResources
@@ -101,8 +105,10 @@ import com.ywwynm.everythingdone.helpers.LineSpacingHelper
 import com.ywwynm.everythingdone.helpers.ScreenshotHelper
 import com.ywwynm.everythingdone.helpers.SendInfoHelper
 import com.ywwynm.everythingdone.helpers.ThingDoingHelper
+import com.ywwynm.everythingdone.helpers.ThingCardMediaHelper
 import com.ywwynm.everythingdone.helpers.ThingExporter
 import com.ywwynm.everythingdone.managers.ThingManager
+import com.ywwynm.everythingdone.model.DetailAttachmentMediaAppearance
 import com.ywwynm.everythingdone.model.Habit
 import com.ywwynm.everythingdone.model.Reminder
 import com.ywwynm.everythingdone.model.ReminderHabitParams
@@ -118,6 +124,7 @@ import com.ywwynm.everythingdone.receivers.ReminderReceiver
 import com.ywwynm.everythingdone.utils.DateTimeUtil
 import com.ywwynm.everythingdone.utils.DeviceUtil
 import com.ywwynm.everythingdone.utils.BackgroundUtil
+import com.ywwynm.everythingdone.utils.BitmapUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.FileUtil
 import com.ywwynm.everythingdone.utils.KeyboardUtil
@@ -125,8 +132,16 @@ import com.ywwynm.everythingdone.utils.LocaleUtil
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil
 import com.ywwynm.everythingdone.utils.UriPathConverter
 import com.ywwynm.everythingdone.views.Snackbar
+import com.ywwynm.everythingdone.views.ThingCardCropEditorController
+import com.ywwynm.everythingdone.views.ThingCardCropEditorView
+import com.ywwynm.everythingdone.views.ThingCardRatioTicksView
+import com.ywwynm.everythingdone.views.ThingCardVideoCropEditorView
 import com.ywwynm.everythingdone.views.pickers.ColorPicker
 import com.ywwynm.everythingdone.views.pickers.DateTimePicker
+import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.roundToInt
 
 import java.time.ZonedDateTime
 
@@ -167,6 +182,8 @@ class DetailActivity : EverythingDoneBaseActivity() {
     private var mThing: Thing? = null
     private var mThingCardSpanMode: Int = Thing.THING_CARD_SPAN_NORMAL
     private var mThingCardImagePlacement: Int = Thing.THING_CARD_IMAGE_PLACEMENT_DEFAULT
+    private var mDetailAttachmentMediaAppearance: DetailAttachmentMediaAppearance =
+        DetailAttachmentMediaAppearance.default()
     private var mPosition: Int = 0
     private var mReminder: Reminder? = null
     private var mHabit: Habit? = null
@@ -252,7 +269,8 @@ class DetailActivity : EverythingDoneBaseActivity() {
         val updateTime: Long,
         val finishTime: Long,
         val thingCardSpanMode: Int,
-        val thingCardImagePlacement: Int
+        val thingCardImagePlacement: Int,
+        val detailAttachmentMediaAppearance: String
     )
 
     /**
@@ -405,6 +423,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
                 && mThing!!.state == Thing.UNDERWAY
         mThingCardSpanMode = mThing!!.thingCardSpanMode
         mThingCardImagePlacement = mThing!!.thingCardImagePlacement
+        mDetailAttachmentMediaAppearance = mThing!!.detailAttachmentMediaAppearance
         if (mEditable) {
             mShowNormalSnackbar = Runnable {
                 mNormalSnackbar!!.show()
@@ -518,7 +537,8 @@ class DetailActivity : EverythingDoneBaseActivity() {
             thing.updateTime,
             thing.finishTime,
             thing.thingCardSpanMode,
-            thing.thingCardImagePlacement
+            thing.thingCardImagePlacement,
+            thing.detailAttachmentMediaAppearance.toJson()
         )
     }
 
@@ -1725,6 +1745,8 @@ class DetailActivity : EverythingDoneBaseActivity() {
                 undoOrRedoReminderHabit(action, undo)
             ThingAction.TOGGLE_PRIVATE ->
                 togglePrivateThing()
+            ThingAction.UPDATE_DETAIL_ATTACHMENT_MEDIA_APPEARANCE ->
+                undoOrRedoDetailAttachmentMediaAppearance(action, undo)
             else -> {}
         }
         updateUndoRedoActionButtonState()
@@ -1762,16 +1784,31 @@ class DetailActivity : EverythingDoneBaseActivity() {
         // before:position, after:attachmentTypePathName
         val position: Int = action.getBefore() as Int
         val atpn: String = action.getAfter() as String
+        val appearanceBefore = action.getExtras()!!.getString(
+            ThingAction.KEY_DETAIL_ATTACHMENT_MEDIA_APPEARANCE_BEFORE
+        )
+        val appearanceAfter = action.getExtras()!!.getString(
+            ThingAction.KEY_DETAIL_ATTACHMENT_MEDIA_APPEARANCE_AFTER
+        )
         if (undo) {
+            if (!atpn.startsWith(AttachmentHelper.AUDIO.toString())) {
+                setDetailAttachmentMediaAppearanceFromJson(appearanceBefore, false)
+            }
             attachmentTypePathName = atpn
             addAttachment(position)
         } else {
             if (atpn.startsWith(AttachmentHelper.AUDIO.toString())) {
                 notifyAudioAttachmentsChanged(false, position)
             } else {
+                setDetailAttachmentMediaAppearanceFromJson(appearanceAfter, false)
                 notifyImageAttachmentsChanged(false, position)
             }
         }
+    }
+
+    private fun undoOrRedoDetailAttachmentMediaAppearance(action: ThingAction, undo: Boolean) {
+        val json = (if (undo) action.getBefore() else action.getAfter()) as? String
+        setDetailAttachmentMediaAppearanceFromJson(json, true)
     }
 
     private fun undoOrRedoReminderHabit(action: ThingAction, undo: Boolean) {
@@ -1912,10 +1949,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
         setSpans()
 
         if (mRvImageAttachment!!.isVisible) {
-            val size = mImageAttachmentAdapter!!.itemCount
-            AttachmentHelper.setImageRecyclerViewHeight(mRvImageAttachment, size, mMaxSpanImage)
-            mImageLayoutManager!!.spanCount = if (size < mMaxSpanImage) size else mMaxSpanImage
-            mImageAttachmentAdapter!!.notifyDataSetChanged()
+            refreshImageAttachmentLayout(true)
         }
 
         if (mRvAudioAttachment!!.isVisible) {
@@ -2063,6 +2097,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
         mThing!!.attachment = attachment
         mThing!!.thingCardSpanMode = mThingCardSpanMode
         mThing!!.thingCardImagePlacement = mThingCardImagePlacement
+        applyDetailAttachmentMediaAppearanceDraftToThing(attachment)
         if (mChangeBackgroundTo != null) {
             mThing!!.setBackground(mChangeBackgroundTo)
         } else {
@@ -2203,12 +2238,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
                 mRvImageAttachment!!.visibility = View.GONE
                 setScrollViewMarginTop(true)
             } else {
-                val spanAfter = if (sizeAfter < mMaxSpanImage) sizeAfter else mMaxSpanImage
-                AttachmentHelper.setImageRecyclerViewHeight(
-                    mRvImageAttachment, items.size, mMaxSpanImage
-                )
-                mImageLayoutManager!!.spanCount = spanAfter
-                mImageAttachmentAdapter!!.notifyDataSetChanged()
+                refreshImageAttachmentLayout(true)
             }
         }
     }
@@ -2333,17 +2363,20 @@ class DetailActivity : EverythingDoneBaseActivity() {
 
         val size = items.size
         mRvImageAttachment!!.visibility = View.VISIBLE
-        AttachmentHelper.setImageRecyclerViewHeight(mRvImageAttachment, size, mMaxSpanImage)
         setScrollViewMarginTop(false)
 
         mImageAttachmentAdapter = ImageAttachmentAdapter(
             this, mEditable, items,
             ImageAttachmentClickCallback(),
-            if (mEditable) ImageAttachmentRemoveCallback() else null
+            if (mEditable) ImageAttachmentRemoveCallback() else null,
+            if (mEditable) ImageAttachmentAppearanceCallback() else null,
+            mMaxSpanImage,
+            mDetailAttachmentMediaAppearance
         )
-        mImageLayoutManager = GridLayoutManager(this, if (size < mMaxSpanImage) size else mMaxSpanImage)
+        mImageLayoutManager = GridLayoutManager(this, getImageAttachmentSpanCount(size))
         mRvImageAttachment!!.adapter = mImageAttachmentAdapter
         mRvImageAttachment!!.layoutManager = mImageLayoutManager
+        refreshImageAttachmentLayout(false)
 
         if (mEditable) {
             ItemTouchHelper(AttachmentTouchCallback(true))
@@ -2354,10 +2387,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
     private fun notifyImageAttachmentsChanged(add: Boolean, position: Int) {
         val items: MutableList<String?> = mImageAttachmentAdapter!!.getItems()!! as MutableList<String?>
 
-        val sizeBefore = items.size
-        val spanBefore = if (sizeBefore < mMaxSpanImage) sizeBefore else mMaxSpanImage
-        val sizeAfter = if (add) sizeBefore + 1 else sizeBefore - 1
-        val spanAfter = if (sizeAfter < mMaxSpanImage) sizeAfter else mMaxSpanImage
+        val sizeAfter = if (add) items.size + 1 else items.size - 1
 
         if (add) {
             if (mRvImageAttachment!!.visibility != View.VISIBLE) {
@@ -2366,17 +2396,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
                 setScrollViewMarginTop(false)
             }
             items.add(position, attachmentTypePathName)
-            AttachmentHelper.setImageRecyclerViewHeight(mRvImageAttachment, sizeAfter, mMaxSpanImage)
-            if (spanAfter == spanBefore) {
-                if (sizeBefore == mMaxSpanImage || position == 0) {
-                    mImageAttachmentAdapter!!.notifyDataSetChanged()
-                } else {
-                    mImageAttachmentAdapter!!.notifyItemInserted(position)
-                }
-            } else {
-                mImageLayoutManager!!.spanCount = spanAfter
-                mImageAttachmentAdapter!!.notifyDataSetChanged()
-            }
+            refreshImageAttachmentLayout(true)
         } else {
             items.removeAt(position)
             if (sizeAfter == 0) {
@@ -2385,17 +2405,94 @@ class DetailActivity : EverythingDoneBaseActivity() {
                 setScrollViewMarginTop(true)
                 return
             }
-            AttachmentHelper.setImageRecyclerViewHeight(mRvImageAttachment, sizeAfter, mMaxSpanImage)
-            if (spanAfter == spanBefore) {
-                if (sizeBefore == mMaxSpanImage + 1 || position == 0) {
-                    mImageAttachmentAdapter!!.notifyDataSetChanged()
-                } else {
-                    mImageAttachmentAdapter!!.notifyItemRemoved(position)
-                }
-            } else {
-                mImageLayoutManager!!.spanCount = spanAfter
-                mImageAttachmentAdapter!!.notifyDataSetChanged()
+            refreshImageAttachmentLayout(true)
+        }
+    }
+
+    private fun getImageAttachmentSpanCount(itemCount: Int): Int {
+        return max(1, if (itemCount < mMaxSpanImage) itemCount else mMaxSpanImage)
+    }
+
+    private fun refreshImageAttachmentLayout(notify: Boolean) {
+        val adapter = mImageAttachmentAdapter ?: return
+        val layoutManager = mImageLayoutManager ?: return
+        val itemCount = adapter.itemCount
+        if (itemCount <= 0) return
+
+        adapter.setMaxSpan(mMaxSpanImage)
+        adapter.setDetailAttachmentMediaAppearance(mDetailAttachmentMediaAppearance)
+        val spanCount = getImageAttachmentSpanCount(itemCount)
+        layoutManager.spanCount = spanCount
+        layoutManager.spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
+            override fun getSpanSize(position: Int): Int {
+                return if (adapter.isFullSpanPosition(position)) spanCount else 1
             }
+        }
+
+        if (adapter.isCustomizedMode()) {
+            setCustomizedImageRecyclerViewHeight(adapter, spanCount)
+        } else {
+            AttachmentHelper.setImageRecyclerViewHeight(mRvImageAttachment, itemCount, mMaxSpanImage)
+        }
+
+        if (notify) {
+            adapter.notifyDataSetChanged()
+        }
+    }
+
+    private fun setCustomizedImageRecyclerViewHeight(
+        adapter: ImageAttachmentAdapter,
+        spanCount: Int
+    ) {
+        val itemCount = adapter.itemCount
+        var totalHeight = 0
+        var gridStartPosition = 0
+        if (adapter.isFullSpanPosition(0)) {
+            totalHeight += adapter.getItemTargetSize(0)[1]
+            gridStartPosition = 1
+        }
+
+        val remaining = itemCount - gridStartPosition
+        if (remaining > 0) {
+            val gridHeight = adapter.getItemTargetSize(gridStartPosition)[1]
+            val rows = (remaining + spanCount - 1) / spanCount
+            totalHeight += rows * gridHeight
+        }
+
+        val params = mRvImageAttachment!!.layoutParams as LinearLayout.LayoutParams
+        params.height = max(1, totalHeight)
+        mRvImageAttachment!!.requestLayout()
+    }
+
+    private fun setDetailAttachmentMediaAppearanceFromJson(
+        json: String?,
+        notify: Boolean
+    ) {
+        mDetailAttachmentMediaAppearance = DetailAttachmentMediaAppearance.fromJson(json)
+            ?: DetailAttachmentMediaAppearance.default()
+        if (mImageAttachmentAdapter != null) {
+            refreshImageAttachmentLayout(notify)
+        }
+    }
+
+    private fun applyDetailAttachmentMediaAppearance(
+        appearance: DetailAttachmentMediaAppearance
+    ) {
+        val beforeJson = mDetailAttachmentMediaAppearance.toJson()
+        val afterJson = appearance.toJson()
+        if (beforeJson == afterJson) return
+
+        mDetailAttachmentMediaAppearance = appearance
+        refreshImageAttachmentLayout(true)
+
+        if (shouldAddToActionList) {
+            mActionList!!.addAction(
+                ThingAction(
+                    ThingAction.UPDATE_DETAIL_ATTACHMENT_MEDIA_APPEARANCE,
+                    beforeJson,
+                    afterJson
+                )
+            )
         }
     }
 
@@ -3130,12 +3227,13 @@ class DetailActivity : EverythingDoneBaseActivity() {
         if (mType == CREATE && !savedAfterOnPause) {
             resultCode = createThing(title, content, attachment, typeAfter, color, intent)
         } else {
+            val detailAppearance = normalizedDetailAttachmentMediaAppearance(attachment)
             val proposedBg: ThingBackground? = if (mChangeBackgroundTo != null)
                 mChangeBackgroundTo
             else mThing!!.getBackground()
             val noUpdate = Thing.noUpdate(
                 mThing, title, content, attachment, typeAfter, proposedBg,
-                mThingCardSpanMode, mThingCardImagePlacement
+                mThingCardSpanMode, mThingCardImagePlacement, detailAppearance
             )
                 && !reminderUpdated && !habitUpdated && !mHabitFinishedThisTime
                 && !mHabitRecordEdited
@@ -3154,6 +3252,18 @@ class DetailActivity : EverythingDoneBaseActivity() {
             }
         }
         return resultCode
+    }
+
+    private fun normalizedDetailAttachmentMediaAppearance(
+        attachment: String
+    ): DetailAttachmentMediaAppearance {
+        val availableKeys = ThingCardMediaHelper.getMediaSourceKeysFromAttachment(attachment)
+        return mDetailAttachmentMediaAppearance.retainSources(availableKeys)
+    }
+
+    private fun applyDetailAttachmentMediaAppearanceDraftToThing(attachment: String) {
+        mDetailAttachmentMediaAppearance = normalizedDetailAttachmentMediaAppearance(attachment)
+        mThing!!.detailAttachmentMediaAppearance = mDetailAttachmentMediaAppearance
     }
 
     private fun afterCreateOrUpdateThing(intent: Intent, resultCode: Int) {
@@ -3433,6 +3543,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
         mThing!!.type = typeAfter
         mThing!!.thingCardSpanMode = mThingCardSpanMode
         mThing!!.thingCardImagePlacement = mThingCardImagePlacement
+        applyDetailAttachmentMediaAppearanceDraftToThing(attachment)
         if (mChangeBackgroundTo != null) {
             mThing!!.setBackground(mChangeBackgroundTo)
         } else {
@@ -3468,6 +3579,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
         mThing!!.type = typeAfter
         mThing!!.thingCardSpanMode = mThingCardSpanMode
         mThing!!.thingCardImagePlacement = mThingCardImagePlacement
+        applyDetailAttachmentMediaAppearanceDraftToThing(attachment)
         if (mChangeBackgroundTo != null) {
             mThing!!.setBackground(mChangeBackgroundTo)
         } else {
@@ -3711,6 +3823,925 @@ class DetailActivity : EverythingDoneBaseActivity() {
         }
     }
 
+    private inner class ImageAttachmentAppearanceCallback :
+        ImageAttachmentAdapter.AppearanceCallback {
+
+        override fun onEditAppearance(pos: Int) {
+            showDetailAttachmentMediaAppearanceEditor(pos)
+        }
+    }
+
+    private fun showDetailAttachmentMediaAppearanceEditor(position: Int) {
+        val typePathName = mImageAttachmentAdapter?.getItems()?.getOrNull(position) ?: return
+        val source = ThingCardMediaHelper.toMediaSource(typePathName) ?: return
+        val bitmap = loadDetailAttachmentCropEditorBitmap(source) ?: return
+        val isFirst = position == 0
+        val isSingle = mImageAttachmentAdapter?.itemCount == 1
+        val canToggleFullSpan = isFirst && !isSingle
+
+        var draftSource = createEditableDetailAttachmentSourceAppearance(source)
+        draftSource = draftSource.ensurePresentation(
+            DetailAttachmentMediaAppearance.PRESENTATION_GRID
+        )
+        if (isFirst && (isSingle || draftSource.fullSpanEnabled)) {
+            draftSource = draftSource.ensurePresentation(
+                DetailAttachmentMediaAppearance.PRESENTATION_FULL_SPAN,
+                DetailAttachmentMediaAppearance.PRESENTATION_GRID
+            )
+        }
+        var activePresentationKey = if (isFirst && (isSingle || draftSource.fullSpanEnabled)) {
+            DetailAttachmentMediaAppearance.PRESENTATION_FULL_SPAN
+        } else {
+            DetailAttachmentMediaAppearance.PRESENTATION_GRID
+        }
+
+        val dialog = Dialog(this)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        val density = resources.displayMetrics.density
+        val dialogWidth = getDetailAttachmentAppearanceDialogWidth()
+        val contentHorizontalMargin = (density * 20).toInt()
+
+        val root = LinearLayout(this)
+        root.orientation = LinearLayout.VERTICAL
+        root.setBackgroundResource(R.drawable.bg_app_chrome_surface_elevated_rounded)
+        root.setPadding(0, (density * 18).toInt(), 0, 0)
+
+        val title = TextView(this)
+        title.setText(R.string.detail_attachment_media_appearance_title)
+        applyDetailAttachmentAppearanceAccentText(title)
+        title.textSize = 20f
+        title.includeFontPadding = false
+        root.addView(
+            title,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply {
+                setMargins(contentHorizontalMargin, 0, contentHorizontalMargin, 0)
+            }
+        )
+
+        var onWidthModeChanged: ((Boolean) -> Unit)? = null
+        val widthControls = if (canToggleFullSpan) {
+            createDetailAttachmentWidthControls(draftSource.fullSpanEnabled) { wide ->
+                onWidthModeChanged?.invoke(wide)
+            }
+        } else {
+            null
+        }
+        if (widthControls != null) {
+            root.addView(
+                widthControls.view,
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    (density * 40).toInt()
+                ).apply {
+                    setMargins(
+                        contentHorizontalMargin,
+                        (density * 12).toInt(),
+                        contentHorizontalMargin,
+                        0
+                    )
+                }
+            )
+        }
+
+        val initialPresentation = draftSource.presentationOrDefault(activePresentationKey)
+        val videoCropView: ThingCardVideoCropEditorView?
+        val cropEditor: ThingCardCropEditorController
+        val cropEditorView: View
+        var videoFrameControls: DetailAttachmentVideoFrameControls? = null
+
+        if (source.isVideo) {
+            val view = ThingCardVideoCropEditorView(this)
+            view.setAccentBackground(getAccentBackground() ?: ThingBackground.pure(getAccentColor()))
+            view.setCropVideo(
+                source.pathName,
+                initialPresentation.targetAspectRatio,
+                initialPresentation.crop.centerX,
+                initialPresentation.crop.centerY,
+                initialPresentation.crop.scale,
+                draftSource.videoFrameMs ?: 0L,
+                bitmap,
+                bitmap.width,
+                bitmap.height
+            )
+            videoCropView = view
+            cropEditor = view
+            cropEditorView = view
+        } else {
+            val view = ThingCardCropEditorView(this)
+            view.setCropBitmap(
+                bitmap,
+                initialPresentation.targetAspectRatio,
+                initialPresentation.crop.centerX,
+                initialPresentation.crop.centerY,
+                initialPresentation.crop.scale
+            )
+            videoCropView = null
+            cropEditor = view
+            cropEditorView = view
+        }
+        cropEditorView.setOnTouchListener { v, _ ->
+            v.parent?.requestDisallowInterceptTouchEvent(true)
+            false
+        }
+
+        root.addView(
+            cropEditorView,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                getDetailAttachmentCropEditorPreviewHeight(
+                    bitmap,
+                    dialogWidth,
+                    contentHorizontalMargin
+                )
+            ).apply {
+                setMargins(
+                    contentHorizontalMargin,
+                    (density * 16).toInt(),
+                    contentHorizontalMargin,
+                    0
+                )
+            }
+        )
+
+        if (source.isVideo && videoCropView != null) {
+            videoFrameControls = createDetailAttachmentVideoFrameControls(
+                videoCropView,
+                source,
+                draftSource.videoFrameMs ?: 0L
+            )
+            if (videoFrameControls != null) {
+                root.addView(
+                    videoFrameControls.view,
+                    LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                    ).apply {
+                        setMargins(
+                            contentHorizontalMargin,
+                            (density * 12).toInt(),
+                            contentHorizontalMargin,
+                            0
+                        )
+                    }
+                )
+            }
+        }
+
+        val ratioControls = createDetailAttachmentRatioControls(
+            cropEditor,
+            initialPresentation.targetAspectRatio
+        )
+        ratioControls.view.visibility =
+            if (activePresentationKey == DetailAttachmentMediaAppearance.PRESENTATION_FULL_SPAN) {
+                View.VISIBLE
+            } else {
+                View.GONE
+            }
+        root.addView(
+            ratioControls.view,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply {
+                setMargins(
+                    contentHorizontalMargin,
+                    (density * 12).toInt(),
+                    contentHorizontalMargin,
+                    0
+                )
+            }
+        )
+
+        fun saveCurrentPresentationToDraft() {
+            val targetAspectRatio =
+                if (activePresentationKey == DetailAttachmentMediaAppearance.PRESENTATION_GRID) {
+                    DetailAttachmentMediaAppearance.DEFAULT_TARGET_ASPECT_RATIO
+                } else {
+                    cropEditor.getTargetAspectRatio()
+                }
+            draftSource = draftSource.withPresentation(
+                activePresentationKey,
+                DetailAttachmentMediaAppearance.MediaPresentationAppearance(
+                    targetAspectRatio = targetAspectRatio,
+                    crop = DetailAttachmentMediaAppearance.DetailMediaCrop(
+                        centerX = cropEditor.getCropCenterX(),
+                        centerY = cropEditor.getCropCenterY(),
+                        scale = cropEditor.getCropUserScale()
+                    )
+                )
+            )
+        }
+
+        fun selectedVideoFrameMs(): Long {
+            return videoFrameControls?.getFrameMs?.invoke() ?: draftSource.videoFrameMs ?: 0L
+        }
+
+        fun loadActivePresentationIntoEditor() {
+            val presentation = draftSource.presentationOrDefault(activePresentationKey)
+            if (source.isVideo && videoCropView != null) {
+                videoCropView.setCropVideo(
+                    source.pathName,
+                    presentation.targetAspectRatio,
+                    presentation.crop.centerX,
+                    presentation.crop.centerY,
+                    presentation.crop.scale,
+                    selectedVideoFrameMs(),
+                    bitmap,
+                    bitmap.width,
+                    bitmap.height
+                )
+            } else if (cropEditorView is ThingCardCropEditorView) {
+                cropEditorView.setCropBitmap(
+                    bitmap,
+                    presentation.targetAspectRatio,
+                    presentation.crop.centerX,
+                    presentation.crop.centerY,
+                    presentation.crop.scale
+                )
+            }
+            ratioControls.setRatio(presentation.targetAspectRatio)
+            ratioControls.view.visibility =
+                if (activePresentationKey ==
+                    DetailAttachmentMediaAppearance.PRESENTATION_FULL_SPAN
+                ) {
+                    View.VISIBLE
+                } else {
+                    View.GONE
+                }
+        }
+
+        onWidthModeChanged = { isWide ->
+            saveCurrentPresentationToDraft()
+            draftSource = draftSource.withFullSpanEnabled(isWide)
+            activePresentationKey = if (isWide) {
+                draftSource = draftSource.ensurePresentation(
+                    DetailAttachmentMediaAppearance.PRESENTATION_FULL_SPAN,
+                    DetailAttachmentMediaAppearance.PRESENTATION_GRID
+                )
+                DetailAttachmentMediaAppearance.PRESENTATION_FULL_SPAN
+            } else {
+                DetailAttachmentMediaAppearance.PRESENTATION_GRID
+            }
+            loadActivePresentationIntoEditor()
+        }
+
+        val buttons = LinearLayout(this)
+        buttons.gravity = android.view.Gravity.RIGHT or android.view.Gravity.CENTER_VERTICAL
+        buttons.orientation = LinearLayout.HORIZONTAL
+        buttons.addView(createDetailAttachmentAppearanceButton(R.string.cancel, false) {
+            dialog.dismiss()
+        })
+        buttons.addView(createDetailAttachmentAppearanceButton(R.string.confirm) {
+            saveCurrentPresentationToDraft()
+            if (isFirst) {
+                draftSource = draftSource.withFullSpanEnabled(
+                    isSingle || widthControls?.isWide?.invoke() == true
+                )
+            }
+            if (source.isVideo) {
+                draftSource = draftSource.withVideoFrameMs(selectedVideoFrameMs())
+            }
+            applyDetailAttachmentMediaAppearance(
+                mDetailAttachmentMediaAppearance.withSource(source.typePathName, draftSource)
+            )
+            dialog.dismiss()
+        })
+        root.addView(
+            buttons,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply {
+                setMargins(
+                    (density * 8).toInt(),
+                    (density * 20).toInt(),
+                    (density * 8).toInt(),
+                    (density * 8).toInt()
+                )
+            }
+        )
+
+        dialog.setOnDismissListener {
+            videoFrameControls?.stopPlayback?.invoke()
+            videoCropView?.release()
+        }
+        dialog.setContentView(root)
+        dialog.show()
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        dialog.window?.setLayout(dialogWidth, ViewGroup.LayoutParams.WRAP_CONTENT)
+    }
+
+    private fun createEditableDetailAttachmentSourceAppearance(
+        source: ThingCardMediaHelper.MediaSource
+    ): DetailAttachmentMediaAppearance.SourceAppearance {
+        val existing = mDetailAttachmentMediaAppearance.source(source.typePathName)
+        return (existing ?: DetailAttachmentMediaAppearance.SourceAppearance()).copy(
+            fileSize = source.fileSize,
+            lastModified = source.lastModified
+        )
+    }
+
+    private fun getDetailAttachmentAppearanceDialogWidth(): Int {
+        val screenWidth = DisplayUtil.getScreenSize(this).x
+        val maxWidth = resources.getDimensionPixelSize(R.dimen.thing_card_appearance_max_width)
+        val horizontalInset = (resources.displayMetrics.density * 32).toInt()
+        return min(max(1, screenWidth - horizontalInset), maxWidth)
+    }
+
+    private fun getDetailAttachmentCropEditorPreviewHeight(
+        bitmap: Bitmap,
+        dialogWidth: Int,
+        contentHorizontalMargin: Int
+    ): Int {
+        val screenSize = DisplayUtil.getScreenSize(this)
+        val contentWidth = max(1, dialogWidth - contentHorizontalMargin * 2)
+        val rawHeight = (contentWidth * bitmap.height.toDouble() /
+            max(1, bitmap.width).toDouble()).toInt()
+        val minHeight = (resources.displayMetrics.density * 160).toInt()
+        val maxHeight = (screenSize.y * 0.52f).toInt()
+        return max(minHeight, min(maxHeight, rawHeight))
+    }
+
+    private data class DetailAttachmentVideoFrameControls(
+        val view: View,
+        val getFrameMs: () -> Long,
+        val stopPlayback: () -> Unit
+    )
+
+    private fun createDetailAttachmentVideoFrameControls(
+        cropView: ThingCardVideoCropEditorView,
+        source: ThingCardMediaHelper.MediaSource,
+        initialFrameMs: Long
+    ): DetailAttachmentVideoFrameControls? {
+        val durationMs = AttachmentHelper.getVideoDurationMs(source.pathName)
+        if (durationMs <= 0L) return null
+        val maxFrameMs = getDetailAttachmentVideoFrameMaxMs(durationMs)
+        val density = resources.displayMetrics.density
+        var frameMs = clampDetailAttachmentVideoFrameMs(initialFrameMs, durationMs)
+        var updatingSeekBarFromVideo = false
+
+        val container = LinearLayout(this)
+        container.orientation = LinearLayout.HORIZONTAL
+        container.gravity = android.view.Gravity.CENTER_VERTICAL
+
+        lateinit var playPauseButton: ImageView
+        lateinit var seekBar: SeekBar
+
+        fun updatePlayPauseButton(isPlaying: Boolean = cropView.isPlaying()) {
+            playPauseButton.setImageResource(
+                if (isPlaying) R.drawable.ic_thing_card_crop_pause
+                else R.drawable.ic_thing_card_crop_play
+            )
+            playPauseButton.contentDescription = getString(
+                if (isPlaying) R.string.thing_card_appearance_video_frame_pause
+                else R.string.thing_card_appearance_video_frame_play
+            )
+            playPauseButton.setColorFilter(
+                ContextCompat.getColor(this, R.color.app_chrome_on_surface_secondary)
+            )
+        }
+
+        fun setFrameMs(newFrameMs: Long, seekVideo: Boolean = true) {
+            frameMs = clampDetailAttachmentVideoFrameMs(newFrameMs, durationMs)
+            if (seekBar.progress != frameMs.toInt()) {
+                updatingSeekBarFromVideo = !seekVideo
+                seekBar.progress = frameMs.toInt()
+                updatingSeekBarFromVideo = false
+            }
+            if (seekVideo) {
+                cropView.seekTo(frameMs)
+            }
+        }
+
+        playPauseButton = createDetailAttachmentAppearanceIconButton(
+            R.drawable.ic_thing_card_crop_play,
+            R.string.thing_card_appearance_video_frame_play
+        )
+        playPauseButton.setOnClickListener {
+            if (cropView.isPlaying()) {
+                cropView.pause()
+            } else {
+                if (frameMs >= maxFrameMs) setFrameMs(0L, true)
+                cropView.play()
+            }
+            updatePlayPauseButton()
+        }
+        updatePlayPauseButton()
+        container.addView(
+            playPauseButton,
+            LinearLayout.LayoutParams((density * 40).toInt(), (density * 40).toInt())
+        )
+
+        val stopButton = createDetailAttachmentAppearanceIconButton(
+            R.drawable.ic_thing_card_crop_stop,
+            R.string.thing_card_appearance_video_frame_stop
+        )
+        stopButton.setOnClickListener {
+            cropView.stopPlayback()
+            setFrameMs(0L, false)
+            updatePlayPauseButton()
+        }
+        container.addView(
+            stopButton,
+            LinearLayout.LayoutParams((density * 40).toInt(), (density * 40).toInt()).apply {
+                marginEnd = (density * 6).toInt()
+                rightMargin = (density * 6).toInt()
+            }
+        )
+
+        seekBar = SeekBar(this)
+        seekBar.max = maxFrameMs
+        seekBar.progress = frameMs.toInt()
+        DisplayUtil.setSeekBarBackground(
+            seekBar,
+            getAccentBackground() ?: ThingBackground.pure(getAccentColor())
+        )
+        seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(
+                seekBar: SeekBar?,
+                progress: Int,
+                fromUser: Boolean
+            ) {
+                if (fromUser && !updatingSeekBarFromVideo) {
+                    setFrameMs(progress.toLong())
+                }
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {
+                cropView.pause()
+                updatePlayPauseButton()
+            }
+
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                seekBar ?: return
+                setFrameMs(seekBar.progress.toLong())
+            }
+        })
+        cropView.onPositionChanged = { currentFrameMs ->
+            setFrameMs(currentFrameMs, false)
+        }
+        cropView.onPlayingChanged = { isPlaying ->
+            updatePlayPauseButton(isPlaying)
+        }
+        cropView.seekTo(frameMs)
+        container.addView(
+            seekBar,
+            LinearLayout.LayoutParams(0, (density * 40).toInt(), 1f)
+        )
+
+        return DetailAttachmentVideoFrameControls(
+            view = container,
+            getFrameMs = { cropView.getCurrentFrameMs() },
+            stopPlayback = { cropView.pause() }
+        )
+    }
+
+    private data class DetailAttachmentRatioControls(
+        val view: View,
+        val setRatio: (Double) -> Unit
+    )
+
+    private data class DetailAttachmentWidthControls(
+        val view: View,
+        val isWide: () -> Boolean
+    )
+
+    private fun createDetailAttachmentWidthControls(
+        initialWide: Boolean,
+        onWideChanged: (Boolean) -> Unit
+    ): DetailAttachmentWidthControls {
+        val density = resources.displayMetrics.density
+        val container = LinearLayout(this)
+        container.orientation = LinearLayout.HORIZONTAL
+        container.gravity = android.view.Gravity.CENTER_VERTICAL
+
+        val label = TextView(this)
+        label.setText(R.string.detail_attachment_media_appearance_display_width)
+        label.setTextColor(ContextCompat.getColor(this, R.color.app_chrome_on_surface_hint))
+        label.textSize = 13f
+        label.gravity = android.view.Gravity.CENTER_VERTICAL
+        label.maxLines = 1
+        label.includeFontPadding = false
+        container.addView(
+            label,
+            LinearLayout.LayoutParams(
+                (density * 104).toInt(),
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        )
+
+        var wide = initialWide
+        val normalButton = createDetailAttachmentWidthChoice(
+            R.string.detail_attachment_media_appearance_width_normal
+        )
+        val wideButton = createDetailAttachmentWidthChoice(
+            R.string.detail_attachment_media_appearance_width_wide
+        )
+
+        fun bind() {
+            bindDetailAttachmentAppearanceChoice(normalButton, !wide, true)
+            bindDetailAttachmentAppearanceChoice(wideButton, wide, true)
+        }
+
+        normalButton.setOnClickListener {
+            if (!wide) return@setOnClickListener
+            wide = false
+            bind()
+            onWideChanged(false)
+        }
+        wideButton.setOnClickListener {
+            if (wide) return@setOnClickListener
+            wide = true
+            bind()
+            onWideChanged(true)
+        }
+
+        listOf(normalButton, wideButton).forEach { button ->
+            container.addView(
+                button,
+                LinearLayout.LayoutParams(
+                    0,
+                    (density * 32).toInt(),
+                    1f
+                ).apply {
+                    marginStart = (density * 2).toInt()
+                    marginEnd = (density * 2).toInt()
+                }
+            )
+        }
+        bind()
+
+        return DetailAttachmentWidthControls(
+            view = container,
+            isWide = { wide }
+        )
+    }
+
+    private fun createDetailAttachmentWidthChoice(@StringRes textRes: Int): TextView {
+        val button = TextView(this)
+        button.setText(textRes)
+        button.gravity = android.view.Gravity.CENTER
+        button.includeFontPadding = false
+        button.textSize = 14f
+        button.isClickable = true
+        button.isFocusable = true
+        BackgroundUtil.installAppChromePillRipple(button, this)
+        return button
+    }
+
+    private fun bindDetailAttachmentAppearanceChoice(
+        view: TextView,
+        selected: Boolean,
+        enabled: Boolean
+    ) {
+        view.isEnabled = enabled
+        view.alpha = if (enabled) 1.0f else 0.38f
+        if (selected && enabled) {
+            applyDetailAttachmentAppearanceSelectedPill(view)
+        } else {
+            view.background = null
+            setDetailAttachmentAppearancePlainTextColor(
+                view,
+                ContextCompat.getColor(this, R.color.app_chrome_on_surface_secondary)
+            )
+        }
+    }
+
+    private fun applyDetailAttachmentAppearanceSelectedPill(textView: TextView) {
+        val accentBackground = getAccentBackground()
+        val background = if (accentBackground != null) {
+            BackgroundUtil.makeTranslucentGradient(accentBackground, 255)
+        } else {
+            GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                setColor(getAccentColor())
+            }
+        }
+        background.cornerRadius = 1000f
+        textView.background = background
+
+        val representativeColor = accentBackground?.representativeColor() ?: getAccentColor()
+        val foregroundColor = ContextCompat.getColor(
+            this,
+            if (BackgroundUtil.isLight(representativeColor)) {
+                R.color.black_86p
+            } else {
+                R.color.white_86p
+            }
+        )
+        setDetailAttachmentAppearancePlainTextColor(textView, foregroundColor)
+    }
+
+    private fun applyDetailAttachmentAppearanceAccentText(textView: TextView?) {
+        if (textView == null) return
+        val accentBackground = getAccentBackground()
+        if (accentBackground != null) {
+            BackgroundUtil.applyTextBackground(textView, accentBackground)
+        } else {
+            setDetailAttachmentAppearancePlainTextColor(textView, getAccentColor())
+        }
+    }
+
+    private fun setDetailAttachmentAppearancePlainTextColor(textView: TextView?, color: Int) {
+        if (textView == null) return
+        textView.paint.setShader(null)
+        textView.setTextColor(color)
+        textView.invalidate()
+    }
+
+    private fun createDetailAttachmentRatioControls(
+        cropView: ThingCardCropEditorController,
+        initialAspectRatio: Double
+    ): DetailAttachmentRatioControls {
+        val container = LinearLayout(this)
+        container.orientation = LinearLayout.VERTICAL
+
+        val label = TextView(this)
+        label.setText(R.string.detail_attachment_media_appearance_full_span_ratio)
+        label.setTextColor(ContextCompat.getColor(this, R.color.app_chrome_on_surface_secondary))
+        label.textSize = 13f
+        label.gravity = android.view.Gravity.CENTER_VERTICAL
+        container.addView(
+            label,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                (resources.displayMetrics.density * 22).toInt()
+            )
+        )
+
+        val ratioSeekBar = SeekBar(this)
+        DisplayUtil.setSeekBarBackground(
+            ratioSeekBar,
+            getAccentBackground() ?: ThingBackground.pure(getAccentColor())
+        )
+        ratioSeekBar.max = DETAIL_ATTACHMENT_RATIO_SLIDER_MAX
+        ratioSeekBar.progress = getDetailAttachmentRatioProgress(initialAspectRatio)
+        ratioSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(
+                seekBar: SeekBar?,
+                progress: Int,
+                fromUser: Boolean
+            ) {
+                if (!fromUser) return
+                cropView.setTargetAspectRatio(
+                    getSnappedDetailAttachmentRatioForSeekBar(seekBar, progress)
+                )
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                if (seekBar != null) {
+                    val snappedRatio = getSnappedDetailAttachmentRatioForSeekBar(
+                        seekBar,
+                        seekBar.progress
+                    )
+                    cropView.setTargetAspectRatio(snappedRatio)
+                    seekBar.progress = getDetailAttachmentRatioProgress(snappedRatio)
+                }
+            }
+        })
+
+        val sliderFrame = FrameLayout(this)
+        sliderFrame.addView(
+            ratioSeekBar,
+            FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        )
+        val ticksView = ThingCardRatioTicksView(this)
+        bindDetailAttachmentRatioTicks(ticksView)
+        ticksView.isClickable = false
+        ticksView.isFocusable = false
+        ticksView.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+        sliderFrame.addView(
+            ticksView,
+            FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        )
+        container.addView(
+            sliderFrame,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                (resources.displayMetrics.density * 52).toInt()
+            )
+        )
+        return DetailAttachmentRatioControls(
+            view = container,
+            setRatio = { ratio ->
+                val progress = getDetailAttachmentRatioProgress(ratio)
+                ratioSeekBar.progress = progress
+                cropView.setTargetAspectRatio(getDetailAttachmentRatioFromProgress(progress))
+            }
+        )
+    }
+
+    private fun createDetailAttachmentAppearanceButton(
+        textRes: Int,
+        useAccent: Boolean = true,
+        onClick: () -> Unit
+    ): TextView {
+        val button = TextView(this)
+        button.setText(textRes)
+        button.setTextColor(
+            if (useAccent) getAccentColor()
+            else ContextCompat.getColor(this, R.color.app_chrome_on_surface_hint)
+        )
+        button.gravity = android.view.Gravity.CENTER
+        button.includeFontPadding = false
+        button.setAllCaps(true)
+        button.minWidth = (resources.displayMetrics.density * 64).toInt()
+        button.setPadding(
+            (resources.displayMetrics.density * 12).toInt(),
+            (resources.displayMetrics.density * 8).toInt(),
+            (resources.displayMetrics.density * 12).toInt(),
+            (resources.displayMetrics.density * 8).toInt()
+        )
+        button.layoutParams = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            (resources.displayMetrics.density * 36).toInt()
+        ).apply {
+            if (useAccent) {
+                marginEnd = (resources.displayMetrics.density * 4).toInt()
+                rightMargin = (resources.displayMetrics.density * 4).toInt()
+            }
+        }
+        BackgroundUtil.installAppChromePillRipple(button, this)
+        button.setOnClickListener { onClick() }
+        return button
+    }
+
+    private fun createDetailAttachmentAppearanceIconButton(
+        iconRes: Int,
+        contentDescriptionRes: Int
+    ): ImageView {
+        val button = ImageView(this)
+        button.setImageResource(iconRes)
+        button.contentDescription = getString(contentDescriptionRes)
+        button.setColorFilter(ContextCompat.getColor(this, R.color.app_chrome_on_surface_secondary))
+        button.scaleType = ImageView.ScaleType.CENTER
+        button.isClickable = true
+        button.isFocusable = true
+        val padding = (resources.displayMetrics.density * 8).toInt()
+        button.setPadding(padding, padding, padding, padding)
+        BackgroundUtil.installAppChromeCircleRipple(button, this)
+        return button
+    }
+
+    private fun bindDetailAttachmentRatioTicks(ticksView: ThingCardRatioTicksView) {
+        ticksView.setColors(
+            getAccentColor(),
+            ContextCompat.getColor(this, R.color.app_chrome_on_surface_hint)
+        )
+        ticksView.setRatios(
+            DetailAttachmentMediaAppearance.MIN_FULL_SPAN_TARGET_ASPECT_RATIO,
+            DetailAttachmentMediaAppearance.MAX_FULL_SPAN_TARGET_ASPECT_RATIO,
+            doubleArrayOf(0.5, 1.0, 4.0 / 3.0, 3.0 / 2.0, 16.0 / 9.0, 2.0, 65.0 / 24.0),
+            arrayOf("1:2", "1:1", "4:3", "3:2", "16:9", "2:1", "65:24")
+        )
+    }
+
+    private fun getDetailAttachmentRatioProgress(ratio: Double): Int {
+        val minRatio = DetailAttachmentMediaAppearance.MIN_FULL_SPAN_TARGET_ASPECT_RATIO
+        val maxRatio = DetailAttachmentMediaAppearance.MAX_FULL_SPAN_TARGET_ASPECT_RATIO
+        val clampedRatio = max(minRatio, min(maxRatio, ratio))
+        return (((clampedRatio - minRatio) / (maxRatio - minRatio)) *
+            DETAIL_ATTACHMENT_RATIO_SLIDER_MAX).roundToInt()
+            .coerceIn(0, DETAIL_ATTACHMENT_RATIO_SLIDER_MAX)
+    }
+
+    private fun getDetailAttachmentRatioFromProgress(progress: Int): Double {
+        val minRatio = DetailAttachmentMediaAppearance.MIN_FULL_SPAN_TARGET_ASPECT_RATIO
+        val maxRatio = DetailAttachmentMediaAppearance.MAX_FULL_SPAN_TARGET_ASPECT_RATIO
+        val clampedProgress = progress.coerceIn(0, DETAIL_ATTACHMENT_RATIO_SLIDER_MAX)
+        return minRatio + (maxRatio - minRatio) *
+            clampedProgress / DETAIL_ATTACHMENT_RATIO_SLIDER_MAX.toDouble()
+    }
+
+    private fun getSnappedDetailAttachmentRatioForSeekBar(
+        seekBar: SeekBar?,
+        progress: Int
+    ): Double {
+        val ratio = getDetailAttachmentRatioFromProgress(progress)
+        val snapped = snapDetailAttachmentRatio(ratio)
+        if (seekBar != null) {
+            val snappedProgress = getDetailAttachmentRatioProgress(snapped)
+            if (snappedProgress != seekBar.progress) {
+                seekBar.progress = snappedProgress
+            }
+        }
+        return snapped
+    }
+
+    private fun snapDetailAttachmentRatio(ratio: Double): Double {
+        val presets = doubleArrayOf(0.5, 1.0, 4.0 / 3.0, 3.0 / 2.0, 16.0 / 9.0, 2.0, 65.0 / 24.0)
+        var closestRatio = ratio
+        var closestProgressDistance = Int.MAX_VALUE
+        for (preset in presets) {
+            val distance = abs(
+                getDetailAttachmentRatioProgress(preset) -
+                    getDetailAttachmentRatioProgress(ratio)
+            )
+            if (distance < closestProgressDistance) {
+                closestProgressDistance = distance
+                closestRatio = preset
+            }
+        }
+        return if (closestProgressDistance <= DETAIL_ATTACHMENT_RATIO_SNAP_PROGRESS_DISTANCE) {
+            closestRatio
+        } else {
+            ratio
+        }
+    }
+
+    private fun loadDetailAttachmentCropEditorBitmap(
+        source: ThingCardMediaHelper.MediaSource
+    ): Bitmap? {
+        return if (source.isVideo) {
+            loadDetailAttachmentCropEditorVideoFrame(source)
+        } else {
+            decodeDetailAttachmentCropEditorImage(source.pathName)
+        }
+    }
+
+    private fun loadDetailAttachmentCropEditorVideoFrame(
+        source: ThingCardMediaHelper.MediaSource
+    ): Bitmap? {
+        val frameMs = mDetailAttachmentMediaAppearance.source(source.typePathName)
+            ?.videoFrameMs ?: 0L
+        val durationMs = AttachmentHelper.getVideoDurationMs(source.pathName)
+        val clampedFrameMs = clampDetailAttachmentVideoFrameMs(frameMs, durationMs)
+        val retriever = MediaMetadataRetriever()
+        return try {
+            retriever.setDataSource(source.pathName)
+            retriever.getFrameAtTime(
+                clampedFrameMs * 1000L,
+                MediaMetadataRetriever.OPTION_CLOSEST
+            )
+        } catch (_: Exception) {
+            AttachmentHelper.getImageFromVideo(source.pathName)
+        } finally {
+            try {
+                retriever.release()
+            } catch (_: Exception) {
+            }
+        }
+    }
+
+    private fun decodeDetailAttachmentCropEditorImage(pathName: String): Bitmap? {
+        val maxSize = 2048
+        val bounds = BitmapFactory.Options()
+        bounds.inJustDecodeBounds = true
+        BitmapFactory.decodeFile(pathName, bounds)
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
+            val decoded = BitmapFactory.decodeFile(pathName) ?: return null
+            return BitmapUtil.tryToGetRotatedBitmap(decoded, pathName)
+        }
+
+        val options = BitmapFactory.Options()
+        options.inSampleSize = getDetailAttachmentCropEditorImageSampleSize(
+            bounds.outWidth,
+            bounds.outHeight,
+            maxSize
+        )
+        val decoded = BitmapFactory.decodeFile(pathName, options) ?: return null
+        return BitmapUtil.tryToGetRotatedBitmap(decoded, pathName)
+    }
+
+    private fun getDetailAttachmentCropEditorImageSampleSize(
+        width: Int,
+        height: Int,
+        maxSize: Int
+    ): Int {
+        var sampleSize = 1
+        var sampledWidth = width
+        var sampledHeight = height
+        while (sampledWidth / 2 >= maxSize || sampledHeight / 2 >= maxSize) {
+            sampleSize *= 2
+            sampledWidth /= 2
+            sampledHeight /= 2
+        }
+        return sampleSize
+    }
+
+    private fun clampDetailAttachmentVideoFrameMs(value: Long, durationMs: Long): Long {
+        return max(0L, min(getDetailAttachmentVideoFrameMaxMs(durationMs).toLong(), value))
+    }
+
+    private fun getDetailAttachmentVideoFrameMaxMs(durationMs: Long): Int {
+        if (durationMs <= 0L) return 0
+        return min(
+            Int.MAX_VALUE.toLong(),
+            max(0L, durationMs - DETAIL_ATTACHMENT_VIDEO_END_FRAME_GUARD_MS)
+        ).toInt()
+    }
+
     private inner class ImageAttachmentClickCallback : ImageAttachmentAdapter.ClickCallback {
 
         override fun onClick(v: View?, pos: Int) {
@@ -3749,14 +4780,27 @@ class DetailActivity : EverythingDoneBaseActivity() {
 
         override fun onRemove(pos: Int) {
             val item: String = mImageAttachmentAdapter!!.getItems()!![pos]!!
+            val appearanceBefore = mDetailAttachmentMediaAppearance.toJson()
+            mDetailAttachmentMediaAppearance =
+                mDetailAttachmentMediaAppearance.removeSource(item)
+            val appearanceAfter = mDetailAttachmentMediaAppearance.toJson()
             notifyImageAttachmentsChanged(false, pos)
 
             KeyboardUtil.hideKeyboard(currentFocus)
 
             if (shouldAddToActionList) {
-                mActionList!!.addAction(ThingAction(
+                val action = ThingAction(
                     ThingAction.DELETE_ATTACHMENT, pos, item
-                ))
+                )
+                action.getExtras()!!.putString(
+                    ThingAction.KEY_DETAIL_ATTACHMENT_MEDIA_APPEARANCE_BEFORE,
+                    appearanceBefore
+                )
+                action.getExtras()!!.putString(
+                    ThingAction.KEY_DETAIL_ATTACHMENT_MEDIA_APPEARANCE_AFTER,
+                    appearanceAfter
+                )
+                mActionList!!.addAction(action)
             }
         }
     }
@@ -3848,10 +4892,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
         items.add(to, typePathName)
 
         if (isImageAttachment) {
-            mImageAttachmentAdapter!!.notifyItemMoved(from, to)
-            if (from == 0 || to == 0) {
-                mImageAttachmentAdapter!!.notifyDataSetChanged()
-            }
+            refreshImageAttachmentLayout(true)
         } else {
             mAudioAttachmentAdapter!!.notifyItemMoved(from, to)
             if (mAudioAttachmentAdapter!!.getPlayingIndex() != -1) {
@@ -3910,6 +4951,9 @@ class DetailActivity : EverythingDoneBaseActivity() {
     companion object {
         const val TAG: String = "DetailActivity"
         private const val EXTERNAL_UPDATE_REFRESH_MAX_RETRIES: Int = 3
+        private const val DETAIL_ATTACHMENT_RATIO_SLIDER_MAX: Int = 1000
+        private const val DETAIL_ATTACHMENT_RATIO_SNAP_PROGRESS_DISTANCE: Int = 28
+        private const val DETAIL_ATTACHMENT_VIDEO_END_FRAME_GUARD_MS: Int = 50
 
         const val CREATE: Int = 0
         const val UPDATE: Int = 1

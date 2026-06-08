@@ -18,6 +18,7 @@ Feature-specific project documentation is organized under `docs/features/<kebab-
 - `color-system-migration`: `docs/features/color-system-migration/decisions.md`
 - `dark-mode`: `docs/features/dark-mode/decisions.md`
 - `detail-color-sampling`: `docs/features/detail-color-sampling/decisions.md`
+- `detail-attachment-media-appearance`: `docs/features/detail-attachment-media-appearance/decisions.md`
 - `home-contextual-toolbar`: `docs/features/home-contextual-toolbar/decisions.md`
 - `home-new-item-animation`: `docs/features/home-new-item-animation/decisions.md`
 - `kotlin-migration`: `docs/features/kotlin-migration/decisions.md`
