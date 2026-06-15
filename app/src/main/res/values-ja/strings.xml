@@ -215,8 +215,8 @@
     <string name="act_abandon_new_thing">放棄する</string>
     <string name="act_set_as_private_thing">プライベートなものとして設定</string>
     <string name="act_cancel_private_thing">プライベートなものの設定をキャンセルする</string>
-    <string name="act_customize_card_appearance">Customize card appearance</string>
-    <string name="thing_card_appearance_panel_title">Card appearance</string>
+    <string name="act_customize_card_appearance">カードの外観を調整</string>
+    <string name="thing_card_appearance_panel_title">カードの外観を調整</string>
     <string name="thing_card_appearance_media_image">Image</string>
     <string name="thing_card_appearance_media_video">Video</string>
     <string name="thing_card_appearance_source_format">%1$s · %2$s</string>
@@ -236,6 +236,7 @@
     <string name="thing_card_appearance_cover_image_width_format">Cover image width · %1$d%%</string>
     <string name="thing_card_appearance_precise_crop">Crop cover image</string>
     <string name="thing_card_appearance_thumbnail_shape">Cover image ratio</string>
+    <string name="thing_card_appearance_thumbnail_video_shape">カバー動画の比率</string>
     <string name="thing_card_appearance_background_mask">Background mask</string>
     <string name="thing_card_appearance_background_height">Card height</string>
     <string name="thing_card_appearance_video_frame">Video frame</string>
@@ -861,4 +862,16 @@ Nevolution や 360 Notification Box のような通知管理アプリを入れ�
     <string name="channel_quick_create">クイック作成</string>
     <string name="channel_ongoing">進行中の通知</string>
     <string name="channel_auto_notify">自動通知</string>
+    <string name="detail_attachment_media_appearance_title">添付ファイルの外観</string>
+    <string name="detail_attachment_image_appearance_title">画像の外観</string>
+    <string name="detail_attachment_video_appearance_title">動画の外観</string>
+    <string name="detail_attachment_media_appearance_display_width">画像の表示幅</string>
+    <string name="detail_attachment_media_appearance_video_display_width">動画の表示幅</string>
+    <string name="detail_attachment_media_appearance_width_normal">標準</string>
+    <string name="detail_attachment_media_appearance_width_wide">ワイド</string>
+    <string name="detail_attachment_media_appearance_full_span">ワイド</string>
+    <string name="detail_attachment_media_appearance_crop">添付ファイルを切り抜き</string>
+    <string name="detail_attachment_media_appearance_full_span_ratio">画像の表示比率</string>
+    <string name="detail_attachment_media_appearance_image_ratio">画像の表示比率</string>
+    <string name="detail_attachment_media_appearance_video_ratio">動画の表示比率</string>
 </resources>

@@ -215,8 +215,8 @@
     <string name="act_abandon_new_thing">Отказаться</string>
     <string name="act_set_as_private_thing">Установить как личное</string>
     <string name="act_cancel_private_thing">Отменить Установить личное</string>
-    <string name="act_customize_card_appearance">Customize card appearance</string>
-    <string name="thing_card_appearance_panel_title">Card appearance</string>
+    <string name="act_customize_card_appearance">Настроить вид карточки</string>
+    <string name="thing_card_appearance_panel_title">Настроить вид карточки</string>
     <string name="thing_card_appearance_media_image">Image</string>
     <string name="thing_card_appearance_media_video">Video</string>
     <string name="thing_card_appearance_source_format">%1$s · %2$s</string>
@@ -236,6 +236,7 @@
     <string name="thing_card_appearance_cover_image_width_format">Cover image width · %1$d%%</string>
     <string name="thing_card_appearance_precise_crop">Crop cover image</string>
     <string name="thing_card_appearance_thumbnail_shape">Cover image ratio</string>
+    <string name="thing_card_appearance_thumbnail_video_shape">Соотношение видео обложки</string>
     <string name="thing_card_appearance_background_mask">Background mask</string>
     <string name="thing_card_appearance_background_height">Card height</string>
     <string name="thing_card_appearance_video_frame">Video frame</string>
@@ -807,4 +808,16 @@
     <string name="channel_quick_create">Быстрое создание</string>
     <string name="channel_ongoing">Постоянное уведомление</string>
     <string name="channel_auto_notify">Автоматическое уведомление</string>
+    <string name="detail_attachment_media_appearance_title">Вид вложения</string>
+    <string name="detail_attachment_image_appearance_title">Вид изображения</string>
+    <string name="detail_attachment_video_appearance_title">Вид видео</string>
+    <string name="detail_attachment_media_appearance_display_width">Ширина изображения</string>
+    <string name="detail_attachment_media_appearance_video_display_width">Ширина видео</string>
+    <string name="detail_attachment_media_appearance_width_normal">Обычная</string>
+    <string name="detail_attachment_media_appearance_width_wide">Широкая</string>
+    <string name="detail_attachment_media_appearance_full_span">Широкая</string>
+    <string name="detail_attachment_media_appearance_crop">Обрезать вложение</string>
+    <string name="detail_attachment_media_appearance_full_span_ratio">Соотношение изображения</string>
+    <string name="detail_attachment_media_appearance_image_ratio">Соотношение изображения</string>
+    <string name="detail_attachment_media_appearance_video_ratio">Соотношение видео</string>
 </resources>

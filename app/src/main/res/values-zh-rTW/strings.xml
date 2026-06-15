@@ -325,12 +325,12 @@
     <string name="act_export_to_sdcard">導出到 SD 卡</string>
     <string name="act_restore_selected">還原選中的記事</string>
     <string name="act_delete_selected_forever">徹底刪除選中的記事</string>
-    <string name="act_customize_card_appearance">自訂卡片外觀</string>
+    <string name="act_customize_card_appearance">調整記事卡片外觀</string>
 
     <string name="act_sticky_on_top">置頂</string>
     <string name="act_cancel_sticky">取消置頂</string>
 
-    <string name="thing_card_appearance_panel_title">卡片外觀</string>
+    <string name="thing_card_appearance_panel_title">調整記事卡片外觀</string>
     <string name="thing_card_appearance_media_image">圖片</string>
     <string name="thing_card_appearance_media_video">影片</string>
     <string name="thing_card_appearance_source_format">%1$s · %2$s</string>
@@ -351,6 +351,7 @@
     <string name="thing_card_appearance_cover_image_width_format">封面圖片寬度 · %1$d%%</string>
     <string name="thing_card_appearance_precise_crop">裁切封面圖片</string>
     <string name="thing_card_appearance_thumbnail_shape">封面圖片比例</string>
+    <string name="thing_card_appearance_thumbnail_video_shape">封面影片比例</string>
     <string name="thing_card_appearance_background_mask">背景遮罩</string>
     <string name="thing_card_appearance_background_height">卡片高度</string>
     <string name="thing_card_appearance_video_frame">影片選幀</string>
@@ -1211,5 +1212,17 @@
     <string name="channel_quick_create">快速創建</string>
     <string name="channel_ongoing">持續通知</string>
     <string name="channel_auto_notify">自動提醒</string>
+    <string name="detail_attachment_media_appearance_title">附件外觀</string>
+    <string name="detail_attachment_image_appearance_title">圖片外觀</string>
+    <string name="detail_attachment_video_appearance_title">影片外觀</string>
+    <string name="detail_attachment_media_appearance_display_width">圖片顯示寬度</string>
+    <string name="detail_attachment_media_appearance_video_display_width">影片顯示寬度</string>
+    <string name="detail_attachment_media_appearance_width_normal">正常</string>
+    <string name="detail_attachment_media_appearance_width_wide">寬</string>
+    <string name="detail_attachment_media_appearance_full_span">寬</string>
+    <string name="detail_attachment_media_appearance_crop">裁切附件</string>
+    <string name="detail_attachment_media_appearance_full_span_ratio">圖片顯示比例</string>
+    <string name="detail_attachment_media_appearance_image_ratio">圖片顯示比例</string>
+    <string name="detail_attachment_media_appearance_video_ratio">影片顯示比例</string>
 
 </resources>

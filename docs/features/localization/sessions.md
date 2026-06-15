@@ -2,6 +2,25 @@
 
 Migrated from global `memory/sessions.md` on 2026-06-06. This file keeps feature-scoped history out of startup memory while preserving the original notes.
 
+## 2026-06-15 - Card appearance action label rename
+
+- Renamed the user-visible card appearance action from "Customize card
+  appearance" / `自定义卡片外观` to "Adjust thing card appearance" /
+  `调整记事卡片外观`.
+- Updated default English, Simplified Chinese, Traditional Chinese, German,
+  Spanish, French, Hindi, Italian, Japanese, Korean, Portuguese, and Russian
+  `act_customize_card_appearance` resources.
+- The resource key was kept unchanged to avoid unnecessary code churn in the
+  existing Thing Card Appearance entry logic.
+- Verification: the debug publish task completed successfully, which compiled
+  the updated string resources and generated locale config.
+- Follow-up: aligned `thing_card_appearance_panel_title` with the renamed entry
+  label in the same supported locales, so opening the panel now shows the same
+  "Adjust thing card appearance" / `调整记事卡片外观` wording as the contextual
+  action.
+- Follow-up verification: the debug publish task completed successfully and
+  published update `202606150309`, compiling the updated panel-title resources.
+
 ## 2026-05-27 - ThingsActivity header collapse centering
 
 Committed the completed localization/language-switching work as `ebeb9aa`.
@@ -51,3 +70,31 @@ Verification:
 - `git diff --check` passed with only the repository's existing CRLF warnings.
 - No device UI smoke test was run for the language picker or per-screen locale
   switching in this step.
+
+## 2026-06-14 - Detail attachment appearance strings
+
+- Added media-specific Detail attachment appearance strings for default
+  English, Simplified Chinese, Traditional Chinese, German, Spanish, French,
+  Hindi, Italian, Japanese, Korean, Portuguese, and Russian resources.
+- The new keys cover image/video-specific dialog titles and image/video ratio
+  labels, and the non-default locale resources also received the existing
+  Detail attachment appearance row labels so the editor does not partially fall
+  back to English in those locales.
+- Verification: `:app:assembleDebug` initially caught unescaped French
+  apostrophes in `l'image`; after escaping them as Android string resources,
+  assemble and debug publish both passed.
+
+## 2026-06-14 - Detail video width and cover video ratio strings
+
+- Added `detail_attachment_media_appearance_video_display_width` so video
+  attachment width controls can display `视频显示宽度`.
+- Added `thing_card_appearance_thumbnail_video_shape` so the home Thing Card
+  precise crop dialog can use a video-specific cover-ratio prompt.
+- Updated default English, Simplified Chinese, Traditional Chinese, German,
+  Spanish, French, Hindi, Italian, Japanese, Korean, Portuguese, and Russian
+  resources. The newly added video cover-ratio prompt is localized in each
+  existing non-default locale instead of relying on the default English text.
+- Verification: `git diff --check` passed with CRLF warnings only, and
+  `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`
+  completed successfully.
+- Published debug update `202606141559`.

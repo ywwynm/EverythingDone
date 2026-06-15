@@ -5,7 +5,6 @@ package com.ywwynm.everythingdone.activities
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.app.ActivityManager
-import android.app.Dialog
 import android.os.Build
 import androidx.activity.OnBackPressedCallback
 import android.content.BroadcastReceiver
@@ -53,7 +52,6 @@ import android.view.View
 import android.view.ViewAnimationUtils
 import android.view.ViewGroup
 import android.view.ViewTreeObserver
-import android.view.Window
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
@@ -65,6 +63,7 @@ import android.widget.RelativeLayout
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.annotation.StringRes
 import androidx.appcompat.content.res.AppCompatResources
 
 import com.bumptech.glide.Glide
@@ -83,6 +82,7 @@ import com.ywwynm.everythingdone.database.HabitDAO
 import com.ywwynm.everythingdone.database.ReminderDAO
 import com.ywwynm.everythingdone.fragments.AlertDialogFragment
 import com.ywwynm.everythingdone.fragments.LongTextDialogFragment
+import com.ywwynm.everythingdone.fragments.MediaCropAppearanceDialogFragment
 import com.ywwynm.everythingdone.fragments.ThreeActionsAlertDialogFragment
 import com.ywwynm.everythingdone.helpers.AlarmHelper
 import com.ywwynm.everythingdone.helpers.AppUpdateHelper
@@ -142,7 +142,7 @@ import kotlin.math.roundToInt
 import androidx.core.view.get
 import androidx.core.graphics.toColorInt
 
-class ThingsActivity : EverythingDoneBaseActivity() {
+class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFragment.Host {
 
     private var mApp: App? = null
 
@@ -1480,7 +1480,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
                     mDrawerLayout!!.closeDrawer(GravityCompat.START)
                 } else {
                     if (isThingCardAppearancePanelShowing()) {
-                        cancelThingCardAppearancePanel(true)
+                        cancelThingCardAppearancePanel(shouldAppearancePanelCloseExitSelectingMode())
                         return
                     }
                     if (mModeManager!!.getCurrentMode() == ModeManager.SELECTING) {
@@ -1706,7 +1706,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
                 }
         )
         mBtCancelThingCardAppearance!!.setOnClickListener {
-            cancelThingCardAppearancePanel(true)
+            cancelThingCardAppearancePanel(shouldAppearancePanelCloseExitSelectingMode())
         }
         mBtConfirmThingCardAppearance!!.setOnClickListener {
             confirmThingCardAppearancePanel()
@@ -2546,6 +2546,17 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         }
     }
 
+    @StringRes
+    private fun getThingCardAppearanceThumbnailRatioTextRes(
+            mediaSource: ThingCardMediaHelper.MediaSource
+    ): Int {
+        return if (mediaSource.isVideo) {
+            R.string.thing_card_appearance_thumbnail_video_shape
+        } else {
+            R.string.thing_card_appearance_thumbnail_shape
+        }
+    }
+
     private fun showThingCardAppearanceSourceMenu() {
         val draft = mThingCardAppearanceDraft ?: return
         val thing = mThingCardAppearancePanelThing ?: return
@@ -2745,9 +2756,40 @@ class ThingsActivity : EverythingDoneBaseActivity() {
     }
 
     private fun openThingCardCropEditor() {
-        val draft = mThingCardAppearanceDraft ?: return
-        val source = getCurrentThingCardAppearanceMediaSource() ?: return
-        val bitmap = loadThingCardCropEditorBitmap(source) ?: return
+        (fragmentManager.findFragmentByTag(MediaCropAppearanceDialogFragment.TAG)
+                as? android.app.DialogFragment)?.dismissAllowingStateLoss()
+        MediaCropAppearanceDialogFragment.newInstance(
+                MediaCropAppearanceDialogFragment.REQUEST_THING_CARD_CROP
+        ).show(
+                fragmentManager,
+                MediaCropAppearanceDialogFragment.TAG
+        )
+    }
+
+    override fun getMediaCropAppearanceDialogWidthPx(
+            fragment: MediaCropAppearanceDialogFragment,
+            requestKey: String,
+            position: Int
+    ): Int {
+        if (requestKey != MediaCropAppearanceDialogFragment.REQUEST_THING_CARD_CROP) {
+            return ViewGroup.LayoutParams.WRAP_CONTENT
+        }
+        val density = resources.displayMetrics.density
+        val windowHorizontalMargin = (density * 16).toInt()
+        return getThingCardAppearanceConstrainedWidth(
+                DisplayUtil.getScreenSize(this).x - windowHorizontalMargin * 2
+        )
+    }
+
+    override fun createMediaCropAppearanceDialogContent(
+            fragment: MediaCropAppearanceDialogFragment,
+            requestKey: String,
+            position: Int
+    ): MediaCropAppearanceDialogFragment.Content? {
+        if (requestKey != MediaCropAppearanceDialogFragment.REQUEST_THING_CARD_CROP) return null
+        val draft = mThingCardAppearanceDraft ?: return null
+        val source = getCurrentThingCardAppearanceMediaSource() ?: return null
+        val bitmap = loadThingCardCropEditorBitmap(source) ?: return null
         val sourceAppearance = draft.sources[source.typePathName]
         val presentationKey = getActiveThingCardPresentationKey(draft)
         val crop = getThingCardPresentationCrop(sourceAppearance, presentationKey)
@@ -2755,14 +2797,9 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         val cropCenterY = crop.centerY
         val cropScale = crop.scale
 
-        val dialog = Dialog(this, R.style.EverythingDoneTheme_Dialog)
-        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
         val density = resources.displayMetrics.density
-        val windowHorizontalMargin = (density * 16).toInt()
-        val contentHorizontalMargin = (density * 16).toInt()
-        val dialogWidth = getThingCardAppearanceConstrainedWidth(
-                DisplayUtil.getScreenSize(this).x - windowHorizontalMargin * 2
-        )
+        val contentHorizontalMargin = (density * 24).toInt()
+        val dialogWidth = getMediaCropAppearanceDialogWidthPx(fragment, requestKey, position)
         val root = LinearLayout(this)
         root.orientation = LinearLayout.VERTICAL
         root.setBackgroundResource(R.drawable.bg_app_chrome_surface_elevated_rounded)
@@ -2780,9 +2817,9 @@ class ThingsActivity : EverythingDoneBaseActivity() {
                         ViewGroup.LayoutParams.WRAP_CONTENT
                 ).apply {
                     setMargins(
-                            (density * 20).toInt(),
-                            (density * 20).toInt(),
-                            (density * 20).toInt(),
+                            contentHorizontalMargin,
+                            (density * 24).toInt(),
+                            contentHorizontalMargin,
                             0
                     )
                 }
@@ -2844,10 +2881,10 @@ class ThingsActivity : EverythingDoneBaseActivity() {
                 ).apply {
                     setMargins(
                             contentHorizontalMargin,
-                            (density * 16).toInt(),
+                            (density * 6).toInt(),
                             contentHorizontalMargin,
                             0
-                        )
+                    )
                 }
         )
         val videoFrameControls = if (source.isVideo && videoCropView != null) {
@@ -2868,7 +2905,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
                     ).apply {
                         setMargins(
                                 contentHorizontalMargin,
-                                (density * 12).toInt(),
+                                (density * 6).toInt(),
                                 contentHorizontalMargin,
                                 0
                         )
@@ -2876,14 +2913,18 @@ class ThingsActivity : EverythingDoneBaseActivity() {
             )
         }
         root.addView(
-                createThingCardCropEditorRatioControls(cropEditor, targetAspectRatio),
+                createThingCardCropEditorRatioControls(
+                        cropEditor,
+                        targetAspectRatio,
+                        getThingCardAppearanceThumbnailRatioTextRes(source)
+                ),
                 LinearLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.WRAP_CONTENT
                 ).apply {
                     setMargins(
                             contentHorizontalMargin,
-                            (density * 12).toInt(),
+                            (density * 6).toInt(),
                             contentHorizontalMargin,
                             0
                     )
@@ -2894,7 +2935,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         buttons.gravity = android.view.Gravity.RIGHT or android.view.Gravity.CENTER_VERTICAL
         buttons.orientation = LinearLayout.HORIZONTAL
         buttons.addView(createThingCardCropEditorButton(R.string.cancel, false) {
-            dialog.dismiss()
+            fragment.dismiss()
         })
         buttons.addView(createThingCardCropEditorButton(R.string.confirm) {
             val confirmedAspectRatio = cropEditor.getTargetAspectRatio()
@@ -2912,7 +2953,7 @@ class ThingsActivity : EverythingDoneBaseActivity() {
             if (!ratioChanged && !videoFrameChanged) {
                 applyCurrentThingCardCropToVisiblePreview()
             }
-            dialog.dismiss()
+            fragment.dismiss()
         })
         root.addView(
                 buttons,
@@ -2922,29 +2963,17 @@ class ThingsActivity : EverythingDoneBaseActivity() {
                 ).apply {
                     setMargins(
                             (density * 8).toInt(),
-                            (density * 20).toInt(),
+                            (density * 16).toInt(),
                             (density * 8).toInt(),
                             (density * 8).toInt()
                     )
                 }
         )
 
-        dialog.setOnDismissListener {
+        return MediaCropAppearanceDialogFragment.Content(root) {
             videoFrameControls?.stopPlayback?.invoke()
             videoCropView?.release()
         }
-        dialog.setContentView(root)
-        dialog.show()
-        dialog.window?.setBackgroundDrawable(
-                ContextCompat.getDrawable(
-                        this,
-                        R.drawable.bg_app_chrome_surface_elevated_rounded
-                )
-        )
-        dialog.window?.setLayout(
-                dialogWidth,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-        )
     }
 
     private fun updateThingCardAppearancePanelWidth() {
@@ -3161,14 +3190,15 @@ class ThingsActivity : EverythingDoneBaseActivity() {
 
     private fun createThingCardCropEditorRatioControls(
             cropView: ThingCardCropEditorController,
-            initialAspectRatio: Double
+            initialAspectRatio: Double,
+            @StringRes labelRes: Int
     ): View {
         val container = LinearLayout(this)
         container.orientation = LinearLayout.VERTICAL
 
         val label = TextView(this)
-        label.setText(R.string.thing_card_appearance_thumbnail_shape)
-        label.setTextColor(ContextCompat.getColor(this, R.color.app_chrome_on_surface_secondary))
+        label.setText(labelRes)
+        label.setTextColor(ContextCompat.getColor(this, R.color.app_chrome_on_surface_hint))
         label.textSize = 13f
         label.gravity = android.view.Gravity.CENTER_VERTICAL
         container.addView(
@@ -3906,6 +3936,10 @@ class ThingsActivity : EverythingDoneBaseActivity() {
         if (shouldBackNormalMode && mModeManager!!.getCurrentMode() == ModeManager.SELECTING) {
             mModeManager!!.backNormalMode(0)
         }
+    }
+
+    private fun shouldAppearancePanelCloseExitSelectingMode(): Boolean {
+        return !App.isSearching
     }
 
     private fun hideThingCardAppearancePanel() {

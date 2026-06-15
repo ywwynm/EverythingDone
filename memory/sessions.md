@@ -22,6 +22,7 @@ Global startup session index only. Detailed feature history lives in `docs/featu
 - `localization`: `docs/features/localization/sessions.md`
 - `popup-picker-insets`: `docs/features/popup-picker-insets/sessions.md`
 - `remote-thing-card-appearance`: `docs/features/remote-thing-card-appearance/sessions.md`
+- `share-screenshot`: `docs/features/share-screenshot/sessions.md`
 - `system-bar-insets`: `docs/features/system-bar-insets/sessions.md`
 - `thing-card-appearance`: `docs/features/thing-card-appearance/sessions.md`
 - `thing-card-image-placement`: `docs/features/thing-card-image-placement/sessions.md`

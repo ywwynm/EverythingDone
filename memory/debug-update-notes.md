@@ -1,5 +1,73 @@
 # Current Debug Update Notes
 
+## 2026-06-15 - 修复长截图分享时系统分享面板预览空白的兼容性问题
+
+用户反馈：使用长截图分享某个记事时，截图生成完成并弹出系统分享 dialog 后，图片预览好像是空白的，不确定是 OPPO ColorOS 的问题，还是应用需要额外设置预览缩略图。
+
+本次诊断先查阅 Android 官方文档：`ACTION_SEND` 分享图片应提供具体 MIME type 和 `EXTRA_STREAM`；FileProvider 分享的 `content://` URI 需要通过 `FLAG_GRANT_READ_URI_PERMISSION` 授予临时读权限；Android Intent 文档还说明，从 Jelly Bean 开始可通过 `ClipData` 提供发送数据，以配合 URI 读权限。对照项目实现，`ScreenshotHelper.ShareCallback` 已经使用 `ACTION_SEND`、`image/jpeg`、`EXTRA_STREAM` 和读权限，实际分享链路基础正确；但它没有显式设置 `ClipData`、intent `data`、`EXTRA_TITLE`，也没有把读权限加到 chooser intent 上。对于系统 Sharesheet 预览而言，它需要在用户选择目标 app 之前读取并解码图片，ColorOS 可能对 `ClipData`/chooser 授权更敏感，或者对超高长图 JPEG 的预览解码更容易失败。
+
+本次修改集中在 `ScreenshotHelper.kt`：生成截图的 `content://` URI 现在同时写入 `EXTRA_STREAM`、`ClipData` 和 intent `data`，保留 `image/jpeg` MIME type；分享标题会写入 `EXTRA_TITLE`；原始 send intent 和 `Intent.createChooser(...)` 返回的 chooser intent 都添加 `FLAG_GRANT_READ_URI_PERMISSION`。这不会改变最终分享出去的长截图文件，只是让系统分享面板的预览读取路径更完整、更兼容。
+
+验证状态：`git diff --check` 已通过，仅有仓库既有 LF/CRLF warning；已执行 `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`，结果 `BUILD SUCCESSFUL in 10s`，发布 debug update `202606150347` 到 `http://120.25.194.207/everythingdone-updates/debug/latest.json`。发布后回读远端 `latest.json`，状态 200，`Content-Type` 为 `application/json`，首字符 ASCII 为 123（`{`），`debugUpdateCode` 为 `202606150347`，`releaseNotesLength` 为 1233，确认 metadata 仍是 JSON object 且只包含本次当前条目。当前 agent 环境没有 OPPO ColorOS 设备可直接复现系统分享面板预览；如果用户测试后仍为空白，下一步是给 Sharesheet 单独生成小尺寸 preview thumbnail URI，同时继续通过 `EXTRA_STREAM` 分享完整长图。
+
+## 2026-06-15 - 继续收紧调整记事卡片外观入口与标题
+
+用户继续反馈三个问题：第一，虽然“调整记事卡片外观”的顺序已经提前，但“完成选中的记事”的 icon 仍然显示在 contextual toolbar 上，导致 toolbar 太拥挤；第二，点击“调整记事卡片外观”后出现的面板标题也应该改为“调整记事卡片外观”；第三，新入口 icon 的边框可以稍微粗一点。
+
+本次修改：`menu_contextual_underway.xml` 中的 `act_finish_selected` 已改为 `showAsAction="never"`，并移除 `android:icon`，因此“完成选中的记事”会回到 overflow 中只显示文字，不再占用 toolbar icon 位；`thing_card_appearance_panel_title` 在默认英文、简繁中文、德语、西语、法语、印地语、意大利语、日语、韩语、葡萄牙语和俄语资源中都同步为与入口一致的文案；`act_adjust_card_appearance.xml` 的卡片外框 stroke 从 `1.6` 加粗到 `1.8`，内部滑杆保持原有粗细。
+
+验证状态：`git diff --check` 已通过，仅有仓库既有 LF/CRLF warning；已执行 `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`，结果 `BUILD SUCCESSFUL in 8s`，发布 debug update `202606150309` 到 `http://120.25.194.207/everythingdone-updates/debug/latest.json`。发布后回读远端 `latest.json`，状态 200，`Content-Type` 为 `application/json`，首字符 ASCII 为 123（`{`），`debugUpdateCode` 为 `202606150309`，`releaseNotesLength` 为 734，确认 metadata 仍是 JSON object 且只包含本次当前条目。
+
+## 2026-06-15 - 调整记事卡片外观入口顺序、图标和文案
+
+用户反馈：长按记事卡片进入选择/搜索上下文后，“自定义卡片外观”入口在 contextual menu 后几个选项里，希望把它提前到目前“完成选中的记事”的位置，并把“完成选中的记事”顺序后移；同时给该入口设置一个好看的 icon，并把文案改为“调整记事卡片外观”，完成国际化。
+
+本次修改集中在首页 contextual toolbar 与 Thing Card Appearance 入口：`menu_contextual_underway.xml` 中的 `act_customize_card_appearance` 已移动到 `act_finish_selected` 前，并改为 `showAsAction="always"`；当 `ModeManager` 判断该入口可见时，它会出现在原来“完成选中的记事”的 toolbar action 位置，“完成选中的记事”紧随其后。若该入口不可见，“完成选中的记事”仍会自然占回原来的可见位置。`menu_contextual_finished.xml` 与 `menu_contextual_deleted.xml` 中同一个入口也补上了 icon 引用，保持资源一致。
+
+新增 `app/src/main/res/drawable/act_adjust_card_appearance.xml`，图形为 24dp 的“卡片 + 调整滑杆”单色 vector，使用 contextual toolbar 现有的 `black_54p` 视觉层级。保留既有资源 key `act_customize_card_appearance` 和代码 id，避免不必要的 Kotlin 逻辑改名；仅把用户可见文案改为默认英文 `Adjust thing card appearance`、简中 `调整记事卡片外观`，并同步更新繁中、德语、西语、法语、印地语、意大利语、日语、韩语、葡萄牙语和俄语资源。
+
+验证状态：`git diff --check` 已通过，仅有仓库既有 LF/CRLF warning；已执行 `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`，结果 `BUILD SUCCESSFUL in 10s`，发布 debug update `202606150256` 到 `http://120.25.194.207/everythingdone-updates/debug/latest.json`。发布后回读远端 `latest.json`，状态 200，`Content-Type` 为 `application/json`，首字符 ASCII 为 123（`{`），`debugUpdateCode` 为 `202606150256`，`releaseNotesLength` 为 1096，确认 metadata 仍是 JSON object 且只包含本次当前条目。
+
+## 2026-06-15 - 修复 debug 更新 metadata 的 releaseNotes 过大问题
+
+用户反馈：App 内检查更新提示 `Expected BEGIN_OBJECT but was STRING at line 1 column 1 path`，怀疑发布到服务器的更新 JSON 有问题。
+
+本次诊断先回读远端 `http://120.25.194.207/everythingdone-updates/debug/latest.json`，确认当前远端响应状态为 200、`Content-Type` 为 `application/json`，响应首字符确实是 `{`，本地 `app/build/outputs/update-debug-apk/latest.json` 也是合法 JSON object；`BuildConfig.DEBUG_UPDATE_METADATA_URL` 也指向正确的 debug metadata 地址。继续排查后发现，`publishDebugUpdate` 在使用 `-PdebugUpdateNotesFile=memory/debug-update-notes.md` 时，会把整份长期历史 notes 文件写进 `releaseNotes`，导致当前 `latest.json` 膨胀到约 90KB，并且包含大量历史发布记录。虽然这不是严格意义上的 JSON 语法错误，但会让更新弹窗拿到远超当前版本所需的 metadata，且增加缓存、代理或 App 端处理异常的风险。
+
+本次修改集中在 `app/build.gradle`：新增 `currentDebugUpdateNotes(...)`，当 notes 文本里存在多个 `##` 条目时，只提取顶部第一条当前发布说明写入 `latest.json`；同时在写出 metadata 前用 `JsonSlurper` 解析生成内容，确认顶层必须是 JSON object，否则直接让发布任务失败。同步更新 `.agents/rules/gradle.md` 与 `docs/features/debug-update-channel/preferences.md`，明确 `debugUpdateNotesFile` 会保留历史但只发布顶部当前条目。
+
+验证状态：`git diff --check` 已通过，仅有仓库既有 LF/CRLF warning；已执行 `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`，发布 debug update `202606150245` 到 `http://120.25.194.207/everythingdone-updates/debug/latest.json`。发布后回读本地和远端 `latest.json`，两者长度均为 3313，首字符 ASCII 为 123（`{`），`debugUpdateCode` 为 `202606150245`，`releaseNotesLength` 为 1247，确认顶层 JSON object 正常且 `releaseNotes` 只包含当前条目。
+
+## 2026-06-15 - 将附件/卡片裁切编辑器迁到自定义 DialogFragment
+
+用户指出：Detail 里的图片/视频外观 dialog，以及首页“自定义卡片外观”里“裁切封面图片/视频”的 dialog，不应继续由 Activity 直接创建 raw `android.app.Dialog`。本项目偏好使用 `fragments` 目录下的自定义 `DialogFragment`，通常经由 `BaseDialogFragment` 统一 dialog title、window background、宽度和生命周期。
+
+本次修改：新增单一 `MediaCropAppearanceDialogFragment`，复用 `BaseDialogFragment` 的 window/titleless/background/width 生命周期路径。`DetailActivity` 与 `ThingsActivity` 不再直接构造 `Dialog`，而是通过同一个 Fragment 的不同 request key 打开媒体裁切外观 dialog，并由 Fragment 负责 tag、window width 和 view destroy cleanup。原本高度依赖 Activity 草稿状态的内容视图、crop/video-frame/ratio 控件、confirm/cancel 逻辑仍保留在 Activity 的 Host 回调中，避免改变 Detail 附件外观保存链路和首页 Thing Card Appearance 草稿链路；这一步已经把“3 个 wrapper”的方案收敛成一个自定义 DialogFragment。
+
+同步记录了跨功能偏好：以后应用内功能 dialog 优先使用 `fragments` 下的自定义 `DialogFragment` / `BaseDialogFragment`，不要在 Activity 中直接 new raw `android.app.Dialog`。
+
+验证状态：已执行 `git diff --check`，结果通过，仅有仓库既有 LF/CRLF warning；已执行 `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`，结果 `BUILD SUCCESSFUL in 1s`。随后执行 `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`，发布 debug update `202606150235` 到 `http://120.25.194.207/everythingdone-updates/debug/latest.json`。
+
+## 2026-06-14 - 继续收紧附件/卡片裁切 dialog 间距与视频文案
+
+用户继续反馈：Detail 设置图片/视频外观 dialog 中，图片/视频预览区域距离其它区域的上下 margin 仍然偏大；首页长按进入“自定义卡片外观”后，“裁切封面图片/视频”的 dialog 应与 Detail 外观 dialog 保持同一组数值；两个地方的“封面图片/视频比例”“图片/视频显示比例”提示文字颜色偏深，应参考“图片显示宽度”的提示颜色；视频场景下“图片显示宽度”也应改为“视频显示宽度”。
+
+本次代码确认：这两个 dialog 不是同一个 dialog 类。Detail 附件外观 dialog 在 `DetailActivity.kt` 中手写构建；首页 Thing Card Appearance 的精确裁切 dialog 在 `ThingsActivity.kt` 中手写构建。它们共用底层 `ThingCardCropEditorView` / `ThingCardVideoCropEditorView`，但 dialog chrome、margin 和 label 是两套代码，因此这次手动对齐两处数值。
+
+本次修改：Detail 和首页裁切 dialog 的 title/content 横向 margin 统一为 `24dp`，title top margin 统一为 `24dp`，preview top margin 统一收紧到 `6dp`，video controls top margin 统一收紧到 `6dp`，ratio controls top margin 统一收紧到 `6dp`，action row top margin 统一为 `16dp`。两个 ratio label 的颜色都从 `app_chrome_on_surface_secondary` 改为 `app_chrome_on_surface_hint`，与“图片显示宽度/视频显示宽度”一致，并继续通过 App Chrome 资源适配浅色/暗色模式。Detail 视频附件现在显示“视频显示宽度”；首页视频裁切 dialog 的比例 label 可显示“封面视频比例”。已补齐默认英文、简中、繁中及其它现有 locale 的新增字符串，并为非中文 locale 补上本次新增 video cover ratio 的本地化翻译，避免只显示英文兜底。
+
+验证状态：已执行 `git diff --check`，结果通过，仅有仓库既有 LF/CRLF warning；已执行 `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`，结果 `BUILD SUCCESSFUL in 7s`。随后执行 `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`，发布 debug update `202606141559` 到 `http://120.25.194.207/everythingdone-updates/debug/latest.json`。
+
+## 2026-06-14 - Detail 附件外观文案/间距与首页卡片外观入口修正
+
+用户反馈四个问题：Detail 图片/视频附件外观 dialog 不应继续显示泛化的“附件外观”；视频编辑时比例 label 不应显示“图片显示比例”；dialog 标题左侧和顶部 margin 偏小、预览区域上下 margin 偏大；首页已完成记事长按后不应提供“自定义卡片外观”；从搜索中打开自定义卡片外观 UI 后按返回，应回到搜索上下文，而不是直接退出搜索状态。
+
+本次修改集中在 `DetailActivity.kt`、`ThingsActivity.kt`、`ModeManager.kt` 和各 locale `strings.xml`：Detail 附件外观 dialog 现在根据媒体类型显示“图片外观”或“视频外观”，比例 label 根据媒体类型显示“图片显示比例”或“视频显示比例”。标题 start/end margin 改为 `24dp`，title top margin 改为 `24dp`，取代原来的 root `18dp` top padding；预览区域 top margin 从 `16dp` 收紧到 `10dp`，视频帧控制区 top margin 从 `12dp` 收紧到 `8dp`，比例控制区 top margin 从 `12dp` 收紧到 `8dp`，底部 action row top margin 从 `20dp` 收紧到 `16dp`。首页卡片外观入口现在排除 `Thing.FINISHED`；搜索状态下关闭 Thing Card Appearance panel 时不再自动退出 selecting mode，避免把搜索上下文一起收掉。
+
+国际化方面，新增了图片/视频外观标题与图片/视频比例 label 的资源；非默认 locale 也补齐了 Detail 附件外观相关行文，避免 dialog 局部回退到英文。请重点测试：Detail 图片/视频附件外观 dialog 的标题、视频比例 label、整体上下间距；Finished 列表和搜索结果中的已完成记事长按菜单是否不再出现“自定义卡片外观”；搜索状态中打开卡片外观 panel 后按返回/取消是否仍保留搜索上下文。
+
+验证状态：首次 `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache` 暴露了法语资源中 `l'image` 的 Android string 转义问题；已改为 `l\'image` 后重新执行同一 assemble，结果 `BUILD SUCCESSFUL in 9s`。`git diff --check` 已通过，仅有仓库既有 LF/CRLF warning。已执行 `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`，发布 debug update `202606141538` 到 `http://120.25.194.207/everythingdone-updates/debug/latest.json`。
+
 ## 2026-06-08 - 修复视频附件外观编辑器切换宽度后 loading 不消失
 
 用户反馈：对于视频附件，在 Detail 附件外观编辑器里切换“正常”和“宽”之后，预览区域会一直显示加载圈。

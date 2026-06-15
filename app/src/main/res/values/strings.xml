@@ -360,12 +360,12 @@
     <string name="act_export_to_sdcard">Export to sdcard</string>
     <string name="act_restore_selected">Restore selected</string>
     <string name="act_delete_selected_forever">Delete selected forever</string>
-    <string name="act_customize_card_appearance">Customize card appearance</string>
+    <string name="act_customize_card_appearance">Adjust thing card appearance</string>
 
     <string name="act_sticky_on_top">Sticky on top</string>
     <string name="act_cancel_sticky">Cancel sticky</string>
 
-    <string name="thing_card_appearance_panel_title">Card appearance</string>
+    <string name="thing_card_appearance_panel_title">Adjust thing card appearance</string>
     <string name="thing_card_appearance_media_image">Image</string>
     <string name="thing_card_appearance_media_video">Video</string>
     <string name="thing_card_appearance_source_format">%1$s · %2$s</string>
@@ -387,6 +387,7 @@
     <string name="thing_card_appearance_precise_crop">Crop cover image</string>
     <string name="thing_card_appearance_precise_crop_video">Crop cover video</string>
     <string name="thing_card_appearance_thumbnail_shape">Cover image ratio</string>
+    <string name="thing_card_appearance_thumbnail_video_shape">Cover video ratio</string>
     <string name="thing_card_appearance_background_mask">Background mask</string>
     <string name="thing_card_appearance_background_height">Card height</string>
     <string name="thing_card_appearance_video_frame">Video frame</string>
@@ -397,12 +398,17 @@
     <string name="thing_card_appearance_video_frame_previous">Previous frame</string>
     <string name="thing_card_appearance_video_frame_next">Next frame</string>
     <string name="detail_attachment_media_appearance_title">Attachment appearance</string>
+    <string name="detail_attachment_image_appearance_title">Image appearance</string>
+    <string name="detail_attachment_video_appearance_title">Video appearance</string>
     <string name="detail_attachment_media_appearance_display_width">Image width</string>
+    <string name="detail_attachment_media_appearance_video_display_width">Video width</string>
     <string name="detail_attachment_media_appearance_width_normal">Normal</string>
     <string name="detail_attachment_media_appearance_width_wide">Wide</string>
     <string name="detail_attachment_media_appearance_full_span">Wide</string>
     <string name="detail_attachment_media_appearance_crop">Crop attachment</string>
     <string name="detail_attachment_media_appearance_full_span_ratio">Image ratio</string>
+    <string name="detail_attachment_media_appearance_image_ratio">Image ratio</string>
+    <string name="detail_attachment_media_appearance_video_ratio">Video ratio</string>
 
     <!--DetailActivity create-->
     <string name="act_add_attachment">Add attachment</string>

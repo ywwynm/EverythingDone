@@ -22,6 +22,14 @@ When a broad UI sweep finds additional candidate omissions beyond the user's
 explicitly reported bug, report those candidates first and wait for user
 confirmation before modifying them.
 
+## Android dialogs
+
+Prefer custom `DialogFragment` implementations under `app/src/main/java/.../fragments/`,
+usually extending `BaseDialogFragment`, for in-app dialogs. Avoid constructing
+raw `android.app.Dialog` instances directly inside Activities for feature UI.
+If a dialog's content is tightly coupled to Activity state, use a thin custom
+`DialogFragment` host rather than keeping the raw `Dialog` in the Activity.
+
 ## Documentation organization
 
 For every new feature request or substantial technical initiative, create a

@@ -70,6 +70,11 @@ Use the notes file path by default:
 .\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md"
 ```
 
+When the notes file contains multiple `##` entries, the publish task only
+embeds the first/top entry into `latest.json`. Keep the newest debug update
+entry at the top of `memory/debug-update-notes.md`; older entries may remain as
+local history without being shown in the app update dialog.
+
 Use inline `-PdebugUpdateNotes=...` only when the user explicitly asks for a
 short inline note.
 

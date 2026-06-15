@@ -301,6 +301,9 @@ open class ModeManager(app: App?,
         if (thing.id == App.getDoingThingId()) {
             return false
         }
+        if (thing.state == Thing.FINISHED) {
+            return false
+        }
         if (thing.isPrivate() && !mShouldShowPrivateContent) {
             return false
         }

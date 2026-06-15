@@ -1,6 +1,7 @@
 apply plugin: 'com.android.application'
 
 import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
 import java.security.MessageDigest
 import java.time.Instant
 import java.time.ZoneOffset
@@ -175,6 +176,34 @@ def shellQuote(String value) {
     return "'" + value.replace("'", "'\"'\"'") + "'"
 }
 
+def currentDebugUpdateNotes(String notes) {
+    def normalized = notes.replace('\r\n', '\n').replace('\r', '\n').trim()
+    if (!normalized) {
+        return ''
+    }
+
+    def lines = normalized.split('\n', -1) as List
+    def firstEntryIndex = -1
+    for (int i = 0; i < lines.size(); i++) {
+        if (lines[i].startsWith('## ')) {
+            firstEntryIndex = i
+            break
+        }
+    }
+    if (firstEntryIndex < 0) {
+        return normalized
+    }
+
+    def nextEntryIndex = lines.size()
+    for (int i = firstEntryIndex + 1; i < lines.size(); i++) {
+        if (lines[i].startsWith('## ')) {
+            nextEntryIndex = i
+            break
+        }
+    }
+    return lines.subList(firstEntryIndex, nextEntryIndex).join('\n').trim()
+}
+
 tasks.register('publishDebugUpdate') {
     group = 'publishing'
     description = 'Assembles, uploads, and publishes the latest debug APK update metadata.'
@@ -222,9 +251,9 @@ tasks.register('publishDebugUpdate') {
             if (!notesFile.exists()) {
                 throw new GradleException("debugUpdateNotesFile does not exist: ${notesFile.absolutePath}")
             }
-            notes = notesFile.getText('UTF-8')
+            notes = currentDebugUpdateNotes(notesFile.getText('UTF-8'))
         } else if (notesValue) {
-            notes = notesValue
+            notes = currentDebugUpdateNotes(notesValue)
         }
 
         def metadata = [
@@ -241,7 +270,12 @@ tasks.register('publishDebugUpdate') {
             metadata.releaseNotes = notes
         }
         def metadataFile = new File(outputDir, 'latest.json')
-        metadataFile.setText(JsonOutput.prettyPrint(JsonOutput.toJson(metadata)) + '\n', 'UTF-8')
+        def metadataJson = JsonOutput.prettyPrint(JsonOutput.toJson(metadata)) + '\n'
+        def parsedMetadata = new JsonSlurper().parseText(metadataJson)
+        if (!(parsedMetadata instanceof Map)) {
+            throw new GradleException('Generated debug update metadata must be a JSON object.')
+        }
+        metadataFile.setText(metadataJson, 'UTF-8')
 
         def sshBase = ['ssh']
         def scpBase = ['scp']

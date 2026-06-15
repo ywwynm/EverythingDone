@@ -3,11 +3,13 @@
 package com.ywwynm.everythingdone.helpers
 
 import android.content.Context
+import android.content.ClipData
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.PorterDuff
 import android.graphics.drawable.Drawable
+import android.net.Uri
 import android.os.AsyncTask
 import androidx.core.content.FileProvider
 import androidx.annotation.DrawableRes
@@ -76,13 +78,21 @@ object ScreenshotHelper {
 
             if (mWrContext == null) return
             val context: Context = mWrContext!!.get() ?: return
+            val screenshotFile = file ?: return
 
             val intent = Intent(Intent.ACTION_SEND)
-            intent.setType("image/jpeg")
+            val mimeType = "image/jpeg"
+            val uri: Uri = FileProvider.getUriForFile(
+                    context, "com.ywwynm.everythingdone", screenshotFile)
+            intent.setDataAndType(uri, mimeType)
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            intent.putExtra(Intent.EXTRA_STREAM,
-                    FileProvider.getUriForFile(context, "com.ywwynm.everythingdone", file!!))
-            context.startActivity(Intent.createChooser(intent, mShareTitle))
+            intent.clipData = ClipData.newUri(
+                    context.contentResolver, mShareTitle ?: screenshotFile.name, uri)
+            intent.putExtra(Intent.EXTRA_STREAM, uri)
+            mShareTitle?.let { intent.putExtra(Intent.EXTRA_TITLE, it) }
+            val chooserIntent = Intent.createChooser(intent, mShareTitle)
+            chooserIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            context.startActivity(chooserIntent)
         }
     }
 

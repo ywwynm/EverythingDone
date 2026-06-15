@@ -1,5 +1,27 @@
 # Home Contextual Toolbar Sessions
 
+## 2026-06-15 - Card appearance action order and icon
+
+- User asked to promote the Thing Card Appearance contextual action so it no
+  longer sits near the end of the overflow actions after long-press selection.
+- Moved `act_customize_card_appearance` before `act_finish_selected` in the
+  underway contextual menu and made it an always-show action when eligible.
+- `Finish selected` now follows the appearance action, while still taking its
+  former visible position when the appearance action is hidden.
+- Added a dedicated card-and-sliders vector icon for the action and referenced
+  it from all contextual menu definitions that contain the action.
+- Verification: `git diff --check` passed with the repository's existing
+  LF/CRLF warnings, and
+  `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`
+  passed and published debug update `202606150256`.
+- Follow-up: user found the toolbar too crowded because the `Finish selected`
+  icon still occupied an action slot after the card appearance action was
+  promoted. `act_finish_selected` now uses `showAsAction="never"` and no longer
+  declares an icon in the underway contextual menu.
+- Follow-up verification: `git diff --check` passed with the repository's
+  existing LF/CRLF warnings, and the debug publish task passed and published
+  update `202606150309`.
+
 ## 2026-06-06 - Selection toolbar status-bar spacer
 
 - User reported that long-pressing a Thing enters the selecting UI with a

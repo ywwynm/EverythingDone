@@ -215,8 +215,8 @@
     <string name="act_abandon_new_thing">포기하다</string>
     <string name="act_set_as_private_thing">비공개 항목으로 설정</string>
     <string name="act_cancel_private_thing">취소 비공개 항목 설정</string>
-    <string name="act_customize_card_appearance">Customize card appearance</string>
-    <string name="thing_card_appearance_panel_title">Card appearance</string>
+    <string name="act_customize_card_appearance">카드 모양 조정</string>
+    <string name="thing_card_appearance_panel_title">카드 모양 조정</string>
     <string name="thing_card_appearance_media_image">Image</string>
     <string name="thing_card_appearance_media_video">Video</string>
     <string name="thing_card_appearance_source_format">%1$s · %2$s</string>
@@ -236,6 +236,7 @@
     <string name="thing_card_appearance_cover_image_width_format">Cover image width · %1$d%%</string>
     <string name="thing_card_appearance_precise_crop">Crop cover image</string>
     <string name="thing_card_appearance_thumbnail_shape">Cover image ratio</string>
+    <string name="thing_card_appearance_thumbnail_video_shape">커버 동영상 비율</string>
     <string name="thing_card_appearance_background_mask">Background mask</string>
     <string name="thing_card_appearance_background_height">Card height</string>
     <string name="thing_card_appearance_video_frame">Video frame</string>
@@ -861,4 +862,16 @@ Nevolution, 360 Notification Box 같은 알림 관리 앱을 설치했다면 알
     <string name="channel_quick_create">빠른 생성</string>
     <string name="channel_ongoing">지속적인 알림</string>
     <string name="channel_auto_notify">자동 알림</string>
+    <string name="detail_attachment_media_appearance_title">첨부 파일 모양</string>
+    <string name="detail_attachment_image_appearance_title">이미지 모양</string>
+    <string name="detail_attachment_video_appearance_title">동영상 모양</string>
+    <string name="detail_attachment_media_appearance_display_width">이미지 표시 너비</string>
+    <string name="detail_attachment_media_appearance_video_display_width">동영상 표시 너비</string>
+    <string name="detail_attachment_media_appearance_width_normal">기본</string>
+    <string name="detail_attachment_media_appearance_width_wide">넓게</string>
+    <string name="detail_attachment_media_appearance_full_span">넓게</string>
+    <string name="detail_attachment_media_appearance_crop">첨부 파일 자르기</string>
+    <string name="detail_attachment_media_appearance_full_span_ratio">이미지 표시 비율</string>
+    <string name="detail_attachment_media_appearance_image_ratio">이미지 표시 비율</string>
+    <string name="detail_attachment_media_appearance_video_ratio">동영상 표시 비율</string>
 </resources>

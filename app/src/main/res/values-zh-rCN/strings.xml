@@ -346,12 +346,12 @@
     <string name="act_export_to_sdcard">导出到 SD 卡</string>
     <string name="act_restore_selected">还原选中的记事</string>
     <string name="act_delete_selected_forever">彻底删除选中的记事</string>
-    <string name="act_customize_card_appearance">自定义卡片外观</string>
+    <string name="act_customize_card_appearance">调整记事卡片外观</string>
 
     <string name="act_sticky_on_top">置顶</string>
     <string name="act_cancel_sticky">取消置顶</string>
 
-    <string name="thing_card_appearance_panel_title">卡片外观</string>
+    <string name="thing_card_appearance_panel_title">调整记事卡片外观</string>
     <string name="thing_card_appearance_media_image">图片</string>
     <string name="thing_card_appearance_media_video">视频</string>
     <string name="thing_card_appearance_source_format">%1$s · %2$s</string>
@@ -373,6 +373,7 @@
     <string name="thing_card_appearance_precise_crop">裁切封面图片</string>
     <string name="thing_card_appearance_precise_crop_video">裁切封面视频</string>
     <string name="thing_card_appearance_thumbnail_shape">封面图片比例</string>
+    <string name="thing_card_appearance_thumbnail_video_shape">封面视频比例</string>
     <string name="thing_card_appearance_background_mask">背景遮罩</string>
     <string name="thing_card_appearance_background_height">卡片高度</string>
     <string name="thing_card_appearance_video_frame">视频选帧</string>
@@ -383,12 +384,17 @@
     <string name="thing_card_appearance_video_frame_previous">上一帧</string>
     <string name="thing_card_appearance_video_frame_next">下一帧</string>
     <string name="detail_attachment_media_appearance_title">附件外观</string>
+    <string name="detail_attachment_image_appearance_title">图片外观</string>
+    <string name="detail_attachment_video_appearance_title">视频外观</string>
     <string name="detail_attachment_media_appearance_display_width">图片显示宽度</string>
+    <string name="detail_attachment_media_appearance_video_display_width">视频显示宽度</string>
     <string name="detail_attachment_media_appearance_width_normal">正常</string>
     <string name="detail_attachment_media_appearance_width_wide">宽</string>
     <string name="detail_attachment_media_appearance_full_span">宽</string>
     <string name="detail_attachment_media_appearance_crop">裁切附件</string>
     <string name="detail_attachment_media_appearance_full_span_ratio">图片显示比例</string>
+    <string name="detail_attachment_media_appearance_image_ratio">图片显示比例</string>
+    <string name="detail_attachment_media_appearance_video_ratio">视频显示比例</string>
 
     <!--DetailActivity create-->
     <string name="act_add_attachment">添加附件</string>

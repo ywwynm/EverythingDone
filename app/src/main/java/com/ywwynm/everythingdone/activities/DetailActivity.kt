@@ -8,7 +8,6 @@ import android.Manifest
 import androidx.activity.OnBackPressedCallback
 import android.annotation.SuppressLint
 import android.app.ActivityManager
-import android.app.Dialog
 import android.content.ActivityNotFoundException
 import android.content.BroadcastReceiver
 import android.content.ClipData
@@ -94,6 +93,7 @@ import com.ywwynm.everythingdone.fragments.HabitDetailDialogFragment
 import com.ywwynm.everythingdone.fragments.HabitRecordDialogFragment
 import com.ywwynm.everythingdone.fragments.LoadingDialogFragment
 import com.ywwynm.everythingdone.fragments.LongTextDialogFragment
+import com.ywwynm.everythingdone.fragments.MediaCropAppearanceDialogFragment
 import com.ywwynm.everythingdone.fragments.PatternLockDialogFragment
 import com.ywwynm.everythingdone.fragments.ThingDoingDialogFragment
 import com.ywwynm.everythingdone.fragments.TwoOptionsDialogFragment
@@ -158,7 +158,7 @@ import androidx.core.view.get
 import androidx.core.content.edit
 
 @SuppressLint("NewApi")
-class DetailActivity : EverythingDoneBaseActivity() {
+class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFragment.Host {
 
     @JvmField var screenDensity: Float = 0f
 
@@ -2034,6 +2034,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
             ChooserDialogFragment.TAG,
             ColorInfoDialogFragment.TAG,
             DateTimeDialogFragment.TAG,
+            MediaCropAppearanceDialogFragment.TAG,
             GradientOrientationDialogFragment.TAG,
             HabitDetailDialogFragment.TAG,
             HabitRecordDialogFragment.TAG,
@@ -3832,9 +3833,37 @@ class DetailActivity : EverythingDoneBaseActivity() {
     }
 
     private fun showDetailAttachmentMediaAppearanceEditor(position: Int) {
-        val typePathName = mImageAttachmentAdapter?.getItems()?.getOrNull(position) ?: return
-        val source = ThingCardMediaHelper.toMediaSource(typePathName) ?: return
-        val bitmap = loadDetailAttachmentCropEditorBitmap(source) ?: return
+        (fragmentManager.findFragmentByTag(MediaCropAppearanceDialogFragment.TAG)
+                as? android.app.DialogFragment)?.dismissAllowingStateLoss()
+        MediaCropAppearanceDialogFragment.newInstance(
+            MediaCropAppearanceDialogFragment.REQUEST_DETAIL_ATTACHMENT,
+            position
+        ).show(
+            fragmentManager,
+            MediaCropAppearanceDialogFragment.TAG
+        )
+    }
+
+    override fun getMediaCropAppearanceDialogWidthPx(
+        fragment: MediaCropAppearanceDialogFragment,
+        requestKey: String,
+        position: Int
+    ): Int {
+        if (requestKey != MediaCropAppearanceDialogFragment.REQUEST_DETAIL_ATTACHMENT) {
+            return ViewGroup.LayoutParams.WRAP_CONTENT
+        }
+        return getDetailAttachmentAppearanceDialogWidth()
+    }
+
+    override fun createMediaCropAppearanceDialogContent(
+        fragment: MediaCropAppearanceDialogFragment,
+        requestKey: String,
+        position: Int
+    ): MediaCropAppearanceDialogFragment.Content? {
+        if (requestKey != MediaCropAppearanceDialogFragment.REQUEST_DETAIL_ATTACHMENT) return null
+        val typePathName = mImageAttachmentAdapter?.getItems()?.getOrNull(position) ?: return null
+        val source = ThingCardMediaHelper.toMediaSource(typePathName) ?: return null
+        val bitmap = loadDetailAttachmentCropEditorBitmap(source) ?: return null
         val isFirst = position == 0
         val isSingle = mImageAttachmentAdapter?.itemCount == 1
         val canToggleFullSpan = isFirst && !isSingle
@@ -3855,19 +3884,16 @@ class DetailActivity : EverythingDoneBaseActivity() {
             DetailAttachmentMediaAppearance.PRESENTATION_GRID
         }
 
-        val dialog = Dialog(this)
-        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
         val density = resources.displayMetrics.density
         val dialogWidth = getDetailAttachmentAppearanceDialogWidth()
-        val contentHorizontalMargin = (density * 20).toInt()
+        val contentHorizontalMargin = (density * 24).toInt()
 
         val root = LinearLayout(this)
         root.orientation = LinearLayout.VERTICAL
         root.setBackgroundResource(R.drawable.bg_app_chrome_surface_elevated_rounded)
-        root.setPadding(0, (density * 18).toInt(), 0, 0)
 
         val title = TextView(this)
-        title.setText(R.string.detail_attachment_media_appearance_title)
+        title.setText(getDetailAttachmentAppearanceTitleRes(source))
         applyDetailAttachmentAppearanceAccentText(title)
         title.textSize = 20f
         title.includeFontPadding = false
@@ -3877,13 +3903,21 @@ class DetailActivity : EverythingDoneBaseActivity() {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
             ).apply {
-                setMargins(contentHorizontalMargin, 0, contentHorizontalMargin, 0)
+                setMargins(
+                    contentHorizontalMargin,
+                    (density * 24).toInt(),
+                    contentHorizontalMargin,
+                    0
+                )
             }
         )
 
         var onWidthModeChanged: ((Boolean) -> Unit)? = null
         val widthControls = if (canToggleFullSpan) {
-            createDetailAttachmentWidthControls(draftSource.fullSpanEnabled) { wide ->
+            createDetailAttachmentWidthControls(
+                draftSource.fullSpanEnabled,
+                getDetailAttachmentAppearanceWidthLabelRes(source)
+            ) { wide ->
                 onWidthModeChanged?.invoke(wide)
             }
         } else {
@@ -3959,7 +3993,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
             ).apply {
                 setMargins(
                     contentHorizontalMargin,
-                    (density * 16).toInt(),
+                    (density * 6).toInt(),
                     contentHorizontalMargin,
                     0
                 )
@@ -3981,7 +4015,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
                     ).apply {
                         setMargins(
                             contentHorizontalMargin,
-                            (density * 12).toInt(),
+                            (density * 6).toInt(),
                             contentHorizontalMargin,
                             0
                         )
@@ -3992,7 +4026,8 @@ class DetailActivity : EverythingDoneBaseActivity() {
 
         val ratioControls = createDetailAttachmentRatioControls(
             cropEditor,
-            initialPresentation.targetAspectRatio
+            initialPresentation.targetAspectRatio,
+            getDetailAttachmentAppearanceRatioLabelRes(source)
         )
         ratioControls.view.visibility =
             if (activePresentationKey == DetailAttachmentMediaAppearance.PRESENTATION_FULL_SPAN) {
@@ -4008,7 +4043,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
             ).apply {
                 setMargins(
                     contentHorizontalMargin,
-                    (density * 12).toInt(),
+                    (density * 6).toInt(),
                     contentHorizontalMargin,
                     0
                 )
@@ -4092,7 +4127,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
         buttons.gravity = android.view.Gravity.RIGHT or android.view.Gravity.CENTER_VERTICAL
         buttons.orientation = LinearLayout.HORIZONTAL
         buttons.addView(createDetailAttachmentAppearanceButton(R.string.cancel, false) {
-            dialog.dismiss()
+            fragment.dismiss()
         })
         buttons.addView(createDetailAttachmentAppearanceButton(R.string.confirm) {
             saveCurrentPresentationToDraft()
@@ -4107,7 +4142,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
             applyDetailAttachmentMediaAppearance(
                 mDetailAttachmentMediaAppearance.withSource(source.typePathName, draftSource)
             )
-            dialog.dismiss()
+            fragment.dismiss()
         })
         root.addView(
             buttons,
@@ -4117,21 +4152,50 @@ class DetailActivity : EverythingDoneBaseActivity() {
             ).apply {
                 setMargins(
                     (density * 8).toInt(),
-                    (density * 20).toInt(),
+                    (density * 16).toInt(),
                     (density * 8).toInt(),
                     (density * 8).toInt()
                 )
             }
         )
 
-        dialog.setOnDismissListener {
+        return MediaCropAppearanceDialogFragment.Content(root) {
             videoFrameControls?.stopPlayback?.invoke()
             videoCropView?.release()
         }
-        dialog.setContentView(root)
-        dialog.show()
-        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-        dialog.window?.setLayout(dialogWidth, ViewGroup.LayoutParams.WRAP_CONTENT)
+    }
+
+    @StringRes
+    private fun getDetailAttachmentAppearanceTitleRes(
+        source: ThingCardMediaHelper.MediaSource
+    ): Int {
+        return if (source.isVideo) {
+            R.string.detail_attachment_video_appearance_title
+        } else {
+            R.string.detail_attachment_image_appearance_title
+        }
+    }
+
+    @StringRes
+    private fun getDetailAttachmentAppearanceWidthLabelRes(
+        source: ThingCardMediaHelper.MediaSource
+    ): Int {
+        return if (source.isVideo) {
+            R.string.detail_attachment_media_appearance_video_display_width
+        } else {
+            R.string.detail_attachment_media_appearance_display_width
+        }
+    }
+
+    @StringRes
+    private fun getDetailAttachmentAppearanceRatioLabelRes(
+        source: ThingCardMediaHelper.MediaSource
+    ): Int {
+        return if (source.isVideo) {
+            R.string.detail_attachment_media_appearance_video_ratio
+        } else {
+            R.string.detail_attachment_media_appearance_image_ratio
+        }
     }
 
     private fun createEditableDetailAttachmentSourceAppearance(
@@ -4311,6 +4375,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
 
     private fun createDetailAttachmentWidthControls(
         initialWide: Boolean,
+        @StringRes labelRes: Int,
         onWideChanged: (Boolean) -> Unit
     ): DetailAttachmentWidthControls {
         val density = resources.displayMetrics.density
@@ -4319,7 +4384,7 @@ class DetailActivity : EverythingDoneBaseActivity() {
         container.gravity = android.view.Gravity.CENTER_VERTICAL
 
         val label = TextView(this)
-        label.setText(R.string.detail_attachment_media_appearance_display_width)
+        label.setText(labelRes)
         label.setTextColor(ContextCompat.getColor(this, R.color.app_chrome_on_surface_hint))
         label.textSize = 13f
         label.gravity = android.view.Gravity.CENTER_VERTICAL
@@ -4454,14 +4519,15 @@ class DetailActivity : EverythingDoneBaseActivity() {
 
     private fun createDetailAttachmentRatioControls(
         cropView: ThingCardCropEditorController,
-        initialAspectRatio: Double
+        initialAspectRatio: Double,
+        @StringRes labelRes: Int
     ): DetailAttachmentRatioControls {
         val container = LinearLayout(this)
         container.orientation = LinearLayout.VERTICAL
 
         val label = TextView(this)
-        label.setText(R.string.detail_attachment_media_appearance_full_span_ratio)
-        label.setTextColor(ContextCompat.getColor(this, R.color.app_chrome_on_surface_secondary))
+        label.setText(labelRes)
+        label.setTextColor(ContextCompat.getColor(this, R.color.app_chrome_on_surface_hint))
         label.textSize = 13f
         label.gravity = android.view.Gravity.CENTER_VERTICAL
         container.addView(

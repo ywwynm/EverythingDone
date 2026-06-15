@@ -115,3 +115,67 @@
   `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`.
 - Published debug update `202606081448` with
   `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`.
+
+## 2026-06-14 - Media-specific dialog wording and spacing polish
+
+- User requested that the Detail attachment appearance dialog no longer use the
+  generic `附件外观` title. Image attachments now use `图片外观`; video
+  attachments now use `视频外观`.
+- The full-span ratio label now follows the media type: images use
+  `图片显示比例`, while videos use `视频显示比例`.
+- Increased the generated dialog title margin model to match the larger
+  dialog convention: title start/end margins now use `24dp`, and the title top
+  margin now uses `24dp` instead of a root-level `18dp` top padding.
+- Tightened preview spacing: preview top margin changed from `16dp` to `10dp`,
+  video-frame controls top margin from `12dp` to `8dp`, ratio controls top
+  margin from `12dp` to `8dp`, and the action-row top margin from `20dp` to
+  `16dp`.
+- Added localized strings for the new image/video-specific title and ratio
+  labels.
+- Verification: the first
+  `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`
+  run exposed an Android string-resource apostrophe escaping issue in French;
+  after escaping `l'image` as `l\'image`, the same assemble passed.
+- Published debug update `202606141538` with
+  `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`.
+
+## 2026-06-14 - Dialog spacing and video width label follow-up
+
+- User reported that the Detail attachment appearance dialog preview still sat
+  too far from nearby controls, and requested the home Thing Card Appearance
+  precise crop dialog use the same spacing values.
+- Confirmed the two dialogs are not the same dialog class. `DetailActivity`
+  builds the Detail attachment appearance dialog, while `ThingsActivity` builds
+  the Thing Card precise crop dialog. They do share
+  `ThingCardCropEditorView` and `ThingCardVideoCropEditorView`.
+- Tightened both dialogs' preview-adjacent spacing to the same values: preview
+  top margin `6dp`, video-frame-controls top margin `6dp`, ratio-controls top
+  margin `6dp`, title horizontal/top margins `24dp`, content horizontal margin
+  `24dp`, and action-row top margin `16dp`.
+- Changed the Detail video width prompt to `视频显示宽度` while keeping image
+  attachments on `图片显示宽度`.
+- Changed both dialogs' ratio prompt text colour from
+  `app_chrome_on_surface_secondary` to `app_chrome_on_surface_hint` so ratio
+  prompts match the width prompt weight in light and dark mode.
+- Verification: `git diff --check` passed with CRLF warnings only, and
+  `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`
+  completed successfully.
+- Published debug update `202606150235` with
+  `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`.
+- Published debug update `202606141559` with
+  `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`.
+
+## 2026-06-15 - Shared media crop DialogFragment refactor
+
+- User pointed out that the Detail attachment appearance editor should not be
+  backed by a raw Activity-created `android.app.Dialog`, because the project
+  prefers custom `DialogFragment` implementations under `fragments`.
+- Replaced the initial multi-wrapper idea with a single
+  `MediaCropAppearanceDialogFragment` shared by Detail attachment appearance
+  and the home Thing Card precise crop editor.
+- Kept the Detail-specific editor content and save callbacks in
+  `DetailActivity`, but moved the dialog lifecycle, tag, width, and cleanup
+  boundary to the shared custom DialogFragment path.
+- Verification: `git diff --check` passed with CRLF warnings only, and
+  `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`
+  completed successfully.

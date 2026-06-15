@@ -26,6 +26,8 @@ Before every `:app:publishDebugUpdate` invocation, update
 conversation behind that debug build: the user's request, the agent's analysis,
 important files and implementation changes, any user corrections after an
 earlier attempt, the follow-up response, and relevant verification/publish
-status. Prefer `-PdebugUpdateNotesFile=memory\debug-update-notes.md`; use
-inline `-PdebugUpdateNotes=...` only when explicitly asked for a short inline
-note.
+status. Prefer `-PdebugUpdateNotesFile=memory/debug-update-notes.md`; the
+publish task embeds only the first/top `##` entry from that file into
+`latest.json`, so keep the newest debug update entry at the top and leave older
+entries as local history. Use inline `-PdebugUpdateNotes=...` only when
+explicitly asked for a short inline note.

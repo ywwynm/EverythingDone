@@ -2,6 +2,34 @@
 
 Migrated from global `memory/sessions.md` on 2026-06-06. This file keeps feature-scoped history out of startup memory while preserving the original notes.
 
+## 2026-06-15 - Promote card appearance action in contextual toolbar
+
+- User asked to move the card appearance action earlier in the long-press
+  contextual menu, placing it where `Finish selected` currently sits and moving
+  `Finish selected` later.
+- Updated `menu_contextual_underway.xml` so `act_customize_card_appearance`
+  appears before `act_finish_selected` and uses `showAsAction="always"` when
+  `ModeManager` makes the action visible. If the action is hidden, `Finish
+  selected` still occupies its former visible toolbar slot.
+- Added `act_adjust_card_appearance.xml`, a 24dp card-and-sliders vector icon
+  using the contextual toolbar's `black_54p` visual tier.
+- Kept the existing action id for code compatibility, but changed the user-
+  visible label from "Customize card appearance" to "Adjust thing card
+  appearance" / `调整记事卡片外观`.
+- Verification: `git diff --check` passed with the repository's existing
+  LF/CRLF warnings, and
+  `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`
+  passed and published debug update `202606150256`.
+- Follow-up: user reported that `Finish selected` still showed a toolbar icon
+  and made the contextual toolbar too crowded, that the editor panel title still
+  said only "Card appearance", and that the new card-appearance icon border
+  should be slightly stronger. `act_finish_selected` was moved back to overflow
+  with no icon, `thing_card_appearance_panel_title` was aligned with the entry
+  label, and the card icon border stroke was increased from `1.6` to `1.8`.
+- Follow-up verification: `git diff --check` passed with the repository's
+  existing LF/CRLF warnings, and the debug publish task passed and published
+  update `202606150309`.
+
 ## 2026-06-02 - Thing Card Appearance planning
 
 User asked to design two related Thing Card features: adjustable image/video
@@ -1560,3 +1588,57 @@ Verification:
   passed and published debug update `202606041520` to
   `http://120.25.194.207/everythingdone-updates/debug/latest.json`.
 - No Git commit was created.
+
+## 2026-06-14 - Home card appearance entry and search-back polish
+
+- User requested that completed Things on the home screen should not expose the
+  `Customize card appearance` action after long-press selection.
+- Updated `ModeManager.canCustomizeSelectedThingCardAppearance()` so
+  `Thing.FINISHED` is ineligible even if it is the only selected Thing and
+  otherwise passes the existing doing/private checks.
+- User also requested that pressing Back from the Thing Card Appearance panel
+  while in search should return to the search context instead of exiting search.
+- Changed the panel cancel/back path to keep selecting mode when
+  `App.isSearching` is true. Outside search, closing the panel still exits
+  selecting mode as before.
+- Verification: `git diff --check` passed with only the repository's existing
+  LF/CRLF warnings, `:app:assembleDebug` passed after the French string escape
+  correction, and debug update `202606141538` was published.
+
+## 2026-06-14 - Precise crop dialog spacing alignment
+
+- User asked whether the home Thing Card Appearance precise crop dialog and the
+  Detail attachment appearance dialog use the same class. Confirmed they are
+  separate generated dialogs in `ThingsActivity` and `DetailActivity`, but
+  share the underlying image/video crop editor views.
+- Aligned the home precise crop dialog spacing with the Detail dialog: title
+  start/end/top margins `24dp`, content horizontal margin `24dp`, preview top
+  margin `6dp`, video-frame-controls top margin `6dp`, ratio-controls top
+  margin `6dp`, and action-row top margin `16dp`.
+- Changed the precise crop ratio label from secondary text colour to App Chrome
+  hint text colour, matching the Detail width prompt and remaining resource-
+  driven for light/dark mode.
+- Added a video-specific precise-crop ratio label resource so video sources can
+  show `封面视频比例` instead of image-specific copy.
+- Verification: `git diff --check` passed with CRLF warnings only, and
+  `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`
+  completed successfully.
+- Published debug update `202606150235` with
+  `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`.
+- Published debug update `202606141559` with
+  `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`.
+
+## 2026-06-15 - Shared media crop DialogFragment refactor
+
+- User pointed out that the home Thing Card precise crop editor should follow
+  the project preference for custom `DialogFragment` implementations rather
+  than using a raw Activity-created `android.app.Dialog`.
+- Replaced the initial multi-wrapper idea with a single
+  `MediaCropAppearanceDialogFragment` shared by Thing Card precise crop and
+  Detail attachment appearance.
+- Kept the Thing Card Appearance draft, crop, video-frame, ratio, and visible
+  preview update logic in `ThingsActivity`, while moving the dialog lifecycle,
+  tag, width, and cleanup boundary into the shared custom DialogFragment.
+- Verification: `git diff --check` passed with CRLF warnings only, and
+  `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`
+  completed successfully.

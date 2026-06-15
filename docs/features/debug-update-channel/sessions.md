@@ -2,6 +2,37 @@
 
 Migrated from global `memory/sessions.md` on 2026-06-06. This file keeps feature-scoped history out of startup memory while preserving the original notes.
 
+## 2026-06-15 - Publish only current debug notes in update metadata
+
+- User reported that the in-app update check showed
+  `Expected BEGIN_OBJECT but was STRING at line 1 column 1 path`, suggesting a
+  problem with the published update JSON.
+- Re-read the remote `latest.json` and confirmed the current server response
+  had status 200, `Content-Type: application/json`, and started with `{`.
+  `BuildConfig.DEBUG_UPDATE_METADATA_URL` also pointed at the expected debug
+  metadata URL.
+- Found that `:app:publishDebugUpdate` embedded the entire long-term
+  `memory/debug-update-notes.md` history into `releaseNotes` whenever
+  `-PdebugUpdateNotesFile` was used. The metadata was syntactically an object,
+  but it had grown to roughly 90KB and included many stale historical entries.
+- Changed `app/build.gradle` so file and inline notes are normalized through
+  `currentDebugUpdateNotes(...)`; when the text contains multiple `##` entries,
+  only the first/top entry is published into `latest.json`.
+- Added a local generated-metadata parse step with `JsonSlurper` so the Gradle
+  task fails before upload if the generated metadata is not a JSON object.
+- Updated `.agents/rules/gradle.md` and this feature's preferences to document
+  that the notes file may keep history, but only the top current entry is
+  embedded in app-visible update metadata.
+
+Verification:
+- `git diff --check` passed with the repository's existing LF/CRLF warnings.
+- `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`
+  passed and published debug update `202606150245` to
+  `http://120.25.194.207/everythingdone-updates/debug/latest.json`.
+- Re-read both local and remote `latest.json`: both were 3313 characters,
+  started with `{` (ASCII 123), parsed as JSON objects, had
+  `debugUpdateCode=202606150245`, and had `releaseNotesLength=1247`.
+
 ## 2026-05-27 - DetailActivity catches widget updates after Home
 
 Fixed the remote-widget path where a user could open a Thing in

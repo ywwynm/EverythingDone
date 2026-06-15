@@ -25,6 +25,7 @@
     <item
         android:id="@+id/act_customize_card_appearance"
         android:title="@string/act_customize_card_appearance"
+        android:icon="@drawable/act_adjust_card_appearance"
         android:visible="false"
         app:showAsAction="never" />
 
