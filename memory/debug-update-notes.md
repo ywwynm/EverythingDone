@@ -1,5 +1,14 @@
 # Current Debug Update Notes
 
+## 2026-06-15 - 修复长截图分享到完事儿创建记事时无法读取的问题
+用户继续反馈：在分享记事生成的长截图时，如果在系统分享 dialog 里选择“完事儿”的“创建记事”，新建记事无法读取到这张长截图。
+
+本次诊断确认问题在接收方路径，而不是截图生成本身。上一版 `ScreenshotHelper.ShareCallback` 已经把截图作为 FileProvider `content://` URI 放进 `EXTRA_STREAM`、`ClipData` 和 intent `data`，并授予读取权限；但 `DetailActivity.setupThingFromIntent()` 作为分享接收方时，只调用 `UriPathConverter.getLocalPathName(...)`，只有能拿到本地文件路径时才写入附件。FileProvider URI 本来就是面向流读取的 `content://`，不保证暴露 `_data` 列，因此分享到同一个 app 的创建记事入口时，URI 有效、文件也存在，但旧接收逻辑可能因为解析不出本地路径而直接丢掉附件。
+
+本次修改集中在 `DetailActivity.kt`：外部分享接收现在会从 `EXTRA_STREAM`、intent `data` 和 `ClipData` 中读取 URI；多附件分享会对这些来源去重；单附件和多附件都走同一个 `getTypePathNameFromIncomingShare(...)` 辅助逻辑。该逻辑保留原先可直接解析本地路径的路径；如果解析不到路径，则根据 `ContentResolver.getType(uri)` 或分享 Intent 的 MIME type 推断后缀，通过 `FileUtil.copyUriToFile(...)` 把 URI 流复制到 app 的临时媒体文件区，再生成现有的附件 type/path/name token。这样既能修复“长截图分享回完事儿”的 FileProvider URI，也能提升其它外部 app 以纯 `content://` 分享图片、视频、音频时的兼容性。
+
+验证状态：`git diff --check` 已通过，仅有仓库既有的 LF/CRLF warning；`.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache` 已通过。当前 agent 环境没有可直接确认 OPPO/系统分享 dialog 的真机交互回路，发布后请重点测试：从某个记事生成长截图，系统分享面板选择“完事儿/创建记事”，新建记事是否能显示该长截图附件。
+
 ## 2026-06-15 - 修复长截图分享时系统分享面板预览空白的兼容性问题
 
 用户反馈：使用长截图分享某个记事时，截图生成完成并弹出系统分享 dialog 后，图片预览好像是空白的，不确定是 OPPO ColorOS 的问题，还是应用需要额外设置预览缩略图。

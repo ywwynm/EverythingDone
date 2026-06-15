@@ -456,25 +456,19 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         val action: String? = intent.action
         val type: String? = intent.type
         if (Intent.ACTION_SEND == action) {
-            if (type!!.contains("image/") || type.contains("video/")
-                || type.contains("audio/")
-            ) {
-                val data: Uri? = intent.getParcelableExtra(Intent.EXTRA_STREAM)
-                val pathName: String? = UriPathConverter.getLocalPathName(this, data)
-                if (pathName != null) {
-                    mThing!!.attachment = AttachmentHelper.SIGNAL + getTypePathName(pathName, null)
+            if (isIncomingMediaShare(type)) {
+                val data: Uri? = getIncomingShareUri(intent)
+                val typePathName: String? = getTypePathNameFromIncomingShare(data, type)
+                if (typePathName != null) {
+                    mThing!!.attachment = AttachmentHelper.SIGNAL + typePathName
                 }
             }
         } else if (Intent.ACTION_SEND_MULTIPLE == action) {
-            val datas: ArrayList<Uri>? = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM)
             val sb = StringBuilder()
-            for (data in datas!!) {
-                val pathName: String? = UriPathConverter.getLocalPathName(this, data)
-                if (pathName != null) {
-                    val typePathName: String? = getTypePathName(pathName, null)
-                    if (typePathName != null) {
-                        sb.append(AttachmentHelper.SIGNAL).append(typePathName)
-                    }
+            for (data in getIncomingShareUris(intent)) {
+                val typePathName: String? = getTypePathNameFromIncomingShare(data, type)
+                if (typePathName != null) {
+                    sb.append(AttachmentHelper.SIGNAL).append(typePathName)
                 }
             }
             mThing!!.attachment = sb.toString()
@@ -486,6 +480,82 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         val content: String? = intent.getStringExtra(Intent.EXTRA_TEXT)
         if (content != null) {
             mThing!!.content = content
+        }
+    }
+
+    private fun isIncomingMediaShare(type: String?): Boolean {
+        return type?.let {
+            it.contains("image/") || it.contains("video/") || it.contains("audio/")
+        } ?: false
+    }
+
+    private fun getIncomingShareUri(intent: Intent): Uri? {
+        val stream: Uri? = intent.getParcelableExtra(Intent.EXTRA_STREAM)
+        if (stream != null) return stream
+        if (intent.data != null) return intent.data
+        return getClipDataUris(intent).firstOrNull()
+    }
+
+    private fun getIncomingShareUris(intent: Intent): List<Uri> {
+        val ret: MutableList<Uri> = ArrayList()
+        val seen: MutableSet<String> = HashSet()
+
+        fun add(uri: Uri?) {
+            if (uri == null) return
+            if (seen.add(uri.toString())) {
+                ret.add(uri)
+            }
+        }
+
+        val streams: ArrayList<Uri>? = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM)
+        streams?.forEach { add(it) }
+        getClipDataUris(intent).forEach { add(it) }
+        add(intent.data)
+
+        return ret
+    }
+
+    private fun getClipDataUris(intent: Intent): List<Uri> {
+        val clipData: ClipData = intent.clipData ?: return emptyList()
+        val uris: MutableList<Uri> = ArrayList()
+        for (i in 0 until clipData.itemCount) {
+            clipData.getItemAt(i).uri?.let { uris.add(it) }
+        }
+        return uris
+    }
+
+    private fun getTypePathNameFromIncomingShare(uri: Uri?, sharedMimeType: String?): String? {
+        if (uri == null) return null
+
+        val resolvedMimePostfix: String? = try {
+            FileUtil.getPostfixFromMimeType(this, uri)
+        } catch (e: Exception) {
+            Log.w(TAG, "Cannot resolve shared media mime type: $uri", e)
+            null
+        }
+        val mimePostfix: String? = resolvedMimePostfix
+            ?: getPostfixFromSharedMimeType(sharedMimeType)
+        var pathName: String? = UriPathConverter.getLocalPathName(this, uri)
+        if (pathName == null && mimePostfix != null) {
+            pathName = FileUtil.copyUriToFile(this, uri, mimePostfix)
+        }
+
+        return pathName?.let { getTypePathName(it, mimePostfix, uri) }
+    }
+
+    private fun getPostfixFromSharedMimeType(mimeType: String?): String? {
+        return when {
+            mimeType == null -> null
+            mimeType == "image/jpeg" || mimeType == "image/jpg" -> ".jpg"
+            mimeType == "image/png" -> ".png"
+            mimeType == "image/gif" -> ".gif"
+            mimeType == "image/webp" -> ".webp"
+            mimeType.startsWith("image/") -> ".jpg"
+            mimeType.startsWith("video/") -> ".mp4"
+            mimeType == "audio/mpeg" -> ".mp3"
+            mimeType == "audio/wav" -> ".wav"
+            mimeType.startsWith("audio/") -> ".mp3"
+            else -> null
         }
     }
 
