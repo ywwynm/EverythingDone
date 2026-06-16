@@ -11,7 +11,6 @@ import android.os.SystemClock
 import androidx.activity.OnBackPressedCallback
 import android.content.BroadcastReceiver
 import android.content.Context
-import android.content.DialogInterface
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
@@ -53,7 +52,6 @@ import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import androidx.appcompat.widget.Toolbar
 import androidx.recyclerview.widget.ItemTouchHelper
 import android.text.Editable
-import android.text.InputType
 import android.text.TextWatcher
 import android.util.Log
 import android.view.Menu
@@ -95,6 +93,7 @@ import com.ywwynm.everythingdone.fragments.AlertDialogFragment
 import com.ywwynm.everythingdone.fragments.LongTextDialogFragment
 import com.ywwynm.everythingdone.fragments.MediaCropAppearanceDialogFragment
 import com.ywwynm.everythingdone.fragments.ThreeActionsAlertDialogFragment
+import com.ywwynm.everythingdone.fragments.ThingFolderNameDialogFragment
 import com.ywwynm.everythingdone.helpers.AlarmHelper
 import com.ywwynm.everythingdone.helpers.AppUpdateHelper
 import com.ywwynm.everythingdone.helpers.AttachmentHelper
@@ -823,6 +822,52 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         }
     }
 
+    private fun getResultThingIndex(data: Intent): Int {
+        return data.getIntExtra(Def.Communication.KEY_POSITION, -1)
+    }
+
+    private fun getResultOldListPosition(data: Intent, thingIndex: Int): Int {
+        val listPosition = data.getIntExtra(Def.Communication.KEY_LIST_POSITION, -1)
+        if (listPosition >= 0) return listPosition
+        return getVisibleListPositionForThingIndex(thingIndex)
+    }
+
+    private fun getVisibleListPositionForResultThing(data: Intent, thingIndex: Int): Int {
+        val thing: Thing? = data.getParcelableExtra(Def.Communication.KEY_THING)
+        return getVisibleListPositionForThing(thing, thingIndex)
+    }
+
+    private fun getVisibleListPositionForThing(thing: Thing?, fallbackThingIndex: Int = -1): Int {
+        if (thing != null) {
+            val position = mThingManager!!.getListPositionForThingId(thing.id)
+            if (position >= 0) return position
+        }
+        return getVisibleListPositionForThingIndex(fallbackThingIndex)
+    }
+
+    private fun getVisibleListPositionForThingIndex(thingIndex: Int): Int {
+        val things = mThingManager!!.getThings() ?: return -1
+        if (thingIndex < 0 || thingIndex >= things.size) return -1
+        val thing = things[thingIndex] ?: return -1
+        return mThingManager!!.getListPositionForThingId(thing.id)
+    }
+
+    private fun notifyListItemChangedOrRefresh(position: Int) {
+        if (position >= 0 && position < mAdapter!!.getItemCount()) {
+            mAdapter!!.notifyItemChanged(position)
+        } else {
+            mAdapter!!.notifyDataSetChanged()
+        }
+    }
+
+    private fun notifyListItemRemovedOrRefresh(position: Int) {
+        if (position >= 0 && position < mAdapter!!.getItemCount()) {
+            mAdapter!!.notifyItemRemoved(position)
+        } else {
+            mAdapter!!.notifyDataSetChanged()
+        }
+    }
+
     private fun updateMainUiForCreateDone(data: Intent) {
         if (App.isSearching) {
             toggleSearching(false)
@@ -917,30 +962,35 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             if (justNotifyAll) {
                 justNotifyAll()
             } else if (Thing.isTypeStateMatchLimit(typeBefore, thingState, mApp!!.getLimit())) {
-                val pos = data.getIntExtra(Def.Communication.KEY_POSITION, 1)
-                if (pos < 0) {
+                val thingIndex = getResultThingIndex(data)
+                val listPosition = getVisibleListPositionForResultThing(data, thingIndex)
+                if (thingIndex < 0) {
                     justNotifyAll(false)
                     mRemoteIntent = null
                     return@postDelayed
                 }
                 Log.i(TAG, "type and state match current limit, "
-                    + "thing's position[" + pos + "], "
+                    + "thing's position[" + thingIndex + "], "
+                    + "list position[" + listPosition + "], "
                     + "isSearching[" + App.isSearching + "]")
                 if (!App.isSearching) {
-                    mAdapter!!.notifyItemChanged(pos)
+                    notifyListItemChangedOrRefresh(listPosition)
                 } else {
                     val things: MutableList<Thing?> = mThingManager!!.getThings()!!
-                    if (pos > 0 && pos < things.size) {
-                        val thing: Thing = things[pos]!!
+                    if (thingIndex > 0 && thingIndex < things.size) {
+                        val thing: Thing = things[thingIndex]!!
                         if (thing.matchSearchRequirement(
                                 mEtSearch!!.text.toString(),
                                 mColorPicker!!.getPickedColor()
                             )
                         ) {
-                            mAdapter!!.notifyItemChanged(pos)
+                            notifyListItemChangedOrRefresh(listPosition)
                         } else {
-                            things.removeAt(pos)
-                            mAdapter!!.notifyItemRemoved(pos)
+                            mThingManager!!.searchThings(
+                                mEtSearch!!.text.toString(),
+                                mColorPicker!!.getPickedColor()
+                            )
+                            mAdapter!!.notifyDataSetChanged()
                         }
                         handleSearchResults()
                     }
@@ -970,8 +1020,9 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             val type = thing.type
             val curLimit = mApp!!.getLimit()
             val limitMatched = Thing.isTypeStateMatchLimit(type, Thing.UNDERWAY, curLimit)
-            val position = data.getIntExtra(Def.Communication.KEY_POSITION, 1)
-            if (position < 0) {
+            val thingIndex = getResultThingIndex(data)
+            val oldListPosition = getResultOldListPosition(data, thingIndex)
+            if (thingIndex < 0) {
                 justNotifyAll(false)
                 mRemoteIntent = null
                 return@postDelayed
@@ -981,18 +1032,14 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 justNotifyAll()
             } else if (Thing.isTypeStateMatchLimit(typeBefore, Thing.UNDERWAY, curLimit)) {
                 if (App.isSearching) {
-                    mAdapter!!.notifyItemRemoved(data.getIntExtra(
-                        Def.Communication.KEY_POSITION, 1
-                    ))
+                    notifyListItemRemovedOrRefresh(oldListPosition)
                     handleSearchResults()
                 } else {
                     val change = data.getBooleanExtra(Def.Communication.KEY_CALL_CHANGE, false)
                     if (change) {
                         mAdapter!!.notifyItemChanged(1)
                     } else {
-                        mAdapter!!.notifyItemRemoved(data.getIntExtra(
-                            Def.Communication.KEY_POSITION, 1
-                        ))
+                        notifyListItemRemovedOrRefresh(oldListPosition)
                     }
                 }
                 if (mModeManager!!.getCurrentMode() == ModeManager.SELECTING) {
@@ -1015,11 +1062,13 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             Def.Communication.KEY_STATE_AFTER, Thing.UNDERWAY
         )
         val position = data.getIntExtra(Def.Communication.KEY_POSITION, 1)
+        val oldListPosition = getResultOldListPosition(data, position)
         val changed = data.getBooleanExtra(Def.Communication.KEY_CALL_CHANGE, false)
         val justNotifyAll = App.justNotifyAll()
         Log.i(TAG, "updateMainUiForUpdateDifferentState called, "
             + "stateAfter[" + stateAfter + "], "
             + "position[" + position + "], "
+            + "listPosition[" + oldListPosition + "], "
             + "call change[" + changed + "], "
             + "justNotifyAll[" + justNotifyAll + "]")
 
@@ -1058,7 +1107,7 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                         mRecyclerView!!.itemAnimator!!.changeDuration, false
                     )
                 } else {
-                    mAdapter!!.notifyItemRemoved(position)
+                    notifyListItemRemovedOrRefresh(oldListPosition)
                     updateUIAfterStateUpdated(
                         stateAfter,
                         mRecyclerView!!.itemAnimator!!.removeDuration, false
@@ -1077,8 +1126,9 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     private fun updateMainUiForStickyOrCancel(data: Intent) {
         val thing: Thing = data.getParcelableExtra(Def.Communication.KEY_THING)!!
         val isStickyBefore = thing.location > 0 // just used for log
-        val oldPosition = data.getIntExtra(Def.Communication.KEY_POSITION, -1)
-        val newPosition = mThingManager!!.getPosition(thing.id)
+        val thingIndex = getResultThingIndex(data)
+        val oldPosition = getResultOldListPosition(data, thingIndex)
+        val newPosition = mThingManager!!.getListPositionForThingId(thing.id)
         val justNotifyAll = App.justNotifyAll()
         Log.i(TAG, "updateMainUiForStickyOrCancel called, "
             + "isStickyBefore[" + isStickyBefore + "], "
@@ -1097,6 +1147,8 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                     finishNewItemShiningBorderAnimationIfNeeded()
                     mAdapter!!.notifyItemChanged(newPosition)
                 }, mRecyclerView!!.itemAnimator!!.moveDuration)
+            } else {
+                mAdapter!!.notifyDataSetChanged()
             }
 
             mDrawerHeader!!.updateCompletionRate()
@@ -1118,9 +1170,11 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             if (justNotifyAll) {
                 justNotifyAll()
             } else {
-                val position = mThingManager!!.getPosition(thing.id)
+                val position = mThingManager!!.getListPositionForThingId(thing.id)
                 if (position != -1) {
                     mAdapter!!.notifyItemChanged(position)
+                } else {
+                    mAdapter!!.notifyDataSetChanged()
                 }
                 mUpdateMainUiInOnResume = true
                 mRemoteIntent = null
@@ -1777,7 +1831,10 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         mThingCardAppearancePanelThing = thing
         mThingCardAppearanceOriginal = thing.thingCardAppearance
         mThingCardAppearanceDraft = thing.thingCardAppearance
-        mThingCardAppearanceSelectedPosition = mThingManager!!.getSingleSelectedPosition()
+        mThingCardAppearanceSelectedPosition = mThingManager!!.getListPositionForThingId(thing.id)
+        if (mThingCardAppearanceSelectedPosition < 0) {
+            return
+        }
 
         val panel: View = mThingCardAppearancePanel!!
         if (panel.visibility != View.VISIBLE) {
@@ -4044,7 +4101,7 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                     desiredPaddingBottom
             )
         }
-        val selectedPosition = mThingManager!!.getSingleSelectedPosition()
+        val selectedPosition = mThingCardAppearanceSelectedPosition
         if (paddingChanged && selectedPosition > 0) {
             mRecyclerView!!.smoothScrollToPosition(selectedPosition)
         }
@@ -5161,14 +5218,14 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                         getString(R.string.check_private_thing), cp,
                         object : AuthenticationHelper.AuthenticationCallback {
                             override fun onAuthenticated() {
-                                openDetailActivityForUpdate(thing, thingPosition, v!!)
+                                openDetailActivityForUpdate(thing, thingPosition, position, v!!)
                             }
 
                             override fun onCancel() {
                             }
                         })
                 } else {
-                    openDetailActivityForUpdate(thing, thingPosition, v!!)
+                    openDetailActivityForUpdate(thing, thingPosition, position, v!!)
                 }
             } else {
                 if (App.getDoingThingId() != thing.id) {
@@ -5183,9 +5240,14 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             }
         }
 
-        private fun openDetailActivityForUpdate(thing: Thing, position: Int, v: View) {
+        private fun openDetailActivityForUpdate(
+            thing: Thing,
+            position: Int,
+            listPosition: Int,
+            v: View
+        ) {
             val intent: Intent = DetailActivity.getOpenIntentForUpdate(
-                this@ThingsActivity, TAG, thing.id, position
+                this@ThingsActivity, TAG, thing.id, position, listPosition
             )
             val transition: ActivityOptionsCompat = ActivityOptionsCompat.makeScaleUpAnimation(
                 v, 0, 0, v.width, v.height
@@ -5204,6 +5266,7 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             KeyboardUtil.hideKeyboard(currentFocus)
 
             val position = mThingManager!!.getPosition(thing.id)
+            val listPosition = mThingManager!!.getListPositionForThingId(thing.id)
             if (thing.isPrivate() && !mThingManager!!.isCurrentFolderPrivacyAuthenticated()) {
                 val sp: SharedPreferences = getSharedPreferences(
                     Def.Meta.PREFERENCES_NAME, MODE_PRIVATE
@@ -5214,14 +5277,14 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                     getString(R.string.check_private_thing), cp,
                     object : AuthenticationHelper.AuthenticationCallback {
                         override fun onAuthenticated() {
-                            openDetailActivityForUpdate(thing, position, v)
+                            openDetailActivityForUpdate(thing, position, listPosition, v)
                         }
 
                         override fun onCancel() {
                         }
                     })
             } else {
-                openDetailActivityForUpdate(thing, position, v)
+                openDetailActivityForUpdate(thing, position, listPosition, v)
             }
         }
 
@@ -5603,53 +5666,69 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     }
 
     private fun showRenameThingFolderDialog(folder: ThingFolder) {
-        val input = EditText(this)
-        input.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
-        input.imeOptions = EditorInfo.IME_ACTION_DONE
-        input.isSingleLine = true
-        input.hint = getString(R.string.thing_folder_name_hint)
-        input.setText(folder.title.ifEmpty { getString(R.string.default_thing_folder_name) })
-        input.setSelection(0, input.text.length)
+        showThingFolderNameDialog(
+            folder,
+            R.string.rename_thing_folder,
+            folder.title.ifEmpty { getString(R.string.default_thing_folder_name) },
+            object : ThingFolderNameDialogFragment.Listener {
+                override fun onThingFolderNameConfirmed(title: String) {
+                    if (mThingManager!!.renameFolder(folder, title)) {
+                        refreshHomeAfterFolderUpdated()
+                    }
+                }
 
-        val sidePadding = (20 * resources.displayMetrics.density).roundToInt()
-        val container = FrameLayout(this)
-        container.setPadding(sidePadding, 0, sidePadding, 0)
-        container.addView(
-            input,
-            FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            )
+                override fun onThingFolderNameCanceled() { }
+            }
         )
+    }
 
-        val dialog = AlertDialog.Builder(this)
-            .setTitle(R.string.rename_thing_folder)
-            .setView(container)
-            .setPositiveButton(android.R.string.ok, null)
-            .setNegativeButton(android.R.string.cancel, null)
-            .create()
-        dialog.setOnShowListener {
-            val positiveButton = dialog.getButton(DialogInterface.BUTTON_POSITIVE)
-            positiveButton.setOnClickListener {
-                val title = input.text.toString().trim()
-                    .ifEmpty { getString(R.string.default_thing_folder_name) }
-                if (mThingManager!!.renameFolder(folder, title)) {
-                    refreshHomeAfterFolderUpdated()
+    private fun showCreateThingFolderNameDialog(createdDrop: CreatedThingFolderDrop) {
+        showThingFolderNameDialog(
+            createdDrop.folder,
+            R.string.create_thing_folder_title,
+            createdDrop.folder.title.ifEmpty { getString(R.string.default_thing_folder_name) },
+            object : ThingFolderNameDialogFragment.Listener {
+                override fun onThingFolderNameConfirmed(title: String) {
+                    if (mThingManager!!.renameFolder(createdDrop.folder, title)) {
+                        refreshHomeAfterFolderUpdated()
+                    }
                 }
-                dialog.dismiss()
-            }
-            input.setOnEditorActionListener { _, actionId, _ ->
-                if (actionId == EditorInfo.IME_ACTION_DONE) {
-                    positiveButton.performClick()
-                    true
-                } else {
-                    false
+
+                override fun onThingFolderNameCanceled() {
+                    cancelCreatedThingFolderDrop(createdDrop)
                 }
             }
-            input.requestFocus()
-            dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE)
+        )
+    }
+
+    private fun showThingFolderNameDialog(
+        folder: ThingFolder,
+        @StringRes titleRes: Int,
+        initialTitle: String,
+        listener: ThingFolderNameDialogFragment.Listener
+    ) {
+        val dialog = ThingFolderNameDialogFragment()
+        dialog.setTitleRes(titleRes)
+        dialog.setInitialTitle(initialTitle)
+        dialog.setAccentBackground(folder.getBackground())
+        dialog.setListener(listener)
+        dialog.show(fragmentManager, ThingFolderNameDialogFragment.TAG)
+    }
+
+    private fun cancelCreatedThingFolderDrop(createdDrop: CreatedThingFolderDrop) {
+        val canceled = mThingManager!!.cancelCreatedFolder(
+            createdDrop.folder,
+            longArrayOf(createdDrop.sourceThingId, createdDrop.targetThingId)
+        )
+        if (canceled) {
+            refreshHomeAfterFolderCreationCanceled()
         }
-        dialog.show()
+    }
+
+    private fun refreshHomeAfterFolderCreationCanceled() {
+        mAdapter!!.setShouldThingsAnimWhenAppearing(false)
+        mAdapter!!.notifyDataSetChanged()
+        updateHomeAfterFolderDropCommitted()
     }
 
     private fun refreshHomeAfterFolderUpdated() {
@@ -5684,7 +5763,7 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         sourceThingId: Long,
         targetThingId: Long,
         folderBackground: ThingBackground
-    ): ThingFolder? {
+    ): CreatedThingFolderDrop? {
         val sourceThing = mThingManager!!.getThingById(sourceThingId) ?: return null
         val targetThing = mThingManager!!.getThingById(targetThingId) ?: return null
         if (!canCreateThingFolderWith(sourceThing) || !canCreateThingFolderWith(targetThing)) {
@@ -5704,7 +5783,7 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         val folderPosition = getVisibleFolderPosition(folder.id)
         notifyFolderDropCommitted(sourceOldPosition, folderPosition)
         updateHomeAfterFolderDropCommitted()
-        return folder
+        return CreatedThingFolderDrop(folder, sourceThingId, targetThingId)
     }
 
     private fun notifyFolderDropCommitted(sourceOldPosition: Int, changedPosition: Int) {
@@ -5920,6 +5999,12 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         val targetThingId: Long?,
         val targetFolderId: Long?,
         val background: ThingBackground?
+    )
+
+    private data class CreatedThingFolderDrop(
+        val folder: ThingFolder,
+        val sourceThingId: Long,
+        val targetThingId: Long
     )
 
     private data class FolderDropHoverCandidate(
@@ -6825,7 +6910,7 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                     }
                 } else {
                     val targetThingId = folderDrop.targetThingId
-                    val folder = if (targetThingId != null) {
+                    val createdDrop = if (targetThingId != null) {
                         commitCreateThingFolderDrop(
                             folderDrop.sourceThingId,
                             targetThingId,
@@ -6834,10 +6919,10 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                     } else {
                         null
                     }
-                    if (folder != null) {
+                    if (createdDrop != null) {
                         restoreFolderDropSourceViewLater(commitVisual)
                         playFolderDropCommitVisual(commitVisual) {
-                            showRenameThingFolderDialog(folder)
+                            showCreateThingFolderNameDialog(createdDrop)
                         }
                     } else {
                         restoreFolderDropVisualImmediately(commitVisual)
@@ -7202,25 +7287,28 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             } else if (itemId == R.id.act_move_to_thing_folder) {
                 showMoveSelectedThingsDialog()
             } else if (itemId == R.id.act_sticky) {
-                val oldPosition = mThingManager!!.getSingleSelectedPosition()
-                if (oldPosition != -1) {
-                    mModeManager!!.backNormalMode(oldPosition)
+                val oldThingPosition = mThingManager!!.getSingleSelectedPosition()
+                if (oldThingPosition != -1) {
+                    val oldListPosition = getVisibleListPositionForThingIndex(oldThingPosition)
+                    mModeManager!!.backNormalMode(if (oldListPosition >= 0) oldListPosition else 0)
                     mRecyclerView!!.postDelayed({
-                        if (oldPosition >= mThingManager!!.getThings()!!.size) return@postDelayed
-                        val thing: Thing = mThingManager!!.getThings()!![oldPosition]!!
-                        val newPosition: Int
+                        if (oldThingPosition >= mThingManager!!.getThings()!!.size) return@postDelayed
+                        val thing: Thing = mThingManager!!.getThings()!![oldThingPosition]!!
                         if (thing.location < 0) {
-                            mThingManager!!.cancelStickyThing(thing, oldPosition)
-                            newPosition = mThingManager!!.getPositionToInsertNewThing()
+                            mThingManager!!.cancelStickyThing(thing, oldThingPosition)
                         } else {
-                            mThingManager!!.stickyThingOnTop(thing, oldPosition)
-                            newPosition = 1
+                            mThingManager!!.stickyThingOnTop(thing, oldThingPosition)
                         }
-                        mAdapter!!.notifyItemMoved(oldPosition, newPosition)
-                        // notifyItemMoved will not call adapter.bindViewHolder again
-                        mRecyclerView!!.postDelayed({
-                            mAdapter!!.notifyItemChanged(newPosition)
-                        }, mRecyclerView!!.itemAnimator!!.moveDuration)
+                        val newListPosition = mThingManager!!.getListPositionForThingId(thing.id)
+                        if (oldListPosition >= 0 && newListPosition >= 0) {
+                            mAdapter!!.notifyItemMoved(oldListPosition, newListPosition)
+                            // notifyItemMoved will not call adapter.bindViewHolder again
+                            mRecyclerView!!.postDelayed({
+                                mAdapter!!.notifyItemChanged(newListPosition)
+                            }, mRecyclerView!!.itemAnimator!!.moveDuration)
+                        } else {
+                            mAdapter!!.notifyDataSetChanged()
+                        }
                     }, 160)
                 }
             } else if (itemId == R.id.act_customize_card_appearance) {

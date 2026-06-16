@@ -79,8 +79,24 @@
   example `X件记事` in Chinese.
 - The recursive count text aligns with the Folder icon's left edge, not with
   the Folder title column.
+- The recursive count text should be visually aligned with the Folder icon's
+  left edge. Because glyph ink can look slightly left of the layout start, keep
+  the count text 2dp to the right of the icon's layout start.
 - The recursive count text should use the same normal small count size as
   ordinary Thing Card media or audio count labels.
+
+## Folder Naming Dialog
+
+- Folder creation and rename flows should use the app's custom DialogFragment
+  styling instead of platform-default AlertDialog surfaces.
+- Folder naming dialogs should adapt their title, EditText accent, and confirm
+  button to the Folder background, including both solid colors and gradients.
+  The EditText focus treatment should match the DateTime reminder dialog:
+  underline, selected-text background, and selected/focused text color all
+  follow the Folder background.
+- Canceling the naming dialog opened after creating a new Folder means canceling
+  Folder creation itself: the source Things return to their previous parent
+  folder/list state instead of keeping an unnamed/default-named Folder.
 
 ## Thumbnail Folder Card Surface
 

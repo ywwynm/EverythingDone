@@ -922,6 +922,30 @@ open class ThingManager private constructor(context: Context?) {
         return folder
     }
 
+    open fun cancelCreatedFolder(folder: ThingFolder?, thingIds: LongArray?): Boolean {
+        if (folder == null || thingIds == null || thingIds.isEmpty()) return false
+
+        val createdFolderMembers = ArrayList<Thing>()
+        for (thingId in thingIds.toSet()) {
+            val thing = mDao!!.getThingById(thingId) ?: continue
+            if (thing.folderId == folder.id) {
+                createdFolderMembers.add(thing)
+            }
+        }
+        if (createdFolderMembers.isEmpty()) return false
+        if (mFolderDao!!.countAllDescendantThings(folder.id) != createdFolderMembers.size) {
+            return false
+        }
+
+        for (thing in createdFolderMembers) {
+            thing.folderId = folder.parentFolderId
+            mDao!!.updateFolderId(thing.id, folder.parentFolderId)
+        }
+        mFolderDao!!.deleteRecord(folder.id)
+        loadThings()
+        return true
+    }
+
     private fun canCreateFolderMember(thing: Thing?): Boolean {
         if (thing == null) return false
         if (thing.type !in Thing.NOTE..Thing.GOAL) return false

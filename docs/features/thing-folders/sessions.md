@@ -1,5 +1,44 @@
 # Thing Folders Sessions
 
+## 2026-06-17 - Mixed-list position repair after Folder Cards
+
+- Follow-up testing showed that adding Folder Cards exposed more stale
+  position assumptions: some code paths still used a Thing-only `mThings`
+  index as a RecyclerView adapter position.
+- Added `KEY_LIST_POSITION` for Detail results so `KEY_POSITION` can keep its
+  existing Thing-index meaning for `ThingManager.update(...)`, while
+  RecyclerView notifications use the mixed-list adapter position.
+- Updated Detail return handling in `ThingsActivity` to resolve visible list
+  positions by Thing id for item changes, removals, sticky moves, and
+  doing/cancel refreshes. When a returned Thing is no longer visible, the UI
+  falls back to a full list refresh instead of notifying the wrong item.
+- Updated the selected-Thing card appearance entry to store the selected
+  Thing's mixed-list adapter position, not its Thing-only index.
+- Adjusted Folder Card count text by 2dp to the right of the Folder icon's
+  layout start to match the user's visual alignment request.
+- Verified the changes with `.\gradlew.bat :app:assembleDebug`.
+
+## 2026-06-17 - Folder count alignment and custom naming dialog
+
+- Moved the Folder Card recursive count out of the recycled ordinary
+  `tvContent` slot into a dedicated dynamic count TextView inserted directly
+  below the Folder header. The count keeps the existing small text size and
+  now starts at the same 16dp left inset as the Folder icon.
+- Added `ThingFolderNameDialogFragment` with app DialogFragment chrome for
+  Folder creation and rename naming flows.
+- The Folder naming dialog adapts title, confirm action, and EditText focus
+  treatment to the Folder background. Gradient Folders use gradient text and a
+  custom gradient EditText underline; pure-color Folders use the folder color
+  as the focused text/underline accent. Selected-text background uses the
+  folder accent's light color.
+- Changed drag-create Folder naming so Cancel rolls back the created Folder:
+  the original source/target Things are moved back to the Folder's parent
+  projection and only the new Folder record is removed.
+- Added a conservative rollback guard that only removes the created Folder
+  record when the Folder still contains exactly the Things that the rollback is
+  about to reparent.
+- Verified the changes with `.\gradlew.bat :app:assembleDebug`.
+
 ## 2026-06-16 - Active swipe/drag card z-order stabilization
 
 - Follow-up testing showed that the active Thing Card could change z-order

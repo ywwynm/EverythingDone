@@ -2,6 +2,22 @@
 
 Migrated from global `memory/sessions.md` on 2026-06-06. This file keeps feature-scoped history out of startup memory while preserving the original notes.
 
+## 2026-06-17 - Repair live preview after Folder Cards
+
+- Follow-up testing after Thing Folders showed that the card appearance panel's
+  live preview no longer updated reliably, and the cover-image ratio controls
+  could compute a broken range where tick labels collapsed together.
+- Diagnosed the root cause as a position-domain mismatch introduced by mixed
+  Folder/Thing list entries: the panel stored `ThingManager.getSingleSelectedPosition()`,
+  which is a Thing-only `mThings` index, but later used it as a RecyclerView
+  adapter position for holder lookup, preview refresh, card width measurement,
+  media-background natural-height measurement, and ratio range calculation.
+- The panel now stores the selected Thing's mixed-list adapter position via
+  `ThingManager.getListPositionForThingId(...)`, so live preview refreshes and
+  ratio range measurements target the actual selected card even when Folder
+  Cards appear before it.
+- Verified the changes with `.\gradlew.bat :app:assembleDebug`.
+
 ## 2026-06-15 - Promote card appearance action in contextual toolbar
 
 - User asked to move the card appearance action earlier in the long-press

@@ -1,5 +1,33 @@
 # Current Debug Update Notes
 
+## 2026-06-17 - 修复文件夹加入后的列表位置与卡片外观预览回归
+
+用户继续反馈三个问题：文件夹卡片里的记事数量提示文本虽然布局上和文件夹 icon 左侧对齐，但视觉上稍微偏左，需要增加 2dp 左侧偏移；从记事详情界面更新记事回到主界面后，`notifyItemChanged` 使用的 position 出错，合理推测加入文件夹后相关 position 都需要重新适配；加入文件夹后，调整记事卡片外观里的封面图片比例不能实时预览，图片作为卡片背景时比例滑动条也完全错误，比例标记文本挤在一起。
+
+本次诊断确认，后两个问题同源：Thing Folders 引入了 Folder Card 和 Thing Card 混合列表后，部分路径仍把 `ThingManager` 的纯 `mThings` 下标当作 RecyclerView adapter position 使用。详情页需要纯 Thing 下标调用 `ThingManager.update(...)`，但主界面的 `notifyItemChanged(...)`、`notifyItemRemoved(...)`、`notifyItemMoved(...)` 必须使用混合列表的 adapter position。卡片外观面板也同样错误地把 `getSingleSelectedPosition()` 的纯 Thing 下标保存为 `mThingCardAppearanceSelectedPosition`，导致预览刷新、holder 查找、卡片宽度测量、背景图自然高度测量和比例 range 计算都可能指向错误卡片。
+
+本次修改新增 `Def.Communication.KEY_LIST_POSITION`。`KEY_POSITION` 继续保留原有语义，表示纯 Thing 下标；`KEY_LIST_POSITION` 专门表示打开详情时的 mixed-list adapter position。`DetailActivity.getOpenIntentForUpdate(...)` 接收并回传这个 list position，`ThingsActivity` 返回处理则按 Thing id 重新解析当前可见 list position，找不到时回退为全列表刷新，避免通知错误 item。受影响路径包括详情页同类型更新、跨类型更新、状态变化、置顶/取消置顶、doing/cancel 刷新，以及选择态 toolbar 的置顶/取消置顶操作。
+
+卡片外观面板现在用 `ThingManager.getListPositionForThingId(...)` 记录选中记事的 adapter position，不再使用纯 Thing 下标。这样“调整封面图片比例”的实时预览、封面比例范围、图片作为卡片背景时的高度/比例计算都会针对真实选中的卡片，而不是被前面的文件夹卡片错位影响。
+
+文件夹卡片计数文本也按用户反馈微调：`ThingsAdapter.kt` 中 dedicated count TextView 的左侧 padding 从文件夹 icon 的 16dp 布局起点增加到 18dp，让 `X件记事` 的字形墨迹视觉上更接近 icon 左边缘。
+
+同步更新了 `docs/features/thing-folders/preferences.md`、`docs/features/thing-folders/sessions.md` 和 `docs/features/thing-card-appearance/sessions.md`。验证状态：已执行 `.\gradlew.bat :app:assembleDebug`，结果 `BUILD SUCCESSFUL in 4s`；只有 `ThingsActivity.kt` 里既有的 deprecated override warning。`git diff --check` 已通过，仅有仓库既有 LF/CRLF warning。请重点复测：文件夹计数视觉对齐、详情页返回后的单项刷新是否命中正确卡片、状态/置顶变化是否不再刷新错位、卡片外观封面比例拖动是否实时预览，以及图片背景模式下比例刻度是否不再挤在一起。
+
+## 2026-06-17 - 修复文件夹计数对齐与创建/重命名文件夹对话框
+
+用户反馈两个问题：文件夹卡片里“有多少件记事”的提示文本，左侧在视觉上没有和上方文件夹 icon 的左侧对齐；创建新文件夹时打开的是平台默认 `AlertDialog`，应改用 app 自己的 `DialogFragment` 风格，并且标题、取消/确定按钮、`EditText` 都要有正确边距和外观。用户进一步补充：创建后的命名对话框里点取消应取消创建文件夹本身，让记事回到原位置和状态；文件夹命名 `EditText` 也要像设置提醒时刻的 DateTime dialog 那样适配文件夹颜色，包含底部横线、选中文字背景和选中/聚焦文字颜色，纯色和渐变色都要适配。
+
+本次修改集中在 Thing Folders。`ThingsAdapter.kt` 不再把文件夹计数复用到普通记事正文 `tvContent` 槽位，而是新增独立的动态 count TextView，插在文件夹 header 下方，使用和文件夹 icon 一致的 16dp 左侧 inset，继续保持原有小字号和次级文本颜色。这样计数文本不再继承普通记事正文区域的视觉偏移。
+
+新增 `ThingFolderNameDialogFragment.kt` 和 `fragment_thing_folder_name.xml`，创建文件夹后的命名和普通重命名文件夹都改为使用 app 的 `BaseDialogFragment` 样式。标题、确定按钮和输入框聚焦态会使用文件夹完整 `ThingBackground` 适配：纯色文件夹使用纯色文字和下划线；渐变文件夹使用 `BackgroundUtil.applyTextBackground(...)` 和 `BackgroundUtil.applyEditTextUnderline(...)` 绘制渐变文字与渐变下划线，并隐藏原生下划线；选中文字背景使用 `DisplayUtil.getLightColor(...)` 得到的文件夹浅色。
+
+创建文件夹后的取消语义也已修正。`ThingsActivity.kt` 把“重命名文件夹”和“创建后命名文件夹”拆成两个入口：普通重命名取消只关闭对话框；创建后命名取消会调用 `ThingManager.cancelCreatedFolder(...)` 回滚刚创建的文件夹。回滚逻辑通过数据库读取当初拖拽的两个记事，将仍位于新文件夹内的记事移回该文件夹的原父级，然后只删除新建的 `thing_folders` 记录。这里没有复用 `deleteForever(...)`，因为那个永久删除路径会删除文件夹内的记事。回滚还加了保守 guard：只有新文件夹当前仍然只包含这次要恢复的记事时，才删除文件夹记录。
+
+同步更新了 `docs/features/thing-folders/preferences.md`、`decisions.md` 和 `sessions.md`，记录文件夹命名对话框样式、颜色适配、取消创建语义，以及文件夹计数对齐规则。
+
+验证状态：已执行 `.\gradlew.bat :app:assembleDebug`，结果 `BUILD SUCCESSFUL in 3s`；只有 `ThingsActivity.kt` 中既有的 deprecated override warning。`git diff --check` 已通过，仅有仓库既有 LF/CRLF warning。本次准备通过 `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md"` 发布到阿里云 debug channel。请重点复测：文件夹卡片计数是否和 icon 左侧对齐；创建文件夹命名对话框是否使用 app 自定义样式；纯色和渐变文件夹的标题、确定按钮、输入框文字/下划线/选中背景是否正确；创建后点取消是否回到原来的两个记事卡片状态；普通重命名取消是否不会删除或回滚已有文件夹。
+
 ## 2026-06-16 - 修复左右滑动/拖拽卡片时的 Z 轴层级跳变
 
 用户反馈：左右滑动记事 A 时，如果左侧同时有记事 B 和文件夹 C，A 一开始看起来在 B/C 上方，但滑动过程中可能突然跑到 C 下方；如果左侧只有文件夹 C，也可能一开始在 C 下方，之后又突然变到 C 上方。用户期望正在左右滑动或拖拽的卡片始终保持在所有卡片上方。

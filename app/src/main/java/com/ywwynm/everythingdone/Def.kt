@@ -250,6 +250,7 @@ object Def {
         /** JSON encoding of a [com.ywwynm.everythingdone.model.ThingBackground]; added Phase 4. */
         const val KEY_BACKGROUND: String   = PREFIX + "key.background"
         const val KEY_POSITION: String     = PREFIX + "key.position"
+        const val KEY_LIST_POSITION: String = PREFIX + "key.list_position"
         const val KEY_TYPE_BEFORE: String  = PREFIX + "key.type_before"
         const val KEY_STATE_AFTER: String  = PREFIX + "key.state_after"
         const val KEY_CREATED_DONE: String = PREFIX + "key.created_done"

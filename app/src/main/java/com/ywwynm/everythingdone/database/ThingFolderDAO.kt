@@ -286,6 +286,14 @@ open class ThingFolderDAO private constructor(context: Context?) {
         }
     }
 
+    open fun deleteRecord(folderId: Long) {
+        db!!.delete(
+            Def.Database.TABLE_THING_FOLDERS,
+            Def.Database.COLUMN_ID_THING_FOLDERS + "=$folderId",
+            null
+        )
+    }
+
     private fun getThumbnailThingsForProjection(
         folder: ThingFolder,
         limit: Int,

@@ -354,8 +354,6 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         } else {
             folder.getBackground()?.representativeColor() ?: folder.getColor()
         }
-        val p = (mDensity * 16).toInt()
-
         val title = if (hiddenPrivate) {
             mApp!!.getString(R.string.private_thing_folder)
         } else {
@@ -368,14 +366,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
             baseColor
         )
 
-        holder.tvContent!!.setPadding(p, (mDensity * 4).toInt(), p, 0)
-        holder.tvContent.textSize = 11f
-        holder.tvContent.maxLines = 1
-        holder.tvContent.text = mApp!!.getString(
-            R.string.thing_folder_count,
-            entry.recursiveThingCount
-        )
-        holder.tvContent.setTextColor(textColorSecondary(baseColor))
+        bindFolderCardCount(holder, entry.recursiveThingCount, baseColor)
 
         if (folder.cardPresentation.mode == ThingFolderCardPresentation.MODE_THUMBNAILS
             && !hiddenPrivate
@@ -451,6 +442,36 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         container.addView(row, 0)
     }
 
+    private fun bindFolderCardCount(
+        holder: BaseThingViewHolder,
+        thingCount: Int,
+        baseColor: Int
+    ) {
+        val container = holder.llTextContent ?: return
+        removeFolderCountViews(holder)
+
+        holder.tvContent!!.visibility = View.GONE
+
+        val paddingSide = (mDensity * 16).toInt()
+        val countStartPadding = paddingSide + (mDensity * 2).toInt()
+        val countView = TextView(mApp)
+        countView.tag = FOLDER_COUNT_VIEW_TAG
+        countView.setPadding(countStartPadding, (mDensity * 4).toInt(), paddingSide, 0)
+        countView.textSize = 11f
+        countView.maxLines = 1
+        countView.ellipsize = TextUtils.TruncateAt.END
+        countView.text = mApp!!.getString(R.string.thing_folder_count, thingCount)
+        countView.setTextColor(textColorSecondary(baseColor))
+        countView.layoutParams = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+
+        val insertIndex = (findFolderHeaderIndex(container) + 1)
+            .coerceIn(0, container.childCount)
+        container.addView(countView, insertIndex)
+    }
+
     private fun bindFolderThumbnails(
         holder: BaseThingViewHolder,
         entry: ThingListEntry.FolderEntry
@@ -460,7 +481,8 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
 
         val container = holder.llTextContent ?: return
         val count = things.size.coerceAtMost(entry.folder.cardPresentation.thumbnailLimit)
-        val insertStart = container.indexOfChild(holder.tvContent) + 1
+        val insertStart = (findFolderCountIndex(container) + 1)
+            .coerceIn(0, container.childCount)
         for (i in 0 until count) {
             val thumbnail = createFolderThumbnailView(things[i])
             container.addView(thumbnail, insertStart + i)
@@ -538,6 +560,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
 
     private fun removeFolderDynamicViews(holder: BaseThingViewHolder) {
         removeFolderHeaderViews(holder)
+        removeFolderCountViews(holder)
         removeFolderThumbnailViews(holder)
     }
 
@@ -550,6 +573,15 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         }
     }
 
+    private fun removeFolderCountViews(holder: BaseThingViewHolder) {
+        val container = holder.llTextContent ?: return
+        for (i in container.childCount - 1 downTo 0) {
+            if (container.getChildAt(i).tag == FOLDER_COUNT_VIEW_TAG) {
+                container.removeViewAt(i)
+            }
+        }
+    }
+
     private fun removeFolderThumbnailViews(holder: BaseThingViewHolder) {
         val container = holder.llTextContent ?: return
         for (i in container.childCount - 1 downTo 0) {
@@ -557,6 +589,20 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
                 container.removeViewAt(i)
             }
         }
+    }
+
+    private fun findFolderHeaderIndex(container: ViewGroup): Int {
+        for (i in 0 until container.childCount) {
+            if (container.getChildAt(i).tag == FOLDER_HEADER_VIEW_TAG) return i
+        }
+        return -1
+    }
+
+    private fun findFolderCountIndex(container: ViewGroup): Int {
+        for (i in 0 until container.childCount) {
+            if (container.getChildAt(i).tag == FOLDER_COUNT_VIEW_TAG) return i
+        }
+        return -1
     }
 
     private fun animateCardOnTouch(v: View?, event: MotionEvent?) {
@@ -736,6 +782,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         private const val CARD_TOUCH_SETTLE_DURATION = 80L
         private const val VIEW_TYPE_THING_FOLDER = -1000
         private const val FOLDER_HEADER_VIEW_TAG = "folder_header_view"
+        private const val FOLDER_COUNT_VIEW_TAG = "folder_count_view"
         private const val FOLDER_THUMBNAIL_VIEW_TAG = "folder_thumbnail_view"
     }
 }

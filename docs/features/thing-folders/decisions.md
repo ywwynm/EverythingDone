@@ -143,6 +143,19 @@ The temporary z-order must be reset in `ItemTouchHelper.clearView(...)` and
 when ViewHolders are rebound, so recycled cards do not keep an old gesture
 layer.
 
+## 2026-06-17 - Folder naming uses app DialogFragment semantics
+
+Thing Folder creation and rename naming prompts use a custom app
+DialogFragment instead of a platform-default AlertDialog. The dialog adapts its
+title, confirm button, and EditText focus treatment to the Folder background,
+including gradient-aware text and underline drawing.
+
+Canceling the naming dialog that appears after drag-creating a Folder cancels
+the creation itself. The two source Things are reparented back to the Folder's
+original parent projection, and only the newly-created Folder record is removed.
+This rollback path must not use permanent Folder deletion because that operation
+deletes contained Things.
+
 ## 2026-06-15 - Deleting a folder moves the folder subtree to Deleted
 
 Deleting a Thing Folder moves that folder to the Deleted destination while

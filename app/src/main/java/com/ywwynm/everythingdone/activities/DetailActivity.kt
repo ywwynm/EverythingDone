@@ -186,6 +186,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     private var mDetailAttachmentMediaAppearance: DetailAttachmentMediaAppearance =
         DetailAttachmentMediaAppearance.default()
     private var mPosition: Int = 0
+    private var mListPosition: Int = -1
     private var mReminder: Reminder? = null
     private var mHabit: Habit? = null
 
@@ -376,6 +377,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         var id = intent.getLongExtra(Def.Communication.KEY_ID, -1)
 
         mPosition = intent.getIntExtra(Def.Communication.KEY_POSITION, 1)
+        mListPosition = intent.getIntExtra(Def.Communication.KEY_LIST_POSITION, -1)
 
         val thingManager: ThingManager = ThingManager.getInstance(mApp)!!
         if (mType == CREATE) {
@@ -2231,7 +2233,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             @Thing.Type val typeBefore: Int = mThing!!.type
             var updateResult = -1
             if (mPosition != -1) {
-                intent.putExtra(Def.Communication.KEY_POSITION, mPosition)
+                putMainListPositions(intent)
                 updateResult = ThingManager.getInstance(mApp)!!.update(
                     typeBefore, mThing, mPosition, true
                 )
@@ -3415,6 +3417,11 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             android.Manifest.permission.POST_NOTIFICATIONS)
     }
 
+    private fun putMainListPositions(intent: Intent) {
+        intent.putExtra(Def.Communication.KEY_POSITION, mPosition)
+        intent.putExtra(Def.Communication.KEY_LIST_POSITION, mListPosition)
+    }
+
     private fun returnToThingsActivity(stateAfter: Int) {
         if (mAudioAttachmentAdapter != null && mAudioAttachmentAdapter!!.getPlayingIndex() != -1) {
             mAudioAttachmentAdapter!!.stopPlaying()
@@ -3431,7 +3438,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         mThing!!.thingCardSpanMode = mThingCardSpanMode
         mThing!!.thingCardImagePlacement = mThingCardImagePlacement
 
-        intent.putExtra(Def.Communication.KEY_POSITION, mPosition)
+        putMainListPositions(intent)
         intent.putExtra(Def.Communication.KEY_STATE_AFTER, stateAfter)
 
         if (mPosition == -1) {
@@ -3700,7 +3707,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         }
 
         if (mPosition != -1) {
-            intent.putExtra(Def.Communication.KEY_POSITION, mPosition)
+            putMainListPositions(intent)
             val updateResult = ThingManager.getInstance(mApp)!!.update(
                 typeBefore, mThing, mPosition, true
             )
@@ -3733,7 +3740,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         val intent = Intent(Def.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI)
         intent.putExtra(Def.Communication.KEY_RESULT_CODE, resultCode)
         intent.putExtra(Def.Communication.KEY_THING, mThing)
-        intent.putExtra(Def.Communication.KEY_POSITION, mPosition)
+        putMainListPositions(intent)
 
         updateUiEverywhereAndFinish(intent, resultCode)
     }
@@ -3785,7 +3792,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         val resultCode = Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME
         val intent = Intent()
         intent.putExtra(Def.Communication.KEY_THING, mThing)
-        intent.putExtra(Def.Communication.KEY_POSITION, mPosition)
+        putMainListPositions(intent)
         intent.putExtra(Def.Communication.KEY_RESULT_CODE, resultCode)
         intent.putExtra(Def.Communication.KEY_TYPE_BEFORE, Thing.HABIT)
         updateUiEverywhereAndFinish(intent, resultCode)
@@ -5143,7 +5150,11 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
 
         @JvmStatic
         fun getOpenIntentForUpdate(
-            context: Context?, senderName: String?, id: Long, position: Int
+            context: Context?,
+            senderName: String?,
+            id: Long,
+            position: Int,
+            listPosition: Int = -1
         ): Intent {
             if (App.getDoingThingId() == id) {
                 return DoingActivity.getOpenIntent(context, true)
@@ -5153,6 +5164,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 intent.putExtra(Def.Communication.KEY_DETAIL_ACTIVITY_TYPE, UPDATE)
                 intent.putExtra(Def.Communication.KEY_ID, id)
                 intent.putExtra(Def.Communication.KEY_POSITION, position)
+                intent.putExtra(Def.Communication.KEY_LIST_POSITION, listPosition)
                 return intent
             }
         }

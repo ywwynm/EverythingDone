@@ -44,10 +44,10 @@ duplicate their authority.
 
 ## Commit messages
 
-When writing bilingual commit messages, do not prefix paragraphs with
-`EN:` / `中文：`. Do not include Gradle command output or APK verification
-details in the commit message body. Add the standard collaborator trailer
-used by recent commits:
+When writing bilingual commit messages, do not prefix paragraphs with language
+labels such as `English:`, `EN:`, `中文：`, or `Chinese:`. Do not include Gradle
+command output or APK verification details in the commit message body. Add the
+standard collaborator trailer used by recent commits:
 
 `Co-authored-by: GPT-5.5 <gpt-5.5@openai.com>`
 
