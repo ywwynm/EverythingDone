@@ -136,6 +136,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         holder.itemView.alpha = 1.0f
         holder.itemView.scaleX = 1.0f
         holder.itemView.scaleY = 1.0f
+        holder.itemView.translationZ = 0.0f
 
         val entry = getEntries()?.getOrNull(position)
         if (entry is ThingListEntry.FolderEntry) {

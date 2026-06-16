@@ -5954,6 +5954,7 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         private var folderDropHoverCandidate: FolderDropHoverCandidate? = null
         private var folderDropHoverStartedAt: Long = 0L
         private var folderDropHoverFrameCount: Int = 0
+        private var folderDropCommitInProgress: Boolean = false
         private var lastFolderDropSourceLeftInRoot: Float? = null
         private var lastFolderDropSourceTopInRoot: Float? = null
         private var highlightedFolderTargetPosition: Int = RecyclerView.NO_POSITION
@@ -6058,12 +6059,13 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 null
             }
             if (folderDropCandidate != null) {
-                if (pendingFolderDrop != null
-                    && (!isPendingFolderDropFor(folderDropCandidate)
-                        || recyclerView.isComputingLayout
-                        || recyclerView.itemAnimator?.isRunning == true)
-                ) {
+                if (pendingFolderDrop != null && !isPendingFolderDropFor(folderDropCandidate)) {
                     clearPendingFolderDrop(resetHover = false)
+                } else if (pendingFolderDrop != null
+                    && !recyclerView.isComputingLayout
+                    && recyclerView.itemAnimator?.isRunning == true
+                ) {
+                    endRecyclerViewItemAnimationsForFolderDrop()
                 }
                 return true
             }
@@ -6190,6 +6192,7 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         }
 
         private fun setPendingFolderDrop(candidate: FolderDropHoverCandidate) {
+            endRecyclerViewItemAnimationsForFolderDrop()
             pendingFolderDrop = PendingFolderDrop(
                 candidate.action,
                 candidate.sourcePosition,
@@ -6206,12 +6209,16 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             )
         }
 
-        private fun clearPendingFolderDrop(resetHover: Boolean = true) {
+        private fun clearPendingFolderDrop(
+            resetHover: Boolean = true,
+            animateRestore: Boolean = true
+        ) {
             pendingFolderDrop = null
             updateFolderDropTargetHighlight(
                 RecyclerView.NO_POSITION,
                 null,
-                FOLDER_DROP_ACTION_NONE
+                FOLDER_DROP_ACTION_NONE,
+                animateRestore
             )
             if (resetHover) {
                 resetFolderDropHover()
@@ -6233,7 +6240,6 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 && current.sourceThingId == candidate.sourceThingId
                 && current.targetThingId == candidate.targetThingId
                 && current.targetFolderId == candidate.targetFolderId
-                && current.targetPosition == candidate.targetPosition
         }
 
         private fun isPendingFolderDropFor(candidate: FolderDropHoverCandidate): Boolean {
@@ -6242,7 +6248,6 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 && pending.sourceThingId == candidate.sourceThingId
                 && pending.targetThingId == candidate.targetThingId
                 && pending.targetFolderId == candidate.targetFolderId
-                && pending.targetPosition == candidate.targetPosition
         }
 
         private fun updateLastFolderDropSourcePosition(sourceView: View) {
@@ -6265,10 +6270,10 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             val targetView = target.itemView
             val sourceLeft = sourceView.left + sourceView.translationX
             val sourceTop = sourceView.top + sourceView.translationY
-            val targetLeft = targetView.left.toFloat()
-            val targetTop = targetView.top.toFloat()
-            val targetRight = targetView.right.toFloat()
-            val targetBottom = targetView.bottom.toFloat()
+            val targetLeft = targetView.left + targetView.translationX
+            val targetTop = targetView.top + targetView.translationY
+            val targetRight = targetView.right + targetView.translationX
+            val targetBottom = targetView.bottom + targetView.translationY
             return sourceLeft >= targetLeft
                 && sourceLeft < targetRight
                 && sourceTop >= targetTop
@@ -6278,7 +6283,8 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         private fun updateFolderDropTargetHighlight(
             position: Int,
             background: ThingBackground?,
-            action: Int
+            action: Int,
+            animateRestore: Boolean = true
         ) {
             val targetHolder = if (position == RecyclerView.NO_POSITION) {
                 null
@@ -6294,7 +6300,11 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             ) {
                 return
             }
-            setFolderDropTargetHighlighted(highlightedFolderTargetPosition, false)
+            setFolderDropTargetHighlighted(
+                highlightedFolderTargetPosition,
+                false,
+                animateRestore = animateRestore
+            )
             highlightedFolderTargetPosition = position
             highlightedFolderTargetAction = action
             setFolderDropTargetHighlighted(
@@ -6311,10 +6321,11 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             highlighted: Boolean,
             background: ThingBackground? = null,
             action: Int = FOLDER_DROP_ACTION_NONE,
-            targetHolder: BaseThingsAdapter.BaseThingViewHolder? = null
+            targetHolder: BaseThingsAdapter.BaseThingViewHolder? = null,
+            animateRestore: Boolean = true
         ) {
             if (!highlighted) {
-                restoreFolderDropHighlightedTargets()
+                restoreFolderDropHighlightedTargets(animateRestore)
                 return
             }
             if (position == RecyclerView.NO_POSITION) return
@@ -6367,21 +6378,37 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             }
         }
 
-        private fun restoreFolderDropHighlightedTargets() {
-            clearFolderDropTargetOutlineOverlay()
+        private fun restoreFolderDropHighlightedTargets(animate: Boolean = true) {
+            if (animate) {
+                clearFolderDropTargetOutlineOverlay()
+            } else {
+                removeFolderDropTargetOutlineDecorationImmediately()
+            }
             for ((content, folder) in highlightedThumbnailFolderTargets) {
-                animateThumbnailFolderDropOutline(content, folder, false)
+                if (animate) {
+                    animateThumbnailFolderDropOutline(content, folder, false)
+                } else {
+                    resetThumbnailFolderDropOutlineImmediately(content, folder)
+                }
             }
             highlightedThumbnailFolderTargets.clear()
             highlightedThumbnailFolderTargetContent = null
             highlightedThumbnailFolderTargetFolder = null
 
             for (card in highlightedFolderTargetCards) {
-                animateFolderDropCardScaleToNormal(card)
+                if (animate) {
+                    animateFolderDropCardScaleToNormal(card)
+                } else {
+                    resetFolderDropCardScaleImmediately(card)
+                }
             }
             highlightedFolderTargetCards.clear()
             highlightedFolderTargetCard = null
             highlightedFolderTargetAction = FOLDER_DROP_ACTION_NONE
+        }
+
+        private fun endRecyclerViewItemAnimationsForFolderDrop() {
+            mRecyclerView?.itemAnimator?.endAnimations()
         }
 
         private fun animateFolderDropCardScaleToNormal(card: View) {
@@ -6431,6 +6458,12 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             if (targetScale == 1.0f) {
                 highlightedFolderTargetScaleTokens.remove(card)
             }
+        }
+
+        private fun resetFolderDropCardScaleImmediately(card: View) {
+            val token = nextFolderDropCardScaleToken(card)
+            card.animate().cancel()
+            syncFolderDropCardScale(card, 1.0f, token)
         }
 
         private fun getFolderDropTargetHolder(
@@ -6573,6 +6606,31 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 highlightedThumbnailFolderTargetTokens.remove(content)
                 highlightedThumbnailFolderCurrentStrokeWidths.remove(content)
             }
+        }
+
+        private fun resetThumbnailFolderDropOutlineImmediately(
+            content: View,
+            folder: ThingFolder
+        ) {
+            val density = resources.displayMetrics.density
+            val strokeWidth = (density * 1.5f).coerceAtLeast(1f)
+            val strokeColor = folder.getBackground()?.representativeColor() ?: folder.getColor()
+            val token = nextThumbnailFolderDropOutlineToken(content)
+            highlightedThumbnailFolderTargetAnimators.remove(content)?.cancel()
+            val outline = GradientDrawable().apply {
+                setColor(android.graphics.Color.TRANSPARENT)
+                cornerRadius = resources.getDimension(R.dimen.thing_card_corner_radius)
+                setStroke(strokeWidth.roundToInt().coerceAtLeast(1), strokeColor)
+            }
+            content.background = outline
+            syncThumbnailFolderDropOutline(
+                content,
+                outline,
+                strokeWidth,
+                strokeColor,
+                token,
+                false
+            )
         }
 
         private fun clearFolderDropTargetOutlineOverlay() {
@@ -6739,14 +6797,17 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 commitVisual.sourceView.visibility = View.INVISIBLE
             }
             super.clearView(recyclerView, viewHolder)
+            clearActiveTouchItemZ(viewHolder.itemView)
             val position = viewHolder.adapterPosition
             val folderDrop = pendingDrop
-            clearPendingFolderDrop()
+            folderDropCommitInProgress = folderDrop != null
+            clearPendingFolderDrop(animateRestore = !folderDropCommitInProgress)
             preparedFolderDropCommitVisual = null
             activeDragViewHolder = null
             lastFolderDropSourceLeftInRoot = null
             lastFolderDropSourceTopInRoot = null
             if (folderDrop != null) {
+                endRecyclerViewItemAnimationsForFolderDrop()
                 moved = false
                 firstMove = true
                 swiped = false
@@ -6784,8 +6845,10 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 }
                 activeDragStartPosition = RecyclerView.NO_POSITION
                 activeDragThingId = -1L
+                folderDropCommitInProgress = false
                 return
             }
+            folderDropCommitInProgress = false
             if (moved) {
                 mThingManager!!.updateLocations(finalFrom, finalTo)
                 val returnedToStart = activeDragThingId != -1L
@@ -6819,6 +6882,11 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             actionState: Int, isCurrentlyActive: Boolean
         ) {
             super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive)
+            if (actionState == ItemTouchHelper.ACTION_STATE_DRAG
+                || actionState == ItemTouchHelper.ACTION_STATE_SWIPE
+            ) {
+                keepActiveTouchItemAboveSiblings(recyclerView, viewHolder.itemView)
+            }
             if (actionState == ItemTouchHelper.ACTION_STATE_DRAG) {
                 if (isCurrentlyActive) {
                     updateLastFolderDropSourcePosition(viewHolder.itemView)
@@ -6867,6 +6935,28 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             }
         }
 
+        private fun keepActiveTouchItemAboveSiblings(
+            recyclerView: RecyclerView,
+            activeView: View
+        ) {
+            val zOffset = resources.displayMetrics.density * ACTIVE_TOUCH_ITEM_Z_OFFSET_DP
+            var maxSiblingZ = 0.0f
+            for (i in 0 until recyclerView.childCount) {
+                val child = recyclerView.getChildAt(i)
+                if (child === activeView) continue
+                maxSiblingZ = max(maxSiblingZ, child.z)
+            }
+            val targetTranslationZ = (maxSiblingZ + zOffset - activeView.elevation)
+                .coerceAtLeast(0.0f)
+            if (abs(activeView.translationZ - targetTranslationZ) > 0.5f) {
+                activeView.translationZ = targetTranslationZ
+            }
+        }
+
+        private fun clearActiveTouchItemZ(activeView: View) {
+            activeView.translationZ = 0.0f
+        }
+
         private fun updatePendingFolderDropFromDraggedTopLeft(
             viewHolder: RecyclerView.ViewHolder
         ) {
@@ -6891,6 +6981,12 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             if (mRecyclerView!!.isComputingLayout
                 || mRecyclerView!!.itemAnimator?.isRunning == true
             ) {
+                if (pendingFolderDrop != null && isPendingFolderDropFor(candidate)
+                    && !mRecyclerView!!.isComputingLayout
+                ) {
+                    endRecyclerViewItemAnimationsForFolderDrop()
+                    return
+                }
                 if (!isSameFolderDropCandidate(folderDropHoverCandidate, candidate)) {
                     folderDropHoverCandidate = candidate
                 }
@@ -6918,6 +7014,8 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             }
             if (!isPendingFolderDropFor(candidate)) {
                 setPendingFolderDrop(candidate)
+            } else if (pendingFolderDrop?.targetPosition != candidate.targetPosition) {
+                setPendingFolderDrop(candidate)
             }
         }
 
@@ -6930,12 +7028,18 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             for (i in 0 until mRecyclerView!!.childCount) {
                 val child = mRecyclerView!!.getChildAt(i)
                 if (child === source) continue
-                if (x >= child.left
-                    && x < child.right
-                    && y >= child.top
-                    && y < child.bottom
+                val holder = mRecyclerView!!.getChildViewHolder(child)
+                if (holder.adapterPosition == RecyclerView.NO_POSITION) continue
+                val childLeft = child.left + child.translationX
+                val childTop = child.top + child.translationY
+                val childRight = child.right + child.translationX
+                val childBottom = child.bottom + child.translationY
+                if (x >= childLeft
+                    && x < childRight
+                    && y >= childTop
+                    && y < childBottom
                 ) {
-                    return mRecyclerView!!.getChildViewHolder(child)
+                    return holder
                 }
             }
             return null
@@ -7279,6 +7383,7 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         private const val FOLDER_DROP_HOVER_ARM_MIN_FRAMES = 2
         private const val FOLDER_DROP_TARGET_ANIM_DURATION = 160L
         private const val FOLDER_DROP_COMMIT_ANIM_DURATION = 190L
+        private const val ACTIVE_TOUCH_ITEM_Z_OFFSET_DP = 4.0f
         private const val FOLDER_ACTION_RENAME = 1
         private const val FOLDER_ACTION_TOGGLE_MODE = 2
         private const val FOLDER_ACTION_TOGGLE_SPAN = 3

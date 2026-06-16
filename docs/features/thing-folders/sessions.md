@@ -1,5 +1,50 @@
 # Thing Folders Sessions
 
+## 2026-06-16 - Active swipe/drag card z-order stabilization
+
+- Follow-up testing showed that the active Thing Card could change z-order
+  relative to nearby Thing and Folder Cards during horizontal swipe or drag.
+- Diagnosed the likely cause as competing z sources: AndroidX
+  `ItemTouchHelper` raises the selected item based on sibling elevation at the
+  start of an active draw path, while card touch, moving-mode, Folder Card
+  surfaces, and RecyclerView item animations can later change sibling card z.
+- Added per-frame active gesture z enforcement in `ThingsTouchCallback` after
+  `super.onChildDraw(...)`: active swipe/drag cards now compute the current
+  maximum sibling `z` and receive enough transient `translationZ` to remain
+  above it.
+- Kept normal `cardElevation` ownership unchanged so card press/release,
+  selection, moving-mode, and Folder-drop feedback animations continue to use
+  their existing elevation values.
+- Reset the transient `translationZ` in `ItemTouchHelper.clearView(...)` and in
+  `ThingsAdapter.onBindViewHolder(...)` to avoid recycled card z leakage.
+- Verified with `.\gradlew.bat :app:assembleDebug --console=plain`; only the
+  pre-existing deprecated override warning remains.
+- Published debug update `202606161548` to the Aliyun debug channel and
+  verified remote `latest.json` returns that `debugUpdateCode` and APK URL.
+
+## 2026-06-16 - Folder-drop animation isolation hardening
+
+- Implemented a first hardening pass for Thing-to-Thing create-Folder and
+  Thing-to-Folder drag feedback without enabling RecyclerView Adapter stable
+  ids.
+- Kept Folder-drop drag state keyed by stable business identity
+  (`sourceThingId`, `targetThingId`, and `targetFolderId`) while allowing
+  adapter positions to move during RecyclerView gap-filling.
+- Ended pending RecyclerView item animations before arming or committing a
+  Folder drop, and deferred/cleared Folder-drop hover feedback while the
+  RecyclerView is computing layout or still running item animations.
+- Changed Folder-drop hit-testing to use translated source/target bounds and
+  skip holders with `RecyclerView.NO_POSITION`, so animated or moving cards do
+  not use stale layout-only coordinates.
+- Split normal animated restore from commit cleanup: ordinary hover exit still
+  animates target scale/outline back to normal, while successful commit clears
+  the real target card's scale/outline immediately after the overlay snapshot
+  is captured so the commit overlay owns the visible finish animation.
+- Verified with `.\gradlew.bat :app:assembleDebug --console=plain`; only the
+  pre-existing deprecated override warning remains.
+- Published debug update `202606161401` to the Aliyun debug channel and
+  verified remote `latest.json` returns that `debugUpdateCode` and APK URL.
+
 ## 2026-06-16 - Drag-drop animation architecture analysis
 
 - Reviewed the current Thing-to-Thing create-folder and Thing-to-Folder drop

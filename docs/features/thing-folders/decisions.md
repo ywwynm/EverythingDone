@@ -121,6 +121,28 @@ enabled it.
 Setting a Thing Folder private requires the app private password to exist, using
 the same prerequisite as setting a Thing private.
 
+## 2026-06-16 - Folder drag hardening avoids Adapter stable ids
+
+Do not enable RecyclerView Adapter stable ids as part of Folder-drop animation
+hardening. The project has previously seen stable-id changes interact badly
+with mixed projections, broad `notifyDataSetChanged()` rebinds, ViewHolder
+visual state, and RecyclerView gesture animations.
+
+Folder drag state may still use stable business ids such as `sourceThingId`,
+`targetThingId`, and `targetFolderId` internally. That identity should remain a
+drag-session invariant, not an Adapter stable-id contract.
+
+## 2026-06-16 - Active list gestures own temporary z-order
+
+During active Thing-list swipe or drag gestures, the touched card should remain
+above all sibling Thing and Folder Cards. The gesture layer owns this temporary
+z-order through transient `translationZ`; normal `cardElevation` remains owned
+by card touch, selection, moving-mode, and Folder-drop feedback animations.
+
+The temporary z-order must be reset in `ItemTouchHelper.clearView(...)` and
+when ViewHolders are rebound, so recycled cards do not keep an old gesture
+layer.
+
 ## 2026-06-15 - Deleting a folder moves the folder subtree to Deleted
 
 Deleting a Thing Folder moves that folder to the Deleted destination while

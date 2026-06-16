@@ -1,5 +1,31 @@
 # Current Debug Update Notes
 
+## 2026-06-16 - 修复左右滑动/拖拽卡片时的 Z 轴层级跳变
+
+用户反馈：左右滑动记事 A 时，如果左侧同时有记事 B 和文件夹 C，A 一开始看起来在 B/C 上方，但滑动过程中可能突然跑到 C 下方；如果左侧只有文件夹 C，也可能一开始在 C 下方，之后又突然变到 C 上方。用户期望正在左右滑动或拖拽的卡片始终保持在所有卡片上方。
+
+本次诊断确认，相关路径里存在多个会影响层级的来源：AndroidX `ItemTouchHelper` 会在 active draw 路径中按当时的 sibling elevation 抬高被操作的 item；同时普通卡片按压/释放动画、moving mode、Folder Card surface、RecyclerView item animator 和 Folder-drop feedback 都可能改变卡片的实际 z。单纯依赖 `ItemTouchHelper` 初始抬高，后续 sibling z 变化后就可能出现当前卡片被文件夹卡片盖住或突然改变层级的情况。
+
+本次修正集中在 `ThingsActivity.kt` 和 `ThingsAdapter.kt`。`ThingsTouchCallback.onChildDraw(...)` 在调用 `super.onChildDraw(...)` 之后，会对 active swipe/drag 卡片重新计算当前所有 sibling 的最大 `z`，并通过临时 `translationZ` 把 active 卡片压到所有 sibling 上方。这里没有改 `cardElevation` 的所有权，避免和卡片按压、选择、moving mode、Folder-drop 反馈动画继续争抢同一个属性。手势结束时在 `ItemTouchHelper.clearView(...)` 清掉临时 `translationZ`；ViewHolder 复用绑定时也会重置 `itemView.translationZ = 0f`，避免复用残留。
+
+同步更新 `docs/features/thing-folders/decisions.md`，记录 active list gesture 的临时 z-order 由手势层通过 `translationZ` 管理；同步更新 `docs/features/thing-folders/sessions.md` 记录本轮实现。
+
+验证状态：已执行 `.\gradlew.bat :app:assembleDebug --console=plain`，结果 `BUILD SUCCESSFUL in 3s`；只有 `ThingsActivity.kt` 里既有的 deprecated override warning。已执行 `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`，发布 debug update `202606161548` 到 `http://120.25.194.207/everythingdone-updates/debug/latest.json`；发布后回读远端 metadata，`debugUpdateCode` 为 `202606161548`，APK URL 为 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606161548.apk`。当前环境仍没有稳定的真机滑动/拖拽视觉自动化回归 seam。请重点复测：A 左右滑动经过左侧 B/C 时是否始终位于 B/C 上方；A 拖拽经过现有文件夹时是否始终位于所有卡片上方；手势结束后卡片阴影和层级是否恢复正常，没有残留在最上层。
+
+## 2026-06-16 - 加固文件夹拖拽动画，避开 RecyclerView 动画冲突
+
+用户反馈：拖动记事 A 的卡片在记事列表中滑动、触发列表自动滚动或 item 重排列时，A 拖到记事 B 上创建文件夹、或拖到现有文件夹 C 上合并的动画仍可能出现卡片闪烁、位置计算错误、RecyclerView item 动画冲突、文件夹轮廓出现/消失异常、轮廓位置不正确、缩放恢复不连续等问题。用户还特别提醒，项目以前多次尝试 RecyclerView Adapter stable ids 都出现过问题，因此本次不要把修复建立在启用 stable ids 上。
+
+本次采用“局部隔离现有实现”的第一版加固，而不是一次性重写完整 drag-session layer。`ThingsActivity.kt` 中的 Folder-drop 拖拽状态仍然用稳定业务 id 识别源记事和目标对象：`sourceThingId`、`targetThingId`、`targetFolderId`。但是不启用 Adapter stable ids，也不把 adapter position 当成“同一个目标”的核心判定。这样 RecyclerView 在拖拽 gap-filling 或自动滚动时，目标卡片的位置可以变化，Folder-drop 状态仍按业务对象跟踪。
+
+动画边界方面，本次在 armed Folder-drop 前和提交 Folder-drop 前显式结束 RecyclerView 当前 item animator，避免普通 `notifyItemMoved(...)`、remove/change 动画和 Folder-drop 的目标卡片缩放、文件夹轮廓、缩略图文件夹描边同时写同一个 ViewHolder。悬停阶段如果 RecyclerView 正在 computing layout 或 item animator 仍在运行，会推迟/清理 Folder-drop feedback，等列表补位稳定后再重新判断。成功提交时，会先捕获拖动源卡片 overlay，再立刻清掉真实目标卡片上的缩放/轮廓 feedback，让提交 overlay 单独负责最后的视觉收束；普通拖出目标的场景仍保留缩放/轮廓恢复动画，不会把所有位置变化都变成无动画。
+
+位置计算方面，Folder-drop hit-testing 现在使用包含 `translationX/translationY` 的源/目标边界，并跳过 `RecyclerView.NO_POSITION` 的 holder，避免在 item 正在被动画移动或已脱离稳定 adapter position 时使用旧的 layout-only 坐标。
+
+同步更新：`docs/features/thing-folders/decisions.md` 记录本轮明确不启用 Adapter stable ids；`docs/features/thing-folders/followups.md` 把后续 fallback hardening 改成使用稳定业务 id，而不是 stable adapter ids；`docs/features/thing-folders/sessions.md` 记录了本轮实现。
+
+验证状态：已执行 `.\gradlew.bat :app:assembleDebug --console=plain`，结果 `BUILD SUCCESSFUL in 4s`；只有 `ThingsActivity.kt` 里既有的 deprecated override warning。已执行 `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`，发布 debug update `202606161401` 到 `http://120.25.194.207/everythingdone-updates/debug/latest.json`；发布后回读远端 metadata，`debugUpdateCode` 为 `202606161401`，APK URL 为 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606161401.apk`。当前环境仍没有稳定的真机拖拽视觉自动化回归 seam。请重点复测：长距离拖动 A 导致列表自动滚动后，再拖到 B/C 上是否还会闪烁或轮廓错位；A 拖入、拖出、重新拖入同一目标时，目标卡片缩放和轮廓是否连续；松手创建/合并文件夹时，真实卡片是否不再和提交 overlay 抢动画。
+
 ## 2026-06-16 - 修复创建文件夹轮廓在列表滚动时脱离目标卡片
 
 用户反馈：文件夹轮廓需要始终紧贴着目标记事卡片；当拖动轨迹比较长、涉及到屏幕滑动时，触发创建文件夹动画后，轮廓可能会随着屏幕滑动而和对应记事卡片分离。

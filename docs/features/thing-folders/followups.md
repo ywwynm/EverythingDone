@@ -27,7 +27,8 @@
   finishes. This would avoid target-card scale, outline, item move/remove, and
   mode-rebind animations writing to the same ViewHolder at the same time.
 - If the full drag-session rewrite is deferred, harden the current path by
-  enabling stable adapter ids for `ThingListEntry`, disabling or ending
+  keeping Folder-drop drag state keyed by stable Thing/Folder business ids
+  without enabling RecyclerView Adapter stable ids, disabling or ending
   RecyclerView item animations during Folder-drop commit, using transformed
   target bounds for hit-testing, and replacing handcrafted post-mutation
   positions with an identity-aware diff or equivalent update contract.
