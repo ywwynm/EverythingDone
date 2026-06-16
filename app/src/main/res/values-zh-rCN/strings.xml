@@ -187,6 +187,29 @@
 
     <!--——————————————————————Strings for Thing——————————————————————-->
     <string name="private_thing">私密记事</string>
+    <string name="thing_folder">记事文件夹</string>
+    <string name="private_thing_folder">私密记事文件夹</string>
+    <string name="thing_folder_count">%1$d件记事</string>
+    <string name="cannot_set_as_private_thing_folder_title">无法设置为私密记事文件夹</string>
+    <string name="thing_folder_location">位于 %1$s</string>
+    <string name="create_thing_folder_title">命名记事文件夹</string>
+    <string name="thing_folder_name_hint">文件夹名称</string>
+    <string name="default_thing_folder_name">新文件夹</string>
+    <string name="rename_thing_folder">重命名文件夹</string>
+    <string name="show_thing_folder_summary">显示摘要卡片</string>
+    <string name="show_thing_folder_thumbnails">显示缩略图</string>
+    <string name="make_thing_folder_wide">设为宽卡片</string>
+    <string name="make_thing_folder_normal_width">使用普通宽度</string>
+    <string name="set_thing_folder_private">设为私密文件夹</string>
+    <string name="cancel_thing_folder_private">取消私密文件夹</string>
+    <string name="delete_thing_folder">删除文件夹</string>
+    <string name="restore_thing_folder">还原文件夹</string>
+    <string name="delete_thing_folder_forever">永久删除文件夹</string>
+    <string name="delete_thing_folder_forever_confirm">永久删除此文件夹及其中的所有记事？</string>
+    <string name="move_thing_folder_card">调整卡片顺序</string>
+    <string name="move_thing_folder_to">移动到文件夹</string>
+    <string name="thing_folder_root">根目录</string>
+    <string name="thing_folder_child_count">%1$d 项内容</string>
     <string name="sticky_thing">置顶的记事</string>
     <string name="ongoing_thing">在通知栏中显示的记事</string>
 
@@ -344,6 +367,7 @@
     <string name="act_delete_selected">删除选中的记事</string>
     <string name="act_finish_selected">完成选中的记事</string>
     <string name="act_export_to_sdcard">导出到 SD 卡</string>
+    <string name="act_move_to_thing_folder">移动到文件夹</string>
     <string name="act_restore_selected">还原选中的记事</string>
     <string name="act_delete_selected_forever">彻底删除选中的记事</string>
     <string name="act_customize_card_appearance">调整记事卡片外观</string>

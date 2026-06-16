@@ -24,6 +24,7 @@ Global startup session index only. Detailed feature history lives in `docs/featu
 - `remote-thing-card-appearance`: `docs/features/remote-thing-card-appearance/sessions.md`
 - `share-screenshot`: `docs/features/share-screenshot/sessions.md`
 - `system-bar-insets`: `docs/features/system-bar-insets/sessions.md`
+- `thing-folders`: `docs/features/thing-folders/sessions.md`
 - `thing-card-appearance`: `docs/features/thing-card-appearance/sessions.md`
 - `thing-card-image-placement`: `docs/features/thing-card-image-placement/sessions.md`
 - `thing-card-media-target-geometry`: `docs/features/thing-card-media-target-geometry/sessions.md`

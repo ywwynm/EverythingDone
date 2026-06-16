@@ -63,6 +63,7 @@ memory files.
 - `project-maintenance/`
 - `remote-thing-card-appearance/`
 - `system-bar-insets/`
+- `thing-folders/`
 - `thing-card-appearance/`
 - `thing-card-image-placement/`
 - `thing-card-media-target-geometry/`

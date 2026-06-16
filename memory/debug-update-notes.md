@@ -1,5 +1,207 @@
 # Current Debug Update Notes
 
+## 2026-06-16 - 修复创建文件夹轮廓在列表滚动时脱离目标卡片
+
+用户反馈：文件夹轮廓需要始终紧贴着目标记事卡片；当拖动轨迹比较长、涉及到屏幕滑动时，触发创建文件夹动画后，轮廓可能会随着屏幕滑动而和对应记事卡片分离。
+
+本次诊断确认，上一版把轮廓改成固定中心后，实际上是把轮廓固定在创建那一刻的 RecyclerView 坐标快照上。这个模型可以避免按当前 `scaleX/scaleY` 重算导致的右下偏移，但在 RecyclerView 自动滚动时，目标卡片 B 的 layout 位置会变化，轮廓却仍留在旧坐标，于是发生分离。
+
+本次修正为“相对 B 的未缩放 layout 中心固定，而不是相对 RecyclerView 某个坐标快照固定”：`FolderDropOutlineDecoration` 现在保留目标卡片引用，并在每次 `onDraw(...)` 时重新计算目标卡片当前在 RecyclerView 内、不受 scale transform 影响的 layout bounds。这样列表滚动或 item translation 发生时，轮廓会跟着 B 的当前位置移动；但轮廓的几何仍然不使用 B 当前的 `scaleX/scaleY`，进场和退场仍只通过 `FolderDropOutlineDrawable.progress` 改变描边粗细和透明度。
+
+验证状态：已执行 `.\gradlew.bat :app:assembleDebug --console=plain`，结果 `BUILD SUCCESSFUL in 3s`；`git diff --check` 已通过，仅有仓库既有 LF/CRLF warning。已发布 debug update `202606161316`，远端 `latest.json` 已回读确认，APK URL 为 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606161316.apk`。当前环境仍没有稳定的真机拖拽视觉自动化回归 seam。请重点复测：长距离拖动触发列表滚动后，A 拖到 B 时文件夹轮廓是否仍紧贴 B；A 拖出 B 时轮廓是否保持相对 B 的位置退场；A 经过轮廓区域时，轮廓仍应被 A 的卡片遮住。
+
+## 2026-06-16 - 修正创建文件夹轮廓 bounds 固定中心
+
+用户反馈：上一版为了让文件夹轮廓退场可见，把轮廓 bounds 按目标卡片当前 `scaleX/scaleY` 每帧重算，结果轮廓会往记事卡片右下角偏离。用户指出这里不应该根据 B 当前的 scale 重新计算，因为轮廓和记事卡片应该始终共享同一个中心，动画只需要让轮廓粗细从 0 变成设定粗细，或者从设定粗细变成 0。
+
+本次修正采用固定中心模型：创建待创建文件夹轮廓时，只计算一次目标卡片在 RecyclerView 内、不受 scale transform 影响的 layout bounds；轮廓 bounds 以这个 layout bounds 为基准，和 B 卡片共享同一个中心。为了保留轮廓与缩小后的 B 卡片之间的固定视觉间隙，代码只在创建固定 bounds 时使用一次目标缩小比例；之后进场和退场都不再根据 B 的当前 `scaleX/scaleY` 重新计算位置。`FolderDropOutlineDrawable.progress` 继续负责动画，控制描边粗细和透明度从 0 到目标值、或从目标值回到 0。
+
+验证状态：已执行 `.\gradlew.bat :app:assembleDebug --console=plain`，结果 `BUILD SUCCESSFUL in 3s`；`git diff --check` 已通过，仅有仓库既有 LF/CRLF warning。已发布 debug update `202606161251`，远端 `latest.json` 已回读确认，APK URL 为 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606161251.apk`。当前环境仍没有稳定的真机拖拽视觉自动化回归 seam。请重点复测：A 拖到 B 时轮廓是否仍与 B 共享中心、不再向右下偏移；A 拖出 B 时轮廓退场是否只表现为描边变细/变淡；A 经过轮廓区域时，轮廓仍应被 A 的卡片遮住。
+
+## 2026-06-16 - 修复创建文件夹轮廓退场被目标卡片遮住
+
+用户反馈：记事 A 拖动到记事 B 时，文件夹轮廓的出现动画已经有了，但完全看不到轮廓消失动画。用户指出这应该和 B 卡片从缩小恢复到正常大小的 `scaleX/scaleY` 动画类似，可以使用同一套逻辑。
+
+本次重新诊断后确认，问题不只是“退场动画有没有启动”，而是轮廓的绘制层级和目标卡片恢复动画产生了遮挡。上一版为了让拖动中的 A 能遮住轮廓，把待创建文件夹轮廓从 `RecyclerView.overlay` 移到 `RecyclerView.ItemDecoration.onDraw(...)`，也就是绘制在所有 child card 下方。这样 A 能遮住轮廓，但 B 从 `scale=0.92` 恢复到 `scale=1f` 时，也会把仍停在旧 bounds 上的轮廓盖住，所以用户看起来就像轮廓立刻消失。
+
+本次把轮廓退场改成更接近卡片 scale 恢复的模型：轮廓仍然用 `progress` 从当前值动画到 `0f`，但 `FolderDropOutlineDecoration` 不再使用固定 bounds，而是在每次 `onDraw(...)` 时根据目标卡片当前的 `scaleX/scaleY` 重新计算轮廓位置，让轮廓始终贴在 B 当前视觉边界外侧。这样 B 放大的同时，轮廓也会跟着外移并淡出/收细，不会被 B 的卡片表面提前盖住。清理当前轮廓时也会先把 decoration 从 active highlight 槽位脱钩，再让这一次退场动画自己播完并一次性移除，避免后续重复清理不断重启动画。
+
+验证状态：已执行 `.\gradlew.bat :app:assembleDebug --console=plain`，结果 `BUILD SUCCESSFUL in 3s`；`git diff --check` 已通过，仅有仓库既有 LF/CRLF warning。已发布 debug update `202606161240`，远端 `latest.json` 已回读确认，APK URL 为 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606161240.apk`。当前环境仍没有稳定的真机拖拽视觉自动化回归 seam。请重点复测：A 拖到 B、轮廓出现后再拖出 B 时，B 放大恢复的同时轮廓是否能同步退场；A 经过轮廓区域时，轮廓仍应被 A 的卡片遮住。
+
+## 2026-06-16 - 修复创建文件夹轮廓层级与退场动画
+
+用户反馈两个小问题：记事 A 拖动到记事 B 时，B 卡片缩小/放大有动画，但待创建文件夹轮廓的出现/消失没有动画；同时 A 的卡片会挡住 B，但文件夹轮廓不会被 A 挡住。
+
+本次诊断确认原因是待创建文件夹轮廓画在 `RecyclerView.overlay` 上。overlay 位于 RecyclerView children 之上，所以拖动中的 A 无法遮住轮廓；并且旧清理路径直接从 overlay 移除 drawable，退场自然没有动画。本次把创建文件夹轮廓从 `RecyclerView.overlay` 改为一个不占 offset 的 `RecyclerView.ItemDecoration`，并在 `onDraw(...)` 中绘制。`onDraw(...)` 在 child card 绘制之前执行，因此轮廓会位于所有卡片下方，拖动中的 A 会自然遮住它。
+
+动画方面，保留原有 `FolderDropOutlineDrawable.progress` 进场动画；退场时不再直接移除，而是把 decoration 的 progress 从当前值动画到 `0f`，动画结束后再 remove item decoration。退场移除也加了 token guard，避免旧退场动画被新轮廓打断后误删新的 decoration。
+
+验证状态：已执行 `.\gradlew.bat :app:assembleDebug --console=plain`，结果 `BUILD SUCCESSFUL in 2s`；`git diff --check` 已通过，仅有仓库既有 LF/CRLF warning。已发布 debug update `202606161220`，远端 `latest.json` 已回读确认，APK URL 为 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606161220.apk`。当前环境仍没有稳定的真机拖拽视觉自动化回归 seam。请重点复测：A 拖到 B 时轮廓进场/退场是否都有动画；A 经过轮廓区域时，轮廓是否会被 A 的卡片遮住。
+
+## 2026-06-16 - 文件夹拖拽恢复动画改为可中断重定向
+
+用户反馈：上一版在任何情况下都会有明显跳变，因为 cancel 兜底里直接设置了 `scaleX/scaleY = 1f`。这说明“cancel 就同步最终值”的策略不对；很多 cancel 实际上是因为新的高亮/恢复动画接管了同一个目标，此时旧动画不能再写旧终点。
+
+本次继续查阅资料后，把恢复逻辑改成可中断 retarget 方案，而不是无条件 cancel 兜底。核心是给每个目标卡片的 scale 动画加 generation token：新动画开始前先递增 token，再 cancel 旧动画。旧动画的 `onAnimationCancel(...)` 发现自己的 token 已过期，就不会同步旧目标值，因此不会把卡片先跳到 `scale=1f`；新动画会从当前视觉 scale 继续动画到新的目标 scale。只有当前最新动画自己正常结束或未被新动画接管而取消时，才同步最终目标值。
+
+缩略图模式文件夹描边也做了同样处理：每个 content view 有独立 token，并记录当前描边宽度。新的描边动画从当前记录的视觉描边宽度开始，而不是每次固定从普通宽度或高亮宽度开始，因此快速进出多个文件夹时，描边也会连续过渡，不会先跳到旧终点再启动新动画。
+
+验证状态：已执行 `.\gradlew.bat :app:assembleDebug --console=plain`，结果 `BUILD SUCCESSFUL in 3s`；`git diff --check` 已通过，仅有仓库既有 LF/CRLF warning。已执行 `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`，发布 debug update `202606161209` 到 `http://120.25.194.207/everythingdone-updates/debug/latest.json`；发布后回读远端 metadata，`debugUpdateCode` 为 `202606161209`，APK URL 为 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606161209.apk`。当前环境仍没有稳定的真机多目标拖拽视觉自动化回归 seam。请重点复测：快速穿过多个文件夹目标时，缩放和描边是否从当前状态连续过渡，而不是出现跳到正常态或高亮态再继续动画。
+
+## 2026-06-16 - 给文件夹拖拽恢复动画增加结束/取消兜底
+
+用户提出新的修复方案：文件夹目标恢复动画仍然要播放，但可以给恢复动画加 `withEndAction(...)` 回调，在正常播放结束时同步最终状态；如果动画被 cancel，则在 `onAnimationCancel(...)` 中同步赋值兜底，保证视觉状态正确。
+
+本次核对 Android 官方文档后确认方案可行，但需要注意 `ViewPropertyAnimator.withEndAction(...)` 只会在动画正常结束时运行，动画 cancel 时不会运行。因此本次修改采用双路径兜底：目标卡片 scale 恢复动画正常结束时通过 `withEndAction(...)` 同步 `scaleX/scaleY=1f`；如果恢复动画被后续高亮动画取消，则通过 `AnimatorListenerAdapter.onAnimationCancel(...)` 同步到相同最终状态。`onAnimationEnd(...)` 里也会同步一次，并清理 listener，避免旧恢复 listener 影响后续新的高亮动画。
+
+缩略图模式文件夹的描边恢复也做了同样处理：每个 content view 仍然使用独立 `ValueAnimator`，并在 `onAnimationEnd(...)` 和 `onAnimationCancel(...)` 中都同步最终描边宽度。新的高亮 scale 动画开始前会显式清理旧 listener 和 end action，避免已取消的恢复动画残留回调影响新的文件夹 drop 动画。
+
+验证状态：已执行 `.\gradlew.bat :app:assembleDebug --console=plain`，结果 `BUILD SUCCESSFUL in 2s`；`git diff --check` 已通过，仅有仓库既有 LF/CRLF warning。已执行 `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`，发布 debug update `202606161159` 到 `http://120.25.194.207/everythingdone-updates/debug/latest.json`；发布后回读远端 metadata，`debugUpdateCode` 为 `202606161159`，APK URL 为 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606161159.apk`。当前环境仍没有稳定的真机多目标拖拽视觉自动化回归 seam。请重点复测：多文件夹拖拽路径下，恢复动画是否仍然流畅；如果快速进入/离开不同文件夹目标，最终是否不会残留缩小或加粗状态。
+
+## 2026-06-16 - 多文件夹拖拽目标恢复改回动画
+
+用户指出：上一版为了保证多文件夹路径下所有目标都恢复，直接设置了 `scaleX/scaleY` 和描边宽度，这不符合期望；恢复仍然应该是动画。
+
+本次修改保留“记录本轮拖拽中所有被文件夹 drop 高亮过的目标”的稳定性修复，但把恢复方式改回动画。清理 pending 文件夹 drop 时，每个曾经缩小过的目标卡片都会用现有文件夹目标动画时长动画回到 `scale=1f`，不再直接设置 `scaleX/scaleY`。缩略图模式文件夹的描边恢复也不再直接重置为普通宽度，而是从高亮描边宽度动画回普通描边宽度。
+
+为了让多个缩略图模式文件夹能同时恢复，`ThingsActivity.kt` 里把原本单一的 `highlightedThumbnailFolderTargetAnimator` 改成按 content view 记录的 animator map。这样拖动轨迹经过多个缩略图文件夹时，每个文件夹的描边恢复动画彼此独立，不会被后一个目标的恢复动画取消。
+
+验证状态：已执行 `.\gradlew.bat :app:assembleDebug --console=plain`，结果 `BUILD SUCCESSFUL in 3s`；`git diff --check` 已通过，仅有仓库既有 LF/CRLF warning。已执行 `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`，发布 debug update `202606161015` 到 `http://120.25.194.207/everythingdone-updates/debug/latest.json`；发布后回读远端 metadata，`debugUpdateCode` 为 `202606161015`，APK URL 为 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606161015.apk`。当前环境仍没有稳定的真机多目标拖拽视觉自动化回归 seam。请重点复测：多文件夹拖拽路径下，所有曾经缩小/加粗的文件夹是否会以动画恢复，而不是直接跳回正常状态。
+
+## 2026-06-16 - 修复多文件夹拖拽路径下文件夹卡片缩小残留
+
+用户反馈：当前版本相对稳定，但当拖动记事 A 的轨迹经过多个文件夹，并且触发过文件夹合并动画以及 RecyclerView 自动补位时，仍然有可能出现某个文件夹最后一直保持缩小状态，即使此时 A 的左上角并不在该文件夹卡片内部。
+
+本次修改集中在 `ThingsActivity.kt`。上一版虽然已经把高亮恢复从“按 adapter position 找回目标”改成“记录实际 `CardView`”，但状态仍然只保存最后一个目标。多文件夹拖拽路径里，多个文件夹可能先后被缩小/加粗；RecyclerView 补位和 ViewHolder 位置变化会让最后一个目标引用不能覆盖此前所有已经触发过动画的目标。本次把文件夹 drop 高亮状态改为“本轮拖拽触碰过的目标集合”：每个被缩小的目标卡片、每个缩略图模式文件夹的描边 content 都会被记录。
+
+清理 pending 文件夹 drop 时，现在会取消所有已记录目标卡片上的 ViewPropertyAnimator，并直接把它们的 `scaleX/scaleY` 设回 `1f`，不再依赖恢复动画一定能播放完成。缩略图模式文件夹的描边也会立即重置为普通宽度。并且，同一目标的早退条件进一步收紧：只有当前记录集合里确实只有这一张目标卡片时，才允许继续保持高亮；如果集合里还残留其它目标，会先统一恢复，再重新高亮当前目标。
+
+验证状态：已执行 `.\gradlew.bat :app:assembleDebug --console=plain`，结果 `BUILD SUCCESSFUL in 3s`；`git diff --check` 已通过，仅有仓库既有 LF/CRLF warning。已执行 `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`，发布 debug update `202606161009` 到 `http://120.25.194.207/everythingdone-updates/debug/latest.json`；发布后回读远端 metadata，`debugUpdateCode` 为 `202606161009`，APK URL 为 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606161009.apk`。当前环境仍没有稳定的真机多目标拖拽自动化回归 seam。请重点复测：A 的拖动轨迹连续经过多个文件夹、触发文件夹合并反馈和 RecyclerView 自动补位后，所有曾经缩小的文件夹是否都能恢复正常大小。
+
+## 2026-06-16 - 修复文件夹拖拽后缩放残留和排序持久化不一致
+
+用户继续反馈三点：文件夹标题 top margin 改为 1dp；记事 A 拖动到另一个记事 B 或文件夹 C 上并继续拖动、触发 RecyclerView 自动补位后，B/C 仍可能缩小后不恢复；拖动轨迹里包含文件夹或触发过创建/合并文件夹动画后，停止拖动时首页看到的记事顺序可能和数据库中的顺序不一致，表现为退出 APP 再打开后列表顺序变化。
+
+本次诊断确认一个关键排序问题：上一版为了降低文件夹 drop 灵敏度，在 `onMove(...)` 遇到文件夹候选目标时会消费该帧，但这个候选帧并没有真的执行 `mThingManager.move(...)` / `notifyItemMoved(...)`。旧代码却仍然在这个分支写入 `finalFrom/finalTo`，导致 `clearView(...)` 后续调用 `updateLocations(finalFrom, finalTo)` 时，可能把一个“视觉上经过文件夹候选目标、但 manager 列表并没有真实移动到那里的范围”写进数据库，于是内存顺序和重启后的数据库顺序不一致。本次修复后，只有真实普通拖动换位分支才会更新 `finalFrom/finalTo`；文件夹 hover candidate 只负责消费该帧和文件夹 drop 状态，不参与排序持久化。
+
+缩放残留方面，本次继续加固高亮恢复：更新文件夹 drop 高亮时，不再只比较 adapter position 和 action，还会比较实际解析到的目标 `CardView`。如果 RecyclerView 补位过程中同一个 position 已经对应另一张卡片，旧的被缩小卡片会先恢复，再决定是否高亮新目标。`onMove(...)` 遇到文件夹候选时，如果 RecyclerView 正在 computing layout、item animator 正在运行，或者候选目标已经和当前 armed pending drop 不一致，也会立即清除旧 pending 高亮，避免等待下一帧 `onChildDraw(...)` 才恢复。文件夹标题 top margin 已从 2dp 改为 1dp。
+
+验证状态：已执行 `.\gradlew.bat :app:assembleDebug --console=plain`，结果 `BUILD SUCCESSFUL in 2s`；`git diff --check` 已通过，仅有仓库既有 LF/CRLF warning。已执行 `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`，发布 debug update `202606160958` 到 `http://120.25.194.207/everythingdone-updates/debug/latest.json`；发布后回读远端 metadata，`debugUpdateCode` 为 `202606160958`，APK URL 为 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606160958.apk`。当前环境仍没有稳定的真机拖拽自动化回归 seam。请重点复测：B/C 缩小后继续拖动是否能恢复；拖动路径经过文件夹候选但最后只是普通调序或回原位时，结束后的列表顺序是否和重启 APP 后一致；文件夹标题 1dp 偏移是否合适。
+
+## 2026-06-16 - 降低文件夹拖拽判定灵敏度并修复目标卡片缩放残留
+
+用户继续反馈四点：文件夹标题还需要再往下 2dp；当 A、B 分别在列表第一/第二位时，拖动 B 到 A 上触发创建文件夹动画后继续往左拖出，A 卡片没有恢复正常大小；拖动 A 到 B 上时很容易先触发 RecyclerView 的 item 移动，B 移到第一位后，待创建文件夹轮廓还留在 B 原本的位置；因此希望文件夹创建/合并判断不要过于灵敏，最好等 RecyclerView 补位稳定后再判断。
+
+本次修改集中在 `ThingsActivity.kt` 和 `ThingsAdapter.kt`。文件夹卡片标题的 top margin 改为 `2dp`。拖拽状态机现在把“几何上命中某个文件夹候选目标”和“已经可以显示动画/松手提交的 pending drop”分开：拖动卡片左上角进入目标卡片后，会先记录 hover candidate；只有同一个源记事、同一个目标记事/文件夹、同一个目标 adapter position、同一个动作稳定超过短延迟后，才 armed 成真正的 pending drop，并显示缩放/轮廓反馈。若 RecyclerView 正在 computing layout 或 item animator 正在运行，则会继续延后 armed，避免文件夹判断和拖拽补位动画抢状态。
+
+同时修复高亮恢复路径：以前取消高亮时按 adapter position 重新查找目标卡片，拖拽补位后这个 position 可能已经指向别的 item，导致真正被缩小的卡片没有恢复。本次改为记录实际被高亮的 `CardView`，拖出候选区域时直接恢复这张 View 的 scale；缩略图模式文件夹的描边恢复也同样记录实际 content view。`onMove(...)` 不再直接创建 pending drop，只在遇到潜在文件夹目标时暂时消费该帧，真正的文件夹反馈由 active drag frame 的稳定候选确认负责。
+
+验证状态：已执行 `.\gradlew.bat :app:assembleDebug --console=plain`，结果 `BUILD SUCCESSFUL in 3s`；`git diff --check` 已通过，仅有仓库既有 LF/CRLF warning。已执行 `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`，发布 debug update `202606160944` 到 `http://120.25.194.207/everythingdone-updates/debug/latest.json`；发布后回读远端 metadata，`debugUpdateCode` 为 `202606160944`，APK URL 为 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606160944.apk`。当前环境仍没有稳定的真机拖拽自动化回归 seam。请重点复测：B 拖到 A 后再拖出时 A 是否恢复正常大小；A 拖到 B 时是否不再出现 B 已补位但轮廓留在旧位置；文件夹 drop 动画是否不会明显迟钝；文件夹标题下移 2dp 后是否合适。
+
+## 2026-06-16 - 细化文件夹拖拽动效、回原位选择状态和数量字号
+
+用户继续反馈五点：缩略图模式文件夹在拖入候选时，轮廓变粗的同时卡片也应缩小；A 拖到 B 创建文件夹时，文件夹轮廓与 B 卡片的横向/纵向间隔看起来不一致，像是受 B 宽高比影响；A 在第一个位置、第二个位置是摘要模式文件夹 C 时，快速拖到 C 右下方且不松手，有时 C 会闪到 A 的位置，随后把 A 拖回原位再松手又没有进入选择模式；文件夹名称上方 margin 现在略小；文件夹卡片上的记事数量字号应与普通图片/视频/音频数量提示一致，并希望确认这些数量提示在不同场景下的字号规则。
+
+本次修改集中在 `ThingsActivity.kt` 和 `ThingsAdapter.kt`。拖到现有文件夹时，现在摘要模式和缩略图模式都会播放文件夹卡片缩小动画；缩略图模式额外把描边从普通宽度动画到更粗的描边。A 拖到 B 创建文件夹时，待创建文件夹轮廓不再使用 B 的原始卡片边界自然形成间隔，而是根据缩小后的 B 卡片外扩一个固定视觉 gap 来计算 `RecyclerView.overlay` drawable bounds，因此横向和纵向间隔不再随 B 的宽高比变化。
+
+拖拽状态机也做了收紧：当本次拖拽已经进入过文件夹候选状态，随后拖出候选目标时，会先清除候选并消费这一帧，不再立即落入普通 `notifyItemMoved(...)` 换位分支，避免 C 闪到 A 的位置；松手时会根据拖拽源 Thing 的最终列表位置是否回到起始位置来判断是否进入选择模式，因此“拖出去又拖回原位再松手”会回到选择模式。文件夹卡片排版方面，标题取消上一版的负 top margin，仅保留 `includeFontPadding=false`；记事数量显式设为 `11sp`、单行显示，与普通附件数量提示的默认字号一致。
+
+数量提示字号审计结果：普通 inline 图片/视频数量和音频数量在正常状态都是 `11sp`；当卡片几乎只剩附件数量提示时，代码会把 inline 图片/视频数量和音频数量放大到 `18sp`。图片/视频直接显示在卡片图片区域或作为媒体背景时，数量提示走单独 overlay 文本，但默认也是 `11sp`。也就是说，文件夹数量现在对齐的是普通小号数量提示，而不会跟随“只有附件计数”的放大状态。
+
+验证状态：已执行 `.\gradlew.bat :app:assembleDebug --console=plain`，结果 `BUILD SUCCESSFUL in 2s`；`git diff --check` 已通过，仅有仓库既有 LF/CRLF warning。已执行 `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`，发布 debug update `202606160903` 到 `http://120.25.194.207/everythingdone-updates/debug/latest.json`；发布后回读远端 metadata，`debugUpdateCode` 为 `202606160903`，APK URL 为 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606160903.apk`。当前环境仍没有稳定的真机拖拽自动化回归 seam。请重点复测：A 拖到缩略图模式文件夹时是否同时缩小和加粗轮廓；A 拖到 B 时轮廓 gap 的横纵视觉距离是否一致；A 拖到 C 右下区域再拖回原位松手是否进入选择模式且 C 不闪到 A 的位置；文件夹标题上方距离和数量字号是否符合预期。
+
+## 2026-06-16 - 修复文件夹拖拽高亮规则与拖出目标时闪退
+
+用户继续反馈三点：第一，拖动记事 A 到记事 B 时才需要“B 卡片缩小 + 文件夹轮廓出现 + 轮廓与 B 卡片有间隙”的创建文件夹动画；拖动记事 A 到现有文件夹 C 时不应使用这套动画，而是摘要模式文件夹卡片缩小、缩略图模式文件夹轮廓变粗。第二，文件夹 icon 视觉上比文件夹名称第一行略高，数量文本应和 icon 左对齐，而不是和名称列左对齐。第三，A 拖到 B 或 C 触发文件夹相关动画后，不松手继续拖出目标卡片，会在 OnePlus Android 16 上闪退，堆栈为 `ContentFrameLayout contains null child at index ... when traversal in dispatchGetDisplayList`。
+
+本次诊断认为闪退最可能来自上一版拖拽高亮实现：为了制造“轮廓和卡片之间的间隙”，代码在 active drag 过程中频繁向 activity 根 `ContentFrameLayout` 添加/移除一个高亮 `View`。当用户拖入目标后又拖出目标时，这个 root child 的移除可能和系统渲染遍历同帧交错，触发 `ContentFrameLayout contains null child`。本次修改不再把拖拽高亮作为根布局子 View 添加/移除：拖动 A 到 B 创建文件夹时，外圈轮廓改为 `RecyclerView.overlay` 上的 `Drawable`，仍使用 B 的原始卡片边界绘制，因此 B 缩小时会保留轮廓间隙；拖动 A 到现有文件夹时完全不走这个创建轮廓路径。
+
+现有文件夹的反馈规则已拆开：如果目标文件夹是摘要模式，只播放目标文件夹卡片缩小动画；如果目标文件夹是缩略图模式，卡片不缩小，只把内部描边从普通宽度动画到更粗的描边，拖出目标后再动画恢复。文件夹卡片布局同步调整：数量 `TextView` 改回和文件夹 icon 左边距一致；名称 `TextView` 关闭额外 font padding，并给一点负的 top margin，让 icon 和第一行标题的视觉对齐更自然。
+
+验证状态：已执行 `.\gradlew.bat :app:assembleDebug --console=plain`，结果 `BUILD SUCCESSFUL in 2s`；`git diff --check` 已通过，仅有仓库既有 LF/CRLF warning。已执行 `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`，发布 debug update `202606160815` 到 `http://120.25.194.207/everythingdone-updates/debug/latest.json`；发布后回读远端 metadata，`debugUpdateCode` 为 `202606160815`，APK URL 为 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606160815.apk`。当前环境仍没有稳定的真机拖拽自动化回归 seam；请重点复测：A 拖到 B 后轮廓是否仍有间隙；A 拖到摘要模式文件夹时是否只缩小；A 拖到缩略图模式文件夹时是否只加粗轮廓；拖入目标后再拖出目标是否不再闪退；文件夹 icon、标题第一行、数量左对齐是否更符合预期。
+
+## 2026-06-16 - 调整文件夹卡片布局、拖拽轮廓间隙和私密文件夹范围
+
+用户反馈三点：拖动记事 A 到记事 B 时，B 周围的待创建文件夹轮廓需要和 B 卡片本身之间留出明显间隙；文件夹卡片的文件夹 icon 太大且居中，应该缩小后放到左上角，文件夹名称放在右侧最多两行，数量显示为 `X件记事`；设置私密文件夹前必须先检查是否已设置应用密码，进入上一层私密文件夹并通过认证后，内部记事和子文件夹应正常显示真实卡片和真实名称。
+
+本次修改集中在 `ThingsActivity.kt`、`ThingsAdapter.kt`、`ThingManager.kt`、`ActivityHeader.kt` 和 `DetailActivity.kt`。拖拽候选目标的轮廓不再画在目标 `CardView.foreground` 上，而是作为根视图 overlay 使用目标卡片原始尺寸绘制；目标卡片缩小动画继续播放，因此轮廓与卡片主体之间会自然出现间隙，纯色和渐变文件夹背景仍会被用于轮廓颜色。高亮取消时会先清理 overlay，再尝试恢复目标卡片动画，避免目标 holder 被回收时残留轮廓。文件夹卡片 header 改为小号 icon + 右侧标题列，标题最多两行，数量文字左边距对齐标题列；简中数量文案改为 `%1$d件记事`。
+
+私密文件夹方面，`ThingManager` 新增已认证私密文件夹 path 范围：打开受保护文件夹并认证成功后，把该文件夹记为当前路径内已认证；进入其后代时继续保持正常显示，返回到它外层或切换 drawer 目标后自动收敛认证状态。首页文件夹卡片、普通记事卡片、缩略图点击、文件夹移动目标、header 路径和详情页“位于哪个文件夹”都改为读取这个范围；因此在已认证私密文件夹内部，私密文件夹名称和内部内容会正常显示，但不会把其它路径的私密内容全局展开。设置文件夹为私密前，现在会检查 `KEY_PRIVATE_PASSWORD`；未设置应用密码时显示“无法设置为私密记事文件夹”的提示。
+
+验证状态：沙箱内首次执行 `E:\projects\EverythingDone\gradlew.bat :app:assembleDebug --console=plain` 时被 `.gradle/configuration-cache/configuration-cache.lock` 访问拒绝拦住；按项目规则提权重跑 `.\gradlew.bat :app:assembleDebug --console=plain`，结果 `BUILD SUCCESSFUL`。补充 overlay 清理边缘情况后再次执行 `.\gradlew.bat :app:assembleDebug --console=plain`，结果 `BUILD SUCCESSFUL in 2s`。`git diff --check` 已通过，仅有仓库既有 LF/CRLF warning。已执行 `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`，发布 debug update `202606160743` 到 `http://120.25.194.207/everythingdone-updates/debug/latest.json`；发布后回读远端 metadata，`debugUpdateCode` 为 `202606160743`，APK URL 为 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606160743.apk`。当前环境仍没有稳定的真机拖拽/私密文件夹视觉自动化测试 seam；请重点复测：拖到记事 B 时轮廓和卡片是否有间隙；文件夹卡片 icon、标题、数量布局是否符合预期；未设置应用密码时能否阻止设为私密文件夹；进入私密文件夹认证后，内部记事/子文件夹/header/详情页路径是否显示真实名称。
+
+## 2026-06-16 - 修复缩略图文件夹卡片透明底与文字颜色
+
+用户反馈：文件夹切到显示缩略图的模式后，浅色模式下卡片外轮廓没问题，但内部会出现 `CardView` elevation 阴影或不是完全透明；标题、文件夹 icon、记事数量文字仍按文件夹颜色底来算对比度，而不是按首页灰白背景来算，所以颜色不对；并且透明状态不稳定，滑动列表、回到该文件夹卡片后，内部可能又变成文件夹本身的颜色。
+
+本次诊断确认问题在 `ThingsAdapter` 的 Folder Card 复用路径。summary 模式通过 `BackgroundUtil.applyCardBackground(...)` 把文件夹纯色/渐变写到 `CardView.background`；thumbnail 模式只调用了 `setCardBackgroundColor(Color.TRANSPARENT)`，没有清掉 `CardView.background` 上可能从 summary 模式复用来的 `GradientDrawable`，所以滚动复用后会重新露出文件夹颜色。thumbnail 模式也仍保留了普通卡片的 `cardElevation`，触摸动画还会再次改变 elevation；文字和 icon 则继续使用文件夹背景色作为 `textColorPrimary(...)` / `textColorSecondary(...)` 的计算基准。
+
+本次修改：thumbnail 模式现在会显式把外层 `CardView.background` 替换成透明圆角 drawable，同时把 `cardElevation` 和 `maxCardElevation` 都设为 `0f`，内层只保留透明填充、文件夹颜色描边的 `llContent` outline。新增 `tag_thing_folder_thumbnail_surface` 标记，触摸按下/松开动画遇到 thumbnail 文件夹卡片时只做 scale，不再改 elevation；普通记事卡片和 summary 文件夹卡片 bind 时会恢复这个 tag 和普通 `maxCardElevation`。thumbnail 模式的文件夹标题、文件夹 icon、数量文字、置顶 icon 现在用 `bg_activity_things` 作为对比基准，因此浅色模式会偏黑、暗色模式会偏白，不再按文件夹颜色底来选色。
+
+验证状态：已执行 `E:\projects\EverythingDone\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`，结果 `BUILD SUCCESSFUL in 1s`；`git diff --check` 已通过，仅有仓库既有 LF/CRLF warning。已执行 `E:\projects\EverythingDone\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`，发布 debug update `202606160528` 到 `http://120.25.194.207/everythingdone-updates/debug/latest.json`；发布后回读远端 metadata，状态 200，`debugUpdateCode` 为 `202606160528`，APK URL 为 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606160528.apk`。当前 agent 环境仍没有稳定的真机滚动/复用视觉回归测试 seam；请重点复测：浅色模式下 thumbnail 文件夹卡片内部是否完全透明且无 elevation 阴影；滚动离开再回来是否仍保持透明；暗色模式下标题、icon、数量文字是否变为适合暗色背景的浅色。
+
+## 2026-06-16 - 继续修复拖入文件夹前先回原位的问题
+
+用户测试 debug update `202606160352` 后反馈：把记事拖到文件夹或另一个记事上时，仍然会先回到本来的位置，然后才进入文件夹。这说明上一版虽然做了 overlay 和定向列表更新，但 overlay 的创建时机仍然太晚。
+
+本次继续诊断 `ItemTouchHelper` 生命周期：`clearView(...)` 并不是“手指刚松开”的最早时机，它可能发生在 AndroidX `ItemTouchHelper` 已经启动甚至完成默认 drag recovery 之后。上一版在 `clearView(...)` 里截取拖拽卡片并隐藏真实 View，因此真实 View 仍可能先执行一段回到原位的默认动画，用户就会看到“先回原位、再进入文件夹”。
+
+本次修改集中在 `ThingsActivity.kt`：拖拽开始时记录 active drag ViewHolder；真实拖动帧中持续记录拖拽卡片在 root 坐标系里的最后位置；当存在 pending Folder drop 且 `ItemTouchHelper` 即将计算 drag recovery duration 时，`getAnimationDuration(...)` 会先准备 overlay snapshot、隐藏真实 source item view，并对这次 pending drop 的默认 drag recovery 返回 `0L`。这样默认回收动画启动前，真实卡片已经不可见，overlay 会从用户最后拖动位置开始播放进入目标文件夹/目标记事的动画。`clearView(...)` 仍然作为业务提交点，继续负责按 source Thing id 和 target Thing/Folder id 创建文件夹或移入文件夹，并触发定向 `notifyItemRemoved(...)` / `notifyItemChanged(...)`。
+
+验证状态：已执行 `E:\projects\EverythingDone\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`，结果 `BUILD SUCCESSFUL in 3s`；`git diff --check` 已通过，仅有仓库既有 LF/CRLF warning。已执行 `E:\projects\EverythingDone\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`，发布 debug update `202606160403` 到 `http://120.25.194.207/everythingdone-updates/debug/latest.json`；发布后回读远端 metadata，状态 200，`debugUpdateCode` 为 `202606160403`，APK URL 为 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606160403.apk`。当前 agent 环境仍没有稳定的真机拖动自动化回归测试 seam；请重点复测：A 拖入现有文件夹 C 时是否彻底看不到回原位；A 拖到 B 创建文件夹时是否彻底看不到回原位；拖入目标后移出再松手是否仍不误触发。
+
+## 2026-06-16 - 修复记事拖入文件夹/合并成文件夹的松手动画
+
+用户继续反馈：记事 A 拖动到文件夹 C 或记事 B 上并松手后，虽然数据最终会变成正确状态，但 A 会先被 `ItemTouchHelper.clearView(...)` 拉回原来的位置；移入文件夹时缺少“A 缩小并进入文件夹、文件夹更新、列表补位”的连续动画，创建文件夹时也缺少“A 与 B 合并、B 位置变成新文件夹、A 原位置补位”的连续动画。
+
+本次诊断确认：前几版已经让 pending drop 的业务状态在松手时可靠保留下来，但释放阶段仍沿用 `clearView(...)` 的默认视觉清理路径，以及 `ModeManager.backNormalMode(...)` 的延迟整表刷新路径。默认清理会先把真实拖拽 View 复位，延迟整表刷新又会覆盖 RecyclerView item animator 能表达的局部变化，所以用户会看到“先回原位，然后突然变成最终状态”。
+
+本次修改集中在 `ThingsActivity.kt`、`ModeManager.kt` 和 `ThingsAdapter.kt`：释放 pending Folder drop 时，先把拖拽卡片绘制成一个临时 overlay，隐藏真实 source view，再调用 `clearView(...)`，这样默认复位不会被用户看到；overlay 会从松手位置缩小并移动到目标文件夹或目标记事卡片中心。成功拖入现有文件夹后，先更新 `things.folder_id` 并重建混合列表，再用 `notifyItemRemoved(sourcePosition)` 触发 A 原位置补位，同时 `notifyItemChanged(folderPosition)` 更新目标文件夹计数/缩略图。成功拖动 A 到 B 创建文件夹时，先用默认标题创建新文件夹并让新 Folder Card 出现在 B 的位置，再用同样的定向 removal/change 通知表现 A 消失和 B 位置变成文件夹；overlay 动画结束后再弹出重命名 dialog。`ModeManager` 增加了一个不触发整表刷新的 moving-mode 退出路径，避免成功 drop 后整表 appearing animation 抢掉局部动画。`ThingsAdapter.onBindViewHolder(...)` 也会重置根 itemView 的 visibility/alpha/scale，避免隐藏过的 source ViewHolder 复用到其它卡片时残留不可见状态。
+
+验证状态：已执行 `E:\projects\EverythingDone\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`，结果 `BUILD SUCCESSFUL in 22s`；`git diff --check` 已通过，仅有仓库既有 LF/CRLF warning。已执行 `E:\projects\EverythingDone\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`，发布 debug update `202606160352` 到 `http://120.25.194.207/everythingdone-updates/debug/latest.json`；发布后回读远端 metadata，状态 200，`debugUpdateCode` 为 `202606160352`，APK URL 为 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606160352.apk`。当前 agent 环境仍没有稳定的真机拖动自动化回归测试 seam；请重点复测：A 拖入现有文件夹 C 后是否不再先回原位，而是缩小进入 C，并且列表补位；A 拖到 B 创建文件夹时，B 的位置是否变成新文件夹、A 的原位置是否补位；拖入目标后再移出目标时，是否不会误创建或误移入。
+
+## 2026-06-16 - 继续修复记事文件夹拖放松手不生效
+
+用户反馈上一版 debug update `202606160240` 后，“动画出现后松手不创建文件夹/不移入文件夹”的问题仍然存在。上一版已经移除了 `clearView(...)` 中的二次坐标判断，但问题继续存在，说明 pending drop 仍可能在 `clearView(...)` 之前被清掉。
+
+本次继续诊断 `ItemTouchHelper` 拖拽生命周期：`onChildDraw(...)` 在松手后的恢复动画阶段仍可能以 `ACTION_STATE_DRAG` 被调用，但此时 `isCurrentlyActive=false`，拖动 View 的坐标已经不再代表用户手指释放前的位置。旧逻辑没有区分 active 与 recovery frame，所以恢复帧会再次执行“左上角命中检测”，发现拖动卡片已经回到原位后清除 pending drop，最终 `clearView(...)` 仍然拿不到待创建/移入的业务状态。
+
+本次修改：`onChildDraw(...)` 现在只在 `isCurrentlyActive=true` 的真实拖动帧里更新或清除 pending Folder drop；松手后的非 active 恢复帧不再改变 pending drop。为了进一步降低位置漂移风险，pending drop 也从单纯记录 source/target adapter position 改为记录 source Thing id，以及 target Thing id 或 target Folder id；释放时按 id 重新解析当前对象并执行创建文件夹或移入文件夹。旧的 position-only 拖放 helper 已移除，避免后续再次走到不稳定路径。
+
+验证状态：已执行 `E:\projects\EverythingDone\gradlew.bat :app:assembleDebug`，结果 `BUILD SUCCESSFUL in 3s`。已执行 `E:\projects\EverythingDone\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`，发布 debug update `202606160305` 到 `http://120.25.194.207/everythingdone-updates/debug/latest.json`；发布后回读远端 metadata，状态 200，`debugUpdateCode` 为 `202606160305`，APK URL 为 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606160305.apk`。当前 agent 环境仍没有稳定的真机拖动自动化回归测试 seam；请重点复测：目标动画出现后立刻松手是否能打开新建文件夹命名 dialog；拖到现有文件夹后松手是否能把记事移入该文件夹；拖入目标后再移出目标、松手时是否不会误触发。
+
+## 2026-06-16 - 修复记事文件夹拖放释放与撤销闪烁
+
+用户测试 debug update `202606160225` 后反馈两个问题：第一，记事 A 拖动到记事 B 或文件夹 C 上时，目标动画已经出现，但松手后没有创建文件夹或移入文件夹，而是 A 回到原位并进入选择模式；第二，当记事列表第一个位置是文件夹时，滑动完成第二个位置的记事，再点击“未完成”撤销后，文件夹本身会闪烁一下。
+
+本次诊断确认拖放问题发生在 `ItemTouchHelper.Callback.clearView(...)` 的释放阶段。拖动过程中的候选状态和动画已经正确建立，但释放时旧代码又重新用 View 坐标判断一次；此时拖动 View 可能已经被 `ItemTouchHelper` 恢复或坐标不再代表最后一帧拖动位置，于是候选 drop 被清除，并落入“没有移动则进入选择模式”的旧分支。修复后，释放阶段会消费拖动过程中最后一个仍然有效的 pending Folder drop；如果用户在松手前把 A 移出目标卡片，拖动帧里的命中检测仍会先清除 pending 状态，因此不会误触发创建或移入。
+
+撤销闪烁问题来自混合列表 position 映射：滑动完成时保存给状态恢复逻辑的是原始 `mThings` 位置，但有文件夹卡片时 adapter position 与 raw Thing index 不再一致。旧的 undo 分支直接 `notifyItemInserted(position)` 或 `notifyItemChanged(position)`，当第一个可见卡片是文件夹时，就会误刷新文件夹卡片。修复后，撤销完成/习惯完成时会根据被恢复的 Thing id 重新查询当前混合列表位置，再通知 adapter；找不到精确位置时回退到 `notifyDataSetChanged()`，避免误刷文件夹。
+
+验证状态：已执行 `E:\projects\EverythingDone\gradlew.bat :app:assembleDebug`，结果 `BUILD SUCCESSFUL in 5s`。已执行 `E:\projects\EverythingDone\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`，发布 debug update `202606160240` 到 `http://120.25.194.207/everythingdone-updates/debug/latest.json`；发布后回读远端 metadata，状态 200，`debugUpdateCode` 为 `202606160240`，APK URL 为 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606160240.apk`。当前 agent 环境没有稳定的真机拖动自动化回归测试 seam，请重点复测：动画出现后松手是否创建文件夹；拖到现有文件夹后松手是否移入；把 A 移出目标再松手是否仍回到普通排序/选择行为；列表第一个可见卡片是文件夹时，滑动完成第二个记事并撤销，文件夹是否不再闪烁。
+
+## 2026-06-16 - 修复记事文件夹拖拽动画与混合列表交互
+
+用户测试记事文件夹主功能后反馈：拖动记事创建文件夹的目标动画不明显，且触发条件应改为“正在拖动的记事卡片左上角进入目标卡片”；拖动记事到现有文件夹时应把记事移入该文件夹，而不是创建新文件夹；文件夹卡片也应参与列表出现动画，打开文件夹后内部列表也应播放出现动画；有文件夹时创建新记事会闪烁且新卡片不可见，重启后才出现；有文件夹后记事卡片左右滑动完成/开始做事失效。
+
+本次修改把拖放判定从重叠阈值改为拖动卡片左上角命中目标卡片：只有左上角位于另一个记事卡片内部时才进入“创建文件夹”候选状态，移出后会清除候选状态并回到普通排序/选择流程。创建候选状态会让目标卡片缩小，并绘制一圈与待创建文件夹背景一致的文件夹轮廓；这个背景在候选状态创建时随机生成，并支持纯色和渐变，最终创建出来的文件夹沿用同一个背景。拖动记事到现有文件夹卡片时，现在会进入“移入文件夹”候选状态，目标文件夹卡片会缩小并显示更粗的轮廓，释放后把记事移入该文件夹；如果左上角不在文件夹卡片内部，则不会触发移入。
+
+混合列表交互也同步修复：文件夹卡片现在参与首页列表出现动画；打开文件夹、从路径跳转或返回父文件夹时，会重新播放当前文件夹内列表出现动画。新建记事时，`ThingManager` 会把新记事归入当前文件夹投影，并在数据变更后重建 Thing/Folder 混合列表；首页使用新记事在混合列表中的位置执行插入和 ShiningBorder 动画，修复有文件夹时新建记事闪烁、不可见、需要重启才显示的问题。左右滑动完成记事/开始做事也已恢复：文件夹卡片本身不可滑动，但混合列表中的普通记事卡片继续支持原来的左右滑动动作。
+
+验证状态：已执行 `E:\projects\EverythingDone\gradlew.bat :app:assembleDebug`，结果 `BUILD SUCCESSFUL in 16s`；`git diff --check` 已通过，仅有仓库既有 LF/CRLF warning。已执行 `E:\projects\EverythingDone\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`，发布 debug update `202606160225` 到 `http://120.25.194.207/everythingdone-updates/debug/latest.json`；发布后回读远端 metadata，状态 200，`debugUpdateCode` 为 `202606160225`，APK URL 为 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606160225.apk`。请重点测试：拖动记事 A 的左上角进入/离开记事 B 时的动画与最终创建行为；拖动记事进入现有文件夹时是否移入文件夹；打开文件夹后的列表出现动画；有文件夹时新建记事是否立即出现并播放动画；混合列表中普通记事的左右滑动是否恢复。
+
+## 2026-06-16 - 新增记事文件夹主功能测试版
+
+用户要求新增一项重大的“记事文件夹”功能：在首页长按记事后，可以把一个记事拖到另一个记事上创建文件夹并命名；文件夹支持摘要卡片和缩略图卡片两种展示，支持宽卡片、置顶、混在记事列表里调整顺序、私密、嵌套；打开文件夹后首页 header 显示文件夹路径，路径片段可点击跳转；详情页显示记事所在文件夹。后续讨论中确认：文件夹不作为 drawer item 展示；drawer 仍只保留内置列表；当前列表状态是内置 destination 加可选文件夹路径；文件夹计数递归统计子文件夹内的记事并包含隐藏的私密记事；已完成/删除的记事保留原文件夹隶属；已完成和回收站列表也显示对应文件夹；删除文件夹会把整个文件夹子树移动到回收站，永久删除则删除子树和其中记事。
+
+本次实现包含数据库和模型基础：数据库升级到 v15，新增 `things.folder_id` 与 `thing_folders` 表；新增 `ThingFolder`、`ThingFolderCardPresentation`、`ThingListProjection`、`ThingListEntry`；`ThingDAO` 与 `ThingFolderDAO` 支持文件夹路径、递归计数、缩略图种子、有效私密、有效删除、父子移动、状态更新和永久删除。`ThingManager` 现在可以加载 Thing/Folder 混合列表，创建文件夹，移动 Thing 或 Folder，重命名文件夹，切换展示模式/宽度/私密/置顶，并把混排顺序分别持久化到 `things.location` 和 `thing_folders.location`。
+
+首页实现了 Folder Card：摘要模式是实心卡片并显示文件夹图标、标题和递归数量；缩略图模式是描边卡片，显示可点击进入详情的子记事缩略图，并避免在隐藏私密内容时泄露私密标题或预览。文件夹卡片可点击进入当前内置列表下的文件夹投影；长按可重命名、切换摘要/缩略图、切换普通/宽卡片、设为私密、置顶/取消置顶、调整卡片顺序、移动到其它文件夹、删除/还原/永久删除。拖拽创建文件夹加入了重叠阈值和目标高亮，避免普通排序和“拖到一起成文件夹”直接抢同一个手势。选择若干 underway 记事后，也可以通过菜单移动到某个非删除文件夹或根目录，用于测试从私密文件夹移出后继承私密状态是否消失。
+
+详情页新增文件夹路径显示；ActivityHeader 支持文件夹路径标题和可点击路径片段；drawer 选择内置列表会清空当前文件夹路径。搜索、颜色过滤、已完成、回收站、备注/提醒/习惯/目标列表均接入文件夹投影；Things-list widgets 暂不渲染文件夹卡片，保持现有 Thing-only 行为。同步新增并持续更新 `docs/features/thing-folders/` 下的 plan、execution、decisions、sessions 和 followups 文档。
+
+验证状态：已多次执行 `.\gradlew.bat :app:assembleDebug` 并通过，最后一次结果为 `BUILD SUCCESSFUL in 3s`；`git diff --check` 已通过，仅有仓库既有 LF/CRLF warning。当前 agent 环境尚未做真机/模拟器完整交互矩阵测试，发布后请重点测试：升级后旧记事是否仍正常显示；拖动两个记事创建文件夹；文件夹摘要/缩略图/宽卡片/置顶/私密；嵌套文件夹和路径点击；已完成/回收站中的文件夹；删除、还原、永久删除文件夹；私密文件夹内外移动时内容是否泄露。
+
 ## 2026-06-15 - 修复长截图分享到完事儿创建记事时无法读取的问题
 用户继续反馈：在分享记事生成的长截图时，如果在系统分享 dialog 里选择“完事儿”的“创建记事”，新建记事无法读取到这张长截图。
 

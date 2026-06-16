@@ -27,5 +27,6 @@ Feature-specific project documentation is organized under `docs/features/<kebab-
 - `project-maintenance`: `docs/features/project-maintenance/decisions.md`
 - `remote-thing-card-appearance`: `docs/features/remote-thing-card-appearance/decisions.md`
 - `system-bar-insets`: `docs/features/system-bar-insets/decisions.md`
+- `thing-folders`: `docs/features/thing-folders/decisions.md`
 - `thing-card-image-placement`: `docs/features/thing-card-image-placement/decisions.md`
 - `thing-card-media-target-geometry`: `docs/features/thing-card-media-target-geometry/decisions.md`

@@ -31,7 +31,7 @@ object Def {
         const val FEEDBACK_ERROR_FILE_NAME: String = "feedback_error.dat"
 
         const val DATABASE_NAME: String = "EverythingDoneData.db"
-        const val DATABASE_VERSION: Int = 14
+        const val DATABASE_VERSION: Int = 15
 
         const val ONGOING_NOTIFICATION_ID: Int = Int.MAX_VALUE
 
@@ -125,8 +125,22 @@ object Def {
         const val COLUMN_THING_CARD_IMAGE_PLACEMENT_THINGS: String = "thing_card_image_placement" /* renamed in version 12 */
         const val COLUMN_THING_CARD_APPEARANCE_THINGS: String = "thing_card_appearance" /* added in version 13 */
         const val COLUMN_DETAIL_ATTACHMENT_MEDIA_APPEARANCE_THINGS: String = "detail_attachment_media_appearance" /* added in version 14 */
+        const val COLUMN_FOLDER_ID_THINGS: String = "folder_id" /* added in version 15 */
         const val COLUMN_LEGACY_HOME_CARD_SPAN_MODE_THINGS: String = "home_card_span_mode" /* added in version 10, renamed in version 12 */
         const val COLUMN_LEGACY_HOME_CARD_IMAGE_PLACEMENT_THINGS: String = "home_card_image_placement" /* added in version 11, renamed in version 12 */
+
+        const val TABLE_THING_FOLDERS: String = "thing_folders"
+        const val COLUMN_ID_THING_FOLDERS: String = "id"
+        const val COLUMN_PARENT_FOLDER_ID_THING_FOLDERS: String = "parent_folder_id"
+        const val COLUMN_TITLE_THING_FOLDERS: String = "title"
+        const val COLUMN_STATE_THING_FOLDERS: String = "state"
+        const val COLUMN_COLOR_THING_FOLDERS: String = "color"
+        const val COLUMN_BACKGROUND_THING_FOLDERS: String = "background"
+        const val COLUMN_LOCATION_THING_FOLDERS: String = "location"
+        const val COLUMN_IS_PRIVATE_THING_FOLDERS: String = "is_private"
+        const val COLUMN_CREATE_TIME_THING_FOLDERS: String = "create_time"
+        const val COLUMN_UPDATE_TIME_THING_FOLDERS: String = "update_time"
+        const val COLUMN_CARD_PRESENTATION_THING_FOLDERS: String = "card_presentation"
 
         const val TABLE_REMINDERS: String                 = "reminders"
         const val COLUMN_ID_REMINDERS: String             = "id"

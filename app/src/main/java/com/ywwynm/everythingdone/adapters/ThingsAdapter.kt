@@ -3,14 +3,24 @@
 package com.ywwynm.everythingdone.adapters
 
 import android.animation.ObjectAnimator
+import android.content.res.ColorStateList
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.os.Handler
+import android.text.TextUtils
 import androidx.cardview.widget.CardView
+import androidx.core.content.ContextCompat
+import androidx.core.widget.ImageViewCompat
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
+import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.Animation
 import android.view.animation.AnimationUtils
+import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.TextView
 
 import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.Def
@@ -21,6 +31,11 @@ import com.ywwynm.everythingdone.helpers.CheckListHelper
 import com.ywwynm.everythingdone.managers.ModeManager
 import com.ywwynm.everythingdone.managers.ThingManager
 import com.ywwynm.everythingdone.model.Thing
+import com.ywwynm.everythingdone.model.ThingBackground
+import com.ywwynm.everythingdone.model.ThingFolder
+import com.ywwynm.everythingdone.model.ThingFolderCardPresentation
+import com.ywwynm.everythingdone.model.ThingListEntry
+import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil
 
 /**
@@ -64,8 +79,25 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
 
     override fun getThings(): List<Thing?>? = mThingManager!!.getThings()
 
+    private fun getEntries(): List<ThingListEntry>? = mThingManager!!.getThingListEntries()
+
+    protected override fun getThingAt(position: Int): Thing? {
+        val entry = getEntries()?.getOrNull(position)
+        if (entry is ThingListEntry.ThingEntry) return entry.thing
+        return getThings()?.getOrNull(position)
+    }
+
+    protected override fun getEntryCount(): Int {
+        return getEntries()?.size ?: (getThings()?.size ?: 0)
+    }
+
     override fun shouldDimUnselectedContent(currentMode: Int): Boolean {
         return currentMode == ModeManager.SELECTING || currentMode == ModeManager.MOVING
+    }
+
+    override fun isThingEffectivelyPrivate(thing: Thing): Boolean {
+        return (thing.isPrivate() || mThingManager!!.isCurrentFolderEffectivelyPrivate())
+            && !mThingManager!!.isCurrentFolderPrivacyAuthenticated()
     }
 
     open fun shouldThingsAnimWhenAppearing(): Boolean = mShouldThingsAnimWhenAppearing
@@ -93,8 +125,31 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         return ThingViewHolder(mInflater!!.inflate(R.layout.card_thing, parent, false))
     }
 
+    override fun getItemViewType(position: Int): Int {
+        val entry = getEntries()?.getOrNull(position)
+        if (entry is ThingListEntry.FolderEntry) return VIEW_TYPE_THING_FOLDER
+        return super.getItemViewType(position)
+    }
+
     override fun onBindViewHolder(holder: BaseThingViewHolder, position: Int) {
-        val thing = getThings()!![position]!!
+        holder.itemView.visibility = View.VISIBLE
+        holder.itemView.alpha = 1.0f
+        holder.itemView.scaleX = 1.0f
+        holder.itemView.scaleY = 1.0f
+
+        val entry = getEntries()?.getOrNull(position)
+        if (entry is ThingListEntry.FolderEntry) {
+            bindFolderCard(holder, entry)
+            if (mShouldThingsAnimWhenAppearing) {
+                playAppearingAnimation(holder.cv!!, position)
+            }
+            return
+        }
+
+        removeFolderDynamicViews(holder)
+        holder.cv?.setTag(R.id.tag_thing_folder_thumbnail_surface, false)
+        holder.cv?.maxCardElevation = mApp!!.resources.getDimension(R.dimen.thing_card_dragging_elevation)
+        val thing = getThingAt(position)!!
         distinguishHeaderAndOthers(thing, holder.cv)
         super.onBindViewHolder(holder, position)
 
@@ -120,7 +175,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         if (mArmedNewItemListener == null) return false
         if (position != mArmedNewItemPosition) return false
         if (mArmedNewItemId == -1L) return true
-        return getThings()!![position]!!.id == mArmedNewItemId
+        return getThingAt(position)?.id == mArmedNewItemId
     }
 
     private fun maybeTriggerArmedNewItemAnimation(holder: BaseThingViewHolder, position: Int) {
@@ -169,6 +224,340 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         lp.isFullSpan = header || isFullSpanThingCard(thing)
     }
 
+    private fun distinguishFolder(folder: ThingFolder, cv: CardView?) {
+        val mX = mApp!!.resources.getDimensionPixelSize(R.dimen.thing_card_outer_spacing)
+        val lp = cv!!.layoutParams as StaggeredGridLayoutManager.LayoutParams
+        lp.height = StaggeredGridLayoutManager.LayoutParams.WRAP_CONTENT
+        lp.setMargins(mX, mX, mX, mX)
+        lp.isFullSpan = folder.cardPresentation.spanMode == ThingFolderCardPresentation.SPAN_FULL
+        cv.visibility = View.VISIBLE
+    }
+
+    private fun bindFolderCard(
+        holder: BaseThingViewHolder,
+        entry: ThingListEntry.FolderEntry
+    ) {
+        val folder = entry.folder
+        distinguishFolder(folder, holder.cv)
+        resetFolderCardHolder(holder)
+        bindFolderCardSurface(holder, folder)
+        bindFolderCardContent(holder, entry)
+    }
+
+    private fun resetFolderCardHolder(holder: BaseThingViewHolder) {
+        removeFolderDynamicViews(holder)
+        holder.cv!!.animate().cancel()
+        holder.cv.scaleX = 1.0f
+        holder.cv.scaleY = 1.0f
+        holder.cv.maxCardElevation = mApp!!.resources.getDimension(R.dimen.thing_card_dragging_elevation)
+        holder.cv.cardElevation = mApp!!.resources.getDimension(R.dimen.thing_card_normal_elevation)
+        holder.cv.setTag(R.id.tag_thing_folder_thumbnail_surface, false)
+        holder.cv.setShouldInterceptTouchEvent(false)
+
+        holder.ivMediaBackground!!.visibility = View.GONE
+        holder.vMediaBackgroundMask!!.visibility = View.GONE
+        holder.flImageAttachment!!.visibility = View.GONE
+        holder.ivImageAttachment!!.setImageDrawable(null)
+        holder.tvImageCount!!.visibility = View.GONE
+        holder.pbLoading!!.visibility = View.GONE
+        holder.vImageCover!!.visibility = View.GONE
+        holder.tvContent!!.visibility = View.VISIBLE
+        holder.rvChecklist!!.visibility = View.GONE
+        holder.vBottomStatusSpacer!!.visibility = View.GONE
+        holder.llMediaCount!!.visibility = View.GONE
+        holder.llInlineMediaAttachment!!.visibility = View.GONE
+        holder.llAudioAttachment!!.visibility = View.GONE
+        holder.rlReminder!!.visibility = View.GONE
+        holder.rlHabit!!.visibility = View.GONE
+        holder.flDoing!!.visibility = View.GONE
+        holder.vPaddingBottom!!.visibility = View.VISIBLE
+        holder.tvTitle!!.visibility = View.GONE
+        holder.ivPrivateThing!!.visibility = View.GONE
+
+        holder.llContent!!.orientation = android.widget.LinearLayout.VERTICAL
+        holder.llContent.alpha = 1.0f
+        holder.llContent.minimumWidth = 0
+        holder.llContent.minimumHeight = 0
+        holder.llContent.background = null
+
+        val contentLp = holder.llContent.layoutParams
+        contentLp.width = ViewGroup.LayoutParams.WRAP_CONTENT
+        contentLp.height = ViewGroup.LayoutParams.WRAP_CONTENT
+        holder.llContent.layoutParams = contentLp
+
+        val textLp = holder.llTextContent!!.layoutParams as android.widget.LinearLayout.LayoutParams
+        textLp.width = ViewGroup.LayoutParams.WRAP_CONTENT
+        textLp.height = ViewGroup.LayoutParams.WRAP_CONTENT
+        textLp.weight = 0f
+        holder.llTextContent.layoutParams = textLp
+    }
+
+    private fun bindFolderCardSurface(holder: BaseThingViewHolder, folder: ThingFolder) {
+        val background = folder.getBackground()
+        val thumbnailMode =
+            folder.cardPresentation.mode == ThingFolderCardPresentation.MODE_THUMBNAILS
+        if (thumbnailMode) {
+            applyThumbnailFolderCardSurface(holder, background, folder.getColor())
+        } else {
+            holder.cv!!.setTag(R.id.tag_thing_folder_thumbnail_surface, false)
+            holder.cv.maxCardElevation = mApp!!.resources.getDimension(R.dimen.thing_card_dragging_elevation)
+            holder.cv.cardElevation = mApp!!.resources.getDimension(R.dimen.thing_card_normal_elevation)
+            holder.llContent!!.background = null
+            BackgroundUtil.applyCardBackground(holder.cv, background)
+        }
+
+        val baseColor = background?.representativeColor() ?: folder.getColor()
+        holder.cv!!.foreground = ContextCompat.getDrawable(
+            mApp!!,
+            if (BackgroundUtil.isLight(baseColor))
+                R.drawable.selectable_item_background
+            else
+                R.drawable.selectable_item_background_light
+        )
+    }
+
+    private fun applyThumbnailFolderCardSurface(
+        holder: BaseThingViewHolder,
+        background: ThingBackground?,
+        fallbackColor: Int
+    ) {
+        val radius = mApp!!.resources.getDimension(R.dimen.thing_card_corner_radius)
+        val transparentCardBackground = GradientDrawable().apply {
+            setColor(Color.TRANSPARENT)
+            cornerRadius = radius
+        }
+        holder.cv!!.setTag(R.id.tag_thing_folder_thumbnail_surface, true)
+        holder.cv.background = transparentCardBackground
+        holder.cv.setCardBackgroundColor(Color.TRANSPARENT)
+        holder.cv.maxCardElevation = 0f
+        holder.cv.cardElevation = 0f
+
+        val strokeColor = background?.representativeColor() ?: fallbackColor
+        val outline = GradientDrawable()
+        outline.setColor(Color.TRANSPARENT)
+        outline.cornerRadius = radius
+        outline.setStroke((mDensity * 1.5f).toInt().coerceAtLeast(1), strokeColor)
+        holder.llContent!!.background = outline
+    }
+
+    private fun bindFolderCardContent(
+        holder: BaseThingViewHolder,
+        entry: ThingListEntry.FolderEntry
+    ) {
+        val folder = entry.folder
+        val hiddenPrivate = entry.effectivePrivate && !shouldShowFolderPrivateContent()
+        val thumbnailMode =
+            folder.cardPresentation.mode == ThingFolderCardPresentation.MODE_THUMBNAILS
+        val baseColor = if (thumbnailMode) {
+            ContextCompat.getColor(mApp!!, R.color.bg_activity_things)
+        } else {
+            folder.getBackground()?.representativeColor() ?: folder.getColor()
+        }
+        val p = (mDensity * 16).toInt()
+
+        val title = if (hiddenPrivate) {
+            mApp!!.getString(R.string.private_thing_folder)
+        } else {
+            folder.title
+        }
+        bindFolderCardHeader(
+            holder,
+            title,
+            if (hiddenPrivate) R.drawable.ic_locked_big else R.drawable.ic_thing_folder,
+            baseColor
+        )
+
+        holder.tvContent!!.setPadding(p, (mDensity * 4).toInt(), p, 0)
+        holder.tvContent.textSize = 11f
+        holder.tvContent.maxLines = 1
+        holder.tvContent.text = mApp!!.getString(
+            R.string.thing_folder_count,
+            entry.recursiveThingCount
+        )
+        holder.tvContent.setTextColor(textColorSecondary(baseColor))
+
+        if (folder.cardPresentation.mode == ThingFolderCardPresentation.MODE_THUMBNAILS
+            && !hiddenPrivate
+        ) {
+            bindFolderThumbnails(holder, entry)
+        }
+
+        if (folder.isSticky()) {
+            holder.ivStickyOngoing!!.visibility = View.VISIBLE
+            holder.ivStickyOngoing.setImageResource(R.drawable.ic_sticky)
+            holder.ivStickyOngoing.contentDescription = mApp!!.getString(R.string.sticky_thing)
+            if (thumbnailMode) {
+                ImageViewCompat.setImageTintList(
+                    holder.ivStickyOngoing,
+                    ColorStateList.valueOf(textColorSecondary(baseColor))
+                )
+            } else {
+                tintCardIcon(holder.ivStickyOngoing, baseColor)
+            }
+        } else {
+            holder.ivStickyOngoing!!.visibility = View.GONE
+        }
+    }
+
+    private fun shouldShowFolderPrivateContent(): Boolean {
+        return shouldShowPrivateContent() || mThingManager!!.isCurrentFolderPrivacyAuthenticated()
+    }
+
+    private fun bindFolderCardHeader(
+        holder: BaseThingViewHolder,
+        title: String,
+        iconRes: Int,
+        baseColor: Int
+    ) {
+        val container = holder.llTextContent ?: return
+        removeFolderHeaderViews(holder)
+
+        val paddingSide = (mDensity * 16).toInt()
+        val row = LinearLayout(mApp)
+        row.tag = FOLDER_HEADER_VIEW_TAG
+        row.orientation = LinearLayout.HORIZONTAL
+        row.gravity = Gravity.TOP
+        row.setPadding(paddingSide, paddingSide, paddingSide, 0)
+
+        val iconSize = (mDensity * 20).toInt()
+        val icon = ImageView(mApp)
+        icon.setImageResource(iconRes)
+        icon.contentDescription = mApp!!.getString(R.string.thing_folder)
+        icon.scaleType = ImageView.ScaleType.CENTER_INSIDE
+        ImageViewCompat.setImageTintList(
+            icon,
+            ColorStateList.valueOf(textColorPrimary(baseColor))
+        )
+        row.addView(icon, LinearLayout.LayoutParams(iconSize, iconSize))
+
+        val titleView = TextView(mApp)
+        titleView.text = title
+        titleView.maxLines = 2
+        titleView.ellipsize = TextUtils.TruncateAt.END
+        titleView.includeFontPadding = false
+        titleView.textSize = 16f
+        titleView.typeface = android.graphics.Typeface.DEFAULT_BOLD
+        titleView.setTextColor(textColorPrimary(baseColor))
+        val titleLp = LinearLayout.LayoutParams(
+            0,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            1f
+        )
+        titleLp.marginStart = (mDensity * 10).toInt()
+        titleLp.topMargin = (mDensity * 1).toInt()
+        row.addView(titleView, titleLp)
+
+        container.addView(row, 0)
+    }
+
+    private fun bindFolderThumbnails(
+        holder: BaseThingViewHolder,
+        entry: ThingListEntry.FolderEntry
+    ) {
+        val things = entry.thumbnailThings
+        if (things.isEmpty()) return
+
+        val container = holder.llTextContent ?: return
+        val count = things.size.coerceAtMost(entry.folder.cardPresentation.thumbnailLimit)
+        val insertStart = container.indexOfChild(holder.tvContent) + 1
+        for (i in 0 until count) {
+            val thumbnail = createFolderThumbnailView(things[i])
+            container.addView(thumbnail, insertStart + i)
+        }
+    }
+
+    private fun createFolderThumbnailView(thing: Thing): View {
+        val hiddenPrivate = thing.isPrivate() && !shouldShowFolderPrivateContent()
+        val thingColor = thing.getBackground()?.representativeColor() ?: thing.getColor()
+        val horizontalMargin = (mDensity * 16).toInt()
+        val verticalMargin = (mDensity * 6).toInt()
+        val innerPadding = (mDensity * 10).toInt()
+
+        val view = LinearLayout(mApp)
+        view.tag = FOLDER_THUMBNAIL_VIEW_TAG
+        view.orientation = LinearLayout.VERTICAL
+        view.isClickable = true
+        view.setPadding(innerPadding, innerPadding, innerPadding, innerPadding)
+        view.setOnClickListener {
+            mOnItemTouchedListener?.onFolderThumbnailClick(it, thing)
+        }
+
+        val background = GradientDrawable()
+        background.cornerRadius = mDensity * 6
+        background.setColor(thingColor)
+        view.background = background
+
+        val lp = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+        lp.setMargins(horizontalMargin, verticalMargin, horizontalMargin, 0)
+        view.layoutParams = lp
+
+        val title = TextView(mApp)
+        title.maxLines = 1
+        title.ellipsize = TextUtils.TruncateAt.END
+        title.textSize = 13f
+        title.setTextColor(textColorPrimary(thingColor))
+        title.text = if (hiddenPrivate) {
+            mApp!!.getString(R.string.private_thing)
+        } else {
+            getThumbnailTitle(thing)
+        }
+        view.addView(title)
+
+        val content = if (hiddenPrivate) "" else thing.content?.trim().orEmpty()
+        if (content.isNotEmpty()) {
+            val body = TextView(mApp)
+            body.ellipsize = TextUtils.TruncateAt.END
+            body.maxLines = when {
+                content.length > 100 -> 4
+                content.length > 40 -> 3
+                else -> 2
+            }
+            body.textSize = 12f
+            body.setTextColor(textColorSecondary(thingColor))
+            body.text = content
+            view.addView(body)
+        }
+
+        return view
+    }
+
+    private fun getThumbnailTitle(thing: Thing): String {
+        val title = thing.title?.trim().orEmpty()
+        if (title.isNotEmpty()) return title
+        val firstContentLine = thing.content
+            ?.lineSequence()
+            ?.firstOrNull { it.trim().isNotEmpty() }
+            ?.trim()
+            .orEmpty()
+        return firstContentLine.ifEmpty { mApp!!.getString(R.string.thing) }
+    }
+
+    private fun removeFolderDynamicViews(holder: BaseThingViewHolder) {
+        removeFolderHeaderViews(holder)
+        removeFolderThumbnailViews(holder)
+    }
+
+    private fun removeFolderHeaderViews(holder: BaseThingViewHolder) {
+        val container = holder.llTextContent ?: return
+        for (i in container.childCount - 1 downTo 0) {
+            if (container.getChildAt(i).tag == FOLDER_HEADER_VIEW_TAG) {
+                container.removeViewAt(i)
+            }
+        }
+    }
+
+    private fun removeFolderThumbnailViews(holder: BaseThingViewHolder) {
+        val container = holder.llTextContent ?: return
+        for (i in container.childCount - 1 downTo 0) {
+            if (container.getChildAt(i).tag == FOLDER_THUMBNAIL_VIEW_TAG) {
+                container.removeViewAt(i)
+            }
+        }
+    }
+
     private fun animateCardOnTouch(v: View?, event: MotionEvent?) {
         if (v !is CardView || event == null) {
             return
@@ -187,19 +576,23 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
 
     private fun animateCardTouchDown(card: CardView) {
         val normalElevation = mApp!!.resources.getDimension(R.dimen.thing_card_normal_elevation)
+        val animateElevation = card.getTag(R.id.tag_thing_folder_thumbnail_surface) != true
         card.animate().cancel()
         card.animate()
             .scaleX(CARD_TOUCH_PRESSED_SCALE)
             .scaleY(CARD_TOUCH_PRESSED_SCALE)
             .setDuration(CARD_TOUCH_DOWN_DURATION)
             .start()
-        ObjectAnimator.ofFloat(
-            card, "cardElevation", normalElevation * CARD_TOUCH_PRESSED_ELEVATION_RATIO
-        ).setDuration(CARD_TOUCH_DOWN_DURATION).start()
+        if (animateElevation) {
+            ObjectAnimator.ofFloat(
+                card, "cardElevation", normalElevation * CARD_TOUCH_PRESSED_ELEVATION_RATIO
+            ).setDuration(CARD_TOUCH_DOWN_DURATION).start()
+        }
     }
 
     private fun animateCardTouchRelease(card: CardView) {
         val normalElevation = mApp!!.resources.getDimension(R.dimen.thing_card_normal_elevation)
+        val animateElevation = card.getTag(R.id.tag_thing_folder_thumbnail_surface) != true
         card.animate().cancel()
         card.animate()
             .scaleX(CARD_TOUCH_OVERSHOOT_SCALE)
@@ -212,14 +605,22 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
                     .setDuration(CARD_TOUCH_SETTLE_DURATION)
                     .withEndAction(null)
                     .start()
-                ObjectAnimator.ofFloat(card, "cardElevation", normalElevation)
-                    .setDuration(CARD_TOUCH_SETTLE_DURATION)
-                    .start()
+                if (animateElevation) {
+                    ObjectAnimator.ofFloat(card, "cardElevation", normalElevation)
+                        .setDuration(CARD_TOUCH_SETTLE_DURATION)
+                        .start()
+                } else {
+                    card.cardElevation = 0f
+                }
             }
             .start()
-        ObjectAnimator.ofFloat(
-            card, "cardElevation", normalElevation * CARD_TOUCH_OVERSHOOT_SCALE
-        ).setDuration(CARD_TOUCH_RELEASE_DURATION).start()
+        if (animateElevation) {
+            ObjectAnimator.ofFloat(
+                card, "cardElevation", normalElevation * CARD_TOUCH_OVERSHOOT_SCALE
+            ).setDuration(CARD_TOUCH_RELEASE_DURATION).start()
+        } else {
+            card.cardElevation = 0f
+        }
     }
 
     private fun playAppearingAnimation(v: View, position: Int) {
@@ -305,6 +706,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         fun onItemTouch(v: View?, event: MotionEvent?): Boolean
         fun onItemClick(v: View?, position: Int)
         fun onItemLongClick(v: View?, position: Int): Boolean
+        fun onFolderThumbnailClick(v: View?, thing: Thing)
     }
 
     private inner class ThingViewHolder(item: View?) : BaseThingViewHolder(item) {
@@ -331,5 +733,8 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         private const val CARD_TOUCH_DOWN_DURATION = 96L
         private const val CARD_TOUCH_RELEASE_DURATION = 160L
         private const val CARD_TOUCH_SETTLE_DURATION = 80L
+        private const val VIEW_TYPE_THING_FOLDER = -1000
+        private const val FOLDER_HEADER_VIEW_TAG = "folder_header_view"
+        private const val FOLDER_THUMBNAIL_VIEW_TAG = "folder_thumbnail_view"
     }
 }

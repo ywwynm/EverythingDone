@@ -10,10 +10,16 @@ import com.ywwynm.everythingdone.FrequentSettings
 import com.ywwynm.everythingdone.database.HabitDAO
 import com.ywwynm.everythingdone.database.ReminderDAO
 import com.ywwynm.everythingdone.database.ThingDAO
+import com.ywwynm.everythingdone.database.ThingFolderDAO
 import com.ywwynm.everythingdone.helpers.AutoNotifyHelper
 import com.ywwynm.everythingdone.helpers.CheckListHelper
 import com.ywwynm.everythingdone.model.Reminder
 import com.ywwynm.everythingdone.model.Thing
+import com.ywwynm.everythingdone.model.ThingBackground
+import com.ywwynm.everythingdone.model.ThingFolder
+import com.ywwynm.everythingdone.model.ThingFolderCardPresentation
+import com.ywwynm.everythingdone.model.ThingListEntry
+import com.ywwynm.everythingdone.model.ThingListProjection
 import com.ywwynm.everythingdone.model.ThingsCounts
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil
 import com.ywwynm.everythingdone.utils.ThingsSorter
@@ -37,6 +43,7 @@ open class ThingManager private constructor(context: Context?) {
     private var mContext: Context? = context!!.applicationContext
 
     private var mDao: ThingDAO? = ThingDAO.getInstance(context)
+    private var mFolderDao: ThingFolderDAO? = ThingFolderDAO.getInstance(context)
 
     /**
      * The limit for getting and controlling things from/in database.
@@ -52,9 +59,13 @@ open class ThingManager private constructor(context: Context?) {
      * [Def.LimitForGettingThings.ALL_DELETED]
      */
     private var mLimit: Int = 0
+    private var mProjection: ThingListProjection =
+        ThingListProjection.root(Def.LimitForGettingThings.ALL_UNDERWAY)
 
     private var mThings: MutableList<Thing?>? = null
+    private var mThingListEntries: MutableList<ThingListEntry>? = null
     private var mThingsCounts: ThingsCounts? = ThingsCounts.getInstance(context)
+    private val mAuthenticatedPrivateFolderIds = HashSet<Long>()
 
     /**
      * Used to ensure that id/location of thing in [mThings] is same as that in database.
@@ -82,6 +93,8 @@ open class ThingManager private constructor(context: Context?) {
 
     open fun setLimit(limit: Int, loadThingsNow: Boolean) {
         mLimit = limit
+        mProjection = mProjection.withLimit(limit)
+        mAuthenticatedPrivateFolderIds.clear()
         mDao!!.setLimit(limit)
         if (loadThingsNow) {
             loadThings()
@@ -93,13 +106,16 @@ open class ThingManager private constructor(context: Context?) {
     }
 
     open fun loadThings() {
-        mThings = mDao!!.getThingsForDisplay(mLimit)?.toMutableList()
+        mThings = getThingsForCurrentProjection(null, 0).toMutableList()
+        rebuildThingListEntries()
 
         // do self-check to prevent wrong display for normal and empty states.
         val size: Int = mThings!!.size
-        if (size == 1) {
+        val hasFolderEntries = hasFolderEntries()
+        if (size == 1 && !hasFolderEntries) {
             create(Thing.generateNotifyEmpty(mLimit, getHeaderId(), mContext), false, true)
-        } else if (size > 2) {
+            rebuildThingListEntries()
+        } else if (size > 2 || size == 2 && hasFolderEntries) {
             var pos: Int = -1
             var notifyEmpty: Thing? = null
             for (i in 1 until size) {
@@ -112,12 +128,160 @@ open class ThingManager private constructor(context: Context?) {
             }
             if (pos != -1) {
                 updateState(notifyEmpty, pos, -1, Thing.UNDERWAY, Thing.DELETED_FOREVER, false, false)
+                rebuildThingListEntries()
             }
         }
     }
 
+    private fun getThingsForCurrentProjection(keyword: String?, color: Int): List<Thing?> {
+        val currentFolderId = mProjection.currentFolderId
+        if (mLimit == Def.LimitForGettingThings.ALL_DELETED
+            && mFolderDao!!.isEffectivelyDeleted(currentFolderId)
+        ) {
+            return mDao!!.getThingsForEffectiveDeletedFolderProjection(
+                currentFolderId,
+                keyword,
+                color
+            )
+        }
+        return mDao!!.getThingsForProjection(
+            mLimit,
+            currentFolderId,
+            keyword,
+            color
+        )
+    }
+
     open fun getThings(): MutableList<Thing?>? {
         return mThings
+    }
+
+    open fun getThingListEntries(): MutableList<ThingListEntry>? {
+        return mThingListEntries
+    }
+
+    open fun getThingListEntry(position: Int): ThingListEntry? {
+        val entries = mThingListEntries ?: return null
+        if (position < 0 || position >= entries.size) return null
+        return entries[position]
+    }
+
+    open fun getThingAtListPosition(position: Int): Thing? {
+        val entries = mThingListEntries
+        if (entries != null) {
+            if (position < 0 || position >= entries.size) return null
+            val entry = entries[position]
+            return if (entry is ThingListEntry.ThingEntry) entry.thing else null
+        }
+        val things = mThings ?: return null
+        if (position < 0 || position >= things.size) return null
+        return things[position]
+    }
+
+    open fun getThingIndexForListPosition(position: Int): Int {
+        val entries = mThingListEntries
+        if (entries != null) {
+            if (position < 0 || position >= entries.size) return -1
+            val entry = entries[position]
+            return if (entry is ThingListEntry.ThingEntry) {
+                mThings?.indexOf(entry.thing) ?: -1
+            } else {
+                -1
+            }
+        }
+        val things = mThings ?: return -1
+        return if (position in 0..<things.size) position else -1
+    }
+
+    open fun getListPositionForThingId(thingId: Long): Int {
+        val entries = mThingListEntries ?: return getPosition(thingId)
+        for (i in entries.indices) {
+            val entry = entries[i]
+            if (entry is ThingListEntry.ThingEntry && entry.thing.id == thingId) {
+                return i
+            }
+        }
+        return -1
+    }
+
+    open fun hasFolderEntries(): Boolean {
+        val entries = mThingListEntries ?: return false
+        for (entry in entries) {
+            if (entry is ThingListEntry.FolderEntry) return true
+        }
+        return false
+    }
+
+    open fun getVisibleChildCountForActivityHeader(): Int {
+        val entries = mThingListEntries ?: return 0
+        var count = 0
+        for (entry in entries) {
+            if (entry is ThingListEntry.ThingEntry) {
+                val thing = entry.thing
+                if (thing.type != Thing.HEADER && thing.type < Thing.NOTIFY_EMPTY_UNDERWAY) {
+                    count++
+                }
+            } else if (entry is ThingListEntry.FolderEntry) {
+                count++
+            }
+        }
+        return count
+    }
+
+    open fun getProjection(): ThingListProjection {
+        return mProjection
+    }
+
+    open fun getCurrentFolderPath(): List<ThingFolder> {
+        return mFolderDao!!.getFolderPath(mProjection.currentFolderId)
+    }
+
+    open fun isCurrentFolderEffectivelyPrivate(): Boolean {
+        return mFolderDao!!.isEffectivelyPrivate(mProjection.currentFolderId)
+    }
+
+    open fun isCurrentFolderPrivacyAuthenticated(): Boolean {
+        return isFolderPrivacyAuthenticated(mProjection.currentFolderId)
+    }
+
+    open fun isFolderPrivacyAuthenticated(folderId: Long?): Boolean {
+        if (folderId == null) return false
+        val path = mFolderDao!!.getFolderPath(folderId)
+        for (folder in path) {
+            if (folder.isPrivate && mAuthenticatedPrivateFolderIds.contains(folder.id)) {
+                return true
+            }
+        }
+        return false
+    }
+
+    open fun openFolder(folderId: Long, authenticated: Boolean = false) {
+        if (authenticated) {
+            mAuthenticatedPrivateFolderIds.add(folderId)
+        }
+        mProjection = mProjection.openFolder(folderId)
+        trimAuthenticatedPrivateFoldersToProjection()
+        loadThings()
+    }
+
+    open fun navigateToFolderPathIndex(index: Int) {
+        mProjection = mProjection.navigateToPathIndex(index)
+        trimAuthenticatedPrivateFoldersToProjection()
+        loadThings()
+    }
+
+    open fun openParentFolder(): Boolean {
+        if (mProjection.isRoot()) return false
+        mProjection = mProjection.parent()
+        trimAuthenticatedPrivateFoldersToProjection()
+        loadThings()
+        return true
+    }
+
+    private fun trimAuthenticatedPrivateFoldersToProjection() {
+        if (mAuthenticatedPrivateFolderIds.isEmpty()) return
+        val pathIds = mProjection.folderPath.toHashSet()
+        mAuthenticatedPrivateFolderIds.retainAll(pathIds)
     }
 
     open fun getThingsCounts(): ThingsCounts? {
@@ -129,7 +293,7 @@ open class ThingManager private constructor(context: Context?) {
     }
 
     open fun searchThings(keyword: String?, color: Int) {
-        val things: List<Thing?> = mDao!!.getThingsForDisplay(mLimit, keyword, color)!!
+        val things: List<Thing?> = getThingsForCurrentProjection(keyword, color)
         val PTP: String = Thing.PRIVATE_THING_PREFIX
         var containsPtp = false
         var i = 0
@@ -161,6 +325,42 @@ open class ThingManager private constructor(context: Context?) {
         } else {
             mThings = things.toMutableList()
         }
+        rebuildThingListEntries(keyword, color)
+    }
+
+    private fun rebuildThingListEntries(keyword: String? = null, color: Int = 0) {
+        val things = mThings ?: return
+        val entries = ArrayList<ThingListEntry>()
+        val mixed = ArrayList<ThingListEntry>()
+        for (thing in things) {
+            if (thing == null) continue
+            val entry = ThingListEntry.ThingEntry(thing)
+            if (thing.type == Thing.HEADER) {
+                entries.add(entry)
+            } else {
+                mixed.add(entry)
+            }
+        }
+        mixed.addAll(
+            mFolderDao!!.getFolderEntriesForProjection(
+                mLimit,
+                mProjection.currentFolderId,
+                keyword,
+                color
+            )
+        )
+        Collections.sort(mixed, object : Comparator<ThingListEntry> {
+            override fun compare(entry1: ThingListEntry, entry2: ThingListEntry): Int {
+                val result = ThingsSorter.compareByLocationAndSticky(
+                    entry1.location,
+                    entry2.location
+                )
+                if (result != 0) return result
+                return entry1.stableId.compareTo(entry2.stableId)
+            }
+        })
+        entries.addAll(mixed)
+        mThingListEntries = entries
     }
 
     /**
@@ -177,6 +377,9 @@ open class ThingManager private constructor(context: Context?) {
     open fun create(thingToCreate: Thing?, handleNotifyEmpty: Boolean, addToThingsNow: Boolean): Boolean {
         // create in database at first
         thingToCreate!!.id = mHeaderId
+        if (thingToCreate.type in Thing.NOTE..Thing.GOAL && thingToCreate.folderId == null) {
+            thingToCreate.folderId = mProjection.currentFolderId
+        }
         mDao!!.create(thingToCreate, true, false)
 //        mExecutor.execute(new Runnable() {
 //            @Override
@@ -196,6 +399,7 @@ open class ThingManager private constructor(context: Context?) {
 
         if (addToThingsNow) {
             mThings!!.add(getPositionToInsertNewThing(), thingToCreate)
+            rebuildThingListEntries()
         }
 
         if (type >= Thing.NOTE && type <= Thing.GOAL) {
@@ -248,6 +452,7 @@ open class ThingManager private constructor(context: Context?) {
         if (mLimit == Def.LimitForGettingThings.ALL_UNDERWAY ||
                 Thing.sameType(typeBefore, typeAfter)) {
             // will not generate NOTIFY_EMPTY
+            rebuildThingListEntries()
             return 0
         } else {
             mThings!!.removeAt(position)
@@ -257,6 +462,7 @@ open class ThingManager private constructor(context: Context?) {
                 createdNEnow = createNEnow(typeBefore, state, !App.isSearching)
             }
 
+            rebuildThingListEntries()
             return if (createdNEnow) 1 else 2
         }
     }
@@ -341,6 +547,7 @@ open class ThingManager private constructor(context: Context?) {
         if (handleNotifyEmpty) {
             createdNEnow = createNEnow(thingType, stateBefore, !App.isSearching)
         }
+        rebuildThingListEntries()
         return deletedNEnow || createdNEnow
     }
 
@@ -447,6 +654,7 @@ open class ThingManager private constructor(context: Context?) {
 
         createNEnow(type, stateBefore, !App.isSearching)
 
+        rebuildThingListEntries()
         return positions
     }
 
@@ -519,6 +727,7 @@ open class ThingManager private constructor(context: Context?) {
         }
 
         createNEnow(type, stateBefore, !App.isSearching)
+        rebuildThingListEntries()
     }
 
     open fun clearLists() {
@@ -530,14 +739,22 @@ open class ThingManager private constructor(context: Context?) {
     }
 
     /**
-     * move a thing from one position to another inside [mThings].
+     * move a visible list entry from one position to another.
      *
-     * Please be careful that moving thing isn't atomic operation. As a result, when user
-     * drags a thing and moves it to a new position, this method will be called several times.
+     * Please be careful that moving isn't atomic operation. As a result, when user
+     * drags an entry and moves it to a new position, this method will be called several times.
      * That's why we need [updateLocations] to truly update its
      * location in database and keep stability.
      */
     open fun move(from: Int, to: Int) {
+        val entries = mThingListEntries
+        if (entries != null && from in entries.indices && to in entries.indices) {
+            val temp = entries.removeAt(from)
+            entries.add(to, temp)
+            rebuildThingsFromListEntries()
+            return
+        }
+
         val temp: Thing? = mThings!![from]
         mThings!!.removeAt(from)
         mThings!!.add(to, temp)
@@ -548,6 +765,12 @@ open class ThingManager private constructor(context: Context?) {
      * have been already called for better performance.
      */
     open fun updateLocations(from: Int, to: Int) {
+        val entries = mThingListEntries
+        if (entries != null && from in entries.indices && to in entries.indices) {
+            updateMixedEntryLocations(entries, from, to)
+            return
+        }
+
         val start: Int = if (from < to) from else to
         val end: Int = if (to > from) to else from
         val ids: Array<Long?> = arrayOfNulls(end - start + 1)
@@ -577,11 +800,289 @@ open class ThingManager private constructor(context: Context?) {
         }
     }
 
+    open fun canMoveListEntry(from: Int, to: Int): Boolean {
+        val entries = mThingListEntries ?: return false
+        if (from == to || from <= 0 || to <= 0) return false
+        if (from !in entries.indices || to !in entries.indices) return false
+
+        val entry1 = entries[from]
+        val entry2 = entries[to]
+        if (entry1 is ThingListEntry.ThingEntry && entry1.thing.type == Thing.HEADER) {
+            return false
+        }
+        if (entry2 is ThingListEntry.ThingEntry && entry2.thing.type == Thing.HEADER) {
+            return false
+        }
+
+        val loc1 = entry1.location
+        val loc2 = entry2.location
+        return loc1 < 0 && loc2 < 0 || loc1 >= 0 && loc2 >= 0
+    }
+
+    private fun updateMixedEntryLocations(
+        entries: MutableList<ThingListEntry>,
+        from: Int,
+        to: Int
+    ) {
+        val start: Int = if (from < to) from else to
+        val end: Int = if (to > from) to else from
+        val locations: Array<Long?> = arrayOfNulls(end - start + 1)
+        for (i in start..end) {
+            locations[i - start] = entries[i].location
+        }
+
+        if (locations[0]!! < 0) {
+            Arrays.sort(locations)
+        } else {
+            Arrays.sort(locations, Collections.reverseOrder())
+        }
+
+        val thingIds = ArrayList<Long?>()
+        val thingLocations = ArrayList<Long?>()
+        val folderIds = ArrayList<Long?>()
+        val folderLocations = ArrayList<Long?>()
+        var j = 0
+        for (i in start..end) {
+            val entry = entries[i]
+            val location = locations[j++]!!
+            if (entry is ThingListEntry.ThingEntry) {
+                entry.thing.location = location
+                thingIds.add(entry.thing.id)
+                thingLocations.add(location)
+            } else if (entry is ThingListEntry.FolderEntry) {
+                entry.folder.location = location
+                folderIds.add(entry.folder.id)
+                folderLocations.add(location)
+            }
+        }
+        rebuildThingsFromListEntries()
+
+        mExecutor!!.execute {
+            if (thingIds.isNotEmpty()) {
+                mDao!!.updateLocations(thingIds.toTypedArray(), thingLocations.toTypedArray())
+            }
+            if (folderIds.isNotEmpty()) {
+                mFolderDao!!.updateLocations(folderIds.toTypedArray(), folderLocations.toTypedArray())
+            }
+        }
+    }
+
+    private fun rebuildThingsFromListEntries() {
+        val entries = mThingListEntries ?: return
+        val things = ArrayList<Thing?>()
+        for (entry in entries) {
+            if (entry is ThingListEntry.ThingEntry) {
+                things.add(entry.thing)
+            }
+        }
+        mThings = things
+    }
+
     open fun updateThingCardAppearance(thing: Thing?) {
         if (thing == null) return
         mExecutor!!.execute {
             mDao!!.updateThingCardAppearance(thing)
         }
+    }
+
+    open fun createFolderFromThings(
+        title: String,
+        firstThing: Thing?,
+        secondThing: Thing?,
+        background: ThingBackground? = null
+    ): ThingFolder? {
+        val first = firstThing ?: return null
+        val second = secondThing ?: return null
+        if (!canCreateFolderMember(firstThing) || !canCreateFolderMember(secondThing)) return null
+        if (first.id == second.id) return null
+
+        val folderId = mHeaderId
+        val now = System.currentTimeMillis()
+        val folderBackground = background ?: ThingBackground.fromRandom()
+        val folder = ThingFolder(
+            id = folderId,
+            parentFolderId = mProjection.currentFolderId,
+            title = title,
+            state = Thing.UNDERWAY,
+            color = folderBackground.representativeColor(),
+            location = second.location,
+            isPrivate = false,
+            createTime = now,
+            updateTime = now
+        )
+        folder.setBackground(folderBackground)
+
+        mFolderDao!!.create(folder)
+        mDao!!.updateHeader(1)
+        updateHeader(1)
+
+        moveThingIntoFolder(first, folder.id, false)
+        moveThingIntoFolder(second, folder.id, false)
+        loadThings()
+        return folder
+    }
+
+    private fun canCreateFolderMember(thing: Thing?): Boolean {
+        if (thing == null) return false
+        if (thing.type !in Thing.NOTE..Thing.GOAL) return false
+        return thing.state == Thing.UNDERWAY
+    }
+
+    open fun moveThingIntoFolder(thing: Thing?, folderId: Long?, reload: Boolean = true) {
+        if (thing == null || thing.type == Thing.HEADER) return
+        thing.folderId = folderId
+        mDao!!.updateFolderId(thing.id, folderId)
+        if (reload) {
+            loadThings()
+        }
+    }
+
+    open fun getThingMoveTargetFolders(): List<ThingFolder> {
+        val candidates = ArrayList<ThingFolder>()
+        for (candidate in mFolderDao!!.getAllFolders()) {
+            if (mFolderDao!!.isEffectivelyDeleted(candidate.id)) continue
+            candidates.add(candidate)
+        }
+        return candidates
+    }
+
+    open fun moveSelectedThingsIntoFolder(folderId: Long?): Boolean {
+        val selectedThings = getSelectedThings() ?: return false
+        var changed = false
+        for (thing in selectedThings) {
+            if (!canMoveThingToFolder(thing)) continue
+            if (thing!!.folderId == folderId) {
+                thing.selected = false
+                continue
+            }
+            thing.folderId = folderId
+            thing.selected = false
+            mDao!!.updateFolderId(thing.id, folderId)
+            changed = true
+        }
+        if (changed) {
+            loadThings()
+        }
+        return changed
+    }
+
+    private fun canMoveThingToFolder(thing: Thing?): Boolean {
+        if (thing == null) return false
+        if (thing.type !in Thing.NOTE..Thing.GOAL) return false
+        if (thing.state != Thing.UNDERWAY) return false
+        return thing.id != App.getDoingThingId()
+    }
+
+    open fun getFolderMoveCandidates(folder: ThingFolder?): List<ThingFolder> {
+        if (folder == null) return emptyList()
+        val candidates = ArrayList<ThingFolder>()
+        for (candidate in mFolderDao!!.getAllFolders()) {
+            if (candidate.id == folder.id) continue
+            if (mFolderDao!!.isDescendantOf(candidate.id, folder.id)) continue
+            if (mFolderDao!!.isEffectivelyDeleted(candidate.id)) continue
+            candidates.add(candidate)
+        }
+        return candidates
+    }
+
+    open fun isFolderEffectivelyPrivate(folderId: Long?): Boolean {
+        return mFolderDao!!.isEffectivelyPrivate(folderId)
+    }
+
+    open fun moveFolderIntoFolder(folder: ThingFolder?, parentFolderId: Long?): Boolean {
+        if (folder == null) return false
+        if (parentFolderId == folder.id) return false
+        if (mFolderDao!!.isDescendantOf(parentFolderId, folder.id)) return false
+        folder.parentFolderId = parentFolderId
+        mFolderDao!!.updateParent(folder.id, parentFolderId)
+        loadThings()
+        return true
+    }
+
+    open fun renameFolder(folder: ThingFolder?, title: String): Boolean {
+        if (folder == null) return false
+        val cleanTitle = title.trim()
+        if (cleanTitle.isEmpty()) return false
+        folder.title = cleanTitle
+        mFolderDao!!.update(folder)
+        loadThings()
+        return true
+    }
+
+    open fun updateFolderCardPresentation(
+        folder: ThingFolder?,
+        presentation: ThingFolderCardPresentation?
+    ): Boolean {
+        if (folder == null || presentation == null) return false
+        folder.cardPresentation = presentation
+        mFolderDao!!.updateCardPresentation(folder.id, presentation)
+        loadThings()
+        return true
+    }
+
+    open fun updateFolderPrivate(folder: ThingFolder?, isPrivate: Boolean): Boolean {
+        if (folder == null) return false
+        folder.isPrivate = isPrivate
+        if (!isPrivate) {
+            mAuthenticatedPrivateFolderIds.remove(folder.id)
+        }
+        mFolderDao!!.updatePrivate(folder.id, isPrivate)
+        loadThings()
+        return true
+    }
+
+    open fun deleteFolder(folder: ThingFolder?): Boolean {
+        return updateFolderState(folder, Thing.DELETED)
+    }
+
+    open fun restoreFolder(folder: ThingFolder?): Boolean {
+        return updateFolderState(folder, Thing.UNDERWAY)
+    }
+
+    private fun updateFolderState(folder: ThingFolder?, @Thing.State state: Int): Boolean {
+        if (folder == null) return false
+        folder.state = state
+        mFolderDao!!.updateState(folder.id, state)
+        loadThings()
+        return true
+    }
+
+    open fun deleteFolderForever(folder: ThingFolder?): Boolean {
+        if (folder == null) return false
+        mFolderDao!!.deleteForever(folder.id)
+        loadThings()
+        return true
+    }
+
+    open fun toggleFolderSticky(folder: ThingFolder?): Boolean {
+        if (folder == null) return false
+        val newLocation = if (folder.isSticky()) {
+            getMaxCurrentEntryLocation() + 1
+        } else {
+            getMinCurrentEntryLocation() - 1
+        }
+        folder.location = newLocation
+        mFolderDao!!.updateLocations(arrayOf<Long?>(folder.id), arrayOf<Long?>(newLocation))
+        loadThings()
+        return true
+    }
+
+    private fun getMinCurrentEntryLocation(): Long {
+        val entries = mThingListEntries ?: return mDao!!.getMinThingLocation()
+        var minLocation = Long.MAX_VALUE
+        for (entry in entries) {
+            if (entry.location < minLocation) minLocation = entry.location
+        }
+        return if (minLocation == Long.MAX_VALUE) mDao!!.getMinThingLocation() else minLocation
+    }
+
+    private fun getMaxCurrentEntryLocation(): Long {
+        val entries = mThingListEntries ?: return mDao!!.getMaxThingLocation()
+        var maxLocation = Long.MIN_VALUE
+        for (entry in entries) {
+            if (entry.location > maxLocation) maxLocation = entry.location
+        }
+        return if (maxLocation == Long.MIN_VALUE) mDao!!.getMaxThingLocation() else maxLocation
     }
 
     /**

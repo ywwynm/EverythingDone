@@ -18,6 +18,7 @@ import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.adapters.ThingsAdapter
 import com.ywwynm.everythingdone.model.Thing
+import com.ywwynm.everythingdone.model.ThingListEntry
 import com.ywwynm.everythingdone.views.ActivityHeader
 import com.ywwynm.everythingdone.views.FloatingActionButton
 
@@ -99,7 +100,11 @@ open class ModeManager(app: App?,
     }
 
     open fun toMovingMode(position: Int) {
-        if (position < 0 || position > mThingManager!!.getThings()!!.size - 1) {
+        val entry = mThingManager!!.getThingListEntry(position)
+        if (position < 0 || entry == null) {
+            return
+        }
+        if (entry is ThingListEntry.ThingEntry && entry.thing.type == Thing.HEADER) {
             return
         }
         beforeMode = currentMode
@@ -184,12 +189,24 @@ open class ModeManager(app: App?,
         (mRecyclerView!!.itemAnimator as SimpleItemAnimator).supportsChangeAnimations = true
     }
 
+    open fun finishMovingModeWithoutListRefresh() {
+        backNormalModeCallback?.invoke()
+        val isSearching: Boolean = App.isSearching
+        if (!isSearching) {
+            mDrawerLayout!!.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED)
+        }
+        beforeMode = currentMode
+        currentMode = NORMAL
+        if (mApp!!.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY && !isSearching) {
+            mFab!!.spread()
+        }
+        mThingManager!!.setSelectedTo(false)
+        (mRecyclerView!!.itemAnimator as SimpleItemAnimator).supportsChangeAnimations = true
+    }
+
     private fun notifyThingsSelected(position: Int) {
         mFab!!.shrink()
-        val things: List<Thing?> = mThingManager!!.getThings()!!
-        if (position >= 0 && position < things.size) {
-            things[position]!!.selected = true
-        }
+        mThingManager!!.getThingAtListPosition(position)?.selected = true
         mAdapter!!.notifyDataSetChanged()
     }
 

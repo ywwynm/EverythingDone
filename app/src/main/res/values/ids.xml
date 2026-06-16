@@ -8,4 +8,5 @@
     <item name="tag_thing_card_media_background_bind_token" type="id"/>
     <item name="tag_detail_attachment_image_load_key" type="id"/>
     <item name="tag_detail_attachment_image_render_request" type="id"/>
+    <item name="tag_thing_folder_thumbnail_surface" type="id"/>
 </resources>

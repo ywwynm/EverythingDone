@@ -118,4 +118,5 @@ requires them.
 - `detail-attachment-media-appearance`: `docs/features/detail-attachment-media-appearance/preferences.md`
 - `kotlin-migration`: `docs/features/kotlin-migration/preferences.md`
 - `localization`: `docs/features/localization/preferences.md`
+- `thing-folders`: `docs/features/thing-folders/preferences.md`
 - `remote-thing-card-appearance`: `docs/features/remote-thing-card-appearance/preferences.md`

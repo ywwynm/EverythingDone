@@ -80,6 +80,7 @@ import com.ywwynm.everythingdone.collections.ThingActionsList
 import com.ywwynm.everythingdone.database.HabitDAO
 import com.ywwynm.everythingdone.database.ReminderDAO
 import com.ywwynm.everythingdone.database.ThingDAO
+import com.ywwynm.everythingdone.database.ThingFolderDAO
 import com.ywwynm.everythingdone.fragments.AddAttachmentDialogFragment
 import com.ywwynm.everythingdone.fragments.AlertDialogFragment
 import com.ywwynm.everythingdone.fragments.AttachmentInfoDialogFragment
@@ -224,6 +225,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     private var mScrollView: NestedScrollView? = null
     private var mEtTitle: EditText? = null
     private var mEtContent: EditText? = null
+    private var mTvThingFolderPath: TextView? = null
     private var mTvUpdateTime: TextView? = null
 
     private var mRvCheckList: RecyclerView? = null
@@ -791,6 +793,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         mScrollView   = f(R.id.sv_detail)
         mEtTitle      = f(R.id.et_title)
         mEtContent    = f(R.id.et_content)
+        mTvThingFolderPath = f(R.id.tv_thing_folder_path)
         mTvUpdateTime = f(R.id.tv_update_time)
 
         mRvCheckList = f(R.id.rv_check_list)
@@ -873,6 +876,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         if (mThing!!.isPrivate()) {
             setAsPrivateThingUiAndAddAction()
         }
+        updateThingFolderPath()
 
         initUiForThingContent()
         initUiForThingAttachment()
@@ -903,6 +907,31 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 mIbBack!!.contentDescription = getString(R.string.cd_back_note)
             }
         }
+    }
+
+    private fun updateThingFolderPath() {
+        val folderId = mThing?.folderId
+        if (folderId == null) {
+            mTvThingFolderPath!!.visibility = View.GONE
+            return
+        }
+
+        val folders = ThingFolderDAO.getInstance(mApp)!!.getFolderPath(folderId)
+        val manager = ThingManager.getInstance(mApp)
+        if (folders.isEmpty()) {
+            mTvThingFolderPath!!.visibility = View.GONE
+            return
+        }
+
+        val path = folders.joinToString(" / ") { folder ->
+            if (folder.isPrivate && manager?.isFolderPrivacyAuthenticated(folder.id) != true) {
+                getString(R.string.private_thing_folder)
+            } else {
+                folder.title
+            }
+        }
+        mTvThingFolderPath!!.text = getString(R.string.thing_folder_location, path)
+        mTvThingFolderPath!!.visibility = View.VISIBLE
     }
 
     private fun initUiForThingContent() {
@@ -2954,6 +2983,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         )
         mEtContent!!.setTextColor(secondary)
         mEtContent!!.setHintTextColor(secondary)
+        mTvThingFolderPath!!.setTextColor(tertiary)
         mTvUpdateTime!!.setTextColor(tertiary)
 
         val tvFinishTime: TextView? = f(R.id.tv_finish_time)

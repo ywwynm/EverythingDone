@@ -99,6 +99,7 @@ open class ThingDAO private constructor(context: Context?) {
             Def.Database.COLUMN_DETAIL_ATTACHMENT_MEDIA_APPEARANCE_THINGS,
             DetailAttachmentMediaAppearance.default().toJson()
         )
+        putFolderId(values, null)
 
         db!!.insert(Def.Database.TABLE_THINGS, null, values)
     }
@@ -180,6 +181,93 @@ open class ThingDAO private constructor(context: Context?) {
         return things
     }
 
+    open fun getThingsForProjection(
+        limit: Int,
+        folderId: Long?,
+        keyword: String?,
+        color: Int
+    ): List<Thing?> {
+        val things = getThingsForDisplay(limit, keyword, color) ?: return emptyList()
+        val filtered = ArrayList<Thing?>()
+        for (thing in things) {
+            if (belongsToProjectionFolder(thing, folderId)) {
+                filtered.add(thing)
+            }
+        }
+        return filtered
+    }
+
+    open fun getThingsForEffectiveDeletedFolderProjection(
+        folderId: Long?,
+        keyword: String?,
+        color: Int
+    ): List<Thing?> {
+        var filterBucket: Int = com.ywwynm.everythingdone.utils.BackgroundUtil.HUE_BUCKET_NONE
+        if (color != 0 && color != -1979711488 /* legacy "all colors" sentinel */) {
+            filterBucket = com.ywwynm.everythingdone.utils.BackgroundUtil.hueBucket(color)
+        }
+
+        val selection = StringBuilder()
+        selection.append("(type=").append(Thing.HEADER).append(" or (type>=")
+            .append(Thing.NOTE).append(" and type<=").append(Thing.GOAL)
+            .append(" and ")
+        if (folderId == null) {
+            selection.append(Def.Database.COLUMN_FOLDER_ID_THINGS).append(" is null")
+        } else {
+            selection.append(Def.Database.COLUMN_FOLDER_ID_THINGS).append("=").append(folderId)
+        }
+        if (keyword != null) {
+            val kw = keyword.replace("'".toRegex(), "''")
+            selection.append(" and (title like '%").append(kw)
+                .append("%' or content like '%").append(kw).append("%')")
+        }
+        selection.append("))")
+
+        val cursor = db!!.query(
+            Def.Database.TABLE_THINGS,
+            null,
+            selection.toString(),
+            null,
+            null,
+            null,
+            Def.Database.COLUMN_LOCATION_THINGS + " desc"
+        )
+        val things: MutableList<Thing?> = ArrayList()
+        cursor.use {
+            while (it.moveToNext()) {
+                val thing = Thing(it)
+                if (filterBucket != com.ywwynm.everythingdone.utils.BackgroundUtil.HUE_BUCKET_NONE
+                    && thing.type != Thing.HEADER
+                    && !com.ywwynm.everythingdone.utils.BackgroundUtil.matchesHueBucket(
+                        thing.getBackground(),
+                        filterBucket
+                    )
+                ) {
+                    continue
+                }
+                things.add(thing)
+            }
+        }
+        Collections.sort(things, object : Comparator<Thing?> {
+            override fun compare(thing1: Thing?, thing2: Thing?): Int {
+                if (thing1!!.type == Thing.HEADER) return -1
+                if (thing2!!.type == Thing.HEADER) return 1
+                return ThingsSorter.compareByLocationAndSticky(
+                    thing1.location,
+                    thing2.location
+                )
+            }
+        })
+        return things
+    }
+
+    private fun belongsToProjectionFolder(thing: Thing?, folderId: Long?): Boolean {
+        if (thing == null) return false
+        if (thing.type == Thing.HEADER) return true
+        if (thing.type >= Thing.NOTIFY_EMPTY_UNDERWAY) return folderId == null
+        return thing.folderId == folderId
+    }
+
     /**
      * @return `true` if there was a SQLiteConstraintException thrown.
      */
@@ -192,7 +280,7 @@ open class ThingDAO private constructor(context: Context?) {
             deleteNotifyEmpty(type, state, handleCurrentLimit)
         }
 
-        val values = ContentValues(14)
+        val values = ContentValues(15)
         values.put(Def.Database.COLUMN_ID_THINGS,          thing.id)
         values.put(Def.Database.COLUMN_TYPE_THINGS,        type)
         values.put(Def.Database.COLUMN_STATE_THINGS,       state)
@@ -213,6 +301,7 @@ open class ThingDAO private constructor(context: Context?) {
             Def.Database.COLUMN_DETAIL_ATTACHMENT_MEDIA_APPEARANCE_THINGS,
             thing.detailAttachmentMediaAppearance.toJson()
         )
+        putFolderId(values, thing.folderId)
 
         try {
             db!!.insert(Def.Database.TABLE_THINGS, null, values)
@@ -254,6 +343,7 @@ open class ThingDAO private constructor(context: Context?) {
         values.put(Def.Database.COLUMN_CONTENT_THINGS, updatedThing.content)
         values.put(Def.Database.COLUMN_ATTACHMENT_THINGS, updatedThing.attachment)
         values.put(Def.Database.COLUMN_UPDATE_TIME_THINGS, updatedThing.updateTime)
+        putFolderId(values, updatedThing.folderId)
 
         db!!.update(Def.Database.TABLE_THINGS, values, "id=" + updatedThing.id, null)
 
@@ -303,6 +393,7 @@ open class ThingDAO private constructor(context: Context?) {
                 Def.Database.COLUMN_DETAIL_ATTACHMENT_MEDIA_APPEARANCE_THINGS,
                 thing.detailAttachmentMediaAppearance.toJson()
             )
+            putFolderId(values, thing.folderId)
 
             db!!.insert(Def.Database.TABLE_THINGS, null, values)
         } else {
@@ -412,6 +503,28 @@ open class ThingDAO private constructor(context: Context?) {
         }
     }
 
+    open fun updateFolderId(thingId: Long, folderId: Long?) {
+        val values = ContentValues(1)
+        putFolderId(values, folderId)
+        db!!.update(Def.Database.TABLE_THINGS, values, "id=$thingId", null)
+    }
+
+    open fun getThingFolderId(thingId: Long): Long? {
+        val cursor = db!!.query(
+            Def.Database.TABLE_THINGS,
+            arrayOf(Def.Database.COLUMN_FOLDER_ID_THINGS),
+            "id=$thingId",
+            null,
+            null,
+            null,
+            null
+        )
+        cursor.use {
+            if (!it.moveToFirst() || it.isNull(0)) return null
+            return it.getLong(0)
+        }
+    }
+
     open fun updateLocations(ids: Array<Long?>?, locations: Array<Long?>?) {
         db!!.beginTransaction()
         try {
@@ -452,6 +565,14 @@ open class ThingDAO private constructor(context: Context?) {
         if (!oldThing.thingCardAppearance.hasSamePresentationAs(updatedThing.thingCardAppearance)) {
             updatedThing.thingCardAppearance = updatedThing.thingCardAppearance
                 .withAppearanceUpdateTime(System.currentTimeMillis())
+        }
+    }
+
+    private fun putFolderId(values: ContentValues, folderId: Long?) {
+        if (folderId == null) {
+            values.putNull(Def.Database.COLUMN_FOLDER_ID_THINGS)
+        } else {
+            values.put(Def.Database.COLUMN_FOLDER_ID_THINGS, folderId)
         }
     }
 

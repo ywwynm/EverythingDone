@@ -34,6 +34,11 @@
         app:showAsAction="never"/>
 
     <item
+        android:id="@+id/act_move_to_thing_folder"
+        android:title="@string/act_move_to_thing_folder"
+        app:showAsAction="never"/>
+
+    <item
         android:id="@+id/act_export"
         android:title="@string/act_export_to_sdcard"
         app:showAsAction="never" />

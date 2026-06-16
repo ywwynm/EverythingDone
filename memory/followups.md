@@ -17,6 +17,7 @@ Global startup follow-up index only. Feature-specific follow-ups live in `docs/f
 - `share-screenshot`: `docs/features/share-screenshot/followups.md`
 - `system-bar-insets`: `docs/features/system-bar-insets/followups.md`
 - `thing-card-media-target-geometry`: `docs/features/thing-card-media-target-geometry/followups.md`
+- `thing-folders`: `docs/features/thing-folders/followups.md`
 
 ## Update rule
 

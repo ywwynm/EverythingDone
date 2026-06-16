@@ -1,6 +1,10 @@
 package com.ywwynm.everythingdone.views
 
 import android.content.res.Configuration
+import android.text.SpannableStringBuilder
+import android.text.Spanned
+import android.text.method.LinkMovementMethod
+import android.text.style.ClickableSpan
 import androidx.recyclerview.widget.RecyclerView
 import androidx.appcompat.widget.Toolbar
 import android.view.View
@@ -12,6 +16,7 @@ import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.managers.ModeManager
 import com.ywwynm.everythingdone.managers.ThingManager
+import com.ywwynm.everythingdone.model.ThingFolder
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.LocaleUtil
 
@@ -48,6 +53,7 @@ open class ActivityHeader(
     private val mBindingRecyclerView: RecyclerView = recyclerView
 
     private var mModeManager: ModeManager? = null
+    private var mFolderPathClickListener: FolderPathClickListener? = null
 
     init {
         computeFactors(null)
@@ -56,6 +62,10 @@ open class ActivityHeader(
 
     fun setModeManager(modeManager: ModeManager) {
         mModeManager = modeManager
+    }
+
+    fun setFolderPathClickListener(listener: FolderPathClickListener?) {
+        mFolderPathClickListener = listener
     }
 
     fun computeFactors(actionbar: Toolbar?) {
@@ -172,29 +182,92 @@ open class ActivityHeader(
     }
 
     fun updateText() {
-        when (mApp.getLimit()) {
-            Def.LimitForGettingThings.NOTE_UNDERWAY ->
-                mTitle.setText(R.string.note)
-            Def.LimitForGettingThings.REMINDER_UNDERWAY ->
-                mTitle.setText(R.string.reminder)
-            Def.LimitForGettingThings.HABIT_UNDERWAY ->
-                mTitle.setText(R.string.habit)
-            Def.LimitForGettingThings.GOAL_UNDERWAY ->
-                mTitle.setText(R.string.goal)
-            Def.LimitForGettingThings.ALL_FINISHED ->
-                mTitle.setText(R.string.finished)
-            Def.LimitForGettingThings.ALL_DELETED ->
-                mTitle.setText(R.string.deleted)
-            else ->
-                mTitle.setText(R.string.underway)
+        val rootTitle = getRootTitle()
+        val manager = ThingManager.getInstance(mApp)
+        val folderPath = manager?.getCurrentFolderPath() ?: emptyList()
+        if (folderPath.isEmpty()) {
+            mTitle.text = rootTitle
+            mTitle.movementMethod = null
+            mTitle.isClickable = false
+        } else {
+            bindFolderPathTitle(rootTitle, folderPath)
         }
         updateSubtitle()
         mRelativeLayout.post { computeFactors(mActionbar) }
     }
 
+    private fun getRootTitle(): String {
+        return when (mApp.getLimit()) {
+            Def.LimitForGettingThings.NOTE_UNDERWAY ->
+                mApp.getString(R.string.note)
+            Def.LimitForGettingThings.REMINDER_UNDERWAY ->
+                mApp.getString(R.string.reminder)
+            Def.LimitForGettingThings.HABIT_UNDERWAY ->
+                mApp.getString(R.string.habit)
+            Def.LimitForGettingThings.GOAL_UNDERWAY ->
+                mApp.getString(R.string.goal)
+            Def.LimitForGettingThings.ALL_FINISHED ->
+                mApp.getString(R.string.finished)
+            Def.LimitForGettingThings.ALL_DELETED ->
+                mApp.getString(R.string.deleted)
+            else ->
+                mApp.getString(R.string.underway)
+        }
+    }
+
+    private fun bindFolderPathTitle(rootTitle: String, folderPath: List<ThingFolder>) {
+        val title = SpannableStringBuilder()
+        appendClickableSegment(title, rootTitle, -1)
+        val manager = ThingManager.getInstance(mApp)
+
+        var privateAncestor = false
+        for (i in folderPath.indices) {
+            title.append(" / ")
+            val folder = folderPath[i]
+            privateAncestor = privateAncestor || folder.isPrivate
+            val segmentTitle = if (privateAncestor
+                && manager?.isFolderPrivacyAuthenticated(folder.id) != true
+            ) {
+                mApp.getString(R.string.private_thing_folder)
+            } else {
+                folder.title
+            }
+            appendClickableSegment(title, segmentTitle, i)
+        }
+
+        mTitle.text = title
+        mTitle.movementMethod = LinkMovementMethod.getInstance()
+        mTitle.isClickable = true
+    }
+
+    private fun appendClickableSegment(
+        title: SpannableStringBuilder,
+        segmentText: String,
+        folderPathIndex: Int
+    ) {
+        val start = title.length
+        title.append(segmentText)
+        val end = title.length
+        title.setSpan(object : ClickableSpan() {
+            override fun onClick(widget: View) {
+                mFolderPathClickListener?.onFolderPathSegmentClicked(folderPathIndex)
+            }
+        }, start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+    }
+
     private fun updateSubtitle() {
-        val thingsCount: Int = ThingManager.getInstance(mApp)!!.getThingsCounts()!!
-                .getThingsCountForActivityHeader(mApp.getLimit())
+        val manager = ThingManager.getInstance(mApp)!!
+        if (!manager.getProjection().isRoot()) {
+            val childCount = manager.getVisibleChildCountForActivityHeader()
+            mSubtitle.text = if (childCount == 0) {
+                mApp.getString(R.string.empty)
+            } else {
+                mApp.getString(R.string.thing_folder_child_count, childCount)
+            }
+            return
+        }
+        val thingsCount: Int = manager.getThingsCounts()!!
+            .getThingsCountForActivityHeader(mApp.getLimit())
         var subtitle: String = if (thingsCount == 0) mApp.getString(R.string.empty) else
                 "" + thingsCount + " " + mApp.getString(R.string.a_thing)
         if (thingsCount > 1 && !LocaleUtil.isChinese(mApp)) {
@@ -266,6 +339,10 @@ open class ActivityHeader(
             mTitle.scaleY = scale
             mSubtitle.setAlpha(1f - progress)
         }
+    }
+
+    interface FolderPathClickListener {
+        fun onFolderPathSegmentClicked(folderPathIndex: Int)
     }
 
     companion object {

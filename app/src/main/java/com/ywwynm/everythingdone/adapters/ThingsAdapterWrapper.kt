@@ -48,6 +48,10 @@ open class ThingsAdapterWrapper(adapter: ThingsAdapter?) {
         mAdapter!!.setShouldThingsAnimWhenAppearing(shouldThingsAnimWhenAppearing)
     }
 
+    open fun shouldShowPrivateContent(): Boolean {
+        return mAdapter!!.shouldShowPrivateContent()
+    }
+
     open fun setThingCardSurfaceAvailableHeight(height: Int) {
         mAdapter!!.setThingCardSurfaceAvailableHeight(height)
     }

@@ -22,6 +22,9 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
 
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL(SQL_CREATE_TABLE_THINGS)
+        db.execSQL(SQL_CREATE_TABLE_THING_FOLDERS)
+        db.execSQL(SQL_CREATE_INDEX_THINGS_FOLDER_ID)
+        db.execSQL(SQL_CREATE_INDEX_THING_FOLDERS_PARENT_FOLDER_ID)
 
         db.execSQL(generateInsertInitialSQL(0, Thing.WELCOME_UNDERWAY,
                 R.string.welcome_underway_title, R.string.welcome_underway_content))
@@ -111,7 +114,10 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
         if (oldVersion < 14) {
             migrateDetailAttachmentMediaAppearanceColumn(db)
         }
-        // released version should be 1, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14.
+        if (oldVersion < 15) {
+            migrateThingFolders(db)
+        }
+        // released version should be 1, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15.
     }
 
     private fun migrateThingCardSettingsColumns(db: SQLiteDatabase) {
@@ -165,6 +171,18 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
         db.execSQL(SQL_MIGRATE_DETAIL_ATTACHMENT_MEDIA_APPEARANCE_DEFAULT)
     }
 
+    private fun migrateThingFolders(db: SQLiteDatabase) {
+        if (!columnExists(
+                db, Def.Database.TABLE_THINGS,
+                Def.Database.COLUMN_FOLDER_ID_THINGS
+            )) {
+            db.execSQL(SQL_ADD_COLUMN_FOLDER_ID_THINGS)
+        }
+        db.execSQL(SQL_CREATE_TABLE_THING_FOLDERS)
+        db.execSQL(SQL_CREATE_INDEX_THINGS_FOLDER_ID)
+        db.execSQL(SQL_CREATE_INDEX_THING_FOLDERS_PARENT_FOLDER_ID)
+    }
+
     private fun columnExists(db: SQLiteDatabase, tableName: String, columnName: String): Boolean {
         db.rawQuery("pragma table_info($tableName)", null).use { cursor ->
             val nameIndex = cursor.getColumnIndex("name")
@@ -207,7 +225,7 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
                 Thing.THING_CARD_SPAN_NORMAL + "', '" +
                 Thing.THING_CARD_IMAGE_PLACEMENT_DEFAULT + "', '" +
                 ThingCardAppearance.default().toJson() + "', '" +
-                DetailAttachmentMediaAppearance.default().toJson() + "')"
+                DetailAttachmentMediaAppearance.default().toJson() + "', NULL)"
     }
 
 //    private String generateTestSQL(int id, String title, String content) {
@@ -249,8 +267,34 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
                     Def.Database.COLUMN_THING_CARD_APPEARANCE_THINGS +
                         " text, " /* added in version 13 */ +
                     Def.Database.COLUMN_DETAIL_ATTACHMENT_MEDIA_APPEARANCE_THINGS +
-                        " text" /* added in version 14 */ +
+                        " text, " /* added in version 14 */ +
+                    Def.Database.COLUMN_FOLDER_ID_THINGS +
+                        " integer default null" /* added in version 15 */ +
                 ")"
+
+        private const val SQL_CREATE_TABLE_THING_FOLDERS: String =
+            "create table if not exists " + Def.Database.TABLE_THING_FOLDERS + " (" +
+                Def.Database.COLUMN_ID_THING_FOLDERS + " integer primary key, " +
+                Def.Database.COLUMN_PARENT_FOLDER_ID_THING_FOLDERS + " integer default null, " +
+                Def.Database.COLUMN_TITLE_THING_FOLDERS + " text not null, " +
+                Def.Database.COLUMN_STATE_THING_FOLDERS + " integer not null, " +
+                Def.Database.COLUMN_COLOR_THING_FOLDERS + " integer, " +
+                Def.Database.COLUMN_BACKGROUND_THING_FOLDERS + " text, " +
+                Def.Database.COLUMN_LOCATION_THING_FOLDERS + " integer, " +
+                Def.Database.COLUMN_IS_PRIVATE_THING_FOLDERS + " integer not null default 0, " +
+                Def.Database.COLUMN_CREATE_TIME_THING_FOLDERS + " integer, " +
+                Def.Database.COLUMN_UPDATE_TIME_THING_FOLDERS + " integer, " +
+                Def.Database.COLUMN_CARD_PRESENTATION_THING_FOLDERS + " text" +
+            ")"
+
+        private const val SQL_CREATE_INDEX_THINGS_FOLDER_ID: String =
+            "create index if not exists idx_things_folder_id on " +
+                Def.Database.TABLE_THINGS + " (" + Def.Database.COLUMN_FOLDER_ID_THINGS + ")"
+
+        private const val SQL_CREATE_INDEX_THING_FOLDERS_PARENT_FOLDER_ID: String =
+            "create index if not exists idx_thing_folders_parent_folder_id on " +
+                Def.Database.TABLE_THING_FOLDERS + " (" +
+                Def.Database.COLUMN_PARENT_FOLDER_ID_THING_FOLDERS + ")"
 
         private const val SQL_CREATE_TABLE_REMINDERS: String = "create table if not exists " +
                 Def.Database.TABLE_REMINDERS + " (" +
@@ -345,7 +389,7 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
                 Thing.THING_CARD_SPAN_NORMAL + "', '" +
                 Thing.THING_CARD_IMAGE_PLACEMENT_DEFAULT + "', '" +
                 ThingCardAppearance.default().toJson() + "', '" +
-                DetailAttachmentMediaAppearance.default().toJson() + "')"
+                DetailAttachmentMediaAppearance.default().toJson() + "', NULL)"
 
         private const val SQL_ADD_COLUMN_ALPHA_APP_WIDGET: String = "alter table " +
                 Def.Database.TABLE_APP_WIDGET +
@@ -389,6 +433,10 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
             "alter table " + Def.Database.TABLE_THINGS +
                 " add column " +
                 Def.Database.COLUMN_DETAIL_ATTACHMENT_MEDIA_APPEARANCE_THINGS + " text"
+
+        private const val SQL_ADD_COLUMN_FOLDER_ID_THINGS: String =
+            "alter table " + Def.Database.TABLE_THINGS +
+                " add column " + Def.Database.COLUMN_FOLDER_ID_THINGS + " integer default null"
 
         private const val SQL_COPY_THING_CARD_SPAN_MODE_FROM_LEGACY: String = "update " +
                 Def.Database.TABLE_THINGS +

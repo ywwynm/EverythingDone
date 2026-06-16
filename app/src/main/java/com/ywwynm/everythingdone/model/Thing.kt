@@ -35,7 +35,8 @@ open class Thing(
     thingCardSpanMode: Int = THING_CARD_SPAN_NORMAL,
     thingCardImagePlacement: Int = THING_CARD_IMAGE_PLACEMENT_DEFAULT,
     thingCardAppearance: ThingCardAppearance? = null,
-    detailAttachmentMediaAppearance: DetailAttachmentMediaAppearance? = null
+    detailAttachmentMediaAppearance: DetailAttachmentMediaAppearance? = null,
+    var folderId: Long? = null
 ) : Parcelable {
 
     private var _color: Int = color
@@ -78,7 +79,8 @@ open class Thing(
         thing.createTime, thing.updateTime, thing.finishTime,
         thing.thingCardSpanMode, thing.thingCardImagePlacement,
         thing.thingCardAppearance,
-        thing.detailAttachmentMediaAppearance
+        thing.detailAttachmentMediaAppearance,
+        thing.folderId
     ) {
         _background = thing._background
         selected = thing.selected
@@ -122,6 +124,10 @@ open class Thing(
             if (detailAppearance != null) {
                 detailAttachmentMediaAppearance = detailAppearance
             }
+        }
+        if (`in`.dataAvail() > 0) {
+            val hasFolderId = `in`.readInt() == 1
+            folderId = if (hasFolderId) `in`.readLong() else null
         }
     }
 
@@ -176,6 +182,10 @@ open class Thing(
             if (appearance != null) {
                 detailAttachmentMediaAppearance = appearance
             }
+        }
+        val folderIdCol = c.getColumnIndex(Def.Database.COLUMN_FOLDER_ID_THINGS)
+        if (folderIdCol >= 0 && !c.isNull(folderIdCol)) {
+            folderId = c.getLong(folderIdCol)
         }
     }
 
@@ -289,6 +299,12 @@ open class Thing(
         dest.writeInt(thingCardImagePlacement)
         dest.writeString(thingCardAppearance.toJson())
         dest.writeString(detailAttachmentMediaAppearance.toJson())
+        if (folderId != null) {
+            dest.writeInt(1)
+            dest.writeLong(folderId!!)
+        } else {
+            dest.writeInt(0)
+        }
     }
 
     @IntDef(-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)

@@ -108,6 +108,14 @@ abstract class BaseThingsAdapter(context: Context?) :
     protected abstract fun getCurrentMode(): Int
     protected abstract fun getThings(): List<Thing?>?
 
+    protected open fun getThingAt(position: Int): Thing? {
+        return getThings()!![position]
+    }
+
+    protected open fun getEntryCount(): Int {
+        return getThings()!!.size
+    }
+
     protected open fun isFullSpanThingCard(thing: Thing): Boolean = false
 
     /**
@@ -217,14 +225,14 @@ abstract class BaseThingsAdapter(context: Context?) :
 
     private fun shouldUseFixedCardContentWidth(thing: Thing): Boolean {
         return isFullSpanThingCard(thing)
-                || thing.isPrivate() && !mShouldShowPrivateContent
+                || isThingEffectivelyPrivate(thing) && !mShouldShowPrivateContent
                 || ThingCardMediaHelper.resolveEffectiveMediaSource(thing) != null
     }
 
     private fun shouldUseMediaBackgroundForeground(thing: Thing): Boolean {
         return thing.thingCardAppearance.mediaBackgroundEnabled
                 && ThingCardMediaHelper.resolveEffectiveMediaSource(thing) != null
-                && !(thing.isPrivate() && !mShouldShowPrivateContent)
+                && !(isThingEffectivelyPrivate(thing) && !mShouldShowPrivateContent)
     }
 
     private fun getThingCardForegroundBaseColor(thing: Thing): Int {
@@ -295,6 +303,10 @@ abstract class BaseThingsAdapter(context: Context?) :
         return false
     }
 
+    protected open fun isThingEffectivelyPrivate(thing: Thing): Boolean {
+        return thing.isPrivate()
+    }
+
     private fun applyUnselectedContentAlpha(
         holder: BaseThingViewHolder,
         background: ThingBackground?,
@@ -337,7 +349,7 @@ abstract class BaseThingsAdapter(context: Context?) :
     override fun onBindViewHolder(holder: BaseThingViewHolder, position: Int) {
         refreshCardWidthFromRecyclerView()
 
-        val thing: Thing = getThings()!![position]!!
+        val thing: Thing = getThingAt(position)!!
         setContentViewAppearance(holder, thing)
         setCardAppearance(holder, thing.getBackground(), thing.isSelected())
     }
@@ -348,7 +360,7 @@ abstract class BaseThingsAdapter(context: Context?) :
         updateCardForStickyOrOngoingNotification(holder, thing)
         updateCardForTitle(holder, thing)
 
-        if (thing.isPrivate() && !mShouldShowPrivateContent) {
+        if (isThingEffectivelyPrivate(thing) && !mShouldShowPrivateContent) {
             holder.cv!!.setShouldInterceptTouchEvent(true)
             holder.ivPrivateThing!!.visibility = View.VISIBLE
             androidx.core.widget.ImageViewCompat.setImageTintList(
@@ -2393,11 +2405,11 @@ abstract class BaseThingsAdapter(context: Context?) :
     }
 
     override fun getItemViewType(position: Int): Int {
-        return getThings()!![position]!!.type
+        return getThingAt(position)!!.type
     }
 
     override fun getItemCount(): Int {
-        return getThings()!!.size
+        return getEntryCount()
     }
 
     open class BaseThingViewHolder(item: View?) : BaseViewHolder(item) {

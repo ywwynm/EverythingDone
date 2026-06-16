@@ -8,6 +8,22 @@ EverythingDone is a personal task and note application where each thing carries 
 A user-created note, task, reminder, habit, goal, or related item whose own background colour is part of its identity.
 _Avoid_: note as the blanket term for all things
 
+**Thing Folder**:
+A user-created container that groups Things and may itself live inside another Thing Folder.
+_Avoid_: note folder, category, tag
+
+**Private Thing Folder**:
+A Thing Folder whose folder identity, contained previews, and descendant content presentation are protected while the descendants remain inside it.
+_Avoid_: secret category, hidden tag
+
+**Deleted Thing Folder**:
+A Thing Folder moved to the Deleted destination while preserving its child structure for restore or permanent deletion.
+_Avoid_: deleted note folder, removed category
+
+**Thing Folder Path**:
+The ordered chain of Thing Folders from the top-level list to the current nested Thing Folder.
+_Avoid_: breadcrumb as the domain term
+
 **Thing Background**:
 The colour or gradient owned by a Thing and used as the highest-priority visual background when displaying that Thing.
 _Avoid_: app theme colour, page background
@@ -23,6 +39,10 @@ _Avoid_: dark-mode foreground
 **Thing Card**:
 A compact card representation of a Thing, used by the home list and embedded single-card surfaces such as Doing and noticeable reminder surfaces. Its layout may differ from the Detail screen while preserving the Thing's identity.
 _Avoid_: note card as the blanket term
+
+**Thing Folder Card**:
+A compact card representation of a Thing Folder on a list surface.
+_Avoid_: folder row, note folder card
 
 **Full-Span Thing Card**:
 A Thing Card that is intentionally presented with a wider card span as a persistent presentation preference of that Thing.
@@ -131,6 +151,15 @@ _Avoid_: full-row clickable surface, full-card clickable surface, full-row actio
 ## Relationships
 
 - A **Thing** has one **Thing Background**.
+- A **Thing** may belong to one **Thing Folder**.
+- A **Thing Folder** may contain zero or more **Things**.
+- A **Thing Folder** may contain zero or more child **Thing Folders**.
+- A **Thing Folder** may have one parent **Thing Folder**.
+- A **Thing Folder** may be a **Private Thing Folder**.
+- A **Thing Folder** may be a **Deleted Thing Folder**.
+- A **Private Thing Folder** protects descendant **Things** and child **Thing Folders** while they remain inside it.
+- A **Deleted Thing Folder** preserves descendant **Things** and child **Thing Folders** while it remains restorable.
+- A **Thing Folder Path** identifies the current nested **Thing Folder** location.
 - A **Thing Background** can be described by **Thing Background Information**.
 - A **Thing Background** overrides **Appearance Mode** for Thing-owned surfaces.
 - A **Thing Foreground** adapts to the visible Thing-owned background, not to **Appearance Mode**.
@@ -182,6 +211,7 @@ _Avoid_: full-row clickable surface, full-card clickable surface, full-row actio
 - "Button" can mean either a local command control or an entire clickable row/card; resolved as **Button-like Control** for local command controls only.
 - "Note card" can mean only a Note-type Thing or any card representation; resolved as **Thing Card** when discussing shared card presentation.
 - "Home card" can mean a card shown only in the home list or a shared card presentation preference; resolved as **Thing Card** for reusable card presentation choices.
+- "Note folder" sounds like it only contains Note-type Things; resolved as **Thing Folder** because EverythingDone's user-created items are Things across notes, reminders, habits, and goals.
 - "Image thumbnail" can exclude video thumbnails; resolved as **Thing Card Media** when discussing image or video thumbnails used by Thing Cards.
 - "Card background image" can mean replacing the Thing's identity background or only changing a card presentation; resolved as **Thing Card Media Background**, which does not replace **Thing Background**.
 - "Side image width", "cover image ratio", and "card height" can describe different controls for the shape of **Thing Card Media Target**; resolved as **Thing Card Media Target Aspect Ratio**.
