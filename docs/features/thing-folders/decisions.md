@@ -91,8 +91,9 @@ Sticky Folder Cards participate in the same top-of-list sticky area as sticky
 Thing Cards. A sticky Folder Card stays sticky as a folder property, not only in
 one built-in projection.
 
-Thing Folders can be private. Private Folder Cards must not expose protected
-folder identity or contained previews when private content is hidden.
+Thing Folders can be private. Private Folder Cards protect access and contained
+previews when private content is hidden. The original hidden-title behavior is
+superseded by the 2026-06-17 Private Folder Card title decision below.
 
 ## 2026-06-15 - Private folder privacy inherits for display and access
 
@@ -274,6 +275,24 @@ ratio in addition to crop center and user scale. Foreground thumbnails and
 side-panel media use `ThingCardThumbnailCrop.sourceAspectRatio`; media
 background previews use the source presentation's media-background target
 aspect ratio. This applies to images and video frames.
+
+## 2026-06-17 - Moves insert first and empty folders are removed
+
+When a Thing or Thing Folder moves into a different Thing Folder, moves back to
+its previous parent, or moves back to root, the moved entry becomes the first
+item in that target root or target Folder's corresponding sticky or non-sticky
+section, preserving the entry's existing sticky state. The move should not
+preserve the entry's old relative order from its source container.
+
+After a move leaves a Thing Folder with no direct child Things and no direct
+child Thing Folders, the now-empty Folder is deleted automatically.
+
+## 2026-06-17 - Private Folder Cards keep visible titles
+
+Private Thing Folder Cards still show the Folder's stored title when private
+content is hidden. The card may keep a lock indicator and must continue to hide
+contained thumbnail previews until authentication, but the Folder name itself is
+not treated as protected card content.
 
 ## 2026-06-15 - Deleting a folder moves the folder subtree to Deleted
 

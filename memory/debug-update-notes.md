@@ -1,5 +1,19 @@
 # Current Debug Update Notes
 
+## 2026-06-17 - 调整文件夹移动顺序、空文件夹清理和私密文件夹标题
+
+用户希望记事或文件夹进入新的文件夹、回到之前的文件夹或回到根目录时，不再保留原来的顺序，而是成为目标位置的第一项；同时，文件夹被移空后应直接删除。随后又补充：私密文件夹卡片也要显示文件夹名称。
+
+本次把移动规则集中到 `ThingManager.kt`：单个记事拖入文件夹、多选记事移动到文件夹/根目录、文件夹移动到另一个文件夹/根目录，以及取消刚创建的文件夹时，都重新分配目标容器内的位置，不再沿用来源容器里的旧 `location`。普通项会进入目标容器普通区第一项；原本置顶的记事或文件夹会保持置顶状态，并进入目标容器置顶区第一项。多选移动时会按当前可见顺序把这一组选中的记事放到目标顶部。
+
+为支持这个规则，`ThingFolderDAO.kt` 新增了混合直接子项位置查询，计算目标容器内直接子记事和直接子文件夹的最大/最小 `location`；`ThingDAO.kt` 新增 `updateFolderIdAndLocation(...)`，`ThingFolderDAO.kt` 新增 `updateParentAndLocation(...)`，移动时同时写入新的父级和新位置。
+
+空文件夹清理也放在 `ThingManager.kt`。当记事或子文件夹被移出后，如果来源文件夹已经没有直接子记事、也没有直接子文件夹，就直接删除该文件夹记录；如果删除后它的父文件夹也变空，会继续向上清理。若用户当前正停留在被删除的文件夹路径里，当前投影会自动退回到仍存在的父路径或根目录。
+
+私密文件夹卡片显示也已调整：`ThingsAdapter.kt` 不再把隐藏状态下的私密文件夹标题替换成“私密文件夹”，而是继续显示真实文件夹名称；卡片仍保留锁图标，并且在未认证前继续隐藏缩略图和内部预览。
+
+相关规则已同步到 `docs/features/thing-folders/preferences.md`、`decisions.md`、`plan.md`、`execution.md` 和 `sessions.md`。验证状态：`git diff --check` 通过；已执行 `.\gradlew.bat :app:assembleDebug --console=plain`，结果 `BUILD SUCCESSFUL`。发布状态：准备使用本说明发布 debug update。
+
 ## 2026-06-17 - 统一把本地媒体裁切改为预先烘焙 bitmap
 
 用户确认上一版“文件夹缩略图上下视频封面直接生成裁切 bitmap”的方式已经解决问题，随后希望把所有仍依赖 `ImageView.imageMatrix` 的展示路径都改成“事先切好 bitmap，再直接放进 ImageView”。本次将这个窄修复推广为本地媒体展示的统一路径。

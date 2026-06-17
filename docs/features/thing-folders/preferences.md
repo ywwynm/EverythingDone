@@ -8,6 +8,23 @@
 - Folder navigation should happen through Folder Cards and clickable header
   path segments within the active built-in destination projection.
 
+## Move Semantics
+
+- When a Thing or Thing Folder is moved into a different Thing Folder, moved
+  back to its previous parent, or moved back to root, it should not preserve its
+  old relative order. The moved entry should become the first item in the target
+  root or target Folder's corresponding sticky or non-sticky section, preserving
+  the entry's existing sticky state.
+- When a Thing Folder becomes empty after moving Things or child Folders out of
+  it, delete that empty Folder automatically.
+
+## Private Folder Cards
+
+- Private Thing Folder cards should still show the Folder's stored name even
+  when private content is hidden. The card may keep a lock indicator and should
+  continue to hide contained thumbnails/previews until the private content is
+  authenticated.
+
 ## Position Naming
 
 - In Thing/Folder home-list code, use `thingIndex` only for the pure

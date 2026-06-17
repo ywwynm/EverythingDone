@@ -224,8 +224,8 @@ Eligibility:
   Card count uses that destination's matching descendant Things. In Underway,
   the count uses matching underway descendant Things.
 - Folder Cards may be private. When private content is hidden, a private Folder
-  Card uses the selected protected presentation instead of exposing its title,
-  thumbnails, or contained previews.
+  Card still shows its stored title, while thumbnails and contained previews
+  remain protected until authentication.
 - Child thumbnails inherit effective privacy from ancestor Private Thing
   Folders; a non-private child inside a Private Thing Folder must not leak
   visible content through a thumbnail.
@@ -319,8 +319,8 @@ inside every card if that would destabilize scrolling.
   hidden. This matches existing header count behavior.
 - Hidden private descendants may contribute to counts without contributing a
   visible thumbnail or preview card.
-- Private Thing Folders must not expose their protected title, thumbnails, or
-  contained previews while private content is hidden.
+- Private Thing Folders keep their card title visible while private content is
+  hidden, but must not expose protected thumbnails or contained previews.
 - Private Thing Folder privacy inherits to descendant Things and child folders
   for display and access while they remain inside the private folder.
 - Inherited effective privacy does not rewrite a descendant's own stored private

@@ -363,14 +363,9 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         } else {
             folder.getBackground()?.representativeColor() ?: folder.getColor()
         }
-        val title = if (hiddenPrivate) {
-            mApp!!.getString(R.string.private_thing_folder)
-        } else {
-            folder.title
-        }
         bindFolderCardHeader(
             holder,
-            title,
+            folder.title,
             if (hiddenPrivate) R.drawable.ic_locked_big else R.drawable.ic_thing_folder,
             baseColor
         )

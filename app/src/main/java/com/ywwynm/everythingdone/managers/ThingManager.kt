@@ -937,11 +937,16 @@ open class ThingManager private constructor(context: Context?) {
             return false
         }
 
-        for (thing in createdFolderMembers) {
-            thing.folderId = folder.parentFolderId
-            mDao!!.updateFolderId(thing.id, folder.parentFolderId)
+        for (i in createdFolderMembers.indices.reversed()) {
+            val thing = createdFolderMembers[i]
+            moveThingIntoFolderInternal(
+                thing,
+                folder.parentFolderId,
+                cleanUpEmptySource = false
+            )
         }
         mFolderDao!!.deleteRecord(folder.id)
+        trimProjectionToExistingFolders()
         loadThings()
         return true
     }
@@ -954,11 +959,27 @@ open class ThingManager private constructor(context: Context?) {
 
     open fun moveThingIntoFolder(thing: Thing?, folderId: Long?, reload: Boolean = true) {
         if (thing == null || thing.type == Thing.HEADER) return
-        thing.folderId = folderId
-        mDao!!.updateFolderId(thing.id, folderId)
-        if (reload) {
+        val changed = moveThingIntoFolderInternal(thing, folderId)
+        if (changed && reload) {
             loadThings()
         }
+    }
+
+    private fun moveThingIntoFolderInternal(
+        thing: Thing,
+        folderId: Long?,
+        cleanUpEmptySource: Boolean = true
+    ): Boolean {
+        val sourceFolderId = thing.folderId
+        if (sourceFolderId == folderId) return false
+        val newLocation = mFolderDao!!.getFirstChildLocation(folderId, thing.location < 0)
+        thing.folderId = folderId
+        thing.location = newLocation
+        mDao!!.updateFolderIdAndLocation(thing.id, folderId, newLocation)
+        if (cleanUpEmptySource) {
+            cleanupEmptyFoldersFrom(sourceFolderId)
+        }
+        return true
     }
 
     open fun getThingMoveTargetFolders(): List<ThingFolder> {
@@ -973,16 +994,17 @@ open class ThingManager private constructor(context: Context?) {
     open fun moveSelectedThingsIntoFolder(folderId: Long?): Boolean {
         val selectedThings = getSelectedThings() ?: return false
         var changed = false
-        for (thing in selectedThings) {
+        for (i in selectedThings.indices.reversed()) {
+            val thing = selectedThings[i]
             if (!canMoveThingToFolder(thing)) continue
             if (thing!!.folderId == folderId) {
                 thing.selected = false
                 continue
             }
-            thing.folderId = folderId
             thing.selected = false
-            mDao!!.updateFolderId(thing.id, folderId)
-            changed = true
+            if (moveThingIntoFolderInternal(thing, folderId)) {
+                changed = true
+            }
         }
         if (changed) {
             loadThings()
@@ -1017,10 +1039,42 @@ open class ThingManager private constructor(context: Context?) {
         if (folder == null) return false
         if (parentFolderId == folder.id) return false
         if (mFolderDao!!.isDescendantOf(parentFolderId, folder.id)) return false
+        val sourceParentFolderId = folder.parentFolderId
+        if (sourceParentFolderId == parentFolderId) return false
+        val newLocation = mFolderDao!!.getFirstChildLocation(parentFolderId, folder.isSticky())
         folder.parentFolderId = parentFolderId
-        mFolderDao!!.updateParent(folder.id, parentFolderId)
+        folder.location = newLocation
+        mFolderDao!!.updateParentAndLocation(folder.id, parentFolderId, newLocation)
+        cleanupEmptyFoldersFrom(sourceParentFolderId)
         loadThings()
         return true
+    }
+
+    private fun cleanupEmptyFoldersFrom(folderId: Long?) {
+        var currentFolderId = folderId
+        val visited = HashSet<Long>()
+        while (currentFolderId != null && visited.add(currentFolderId)) {
+            val folder = mFolderDao!!.getFolderById(currentFolderId) ?: break
+            if (!mFolderDao!!.isStructurallyEmpty(currentFolderId)) break
+            val parentFolderId = folder.parentFolderId
+            mAuthenticatedPrivateFolderIds.remove(currentFolderId)
+            mFolderDao!!.deleteRecord(currentFolderId)
+            currentFolderId = parentFolderId
+        }
+        trimProjectionToExistingFolders()
+    }
+
+    private fun trimProjectionToExistingFolders() {
+        if (mProjection.folderPath.isEmpty()) return
+        val existingPath = ArrayList<Long>()
+        for (folderId in mProjection.folderPath) {
+            if (mFolderDao!!.getFolderById(folderId) == null) break
+            existingPath.add(folderId)
+        }
+        if (existingPath.size != mProjection.folderPath.size) {
+            mProjection = mProjection.copy(folderPath = existingPath)
+            trimAuthenticatedPrivateFoldersToProjection()
+        }
     }
 
     open fun renameFolder(folder: ThingFolder?, title: String): Boolean {

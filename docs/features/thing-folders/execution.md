@@ -108,8 +108,8 @@ off only after the behavior is implemented and verified against `plan.md`.
 - [x] Render recursive Folder Card counts consistently across summary and
       thumbnail modes.
 - [x] Render sticky indicator/state for sticky Folder Cards.
-- [x] Render private Folder Cards without exposing protected folder identity or
-      contained previews when private content is hidden.
+- [x] Render private Folder Cards with the stored Folder title visible while
+      hiding contained previews when private content is hidden.
 - [x] Render Things and child Folder Cards as effectively private when any
       ancestor folder is private and private content is hidden.
 - [x] Render Deleted Thing Folders only in Deleted projections unless restored.

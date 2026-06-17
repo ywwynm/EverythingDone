@@ -509,6 +509,13 @@ open class ThingDAO private constructor(context: Context?) {
         db!!.update(Def.Database.TABLE_THINGS, values, "id=$thingId", null)
     }
 
+    open fun updateFolderIdAndLocation(thingId: Long, folderId: Long?, location: Long) {
+        val values = ContentValues(2)
+        putFolderId(values, folderId)
+        values.put(Def.Database.COLUMN_LOCATION_THINGS, location)
+        db!!.update(Def.Database.TABLE_THINGS, values, "id=$thingId", null)
+    }
+
     open fun getThingFolderId(thingId: Long): Long? {
         val cursor = db!!.query(
             Def.Database.TABLE_THINGS,

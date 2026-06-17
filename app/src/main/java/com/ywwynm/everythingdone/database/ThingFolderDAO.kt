@@ -144,6 +144,19 @@ open class ThingFolderDAO private constructor(context: Context?) {
         db!!.update(Def.Database.TABLE_THING_FOLDERS, values, "id=$folderId", null)
     }
 
+    open fun updateParentAndLocation(
+        folderId: Long,
+        parentFolderId: Long?,
+        location: Long
+    ) {
+        if (parentFolderId == folderId || isDescendantOf(parentFolderId, folderId)) return
+        val values = ContentValues(3)
+        putNullableLong(values, Def.Database.COLUMN_PARENT_FOLDER_ID_THING_FOLDERS, parentFolderId)
+        values.put(Def.Database.COLUMN_LOCATION_THING_FOLDERS, location)
+        values.put(Def.Database.COLUMN_UPDATE_TIME_THING_FOLDERS, System.currentTimeMillis())
+        db!!.update(Def.Database.TABLE_THING_FOLDERS, values, "id=$folderId", null)
+    }
+
     open fun updateState(folderId: Long, @Thing.State state: Int) {
         val values = ContentValues(2)
         values.put(Def.Database.COLUMN_STATE_THING_FOLDERS, state)
@@ -297,6 +310,26 @@ open class ThingFolderDAO private constructor(context: Context?) {
             Def.Database.COLUMN_ID_THING_FOLDERS + "=$folderId",
             null
         )
+    }
+
+    open fun isStructurallyEmpty(folderId: Long): Boolean {
+        return !hasRows(
+            Def.Database.TABLE_THINGS,
+            directUserThingSelection(folderId)
+        ) && !hasRows(
+            Def.Database.TABLE_THING_FOLDERS,
+            parentSelection(folderId)
+        )
+    }
+
+    open fun getFirstChildLocation(parentFolderId: Long?, sticky: Boolean): Long {
+        return if (sticky) {
+            val minLocation = minDirectChildLocation(parentFolderId, sticky = true)
+            if (minLocation == null || minLocation >= 0L) -1L else minLocation - 1L
+        } else {
+            val maxLocation = maxDirectChildLocation(parentFolderId, sticky = false)
+            if (maxLocation == null || maxLocation < 0L) 1L else maxLocation + 1L
+        }
     }
 
     private fun getThumbnailEntriesForProjection(
@@ -485,6 +518,107 @@ open class ThingFolderDAO private constructor(context: Context?) {
                 .append(" like '%").append(kw).append("%')")
         }
         return selection.toString()
+    }
+
+    private fun directUserThingSelection(parentFolderId: Long?): String {
+        return userThingSelection() + " and " + thingParentSelection(parentFolderId)
+    }
+
+    private fun thingParentSelection(parentFolderId: Long?): String {
+        return if (parentFolderId == null) {
+            Def.Database.COLUMN_FOLDER_ID_THINGS + " is null"
+        } else {
+            Def.Database.COLUMN_FOLDER_ID_THINGS + "=$parentFolderId"
+        }
+    }
+
+    private fun maxDirectChildLocation(parentFolderId: Long?, sticky: Boolean): Long? {
+        return combineLocations(
+            directChildThingLocation(parentFolderId, "max", sticky),
+            directChildFolderLocation(parentFolderId, "max", sticky),
+            { first, second -> maxOf(first, second) }
+        )
+    }
+
+    private fun minDirectChildLocation(parentFolderId: Long?, sticky: Boolean): Long? {
+        return combineLocations(
+            directChildThingLocation(parentFolderId, "min", sticky),
+            directChildFolderLocation(parentFolderId, "min", sticky),
+            { first, second -> minOf(first, second) }
+        )
+    }
+
+    private fun directChildThingLocation(
+        parentFolderId: Long?,
+        aggregate: String,
+        sticky: Boolean
+    ): Long? {
+        return aggregateLocation(
+            Def.Database.TABLE_THINGS,
+            Def.Database.COLUMN_LOCATION_THINGS,
+            directUserThingSelection(parentFolderId) + locationSectionSelection(
+                Def.Database.COLUMN_LOCATION_THINGS,
+                sticky
+            ),
+            aggregate
+        )
+    }
+
+    private fun directChildFolderLocation(
+        parentFolderId: Long?,
+        aggregate: String,
+        sticky: Boolean
+    ): Long? {
+        return aggregateLocation(
+            Def.Database.TABLE_THING_FOLDERS,
+            Def.Database.COLUMN_LOCATION_THING_FOLDERS,
+            parentSelection(parentFolderId) + locationSectionSelection(
+                Def.Database.COLUMN_LOCATION_THING_FOLDERS,
+                sticky
+            ),
+            aggregate
+        )
+    }
+
+    private fun locationSectionSelection(locationColumn: String, sticky: Boolean): String {
+        return if (sticky) {
+            " and $locationColumn<0"
+        } else {
+            " and $locationColumn>=0"
+        }
+    }
+
+    private fun aggregateLocation(
+        table: String,
+        locationColumn: String,
+        selection: String,
+        aggregate: String
+    ): Long? {
+        val cursor = db!!.rawQuery(
+            "select $aggregate($locationColumn) from $table where $selection",
+            null
+        )
+        cursor.use {
+            if (!it.moveToFirst() || it.isNull(0)) return null
+            return it.getLong(0)
+        }
+    }
+
+    private fun combineLocations(
+        first: Long?,
+        second: Long?,
+        combine: (Long, Long) -> Long
+    ): Long? {
+        if (first == null) return second
+        if (second == null) return first
+        return combine(first, second)
+    }
+
+    private fun hasRows(table: String, selection: String): Boolean {
+        val cursor = db!!.rawQuery("select 1 from $table where $selection limit 1", null)
+        cursor.use {
+            return it.moveToFirst()
+        }
     }
 
     private fun hasColorFilter(color: Int): Boolean {

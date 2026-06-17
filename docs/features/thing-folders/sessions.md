@@ -1,5 +1,28 @@
 # Thing Folders Sessions
 
+## 2026-06-17 - Move entries to target top and keep private Folder titles visible
+
+- Updated Thing/Folder move semantics so moving a Thing into another Folder,
+  moving selected Things to a Folder/root, moving a Folder to another
+  Folder/root, and canceling a just-created Folder all assign the moved entry a
+  fresh first-position location in the target container instead of preserving
+  its old source-container order. Sticky entries keep sticky state and move to
+  the first position within the target sticky section; non-sticky entries move
+  to the first non-sticky position.
+- Added mixed direct-child location queries in `ThingFolderDAO`, covering both
+  direct child Things and direct child Folders. `ThingManager` now uses those
+  queries when writing Thing `folderId + location` and Folder
+  `parentFolderId + location` together.
+- Added automatic cleanup for source Folders that become structurally empty
+  after moving Things or child Folders out. Cleanup walks upward through empty
+  ancestors and trims the active Folder projection if the user was viewing a
+  Folder that was removed.
+- Changed private Folder Card binding so hidden private Folder Cards keep the
+  stored Folder title visible while still hiding thumbnail/contained previews
+  and keeping the lock indicator.
+- Verified with `git diff --check` and
+  `.\gradlew.bat :app:assembleDebug --console=plain`.
+
 ## 2026-06-17 - Generalize the baked media crop path after Folder preview fix
 
 - The previous Folder thumbnail foreground-video-only baked crop trial solved
