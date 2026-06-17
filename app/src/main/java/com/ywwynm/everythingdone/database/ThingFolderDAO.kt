@@ -105,11 +105,16 @@ open class ThingFolderDAO private constructor(context: Context?) {
             val effectivePrivate = isEffectivelyPrivate(folder)
             val count = countDescendantThingsForProjection(folder, limit, keyword, color)
             if (count <= 0) continue
+            val thumbnailEntries = getThumbnailEntriesForProjection(folder, limit, keyword, color)
             entries.add(
                 ThingListEntry.FolderEntry(
                     folder = folder,
                     recursiveThingCount = count,
-                    thumbnailThings = getThumbnailThingsForProjection(folder, limit, keyword, color),
+                    directFolderCount = countDirectChildFoldersForProjection(
+                        folder, limit, keyword, color
+                    ),
+                    thumbnailEntries = thumbnailEntries.entries,
+                    thumbnailEntryCount = thumbnailEntries.totalCount,
                     effectivePrivate = effectivePrivate,
                     effectiveDeleted = effectiveDeleted
                 )
@@ -294,13 +299,13 @@ open class ThingFolderDAO private constructor(context: Context?) {
         )
     }
 
-    private fun getThumbnailThingsForProjection(
+    private fun getThumbnailEntriesForProjection(
         folder: ThingFolder,
         limit: Int,
         keyword: String?,
         color: Int
-    ): List<Thing> {
-        val maxCount = folder.cardPresentation.thumbnailLimit
+    ): ThumbnailEntriesProjection {
+        val maxCount = folder.cardPresentation.effectiveThumbnailPreviewLimit()
         val effectiveDeleted = isEffectivelyDeleted(folder)
         val selection = if (
             limit == Def.LimitForGettingThings.ALL_DELETED && effectiveDeleted
@@ -309,29 +314,89 @@ open class ThingFolderDAO private constructor(context: Context?) {
         } else {
             thingSelectionForLimit(limit)
         }
-        return getThumbnailThings(folder.id, selection, maxCount, keyword, color)
+        val entries = ArrayList<ThingListEntry>()
+        entries.addAll(getThumbnailFolderEntriesForProjection(folder, limit, keyword, color))
+        for (thing in getDirectThumbnailThings(folder.id, selection, keyword, color)) {
+            entries.add(ThingListEntry.ThingEntry(thing))
+        }
+        val sortedEntries = entries.sortedByDescending { it.location }
+        return ThumbnailEntriesProjection(
+            entries = sortedEntries.take(maxCount),
+            totalCount = sortedEntries.size
+        )
     }
 
-    private fun getThumbnailThings(
+    private fun getThumbnailFolderEntriesForProjection(
+        folder: ThingFolder,
+        limit: Int,
+        keyword: String?,
+        color: Int
+    ): List<ThingListEntry.FolderEntry> {
+        val entries = ArrayList<ThingListEntry.FolderEntry>()
+        for (childFolder in getChildFolders(folder.id)) {
+            if (!shouldIncludeFolderForProjection(childFolder, limit, keyword, color)) {
+                continue
+            }
+            entries.add(
+                ThingListEntry.FolderEntry(
+                    folder = childFolder,
+                    recursiveThingCount = countDescendantThingsForProjection(
+                        childFolder, limit, keyword, color
+                    ),
+                    directFolderCount = countDirectChildFoldersForProjection(
+                        childFolder, limit, keyword, color
+                    ),
+                    effectivePrivate = isEffectivelyPrivate(childFolder),
+                    effectiveDeleted = isEffectivelyDeleted(childFolder)
+                )
+            )
+        }
+        return entries
+    }
+
+    private fun countDirectChildFoldersForProjection(
+        folder: ThingFolder,
+        limit: Int,
+        keyword: String?,
+        color: Int
+    ): Int {
+        var count = 0
+        for (childFolder in getChildFolders(folder.id)) {
+            if (shouldIncludeFolderForProjection(childFolder, limit, keyword, color)) {
+                count++
+            }
+        }
+        return count
+    }
+
+    private fun shouldIncludeFolderForProjection(
+        folder: ThingFolder,
+        limit: Int,
+        keyword: String?,
+        color: Int
+    ): Boolean {
+        val effectiveDeleted = isEffectivelyDeleted(folder)
+        if (effectiveDeleted && limit != Def.LimitForGettingThings.ALL_DELETED) {
+            return false
+        }
+        return countDescendantThingsForProjection(folder, limit, keyword, color) > 0
+    }
+
+    private fun getDirectThumbnailThings(
         folderId: Long,
         thingSelection: String,
-        maxCount: Int,
         keyword: String?,
         color: Int
     ): List<Thing> {
-        val folderIds = getDescendantFolderIds(folderId)
-        if (folderIds.isEmpty()) return emptyList()
-        val idList = folderIds.joinToString(",")
         val things = ArrayList<Thing>()
         val cursor = db!!.query(
             Def.Database.TABLE_THINGS,
             null,
-            descendantThingSelection(idList, thingSelection, keyword),
+            directThingSelection(folderId, thingSelection, keyword),
             null,
             null,
             null,
-            Def.Database.COLUMN_LOCATION_THINGS + " desc",
-            if (hasColorFilter(color)) null else maxCount.toString()
+            Def.Database.COLUMN_LOCATION_THINGS + " desc"
         )
         cursor.use {
             while (it.moveToNext()) {
@@ -339,7 +404,6 @@ open class ThingFolderDAO private constructor(context: Context?) {
                 if (isEffectivelyPrivate(thing.folderId)) continue
                 if (!matchesColorFilter(thing, color)) continue
                 things.add(thing)
-                if (things.size >= maxCount) break
             }
         }
         return things
@@ -393,6 +457,25 @@ open class ThingFolderDAO private constructor(context: Context?) {
         val selection = StringBuilder()
         selection.append(Def.Database.COLUMN_FOLDER_ID_THINGS)
             .append(" in (").append(idList).append(") and (")
+            .append(thingSelection).append(")")
+        if (keyword != null) {
+            val kw = keyword.replace("'".toRegex(), "''")
+            selection.append(" and (")
+                .append(Def.Database.COLUMN_TITLE_THINGS).append(" like '%").append(kw)
+                .append("%' or ").append(Def.Database.COLUMN_CONTENT_THINGS)
+                .append(" like '%").append(kw).append("%')")
+        }
+        return selection.toString()
+    }
+
+    private fun directThingSelection(
+        folderId: Long,
+        thingSelection: String,
+        keyword: String?
+    ): String {
+        val selection = StringBuilder()
+        selection.append(Def.Database.COLUMN_FOLDER_ID_THINGS)
+            .append("=").append(folderId).append(" and (")
             .append(thingSelection).append(")")
         if (keyword != null) {
             val kw = keyword.replace("'".toRegex(), "''")
@@ -500,4 +583,9 @@ open class ThingFolderDAO private constructor(context: Context?) {
             return sThingFolderDAO
         }
     }
+
+    private data class ThumbnailEntriesProjection(
+        val entries: List<ThingListEntry>,
+        val totalCount: Int
+    )
 }

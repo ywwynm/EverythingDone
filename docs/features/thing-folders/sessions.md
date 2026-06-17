@@ -1,5 +1,277 @@
 # Thing Folders Sessions
 
+## 2026-06-17 - Folder thumbnail foreground video baked crop trial
+
+- After reviewing the device log for Thing `304` (`content="测试测试测试"`),
+  narrowed the remaining failure away from Folder-preview target geometry. That
+  Thing generated a `316x316` target, loaded a portrait `316x562` video-frame
+  drawable, and applied the expected `ImageView.ScaleType.MATRIX` crop. If the
+  visual output still appeared portrait, the failure was after or outside the
+  matrix-based display path.
+- Added a protected `BaseThingsAdapter.shouldBakeThingCardForegroundMediaCrop(...)`
+  hook. Normal Thing Cards, side media, and media backgrounds keep the existing
+  `ImageView.imageMatrix` path. `FolderThingPreviewAdapter` enables the hook
+  only for child Thing previews whose selected foreground media is video, media
+  background is disabled, and placement is top or bottom.
+- When the hook is enabled, `loadThingCardImage(...)` now appends the crop
+  fingerprint to the media cache/load key, converts the loaded video-frame
+  drawable into a target-sized bitmap using the same crop-center,
+  source-aspect-ratio, and user-scale calculation, sets that bitmap directly on
+  the `ImageView`, and skips later matrix replay for that render request. This
+  avoids relying on final `ImageView.imageMatrix` drawing state for the failing
+  Folder thumbnail top/bottom video path while keeping the behavioral surface
+  narrow for device testing.
+- Verified with `git diff --check` and
+  `.\gradlew.bat :app:assembleDebug --console=plain`.
+- Published debug update `202606171217` to the Aliyun debug channel and
+  verified remote `latest.json` points to
+  `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606171217.apk`.
+
+## 2026-06-17 - Folder thumbnail top/bottom video crop replay fix
+
+- Added targeted diagnostic logging for the still-failing Folder thumbnail
+  top/bottom foreground-video case. The logs use the unique
+  `[DEBUG-tf-video-crop]` prefix and are enabled only for `FolderThingPreviewAdapter`
+  child Thing previews whose selected media source is a video, media background
+  is disabled, and image placement is top or bottom. Each log line includes the
+  Thing id, title preview, content preview, media source key, media path, and
+  placement so the failing child Thing can be identified from logcat.
+- Instrumented the bind, foreground media load, Glide resource callback,
+  post-load render request, crop replay, and final matrix application stages.
+  The diagnostics record target width/height, thumbnail target aspect ratio,
+  folder preview surface height, crop values, video frame timestamp, current
+  view/layout sizes, drawable intrinsic size, cache/reuse path, and matrix
+  scale/offset inputs. This should distinguish whether the remaining failure is
+  caused by wrong generated geometry, video-frame drawable dimensions, skipped
+  crop replay, or a later layout/scaleType overwrite.
+- Published debug update `202606171203` to the Aliyun debug channel and
+  verified remote `latest.json` points to
+  `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606171203.apk`.
+- Reviewed logcat from the user's device for Thing `304`, whose content preview
+  is `测试测试测试`. The bind path generated a `316x316` foreground thumbnail
+  target for a bottom-placed video with target aspect ratio `0.99924934`, so
+  the Folder-preview minimum-height guard is not the active cause for this
+  Thing. Glide returned a portrait video-frame drawable (`316x562`), and the
+  crop replay/final post-load path applied a matrix against the `316x316`
+  target with source-aspect crop `0.99924934` and vertical offset `-62.455734`.
+  If this Thing still visually appears as an uncropped portrait video in the
+  Folder thumbnail, the remaining likely cause is that the applied
+  `ImageView.ScaleType.MATRIX` state is later overwritten or bypassed by final
+  drawing/layout state rather than the earlier target geometry calculation.
+- Reverted the ineffective follow-up changes that tried to fix the top/bottom
+  foreground-video case by adding a folder-thumbnail replay token, pre-draw
+  replay scheduling, and a post-bind top/bottom media reload path. Device
+  testing showed debug update `202606171003` still did not change the visible
+  result, so that approach was removed before trying the next fix.
+- Revised the diagnosis: Folder thumbnail child previews reuse the normal
+  Thing Card top/bottom thumbnail height calculation, including the normal
+  card's min/max height guardrails based on `surfaceAvailableHeight`. In a
+  very narrow Folder preview column, the raw target height
+  `imageW / thumbnailTargetAspectRatio` can be smaller than that minimum, so
+  the minimum height wins and makes a default 4:3 or custom 1:1 thumbnail look
+  much taller, close to a portrait video's intrinsic ratio.
+- Added `BaseThingsAdapter.getThingCardForegroundThumbnailHeight(...)` as a
+  protected hook. Normal Thing Cards keep the existing min/max guardrails, but
+  `FolderThingPreviewAdapter` overrides the hook and returns the raw
+  `imageW / getThingCardThumbnailTargetAspectRatio(thing)` height. This makes
+  Folder thumbnail child cards generate top/bottom foreground media geometry
+  directly from the thumbnail presentation ratio during binding, instead of
+  trying to repair an already-bound media surface later.
+- Published debug update `202606171146` to the Aliyun debug channel and
+  verified remote `latest.json` returns that `debugUpdateCode` and APK URL.
+- After device testing still showed no visible effect from debug update
+  `202606171003`, generated a Chinese PDF analysis report at
+  `analysis/thing_folder_video_crop_flow_report.pdf`. The report documents the
+  current video-frame Drawable generation path, crop parameter sources, crop
+  matrix application, normal Thing Card media binding, Folder thumbnail preview
+  binding/scale/replay flow, and the differences between top/bottom,
+  left/right, and media-background media paths.
+- Follow-up device testing showed debug update `202606170954` did not fix the
+  top/bottom foreground-video thumbnail case. That version restored the target
+  height during replay, but still used a single `post { ... }` replay timing and
+  did not move foreground media to the same pre-draw/token pattern already used
+  by media backgrounds.
+- Left/right foreground media and media-background previews keep their existing
+  geometry paths.
+- Published debug update `202606170954` to the Aliyun debug channel and
+  verified remote `latest.json` returns that `debugUpdateCode` and APK URL.
+- Published corrected debug update `202606171003` to the Aliyun debug channel
+  and verified remote `latest.json` returns that `debugUpdateCode` and APK URL.
+
+## 2026-06-17 - Thumbnail gap, crop ratio, and folder crash fixes
+
+- Diagnosed two crash logs from device testing. Dragging inside a Folder could
+  crash in `RecyclerView.onDraw(...)` because the temporary Folder-drop outline
+  `ItemDecoration` was removed while RecyclerView was drawing its decoration
+  list. Creating a Thing inside a Folder could crash in
+  `ThingManager.deleteNEnow(...)` because folder projections may contain only
+  the header row and no notify-empty row at index 1.
+- Deferred Folder-drop outline decoration removal with `RecyclerView.post(...)`
+  while clearing the adapter's active decoration reference immediately. This
+  avoids mutating RecyclerView's decoration list during an active draw pass.
+- Guarded `deleteNEnow(...)` so it only deletes the notify-empty row when the
+  second `mThings` entry actually exists and is a notify-empty Thing.
+- Split Folder thumbnail vertical spacing into a 12dp count-to-first-preview
+  header gap and a 7dp child-preview item gap. Full-span masonry rows now own
+  their first top gap, and first children inside columns do not add another top
+  margin.
+- Updated Thing Card Media crop application so thumbnail/side media uses
+  `ThingCardThumbnailCrop.sourceAspectRatio`, and media-background previews
+  use the saved media-background target aspect ratio. The final matrix now
+  applies crop ratio, crop center, and user scale together for image and video
+  previews.
+- Verified with `git diff --check` and `.\gradlew.bat :app:assembleDebug`.
+- Published debug update `202606170830` to the Aliyun debug channel with
+  `memory/debug-update-notes.md` as the update note source.
+
+## 2026-06-17 - Screenshot-driven thumbnail spacing and crop follow-up
+
+- Reviewed a device screenshot of a thumbnail-mode Folder Card containing a
+  mixed child Folder preview, short text/media previews, a full-span side-media
+  preview, and a Habit media-background preview.
+- Adjusted the child preview bottom spacer scale to match the general layout
+  spacing scale. The previous 0.5-only bottom spacer scale overcorrected the
+  earlier bottom-heavy cards and made Folder summary previews look top-heavy.
+- Changed thumbnail media-surface protection so media container margins are
+  still compacted while the actual media `ImageView`/mask is not scaled like an
+  icon. This reduces the large gap between short text content and bottom media
+  thumbnails without breaking edge-to-edge media drawing.
+- Restored dynamic content text sizing for Folder thumbnail child previews by
+  using the normal computed content size and clamping it to thumbnail-safe
+  bounds. Short content such as a few Chinese characters can now render larger
+  than long content inside thumbnails.
+- Tightened media-background crop replay to prefer the current rendered media
+  target size when available, so Habit media-background previews reapply crop
+  against the final thumbnail geometry after compaction.
+- Verified with `git diff --check` and `.\gradlew.bat :app:assembleDebug`.
+
+## 2026-06-17 - Thumbnail bottom spacing and media crop replay
+
+- Follow-up testing showed that Folder summary child previews and content-only
+  Thing child previews still had too much bottom whitespace. The cause was a
+  fixed-height `view_thing_padding_bottom` spacer that was not affected by the
+  earlier padding/margin compaction pass.
+- Added preview-only scaling for the Thing Card bottom padding spacer so
+  `X things` count text and content-only text no longer keep a visibly larger
+  bottom gap than top gap in Folder thumbnails.
+- Follow-up testing also showed that Habit child previews with media, at least
+  video media, could display the wrong crop after thumbnail compaction.
+- Changed the bound-holder media crop reapply path so side media uses
+  `ThingCardSideMediaCrop` instead of falling back to thumbnail crop.
+- Folder thumbnail child previews now post a media-crop replay after the child
+  card has been compacted and measured. This reapplies foreground, side-panel,
+  or media-background crop against the preview's final target dimensions
+  without rebinding the whole media-background card and undoing compact spacing.
+- Verified with `git diff --check` and `.\gradlew.bat :app:assembleDebug`.
+
+## 2026-06-17 - Thumbnail preview spacing, media cache, and shadow clipping
+
+- Follow-up testing showed that child preview cards still kept too much of the
+  ordinary Thing/Folder Card whitespace. The visible text and icons were
+  smaller, but title/content/status padding and margins still consumed too much
+  thumbnail space.
+- Added preview-only layout spacing compaction in `ThingsAdapter`, applied
+  after the child Thing or Folder card is fully bound. This scales internal
+  padding and margins separately from text/icon scaling, so Folder headers,
+  content, checklist, reminder, Habit, media-count, and audio rows get a
+  tighter thumbnail layout without changing ordinary list cards.
+- Preserved actual Thing Card Media surfaces during that scale pass. Side media
+  panels and media backgrounds are no longer treated as generic `ImageView`
+  icons, so left/right media remains edge-to-edge inside the child card.
+- Added `BaseThingsAdapter.getThingCardHabitSummaryTextSize(...)` and set Habit
+  summary text to the same preview base size as reminder time before the
+  post-bind scale, avoiding a larger Habit summary in thumbnail previews.
+- Added a protected Thing Card Media bitmap cache hook in `BaseThingsAdapter`
+  and made Folder child preview adapters reuse the parent `ThingsAdapter`
+  cache. Media-heavy child previews should now benefit from the existing LRU
+  cache while scrolling, instead of spinning on every temporary child adapter.
+- Disabled clipping on thumbnail preview containers so child preview elevation
+  can draw outside column/list container bounds without reducing elevation
+  further.
+- Verified with `git diff --check` and `.\gradlew.bat :app:assembleDebug`.
+
+## 2026-06-17 - Thumbnail preview card-wide text and icon scaling
+
+- Follow-up testing showed that child preview cards only scaled their main
+  content text. Titles, Folder icons, media/audio count labels and icons,
+  reminder/habit/goal timing labels and icons, and the doing overlay still used
+  ordinary list-card sizes inside thumbnail-mode Folder Cards.
+- Kept the existing constrained full-card preview path, including content
+  max-lines, checklist item limits, checklist read-only behavior, Habit summary
+  simplification, media sizing, and child Folder summary-mode rendering.
+- Added a post-bind preview-only scale pass in `ThingsAdapter` for child Thing
+  and child Folder preview cards. The pass traverses the rendered view tree and
+  scales `TextView` text, `TextView` compound drawables, and `ImageView` icons,
+  so ordinary list cards remain unaffected.
+- Tightened checklist preview text size and row icon scale through the nested
+  checklist adapter so checklist rows stay compact even when their item views
+  are created by the nested RecyclerView path.
+- Verified with `git diff --check` and `.\gradlew.bat :app:assembleDebug`.
+
+## 2026-06-17 - Nested Folder thumbnail previews and compact preview polish
+
+- Added direct child Folder metadata to `ThingListEntry.FolderEntry`:
+  `directFolderCount`, `thumbnailEntries`, and `thumbnailEntryCount`.
+- Changed `ThingFolderDAO` thumbnail seed loading from recursive descendant
+  Thing-only previews to direct child mixed entries. A thumbnail-mode Folder
+  Card can now preview direct child Folders and direct child Things in their
+  shared location order, capped by the existing normal/full-span limits.
+- Child Folder previews render as summary-mode Folder Cards, regardless of the
+  child Folder's own presentation mode. Tapping a child Folder preview opens
+  that Folder through the same `openThingFolder(...)` path as ordinary Folder
+  Cards.
+- Updated Folder Card count text to combine direct child Folder count with the
+  recursive matching Thing count, omitting zero-count segments.
+- Reduced child preview card elevation to 2dp so shadows are less likely to be
+  clipped by the existing compact preview spacing, and reduced the thumbnail
+  ellipsis bottom margin to zero.
+- Added English and Chinese string resources for mixed Folder/Thing count
+  labels.
+- Verified with `.\gradlew.bat :app:assembleDebug`.
+
+## 2026-06-17 - Thumbnail Folder Card preview layout polish
+
+- Recorded the new thumbnail-mode Folder Card preview rules in
+  `preferences.md`, `decisions.md`, and `plan.md`: normal-span Folder Cards use
+  one preview column capped at three Things, full-span Folder Cards use a
+  three-column masonry preview capped at six Things, and both show a compact
+  bottom ellipsis when additional matching descendants are not rendered.
+- Replaced the earlier title/content-only preview path in `ThingsAdapter` with
+  a constrained `BaseThingsAdapter` preview path that inflates and binds the
+  normal `card_thing` layout for each child Thing. Folder child previews now
+  reuse Thing Card title handling, checklist rendering, image/video Thing Card
+  Media rendering, media source/crop/frame selection, and full-span internal
+  presentation.
+- Added preview-specific Thing Card hooks for title text size, content line
+  count, content text size, checklist item limit, checklist text size, and
+  dense Habit detail visibility. Normal Thing Cards keep their existing
+  behavior; Folder child previews use these hooks to stay compact without hard
+  clipping the rendered card.
+- Stripped nested interactions from child previews. Child cards only open the
+  child Thing; checklist row toggles and long-press style card interactions are
+  disabled inside the Folder Card preview surface.
+- Added full-span-aware preview placement: full-span child Things span the full
+  preview width inside a full-span Folder Card, while ordinary child Things use
+  the three-column masonry distribution. Normal-span Folder Cards remain a
+  one-column preview list.
+- Added a shared `ThingFolderCardPresentation.effectiveThumbnailPreviewLimit()`
+  so DAO thumbnail seed queries and UI binding use the same normal/full-span
+  caps.
+- Verified with `.\gradlew.bat :app:assembleDebug`, which completed
+  successfully in the sandbox.
+- Published debug update `202606170442` to the Aliyun debug channel and
+  verified remote `latest.json` returns that `debugUpdateCode` and APK URL.
+- Follow-up testing showed ordinary Thing Card content text became oversized.
+  The regression came from reading `TextView.textSize` after setting it: Android
+  returns pixels, but assigning that value back through `textSize` treats it as
+  sp. Changed the new preview hook to receive the computed default text size in
+  sp before writing to the TextView, so ordinary Thing Cards keep their previous
+  dynamic content text sizing while Folder child previews can still override it
+  to 12sp.
+- Re-verified with `.\gradlew.bat :app:assembleDebug`.
+- Published fixed debug update `202606170448` to the Aliyun debug channel and
+  verified remote `latest.json` points to the fixed APK.
+
 ## 2026-06-17 - Cross-entry position audit after mixed-list Detail fixes
 
 - Audited `KEY_POSITION` usage across the home list, Detail, notification

@@ -37,6 +37,14 @@ data class ThingFolderCardPresentation(
         return copy(spanMode = normalizeSpanMode(spanMode))
     }
 
+    fun effectiveThumbnailPreviewLimit(): Int {
+        return if (normalizeSpanMode(spanMode) == SPAN_FULL) {
+            FULL_SPAN_THUMBNAIL_PREVIEW_LIMIT
+        } else {
+            NORMAL_THUMBNAIL_PREVIEW_LIMIT
+        }
+    }
+
     @IntDef(MODE_SUMMARY, MODE_THUMBNAILS)
     @Retention(AnnotationRetention.SOURCE)
     annotation class Mode
@@ -57,6 +65,9 @@ data class ThingFolderCardPresentation(
         const val DEFAULT_THUMBNAIL_LIMIT: Int = 4
         const val MIN_THUMBNAIL_LIMIT: Int = 1
         const val MAX_THUMBNAIL_LIMIT: Int = 12
+
+        const val NORMAL_THUMBNAIL_PREVIEW_LIMIT: Int = 3
+        const val FULL_SPAN_THUMBNAIL_PREVIEW_LIMIT: Int = 6
 
         const val DEFAULT_JSON: String =
             "{\"version\":1,\"mode\":0,\"thumbnailLimit\":4,\"spanMode\":0}"

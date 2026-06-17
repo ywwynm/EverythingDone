@@ -5,6 +5,7 @@ package com.ywwynm.everythingdone.adapters
 import android.animation.ObjectAnimator
 import android.content.res.ColorStateList
 import android.graphics.Color
+import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.os.Handler
 import android.text.TextUtils
@@ -28,6 +29,7 @@ import com.ywwynm.everythingdone.FrequentSettings
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper
 import com.ywwynm.everythingdone.helpers.CheckListHelper
+import com.ywwynm.everythingdone.helpers.ThingCardMediaHelper
 import com.ywwynm.everythingdone.managers.ModeManager
 import com.ywwynm.everythingdone.managers.ThingManager
 import com.ywwynm.everythingdone.model.Thing
@@ -373,7 +375,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
             baseColor
         )
 
-        bindFolderCardCount(holder, entry.recursiveThingCount, baseColor)
+        bindFolderCardCount(holder, entry, baseColor)
 
         if (folder.cardPresentation.mode == ThingFolderCardPresentation.MODE_THUMBNAILS
             && !hiddenPrivate
@@ -451,13 +453,15 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
 
     private fun bindFolderCardCount(
         holder: BaseThingViewHolder,
-        thingCount: Int,
+        entry: ThingListEntry.FolderEntry,
         baseColor: Int
     ) {
         val container = holder.llTextContent ?: return
         removeFolderCountViews(holder)
 
         holder.tvContent!!.visibility = View.GONE
+        val countText = getFolderCardCountText(entry)
+        if (countText.isEmpty()) return
 
         val paddingSide = (mDensity * 16).toInt()
         val countStartPadding = paddingSide + (mDensity * 2).toInt()
@@ -467,7 +471,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         countView.textSize = 11f
         countView.maxLines = 1
         countView.ellipsize = TextUtils.TruncateAt.END
-        countView.text = mApp!!.getString(R.string.thing_folder_count, thingCount)
+        countView.text = countText
         countView.setTextColor(textColorSecondary(baseColor))
         countView.layoutParams = LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
@@ -479,90 +483,624 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         container.addView(countView, insertIndex)
     }
 
+    private fun getFolderCardCountText(entry: ThingListEntry.FolderEntry): String {
+        val folderCount = entry.directFolderCount
+        val thingCount = entry.recursiveThingCount
+        return when {
+            folderCount > 0 && thingCount > 0 -> mApp!!.getString(
+                R.string.thing_folder_count_folders_things,
+                folderCount,
+                thingCount
+            )
+            folderCount > 0 -> mApp!!.getString(
+                R.string.thing_folder_count_folders,
+                folderCount
+            )
+            thingCount > 0 -> mApp!!.getString(R.string.thing_folder_count, thingCount)
+            else -> ""
+        }
+    }
+
     private fun bindFolderThumbnails(
         holder: BaseThingViewHolder,
         entry: ThingListEntry.FolderEntry
     ) {
-        val things = entry.thumbnailThings
-        if (things.isEmpty()) return
-
+        val entries = getFolderThumbnailEntries(entry)
         val container = holder.llTextContent ?: return
-        val count = things.size.coerceAtMost(entry.folder.cardPresentation.thumbnailLimit)
+        allowFolderThumbnailShadowOverflow(container)
+        val count = entries.size.coerceAtMost(entry.folder.cardPresentation.effectiveThumbnailPreviewLimit())
         val insertStart = (findFolderCountIndex(container) + 1)
             .coerceIn(0, container.childCount)
-        for (i in 0 until count) {
-            val thumbnail = createFolderThumbnailView(things[i])
-            container.addView(thumbnail, insertStart + i)
+        if (count > 0) {
+            val previewEntries = entries.take(count)
+            val thumbnails = if (
+                entry.folder.cardPresentation.spanMode == ThingFolderCardPresentation.SPAN_FULL
+            ) {
+                createFolderThumbnailMasonryView(previewEntries)
+            } else {
+                createFolderThumbnailListView(previewEntries)
+            }
+            container.addView(thumbnails, insertStart)
+        }
+        val totalCount = if (entry.thumbnailEntryCount > 0) {
+            entry.thumbnailEntryCount
+        } else {
+            entries.size
+        }
+        if (count > 0 && totalCount > count) {
+            val baseColor = ContextCompat.getColor(mApp!!, R.color.bg_activity_things)
+            container.addView(
+                createFolderThumbnailEllipsisView(holder, baseColor),
+                insertStart + 1
+            )
         }
     }
 
-    private fun createFolderThumbnailView(thing: Thing): View {
-        val hiddenPrivate = thing.isPrivate() && !shouldShowFolderPrivateContent()
-        val thingColor = thing.getBackground()?.representativeColor() ?: thing.getColor()
-        val horizontalMargin = (mDensity * 16).toInt()
-        val verticalMargin = (mDensity * 6).toInt()
-        val innerPadding = (mDensity * 10).toInt()
+    private fun getFolderThumbnailEntries(
+        entry: ThingListEntry.FolderEntry
+    ): List<ThingListEntry> {
+        if (entry.thumbnailEntries.isNotEmpty()) return entry.thumbnailEntries
+        return entry.thumbnailThings.map { ThingListEntry.ThingEntry(it) }
+    }
 
-        val view = LinearLayout(mApp)
-        view.tag = FOLDER_THUMBNAIL_VIEW_TAG
-        view.orientation = LinearLayout.VERTICAL
-        view.isClickable = true
-        view.setPadding(innerPadding, innerPadding, innerPadding, innerPadding)
-        view.setOnClickListener {
-            mOnItemTouchedListener?.onFolderThumbnailClick(it, thing)
+    private fun createFolderThumbnailListView(entries: List<ThingListEntry>): View {
+        val list = LinearLayout(mApp)
+        list.tag = FOLDER_THUMBNAIL_VIEW_TAG
+        list.orientation = LinearLayout.VERTICAL
+        allowFolderThumbnailShadowOverflow(list)
+        list.setPadding(
+            (mDensity * FOLDER_THUMBNAIL_SIDE_MARGIN_DP).toInt(),
+            0,
+            (mDensity * FOLDER_THUMBNAIL_SIDE_MARGIN_DP).toInt(),
+            0
+        )
+
+        for ((index, entry) in entries.withIndex()) {
+            val previewWidth = getFolderThumbnailNormalPreviewWidth()
+            val thumbnail = createFolderEntryPreviewView(
+                list,
+                entry,
+                createFolderPreviewStyle(
+                    entry = entry,
+                    compact = false,
+                    previewWidth = previewWidth,
+                    fullSpanPreviewWidth = previewWidth
+                )
+            )
+            val lp = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+            lp.topMargin = (mDensity * if (index == 0) {
+                FOLDER_THUMBNAIL_HEADER_GAP_DP
+            } else {
+                FOLDER_THUMBNAIL_ITEM_GAP_DP
+            }).toInt()
+            list.addView(thumbnail, lp)
         }
 
-        val background = GradientDrawable()
-        background.cornerRadius = mDensity * 6
-        background.setColor(thingColor)
-        view.background = background
+        return list
+    }
 
+    private fun createFolderThumbnailMasonryView(entries: List<ThingListEntry>): View {
+        val grid = LinearLayout(mApp)
+        grid.tag = FOLDER_THUMBNAIL_VIEW_TAG
+        grid.orientation = LinearLayout.VERTICAL
+        allowFolderThumbnailShadowOverflow(grid)
+        grid.setPadding(
+            (mDensity * FOLDER_THUMBNAIL_SIDE_MARGIN_DP).toInt(),
+            0,
+            (mDensity * FOLDER_THUMBNAIL_SIDE_MARGIN_DP).toInt(),
+            0
+        )
+
+        var columnsContainer: LinearLayout? = null
+        var columns: Array<LinearLayout>? = null
+        var estimatedHeights = IntArray(FOLDER_THUMBNAIL_FULL_SPAN_COLUMN_COUNT)
+        var hasRenderedPreview = false
+
+        for (entry in entries) {
+            if (isFolderPreviewFullSpanEntry(entry)) {
+                val previewWidth = getFolderThumbnailFullPreviewWidth()
+                val thumbnail = createFolderEntryPreviewView(
+                    grid,
+                    entry,
+                    createFolderPreviewStyle(
+                        entry = entry,
+                        compact = false,
+                        previewWidth = previewWidth,
+                        fullSpanPreviewWidth = previewWidth
+                    )
+                )
+                val lp = LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+                lp.topMargin = (mDensity * if (hasRenderedPreview) {
+                    FOLDER_THUMBNAIL_ITEM_GAP_DP
+                } else {
+                    FOLDER_THUMBNAIL_HEADER_GAP_DP
+                }).toInt()
+                grid.addView(thumbnail, lp)
+                hasRenderedPreview = true
+                columnsContainer = null
+                columns = null
+                estimatedHeights = IntArray(FOLDER_THUMBNAIL_FULL_SPAN_COLUMN_COUNT)
+            } else {
+                if (columnsContainer == null || columns == null) {
+                    columnsContainer = createFolderThumbnailColumnsContainer(
+                        grid,
+                        if (hasRenderedPreview) {
+                            FOLDER_THUMBNAIL_ITEM_GAP_DP
+                        } else {
+                            FOLDER_THUMBNAIL_HEADER_GAP_DP
+                        }
+                    )
+                    hasRenderedPreview = true
+                    columns = Array(FOLDER_THUMBNAIL_FULL_SPAN_COLUMN_COUNT) {
+                        LinearLayout(mApp).apply {
+                            orientation = LinearLayout.VERTICAL
+                            allowFolderThumbnailShadowOverflow(this)
+                        }
+                    }
+                    estimatedHeights = IntArray(FOLDER_THUMBNAIL_FULL_SPAN_COLUMN_COUNT)
+                    for (i in columns!!.indices) {
+                        val lp = LinearLayout.LayoutParams(
+                            0,
+                            ViewGroup.LayoutParams.WRAP_CONTENT,
+                            1f
+                        )
+                        if (i > 0) {
+                            lp.marginStart = (mDensity * FOLDER_THUMBNAIL_COLUMN_GAP_DP).toInt()
+                        }
+                        columnsContainer!!.addView(columns!![i], lp)
+                    }
+                }
+
+                val columnIndex = getShortestColumnIndex(estimatedHeights)
+                val previewWidth = getFolderThumbnailColumnPreviewWidth()
+                val thumbnail = createFolderEntryPreviewView(
+                    columns!![columnIndex],
+                    entry,
+                    createFolderPreviewStyle(
+                        entry = entry,
+                        compact = true,
+                        previewWidth = previewWidth,
+                        fullSpanPreviewWidth = previewWidth
+                    )
+                )
+                val lp = LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+                val itemTopMarginDp = if (columns!![columnIndex].childCount == 0) {
+                    0
+                } else {
+                    FOLDER_THUMBNAIL_ITEM_GAP_DP
+                }
+                lp.topMargin = (mDensity * itemTopMarginDp).toInt()
+                columns!![columnIndex].addView(thumbnail, lp)
+                estimatedHeights[columnIndex] += (mDensity * itemTopMarginDp).toInt() +
+                    estimateFolderEntryPreviewHeight(entry, compact = true)
+            }
+        }
+
+        return grid
+    }
+
+    private fun createFolderThumbnailColumnsContainer(
+        parent: LinearLayout,
+        topMarginDp: Int
+    ): LinearLayout {
+        val row = LinearLayout(mApp)
+        row.orientation = LinearLayout.HORIZONTAL
+        allowFolderThumbnailShadowOverflow(row)
         val lp = LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT
         )
-        lp.setMargins(horizontalMargin, verticalMargin, horizontalMargin, 0)
-        view.layoutParams = lp
+        lp.topMargin = (mDensity * topMarginDp).toInt()
+        parent.addView(row, lp)
+        return row
+    }
 
-        val title = TextView(mApp)
-        title.maxLines = 1
-        title.ellipsize = TextUtils.TruncateAt.END
-        title.textSize = 13f
-        title.setTextColor(textColorPrimary(thingColor))
-        title.text = if (hiddenPrivate) {
-            mApp!!.getString(R.string.private_thing)
-        } else {
-            getThumbnailTitle(thing)
+    private fun getShortestColumnIndex(heights: IntArray): Int {
+        var index = 0
+        for (i in 1 until heights.size) {
+            if (heights[i] < heights[index]) index = i
         }
-        view.addView(title)
+        return index
+    }
 
-        val content = if (hiddenPrivate) "" else thing.content?.trim().orEmpty()
-        if (content.isNotEmpty()) {
-            val body = TextView(mApp)
-            body.ellipsize = TextUtils.TruncateAt.END
-            body.maxLines = when {
-                content.length > 100 -> 4
-                content.length > 40 -> 3
-                else -> 2
-            }
-            body.textSize = 12f
-            body.setTextColor(textColorSecondary(thingColor))
-            body.text = content
-            view.addView(body)
+    private fun createFolderEntryPreviewView(
+        parent: ViewGroup,
+        entry: ThingListEntry,
+        style: FolderThingPreviewStyle
+    ): View {
+        return when (entry) {
+            is ThingListEntry.FolderEntry -> createFolderSummaryPreviewView(parent, entry, style)
+            is ThingListEntry.ThingEntry -> createFolderThingPreviewView(
+                parent,
+                entry.thing,
+                style
+            )
         }
+    }
 
+    private fun createFolderThingPreviewView(
+        parent: ViewGroup,
+        thing: Thing,
+        style: FolderThingPreviewStyle
+    ): View {
+        val view = mInflater!!.inflate(R.layout.card_thing, parent, false)
+        val previewHolder = BaseThingViewHolder(view)
+        val previewAdapter = FolderThingPreviewAdapter(thing, style)
+        previewAdapter.onBindViewHolder(previewHolder, 0)
+        previewHolder.cv!!.setShouldInterceptTouchEvent(true)
+        previewHolder.cv.setOnClickListener {
+            mOnItemTouchedListener?.onFolderThumbnailClick(it, thing)
+        }
+        previewHolder.cv.setOnLongClickListener(null)
+        applyFolderThumbnailPreviewScale(previewHolder.cv, style)
+        reapplyFolderThumbnailPreviewMediaCrop(previewHolder, previewAdapter, thing)
+        applyFolderThumbnailPreviewElevation(previewHolder.cv)
         return view
     }
 
-    private fun getThumbnailTitle(thing: Thing): String {
-        val title = thing.title?.trim().orEmpty()
-        if (title.isNotEmpty()) return title
-        val firstContentLine = thing.content
-            ?.lineSequence()
-            ?.firstOrNull { it.trim().isNotEmpty() }
-            ?.trim()
-            .orEmpty()
-        return firstContentLine.ifEmpty { mApp!!.getString(R.string.thing) }
+    private fun createFolderSummaryPreviewView(
+        parent: ViewGroup,
+        entry: ThingListEntry.FolderEntry,
+        style: FolderThingPreviewStyle
+    ): View {
+        val view = mInflater!!.inflate(R.layout.card_thing, parent, false)
+        val previewHolder = BaseThingViewHolder(view)
+        val previewFolder = copyFolderForSummaryPreview(entry.folder)
+        val previewEntry = entry.copy(
+            folder = previewFolder,
+            thumbnailEntries = emptyList(),
+            thumbnailEntryCount = 0,
+            thumbnailThings = emptyList()
+        )
+        resetFolderCardHolder(previewHolder)
+        setFolderPreviewContentWidth(previewHolder)
+        bindFolderCardSurface(previewHolder, previewFolder)
+        bindFolderCardContent(previewHolder, previewEntry)
+        previewHolder.cv!!.setShouldInterceptTouchEvent(true)
+        previewHolder.cv.setOnClickListener {
+            mOnItemTouchedListener?.onFolderThumbnailFolderClick(it, entry)
+        }
+        previewHolder.cv.setOnLongClickListener(null)
+        applyFolderThumbnailPreviewScale(previewHolder.cv, style)
+        applyFolderThumbnailPreviewElevation(previewHolder.cv)
+        return view
+    }
+
+    private fun copyFolderForSummaryPreview(folder: ThingFolder): ThingFolder {
+        val preview = ThingFolder(
+            id = folder.id,
+            parentFolderId = folder.parentFolderId,
+            title = folder.title,
+            state = folder.state,
+            color = folder.getColor(),
+            location = folder.location,
+            isPrivate = folder.isPrivate,
+            createTime = folder.createTime,
+            updateTime = folder.updateTime,
+            cardPresentation = folder.cardPresentation.withMode(
+                ThingFolderCardPresentation.MODE_SUMMARY
+            )
+        )
+        preview.setBackground(folder.getBackground())
+        return preview
+    }
+
+    private fun setFolderPreviewContentWidth(holder: BaseThingViewHolder) {
+        val contentLp = holder.llContent!!.layoutParams
+        contentLp.width = ViewGroup.LayoutParams.MATCH_PARENT
+        holder.llContent.layoutParams = contentLp
+
+        val textLp = holder.llTextContent!!.layoutParams as LinearLayout.LayoutParams
+        textLp.width = ViewGroup.LayoutParams.MATCH_PARENT
+        holder.llTextContent.layoutParams = textLp
+    }
+
+    private fun applyFolderThumbnailPreviewElevation(card: CardView?) {
+        val elevation = mDensity * FOLDER_THUMBNAIL_PREVIEW_ELEVATION_DP
+        card?.maxCardElevation = elevation
+        card?.cardElevation = elevation
+    }
+
+    private fun allowFolderThumbnailShadowOverflow(viewGroup: ViewGroup?) {
+        viewGroup ?: return
+        viewGroup.clipChildren = false
+        viewGroup.clipToPadding = false
+    }
+
+    private fun applyFolderThumbnailPreviewScale(
+        view: View?,
+        style: FolderThingPreviewStyle,
+        scaleLayout: Boolean = false
+    ) {
+        view ?: return
+        if (scaleLayout) {
+            scaleFolderThumbnailSpacing(view, style.layoutScale)
+            scaleFolderThumbnailFixedSpacer(view, style.bottomSpacerScale)
+        }
+        when (view) {
+            is TextView -> {
+                scaleFolderThumbnailText(view, style.textScale)
+                scaleFolderThumbnailCompoundDrawables(view, style.iconScale)
+            }
+            is ImageView -> scaleFolderThumbnailImage(view, style.iconScale)
+        }
+        if (view is ViewGroup) {
+            allowFolderThumbnailShadowOverflow(view)
+            for (i in 0 until view.childCount) {
+                applyFolderThumbnailPreviewScale(
+                    view.getChildAt(i),
+                    style,
+                    scaleLayout = true
+                )
+            }
+        }
+    }
+
+    private fun scaleFolderThumbnailSpacing(view: View, scale: Float) {
+        if (!shouldPreserveFolderThumbnailMediaSurface(view) &&
+            (view.paddingLeft != 0 || view.paddingTop != 0 ||
+                    view.paddingRight != 0 || view.paddingBottom != 0)
+        ) {
+            view.setPadding(
+                (view.paddingLeft * scale).toInt().coerceAtLeast(0),
+                (view.paddingTop * scale).toInt().coerceAtLeast(0),
+                (view.paddingRight * scale).toInt().coerceAtLeast(0),
+                (view.paddingBottom * scale).toInt().coerceAtLeast(0)
+            )
+        }
+
+        val lp = view.layoutParams as? ViewGroup.MarginLayoutParams ?: return
+        val oldMarginStart = lp.marginStart
+        val oldMarginEnd = lp.marginEnd
+        if (lp.leftMargin == 0 && lp.topMargin == 0 &&
+            lp.rightMargin == 0 && lp.bottomMargin == 0 &&
+            oldMarginStart == 0 && oldMarginEnd == 0
+        ) return
+        lp.setMargins(
+            (lp.leftMargin * scale).toInt(),
+            (lp.topMargin * scale).toInt(),
+            (lp.rightMargin * scale).toInt(),
+            (lp.bottomMargin * scale).toInt()
+        )
+        lp.marginStart = (oldMarginStart * scale).toInt()
+        lp.marginEnd = (oldMarginEnd * scale).toInt()
+        view.layoutParams = lp
+    }
+
+    private fun scaleFolderThumbnailFixedSpacer(view: View, scale: Float) {
+        if (view.id != R.id.view_thing_padding_bottom) return
+        val lp = view.layoutParams ?: return
+        if (lp.height <= 0) return
+        lp.height = (lp.height * scale).toInt().coerceAtLeast(1)
+        view.layoutParams = lp
+    }
+
+    private fun scaleFolderThumbnailText(textView: TextView, scale: Float) {
+        val scaledDensity = textView.resources.displayMetrics.scaledDensity
+        if (scaledDensity <= 0f) return
+        val textSizeSp = textView.textSize / scaledDensity
+        textView.textSize = (textSizeSp * scale).coerceAtLeast(8f)
+    }
+
+    private fun scaleFolderThumbnailImage(imageView: ImageView, scale: Float) {
+        if (shouldPreserveFolderThumbnailMediaSurface(imageView)) return
+        val lp = imageView.layoutParams ?: return
+        val drawable = imageView.drawable
+        val originalWidth = lp.width
+        val originalHeight = lp.height
+        var resized = false
+        if (originalWidth > 0) {
+            lp.width = (originalWidth * scale).toInt().coerceAtLeast(1)
+            resized = true
+        } else if (originalWidth == ViewGroup.LayoutParams.WRAP_CONTENT
+            && originalHeight == ViewGroup.LayoutParams.WRAP_CONTENT
+            && drawable != null
+            && drawable.intrinsicWidth > 0
+            && drawable.intrinsicHeight > 0
+        ) {
+            lp.width = (drawable.intrinsicWidth * scale).toInt().coerceAtLeast(1)
+            lp.height = (drawable.intrinsicHeight * scale).toInt().coerceAtLeast(1)
+            resized = true
+        }
+        if (originalHeight > 0) {
+            lp.height = (originalHeight * scale).toInt().coerceAtLeast(1)
+            resized = true
+        }
+        if (resized) {
+            imageView.layoutParams = lp
+            imageView.scaleX = 1f
+            imageView.scaleY = 1f
+        } else {
+            imageView.scaleX = scale
+            imageView.scaleY = scale
+        }
+    }
+
+    private fun scaleFolderThumbnailCompoundDrawables(textView: TextView, scale: Float) {
+        val drawables = textView.compoundDrawablesRelative
+        if (drawables.all { it == null }) return
+        drawables.forEach { scaleFolderThumbnailDrawable(it, scale) }
+        textView.setCompoundDrawablesRelative(
+            drawables[0],
+            drawables[1],
+            drawables[2],
+            drawables[3]
+        )
+        textView.compoundDrawablePadding =
+            (textView.compoundDrawablePadding * scale).toInt().coerceAtLeast(0)
+    }
+
+    private fun scaleFolderThumbnailDrawable(drawable: Drawable?, scale: Float) {
+        drawable ?: return
+        val sourceWidth = if (drawable.bounds.width() > 0) {
+            drawable.bounds.width()
+        } else {
+            drawable.intrinsicWidth
+        }
+        val sourceHeight = if (drawable.bounds.height() > 0) {
+            drawable.bounds.height()
+        } else {
+            drawable.intrinsicHeight
+        }
+        if (sourceWidth <= 0 || sourceHeight <= 0) return
+        drawable.mutate().setBounds(
+            0,
+            0,
+            (sourceWidth * scale).toInt().coerceAtLeast(1),
+            (sourceHeight * scale).toInt().coerceAtLeast(1)
+        )
+    }
+
+    private fun shouldPreserveFolderThumbnailMediaSurface(view: View): Boolean {
+        return when (view.id) {
+            R.id.fl_thing_image,
+            R.id.iv_thing_image,
+            R.id.iv_thing_media_background,
+            R.id.view_thing_media_background_mask,
+            R.id.view_thing_image_cover -> true
+            else -> false
+        }
+    }
+
+    private fun reapplyFolderThumbnailPreviewMediaCrop(
+        holder: BaseThingViewHolder,
+        adapter: FolderThingPreviewAdapter,
+        thing: Thing
+    ) {
+        holder.cv?.post {
+            adapter.applyThingCardMediaCropToBoundHolder(holder, thing)
+        }
+    }
+
+    private fun createFolderThumbnailEllipsisView(
+        holder: BaseThingViewHolder,
+        baseColor: Int
+    ): View {
+        val ellipsis = TextView(mApp)
+        ellipsis.tag = FOLDER_THUMBNAIL_VIEW_TAG
+        ellipsis.includeFontPadding = false
+        ellipsis.gravity = Gravity.CENTER
+        ellipsis.isClickable = true
+        ellipsis.text = "..."
+        ellipsis.textSize = 18f
+        ellipsis.setTextColor(textColorSecondary(baseColor))
+        ellipsis.setPadding((mDensity * 8).toInt(), 0, (mDensity * 8).toInt(), 0)
+        ellipsis.setOnClickListener {
+            val listPosition = holder.adapterPosition
+            if (listPosition != -1) {
+                mOnItemTouchedListener?.onItemClick(holder.cv, listPosition)
+            }
+        }
+        val lp = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+        lp.gravity = Gravity.CENTER_HORIZONTAL
+        lp.setMargins(0, (mDensity * 1).toInt(), 0, 0)
+        ellipsis.layoutParams = lp
+        return ellipsis
+    }
+
+    private fun createFolderPreviewStyle(
+        entry: ThingListEntry,
+        compact: Boolean,
+        previewWidth: Int,
+        fullSpanPreviewWidth: Int
+    ): FolderThingPreviewStyle {
+        val thing = (entry as? ThingListEntry.ThingEntry)?.thing
+        val hasMedia = thing != null && ThingCardMediaHelper.resolveEffectiveMediaSource(thing) != null
+        val surfaceHeightDp = when {
+            hasMedia && !compact -> FOLDER_THUMBNAIL_MEDIA_SURFACE_TALL_DP
+            hasMedia -> FOLDER_THUMBNAIL_MEDIA_SURFACE_COMPACT_DP
+            !compact -> FOLDER_THUMBNAIL_TEXT_SURFACE_TALL_DP
+            else -> FOLDER_THUMBNAIL_TEXT_SURFACE_COMPACT_DP
+        }
+        return FolderThingPreviewStyle(
+            compact = compact,
+            previewWidth = previewWidth,
+            fullSpanPreviewWidth = fullSpanPreviewWidth,
+            surfaceAvailableHeight = (mDensity * surfaceHeightDp).toInt()
+        )
+    }
+
+    private fun getFolderThumbnailNormalPreviewWidth(): Int {
+        return (getBoundNormalThingCardWidth()
+            - (mDensity * FOLDER_THUMBNAIL_SIDE_MARGIN_DP * 2).toInt())
+            .coerceAtLeast(1)
+    }
+
+    private fun getFolderThumbnailFullPreviewWidth(): Int {
+        return (getBoundFullSpanThingCardWidth()
+            - (mDensity * FOLDER_THUMBNAIL_SIDE_MARGIN_DP * 2).toInt())
+            .coerceAtLeast(1)
+    }
+
+    private fun getFolderThumbnailColumnPreviewWidth(): Int {
+        val fullWidth = getFolderThumbnailFullPreviewWidth()
+        val gap = (mDensity * FOLDER_THUMBNAIL_COLUMN_GAP_DP).toInt()
+        return ((fullWidth - gap * (FOLDER_THUMBNAIL_FULL_SPAN_COLUMN_COUNT - 1))
+            / FOLDER_THUMBNAIL_FULL_SPAN_COLUMN_COUNT).coerceAtLeast(1)
+    }
+
+    private fun isFolderPreviewFullSpanThing(thing: Thing): Boolean {
+        return thing.type != Thing.HEADER
+                && thing.type < Thing.NOTIFICATION_UNDERWAY
+                && thing.thingCardAppearance.spanMode == Thing.THING_CARD_SPAN_FULL
+    }
+
+    private fun isFolderPreviewFullSpanEntry(entry: ThingListEntry): Boolean {
+        return when (entry) {
+            is ThingListEntry.FolderEntry ->
+                entry.folder.cardPresentation.spanMode == ThingFolderCardPresentation.SPAN_FULL
+            is ThingListEntry.ThingEntry -> isFolderPreviewFullSpanThing(entry.thing)
+        }
+    }
+
+    private fun estimateFolderEntryPreviewHeight(
+        entry: ThingListEntry,
+        compact: Boolean
+    ): Int {
+        return when (entry) {
+            is ThingListEntry.FolderEntry -> (mDensity * if (compact) 86 else 96).toInt()
+            is ThingListEntry.ThingEntry -> estimateFolderThingPreviewHeight(
+                entry.thing,
+                compact
+            )
+        }
+    }
+
+    private fun estimateFolderThingPreviewHeight(thing: Thing, compact: Boolean): Int {
+        val media = if (ThingCardMediaHelper.resolveEffectiveMediaSource(thing) != null) {
+            (mDensity * if (compact)
+                FOLDER_THUMBNAIL_MEDIA_ESTIMATE_COMPACT_DP
+            else
+                FOLDER_THUMBNAIL_MEDIA_ESTIMATE_TALL_DP).toInt()
+        } else 0
+        val title = if (!thing.title.isNullOrBlank()) {
+            (mDensity * if (compact) 32 else 36).toInt()
+        } else 0
+        val content = thing.content?.trim().orEmpty()
+        val body = if (content.isEmpty()) {
+            0
+        } else if (CheckListHelper.isCheckListStr(content)) {
+            val items = CheckListHelper.toCheckListItems(content, false)
+                .count { it?.startsWith("0") == true || it?.startsWith("1") == true }
+                .coerceAtMost(if (compact) 3 else 4)
+            (mDensity * (items * 22 + 12)).toInt()
+        } else {
+            val lines = if (compact) 2 else 3
+            (mDensity * (lines * 18 + 16)).toInt()
+        }
+        return media + title + body + (mDensity * 28).toInt()
     }
 
     private fun removeFolderDynamicViews(holder: BaseThingViewHolder) {
@@ -764,6 +1302,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         fun onItemClick(v: View?, listPosition: Int)
         fun onItemLongClick(v: View?, listPosition: Int): Boolean
         fun onFolderThumbnailClick(v: View?, thing: Thing)
+        fun onFolderThumbnailFolderClick(v: View?, entry: ThingListEntry.FolderEntry)
     }
 
     private inner class ThingViewHolder(item: View?) : BaseThingViewHolder(item) {
@@ -783,6 +1322,132 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         }
     }
 
+    private data class FolderThingPreviewStyle(
+        val compact: Boolean,
+        val previewWidth: Int,
+        val fullSpanPreviewWidth: Int,
+        val surfaceAvailableHeight: Int
+    ) {
+        val titleTextSize: Float = 13f
+        val checklistTextSize: Float = if (compact) 10.5f else 11f
+        val contentMaxLines: Int = if (compact) 2 else 3
+        val checklistMaxItems: Int = if (compact) 3 else 4
+        val textScale: Float = if (compact) 0.88f else 0.9f
+        val iconScale: Float = textScale
+        val layoutScale: Float = if (compact) 0.62f else 0.72f
+        val bottomSpacerScale: Float = layoutScale
+
+        fun contentTextSize(defaultTextSizeSp: Float): Float {
+            val maxSize = if (compact) 16f else 18f
+            return defaultTextSizeSp.coerceIn(12f, maxSize)
+        }
+    }
+
+    private inner class FolderThingPreviewAdapter(
+        private val previewThing: Thing,
+        private val style: FolderThingPreviewStyle
+    ) : BaseThingsAdapter(mApp) {
+
+        private val previewThings = listOf<Thing?>(previewThing)
+
+        init {
+            setCardWidth(style.previewWidth)
+            setFullSpanCardWidth(style.fullSpanPreviewWidth)
+            setThingCardSurfaceAvailableHeight(style.surfaceAvailableHeight)
+            setShouldShowPrivateContent(shouldShowFolderPrivateContent())
+        }
+
+        override fun getCurrentMode(): Int = ModeManager.NORMAL
+
+        override fun getThings(): List<Thing?>? = previewThings
+
+        override fun getThingCardForegroundThumbnailHeight(thing: Thing, imageW: Int): Int {
+            val aspectRatio = getThingCardThumbnailTargetAspectRatio(thing)
+            if (aspectRatio <= 0f) return imageW.coerceAtLeast(1)
+            return (imageW / aspectRatio).toInt().coerceAtLeast(1)
+        }
+
+        override fun shouldLogThingCardMediaDebug(
+            thing: Thing,
+            mediaSource: ThingCardMediaHelper.MediaSource,
+            placement: Int
+        ): Boolean {
+            return shouldUseBakedForegroundVideoCrop(thing, mediaSource, placement)
+        }
+
+        override fun shouldBakeThingCardForegroundMediaCrop(
+            thing: Thing,
+            mediaSource: ThingCardMediaHelper.MediaSource,
+            placement: Int
+        ): Boolean {
+            return shouldUseBakedForegroundVideoCrop(thing, mediaSource, placement)
+        }
+
+        private fun shouldUseBakedForegroundVideoCrop(
+            thing: Thing,
+            mediaSource: ThingCardMediaHelper.MediaSource,
+            placement: Int
+        ): Boolean {
+            return mediaSource.isVideo &&
+                    !thing.thingCardAppearance.mediaBackgroundEnabled &&
+                    (
+                            placement == Thing.THING_CARD_IMAGE_PLACEMENT_TOP ||
+                                    placement == Thing.THING_CARD_IMAGE_PLACEMENT_BOTTOM
+                            )
+        }
+
+        override fun isFullSpanThingCard(thing: Thing): Boolean = isFolderPreviewFullSpanThing(thing)
+
+        override fun isThingEffectivelyPrivate(thing: Thing): Boolean {
+            return thing.isPrivate() && !shouldShowFolderPrivateContent()
+        }
+
+        override fun shouldDimUnselectedContent(currentMode: Int): Boolean = false
+
+        override fun getThingCardTitleTextSize(
+            thing: Thing,
+            fullSpan: Boolean
+        ): Float = style.titleTextSize
+
+        override fun getThingCardContentMaxLines(
+            thing: Thing,
+            fullSpan: Boolean
+        ): Int = style.contentMaxLines
+
+        override fun getThingCardContentTextSize(
+            thing: Thing,
+            content: String,
+            defaultTextSizeSp: Float
+        ): Float = style.contentTextSize(defaultTextSizeSp)
+
+        override fun getThingCardChecklistMaxItemCount(
+            thing: Thing,
+            fullSpan: Boolean
+        ): Int = style.checklistMaxItems
+
+        override fun getThingCardChecklistTextSize(
+            thing: Thing,
+            fullSpan: Boolean
+        ): Float? = style.checklistTextSize
+
+        override fun getThingCardHabitSummaryTextSize(thing: Thing): Float = 12f
+
+        override fun shouldShowThingCardHabitDetails(thing: Thing): Boolean = false
+
+        override fun getThingCardMediaBitmapCache() =
+            this@ThingsAdapter.getThingCardMediaBitmapCache()
+
+        override fun onChecklistAdapterInitialized(
+            holder: BaseThingViewHolder,
+            adapter: CheckListAdapter,
+            thing: Thing
+        ) {
+            holder.cv!!.setShouldInterceptTouchEvent(true)
+            adapter.setFixedIconScale(style.iconScale)
+            adapter.setTvItemClickCallback(null)
+        }
+    }
+
     companion object {
         const val TAG: String = "ThingsAdapter"
 
@@ -796,5 +1461,19 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         private const val FOLDER_HEADER_VIEW_TAG = "folder_header_view"
         private const val FOLDER_COUNT_VIEW_TAG = "folder_count_view"
         private const val FOLDER_THUMBNAIL_VIEW_TAG = "folder_thumbnail_view"
+
+        private const val FOLDER_THUMBNAIL_FULL_SPAN_COLUMN_COUNT = 3
+        private const val FOLDER_THUMBNAIL_SIDE_MARGIN_DP = 16
+        private const val FOLDER_THUMBNAIL_COLUMN_GAP_DP = 6
+        private const val FOLDER_THUMBNAIL_HEADER_GAP_DP = 12
+        private const val FOLDER_THUMBNAIL_ITEM_GAP_DP = 8
+        private const val FOLDER_THUMBNAIL_PREVIEW_ELEVATION_DP = 2
+
+        private const val FOLDER_THUMBNAIL_TEXT_SURFACE_COMPACT_DP = 150
+        private const val FOLDER_THUMBNAIL_TEXT_SURFACE_TALL_DP = 170
+        private const val FOLDER_THUMBNAIL_MEDIA_SURFACE_COMPACT_DP = 220
+        private const val FOLDER_THUMBNAIL_MEDIA_SURFACE_TALL_DP = 260
+        private const val FOLDER_THUMBNAIL_MEDIA_ESTIMATE_COMPACT_DP = 160
+        private const val FOLDER_THUMBNAIL_MEDIA_ESTIMATE_TALL_DP = 200
     }
 }

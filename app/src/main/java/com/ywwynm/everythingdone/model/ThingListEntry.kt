@@ -15,6 +15,9 @@ sealed class ThingListEntry {
     data class FolderEntry(
         val folder: ThingFolder,
         val recursiveThingCount: Int,
+        val directFolderCount: Int = 0,
+        val thumbnailEntries: List<ThingListEntry> = emptyList(),
+        val thumbnailEntryCount: Int = 0,
         val thumbnailThings: List<Thing> = emptyList(),
         val effectivePrivate: Boolean = folder.isPrivate,
         val effectiveDeleted: Boolean = folder.isDeleted()

@@ -156,6 +156,125 @@ original parent projection, and only the newly-created Folder record is removed.
 This rollback path must not use permanent Folder deletion because that operation
 deletes contained Things.
 
+## 2026-06-17 - Thumbnail Folder Cards use interaction-stripped Thing Card previews
+
+Thumbnail-mode Thing Folder Cards should render child previews that stay close
+to complete Thing Card presentation, rather than a title/content-only
+substitute. The child preview is compacted through content constraints and may
+simplify unusually dense type-specific surfaces, but it should preserve the key
+visible Thing Card semantics such as empty-title handling, checklist previews,
+and image or video Thing Card Media.
+
+Child previews support only tapping to open the child Thing. Nested checklist
+toggles, long-press actions, selection, dragging, and other Thing Card
+interactions are not active inside Folder Card previews.
+
+For Things with image or video media, child previews strictly reuse Thing Card
+Media presentation, including the selected source, crop, target aspect ratio,
+video frame, image placement, media background presentation, and full-span Thing
+Card presentation where applicable. Media-heavy child previews may use more
+vertical space than text-only previews, but the preview should avoid hard
+clipping and instead stay compact through preview-specific constraints such as
+text max-lines, smaller typography, checklist item limits, simplified Habit
+detail, and media target sizing.
+
+Inside a full-span thumbnail-mode Folder Card, a full-span child Thing preview
+also spans the full preview width rather than being squeezed into one masonry
+column.
+
+Inside a normal-span thumbnail-mode Folder Card, a full-span child Thing preview
+cannot become wider than the Folder Card, but it still keeps full-span Thing
+Card internal presentation within that one-column preview.
+
+Habit child previews keep the core Habit summary but may omit dense Habit
+record details, such as the last-five-record surface, inside constrained Folder
+Card previews.
+
+Normal-span Folder Cards show a one-column preview list capped at three Things.
+Full-span Folder Cards show a three-column masonry preview capped at six
+Things. Both surfaces show a small bottom ellipsis when additional matching
+descendants are not rendered. The ellipsis is an explicit Folder-open target
+and should stay visually compact, similar in footprint to the checklist
+"more items" ellipsis.
+
+## 2026-06-17 - Thumbnail child previews scale rendered card chrome
+
+Thumbnail child previews continue to bind through the real Thing Card or Folder
+Card paths first, then apply a preview-only visual scale to the rendered child
+card tree. This post-bind scale covers card chrome that does not flow through
+content-specific preview hooks, including titles, folder icons, media/audio
+count labels and icons, reminder/habit/goal timing labels and icons, private,
+sticky, and doing indicators, and TextView compound drawables. Checklist
+preview rows also receive preview-specific text sizing and icon scaling through
+their own adapter because their row views can be created inside the nested
+RecyclerView path.
+
+The post-bind scale is not a replacement for content policy. Preview-specific
+hooks still own content max-lines, checklist item limits and text size, Habit
+detail simplification, media surface sizing, nested-interaction stripping, and
+child Folder summary-mode forcing.
+
+The preview scale applies separately to spacing and to visual content. Internal
+padding, margins, and fixed bottom spacer heights are compacted so the child
+card does not keep ordinary list-card whitespace, but the same spacing scale
+should be used for ordinary vertical top/bottom gaps to avoid flipping which
+side looks larger. Actual Thing Card Media surfaces are excluded from icon
+scaling so side media panels and media backgrounds remain edge-to-edge, but
+their container margins still participate in thumbnail spacing compaction.
+
+Folder thumbnail child previews preserve the ordinary dynamic content text-size
+relationship before applying thumbnail limits. The preview may clamp the
+computed size so short content remains larger than long content without
+becoming full-size ordinary-list typography.
+
+Because preview compaction changes the final rendered target size after the
+normal Thing Card bind path has run, Folder thumbnail child previews reapply
+Thing Card Media crop once the preview card is posted with its compacted
+dimensions. The crop reapply path must preserve the media presentation kind and
+prefer the current rendered media target size when available: side media uses
+side-panel crop, foreground thumbnails use thumbnail crop, and media
+backgrounds use media-background crop.
+
+Child preview adapters reuse the parent list adapter's Thing Card Media bitmap
+cache. This keeps the existing media-load cache effective for Folder thumbnail
+previews, even though each child preview is bound through a constrained
+adapter.
+
+Thumbnail preview containers allow child-card shadow overflow by disabling
+parent clipping. If a child preview shadow looks clipped, prefer fixing the
+container clipping boundary over lowering preview elevation again.
+
+## 2026-06-17 - Nested Folder previews use direct child entries
+
+Thumbnail-mode Folder Cards preview direct child entries, not a flattened list
+of all recursive descendant Things. Direct child Folders that match the current
+projection appear in the preview as summary-mode Folder Cards, and tapping such
+a child Folder preview opens that Folder through the same privacy/authentication
+path as an ordinary Folder Card.
+
+The Folder Card count label combines direct child Folder count and recursive
+matching Thing count. In Chinese this is `X个文件夹，Y件记事`; if either count is
+zero, omit that segment.
+
+Child preview cards inside thumbnail-mode Folder Cards use reduced elevation so
+their shadows fit the existing compact preview spacing. The compact ellipsis
+does not reserve a large bottom margin.
+
+## 2026-06-17 - Thumbnail preview spacing and media crop ratios
+
+Thumbnail-mode Folder Cards use a fixed 12dp gap between the Folder count label
+and the first child preview, matching the spacing that previously felt correct
+on full-span Folder Cards. Child preview cards use a 7dp vertical item gap in
+both normal-span one-column previews and full-span masonry previews. Masonry
+rows own the first-child top gap so a row margin and a child margin do not add
+up into a doubled gap.
+
+Folder thumbnail child previews must preserve the saved Thing Card Media crop
+ratio in addition to crop center and user scale. Foreground thumbnails and
+side-panel media use `ThingCardThumbnailCrop.sourceAspectRatio`; media
+background previews use the source presentation's media-background target
+aspect ratio. This applies to images and video frames.
+
 ## 2026-06-15 - Deleting a folder moves the folder subtree to Deleted
 
 Deleting a Thing Folder moves that folder to the Deleted destination while

@@ -90,6 +90,10 @@
 - Folder names on Folder Cards may use up to two lines.
 - The recursive count appears below the name as a short thing-count label, for
   example `X件记事` in Chinese.
+- When a Folder Card has direct child Folders that match the current
+  projection, the count label should combine the direct child Folder count and
+  the recursive matching Thing count, for example `X个文件夹，Y件记事` in
+  Chinese. Omit either segment when its count is zero.
 - The recursive count text aligns with the Folder icon's left edge, not with
   the Folder title column.
 - The recursive count text should be visually aligned with the Folder icon's
@@ -124,3 +128,104 @@
 - The transparent thumbnail-mode surface must remain stable after scrolling
   away and back, so ViewHolder recycling must explicitly clear any summary-mode
   card background state.
+- Thumbnail-mode Folder Card previews must not invent a title for a Thing whose
+  stored title is empty. In that case the preview should show the available
+  content, checklist, or media surfaces according to the same rules as ordinary
+  Thing Card presentation.
+- Thumbnail-mode Folder Card previews should support ordinary Thing Card
+  preview types, including text content, checklist content, image Thing Card
+  Media, and video Thing Card Media.
+- Thumbnail-mode Folder Card previews should also include direct child Folder
+  Cards. Child Folder previews render as summary Folder Cards even when that
+  child Folder normally uses thumbnail mode.
+- Tapping a child Folder preview opens that Folder, following the same privacy
+  authentication rules as tapping the ordinary Folder Card.
+- Thumbnail previews represent direct child entries of the Folder rather than
+  flattening all recursive descendant Things. The bottom ellipsis means there
+  are more direct preview entries not rendered in the constrained preview area.
+- Thumbnail-mode Folder Card child previews should stay close to complete Thing
+  Card presentation while stripping interactive behaviours except opening the
+  child Thing. Checklist toggles, long-press actions, selection, dragging, and
+  other nested card interactions should not be active inside Folder Card
+  previews.
+- Child previews should strictly reuse Thing Card Media presentation for Things
+  with image or video media, including the selected Thing Card Media Source,
+  crop, target aspect ratio, video frame, image placement, media background
+  presentation, and full-span Thing Card presentation where applicable.
+- In full-span thumbnail-mode Folder Cards, a full-span child Thing Card preview
+  should also span the full preview width instead of being squeezed into one
+  masonry column.
+- In normal-span thumbnail-mode Folder Cards, a full-span child Thing Card
+  preview cannot become wider than the Folder Card, but it should still keep
+  full-span Thing Card internal presentation within that one-column preview.
+- Child previews should avoid hard clipping. Their height should be controlled
+  by preview-specific Thing Card constraints such as text max-lines, smaller
+  typography, checklist item limits, simplified Habit detail, and media target
+  sizing. Media-heavy Things may use more vertical space than text-only child
+  previews.
+- Thumbnail child previews should apply the compact scale to the whole rendered
+  preview card, not only to body content. Folder and Thing preview titles,
+  folder icons, checklist row text and icons, media/audio count labels and
+  icons, reminder/habit/goal timing labels and icons, private/sticky/doing
+  indicators, and compound drawables should all read as smaller than ordinary
+  list cards.
+- Thumbnail child previews should also compact their internal padding and
+  margins before visual scaling, while preserving actual Thing Card Media
+  surfaces edge-to-edge inside their own card. Side media panels and media
+  backgrounds should not be visually shrunk as if they were icons. Fixed
+  vertical spacer views such as the Thing Card bottom padding spacer should be
+  compacted with the same spacing scale, so bottom whitespace does not become
+  visibly larger or smaller than the top spacing after thumbnail scaling.
+- Thing Card Media container margins, such as the top margin between text and a
+  bottom media thumbnail, should still be compacted. Only the actual media
+  `ImageView`/mask dimensions are protected from icon scaling.
+- Text-only child previews should keep the ordinary Thing Card dynamic content
+  text-size relationship, then clamp it to thumbnail-safe bounds. Short content
+  should remain larger than long content inside Folder thumbnails.
+- Thumbnail child previews should reapply Thing Card Media crop after the
+  preview card has been compacted and measured. Side media panels must use
+  `ThingCardSideMediaCrop`, foreground thumbnails must use
+  `ThingCardThumbnailCrop`, and media backgrounds must use
+  `ThingCardMediaBackgroundCrop`.
+- Thumbnail child previews should share the parent Thing list's Thing Card
+  Media bitmap cache instead of creating an isolated cache for each child
+  preview adapter. Scrolling a Folder Card with media-heavy child previews
+  should not repeatedly show loading spinners for already-rendered card media.
+- Special Thing-type presentation may still be simplified when the full
+  surface would be too dense for a constrained child preview, such as Habit
+  status details.
+- Habit child previews should keep the core Habit summary but may omit dense
+  record details such as the last-five-record surface inside constrained Folder
+  Card previews.
+- In normal-span Folder Cards, thumbnail previews should render in one column,
+  show at most three child Thing previews, and show a bottom ellipsis when more
+  matching descendants exist.
+- In full-span Folder Cards, thumbnail previews should render in three columns
+  using the same masonry-style layout as the home Thing list, show at most six
+  child Thing previews, and show a bottom ellipsis when more matching
+  descendants exist.
+- The bottom ellipsis in thumbnail-mode Folder Cards is a small Folder-open
+  target, visually closer to the compact checklist "more items" ellipsis than
+  to a large button. It should not take excessive vertical space.
+- The bottom ellipsis should not reserve extra bottom margin; keep its footprint
+  as close as practical to the glyph itself.
+- Thumbnail-mode Folder Cards should use a consistent 12dp gap between the
+  Folder count label and the first child preview, regardless of normal-span or
+  full-span Folder width.
+- Child previews inside thumbnail-mode Folder Cards should use a 7dp vertical
+  item gap in both one-column normal-span previews and full-span masonry
+  previews. Full-span children and masonry column rows should not create an
+  additional doubled first-child top margin.
+- Each child Thing preview inside a thumbnail-mode Folder Card may have an
+  independent height, but it should stay compact through content constraints
+  rather than by clipping the final rendered preview.
+- Child Thing and child Folder preview cards use reduced elevation compared
+  with ordinary list cards so their shadows do not look clipped inside the
+  existing thumbnail preview spacing.
+- Thumbnail preview containers should allow child card shadow overflow by
+  disabling parent clipping, instead of reducing child preview elevation
+  further.
+- Thumbnail child previews must preserve saved Thing Card Media crop geometry,
+  including center, user scale, and target/source aspect ratio. This applies to
+  foreground thumbnails, side-panel media, and media-background cards, including
+  video frame previews.

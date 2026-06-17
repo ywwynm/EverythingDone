@@ -1,5 +1,79 @@
 # Current Debug Update Notes
 
+## 2026-06-17 - 文件夹缩略图上下视频改为直接烘焙裁切 bitmap
+
+用户根据上一版日志指出 `content="测试测试测试"` 的记事仍然显示异常，并同意先在这里尝试“直接生成裁切后的缩略图 bitmap”。从日志看，这条记事的文件夹缩略图绑定目标已经是 `316x316`，视频帧 drawable 是 `316x562`，随后也执行了 `ImageView.ScaleType.MATRIX` 裁切；因此剩余问题不再像是最小高度保护或目标几何计算，而更像是最终显示仍绕不开视频帧原始比例。
+
+本次只改窄路径：文件夹缩略图里的子记事、前景媒体、媒体 source 是视频、未启用 media background、placement 为 top 或 bottom。普通记事卡片、左右媒体、图片媒体和媒体背景仍保持现有 `ImageView.imageMatrix` 裁切路径，便于先验证这个最小改动是否解决问题。
+
+实现细节：`BaseThingsAdapter.kt` 新增 `shouldBakeThingCardForegroundMediaCrop(...)` hook，`ThingsAdapter.kt` 的 `FolderThingPreviewAdapter` 只在上述 top/bottom 前景视频场景返回 true。命中时，`loadThingCardImage(...)` 会把 crop 参数追加到 load/cache key，避免裁切中心或比例变化时复用旧 bitmap；Glide 加载到视频帧 drawable 后，代码直接按目标宽高、裁切中心、裁切比例和用户缩放生成一个目标尺寸 bitmap，设置到 `iv_thing_image`，并让该 render request 后续 replay 时跳过 matrix，避免二次裁切。
+
+这版保留 `[DEBUG-tf-video-crop]` 日志，并新增 `bake=true`、`resource baked` 等阶段信息。复测时如果命中成功，应能看到 `resource baked ... bitmap=316x316` 这类日志；如果仍异常，下一步再考虑是否把同样的 baked-renderer 抽成统一媒体渲染路径，替代更多 `ImageView.imageMatrix` 依赖。
+
+验证状态：`git diff --check` 通过；已执行 `.\gradlew.bat :app:assembleDebug --console=plain`，结果 `BUILD SUCCESSFUL`。
+
+## 2026-06-17 - 为文件夹缩略图上下视频封面加入定位日志
+
+用户反馈上一版“直接生成文件夹缩略图里的上下视频封面几何”仍未解决问题，并提醒需要在日志里打印记事的 `content`，这样才能定位到底是哪一条记事触发了异常表现。
+
+本次没有继续修改裁切行为，而是加入针对性诊断日志。`BaseThingsAdapter.kt` 新增 Thing Card Media debug 上下文，日志统一使用唯一前缀 `[DEBUG-tf-video-crop]`。日志只在 `ThingsAdapter.kt` 的 `FolderThingPreviewAdapter` 中启用，并且只命中“文件夹缩略图子记事 + 选中的媒体 source 是视频 + 未启用 media background + placement 为 top 或 bottom”的路径，避免普通列表、左右视频和背景视频刷屏。
+
+每条日志都会带上 `thingId`、标题预览、`content` 预览、placement、媒体 source key、媒体路径和是否视频。关键阶段包括：子记事绑定时生成的 `imageW/imageH`、`targetAspect`、`surfaceAvailableHeight`、crop 和 `videoFrameMs`；`loadThingCardImage(...)` 发起 Glide 视频帧请求、同 key 命中、bitmap cache 命中、复用旧 drawable、加载失败和 `onResourceReady(...)`；post 后实际应用 render request；`applyThingCardMediaCropToBoundHolder(...)` 的 crop replay；以及最终 `applyThingCardMediaCrop(...)` 写入 `ImageView.ScaleType.MATRIX` 时的 drawable intrinsic size、crop source size、cover scale、user scale、effective scale 和 offset。
+
+这版的目的不是声称已经修复，而是把剩余问题拆清楚：如果日志里的绑定目标高度已经接近 9:16，问题仍在缩略图几何生成或最小高度保护；如果绑定高度正确但 drawable/matrix 不对，问题在视频帧加载或裁切矩阵；如果 matrix 正确但界面仍不对，就要继续查后续 layout、scaleType 或 `ImageView` 外层容器是否覆盖了显示结果。
+
+验证状态：`git diff --check` 通过；已执行 `.\gradlew.bat :app:assembleDebug --console=plain`，结果 `BUILD SUCCESSFUL`。安装后可在 Android Studio Logcat 或命令行中搜索 `[DEBUG-tf-video-crop]`，Windows 命令示例：`adb logcat | findstr /C:"[DEBUG-tf-video-crop]"`。
+
+## 2026-06-17 - 改为直接生成文件夹缩略图里的上下视频封面几何
+
+用户确认视频作为记事背景时正常，只有作为前景媒体位于记事卡片上方或下方、再嵌入宽文件夹卡片缩略图时，会在缩略图里按视频原始比例显示，忽略默认 4:3 或用户设置的裁切比例、裁切中心和缩放比例。
+
+此前两版 debug update `202606170954` 和 `202606171003` 都没有实际解决这个问题。已撤销其中无效的补救式修改，包括文件夹缩略图 replay token、pre-draw replay 调度、以及在 `applyThingCardMediaCropToBoundHolder(...)` 中对 top/bottom 重新设置高度并重载视频帧的逻辑。
+
+本次重新定位为“生成缩略图媒体几何时就不该复用普通卡片的最小高度保护”。普通卡片的 `getImageHeight(...)` 会按 `surfaceAvailableHeight * minPercent` 抬高缩略图高度；在很窄的文件夹预览列里，`imageW / 4:3` 或 `imageW / 1:1` 得到的真实目标高度可能小于这个最小值，于是最终媒体面板被拉得很高，看起来接近 9:16 视频原始比例。
+
+本次实现：`BaseThingsAdapter.kt` 新增 `getThingCardForegroundThumbnailHeight(...)` hook，普通记事卡片仍保留原来的 min/max 高度保护；`ThingsAdapter.kt` 的 `FolderThingPreviewAdapter` 覆盖该 hook，直接使用 `imageW / getThingCardThumbnailTargetAspectRatio(thing)` 生成 top/bottom 前景媒体高度。这样文件夹缩略图里的子记事在绑定阶段就按 thumbnail presentation ratio 生成媒体几何，而不是先生成普通卡片几何再后置修补。左右布局和媒体背景继续走原有路径。
+
+验证状态：`git diff --check` 通过；已执行 `.\gradlew.bat :app:assembleDebug`，结果 `BUILD SUCCESSFUL`。已发布 debug update `202606171146` 到 `http://120.25.194.207/everythingdone-updates/debug/latest.json`，并回读确认远端 metadata 已指向 APK `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606171146.apk`。请重点复测：9:16 视频默认是否在文件夹缩略图里按 4:3 中心裁切；设置 1:1 且裁切中心偏上时，宽文件夹缩略图里的子记事封面是否与普通记事卡片一致；左右视频和视频背景是否保持正常。
+
+## 2026-06-17 - 修复文件夹缩略图间距、视频裁切和文件夹内崩溃
+
+用户继续反馈文件夹缩略图模式的 6 个问题：不同宽度文件夹卡片里，`X个文件夹/Y件记事` 提示文本到下方缩略图的间距不一致；宽文件夹内部 full-span 子卡片与其它子卡片的间距、普通子卡片之间的间距不一致且偏小；普通宽度文件夹内部子卡片间距也偏小；封面视频仍没有按已设置的裁切中心、裁切比例、裁切缩放比例显示；文件夹内部拖动卡片时出现 `RecyclerView.onDraw(...)` 的 `IndexOutOfBoundsException`；文件夹内部创建记事时数据库已写入但 `ThingManager.deleteNEnow(...)` 崩溃。
+
+本次将 `ThingsAdapter.kt` 的文件夹缩略图垂直间距拆成两个明确常量：文件夹计数文本到第一个子缩略图统一为 12dp；所有子缩略图之间统一为 7dp。普通宽度文件夹单列和宽文件夹 masonry 都使用这两个值；宽文件夹里 masonry 行本身承担首项 top margin，列内第一个子卡片不再叠加额外 top margin，避免 full-span/非 full-span 混排时出现双倍间距。
+
+视频封面裁切问题在 `BaseThingsAdapter.kt` 中修复。此前 crop matrix 只使用了裁切中心和缩放，没有真正使用保存的裁切比例，所以一些图片/视频会看起来保留完整画面。现在普通缩略图和左右侧媒体使用 `ThingCardThumbnailCrop.sourceAspectRatio`，媒体背景使用保存的 media-background target aspect ratio，并在最终 matrix 中同时应用裁切比例、中心点和用户缩放；这会影响图片和视频帧，包括文件夹缩略图里的习惯封面视频。
+
+两个崩溃也已修复：文件夹拖动时，临时 Folder-drop outline 的 `ItemDecoration` 不再在当前绘制/拖拽回调栈中直接 `removeItemDecoration(...)`，而是通过 `RecyclerView.post(...)` 延后到下一轮消息，避免 RecyclerView 正在 `onDraw(...)` 遍历 decoration list 时列表被缩短。文件夹内创建记事时，`ThingManager.deleteNEnow(...)` 不再假设 `mThings[1]` 一定存在；只有第二行真实存在且确实是 notify-empty row 时才删除，否则直接返回 false。
+
+已同步更新 `docs/features/thing-folders/preferences.md`、`decisions.md` 和 `sessions.md`，记录 12dp/7dp 间距、媒体裁切比例复用和崩溃修复。验证状态：`git diff --check` 通过；沙盒内 Gradle 因 `.gradle/configuration-cache.lock` 访问被拒绝失败，已按项目规则在沙盒外执行 `.\gradlew.bat :app:assembleDebug --console=plain`，结果 `BUILD SUCCESSFUL`，仅保留 `ThingsActivity.kt` 中既有的 deprecated override warning。已发布 debug update `202606170830` 到阿里云 debug channel。请重点复测：文件夹缩略图首项间距是否统一为 12dp、子项间距是否统一为 7dp、习惯/视频封面是否按裁切比例显示、文件夹内拖动和创建记事是否不再闪退。
+
+## 2026-06-17 - 优化文件夹缩略图模式里的记事预览
+
+用户反馈刚加入的文件夹功能在缩略图模式下仍有外观和内容问题：无标题记事不应在文件夹缩略图里把内容伪造成标题；缩略图需要支持 checklist 预览；图片/视频附件也需要按记事卡片媒体规则预览。后续通过 `grill-with-docs` 逐项确认了最终方向：子预览应尽量复用完整 Thing Card，只去掉嵌套交互；普通宽度文件夹显示一列最多 3 项；宽文件夹显示三列 masonry 最多 6 项；超过时底部显示一个很小的省略号入口；高度控制不通过硬裁切，而是通过字号、最大行数、checklist 行数、习惯摘要和媒体可用高度来压缩。
+
+本次实现把 `ThingsAdapter.kt` 中此前的标题/正文轻量投影替换为真实 Thing Card 绑定路径：子预览会 inflate `card_thing`，并通过一个受限的 `BaseThingsAdapter` 子类绑定。这样可以复用原有标题显示规则、checklist 渲染、图片/视频 Thing Card Media、所选媒体 source、裁切、目标比例、视频帧、图片位置、媒体背景，以及宽记事卡片的内部展示。宽文件夹里的 full-span 子记事会横跨整个预览宽度；普通子记事进入三列 masonry；普通宽度文件夹仍保持单列。
+
+为避免子预览撑得过高，`BaseThingsAdapter.kt` 增加了预览专用 hook：标题字号、正文最大行数、正文字号、checklist 最大项数、checklist 字号、习惯详情显示都可以被子预览适配器覆盖。普通记事列表仍保持原行为。`CheckListAdapter.kt` 新增固定字号入口，文件夹子预览中的 checklist 只读显示，不支持直接勾选；子卡片只支持点击打开记事，不支持长按、选择、拖拽等嵌套交互。
+
+`ThingFolderCardPresentation.kt` 新增 `effectiveThumbnailPreviewLimit()`，`ThingFolderDAO.kt` 和 UI 绑定共用同一套显示上限：普通文件夹 3 项，宽文件夹 6 项。相关决策和偏好已同步到 `docs/features/thing-folders/`。验证状态：已执行 `.\gradlew.bat :app:assembleDebug`，结果 `BUILD SUCCESSFUL`。已发布 debug update `202606170442` 到 `http://120.25.194.207/everythingdone-updates/debug/latest.json`，并回读确认远端 metadata 已指向 APK `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606170442.apk`。请重点复测：无标题记事是否不再出现内容伪标题；checklist 是否在文件夹缩略图里只读显示；图片/视频是否按普通 Thing Card Media 规则预览；普通宽度是否最多 3 项并显示小省略号；宽卡是否三列最多 6 项，并且 full-span 子卡片能横跨预览宽度。
+
+发布后用户反馈：普通记事列表里的记事正文字体被放得非常大。这是我新增预览 hook 时引入的回归：代码先设置了一次普通记事正文 `TextView.textSize`，随后又读取 `holder.tvContent.textSize` 传给 hook；Android 这个 getter 返回的是 px，而 setter 会把传入值按 sp 处理，于是普通记事正文被 px→sp 二次放大。现在已改为先计算普通记事原本的默认 sp 字号，再把这个 sp 值传给 hook 并只写一次 `TextView.textSize`。普通记事的动态正文字号不再被改变，文件夹子预览仍可覆盖为 12sp。已重新执行 `.\gradlew.bat :app:assembleDebug`，结果 `BUILD SUCCESSFUL`。已发布修正版 debug update `202606170448` 到 `http://120.25.194.207/everythingdone-updates/debug/latest.json`，并回读确认远端 metadata 已指向 APK `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606170448.apk`。请重点复测普通记事列表里的正文大小是否恢复正常，同时确认文件夹子预览仍保持紧凑。
+
+用户继续补充了文件夹嵌套文件夹场景的四个问题：Folder Card 计数需要从单一“X件记事”扩展为“X个文件夹，Y件记事”，其中 X 是当前投影下直接下一层文件夹数量，Y 仍是递归匹配记事数量，任一为 0 时省略对应段；上层文件夹缩略图里也要显示直接子文件夹，子文件夹预览使用摘要模式并可点击快速打开；底部省略号占据面积仍偏大，主要是下方 margin 太大；子预览卡片的 elevation 在现有间距下会被裁切，应该降低预览卡片 elevation 而不改间距。
+
+本轮实现新增 `ThingListEntry.FolderEntry.directFolderCount`、`thumbnailEntries` 和 `thumbnailEntryCount`。`ThingFolderDAO.kt` 的缩略图种子从“递归 descendant Thing-only 列表”改为“直接子项 mixed entries”：直接子文件夹和直接子记事按各自 `location` 混合排序，再按普通/宽文件夹的 3/6 项上限截断；省略号现在表示还有更多直接子项未展示，不再用递归记事数判断。`ThingsAdapter.kt` 的缩略图渲染也改为基于 `ThingListEntry`：子记事继续复用受限 Thing Card；子文件夹强制复制为 summary-mode Folder Card 展示，并通过 `onFolderThumbnailFolderClick(...)` 走普通文件夹打开/私密认证路径。计数文案新增中文 `X个文件夹` 和 `X个文件夹，Y件记事`，英文资源同步补齐。
+
+视觉上，底部省略号的 bottom margin 从 6dp 收到 0，只保留 1dp top margin；文件夹缩略图里的子记事/子文件夹预览卡片 elevation 统一降为 2dp，避免在现有间距下阴影被裁切得太明显。已重新执行 `.\gradlew.bat :app:assembleDebug`，结果 `BUILD SUCCESSFUL`。请重点复测：嵌套文件夹计数文案是否正确省略 0 段；上层文件夹缩略图是否显示直接子文件夹摘要卡片；点击子文件夹缩略图是否能打开文件夹；省略号下方空白是否明显变小；子预览阴影是否不再被裁切得突兀。
+
+用户继续反馈：处于文件夹缩略图状态的子记事/子文件夹卡片里，只有正文内容明显缩小了，但 title、文件夹 icon、记事/音频/图像/视频数量提示文字和 icon、提醒/习惯/目标时间文字和 icon、正在做覆盖层等仍然接近普通列表卡片大小。这里已保留“先生成普通 Thing/Folder Card，再做缩略图化”的方向，但在子卡片绑定完成后增加了缩略图专用的后置缩放：`ThingsAdapter.kt` 会遍历渲染后的子卡片 view tree，缩小所有 `TextView` 字号、`TextView` compound drawable，以及 `ImageView` icon。对 checklist 这种内部 RecyclerView 可能延后创建 item view 的路径，`CheckListAdapter.kt` 也新增了只读预览专用的 icon scale，并让 checklist 的省略号吃到固定小字号。这个缩放只作用于文件夹缩略图里的子预览，不影响普通记事列表。内容约束仍然走原来的 preview hooks：正文最大行数、checklist item 数量、checklist 只读与字号、习惯只保留核心摘要、媒体可用高度、子文件夹强制 summary 模式等都继续保留。已重新执行 `git diff --check` 和 `.\gradlew.bat :app:assembleDebug`，结果通过。请重点复测缩略图里的 title、文件夹 icon、checklist 勾选 icon、媒体/音频计数、提醒/目标/习惯、正在做状态是否整体比普通列表卡片小一圈，同时确认普通列表记事字号没有再次被影响。
+
+用户继续指出五个缩略图细节：子卡片内部 margin/padding 仍然太大，占据了很多空间；习惯 summary 字号看起来比提醒时间更大；左右侧图片/视频不再 edge-to-edge，像被当作普通 icon 缩小后四周留白；滑动时缩略图里的图片/视频经常重新转圈加载，怀疑此前的 LRU 缓存没有生效；子预览卡片 2dp elevation 仍然能看到被边缘裁切，但不希望继续降低 elevation。对应修复如下：`ThingsAdapter.kt` 的缩略图后置处理现在会先压缩子卡片内部 padding/margin，再缩放文字和 icon；真实 Thing Card Media surface 被排除在 icon 缩放之外，所以左右侧媒体和媒体背景不再被视觉缩小，仍保持 edge-to-edge。`BaseThingsAdapter.kt` 新增习惯 summary 字号 hook，文件夹缩略图里习惯 summary 会先按提醒时间同一基准字号绑定，再经过统一缩放。`BaseThingsAdapter.kt` 也新增了受保护的媒体 bitmap cache hook，文件夹子预览 adapter 复用父级 `ThingsAdapter` 的 LRU 缓存，避免每个临时子 adapter 都有独立空缓存。子预览的父级 list/grid/column 容器关闭 `clipChildren`/`clipToPadding`，用放开裁切边界解决阴影被切，而不是继续降低 elevation。已重新执行 `git diff --check` 和 `.\gradlew.bat :app:assembleDebug`，结果通过。
+
+用户继续反馈两个细节：文件夹缩略图里的子文件夹摘要卡片，`X件记事` 下方留白仍明显大于文件夹 icon/标题上方留白；只有 content 的子记事卡片也存在 content 下方留白更大的问题；另外习惯记事卡片带封面图片/视频时，视频 crop 看起来没有按正确区域截取。进一步排查后确认，留白主要来自固定高度的 `view_thing_padding_bottom`，之前只压缩了 padding/margin，没有压缩这种 spacer 高度；媒体问题则来自缩略图后置压缩改变了最终 media target 尺寸，但 crop 没有在压缩后的实际尺寸上重放，而且通用 bound-holder crop 重放路径对左右侧 media 错用了 thumbnail crop。现在 `ThingsAdapter.kt` 会在缩略图后置处理时同步压缩底部 spacer 高度，并在子卡片完成压缩和测量后 post 一次 media crop 重放；`BaseThingsAdapter.kt` 的 crop 重放路径也改为根据当前图片位置选择 side-panel crop 或 thumbnail crop，媒体背景继续使用 media-background crop。已重新执行 `git diff --check` 和 `.\gradlew.bat :app:assembleDebug`，结果通过。
+
+用户提供截图后继续指出四个更具体的问题：中间列标题为“可以啦？”的子文件夹卡片变成标题上方留白大于 `2件记事` 下方留白；右上角内容为 `2333` 且有底部封面的子记事，正文和封面之间的间距明显大于正文上方间距；第二行 `我无敌！` 的短正文在缩略图里太小，应该保留首页 Thing Card 按字数动态调字号的能力；左下角习惯类记事带视频封面时 crop 仍不正确。对应修正：底部 spacer 不再用固定 0.5 缩放，而是跟普通布局 spacing scale 一致，避免从“下方过大”过度修成“上方过大”；媒体 surface 保护改为只保护真实 media `ImageView`/mask 不被当 icon 缩小，但媒体容器自身的 margin 仍参与缩略图间距压缩，因此底部封面和正文之间不再保留普通卡片的 16dp 间距；缩略图子记事正文恢复使用普通 Thing Card 的动态字号计算，再 clamp 到缩略图安全上限，短正文会比长正文更大；媒体背景 crop 重放优先使用当前实际渲染出来的 media target 宽高，让习惯/视频/图片背景在缩略图压缩后按最终尺寸重新套用 crop。已重新执行 `git diff --check` 和 `.\gradlew.bat :app:assembleDebug`，结果通过。
+
 ## 2026-06-17 - 统一 Thing 与文件夹混合列表的位置语义
 
 用户继续要求全面检查 `Thing` 的 `position` 和新增 `list_position` 语义，并进一步指出局部变量命名也需要统一，例如什么时候应该叫 `thingPos`、什么时候应该叫 `listPos`、什么时候应该叫 `thingIndex`。这次调试更新延续上一轮文件夹加入后的 position 审计，把命名和实际语义收敛到同一套规则：`thingIndex` 只表示 `ThingManager.getThings()` 里的纯 Thing 下标，`listPosition` 只表示包含 Folder Card 的 mixed RecyclerView adapter position；变更前后或拖拽源/目标位置使用 `oldListPosition`、`newListPosition`、`sourceOldListPosition`、`targetNewListPosition` 等限定名。

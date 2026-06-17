@@ -5295,6 +5295,18 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             }
         }
 
+        override fun onFolderThumbnailFolderClick(
+            v: View?,
+            entry: ThingListEntry.FolderEntry
+        ) {
+            if (v == null || mModeManager!!.getCurrentMode() != ModeManager.NORMAL) {
+                return
+            }
+            dismissSnackbars()
+            KeyboardUtil.hideKeyboard(currentFocus)
+            openThingFolder(entry)
+        }
+
         override fun onItemLongClick(v: View?, listPosition: Int): Boolean {
             if (mIsNewItemShiningBorderActive) {
                 return true
@@ -6774,21 +6786,21 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         }
 
         private fun removeFolderDropTargetOutlineDecorationImmediately() {
-            val recyclerView = mRecyclerView ?: return
             highlightedFolderTargetOutlineAnimator?.cancel()
             highlightedFolderTargetOutlineAnimator = null
             val decoration = highlightedFolderTargetOutlineDecoration ?: return
-            recyclerView.removeItemDecoration(decoration)
             highlightedFolderTargetOutlineDecoration = null
-            recyclerView.invalidate()
+            removeFolderDropTargetOutlineDecoration(decoration)
         }
 
         private fun removeFolderDropTargetOutlineDecoration(
             decoration: FolderDropOutlineDecoration
         ) {
             val recyclerView = mRecyclerView ?: return
-            recyclerView.removeItemDecoration(decoration)
-            recyclerView.invalidate()
+            recyclerView.post {
+                recyclerView.removeItemDecoration(decoration)
+                recyclerView.invalidate()
+            }
         }
 
         private fun canMove(fromListPosition: Int, toListPosition: Int): Boolean {

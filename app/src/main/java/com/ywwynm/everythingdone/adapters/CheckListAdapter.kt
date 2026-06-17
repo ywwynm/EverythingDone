@@ -97,6 +97,8 @@ open class CheckListAdapter(
      * 0 = unset → keep the default white-on-card behaviour.
      */
     private var mThingColor: Int = 0
+    private var mFixedTextSize: Float? = null
+    private var mFixedIconScale: Float? = null
 
     init {
         removeItemsForTextView()
@@ -166,6 +168,14 @@ open class CheckListAdapter(
         mThingColor = thingColor
     }
 
+    open fun setFixedTextSize(textSize: Float?) {
+        mFixedTextSize = textSize
+    }
+
+    open fun setFixedIconScale(iconScale: Float?) {
+        mFixedIconScale = iconScale
+    }
+
     /** True when the foreground should be drawn black-side rather than white-side. */
     private fun dark(): Boolean {
         if (mThingColor == 0) return false  // unset → keep legacy white behaviour
@@ -192,6 +202,17 @@ open class CheckListAdapter(
         } else {
             androidx.core.widget.ImageViewCompat.setImageTintList(iv, null)
         }
+    }
+
+    private fun applyFixedIconScale(iv: ImageView?) {
+        val iconScale = mFixedIconScale ?: return
+        val drawable = iv?.drawable ?: return
+        if (drawable.intrinsicWidth <= 0 || drawable.intrinsicHeight <= 0) return
+        val lp = iv.layoutParams ?: return
+        lp.width = (drawable.intrinsicWidth * iconScale).toInt().coerceAtLeast(1)
+        lp.height = (drawable.intrinsicHeight * iconScale).toInt().coerceAtLeast(1)
+        iv.layoutParams = lp
+        iv.scaleType = ImageView.ScaleType.FIT_CENTER
     }
 
     private fun installIconRipple(iv: ImageView?) {
@@ -245,7 +266,7 @@ open class CheckListAdapter(
             val dark = dark()
             if (mMaxItemCount != -1 && position == mMaxItemCount) {
                 holder.iv!!.visibility = View.GONE
-                holder.tv.textSize = 18f
+                holder.tv.textSize = mFixedTextSize ?: 18f
                 holder.tv.setTextColor(textColorSecondary())
                 holder.tv.text = "..."
                 holder.tv.contentDescription =
@@ -282,9 +303,14 @@ open class CheckListAdapter(
                         holder.tv.paintFlags = flag or Paint.STRIKE_THRU_TEXT_FLAG
                     }
                 }
+                applyFixedIconScale(holder.iv)
 
                 val size = mItems!!.size
-                if ((mMaxItemCount != -1 && size >= mMaxItemCount) || mMaxItemCount == -1) {
+                val fixedTextSize = mFixedTextSize
+                if (fixedTextSize != null) {
+                    holder.tv.textSize = fixedTextSize
+                    params.setMargins(0, (2 * density).toInt(), 0, params.bottomMargin)
+                } else if ((mMaxItemCount != -1 && size >= mMaxItemCount) || mMaxItemCount == -1) {
                     holder.tv.textSize = 14f
                     params.setMargins(0, (2 * density).toInt(), 0, params.bottomMargin)
                 } else {

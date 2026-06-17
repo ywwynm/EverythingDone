@@ -190,6 +190,8 @@
     <string name="thing_folder">记事文件夹</string>
     <string name="private_thing_folder">私密记事文件夹</string>
     <string name="thing_folder_count">%1$d件记事</string>
+    <string name="thing_folder_count_folders">%1$d个文件夹</string>
+    <string name="thing_folder_count_folders_things">%1$d个文件夹，%2$d件记事</string>
     <string name="cannot_set_as_private_thing_folder_title">无法设置为私密记事文件夹</string>
     <string name="thing_folder_location">位于 %1$s</string>
     <string name="create_thing_folder_title">命名记事文件夹</string>

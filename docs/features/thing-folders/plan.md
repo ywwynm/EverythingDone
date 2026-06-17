@@ -72,7 +72,9 @@ Add a `ThingFolder` model with:
 
 - `version`
 - `mode`: `SUMMARY` or `THUMBNAILS`
-- `thumbnailLimit`
+- `thumbnailLimit` as a legacy/reserved presentation field. The current
+  thumbnail projection applies fixed surface caps instead: three previews for
+  normal-span Folder Cards and six previews for full-span Folder Cards.
 - `spanMode`: `NORMAL` or `FULL`
 
 ### Database
@@ -210,8 +212,10 @@ Eligibility:
   feasible.
 - Tapping a thumbnail opens that Thing's Detail directly.
 - Tapping non-thumbnail card area opens the folder.
-- `thumbnailLimit` controls how many child thumbnails render before the rest are
-  represented by the folder-open area.
+- The current thumbnail surface caps previews by span: normal-span Folder Cards
+  render at most three child Thing previews in one column, and full-span Folder
+  Cards render at most six child Thing previews in a three-column masonry
+  layout. Additional matching descendants are represented by a bottom ellipsis.
 - `spanMode = FULL` makes the Folder Card wide in supported list surfaces.
 - The count includes Things inside nested folders and includes private Things
   even when their content is hidden. The count is a metadata count, not a

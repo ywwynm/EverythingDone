@@ -1204,7 +1204,7 @@ open class ThingManager private constructor(context: Context?) {
         val limits: IntArray = Thing.getLimits(type, state)
         for (limit in limits) {
             if (mLimit == limit) {
-                val thing: Thing = mThings!![1]!!
+                val thing: Thing = mThings?.getOrNull(1) ?: return false
                 val NEtype: Int = thing.type
                 if (NEtype >= Thing.NOTIFY_EMPTY_UNDERWAY) {
                     updateState(thing, 1, -1, Thing.UNDERWAY, Thing.DELETED_FOREVER, false, false)
