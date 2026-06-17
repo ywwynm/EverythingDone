@@ -64,10 +64,10 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
     private var mAnimHandler: Handler = Handler()
 
     interface OnNewItemBoundListener {
-        fun onNewItemBound(position: Int, holder: BaseThingViewHolder?)
+        fun onNewItemBound(listPosition: Int, holder: BaseThingViewHolder?)
     }
 
-    private var mArmedNewItemPosition: Int = -1
+    private var mArmedNewItemListPosition: Int = -1
     private var mArmedNewItemId: Long = -1L
     private var mArmedNewItemListener: OnNewItemBoundListener? = null
 
@@ -109,14 +109,18 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
     /**
      * Arm a one-shot animation for a freshly created thing.
      */
-    open fun armNewItemAnimation(position: Int, thingId: Long, listener: OnNewItemBoundListener?) {
-        mArmedNewItemPosition = position
+    open fun armNewItemAnimation(
+        listPosition: Int,
+        thingId: Long,
+        listener: OnNewItemBoundListener?
+    ) {
+        mArmedNewItemListPosition = listPosition
         mArmedNewItemId       = thingId
         mArmedNewItemListener = listener
     }
 
     open fun clearArmedNewItemAnimation() {
-        mArmedNewItemPosition = -1
+        mArmedNewItemListPosition = -1
         mArmedNewItemId       = -1L
         mArmedNewItemListener = null
     }
@@ -172,18 +176,21 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         maybeTriggerArmedNewItemAnimation(holder, position)
     }
 
-    private fun isArmedFor(position: Int): Boolean {
+    private fun isArmedFor(listPosition: Int): Boolean {
         if (mArmedNewItemListener == null) return false
-        if (position != mArmedNewItemPosition) return false
+        if (listPosition != mArmedNewItemListPosition) return false
         if (mArmedNewItemId == -1L) return true
-        return getThingAt(position)?.id == mArmedNewItemId
+        return getThingAt(listPosition)?.id == mArmedNewItemId
     }
 
-    private fun maybeTriggerArmedNewItemAnimation(holder: BaseThingViewHolder, position: Int) {
-        if (!isArmedFor(position)) return
+    private fun maybeTriggerArmedNewItemAnimation(
+        holder: BaseThingViewHolder,
+        listPosition: Int
+    ) {
+        if (!isArmedFor(listPosition)) return
 
         val listener = mArmedNewItemListener
-        val firedPosition = position
+        val firedListPosition = listPosition
         clearArmedNewItemAnimation()
 
         holder.cv!!.visibility = View.INVISIBLE
@@ -196,7 +203,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
                     holder.cv.post(this)
                     return
                 }
-                listener!!.onNewItemBound(firedPosition, holder)
+                listener!!.onNewItemBound(firedListPosition, holder)
             }
         })
     }
@@ -670,9 +677,9 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         }
     }
 
-    private fun playAppearingAnimation(v: View, position: Int) {
+    private fun playAppearingAnimation(v: View, listPosition: Int) {
         v.visibility = View.INVISIBLE
-        if (getItemViewType(position) != Thing.HEADER) {
+        if (getItemViewType(listPosition) != Thing.HEADER) {
             val animation: Animation = AnimationUtils.loadAnimation(
                 mApp, R.anim.things_show
             )
@@ -690,7 +697,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
             mAnimHandler.postDelayed({
                 v.visibility = View.VISIBLE
                 v.startAnimation(animation)
-            }, position * 30L)
+            }, listPosition * 30L)
         }
     }
 
@@ -729,10 +736,12 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
                     val updatedContent: String = CheckListHelper.toggleChecklistItem(content, itemPos)!!
                     thing.content = updatedContent
                     val typeBefore = thing.type
-                    val thingPos = holder.adapterPosition
-                    if (thingPos == -1) return
-                    ThingManager.getInstance(mApp)!!.update(typeBefore, thing, thingPos, false)
-                    notifyItemChanged(thingPos)
+                    val listPosition = holder.adapterPosition
+                    if (listPosition == -1) return
+                    val thingIndex = mThingManager!!.getThingIndexForListPosition(listPosition)
+                    if (thingIndex == -1) return
+                    ThingManager.getInstance(mApp)!!.update(typeBefore, thing, thingIndex, false)
+                    notifyItemChanged(listPosition)
                     val thingId = thing.id
                     val thingType = thing.type
                     AppWidgetHelper.updateSingleThingAppWidgets(mApp, thingId)
@@ -742,7 +751,8 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
 
                 override fun onItemSpaceClick(v: View?) {
                     if (mOnItemTouchedListener != null) {
-                        mOnItemTouchedListener!!.onItemClick(v, holder.adapterPosition)
+                        val listPosition = holder.adapterPosition
+                        mOnItemTouchedListener!!.onItemClick(v, listPosition)
                     }
                 }
             })
@@ -751,8 +761,8 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
 
     interface OnItemTouchedListener {
         fun onItemTouch(v: View?, event: MotionEvent?): Boolean
-        fun onItemClick(v: View?, position: Int)
-        fun onItemLongClick(v: View?, position: Int): Boolean
+        fun onItemClick(v: View?, listPosition: Int)
+        fun onItemLongClick(v: View?, listPosition: Int): Boolean
         fun onFolderThumbnailClick(v: View?, thing: Thing)
     }
 
@@ -762,10 +772,12 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
             if (mOnItemTouchedListener != null) {
                 cv!!.setOnTouchListener(mOnTouchListener)
                 cv.setOnClickListener { v ->
-                    mOnItemTouchedListener!!.onItemClick(v, adapterPosition)
+                    val listPosition = adapterPosition
+                    mOnItemTouchedListener!!.onItemClick(v, listPosition)
                 }
                 cv.setOnLongClickListener { v ->
-                    mOnItemTouchedListener!!.onItemLongClick(v, adapterPosition)
+                    val listPosition = adapterPosition
+                    mOnItemTouchedListener!!.onItemLongClick(v, listPosition)
                 }
             }
         }

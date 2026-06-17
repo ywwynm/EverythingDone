@@ -39,7 +39,7 @@ object RemoteActionHelper {
     const val TAG: String = "RemoteActionHelper"
 
     @JvmStatic
-    fun finishReminder(context: Context?, thing: Thing?, position: Int) {
+    fun finishReminder(context: Context?, thing: Thing?, thingIndex: Int) {
         var t: Thing = thing!!
         if (App.getDoingThingId() == t.id) {
             DoingService.sStopReason = DoingRecord.STOP_REASON_FINISH
@@ -50,7 +50,7 @@ object RemoteActionHelper {
             App.setDoingThingId(-1L)
         }
 
-        if (position == -1) {
+        if (thingIndex == -1) {
             t = Thing.getSameCheckStateThing(t, Thing.UNDERWAY, Thing.FINISHED)!!
             val thingDAO: ThingDAO = ThingDAO.getInstance(context)!!
             thingDAO.updateState(t, t.location, Thing.UNDERWAY, Thing.FINISHED,
@@ -60,18 +60,18 @@ object RemoteActionHelper {
                     true   /* shouldUpdateHeader */)
             Thing.tryToCancelOngoing(context, t.id)
         }
-        updateUiEverywhere(context, t, position, t.type,
+        updateUiEverywhere(context, t, thingIndex, t.type,
                 Def.Communication.RESULT_UPDATE_THING_STATE_DIFFERENT)
     }
 
     @JvmStatic
     fun finishHabitOnce(
-            context: Context?, thing: Thing?, position: Int, hrTime: Long): Boolean {
+            context: Context?, thing: Thing?, thingIndex: Int, hrTime: Long): Boolean {
         val habitDAO: HabitDAO = HabitDAO.getInstance(context)!!
         val habit: Habit? = habitDAO.getHabitById(thing!!.id)
         val typeBefore: Int = thing.type
         if (habit == null) {
-            correctIfNoHabit(context, thing, position, typeBefore)
+            correctIfNoHabit(context, thing, thingIndex, typeBefore)
             return false
         }
 
@@ -92,12 +92,14 @@ object RemoteActionHelper {
         }
         if (allowFinish) {
             habitDAO.finishOneTime(habit)
-            updateUiEverywhere(context, thing, position, typeBefore,
+            updateUiEverywhere(context, thing, thingIndex, typeBefore,
                     Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME)
             return true
         } else {
             PossibleMistakeHelper.outputNewMistakeInBackground(
-                    possibleMistakeInfoForFinishingHabitOnce(thing, position, hrTime, doing, habit))
+                    possibleMistakeInfoForFinishingHabitOnce(
+                        thing, thingIndex, hrTime, doing, habit
+                    ))
 
             if (habit.record!!.isEmpty() && habit.remindedTimes == 0) {
                 Toast.makeText(context, R.string.alert_cannot_finish_habit_first_time,
@@ -111,7 +113,7 @@ object RemoteActionHelper {
     }
 
     private fun possibleMistakeInfoForFinishingHabitOnce(
-            thing: Thing?, position: Int, hrTime: Long, doing: Boolean, habit: Habit): String {
+            thing: Thing?, thingIndex: Int, hrTime: Long, doing: Boolean, habit: Habit): String {
         val gson = Gson()
         var dt: ZonedDateTime = ZonedDateTime.now()
         val curTimeStr: String = dt.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
@@ -124,7 +126,7 @@ object RemoteActionHelper {
         val remindedTimes: Int = habit.remindedTimes
         return "thing: " + gson.toJson(thing) + "\n\n" +
 
-                "position: " + position + "\n\n" +
+                "thingIndex: " + thingIndex + "\n\n" +
 
                 "hrTime: " + hrTime + "\n" +
                 "hrTimeStr: " + hrTimeStr + "\n\n" +
@@ -141,20 +143,20 @@ object RemoteActionHelper {
     }
 
     @JvmStatic
-    fun delay(context: Context?, thing: Thing?, position: Int, type: Int, time: Int) {
+    fun delay(context: Context?, thing: Thing?, thingIndex: Int, type: Int, time: Int) {
         val dao: ReminderDAO = ReminderDAO.getInstance(context)!!
         val reminder: Reminder? = dao.getReminderById(thing!!.id)
         val typeBefore: Int = thing.type
         if (reminder == null) {
-            correctIfNoReminder(context, thing, position, typeBefore)
+            correctIfNoReminder(context, thing, thingIndex, typeBefore)
             return
         }
 
         thing.updateTime = System.currentTimeMillis()
-        if (position == -1) {
+        if (thingIndex == -1) {
             ThingDAO.getInstance(context)!!.update(typeBefore, thing, false, false)
         } else {
-            ThingManager.getInstance(context)!!.update(typeBefore, thing, position, false)
+            ThingManager.getInstance(context)!!.update(typeBefore, thing, thingIndex, false)
         }
         val addMillis: Long = DateTimeUtil.getActualTimeAfterSomeTime(type, time) -
                 System.currentTimeMillis()
@@ -166,7 +168,7 @@ object RemoteActionHelper {
         reminder.updateTime = System.currentTimeMillis()
         dao.update(reminder)
 
-        updateUiEverywhere(context, thing, position, typeBefore,
+        updateUiEverywhere(context, thing, thingIndex, typeBefore,
                 Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME)
     }
 
@@ -176,14 +178,14 @@ object RemoteActionHelper {
         val thing: Thing = pair.first ?: return
         val updatedContent: String? = CheckListHelper.toggleChecklistItem(thing.content, itemPos)
         thing.content = updatedContent
-        val position: Int = pair.second!!
+        val thingIndex: Int = pair.second!!
         val typeBefore: Int = thing.type
-        if (position == -1) {
+        if (thingIndex == -1) {
             ThingDAO.getInstance(context)!!.update(typeBefore, thing, false, false)
         } else {
-            ThingManager.getInstance(context)!!.update(typeBefore, thing, position, false)
+            ThingManager.getInstance(context)!!.update(typeBefore, thing, thingIndex, false)
         }
-        updateUiEverywhere(context, thing, position, typeBefore,
+        updateUiEverywhere(context, thing, thingIndex, typeBefore,
                 Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME)
     }
 
@@ -210,27 +212,27 @@ object RemoteActionHelper {
 
     @JvmStatic
     fun correctIfNoReminder(
-            context: Context?, thing: Thing?, position: Int, typeBefore: Int) {
+            context: Context?, thing: Thing?, thingIndex: Int, typeBefore: Int) {
         if (Thing.isReminderType(typeBefore)) {
             thing!!.type = Thing.NOTE
-            if (position == -1) {
+            if (thingIndex == -1) {
                 ThingDAO.getInstance(context)!!.update(typeBefore, thing, true, true)
             }
             updateUiEverywhere(
-                    context, thing, position, typeBefore,
+                    context, thing, thingIndex, typeBefore,
                     Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_DIFFERENT)
         }
     }
 
     @JvmStatic
     fun correctIfNoHabit(
-            context: Context?, thing: Thing?, position: Int, typeBefore: Int) {
+            context: Context?, thing: Thing?, thingIndex: Int, typeBefore: Int) {
         if (typeBefore == Thing.HABIT) {
             thing!!.type = Thing.NOTE
-            if (position == -1) {
+            if (thingIndex == -1) {
                 ThingDAO.getInstance(context)!!.update(typeBefore, thing, true, true)
             }
-            updateUiEverywhere(context, thing, position, typeBefore,
+            updateUiEverywhere(context, thing, thingIndex, typeBefore,
                     Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_DIFFERENT)
         }
     }
@@ -245,7 +247,7 @@ object RemoteActionHelper {
      *
      * @param context the context where the action happened.
      * @param thing the thing that the action act with.
-     * @param position position of `thing` inside [ThingManager.mThings]. This can
+     * @param thingIndex index of `thing` inside [ThingManager.mThings]. This can
      *                 be -1 if `thing` couldn't be found under current limit.
      * @param typeBefore used when we are updating `thing`'s type.
      * @param resultCode although this method can handle all possible resultCodes declared in
@@ -259,7 +261,7 @@ object RemoteActionHelper {
      */
     @JvmStatic
     fun updateUiEverywhere(
-            context: Context?, thing: Thing?, position: Int, typeBefore: Int, resultCode: Int) {
+            context: Context?, thing: Thing?, thingIndex: Int, typeBefore: Int, resultCode: Int) {
         Log.i(TAG, "updateUiEverywhere called")
         if (App.isSomethingUpdatedSpecially()) {
             Log.i(TAG, "App.isSomethingUpdatedSpecially is already true")
@@ -269,27 +271,36 @@ object RemoteActionHelper {
             App.setSomethingUpdatedSpecially(true)
         }
 
+        val thingManager: ThingManager = ThingManager.getInstance(context)!!
+        val listPosition = if (thing == null) {
+            -1
+        } else {
+            thingManager.getListPositionForThingId(thing.id)
+        }
+        val listProjectionKey = thingManager.getProjection().key()
+
         val broadcastIntent = Intent(
                 Def.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI)
         broadcastIntent.putExtra(Def.Communication.KEY_RESULT_CODE, resultCode)
         broadcastIntent.putExtra(Def.Communication.KEY_THING, thing)
-        broadcastIntent.putExtra(Def.Communication.KEY_POSITION, position)
+        broadcastIntent.putExtra(Def.Communication.KEY_POSITION, thingIndex)
+        broadcastIntent.putExtra(Def.Communication.KEY_LIST_POSITION, listPosition)
+        broadcastIntent.putExtra(Def.Communication.KEY_LIST_PROJECTION, listProjectionKey)
         broadcastIntent.putExtra(Def.Communication.KEY_TYPE_BEFORE, typeBefore)
 
-        val thingManager: ThingManager = ThingManager.getInstance(context)!!
         if (resultCode == Def.Communication.RESULT_UPDATE_THING_STATE_DIFFERENT) {
             broadcastIntent.putExtra(Def.Communication.KEY_STATE_AFTER, Thing.FINISHED)
-            if (position != -1) {
+            if (thingIndex != -1) {
                 val shouldCallChange: Boolean = thingManager.updateState(
-                        thing, position, thing!!.location, Thing.UNDERWAY,
+                        thing, thingIndex, thing!!.location, Thing.UNDERWAY,
                         Thing.FINISHED, false, true)
                 Log.d(TAG, "Updating state from remote action, shouldCallChange: $shouldCallChange")
                 broadcastIntent.putExtra(Def.Communication.KEY_CALL_CHANGE, shouldCallChange)
             }
         } else if (resultCode == Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_DIFFERENT) {
-            if (position != -1) {
+            if (thingIndex != -1) {
                 val shouldCallChange: Boolean =
-                        thingManager.update(typeBefore, thing, position, true) == 1
+                        thingManager.update(typeBefore, thing, thingIndex, true) == 1
                 Log.d(TAG, "Updating type from remote action, shouldCallChange: $shouldCallChange")
                 broadcastIntent.putExtra(Def.Communication.KEY_CALL_CHANGE, shouldCallChange)
             }

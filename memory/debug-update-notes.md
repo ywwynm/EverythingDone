@@ -1,5 +1,17 @@
 # Current Debug Update Notes
 
+## 2026-06-17 - 统一 Thing 与文件夹混合列表的位置语义
+
+用户继续要求全面检查 `Thing` 的 `position` 和新增 `list_position` 语义，并进一步指出局部变量命名也需要统一，例如什么时候应该叫 `thingPos`、什么时候应该叫 `listPos`、什么时候应该叫 `thingIndex`。这次调试更新延续上一轮文件夹加入后的 position 审计，把命名和实际语义收敛到同一套规则：`thingIndex` 只表示 `ThingManager.getThings()` 里的纯 Thing 下标，`listPosition` 只表示包含 Folder Card 的 mixed RecyclerView adapter position；变更前后或拖拽源/目标位置使用 `oldListPosition`、`newListPosition`、`sourceOldListPosition`、`targetNewListPosition` 等限定名。
+
+本次修改保留 `KEY_POSITION` 的历史协议语义，继续作为纯 Thing 下标传给 `ThingManager.update(...)`、`updateState(...)`、置顶/取消置顶等 manager API；新增和补齐的 `KEY_LIST_POSITION`、`KEY_LIST_PROJECTION` 则用于主界面精确刷新 mixed list。`ThingListProjection.key()` 会把当前内置列表限制和打开的文件夹路径绑定到返回结果上，`ThingsActivity` 只在 projection 一致时信任旧的 list position，否则按 Thing id 重新查找或退回全量刷新，避免从根目录或另一个文件夹返回时通知错误卡片。
+
+文件夹内创建记事也做了进一步保护：`ThingsActivity` 打开创建详情页时会把当前文件夹 id 放进 intent，`DetailActivity` 创建新 Thing 时显式设置 `folderId`。这样即使创建流程期间主列表 projection 发生切换，新记事也会进入用户发起创建时所在的文件夹，而不是被默认创建到根目录。
+
+主列表相关代码已按命名规则清理。`ThingsActivity` 中 Detail result、remote action 回调、undo、swipe 完成、文件夹 drop 提交、drag hover、卡片外观预览、new item 动画等路径统一使用 `thingIndex` 和 `listPosition`；`DetailActivity` 的历史字段 `mPosition` 改为 `mThingIndex`，旁边保留 `mListPosition`；`RemoteActionHelper` 的远程完成/延迟/清单切换参数改为 `thingIndex`，同时广播 pre-mutation `listPosition` 和 projection key；`ThingsAdapter` 的 inline checklist 更新会先把 holder 的 mixed list position 转成纯 Thing index 再调用 `ThingManager.update(...)`，通知刷新仍使用 mixed list position。独立的附件列表、详情清单编辑列表、媒体裁剪 dialog 等局部 adapter 位置没有改名，因为它们不参与 Thing/Folder 主列表投影。
+
+同步更新了 `docs/features/thing-folders/preferences.md` 和 `docs/features/thing-folders/sessions.md`，记录以后主列表相关代码的命名约定。验证状态：`git diff --check` 已通过，仅有仓库既有 LF/CRLF warning；已执行 `.\gradlew.bat :app:assembleDebug`，结果 `BUILD SUCCESSFUL`。请重点复测：详情页返回主界面后是否刷新正确卡片；打开文件夹后创建记事是否仍进入当前文件夹；通知/小组件远程完成或延迟记事后列表是否不再错位；inline checklist 点击是否不会更新错 item；卡片外观封面比例实时预览是否仍正常。
+
 ## 2026-06-17 - 修复文件夹加入后的列表位置与卡片外观预览回归
 
 用户继续反馈三个问题：文件夹卡片里的记事数量提示文本虽然布局上和文件夹 icon 左侧对齐，但视觉上稍微偏左，需要增加 2dp 左侧偏移；从记事详情界面更新记事回到主界面后，`notifyItemChanged` 使用的 position 出错，合理推测加入文件夹后相关 position 都需要重新适配；加入文件夹后，调整记事卡片外观里的封面图片比例不能实时预览，图片作为卡片背景时比例滑动条也完全错误，比例标记文本挤在一起。

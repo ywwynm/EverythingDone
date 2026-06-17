@@ -12,6 +12,10 @@ data class ThingListProjection(
 
     fun isRoot(): Boolean = folderPath.isEmpty()
 
+    fun key(): String {
+        return "$limit:${folderPath.joinToString("/")}"
+    }
+
     fun withLimit(limit: Int): ThingListProjection {
         return ThingListProjection(normalizeLimit(limit), emptyList())
     }

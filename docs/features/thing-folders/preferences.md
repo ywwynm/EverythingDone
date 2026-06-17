@@ -8,6 +8,19 @@
 - Folder navigation should happen through Folder Cards and clickable header
   path segments within the active built-in destination projection.
 
+## Position Naming
+
+- In Thing/Folder home-list code, use `thingIndex` only for the pure
+  `ThingManager.getThings()` index and `listPosition` only for the mixed
+  RecyclerView adapter position backed by `ThingListEntry`.
+- Use qualified names such as `oldListPosition`, `newListPosition`,
+  `sourceOldListPosition`, and `targetListPosition` when the value is a mixed
+  list position captured before or after a list mutation.
+- Avoid ambiguous local names such as `position`, `thingPos`, or
+  `adapterPosition` in home-list code when both Thing indices and mixed-list
+  positions are in scope. Local adapters with their own independent data sets
+  may continue to use ordinary `position` or `pos` names.
+
 ## Drag Commit Animation
 
 - When dropping a Thing Card onto an existing Thing Folder Card, the dragged

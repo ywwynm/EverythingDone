@@ -185,8 +185,9 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     private var mThingCardImagePlacement: Int = Thing.THING_CARD_IMAGE_PLACEMENT_DEFAULT
     private var mDetailAttachmentMediaAppearance: DetailAttachmentMediaAppearance =
         DetailAttachmentMediaAppearance.default()
-    private var mPosition: Int = 0
+    private var mThingIndex: Int = 0
     private var mListPosition: Int = -1
+    private var mListProjectionKey: String? = null
     private var mReminder: Reminder? = null
     private var mHabit: Habit? = null
 
@@ -376,8 +377,9 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
 
         var id = intent.getLongExtra(Def.Communication.KEY_ID, -1)
 
-        mPosition = intent.getIntExtra(Def.Communication.KEY_POSITION, 1)
+        mThingIndex = intent.getIntExtra(Def.Communication.KEY_POSITION, 1)
         mListPosition = intent.getIntExtra(Def.Communication.KEY_LIST_POSITION, -1)
+        mListProjectionKey = intent.getStringExtra(Def.Communication.KEY_LIST_PROJECTION)
 
         val thingManager: ThingManager = ThingManager.getInstance(mApp)!!
         if (mType == CREATE) {
@@ -390,6 +392,10 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             if (color == 0) color = DisplayUtil.getRandomColor(mApp)
 
             mThing = Thing(newId, Thing.NOTE, color, newId)
+            val folderId = intent.getLongExtra(Def.Communication.KEY_FOLDER_ID, Long.MIN_VALUE)
+            if (folderId != Long.MIN_VALUE) {
+                mThing!!.folderId = folderId
+            }
 
             val bgJson: String? = intent.getStringExtra(Def.Communication.KEY_BACKGROUND)
             if (bgJson != null) {
@@ -586,7 +592,9 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
 
         val pair: Pair<Thing, Int> = App.getThingAndPosition(mApp, oriId, -1)
         mThing = pair.first
-        mPosition = pair.second ?: -1
+        mThingIndex = pair.second ?: -1
+        mListPosition = -1
+        mListProjectionKey = null
     }
 
     private fun recordRenderedThingSnapshot() {
@@ -617,7 +625,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     }
 
     private fun loadLatestThingAndPosition(id: Long): Pair<Thing?, Int> {
-        val pair: Pair<Thing, Int> = App.getThingAndPosition(mApp, id, mPosition)
+        val pair: Pair<Thing, Int> = App.getThingAndPosition(mApp, id, mThingIndex)
         if (pair.first != null) {
             return Pair(pair.first, pair.second ?: -1)
         }
@@ -653,7 +661,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
 
         mReloadFromStorageOnResume = false
         mExternalUpdateRefreshRetries = 0
-        mPosition = pair.second ?: -1
+        mThingIndex = pair.second ?: -1
         // Prevent stale old-instance data from auto-saving during this recreate.
         dontSaveAfterOnPause = true
         recreate()
@@ -2228,14 +2236,14 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         } else {
             // only update color, title, content, attachment and update time now
             if (mType == CREATE) {
-                mPosition = App.getThingAndPosition(mApp, mThing!!.id, -1).second ?: -1
+                mThingIndex = App.getThingAndPosition(mApp, mThing!!.id, -1).second ?: -1
             }
             @Thing.Type val typeBefore: Int = mThing!!.type
             var updateResult = -1
-            if (mPosition != -1) {
+            if (mThingIndex != -1) {
                 putMainListPositions(intent)
                 updateResult = ThingManager.getInstance(mApp)!!.update(
-                    typeBefore, mThing, mPosition, true
+                    typeBefore, mThing, mThingIndex, true
                 )
             } else {
                 ThingDAO.getInstance(mApp)!!.update(typeBefore, mThing, true, true)
@@ -3417,9 +3425,21 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             android.Manifest.permission.POST_NOTIFICATIONS)
     }
 
+    private fun captureMainListPositionForResult() {
+        val manager = ThingManager.getInstance(mApp)!!
+        if (mListProjectionKey == null) {
+            mListProjectionKey = manager.getProjection().key()
+        }
+        if (mListPosition >= 0) return
+        val thing = mThing ?: return
+        mListPosition = manager.getListPositionForThingId(thing.id)
+    }
+
     private fun putMainListPositions(intent: Intent) {
-        intent.putExtra(Def.Communication.KEY_POSITION, mPosition)
+        captureMainListPositionForResult()
+        intent.putExtra(Def.Communication.KEY_POSITION, mThingIndex)
         intent.putExtra(Def.Communication.KEY_LIST_POSITION, mListPosition)
+        intent.putExtra(Def.Communication.KEY_LIST_PROJECTION, mListProjectionKey)
     }
 
     private fun returnToThingsActivity(stateAfter: Int) {
@@ -3441,7 +3461,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         putMainListPositions(intent)
         intent.putExtra(Def.Communication.KEY_STATE_AFTER, stateAfter)
 
-        if (mPosition == -1) {
+        if (mThingIndex == -1) {
             val stateBefore = mThing!!.state
             mThing = Thing.getSameCheckStateThing(mThing, stateBefore, stateAfter)
             val dao: ThingDAO = ThingDAO.getInstance(mApp)!!
@@ -3477,7 +3497,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             intent.putExtra(
                 Def.Communication.KEY_CALL_CHANGE,
                 manager.updateState(
-                    mThing, mPosition, mThing!!.location,
+                    mThing, mThingIndex, mThing!!.location,
                     mThing!!.state, stateAfter, false, true
                 )
             )
@@ -3532,9 +3552,9 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
 
     private fun createFailed(resultCode: Int) {
         if (savedAfterOnPause) {
-            mPosition = App.getThingAndPosition(mApp, mThing!!.id, -1).second ?: -1
+            mThingIndex = App.getThingAndPosition(mApp, mThing!!.id, -1).second ?: -1
             ThingManager.getInstance(mApp)!!.updateState(
-                mThing, mPosition, mThing!!.location, Thing.UNDERWAY, Thing.DELETED_FOREVER,
+                mThing, mThingIndex, mThing!!.location, Thing.UNDERWAY, Thing.DELETED_FOREVER,
                 false, true
             )
         }
@@ -3706,10 +3726,10 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_DIFFERENT
         }
 
-        if (mPosition != -1) {
+        if (mThingIndex != -1) {
             putMainListPositions(intent)
             val updateResult = ThingManager.getInstance(mApp)!!.update(
-                typeBefore, mThing, mPosition, true
+                typeBefore, mThing, mThingIndex, true
             )
             if (updateResult != 0) {
                 intent.putExtra(Def.Communication.KEY_CALL_CHANGE, updateResult == 1)
@@ -3730,11 +3750,12 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             updateThingAndItsPosition(mThing!!.id)
             App.setJustNotifyAll(true)
         }
+        captureMainListPositionForResult()
 
         if (mThing!!.location < 0) {
-            ThingManager.getInstance(mApp)!!.cancelStickyThing(mThing, mPosition)
+            ThingManager.getInstance(mApp)!!.cancelStickyThing(mThing, mThingIndex)
         } else {
-            ThingManager.getInstance(mApp)!!.stickyThingOnTop(mThing, mPosition)
+            ThingManager.getInstance(mApp)!!.stickyThingOnTop(mThing, mThingIndex)
         }
         val resultCode = Def.Communication.RESULT_STICKY_THING_OR_CANCEL
         val intent = Intent(Def.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI)
@@ -5137,10 +5158,18 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
          * Phase 4.e: open the DetailActivity in CREATE mode with a full ThingBackground.
          */
         @JvmStatic
-        fun getOpenIntentForCreate(context: Context?, senderName: String?, bg: ThingBackground?): Intent {
+        fun getOpenIntentForCreate(
+            context: Context?,
+            senderName: String?,
+            bg: ThingBackground?,
+            folderId: Long? = null
+        ): Intent {
             val intent = Intent(context, DetailActivity::class.java)
             intent.putExtra(Def.Communication.KEY_SENDER_NAME, senderName)
             intent.putExtra(Def.Communication.KEY_DETAIL_ACTIVITY_TYPE, CREATE)
+            if (folderId != null) {
+                intent.putExtra(Def.Communication.KEY_FOLDER_ID, folderId)
+            }
             if (bg != null) {
                 intent.putExtra(Def.Communication.KEY_COLOR,      bg.representativeColor())
                 intent.putExtra(Def.Communication.KEY_BACKGROUND, bg.toJson())
@@ -5153,8 +5182,9 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             context: Context?,
             senderName: String?,
             id: Long,
-            position: Int,
-            listPosition: Int = -1
+            thingIndex: Int,
+            listPosition: Int = -1,
+            listProjectionKey: String? = null
         ): Intent {
             if (App.getDoingThingId() == id) {
                 return DoingActivity.getOpenIntent(context, true)
@@ -5163,8 +5193,11 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 intent.putExtra(Def.Communication.KEY_SENDER_NAME, senderName)
                 intent.putExtra(Def.Communication.KEY_DETAIL_ACTIVITY_TYPE, UPDATE)
                 intent.putExtra(Def.Communication.KEY_ID, id)
-                intent.putExtra(Def.Communication.KEY_POSITION, position)
+                intent.putExtra(Def.Communication.KEY_POSITION, thingIndex)
                 intent.putExtra(Def.Communication.KEY_LIST_POSITION, listPosition)
+                if (listProjectionKey != null) {
+                    intent.putExtra(Def.Communication.KEY_LIST_PROJECTION, listProjectionKey)
+                }
                 return intent
             }
         }

@@ -1,5 +1,61 @@
 # Thing Folders Sessions
 
+## 2026-06-17 - Cross-entry position audit after mixed-list Detail fixes
+
+- Audited `KEY_POSITION` usage across the home list, Detail, notification
+  actions, full-screen notification dialogs, authentication actions, start/do
+  and delay flows, widgets, image viewer, help pages, adapters, and
+  `ThingManager` update APIs.
+- Reconfirmed the intended split: `KEY_POSITION` remains the pure
+  `ThingManager.getThings()` index used by manager update APIs, while
+  `KEY_LIST_POSITION` carries the mixed Thing/Folder RecyclerView adapter
+  position for targeted home-list notifications.
+- Found that remote notification/widget actions could mutate `ThingManager`
+  before broadcasting back to `ThingsActivity`, while only sending the pure
+  Thing index. After mutation, a mixed-list fallback lookup could no longer
+  recover the old adapter position reliably.
+- Added pre-mutation `KEY_LIST_POSITION` capture in `RemoteActionHelper` so
+  remote finish/type-correction broadcasts can remove or refresh the correct
+  mixed-list row.
+- Found the same missing pre-mutation capture for Detail instances opened from
+  outside the home list, such as notification dialogs. Detail now captures the
+  current mixed-list position by Thing id before result-producing mutations,
+  including sticky/cancel-sticky moves.
+- Follow-up audit for opened Thing Folder projections showed that a
+  `KEY_LIST_POSITION` also needs the list projection that produced it. Opening
+  a Folder replaces both `ThingManager.mThings` and `mThingListEntries` with
+  the Folder projection, so an old adapter position from root or another Folder
+  must not be trusted for targeted notifications.
+- Added a stable `ThingListProjection.key()` and `KEY_LIST_PROJECTION` to bind
+  `KEY_LIST_POSITION` to the active built-in destination plus Folder Path.
+  `ThingsActivity` now uses old adapter positions only when the result
+  projection matches the current projection; otherwise it falls back to id
+  lookup or a full refresh.
+- Reviewed the external position-audit report and rechecked folder-scoped
+  creation. Creation from an `ALL_UNDERWAY` Folder projection was already
+  folder-scoped because `ThingManager.create(...)` assigns
+  `mProjection.currentFolderId`, but create results that returned to
+  `ThingsActivity` from a non-`ALL_UNDERWAY` Folder projection could switch to
+  `ALL_UNDERWAY/root` before the manager create call. The create intent now
+  carries the source Folder id explicitly so new Things keep the requested
+  Folder membership even if the visible list projection changes before create
+  commit.
+- Re-audited all `RecyclerView.Adapter.notifyItem*` calls. Main-list
+  notifications in `ThingsActivity` use mixed-list adapter positions or full
+  refresh fallbacks. Local adapters such as attachments, checklist editing,
+  chooser rows, and reminder-time rows use their own local adapter positions
+  and are not affected by Thing Folder projections.
+- Fixed one real mixed-position smell in `ThingsAdapter`: inline checklist
+  toggles now convert the card holder's mixed-list adapter position to a pure
+  Thing index before calling `ThingManager.update(...)`, while still notifying
+  the mixed-list adapter position for the visible card refresh.
+- Standardized the main-list naming convention after the audit: pure
+  `ThingManager.getThings()` positions use `thingIndex`; mixed
+  Thing/Folder adapter positions use `listPosition`; old/new or source/target
+  list positions are qualified accordingly. Applied the cleanup to Detail
+  result passing, remote action broadcasts, swipe/undo/drop handling, new-item
+  animations, and Thing Card appearance preview state.
+
 ## 2026-06-17 - Mixed-list position repair after Folder Cards
 
 - Follow-up testing showed that adding Folder Cards exposed more stale
