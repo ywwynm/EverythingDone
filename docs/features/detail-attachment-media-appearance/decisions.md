@@ -1,5 +1,18 @@
 # Detail Attachment Media Appearance Decisions
 
+## 2026-06-17 - Detail attachment custom crops are baked before ImageView display
+
+Customized Detail attachment thumbnails should use the same offscreen bitmap
+crop renderer as Thing Card media instead of expressing the final crop through
+`ImageView.imageMatrix`. The customized Glide request still loads the selected
+image or video frame, but the listener bakes the requested crop into a
+target-sized `Bitmap` and sets that bitmap directly on the attachment
+`ImageView`.
+
+The customized attachment load key should include target width and height,
+video frame time, and the crop fingerprint so crop changes force a fresh
+render even when Glide can reuse the underlying decoded source.
+
 ## 2026-06-08 - Appearance settings are keyed by media attachment
 
 Detail Attachment Media Appearance settings are stored per image/video

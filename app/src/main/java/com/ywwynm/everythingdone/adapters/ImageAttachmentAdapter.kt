@@ -3,7 +3,6 @@
 package com.ywwynm.everythingdone.adapters
 
 import android.content.Context
-import android.graphics.Matrix
 import android.graphics.PorterDuff
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.GridLayoutManager
@@ -24,10 +23,12 @@ import com.bumptech.glide.request.RequestOptions
 import com.bumptech.glide.request.target.Target
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.helpers.AttachmentHelper
+import com.ywwynm.everythingdone.helpers.MediaCropBitmapRenderer
 import com.ywwynm.everythingdone.model.DetailAttachmentMediaAppearance
-import kotlin.math.max
+import com.bumptech.glide.signature.ObjectKey
 import kotlin.math.min
 import kotlin.math.roundToInt
+import kotlin.math.max
 
 /**
  * Created by ywwynm on 2015/9/23.
@@ -176,7 +177,13 @@ open class ImageAttachmentAdapter(
         val presentation = if (customized) getPresentationForPosition(position) else null
         val videoFrameMs = sourceAppearance?.videoFrameMs
         val loadKey = if (customized) {
-            getDetailAttachmentImageLoadKey(pathName, size[0], size[1], videoFrameMs)
+            getDetailAttachmentImageLoadKey(
+                pathName,
+                size[0],
+                size[1],
+                videoFrameMs,
+                presentation?.crop
+            )
         } else {
             null
         }
@@ -189,7 +196,8 @@ open class ImageAttachmentAdapter(
                 imageView.drawable != null
             ) {
                 holder.pbLoading!!.visibility = View.GONE
-                applyCurrentDetailAttachmentRenderRequest(imageView)
+                imageView.scaleType = ImageView.ScaleType.CENTER_CROP
+                imageView.imageMatrix = null
                 updateOverlayVisibility(holder)
                 return
             }
@@ -209,7 +217,11 @@ open class ImageAttachmentAdapter(
             request = request
                 .override(size[0], size[1])
                 .dontTransform()
+                .disallowHardwareConfig()
                 .dontAnimate()
+            if (loadKey != null) {
+                request = request.signature(ObjectKey(loadKey))
+            }
         } else {
             request = request.centerCrop()
         }
@@ -230,14 +242,26 @@ open class ImageAttachmentAdapter(
                     updateOverlayVisibility(holder)
                     holder.pbLoading!!.visibility = View.GONE
                     if (customized && loadKey != null) {
-                        imageView.post {
-                            val request = imageView.getTag(
-                                R.id.tag_detail_attachment_image_render_request
-                            ) as? DetailAttachmentRenderRequest
-                            if (request?.loadKey == loadKey) {
-                                applyCurrentDetailAttachmentRenderRequest(imageView)
-                            }
+                        val renderRequest = imageView.getTag(
+                            R.id.tag_detail_attachment_image_render_request
+                        ) as? DetailAttachmentRenderRequest
+                        if (renderRequest?.loadKey != loadKey) {
+                            return true
                         }
+                        val bakedBitmap = MediaCropBitmapRenderer.renderCrop(
+                            resource,
+                            renderRequest.targetW,
+                            renderRequest.targetH,
+                            getDetailAttachmentBitmapCrop(renderRequest.crop)
+                        )
+                        if (bakedBitmap != null) {
+                            imageView.setImageBitmap(bakedBitmap)
+                            imageView.scaleType = ImageView.ScaleType.CENTER_CROP
+                            imageView.imageMatrix = null
+                            return true
+                        }
+                        imageView.scaleType = ImageView.ScaleType.CENTER_CROP
+                        imageView.imageMatrix = null
                     }
                     return false
                 }
@@ -274,16 +298,11 @@ open class ImageAttachmentAdapter(
         pathName: String,
         targetW: Int,
         targetH: Int,
-        videoFrameMs: Long?
+        videoFrameMs: Long?,
+        crop: DetailAttachmentMediaAppearance.DetailMediaCrop?
     ): String {
-        return "$pathName|$targetW|$targetH|${videoFrameMs ?: -1L}"
-    }
-
-    private fun applyCurrentDetailAttachmentRenderRequest(imageView: ImageView) {
-        val request = imageView.getTag(
-            R.id.tag_detail_attachment_image_render_request
-        ) as? DetailAttachmentRenderRequest ?: return
-        applyDetailCrop(imageView, request.crop, request.targetW, request.targetH)
+        val cropKey = crop?.let { getDetailAttachmentBitmapCrop(it).fingerprint() } ?: "none"
+        return "$pathName|$targetW|$targetH|${videoFrameMs ?: -1L}|crop|$cropKey"
     }
 
     private fun updateOverlayVisibility(holder: ImageViewHolder) {
@@ -293,50 +312,14 @@ open class ImageAttachmentAdapter(
             if (visible && mAppearanceCallback != null) View.VISIBLE else View.GONE
     }
 
-    private fun applyDetailCrop(
-        imageView: ImageView,
-        crop: DetailAttachmentMediaAppearance.DetailMediaCrop,
-        targetW: Int,
-        targetH: Int
-    ) {
-        val viewWidth = if (imageView.width > 0) imageView.width else targetW
-        val viewHeight = if (imageView.height > 0) imageView.height else targetH
-        val drawable = imageView.drawable
-        val sourceWidth = drawable?.intrinsicWidth ?: 0
-        val sourceHeight = drawable?.intrinsicHeight ?: 0
-        if (viewWidth <= 0 || viewHeight <= 0 || sourceWidth <= 0 || sourceHeight <= 0) {
-            imageView.scaleType = ImageView.ScaleType.CENTER_CROP
-            return
-        }
-
-        val baseScale = max(
-            viewWidth.toFloat() / sourceWidth.toFloat(),
-            viewHeight.toFloat() / sourceHeight.toFloat()
+    private fun getDetailAttachmentBitmapCrop(
+        crop: DetailAttachmentMediaAppearance.DetailMediaCrop
+    ): MediaCropBitmapRenderer.Crop {
+        return MediaCropBitmapRenderer.Crop(
+            centerX = crop.centerX,
+            centerY = crop.centerY,
+            userScale = crop.scale
         )
-        val scale = baseScale * crop.scale.toFloat()
-        val scaledWidth = sourceWidth * scale
-        val scaledHeight = sourceHeight * scale
-        var translateX = viewWidth / 2f - (crop.centerX.toFloat() * sourceWidth * scale)
-        var translateY = viewHeight / 2f - (crop.centerY.toFloat() * sourceHeight * scale)
-        translateX = clampTranslation(translateX, viewWidth.toFloat(), scaledWidth)
-        translateY = clampTranslation(translateY, viewHeight.toFloat(), scaledHeight)
-
-        val matrix = Matrix()
-        matrix.setScale(scale, scale)
-        matrix.postTranslate(translateX, translateY)
-        imageView.scaleType = ImageView.ScaleType.MATRIX
-        imageView.imageMatrix = matrix
-    }
-
-    private fun clampTranslation(
-        translation: Float,
-        viewSize: Float,
-        scaledSourceSize: Float
-    ): Float {
-        if (scaledSourceSize <= viewSize) {
-            return (viewSize - scaledSourceSize) / 2f
-        }
-        return min(0f, max(viewSize - scaledSourceSize, translation))
     }
 
     override fun getItemCount(): Int = mItems!!.size

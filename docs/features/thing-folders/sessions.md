@@ -1,5 +1,24 @@
 # Thing Folders Sessions
 
+## 2026-06-17 - Generalize the baked media crop path after Folder preview fix
+
+- The previous Folder thumbnail foreground-video-only baked crop trial solved
+  the reported top/bottom video cover issue, so the user requested replacing
+  all remaining local `ImageView.imageMatrix` crop display paths with
+  pre-cropped bitmaps.
+- Removed the Folder-preview-specific
+  `shouldBakeThingCardForegroundMediaCrop(...)` hook. `FolderThingPreviewAdapter`
+  now uses the same baked Thing Card media path as normal cards instead of a
+  special-case crop branch.
+- Kept the targeted `[DEBUG-tf-video-crop]` logging hook for Folder preview
+  top/bottom foreground video while this area is still under active testing,
+  but the logged render path is now the general baked bitmap path.
+- Folder thumbnail replay continues to call
+  `applyThingCardMediaCropToBoundHolder(...)`; that method now compares the
+  final measured target geometry and crop fingerprint against the current baked
+  bitmap key and reloads/re-bakes if they differ.
+- Verified as part of debug update `202606171256`.
+
 ## 2026-06-17 - Folder thumbnail foreground video baked crop trial
 
 - After reviewing the device log for Thing `304` (`content="测试测试测试"`),

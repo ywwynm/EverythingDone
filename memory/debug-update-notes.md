@@ -1,5 +1,19 @@
 # Current Debug Update Notes
 
+## 2026-06-17 - 统一把本地媒体裁切改为预先烘焙 bitmap
+
+用户确认上一版“文件夹缩略图上下视频封面直接生成裁切 bitmap”的方式已经解决问题，随后希望把所有仍依赖 `ImageView.imageMatrix` 的展示路径都改成“事先切好 bitmap，再直接放进 ImageView”。本次将这个窄修复推广为本地媒体展示的统一路径。
+
+实现上新增共享 `MediaCropBitmapRenderer`，集中处理裁切中心、用户缩放、目标比例、source aspect ratio、drawable 转 bitmap 和最终 Canvas 绘制。`BaseThingsAdapter.kt` 中的 Thing Card 前景缩略图、左右媒体和 media background 都改为在 Glide `onResourceReady(...)` 中生成目标尺寸的裁切 bitmap，再设置到 `ImageView`，后续 replay 只校验当前 load key 是否匹配最终测量宽高和 crop fingerprint；如果不匹配就重新加载并烘焙，不再计算或写入 `ImageView.ScaleType.MATRIX` / `ImageView.imageMatrix`。
+
+详情页自定义附件缩略图也同步迁移：`ImageAttachmentAdapter.kt` 会把 crop fingerprint 加进自定义请求的 load key，禁用 hardware bitmap 解码，然后用同一个 renderer 生成目标 bitmap。未自定义的旧附件布局仍保持 Glide `centerCrop()`，避免影响没有保存 Detail Attachment Media Appearance 的旧记事。
+
+`RemoteThingCardMediaRenderer.kt` 也改为复用共享 renderer，避免本地卡片、widget/notification 远程渲染各自维护一套裁切计算。此前文件夹预览专用的 `shouldBakeThingCardForegroundMediaCrop(...)` hook 已删除，`FolderThingPreviewAdapter` 现在只保留 `[DEBUG-tf-video-crop]` 定位日志，实际显示裁切走通用 baked bitmap 路径。
+
+性能取舍：这会把每次绘制时的 `ImageView.imageMatrix` 状态依赖前移为加载完成时的一次 bitmap 生成，缩略图和卡片滚动时更稳定，也更容易复用缓存；代价是 crop、目标尺寸或视频帧变化时会重新生成 bitmap，并增加少量内存缓存压力。
+
+验证状态：`git diff --check` 通过；沙箱内 `:app:assembleDebug` 因 `.gradle/configuration-cache.lock` 访问被拒失败，按项目规则提升权限后执行 `.\gradlew.bat :app:assembleDebug --console=plain`，结果 `BUILD SUCCESSFUL`。已执行 `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`，发布 debug update `202606171256` 到阿里云 debug channel，并回读确认 `latest.json` 指向 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606171256.apk`。
+
 ## 2026-06-17 - 文件夹缩略图上下视频改为直接烘焙裁切 bitmap
 
 用户根据上一版日志指出 `content="测试测试测试"` 的记事仍然显示异常，并同意先在这里尝试“直接生成裁切后的缩略图 bitmap”。从日志看，这条记事的文件夹缩略图绑定目标已经是 `316x316`，视频帧 drawable 是 `316x562`，随后也执行了 `ImageView.ScaleType.MATRIX` 裁切；因此剩余问题不再像是最小高度保护或目标几何计算，而更像是最终显示仍绕不开视频帧原始比例。

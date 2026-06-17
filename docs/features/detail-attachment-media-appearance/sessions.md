@@ -1,5 +1,18 @@
 # Detail Attachment Media Appearance Sessions
 
+## 2026-06-17 - Bake customized attachment crops before display
+
+- Migrated customized Detail attachment thumbnails away from
+  `ImageView.imageMatrix`.
+- `ImageAttachmentAdapter` now includes the crop fingerprint in the customized
+  load key, disables hardware bitmap decoding for customized requests, bakes
+  the requested crop into a target-sized bitmap with `MediaCropBitmapRenderer`,
+  and sets that bitmap directly on the attachment `ImageView`.
+- Legacy non-customized attachment grids remain on Glide's normal
+  `centerCrop()` path, preserving the upgrade behavior for Things without saved
+  Detail Attachment Media Appearance settings.
+- Verified as part of debug update `202606171256`.
+
 ## 2026-06-08 - Product and architecture grilling
 
 - Created the Detail Attachment Media Appearance feature documentation area.

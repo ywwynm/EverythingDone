@@ -2,6 +2,20 @@
 
 Migrated from global `memory/decisions.md` on 2026-06-06. This file keeps feature-scoped history out of startup memory while preserving the original notes.
 
+## 2026-06-17 - Local Thing Card media crops are baked before ImageView display
+
+Local RecyclerView Thing Card media should no longer rely on
+`ImageView.ScaleType.MATRIX` / `ImageView.imageMatrix` for final crop display.
+Foreground thumbnails, side-panel media, and media backgrounds should generate
+a target-sized cropped `Bitmap` after Glide loads the image or selected video
+frame, then place that bitmap directly in the `ImageView` with `CENTER_CROP`.
+
+The load/cache key must include source identity, target width and height, video
+frame time, crop center, crop user scale, and source/target aspect ratio so a
+changed crop or post-measure target geometry cannot reuse a stale bitmap.
+Replay hooks may clear old `imageMatrix` state, but should reload/re-bake when
+the current bitmap key does not match the requested geometry.
+
 ## 2026-06-06 - Suppress list appearing animation during appearance previews
 
 Thing Card Appearance live preview refreshes should not trigger the home-list

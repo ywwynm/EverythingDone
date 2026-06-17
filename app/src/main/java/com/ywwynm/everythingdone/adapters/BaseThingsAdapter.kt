@@ -7,11 +7,8 @@ import android.annotation.SuppressLint
 import android.app.ActivityManager
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.Matrix
 import android.graphics.PorterDuff
-import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.media.MediaMetadataRetriever
 import androidx.annotation.StringRes
@@ -52,6 +49,7 @@ import com.ywwynm.everythingdone.database.HabitDAO
 import com.ywwynm.everythingdone.database.ReminderDAO
 import com.ywwynm.everythingdone.helpers.AttachmentHelper
 import com.ywwynm.everythingdone.helpers.CheckListHelper
+import com.ywwynm.everythingdone.helpers.MediaCropBitmapRenderer
 import com.ywwynm.everythingdone.helpers.ThingCardMediaHelper
 import com.ywwynm.everythingdone.managers.ModeManager
 import com.ywwynm.everythingdone.model.Habit
@@ -244,12 +242,6 @@ abstract class BaseThingsAdapter(context: Context?) :
         mThingCardMediaBitmapCache
 
     protected open fun shouldLogThingCardMediaDebug(
-        thing: Thing,
-        mediaSource: ThingCardMediaHelper.MediaSource,
-        @Thing.ThingCardImagePlacement placement: Int
-    ): Boolean = false
-
-    protected open fun shouldBakeThingCardForegroundMediaCrop(
         thing: Thing,
         mediaSource: ThingCardMediaHelper.MediaSource,
         @Thing.ThingCardImagePlacement placement: Int
@@ -884,8 +876,7 @@ abstract class BaseThingsAdapter(context: Context?) :
         imageW: Int,
         imageH: Int,
         crop: ThingCardAppearance.ThingCardThumbnailCrop,
-        videoFrameMs: Long?,
-        bakeCropIntoBitmap: Boolean = false
+        videoFrameMs: Long?
     ) {
         val imageView = holder.ivImageAttachment ?: return
         val loadKey = getThingCardImageLoadKey(
@@ -893,15 +884,13 @@ abstract class BaseThingsAdapter(context: Context?) :
             imageW,
             imageH,
             videoFrameMs,
-            crop,
-            bakeCropIntoBitmap
+            crop
         )
         val renderRequest = ThingCardThumbnailRenderRequest(
             loadKey,
             imageW,
             imageH,
-            crop,
-            bakeCropIntoBitmap
+            crop
         )
         val debugInfo = getThingCardMediaDebugInfo(imageView)
         imageView.setTag(
@@ -911,7 +900,7 @@ abstract class BaseThingsAdapter(context: Context?) :
         logThingCardMediaDebug(
             debugInfo,
             "load start key=$loadKey request=${imageW}x$imageH " +
-                    "videoFrameMs=$videoFrameMs bake=$bakeCropIntoBitmap crop=$crop " +
+                    "videoFrameMs=$videoFrameMs crop=$crop " +
                     "iv=${debugViewSize(imageView)} ivLp=${debugLayoutParamsSize(imageView)} " +
                     "frame=${debugViewSize(holder.flImageAttachment)} " +
                     "frameLp=${debugLayoutParamsSize(holder.flImageAttachment)}"
@@ -946,10 +935,9 @@ abstract class BaseThingsAdapter(context: Context?) :
         if (reusableDrawable != null) {
             logThingCardMediaDebug(
                 debugInfo,
-                "load reusable-drawable apply key=$loadKey bake=$bakeCropIntoBitmap " +
+                "load reusable-drawable placeholder key=$loadKey " +
                         "drawable=${debugDrawableSize(reusableDrawable)}"
             )
-            applyCurrentThingCardThumbnailRenderRequest(imageView)
         }
 
         val imageWasLoaded = mLoadedThingCardImageKeys.contains(loadKey)
@@ -1005,19 +993,12 @@ abstract class BaseThingsAdapter(context: Context?) :
                     resource: Drawable, model: Any, target: Target<Drawable>?,
                     dataSource: DataSource, isFirstResource: Boolean
                 ): Boolean {
-                    val bakedBitmap = if (bakeCropIntoBitmap) {
-                        renderThingCardMediaCropBitmap(
-                            resource,
-                            crop.centerX,
-                            crop.centerY,
-                            crop.scale,
-                            imageW,
-                            imageH,
-                            crop.sourceAspectRatio
-                        )
-                    } else {
-                        null
-                    }
+                    val bakedBitmap = MediaCropBitmapRenderer.renderCrop(
+                        resource,
+                        imageW,
+                        imageH,
+                        getThingCardThumbnailBitmapCrop(crop)
+                    )
                     if (bakedBitmap != null) {
                         cacheThingCardMediaBitmap(loadKey, bakedBitmap)
                         mLoadedThingCardImageKeys.add(loadKey)
@@ -1040,48 +1021,29 @@ abstract class BaseThingsAdapter(context: Context?) :
                             )
                         }
                         return true
-                    } else if (bakeCropIntoBitmap) {
-                        logThingCardMediaDebug(
-                            getThingCardMediaDebugInfo(imageView),
-                            "resource bake failed fallback-matrix key=$loadKey " +
-                                    "source=${debugDrawableSize(resource)}"
-                        )
                     }
 
-                    cacheThingCardMediaBitmap(loadKey, resource)
-                    mLoadedThingCardImageKeys.add(loadKey)
+                    logThingCardMediaDebug(
+                        getThingCardMediaDebugInfo(imageView),
+                        "resource bake failed fallback-center-crop key=$loadKey " +
+                                "source=${debugDrawableSize(resource)}"
+                    )
                     if (imageView.getTag(
                             R.id.tag_thing_card_image_load_key
-                        ) == loadKey
+                        ) != loadKey
                     ) {
-                        holder.pbLoading!!.visibility = View.GONE
-                        logThingCardMediaDebug(
-                            getThingCardMediaDebugInfo(imageView),
-                            "resource ready key=$loadKey drawable=${debugDrawableSize(resource)} " +
-                                    "dataSource=$dataSource first=$isFirstResource " +
-                                    "iv=${debugViewSize(imageView)} " +
-                                    "frame=${debugViewSize(holder.flImageAttachment)}"
-                        )
-                        imageView.post {
-                            val request = imageView.getTag(
-                                R.id.tag_thing_card_image_render_request
-                            ) as? ThingCardThumbnailRenderRequest
-                            logThingCardMediaDebug(
-                                getThingCardMediaDebugInfo(imageView),
-                                "resource post key=$loadKey " +
-                                        "request=${request?.imageW}x${request?.imageH} " +
-                                        "requestKey=${request?.loadKey} " +
-                                        "iv=${debugViewSize(imageView)} " +
-                                        "frame=${debugViewSize(holder.flImageAttachment)} " +
-                                        "drawable=${debugDrawableSize(imageView.drawable)}"
-                            )
-                            if (request?.loadKey == loadKey) {
-                                applyCurrentThingCardThumbnailRenderRequest(
-                                    imageView
-                                )
-                            }
-                        }
+                        return true
                     }
+                    holder.pbLoading!!.visibility = View.GONE
+                    imageView.scaleType = ImageView.ScaleType.CENTER_CROP
+                    imageView.imageMatrix = null
+                    logThingCardMediaDebug(
+                        getThingCardMediaDebugInfo(imageView),
+                        "resource ready key=$loadKey drawable=${debugDrawableSize(resource)} " +
+                                "dataSource=$dataSource first=$isFirstResource " +
+                                "iv=${debugViewSize(imageView)} " +
+                                "frame=${debugViewSize(holder.flImageAttachment)}"
+                    )
                     return false
                 }
             })
@@ -1100,7 +1062,14 @@ abstract class BaseThingsAdapter(context: Context?) :
         videoFrameMs: Long?
     ) {
         val imageView = holder.ivMediaBackground ?: return
-        val loadKey = getThingCardMediaBackgroundLoadKey(pathName, imageW, imageH, videoFrameMs)
+        val loadKey = getThingCardMediaBackgroundLoadKey(
+            pathName,
+            imageW,
+            imageH,
+            videoFrameMs,
+            crop,
+            sourceAspectRatio
+        )
         val renderRequest = ThingCardMediaBackgroundRenderRequest(
             loadKey,
             imageW,
@@ -1132,7 +1101,8 @@ abstract class BaseThingsAdapter(context: Context?) :
             )
         }
         if (reusableDrawable != null) {
-            applyCurrentThingCardMediaBackgroundRenderRequest(imageView)
+            imageView.scaleType = ImageView.ScaleType.CENTER_CROP
+            imageView.imageMatrix = null
         }
 
         if (reusableDrawable == null) {
@@ -1177,17 +1147,33 @@ abstract class BaseThingsAdapter(context: Context?) :
                     resource: Drawable, model: Any, target: Target<Drawable>?,
                     dataSource: DataSource, isFirstResource: Boolean
                 ): Boolean {
-                    cacheThingCardMediaBitmap(loadKey, resource)
-                    if (imageView.getTag(R.id.tag_thing_card_media_background_load_key) == loadKey) {
-                        imageView.post {
-                            val request = imageView.getTag(
-                                R.id.tag_thing_card_media_background_render_request
-                            ) as? ThingCardMediaBackgroundRenderRequest
-                            if (request?.loadKey == loadKey) {
-                                applyCurrentThingCardMediaBackgroundRenderRequest(imageView)
-                            }
+                    val bakedBitmap = MediaCropBitmapRenderer.renderCrop(
+                        resource,
+                        imageW,
+                        imageH,
+                        getThingCardMediaBackgroundBitmapCrop(crop, sourceAspectRatio)
+                    )
+                    if (bakedBitmap != null) {
+                        cacheThingCardMediaBitmap(loadKey, bakedBitmap)
+                        if (imageView.getTag(
+                                R.id.tag_thing_card_media_background_load_key
+                            ) == loadKey
+                        ) {
+                            imageView.setImageBitmap(bakedBitmap)
+                            imageView.scaleType = ImageView.ScaleType.CENTER_CROP
+                            imageView.imageMatrix = null
                         }
+                        return true
                     }
+
+                    if (imageView.getTag(
+                            R.id.tag_thing_card_media_background_load_key
+                        ) != loadKey
+                    ) {
+                        return true
+                    }
+                    imageView.scaleType = ImageView.ScaleType.CENTER_CROP
+                    imageView.imageMatrix = null
                     return false
                 }
             })
@@ -1315,22 +1301,22 @@ abstract class BaseThingsAdapter(context: Context?) :
         imageW: Int,
         imageH: Int,
         videoFrameMs: Long?,
-        crop: ThingCardAppearance.ThingCardThumbnailCrop,
-        bakeCropIntoBitmap: Boolean
+        crop: ThingCardAppearance.ThingCardThumbnailCrop
     ): String {
         val baseKey = getThingCardImageLoadKey(pathName, imageW, imageH, videoFrameMs)
-        if (!bakeCropIntoBitmap) return baseKey
-        return "$baseKey:baked:${crop.centerX}:${crop.centerY}:${crop.scale}:" +
-                "${crop.sourceAspectRatio}"
+        return "$baseKey:crop:${getThingCardThumbnailBitmapCrop(crop).fingerprint()}"
     }
 
     private fun getThingCardMediaBackgroundLoadKey(
         pathName: String,
         imageW: Int,
         imageH: Int,
-        videoFrameMs: Long?
+        videoFrameMs: Long?,
+        crop: ThingCardAppearance.ThingCardMediaBackgroundCrop,
+        sourceAspectRatio: Double?
     ): String {
-        return "background:${getThingCardImageLoadKey(pathName, imageW, imageH, videoFrameMs)}"
+        return "background:${getThingCardImageLoadKey(pathName, imageW, imageH, videoFrameMs)}" +
+                ":crop:${getThingCardMediaBackgroundBitmapCrop(crop, sourceAspectRatio).fingerprint()}"
     }
 
     private fun getThingCardMediaCacheSignature(loadKey: String): ObjectKey {
@@ -1350,13 +1336,10 @@ abstract class BaseThingsAdapter(context: Context?) :
         }
         mImageRequestManager!!.clear(imageView)
         imageView.setImageBitmap(bitmap)
+        imageView.scaleType = ImageView.ScaleType.CENTER_CROP
+        imageView.imageMatrix = null
         imageView.setTag(loadKeyTagId, loadKey)
         return true
-    }
-
-    private fun cacheThingCardMediaBitmap(loadKey: String, drawable: Drawable) {
-        val bitmap = (drawable as? BitmapDrawable)?.bitmap ?: return
-        cacheThingCardMediaBitmap(loadKey, bitmap)
     }
 
     private fun cacheThingCardMediaBitmap(loadKey: String, bitmap: Bitmap) {
@@ -1371,81 +1354,34 @@ abstract class BaseThingsAdapter(context: Context?) :
         cache.put(loadKey, cachedBitmap)
     }
 
-    private fun renderThingCardMediaCropBitmap(
-        drawable: Drawable,
-        centerXValue: Double,
-        centerYValue: Double,
-        userScaleValue: Double,
-        targetW: Int,
-        targetH: Int,
-        sourceAspectRatioValue: Double?
-    ): Bitmap? {
-        if (targetW <= 0 || targetH <= 0) return null
-        val source = getThingCardMediaCropSourceBitmap(drawable) ?: return null
-        val sourceW = source.width
-        val sourceH = source.height
-        if (sourceW <= 0 || sourceH <= 0) return null
-
-        val output = Bitmap.createBitmap(targetW, targetH, Bitmap.Config.ARGB_8888)
-        val sourceAspectRatio = normalizeThingCardCropSourceAspectRatio(sourceAspectRatioValue)
-        val cropSourceW: Float
-        val cropSourceH: Float
-        if (sourceAspectRatio != null) {
-            val sourceRatio = sourceW.toFloat() / sourceH.toFloat()
-            if (sourceAspectRatio > sourceRatio) {
-                cropSourceW = sourceW.toFloat()
-                cropSourceH = sourceW.toFloat() / sourceAspectRatio
-            } else {
-                cropSourceH = sourceH.toFloat()
-                cropSourceW = sourceH.toFloat() * sourceAspectRatio
-            }
-        } else {
-            cropSourceW = sourceW.toFloat()
-            cropSourceH = sourceH.toFloat()
-        }
-
-        val coverScale = max(
-            targetW.toFloat() / cropSourceW,
-            targetH.toFloat() / cropSourceH
+    private fun getThingCardThumbnailBitmapCrop(
+        crop: ThingCardAppearance.ThingCardThumbnailCrop
+    ): MediaCropBitmapRenderer.Crop {
+        return MediaCropBitmapRenderer.Crop(
+            centerX = crop.centerX,
+            centerY = crop.centerY,
+            userScale = crop.scale,
+            sourceAspectRatio = crop.sourceAspectRatio
         )
-        val userScale = normalizeThingCardCropUserScale(userScaleValue)
-        val effectiveScale = coverScale * userScale
-        val scaledW = sourceW * effectiveScale
-        val scaledH = sourceH * effectiveScale
-
-        val centerX = normalizeThingCardCropRatio(centerXValue) * scaledW
-        val centerY = normalizeThingCardCropRatio(centerYValue) * scaledH
-        val left = clampThingCardCropOffset(targetW / 2f - centerX, targetW - scaledW, 0f)
-        val top = clampThingCardCropOffset(targetH / 2f - centerY, targetH - scaledH, 0f)
-
-        val matrix = Matrix()
-        matrix.setScale(effectiveScale, effectiveScale)
-        matrix.postTranslate(left, top)
-        Canvas(output).drawBitmap(source, matrix, null)
-        return output
     }
 
-    private fun getThingCardMediaCropSourceBitmap(drawable: Drawable): Bitmap? {
-        val bitmap = (drawable as? BitmapDrawable)?.bitmap
-        if (bitmap != null && !bitmap.isRecycled) return bitmap
-
-        val sourceW = drawable.intrinsicWidth
-        val sourceH = drawable.intrinsicHeight
-        if (sourceW <= 0 || sourceH <= 0) return null
-        val output = Bitmap.createBitmap(sourceW, sourceH, Bitmap.Config.ARGB_8888)
-        val oldBounds = drawable.copyBounds()
-        drawable.setBounds(0, 0, sourceW, sourceH)
-        drawable.draw(Canvas(output))
-        drawable.setBounds(oldBounds)
-        return output
+    private fun getThingCardMediaBackgroundBitmapCrop(
+        crop: ThingCardAppearance.ThingCardMediaBackgroundCrop,
+        sourceAspectRatio: Double?
+    ): MediaCropBitmapRenderer.Crop {
+        return MediaCropBitmapRenderer.Crop(
+            centerX = crop.centerX,
+            centerY = crop.centerY,
+            userScale = crop.scale,
+            sourceAspectRatio = sourceAspectRatio
+        )
     }
 
     private data class ThingCardThumbnailRenderRequest(
         val loadKey: String,
         val imageW: Int,
         val imageH: Int,
-        val crop: ThingCardAppearance.ThingCardThumbnailCrop,
-        val bakeCropIntoBitmap: Boolean = false
+        val crop: ThingCardAppearance.ThingCardThumbnailCrop
     )
 
     private data class ThingCardMediaBackgroundRenderRequest(
@@ -1456,41 +1392,6 @@ abstract class BaseThingsAdapter(context: Context?) :
         val sourceAspectRatio: Double?
     )
 
-    private fun applyThingCardThumbnailCrop(
-        imageView: ImageView?,
-        crop: ThingCardAppearance.ThingCardThumbnailCrop,
-        targetW: Int,
-        targetH: Int
-    ) {
-        applyThingCardMediaCrop(
-            imageView,
-            crop.centerX,
-            crop.centerY,
-            crop.scale,
-            targetW,
-            targetH,
-            crop.sourceAspectRatio
-        )
-    }
-
-    private fun applyThingCardMediaBackgroundCrop(
-        imageView: ImageView?,
-        crop: ThingCardAppearance.ThingCardMediaBackgroundCrop,
-        targetW: Int,
-        targetH: Int,
-        sourceAspectRatio: Double?
-    ) {
-        applyThingCardMediaCrop(
-            imageView,
-            crop.centerX,
-            crop.centerY,
-            crop.scale,
-            targetW,
-            targetH,
-            sourceAspectRatio
-        )
-    }
-
     private fun applyCurrentThingCardThumbnailRenderRequest(imageView: ImageView?) {
         val request = imageView?.getTag(
             R.id.tag_thing_card_image_render_request
@@ -1498,33 +1399,23 @@ abstract class BaseThingsAdapter(context: Context?) :
         logThingCardMediaDebug(
             getThingCardMediaDebugInfo(imageView),
             "apply current-thumbnail request=${request.imageW}x${request.imageH} " +
-                    "key=${request.loadKey} bake=${request.bakeCropIntoBitmap} " +
-                    "crop=${request.crop} " +
+                    "key=${request.loadKey} crop=${request.crop} " +
                     "iv=${debugViewSize(imageView)} drawable=${debugDrawableSize(imageView.drawable)}"
         )
-        if (request.bakeCropIntoBitmap) {
-            imageView?.scaleType = ImageView.ScaleType.CENTER_CROP
-            imageView?.imageMatrix = null
-            logThingCardMediaDebug(
-                getThingCardMediaDebugInfo(imageView),
-                "apply current-thumbnail skipped-matrix baked-bitmap key=${request.loadKey}"
-            )
-            return
-        }
-        applyThingCardThumbnailCrop(imageView, request.crop, request.imageW, request.imageH)
+        imageView.scaleType = ImageView.ScaleType.CENTER_CROP
+        imageView.imageMatrix = null
+        logThingCardMediaDebug(
+            getThingCardMediaDebugInfo(imageView),
+            "apply current-thumbnail baked-bitmap key=${request.loadKey}"
+        )
     }
 
     private fun applyCurrentThingCardMediaBackgroundRenderRequest(imageView: ImageView?) {
         val request = imageView?.getTag(
             R.id.tag_thing_card_media_background_render_request
         ) as? ThingCardMediaBackgroundRenderRequest ?: return
-        applyThingCardMediaBackgroundCrop(
-            imageView,
-            request.crop,
-            request.imageW,
-            request.imageH,
-            request.sourceAspectRatio
-        )
+        imageView.scaleType = ImageView.ScaleType.CENTER_CROP
+        imageView.imageMatrix = null
     }
 
     fun applyThingCardMediaBackgroundHeightToBoundHolder(
@@ -1560,15 +1451,34 @@ abstract class BaseThingsAdapter(context: Context?) :
                 thing,
                 mediaSource
             )
-            val imageView = holder.ivMediaBackground
+            val imageView = holder.ivMediaBackground ?: return false
             setThingCardMediaBackgroundOverlayHeight(holder, targetH)
-            val oldRequest = imageView?.getTag(
-                R.id.tag_thing_card_media_background_render_request
-            ) as? ThingCardMediaBackgroundRenderRequest
-            val loadKey = oldRequest?.loadKey
-                ?: (imageView?.getTag(R.id.tag_thing_card_media_background_load_key) as? String)
-                ?: "manual-background:${thing.id}:${mediaSource.typePathName}"
-            imageView?.setTag(
+            val videoFrameMs = getThingCardVideoFrameMs(thing, mediaSource)
+            val loadKey = getThingCardMediaBackgroundLoadKey(
+                mediaSource.pathName,
+                targetW,
+                targetH,
+                videoFrameMs,
+                crop,
+                sourceAspectRatio
+            )
+            val currentLoadKey = imageView.getTag(
+                R.id.tag_thing_card_media_background_load_key
+            ) as? String
+            if (currentLoadKey != loadKey || imageView.drawable == null) {
+                loadThingCardMediaBackground(
+                    holder,
+                    thing,
+                    mediaSource.pathName,
+                    targetW,
+                    targetH,
+                    crop,
+                    sourceAspectRatio,
+                    videoFrameMs
+                )
+                return true
+            }
+            imageView.setTag(
                 R.id.tag_thing_card_media_background_render_request,
                 ThingCardMediaBackgroundRenderRequest(
                     loadKey,
@@ -1601,133 +1511,41 @@ abstract class BaseThingsAdapter(context: Context?) :
         } else {
             getThingCardThumbnailCrop(thing, mediaSource)
         }
-        val imageView = holder.ivImageAttachment
-        val oldRequest = imageView?.getTag(
-            R.id.tag_thing_card_image_render_request
-        ) as? ThingCardThumbnailRenderRequest
-        val loadKey = oldRequest?.loadKey
-            ?: (imageView?.getTag(R.id.tag_thing_card_image_load_key) as? String)
-            ?: "manual-thumbnail:${thing.id}:${mediaSource.typePathName}"
-        val bakeCropIntoBitmap = oldRequest?.bakeCropIntoBitmap == true
-        imageView?.setTag(
+        val imageView = holder.ivImageAttachment ?: return false
+        val videoFrameMs = getThingCardVideoFrameMs(thing, mediaSource)
+        val loadKey = getThingCardImageLoadKey(
+            mediaSource.pathName,
+            targetW,
+            targetH,
+            videoFrameMs,
+            crop
+        )
+        val currentLoadKey = imageView.getTag(R.id.tag_thing_card_image_load_key) as? String
+        if (currentLoadKey != loadKey || imageView.drawable == null) {
+            loadThingCardImage(
+                holder,
+                mediaSource.pathName,
+                targetW,
+                targetH,
+                crop,
+                videoFrameMs
+            )
+            return true
+        }
+        imageView.setTag(
             R.id.tag_thing_card_image_render_request,
-            ThingCardThumbnailRenderRequest(loadKey, targetW, targetH, crop, bakeCropIntoBitmap)
+            ThingCardThumbnailRenderRequest(loadKey, targetW, targetH, crop)
         )
         logThingCardMediaDebug(
             debugInfo,
             "replay foreground target=${targetW}x$targetH key=$loadKey " +
-                    "placement=${thingCardImagePlacementName(placement)} " +
-                    "bake=$bakeCropIntoBitmap crop=$crop " +
+                    "placement=${thingCardImagePlacementName(placement)} crop=$crop " +
                     "iv=${debugViewSize(imageView)} ivLp=${debugLayoutParamsSize(imageView)} " +
                     "frame=${debugViewSize(holder.flImageAttachment)} " +
                     "frameLp=${debugLayoutParamsSize(holder.flImageAttachment)}"
         )
         applyCurrentThingCardThumbnailRenderRequest(imageView)
         return true
-    }
-
-    private fun applyThingCardMediaCrop(
-        imageView: ImageView?,
-        centerXValue: Double,
-        centerYValue: Double,
-        userScaleValue: Double,
-        targetW: Int,
-        targetH: Int,
-        sourceAspectRatioValue: Double? = null
-    ) {
-        if (imageView == null || targetW <= 0 || targetH <= 0) return
-        val debugInfo = getThingCardMediaDebugInfo(imageView)
-
-        val drawable = imageView.drawable
-        if (drawable == null) {
-            logThingCardMediaDebug(
-                debugInfo,
-                "matrix skipped no-drawable target=${targetW}x$targetH " +
-                        "iv=${debugViewSize(imageView)} sourceAspect=$sourceAspectRatioValue"
-            )
-            return
-        }
-        val sourceW = drawable.intrinsicWidth
-        val sourceH = drawable.intrinsicHeight
-        if (sourceW <= 0 || sourceH <= 0) {
-            logThingCardMediaDebug(
-                debugInfo,
-                "matrix fallback invalid-drawable target=${targetW}x$targetH " +
-                        "drawable=${debugDrawableSize(drawable)} iv=${debugViewSize(imageView)}"
-            )
-            imageView.scaleType = ImageView.ScaleType.CENTER_CROP
-            return
-        }
-
-        val sourceAspectRatio = normalizeThingCardCropSourceAspectRatio(sourceAspectRatioValue)
-        val cropSourceW: Float
-        val cropSourceH: Float
-        if (sourceAspectRatio != null) {
-            val sourceRatio = sourceW.toFloat() / sourceH.toFloat()
-            if (sourceAspectRatio > sourceRatio) {
-                cropSourceW = sourceW.toFloat()
-                cropSourceH = sourceW.toFloat() / sourceAspectRatio
-            } else {
-                cropSourceH = sourceH.toFloat()
-                cropSourceW = sourceH.toFloat() * sourceAspectRatio
-            }
-        } else {
-            cropSourceW = sourceW.toFloat()
-            cropSourceH = sourceH.toFloat()
-        }
-        val coverScale = max(
-            targetW.toFloat() / cropSourceW,
-            targetH.toFloat() / cropSourceH
-        )
-        val userScale = normalizeThingCardCropUserScale(userScaleValue)
-        val effectiveScale = coverScale * userScale
-        val scaledW = sourceW * effectiveScale
-        val scaledH = sourceH * effectiveScale
-
-        val centerX = normalizeThingCardCropRatio(centerXValue) * scaledW
-        val centerY = normalizeThingCardCropRatio(centerYValue) * scaledH
-        val left = clampThingCardCropOffset(targetW / 2f - centerX, targetW - scaledW, 0f)
-        val top = clampThingCardCropOffset(targetH / 2f - centerY, targetH - scaledH, 0f)
-
-        val matrix = Matrix()
-        matrix.setScale(effectiveScale, effectiveScale)
-        matrix.postTranslate(left, top)
-        logThingCardMediaDebug(
-            debugInfo,
-            "matrix apply target=${targetW}x$targetH drawable=${sourceW}x$sourceH " +
-                    "cropSource=${cropSourceW}x$cropSourceH sourceAspect=$sourceAspectRatio " +
-                    "center=${centerXValue},${centerYValue} userScale=$userScale " +
-                    "coverScale=$coverScale effectiveScale=$effectiveScale " +
-                    "offset=$left,$top iv=${debugViewSize(imageView)} " +
-                    "ivLp=${debugLayoutParamsSize(imageView)}"
-        )
-        imageView.scaleType = ImageView.ScaleType.MATRIX
-        imageView.imageMatrix = matrix
-    }
-
-    private fun normalizeThingCardCropSourceAspectRatio(value: Double?): Float? {
-        if (value == null || value.isNaN() || value.isInfinite() || value <= 0.0) {
-            return null
-        }
-        return value.toFloat()
-    }
-
-    private fun normalizeThingCardCropRatio(value: Double): Float {
-        if (value.isNaN() || value.isInfinite()) {
-            return ThingCardAppearance.DEFAULT_CROP_CENTER.toFloat()
-        }
-        return max(0.0, min(1.0, value)).toFloat()
-    }
-
-    private fun normalizeThingCardCropUserScale(value: Double): Float {
-        if (value.isNaN() || value.isInfinite()) {
-            return ThingCardAppearance.DEFAULT_USER_SCALE.toFloat()
-        }
-        return max(ThingCardAppearance.DEFAULT_USER_SCALE, value).toFloat()
-    }
-
-    private fun clampThingCardCropOffset(value: Float, minValue: Float, maxValue: Float): Float {
-        return max(minValue, min(maxValue, value))
     }
 
     private fun syncSideImageProjectionAfterMeasure(
@@ -2500,11 +2318,6 @@ abstract class BaseThingsAdapter(context: Context?) :
                 getThingCardThumbnailCrop(thing, mediaSource)
             }
             val videoFrameMs = getThingCardVideoFrameMs(thing, mediaSource)
-            val bakeCropIntoBitmap = shouldBakeThingCardForegroundMediaCrop(
-                thing,
-                mediaSource,
-                placement
-            )
 
             val paramsLayout = holder.flImageAttachment.layoutParams as LinearLayout.LayoutParams
             if (!sideImage) {
@@ -2543,8 +2356,7 @@ abstract class BaseThingsAdapter(context: Context?) :
                     "bind side imageW=$imageW imageH=${sideImageProjection!!.imageHeight} " +
                             "targetAspect=${getThingCardThumbnailTargetAspectRatio(thing)} " +
                             "surfaceAvailableHeight=${getThingCardSurfaceAvailableHeight()} " +
-                            "videoFrameMs=$videoFrameMs bake=$bakeCropIntoBitmap " +
-                            "crop=$thumbnailCrop " +
+                            "videoFrameMs=$videoFrameMs crop=$thumbnailCrop " +
                             "flLp=${debugLayoutParamsSize(holder.flImageAttachment)} " +
                             "ivLp=${debugLayoutParamsSize(holder.ivImageAttachment)} " +
                             "fl=${debugViewSize(holder.flImageAttachment)} " +
@@ -2552,7 +2364,7 @@ abstract class BaseThingsAdapter(context: Context?) :
                 )
                 loadThingCardImage(
                     holder, pathName, imageW, sideImageProjection!!.imageHeight,
-                    thumbnailCrop, videoFrameMs, bakeCropIntoBitmap
+                    thumbnailCrop, videoFrameMs
                 )
                 syncSideImageProjectionAfterMeasure(
                     holder, bindToken, thing, pathName, thumbnailCrop, videoFrameMs
@@ -2568,8 +2380,7 @@ abstract class BaseThingsAdapter(context: Context?) :
                     "bind top-bottom imageW=$imageW imageH=$imageH " +
                             "targetAspect=${getThingCardThumbnailTargetAspectRatio(thing)} " +
                             "surfaceAvailableHeight=${getThingCardSurfaceAvailableHeight()} " +
-                            "videoFrameMs=$videoFrameMs bake=$bakeCropIntoBitmap " +
-                            "crop=$thumbnailCrop " +
+                            "videoFrameMs=$videoFrameMs crop=$thumbnailCrop " +
                             "flLp=${debugLayoutParamsSize(holder.flImageAttachment)} " +
                             "ivLp=${debugLayoutParamsSize(holder.ivImageAttachment)} " +
                             "fl=${debugViewSize(holder.flImageAttachment)} " +
@@ -2581,8 +2392,7 @@ abstract class BaseThingsAdapter(context: Context?) :
                     imageW,
                     imageH,
                     thumbnailCrop,
-                    videoFrameMs,
-                    bakeCropIntoBitmap
+                    videoFrameMs
                 )
             }
 

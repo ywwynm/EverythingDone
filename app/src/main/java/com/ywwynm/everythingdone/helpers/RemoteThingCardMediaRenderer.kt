@@ -7,7 +7,6 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.Matrix
 import android.media.MediaMetadataRetriever
 import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.model.ThingCardAppearance
@@ -79,7 +78,17 @@ object RemoteThingCardMediaRenderer {
         val frameMs = getThingCardVideoFrameMs(thing, source)
         val sourceBitmap = decodeSourceBitmap(source, crop.scale, width, height, frameMs)
             ?: return null
-        val cropped = renderCrop(sourceBitmap, crop.centerX, crop.centerY, crop.scale, width, height)
+        val cropped = MediaCropBitmapRenderer.renderCrop(
+            sourceBitmap,
+            width,
+            height,
+            MediaCropBitmapRenderer.Crop(
+                centerX = crop.centerX,
+                centerY = crop.centerY,
+                userScale = crop.scale,
+                sourceAspectRatio = crop.sourceAspectRatio
+            )
+        ) ?: return null
         return ThumbnailRequest(cropped, source, width, height)
     }
 
@@ -98,7 +107,17 @@ object RemoteThingCardMediaRenderer {
         val frameMs = getThingCardVideoFrameMs(thing, source)
         val sourceBitmap = decodeSourceBitmap(source, crop.scale, width, height, frameMs)
             ?: return null
-        val cropped = renderCrop(sourceBitmap, crop.centerX, crop.centerY, crop.scale, width, height)
+        val cropped = MediaCropBitmapRenderer.renderCrop(
+            sourceBitmap,
+            width,
+            height,
+            MediaCropBitmapRenderer.Crop(
+                centerX = crop.centerX,
+                centerY = crop.centerY,
+                userScale = crop.scale,
+                sourceAspectRatio = getThingCardMediaBackgroundSourceAspectRatio(thing, source)
+            )
+        ) ?: return null
         val maskAlpha = (getThingCardMediaBackgroundMaskStrength(thing, source) * 255).toInt()
             .coerceIn(0, 255)
         if (maskAlpha > 0) {
@@ -164,6 +183,14 @@ object RemoteThingCardMediaRenderer {
         return thing.thingCardAppearance.sources[mediaSource.typePathName]
             ?.mediaBackgroundCrop()
             ?: ThingCardAppearance.ThingCardMediaBackgroundCrop()
+    }
+
+    private fun getThingCardMediaBackgroundSourceAspectRatio(
+        thing: Thing,
+        mediaSource: ThingCardMediaHelper.MediaSource
+    ): Double? {
+        return thing.thingCardAppearance.sources[mediaSource.typePathName]
+            ?.mediaBackgroundTargetAspectRatio()
     }
 
     private fun getThingCardMediaBackgroundMaskStrength(
@@ -250,41 +277,6 @@ object RemoteThingCardMediaRenderer {
         }
     }
 
-    private fun renderCrop(
-        source: Bitmap,
-        centerXValue: Double,
-        centerYValue: Double,
-        userScaleValue: Double,
-        targetWidth: Int,
-        targetHeight: Int
-    ): Bitmap {
-        val output = Bitmap.createBitmap(targetWidth, targetHeight, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(output)
-        val sourceWidth = source.width
-        val sourceHeight = source.height
-        if (sourceWidth <= 0 || sourceHeight <= 0) return output
-
-        val coverScale = max(
-            targetWidth.toFloat() / sourceWidth.toFloat(),
-            targetHeight.toFloat() / sourceHeight.toFloat()
-        )
-        val userScale = normalizeUserScale(userScaleValue)
-        val effectiveScale = coverScale * userScale
-        val scaledWidth = sourceWidth * effectiveScale
-        val scaledHeight = sourceHeight * effectiveScale
-
-        val centerX = normalizeCropRatio(centerXValue) * scaledWidth
-        val centerY = normalizeCropRatio(centerYValue) * scaledHeight
-        val left = clampCropOffset(targetWidth / 2f - centerX, targetWidth - scaledWidth, 0f)
-        val top = clampCropOffset(targetHeight / 2f - centerY, targetHeight - scaledHeight, 0f)
-
-        val matrix = Matrix()
-        matrix.setScale(effectiveScale, effectiveScale)
-        matrix.postTranslate(left, top)
-        canvas.drawBitmap(source, matrix, null)
-        return output
-    }
-
     private fun calculateInSampleSize(
         originalWidth: Int,
         originalHeight: Int,
@@ -304,21 +296,10 @@ object RemoteThingCardMediaRenderer {
         return max(1, inSampleSize)
     }
 
-    private fun normalizeCropRatio(value: Double): Float {
-        if (value.isNaN() || value.isInfinite()) {
-            return ThingCardAppearance.DEFAULT_CROP_CENTER.toFloat()
-        }
-        return max(0.0, min(1.0, value)).toFloat()
-    }
-
     private fun normalizeUserScale(value: Double): Float {
         if (value.isNaN() || value.isInfinite()) {
             return ThingCardAppearance.DEFAULT_USER_SCALE.toFloat()
         }
         return max(ThingCardAppearance.DEFAULT_USER_SCALE, value).toFloat()
-    }
-
-    private fun clampCropOffset(value: Float, minValue: Float, maxValue: Float): Float {
-        return max(minValue, min(maxValue, value))
     }
 }

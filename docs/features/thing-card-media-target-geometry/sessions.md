@@ -2,6 +2,37 @@
 
 Migrated from global `memory/sessions.md` on 2026-06-06. This file keeps feature-scoped history out of startup memory while preserving the original notes.
 
+## 2026-06-17 - Replace local ImageView matrix crops with baked media bitmaps
+
+- After the Folder thumbnail top/bottom video issue was fixed by baking a
+  target-sized cropped bitmap, the user asked to remove the remaining local
+  `ImageView.imageMatrix` crop display dependencies and use pre-cropped
+  bitmaps everywhere practical.
+- Added shared `MediaCropBitmapRenderer` for offscreen target-sized crop
+  rendering. The helper centralizes crop center, user zoom, source/target
+  aspect-ratio normalization, drawable-to-bitmap conversion, and final Canvas
+  drawing.
+- Migrated local Thing Card foreground thumbnails, side-panel media, and media
+  backgrounds in `BaseThingsAdapter` to bake the final crop in Glide's
+  `onResourceReady` callback. The `ImageView` now receives a target-sized
+  bitmap and is reset to `CENTER_CROP`; replay no longer computes or writes an
+  `ImageView` matrix.
+- Folded the previous Folder-preview-only video bake hook into the default
+  Thing Card media path. Folder preview replay now checks whether the current
+  load key matches the final measured target geometry and reloads/re-bakes when
+  it does not.
+- Extended media load/cache keys with the crop fingerprint so changed crop
+  center, user scale, source aspect ratio, target size, or video frame time
+  cannot reuse a stale bitmap.
+- Updated `RemoteThingCardMediaRenderer` to reuse the shared renderer instead
+  of carrying a duplicate crop calculation.
+- Verified with `git diff --check`, then reran
+  `.\gradlew.bat :app:assembleDebug --console=plain` outside the sandbox after
+  the in-sandbox run was blocked by `.gradle/configuration-cache.lock`.
+- Published debug update `202606171256` to the Aliyun debug channel and
+  verified remote `latest.json` points to
+  `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606171256.apk`.
+
 ## 2026-06-07 - Home-list Thing Card media bitmap reuse cache
 
 - User reported that home-list Thing Cards with loaded images can show an empty

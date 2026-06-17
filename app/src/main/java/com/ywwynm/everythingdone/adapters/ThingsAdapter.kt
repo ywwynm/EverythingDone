@@ -1372,18 +1372,10 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
             mediaSource: ThingCardMediaHelper.MediaSource,
             placement: Int
         ): Boolean {
-            return shouldUseBakedForegroundVideoCrop(thing, mediaSource, placement)
+            return shouldLogForegroundVideoCrop(thing, mediaSource, placement)
         }
 
-        override fun shouldBakeThingCardForegroundMediaCrop(
-            thing: Thing,
-            mediaSource: ThingCardMediaHelper.MediaSource,
-            placement: Int
-        ): Boolean {
-            return shouldUseBakedForegroundVideoCrop(thing, mediaSource, placement)
-        }
-
-        private fun shouldUseBakedForegroundVideoCrop(
+        private fun shouldLogForegroundVideoCrop(
             thing: Thing,
             mediaSource: ThingCardMediaHelper.MediaSource,
             placement: Int
