@@ -252,6 +252,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         resetFolderCardHolder(holder)
         bindFolderCardSurface(holder, folder)
         bindFolderCardContent(holder, entry)
+        bindFolderSelectionAppearance(holder, folder)
     }
 
     private fun resetFolderCardHolder(holder: BaseThingViewHolder) {
@@ -326,6 +327,42 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         )
     }
 
+    private fun bindFolderSelectionAppearance(
+        holder: BaseThingViewHolder,
+        folder: ThingFolder
+    ) {
+        val card = holder.cv ?: return
+        val selected = folder.isSelected()
+        val currentMode = getCurrentMode()
+        val thumbnailMode =
+            folder.cardPresentation.mode == ThingFolderCardPresentation.MODE_THUMBNAILS
+        holder.llContent!!.alpha =
+            if (shouldDimUnselectedContent(currentMode) && !selected) 0.42f else 1.0f
+
+        if (currentMode == ModeManager.MOVING && selected) {
+            ObjectAnimator.ofFloat(card, "scaleX", 1.11f).setDuration(96).start()
+            ObjectAnimator.ofFloat(card, "scaleY", 1.11f).setDuration(96).start()
+            if (!thumbnailMode) {
+                ObjectAnimator.ofFloat(
+                    card,
+                    "cardElevation",
+                    mApp!!.resources.getDimension(R.dimen.thing_card_dragging_elevation)
+                ).setDuration(96).start()
+            } else {
+                card.cardElevation = 0f
+            }
+        } else {
+            card.animate().cancel()
+            card.scaleX = 1.0f
+            card.scaleY = 1.0f
+            card.cardElevation = if (thumbnailMode) {
+                0f
+            } else {
+                mApp!!.resources.getDimension(R.dimen.thing_card_normal_elevation)
+            }
+        }
+    }
+
     private fun applyThumbnailFolderCardSurface(
         holder: BaseThingViewHolder,
         background: ThingBackground?,
@@ -366,16 +403,18 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         bindFolderCardHeader(
             holder,
             folder.title,
-            if (hiddenPrivate) R.drawable.ic_locked_big else R.drawable.ic_thing_folder,
+            R.drawable.ic_thing_folder,
             baseColor
         )
 
-        bindFolderCardCount(holder, entry, baseColor)
+        if (hiddenPrivate) {
+            bindFolderPrivateLock(holder, baseColor)
+        } else {
+            bindFolderCardCount(holder, entry, baseColor)
 
-        if (folder.cardPresentation.mode == ThingFolderCardPresentation.MODE_THUMBNAILS
-            && !hiddenPrivate
-        ) {
-            bindFolderThumbnails(holder, entry)
+            if (folder.cardPresentation.mode == ThingFolderCardPresentation.MODE_THUMBNAILS) {
+                bindFolderThumbnails(holder, entry)
+            }
         }
 
         if (folder.isSticky()) {
@@ -393,6 +432,22 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         } else {
             holder.ivStickyOngoing!!.visibility = View.GONE
         }
+    }
+
+    private fun bindFolderPrivateLock(holder: BaseThingViewHolder, baseColor: Int) {
+        val lock = holder.ivPrivateThing ?: return
+        lock.visibility = View.VISIBLE
+        lock.setImageResource(R.drawable.ic_locked_big)
+        lock.contentDescription = mApp!!.getString(R.string.private_thing_folder)
+        ImageViewCompat.setImageTintList(
+            lock,
+            ColorStateList.valueOf(textColorSecondary(baseColor))
+        )
+        val lp = lock.layoutParams as LinearLayout.LayoutParams
+        lp.gravity = Gravity.CENTER_HORIZONTAL
+        lp.topMargin = (mDensity * 12).toInt()
+        lp.bottomMargin = (mDensity * 2).toInt()
+        lock.layoutParams = lp
     }
 
     private fun shouldShowFolderPrivateContent(): Boolean {
@@ -883,7 +938,14 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         val scaledDensity = textView.resources.displayMetrics.scaledDensity
         if (scaledDensity <= 0f) return
         val textSizeSp = textView.textSize / scaledDensity
-        textView.textSize = (textSizeSp * scale).coerceAtLeast(8f)
+        val audioOnlyAdjustment = if (
+            textView.id == R.id.tv_thing_audio_attachment_count && textSizeSp >= 16f
+        ) {
+            2f
+        } else {
+            0f
+        }
+        textView.textSize = (textSizeSp * scale - audioOnlyAdjustment).coerceAtLeast(8f)
     }
 
     private fun scaleFolderThumbnailImage(imageView: ImageView, scale: Float) {

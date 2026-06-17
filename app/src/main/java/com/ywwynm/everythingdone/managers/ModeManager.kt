@@ -206,7 +206,7 @@ open class ModeManager(app: App?,
 
     private fun notifyThingsSelected(position: Int) {
         mFab!!.shrink()
-        mThingManager!!.getThingAtListPosition(position)?.selected = true
+        mThingManager!!.setListEntrySelected(position, true)
         mAdapter!!.notifyDataSetChanged()
     }
 
@@ -252,14 +252,16 @@ open class ModeManager(app: App?,
 
     open fun updateSelectedCount() {
         val selectedCount: Int = mThingManager!!.getSelectedCount()
+        val selectableCount: Int = mThingManager!!.getSelectableEntryCount()
         val toolbar: Toolbar = mContextualToolbar!!
-        toolbar.setTitle(selectedCount.toString() + " / " +
-                (mThingManager!!.getThings()!!.size - 1))
+        toolbar.title = "$selectedCount / $selectableCount"
     }
 
     open fun updateMenuItems() {
         updateMenuItemSelectAll()
         updateMenuItemCustomizeCardAppearance()
+        updateMenuItemPrivate()
+        updateMenuItemsForFolderSelection()
         if (mApp!!.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
             updateMenuItemStickyOnTop()
         }
@@ -272,7 +274,8 @@ open class ModeManager(app: App?,
 
     private fun updateMenuItemSelectAll() {
         val item: MenuItem = mContextualToolbar!!.getMenu().findItem(R.id.act_select_all) ?: return
-        if (mThingManager!!.getSelectedCount() == mThingManager!!.getThings()!!.size - 1) {
+        val selectableCount = mThingManager!!.getSelectableEntryCount()
+        if (selectableCount > 0 && mThingManager!!.getSelectedCount() == selectableCount) {
             item.setIcon(R.drawable.act_deselect_all)
             item.setTitle(R.string.act_deselect_all)
         } else {
@@ -287,8 +290,13 @@ open class ModeManager(app: App?,
             item.isVisible = false
         } else {
             item.isVisible = true
-            val thing: Thing = mThingManager!!.getSelectedThings()!![0]!!
-            if (thing.location < 0) {
+            val entry = mThingManager!!.getSingleSelectedEntry()
+            val sticky = when (entry) {
+                is ThingListEntry.ThingEntry -> entry.thing.location < 0
+                is ThingListEntry.FolderEntry -> entry.folder.location < 0
+                else -> false
+            }
+            if (sticky) {
                 item.setIcon(R.drawable.act_cancel_sticky)
                 item.setTitle(R.string.act_cancel_sticky)
             } else {
@@ -301,6 +309,13 @@ open class ModeManager(app: App?,
     private fun updateMenuItemCustomizeCardAppearance() {
         val item: MenuItem = mContextualToolbar!!.getMenu()
                 .findItem(R.id.act_customize_card_appearance) ?: return
+        val entry = mThingManager!!.getSingleSelectedEntry()
+        if (entry is ThingListEntry.FolderEntry) {
+            item.isVisible = true
+            item.setTitle(R.string.act_customize_folder_card_appearance)
+            return
+        }
+        item.setTitle(R.string.act_customize_card_appearance)
         item.isVisible = canCustomizeSelectedThingCardAppearance()
     }
 
@@ -326,6 +341,84 @@ open class ModeManager(app: App?,
         }
 
         return true
+    }
+
+    private fun updateMenuItemPrivate() {
+        val item: MenuItem = mContextualToolbar!!.getMenu()
+                .findItem(R.id.act_set_as_private_thing) ?: return
+        val entry = mThingManager!!.getSingleSelectedEntry()
+        when (entry) {
+            is ThingListEntry.ThingEntry -> {
+                val thing = entry.thing
+                item.isVisible = thing.id != App.getDoingThingId()
+                item.setTitle(
+                        if (thing.isPrivate()) {
+                            R.string.act_cancel_private_thing
+                        } else {
+                            R.string.act_set_as_private_thing
+                        }
+                )
+            }
+            is ThingListEntry.FolderEntry -> {
+                val folder = entry.folder
+                item.isVisible = true
+                item.setTitle(
+                        if (folder.isPrivate) {
+                            R.string.cancel_thing_folder_private
+                        } else {
+                            R.string.set_thing_folder_private
+                        }
+                )
+            }
+            else -> {
+                item.isVisible = false
+            }
+        }
+    }
+
+    private fun updateMenuItemsForFolderSelection() {
+        val selectedFolderCount = mThingManager!!.getSelectedFolderCount()
+        val selectedThingCount = mThingManager!!.getSelectedThingCount()
+        val hasSelectedFolder = selectedFolderCount > 0
+        val singleFolderOnly = selectedFolderCount == 1 && selectedThingCount == 0
+
+        setMenuItemVisible(R.id.act_finish_selected, !hasSelectedFolder)
+        setMenuItemVisible(R.id.act_delete_selected, !hasSelectedFolder)
+        setMenuItemVisible(R.id.act_delete_selected_forever, !hasSelectedFolder)
+        setMenuItemVisible(R.id.act_move_to_thing_folder, !hasSelectedFolder)
+        setMenuItemVisible(R.id.act_export, !hasSelectedFolder)
+
+        val selectedFolder = (mThingManager!!.getSingleSelectedEntry()
+                as? ThingListEntry.FolderEntry)?.folder
+        val restoreVisible = if (hasSelectedFolder) {
+            singleFolderOnly && selectedFolder?.isDeleted() == true
+        } else {
+            true
+        }
+        setMenuItemVisible(R.id.act_restore_selected, restoreVisible)
+
+        val dissolveItem = mContextualToolbar!!.menu
+                .findItem(R.id.act_dissolve_thing_folder)
+        dissolveItem?.isVisible = singleFolderOnly
+
+        val deleteFolderItem = mContextualToolbar!!.menu
+                .findItem(R.id.act_delete_thing_folder)
+        if (deleteFolderItem != null) {
+            deleteFolderItem.isVisible = singleFolderOnly
+            val permanentlyDelete = selectedFolder?.isDeleted() == true ||
+                    mApp!!.getLimit() == Def.LimitForGettingThings.ALL_DELETED
+            deleteFolderItem.setTitle(
+                    if (permanentlyDelete) {
+                        R.string.delete_thing_folder_forever
+                    } else {
+                        R.string.delete_thing_folder
+                    }
+            )
+        }
+    }
+
+    private fun setMenuItemVisible(itemId: Int, visible: Boolean) {
+        mContextualToolbar!!.menu.findItem(itemId)?.isVisible = visible
     }
 
     open fun updateTitleTextSize() {

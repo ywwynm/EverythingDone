@@ -312,6 +312,56 @@ open class ThingFolderDAO private constructor(context: Context?) {
         )
     }
 
+    open fun dissolve(folderId: Long) {
+        val folder = getFolderById(folderId) ?: return
+        val parentFolderId = folder.parentFolderId
+        val directThings = getDirectUserThings(folderId)
+        val directFolders = getChildFolders(folderId)
+        db!!.beginTransaction()
+        try {
+            for (thing in directThings) {
+                val newLocation = getFirstChildLocation(parentFolderId, thing.location < 0)
+                val values = ContentValues(2)
+                putNullableLong(values, Def.Database.COLUMN_FOLDER_ID_THINGS, parentFolderId)
+                values.put(Def.Database.COLUMN_LOCATION_THINGS, newLocation)
+                db!!.update(
+                    Def.Database.TABLE_THINGS,
+                    values,
+                    Def.Database.COLUMN_ID_THINGS + "=" + thing.id,
+                    null
+                )
+            }
+            for (childFolder in directFolders) {
+                val newLocation = getFirstChildLocation(parentFolderId, childFolder.isSticky())
+                val values = ContentValues(3)
+                putNullableLong(
+                    values,
+                    Def.Database.COLUMN_PARENT_FOLDER_ID_THING_FOLDERS,
+                    parentFolderId
+                )
+                values.put(Def.Database.COLUMN_LOCATION_THING_FOLDERS, newLocation)
+                values.put(
+                    Def.Database.COLUMN_UPDATE_TIME_THING_FOLDERS,
+                    System.currentTimeMillis()
+                )
+                db!!.update(
+                    Def.Database.TABLE_THING_FOLDERS,
+                    values,
+                    Def.Database.COLUMN_ID_THING_FOLDERS + "=" + childFolder.id,
+                    null
+                )
+            }
+            db!!.delete(
+                Def.Database.TABLE_THING_FOLDERS,
+                Def.Database.COLUMN_ID_THING_FOLDERS + "=$folderId",
+                null
+            )
+            db!!.setTransactionSuccessful()
+        } finally {
+            db!!.endTransaction()
+        }
+    }
+
     open fun isStructurallyEmpty(folderId: Long): Boolean {
         return !hasRows(
             Def.Database.TABLE_THINGS,
@@ -330,6 +380,25 @@ open class ThingFolderDAO private constructor(context: Context?) {
             val maxLocation = maxDirectChildLocation(parentFolderId, sticky = false)
             if (maxLocation == null || maxLocation < 0L) 1L else maxLocation + 1L
         }
+    }
+
+    private fun getDirectUserThings(parentFolderId: Long?): List<Thing> {
+        val things = ArrayList<Thing>()
+        val cursor = db!!.query(
+            Def.Database.TABLE_THINGS,
+            null,
+            directUserThingSelection(parentFolderId),
+            null,
+            null,
+            null,
+            Def.Database.COLUMN_LOCATION_THINGS + " desc"
+        )
+        cursor.use {
+            while (it.moveToNext()) {
+                things.add(Thing(it))
+            }
+        }
+        return things
     }
 
     private fun getThumbnailEntriesForProjection(

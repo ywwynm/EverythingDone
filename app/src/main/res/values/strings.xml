@@ -197,7 +197,10 @@
     <string name="make_thing_folder_normal_width">Use normal width</string>
     <string name="set_thing_folder_private">Set as private folder</string>
     <string name="cancel_thing_folder_private">Cancel private folder</string>
+    <string name="dissolve_thing_folder">Dissolve folder</string>
+    <string name="dissolve_thing_folder_confirm">Move the contents of this folder to the parent folder and remove the folder?</string>
     <string name="delete_thing_folder">Delete folder</string>
+    <string name="delete_thing_folder_confirm">Move this folder and everything inside it to Deleted?</string>
     <string name="restore_thing_folder">Restore folder</string>
     <string name="delete_thing_folder_forever">Delete folder forever</string>
     <string name="delete_thing_folder_forever_confirm">Delete this folder and all contained things forever?</string>
@@ -387,6 +390,7 @@
     <string name="act_restore_selected">Restore selected</string>
     <string name="act_delete_selected_forever">Delete selected forever</string>
     <string name="act_customize_card_appearance">Adjust thing card appearance</string>
+    <string name="act_customize_folder_card_appearance">Adjust folder card appearance</string>
 
     <string name="act_sticky_on_top">Sticky on top</string>
     <string name="act_cancel_sticky">Cancel sticky</string>
@@ -401,6 +405,10 @@
     <string name="thing_card_appearance_span_normal">Normal</string>
     <string name="thing_card_appearance_span_full">Wide</string>
     <string name="thing_card_appearance_card_width">Card width</string>
+    <string name="folder_card_appearance_name_hint">Folder name</string>
+    <string name="folder_card_appearance_display_mode">Folder size</string>
+    <string name="folder_card_appearance_mode_summary">Normal</string>
+    <string name="folder_card_appearance_mode_large">Large</string>
     <string name="thing_card_appearance_placement_default">Default placement</string>
     <string name="thing_card_appearance_placement_top">Top</string>
     <string name="thing_card_appearance_placement_bottom">Bottom</string>

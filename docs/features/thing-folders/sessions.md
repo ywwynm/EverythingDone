@@ -1092,3 +1092,36 @@
 - Verified the changes with `.\gradlew.bat :app:assembleDebug`.
 - Published debug update `202606160528` to the Aliyun debug channel and
   verified remote `latest.json` returns that `debugUpdateCode`.
+
+## 2026-06-17 - Folder contextual actions and card appearance editing
+
+- Changed Folder Card long-press behavior to follow Thing Card long-press
+  semantics: underway folders enter moving mode and can be reordered or dropped
+  into another Folder Card; releasing without a meaningful move enters selecting
+  mode.
+- Extended mixed `ThingListEntry` selection support so contextual toolbar counts,
+  select-all, sticky, private, restore, dissolve, delete, and card-appearance
+  actions can target a single selected Folder without routing through the old
+  Folder action dialog.
+- Added Folder Card appearance editing through the existing card appearance
+  panel. Folder editing exposes a Folder name field, card width, and display
+  mode choices while reusing the existing confirm/cancel preview lifecycle.
+- Renamed the Folder appearance selector from display mode to Folder size, with
+  Normal and Large as the user-facing choices.
+- Kept the Folder size options on the same row as the label instead of reusing
+  the Thing media-position two-line layout.
+- Added current-folder overflow actions for toggling private state, dissolving
+  the current Folder, and deleting or permanently deleting it depending on the
+  current Deleted projection.
+- Implemented Folder dissolve in the DAO/manager layer by moving direct child
+  Things and child Folders to the parent, then removing the Folder record.
+- Kept Folder delete semantics state-based: outside Deleted it moves the Folder
+  subtree into Deleted through Folder state; in Deleted it uses recursive
+  permanent deletion.
+- Replaced Folder dissolve/delete confirmations with `AlertDialogFragment`
+  prompts and added localized strings for the new Folder actions.
+- Updated private Folder Card rendering so hidden private folders keep the
+  Folder icon in the title row, suppress child counts, and show a lock below
+  the title.
+- Reduced the large audio-only count text in Folder thumbnail previews by 2sp.
+- Verified the changes with `.\gradlew.bat :app:assembleDebug`.

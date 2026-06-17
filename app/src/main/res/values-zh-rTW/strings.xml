@@ -188,6 +188,15 @@
 
     <!--——————————————————————Strings for Thing——————————————————————-->
     <string name="private_thing">私密記事</string>
+    <string name="set_thing_folder_private">設為私密資料夾</string>
+    <string name="cancel_thing_folder_private">取消私密資料夾</string>
+    <string name="dissolve_thing_folder">解散資料夾</string>
+    <string name="dissolve_thing_folder_confirm">將此資料夾中的內容移動到上一層，並刪除此資料夾？</string>
+    <string name="delete_thing_folder">刪除資料夾</string>
+    <string name="delete_thing_folder_confirm">將此資料夾及其中的所有內容移動到回收桶？</string>
+    <string name="restore_thing_folder">還原資料夾</string>
+    <string name="delete_thing_folder_forever">永久刪除資料夾</string>
+    <string name="delete_thing_folder_forever_confirm">永久刪除此資料夾及其中的所有記事？</string>
     <string name="sticky_thing">置頂的記事</string>
     <string name="ongoing_thing">在通知欄中顯示的記事</string>
 
@@ -326,6 +335,7 @@
     <string name="act_restore_selected">還原選中的記事</string>
     <string name="act_delete_selected_forever">徹底刪除選中的記事</string>
     <string name="act_customize_card_appearance">調整記事卡片外觀</string>
+    <string name="act_customize_folder_card_appearance">調整資料夾卡片外觀</string>
 
     <string name="act_sticky_on_top">置頂</string>
     <string name="act_cancel_sticky">取消置頂</string>
@@ -340,6 +350,10 @@
     <string name="thing_card_appearance_span_normal">正常</string>
     <string name="thing_card_appearance_span_full">寬</string>
     <string name="thing_card_appearance_card_width">卡片寬度</string>
+    <string name="folder_card_appearance_name_hint">資料夾名稱</string>
+    <string name="folder_card_appearance_display_mode">資料夾大小</string>
+    <string name="folder_card_appearance_mode_summary">正常</string>
+    <string name="folder_card_appearance_mode_large">大</string>
     <string name="thing_card_appearance_placement_default">預設位置</string>
     <string name="thing_card_appearance_placement_top">上方</string>
     <string name="thing_card_appearance_placement_bottom">下方</string>

@@ -18,6 +18,9 @@
 - Tune the top-left-corner folder drop hit target and animated feedback after
   device testing if ordinary Thing reordering or intentional folder creation
   still feels too easy to trigger.
+- Add a dedicated Folder move UI after the drag/selecting behavior lands. The
+  current implementation should continue to support direct dragging into another
+  Folder, while the later UI gives users an explicit non-drag move path.
 - Add Folder Card swipe/delete behavior according to the folder state rules.
 - Consider replacing the current live `ItemTouchHelper` Folder-drop path with a
   dedicated drag-session layer. The safer model would freeze RecyclerView

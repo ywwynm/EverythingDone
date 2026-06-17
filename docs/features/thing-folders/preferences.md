@@ -17,6 +17,12 @@
   the entry's existing sticky state.
 - When a Thing Folder becomes empty after moving Things or child Folders out of
   it, delete that empty Folder automatically.
+- Long-pressing a Folder Card should enter the same drag/select affordance as
+  long-pressing a Thing Card. A Folder can be dragged into another Folder, and a
+  release that returns to the original position should enter selecting mode
+  instead of opening a Folder action dialog.
+- A separate dedicated Folder move UI remains deferred; the current slice uses
+  drag interactions and contextual menu actions.
 
 ## Private Folder Cards
 
@@ -24,6 +30,9 @@
   when private content is hidden. The card may keep a lock indicator and should
   continue to hide contained thumbnails/previews until the private content is
   authenticated.
+- Private Thing Folder cards should not reveal child Thing or child Folder
+  counts while private content is hidden. They should keep the Folder icon beside
+  the title and show a private lock indicator below.
 
 ## Position Naming
 
@@ -99,6 +108,12 @@
 
 ## Folder Card Layout
 
+- In the Folder Card appearance panel, label the display selector as "Folder
+  size" rather than "Display mode". The two options should read "Normal" and
+  "Large" in English, and `正常` / `大` in Chinese.
+- The Folder size label and its Normal/Large options should appear on the same
+  row, matching the compact Card width row. Do not use the Thing media-position
+  two-line layout for this Folder-only control.
 - Folder Cards should use a compact header: a small folder icon in the top-left,
   the folder name to its right, and the first line of the name vertically
   centred with the icon.

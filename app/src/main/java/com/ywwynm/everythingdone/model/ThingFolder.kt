@@ -18,6 +18,7 @@ open class ThingFolder(
 
     private var _color: Int = color
     private var _background: ThingBackground? = ThingBackground.pure(color)
+    var selected: Boolean = false
 
     constructor(id: Long, title: String, color: Int, location: Long) : this(
         id = id,
@@ -83,6 +84,8 @@ open class ThingFolder(
     fun isDeleted(): Boolean = state == Thing.DELETED
 
     fun isSticky(): Boolean = location < 0
+
+    fun isSelected(): Boolean = selected
 
     fun markUpdated(time: Long = System.currentTimeMillis()) {
         updateTime = time

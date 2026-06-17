@@ -204,6 +204,25 @@ open class ThingManager private constructor(context: Context?) {
         return -1
     }
 
+    open fun getListPositionForFolderId(folderId: Long): Int {
+        val entries = mThingListEntries ?: return -1
+        for (i in entries.indices) {
+            val entry = entries[i]
+            if (entry is ThingListEntry.FolderEntry && entry.folder.id == folderId) {
+                return i
+            }
+        }
+        return -1
+    }
+
+    open fun getListPositionForStableId(stableId: Long): Int {
+        val entries = mThingListEntries ?: return -1
+        for (i in entries.indices) {
+            if (entries[i].stableId == stableId) return i
+        }
+        return -1
+    }
+
     open fun hasFolderEntries(): Boolean {
         val entries = mThingListEntries ?: return false
         for (entry in entries) {
@@ -1035,6 +1054,10 @@ open class ThingManager private constructor(context: Context?) {
         return mFolderDao!!.isEffectivelyPrivate(folderId)
     }
 
+    open fun isFolderDescendantOf(folderId: Long?, possibleAncestorId: Long): Boolean {
+        return mFolderDao!!.isDescendantOf(folderId, possibleAncestorId)
+    }
+
     open fun moveFolderIntoFolder(folder: ThingFolder?, parentFolderId: Long?): Boolean {
         if (folder == null) return false
         if (parentFolderId == folder.id) return false
@@ -1077,11 +1100,45 @@ open class ThingManager private constructor(context: Context?) {
         }
     }
 
+    private fun trimProjectionToVisibleFolders() {
+        if (mProjection.folderPath.isEmpty()) return
+        val visiblePath = ArrayList<Long>()
+        for (folderId in mProjection.folderPath) {
+            if (mFolderDao!!.getFolderById(folderId) == null) break
+            val effectivelyDeleted = mFolderDao!!.isEffectivelyDeleted(folderId)
+            if (mLimit == Def.LimitForGettingThings.ALL_DELETED) {
+                if (!effectivelyDeleted) break
+            } else if (effectivelyDeleted) {
+                break
+            }
+            visiblePath.add(folderId)
+        }
+        if (visiblePath.size != mProjection.folderPath.size) {
+            mProjection = mProjection.copy(folderPath = visiblePath)
+            trimAuthenticatedPrivateFoldersToProjection()
+        }
+    }
+
     open fun renameFolder(folder: ThingFolder?, title: String): Boolean {
         if (folder == null) return false
         val cleanTitle = title.trim()
         if (cleanTitle.isEmpty()) return false
         folder.title = cleanTitle
+        mFolderDao!!.update(folder)
+        loadThings()
+        return true
+    }
+
+    open fun updateFolderAppearance(
+        folder: ThingFolder?,
+        title: String,
+        presentation: ThingFolderCardPresentation?
+    ): Boolean {
+        if (folder == null || presentation == null) return false
+        val cleanTitle = title.trim()
+        if (cleanTitle.isEmpty()) return false
+        folder.title = cleanTitle
+        folder.cardPresentation = presentation
         mFolderDao!!.update(folder)
         loadThings()
         return true
@@ -1109,6 +1166,11 @@ open class ThingManager private constructor(context: Context?) {
         return true
     }
 
+    open fun getCurrentFolder(): ThingFolder? {
+        val currentFolderId = mProjection.currentFolderId ?: return null
+        return mFolderDao!!.getFolderById(currentFolderId)
+    }
+
     open fun deleteFolder(folder: ThingFolder?): Boolean {
         return updateFolderState(folder, Thing.DELETED)
     }
@@ -1121,6 +1183,7 @@ open class ThingManager private constructor(context: Context?) {
         if (folder == null) return false
         folder.state = state
         mFolderDao!!.updateState(folder.id, state)
+        trimProjectionToVisibleFolders()
         loadThings()
         return true
     }
@@ -1128,6 +1191,16 @@ open class ThingManager private constructor(context: Context?) {
     open fun deleteFolderForever(folder: ThingFolder?): Boolean {
         if (folder == null) return false
         mFolderDao!!.deleteForever(folder.id)
+        trimProjectionToExistingFolders()
+        loadThings()
+        return true
+    }
+
+    open fun dissolveFolder(folder: ThingFolder?): Boolean {
+        if (folder == null) return false
+        mAuthenticatedPrivateFolderIds.remove(folder.id)
+        mFolderDao!!.dissolve(folder.id)
+        trimProjectionToExistingFolders()
         loadThings()
         return true
     }
@@ -1286,10 +1359,58 @@ open class ThingManager private constructor(context: Context?) {
         return selectedThings.toTypedArray()
     }
 
+    open fun getSelectedFolders(): Array<ThingFolder> {
+        val selectedFolders: MutableList<ThingFolder> = ArrayList()
+        val entries = mThingListEntries ?: return emptyArray()
+        for (entry in entries) {
+            if (entry is ThingListEntry.FolderEntry && entry.folder.isSelected()) {
+                selectedFolders.add(entry.folder)
+            }
+        }
+        return selectedFolders.toTypedArray()
+    }
+
+    open fun getSingleSelectedEntry(): ThingListEntry? {
+        if (getSelectedCount() != 1) return null
+        val entries = mThingListEntries
+        if (entries != null) {
+            for (entry in entries) {
+                if (entry is ThingListEntry.ThingEntry && entry.thing.isSelected()) {
+                    return entry
+                }
+                if (entry is ThingListEntry.FolderEntry && entry.folder.isSelected()) {
+                    return entry
+                }
+            }
+        } else {
+            for (thing in mThings!!) {
+                if (thing!!.isSelected()) return ThingListEntry.ThingEntry(thing)
+            }
+        }
+        return null
+    }
+
     open fun setSelectedTo(selected: Boolean) {
-        val size: Int = mThings!!.size
-        for (i in 1 until size) {
-            mThings!![i]!!.selected = selected
+        val entries = mThingListEntries
+        if (entries != null) {
+            for (entry in entries) {
+                when (entry) {
+                    is ThingListEntry.ThingEntry -> {
+                        if (isSelectableThing(entry.thing)) {
+                            entry.thing.selected = selected
+                        }
+                    }
+                    is ThingListEntry.FolderEntry -> entry.folder.selected = selected
+                }
+            }
+            return
+        }
+
+        for (i in 1 until mThings!!.size) {
+            val thing = mThings!![i]!!
+            if (isSelectableThing(thing)) {
+                thing.selected = selected
+            }
         }
     }
 
@@ -1298,7 +1419,84 @@ open class ThingManager private constructor(context: Context?) {
         for (thing in mThings!!) {
             if (thing!!.isSelected()) count++
         }
+        val entries = mThingListEntries
+        if (entries != null) {
+            for (entry in entries) {
+                if (entry is ThingListEntry.FolderEntry && entry.folder.isSelected()) count++
+            }
+        }
         return count
+    }
+
+    open fun getSelectedThingCount(): Int {
+        var count = 0
+        for (thing in mThings!!) {
+            if (thing!!.isSelected()) count++
+        }
+        return count
+    }
+
+    open fun getSelectedFolderCount(): Int {
+        var count = 0
+        val entries = mThingListEntries ?: return 0
+        for (entry in entries) {
+            if (entry is ThingListEntry.FolderEntry && entry.folder.isSelected()) count++
+        }
+        return count
+    }
+
+    open fun getSelectableEntryCount(): Int {
+        val entries = mThingListEntries
+        if (entries != null) {
+            var count = 0
+            for (entry in entries) {
+                if (entry is ThingListEntry.FolderEntry) {
+                    count++
+                } else if (entry is ThingListEntry.ThingEntry &&
+                    isSelectableThing(entry.thing)
+                ) {
+                    count++
+                }
+            }
+            return count
+        }
+        var count = 0
+        for (i in 1 until mThings!!.size) {
+            if (isSelectableThing(mThings!![i])) count++
+        }
+        return count
+    }
+
+    open fun setListEntrySelected(position: Int, selected: Boolean) {
+        val entry = getThingListEntry(position) ?: return
+        when (entry) {
+            is ThingListEntry.ThingEntry -> {
+                if (isSelectableThing(entry.thing)) {
+                    entry.thing.selected = selected
+                }
+            }
+            is ThingListEntry.FolderEntry -> entry.folder.selected = selected
+        }
+    }
+
+    open fun toggleListEntrySelected(position: Int) {
+        val entry = getThingListEntry(position) ?: return
+        when (entry) {
+            is ThingListEntry.ThingEntry -> {
+                if (isSelectableThing(entry.thing)) {
+                    entry.thing.selected = !entry.thing.isSelected()
+                }
+            }
+            is ThingListEntry.FolderEntry -> {
+                entry.folder.selected = !entry.folder.isSelected()
+            }
+        }
+    }
+
+    private fun isSelectableThing(thing: Thing?): Boolean {
+        if (thing == null) return false
+        if (thing.type == Thing.HEADER) return false
+        return thing.type < Thing.NOTIFY_EMPTY_UNDERWAY
     }
 
     open fun getThingById(id: Long): Thing? {
@@ -1308,6 +1506,10 @@ open class ThingManager private constructor(context: Context?) {
             }
         }
         return null
+    }
+
+    open fun getFolderById(id: Long): ThingFolder? {
+        return mFolderDao!!.getFolderById(id)
     }
 
     open fun getPosition(id: Long): Int {

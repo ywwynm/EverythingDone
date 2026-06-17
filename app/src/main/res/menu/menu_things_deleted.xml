@@ -16,4 +16,22 @@
         android:icon="@drawable/act_delete_forever"
         app:showAsAction="always"/>
 
+    <item
+        android:id="@+id/act_toggle_current_folder_private"
+        android:title="@string/set_thing_folder_private"
+        android:visible="false"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/act_dissolve_current_folder"
+        android:title="@string/dissolve_thing_folder"
+        android:visible="false"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/act_delete_current_folder"
+        android:title="@string/delete_thing_folder_forever"
+        android:visible="false"
+        app:showAsAction="never" />
+
 </menu>

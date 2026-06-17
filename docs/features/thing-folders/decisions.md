@@ -294,6 +294,37 @@ content is hidden. The card may keep a lock indicator and must continue to hide
 contained thumbnail previews until authentication, but the Folder name itself is
 not treated as protected card content.
 
+## 2026-06-17 - Folder long-press uses drag and selection mode
+
+Long-pressing a Folder Card should no longer open a multi-action dialog. It
+should mirror the Thing Card long-press interaction: the Folder can be dragged,
+dropped into another Folder, or released back in place to enter selecting mode.
+
+Folder sticky state should be controlled through the existing contextual
+selection menu. Folder card appearance should reuse the selection menu's
+appearance action, with Folder-specific labels and controls.
+
+Private Folder toggling should be reachable from both the current Folder
+projection overflow menu and the selection contextual menu. The same privacy
+entry should also be available for Thing Cards so the privacy affordance stays
+consistent between Things and Folders.
+
+Folder dissolve and delete actions should be available from the selection
+contextual menu and the current Folder overflow menu. Both operations must
+confirm through the app's custom DialogFragment surface before mutating data.
+
+Outside Deleted, deleting a Folder moves the Folder and its contained subtree
+into the Deleted state. Inside Deleted, the corresponding action text and
+operation become permanent delete, which recursively destroys the Folder subtree
+and contained Things.
+
+## 2026-06-17 - Private Folder Cards hide counts
+
+Private Thing Folder Cards should keep the stored Folder title visible while
+private content is hidden, but they should not show child Thing or child Folder
+counts. The protected card should keep the Folder icon beside the title and
+show a lock indicator below the title area instead of count text.
+
 ## 2026-06-15 - Deleting a folder moves the folder subtree to Deleted
 
 Deleting a Thing Folder moves that folder to the Deleted destination while

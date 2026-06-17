@@ -204,7 +204,10 @@
     <string name="make_thing_folder_normal_width">使用普通宽度</string>
     <string name="set_thing_folder_private">设为私密文件夹</string>
     <string name="cancel_thing_folder_private">取消私密文件夹</string>
+    <string name="dissolve_thing_folder">解散文件夹</string>
+    <string name="dissolve_thing_folder_confirm">将此文件夹中的内容移动到上一层，并删除此文件夹？</string>
     <string name="delete_thing_folder">删除文件夹</string>
+    <string name="delete_thing_folder_confirm">将此文件夹及其中的所有内容移动到回收站？</string>
     <string name="restore_thing_folder">还原文件夹</string>
     <string name="delete_thing_folder_forever">永久删除文件夹</string>
     <string name="delete_thing_folder_forever_confirm">永久删除此文件夹及其中的所有记事？</string>
@@ -373,6 +376,7 @@
     <string name="act_restore_selected">还原选中的记事</string>
     <string name="act_delete_selected_forever">彻底删除选中的记事</string>
     <string name="act_customize_card_appearance">调整记事卡片外观</string>
+    <string name="act_customize_folder_card_appearance">调整文件夹卡片外观</string>
 
     <string name="act_sticky_on_top">置顶</string>
     <string name="act_cancel_sticky">取消置顶</string>
@@ -387,6 +391,10 @@
     <string name="thing_card_appearance_span_normal">正常</string>
     <string name="thing_card_appearance_span_full">宽</string>
     <string name="thing_card_appearance_card_width">卡片宽度</string>
+    <string name="folder_card_appearance_name_hint">文件夹名称</string>
+    <string name="folder_card_appearance_display_mode">文件夹大小</string>
+    <string name="folder_card_appearance_mode_summary">正常</string>
+    <string name="folder_card_appearance_mode_large">大</string>
     <string name="thing_card_appearance_placement_default">默认位置</string>
     <string name="thing_card_appearance_placement_top">上方</string>
     <string name="thing_card_appearance_placement_bottom">下方</string>
