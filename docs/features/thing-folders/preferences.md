@@ -160,6 +160,11 @@
   per-target animation token (or equivalent generation guard) so interruption
   retargets from the current visual value instead of jumping to the canceled
   animation's old final value.
+- Successful Folder drops that exit Moving mode without an immediate full-list
+  refresh must still rebind the home list after the merge/removal animation
+  completes. This restores every visible card from Moving-mode dimmed
+  selection colours to normal colours without breaking the targeted drop
+  animation.
 
 ## Folder Card Layout
 
@@ -201,9 +206,40 @@
   The EditText focus treatment should match the DateTime reminder dialog:
   underline, selected-text background, and selected/focused text color all
   follow the Folder background.
+- Folder naming dialog keyboard visibility should be driven directly through
+  `WindowCompat.getInsetsController(...).show/hide(WindowInsetsCompat.Type.ime())`
+  on the dialog window. Do not rely on `InputMethodManager` fallbacks,
+  `SOFT_INPUT_STATE_ALWAYS_VISIBLE`, or delayed dismiss workarounds for this
+  dialog.
 - Canceling the naming dialog opened after creating a new Folder means canceling
   Folder creation itself: the source Things return to their previous parent
   folder/list state instead of keeping an unnamed/default-named Folder.
+- Canceling Folder creation after a Thing-to-Thing drop should restore both
+  source Things to their pre-creation parent Folder and mixed-list locations,
+  not insert them at the top of the parent Folder or root list.
+
+## Folder Card Appearance Panel
+
+- The Folder Card appearance UI is an in-Activity bottom panel included from
+  `panel_thing_card_appearance.xml`, not a `DialogFragment`.
+- Its Folder name field is a standard XML `<EditText>` inflated as
+  `android.widget.EditText`, not a custom project input widget.
+- Closing the appearance panel must hide the IME through the shared
+  `KeyboardUtil` before setting the panel to `GONE`, because no dialog dismiss
+  lifecycle exists for this bottom panel.
+
+## Folder Card Interaction Polish
+
+- In selecting and moving modes, unselected summary-mode Folder Cards should
+  wash out their Folder background the same way unselected Thing Cards do.
+- During an active drag over a thumbnail-mode Folder Card drop target, the
+  Folder Card should restore its dimmed selecting/moving colours in sync with
+  the existing target scale/outline animation. When the drag leaves that target,
+  it should return to the dimmed unselected state using the same timing.
+- During an active drag over a summary-mode Folder Card drop target, the Folder
+  Card should also restore both its background and content alpha from the
+  dimmed selecting/moving state. When the drag leaves that target, both should
+  return to the dimmed unselected state using the same timing.
 
 ## Thumbnail Folder Card Surface
 
@@ -319,3 +355,42 @@
   including center, user scale, and target/source aspect ratio. This applies to
   foreground thumbnails, side-panel media, and media-background cards, including
   video frame previews.
+
+## Private Folder Polish
+
+- Private Folder Cards should always render as normal-span summary-mode Folder
+  Cards, regardless of any previously stored presentation. The Folder Card
+  appearance panel for a private Folder should expose only the rename field.
+- The Folder Card appearance panel name field should show an underline so the
+  editable affordance is visible.
+- The hidden-private Folder Card lock spacing should match the hidden-private
+  Thing Card lock spacing. If only the bottom space looks wrong, inspect
+  recycled bottom spacer and padding views before changing the lock ImageView's
+  top margin.
+- Hidden-private Folder Cards must hide ordinary content/status surfaces such
+  as `tv_thing_content`, checklist, audio, reminder, habit, media-count, and
+  inline-media views when showing the lock. Otherwise recycled Folder Card
+  holder state can leave an invisible-looking content slot participating in
+  measurement below the private lock.
+- Hidden-private Folder Cards should explicitly reset the lock ImageView to the
+  normal hidden-private Thing Card geometry: 48dp icon size and 16dp bottom
+  spacer. They must not inherit a full-span private Thing icon size from a
+  recycled holder.
+- Drawer private Folder icons should include a small adaptive lock inside the
+  Folder icon. The lock foreground should contrast with the Folder's own colour
+  or gradient, and the lock should remain subtle, small, and centered inside
+  the Folder glyph.
+- The Drawer should not show descendants of a private Folder, nor that private
+  Folder's expand/collapse affordance, unless the current projection is inside
+  that private Folder. When the user leaves that private Folder scope, the
+  Drawer should hide that private subtree again.
+- Dragging a Thing Card or Folder Card onto a private Folder Card should be
+  allowed and should use the same Folder-drop activation and merge animation as
+  non-private target Folders. Opening or viewing the private Folder's contents
+  remains protected by the normal authentication flow.
+
+## In-Folder Creation
+
+- Creating a new Thing while viewing a Folder projection should keep the Drawer
+  selected on that current Folder row instead of switching selection to the
+  Underway root.

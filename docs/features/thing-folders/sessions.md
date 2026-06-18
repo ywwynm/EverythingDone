@@ -1,5 +1,199 @@
 # Thing Folders Sessions
 
+## 2026-06-18 - Hide IME when closing Folder Card appearance panel
+
+- Rechecked the user's intended UI and corrected the target: the problematic
+  input is `et_folder_card_appearance_name` inside
+  `panel_thing_card_appearance.xml`, not the Folder naming `DialogFragment`.
+- Confirmed the Folder Card appearance UI is an in-Activity bottom panel
+  included in `activity_things.xml`. The name input is a standard XML
+  `<EditText>` inflated into `android.widget.EditText`; it is not a custom
+  project input widget.
+- Added IME hiding to `hideThingCardAppearancePanel()` before the panel is set
+  to `GONE`, using the existing AndroidX Compat `KeyboardUtil.hideKeyboard(...)`
+  path with the Activity window and current focus, falling back to the Folder
+  name input.
+
+Verification: `git diff --check` passed apart from the repository's existing
+LF/CRLF warnings; `.\gradlew.bat :app:assembleDebug --console=plain
+--no-configuration-cache` completed with `BUILD SUCCESSFUL`. The only compiler
+warning was the existing deprecated override warning in `ThingsActivity.kt`.
+Debug update publishing was left to the user.
+
+## 2026-06-18 - Use WindowInsets for Folder naming dialog IME control
+
+- Reverted the previous delayed-dismiss Folder naming dialog keyboard attempt:
+  removed the planned close state, delayed close runnable, repeated
+  `InputMethodManager` hide calls, transient root focus handling, and related
+  preference notes.
+- Researched the current Android guidance and switched the project keyboard
+  helper away from `InputMethodManager` for show/hide. `KeyboardUtil` now uses
+  `WindowCompat.getInsetsController(window, view).show/hide(WindowInsetsCompat.Type.ime())`
+  directly, resolving the `Activity` window from a plain `View` when callers do
+  not pass a `Window`.
+- Updated `ThingFolderNameDialogFragment` so the dialog no longer uses
+  `SOFT_INPUT_STATE_ALWAYS_VISIBLE`. It shows the IME from the dialog window
+  after start, and hides the IME from the same dialog window before cancel,
+  confirm, and `onDismiss(...)` paths continue closing the dialog.
+- Compared this with `DateTimeDialogFragment`: the reminder dialog was stable
+  because it moves focus to a still-attached non-input view before hiding the
+  IME, but the Folder naming dialog is a single-input dialog that benefits more
+  from window-level IME control than from focus juggling or delayed dismissal.
+
+Verification: `git diff --check` passed apart from the repository's existing
+LF/CRLF warnings; `.\gradlew.bat :app:assembleDebug --console=plain
+--no-configuration-cache` completed with `BUILD SUCCESSFUL`. The only compiler
+warning was the existing deprecated override warning in `ThingsActivity.kt`.
+Debug update publishing was left to the user.
+
+## 2026-06-18 - Delay Folder naming dialog close until after IME hide
+
+- Reviewed the user's hypothesis about the Folder naming dialog keeping the
+  keyboard visible. The analysis matched the important distinction from
+  `DateTimeDialogFragment`: the reminder dialog hides the IME before dismissal
+  from stable non-input views during normal interaction, while the Folder naming
+  dialog was hiding from the `EditText` and then dismissing the dialog in the
+  same frame.
+- Removed the transient focus workaround from `fragment_thing_folder_name.xml`.
+  The dialog root is no longer made focusable just to receive focus during
+  close, avoiding rapid `EditText -> root -> no focus` changes in the same
+  frame.
+- Changed the Folder naming dialog's confirm and cancel buttons to enter a
+  planned close state, request IME hide through the input/current focus and
+  dialog window, then run the confirm/cancel callback and dismiss after
+  `KeyboardUtil.HIDE_DELAY`. `onDismiss(...)` now only delivers the cancel
+  callback on unplanned dismissals such as back/outside cancellation.
+
+Verification: `git diff --check` passed apart from the repository's existing
+LF/CRLF warnings; `.\gradlew.bat :app:assembleDebug --console=plain
+--no-configuration-cache` completed with `BUILD SUCCESSFUL`. Debug update
+publishing was left to the user.
+
+## 2026-06-18 - Fix Folder naming IME hide and post-drop dimmed cards
+
+- Rechecked the Folder naming dialog against `DateTimeDialogFragment`, which
+  moves focus out of the active input before hiding the keyboard and also hides
+  from dismissal paths. The previous Folder naming fix only hid through the
+  `EditText` or Activity current focus, while `KeyboardUtil.hideKeyboard(window)`
+  merely set `SOFT_INPUT_STATE_ALWAYS_HIDDEN` without calling
+  `InputMethodManager.hideSoftInputFromWindow(...)` on the dialog window token.
+- Updated `KeyboardUtil.hideKeyboard(window)` to hide the IME through the
+  dialog decor/focused view window token and clear focus. The Folder naming
+  dialog root is now focusable, and `hideNameKeyboard(...)` hides through the
+  input/current focus, requests focus on the content root, hides through the
+  content view, and finally hides through the dialog window.
+- Diagnosed the dimmed-card regression after dropping a Thing into a Folder:
+  the successful Folder-drop path intentionally exited Moving mode with
+  `finishMovingModeWithoutListRefresh()` to preserve targeted removal and merge
+  animations, but visible cards that had already been rebound in Moving mode
+  stayed in their unselected dimmed colours because no later normal-mode rebind
+  occurred.
+- Added a post-drop mode-exit rebind after the Folder-drop merge animation (or
+  immediately for no-visual/failed paths). The rebind disables list-appearing
+  animation and only refreshes card binding once RecyclerView is safe, restoring
+  all visible cards to normal colours without disrupting the targeted drop
+  animation.
+
+Verification: `git diff --check` passed apart from the repository's existing
+LF/CRLF warnings; `.\gradlew.bat :app:assembleDebug --console=plain
+--no-configuration-cache` completed with `BUILD SUCCESSFUL`. Debug update
+publishing was left to the user.
+
+## 2026-06-18 - Correct private Folder drop, lock spacing, and IME follow-up
+
+- Rechecked the hidden-private Folder Card lock spacing after the user rejected
+  the earlier 44dp-only explanation. The actual remaining problem was that
+  `resetFolderCardHolder(...)` made the ordinary content TextView visible for
+  Folder Cards, and the hidden-private Folder path did not hide it again before
+  showing the lock. That recycled content/status state could still participate
+  in the private Folder Card measurement below the lock.
+- Updated hidden-private Folder binding to hide the ordinary content/status
+  surfaces, reset Folder bottom spacing to the same 16dp spacer used by
+  hidden-private Thing Cards, and explicitly reset the private lock ImageView to
+  the normal 48dp size so recycled full-span private Thing holders cannot leave
+  a larger lock.
+- Confirmed the reference values: `card_thing.xml` declares the private lock
+  ImageView as 48dp with a 16dp top margin and the bottom padding spacer as
+  16dp. `BaseThingsAdapter.applyCardContentGeometry(...)` resets ordinary
+  hidden-private Thing Cards to those values; the mdpi lock bitmap is 48x48 and
+  has 4px transparent space below the visible glyph.
+- Allowed Thing Cards and Folder Cards to be dropped onto private Folder Cards.
+  The drop eligibility no longer treats the target Folder's effective privacy
+  as a reason to block moving into that Folder; privacy authentication still
+  applies when opening or viewing the Folder's contents.
+- Made the Drawer private Folder lock smaller again while keeping it centered
+  inside the Folder glyph.
+- Fixed the shared `KeyboardUtil.hideKeyboard(view)` path used by the Folder
+  naming dialog so it hides the IME with the current window token before
+  clearing focus, instead of clearing focus first and then sometimes deciding
+  the input method is no longer active.
+
+Verification: `git diff --check` passed apart from the repository's existing
+LF/CRLF warnings; `.\gradlew.bat :app:assembleDebug --console=plain
+--no-configuration-cache` completed with `BUILD SUCCESSFUL`. Debug update
+publishing was left to the user.
+
+## 2026-06-18 - Follow up Folder drop, private lock, and naming IME polish
+
+- Extended existing Folder-drop activation feedback from thumbnail-mode Folder
+  Cards to summary-mode Folder Cards. Summary Folder targets now animate both
+  their card background and content alpha back to the normal active state while
+  the drag is over them, then restore the dimmed selecting/moving appearance
+  when the drag leaves.
+- Corrected the Drawer private Folder lock drawing. The lock is now smaller and
+  centered inside the Folder glyph rather than drawn as a large lower-right
+  overlay.
+- Updated the Folder naming dialog so cancel, confirm, and dismiss hide the
+  soft keyboard before the Activity continues with rename/create/cancel
+  callbacks.
+- Re-diagnosed the hidden-private Folder Card lock spacing after the user
+  clarified that only the bottom space was wrong. The lock ImageView top margin
+  was left alone; the Folder-card holder reset now clears recycled bottom
+  status spacer height/weight and restores the ordinary 16dp bottom padding,
+  preventing media-count padding from leaking into private Folder cards.
+
+Verification: `git diff --check` passed apart from the repository's existing
+LF/CRLF warnings; `.\gradlew.bat :app:assembleDebug --console=plain
+--no-configuration-cache` completed with `BUILD SUCCESSFUL`. Debug update
+publishing was prepared with `memory/debug-update-notes.md`.
+
+## 2026-06-18 - Polish private folders, Drawer privacy, and drop cancel restore
+
+- Fixed selecting/moving-mode visuals for summary-mode Folder Cards. Unselected
+  summary Folder Cards now wash out their card background and content alpha in
+  the same state where unselected Thing Cards are dimmed.
+- Fixed thumbnail-mode Folder drop target feedback. While a dimmed thumbnail
+  Folder Card is the active drop target, its content alpha animates back to the
+  normal value in sync with the existing target scale/outline timing; leaving
+  the target restores the dimmed value, and committing the drop keeps the target
+  normal-coloured during the merge animation.
+- Kept Drawer selection stable after creating a Thing from inside a Folder
+  projection. The Drawer now re-checks the current projection instead of
+  switching to the Underway root after create-return.
+- Tightened private Folder presentation rules. Private Folders now use the
+  default normal-span summary presentation as their effective presentation in
+  adapters, DAO thumbnail prefetch, manager updates, and privacy toggling. The
+  Folder Card appearance panel exposes only the rename field for private
+  Folders, with an accent underline on the editable name field, and action
+  menus no longer offer size/mode toggles for private Folders.
+- Matched hidden-private Folder Card lock spacing to hidden-private Thing Card
+  lock spacing.
+- Updated the custom Drawer Folder row model with a private-folder flag. Private
+  Folder icons now draw a small adaptive lock over the Folder glyph. Private
+  Folder descendants and expand/collapse affordances are hidden unless the
+  current Folder projection is inside that private Folder scope.
+- Fixed canceling the name dialog after a Thing-to-Thing Folder drop. The two
+  source Things now restore their pre-creation parent Folder ids and locations
+  instead of being reinserted at the start of the parent list.
+
+Verification: `git diff --check` passed apart from the repository's existing
+LF/CRLF warnings; `.\gradlew.bat :app:assembleDebug --console=plain
+--no-configuration-cache` completed with `BUILD SUCCESSFUL`.
+`.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md"
+--console=plain --no-configuration-cache` was attempted but timed out after
+120 seconds at `:app:publishDebugUpdate`; an elevated rerun was not approved by
+the safety reviewer, so publishing was not confirmed.
+
 ## 2026-06-18 - Harden drag clear during scroll/layout detach
 
 - Analyzed the user's `thing_card_scale_recovery(3).log` from `11:45:07`.

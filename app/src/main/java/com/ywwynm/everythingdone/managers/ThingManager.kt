@@ -970,8 +970,21 @@ open class ThingManager private constructor(context: Context?) {
         return folder
     }
 
-    open fun cancelCreatedFolder(folder: ThingFolder?, thingIds: LongArray?): Boolean {
+    open fun cancelCreatedFolder(
+        folder: ThingFolder?,
+        thingIds: LongArray?,
+        parentFolderIds: Array<Long?>? = null,
+        locations: LongArray? = null
+    ): Boolean {
         if (folder == null || thingIds == null || thingIds.isEmpty()) return false
+
+        val restoreSnapshots = HashMap<Long, Pair<Long?, Long>>()
+        if (parentFolderIds != null && locations != null) {
+            val count = minOf(thingIds.size, parentFolderIds.size, locations.size)
+            for (i in 0 until count) {
+                restoreSnapshots[thingIds[i]] = parentFolderIds[i] to locations[i]
+            }
+        }
 
         val createdFolderMembers = ArrayList<Thing>()
         for (thingId in thingIds.toSet()) {
@@ -987,11 +1000,22 @@ open class ThingManager private constructor(context: Context?) {
 
         for (i in createdFolderMembers.indices.reversed()) {
             val thing = createdFolderMembers[i]
-            moveThingIntoFolderInternal(
-                thing,
-                folder.parentFolderId,
-                cleanUpEmptySource = false
-            )
+            val restoreSnapshot = restoreSnapshots[thing.id]
+            if (restoreSnapshot != null) {
+                thing.folderId = restoreSnapshot.first
+                thing.location = restoreSnapshot.second
+                mDao!!.updateFolderIdAndLocation(
+                    thing.id,
+                    restoreSnapshot.first,
+                    restoreSnapshot.second
+                )
+            } else {
+                moveThingIntoFolderInternal(
+                    thing,
+                    folder.parentFolderId,
+                    cleanUpEmptySource = false
+                )
+            }
         }
         mFolderDao!!.deleteRecord(folder.id)
         trimProjectionToExistingFolders()
@@ -1167,7 +1191,11 @@ open class ThingManager private constructor(context: Context?) {
         val cleanTitle = title.trim()
         if (cleanTitle.isEmpty()) return false
         folder.title = cleanTitle
-        folder.cardPresentation = presentation
+        folder.cardPresentation = if (folder.isPrivate) {
+            ThingFolderCardPresentation.default()
+        } else {
+            presentation
+        }
         mFolderDao!!.update(folder)
         loadThings()
         return true
@@ -1178,8 +1206,13 @@ open class ThingManager private constructor(context: Context?) {
         presentation: ThingFolderCardPresentation?
     ): Boolean {
         if (folder == null || presentation == null) return false
-        folder.cardPresentation = presentation
-        mFolderDao!!.updateCardPresentation(folder.id, presentation)
+        val confirmedPresentation = if (folder.isPrivate) {
+            ThingFolderCardPresentation.default()
+        } else {
+            presentation
+        }
+        folder.cardPresentation = confirmedPresentation
+        mFolderDao!!.updateCardPresentation(folder.id, confirmedPresentation)
         loadThings()
         return true
     }
@@ -1187,10 +1220,13 @@ open class ThingManager private constructor(context: Context?) {
     open fun updateFolderPrivate(folder: ThingFolder?, isPrivate: Boolean): Boolean {
         if (folder == null) return false
         folder.isPrivate = isPrivate
-        if (!isPrivate) {
+        if (isPrivate) {
+            folder.cardPresentation = ThingFolderCardPresentation.default()
+            mFolderDao!!.update(folder)
+        } else {
             mAuthenticatedPrivateFolderIds.remove(folder.id)
+            mFolderDao!!.updatePrivate(folder.id, false)
         }
-        mFolderDao!!.updatePrivate(folder.id, isPrivate)
         loadThings()
         return true
     }

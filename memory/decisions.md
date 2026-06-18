@@ -2,6 +2,14 @@
 
 Global startup decision index only. Feature-specific decisions live in `docs/features/<kebab-case-feature-slug>/decisions.md`.
 
+## 2026-06-18 - KeyboardUtil uses WindowInsets for IME visibility
+
+`KeyboardUtil` should control IME show/hide through AndroidX
+`WindowCompat.getInsetsController(...).show/hide(WindowInsetsCompat.Type.ime())`
+instead of `InputMethodManager` or soft-input state flags. Callers with only a
+`View` can resolve the owning `Activity.window` and then use the same
+WindowInsets path.
+
 ## 2026-06-06 - Memory files are lightweight global indexes
 
 Canonical memory files should stay small and cross-feature. Detailed feature-scoped decisions, follow-ups, and session history belong under the relevant `docs/features/<kebab-case-feature-slug>/` directory. Agents should read global memory at session start, then read the relevant feature directory before working in that area.

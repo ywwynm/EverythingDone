@@ -38,6 +38,7 @@ import com.ywwynm.everythingdone.model.ThingFolder
 import com.ywwynm.everythingdone.model.ThingFolderCardPresentation
 import com.ywwynm.everythingdone.model.ThingListEntry
 import com.ywwynm.everythingdone.utils.BackgroundUtil
+import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil
 
 /**
@@ -239,7 +240,8 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         val lp = cv!!.layoutParams as StaggeredGridLayoutManager.LayoutParams
         lp.height = StaggeredGridLayoutManager.LayoutParams.WRAP_CONTENT
         lp.setMargins(mX, mX, mX, mX)
-        lp.isFullSpan = folder.cardPresentation.spanMode == ThingFolderCardPresentation.SPAN_FULL
+        lp.isFullSpan =
+            folder.effectiveCardPresentation().spanMode == ThingFolderCardPresentation.SPAN_FULL
         cv.visibility = View.VISIBLE
     }
 
@@ -274,14 +276,13 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         holder.vImageCover!!.visibility = View.GONE
         holder.tvContent!!.visibility = View.VISIBLE
         holder.rvChecklist!!.visibility = View.GONE
-        holder.vBottomStatusSpacer!!.visibility = View.GONE
+        resetFolderBottomSpacing(holder)
         holder.llMediaCount!!.visibility = View.GONE
         holder.llInlineMediaAttachment!!.visibility = View.GONE
         holder.llAudioAttachment!!.visibility = View.GONE
         holder.rlReminder!!.visibility = View.GONE
         holder.rlHabit!!.visibility = View.GONE
         holder.flDoing!!.visibility = View.GONE
-        holder.vPaddingBottom!!.visibility = View.VISIBLE
         holder.tvTitle!!.visibility = View.GONE
         holder.ivPrivateThing!!.visibility = View.GONE
 
@@ -301,12 +302,30 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         textLp.height = ViewGroup.LayoutParams.WRAP_CONTENT
         textLp.weight = 0f
         holder.llTextContent.layoutParams = textLp
+        holder.llTextContent.minimumHeight = 0
+    }
+
+    private fun resetFolderBottomSpacing(holder: BaseThingViewHolder) {
+        val statusSpacer = holder.vBottomStatusSpacer ?: return
+        val statusLp = statusSpacer.layoutParams as LinearLayout.LayoutParams
+        statusSpacer.visibility = View.GONE
+        statusLp.height = 0
+        statusLp.weight = 0f
+        statusSpacer.layoutParams = statusLp
+
+        val paddingBottom = holder.vPaddingBottom ?: return
+        val paddingLp = paddingBottom.layoutParams as LinearLayout.LayoutParams
+        paddingBottom.visibility = View.VISIBLE
+        paddingLp.height = (mDensity * 16).toInt()
+        paddingLp.weight = 0f
+        paddingBottom.layoutParams = paddingLp
     }
 
     private fun bindFolderCardSurface(holder: BaseThingViewHolder, folder: ThingFolder) {
         val background = folder.getBackground()
+        val presentation = folder.effectiveCardPresentation()
         val thumbnailMode =
-            folder.cardPresentation.mode == ThingFolderCardPresentation.MODE_THUMBNAILS
+            presentation.mode == ThingFolderCardPresentation.MODE_THUMBNAILS
         if (thumbnailMode) {
             applyThumbnailFolderCardSurface(holder, background, folder.getColor())
         } else {
@@ -334,10 +353,19 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         val card = holder.cv ?: return
         val selected = folder.isSelected()
         val currentMode = getCurrentMode()
+        val background = folder.getBackground()
+        val presentation = folder.effectiveCardPresentation()
         val thumbnailMode =
-            folder.cardPresentation.mode == ThingFolderCardPresentation.MODE_THUMBNAILS
-        holder.llContent!!.alpha =
-            if (shouldDimUnselectedContent(currentMode) && !selected) 0.42f else 1.0f
+            presentation.mode == ThingFolderCardPresentation.MODE_THUMBNAILS
+        val dimUnselected = shouldDimUnselectedContent(currentMode) && !selected
+        holder.llContent!!.alpha = if (dimUnselected) 0.42f else 1.0f
+
+        if (!thumbnailMode) {
+            BackgroundUtil.applyCardBackground(
+                card,
+                if (dimUnselected) lightVariant(background) else background
+            )
+        }
 
         if (currentMode == ModeManager.MOVING && selected) {
             scheduleMovingCardScaleRecoveryIfReleased(card, "folder")
@@ -406,8 +434,9 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
     ) {
         val folder = entry.folder
         val hiddenPrivate = entry.effectivePrivate && !shouldShowFolderPrivateContent()
+        val presentation = folder.effectiveCardPresentation()
         val thumbnailMode =
-            folder.cardPresentation.mode == ThingFolderCardPresentation.MODE_THUMBNAILS
+            presentation.mode == ThingFolderCardPresentation.MODE_THUMBNAILS
         val baseColor = if (thumbnailMode) {
             ContextCompat.getColor(mApp!!, R.color.bg_activity_things)
         } else {
@@ -425,7 +454,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         } else {
             bindFolderCardCount(holder, entry, baseColor)
 
-            if (folder.cardPresentation.mode == ThingFolderCardPresentation.MODE_THUMBNAILS) {
+            if (presentation.mode == ThingFolderCardPresentation.MODE_THUMBNAILS) {
                 bindFolderThumbnails(holder, entry)
             }
         }
@@ -449,6 +478,12 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
 
     private fun bindFolderPrivateLock(holder: BaseThingViewHolder, baseColor: Int) {
         val lock = holder.ivPrivateThing ?: return
+        holder.tvContent!!.visibility = View.GONE
+        holder.rvChecklist!!.visibility = View.GONE
+        holder.llAudioAttachment!!.visibility = View.GONE
+        holder.rlReminder!!.visibility = View.GONE
+        holder.rlHabit!!.visibility = View.GONE
+        resetFolderBottomSpacing(holder)
         lock.visibility = View.VISIBLE
         lock.setImageResource(R.drawable.ic_locked_big)
         lock.contentDescription = mApp!!.getString(R.string.private_thing_folder)
@@ -457,9 +492,12 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
             ColorStateList.valueOf(textColorSecondary(baseColor))
         )
         val lp = lock.layoutParams as LinearLayout.LayoutParams
+        val iconSize = (mDensity * 48).toInt()
+        lp.width = iconSize
+        lp.height = iconSize
         lp.gravity = Gravity.CENTER_HORIZONTAL
-        lp.topMargin = (mDensity * 12).toInt()
-        lp.bottomMargin = (mDensity * 2).toInt()
+        lp.topMargin = (mDensity * 16).toInt()
+        lp.bottomMargin = 0
         lock.layoutParams = lp
     }
 
@@ -571,13 +609,16 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         val entries = getFolderThumbnailEntries(entry)
         val container = holder.llTextContent ?: return
         allowFolderThumbnailShadowOverflow(container)
-        val count = entries.size.coerceAtMost(entry.folder.cardPresentation.effectiveThumbnailPreviewLimit())
+        val count = entries.size.coerceAtMost(
+            entry.folder.effectiveCardPresentation().effectiveThumbnailPreviewLimit()
+        )
         val insertStart = (findFolderCountIndex(container) + 1)
             .coerceIn(0, container.childCount)
         if (count > 0) {
             val previewEntries = entries.take(count)
             val thumbnails = if (
-                entry.folder.cardPresentation.spanMode == ThingFolderCardPresentation.SPAN_FULL
+                entry.folder.effectiveCardPresentation().spanMode ==
+                    ThingFolderCardPresentation.SPAN_FULL
             ) {
                 createFolderThumbnailMasonryView(previewEntries)
             } else {
@@ -849,7 +890,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
             isPrivate = folder.isPrivate,
             createTime = folder.createTime,
             updateTime = folder.updateTime,
-            cardPresentation = folder.cardPresentation.withMode(
+            cardPresentation = folder.effectiveCardPresentation().withMode(
                 ThingFolderCardPresentation.MODE_SUMMARY
             )
         )
@@ -1130,8 +1171,22 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
     private fun isFolderPreviewFullSpanEntry(entry: ThingListEntry): Boolean {
         return when (entry) {
             is ThingListEntry.FolderEntry ->
-                entry.folder.cardPresentation.spanMode == ThingFolderCardPresentation.SPAN_FULL
+                entry.folder.effectiveCardPresentation().spanMode ==
+                    ThingFolderCardPresentation.SPAN_FULL
             is ThingListEntry.ThingEntry -> isFolderPreviewFullSpanThing(entry.thing)
+        }
+    }
+
+    private fun lightVariant(bg: ThingBackground?): ThingBackground? {
+        if (bg == null) return null
+        return if (bg.mode === ThingBackground.Mode.PURE) {
+            ThingBackground.pure(DisplayUtil.getLightColor(bg.color, mApp))
+        } else {
+            ThingBackground.gradient(
+                DisplayUtil.getLightColor(bg.color, mApp),
+                DisplayUtil.getLightColor(bg.endColor, mApp),
+                bg.orientation
+            )
         }
     }
 

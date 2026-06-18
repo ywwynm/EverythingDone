@@ -22,6 +22,12 @@ When a broad UI sweep finds additional candidate omissions beyond the user's
 explicitly reported bug, report those candidates first and wait for user
 confirmation before modifying them.
 
+When the user explicitly invokes `grill-with-docs`, treat it as a request to
+stress-test and clarify the design before implementation. Even if the request
+contains concrete implementation preferences, ask at least the remaining
+product/design trade-off questions one at a time unless the user explicitly
+asks to proceed directly to coding.
+
 ## Android dialogs
 
 Prefer custom `DialogFragment` implementations under `app/src/main/java/.../fragments/`,

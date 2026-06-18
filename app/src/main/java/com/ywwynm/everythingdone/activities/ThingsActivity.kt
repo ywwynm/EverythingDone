@@ -4,6 +4,7 @@ package com.ywwynm.everythingdone.activities
 
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
+import android.animation.ArgbEvaluator
 import android.animation.ValueAnimator
 import android.app.ActivityManager
 import android.os.Build
@@ -73,6 +74,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.StringRes
 import androidx.appcompat.content.res.AppCompatResources
+import androidx.cardview.widget.CardView
 
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.bitmap.VideoDecoder
@@ -732,6 +734,7 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         val folders = mThingManager!!.getDrawerFolders()
         val folderIds = folders.mapTo(HashSet()) { it.id }
         mExpandedDrawerFolderIds.retainAll(folderIds)
+        val currentPathIds = mThingManager!!.getProjection().folderPath.toHashSet()
 
         val childrenByParent = HashMap<Long?, MutableList<ThingFolder>>()
         for (folder in folders) {
@@ -745,7 +748,7 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         }
 
         val visibleItems = ArrayList<DrawerFolderItem>()
-        appendDrawerFolderItems(null, 0, childrenByParent, visibleItems)
+        appendDrawerFolderItems(null, 0, childrenByParent, currentPathIds, visibleItems)
         drawerItems.add(
             createDrawerDestinationItem(
                 R.id.drawer_underway,
@@ -850,16 +853,32 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         parentFolderId: Long?,
         level: Int,
         childrenByParent: Map<Long?, List<ThingFolder>>,
+        currentPathIds: Set<Long>,
         visibleItems: MutableList<DrawerFolderItem>
     ) {
         val children = childrenByParent[parentFolderId] ?: return
         for (folder in children) {
             val hasChildren = !childrenByParent[folder.id].isNullOrEmpty()
-            visibleItems.add(DrawerFolderItem(folder, level, hasChildren))
-            if (hasChildren && mExpandedDrawerFolderIds.contains(folder.id)) {
-                appendDrawerFolderItems(folder.id, level + 1, childrenByParent, visibleItems)
+            val visibleChildFolders =
+                hasChildren && shouldShowPrivateDrawerChildren(folder, currentPathIds)
+            visibleItems.add(DrawerFolderItem(folder, level, visibleChildFolders))
+            if (visibleChildFolders && mExpandedDrawerFolderIds.contains(folder.id)) {
+                appendDrawerFolderItems(
+                    folder.id,
+                    level + 1,
+                    childrenByParent,
+                    currentPathIds,
+                    visibleItems
+                )
             }
         }
+    }
+
+    private fun shouldShowPrivateDrawerChildren(
+        folder: ThingFolder,
+        currentPathIds: Set<Long>
+    ): Boolean {
+        return !folder.isPrivate || currentPathIds.contains(folder.id)
     }
 
     private fun createDrawerDestinationItem(
@@ -889,6 +908,7 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             key = DrawerNavigationView.ItemKey.Folder(folder.id),
             title = folder.title.ifEmpty { getString(R.string.default_thing_folder_name) },
             folderBackground = folder.getBackground() ?: ThingBackground.pure(folder.getColor()),
+            folderPrivate = folder.isPrivate,
             folderLevel = drawerFolderItem.level,
             hasChildFolders = drawerFolderItem.hasChildren,
             folderExpanded = mExpandedDrawerFolderIds.contains(folder.id),
@@ -897,6 +917,12 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     }
 
     private fun toggleDrawerFolderExpanded(folderId: Long) {
+        val folder = mThingManager!!.getFolderById(folderId)
+        if (folder?.isPrivate == true &&
+            !mThingManager!!.getProjection().folderPath.contains(folderId)
+        ) {
+            return
+        }
         if (mExpandedDrawerFolderIds.contains(folderId)) {
             mExpandedDrawerFolderIds.remove(folderId)
         } else {
@@ -983,6 +1009,9 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             mApp!!.setLimit(Def.LimitForGettingThings.ALL_UNDERWAY, false)
         }
         expandDrawerFolderAncestors(folder.id)
+        if (folder.isPrivate) {
+            mExpandedDrawerFolderIds.add(folder.id)
+        }
         mThingManager!!.openFolderPath(folder.id, authenticated)
         checkDrawerItem(DrawerNavigationView.ItemKey.Folder(folder.id))
         refreshHomeAfterDrawerFolderNavigation()
@@ -1206,7 +1235,7 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         }
 
         updateDrawerFolderItems()
-        checkDrawerItem(getDrawerDestinationKeyForLimit(Def.LimitForGettingThings.ALL_UNDERWAY))
+        updateCheckedDrawerItemForCurrentProjection()
 
         val createdDone = data.getBooleanExtra(Def.Communication.KEY_CREATED_DONE, false)
         val justNotifyAll = App.justNotifyAll()
@@ -2198,7 +2227,7 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         mFolderCardAppearancePanelFolder = folder
         mFolderCardAppearanceOriginalTitle = folder.title
         mFolderCardAppearanceOriginalPresentation = folder.cardPresentation
-        mFolderCardAppearanceDraftPresentation = folder.cardPresentation
+        mFolderCardAppearanceDraftPresentation = folder.effectiveCardPresentation()
         mThingCardAppearanceSelectedListPosition =
                 mThingManager!!.getListPositionForFolderId(folder.id)
         if (mThingCardAppearanceSelectedListPosition < 0) {
@@ -2241,14 +2270,22 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             )
         }
         applyThingCardAppearanceAccentText(mEtFolderCardAppearanceName)
+        BackgroundUtil.applyEditTextUnderline(
+                mEtFolderCardAppearanceName,
+                getThingCardAppearanceAccentBackground()
+        )
 
         mLlThingCardAppearanceSource!!.visibility = View.GONE
         mLlThingCardAppearanceVideoFrame!!.visibility = View.GONE
         clearThingCardAppearanceVideoFramePreview()
-        mLlThingCardAppearanceSpanControls!!.visibility = View.VISIBLE
+        val privateFolder = folder.isPrivate
+        mLlThingCardAppearanceSpanControls!!.visibility =
+                if (privateFolder) View.GONE else View.VISIBLE
         mTvThingCardAppearanceMediaPosition!!.visibility = View.GONE
-        mTvFolderCardAppearanceSizeLabel!!.visibility = View.VISIBLE
-        mLlThingCardAppearancePlacementControls!!.visibility = View.VISIBLE
+        mTvFolderCardAppearanceSizeLabel!!.visibility =
+                if (privateFolder) View.GONE else View.VISIBLE
+        mLlThingCardAppearancePlacementControls!!.visibility =
+                if (privateFolder) View.GONE else View.VISIBLE
         setThingCardAppearancePlacementControlsTopMargin(10)
         mBtThingCardAppearancePlacementTop!!.setText(
                 R.string.folder_card_appearance_mode_summary
@@ -2266,26 +2303,28 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         mThingCardAppearanceBackgroundHeightSliderMinPercent = 0
 
         bindThingCardAppearanceAccentControls()
-        bindThingCardAppearanceChoice(
-                mBtThingCardAppearanceSpanNormal!!,
-                draft.spanMode == ThingFolderCardPresentation.SPAN_NORMAL,
-                true
-        )
-        bindThingCardAppearanceChoice(
-                mBtThingCardAppearanceSpanFull!!,
-                draft.spanMode == ThingFolderCardPresentation.SPAN_FULL,
-                true
-        )
-        bindThingCardAppearanceChoice(
-                mBtThingCardAppearancePlacementTop!!,
-                draft.mode == ThingFolderCardPresentation.MODE_SUMMARY,
-                true
-        )
-        bindThingCardAppearanceChoice(
-                mBtThingCardAppearancePlacementBottom!!,
-                draft.mode == ThingFolderCardPresentation.MODE_THUMBNAILS,
-                true
-        )
+        if (!privateFolder) {
+            bindThingCardAppearanceChoice(
+                    mBtThingCardAppearanceSpanNormal!!,
+                    draft.spanMode == ThingFolderCardPresentation.SPAN_NORMAL,
+                    true
+            )
+            bindThingCardAppearanceChoice(
+                    mBtThingCardAppearanceSpanFull!!,
+                    draft.spanMode == ThingFolderCardPresentation.SPAN_FULL,
+                    true
+            )
+            bindThingCardAppearanceChoice(
+                    mBtThingCardAppearancePlacementTop!!,
+                    draft.mode == ThingFolderCardPresentation.MODE_SUMMARY,
+                    true
+            )
+            bindThingCardAppearanceChoice(
+                    mBtThingCardAppearancePlacementBottom!!,
+                    draft.mode == ThingFolderCardPresentation.MODE_THUMBNAILS,
+                    true
+            )
+        }
         mBindingFolderCardAppearancePanel = false
     }
 
@@ -2294,6 +2333,7 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     ) {
         val folder = mFolderCardAppearancePanelFolder ?: return
         if (newDraft == null) return
+        if (folder.isPrivate) return
         mFolderCardAppearanceDraftPresentation = newDraft
         folder.cardPresentation = newDraft
         requestThingCardAppearancePreviewRefresh()
@@ -4468,11 +4508,16 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             mNormalSnackbar!!.show()
             return
         }
+        val confirmedDraft = if (folder.isPrivate) {
+            ThingFolderCardPresentation.default()
+        } else {
+            draft
+        }
         folder.title = title
-        folder.cardPresentation = draft
+        folder.cardPresentation = confirmedDraft
         hideThingCardAppearancePanel()
         clearThingCardAppearanceDraft()
-        if (mThingManager!!.updateFolderAppearance(folder, title, draft)) {
+        if (mThingManager!!.updateFolderAppearance(folder, title, confirmedDraft)) {
             updateDrawerFolderItems()
             AppWidgetHelper.updateAllThingsListAppWidgets(this)
         }
@@ -4615,6 +4660,7 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         mThingCardAppearanceSourcePicker = null
         val wasShowing = isThingCardAppearancePanelShowing()
         if (isThingCardAppearancePanelShowing()) {
+            KeyboardUtil.hideKeyboard(window, currentFocus ?: mEtFolderCardAppearanceName)
             mThingCardAppearancePanel!!.visibility = View.GONE
             mRecyclerView!!.setPadding(
                     mRecyclerView!!.paddingLeft,
@@ -5995,6 +6041,9 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     ) {
         mThingManager!!.openFolder(folder.id, authenticated)
         expandDrawerFolderAncestors(folder.id)
+        if (folder.isPrivate) {
+            mExpandedDrawerFolderIds.add(folder.id)
+        }
         mAdapter!!.setShouldThingsAnimWhenAppearing(true)
         mAdapter!!.notifyDataSetChanged()
         mRecyclerView!!.scrollToPosition(0)
@@ -6122,8 +6171,10 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         val actionTitles = ArrayList<String>()
         addThingFolderAction(actionIds, actionTitles, FOLDER_ACTION_MOVE_CARD, R.string.move_thing_folder_card)
         addThingFolderAction(actionIds, actionTitles, FOLDER_ACTION_RENAME, R.string.rename_thing_folder)
-        addThingFolderAction(actionIds, actionTitles, FOLDER_ACTION_TOGGLE_MODE, switchModeTitle)
-        addThingFolderAction(actionIds, actionTitles, FOLDER_ACTION_TOGGLE_SPAN, switchSpanTitle)
+        if (!folder.isPrivate) {
+            addThingFolderAction(actionIds, actionTitles, FOLDER_ACTION_TOGGLE_MODE, switchModeTitle)
+            addThingFolderAction(actionIds, actionTitles, FOLDER_ACTION_TOGGLE_SPAN, switchSpanTitle)
+        }
         addThingFolderAction(actionIds, actionTitles, FOLDER_ACTION_TOGGLE_PRIVATE, switchPrivateTitle)
         addThingFolderAction(actionIds, actionTitles, FOLDER_ACTION_TOGGLE_STICKY, switchStickyTitle)
         if (!folder.isDeleted()) {
@@ -6473,7 +6524,9 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     private fun cancelCreatedThingFolderDrop(createdDrop: CreatedThingFolderDrop) {
         val canceled = mThingManager!!.cancelCreatedFolder(
             createdDrop.folder,
-            longArrayOf(createdDrop.sourceThingId, createdDrop.targetThingId)
+            longArrayOf(createdDrop.sourceThingId, createdDrop.targetThingId),
+            arrayOf(createdDrop.sourceParentFolderId, createdDrop.targetParentFolderId),
+            longArrayOf(createdDrop.sourceLocation, createdDrop.targetLocation)
         )
         if (canceled) {
             refreshHomeAfterFolderCreationCanceled()
@@ -6549,6 +6602,10 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         }
         val sourceOldListPosition = mThingManager!!.getListPositionForThingId(sourceThingId)
         if (sourceOldListPosition <= 0) return null
+        val sourceParentFolderId = sourceThing.folderId
+        val sourceLocation = sourceThing.location
+        val targetParentFolderId = targetThing.folderId
+        val targetLocation = targetThing.location
 
         dismissSnackbars()
         finishNewItemShiningBorderAnimationIfNeeded()
@@ -6561,7 +6618,15 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         val folderListPosition = getVisibleFolderPosition(folder.id)
         notifyFolderDropCommitted(sourceOldListPosition, folderListPosition)
         updateHomeAfterFolderDropCommitted()
-        return CreatedThingFolderDrop(folder, sourceThingId, targetThingId)
+        return CreatedThingFolderDrop(
+            folder,
+            sourceThingId,
+            targetThingId,
+            sourceParentFolderId,
+            sourceLocation,
+            targetParentFolderId,
+            targetLocation
+        )
     }
 
     private fun notifyFolderDropCommitted(sourceOldListPosition: Int, changedListPosition: Int) {
@@ -6600,6 +6665,13 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         mDrawerHeader!!.updateTexts()
         updateDrawerFolderItems()
         AppWidgetHelper.updateAllThingsListAppWidgets(mApp)
+    }
+
+    private fun rebindHomeListAfterFolderDropModeExit() {
+        runWhenThingListCanUpdate("folder-drop-mode-exit-rebind") {
+            mAdapter!!.setShouldThingsAnimWhenAppearing(false)
+            mAdapter!!.notifyDataSetChanged()
+        }
     }
 
     private fun getVisibleFolderEntry(folderId: Long): ThingListEntry.FolderEntry? {
@@ -6765,10 +6837,7 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         if (thing.state != Thing.UNDERWAY) return false
         if (App.getDoingThingId() == thing.id) return false
         if (thing.folderId == targetEntry.folder.id) return false
-        return !shouldProtectEffectivePrivateContent(
-            targetEntry.effectivePrivate,
-            targetEntry.folder.id
-        )
+        return true
     }
 
     private fun canMoveFolderIntoExistingFolderWith(
@@ -6780,10 +6849,7 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         if (folder.parentFolderId == targetEntry.folder.id) return false
         if (folder.isDeleted()) return false
         if (mThingManager!!.isFolderDescendantOf(targetEntry.folder.id, folder.id)) return false
-        return !shouldProtectEffectivePrivateContent(
-            targetEntry.effectivePrivate,
-            targetEntry.folder.id
-        )
+        return true
     }
 
     private fun isThingEffectivelyPrivateInCurrentProjection(thing: Thing): Boolean {
@@ -6819,7 +6885,11 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     private data class CreatedThingFolderDrop(
         val folder: ThingFolder,
         val sourceThingId: Long,
-        val targetThingId: Long
+        val targetThingId: Long,
+        val sourceParentFolderId: Long?,
+        val sourceLocation: Long,
+        val targetParentFolderId: Long?,
+        val targetLocation: Long
     )
 
     private data class FolderDropHoverCandidate(
@@ -6865,6 +6935,15 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         private var highlightedThumbnailFolderTargetFolder: ThingFolder? = null
         private val highlightedFolderTargetCards = ArrayList<View>()
         private val highlightedFolderTargetScaleTokens = HashMap<View, Int>()
+        private val highlightedSummaryFolderTargets =
+            ArrayList<Pair<CardView, ThingFolder>>()
+        private val highlightedSummaryFolderTargetAnimators =
+            HashMap<CardView, ValueAnimator>()
+        private val highlightedSummaryFolderTargetTokens = HashMap<CardView, Int>()
+        private val highlightedSummaryFolderCurrentBackgrounds =
+            HashMap<CardView, ThingBackground>()
+        private val highlightedSummaryFolderTargetContents =
+            ArrayList<Pair<View, ThingFolder>>()
         private val highlightedThumbnailFolderTargets =
             ArrayList<Pair<View, ThingFolder>>()
         private var highlightedFolderTargetOutlineDecoration: FolderDropOutlineDecoration? = null
@@ -7091,10 +7170,7 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             val source = mThingManager!!.getThingAtListPosition(fromListPosition) ?: return false
             if (!canMoveThingIntoExistingFolderWith(source)) return false
             if (source.folderId == targetEntry.folder.id) return false
-            return !shouldProtectEffectivePrivateContent(
-                targetEntry.effectivePrivate,
-                targetEntry.folder.id
-            )
+            return true
         }
 
         private fun canMoveFolderIntoFolderDrop(
@@ -7284,10 +7360,14 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             trackFolderDropHighlightedCard(card)
             val targetFolderEntry = getFolderDropTargetEntry(listPosition)
             val targetFolderIsThumbnail =
-                targetFolderEntry?.folder?.cardPresentation?.mode ==
+                targetFolderEntry?.folder?.effectiveCardPresentation()?.mode ==
                     ThingFolderCardPresentation.MODE_THUMBNAILS
             val thumbnailFolderDropTarget =
                 action == FOLDER_DROP_ACTION_MOVE_TO_FOLDER && targetFolderIsThumbnail
+            val summaryFolderDropTarget =
+                action == FOLDER_DROP_ACTION_MOVE_TO_FOLDER &&
+                    targetFolderEntry != null &&
+                    !targetFolderIsThumbnail
             val scale = if (highlighted) {
                 if (action == FOLDER_DROP_ACTION_MOVE_TO_FOLDER) {
                     FOLDER_MOVE_TARGET_SCALE
@@ -7307,8 +7387,16 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 highlightedThumbnailFolderTargetFolder = targetFolderEntry.folder
                 holder.llContent?.let {
                     trackThumbnailFolderDropHighlightedContent(it, targetFolderEntry.folder)
+                    animateFolderDropContentAlpha(it, targetFolderEntry.folder, true)
                 }
                 animateThumbnailFolderDropOutline(holder, targetFolderEntry.folder, true)
+            } else if (highlighted && summaryFolderDropTarget) {
+                trackSummaryFolderDropHighlightedCard(card, targetFolderEntry.folder)
+                holder.llContent?.let {
+                    trackSummaryFolderDropHighlightedContent(it, targetFolderEntry.folder)
+                    animateFolderDropContentAlpha(it, targetFolderEntry.folder, true)
+                }
+                animateSummaryFolderDropBackground(card, targetFolderEntry.folder, true)
             }
         }
 
@@ -7327,16 +7415,52 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             }
         }
 
+        private fun trackSummaryFolderDropHighlightedCard(
+            card: CardView,
+            folder: ThingFolder
+        ) {
+            if (highlightedSummaryFolderTargets.none { it.first === card }) {
+                highlightedSummaryFolderTargets.add(card to folder)
+            }
+        }
+
+        private fun trackSummaryFolderDropHighlightedContent(
+            content: View,
+            folder: ThingFolder
+        ) {
+            if (highlightedSummaryFolderTargetContents.none { it.first === content }) {
+                highlightedSummaryFolderTargetContents.add(content to folder)
+            }
+        }
+
         private fun restoreFolderDropHighlightedTargets(animate: Boolean = true) {
             if (animate) {
                 clearFolderDropTargetOutlineOverlay()
             } else {
                 removeFolderDropTargetOutlineDecorationImmediately()
             }
+            for ((card, folder) in highlightedSummaryFolderTargets) {
+                if (animate) {
+                    animateSummaryFolderDropBackground(card, folder, false)
+                } else {
+                    resetSummaryFolderDropBackgroundImmediately(card, folder)
+                }
+            }
+            highlightedSummaryFolderTargets.clear()
+            for ((content, folder) in highlightedSummaryFolderTargetContents) {
+                if (animate) {
+                    animateFolderDropContentAlpha(content, folder, false)
+                } else {
+                    resetFolderDropContentAlphaImmediately(content, folder)
+                }
+            }
+            highlightedSummaryFolderTargetContents.clear()
             for ((content, folder) in highlightedThumbnailFolderTargets) {
                 if (animate) {
+                    animateFolderDropContentAlpha(content, folder, false)
                     animateThumbnailFolderDropOutline(content, folder, false)
                 } else {
+                    resetFolderDropContentAlphaImmediately(content, folder)
                     resetThumbnailFolderDropOutlineImmediately(content, folder)
                 }
             }
@@ -7354,6 +7478,122 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             highlightedFolderTargetCards.clear()
             highlightedFolderTargetCard = null
             highlightedFolderTargetAction = FOLDER_DROP_ACTION_NONE
+        }
+
+        private fun animateSummaryFolderDropBackground(
+            card: CardView,
+            folder: ThingFolder,
+            highlighted: Boolean
+        ) {
+            val targetBackground = getSummaryFolderDropBackground(folder, highlighted)
+            val startBackground = highlightedSummaryFolderCurrentBackgrounds[card]
+                ?: getSummaryFolderDropBackground(folder, !highlighted)
+            val token = nextSummaryFolderDropBackgroundToken(card)
+            highlightedSummaryFolderTargetAnimators.remove(card)?.cancel()
+            val evaluator = ArgbEvaluator()
+            val animator = ValueAnimator.ofFloat(0f, 1f).apply {
+                duration = FOLDER_DROP_TARGET_ANIM_DURATION
+                addUpdateListener {
+                    val fraction = it.animatedValue as Float
+                    val frameBackground = interpolateFolderDropBackground(
+                        startBackground,
+                        targetBackground,
+                        fraction,
+                        evaluator
+                    )
+                    highlightedSummaryFolderCurrentBackgrounds[card] = frameBackground
+                    BackgroundUtil.applyCardBackground(card, frameBackground)
+                }
+                addListener(object : AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: Animator) {
+                        syncSummaryFolderDropBackground(
+                            card,
+                            targetBackground,
+                            token,
+                            highlighted
+                        )
+                    }
+                })
+            }
+            highlightedSummaryFolderTargetAnimators[card] = animator
+            animator.start()
+        }
+
+        private fun resetSummaryFolderDropBackgroundImmediately(
+            card: CardView,
+            folder: ThingFolder
+        ) {
+            val targetBackground = getSummaryFolderDropBackground(folder, false)
+            val token = nextSummaryFolderDropBackgroundToken(card)
+            highlightedSummaryFolderTargetAnimators.remove(card)?.cancel()
+            syncSummaryFolderDropBackground(card, targetBackground, token, false)
+        }
+
+        private fun getSummaryFolderDropBackground(
+            folder: ThingFolder,
+            highlighted: Boolean
+        ): ThingBackground {
+            val background = folder.getBackground() ?: ThingBackground.pure(folder.getColor())
+            if (highlighted || folderDropCommitInProgress) return background
+            val currentMode = mModeManager!!.getCurrentMode()
+            val dimUnselected = (
+                currentMode == ModeManager.SELECTING ||
+                    currentMode == ModeManager.MOVING
+                ) && !folder.isSelected()
+            return if (dimUnselected) lightVariant(background) else background
+        }
+
+        private fun interpolateFolderDropBackground(
+            from: ThingBackground,
+            to: ThingBackground,
+            fraction: Float,
+            evaluator: ArgbEvaluator
+        ): ThingBackground {
+            val startColor = evaluator.evaluate(fraction, from.color, to.color) as Int
+            val endColor = evaluator.evaluate(fraction, from.endColor, to.endColor) as Int
+            return if (startColor == endColor) {
+                ThingBackground.pure(startColor)
+            } else {
+                ThingBackground.gradient(
+                    startColor,
+                    endColor,
+                    if (fraction < 0.5f) from.orientation else to.orientation
+                )
+            }
+        }
+
+        private fun lightVariant(bg: ThingBackground): ThingBackground {
+            return if (bg.mode === ThingBackground.Mode.PURE) {
+                ThingBackground.pure(DisplayUtil.getLightColor(bg.color, mApp))
+            } else {
+                ThingBackground.gradient(
+                    DisplayUtil.getLightColor(bg.color, mApp),
+                    DisplayUtil.getLightColor(bg.endColor, mApp),
+                    bg.orientation
+                )
+            }
+        }
+
+        private fun nextSummaryFolderDropBackgroundToken(card: CardView): Int {
+            val token = (highlightedSummaryFolderTargetTokens[card] ?: 0) + 1
+            highlightedSummaryFolderTargetTokens[card] = token
+            return token
+        }
+
+        private fun syncSummaryFolderDropBackground(
+            card: CardView,
+            background: ThingBackground,
+            token: Int,
+            highlighted: Boolean
+        ) {
+            if (highlightedSummaryFolderTargetTokens[card] != token) return
+            BackgroundUtil.applyCardBackground(card, background)
+            highlightedSummaryFolderCurrentBackgrounds[card] = background
+            highlightedSummaryFolderTargetAnimators.remove(card)
+            if (!highlighted) {
+                highlightedSummaryFolderTargetTokens.remove(card)
+                highlightedSummaryFolderCurrentBackgrounds.remove(card)
+            }
         }
 
         private fun endRecyclerViewItemAnimationsForFolderDrop() {
@@ -7469,6 +7709,43 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         ) {
             val content = holder.llContent ?: return
             animateThumbnailFolderDropOutline(content, folder, highlighted)
+        }
+
+        private fun animateFolderDropContentAlpha(
+            content: View,
+            folder: ThingFolder,
+            highlighted: Boolean
+        ) {
+            content.animate().cancel()
+            content.animate()
+                .setListener(null)
+                .withEndAction(null)
+                .alpha(getFolderDropContentAlpha(folder, highlighted))
+                .setDuration(FOLDER_DROP_TARGET_ANIM_DURATION)
+                .start()
+        }
+
+        private fun resetFolderDropContentAlphaImmediately(
+            content: View,
+            folder: ThingFolder
+        ) {
+            content.animate().cancel()
+            content.animate().setListener(null)
+            content.animate().withEndAction(null)
+            content.alpha = getFolderDropContentAlpha(folder, false)
+        }
+
+        private fun getFolderDropContentAlpha(
+            folder: ThingFolder,
+            highlighted: Boolean
+        ): Float {
+            if (highlighted || folderDropCommitInProgress) return 1.0f
+            val currentMode = mModeManager!!.getCurrentMode()
+            val dimUnselected = (
+                currentMode == ModeManager.SELECTING ||
+                    currentMode == ModeManager.MOVING
+                ) && !folder.isSelected()
+            return if (dimUnselected) 0.42f else 1.0f
         }
 
         private fun animateThumbnailFolderDropOutline(
@@ -7746,9 +8023,12 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 }
                 if (committed) {
                     restoreFolderDropSourceViewLater(commitVisual)
-                    playFolderDropCommitVisual(commitVisual) {}
+                    playFolderDropCommitVisual(commitVisual) {
+                        rebindHomeListAfterFolderDropModeExit()
+                    }
                 } else {
                     restoreFolderDropVisualImmediately(commitVisual)
+                    rebindHomeListAfterFolderDropModeExit()
                 }
             } else {
                 val targetThingId = folderDrop.targetThingId
@@ -7765,10 +8045,12 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 if (createdDrop != null) {
                     restoreFolderDropSourceViewLater(commitVisual)
                     playFolderDropCommitVisual(commitVisual) {
+                        rebindHomeListAfterFolderDropModeExit()
                         showCreateThingFolderNameDialog(createdDrop)
                     }
                 } else {
                     restoreFolderDropVisualImmediately(commitVisual)
+                    rebindHomeListAfterFolderDropModeExit()
                 }
             }
         }
@@ -7832,8 +8114,9 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             val clearWasSwiped = swiped
             val clearActiveDragStartListPosition = activeDragStartListPosition
             val clearActiveDragStableId = activeDragStableId
-            folderDropCommitInProgress = folderDrop != null
-            clearPendingFolderDrop(animateRestore = !folderDropCommitInProgress)
+            val willCommitFolderDrop = folderDrop != null && !pointerWasDown
+            folderDropCommitInProgress = willCommitFolderDrop
+            clearPendingFolderDrop(animateRestore = !willCommitFolderDrop)
             preparedFolderDropCommitVisual = null
             activeDragViewHolder = null
             lastFolderDropSourceLeftInRoot = null

@@ -10,7 +10,6 @@ import androidx.core.content.ContextCompat
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
 import android.widget.EditText
 import android.widget.TextView
@@ -19,6 +18,7 @@ import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
+import com.ywwynm.everythingdone.utils.KeyboardUtil
 
 class ThingFolderNameDialogFragment : BaseDialogFragment() {
 
@@ -69,11 +69,12 @@ class ThingFolderNameDialogFragment : BaseDialogFragment() {
             }
         }
 
-        cancel.setOnClickListener { dismiss() }
+        cancel.setOnClickListener { dismissWithKeyboardHidden(input) }
         confirm.setOnClickListener {
             val folderTitle = input.text.toString().trim()
                 .ifEmpty { getString(R.string.default_thing_folder_name) }
             mConfirmed = true
+            KeyboardUtil.hideKeyboard(dialog?.window, input)
             mListener?.onThingFolderNameConfirmed(folderTitle)
             dismiss()
         }
@@ -83,8 +84,10 @@ class ThingFolderNameDialogFragment : BaseDialogFragment() {
 
     override fun onStart() {
         super.onStart()
-        dialog?.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE)
-        f<EditText>(R.id.et_thing_folder_name)?.requestFocus()
+        val input: EditText? = f(R.id.et_thing_folder_name)
+        input?.post {
+            KeyboardUtil.showKeyboard(dialog?.window, input)
+        }
     }
 
     override fun getLayoutResource(): Int = R.layout.fragment_thing_folder_name
@@ -94,6 +97,7 @@ class ThingFolderNameDialogFragment : BaseDialogFragment() {
     }
 
     override fun onDismiss(dialog: DialogInterface) {
+        KeyboardUtil.hideKeyboard(this.dialog?.window, currentInputView())
         if (!mConfirmed) {
             mListener?.onThingFolderNameCanceled()
         }
@@ -161,6 +165,15 @@ class ThingFolderNameDialogFragment : BaseDialogFragment() {
             textView.paint.setShader(null)
             textView.invalidate()
         }
+    }
+
+    private fun dismissWithKeyboardHidden(input: EditText?) {
+        KeyboardUtil.hideKeyboard(dialog?.window, input)
+        dismiss()
+    }
+
+    private fun currentInputView(): View? {
+        return mContentView?.findViewById(R.id.et_thing_folder_name) ?: mContentView
     }
 
     interface Listener {

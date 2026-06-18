@@ -1,5 +1,96 @@
 # Current Debug Update Notes
 
+## 2026-06-18 - 关闭文件夹卡片外观面板时隐藏键盘
+
+用户澄清：键盘不隐藏的问题发生在长按文件夹卡片后，点击“调整文件夹卡片外观”打开的底部 UI 中，不是创建/重命名文件夹的 `ThingFolderNameDialogFragment`。重新检查后确认，这个 UI 是 `activity_things.xml` 里 include 的 `panel_thing_card_appearance.xml` 底部面板，不是 Dialog；标题输入框是标准 XML `<EditText>`，在 `ThingsActivity` 中对应 `mEtFolderCardAppearanceName: EditText?`，不是项目自定义输入控件。
+
+本次实现：
+- `ThingsActivity.kt` 的 `hideThingCardAppearancePanel()` 现在会在把底部面板设为 `GONE` 之前调用 `KeyboardUtil.hideKeyboard(window, currentFocus ?: mEtFolderCardAppearanceName)`。
+- `KeyboardUtil` 继续沿用当前 AndroidX Compat 方案，通过 `WindowCompat.getInsetsController(...).hide(WindowInsetsCompat.Type.ime())` 隐藏 IME，不再加入 `InputMethodManager` 兜底。
+- 这样取消、确定、返回/其它路径只要最终进入 `hideThingCardAppearancePanel()`，都会先主动收起外观面板里的标题输入键盘，再隐藏面板本身。
+
+验证状态：`git diff --check` 已通过，仅有仓库既有的 LF/CRLF 提示；已执行 `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`，结果 `BUILD SUCCESSFUL`，仅有既有的 `ThingsActivity.kt` deprecated override warning。发布状态：用户将自行发布 debug update，本次未执行 publish。
+
+## 2026-06-18 - 改用 WindowInsets 直接控制文件夹命名弹窗键盘
+
+用户反馈上一版仍无法在文件夹命名 Dialog 的取消、确定和 dismiss 路径中稳定隐藏键盘，因此本次先撤回此前为这个问题加入的延迟关闭、planned close 状态、重复 `InputMethodManager.hideSoftInputFromWindow(...)`、根布局抢焦点等尝试性修改，并重新搜索 Android 官方文档确认当前推荐方案。
+
+本次实现：
+- `KeyboardUtil.kt` 不再使用 `InputMethodManager` 作为显示/隐藏键盘路径，也不再保留兜底调用；现在统一通过 `WindowCompat.getInsetsController(window, view).show/hide(WindowInsetsCompat.Type.ime())` 控制 IME。对于只传入 `View` 的旧调用，会从 `view.context` 解析所在 `Activity.window` 后走同一套 `WindowInsets` 路径。
+- `ThingFolderNameDialogFragment.kt` 不再设置 `SOFT_INPUT_STATE_ALWAYS_VISIBLE`；弹窗启动后从 dialog window 显示键盘，取消、确定和 `onDismiss(...)` 都先通过同一个 dialog window 隐藏键盘，再继续关闭流程。
+- 对照 `DateTimeDialogFragment` 后确认：提醒时间弹窗原本主要依赖“先把焦点移到仍 attached 的非输入 view，再隐藏键盘”的交互结构；文件夹命名弹窗是单输入框 Dialog，更适合直接使用窗口级 `WindowInsets` 控制，而不是继续叠加焦点切换、延迟 dismiss 或 `InputMethodManager` 兜底。
+
+验证状态：`git diff --check` 已通过，仅有仓库既有的 LF/CRLF 提示；已执行 `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`，结果 `BUILD SUCCESSFUL`，仅有既有的 `ThingsActivity.kt` deprecated override warning。发布状态：用户将自行发布 debug update，本次未执行 publish。
+
+## 2026-06-18 - 延迟关闭文件夹命名弹窗以保证键盘先隐藏
+
+用户补充分析：文件夹名称 Dialog 关闭时键盘不隐藏，可能与 `hideSoftInputFromWindow(...)` 是异步请求、随后立即 `dismiss()` 导致 dialog window token 失效有关；同时根布局临时 focusable、`SOFT_INPUT_STATE_ALWAYS_VISIBLE` 与销毁流程也可能放大问题。对照 `DateTimeDialogFragment` 后确认：提醒时间弹窗之所以更稳定，是因为它在确认前先把焦点转移到仍然稳定存在的 `ViewPager`，再隐藏键盘，然后才继续确认和 dismiss；而文件夹命名弹窗此前是在按钮点击末尾从 `EditText` hide 后立刻 dismiss。
+
+本次实现：
+- `ThingFolderNameDialogFragment.kt` 的取消/确定按钮不再同一帧内 `hideNameKeyboard(...)` 后马上 `dismiss()`；现在会进入 planned close 状态，先通过当前输入框/current focus 和 dialog window 请求隐藏键盘，再延迟 `KeyboardUtil.HIDE_DELAY` 后执行取消/确定回调并关闭弹窗。
+- `onDismiss(...)` 现在只在非 planned close 的路径中兜底发送取消回调，避免取消按钮延迟关闭时重复回调；`onDestroyView()` 会移除尚未执行的延迟关闭任务。
+- `fragment_thing_folder_name.xml` 移除了根布局的 `focusable` / `focusableInTouchMode`，不再为了关闭键盘临时让根布局抢焦点，避免同一帧内 `EditText -> root -> no focus` 的快速焦点切换。
+- 保留 `KeyboardUtil.hideKeyboard(window)` 里真正通过 dialog decor/focused view window token 调用 `InputMethodManager.hideSoftInputFromWindow(...)` 的修正。
+
+验证状态：`git diff --check` 已通过，仅有仓库既有的 LF/CRLF 提示；已执行 `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`，结果 `BUILD SUCCESSFUL`。发布状态：用户将自行发布 debug update，本次未执行 publish。
+
+## 2026-06-18 - 修正文件夹命名弹窗收键盘和拖入文件夹后卡片持续淡化
+
+用户继续反馈两个回归：文件夹命名弹窗在取消、确定和 dismiss 后仍不会隐藏键盘，并建议对照记事详情界面设置提醒时间的 `DateTimeDialogFragment`；另外，把一个记事拖到文件夹后，所有卡片仍然保持很淡的未选中状态，没有回到正常颜色。
+
+本次诊断：
+- `DateTimeDialogFragment` 在切换页面、触摸内容、确认设置和 dismiss 时会先把焦点移出当前输入框，再调用 `KeyboardUtil.hideKeyboard(...)`。此前文件夹命名弹窗只通过 `EditText` 或 Activity `currentFocus` 隐藏键盘；同时 `KeyboardUtil.hideKeyboard(window)` 本身只设置了 `SOFT_INPUT_STATE_ALWAYS_HIDDEN`，没有真正用 dialog window/decor token 调 `InputMethodManager.hideSoftInputFromWindow(...)`，所以 dismiss 路径仍可能留住键盘。
+- 拖入文件夹后所有卡片持续淡化，是因为成功 Folder drop 为了保留 targeted removal/merge 动画，使用了 `finishMovingModeWithoutListRefresh()` 退出 Moving mode；但其它可见卡片已经在 Moving mode 下被绑定成“未选中淡化”状态，退出 mode 后没有再重绑回 Normal mode 外观。
+
+本次实现：
+- `KeyboardUtil.kt` 修正 `hideKeyboard(window)`：现在会取 dialog decor/focused view 的 window token，调用 `InputMethodManager.hideSoftInputFromWindow(...)`，然后清理焦点；`hideKeyboard(view)` 也会在当前 view token 不可用时 fallback 到 root view token。
+- `fragment_thing_folder_name.xml` 让命名弹窗根布局可 focus；`ThingFolderNameDialogFragment.kt` 的 `hideNameKeyboard(...)` 现在先隐藏输入框/current focus，再把焦点移到弹窗内容根布局并隐藏内容 view，最后再通过 dialog window 兜底隐藏键盘。
+- `ThingsActivity.kt` 在 Folder drop 成功提交后，把列表 rebind 放到 `playFolderDropCommitVisual(...)` 的动画完成回调里执行；没有 commit visual 或失败恢复路径也会补 rebind。这个 rebind 不开启列表出现动画，只在 RecyclerView 安全时刷新绑定，用来把所有卡片从 Moving mode 淡化外观恢复到 Normal mode 颜色，同时保留拖入文件夹的合并/移除动画。
+
+验证状态：`git diff --check` 已通过，仅有仓库既有的 LF/CRLF 提示；已执行 `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`，结果 `BUILD SUCCESSFUL`，仅有既有 Kotlin deprecated override warning。发布状态：用户将自行发布 debug update，本次未执行 publish。
+
+## 2026-06-18 - 再次修正私密文件夹锁间距、Drawer 小锁、命名键盘和拖入私密文件夹
+
+用户继续反馈：之前关于私密文件夹卡片锁下方空隙的判断仍然不对，问题不应只归因于残留 44dp bottom padding；Drawer 里的私密文件夹小锁还可以更小；修改文件夹名称后点击取消/确定仍未正确收起键盘；把记事/文件夹拖到私密文件夹上也应该触发加入文件夹动画并实际加入。
+
+本次重新检查后确认：普通私密记事卡片的锁 `ImageView` 在 `card_thing.xml` 里是 48dp，底部 `view_thing_padding_bottom` 是 16dp；`BaseThingsAdapter.applyCardContentGeometry(...)` 会把普通私密记事恢复到这个 48dp + 16dp 的几何状态。`ic_locked_big.png` 的 mdpi 图片本身是 48x48，非透明像素底部还有约 4dp 透明边，所以肉眼看到的锁图形底部到卡片底部约为 20dp。私密文件夹卡片此前的问题不是单一固定 margin，而是文件夹卡片 reset 时会先把 `tv_thing_content` 设为可见，隐藏私密内容的路径没有再把这个普通内容槽位关掉；同时锁 `ImageView` 也可能继承 RecyclerView 复用 holder 里的全宽私密记事尺寸。这样即使看起来只显示锁，下面仍可能有残留内容/状态视图参与测量。
+
+本次实现：
+- `ThingsAdapter.kt` 的私密文件夹锁绑定现在显式隐藏 `tv_thing_content`、checklist、audio、reminder、habit 等普通内容/status 视图，并重置底部 status spacer 与 16dp bottom spacer；同时把锁 `ImageView` 强制设回普通私密记事一致的 48dp，避免复用到全宽私密记事 holder 后留下 72dp 锁。
+- `DrawerNavigationView.kt` 将私密文件夹图标内部的小锁再缩小一档，并继续保持在文件夹 glyph 内居中，根据文件夹底色自适应黑/白前景。
+- `KeyboardUtil.kt` 修正 `hideKeyboard(view)` 的执行顺序：先用当前 view 的 window token 调用 `hideSoftInputFromWindow(...)`，再 `clearFocus()`；`ThingFolderNameDialogFragment.kt` 的取消、确认和 dismiss 兜底路径继续通过这个工具收起键盘。
+- `ThingsActivity.kt` 放开拖入私密文件夹的 drop eligibility：把记事或文件夹拖到私密文件夹卡片上时不再因为目标文件夹有效私密而被拦截，仍会走现有文件夹 drop 激活动画和合并提交；只有打开/查看私密文件夹内容时继续需要认证。
+
+验证状态：`git diff --check` 已通过，仅有仓库既有的 LF/CRLF 提示；已执行 `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`，结果 `BUILD SUCCESSFUL`，仅有既有 Kotlin deprecated override warning。发布状态：用户将自行发布 debug update，本次未执行 publish。
+
+## 2026-06-18 - 跟进修正小文件夹拖拽命中、Drawer 私密锁、命名键盘和私密卡片锁下方空隙
+
+用户继续反馈 4 个细节：记事拖到小文件夹（摘要模式）上时，小文件夹也应从淡化状态恢复正常颜色，未命中再变回淡化；Drawer 里的私密文件夹锁偏大且没有居中；修改文件夹名称时点击取消/确定不会收起键盘；私密文件夹卡片的锁只有下方 space 过大，顶部 margin 没问题，可能不是锁 ImageView 的 margin，而是占位 view 高度残留。
+
+本次实现：
+- `ThingsActivity.kt` 将 Folder drop 命中态扩展到摘要模式文件夹：命中时同步动画恢复卡片背景和内容 alpha，离开时按当前 selecting/moving 状态恢复淡化。缩略图模式原有的 outline/alpha 动画继续保留。
+- `DrawerNavigationView.kt` 调整私密文件夹 icon 内的小锁绘制坐标和尺寸，让锁更小并居中在文件夹 glyph 内，同时继续根据文件夹底色选择黑/白前景。
+- `ThingFolderNameDialogFragment.kt` 在取消、确认和 dismiss 兜底路径调用 `KeyboardUtil.hideKeyboard(...)`，避免命名后键盘继续停留。
+- `ThingsAdapter.kt` 重新检查私密文件夹卡片锁下方空隙后，没有继续改锁本身 top margin；而是在文件夹卡片 holder reset 时清掉 `view_thing_bottom_status_spacer` 的 height/weight，并把 `view_thing_padding_bottom` 恢复为普通私密记事一致的 16dp，避免 RecyclerView 复用过媒体计数卡片后留下 44dp 底部 padding。
+
+验证状态：`git diff --check` 通过，仅有仓库既有 LF/CRLF 提示；已执行 `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`，结果 `BUILD SUCCESSFUL`。发布状态：待发布 debug update。
+
+## 2026-06-18 - 修正文件夹选择态、拖拽命中、私密文件夹和 Drawer 细节
+
+用户一次性反馈 8 个文件夹相关问题：小文件夹摘要模式未选中时不够淡化；大文件夹缩略图模式作为拖拽目标时需要在命中动画中恢复正常颜色，离开后再淡化；在文件夹内新建记事后 Drawer 选中项错误切到“正在进行”；私密文件夹卡片锁 icon 下方空隙过大；私密文件夹必须始终保持摘要模式和正常宽度；文件夹外观面板名称输入框需要可编辑下划线；Drawer 里的私密文件夹 icon 需要带自适应小锁且默认隐藏私密层级；拖动两个记事创建文件夹后取消命名时，两个记事应回到原位置。
+
+本次实现：
+- 选择/移动模式下，未选中的摘要模式文件夹卡片现在会像未选中记事卡片一样淡化内容和背景颜色。
+- 缩略图模式文件夹作为拖拽目标时，内容 alpha 会与现有目标缩放/描边动画同步恢复到正常颜色；拖离目标时按同样时长恢复淡化；提交 drop 时保持目标正常颜色配合合并动画。
+- 从文件夹内部创建新记事返回时，Drawer 选中项保持当前文件夹，不再自动跳到“正在进行”。
+- 私密文件夹卡片锁 icon 的上下间距调整为与私密记事锁 icon 一致。
+- 私密文件夹的有效外观固定为正常宽度 + 摘要模式；管理层更新、DAO 缩略图预取、卡片适配器和外观面板都使用这个有效外观。私密文件夹外观面板只保留重命名输入，名称输入框增加跟随文件夹颜色的下划线；长按动作菜单也不再显示切换大小/宽度入口。
+- Drawer 文件夹 icon 增加私密标记，私密文件夹图标内绘制一个根据文件夹底色自适应明暗的小锁。
+- Drawer 默认不展示私密文件夹内部层级，也不展示展开/收缩按钮；只有当前投影进入该私密文件夹范围内时，才显示其内部层级和必要的展开/收缩按钮，离开后自动恢复隐藏。
+- 创建文件夹命名对话框取消时，会按创建前记录的 parent folder id 和 location 恢复两个源记事，不再插入到列表最开始。
+
+验证状态：`git diff --check` 通过，仅有仓库既有 LF/CRLF 提示；已执行 `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`，结果 `BUILD SUCCESSFUL`。发布状态：已尝试执行 `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache`，但任务在 `:app:publishDebugUpdate` 阶段超过 120 秒超时；提升权限重跑被安全策略拒绝，因此本次未确认发布成功，需要用户明确授权后再发布。
+
 ## 2026-06-18 - 加固复杂列表滚动拖拽中的 clearView 和 Folder drop 提交，并关闭临时日志
 
 用户提供 `thing_card_scale_recovery(3).log` 和 `crash_20260618114415.log` 后，本次分析 `11:45:07` 之后的拖拽日志。日志显示，在拖拽经过较大的记事/文件夹并触发列表滚动时，`ItemTouchHelper.clearView(...)` 有时会在手指仍在屏幕上时执行；这说明 active child 是因为 RecyclerView 滚动/布局 detach 而结束拖拽，不是用户真正松手。crash 堆栈也印证了这一点：`clearView(...)` 由 `ItemTouchHelper.onChildViewDetachedFromWindow(...)` 触发，并在 RecyclerView 正在 layout/scroll 时执行了 `notifyItemRemoved(...)`，导致 `Cannot call this method while RecyclerView is computing a layout or scrolling`。

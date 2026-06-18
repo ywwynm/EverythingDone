@@ -13,6 +13,7 @@ import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.PixelFormat
+import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.Typeface
 import android.graphics.drawable.ColorDrawable
@@ -61,6 +62,7 @@ class DrawerNavigationView @JvmOverloads constructor(
         val title: String,
         @param:DrawableRes val iconRes: Int? = null,
         val folderBackground: ThingBackground? = null,
+        val folderPrivate: Boolean = false,
         val folderLevel: Int = 0,
         val hasChildFolders: Boolean = false,
         val folderExpanded: Boolean = false,
@@ -393,7 +395,7 @@ class DrawerNavigationView @JvmOverloads constructor(
         private fun createIconDrawable(item: DrawerItem): Drawable? {
             val folderBackground = item.folderBackground
             if (folderBackground != null) {
-                return FolderIconDrawable(folderBackground)
+                return FolderIconDrawable(folderBackground, item.folderPrivate)
             }
 
             val iconRes = item.iconRes ?: return null
@@ -634,13 +636,20 @@ class DrawerNavigationView @JvmOverloads constructor(
     }
 
     private class FolderIconDrawable(
-        private val background: ThingBackground
+        private val background: ThingBackground,
+        private val privateFolder: Boolean
     ) : Drawable() {
 
         private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.FILL
         }
+        private val lockPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            strokeCap = Paint.Cap.ROUND
+            strokeJoin = Paint.Join.ROUND
+        }
         private val path = Path()
+        private val lockPath = Path()
+        private val lockRect = RectF()
         private var externalAlpha = 255
 
         override fun draw(canvas: Canvas) {
@@ -660,6 +669,9 @@ class DrawerNavigationView @JvmOverloads constructor(
 
             buildFolderPath(left, top, size)
             canvas.drawPath(path, paint)
+            if (privateFolder) {
+                drawLock(canvas, left, top, size)
+            }
         }
 
         override fun setAlpha(alpha: Int) {
@@ -670,6 +682,7 @@ class DrawerNavigationView @JvmOverloads constructor(
         @Suppress("OVERRIDE_DEPRECATION")
         override fun setColorFilter(colorFilter: ColorFilter?) {
             paint.colorFilter = colorFilter
+            lockPaint.colorFilter = colorFilter
             invalidateSelf()
         }
 
@@ -698,6 +711,34 @@ class DrawerNavigationView @JvmOverloads constructor(
             path.cubicTo(x(4.12f), y(20f), x(3f), y(18.88f), x(3f), y(17.5f))
             path.lineTo(x(3f), y(6.5f))
             path.close()
+        }
+
+        private fun drawLock(canvas: Canvas, left: Float, top: Float, size: Float) {
+            fun x(value: Float): Float = left + value / 24f * size
+            fun y(value: Float): Float = top + value / 24f * size
+
+            lockPaint.shader = null
+            lockPaint.color = if (BackgroundUtil.isLight(background.representativeColor())) {
+                Color.BLACK
+            } else {
+                Color.WHITE
+            }
+            lockPaint.alpha = (externalAlpha * 0.82f).toInt().coerceIn(0, 255)
+
+            lockPaint.style = Paint.Style.STROKE
+            lockPaint.strokeWidth = (size * 0.72f / 24f).coerceAtLeast(1f)
+            lockPath.reset()
+            lockPath.moveTo(x(10.35f), y(12.9f))
+            lockPath.lineTo(x(10.35f), y(11.95f))
+            lockPath.cubicTo(x(10.35f), y(10.72f), x(11.04f), y(10.02f), x(12f), y(10.02f))
+            lockPath.cubicTo(x(12.96f), y(10.02f), x(13.65f), y(10.72f), x(13.65f), y(11.95f))
+            lockPath.lineTo(x(13.65f), y(12.9f))
+            canvas.drawPath(lockPath, lockPaint)
+
+            lockPaint.style = Paint.Style.FILL
+            lockRect.set(x(9.5f), y(12.7f), x(14.5f), y(16.45f))
+            val corner = size * 0.8f / 24f
+            canvas.drawRoundRect(lockRect, corner, corner, lockPaint)
         }
 
         private fun createGradientShader(left: Float, top: Float, size: Float): LinearGradient {

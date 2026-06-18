@@ -2,6 +2,13 @@
 
 Global startup session index only. Detailed feature history lives in `docs/features/<kebab-case-feature-slug>/sessions.md`.
 
+## 2026-06-18 - Switched shared keyboard helper to WindowInsets
+
+- Replaced the shared keyboard show/hide implementation with direct
+  `WindowInsetsCompat.Type.ime()` control after researching the current Android
+  guidance for the Folder naming dialog issue.
+- Kept the detailed feature context under `docs/features/thing-folders/`.
+
 ## 2026-06-06 - Memory documentation reorganization
 
 - Moved feature-scoped preference, decision, follow-up, and session history from global `memory/*.md` into `docs/features/*/` files.

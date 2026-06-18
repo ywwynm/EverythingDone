@@ -87,6 +87,14 @@ open class ThingFolder(
 
     fun isSelected(): Boolean = selected
 
+    fun effectiveCardPresentation(): ThingFolderCardPresentation {
+        return if (isPrivate) {
+            ThingFolderCardPresentation.default()
+        } else {
+            cardPresentation
+        }
+    }
+
     fun markUpdated(time: Long = System.currentTimeMillis()) {
         updateTime = time
     }

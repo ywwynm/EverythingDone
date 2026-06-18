@@ -2,13 +2,15 @@
 
 package com.ywwynm.everythingdone.utils
 
+import android.app.Activity
 import android.content.Context
+import android.content.ContextWrapper
 import android.graphics.Rect
 import android.view.View
 import android.view.ViewTreeObserver
 import android.view.Window
-import android.view.WindowManager
-import android.view.inputmethod.InputMethodManager
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 
 /**
  * Created by ywwynm on 2015/7/27.
@@ -23,34 +25,55 @@ object KeyboardUtil {
 
     @JvmStatic
     fun showKeyboard(view: View?) {
-        if (view == null) {
-            return
-        }
+        showKeyboard(findWindow(view), view)
+    }
+
+    @JvmStatic
+    fun showKeyboard(window: Window?, view: View?) {
+        view ?: return
 
         view.requestFocus()
-        val imm: InputMethodManager = view.context
-                .getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-        imm.showSoftInput(view, InputMethodManager.SHOW_FORCED)
+        val actualWindow = window ?: findWindow(view) ?: return
+        WindowCompat.getInsetsController(actualWindow, view)
+                .show(WindowInsetsCompat.Type.ime())
     }
 
     @JvmStatic
     fun hideKeyboard(view: View?) {
-        if (view == null) {
-            return
-        }
-        view.clearFocus()
-
-        val imm: InputMethodManager = view.context
-                .getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-        if (!imm.isActive()) {
-            return
-        }
-        imm.hideSoftInputFromWindow(view.windowToken, 0)
+        hideKeyboard(findWindow(view), view)
     }
 
     @JvmStatic
     fun hideKeyboard(window: Window?) {
-        window!!.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN)
+        hideKeyboard(window, window?.decorView)
+    }
+
+    @JvmStatic
+    fun hideKeyboard(window: Window?, view: View?) {
+        val anchor = view ?: window?.decorView ?: return
+        anchor.clearFocus()
+        val actualWindow = window ?: findWindow(anchor) ?: return
+        WindowCompat.getInsetsController(actualWindow, anchor)
+                .hide(WindowInsetsCompat.Type.ime())
+    }
+
+    private fun findWindow(view: View?): Window? {
+        return findActivity(view?.context)?.window
+    }
+
+    private fun findActivity(context: Context?): Activity? {
+        var current: Context? = context
+        while (current is ContextWrapper) {
+            if (current is Activity) {
+                return current
+            }
+            val baseContext = current.baseContext
+            if (baseContext === current) {
+                return null
+            }
+            current = baseContext
+        }
+        return null
     }
 
     interface KeyboardCallback {

@@ -105,7 +105,14 @@ open class ThingFolderDAO private constructor(context: Context?) {
             val effectivePrivate = isEffectivelyPrivate(folder)
             val count = countDescendantThingsForProjection(folder, limit, keyword, color)
             if (count <= 0) continue
-            val thumbnailEntries = getThumbnailEntriesForProjection(folder, limit, keyword, color)
+            val thumbnailEntries =
+                if (folder.effectiveCardPresentation().mode ==
+                    ThingFolderCardPresentation.MODE_THUMBNAILS
+                ) {
+                    getThumbnailEntriesForProjection(folder, limit, keyword, color)
+                } else {
+                    ThumbnailEntriesProjection(emptyList(), 0)
+                }
             entries.add(
                 ThingListEntry.FolderEntry(
                     folder = folder,
@@ -407,7 +414,7 @@ open class ThingFolderDAO private constructor(context: Context?) {
         keyword: String?,
         color: Int
     ): ThumbnailEntriesProjection {
-        val maxCount = folder.cardPresentation.effectiveThumbnailPreviewLimit()
+        val maxCount = folder.effectiveCardPresentation().effectiveThumbnailPreviewLimit()
         val effectiveDeleted = isEffectivelyDeleted(folder)
         val selection = if (
             limit == Def.LimitForGettingThings.ALL_DELETED && effectiveDeleted
