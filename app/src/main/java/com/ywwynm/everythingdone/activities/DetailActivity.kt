@@ -23,6 +23,7 @@ import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.PorterDuff
 import android.graphics.Rect
+import android.graphics.Typeface
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
@@ -4014,16 +4015,24 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
 
         val density = resources.displayMetrics.density
         val dialogWidth = getDetailAttachmentAppearanceDialogWidth()
-        val contentHorizontalMargin = (density * 24).toInt()
+        val contentHorizontalMargin = resources.getDimensionPixelSize(
+            R.dimen.app_chrome_dialog_title_margin_horizontal
+        )
 
         val root = LinearLayout(this)
         root.orientation = LinearLayout.VERTICAL
+        root.clipChildren = false
+        root.clipToPadding = false
         root.setBackgroundResource(R.drawable.bg_app_chrome_surface_elevated_rounded)
 
         val title = TextView(this)
         title.setText(getDetailAttachmentAppearanceTitleRes(source))
         applyDetailAttachmentAppearanceAccentText(title)
-        title.textSize = 20f
+        title.setTextSize(
+            android.util.TypedValue.COMPLEX_UNIT_PX,
+            resources.getDimension(R.dimen.app_chrome_dialog_title_text_size)
+        )
+        title.setTypeface(title.typeface, Typeface.BOLD)
         title.includeFontPadding = false
         root.addView(
             title,
@@ -4033,7 +4042,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             ).apply {
                 setMargins(
                     contentHorizontalMargin,
-                    (density * 24).toInt(),
+                    resources.getDimensionPixelSize(R.dimen.app_chrome_dialog_title_margin_top),
                     contentHorizontalMargin,
                     0
                 )
@@ -4254,6 +4263,8 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         val buttons = LinearLayout(this)
         buttons.gravity = android.view.Gravity.RIGHT or android.view.Gravity.CENTER_VERTICAL
         buttons.orientation = LinearLayout.HORIZONTAL
+        buttons.clipChildren = false
+        buttons.clipToPadding = false
         buttons.addView(createDetailAttachmentAppearanceButton(R.string.cancel, false) {
             fragment.dismiss()
         })
@@ -4279,10 +4290,18 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 ViewGroup.LayoutParams.WRAP_CONTENT
             ).apply {
                 setMargins(
-                    (density * 8).toInt(),
-                    (density * 16).toInt(),
-                    (density * 8).toInt(),
-                    (density * 8).toInt()
+                    resources.getDimensionPixelSize(
+                        R.dimen.app_chrome_dialog_action_row_margin_horizontal
+                    ),
+                    resources.getDimensionPixelSize(
+                        R.dimen.app_chrome_dialog_action_row_margin_top
+                    ),
+                    resources.getDimensionPixelSize(
+                        R.dimen.app_chrome_dialog_action_row_margin_horizontal
+                    ),
+                    resources.getDimensionPixelSize(
+                        R.dimen.app_chrome_dialog_action_row_margin_bottom
+                    )
                 )
             }
         )
@@ -4745,28 +4764,25 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         button.setText(textRes)
         button.setTextColor(
             if (useAccent) getAccentColor()
-            else ContextCompat.getColor(this, R.color.app_chrome_on_surface_hint)
+            else ContextCompat.getColor(this, R.color.app_chrome_dialog_cancel)
         )
         button.gravity = android.view.Gravity.CENTER
         button.includeFontPadding = false
         button.setAllCaps(true)
-        button.minWidth = (resources.displayMetrics.density * 64).toInt()
-        button.setPadding(
-            (resources.displayMetrics.density * 12).toInt(),
-            (resources.displayMetrics.density * 8).toInt(),
-            (resources.displayMetrics.density * 12).toInt(),
-            (resources.displayMetrics.density * 8).toInt()
-        )
         button.layoutParams = LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.WRAP_CONTENT,
-            (resources.displayMetrics.density * 36).toInt()
+            resources.getDimensionPixelSize(R.dimen.app_chrome_dialog_action_button_height)
         ).apply {
             if (useAccent) {
-                marginEnd = (resources.displayMetrics.density * 4).toInt()
-                rightMargin = (resources.displayMetrics.density * 4).toInt()
+                marginEnd = resources.getDimensionPixelSize(
+                    R.dimen.app_chrome_dialog_action_button_margin_end
+                )
+                rightMargin = resources.getDimensionPixelSize(
+                    R.dimen.app_chrome_dialog_action_button_margin_end
+                )
             }
         }
-        BackgroundUtil.installAppChromePillRipple(button, this)
+        BackgroundUtil.installAppChromeDialogActionButton(button, this)
         button.setOnClickListener { onClick() }
         return button
     }

@@ -3087,7 +3087,6 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 this,
                 R.color.app_chrome_on_surface_secondary
         )
-        val hintColor = ContextCompat.getColor(this, R.color.app_chrome_on_surface_hint)
 
         TextViewCompat.setCompoundDrawableTintList(
                 mTvThingCardAppearanceSource!!,
@@ -3117,7 +3116,10 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         applyThingCardAppearanceAccentText(mBtThingCardAppearanceVideoFrameNext)
         applyThingCardAppearanceAccentText(mBtThingCardAppearancePreciseCrop)
         applyThingCardAppearanceAccentText(mBtConfirmThingCardAppearance)
-        setThingCardAppearancePlainTextColor(mBtCancelThingCardAppearance, hintColor)
+        setThingCardAppearancePlainTextColor(
+                mBtCancelThingCardAppearance,
+                ContextCompat.getColor(this, R.color.app_chrome_dialog_cancel)
+        )
         installThingCardAppearanceRipples()
     }
 
@@ -3132,13 +3134,17 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 mBtThingCardAppearancePlacementBottom,
                 mBtThingCardAppearancePlacementLeft,
                 mBtThingCardAppearancePlacementRight,
-                mBtThingCardAppearancePlacementBackground,
-                mBtThingCardAppearancePreciseCrop,
-                mBtConfirmThingCardAppearance
+                mBtThingCardAppearancePlacementBackground
         ).forEach { view ->
             BackgroundUtil.installAppChromePillRipple(view, this)
         }
-        BackgroundUtil.installAppChromePillRipple(mBtCancelThingCardAppearance, this)
+        listOf(
+                mBtThingCardAppearancePreciseCrop,
+                mBtCancelThingCardAppearance,
+                mBtConfirmThingCardAppearance
+        ).forEach { view ->
+            BackgroundUtil.installAppChromeDialogActionButton(view, this)
+        }
     }
 
     private fun applyThingCardAppearanceAccentText(textView: TextView?) {
@@ -3456,16 +3462,23 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         val cropScale = crop.scale
 
         val density = resources.displayMetrics.density
-        val contentHorizontalMargin = (density * 24).toInt()
+        val contentHorizontalMargin = resources.getDimensionPixelSize(
+                R.dimen.app_chrome_dialog_title_margin_horizontal
+        )
         val dialogWidth = getMediaCropAppearanceDialogWidthPx(fragment, requestKey, position)
         val root = LinearLayout(this)
         root.orientation = LinearLayout.VERTICAL
+        root.clipChildren = false
+        root.clipToPadding = false
         root.setBackgroundResource(R.drawable.bg_app_chrome_surface_elevated_rounded)
 
         val title = TextView(this)
         title.setText(getThingCardAppearancePreciseCropTextRes(source))
         applyThingCardAppearanceAccentText(title)
-        title.textSize = 20f
+        title.setTextSize(
+                android.util.TypedValue.COMPLEX_UNIT_PX,
+                resources.getDimension(R.dimen.app_chrome_dialog_title_text_size)
+        )
         title.setTypeface(title.typeface, Typeface.BOLD)
         title.gravity = android.view.Gravity.CENTER_VERTICAL
         root.addView(
@@ -3476,7 +3489,9 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 ).apply {
                     setMargins(
                             contentHorizontalMargin,
-                            (density * 24).toInt(),
+                            resources.getDimensionPixelSize(
+                                    R.dimen.app_chrome_dialog_title_margin_top
+                            ),
                             contentHorizontalMargin,
                             0
                     )
@@ -3592,6 +3607,8 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         val buttons = LinearLayout(this)
         buttons.gravity = android.view.Gravity.RIGHT or android.view.Gravity.CENTER_VERTICAL
         buttons.orientation = LinearLayout.HORIZONTAL
+        buttons.clipChildren = false
+        buttons.clipToPadding = false
         buttons.addView(createThingCardCropEditorButton(R.string.cancel, false) {
             fragment.dismiss()
         })
@@ -3620,10 +3637,18 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                         ViewGroup.LayoutParams.WRAP_CONTENT
                 ).apply {
                     setMargins(
-                            (density * 8).toInt(),
-                            (density * 16).toInt(),
-                            (density * 8).toInt(),
-                            (density * 8).toInt()
+                            resources.getDimensionPixelSize(
+                                    R.dimen.app_chrome_dialog_action_row_margin_horizontal
+                            ),
+                            resources.getDimensionPixelSize(
+                                    R.dimen.app_chrome_dialog_action_row_margin_top
+                            ),
+                            resources.getDimensionPixelSize(
+                                    R.dimen.app_chrome_dialog_action_row_margin_horizontal
+                            ),
+                            resources.getDimensionPixelSize(
+                                    R.dimen.app_chrome_dialog_action_row_margin_bottom
+                            )
                     )
                 }
         )
@@ -3948,29 +3973,28 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         } else {
             setThingCardAppearancePlainTextColor(
                     button,
-                    ContextCompat.getColor(this, R.color.app_chrome_on_surface_hint)
+                    ContextCompat.getColor(this, R.color.app_chrome_dialog_cancel)
             )
         }
         button.gravity = android.view.Gravity.CENTER
         button.includeFontPadding = false
         button.setAllCaps(true)
-        button.minWidth = (resources.displayMetrics.density * 64).toInt()
-        button.setPadding(
-                (resources.displayMetrics.density * 12).toInt(),
-                (resources.displayMetrics.density * 8).toInt(),
-                (resources.displayMetrics.density * 12).toInt(),
-                (resources.displayMetrics.density * 8).toInt()
-        )
         button.layoutParams = LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
-                (resources.displayMetrics.density * 36).toInt()
+                resources.getDimensionPixelSize(
+                        R.dimen.app_chrome_dialog_action_button_height
+                )
         ).apply {
             if (useAccent) {
-                marginEnd = (resources.displayMetrics.density * 4).toInt()
-                rightMargin = (resources.displayMetrics.density * 4).toInt()
+                marginEnd = resources.getDimensionPixelSize(
+                        R.dimen.app_chrome_dialog_action_button_margin_end
+                )
+                rightMargin = resources.getDimensionPixelSize(
+                        R.dimen.app_chrome_dialog_action_button_margin_end
+                )
             }
         }
-        BackgroundUtil.installAppChromePillRipple(button, this)
+        BackgroundUtil.installAppChromeDialogActionButton(button, this)
         button.setOnClickListener { onClick() }
         return button
     }

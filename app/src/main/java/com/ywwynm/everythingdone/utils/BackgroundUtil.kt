@@ -15,6 +15,8 @@ import android.view.ViewTreeObserver
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.RippleDrawable
+import android.util.TypedValue
+import android.view.Gravity
 import android.view.View
 import android.view.ViewOutlineProvider
 import android.widget.TextView
@@ -715,6 +717,31 @@ object BackgroundUtil {
     @JvmStatic
     fun installAppChromePillRipple(view: View?, context: Context) {
         installPillRipple(view, appChromeRippleColor(context))
+    }
+
+    @JvmStatic
+    fun installAppChromeDialogActionButton(view: TextView?, context: Context) {
+        if (view == null) return
+        val res = context.resources
+        val paddingHorizontal = res.getDimensionPixelSize(
+            R.dimen.app_chrome_dialog_action_button_padding_horizontal
+        )
+        val paddingVertical = res.getDimensionPixelSize(
+            R.dimen.app_chrome_dialog_action_button_padding_vertical
+        )
+        view.includeFontPadding = false
+        view.gravity = (view.gravity and Gravity.HORIZONTAL_GRAVITY_MASK) or Gravity.CENTER_VERTICAL
+        view.setTextSize(
+            TypedValue.COMPLEX_UNIT_PX,
+            res.getDimension(R.dimen.app_chrome_dialog_action_text_size)
+        )
+        view.setPaddingRelative(
+            paddingHorizontal,
+            paddingVertical,
+            paddingHorizontal,
+            paddingVertical
+        )
+        installAppChromePillRipple(view, context)
     }
 
     @JvmStatic

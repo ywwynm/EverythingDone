@@ -446,6 +446,10 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
 
         EdgeEffectUtil.forViewPager(mVpDateTime, mAccentColor)
 
+        mVpDateTime!!.clipChildren = true
+        mVpDateTime!!.clipToPadding = true
+        mVpDateTime!!.setPadding(0, 0, 0, 0)
+        mVpDateTime!!.pageMargin = 0
         mVpDateTime!!.offscreenPageLimit = 2
         mVpDateTime!!.adapter = mTabAdapter
         mTabLayout!!.setupWithViewPager(mVpDateTime)

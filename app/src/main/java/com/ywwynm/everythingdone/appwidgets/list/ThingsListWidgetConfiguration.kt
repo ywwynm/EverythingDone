@@ -21,6 +21,7 @@ import com.ywwynm.everythingdone.adapters.RadioChooserAdapter
 import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper
 import com.ywwynm.everythingdone.database.AppWidgetDAO
 import com.ywwynm.everythingdone.model.ThingWidgetInfo
+import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.LocaleUtil
 
@@ -57,6 +58,7 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
         tvTitle?.setTextColor(color)
         val tvConfirm: TextView? = findViewById(R.id.tv_confirm_as_bt_things_list_config)
         tvConfirm?.setTextColor(color)
+        BackgroundUtil.installAppChromeDialogActionButton(tvConfirm, this)
 
         val items: MutableList<String?> = ArrayList(5)
         items.add(getString(R.string.all))

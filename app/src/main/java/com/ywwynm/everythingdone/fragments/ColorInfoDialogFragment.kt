@@ -74,8 +74,7 @@ open class ColorInfoDialogFragment : BaseDialogFragment() {
         limitScrollHeight(
             scroll,
             topSeparator,
-            bottomSeparator,
-            background.mode == ThingBackground.Mode.PURE
+            bottomSeparator
         )
 
         return mContentView
@@ -103,8 +102,7 @@ open class ColorInfoDialogFragment : BaseDialogFragment() {
     private fun limitScrollHeight(
         scroll: ScrollView,
         topSeparator: View,
-        bottomSeparator: View,
-        hasTopPreview: Boolean
+        bottomSeparator: View
     ) {
         scroll.post {
             val density = resources.displayMetrics.density
@@ -116,10 +114,10 @@ open class ColorInfoDialogFragment : BaseDialogFragment() {
                 lp.height = maxHeight
                 scroll.layoutParams = lp
                 scroll.post {
-                    installScrollSeparators(scroll, topSeparator, bottomSeparator, hasTopPreview)
+                    installScrollSeparators(scroll, topSeparator, bottomSeparator)
                 }
             } else {
-                installScrollSeparators(scroll, topSeparator, bottomSeparator, hasTopPreview)
+                installScrollSeparators(scroll, topSeparator, bottomSeparator)
             }
         }
     }
@@ -127,11 +125,10 @@ open class ColorInfoDialogFragment : BaseDialogFragment() {
     private fun installScrollSeparators(
         scroll: ScrollView,
         topSeparator: View,
-        bottomSeparator: View,
-        hasTopPreview: Boolean
+        bottomSeparator: View
     ) {
         val canScroll = scroll.canScrollVertically(-1) || scroll.canScrollVertically(1)
-        setScrollTopMargin(scroll, if (canScroll && !hasTopPreview) 0 else 12)
+        setScrollTopMargin(scroll, if (canScroll) 0 else 12)
         if (!canScroll) {
             topSeparator.visibility = View.GONE
             bottomSeparator.visibility = View.GONE

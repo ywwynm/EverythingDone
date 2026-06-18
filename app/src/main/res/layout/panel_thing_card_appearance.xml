@@ -11,13 +11,15 @@
     android:layout_marginBottom="@dimen/thing_card_outer_spacing"
     android:background="@drawable/bg_app_chrome_surface_elevated_rounded"
     android:clickable="true"
+    android:clipChildren="false"
+    android:clipToPadding="false"
     android:elevation="12dp"
     android:focusable="true"
     android:orientation="vertical"
-    android:paddingLeft="20dp"
-    android:paddingTop="24dp"
-    android:paddingRight="20dp"
-    android:paddingBottom="8dp"
+    android:paddingLeft="@dimen/app_chrome_dialog_title_margin_horizontal"
+    android:paddingTop="@dimen/app_chrome_dialog_title_margin_top"
+    android:paddingRight="@dimen/app_chrome_dialog_title_margin_horizontal"
+    android:paddingBottom="@dimen/app_chrome_dialog_action_row_margin_bottom"
     android:visibility="gone"
     tools:visibility="visible">
 
@@ -29,12 +31,14 @@
         android:maxLines="1"
         android:text="@string/thing_card_appearance_panel_title"
         android:textColor="@color/app_chrome_on_surface_primary"
-        android:textSize="18sp" />
+        android:textSize="@dimen/app_chrome_dialog_title_text_size" />
 
     <EditText
         android:id="@+id/et_folder_card_appearance_name"
         android:layout_width="match_parent"
         android:layout_height="40dp"
+        android:layout_marginEnd="@dimen/app_chrome_dialog_action_button_margin_end"
+        android:layout_marginRight="@dimen/app_chrome_dialog_action_button_margin_end"
         android:layout_marginTop="-6dp"
         android:background="@android:color/transparent"
         android:ellipsize="end"
@@ -450,28 +454,32 @@
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="48dp"
+        android:layout_height="wrap_content"
         android:layout_marginTop="6dp"
-        android:layout_marginEnd="-12dp"
-        android:layout_marginRight="-12dp"
+        android:layout_marginEnd="@dimen/app_chrome_dialog_action_row_overflow_margin"
+        android:layout_marginRight="@dimen/app_chrome_dialog_action_row_overflow_margin"
         android:gravity="center_vertical|end"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:clipChildren="false"
+        android:clipToPadding="false">
 
         <TextView
             android:id="@+id/bt_thing_card_appearance_precise_crop"
             android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:layout_marginLeft="-12dp"
-            android:layout_marginStart="-12dp"
+            android:layout_height="@dimen/app_chrome_dialog_action_button_height"
+            android:layout_marginLeft="@dimen/app_chrome_dialog_leading_action_margin_start"
+            android:layout_marginStart="@dimen/app_chrome_dialog_leading_action_margin_start"
             android:background="?attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
             android:gravity="center"
-            android:paddingLeft="12dp"
-            android:paddingRight="12dp"
+            android:paddingLeft="@dimen/app_chrome_dialog_action_button_padding_horizontal"
+            android:paddingTop="@dimen/app_chrome_dialog_action_button_padding_vertical"
+            android:paddingRight="@dimen/app_chrome_dialog_action_button_padding_horizontal"
+            android:paddingBottom="@dimen/app_chrome_dialog_action_button_padding_vertical"
             android:text="@string/thing_card_appearance_precise_crop"
             android:textColor="@color/app_accent"
-            android:textSize="13sp" />
+            android:textSize="@dimen/app_chrome_dialog_action_text_size" />
 
         <Space
             android:layout_width="0dp"
@@ -481,38 +489,38 @@
         <TextView
             android:id="@+id/bt_cancel_thing_card_appearance"
             android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
+            android:layout_height="@dimen/app_chrome_dialog_action_button_height"
+            android:background="?attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
             android:gravity="center"
-            android:paddingLeft="12dp"
-            android:paddingTop="8dp"
-            android:paddingRight="12dp"
-            android:paddingBottom="8dp"
+            android:paddingLeft="@dimen/app_chrome_dialog_action_button_padding_horizontal"
+            android:paddingTop="@dimen/app_chrome_dialog_action_button_padding_vertical"
+            android:paddingRight="@dimen/app_chrome_dialog_action_button_padding_horizontal"
+            android:paddingBottom="@dimen/app_chrome_dialog_action_button_padding_vertical"
             android:text="@string/cancel"
             android:textAllCaps="true"
-            android:textColor="@color/app_chrome_on_surface_hint"
-            android:textSize="14sp" />
+            android:textColor="@color/app_chrome_dialog_cancel"
+            android:textSize="@dimen/app_chrome_dialog_action_text_size" />
 
         <TextView
             android:id="@+id/bt_confirm_thing_card_appearance"
             android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:layout_marginEnd="4dp"
-            android:layout_marginRight="4dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
+            android:layout_height="@dimen/app_chrome_dialog_action_button_height"
+            android:layout_marginEnd="@dimen/app_chrome_dialog_action_button_margin_end"
+            android:layout_marginRight="@dimen/app_chrome_dialog_action_button_margin_end"
+            android:background="?attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
             android:gravity="center"
-            android:paddingLeft="12dp"
-            android:paddingTop="8dp"
-            android:paddingRight="12dp"
-            android:paddingBottom="8dp"
+            android:paddingLeft="@dimen/app_chrome_dialog_action_button_padding_horizontal"
+            android:paddingTop="@dimen/app_chrome_dialog_action_button_padding_vertical"
+            android:paddingRight="@dimen/app_chrome_dialog_action_button_padding_horizontal"
+            android:paddingBottom="@dimen/app_chrome_dialog_action_button_padding_vertical"
             android:text="@string/confirm"
             android:textAllCaps="true"
             android:textColor="@color/app_accent"
-            android:textSize="14sp" />
+            android:textSize="@dimen/app_chrome_dialog_action_text_size" />
 
     </LinearLayout>
 

@@ -4,17 +4,19 @@
     android:layout_width="320dp"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:paddingLeft="20dp"
-    android:paddingRight="20dp">
+    android:clipChildren="false"
+    android:clipToPadding="false"
+    android:paddingLeft="@dimen/app_chrome_dialog_title_margin_horizontal"
+    android:paddingRight="@dimen/app_chrome_dialog_title_margin_horizontal">
 
     <TextView
         android:id="@+id/tv_title_debug_update_download"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
+        android:layout_marginTop="@dimen/app_chrome_dialog_title_margin_top"
         android:text="@string/debug_update_download_title"
         android:textAllCaps="true"
-        android:textSize="20sp"
+        android:textSize="@dimen/app_chrome_dialog_title_text_size"
         android:textStyle="bold"/>
 
     <ProgressBar
@@ -45,23 +47,30 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
-        android:layout_marginBottom="8dp"
+        android:layout_marginLeft="@dimen/app_chrome_dialog_action_row_overflow_margin"
+        android:layout_marginTop="@dimen/app_chrome_dialog_action_row_margin_top"
+        android:layout_marginRight="@dimen/app_chrome_dialog_action_row_overflow_margin"
+        android:layout_marginBottom="@dimen/app_chrome_dialog_action_row_margin_bottom"
         android:gravity="end"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:clipChildren="false"
+        android:clipToPadding="false">
 
         <TextView
             android:id="@+id/tv_cancel_as_bt_debug_update_download"
             android:layout_width="wrap_content"
-            android:layout_height="36dp"
+            android:layout_height="@dimen/app_chrome_dialog_action_button_height"
+            android:layout_marginEnd="@dimen/app_chrome_dialog_action_button_margin_end"
+            android:layout_marginRight="@dimen/app_chrome_dialog_action_button_margin_end"
             android:background="@drawable/selectable_item_background"
-            android:paddingLeft="12dp"
-            android:paddingTop="8dp"
-            android:paddingRight="12dp"
-            android:paddingBottom="8dp"
+            android:paddingLeft="@dimen/app_chrome_dialog_action_button_padding_horizontal"
+            android:paddingTop="@dimen/app_chrome_dialog_action_button_padding_vertical"
+            android:paddingRight="@dimen/app_chrome_dialog_action_button_padding_horizontal"
+            android:paddingBottom="@dimen/app_chrome_dialog_action_button_padding_vertical"
             android:text="@string/cancel"
             android:textAllCaps="true"
-            android:textColor="@color/app_chrome_on_surface_hint"/>
+            android:textColor="@color/app_chrome_dialog_cancel"
+            android:textSize="@dimen/app_chrome_dialog_action_text_size"/>
 
     </LinearLayout>
 

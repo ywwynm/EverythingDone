@@ -21,6 +21,18 @@ ripple work.
 Compact dialog text buttons, including affirmative "Got it" style buttons and
 cancel/confirm pairs, are included in button-like control ripple work.
 
+Dialog-like App Chrome surfaces, including custom `DialogFragment` instances,
+Thing/Folder Card Appearance bottom panels, and precise media crop dialogs,
+should share the same title typography, title margins, action-button text size,
+action-button internal padding, action-row margins, and pill ripple geometry
+through common `dimens.xml` resources. Cancel actions should use the same
+appearance-aware cancel colour across light and dark mode. Secondary/primary
+action pills should size from `wrap_content` plus common padding so labels of
+different length produce different widths while preserving the same spacing
+rhythm. If an action row has a leading action on the left, that leading action's
+text should visually align with the dialog title start while still retaining a
+pill-shaped touch animation that is not clipped by its parent container.
+
 For gradient Thing Backgrounds, the ripple waveform can remain representative
 single-colour feedback; do not introduce a custom gradient touch animation for
 this button-like control pass.

@@ -95,7 +95,7 @@ abstract class BaseDialogFragment : DialogFragment() {
     private fun installCompactDialogButtonRipples(view: View?) {
         view ?: return
         if (view is TextView && isCompactDialogButton(view)) {
-            BackgroundUtil.installAppChromePillRipple(view, view.context)
+            BackgroundUtil.installAppChromeDialogActionButton(view, view.context)
         }
         if (view is ViewGroup) {
             for (i in 0 until view.childCount) {

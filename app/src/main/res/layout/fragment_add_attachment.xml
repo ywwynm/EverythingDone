@@ -9,11 +9,11 @@
         android:id="@+id/tv_add_attachment_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginLeft="24dp"
-        android:layout_marginTop="24dp"
-        android:layout_marginRight="24dp"
+        android:layout_marginLeft="@dimen/app_chrome_dialog_title_margin_horizontal"
+        android:layout_marginTop="@dimen/app_chrome_dialog_title_margin_top"
+        android:layout_marginRight="@dimen/app_chrome_dialog_title_margin_horizontal"
         android:text="@string/act_add_attachment"
-        android:textSize="20sp"
+        android:textSize="@dimen/app_chrome_dialog_title_text_size"
         android:textStyle="bold"/>
 
     <TextView

@@ -118,6 +118,7 @@ open class DebugUpdateDialogFragment : BaseDialogFragment() {
     ) {
         EdgeEffectUtil.forScrollView(scroll, accentColor)
         val canScroll = scroll.canScrollVertically(-1) || scroll.canScrollVertically(1)
+        setScrollTopMargin(scroll, if (canScroll) 0 else 12)
         if (!canScroll) {
             topSeparator.visibility = View.GONE
             bottomSeparator.visibility = View.GONE
@@ -127,6 +128,14 @@ open class DebugUpdateDialogFragment : BaseDialogFragment() {
             updateScrollSeparators(scroll, topSeparator, bottomSeparator)
         }
         updateScrollSeparators(scroll, topSeparator, bottomSeparator)
+    }
+
+    private fun setScrollTopMargin(scroll: ScrollView, marginDp: Int) {
+        val lp = scroll.layoutParams as? ViewGroup.MarginLayoutParams ?: return
+        val topMargin = (marginDp * resources.displayMetrics.density).toInt()
+        if (lp.topMargin == topMargin) return
+        lp.topMargin = topMargin
+        scroll.layoutParams = lp
     }
 
     private fun updateScrollSeparators(

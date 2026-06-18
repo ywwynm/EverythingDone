@@ -21,7 +21,14 @@ open class DateTimePagerAdapter(context: Context?, tabs: List<View?>?) : PagerAd
 
     override fun instantiateItem(container: ViewGroup, position: Int): Any {
         val view: View = mTabs!![position]!!
-        container.addView(view, 0)
+        container.addView(
+            view,
+            0,
+            ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        )
         return view
     }
 

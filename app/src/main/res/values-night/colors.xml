@@ -13,6 +13,7 @@
     <color name="app_chrome_drawer_item_foreground">#B0FFFFFF</color>
     <color name="app_chrome_control_unchecked">#A8FFFFFF</color>
     <color name="app_chrome_on_surface_hint">#66FFFFFF</color>
+    <color name="app_chrome_dialog_cancel">#66FFFFFF</color>
     <color name="app_chrome_on_surface_disabled">#61FFFFFF</color>
     <color name="app_chrome_divider">#24FFFFFF</color>
     <color name="app_chrome_ripple">#24FFFFFF</color>

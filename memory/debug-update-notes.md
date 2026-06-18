@@ -1,5 +1,35 @@
 # Current Debug Update Notes
 
+## 2026-06-18 - 统一 Dialog 和外观面板的标题与操作按钮样式
+
+用户希望全面检查所有 `DialogFragment` 以及相似的 App Chrome 表面，例如记事/文件夹卡片外观面板、封面图片/视频裁切弹窗等：只要有标题、取消、确认、好哒或类似操作按钮，就统一标题字号和上下左右边距，统一按钮内部 padding、字号、外部边距和 pill 高度；取消按钮颜色也要保持一致并适配浅色/暗色模式。右侧确认按钮的文案可能不同，例如“开始做事”，因此宽度应继续由 `wrap_content` 和统一 padding 决定；如果操作行左侧也有按钮，按钮文字左边缘需要和标题文字左边缘视觉对齐，同时保留 pill 触摸动画；所有 pill ripple 不能被父容器裁切。三项纵向排列的选项 Dialog 明确不需要修改。
+
+本次实现：
+- 在 `dimens.xml` 中新增统一的 `app_chrome_dialog_*` 标题和操作按钮尺寸资源，包括标题左右/顶部边距、标题字号、操作行边距、按钮高度、按钮水平/垂直 padding、按钮字号、右侧按钮间距、单按钮右边距、左侧 action 对齐用负 margin，以及 ripple 防裁切所需的 overflow margin。
+- 在 `colors.xml` 和 `values-night/colors.xml` 中新增 `app_chrome_dialog_cancel`，统一取消按钮在浅色和暗色模式下的颜色。
+- 在 `BackgroundUtil.kt` 中新增 `installAppChromeDialogActionButton(...)`，集中设置 compact dialog action button 的字号、padding、`includeFontPadding=false` 和 App Chrome pill ripple。
+- `BaseDialogFragment.kt` 现在会自动为宽度为 `wrap_content` 且 id 含 `_as_bt` 的 compact `TextView` action button 安装统一样式。宽度为 `match_parent` 的纵向选项按钮不会被这套逻辑覆盖，因此保留三项纵向按钮 Dialog 的既有样式。
+- 更新了多个 compact Dialog 布局，包括 `fragment_alert.xml`、`fragment_long_text.xml`、`fragment_chooser.xml`、`fragment_date_time.xml`、`fragment_habit_record.xml`、`fragment_thing_folder_name.xml`、`fragment_pattern_lock.xml`、`fragment_debug_update*.xml`、`fragment_attachment_info.xml`、`fragment_color_info.xml`、`fragment_license.xml`、`fragment_habit_detail.xml`、`fragment_gradient_orientation.xml`、`dialog_fingerprint.xml` 等，让标题和 action row 使用统一资源。
+- 更新 `panel_thing_card_appearance.xml`：标题和底部取消/确认/精确裁切 action 使用统一尺寸；左侧 action 的文字起点通过统一 row 左边距 + 按钮 padding 与标题 20dp 起点视觉对齐；需要 action overflow 的 panel 自身显式关闭 clipping，保证 pill 触摸动画完整显示。
+- 更新 `MediaCropAppearanceDialogFragment` 相关内容，以及 `ThingsActivity.kt` 和 `DetailActivity.kt` 中动态创建的记事/附件媒体裁切 dialog：标题字号、标题 top/horizontal margin、取消/确认 row 边距、按钮高度/padding/字号/取消色都改用统一资源，右侧按钮保持 `wrap_content`。
+- 更新 `ThingsListWidgetConfiguration.kt` 和 `activity_things_list_widget_configuration.xml` 中 dialog-like 的确认按钮样式，使其与其它 compact action button 保持一致。
+- 明确检查并保留 `fragment_alert_three_actions.xml` 不改，因为它是三项纵向排列的选项 Dialog，符合用户指定的例外。
+
+用户随后反馈并修正了统一样式后的多个细节：
+- 用户已将 `app_chrome_dialog_action_button_margin_end` 调整为 `2dp`，本次保留这个值不回退。
+- 记事/文件夹卡片外观 panel 的底部 action row 原来使用 48dp row 高度再叠加 panel 自身 8dp bottom padding，导致按钮下方视觉空隙比 DialogFragment 多；现在 panel 的底部 action row 改为 `wrap_content`，由 36dp action button 高度和 panel bottom padding 共同决定底部间距。
+- 文件夹卡片外观 panel 中的文件夹名称 `EditText` 原来直接吃满 panel 内容宽度，右侧文字边缘会比确认按钮文字右侧多出 `app_chrome_dialog_action_button_margin_end`；现在这个输入框复用同一个 dimen 作为右侧 margin，让名称文字右边缘和确认按钮文字右边缘对齐。
+- DialogFragment 的 pill 文本偏上，是因为多数 XML action `TextView` 没有设置垂直 gravity，而 panel 按钮设置了 `gravity="center"`；现在 `BackgroundUtil.installAppChromeDialogActionButton(...)` 会保留原有水平 gravity，同时强制 `CENTER_VERTICAL`。
+- `BaseDialogFragment` 不再为了 compact action button 把整棵 dialog 父容器都设置为 `clipChildren=false/clipToPadding=false`，避免可滚动内容区域的边界被放宽；需要负 margin/overflow 的特殊 surface 继续在对应 XML 中显式关闭 clipping。
+- 设置提醒时间的 `DateTimeDialogFragment` 明确让 `ViewPager` 使用 `clipChildren=true`、`clipToPadding=true`、零 padding 和零 pageMargin；`DateTimePagerAdapter` 添加页面时也显式使用 `MATCH_PARENT` LayoutParams，避免相邻页内容露出。
+- 对带分割线的可滚动 Dialog，例如颜色信息、语言选择、License、长文本和 debug update，新增 `app_chrome_dialog_divided_action_row_margin_top=8dp`。这些 Dialog 继续使用统一按钮本体尺寸，但底部分割线到 action row 的距离不再误用普通内容 Dialog 的 20dp 上边距。
+- 颜色信息 Dialog 中顶部 separator 移到预览块之后，真正作为可滚动内容区域的上边界；颜色信息和 debug update 的滚动区域在可滚动时会紧贴 top separator，不可滚动时保留 12dp 普通内容间距。
+
+验证状态：
+- 已执行 `git diff --check`，通过；仅有仓库既有的 LF/CRLF 提示。
+- 已执行 `.\gradlew.bat :app:assembleDebug`，结果 `BUILD SUCCESSFUL`。
+- 本次只准备发布日志，用户将自行发布 debug update，未执行 `:app:publishDebugUpdate`。
+
 ## 2026-06-18 - 关闭文件夹卡片外观面板时隐藏键盘
 
 用户澄清：键盘不隐藏的问题发生在长按文件夹卡片后，点击“调整文件夹卡片外观”打开的底部 UI 中，不是创建/重命名文件夹的 `ThingFolderNameDialogFragment`。重新检查后确认，这个 UI 是 `activity_things.xml` 里 include 的 `panel_thing_card_appearance.xml` 底部面板，不是 Dialog；标题输入框是标准 XML `<EditText>`，在 `ThingsActivity` 中对应 `mEtFolderCardAppearanceName: EditText?`，不是项目自定义输入控件。

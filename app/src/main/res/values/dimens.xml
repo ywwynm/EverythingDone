@@ -15,6 +15,22 @@
     <dimen name="thing_card_appearance_max_width">480dp</dimen>
     <dimen name="doing_thing_card_vertical_margin">32dp</dimen>
     <dimen name="app_chrome_dialog_popup_corner_radius">16dp</dimen>
+    <dimen name="app_chrome_dialog_title_margin_horizontal">20dp</dimen>
+    <dimen name="app_chrome_dialog_title_margin_top">20dp</dimen>
+    <dimen name="app_chrome_dialog_title_text_size">20sp</dimen>
+    <dimen name="app_chrome_dialog_action_row_margin_horizontal">8dp</dimen>
+    <dimen name="app_chrome_dialog_action_row_margin_top">20dp</dimen>
+    <dimen name="app_chrome_dialog_divided_action_row_margin_top">8dp</dimen>
+    <dimen name="app_chrome_dialog_action_row_margin_bottom">8dp</dimen>
+    <dimen name="app_chrome_dialog_action_row_height">48dp</dimen>
+    <dimen name="app_chrome_dialog_action_button_height">36dp</dimen>
+    <dimen name="app_chrome_dialog_action_button_padding_horizontal">12dp</dimen>
+    <dimen name="app_chrome_dialog_action_button_padding_vertical">8dp</dimen>
+    <dimen name="app_chrome_dialog_action_button_margin_end">2dp</dimen>
+    <dimen name="app_chrome_dialog_action_single_button_margin_end">10dp</dimen>
+    <dimen name="app_chrome_dialog_action_text_size">14sp</dimen>
+    <dimen name="app_chrome_dialog_leading_action_margin_start">-12dp</dimen>
+    <dimen name="app_chrome_dialog_action_row_overflow_margin">-12dp</dimen>
 
     <dimen name="fab_margin">0dp</dimen>
 

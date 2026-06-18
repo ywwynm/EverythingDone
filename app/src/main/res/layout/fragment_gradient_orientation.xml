@@ -5,8 +5,8 @@
      same FAB+overlay pattern as ColorPicker's random-gradient FAB
      (color_picker_fab.xml). That gives us Material's native circular
      ripple AND a correctly-sized 24dp checkmark for the picked cell. -->
-<!-- Title margins (24dp all sides, no textAllCaps, 20sp bold) and the lack
-     of outer padding match fragment_add_attachment.xml so this dialog looks
+<!-- Title margins and the lack of outer padding match fragment_add_attachment.xml
+     through the shared App Chrome dialog title dimensions so this dialog looks
      consistent with the other title+items dialogs. -->
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
@@ -18,15 +18,15 @@
         android:id="@+id/tv_title_gradient_orientation"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginLeft="24dp"
-        android:layout_marginTop="24dp"
-        android:layout_marginRight="24dp"
-        android:textSize="20sp"
+        android:layout_marginLeft="@dimen/app_chrome_dialog_title_margin_horizontal"
+        android:layout_marginTop="@dimen/app_chrome_dialog_title_margin_top"
+        android:layout_marginRight="@dimen/app_chrome_dialog_title_margin_horizontal"
+        android:textSize="@dimen/app_chrome_dialog_title_text_size"
         android:textStyle="bold"
         android:text="@string/gradient_orientation_title"/>
 
-    <!-- Title.marginLeft=24dp. With grid layout_marginLeft=16dp + cell margin=8dp
-         (set in Java), the leftmost FAB lands at 16+8=24dp from the dialog edge,
+    <!-- Title.marginLeft=20dp. With grid layout_marginLeft=12dp + cell margin=8dp
+         (set in Java), the leftmost FAB lands at 12+8=20dp from the dialog edge,
          aligning exactly with the title's left edge. layout_gravity is start
          (default) so the grid hugs the left side; the LinearLayout's
          wrap_content width then matches the grid's natural width and the
@@ -35,9 +35,9 @@
         android:id="@+id/gl_gradient_orientations"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginLeft="16dp"
+        android:layout_marginLeft="12dp"
         android:layout_marginTop="16dp"
-        android:layout_marginRight="16dp"
+        android:layout_marginRight="12dp"
         android:layout_marginBottom="16dp"
         android:rowCount="2"
         android:columnCount="4"/>

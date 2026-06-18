@@ -9,11 +9,11 @@
         android:id="@+id/tv_habit_detail_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        android:layout_marginLeft="24dp"
-        android:layout_marginRight="24dp"
+        android:layout_marginTop="@dimen/app_chrome_dialog_title_margin_top"
+        android:layout_marginLeft="@dimen/app_chrome_dialog_title_margin_horizontal"
+        android:layout_marginRight="@dimen/app_chrome_dialog_title_margin_horizontal"
         android:text="@string/habit_detail_title"
-        android:textSize="20sp"
+        android:textSize="@dimen/app_chrome_dialog_title_text_size"
         android:textStyle="bold"
         android:textAllCaps="true"/>
 
@@ -111,19 +111,21 @@
     <TextView
         android:id="@+id/tv_get_it_as_bt"
         android:layout_width="wrap_content"
-        android:layout_height="36dp"
+        android:layout_height="@dimen/app_chrome_dialog_action_button_height"
         android:layout_gravity="end"
-        android:layout_marginTop="4dp"
-        android:layout_marginLeft="8dp"
-        android:layout_marginRight="8dp"
-        android:layout_marginBottom="8dp"
-        android:paddingLeft="12dp"
-        android:paddingTop="8dp"
-        android:paddingRight="12dp"
-        android:paddingBottom="8dp"
+        android:layout_marginTop="@dimen/app_chrome_dialog_action_row_margin_top"
+        android:layout_marginLeft="@dimen/app_chrome_dialog_action_row_margin_horizontal"
+        android:layout_marginEnd="@dimen/app_chrome_dialog_action_single_button_margin_end"
+        android:layout_marginRight="@dimen/app_chrome_dialog_action_single_button_margin_end"
+        android:layout_marginBottom="@dimen/app_chrome_dialog_action_row_margin_bottom"
+        android:paddingLeft="@dimen/app_chrome_dialog_action_button_padding_horizontal"
+        android:paddingTop="@dimen/app_chrome_dialog_action_button_padding_vertical"
+        android:paddingRight="@dimen/app_chrome_dialog_action_button_padding_horizontal"
+        android:paddingBottom="@dimen/app_chrome_dialog_action_button_padding_vertical"
         android:text="@string/act_get_it"
         android:textStyle="bold"
         android:background="@drawable/selectable_item_background"
-        android:textAllCaps="true"/>
+        android:textAllCaps="true"
+        android:textSize="@dimen/app_chrome_dialog_action_text_size"/>
 
 </LinearLayout>
