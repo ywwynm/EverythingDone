@@ -5,7 +5,7 @@
 用户提供 `thing_card_scale_recovery(3).log` 和 `crash_20260618114415.log` 后，本次分析 `11:45:07` 之后的拖拽日志。日志显示，在拖拽经过较大的记事/文件夹并触发列表滚动时，`ItemTouchHelper.clearView(...)` 有时会在手指仍在屏幕上时执行；这说明 active child 是因为 RecyclerView 滚动/布局 detach 而结束拖拽，不是用户真正松手。crash 堆栈也印证了这一点：`clearView(...)` 由 `ItemTouchHelper.onChildViewDetachedFromWindow(...)` 触发，并在 RecyclerView 正在 layout/scroll 时执行了 `notifyItemRemoved(...)`，导致 `Cannot call this method while RecyclerView is computing a layout or scrolling`。
 
 本次实现：
-- `ThingsTouchCallback.clearView(...)` 增加“中断拖拽”分支：如果 clearView 发生时 Activity 级 pointer 仍为 down，就不提交当前 Folder drop，不持久化这次 reorder；先立即把拖拽卡片 scale 还原为 1，清理 finger/drag tag 和高亮状态。
+- `ThingsTouchCallback.clearView(...)` 增加“中断拖拽”分支：如果 clearView 发生时 Activity 级 pointer 仍为 down，就不提交当前 Folder drop，不持久化这次 reorder；如果拖拽卡片仍 attached，则用短动画把 scale 恢复为 1；如果 holder 已经 detached，则直接复位，避免回收后的 view 保留临时拖拽缩放；同时清理 finger/drag tag 和高亮状态。
 - 如果中断前列表顺序已经被 `onMove(...)` 临时改过，会在 RecyclerView 安全时机把该条目移回长按开始的位置，并进入 selecting mode，避免拖拽卡片突然消失后直接出现在某个计算出来的最终位置。
 - 新增 `runWhenThingListCanUpdate(...)`：当 RecyclerView 正在 computing layout 或 scrollState 不是 idle 时，延迟执行会触发 adapter notify 的列表更新。
 - 正常松手触发的 Folder drop 仍然会提交；但如果 clearView 发生时 RecyclerView 仍在 layout/scroll，则先恢复临时视觉，再等列表 idle 后执行数据提交和 adapter 通知，避免再次崩溃。

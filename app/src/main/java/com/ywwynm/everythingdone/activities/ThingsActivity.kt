@@ -7773,6 +7773,27 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             }
         }
 
+        private fun restoreClearedDragCardScale(view: View) {
+            view.animate().cancel()
+            if (!view.isAttachedToWindow) {
+                view.scaleX = 1.0f
+                view.scaleY = 1.0f
+                return
+            }
+            if (view.scaleX == 1.0f && view.scaleY == 1.0f) return
+            view.animate()
+                .setListener(null)
+                .withEndAction(null)
+                .scaleX(1.0f)
+                .scaleY(1.0f)
+                .setDuration(CLEARED_DRAG_SCALE_RECOVERY_DURATION)
+                .withEndAction {
+                    view.scaleX = 1.0f
+                    view.scaleY = 1.0f
+                }
+                .start()
+        }
+
         override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
             val pointerWasDown = mThingListPointerDown
             val pendingDrop = pendingFolderDrop
@@ -7803,9 +7824,7 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             )
             viewHolder.itemView.setTag(R.id.tag_thing_card_finger_down, false)
             viewHolder.itemView.setTag(R.id.tag_thing_card_drag_active, false)
-            viewHolder.itemView.animate().cancel()
-            viewHolder.itemView.scaleX = 1.0f
-            viewHolder.itemView.scaleY = 1.0f
+            restoreClearedDragCardScale(viewHolder.itemView)
             clearActiveTouchItemZ(viewHolder.itemView)
             val listPosition = viewHolder.adapterPosition
             val folderDrop = pendingDrop
@@ -8568,6 +8587,7 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         private const val FOLDER_CREATE_OUTLINE_GAP_DP = 6.0f
         private const val FOLDER_DROP_HOVER_ARM_DELAY_MS = 130L
         private const val FOLDER_DROP_HOVER_ARM_MIN_FRAMES = 2
+        private const val CLEARED_DRAG_SCALE_RECOVERY_DURATION = 96L
         private const val FOLDER_DROP_TARGET_ANIM_DURATION = 160L
         private const val FOLDER_DROP_COMMIT_ANIM_DURATION = 190L
         private const val ACTIVE_TOUCH_ITEM_Z_OFFSET_DP = 4.0f

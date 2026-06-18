@@ -17,8 +17,10 @@
 - Added an interrupted-drag branch in `ThingsTouchCallback.clearView(...)`.
   If `clearView(...)` happens while the Activity still has a pointer down, the
   current folder-drop hover is canceled instead of committed, dragged-card
-  scale is reset immediately, and any in-memory reorder is moved back to the
-  drag start position once RecyclerView is safe to update. The UI then enters
+  scale animates back to normal when the view is still attached, and any
+  in-memory reorder is moved back to the drag start position once RecyclerView
+  is safe to update. Detached holders still get an immediate scale reset so a
+  recycled view cannot keep a transient drag scale. The UI then enters
   selecting mode rather than pretending the drag was released.
 - Added `runWhenThingListCanUpdate(...)` for RecyclerView-safe adapter updates.
   Normal folder-drop release still commits, but if RecyclerView is computing
