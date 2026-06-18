@@ -2,11 +2,66 @@
 
 ## Navigation Semantics
 
-- The user confirmed that Thing Folders should not appear as drawer items. The
-  drawer should remain focused on built-in destinations such as Notes,
-  Reminders, Habits, Goals, Finished, and Deleted.
+- The previous preference that Thing Folders should not appear as Drawer items
+  is superseded. The Drawer should include the non-deleted Thing Folder tree
+  under Underway and above Note.
+- The home Drawer should use an app-owned navigation view instead of Material
+  `NavigationView` when Folder-tree precision is needed, so indentation,
+  trailing affordances, title width, selected state, and row recycling are under
+  project control.
 - Folder navigation should happen through Folder Cards and clickable header
   path segments within the active built-in destination projection.
+- In the Drawer, Underway acts as the root directory. The first Folder level is
+  always visible; deeper Folder levels are revealed by expanding their parent
+  Folder's trailing dropdown.
+- Drawer Folder rows open the Folder in the Underway projection. The dropdown
+  affordance toggles expansion without selecting or opening the Folder.
+- Drawer hierarchy indentation should be visible and should begin at the Folder
+  icon. Because Underway acts as the root directory, even first-level Folders
+  should have a default 16dp indent beneath Underway.
+- Drawer Folder indentation should not shrink the Folder icon or text. The
+  first Folder level's title should align with the Underway title, while the
+  visible indentation starts at the Folder icon. Deeper Folder levels shift both
+  icon and title together, preserving the same icon-to-title gap.
+- Only Folders that have child Folders should show the trailing dropdown
+  affordance.
+- Drawer Folder titles with a trailing expand/collapse affordance should be
+  constrained before that affordance and ellipsize rather than drawing beneath
+  it. Use an explicit title end margin in addition to the trailing affordance's
+  measured width.
+- All Drawer Folder rows should reserve the same trailing expand/collapse slot,
+  even when the Folder has no child Folders. Leaf Folders hide the affordance
+  but keep the reserved width so Folder title right edges align across rows.
+- Drawer Folder expand/collapse affordances should use a fixed circular touch
+  target with the app chrome ripple treatment, including dark mode. The touch
+  target should be compact enough to avoid visually oversized ripples and
+  should keep a small end margin from the Drawer edge.
+- Drawer Folder expand/collapse should animate inserted or removed rows instead
+  of making the list flash. Expanding should reveal child rows downward from
+  their parent and rotate the dropdown icon clockwise to the expanded state;
+  collapsing should remove child rows upward and rotate the icon back
+  counter-clockwise.
+- Folder icons should render with the Folder's own pure colour or gradient
+  background.
+- Built-in Drawer destination icons should keep their original asset colours
+  when selected rather than being retinted to a dimmer app chrome colour.
+  Static Drawer destination icons should be rendered through the opaque tint
+  path so low-alpha PNG assets do not stay visually washed out. Use the same
+  dedicated `app_chrome_drawer_item_foreground` colour for static Drawer
+  destination icons, Drawer item titles, and trailing expand/collapse icons in
+  both light and dark mode; selected state should use background/bold weight,
+  not a stronger foreground colour. The current value sits between App Chrome
+  primary and secondary foreground tiers.
+- Add a separator above the Note item so built-in type filters remain visually
+  distinct from the Underway root and Folder tree.
+- Drawer sections separated by dividers should breathe as sections: the first
+  item in each section has an 8dp top margin, and the last item in each section
+  has an 8dp bottom margin. The Underway root and its visible Folder tree count
+  as one section.
+- The final Drawer row should add the current bottom system-bar/display-cutout
+  inset to its bottom spacing so it clears gesture navigation and 3-button
+  navigation areas.
+- The Drawer should have exactly one checked item at a time.
 
 ## Move Semantics
 
@@ -133,6 +188,9 @@
   the count text 2dp to the right of the icon's layout start.
 - The recursive count text should use the same normal small count size as
   ordinary Thing Card media or audio count labels.
+- Folder Card recursive count text should use the same tertiary hint colour
+  tier as ordinary Thing Card audio and hidden media count labels, while still
+  choosing the dark or light side from the rendered card foreground base.
 
 ## Folder Naming Dialog
 

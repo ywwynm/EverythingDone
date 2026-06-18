@@ -1019,6 +1019,8 @@
     <string name="cd_checklist_finished_item_clickable">已完成的清單項，點擊取消完成</string>
     <string name="cd_checklist_move">點擊並拖拽即可移動該清單項</string>
     <string name="cd_checklist_expand_finished_items">展開已完成的清單項</string>
+    <string name="cd_expand_thing_folder">展開資料夾</string>
+    <string name="cd_collapse_thing_folder">收合資料夾</string>
     <string name="cd_checklist_shrink_finished_items">收縮已完成的清單項</string>
     <string name="cd_delete_checklist_item">删除項目</string>
 

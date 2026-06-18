@@ -34,7 +34,6 @@ import android.media.MediaMetadataRetriever
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import com.google.android.material.navigation.NavigationView
 import androidx.core.app.ActivityCompat
 import androidx.core.app.ActivityOptionsCompat
 import androidx.core.content.ContextCompat
@@ -130,6 +129,7 @@ import com.ywwynm.everythingdone.utils.LocaleUtil
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil
 import com.ywwynm.everythingdone.views.ActivityHeader
 import com.ywwynm.everythingdone.views.DrawerHeader
+import com.ywwynm.everythingdone.views.DrawerNavigationView
 import com.ywwynm.everythingdone.views.FloatingActionButton
 import com.ywwynm.everythingdone.views.Snackbar
 import com.ywwynm.everythingdone.views.ThingsStaggeredLayoutManager
@@ -182,9 +182,10 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     private var mModeManager: ModeManager? = null
 
     private var mDrawerLayout: DrawerLayout? = null
-    private var mDrawer: NavigationView? = null
+    private var mDrawer: DrawerNavigationView? = null
     private var mDrawerHeader: DrawerHeader? = null
-    private var mPreviousItem: MenuItem? = null
+    private val mExpandedDrawerFolderIds = HashSet<Long>()
+    private var mCurrentDrawerSelectionKey: DrawerNavigationView.ItemKey? = null
 
     private var mActivityHeader: ActivityHeader? = null
 
@@ -716,22 +717,280 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         }
     }
 
-    private fun applyDrawerMenuIconTintForAppearance() {
-        mDrawer!!.itemIconTintList = null
-        if (!AppearanceUtil.isDarkMode(this)) return
+    private fun updateDrawerFolderItems(
+        animate: Boolean = false,
+        animatedFolderToggleId: Long? = null
+    ) {
+        val drawerItems = ArrayList<DrawerNavigationView.DrawerItem>()
+        val folders = mThingManager!!.getDrawerFolders()
+        val folderIds = folders.mapTo(HashSet()) { it.id }
+        mExpandedDrawerFolderIds.retainAll(folderIds)
 
-        val tint = ContextCompat.getColor(this, R.color.app_chrome_control_unchecked)
-        tintDrawerMenuIcons(mDrawer!!.menu, tint)
+        val childrenByParent = HashMap<Long?, MutableList<ThingFolder>>()
+        for (folder in folders) {
+            childrenByParent.getOrPut(folder.parentFolderId) { ArrayList() }.add(folder)
+        }
+        for (children in childrenByParent.values) {
+            children.sortWith(
+                compareByDescending<ThingFolder> { it.location }
+                    .thenBy { it.title.lowercase() }
+            )
+        }
+
+        val visibleItems = ArrayList<DrawerFolderItem>()
+        appendDrawerFolderItems(null, 0, childrenByParent, visibleItems)
+        drawerItems.add(
+            createDrawerDestinationItem(
+                R.id.drawer_underway,
+                R.string.underway,
+                R.drawable.drawer_all,
+                groupStart = true,
+                groupEnd = visibleItems.isEmpty()
+            )
+        )
+        for ((index, visibleItem) in visibleItems.withIndex()) {
+            drawerItems.add(
+                createDrawerFolderItem(
+                    visibleItem,
+                    groupEnd = index == visibleItems.lastIndex
+                )
+            )
+        }
+        drawerItems.add(
+            createDrawerDestinationItem(
+                R.id.drawer_note,
+                R.string.note,
+                R.drawable.drawer_note,
+                dividerBefore = true,
+                groupStart = true
+            )
+        )
+        drawerItems.add(
+            createDrawerDestinationItem(
+                R.id.drawer_reminder,
+                R.string.reminder,
+                R.drawable.drawer_reminder
+            )
+        )
+        drawerItems.add(
+            createDrawerDestinationItem(
+                R.id.drawer_habit,
+                R.string.habit,
+                R.drawable.drawer_habit
+            )
+        )
+        drawerItems.add(
+            createDrawerDestinationItem(
+                R.id.drawer_goal,
+                R.string.goal,
+                R.drawable.drawer_goal,
+                groupEnd = true
+            )
+        )
+        drawerItems.add(
+            createDrawerDestinationItem(
+                R.id.drawer_finished,
+                R.string.finished,
+                R.drawable.drawer_finished,
+                dividerBefore = true,
+                groupStart = true
+            )
+        )
+        drawerItems.add(
+            createDrawerDestinationItem(
+                R.id.drawer_deleted,
+                R.string.drawer_deleted,
+                R.drawable.drawer_deleted,
+                groupEnd = true
+            )
+        )
+        drawerItems.add(
+            createDrawerDestinationItem(
+                R.id.drawer_settings,
+                R.string.settings,
+                R.drawable.drawer_settings,
+                dividerBefore = true,
+                groupStart = true
+            )
+        )
+        drawerItems.add(
+            createDrawerDestinationItem(
+                R.id.drawer_help,
+                R.string.help,
+                R.drawable.drawer_help
+            )
+        )
+        drawerItems.add(
+            createDrawerDestinationItem(
+                R.id.drawer_about,
+                R.string.about,
+                R.drawable.drawer_about,
+                groupEnd = true
+            )
+        )
+
+        val selectedKey = findDrawerSelectionKeyForCurrentProjection()
+        mCurrentDrawerSelectionKey = selectedKey
+        mDrawer?.submitItems(
+            drawerItems,
+            selectedKey,
+            animate,
+            animatedFolderToggleId
+        )
     }
 
-    private fun tintDrawerMenuIcons(menu: Menu, tint: Int) {
-        for (i in 0 until menu.size()) {
-            val item = menu.getItem(i)
-            item.icon = DisplayUtil.opaqueTintDrawable(this, item.icon, tint)
-            if (item.hasSubMenu()) {
-                tintDrawerMenuIcons(item.subMenu!!, tint)
+    private fun appendDrawerFolderItems(
+        parentFolderId: Long?,
+        level: Int,
+        childrenByParent: Map<Long?, List<ThingFolder>>,
+        visibleItems: MutableList<DrawerFolderItem>
+    ) {
+        val children = childrenByParent[parentFolderId] ?: return
+        for (folder in children) {
+            val hasChildren = !childrenByParent[folder.id].isNullOrEmpty()
+            visibleItems.add(DrawerFolderItem(folder, level, hasChildren))
+            if (hasChildren && mExpandedDrawerFolderIds.contains(folder.id)) {
+                appendDrawerFolderItems(folder.id, level + 1, childrenByParent, visibleItems)
             }
         }
+    }
+
+    private fun createDrawerDestinationItem(
+        itemId: Int,
+        titleRes: Int,
+        iconRes: Int,
+        dividerBefore: Boolean = false,
+        groupStart: Boolean = false,
+        groupEnd: Boolean = false
+    ): DrawerNavigationView.DrawerItem {
+        return DrawerNavigationView.DrawerItem(
+            key = DrawerNavigationView.ItemKey.Destination(itemId),
+            title = getString(titleRes),
+            iconRes = iconRes,
+            dividerBefore = dividerBefore,
+            groupStart = groupStart,
+            groupEnd = groupEnd
+        )
+    }
+
+    private fun createDrawerFolderItem(
+        drawerFolderItem: DrawerFolderItem,
+        groupEnd: Boolean = false
+    ): DrawerNavigationView.DrawerItem {
+        val folder = drawerFolderItem.folder
+        return DrawerNavigationView.DrawerItem(
+            key = DrawerNavigationView.ItemKey.Folder(folder.id),
+            title = folder.title.ifEmpty { getString(R.string.default_thing_folder_name) },
+            folderBackground = folder.getBackground() ?: ThingBackground.pure(folder.getColor()),
+            folderLevel = drawerFolderItem.level,
+            hasChildFolders = drawerFolderItem.hasChildren,
+            folderExpanded = mExpandedDrawerFolderIds.contains(folder.id),
+            groupEnd = groupEnd
+        )
+    }
+
+    private fun toggleDrawerFolderExpanded(folderId: Long) {
+        if (mExpandedDrawerFolderIds.contains(folderId)) {
+            mExpandedDrawerFolderIds.remove(folderId)
+        } else {
+            mExpandedDrawerFolderIds.add(folderId)
+        }
+        updateDrawerFolderItems(animate = true, animatedFolderToggleId = folderId)
+    }
+
+    private fun getDrawerDestinationKeyForLimit(
+        limit: Int
+    ): DrawerNavigationView.ItemKey.Destination {
+        val itemId = when (limit) {
+            Def.LimitForGettingThings.ALL_UNDERWAY -> R.id.drawer_underway
+            Def.LimitForGettingThings.NOTE_UNDERWAY -> R.id.drawer_note
+            Def.LimitForGettingThings.REMINDER_UNDERWAY -> R.id.drawer_reminder
+            Def.LimitForGettingThings.HABIT_UNDERWAY -> R.id.drawer_habit
+            Def.LimitForGettingThings.GOAL_UNDERWAY -> R.id.drawer_goal
+            Def.LimitForGettingThings.ALL_FINISHED -> R.id.drawer_finished
+            Def.LimitForGettingThings.ALL_DELETED -> R.id.drawer_deleted
+            else -> R.id.drawer_underway
+        }
+        return DrawerNavigationView.ItemKey.Destination(itemId)
+    }
+
+    private fun findDrawerSelectionKeyForCurrentProjection(): DrawerNavigationView.ItemKey {
+        if (mApp!!.getLimit() == Def.LimitForGettingThings.ALL_UNDERWAY) {
+            val currentFolderId = mThingManager!!.getProjection().currentFolderId
+            if (currentFolderId != null) {
+                val visibleFolderKey = findVisibleDrawerFolderKey(currentFolderId)
+                if (visibleFolderKey != null) return visibleFolderKey
+            }
+        }
+        return getDrawerDestinationKeyForLimit(mApp!!.getLimit())
+    }
+
+    private fun findVisibleDrawerFolderKey(
+        folderId: Long
+    ): DrawerNavigationView.ItemKey.Folder? {
+        val path = mThingManager!!.getFolderPath(folderId)
+        if (path.isEmpty()) return null
+
+        var nearestVisibleFolder: ThingFolder? = null
+        for (i in path.indices) {
+            if (i > 0 && !mExpandedDrawerFolderIds.contains(path[i - 1].id)) {
+                break
+            }
+            nearestVisibleFolder = path[i]
+            if (i < path.size - 1 && !mExpandedDrawerFolderIds.contains(path[i].id)) {
+                break
+            }
+        }
+        return nearestVisibleFolder?.let {
+            DrawerNavigationView.ItemKey.Folder(it.id)
+        }
+    }
+
+    private fun updateCheckedDrawerItemForCurrentProjection() {
+        checkDrawerItem(findDrawerSelectionKeyForCurrentProjection())
+    }
+
+    private fun expandDrawerFolderAncestors(folderId: Long) {
+        val path = mThingManager!!.getFolderPath(folderId)
+        for (i in 0 until path.size - 1) {
+            mExpandedDrawerFolderIds.add(path[i].id)
+        }
+    }
+
+    private fun openDrawerThingFolder(folder: ThingFolder) {
+        if (shouldProtectFolderForAccess(folder.id)) {
+            authenticateThingFolder(folder) {
+                openDrawerThingFolderAfterAccess(folder, true)
+            }
+        } else {
+            openDrawerThingFolderAfterAccess(folder, false)
+        }
+    }
+
+    private fun openDrawerThingFolderAfterAccess(
+        folder: ThingFolder,
+        authenticated: Boolean
+    ) {
+        mDrawerLayout!!.closeDrawer(GravityCompat.START)
+        if (mApp!!.getLimit() != Def.LimitForGettingThings.ALL_UNDERWAY) {
+            mApp!!.setLimit(Def.LimitForGettingThings.ALL_UNDERWAY, false)
+        }
+        expandDrawerFolderAncestors(folder.id)
+        mThingManager!!.openFolderPath(folder.id, authenticated)
+        checkDrawerItem(DrawerNavigationView.ItemKey.Folder(folder.id))
+        refreshHomeAfterDrawerFolderNavigation()
+    }
+
+    private fun refreshHomeAfterDrawerFolderNavigation() {
+        finishNewItemShiningBorderAnimationIfNeeded()
+        invalidateOptionsMenu()
+        mRecyclerView!!.scrollToPosition(0)
+        mAdapter!!.setShouldThingsAnimWhenAppearing(true)
+        mAdapter!!.notifyDataSetChanged()
+        mActivityHeader!!.updateText()
+        mDrawerHeader!!.updateTexts()
+        mFab!!.spread()
+        updateDrawerFolderItems()
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
@@ -939,10 +1198,8 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             mActivityHeader!!.reset(false)
         }
 
-        val underway: MenuItem = mDrawer!!.menu[0]
-        mPreviousItem!!.isChecked = false
-        underway.isChecked = true
-        mPreviousItem = underway
+        updateDrawerFolderItems()
+        checkDrawerItem(getDrawerDestinationKeyForLimit(Def.LimitForGettingThings.ALL_UNDERWAY))
 
         val createdDone = data.getBooleanExtra(Def.Communication.KEY_CREATED_DONE, false)
         val justNotifyAll = App.justNotifyAll()
@@ -1252,6 +1509,7 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
 
         mActivityHeader!!.updateText()
         mDrawerHeader!!.updateCompletionRate()
+        updateDrawerFolderItems()
 
         if (mModeManager!!.getCurrentMode() == ModeManager.SELECTING) {
             updateSelectingUi(false)
@@ -1302,9 +1560,8 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
 
         mDrawerLayout = f(R.id.drawer_layout)
         mDrawer       = f(R.id.drawer)
-        applyDrawerMenuIconTintForAppearance()
 
-        val dhView: View = mDrawer!!.getHeaderView(0)
+        val dhView: View = mDrawer!!.getHeaderView()
         mDrawerHeader = DrawerHeader(
             mApp!!,
             f(dhView, R.id.iv_drawer_header),
@@ -1431,10 +1688,8 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 }
             })
 
-        val item: MenuItem = mDrawer!!.menu[mApp!!.getLimit()]
-        item.isCheckable = true
-        item.isChecked = true
-        mPreviousItem = item
+        updateDrawerFolderItems()
+        checkDrawerItem(findDrawerSelectionKeyForCurrentProjection())
 
         mActivityHeader!!.updateText()
         if (mModeManager!!.getCurrentMode() == ModeManager.SELECTING) {
@@ -1651,6 +1906,7 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                         mAdapter!!.notifyDataSetChanged()
                         mRecyclerView!!.scrollToPosition(0)
                         mActivityHeader!!.updateText()
+                        updateDrawerFolderItems()
                         return
                     }
                     if (!FrequentSettings.getBoolean(Def.Meta.KEY_TWICE_BACK)) {
@@ -1675,7 +1931,7 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             mRecyclerView!!.smoothScrollToPosition(0)
         }
 
-        mDrawer!!.getHeaderView(0).setOnClickListener {
+        mDrawer!!.getHeaderView().setOnClickListener {
             val intent = Intent(this@ThingsActivity, StatisticActivity::class.java)
             startActivity(intent)
             mShouldCloseDrawer = true
@@ -4210,6 +4466,7 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         hideThingCardAppearancePanel()
         clearThingCardAppearanceDraft()
         if (mThingManager!!.updateFolderAppearance(folder, title, draft)) {
+            updateDrawerFolderItems()
             AppWidgetHelper.updateAllThingsListAppWidgets(this)
         }
         if (mModeManager!!.getCurrentMode() == ModeManager.SELECTING) {
@@ -4992,42 +5249,59 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         applyHomeNavigationIconTintForAppearance()
 
         mActionbar!!.setNavigationOnClickListener(OnNavigationIconClickedListener())
-        mDrawer!!.setNavigationItemSelectedListener(NavigationView.OnNavigationItemSelectedListener { menuItem ->
-            if (mPreviousItem!! != menuItem) {
-                val newLimit: Int = when (menuItem.itemId) {
-                    R.id.drawer_underway -> Def.LimitForGettingThings.ALL_UNDERWAY
-                    R.id.drawer_note -> Def.LimitForGettingThings.NOTE_UNDERWAY
-                    R.id.drawer_reminder -> Def.LimitForGettingThings.REMINDER_UNDERWAY
-                    R.id.drawer_habit -> Def.LimitForGettingThings.HABIT_UNDERWAY
-                    R.id.drawer_goal -> Def.LimitForGettingThings.GOAL_UNDERWAY
-                    R.id.drawer_finished -> Def.LimitForGettingThings.ALL_FINISHED
-                    R.id.drawer_deleted -> Def.LimitForGettingThings.ALL_DELETED
-                    R.id.drawer_settings -> {
-                        val intent = Intent(this@ThingsActivity, SettingsActivity::class.java)
-                        startActivityForResult(intent, Def.Communication.REQUEST_ACTIVITY_SETTINGS)
-                        mShouldCloseDrawer = true
-                        return@OnNavigationItemSelectedListener true
+        mDrawer!!.setOnFolderExpandClickListener { folderId ->
+            toggleDrawerFolderExpanded(folderId)
+        }
+        mDrawer!!.setOnDrawerItemClickListener { drawerItem ->
+            when (val key = drawerItem.key) {
+                is DrawerNavigationView.ItemKey.Folder -> {
+                    if (mCurrentDrawerSelectionKey == key) return@setOnDrawerItemClickListener
+                    mThingManager!!.getFolderById(key.folderId)?.let {
+                        openDrawerThingFolder(it)
                     }
-                    R.id.drawer_help -> {
-                        startActivity(Intent(this@ThingsActivity, HelpActivity::class.java))
-                        mShouldCloseDrawer = true
-                        return@OnNavigationItemSelectedListener true
-                    }
-                    R.id.drawer_about -> {
-                        startActivity(Intent(this@ThingsActivity, AboutActivity::class.java))
-                        mShouldCloseDrawer = true
-                        return@OnNavigationItemSelectedListener true
-                    }
-                    else -> return@OnNavigationItemSelectedListener true
                 }
-
-                mDrawerLayout!!.closeDrawer(GravityCompat.START)
-                checkDrawerItem(menuItem)
-
-                changeToLimit(newLimit, false)
+                is DrawerNavigationView.ItemKey.Destination -> {
+                    handleDrawerDestinationClick(key)
+                }
             }
-            true
-        })
+        }
+    }
+
+    private fun handleDrawerDestinationClick(
+        key: DrawerNavigationView.ItemKey.Destination
+    ) {
+        if (mCurrentDrawerSelectionKey == key) return
+
+        val newLimit: Int = when (key.itemId) {
+            R.id.drawer_underway -> Def.LimitForGettingThings.ALL_UNDERWAY
+            R.id.drawer_note -> Def.LimitForGettingThings.NOTE_UNDERWAY
+            R.id.drawer_reminder -> Def.LimitForGettingThings.REMINDER_UNDERWAY
+            R.id.drawer_habit -> Def.LimitForGettingThings.HABIT_UNDERWAY
+            R.id.drawer_goal -> Def.LimitForGettingThings.GOAL_UNDERWAY
+            R.id.drawer_finished -> Def.LimitForGettingThings.ALL_FINISHED
+            R.id.drawer_deleted -> Def.LimitForGettingThings.ALL_DELETED
+            R.id.drawer_settings -> {
+                val intent = Intent(this@ThingsActivity, SettingsActivity::class.java)
+                startActivityForResult(intent, Def.Communication.REQUEST_ACTIVITY_SETTINGS)
+                mShouldCloseDrawer = true
+                return
+            }
+            R.id.drawer_help -> {
+                startActivity(Intent(this@ThingsActivity, HelpActivity::class.java))
+                mShouldCloseDrawer = true
+                return
+            }
+            R.id.drawer_about -> {
+                startActivity(Intent(this@ThingsActivity, AboutActivity::class.java))
+                mShouldCloseDrawer = true
+                return
+            }
+            else -> return
+        }
+
+        mDrawerLayout!!.closeDrawer(GravityCompat.START)
+        checkDrawerItem(key)
+        changeToLimit(newLimit, false)
     }
 
     private fun applyHomeNavigationIconTintForAppearance() {
@@ -5050,8 +5324,7 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     private fun changeToLimit(newLimit: Int, updateDrawerItem: Boolean) {
         finishNewItemShiningBorderAnimationIfNeeded()
         if (updateDrawerItem) {
-            val menuItem: MenuItem = mDrawer!!.menu[newLimit]
-            checkDrawerItem(menuItem)
+            checkDrawerItem(getDrawerDestinationKeyForLimit(newLimit))
         }
 
         mRecyclerView!!.visibility = View.INVISIBLE
@@ -5066,6 +5339,7 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             mAdapter!!.setShouldThingsAnimWhenAppearing(true)
             mThingManager!!.loadThings()
             mAdapter!!.notifyDataSetChanged()
+            updateDrawerFolderItems()
         }, 360)
 
         mActivityHeader!!.updateText()
@@ -5077,11 +5351,9 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         }
     }
 
-    private fun checkDrawerItem(menuItem: MenuItem) {
-        menuItem.isCheckable = true
-        menuItem.isChecked = true
-        mPreviousItem!!.isChecked = false
-        mPreviousItem = menuItem
+    private fun checkDrawerItem(key: DrawerNavigationView.ItemKey?) {
+        mCurrentDrawerSelectionKey = key
+        mDrawer?.setSelectedKey(key)
     }
 
     private fun handleUpdateStates(stateAfter: Int) {
@@ -5684,10 +5956,12 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         authenticated: Boolean = false
     ) {
         mThingManager!!.openFolder(folder.id, authenticated)
+        expandDrawerFolderAncestors(folder.id)
         mAdapter!!.setShouldThingsAnimWhenAppearing(true)
         mAdapter!!.notifyDataSetChanged()
         mRecyclerView!!.scrollToPosition(0)
         mActivityHeader!!.updateText()
+        updateDrawerFolderItems()
     }
 
     private fun showThingFolderActionsOrAuthenticate(entry: ThingListEntry.FolderEntry) {
@@ -6135,6 +6409,7 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         mAdapter!!.notifyDataSetChanged()
         mActivityHeader!!.updateText()
         mDrawerHeader!!.updateTexts()
+        updateDrawerFolderItems()
         invalidateOptionsMenu()
     }
 
@@ -6222,6 +6497,7 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     private fun updateHomeAfterFolderDropCommitted() {
         mActivityHeader!!.updateText()
         mDrawerHeader!!.updateTexts()
+        updateDrawerFolderItems()
         AppWidgetHelper.updateAllThingsListAppWidgets(mApp)
     }
 
@@ -6425,6 +6701,7 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         mAdapter!!.notifyDataSetChanged()
         mRecyclerView!!.scrollToPosition(0)
         mActivityHeader!!.updateText()
+        updateDrawerFolderItems()
     }
 
     private data class PendingFolderDrop(
@@ -7813,6 +8090,7 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 }
                 mActivityHeader!!.updateText()
                 mDrawerHeader!!.updateTexts()
+                updateDrawerFolderItems()
             }
         }, 160)
     }
@@ -8075,6 +8353,12 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             )
         }
     }
+
+    private data class DrawerFolderItem(
+        val folder: ThingFolder,
+        val level: Int,
+        val hasChildren: Boolean
+    )
 
     companion object {
         const val TAG: String = "ThingsActivity"

@@ -104,15 +104,12 @@
 
         </FrameLayout>
 
-        <com.google.android.material.navigation.NavigationView
+        <com.ywwynm.everythingdone.views.DrawerNavigationView
             android:id="@+id/drawer"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:layout_gravity="start"
-            android:theme="@style/EverythingDoneTheme.Things.Drawer"
-            app:headerLayout="@layout/drawer_header"
-            app:menu="@menu/menu_drawer"
-            app:itemTextColor="@color/app_chrome_on_surface_primary"/>
+            android:theme="@style/EverythingDoneTheme.Things.Drawer"/>
 
     </androidx.drawerlayout.widget.DrawerLayout>
 

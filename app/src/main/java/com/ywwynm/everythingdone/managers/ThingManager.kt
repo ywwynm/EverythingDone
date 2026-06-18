@@ -255,6 +255,20 @@ open class ThingManager private constructor(context: Context?) {
         return mFolderDao!!.getFolderPath(mProjection.currentFolderId)
     }
 
+    open fun getFolderPath(folderId: Long?): List<ThingFolder> {
+        return mFolderDao!!.getFolderPath(folderId)
+    }
+
+    open fun getDrawerFolders(): List<ThingFolder> {
+        val folders = ArrayList<ThingFolder>()
+        for (folder in mFolderDao!!.getAllFolders()) {
+            if (!mFolderDao!!.isEffectivelyDeleted(folder.id)) {
+                folders.add(folder)
+            }
+        }
+        return folders
+    }
+
     open fun isCurrentFolderEffectivelyPrivate(): Boolean {
         return mFolderDao!!.isEffectivelyPrivate(mProjection.currentFolderId)
     }
@@ -279,6 +293,21 @@ open class ThingManager private constructor(context: Context?) {
             mAuthenticatedPrivateFolderIds.add(folderId)
         }
         mProjection = mProjection.openFolder(folderId)
+        trimAuthenticatedPrivateFoldersToProjection()
+        loadThings()
+    }
+
+    open fun openFolderPath(folderId: Long, authenticated: Boolean = false) {
+        val path = mFolderDao!!.getFolderPath(folderId)
+        if (path.isEmpty()) return
+        if (authenticated) {
+            for (folder in path) {
+                if (folder.isPrivate) {
+                    mAuthenticatedPrivateFolderIds.add(folder.id)
+                }
+            }
+        }
+        mProjection = mProjection.copy(folderPath = path.map { it.id })
         trimAuthenticatedPrivateFoldersToProjection()
         loadThings()
     }

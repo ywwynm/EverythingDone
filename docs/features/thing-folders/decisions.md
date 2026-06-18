@@ -26,6 +26,8 @@ membership.
 
 ## 2026-06-15 - Thing Folders are list projections, not drawer items
 
+Superseded by the 2026-06-17 Drawer folder tree decision below.
+
 Thing Folders are not shown as drawer items. The drawer stays focused on
 built-in global destinations such as Underway, Notes, Reminders, Habits, Goals,
 Finished, and Deleted.
@@ -38,6 +40,35 @@ opens that built-in destination at its root.
 
 Header text shows the built-in destination at root and shows the projected path
 when inside folders, for example `Finished / Folder / Child Folder`.
+
+## 2026-06-17 - Drawer shows the Underway Folder tree
+
+The Drawer should show the non-deleted Thing Folder tree directly under the
+Underway item and above the Note item. Underway acts as the root directory.
+
+The first Folder level is always visible because the Underway root is always
+expanded. Deeper Folder levels are shown only when their parent Folder is
+expanded. Folders with child Folders show a trailing dropdown affordance; tapping
+that affordance toggles expansion without changing the selected destination.
+
+Tapping a Folder row opens that Folder within the Underway projection. The
+Drawer has one checked item at a time: an opened Folder row, Underway root, or
+one of the other built-in destinations.
+
+Folder hierarchy is represented by a small indentation that begins at the
+Folder icon. Folder icons should use each Folder's own background, supporting
+both pure colours and gradients. The Note group starts after a separator below
+the Folder tree.
+
+## 2026-06-18 - Home Drawer uses an app-owned navigation view
+
+The home Drawer no longer relies on Material `NavigationView` for its item
+rows. Folder tree requirements need precise control over indentation, title
+width, trailing expand/collapse affordances, row animation, selected state, and
+view recycling. The home Drawer should use the app-owned
+`DrawerNavigationView`, backed by typed rows and a RecyclerView adapter, while
+continuing to reuse the existing `DrawerHeader`, `DrawerLayout`, and toolbar
+toggle behavior.
 
 ## 2026-06-15 - Folder Card counts are recursive and include private Things
 

@@ -522,7 +522,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         countView.maxLines = 1
         countView.ellipsize = TextUtils.TruncateAt.END
         countView.text = countText
-        countView.setTextColor(textColorSecondary(baseColor))
+        countView.setTextColor(textColorTertiary(baseColor))
         countView.layoutParams = LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT

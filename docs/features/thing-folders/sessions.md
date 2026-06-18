@@ -1,5 +1,137 @@
 # Thing Folders Sessions
 
+## 2026-06-18 - Polish the custom Drawer tree controls
+
+- Fixed the custom Drawer width calculation. `DrawerLayout` already constrains
+  drawer children, so `DrawerNavigationView` no longer subtracts an additional
+  right margin from the incoming measure spec. The preferred Drawer width is now
+  320dp.
+- Made Drawer row press feedback visible by using a bounded ripple mask on the
+  row background while preserving a separate selected background colour.
+- Kept built-in Drawer destination icons in their original asset colours for
+  both normal and selected states instead of retinting selected icons to a
+  dimmer app chrome colour.
+- Added an explicit end margin to Folder title text when a trailing
+  expand/collapse affordance exists. Combined with the measured trailing button
+  width, this prevents the title from drawing beneath the affordance.
+- Changed Folder rows to always reserve the same trailing expand/collapse slot,
+  even for leaf Folders. Leaf rows hide the affordance but keep the slot width,
+  so Folder title right edges align with rows that do show an affordance.
+- Added an 8dp end margin to the expand/collapse slot so the affordance is not
+  flush with the Drawer edge.
+- Reduced the Folder expand/collapse touch target from 48dp to 40dp while
+  preserving the 24dp icon visual size, making the circular ripple less
+  oversized.
+- Rendered built-in Drawer destination icons through
+  `DisplayUtil.opaqueTintDrawable(...)` so the low-alpha PNG assets do not
+  remain visually washed out after tinting. Static destination icons and Drawer
+  item titles now share the dedicated `app_chrome_drawer_item_foreground`
+  resource in light and dark mode. The trailing Folder expand/collapse icon
+  uses the same foreground tier, while selected state uses background/bold
+  weight instead of a stronger foreground colour. The current Drawer foreground
+  value is `#B0000000` in light mode and `#B0FFFFFF` in dark mode.
+- Added explicit group-start and group-end spacing to `DrawerNavigationView`
+  rows. The Underway root plus visible Folder tree, Note/Reminder/Habit/Goal,
+  Finished/Deleted, and Settings/Help/About groups now each get 8dp breathing
+  room above the first row and below the last row.
+- Added bottom inset handling to `DrawerNavigationView`; the final Drawer row
+  now adds the current bottom system-bar/display-cutout inset to its bottom
+  spacer so the last item clears the navigation area.
+- Changed Folder Card recursive count text from the secondary text tier to the
+  tertiary hint tier used by ordinary Thing Card audio and hidden media count
+  labels, preserving light/dark foreground adaptation.
+- Passed the toggled Folder id from `ThingsActivity` to `DrawerNavigationView`
+  so the trailing icon can animate in the correct direction: clockwise on
+  expand and counter-clockwise on collapse.
+- Added a custom Drawer tree item animator so inserted Folder rows fade/slide
+  downward from above and removed rows fade/slide upward during collapse.
+- Verified with `git diff --check` and
+  `.\gradlew.bat :app:assembleDebug --console=plain`.
+
+## 2026-06-18 - Replace the home Drawer NavigationView
+
+- Added `DrawerNavigationView`, an app-owned vertical Drawer container that
+  keeps the existing `drawer_header` and renders Drawer rows through a
+  RecyclerView adapter with typed `Destination` and `Folder` keys.
+- Replaced the home `NavigationView` in `activity_things.xml` with
+  `DrawerNavigationView`. The app still uses the existing `DrawerLayout`,
+  `DrawerHeader`, and toolbar drawer toggle.
+- Moved Drawer Folder row rendering out of Android menu/action-view APIs.
+  Folder rows now have explicit 48dp height, 16dp hierarchy indentation from
+  the Folder icon, a fixed 48dp trailing expand/collapse target only when child
+  Folders exist, and single-line ellipsized titles that cannot draw beneath the
+  trailing affordance.
+- The custom Drawer adapter uses stable row keys and `DiffUtil`, so expanding
+  or collapsing a Folder subtree animates row insertions/removals without
+  relying on Material `NavigationView` presenter reuse.
+- Updated `ThingsActivity` so Drawer state is tracked as
+  `DrawerNavigationView.ItemKey` rather than `MenuItem`, while preserving the
+  existing static destinations, Folder privacy authentication, and
+  `openFolderPath(...)` navigation behavior.
+- Verified with `git diff --check` and
+  `.\gradlew.bat :app:assembleDebug --console=plain`.
+
+## 2026-06-18 - Stabilize Drawer Folder expansion and indentation
+
+- Increased Drawer Folder indentation to 16dp. The custom Folder icon drawable
+  now treats indentation as extra leading width before a fixed 24dp icon, so
+  the icon itself is not scaled down and the Folder title typography remains
+  unchanged.
+- Revised Drawer Folder indentation so the first Folder level's title aligns
+  with the Underway root title, while the visible hierarchy offset starts at
+  the Folder icon. Deeper Folder levels preserve the same icon-to-title gap.
+- Constrained Drawer Folder titles before the trailing expand/collapse action
+  area by giving expandable rows a fixed 48dp action view and keeping Drawer
+  menu item text single-line with ellipsis.
+- Added the existing app chrome circular ripple treatment to the trailing
+  expand/collapse action view.
+- Added a short transition/fade-slide animation when expanding or collapsing a
+  Drawer Folder subtree so newly inserted rows do not simply flash into place.
+- Fixed stale and cross-wired Drawer dropdown action views by assigning each
+  Folder a stable dynamic `MenuItem` id based on its Folder id lifetime in the
+  Activity, instead of deriving ids from the current visible row index.
+- Leaf Folder rows now bind an explicit zero-size empty action view instead of
+  `null`, preventing `NavigationView` from retaining a recycled dropdown icon
+  on Folders that do not have child Folders.
+- Verified with `git diff --check` and
+  `.\gradlew.bat :app:assembleDebug --console=plain`.
+
+## 2026-06-17 - Add the Underway Folder tree to the Drawer
+
+- Superseded the earlier "Folders stay out of the Drawer" decision. The Drawer
+  now shows the non-deleted Thing Folder tree under Underway and above Note,
+  with the Note group separated from the Underway root and Folder tree.
+- Split the static Drawer menu so Underway and dynamic Folder rows share one
+  group, while Note/Reminder/Habit/Goal start in a separate group with the
+  requested separator above Note.
+- Added dynamic Drawer Folder rows in `ThingsActivity`. The Underway root is
+  always expanded, so first-level Folders are always visible; deeper levels are
+  shown only when their parent Folder's trailing dropdown action view is
+  expanded.
+- Corrected Drawer ordering by assigning explicit menu order values: dynamic
+  Folder rows sit directly below Underway, while Note and later built-in items
+  keep their separator below the Folder tree.
+- Adjusted Folder indentation so even first-level Folders have a visible indent
+  under the Underway root, and leaf Folders do not show a trailing dropdown.
+- Increased Drawer Folder indentation to 16dp and changed the custom Folder
+  icon drawable so indentation adds leading width before a fixed-size icon
+  rather than shrinking the icon.
+- Fixed stale/wrong dropdown actions by assigning a stable Drawer `MenuItem` id
+  per Folder id instead of deriving item ids from visible row indexes. Leaf
+  Folder rows now explicitly clear their action view so a recycled dropdown
+  cannot remain attached.
+- Drawer Folder rows open the Folder in the Underway projection through a full
+  Folder path, so header path navigation still works for nested Folders.
+  Effective private Folders reuse the existing private authentication flow.
+- Kept Drawer selection single-item: built-in destinations, Underway root, or
+  the current visible Folder row. If the current Folder is inside a collapsed
+  subtree, the nearest visible ancestor is checked.
+- Added a custom Drawer Folder icon drawable that renders the Folder shape with
+  the Folder's own pure colour or gradient background, with modest hierarchy
+  indentation beginning at the icon.
+- Verified with `git diff --check` and
+  `.\gradlew.bat :app:assembleDebug --console=plain`.
+
 ## 2026-06-17 - Move entries to target top and keep private Folder titles visible
 
 - Updated Thing/Folder move semantics so moving a Thing into another Folder,

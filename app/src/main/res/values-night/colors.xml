@@ -10,6 +10,7 @@
     <color name="app_chrome_on_surface_high">#C4FFFFFF</color>
     <color name="app_chrome_on_surface_medium">#B0FFFFFF</color>
     <color name="app_chrome_on_surface_secondary">#A8FFFFFF</color>
+    <color name="app_chrome_drawer_item_foreground">#B0FFFFFF</color>
     <color name="app_chrome_control_unchecked">#A8FFFFFF</color>
     <color name="app_chrome_on_surface_hint">#66FFFFFF</color>
     <color name="app_chrome_on_surface_disabled">#61FFFFFF</color>

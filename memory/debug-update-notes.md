@@ -1,5 +1,82 @@
 # Current Debug Update Notes
 
+## 2026-06-18 - 修正 Drawer 暗色 icon、分组间距和文件夹数量提示色
+
+用户继续测试自定义 Drawer 和文件夹卡片后反馈三个视觉问题：暗色模式下“正在进行”“提醒”等 Drawer 内置 icon 颜色发浅；Drawer 已经由分割线划分成区域，每个区域的第一个 item 上方和最后一个 item 下方都需要留出一定 margin；文件夹卡片中“多少个文件夹/多少件记事”的数量提示文本颜色需要与音频、图片、视频数量提示文本一致，并支持亮色/暗色模式下偏黑/偏白的提示色。
+
+本次实现：
+- `DrawerNavigationView.kt` 为 `DrawerItem` 增加 `groupStart` / `groupEnd` 标记，并在每个 Drawer row 的 divider、content 上下加入可隐藏的 8dp spacer。`ThingsActivity.kt` 按“正在进行 + 可见文件夹树”“记录/提醒/习惯/目标”“已完成/已删除”“设置/帮助/关于”四个区域设置首尾标记，所以分割线两侧和区域边界都有稳定留白。
+- `DrawerNavigationView.kt` 改用 `DisplayUtil.opaqueTintDrawable(...)` 渲染内置 destination icon，避免普通 tint 继续保留 PNG 资源本身偏低的 alpha，导致暗色模式下图标仍然发浅。内置 destination icon、Drawer item 文字和文件夹展开/收缩 icon 现在统一使用 Drawer 专用的 `app_chrome_drawer_item_foreground`，当前值介于 primary 和 secondary 之间：浅色模式 `#B0000000`，暗色模式 `#B0FFFFFF`；selected 状态只使用背景和加粗，不再单独改前景色。最后一个 Drawer row 还会把当前 bottom system-bar/display-cutout inset 叠加到底部 spacer 上，避免被系统导航区域压住。
+- `ThingsAdapter.kt` 将文件夹卡片数量文本从 `textColorSecondary(...)` 调整为 `textColorTertiary(...)`，与普通 Thing Card 的音频数量和隐藏媒体数量提示文本保持同一颜色层级；summary 文件夹继续按文件夹背景选择黑/白，thumbnail 文件夹继续按列表背景选择黑/白。
+- 同步更新 `docs/features/thing-folders/preferences.md` 和 `sessions.md`。
+
+验证状态：`git diff --check` 通过，仅有仓库既有 LF/CRLF 提示；已执行 `.\gradlew.bat :app:assembleDebug --console=plain`，结果 `BUILD SUCCESSFUL`。发布状态：用户此前说明自行发布，本次不主动发布 debug update。
+
+## 2026-06-18 - 打磨自定义 Drawer 的宽度、ripple、标题和展开动画
+
+用户测试自定义 Drawer 后继续反馈几个问题：Drawer 宽度变窄；触摸 item 没有 ripple，文件夹展开按钮 ripple 又偏大；选中“正在进行”“记录”等原有 item 时 icon 变淡；文件夹名称的右侧仍然不应超过展开/收缩 icon 的左侧，应直接设置 end margin；展开/收缩动画应表现为子文件夹从上往下出现或从下往上收起，同时右侧 icon 分别顺时针/逆时针旋转 180 度。随后又补充：展开按钮右侧需要 margin；无论有没有展开按钮，文件夹标题都要预留同样的右侧展开按钮空间；同时“正在进行/记录”等原有 icon 需要适配暗色模式。
+
+本次实现：
+- 修正 `DrawerNavigationView` 的宽度测量：`DrawerLayout` 已经会给 drawer child 传入受约束的宽度，因此自定义 view 不再二次减去 56dp 右侧余量；自定义 Drawer 首选宽度调为 320dp，避免上一版偏窄。
+- 修正 Drawer item 的触摸反馈：row background 使用带 mask 的 bounded ripple，并保留单独的选中背景色，保证普通 item 和选中 item 触摸时都能看到 ripple。
+- 文件夹展开/收缩按钮触控区域从 48dp 调小到 40dp，内部 padding 调整为 8dp，使实际图标仍保持约 24dp，但圆形 ripple 不再显得过大。
+- 原有静态 Drawer item 的 icon 在亮色模式保持资源原图颜色，避免选中“正在进行”“记录”等 item 时 icon 变淡；暗色模式下统一 tint 到 app chrome 可读色，保证原有 icon 也适配暗色背景。
+- 文件夹 title `TextView` 增加显式 8dp end margin；所有文件夹行都固定保留同一块右侧展开按钮空间，即使叶子文件夹没有子文件夹也只是隐藏按钮而不释放宽度，因此有无展开按钮的文件夹标题右边界保持一致，长文件夹名称会在按钮左侧之前省略，不会画到按钮下面。
+- 展开/收缩按钮右侧新增 8dp margin，避免按钮和 ripple 贴到 Drawer 边缘。
+- `ThingsActivity.kt` 在切换文件夹展开状态时把 toggled folder id 传给 `DrawerNavigationView`，让右侧 icon 能播放方向明确的旋转：展开时从朝下顺时针旋转 180 度到朝上，收缩时逆时针旋转 180 度回到朝下。
+- `DrawerNavigationView` 新增自定义 Drawer tree item animator：展开时新增子文件夹行从上方轻微下滑并淡入；收缩时被移除的子文件夹行向上收起并淡出。
+- 同步更新 `docs/features/thing-folders/preferences.md` 和 `sessions.md`。
+
+验证状态：`git diff --check` 通过；已执行 `.\gradlew.bat :app:assembleDebug --console=plain`，结果 `BUILD SUCCESSFUL`。发布状态：等待用户自行发布 debug update。
+
+## 2026-06-18 - 重写首页 Drawer 文件夹树为自定义导航组件
+
+用户判断继续修 Material `NavigationView` 的 `MenuItem/actionView` 路径已经不值得，因为文件夹树需要精确控制名称宽度、右侧展开按钮、缩进、点击反馈、展开动画和 view 复用状态；因此要求重写自己的 NavigationView。
+
+本次实现：
+- 新增 `DrawerNavigationView`：它是项目自己的 Drawer 导航容器，内部保留现有 `drawer_header`，下方用 RecyclerView 渲染强类型 row。row key 分为静态入口 `Destination` 和文件夹入口 `Folder`，不再依赖 Android menu presenter。
+- `activity_things.xml` 中首页 Drawer 从 `com.google.android.material.navigation.NavigationView` 替换为 `com.ywwynm.everythingdone.views.DrawerNavigationView`。现有 `DrawerLayout`、`DrawerHeader`、toolbar drawer toggle 和 header 点击进入统计页的行为继续复用。
+- `ThingsActivity.kt` 中的 Drawer 状态从 `MenuItem` 选中态改为 `DrawerNavigationView.ItemKey`。静态入口仍包括“正在进行”、记录、提醒、习惯、目标、已完成、已删除、设置、帮助、关于；文件夹入口仍在“正在进行”下方、“记录”上方，并且点击文件夹继续走 `openFolderPath(...)` 与现有私密文件夹认证流程。
+- 文件夹行布局现在完全由自定义组件控制：行高固定 48dp；第一级文件夹名称与“正在进行”文字对齐；层级缩进从文件夹 icon 开始，缩进为 16dp；文件夹 icon 保持 24dp 且使用文件夹自身纯色或渐变背景；有子文件夹时右侧才显示 48dp 展开/收起按钮，没有子文件夹时没有任何下拉按钮占位。
+- 文件夹名称是单行省略，并通过明确的横向布局约束在右侧展开/收起按钮左侧，不会画到按钮下面。展开/收起按钮复用 `BackgroundUtil.installAppChromeCircleRipple(...)`，保留圆形 ripple 并适配深色模式。
+- Drawer 行更新使用 RecyclerView stable id 和 `DiffUtil`，展开/收起文件夹时新增或移除的行由 RecyclerView 动画处理，不再依赖 `NavigationView` 内部 presenter 的 action view 复用行为。
+- “正在进行”“记录”等原有静态 Drawer icon 在亮色模式继续使用资源原图；暗色模式下统一 tint 到 app chrome 可读色，并且选中态不再额外改变 icon 颜色。
+- 新增英文、简中、繁中无障碍文案 `cd_expand_thing_folder` / `cd_collapse_thing_folder`。
+- 同步更新 `docs/features/thing-folders/decisions.md`、`preferences.md` 和 `sessions.md`，记录首页 Drawer 已切换为项目自有导航组件。
+
+验证状态：`git diff --check` 通过；已执行 `.\gradlew.bat :app:assembleDebug --console=plain`，结果 `BUILD SUCCESSFUL`。发布状态：等待用户自行发布 debug update。
+
+## 2026-06-18 - 修正 Drawer 文件夹树展开、缩进和名称宽度
+
+用户继续反馈 Drawer 文件夹树的几个交互和布局问题：第一级文件夹名称不应该因为缩进而偏离“正在进行”的文字位置，层级缩进应从文件夹 icon 开始；右侧下拉/上拉 icon 需要圆形 ripple 触摸反馈；展开/收起子文件夹时新增行不应闪烁出现；没有子文件夹的文件夹不应残留或复用下拉 icon；文件夹名称显示宽度不能超过右侧下拉/上拉 icon 的左侧。
+
+本次实现：
+- 调整 Drawer 文件夹 icon drawable 的缩进模型：第一级文件夹名称与“正在进行”文字对齐，视觉层级缩进从文件夹 icon 开始；二级及更深层级会让 icon 与名称一起右移，并保持相同的 icon 到名称间距。缩进仍为 16dp，不缩小文件夹 icon 或名称字体。
+- 有子文件夹的 Drawer 文件夹项继续显示右侧展开/收起 action view，该 action view 固定为 48dp 触控区域，并复用现有 `BackgroundUtil.installAppChromeCircleRipple(...)` 圆形 ripple，随 app chrome 颜色适配深色模式。
+- 没有子文件夹的 Drawer 文件夹项不再用 `setActionView(null)`，而是绑定一个 0 尺寸空 action view，避免 `NavigationView` 复用上一个 item 的下拉按钮，导致叶子文件夹仍显示 icon 或点击后切到别的文件夹展开状态。
+- 展开或收起 Drawer 文件夹时，动态菜单更新会触发布局过渡，并对当前可见菜单行做短暂 fade/slide 动画，减少子项直接闪烁出现或消失的感觉。
+- `NavigationView` 增加 `app:itemMaxLines="1"`，配合右侧固定 48dp action view，让长文件夹名称在展开/收起 icon 左侧单行省略，不画到按钮区域下面。
+- 同步更新 `docs/features/thing-folders/preferences.md` 和 `sessions.md`，记录 Drawer 文件夹树的缩进、触控反馈、动画和标题宽度约束。
+
+验证状态：`git diff --check` 通过；已执行 `.\gradlew.bat :app:assembleDebug --console=plain`，结果 `BUILD SUCCESSFUL`。发布状态：本说明已准备好，等待用户自行发布 debug update。
+
+## 2026-06-18 - Drawer 加入正在进行的文件夹树
+
+用户希望 Drawer 里显示所有文件夹，位置放在“正在进行”下面、“记录”上面，并且在“记录”上方保留分割线。“正在进行”相当于根目录，第一级文件夹始终显示；有子文件夹的文件夹右侧显示下拉 icon，点击展开，再点一次收回。文件夹层级通过较小缩进表示，缩进从 icon 开始。Drawer 每次只选中一个 item。用户还要求文件夹 icon 使用文件夹自身颜色显示，并且要支持纯色和渐变。
+
+本次实现：
+- `menu_drawer.xml` 拆分 Drawer 分组，让 `drawer_underway` 单独作为根分组；动态文件夹项插入同组，`drawer_note` 开始放到新的类型分组中，因此“记录”上方出现分割线。
+- `ThingManager.kt` 新增 `getDrawerFolders()` 和 `openFolderPath(...)`：Drawer 文件夹树只展示非 Deleted 的文件夹；点击嵌套文件夹时会按完整路径打开 Underway 投影，保留现有文件夹路径导航语义。
+- `ThingsActivity.kt` 新增动态 Drawer 文件夹树构建：第一级文件夹始终可见；更深层文件夹只在父文件夹展开后显示；右侧 `ic_dropdown` action view 负责展开/收回，不切换当前选中项。
+- 根据后续反馈修正 Drawer 排序和缩进：动态文件夹项显式排在“正在进行”和“记录”之间；因为“正在进行”相当于根目录，第一级文件夹也有默认缩进，缩进幅度最终调到 16dp；缩进作为 icon 前方的额外宽度，不缩小文件夹 icon 或文件夹名称。
+- 修复没有子文件夹的文件夹仍显示下拉 icon、以及点击下拉 icon 可能展开错误文件夹的问题：动态 Drawer 文件夹项不再使用可见列表 index 生成 `MenuItem` id，而是为每个 folderId 保留稳定 id；叶子文件夹项会显式清空 action view，避免 `NavigationView` 复用旧下拉按钮。
+- Drawer 文件夹行点击会打开对应文件夹；如果目标文件夹处于有效私密状态，则复用已有私密文件夹认证流程。打开文件夹卡片、点击路径面包屑、Back 返回父文件夹、移动/重命名/删除/解散/外观改名等路径都会刷新 Drawer 树和当前选中项。
+- Drawer 保持单选：当前在 Underway 根目录时选中“正在进行”；当前在可见文件夹时选中文件夹；如果当前深层文件夹所在子树被收起，则选中最近的可见祖先；其他内置列表继续选中对应 Drawer item。
+- 新增自绘 `DrawerFolderIconDrawable`，使用 `ThingBackground` 绘制文件夹形状，支持纯色和渐变方向；层级缩进从 icon 绘制区域开始，保持较小缩进。
+- 更新 `docs/features/thing-folders/decisions.md`、`preferences.md` 和 `sessions.md`，将旧的“文件夹不进入 Drawer”决策标记为被本次 Drawer 文件夹树规则取代。
+
+验证状态：`git diff --check` 通过；已执行 `.\gradlew.bat :app:assembleDebug --console=plain`，结果 `BUILD SUCCESSFUL`。发布状态：准备使用本说明发布 debug update 到阿里云 debug channel。
+
 ## 2026-06-17 - 文件夹长按、选择模式、外观调整和解散/删除
 
 用户希望文件夹卡片的长按行为与记事卡片保持一致，不再弹出旧的功能 Dialog：长按后可以拖拽文件夹、可以把文件夹拖进其他文件夹，拖拽后如果松手回到原位则进入选择模式。用户还要求文件夹卡片外观通过选择模式里的“调整卡片外观”入口调整；文件夹置顶复用 contextual menu；私密文件夹入口放到打开文件夹后的右上角 overflow 与选择模式 contextual menu；文件夹支持“解散文件夹”和“删除文件夹”，并且危险操作必须使用项目现有 DialogFragment；最后用户补充确认：删除文件夹在普通列表中只是把文件夹及其内部内容移动到 Deleted 状态，只有在回收站中才永久删除。
