@@ -340,6 +340,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
             if (shouldDimUnselectedContent(currentMode) && !selected) 0.42f else 1.0f
 
         if (currentMode == ModeManager.MOVING && selected) {
+            scheduleMovingCardScaleRecoveryIfReleased(card, "folder")
             ObjectAnimator.ofFloat(card, "scaleX", 1.11f).setDuration(96).start()
             ObjectAnimator.ofFloat(card, "scaleY", 1.11f).setDuration(96).start()
             if (!thumbnailMode) {
@@ -352,6 +353,17 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
                 card.cardElevation = 0f
             }
         } else {
+            val oldToken = card.getTag(R.id.tag_thing_card_moving_scale_recovery_token)
+            if (oldToken != null || card.scaleX != 1.0f || card.scaleY != 1.0f) {
+                logCardScaleRecoveryDebug(
+                    "folder-normal view=${System.identityHashCode(card)} " +
+                        "oldToken=${System.identityHashCode(oldToken)} " +
+                        "mode=$currentMode selected=$selected " +
+                        "finger=${card.getTag(R.id.tag_thing_card_finger_down)} " +
+                        "scale=${card.scaleX}/${card.scaleY}"
+                )
+            }
+            card.setTag(R.id.tag_thing_card_moving_scale_recovery_token, null)
             card.animate().cancel()
             card.scaleX = 1.0f
             card.scaleY = 1.0f
@@ -1211,6 +1223,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         if (v !is CardView || event == null) {
             return
         }
+        updateCardFingerState(v, event)
         if (mModeManager?.getCurrentMode() != ModeManager.NORMAL) {
             return
         }
@@ -1220,6 +1233,43 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
             MotionEvent.ACTION_UP,
             MotionEvent.ACTION_CANCEL,
             MotionEvent.ACTION_OUTSIDE -> animateCardTouchRelease(v)
+        }
+    }
+
+    private fun updateCardFingerState(card: CardView, event: MotionEvent) {
+        val action = event.actionMasked
+        val mode = mModeManager?.getCurrentMode()
+        val before = card.getTag(R.id.tag_thing_card_finger_down)
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> card.setTag(R.id.tag_thing_card_finger_down, true)
+            MotionEvent.ACTION_UP,
+            MotionEvent.ACTION_OUTSIDE -> card.setTag(R.id.tag_thing_card_finger_down, false)
+            MotionEvent.ACTION_CANCEL -> {
+                if (mModeManager?.getCurrentMode() != ModeManager.MOVING) {
+                    card.setTag(R.id.tag_thing_card_finger_down, false)
+                }
+            }
+        }
+        if (action == MotionEvent.ACTION_DOWN ||
+            action == MotionEvent.ACTION_UP ||
+            action == MotionEvent.ACTION_CANCEL ||
+            action == MotionEvent.ACTION_OUTSIDE
+        ) {
+            logCardScaleRecoveryDebug(
+                "touch action=${motionActionName(action)} view=${System.identityHashCode(card)} " +
+                    "mode=$mode before=$before after=${card.getTag(R.id.tag_thing_card_finger_down)} " +
+                    "scale=${card.scaleX}/${card.scaleY}"
+            )
+        }
+    }
+
+    private fun motionActionName(action: Int): String {
+        return when (action) {
+            MotionEvent.ACTION_DOWN -> "DOWN"
+            MotionEvent.ACTION_UP -> "UP"
+            MotionEvent.ACTION_CANCEL -> "CANCEL"
+            MotionEvent.ACTION_OUTSIDE -> "OUTSIDE"
+            else -> action.toString()
         }
     }
 

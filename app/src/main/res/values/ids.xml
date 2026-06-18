@@ -10,4 +10,6 @@
     <item name="tag_detail_attachment_image_load_key" type="id"/>
     <item name="tag_detail_attachment_image_render_request" type="id"/>
     <item name="tag_thing_folder_thumbnail_surface" type="id"/>
+    <item name="tag_thing_card_finger_down" type="id"/>
+    <item name="tag_thing_card_moving_scale_recovery_token" type="id"/>
 </resources>

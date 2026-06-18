@@ -49,6 +49,7 @@ import com.ywwynm.everythingdone.database.HabitDAO
 import com.ywwynm.everythingdone.database.ReminderDAO
 import com.ywwynm.everythingdone.helpers.AttachmentHelper
 import com.ywwynm.everythingdone.helpers.CheckListHelper
+import com.ywwynm.everythingdone.helpers.DebugFileLogger
 import com.ywwynm.everythingdone.helpers.MediaCropBitmapRenderer
 import com.ywwynm.everythingdone.helpers.ThingCardMediaHelper
 import com.ywwynm.everythingdone.managers.ModeManager
@@ -437,10 +438,71 @@ abstract class BaseThingsAdapter(context: Context?) :
     }
 
     private fun setNormalCardGeometry(cv: CardView) {
+        val oldToken = cv.getTag(R.id.tag_thing_card_moving_scale_recovery_token)
+        if (oldToken != null || cv.scaleX != 1.0f || cv.scaleY != 1.0f) {
+            logCardScaleRecoveryDebug(
+                "normal-geometry view=${System.identityHashCode(cv)} " +
+                    "oldToken=${System.identityHashCode(oldToken)} " +
+                    "finger=${cv.getTag(R.id.tag_thing_card_finger_down)} " +
+                    "scale=${cv.scaleX}/${cv.scaleY}"
+            )
+        }
+        cv.setTag(R.id.tag_thing_card_moving_scale_recovery_token, null)
         cv.animate().cancel()
         cv.scaleX = 1.0f
         cv.scaleY = 1.0f
         cv.cardElevation = mContext!!.resources.getDimension(R.dimen.thing_card_normal_elevation)
+    }
+
+    protected fun scheduleMovingCardScaleRecoveryIfReleased(cv: CardView, source: String) {
+        val token = Any()
+        cv.setTag(R.id.tag_thing_card_moving_scale_recovery_token, token)
+        val tokenId = System.identityHashCode(token)
+        logCardScaleRecoveryDebug(
+            "schedule source=$source view=${System.identityHashCode(cv)} " +
+                "token=$tokenId attached=${cv.isAttachedToWindow} " +
+                "finger=${cv.getTag(R.id.tag_thing_card_finger_down)} " +
+                "scale=${cv.scaleX}/${cv.scaleY}"
+        )
+        cv.postDelayed({
+            if (!cv.isAttachedToWindow) {
+                logCardScaleRecoveryDebug(
+                    "check-detached source=$source view=${System.identityHashCode(cv)} " +
+                        "token=$tokenId"
+                )
+                return@postDelayed
+            }
+            val currentToken = cv.getTag(R.id.tag_thing_card_moving_scale_recovery_token)
+            if (currentToken !== token) {
+                logCardScaleRecoveryDebug(
+                    "check-stale source=$source view=${System.identityHashCode(cv)} " +
+                        "token=$tokenId currentToken=${System.identityHashCode(currentToken)} " +
+                        "finger=${cv.getTag(R.id.tag_thing_card_finger_down)} " +
+                        "scale=${cv.scaleX}/${cv.scaleY}"
+                )
+                return@postDelayed
+            }
+            val fingerDown = cv.getTag(R.id.tag_thing_card_finger_down) == true
+            val stillEnlarged = cv.scaleX > 1.0f + MOVING_SCALE_RECOVERY_EPSILON ||
+                cv.scaleY > 1.0f + MOVING_SCALE_RECOVERY_EPSILON
+            logCardScaleRecoveryDebug(
+                "check source=$source view=${System.identityHashCode(cv)} " +
+                    "token=$tokenId fingerDown=$fingerDown " +
+                    "stillEnlarged=$stillEnlarged scale=${cv.scaleX}/${cv.scaleY}"
+            )
+            if (!fingerDown && stillEnlarged) {
+                logCardScaleRecoveryDebug(
+                    "recover source=$source view=${System.identityHashCode(cv)} " +
+                        "token=$tokenId scale=${cv.scaleX}/${cv.scaleY}"
+                )
+                ObjectAnimator.ofFloat(cv, "scaleX", 1.0f)
+                    .setDuration(MOVING_SCALE_RECOVERY_DURATION)
+                    .start()
+                ObjectAnimator.ofFloat(cv, "scaleY", 1.0f)
+                    .setDuration(MOVING_SCALE_RECOVERY_DURATION)
+                    .start()
+            }
+        }, MOVING_SCALE_RECOVERY_CHECK_DELAY)
     }
 
     protected open fun shouldDimUnselectedContent(currentMode: Int): Boolean {
@@ -2719,6 +2781,7 @@ abstract class BaseThingsAdapter(context: Context?) :
 
         if (currentMode == ModeManager.MOVING) {
             if (selected) {
+                scheduleMovingCardScaleRecoveryIfReleased(cv, "thing")
                 ObjectAnimator.ofFloat(cv, "scaleX", 1.11f).setDuration(96).start()
                 ObjectAnimator.ofFloat(cv, "scaleY", 1.11f).setDuration(96).start()
                 ObjectAnimator.ofFloat(
@@ -2888,6 +2951,21 @@ abstract class BaseThingsAdapter(context: Context?) :
         private const val THING_CARD_MEDIA_BITMAP_CACHE_MAX_BYTES = 24 * BYTES_PER_MEGABYTE
         private const val DEBUG_THING_FOLDER_VIDEO_CROP_PREFIX = "[DEBUG-tf-video-crop]"
         private const val DEBUG_THING_CARD_TEXT_PREVIEW_LENGTH = 80
+        private const val MOVING_SCALE_RECOVERY_CHECK_DELAY = 112L
+        private const val MOVING_SCALE_RECOVERY_DURATION = 96L
+        private const val MOVING_SCALE_RECOVERY_EPSILON = 0.001f
+        private const val CARD_SCALE_RECOVERY_LOG_NAME = "thing_card_scale_recovery.log"
+        private const val CARD_SCALE_RECOVERY_DEBUG_PREFIX = "[DEBUG-card-scale-recovery]"
+
+        @JvmStatic
+        fun logCardScaleRecoveryDebug(message: String) {
+            DebugFileLogger.log(
+                CARD_SCALE_RECOVERY_LOG_NAME,
+                message,
+                CARD_SCALE_RECOVERY_DEBUG_PREFIX,
+                startSession = true
+            )
+        }
 
         init {
             val context: Context = App.getApp()!!

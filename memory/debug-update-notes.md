@@ -1,5 +1,30 @@
 # Current Debug Update Notes
 
+## 2026-06-18 - 为卡片长按放大残留问题加入文件日志
+
+用户继续反馈上一版“放大动画结束后检测并自动缩回”的方案仍未生效，因此本次先不继续猜测原因，而是加入定向文件日志，方便从真机数据判断是哪一步没有发生。
+
+本次实现：
+- 新增通用 `DebugFileLogger.kt`，将调试日志写入 app-specific files 目录下的 `debug_logs` 文件夹，支持后台串行写入、日志轮转、可选 session header 和可选前缀；本次卡片问题只是第一个调用场景，对应文件为 `thing_card_scale_recovery.log`，每条相关日志带有 `[DEBUG-card-scale-recovery]` 前缀。
+- `ThingsAdapter.kt` 记录卡片触摸边界事件：`DOWN`、`UP`、`CANCEL`、`OUTSIDE`，包括当时 mode、finger tag 前后值和卡片 scale。
+- `BaseThingsAdapter.kt` 记录 moving-mode 放大恢复任务的调度、延迟检查、token 过期、view detached、是否仍放大、是否执行缩回动画，以及普通 Thing Card 恢复正常几何状态时的 token 清理。
+- `ThingsAdapter.kt` 同步记录 Folder Card 的放大恢复调度和 normal 分支清理；`ThingsActivity.kt` 在 `ItemTouchHelper.clearView(...)` 中记录拖拽结束时的 finger tag 和 scale。
+- 这些日志只观察状态，不改变长按、拖拽、进入 moving/selecting mode 或 Folder-drop 的业务流程。
+
+验证状态：已执行 `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`，结果 `BUILD SUCCESSFUL`。发布状态：本次未主动发布 debug update。
+
+## 2026-06-18 - 修正快速松手后卡片残留放大，同时恢复长按拖拽
+
+用户反馈上一版修复仍会影响现有功能：长按记事或文件夹卡片后无法正常拖拽。因此本次先撤销上一版“延迟触发拖拽/补发拖拽”的实现思路，改用用户提出的视觉兜底方案：不改长按后的业务状态机，也不拦截拖拽，只在放大动画完成后检查卡片是否需要自动缩回。
+
+本次实现：
+- `BaseThingsAdapter.kt` 在记事卡片进入 moving selected 放大动画前安排一次短延迟检查；如果检查时手指已经不在该卡片上、并且卡片仍处于放大状态，就自动播放缩小恢复动画。
+- `ThingsAdapter.kt` 将同一套恢复逻辑接入文件夹卡片，并通过 card view tag 记录手指是否仍按在卡片上。`ACTION_CANCEL` 在 moving 状态下不会直接当作“手指离开”，避免真实拖拽开始时系统发出的 cancel 事件误触发缩回。
+- `ThingsActivity.kt` 在 `ItemTouchHelper` 的 `clearView(...)` 中清理手指按下 tag，使拖拽结束后视觉状态可以回到干净状态。
+- `ids.xml` 新增两个专用 tag id，分别用于记录手指按下状态和延迟恢复任务 token，避免 RecyclerView 复用时旧任务误操作新绑定的卡片。
+
+验证状态：`git diff --check` 通过，仅有仓库既有 LF/CRLF 提示；已执行 `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`，结果 `BUILD SUCCESSFUL`。发布状态：本次未主动发布 debug update。
+
 ## 2026-06-18 - 修正 Drawer 暗色 icon、分组间距和文件夹数量提示色
 
 用户继续测试自定义 Drawer 和文件夹卡片后反馈三个视觉问题：暗色模式下“正在进行”“提醒”等 Drawer 内置 icon 颜色发浅；Drawer 已经由分割线划分成区域，每个区域的第一个 item 上方和最后一个 item 下方都需要留出一定 margin；文件夹卡片中“多少个文件夹/多少件记事”的数量提示文本颜色需要与音频、图片、视频数量提示文本一致，并支持亮色/暗色模式下偏黑/偏白的提示色。

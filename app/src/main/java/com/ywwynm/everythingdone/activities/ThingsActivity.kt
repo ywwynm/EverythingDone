@@ -7637,6 +7637,12 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 commitVisual.sourceView.visibility = View.INVISIBLE
             }
             super.clearView(recyclerView, viewHolder)
+            BaseThingsAdapter.logCardScaleRecoveryDebug(
+                "clearView view=${System.identityHashCode(viewHolder.itemView)} " +
+                    "beforeFinger=${viewHolder.itemView.getTag(R.id.tag_thing_card_finger_down)} " +
+                    "scale=${viewHolder.itemView.scaleX}/${viewHolder.itemView.scaleY}"
+            )
+            viewHolder.itemView.setTag(R.id.tag_thing_card_finger_down, false)
             clearActiveTouchItemZ(viewHolder.itemView)
             val listPosition = viewHolder.adapterPosition
             val folderDrop = pendingDrop

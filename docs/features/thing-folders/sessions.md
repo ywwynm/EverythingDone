@@ -1,5 +1,54 @@
 # Thing Folders Sessions
 
+## 2026-06-18 - Add file diagnostics for card scale recovery
+
+- Added targeted file diagnostics because the visual-only recovery for
+  fast-release long press still did not take effect on the user's device.
+- Introduced the generalized `DebugFileLogger`, which writes debug logs into
+  the app-specific files directory under `debug_logs/`, appends entries on a
+  background thread, rotates large log files, and can add a per-file session
+  header. The card-scale probe is only its first caller: it writes to
+  `thing_card_scale_recovery.log` with the unique
+  `[DEBUG-card-scale-recovery]` prefix through an adapter-local wrapper.
+- Instrumented the boundaries that distinguish the likely failure points:
+  touch `DOWN` / `UP` / `CANCEL` / `OUTSIDE`, moving-mode enlarge scheduling,
+  delayed recovery checks, stale-token or detached-view exits, actual recovery
+  animation start, normal-geometry resets, Folder-card resets, and
+  `ItemTouchHelper.clearView(...)`.
+- Kept the instrumentation observational only. It does not change long-press
+  dispatch, moving/selecting mode transitions, drag startup, or Folder-drop
+  behavior.
+
+Verification: `.\gradlew.bat :app:assembleDebug --console=plain
+--no-configuration-cache` completed with `BUILD SUCCESSFUL`. Debug update
+publishing was not run.
+
+## 2026-06-18 - Recover fast-release card scale without blocking drag
+
+- Reverted the previous pending long-press drag coordination attempt because it
+  could block dragging Thing and Folder cards after long press.
+- Kept the existing long-press mode and drag paths intact. Note cards still
+  call `ItemTouchHelper.startDrag(...)` directly after entering moving mode,
+  and Folder cards still rely on their existing moving-mode drag behavior.
+- Implemented the safer visual-only recovery proposed by the user: when a
+  Thing or Folder card starts its moving-mode enlarge animation, the adapter
+  schedules a short delayed check after the enlarge animation should have
+  completed. If the finger is no longer down on that card and the card is still
+  scaled above normal size, the card plays the existing shrink-back animation.
+- Tracked finger-down state through view tags instead of altering selection,
+  moving mode, or drag state. `ACTION_CANCEL` during moving mode intentionally
+  does not clear the finger-down tag, because a real drag can produce cancel
+  events while the finger is still on screen. The tag is cleared from
+  `ThingsTouchCallback.clearView(...)` when dragging finishes.
+- Added dedicated view tag ids for the finger state and scheduled recovery
+  token, so recycled card views can cancel stale delayed checks when their
+  normal geometry is restored or a newer enlarge animation starts.
+
+Verification: `git diff --check` passed apart from the repository's existing
+LF/CRLF warnings; `.\gradlew.bat :app:assembleDebug --console=plain
+--no-configuration-cache` completed with `BUILD SUCCESSFUL`. Debug update
+publishing was not run.
+
 ## 2026-06-18 - Polish the custom Drawer tree controls
 
 - Fixed the custom Drawer width calculation. `DrawerLayout` already constrains
