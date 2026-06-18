@@ -195,9 +195,16 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     private var mAdapter: ThingsAdapterWrapper? = null
     private var mThingsTouchHelper: ItemTouchHelper? = null
     private var mStaggeredGridLayoutManager: ThingsStaggeredLayoutManager? = null
+    private var mThingListPointerDown: Boolean = false
+    private var mThingListTouchSequence: Long = 0L
     private var mThingCardAppearancePanel: View? = null
     private var mTvThingCardAppearanceTitle: TextView? = null
     private var mEtFolderCardAppearanceName: EditText? = null
+
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        updateThingListPointerState(ev, "activity")
+        return super.dispatchTouchEvent(ev)
+    }
     private var mLlThingCardAppearanceSource: View? = null
     private var mTvThingCardAppearanceSource: TextView? = null
     private var mLlThingCardAppearanceVideoFrame: View? = null
@@ -5902,11 +5909,11 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                     mDrawerLayout!!.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED)
                     if (mApp!!.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
                         mModeManager!!.toMovingMode(listPosition)
-                        mRecyclerView!!.post {
-                            mThingsTouchHelper!!.startDrag(
-                                mRecyclerView!!.findViewHolderForAdapterPosition(listPosition)!!
-                            )
-                        }
+                        startLongPressDragIfTouchStillActive(
+                            listPosition,
+                            mThingListTouchSequence,
+                            "folder"
+                        )
                     } else {
                         entry.folder.selected = true
                         mModeManager!!.toSelectingMode(listPosition)
@@ -5924,11 +5931,11 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 mDrawerLayout!!.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED)
                 if (mApp!!.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
                     mModeManager!!.toMovingMode(listPosition)
-                    mRecyclerView!!.post {
-                        mThingsTouchHelper!!.startDrag(
-                            mRecyclerView!!.findViewHolderForAdapterPosition(listPosition)!!
-                        )
-                    }
+                    startLongPressDragIfTouchStillActive(
+                        listPosition,
+                        mThingListTouchSequence,
+                        "thing"
+                    )
                 } else {
                     thing.selected = true
                     mModeManager!!.toSelectingMode(listPosition)
@@ -5937,6 +5944,37 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 mModeManager!!.backNormalMode(listPosition)
             }
             return true
+        }
+    }
+
+    private fun startLongPressDragIfTouchStillActive(
+        listPosition: Int,
+        touchSequence: Long,
+        source: String
+    ) {
+        mRecyclerView!!.post {
+            val holder = mRecyclerView!!.findViewHolderForAdapterPosition(listPosition)
+            val touchStillActive =
+                mThingListPointerDown && mThingListTouchSequence == touchSequence
+            BaseThingsAdapter.logCardScaleRecoveryDebug(
+                "startDrag-check source=$source position=$listPosition " +
+                    "touchStillActive=$touchStillActive pointerDown=$mThingListPointerDown " +
+                    "sequence=$mThingListTouchSequence expectedSequence=$touchSequence " +
+                    "holder=${System.identityHashCode(holder?.itemView)}"
+            )
+            if (!touchStillActive) {
+                holder?.itemView?.setTag(R.id.tag_thing_card_finger_down, false)
+                holder?.itemView?.setTag(R.id.tag_thing_card_drag_active, false)
+                if (mModeManager!!.getCurrentMode() == ModeManager.MOVING) {
+                    mModeManager!!.toSelectingMode(listPosition)
+                }
+                return@post
+            }
+            if (holder != null) {
+                mThingsTouchHelper!!.startDrag(holder)
+            } else if (mModeManager!!.getCurrentMode() == ModeManager.MOVING) {
+                mModeManager!!.backNormalMode(listPosition)
+            }
         }
     }
 
@@ -5991,8 +6029,52 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 }
 
                 override fun onCancel() {
+            }
+        })
+    }
+
+    private fun updateThingListPointerState(event: MotionEvent, source: String) {
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                mThingListPointerDown = true
+                mThingListTouchSequence++
+                logThingListPointerState(source, event.actionMasked)
+            }
+            MotionEvent.ACTION_POINTER_DOWN -> {
+                mThingListPointerDown = true
+                logThingListPointerState(source, event.actionMasked)
+            }
+            MotionEvent.ACTION_UP,
+            MotionEvent.ACTION_CANCEL -> {
+                mThingListPointerDown = false
+                logThingListPointerState(source, event.actionMasked)
+            }
+            MotionEvent.ACTION_POINTER_UP -> {
+                if (event.pointerCount <= 1) {
+                    mThingListPointerDown = false
+                    logThingListPointerState(source, event.actionMasked)
                 }
-            })
+            }
+        }
+    }
+
+    private fun logThingListPointerState(source: String, action: Int) {
+        BaseThingsAdapter.logCardScaleRecoveryDebug(
+            "pointer source=$source action=${motionActionName(action)} " +
+                "down=$mThingListPointerDown sequence=$mThingListTouchSequence"
+        )
+    }
+
+    private fun motionActionName(action: Int): String {
+        return when (action) {
+            MotionEvent.ACTION_DOWN -> "DOWN"
+            MotionEvent.ACTION_UP -> "UP"
+            MotionEvent.ACTION_CANCEL -> "CANCEL"
+            MotionEvent.ACTION_OUTSIDE -> "OUTSIDE"
+            MotionEvent.ACTION_POINTER_DOWN -> "POINTER_DOWN"
+            MotionEvent.ACTION_POINTER_UP -> "POINTER_UP"
+            else -> action.toString()
+        }
     }
 
     private fun shouldProtectEffectivePrivateContent(
@@ -6494,6 +6576,25 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         }
     }
 
+    private fun runWhenThingListCanUpdate(reason: String, block: () -> Unit) {
+        val recyclerView = mRecyclerView ?: return
+        if (recyclerView.isComputingLayout ||
+            recyclerView.scrollState != RecyclerView.SCROLL_STATE_IDLE
+        ) {
+            BaseThingsAdapter.logCardScaleRecoveryDebug(
+                "defer-list-update reason=$reason " +
+                    "computing=${recyclerView.isComputingLayout} " +
+                    "scrollState=${recyclerView.scrollState}"
+            )
+            recyclerView.postDelayed({
+                runWhenThingListCanUpdate(reason, block)
+            }, 32L)
+            return
+        }
+        BaseThingsAdapter.logCardScaleRecoveryDebug("run-list-update reason=$reason")
+        block()
+    }
+
     private fun updateHomeAfterFolderDropCommitted() {
         mActivityHeader!!.updateText()
         mDrawerHeader!!.updateTexts()
@@ -6813,6 +6914,14 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             if (actionState == ItemTouchHelper.ACTION_STATE_DRAG && viewHolder != null) {
                 clearPendingFolderDrop()
                 activeDragViewHolder = viewHolder
+                viewHolder.itemView.setTag(R.id.tag_thing_card_drag_active, true)
+                viewHolder.itemView.setTag(R.id.tag_thing_card_finger_down, mThingListPointerDown)
+                BaseThingsAdapter.logCardScaleRecoveryDebug(
+                    "drag-active view=${System.identityHashCode(viewHolder.itemView)} " +
+                        "finger=${viewHolder.itemView.getTag(R.id.tag_thing_card_finger_down)} " +
+                        "pointerDown=$mThingListPointerDown sequence=$mThingListTouchSequence " +
+                        "scale=${viewHolder.itemView.scaleX}/${viewHolder.itemView.scaleY}"
+                )
                 activeDragStartListPosition = viewHolder.adapterPosition
                 activeDragStableId = mThingManager!!
                     .getThingListEntry(activeDragStartListPosition)
@@ -7620,7 +7729,52 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             swiped = true
         }
 
+        private fun commitFolderDropAfterClear(
+            folderDrop: PendingFolderDrop,
+            commitVisual: FolderDropCommitVisual?
+        ) {
+            if (folderDrop.action == FOLDER_DROP_ACTION_MOVE_TO_FOLDER) {
+                val targetFolderId = folderDrop.targetFolderId
+                val committed = if (targetFolderId == null) {
+                    false
+                } else if (folderDrop.sourceThingId != null) {
+                    commitMoveThingIntoFolderDrop(folderDrop.sourceThingId, targetFolderId)
+                } else if (folderDrop.sourceFolderId != null) {
+                    commitMoveFolderIntoFolderDrop(folderDrop.sourceFolderId, targetFolderId)
+                } else {
+                    false
+                }
+                if (committed) {
+                    restoreFolderDropSourceViewLater(commitVisual)
+                    playFolderDropCommitVisual(commitVisual) {}
+                } else {
+                    restoreFolderDropVisualImmediately(commitVisual)
+                }
+            } else {
+                val targetThingId = folderDrop.targetThingId
+                val sourceThingId = folderDrop.sourceThingId
+                val createdDrop = if (sourceThingId != null && targetThingId != null) {
+                    commitCreateThingFolderDrop(
+                        sourceThingId,
+                        targetThingId,
+                        folderDrop.background ?: ThingBackground.fromRandom()
+                    )
+                } else {
+                    null
+                }
+                if (createdDrop != null) {
+                    restoreFolderDropSourceViewLater(commitVisual)
+                    playFolderDropCommitVisual(commitVisual) {
+                        showCreateThingFolderNameDialog(createdDrop)
+                    }
+                } else {
+                    restoreFolderDropVisualImmediately(commitVisual)
+                }
+            }
+        }
+
         override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
+            val pointerWasDown = mThingListPointerDown
             val pendingDrop = pendingFolderDrop
             val commitVisual = if (pendingDrop != null) {
                 preparedFolderDropCommitVisual
@@ -7640,18 +7794,78 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             BaseThingsAdapter.logCardScaleRecoveryDebug(
                 "clearView view=${System.identityHashCode(viewHolder.itemView)} " +
                     "beforeFinger=${viewHolder.itemView.getTag(R.id.tag_thing_card_finger_down)} " +
+                    "beforeDrag=${viewHolder.itemView.getTag(R.id.tag_thing_card_drag_active)} " +
+                    "pointerDown=$pointerWasDown moved=$moved " +
+                    "folderDrop=${pendingDrop?.action} " +
+                    "computing=${recyclerView.isComputingLayout} " +
+                    "scrollState=${recyclerView.scrollState} " +
                     "scale=${viewHolder.itemView.scaleX}/${viewHolder.itemView.scaleY}"
             )
             viewHolder.itemView.setTag(R.id.tag_thing_card_finger_down, false)
+            viewHolder.itemView.setTag(R.id.tag_thing_card_drag_active, false)
+            viewHolder.itemView.animate().cancel()
+            viewHolder.itemView.scaleX = 1.0f
+            viewHolder.itemView.scaleY = 1.0f
             clearActiveTouchItemZ(viewHolder.itemView)
             val listPosition = viewHolder.adapterPosition
             val folderDrop = pendingDrop
+            val clearWasMoved = moved
+            val clearWasSwiped = swiped
+            val clearActiveDragStartListPosition = activeDragStartListPosition
+            val clearActiveDragStableId = activeDragStableId
             folderDropCommitInProgress = folderDrop != null
             clearPendingFolderDrop(animateRestore = !folderDropCommitInProgress)
             preparedFolderDropCommitVisual = null
             activeDragViewHolder = null
             lastFolderDropSourceLeftInRoot = null
             lastFolderDropSourceTopInRoot = null
+            if (pointerWasDown && !clearWasSwiped) {
+                BaseThingsAdapter.logCardScaleRecoveryDebug(
+                    "clearView-interrupted-drag view=${System.identityHashCode(viewHolder.itemView)} " +
+                        "listPosition=$listPosition moved=$clearWasMoved " +
+                        "folderDrop=${folderDrop?.action}"
+                )
+                restoreFolderDropVisualImmediately(commitVisual)
+                moved = false
+                firstMove = true
+                swiped = false
+                hasSwipedRight = false
+                folderDropCommitInProgress = false
+                activeDragStartListPosition = RecyclerView.NO_POSITION
+                activeDragStableId = Long.MIN_VALUE
+                runWhenThingListCanUpdate("interrupted-drag-clear") {
+                    var selectPosition = if (listPosition > 0) {
+                        listPosition
+                    } else {
+                        clearActiveDragStartListPosition
+                    }
+                    if (clearWasMoved &&
+                        clearActiveDragStableId != Long.MIN_VALUE &&
+                        clearActiveDragStartListPosition > 0
+                    ) {
+                        val currentPosition =
+                            mThingManager!!.getListPositionForStableId(clearActiveDragStableId)
+                        if (currentPosition > 0 &&
+                            currentPosition != clearActiveDragStartListPosition
+                        ) {
+                            mThingManager!!.move(currentPosition, clearActiveDragStartListPosition)
+                            mAdapter!!.notifyItemMoved(
+                                currentPosition,
+                                clearActiveDragStartListPosition
+                            )
+                            selectPosition = clearActiveDragStartListPosition
+                        } else if (currentPosition > 0) {
+                            selectPosition = currentPosition
+                        }
+                    }
+                    if (selectPosition > 0 &&
+                        mModeManager!!.getCurrentMode() == ModeManager.MOVING
+                    ) {
+                        mModeManager!!.toSelectingMode(selectPosition)
+                    }
+                }
+                return
+            }
             if (folderDrop != null) {
                 endRecyclerViewItemAnimationsForFolderDrop()
                 moved = false
@@ -7659,47 +7873,20 @@ class ThingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 swiped = false
                 hasSwipedRight = false
                 mModeManager!!.finishMovingModeWithoutListRefresh()
-                if (folderDrop.action == FOLDER_DROP_ACTION_MOVE_TO_FOLDER) {
-                    val targetFolderId = folderDrop.targetFolderId
-                    val committed = if (targetFolderId == null) {
-                        false
-                    } else if (folderDrop.sourceThingId != null) {
-                        commitMoveThingIntoFolderDrop(folderDrop.sourceThingId, targetFolderId)
-                    } else if (folderDrop.sourceFolderId != null) {
-                        commitMoveFolderIntoFolderDrop(folderDrop.sourceFolderId, targetFolderId)
-                    } else {
-                        false
-                    }
-                    if (committed) {
-                        restoreFolderDropSourceViewLater(commitVisual)
-                        playFolderDropCommitVisual(commitVisual) {}
-                    } else {
-                        restoreFolderDropVisualImmediately(commitVisual)
+                if (recyclerView.isComputingLayout ||
+                    recyclerView.scrollState != RecyclerView.SCROLL_STATE_IDLE
+                ) {
+                    restoreFolderDropVisualImmediately(commitVisual)
+                    runWhenThingListCanUpdate("folder-drop-commit") {
+                        commitFolderDropAfterClear(folderDrop, null)
+                        folderDropCommitInProgress = false
                     }
                 } else {
-                    val targetThingId = folderDrop.targetThingId
-                    val sourceThingId = folderDrop.sourceThingId
-                    val createdDrop = if (sourceThingId != null && targetThingId != null) {
-                        commitCreateThingFolderDrop(
-                            sourceThingId,
-                            targetThingId,
-                            folderDrop.background ?: ThingBackground.fromRandom()
-                        )
-                    } else {
-                        null
-                    }
-                    if (createdDrop != null) {
-                        restoreFolderDropSourceViewLater(commitVisual)
-                        playFolderDropCommitVisual(commitVisual) {
-                            showCreateThingFolderNameDialog(createdDrop)
-                        }
-                    } else {
-                        restoreFolderDropVisualImmediately(commitVisual)
-                    }
+                    commitFolderDropAfterClear(folderDrop, commitVisual)
+                    folderDropCommitInProgress = false
                 }
                 activeDragStartListPosition = RecyclerView.NO_POSITION
                 activeDragStableId = Long.MIN_VALUE
-                folderDropCommitInProgress = false
                 return
             }
             folderDropCommitInProgress = false

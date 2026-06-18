@@ -1,5 +1,97 @@
 # Thing Folders Sessions
 
+## 2026-06-18 - Harden drag clear during scroll/layout detach
+
+- Analyzed the user's `thing_card_scale_recovery(3).log` from `11:45:07`.
+  Several long drags over large Thing/Folder cards showed `clearView(...)`
+  running while the Activity-level pointer was still down. This means
+  `ItemTouchHelper` ended the active drag because the dragged child was
+  detached during RecyclerView scroll/layout, not because the user released
+  the drag.
+- Analyzed `crash_20260618114415.log`. The crash was
+  `IllegalStateException: Cannot call this method while RecyclerView is
+  computing a layout or scrolling`, thrown by `notifyItemRemoved(...)` from
+  `notifyFolderDropCommitted(...)` while `clearView(...)` was being called via
+  `ItemTouchHelper.onChildViewDetachedFromWindow(...)` during RecyclerView
+  layout.
+- Added an interrupted-drag branch in `ThingsTouchCallback.clearView(...)`.
+  If `clearView(...)` happens while the Activity still has a pointer down, the
+  current folder-drop hover is canceled instead of committed, dragged-card
+  scale is reset immediately, and any in-memory reorder is moved back to the
+  drag start position once RecyclerView is safe to update. The UI then enters
+  selecting mode rather than pretending the drag was released.
+- Added `runWhenThingListCanUpdate(...)` for RecyclerView-safe adapter updates.
+  Normal folder-drop release still commits, but if RecyclerView is computing
+  layout or still scrolling, the data mutation and adapter notifications are
+  delayed until the list is idle.
+- Extracted folder-drop commit handling into `commitFolderDropAfterClear(...)`
+  so immediate and deferred commit paths share the same mutation/animation
+  behavior. Deferred commits skip the merge overlay because the original child
+  may already be detached.
+- After the user confirmed the behavior looked acceptable on device, disabled
+  the card-scale file diagnostics by setting `CARD_SCALE_RECOVERY_DEBUG` to
+  `false`. The generic `DebugFileLogger` remains available for future probes,
+  but this drag/scale path no longer writes `thing_card_scale_recovery.log`.
+
+Verification: `git diff --check` passed apart from the repository's existing
+LF/CRLF warnings; `.\gradlew.bat :app:assembleDebug --console=plain
+--no-configuration-cache` completed with `BUILD SUCCESSFUL`. Debug update
+publishing was left to the user.
+
+## 2026-06-18 - Gate posted long-press drag on the active touch sequence
+
+- Analyzed the user's follow-up device log after `11:32`. The previous fix did
+  clear `fingerDown` on moving-mode `CANCEL`, but the delayed posted
+  `ItemTouchHelper.startDrag(...)` still ran after the finger had already left
+  the screen. `onSelectedChanged(...)` then marked the card as drag-active and
+  restored `fingerDown=true`, so the delayed scale recovery still skipped.
+- Adjusted the model: `dragActive=true` is not itself wrong, because the
+  `ItemTouchHelper` drag state can remain able to move the card if the user
+  touches it again. It just must not be treated as proof that the original
+  finger is still down.
+- Added Activity-level pointer tracking through `dispatchTouchEvent(...)`.
+  `ThingsActivity` now records whether any pointer is down and increments a
+  touch-sequence id on each new `ACTION_DOWN`.
+- Replaced the long-press `post { startDrag(...) }` calls with
+  `startLongPressDragIfTouchStillActive(...)`. The posted drag starts only if
+  the same touch sequence is still active. If the finger has already left the
+  screen, it skips `startDrag(...)`, clears the card's touch/drag tags, and
+  converts the existing moving selection into selecting mode at the original
+  list position.
+- Updated real drag activation to copy the Activity-level pointer state into
+  the card's finger tag instead of forcing it to true. The delayed scale
+  recovery now shrinks whenever `fingerDown=false` and the card is still
+  enlarged, even if `dragActive=true`.
+
+Verification: `git diff --check` passed apart from the repository's existing
+LF/CRLF warnings; `.\gradlew.bat :app:assembleDebug --console=plain
+--no-configuration-cache` completed with `BUILD SUCCESSFUL`. Debug update
+publishing was left to the user.
+
+## 2026-06-18 - Distinguish canceled fast release from active drag
+
+- Analyzed the user's device log from `11:25:02.972`. The failing sequence was:
+  touch `DOWN` in normal mode, touch `CANCEL` after entering moving mode, then
+  the delayed recovery check saw `fingerDown=true` and `stillEnlarged=true`, so
+  it correctly skipped recovery according to the previous guard. No touch `UP`
+  arrived for that card.
+- The root cause was that moving-mode `ACTION_CANCEL` had been treated as
+  "the finger is probably still down" to protect real drag startup. That was
+  too broad: a quick release can also produce `CANCEL` without a live
+  `ItemTouchHelper` drag, leaving the finger tag stuck true.
+- Added a separate `tag_thing_card_drag_active` view tag. `ThingsTouchCallback`
+  sets it when `ItemTouchHelper` enters `ACTION_STATE_DRAG` and clears it in
+  `clearView(...)`.
+- Updated the delayed scale recovery check to require both `fingerDown=false`
+  and `dragActive=false` before shrinking. This preserves active dragging while
+  allowing the fast-release cancel path to recover.
+- Updated `ACTION_CANCEL` handling so it clears the finger tag unless the card
+  is already marked as an active drag card.
+
+Verification: `git diff --check` passed apart from the repository's existing
+LF/CRLF warnings; `.\gradlew.bat :app:assembleDebug --console=plain
+--no-configuration-cache` completed with `BUILD SUCCESSFUL`.
+
 ## 2026-06-18 - Add file diagnostics for card scale recovery
 
 - Added targeted file diagnostics because the visual-only recovery for

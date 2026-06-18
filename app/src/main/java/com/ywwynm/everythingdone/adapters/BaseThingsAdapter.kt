@@ -444,6 +444,7 @@ abstract class BaseThingsAdapter(context: Context?) :
                 "normal-geometry view=${System.identityHashCode(cv)} " +
                     "oldToken=${System.identityHashCode(oldToken)} " +
                     "finger=${cv.getTag(R.id.tag_thing_card_finger_down)} " +
+                    "drag=${cv.getTag(R.id.tag_thing_card_drag_active)} " +
                     "scale=${cv.scaleX}/${cv.scaleY}"
             )
         }
@@ -462,6 +463,7 @@ abstract class BaseThingsAdapter(context: Context?) :
             "schedule source=$source view=${System.identityHashCode(cv)} " +
                 "token=$tokenId attached=${cv.isAttachedToWindow} " +
                 "finger=${cv.getTag(R.id.tag_thing_card_finger_down)} " +
+                "drag=${cv.getTag(R.id.tag_thing_card_drag_active)} " +
                 "scale=${cv.scaleX}/${cv.scaleY}"
         )
         cv.postDelayed({
@@ -478,17 +480,20 @@ abstract class BaseThingsAdapter(context: Context?) :
                     "check-stale source=$source view=${System.identityHashCode(cv)} " +
                         "token=$tokenId currentToken=${System.identityHashCode(currentToken)} " +
                         "finger=${cv.getTag(R.id.tag_thing_card_finger_down)} " +
+                        "drag=${cv.getTag(R.id.tag_thing_card_drag_active)} " +
                         "scale=${cv.scaleX}/${cv.scaleY}"
                 )
                 return@postDelayed
             }
             val fingerDown = cv.getTag(R.id.tag_thing_card_finger_down) == true
+            val dragActive = cv.getTag(R.id.tag_thing_card_drag_active) == true
             val stillEnlarged = cv.scaleX > 1.0f + MOVING_SCALE_RECOVERY_EPSILON ||
                 cv.scaleY > 1.0f + MOVING_SCALE_RECOVERY_EPSILON
             logCardScaleRecoveryDebug(
                 "check source=$source view=${System.identityHashCode(cv)} " +
                     "token=$tokenId fingerDown=$fingerDown " +
-                    "stillEnlarged=$stillEnlarged scale=${cv.scaleX}/${cv.scaleY}"
+                    "dragActive=$dragActive stillEnlarged=$stillEnlarged " +
+                    "scale=${cv.scaleX}/${cv.scaleY}"
             )
             if (!fingerDown && stillEnlarged) {
                 logCardScaleRecoveryDebug(
@@ -2954,11 +2959,13 @@ abstract class BaseThingsAdapter(context: Context?) :
         private const val MOVING_SCALE_RECOVERY_CHECK_DELAY = 112L
         private const val MOVING_SCALE_RECOVERY_DURATION = 96L
         private const val MOVING_SCALE_RECOVERY_EPSILON = 0.001f
+        private const val CARD_SCALE_RECOVERY_DEBUG = false
         private const val CARD_SCALE_RECOVERY_LOG_NAME = "thing_card_scale_recovery.log"
         private const val CARD_SCALE_RECOVERY_DEBUG_PREFIX = "[DEBUG-card-scale-recovery]"
 
         @JvmStatic
         fun logCardScaleRecoveryDebug(message: String) {
+            if (!CARD_SCALE_RECOVERY_DEBUG) return
             DebugFileLogger.log(
                 CARD_SCALE_RECOVERY_LOG_NAME,
                 message,

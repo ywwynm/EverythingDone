@@ -1,5 +1,45 @@
 # Current Debug Update Notes
 
+## 2026-06-18 - 加固复杂列表滚动拖拽中的 clearView 和 Folder drop 提交，并关闭临时日志
+
+用户提供 `thing_card_scale_recovery(3).log` 和 `crash_20260618114415.log` 后，本次分析 `11:45:07` 之后的拖拽日志。日志显示，在拖拽经过较大的记事/文件夹并触发列表滚动时，`ItemTouchHelper.clearView(...)` 有时会在手指仍在屏幕上时执行；这说明 active child 是因为 RecyclerView 滚动/布局 detach 而结束拖拽，不是用户真正松手。crash 堆栈也印证了这一点：`clearView(...)` 由 `ItemTouchHelper.onChildViewDetachedFromWindow(...)` 触发，并在 RecyclerView 正在 layout/scroll 时执行了 `notifyItemRemoved(...)`，导致 `Cannot call this method while RecyclerView is computing a layout or scrolling`。
+
+本次实现：
+- `ThingsTouchCallback.clearView(...)` 增加“中断拖拽”分支：如果 clearView 发生时 Activity 级 pointer 仍为 down，就不提交当前 Folder drop，不持久化这次 reorder；先立即把拖拽卡片 scale 还原为 1，清理 finger/drag tag 和高亮状态。
+- 如果中断前列表顺序已经被 `onMove(...)` 临时改过，会在 RecyclerView 安全时机把该条目移回长按开始的位置，并进入 selecting mode，避免拖拽卡片突然消失后直接出现在某个计算出来的最终位置。
+- 新增 `runWhenThingListCanUpdate(...)`：当 RecyclerView 正在 computing layout 或 scrollState 不是 idle 时，延迟执行会触发 adapter notify 的列表更新。
+- 正常松手触发的 Folder drop 仍然会提交；但如果 clearView 发生时 RecyclerView 仍在 layout/scroll，则先恢复临时视觉，再等列表 idle 后执行数据提交和 adapter 通知，避免再次崩溃。
+- 将 Folder drop 提交流程抽为 `commitFolderDropAfterClear(...)`，让同步提交和延迟提交复用同一套数据变更逻辑；延迟提交时不播放 merge overlay，因为原始 child view 可能已经 detach。
+- 用户确认当前行为看起来可以后，将卡片缩放/拖拽这一路临时文件日志开关设为 `CARD_SCALE_RECOVERY_DEBUG = false`。通用 `DebugFileLogger` 保留，后续仍可用于其它调试，但本路径不再写入 `thing_card_scale_recovery.log`。
+
+验证状态：`git diff --check` 通过，仅有仓库既有 LF/CRLF 提示；已执行 `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`，结果 `BUILD SUCCESSFUL`。发布状态：由用户自行发布 debug update。
+
+## 2026-06-18 - 根据第二段日志阻止松手后的延迟拖拽重新激活卡片
+
+用户继续提供 `thing_card_scale_recovery(2).log`，本次只分析 `11:32` 之后的日志。日志显示：moving-mode `CANCEL` 已经把 `fingerDown` 清成 false，但随后异步 `startDrag(...)` 仍然在手指离屏后执行，`ItemTouchHelper` 进入 `drag-active`，并把 `fingerDown` 又设回 true，导致延迟检查仍然看到 `fingerDown=true dragActive=true stillEnlarged=true`，所以不缩回。
+
+本次实现：
+- `ThingsActivity.kt` 通过 `dispatchTouchEvent(...)` 维护 Activity 级 pointer 状态，并在每次新的 `ACTION_DOWN` 增加 touch sequence。这个状态表示真实屏幕上是否还有手指，而不是某个 CardView 是否收到 `CANCEL`。
+- 长按后不再直接 `post { startDrag(...) }`，而是走 `startLongPressDragIfTouchStillActive(...)`。异步执行时只有同一轮 touch sequence 仍然活跃、且手指还在屏幕上，才真正调用 `ItemTouchHelper.startDrag(...)`。
+- 如果异步执行时手指已经离屏，就跳过 `startDrag(...)`，清理卡片的 `finger_down` / `drag_active` tag，并把当前 moving 选择转为 selecting mode；也就是用户说的“手指不在屏幕了，就相当于停止拖拽，原位则进入选择模式”。
+- 真正进入 `ItemTouchHelper.ACTION_STATE_DRAG` 时，卡片的 `finger_down` 不再无条件设为 true，而是跟随 Activity 级 pointer 状态。
+- 延迟缩回检查现在只要 `fingerDown=false` 且卡片仍放大就恢复，不再让 `dragActive=true` 单独阻止缩回。
+
+验证状态：`git diff --check` 通过，仅有仓库既有 LF/CRLF 提示；已执行 `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`，结果 `BUILD SUCCESSFUL`。发布状态：由用户自行发布 debug update。
+
+## 2026-06-18 - 根据日志修正快速松手后卡片仍不缩回的问题
+
+用户提供 `thing_card_scale_recovery.log` 后，本次只分析 `11:25:02.972` 之后的日志。日志显示问题路径是：`DOWN` 时在 normal mode，随后进入 moving mode 后收到 `CANCEL`，没有收到 `UP`；延迟检查时 `fingerDown=true` 且 `stillEnlarged=true`，所以旧逻辑认为手指仍在卡片上，跳过了自动缩回。
+
+本次实现：
+- `ids.xml` 新增 `tag_thing_card_drag_active`，把“真实 ItemTouchHelper 拖拽中”和“快速松手触发的 CANCEL”分开记录。
+- `ThingsActivity.kt` 在 `ItemTouchHelper.ACTION_STATE_DRAG` 时给当前卡片设置 `drag_active=true` 和 `finger_down=true`，并在 `clearView(...)` 中同时清理这两个 tag。
+- `ThingsAdapter.kt` 修改 `ACTION_CANCEL` 处理：如果当前不是 moving mode，或者卡片还没有进入真实拖拽，就把 `finger_down` 置为 false；只有已经处于真实拖拽的卡片才保留 finger 状态。
+- `BaseThingsAdapter.kt` 的延迟恢复检查现在要求 `fingerDown=false` 且 `dragActive=false` 且卡片仍放大，才播放缩小恢复动画。因此快速松手可以恢复，真实拖拽过程中不会被自动缩回。
+- 保留并扩展 `[DEBUG-card-scale-recovery]` 日志，后续测试可以继续确认 `CANCEL`、`dragActive` 和 `recover` 的顺序。
+
+验证状态：`git diff --check` 通过，仅有仓库既有 LF/CRLF 提示；已执行 `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`，结果 `BUILD SUCCESSFUL`。发布状态：本次 debug update 包含该修复。
+
 ## 2026-06-18 - 为卡片长按放大残留问题加入文件日志
 
 用户继续反馈上一版“放大动画结束后检测并自动缩回”的方案仍未生效，因此本次先不继续猜测原因，而是加入定向文件日志，方便从真机数据判断是哪一步没有发生。

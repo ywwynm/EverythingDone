@@ -360,6 +360,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
                         "oldToken=${System.identityHashCode(oldToken)} " +
                         "mode=$currentMode selected=$selected " +
                         "finger=${card.getTag(R.id.tag_thing_card_finger_down)} " +
+                        "drag=${card.getTag(R.id.tag_thing_card_drag_active)} " +
                         "scale=${card.scaleX}/${card.scaleY}"
                 )
             }
@@ -1245,7 +1246,9 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
             MotionEvent.ACTION_UP,
             MotionEvent.ACTION_OUTSIDE -> card.setTag(R.id.tag_thing_card_finger_down, false)
             MotionEvent.ACTION_CANCEL -> {
-                if (mModeManager?.getCurrentMode() != ModeManager.MOVING) {
+                if (mModeManager?.getCurrentMode() != ModeManager.MOVING ||
+                    card.getTag(R.id.tag_thing_card_drag_active) != true
+                ) {
                     card.setTag(R.id.tag_thing_card_finger_down, false)
                 }
             }
@@ -1258,6 +1261,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
             logCardScaleRecoveryDebug(
                 "touch action=${motionActionName(action)} view=${System.identityHashCode(card)} " +
                     "mode=$mode before=$before after=${card.getTag(R.id.tag_thing_card_finger_down)} " +
+                    "drag=${card.getTag(R.id.tag_thing_card_drag_active)} " +
                     "scale=${card.scaleX}/${card.scaleY}"
             )
         }
