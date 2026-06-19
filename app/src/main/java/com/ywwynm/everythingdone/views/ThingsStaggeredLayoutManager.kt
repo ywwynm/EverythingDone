@@ -19,6 +19,7 @@ import com.ywwynm.everythingdone.utils.DisplayUtil
 open class ThingsStaggeredLayoutManager : StaggeredGridLayoutManager {
 
     private var mSmoothScroller: ThingsSmoothScroller? = null
+    private var suppressPredictiveAnimationsForNextLayout: Boolean = false
 
     constructor(context: Context, attrs: AttributeSet?, defStyleAttr: Int, defStyleRes: Int)
             : super(context, attrs, defStyleAttr, defStyleRes) {
@@ -38,6 +39,22 @@ open class ThingsStaggeredLayoutManager : StaggeredGridLayoutManager {
             super.onLayoutChildren(recycler, state)
         } catch (_: IndexOutOfBoundsException) {
         }
+    }
+
+    override fun onLayoutCompleted(state: RecyclerView.State) {
+        super.onLayoutCompleted(state)
+        suppressPredictiveAnimationsForNextLayout = false
+    }
+
+    override fun supportsPredictiveItemAnimations(): Boolean {
+        return !suppressPredictiveAnimationsForNextLayout &&
+            super.supportsPredictiveItemAnimations()
+    }
+
+    fun prepareForOverlayReorderAnimation() {
+        suppressPredictiveAnimationsForNextLayout = true
+        requestSimpleAnimationsInNextLayout()
+        invalidateSpanAssignments()
     }
 
     override fun smoothScrollToPosition(recyclerView: RecyclerView, state: RecyclerView.State, position: Int) {

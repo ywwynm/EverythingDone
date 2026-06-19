@@ -1,5 +1,53 @@
 # Current Debug Update Notes
 
+## 2026-06-19 - 调整记事/文件夹卡片 overlay 拖拽与 reorder 动画
+
+用户持续反馈长按拖拽记事/文件夹卡片时的多个问题：长距离拖拽经过大记事或大文件夹时，原本由 `ItemTouchHelper` 移动真实 ViewHolder 的拖拽容易在 ViewHolder detach/recycle、列表自动滚动或布局计算期间“脱手”；改成 full-session overlay 后，又继续观察到 reorder 落下动画不够自然、插入线位置和粗细不理想、成功移动后真实卡片 reveal 末尾可能抖动，以及回到原位置时也应该有空间连续的飞回动画。用户随后上传慢速测试视频，指出其中包含两个相关但不同的问题：一是 overlay 飞行轨迹的最终落点计算偏移，二是 RecyclerView 重新布局/重新排列本身会影响最终视觉效果。
+
+本轮补充修正：
+- 选择模式下，长按文件夹卡片现在和长按记事卡片一样会退出选择模式，不再被文件夹分支直接吞掉。
+- 大文件夹（缩略图模式文件夹）拖拽 overlay 改回使用系统 `elevation` 绘制外圈阴影，不再用手写 stroke/gradient 去模拟。根据 Android 文档和 AOSP 源码，系统阴影由 `RenderNode` 的 elevation 与 `Outline` 决定，`clipToOutline` 只裁内容、不能只裁掉阴影的内半部分；因此现在 overlay 使用内缩后的圆角 `Outline` 对齐真实卡片内容区域，让系统自己画外圈阴影。
+- 为了去掉透明内圈透出的 elevation 阴影，`DragOverlayImageView` 会先在真实卡片内容区域里画一层 `bg_activity_things` 圆角背景，再绘制透明 bitmap 截图。这样外圈仍然是系统 elevation 阴影，内圈阴影被列表背景盖住，不再出现大文件夹轮廓线内部的阴影。
+- 继续确认记事列表里的缩略图模式大文件夹本体也被旧逻辑清掉了 elevation：`cardElevation` 和 `maxCardElevation` 都是 `0f`，触摸和 Moving-mode 动画也会因为 thumbnail tag 跳过 elevation。现在列表里的大文件夹恢复为和普通记事一致的 normal/dragging elevation，并在外层 `CardView` 使用 `bg_activity_things` 作为不透明圆角底色来盖住内部阴影，内容区域仍保留文件夹颜色描边。
+- 修复超高大文件夹拖拽 overlay 直接空白的问题仍然保留：不使用整张超高 overlay 的 `saveLayer(...)` 或强制 software layer；超过安全纹理尺寸的截图 bitmap 会切成 1024px 小块后绘制，避免单张超大 bitmap texture 显示失败。
+
+本轮相关实现：
+- 新增并继续打磨 `ThingListOverlayDragController.kt`，让长按拖拽记事卡片和文件夹卡片时，由 Activity overlay 中的完整卡片 bitmap 作为整个拖拽 session 的移动视觉；RecyclerView 中的真实 source holder 保留为完全透明的 layout placeholder，避免长距离滚动时 ViewHolder detach 导致拖拽卡片丢失。
+- `ThingsActivity.kt` 通过 `dispatchTouchEvent(...)` 把 active overlay drag 的 MOVE/UP/CANCEL 交给 controller；`ItemTouchHelper` 不再负责记事/文件夹拖拽，只继续保留普通记事 swipe。
+- overlay drag 支持现有功能面：拖拽记事/文件夹、进入选择模式、普通 reorder、拖入已有文件夹、拖记事到记事创建文件夹；文件夹 drop 仍使用拖拽卡片左上角命中目标卡片，并保留稳定 hover 延迟和现有目标缩放/描边/内容 alpha 动画。
+- reorder 期间不再实时改底层顺序，而是显示一条使用被拖拽卡片颜色/渐变的插入线；release 时再按 source stable id、target stable id 和 before/after 关系一次性提交 reorder。
+- 成功 reorder release 会继续使用 `notifyItemMoved(...)` 保留 RecyclerView 自身的重布局/移动动画；overlay 不再抢先强制刷新列表，也不再等列表完全结束后才开始飞，而是把 StaggeredGrid 的最终 span 重算合并进同一轮 RecyclerView layout，并在最终 layout rect 可用后用同样的 move duration 和 RecyclerView 最终排列动画同步起跑。真实 source holder 在拖拽和 reorder 期间保持透明，避免出现两个相同卡片。
+- 用户指出回到原本位置时也应保留空间连续性；现在 no-op reorder / release-in-place 会让 overlay 从松手位置飞回原 source slot 后再进入 selecting mode，不再直接 fade out。
+- 用户指出插入线不应该使用 raw px；现在插入线厚度改为 4dp，并继续使用目标卡片边缘外的固定小偏移，不再取大间距的几何中点。只有局部间距过小时才向 gap 中间 clamp，避免压到卡片。
+- 已撤回用于定位问题的长时长飞行动画实验：成功 reorder 的 overlay 飞行时长回到短时长 settle 节奏，不再使用人为拉长的测试动画。
+- 修正成功 reorder 与 no-op return 的最终落点计算：overlay bitmap 的外层 frame 直接对齐最终 source holder 的 `itemView` 布局矩形，不再把长按时卡片内部已经绘进 bitmap 的 scale 拿来除整个 overlay frame，避免最终 `x` / `y` 被整体缩放换算带偏。
+- 进一步定位到剩余落点偏移的坐标口径问题：`ThingListOverlayDragController.kt` 用 `View.getLocationOnScreen()` 取得的左上角可能已经包含 Moving-mode 的临时 `scaleX` / `scaleY`，但又用原始 `width` / `height` 计算右下角，导致 overlay 飞行动画的最终 frame 与真实 ViewHolder frame 不一致。
+- 现在 overlay 的起点、文件夹 drop 目标中心、reorder settle 终点和回到原位置终点统一使用 layout-space rect helper：沿 View 层级累加 `left` / `top` 到 overlay root，忽略 scale，并按调用场景决定是否包含 RecyclerView item animation 的 transient translation。reorder 与 release-in-place 的目标因此保持左上角对左上角、右下角对右下角。
+- 用户随后指出 `View.draw(Canvas)` 生成的 bitmap 本身不是放大后的 View。现在保留普通尺寸 bitmap，但把 Activity overlay 中的 `ImageView` 设置为拖拽放大比例 `1.11f`，并用放大后的可见外框计算 finger offset 和文件夹 drop 左上角命中；reorder / 回原位时 overlay 会从放大状态缩回最终正常尺寸 holder frame。
+- 进一步确认 Moving mode 本身已经在放大选中 Thing/Folder Card 的同时，把普通卡片 elevation 提高到 `thing_card_dragging_elevation = 12dp`。由于 Android 的 elevation 阴影不是 `View.draw(Canvas)` 能稳定截进 bitmap 像素里的内容，现在 overlay `ImageView` 自身会使用同样的 12dp elevation，并设置卡片圆角 outline，让移动中的 overlay 按放大卡片形状渲染阴影，而不是只有一个无卡片阴影的矩形 bitmap surface。
+- bitmap 截图并交给 overlay 后，真实 source ViewHolder 会立即取消 scale 动画、清掉 moving-scale recovery token、把 `scaleX/scaleY` 设回 `1f`，再作为透明占位保留在 RecyclerView 中，避免移动动画完成后真实 ViewHolder 又播放一次从放大到正常的缩小动画。
+- 成功 reorder 的最终 target rect 现在会等 RecyclerView 的最终布局刷新和后续 draw 完成后再解析，避免在 RecyclerView 还认为透明 source holder 停在旧位置时，过早把旧布局位置当成 overlay 落点。
+- 成功 reorder reveal 的时序继续收紧：overlay 飞行/缩小动画结束后，先从 overlay parent 移除 overlay，再把最终 source ViewHolder 的 alpha 设回 `1f`，避免真实卡片在 overlay 最后一帧下方提前出现。
+- 用户反馈真实 ViewHolder 仍会提前显示后，进一步定位到 `notifyItemMoved(...)` / rebind 过程中 adapter 会把 `holder.itemView.alpha` 重设为 `1f`。现在 overlay session 会注册 RecyclerView pre-draw guard，在每一帧真正绘制前按 stable id 重新把 source holder 设回透明正常尺寸占位，直到 overlay 被移除并进入刻意 reveal。
+- 用户继续反馈仍会提前看到真实 ViewHolder，并怀疑 `notifyDataSetChanged(...)` 或类似重绑导致。现在 `ThingsAdapter.onBindViewHolder(...)` 会把当前绑定的 Thing/Folder stable business id 写到卡片 root view tag；pre-draw guard 不再只依赖“source 当前列表位置”，而是扫描所有可见 RecyclerView child，凡是绑定 stable id 等于 source 的 holder 都会在绘制前重新压回透明占位。这样可以覆盖 `notifyItemMoved(...)` pre-layout 期间“旧位置 holder 还在、数据列表已变成新位置”的窗口。
+- 透明占位恢复也不再只处理 `itemView` root：现在会同步取消并重置内部 `cv_thing` CardView 的 moving-scale recovery token、`scaleX/scaleY` 和 drag/finger tag，因为 Moving mode 实际放大的就是这层 CardView。这样截图完成后真实 ViewHolder 不会在 reveal 或重绑时再播放一次自己的缩小动画。
+- 用户再次复现“拖动 A 到靠下位置完成 reorder，再拖 A 回原位置附近时，RecyclerView 还没重新 layout，旧位置仍空出来且旁边 B 没移动，导致 overlay 飞到旧计算位置”的问题。现在成功 reorder 的 overlay settle 不再只等 item animator 或下一帧；它会等到 RecyclerView 没有 pending adapter updates、没有 computing layout、item animator 已停止、最终 adapter position 上的 holder 绑定 stable id 与 source 一致，并且这个 holder 的 layout rect 在 item 动画结束后的短暂 grace 之后连续三帧稳定，才开始播放 overlay 飞行动画。
+- 用户提供后续视频后，进一步定位到剩余旧位置问题的直接原因：pre-draw guard 每帧调用 `applySourcePlaceholder(...)` 时会执行 `itemView.animate().cancel()`，这会把 RecyclerView / `DefaultItemAnimator` 正在用来移动透明 source holder 的根 ViewPropertyAnimator 一起取消掉。现在透明占位保护不再取消 `itemView` root 动画，只继续把 root alpha 压到 `0f`，并只取消内部 `cv_thing` CardView 上 app 自己的 Moving-mode scale recovery 动画。
+- 用户随后补充三张截图，明确指出图 1/图 2 中 B 左侧的空白就是 A 的旧占位，图 3 才是正确最终布局。曾尝试用 full-list refresh 强制进入最终布局，但用户指出这会让 RecyclerView 本身的重布局动画消失，并且可能扰动滚动位置，因此已撤回。现在 overlay reorder commit 继续使用 `notifyItemMoved(...)` 保留其它卡片的移动动画；controller 会至少等待 item move duration 加一个小的 grace window，让 item animator 有机会启动并结束，再等 post-animation grace、滚动 idle、无 pending adapter updates，并要求最终 source rect 连续多帧稳定后，才播放 A 的 overlay 飞入动画。
+- 用户反馈三张截图里的问题仍然会出现后，本次继续阅读 AndroidX `StaggeredGridLayoutManager` / `RecyclerView` / `DefaultItemAnimator` 源码：SGLM 会维护 lazy span lookup，`notifyItemMoved(...)` 只会从受影响范围起点 invalidate，后续 gap correction 或 `notifyDataSetChanged(...)` 才可能清空并重算 span assignment；RecyclerView 在 post-layout 阶段记录最终 rect，并通过 `DefaultItemAnimator` 把 child translation 从旧位置动画到新位置。上一版曾改成“第一轮动画结束后再重算 span”，但这会让 overlay 明显晚于列表动画。现在改为在 `notifyItemMoved(...)` commit 成功后立刻调用 `requestSimpleAnimationsInNextLayout()` 和 `invalidateSpanAssignments()`，让最终 span 重算合并进同一轮 RecyclerView layout；controller 只等最终 layout rect 在 pre-draw 阶段可用，然后下一帧用 RecyclerView 的 move duration 启动 overlay 飞入动画，使 overlay 和 StaggeredGrid 最终排列动画同时开始、同时结束。
+- source placeholder 的恢复现在等待 overlay 飞行结束后再执行；不再在 overlay 还可见、还在移动时提前把真实 source holder alpha 设回 1。
+- `ThingsActivity.kt` 中用于 overlay reorder 结束后恢复普通颜色的 delayed full-list rebind 继续等 overlay session 非 active 后再执行，避免它抢在 overlay 落地前改变真实卡片可见状态。
+- 成功把记事/文件夹拖入已有文件夹时，overlay 不再飞向目标文件夹卡片中心，而是保持松手位置，用自身左上角作为 pivot 直接缩小到 `scaleX/scaleY=0`；拖记事到记事创建文件夹仍保留原本合入目标卡片的动画。
+- 继续检查拖入文件夹后其它卡片没有重排动画的问题：提交路径本身已经是 `notifyItemRemoved(...)` 加目标文件夹 `notifyItemChanged(...)`，但后续用于退出 Moving mode 后恢复普通颜色的 `notifyDataSetChanged(...)` 可能在 RecyclerView 还没消费 pending adapter update、还没完成 layout、或 `DefaultItemAnimator` 仍在播放 gap-closing move 动画时执行，从而截断剩余动画。现在这次 mode-exit rebind 会等待 pending update / requested layout 清空，并等待 `ItemAnimatorFinishedListener` 回调后再执行。
+- 修复在列表底部把 A 放到左侧卡片 B 上方时，B 先向下移动、overlay 结束后又从 A 下方闪到 A 右侧的问题。继续阅读 AndroidX SGLM / RecyclerView 源码后确认：SGLM 默认支持 predictive item animations，底部非顶部锚点场景下，第一轮 `notifyItemMoved(...)` 可能先用旧 span 生成“B 往下让位”的 post rect；随后 `checkForGaps()` 或 mode-exit rebind 才清空 lazy span 并重算出“B 在右侧”的最终布局。现在 `ThingsStaggeredLayoutManager` 为 overlay reorder 增加一次性准备路径：下一轮 layout 临时关闭 predictive item animations，但仍请求 simple animations 并清空 span assignment，让 RecyclerView 直接把 B 从旧位置动画到最终右侧位置，而不是先下移再跳变。
+- debug logging 仍保持关闭；没有重新启用文件日志。
+
+验证状态：
+- 已执行 `git diff --check`，通过；仅有仓库既有的 LF/CRLF 提示。
+- 已执行 `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`，结果 `BUILD SUCCESSFUL`。
+- 本次使用 `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md" --console=plain --no-configuration-cache` 发布到 debug update channel。
+- 已回读远端 `latest.json` 确认发布版本为 `202606191435`，APK 为 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606191435.apk`，SHA-256 为 `f0048764ef1105d325e9671721342badb5366ef12d5b0744c0d7688a298a8c69`。
+
 ## 2026-06-18 - 统一 Dialog 和外观面板的标题与操作按钮样式
 
 用户希望全面检查所有 `DialogFragment` 以及相似的 App Chrome 表面，例如记事/文件夹卡片外观面板、封面图片/视频裁切弹窗等：只要有标题、取消、确认、好哒或类似操作按钮，就统一标题字号和上下左右边距，统一按钮内部 padding、字号、外部边距和 pill 高度；取消按钮颜色也要保持一致并适配浅色/暗色模式。右侧确认按钮的文案可能不同，例如“开始做事”，因此宽度应继续由 `wrap_content` 和统一 padding 决定；如果操作行左侧也有按钮，按钮文字左边缘需要和标题文字左边缘视觉对齐，同时保留 pill 触摸动画；所有 pill ripple 不能被父容器裁切。三项纵向排列的选项 Dialog 明确不需要修改。

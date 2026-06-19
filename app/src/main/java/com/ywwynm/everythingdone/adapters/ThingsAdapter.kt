@@ -5,6 +5,7 @@ package com.ywwynm.everythingdone.adapters
 import android.animation.ObjectAnimator
 import android.content.res.ColorStateList
 import android.graphics.Color
+import android.graphics.Outline
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.os.Handler
@@ -17,6 +18,7 @@ import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewOutlineProvider
 import android.view.animation.Animation
 import android.view.animation.AnimationUtils
 import android.widget.ImageView
@@ -139,13 +141,17 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
     }
 
     override fun onBindViewHolder(holder: BaseThingViewHolder, position: Int) {
+        val entry = getEntries()?.getOrNull(position)
+        holder.itemView.setTag(
+            R.id.tag_thing_card_bound_stable_id,
+            entry?.stableId ?: getThingAt(position)?.id ?: Long.MIN_VALUE
+        )
         holder.itemView.visibility = View.VISIBLE
         holder.itemView.alpha = 1.0f
         holder.itemView.scaleX = 1.0f
         holder.itemView.scaleY = 1.0f
         holder.itemView.translationZ = 0.0f
 
-        val entry = getEntries()?.getOrNull(position)
         if (entry is ThingListEntry.FolderEntry) {
             bindFolderCard(holder, entry)
             if (mShouldThingsAnimWhenAppearing) {
@@ -157,6 +163,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         removeFolderDynamicViews(holder)
         holder.cv?.setTag(R.id.tag_thing_folder_thumbnail_surface, false)
         holder.cv?.maxCardElevation = mApp!!.resources.getDimension(R.dimen.thing_card_dragging_elevation)
+        applyDefaultCardOutline(holder.cv)
         val thing = getThingAt(position)!!
         distinguishHeaderAndOthers(thing, holder.cv)
         super.onBindViewHolder(holder, position)
@@ -265,6 +272,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         holder.cv.maxCardElevation = mApp!!.resources.getDimension(R.dimen.thing_card_dragging_elevation)
         holder.cv.cardElevation = mApp!!.resources.getDimension(R.dimen.thing_card_normal_elevation)
         holder.cv.setTag(R.id.tag_thing_folder_thumbnail_surface, false)
+        applyDefaultCardOutline(holder.cv)
         holder.cv.setShouldInterceptTouchEvent(false)
 
         holder.ivMediaBackground!!.visibility = View.GONE
@@ -332,6 +340,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
             holder.cv!!.setTag(R.id.tag_thing_folder_thumbnail_surface, false)
             holder.cv.maxCardElevation = mApp!!.resources.getDimension(R.dimen.thing_card_dragging_elevation)
             holder.cv.cardElevation = mApp!!.resources.getDimension(R.dimen.thing_card_normal_elevation)
+            applyDefaultCardOutline(holder.cv)
             holder.llContent!!.background = null
             BackgroundUtil.applyCardBackground(holder.cv, background)
         }
@@ -371,15 +380,11 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
             scheduleMovingCardScaleRecoveryIfReleased(card, "folder")
             ObjectAnimator.ofFloat(card, "scaleX", 1.11f).setDuration(96).start()
             ObjectAnimator.ofFloat(card, "scaleY", 1.11f).setDuration(96).start()
-            if (!thumbnailMode) {
-                ObjectAnimator.ofFloat(
-                    card,
-                    "cardElevation",
-                    mApp!!.resources.getDimension(R.dimen.thing_card_dragging_elevation)
-                ).setDuration(96).start()
-            } else {
-                card.cardElevation = 0f
-            }
+            ObjectAnimator.ofFloat(
+                card,
+                "cardElevation",
+                mApp!!.resources.getDimension(R.dimen.thing_card_dragging_elevation)
+            ).setDuration(96).start()
         } else {
             val oldToken = card.getTag(R.id.tag_thing_card_moving_scale_recovery_token)
             if (oldToken != null || card.scaleX != 1.0f || card.scaleY != 1.0f) {
@@ -396,11 +401,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
             card.animate().cancel()
             card.scaleX = 1.0f
             card.scaleY = 1.0f
-            card.cardElevation = if (thumbnailMode) {
-                0f
-            } else {
-                mApp!!.resources.getDimension(R.dimen.thing_card_normal_elevation)
-            }
+            card.cardElevation = mApp!!.resources.getDimension(R.dimen.thing_card_normal_elevation)
         }
     }
 
@@ -410,15 +411,17 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         fallbackColor: Int
     ) {
         val radius = mApp!!.resources.getDimension(R.dimen.thing_card_corner_radius)
-        val transparentCardBackground = GradientDrawable().apply {
-            setColor(Color.TRANSPARENT)
+        val listBackgroundColor = ContextCompat.getColor(mApp!!, R.color.bg_activity_things)
+        val cardBackground = GradientDrawable().apply {
+            setColor(listBackgroundColor)
             cornerRadius = radius
         }
         holder.cv!!.setTag(R.id.tag_thing_folder_thumbnail_surface, true)
-        holder.cv.background = transparentCardBackground
-        holder.cv.setCardBackgroundColor(Color.TRANSPARENT)
-        holder.cv.maxCardElevation = 0f
-        holder.cv.cardElevation = 0f
+        holder.cv.background = cardBackground
+        holder.cv.setCardBackgroundColor(listBackgroundColor)
+        holder.cv.maxCardElevation = mApp!!.resources.getDimension(R.dimen.thing_card_dragging_elevation)
+        holder.cv.cardElevation = mApp!!.resources.getDimension(R.dimen.thing_card_normal_elevation)
+        applyRoundedCardOutline(holder.cv, radius)
 
         val strokeColor = background?.representativeColor() ?: fallbackColor
         val outline = GradientDrawable()
@@ -426,6 +429,22 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         outline.cornerRadius = radius
         outline.setStroke((mDensity * 1.5f).toInt().coerceAtLeast(1), strokeColor)
         holder.llContent!!.background = outline
+    }
+
+    private fun applyDefaultCardOutline(card: CardView?) {
+        card ?: return
+        card.clipToOutline = true
+        card.outlineProvider = ViewOutlineProvider.BACKGROUND
+    }
+
+    private fun applyRoundedCardOutline(card: CardView?, radius: Float) {
+        card ?: return
+        card.clipToOutline = true
+        card.outlineProvider = object : ViewOutlineProvider() {
+            override fun getOutline(view: View, outline: Outline) {
+                outline.setRoundRect(0, 0, view.width, view.height, radius)
+            }
+        }
     }
 
     private fun bindFolderCardContent(
@@ -1334,23 +1353,19 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
 
     private fun animateCardTouchDown(card: CardView) {
         val normalElevation = mApp!!.resources.getDimension(R.dimen.thing_card_normal_elevation)
-        val animateElevation = card.getTag(R.id.tag_thing_folder_thumbnail_surface) != true
         card.animate().cancel()
         card.animate()
             .scaleX(CARD_TOUCH_PRESSED_SCALE)
             .scaleY(CARD_TOUCH_PRESSED_SCALE)
             .setDuration(CARD_TOUCH_DOWN_DURATION)
             .start()
-        if (animateElevation) {
-            ObjectAnimator.ofFloat(
-                card, "cardElevation", normalElevation * CARD_TOUCH_PRESSED_ELEVATION_RATIO
-            ).setDuration(CARD_TOUCH_DOWN_DURATION).start()
-        }
+        ObjectAnimator.ofFloat(
+            card, "cardElevation", normalElevation * CARD_TOUCH_PRESSED_ELEVATION_RATIO
+        ).setDuration(CARD_TOUCH_DOWN_DURATION).start()
     }
 
     private fun animateCardTouchRelease(card: CardView) {
         val normalElevation = mApp!!.resources.getDimension(R.dimen.thing_card_normal_elevation)
-        val animateElevation = card.getTag(R.id.tag_thing_folder_thumbnail_surface) != true
         card.animate().cancel()
         card.animate()
             .scaleX(CARD_TOUCH_OVERSHOOT_SCALE)
@@ -1363,22 +1378,14 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
                     .setDuration(CARD_TOUCH_SETTLE_DURATION)
                     .withEndAction(null)
                     .start()
-                if (animateElevation) {
-                    ObjectAnimator.ofFloat(card, "cardElevation", normalElevation)
-                        .setDuration(CARD_TOUCH_SETTLE_DURATION)
-                        .start()
-                } else {
-                    card.cardElevation = 0f
-                }
+                ObjectAnimator.ofFloat(card, "cardElevation", normalElevation)
+                    .setDuration(CARD_TOUCH_SETTLE_DURATION)
+                    .start()
             }
             .start()
-        if (animateElevation) {
-            ObjectAnimator.ofFloat(
-                card, "cardElevation", normalElevation * CARD_TOUCH_OVERSHOOT_SCALE
-            ).setDuration(CARD_TOUCH_RELEASE_DURATION).start()
-        } else {
-            card.cardElevation = 0f
-        }
+        ObjectAnimator.ofFloat(
+            card, "cardElevation", normalElevation * CARD_TOUCH_OVERSHOOT_SCALE
+        ).setDuration(CARD_TOUCH_RELEASE_DURATION).start()
     }
 
     private fun playAppearingAnimation(v: View, listPosition: Int) {

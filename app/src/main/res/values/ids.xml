@@ -13,4 +13,5 @@
     <item name="tag_thing_card_finger_down" type="id"/>
     <item name="tag_thing_card_drag_active" type="id"/>
     <item name="tag_thing_card_moving_scale_recovery_token" type="id"/>
+    <item name="tag_thing_card_bound_stable_id" type="id"/>
 </resources>

@@ -35,6 +35,10 @@
   RecyclerView item animations during Folder-drop commit, using transformed
   target bounds for hit-testing, and replacing handcrafted post-mutation
   positions with an identity-aware diff or equivalent update contract.
+- After the overlay drag controller has been device-tested, remove any
+  remaining private helper code in `ThingsActivity` that only served the old
+  unreachable ItemTouchHelper drag implementation and is no longer needed by
+  swipe or Folder-drop hover feedback.
 
 ## Folder Privacy And Deletion
 

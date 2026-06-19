@@ -76,6 +76,9 @@
   long-pressing a Thing Card. A Folder can be dragged into another Folder, and a
   release that returns to the original position should enter selecting mode
   instead of opening a Folder action dialog.
+- When selecting mode is already active, long-pressing a Folder Card should
+  exit selecting mode the same way long-pressing a Thing Card does, rather than
+  swallowing the gesture.
 - A separate dedicated Folder move UI remains deferred; the current slice uses
   drag interactions and contextual menu actions.
 
@@ -104,11 +107,12 @@
 
 ## Drag Commit Animation
 
-- When dropping a Thing Card onto an existing Thing Folder Card, the dragged
-  card should not visually return to its original list position. It should
-  animate from the released position into the Folder Card, then the Folder Card
-  should update and the list should play the normal gap-closing item removal
-  animation for the dropped Thing.
+- When dropping a Thing Card or Thing Folder Card onto an existing Thing Folder
+  Card, the dragged overlay should not visually return to its original list
+  position or fly into the target Folder Card. It should shrink in place toward
+  its own top-left corner until `scaleX/scaleY=0`, while RecyclerView keeps the
+  normal targeted removal and gap-closing item animations for the remaining
+  cards.
 - When dropping a Thing Card onto another Thing Card to create a new Thing
   Folder, the dragged card should not visually return to its original list
   position. It should visually merge with the target card, the new Folder Card
@@ -116,6 +120,12 @@
   by the removed source Thing.
 - Prefer targeted RecyclerView item updates and removals over replaying the
   whole list appearing animation after a successful drag commit.
+- Overlay reorder should preserve RecyclerView's own item move/re-layout
+  animation for the other cards. Do not replace the reorder commit path with an
+  immediate full-list refresh merely to get a final target rect; the overlay
+  should synchronize with RecyclerView's final arrangement animation and use
+  the same move duration rather than playing after the list has already
+  settled.
 - Pending create-folder outlines apply only when dragging one Thing Card onto
   another Thing Card. The target Thing Card should shrink, and the pending
   Folder outline should sit outside it with a visible gap. The outline colour
@@ -165,6 +175,10 @@
   completes. This restores every visible card from Moving-mode dimmed
   selection colours to normal colours without breaking the targeted drop
   animation.
+- The Moving-mode exit full-list rebind after a successful Folder drop must not
+  run while RecyclerView still has pending adapter updates, a requested layout,
+  or running item animations. It may run after `ItemAnimator` reports that the
+  targeted removal/move animations have finished.
 
 ## Folder Card Layout
 
@@ -243,10 +257,24 @@
 
 ## Thumbnail Folder Card Surface
 
-- Thumbnail-mode Folder Cards should keep a truly transparent interior with
-  only the outline using the folder background colour or gradient. They should
-  not show a `CardView` elevation shadow or a stale solid folder-colour fill
-  inside the outline.
+- Thumbnail-mode Folder Cards in the list should keep the same normal and
+  dragging `CardView` elevation as ordinary Thing Cards. Because their visual
+  interior should still read as transparent against the list, use the
+  home/list background as the CardView fill behind the outlined content so the
+  platform elevation shadow is covered inside the outline and visible only
+  outside it.
+- Thumbnail-mode Folder Card drag overlays should still look lifted with the
+  platform View elevation shadow. Use an inset rounded `Outline` for the real
+  card content rect, then draw the list background inside that content rect
+  before drawing the transparent bitmap so any internal elevation shadow is
+  covered.
+- Do not replace thumbnail-mode Folder drag overlay elevation with custom
+  stroke, gradient, or bitmap shadow approximations when the platform can draw
+  the real outer shadow.
+- Very tall thumbnail-mode Folder Card drag overlays must continue rendering
+  their bitmap content. Avoid whole-overlay software layers, full-size
+  `saveLayer(...)` cleanup, or single oversized texture uploads for the drag
+  visual.
 - Thumbnail-mode Folder Card title, icon, and count colours should contrast
   against the home/list background, not against the folder background. In light
   mode this means dark foreground content on the grey-white background; in dark

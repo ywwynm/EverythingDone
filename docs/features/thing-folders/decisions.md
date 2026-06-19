@@ -1,5 +1,233 @@
 # Thing Folders Decisions
 
+## 2026-06-19 - Folder long press parity and thumbnail overlay shadow
+
+Folder Cards should not swallow long press gestures while the list is already
+in selecting mode. The Folder branch should follow the same non-normal-mode
+fallback as Thing Cards and call `ModeManager.backNormalMode(listPosition)`.
+
+Thumbnail-mode Folder Cards have a transparent interior, and Android's native
+elevation shadow is tied to a `RenderNode` outline rather than to bitmap alpha.
+Android documentation and AOSP source show that elevation draws the shadow from
+the View's `Outline`, `clipToOutline` clips content rather than the shadow, and
+there is no public API to ask the platform to draw only the exterior half of a
+shadow. The overlay should therefore keep platform View elevation for the real
+outer shadow, use an expanded overlay image view with a content inset, and set
+an inset rounded `Outline` matching the real card content rect.
+
+The internal shadow that appears behind transparent thumbnail Folder content
+should be hidden by drawing the home/list background as a rounded rect inside
+the content rect before drawing the captured transparent bitmap. This preserves
+the platform elevation look outside the card outline without maintaining custom
+stroke, gradient, or bitmap shadow approximations. Very tall thumbnail Folder
+overlays must still avoid full-overlay software layers, full-size
+`saveLayer(...)` cleanup, and single oversized texture uploads; the overlay
+bitmap should be tile-drawn when it exceeds the safe tile size, so a single
+oversized bitmap texture does not make the drag visual disappear.
+
+The same principle applies to thumbnail-mode Folder Cards in the list, not only
+to their drag overlay. They should keep ordinary Thing Card normal and dragging
+elevation, but the CardView fill should use the home/list background colour
+rather than transparent pixels or the Folder background. The content outline
+can remain transparent-looking and use the Folder colour/gradient for its
+stroke, while the opaque list-background fill hides the inner half of the
+platform shadow.
+
+All overlay drag geometry should continue to use the content card rect, not the
+expanded shadow view bounds. Finger offsets, Folder-drop top-left hit testing,
+create-Folder merge targets, reorder settle targets, and release-in-place
+targets should therefore convert between outer overlay coordinates and the
+inner content rect so the card content still aligns top-left to top-left and
+bottom-right to bottom-right.
+
+## 2026-06-19 - Drag overlay owns enlarged lift scale
+
+The overlay drag bitmap should be captured from the source card's normal view
+content, but the session overlay itself should render at the same enlarged
+Moving-mode lift scale as the visible dragged card.
+
+After the bitmap is captured and the overlay is attached, the real source
+holder should immediately cancel its scale animation, clear any moving-scale
+recovery token, reset `scaleX`/`scaleY` to `1f`, and remain only as a
+transparent normal-size layout placeholder. Later reveal should therefore not
+play a second ViewHolder shrink animation. The overlay should carry the
+enlarged visual scale during drag, use the enlarged visible frame for pointer
+offset and top-left Folder-drop hit testing, and animate down to the final
+normal-size holder frame on reorder or release-in-place settle.
+
+For successful reorder settle, the final source ViewHolder alpha should be
+restored only after the overlay movement animation has ended and the overlay
+view has been removed from the overlay parent.
+
+While the overlay session is active, the transparent source placeholder must be
+enforced on every RecyclerView pre-draw, not only when the source holder is
+first hidden or reattached. Adapter rebinds such as `notifyItemMoved(...)`,
+`notifyItemChanged(...)`, or delayed full-list rebinds may reset holder alpha to
+`1f`; the overlay controller remains responsible for restoring the source
+holder to transparent placeholder state before the frame is drawn.
+
+That enforcement should not depend only on the source's current list position,
+because RecyclerView pre-layout during `notifyItemMoved(...)` can temporarily
+keep the source holder at its old slot while the data list already reports the
+new slot. Bound Thing/Folder card roots therefore carry their stable business
+id as a view tag, and the overlay controller scans visible children by that tag
+to keep every currently attached source holder transparent. The placeholder
+reset also applies to the inner card view that owns Moving-mode scale, not only
+to the RecyclerView item root.
+
+The overlay drag visual should carry the same elevated card shape as the
+Moving-mode source card. Moving mode already raises selected normal Thing and
+Folder Cards to `thing_card_dragging_elevation` while scaling them to `1.11f`.
+Because Android elevation shadows are not reliably rasterized by
+`View.draw(Canvas)` into the content bitmap, the overlay view itself should use
+the dragging elevation plus the card corner outline so the shadow is rendered
+with the enlarged moving card.
+
+For reorder settle, the overlay must not resolve its final target from
+RecyclerView's pre-layout state. After `notifyItemMoved(...)`, the data list may
+already report the source at its new position while the transparent source
+holder is still attached at the old slot for predictive layout. The overlay
+settle animation should therefore wait until RecyclerView has no pending adapter
+updates, is not computing layout, has no running item animator, the holder at
+the source's final adapter position is bound to the same stable business id,
+and that holder's layout rectangle is stable across consecutive frames.
+
+Transparent placeholder enforcement must not cancel the root `itemView`
+animation while a reorder settle is in progress. RecyclerView's item animator
+uses that root view animation to move the transparent source holder from the old
+slot to the final slot. The overlay controller may keep setting the root alpha
+to `0f`, but only the inner card view's app-owned Moving-mode scale/elevation
+recovery animation should be cancelled.
+
+For overlay-owned reorder settle, RecyclerView should keep ownership of the
+surrounding cards' item-move animation. The overlay controller should not force
+an immediate full-list refresh to bypass the predictive layout gap, because
+that removes the other cards' re-layout animation and can disturb scroll
+position. Instead, the commit path should use `notifyItemMoved(...)`; the
+overlay should wait until RecyclerView has had at least the item move duration
+to start and finish, wait an additional short post-animation grace window, no
+item animator is running, scrolling is idle, no adapter updates are pending,
+and the final source holder rect is stable across multiple frames before
+playing the dragged-card settle animation.
+
+Because `StaggeredGridLayoutManager` keeps a lazy adapter-position-to-span
+assignment cache, a moved item's holder rect can look stable before the final
+gap-free span assignment has been recalculated. The overlay controller should
+therefore request simple animations for the next layout and invalidate
+StaggeredGrid span assignments immediately after the successful
+`notifyItemMoved(...)` commit, before RecyclerView consumes that adapter update.
+That lets the span correction coalesce into the same post-layout animation
+pass. Once that final layout rect is available on pre-draw, the overlay should
+start on the next animation frame with the same move duration, so the dragged
+overlay and RecyclerView's final arrangement animate together.
+
+For a successful drop into an existing Thing Folder, the commit overlay should
+not fly into the target Folder Card center. Because the target Folder Card is
+already visually highlighted as the receiver, the dragged overlay should keep
+its release position, use a top-left pivot, and shrink directly to
+`scaleX/scaleY=0`. RecyclerView remains responsible for the source removal and
+gap-closing movement of the other cards through targeted adapter notifications.
+
+The full-list rebind used to restore normal colours after exiting Moving mode
+must be delayed until RecyclerView has consumed the targeted Folder-drop
+adapter update, completed layout, and finished any running `ItemAnimator`
+animations. Running that rebind while `notifyItemRemoved(...)` is still
+producing move animations can cancel the remaining gap-closing animation and
+make the list appear to jump.
+
+When overlay reorder commits near the bottom of the staggered grid, SGLM's
+predictive pre-layout can produce an intermediate post rect that still belongs
+to the old span assignment. A visible target card may therefore animate
+straight down to make room for the moved card, then jump sideways after a later
+gap-correction or full-list rebind recalculates the final span. For the single
+layout pass after an overlay reorder commit, `ThingsStaggeredLayoutManager`
+should suppress predictive item animations while still requesting simple item
+animations and clearing span assignments. RecyclerView can then record existing
+visible child frames as the pre-layout information and animate them directly to
+the final non-predictive SGLM span assignment.
+
+## 2026-06-19 - Overlay release targets use layout-space card frames
+
+Overlay drag release animations should align the overlay bitmap frame to the
+final card holder's untransformed layout frame: top-left to top-left and
+bottom-right to bottom-right.
+
+The controller must not derive this frame by combining
+`View.getLocationOnScreen()` with raw `width`/`height` when the card may still
+have transient `scaleX`/`scaleY` from Moving-mode lift or recovery animations.
+That mixes a transformed top-left with untransformed dimensions and can make
+the overlay land offset from the final ViewHolder. Reorder and release-in-place
+targets should therefore compute holder coordinates by walking layout
+`left`/`top` values up to the overlay root while ignoring scale and, for final
+settle targets, ignoring RecyclerView item-animation translations.
+
+## 2026-06-19 - Reorder insertion line stays near the target card
+
+The overlay-drag reorder insertion line should indicate the final target card
+edge, not the geometric midpoint of an arbitrarily large masonry gap.
+
+For an insert-before candidate, draw the line a small fixed distance above the
+target card. For an insert-after candidate, draw it a small fixed distance
+below the target card. If another visible card in the same horizontal span
+leaves too little space, the line may be clamped toward the local gap midpoint
+so it does not overlap either card. Large gaps created by tall Things or
+Folders should not pull the line far away from the target card.
+
+The insertion line thickness should be specified in dp, not raw pixels, so it
+has the same visual weight across different display densities.
+
+## 2026-06-18 - Overlay reorder release settles with RecyclerView move animation
+
+When an overlay drag session commits an ordinary reorder, RecyclerView should
+own the surrounding card rearrangement and the session overlay should remain
+the visible dragged card until the moved source reaches its final layout slot.
+
+On release, the commit path should perform the data move plus
+`notifyItemMoved(...)`, keep the real source holder transparent as the layout
+placeholder, wait for RecyclerView to lay out the moved source in its final
+slot, and then animate the overlay from the release position to that final
+source holder layout rectangle. The overlay settle duration should match the
+RecyclerView item move duration so the gap-making animation and the dragged
+card landing animation read as one coordinated motion.
+
+The source holder should be revealed only after the overlay settle finishes,
+with transient drag scale and tags reset before it becomes visible. If the
+final source holder cannot be resolved after layout retries, the overlay may
+fade out and request a targeted source rebind as a recovery path rather than
+committing another reorder or forcing a scroll back to the original source.
+
+The overlay snapshot may include the card's long-press Moving-mode enlarged
+scale. Its release animation should therefore shrink the overlay back toward
+the normal card scale while it lands, and should wait until RecyclerView item
+animations are finished before revealing the real source holder. Revealing the
+holder while it still has a running move translation, or while the overlay is
+still visually enlarged, can create a final-frame jitter.
+
+Successful reorder release should reveal the source holder resolved by stable
+Thing/Folder identity after the final layout and item-animation cleanup, not
+blindly restore the original `sourceView` reference captured at drag start.
+That original holder reference may be stale after a move, and restoring its
+alpha too early can show the real card underneath the overlay for one frame.
+
+The reorder overlay's final target is the moved source holder's final
+`itemView` layout rectangle as a bitmap frame. The lift-time bitmap may already
+contain any long-press card scale inside that frame, so the controller should
+not divide the whole overlay frame by the captured card scale when calculating
+the final `x`/`y`. Mixing the inner card scale into the outer bitmap-frame
+target can make the overlay land with a visible coordinate offset.
+
+Any full-list rebind used only to restore cards from Moving-mode colours after
+an overlay reorder must wait until the overlay drag session is no longer active.
+A delayed `notifyDataSetChanged()` that runs while the overlay is still settling
+can reveal the real moved card underneath the overlay and make RecyclerView's
+rearrangement look like a separate jump.
+
+When a dragged card returns to its original or equivalent list position, the
+release should still animate the overlay back to the original source slot
+before entering selecting mode. Returning to the original position is not a
+fade-out case; it should preserve the same spatial continuity as a successful
+reorder settle.
+
 ## 2026-06-15 - Initial requested product shape
 
 Thing Folders will be created from the home list by dragging one Thing onto
@@ -348,6 +576,273 @@ Outside Deleted, deleting a Folder moves the Folder and its contained subtree
 into the Deleted state. Inside Deleted, the corresponding action text and
 operation become permanent delete, which recursively destroys the Folder subtree
 and contained Things.
+
+## 2026-06-18 - Full-session drag overlay owns moving visuals
+
+The next hardening pass for long Thing and Folder drags should treat the
+session overlay as the single moving visual authority from active drag start
+until release or cancellation. The RecyclerView child should no longer be the
+live moving card during the drag session; the list should instead provide
+layout feedback, hover/drop candidates, auto-scroll, and final mutation
+commit.
+
+This supersedes the narrower Folder-drop commit overlay model for the active
+drag visual. The existing commit overlay captured only the final Folder-drop
+animation and still depended on ItemTouchHelper moving the real child during
+the drag. A full-session overlay is intended to decouple the finger-following
+visual from ViewHolder detach/recycle behavior during long auto-scrolling
+drags through large cards and folders.
+
+The overlay drag session must preserve the existing Thing and Folder drag
+feature surface: dragging either a Thing Card or a Folder Card, release-in-place
+selection-mode entry, creating a new Folder by dropping a Thing onto another
+Thing, adding/moving Things or Folders into an existing Folder, and ordinary
+reordering.
+
+During an active overlay drag session, the list should not mutate the
+underlying order with live `move(...)` calls or `notifyItemMoved(...)` events.
+It should keep the original list as the data source, render only visual
+candidate feedback such as insertion position and Folder-drop hover state, and
+commit the final reorder or Folder-drop mutation once the pointer is released.
+
+Thing and Folder Card drag sessions should no longer be owned by
+`ItemTouchHelper.startDrag(...)`. ItemTouchHelper may continue to support other
+list gestures such as swipe, but long-press drag should move to an app-owned
+drag session controller that tracks pointer movement, overlay position,
+auto-scroll, candidate targets, cancellation, release, and final commit.
+
+On pointer release, the overlay drag session should resolve outcomes in this
+order: valid Folder drop, valid reorder, release-in-place selection-mode entry,
+then cancellation/interruption cleanup. Moving away and returning to the
+original position should be treated as release-in-place and enter selection
+mode. Cancellation paths such as `ACTION_CANCEL`, window focus loss, activity
+pause, or data-source invalidation should cleanly restore the list without
+committing Folder drop, committing reorder, or entering selection mode.
+
+Release-in-place selection should select the original source object by stable
+business id, not by the release point or a stale adapter position. A Thing drag
+selects the original Thing id; a Folder drag selects the original Folder id. If
+the current mixed-list position is available, the session should enter
+selection mode at that position. If the object still exists but is not
+currently visible, selection state should still be restored by id and surfaced
+through rebind rather than selecting another visible card.
+
+The overlay rewrite must preserve existing visible interaction animation
+quality rather than replacing all effects with abrupt state changes. Drag start
+lift/scale, finger-following motion, Folder-drop hover feedback, commit
+animation, reorder settlement, selection-mode entry, and cancellation/recovery
+should keep animation ownership explicit so recycled ViewHolders do not keep
+stale scale, alpha, outline, elevation, or selection tint.
+
+During an active overlay drag session, the real source card should remain in
+the RecyclerView only as a layout placeholder and should be fully transparent,
+not dimmed or partially visible. This prevents the user from seeing two copies
+of the same Thing or Folder Card while preserving masonry/list layout stability
+around large source cards. The transparent placeholder must be non-interactive
+and all visibility, alpha, scale, elevation, outline, and selection-tint state
+must be restored on release, cancellation, data invalidation, and ViewHolder
+rebinding.
+
+The full-session drag overlay should initially render from a full-size bitmap
+snapshot of the source card captured at drag start. The overlay should not
+construct and bind a second live Thing or Folder Card view during the drag. A
+bitmap keeps the drag visual identical to the source card at lift time while
+avoiding duplicate adapter state, nested preview interactions, media loading,
+and live child-view state during the session. The first implementation should
+not downsample large source cards; if capture fails or the source view has an
+invalid size, the session should not start.
+
+The overlay snapshot should copy only the card state already visible on screen.
+It should not reveal hidden private content, force authentication, expand
+protected Folder previews, or otherwise alter privacy/authenticated projection
+semantics. A hidden private card should drag as its protected visible card; an
+authenticated visible card should drag as currently rendered.
+
+Folder-drop candidates during the overlay drag session should continue to use
+the dragged overlay card's top-left corner: a Folder drop is considered only
+when that top-left point is inside an existing eligible Thing or Folder Card.
+The overlay should preserve the lift-time finger-to-card offset so this
+top-left hit-test matches the existing drag behavior. Folder-drop
+candidates should still require a short stable hover before arming, so moving
+quickly across a valid Thing or Folder target does not accidentally create or
+enter a Folder-drop state.
+
+Pointer location should still drive finger tracking, edge-zone auto-scroll,
+and ordinary reorder candidate calculation. Folder-drop hit-testing is the
+exception because it is based on where the dragged card enters the target card.
+
+The first overlay-drag reorder feedback should be an insertion line rather
+than live card displacement. The insertion line should use the dragged Thing or
+Folder Card's own `ThingBackground`, rendering a solid line for pure colours
+and a gradient line for gradient backgrounds.
+
+The insertion line should attach to the visible edge of the candidate card
+rather than trying to preview the full future staggered-grid layout. Inserting
+before a visible candidate draws the line at that card's top edge; inserting
+after a visible candidate draws it at that card's bottom edge. The line width
+should match the candidate card width, or span the content width for full-span
+positions. If the candidate edge is off-screen, the session should temporarily
+hide the insertion line and continue dragging/auto-scrolling. Folder-drop hover
+feedback should hide the reorder insertion line while armed.
+
+Ordinary reorder candidates should be computed from the pointer's current
+relationship to visible cards. A pointer inside the upper half of a card means
+insert before that card; a pointer inside the lower half means insert after
+that card. A pointer in visible whitespace should use the nearest visible card
+edge. The transparent source placeholder and the header/list position `0`
+should not be valid reorder targets. Folder-drop hover state should suspend
+reorder candidate updates while armed.
+
+Final reorder commits should derive the mutation once at release time from the
+stable source id plus the final target id and before/after relationship. The
+commit path should resolve current source and target list positions, adjust for
+the source removal when the source originally appears before the target, and
+then perform one data move plus one list update. Returning to the original or
+an equivalent position should enter selection mode instead of committing a
+move. The drag session should not carry forward accumulated `from`/`to`
+positions from intermediate drag frames.
+
+Reorder candidates may retain the most recent target stable id plus
+before/after relationship while that target edge is temporarily off-screen, but
+the insertion line should be hidden when no visible target edge can anchor it.
+Release-time reorder must resolve the retained target id against the current
+mixed list again; if the target can no longer be found or no longer accepts the
+source move, the session must not commit a stale reorder.
+
+Folder-drop hover animations should keep the existing visual language while
+moving lifecycle ownership into the overlay drag session controller. Creating a
+Folder from two Things should keep the target-card shrink plus pending Folder
+outline feedback. Dropping a Thing or Folder into an existing Folder should
+keep the Folder-card shrink, outline, and content-alpha feedback. Entering,
+leaving, canceling, and committing hover state should be centralized so every
+target touched during the session can animate back cleanly without stale scale,
+outline, alpha, background, or selection tint.
+
+Folder-drop armed state should require a currently visible target. If the
+target holder scrolls off-screen, is detached or recycled, or the overlay
+top-left point no longer remains inside that target, the session should leave
+the Folder-drop hover state and animate the target feedback back. Releasing
+over an invisible or stale target must not commit a Folder drop.
+
+Release animations should reuse the active session overlay instead of taking a
+new post-release snapshot. Folder-drop commits should animate the session
+overlay into the target Thing or Folder Card before/while the list reflects the
+merge. Reorder commits should settle the overlay toward the final insertion
+edge before the list update reveals the moved source in its final position.
+Release-in-place selection should animate the overlay back to the transparent
+source placeholder and then reveal the real card in selection mode. Cancellation
+should restore or fade the overlay back without committing data or entering
+selection mode.
+
+Release and cancellation cleanup must not depend on the original source
+ViewHolder still being attached. If the source placeholder is still visible,
+the session may animate the overlay back and restore that holder directly. If
+the source holder has been detached or recycled, cleanup should resolve the
+source by stable business id and use targeted rebind/list refresh to clear any
+transparent placeholder state. The session should not force-scroll back to the
+source merely to play a recovery animation.
+
+Long-press drag startup should keep the current product rhythm: a confirmed
+long press enters Moving mode, then starts the overlay drag session only if the
+pointer is still active and the source holder can produce the initial bitmap
+snapshot. If the user has already released by the startup check, the interaction
+should enter selection mode rather than creating a drag session. If the source
+holder is unavailable or cannot be captured, the code should not start a partial
+session.
+
+An active overlay drag session should be an exclusive gesture. It should track
+only the pointer that started the drag, pause card clicks, nested long-presses,
+swipe handling, and drawer gestures for the session, and use one cleanup path
+for pointer-up, cancellation, Activity pause, and session invalidation.
+ItemTouchHelper should remain the owner of ordinary Thing Card swipe behavior,
+but it should no longer own Thing/Folder Card drag behavior or receive swipe
+control while an overlay drag session is active.
+
+The Things list ItemTouchHelper should expose only swipe flags after the
+overlay drag rewrite. Drag flags should be zero for Thing and Folder Cards so
+future code cannot accidentally re-enter the old `startDrag(...)` path.
+
+The overlay drag controller should live outside `ThingsActivity.kt` in a new
+focused Kotlin file because the Activity is already too large. The extraction
+should keep the drag-session state, overlay rendering, auto-scroll, insertion
+line, and release/cancel coordination in the controller while using a narrow
+host contract back into `ThingsActivity` for existing business operations,
+adapter updates, mode transitions, and Folder-drop helpers.
+
+The extracted controller should communicate with `ThingsActivity` through a
+small explicit Host interface instead of directly depending on broad Activity
+internals. The Host should expose only the operations required for the drag
+session, such as current mixed-list lookup, source/target validation, hover
+feedback hooks, final reorder/drop/selection/cancel commits, mode transitions,
+and access to the RecyclerView plus overlay parent. The controller should not
+become a second Activity-shaped class with copied managers and broad private
+state access.
+
+While an overlay drag session is active, `ThingsActivity.dispatchTouchEvent(...)`
+should be the top-level event source for drag move, release, and cancellation.
+Inactive sessions should not intercept normal event dispatch. Once active, the
+controller should consume the tracked pointer's move/up/cancel events before
+they reach child item views or ItemTouchHelper, so release can still be observed
+when the pointer moves outside the RecyclerView's bounds.
+
+Auto-scroll during the overlay drag session should be owned by the app-owned
+drag session controller rather than by ItemTouchHelper's out-of-bounds drag
+scrolling. Edge-zone scrolling should have a bounded speed, recompute
+pointer-based Folder-drop and reorder candidates after scroll movement, keep
+the overlay tied to the current pointer position, and continue the session even
+when the original or candidate ViewHolder is detached or recycled.
+
+Starting an overlay drag session should stop any existing RecyclerView fling or
+ordinary scroll. While the session is active, the only allowed list scrolling
+source should be the drag controller's own edge-zone auto-scroll. Normal finger
+scrolling, inertial scrolling, nested scrolling, and semantic external scrolls
+should not run concurrently with the drag session. External semantic scrolls or
+list refreshes should cancel the session before they change the list, while
+controller-owned auto-scroll must not cancel merely because ViewHolders detach
+or recycle.
+
+Overlay drag sessions should treat stable business identity as authoritative
+and list positions as derived frame-local values. The session should record the
+source kind, source Thing or Folder id, original mixed-list position, source
+background, and relevant projection/container context at drag start. Candidate
+positions and targets should be recomputed from the current list and pointer
+location on each frame. Release-time commits should revalidate source and
+target identities before mutating data, so a stale adapter position cannot move
+or merge the wrong Thing or Folder after long scrolling, rebinding, or list
+refresh.
+
+External changes that alter the current mixed-list semantics should cancel the
+overlay drag session instead of committing or entering selection mode. Examples
+include search/projection/drawer-destination changes, folder-path changes,
+mode-level changes not owned by the session, Activity pause, private-content
+visibility changes, and adapter refreshes caused by unrelated data mutations.
+Pure view-layer churn such as scrolling, ViewHolder recycle/detach, and item
+animation completion should not cancel the session.
+
+The overlay drag implementation may keep file-backed debug logging behind a
+feature flag that defaults to disabled. Logs should use the generic
+`DebugFileLogger` path and record session-level events such as start metadata,
+candidate changes, Folder hover enter/armed/leave, auto-scroll transitions,
+release outcome, cleanup state, and invalidation cancellation reason. The log
+should not emit every move frame by default.
+
+The overlay drag rewrite should replace the old ItemTouchHelper drag path
+directly instead of keeping a feature-flagged fallback. Once the overlay session
+owns Thing/Folder drag, obsolete ItemTouchHelper drag state and callbacks should
+be removed or reduced to swipe-only code rather than maintained as a second
+drag implementation.
+
+After reviewing modern Android alternatives, the full-session overlay drag
+should remain a custom View-based controller rather than adopting platform
+`startDragAndDrop(...)`, Jetpack `DropHelper`, or Compose drag-and-drop APIs.
+ItemTouchHelper's documented drag model still moves the existing ViewHolder and
+can end early when that ViewHolder leaves the layout, which is the failure mode
+being fixed. Platform and Compose drag-and-drop APIs are oriented around
+ClipData-style data transfer and drop targets rather than this app's mixed
+RecyclerView reorder, Folder-drop, release-in-place selection, custom
+auto-scroll, and animation requirements. The implementation should therefore
+use ordinary View touch handling plus an overlay bitmap visual, while keeping
+ItemTouchHelper for swipe only.
 
 ## 2026-06-17 - Private Folder Cards hide counts
 

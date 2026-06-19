@@ -1,5 +1,270 @@
 # Thing Folders Sessions
 
+## 2026-06-19 - Keep overlay drag enlarged while source holder stays normal
+
+- Corrected the overlay drag visual model after the user pointed out that
+  `View.draw(Canvas)` captures normal view content rather than the View's
+  transformed Moving-mode scale. The overlay now applies the drag lift scale
+  (`1.11f`) to the bitmap `ImageView` itself, so the moving card remains
+  enlarged during drag.
+- Adjusted the overlay start frame and finger offset to use the enlarged
+  visible overlay bounds. Folder-drop top-left hit testing therefore continues
+  to use the visible dragged card's top-left corner, not the unscaled bitmap
+  frame.
+- Once the bitmap has been captured, the real source holder now clears its
+  moving-scale recovery token, cancels any scale animation, resets to
+  `scaleX=1f` / `scaleY=1f`, and remains transparent as a normal-size layout
+  placeholder. This prevents a second ViewHolder shrink animation from
+  appearing when the holder is finally revealed.
+- Reorder settle target resolution now waits for RecyclerView item animations
+  and a post-animation draw before resolving the final source holder frame.
+  This avoids computing the overlay's final target from a stale transparent
+  source placeholder that RecyclerView still has at the old list position
+  before relayout.
+- Tightened successful reorder reveal ordering so the final source ViewHolder
+  is restored only after the overlay movement animation has ended and the
+  overlay view has been removed from the overlay parent. This avoids showing
+  the real card under the final overlay frame.
+- After follow-up device feedback that the ViewHolder could still appear early,
+  identified the remaining gap as adapter rebinds during `notifyItemMoved(...)`
+  or related updates resetting `holder.itemView.alpha` to `1f`. Added a
+  RecyclerView pre-draw guard for the active overlay session so the source
+  holder is re-applied as a transparent normal-size placeholder immediately
+  before each frame is drawn, until the overlay is removed and the deliberate
+  reveal runs.
+- After the user still observed early ViewHolder reveal and suspected
+  `notifyDataSetChanged()`-style rebinding, hardened the guard against
+  RecyclerView pre-layout. `ThingsAdapter` now tags each bound card root with
+  its Thing/Folder stable business id, and the controller scans visible
+  children by that tag instead of relying only on the source's current list
+  position. Placeholder application now also resets the inner `cv_thing`
+  CardView scale and recovery token, matching the layer that Moving mode
+  actually enlarges.
+- Confirmed that Moving mode already raises selected normal Thing/Folder Cards
+  to `thing_card_dragging_elevation` while scaling them to `1.11f`. The overlay
+  snapshot view now uses that same 12dp elevation and the card corner outline,
+  so the moving overlay renders as the enlarged elevated card rather than a
+  plain rectangular bitmap surface.
+- Strengthened successful reorder settle timing after the user reproduced the
+  old-slot placeholder problem. The overlay no longer starts its final movement
+  as soon as a holder can be found. It waits until RecyclerView has no pending
+  adapter updates, is not computing layout, item animations are no longer
+  running, the source holder at the final adapter position is bound to the
+  source stable id, and its layout rect is stable across consecutive frames.
+- Reviewed the user's follow-up video and identified a more specific cause of
+  the remaining old-slot behavior: the pre-draw placeholder guard was calling
+  `itemView.animate().cancel()` every frame. That cancelled RecyclerView's own
+  root ViewPropertyAnimator for moving the transparent source holder, so the
+  holder could become stable at the old slot. Placeholder enforcement now keeps
+  the root item animation intact and only cancels the inner card view's
+  app-owned Moving-mode scale recovery animation.
+- The user then rejected the full-refresh workaround because it removed
+  RecyclerView's own re-layout animation and could disturb scroll position.
+  Restored `notifyItemMoved(...)` for overlay reorder commits, then made the
+  overlay wait more patiently before settling: it must allow at least the item
+  move duration plus a small grace window for the item animator to start, wait
+  for any observed item animator to stop, wait an additional short
+  post-animation grace window, require idle scrolling, require no pending
+  adapter updates, and require the final source rect to be stable across
+  multiple frames.
+- After the user reported the same screenshot sequence still reproducing,
+  reviewed AndroidX `StaggeredGridLayoutManager` and `RecyclerView` source.
+  The important finding is that SGLM keeps a lazy span lookup, `notifyItemMoved`
+  only invalidates the affected range, and later gap correction or full-list
+  rebinds can clear/rebuild span assignments after a holder rect has already
+  looked stable. The first follow-up attempted a two-phase wait, but that made
+  the overlay feel late. The revised approach now requests simple animations
+  for the next layout and invalidates StaggeredGrid span assignments
+  immediately after the successful `notifyItemMoved(...)` commit, before
+  RecyclerView consumes the adapter update. The overlay waits only until that
+  synchronized final layout rect is available, then starts on the next
+  animation frame using RecyclerView's move duration so it runs with the final
+  arrangement animation instead of after it.
+- Updated successful drops into existing Thing Folders so the session overlay
+  no longer flies into the target Folder Card. For `MOVE_TO_FOLDER` commits,
+  the overlay now keeps its release position, pivots at its own top-left
+  corner, and shrinks directly to `scaleX/scaleY=0`. Create-Folder drops still
+  keep their merge-into-target animation.
+- Diagnosed the missing remaining-card rearrangement animation on Folder drops.
+  The commit path was already using `notifyItemRemoved(...)` plus a targeted
+  Folder-card `notifyItemChanged(...)`; the animation was vulnerable because
+  the later Moving-mode-exit full-list rebind could run before RecyclerView had
+  consumed pending adapter updates, completed layout, or finished
+  `DefaultItemAnimator` move animations. `runWhenThingListCanUpdate(...)` now
+  checks pending adapter updates and requested layout, and Folder-drop
+  mode-exit rebind waits for `ItemAnimatorFinishedListener` before calling
+  `notifyDataSetChanged()`.
+- Investigated the follow-up case where dropping A above bottom-left card B
+  made B animate downward first, then jump to A's right side after the overlay
+  finished. AndroidX source review showed that SGLM supports predictive item
+  animations by default, while `checkForGaps()` can later clear lazy spans and
+  request another simple-animation layout. With a non-top visible anchor near
+  the bottom of the list, that means the first `notifyItemMoved(...)` animation
+  can be based on an intermediate same-span post rect, and the final span
+  correction arrives later.
+- Added a one-shot overlay-reorder preparation path to
+  `ThingsStaggeredLayoutManager`: the next layout after an overlay reorder
+  suppresses predictive item animations, requests simple animations, and
+  invalidates span assignments. This keeps RecyclerView move animations for the
+  surrounding cards, but makes their post-layout rects come from the final
+  non-predictive SGLM span assignment. Overlay reorder's delayed mode-exit
+  full-list rebind now also waits for `ItemAnimatorFinishedListener`.
+- Matched Folder Card long-press behavior to Thing Cards while selecting mode
+  is active. The Folder branch now exits selecting mode through
+  `ModeManager.backNormalMode(listPosition)` instead of swallowing the long
+  press.
+- Reworked thumbnail-mode Folder drag overlays again after source review of
+  Android shadow handling. The custom stroke/gradient shadow approximations
+  were removed; `DragOverlayImageView` now uses platform elevation again, with
+  an expanded view bounds and an inset rounded `Outline` matching the real
+  card content rect.
+- Covered the transparent-interior shadow without self-drawing the outer
+  shadow: before drawing the captured transparent bitmap, the overlay draws a
+  rounded `bg_activity_things` fill inside the content rect. The platform still
+  draws the real outer elevation shadow, while the interior shadow is hidden by
+  the same background the thumbnail Folder Card normally reveals.
+- Confirmed the list's thumbnail-mode Folder Cards had also been suppressing
+  elevation by setting `cardElevation` and `maxCardElevation` to `0f`. Restored
+  their normal and dragging elevation to match ordinary Thing Cards, including
+  Moving-mode and touch elevation animations. Their outer CardView now uses
+  `bg_activity_things` as an opaque rounded fill under the outlined content, so
+  the platform shadow is still hidden inside the outline while remaining
+  visible outside it.
+- Kept the very tall Folder overlay fix from the previous pass. If the
+  captured bitmap is larger than the safe tile size, `DragOverlayImageView`
+  splits it into 1024px tiles and draws those tiles into the content rect
+  instead of asking ImageView to upload one oversized texture.
+
+Verification: `git diff --check` passed with only the repository's existing
+LF/CRLF warnings. `.\gradlew.bat :app:compileDebugKotlin --console=plain
+--no-configuration-cache` and `.\gradlew.bat :app:assembleDebug
+--console=plain --no-configuration-cache` completed with `BUILD SUCCESSFUL`;
+the only compiler warnings were the existing deprecated `adapterPosition`
+warnings in `ThingListOverlayDragController.kt`. Published debug update
+`202606191435` to the Aliyun debug channel and verified remote `latest.json`
+points at that code. Remote APK:
+`http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606191435.apk`.
+Remote SHA-256:
+`f0048764ef1105d325e9671721342badb5366ef12d5b0744c0d7688a298a8c69`.
+
+## 2026-06-19 - Align overlay release animation to layout-space card frames
+
+- Diagnosed the remaining overlay reorder / release-in-place landing offset as
+  a coordinate-frame mismatch. The controller was using
+  `View.getLocationOnScreen()` for the target top-left while pairing it with
+  raw `width`/`height`; during Moving-mode, the source holder can still carry
+  transient `scaleX`/`scaleY`, so that produced a transformed top-left with
+  untransformed right/bottom.
+- Updated `ThingListOverlayDragController` so overlay start, folder-drop target
+  centers, reorder settle targets, and release-in-place return targets use a
+  shared layout-space rect helper. The helper walks view `left`/`top` up to the
+  overlay root, ignores scale, and lets callers choose whether transient
+  translations should be included.
+- Reorder and release-in-place now target the final holder's untransformed
+  layout frame, preserving top-left to top-left and bottom-right to
+  bottom-right alignment when the real ViewHolder is revealed.
+
+Verification: `git diff --check` passed with only the repository's existing
+LF/CRLF warnings. `.\gradlew.bat :app:assembleDebug --console=plain
+--no-configuration-cache` completed with `BUILD SUCCESSFUL`. Publishing was
+attempted in-sandbox but timed out at `:app:publishDebugUpdate`; the elevated
+rerun was rejected by the safety reviewer because this turn did not explicitly
+authorize remote APK upload and metadata updates, so publishing was not
+confirmed.
+
+## 2026-06-19 - Separate reorder landing target from RecyclerView relayout timing
+
+- Reviewed the user's slow-motion reorder video from the 3-second mark and
+  separated two effects: the overlay landing target could be offset, while the
+  RecyclerView rearrangement/full-list rebind could also reveal the real moved
+  card during the deliberately prolonged overlay test animation.
+- Removed the temporary prolonged reorder settle duration and returned the
+  successful reorder overlay flight to the RecyclerView item move duration.
+- Changed the successful reorder and release-in-place target calculation to use
+  the final source holder `itemView` layout rectangle as the outer bitmap-frame
+  target. The controller no longer divides the overlay frame by the captured
+  long-press card scale, because that scale is already baked into the lift-time
+  bitmap contents and should not shift the frame's final `x`/`y`.
+- Changed successful reorder cleanup so source placeholder reveal waits until
+  both the overlay flight and RecyclerView item animations have finished. This
+  removes the earlier timing experiment where the real holder could be restored
+  while the overlay was still visibly moving.
+- Deferred the Moving-mode exit full-list rebind while an overlay drag session
+  is still active. If the delayed rebind fires before the overlay has ended, it
+  is recorded as pending and runs only after `onOverlayDragActiveChanged(false)`.
+
+Verification: `git diff --check` passed with only the repository's existing
+LF/CRLF warnings. The in-sandbox
+`.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`
+run was blocked by the usual Kotlin daemon `AccessDeniedException` under the
+user profile; the same local assemble task succeeded with elevated
+permissions. Debug update publishing remains owned by the user.
+
+## 2026-06-19 - Polish reorder release jitter and insertion line placement
+
+- Revisited the overlay reorder release animation after device feedback that
+  the card could jitter at the final reveal. The likely cause was a mismatch
+  between the enlarged Moving-mode snapshot and the real holder being restored
+  at normal scale, plus the possibility that RecyclerView's item move animator
+  had not fully finished when the holder was revealed.
+- Stored the card scale captured at overlay start and made the successful
+  reorder settle animation shrink the overlay back toward the normal card scale
+  while moving to the final source layout slot.
+- Delayed source-holder reveal until RecyclerView's item animator reports that
+  its animations have finished, keeping the overlay visible at the final target
+  if RecyclerView needs an extra frame to finish its own translation cleanup.
+- Changed the reorder insertion line from a geometric midpoint between visible
+  neighbours to a small fixed offset from the target card edge, clamped only
+  when the local visible gap is too small. Large masonry gaps from tall Things
+  or Folders no longer pull the line far away from the final target card.
+- Follow-up feedback clarified that returning to the original position should
+  still play a spatial return animation. The no-op reorder / release-in-place
+  path now animates the overlay back to the source layout slot before entering
+  selecting mode instead of fading the overlay out.
+- Tightened successful reorder reveal timing after the user pointed out that
+  restoring the real holder alpha too early could explain the final jitter.
+  The controller now waits for RecyclerView item animations and one additional
+  draw, then restores only the holder resolved by the source stable id, avoiding
+  the stale drag-start `sourceView` reference on successful moves.
+- Increased the insertion line thickness from 6px to 12px so the source-colour
+  line reads clearly during drag.
+- Follow-up feedback clarified that the insertion line thickness should be
+  density-independent rather than raw pixels. The line is now 4dp, which maps
+  to the previous intended thicker visual weight on high-density devices while
+  staying consistent across densities.
+- Added a temporary timing experiment for the remaining final-frame jitter:
+  successful reorder overlay flight now lasts 420ms, while source-holder alpha
+  restoration still follows the current RecyclerView item-animation completion
+  timing. This intentionally separates the overlay movement from the holder
+  reveal so device testing can identify which moment causes the jitter.
+
+Verification: in-sandbox `:app:assembleDebug` was blocked by the same Kotlin
+daemon `AccessDeniedException` under the user profile. The same
+`.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`
+task succeeded with elevated permissions. Debug update publishing was left to
+the user.
+
+## 2026-06-18 - Synchronize overlay reorder settle with RecyclerView move
+
+- Reworked the successful overlay reorder release path after device feedback
+  that removing the overlay before `notifyItemMoved(...)` avoided flicker but
+  made the dragged card landing animation feel disconnected.
+- Kept the session overlay visible after release, committed the data move and
+  `notifyItemMoved(...)`, then waited for the next RecyclerView pre-draw before
+  resolving the moved source holder's final layout rectangle.
+- Animated the overlay from the release position to that final source layout
+  slot using the RecyclerView item move duration, so the surrounding cards'
+  gap-making animation and the dragged card's settle animation share timing.
+- Kept the real source holder transparent during the RecyclerView move
+  animation, then restored it after the overlay settle and reset transient
+  drag scale/tags before reveal.
+
+Verification: in-sandbox `:app:assembleDebug` was blocked by a Kotlin daemon
+`AccessDeniedException` under the user profile. The same
+`.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`
+task succeeded with elevated permissions. Debug update publishing was left to
+the user.
+
 ## 2026-06-18 - Hide IME when closing Folder Card appearance panel
 
 - Rechecked the user's intended UI and corrected the target: the problematic
@@ -1593,4 +1858,59 @@ publishing was not run.
   Folder icon in the title row, suppress child counts, and show a lock below
   the title.
 - Reduced the large audio-only count text in Folder thumbnail previews by 2sp.
+- Verified the changes with `.\gradlew.bat :app:assembleDebug`.
+
+## 2026-06-18 - Full-session overlay drag controller
+
+- Replaced the long-press Thing/Folder drag owner with a custom
+  `ThingListOverlayDragController` that renders a full-size bitmap snapshot of
+  the source card in the Activity overlay for the whole drag session.
+- Kept the real source card in the RecyclerView as a transparent layout
+  placeholder, with cleanup by stable Thing/Folder identity so recycled or
+  detached ViewHolders do not keep transparent, scaled, dimmed, or highlighted
+  state.
+- Moved active drag move/up/cancel handling to `ThingsActivity.dispatchTouchEvent`
+  while leaving inactive touch dispatch unchanged. The controller consumes the
+  active session events so release is still observed outside RecyclerView
+  bounds.
+- Added controller-owned edge auto-scroll and stopped existing RecyclerView
+  scroll/fling when the overlay session starts. ItemTouchHelper no longer owns
+  Thing/Folder drag and now exposes only swipe flags for Thing Cards.
+- Added source-coloured reorder insertion-line feedback, using the dragged
+  Thing/Folder `ThingBackground` and supporting pure colours and gradients.
+  Reorder is committed once at release by resolving source and target stable
+  business ids.
+- Preserved existing Folder-drop hover visuals by bridging the overlay
+  controller to the current target shrink, outline, background, and content
+  alpha feedback. Folder drop still uses the dragged card's top-left point and
+  requires stable hover before arming.
+- Preserved release outcomes for Folder drop, reorder, release-in-place
+  selection, and cancellation. Folder-drop commits reuse the session overlay for
+  the fly-into-target animation; selection/cancel restores or fades the overlay
+  without committing stale data.
+- Kept optional file-backed overlay drag debug logging behind a disabled flag.
+- Verified the changes with `.\gradlew.bat :app:assembleDebug`.
+
+## 2026-06-18 - Overlay drag polish after device feedback
+
+- Device testing of the first overlay-drag build showed four regressions:
+  reorder insertion lines were drawn directly against card edges instead of in
+  the visual gap, cards could remain in Moving-mode dimmed colours after a
+  reorder, the source card could become visible again when auto-scrolling back
+  to its original position, and reorder release animations fought
+  RecyclerView's own `notifyItemMoved(...)` animation.
+- Moved the insertion line to the midpoint between the candidate card and its
+  nearest vertically adjacent visible card in the same horizontal span, with a
+  small fallback gap when there is no visible neighbour.
+- Added a RecyclerView child-attach guard to the overlay drag session so any
+  reattached source ViewHolder is immediately restored to transparent
+  placeholder state while the drag is active.
+- Changed reorder release animation ownership: the overlay no longer flies to
+  the final insertion edge. It is removed before the final `notifyItemMoved(...)`
+  commit so RecyclerView owns the visible reorder movement. Release-in-place
+  selection now fades the overlay out instead of flying it back.
+- Changed successful reorder cleanup to exit Moving mode through
+  `finishMovingModeWithoutListRefresh()` and schedule a delayed full rebind
+  after item movement, restoring cards from Moving-mode dimmed colours without
+  competing with the move animation.
 - Verified the changes with `.\gradlew.bat :app:assembleDebug`.
