@@ -6,27 +6,34 @@
     android:layout_height="wrap_content"
     android:visibility="invisible">
 
-    <View
-        android:id="@+id/view_contextual_status_bar"
+    <LinearLayout
+        android:id="@+id/ll_contextual_header"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:background="@color/app_accent"
-        android:visibility="visible"/>
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
 
-    <androidx.appcompat.widget.Toolbar
-        android:id="@+id/contextual_toolbar"
-        android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:layout_below="@id/view_contextual_status_bar"
-        android:background="@color/app_accent"
-        android:theme="@style/EverythingDoneTheme.AppAccentToolbar"
-        app:titleTextAppearance="@style/ContextualToolbarText"
-        app:contentInsetStart="72dp"/>
+        <View
+            android:id="@+id/view_contextual_status_bar"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:background="@color/app_accent"
+            android:visibility="visible"/>
+
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/contextual_toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="@color/app_accent"
+            android:theme="@style/EverythingDoneTheme.AppAccentToolbar"
+            app:titleTextAppearance="@style/ContextualToolbarText"
+            app:contentInsetStart="72dp"/>
+
+    </LinearLayout>
 
     <View
         android:layout_width="match_parent"
         android:layout_height="5dp"
-        android:layout_below="@id/contextual_toolbar"
+        android:layout_below="@id/ll_contextual_header"
         android:background="@drawable/actionbar_shadow"
         android:alpha="0.6"/>
 

@@ -123,6 +123,15 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
         } else {
             mSbAlpha!!.progress = abs(alpha)
         }
+
+        val cancelButton = findViewById<TextView>(R.id.tv_cancel_as_bt_things_list_config)
+        val confirmButton = findViewById<TextView>(R.id.tv_confirm_as_bt_things_list_config)
+        BackgroundUtil.installAppChromeDialogActionButton(cancelButton, this)
+        BackgroundUtil.installAppChromeDialogActionButton(confirmButton, this)
+        if (mIsSetting) {
+            cancelButton.visibility = View.VISIBLE
+            cancelButton.setOnClickListener { finish() }
+        }
     }
 
     private fun readAppWidgetIdOrFinish() {
@@ -162,7 +171,15 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
                 updateScopeScrollSeparators()
             }
         })
-        updateScopeScrollSeparatorsSoon()
+        // Scroll to the selected folder so it is visible when the config opens
+        // from an existing widget (re-configuration flow).
+        rv.post {
+            val pos = mScopeAdapter!!.findSelectedPosition()
+            if (pos >= 0) {
+                (rv.layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(pos, rv.height / 3)
+            }
+            updateScopeScrollSeparators()
+        }
     }
 
     private fun updateScopeScrollSeparatorsSoon() {
@@ -175,8 +192,11 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
         val topSeparator = mScopeTopSeparator ?: return
         val bottomSeparator = mScopeBottomSeparator ?: return
         val canScrollUp = rv.canScrollVertically(-1)
+        // Content overflows container → list is inherently scrollable even when
+        // scrolled all the way to the bottom (where canScrollDown == false).
+        val contentScrollable = rv.canScrollVertically(-1) || rv.canScrollVertically(1)
         topSeparator.visibility = if (canScrollUp) View.VISIBLE else View.INVISIBLE
-        bottomSeparator.visibility = View.VISIBLE
+        bottomSeparator.visibility = if (contentScrollable) View.VISIBLE else View.INVISIBLE
     }
 
     private fun setupTypeFilters() {
@@ -510,6 +530,19 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
             }
         }
 
+        fun findSelectedPosition(): Int {
+            for (i in visibleItems.indices) {
+                val item = visibleItems[i]
+                if (item.folder?.id == mSelectedFolderId) {
+                    return i
+                }
+                if (item.folder == null && mSelectedFolderId == null) {
+                    return i // "All" item
+                }
+            }
+            return 0
+        }
+
         private fun selectFolder(folder: ThingFolder) {
             if (shouldAuthenticateFolder(folder.id)) {
                 authenticateFolder(folder, R.string.open_private_thing_folder) {
@@ -525,26 +558,53 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
         }
 
         private fun toggleFolderExpanded(folder: ThingFolder) {
-            if (expandedFolderIds.contains(folder.id)) {
-                expandedFolderIds.remove(folder.id)
-                rebuildVisibleItems()
-                notifyDataSetChanged()
-                updateScopeScrollSeparatorsSoon()
-                return
-            }
-            if (shouldAuthenticateFolder(folder.id)) {
-                authenticateFolder(folder, R.string.expand_private_thing_folder) {
-                    expandedFolderIds.add(folder.id)
-                    rebuildVisibleItems()
-                    notifyDataSetChanged()
-                    updateScopeScrollSeparatorsSoon()
+            val expanding = !expandedFolderIds.contains(folder.id)
+            if (expanding) {
+                if (shouldAuthenticateFolder(folder.id)) {
+                    authenticateFolder(folder, R.string.expand_private_thing_folder) {
+                        expandedFolderIds.add(folder.id)
+                        performToggleFolderExpanded(folder, expanding = true)
+                    }
+                    return
                 }
-                return
+                expandedFolderIds.add(folder.id)
+            } else {
+                expandedFolderIds.remove(folder.id)
             }
-            expandedFolderIds.add(folder.id)
+            performToggleFolderExpanded(folder, expanding)
+        }
+
+        private fun performToggleFolderExpanded(folder: ThingFolder, expanding: Boolean) {
+            val folderPos = visibleItems.indexOfFirst { it.folder?.id == folder.id }
+            if (folderPos < 0) return
+
+            // Animate the expand arrow on the ViewHolder that is showing this folder
+            val holder = mScopeRecyclerView
+                ?.findViewHolderForAdapterPosition(folderPos) as? ScopeViewHolder
+            holder?.expand?.animate()?.rotation(if (expanding) 180f else 0f)
+                ?.setDuration(220)?.start()
+
+            val childCount = countVisibleChildren(folder.id)
             rebuildVisibleItems()
-            notifyDataSetChanged()
+
+            if (expanding) {
+                notifyItemRangeInserted(folderPos + 1, childCount)
+            } else {
+                notifyItemRangeRemoved(folderPos + 1, childCount)
+            }
             updateScopeScrollSeparatorsSoon()
+        }
+
+        private fun countVisibleChildren(parentFolderId: Long?): Int {
+            val children = childrenByParent[parentFolderId] ?: return 0
+            var count = 0
+            for (child in children) {
+                count++
+                if (expandedFolderIds.contains(child.id) && canShowFolderChildren(child)) {
+                    count += countVisibleChildren(child.id)
+                }
+            }
+            return count
         }
 
         private fun canShowFolderChildren(folder: ThingFolder): Boolean {

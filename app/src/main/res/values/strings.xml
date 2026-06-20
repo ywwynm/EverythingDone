@@ -880,6 +880,7 @@
     <string name="expand_private_thing_folder">Expand Private Folder</string>
     <string name="manage_private_thing_folder">Manage Private Folder</string>
     <string name="customize_private_thing_folder_card">Customize Private Folder Card</string>
+    <string name="customize_private_thing_card">Customize Private Card</string>
     <string name="move_private_thing_or_folder">Move Private Content</string>
     <string name="finish_private_thing_by_swipe">Finish Private Thing</string>
     <string name="confirm_fingerprint">Confirm fingerprint to continue</string>

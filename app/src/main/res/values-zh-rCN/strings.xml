@@ -874,6 +874,7 @@
     <string name="expand_private_thing_folder">展开私密文件夹</string>
     <string name="manage_private_thing_folder">管理私密文件夹</string>
     <string name="customize_private_thing_folder_card">调整私密文件夹卡片外观</string>
+    <string name="customize_private_thing_card">调整私密记事卡片外观</string>
     <string name="move_private_thing_or_folder">移动私密内容</string>
     <string name="finish_private_thing_by_swipe">完成私密记事</string>
     <string name="confirm_fingerprint">确认指纹以继续</string>

@@ -77,6 +77,7 @@ open class ModeManager(app: App?,
     private var backNormalModeListener: View.OnClickListener? = null
     private var backNormalModeCallback: (() -> Unit)? = null
     private var contextualToolbarVisibilityCallback: ((Boolean) -> Unit)? = null
+    private var menuItemsChangedCallback: (() -> Unit)? = null
 
     private var notifyDataSetRunnable: Runnable? = null
     private var hideActionBarShadowRunnable: Runnable? = null
@@ -153,6 +154,10 @@ open class ModeManager(app: App?,
 
     open fun setContextualToolbarVisibilityCallback(callback: ((Boolean) -> Unit)?) {
         contextualToolbarVisibilityCallback = callback
+    }
+
+    open fun setMenuItemsChangedCallback(callback: (() -> Unit)?) {
+        menuItemsChangedCallback = callback
     }
 
     open fun backNormalMode(position: Int) {
@@ -265,6 +270,7 @@ open class ModeManager(app: App?,
         if (mApp!!.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
             updateMenuItemStickyOnTop()
         }
+        menuItemsChangedCallback?.invoke()
     }
 
     open fun setShouldShowPrivateContent(shouldShowPrivateContent: Boolean) {
@@ -311,8 +317,11 @@ open class ModeManager(app: App?,
                 .findItem(R.id.act_customize_card_appearance) ?: return
         val entry = mThingManager!!.getSingleSelectedEntry()
         if (entry is ThingListEntry.FolderEntry) {
-            item.isVisible = true
-            item.setTitle(R.string.act_customize_folder_card_appearance)
+            val limitOk = mApp!!.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY
+            item.isVisible = limitOk
+            if (limitOk) {
+                item.setTitle(R.string.act_customize_folder_card_appearance)
+            }
             return
         }
         item.setTitle(R.string.act_customize_card_appearance)
@@ -336,9 +345,6 @@ open class ModeManager(app: App?,
         if (thing.state == Thing.FINISHED) {
             return false
         }
-        if (thing.isPrivate() && !mShouldShowPrivateContent) {
-            return false
-        }
 
         return true
     }
@@ -347,10 +353,11 @@ open class ModeManager(app: App?,
         val item: MenuItem = mContextualToolbar!!.getMenu()
                 .findItem(R.id.act_set_as_private_thing) ?: return
         val entry = mThingManager!!.getSingleSelectedEntry()
+        val limitIsUnderway = mApp!!.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY
         when (entry) {
             is ThingListEntry.ThingEntry -> {
                 val thing = entry.thing
-                item.isVisible = thing.id != App.getDoingThingId()
+                item.isVisible = limitIsUnderway && thing.id != App.getDoingThingId()
                 item.setTitle(
                         if (thing.isPrivate()) {
                             R.string.act_cancel_private_thing
@@ -361,7 +368,7 @@ open class ModeManager(app: App?,
             }
             is ThingListEntry.FolderEntry -> {
                 val folder = entry.folder
-                item.isVisible = true
+                item.isVisible = limitIsUnderway
                 item.setTitle(
                         if (folder.isPrivate) {
                             R.string.cancel_thing_folder_private
@@ -387,8 +394,9 @@ open class ModeManager(app: App?,
         setMenuItemVisible(R.id.act_finish_selected, !hasSelectedFolder)
         setMenuItemVisible(R.id.act_delete_selected, !hasSelectedFolder)
         setMenuItemVisible(R.id.act_delete_selected_forever, !hasSelectedFolder)
-        val moveToFolderVisible = !hasSelectedFolder ||
-                (singleFolderOnly && selectedFolder?.isDeleted() != true)
+        val limitIsUnderway = mApp!!.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY
+        val moveToFolderVisible = limitIsUnderway && (!hasSelectedFolder ||
+                (singleFolderOnly && selectedFolder?.isDeleted() != true))
         setMenuItemVisible(R.id.act_move_to_thing_folder, moveToFolderVisible)
         setMenuItemVisible(R.id.act_export, !hasSelectedFolder)
 
@@ -401,7 +409,7 @@ open class ModeManager(app: App?,
 
         val dissolveItem = mContextualToolbar!!.menu
                 .findItem(R.id.act_dissolve_thing_folder)
-        dissolveItem?.isVisible = singleFolderOnly
+        dissolveItem?.isVisible = singleFolderOnly && limitIsUnderway
 
         val deleteFolderItem = mContextualToolbar!!.menu
                 .findItem(R.id.act_delete_thing_folder)

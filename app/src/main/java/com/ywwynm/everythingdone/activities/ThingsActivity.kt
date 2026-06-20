@@ -740,8 +740,9 @@ class ThingsActivity :
     private fun configureCurrentFolderMenu(menu: Menu) {
         val currentFolder = mThingManager!!.getCurrentFolder()
         val inFolder = currentFolder != null
+        val limitIsUnderway = mApp!!.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY
         menu.findItem(R.id.act_toggle_current_folder_private)?.let { item ->
-            item.isVisible = inFolder
+            item.isVisible = inFolder && limitIsUnderway
             if (currentFolder != null) {
                 item.setTitle(
                         if (currentFolder.isPrivate) {
@@ -753,8 +754,9 @@ class ThingsActivity :
             }
         }
         menu.findItem(R.id.act_move_current_folder_to_folder)?.isVisible =
-                inFolder && currentFolder?.isDeleted() != true
-        menu.findItem(R.id.act_dissolve_current_folder)?.isVisible = inFolder
+                inFolder && limitIsUnderway && currentFolder?.isDeleted() != true
+        menu.findItem(R.id.act_dissolve_current_folder)?.isVisible =
+                inFolder && limitIsUnderway
         menu.findItem(R.id.act_delete_current_folder)?.let { item ->
             item.isVisible = inFolder
             if (currentFolder != null) {
@@ -1900,6 +1902,9 @@ class ThingsActivity :
                 applyHomeStatusBarChrome()
             }
         }
+        mModeManager!!.setMenuItemsChangedCallback {
+            refreshContextualToolbarForeground()
+        }
         adapter.setModeManager(mModeManager)
         mActivityHeader!!.setModeManager(mModeManager!!)
         mActivityHeader!!.setFolderPathClickListener(
@@ -2175,7 +2180,7 @@ class ThingsActivity :
         val background = folderBackground
             ?: ThingBackground.pure(ContextCompat.getColor(this, R.color.app_accent))
         val foreground = if (folderBackground == null) {
-            ContextCompat.getColor(this, R.color.black_54p)
+            ContextCompat.getColor(this, R.color.black_86p)
         } else {
             BackgroundUtil.onColor(
                 background.representativeColor(),
@@ -2184,8 +2189,12 @@ class ThingsActivity :
         }
 
         statusBar.visibility = View.VISIBLE
-        BackgroundUtil.applyBackground(statusBar, background)
-        BackgroundUtil.applyBackground(toolbar, background)
+        // Apply to header wrapper for unified gradient spanning status bar + toolbar,
+        // keeping the shadow view below it free of the gradient bleed.
+        val headerWrapper: View = f(R.id.ll_contextual_header)!!
+        BackgroundUtil.applyBackground(headerWrapper, background)
+        statusBar.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+        toolbar.setBackgroundColor(android.graphics.Color.TRANSPARENT)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             window.statusBarColor = background.representativeColor()
         }
@@ -2210,6 +2219,26 @@ class ThingsActivity :
             val item = menu.getItem(i)
             val icon = item.icon ?: continue
             item.icon = DisplayUtil.opaqueTintDrawable(this, icon, foreground)
+        }
+    }
+
+    private fun refreshContextualToolbarForeground() {
+        val toolbar: Toolbar = f(R.id.contextual_toolbar)!!
+        val folderBackground = getCurrentFolderBackgroundForChrome()
+        val foreground = if (folderBackground == null) {
+            ContextCompat.getColor(this, R.color.black_86p)
+        } else {
+            BackgroundUtil.onColor(
+                folderBackground.representativeColor(),
+                BackgroundUtil.ON_ALPHA_PRIMARY
+            )
+        }
+        applyContextualToolbarForeground(toolbar, foreground)
+        // Re-tint after the next layout pass to catch menu-item icons that
+        // were lazily loaded after setVisible(true) — invisible items may
+        // not have their icon drawable ready during the first tint pass.
+        toolbar.post {
+            applyContextualToolbarForeground(toolbar, foreground)
         }
     }
 
@@ -2652,7 +2681,18 @@ class ThingsActivity :
                     openFolderCardAppearancePanel(entry.folder)
                 }
             }
-            is ThingListEntry.ThingEntry -> openThingCardAppearancePanel()
+            is ThingListEntry.ThingEntry -> {
+                if (entry.thing.isPrivate()) {
+                    authenticateThing(
+                        entry.thing,
+                        R.string.customize_private_thing_card
+                    ) {
+                        openThingCardAppearancePanel()
+                    }
+                } else {
+                    openThingCardAppearancePanel()
+                }
+            }
             else -> {}
         }
     }
@@ -2788,7 +2828,7 @@ class ThingsActivity :
 
     private fun openThingCardAppearancePanel() {
         val thing: Thing = getSingleSelectedThingForAppearance() ?: return
-        if (thing.id == App.getDoingThingId() || thing.isPrivate()) {
+        if (thing.id == App.getDoingThingId()) {
             return
         }
 
@@ -6698,6 +6738,31 @@ class ThingsActivity :
         AuthenticationHelper.authenticate(
             this,
             folder.getBackground(),
+            getString(titleRes),
+            cp,
+            object : AuthenticationHelper.AuthenticationCallback {
+                override fun onAuthenticated() {
+                    onAuthenticated()
+                }
+
+                override fun onCancel() {
+            }
+        })
+    }
+
+    private fun authenticateThing(
+        thing: Thing,
+        titleRes: Int = R.string.check_private_thing,
+        onAuthenticated: () -> Unit
+    ) {
+        val sp: SharedPreferences = getSharedPreferences(
+            Def.Meta.PREFERENCES_NAME,
+            MODE_PRIVATE
+        )
+        val cp: String? = sp.getString(Def.Meta.KEY_PRIVATE_PASSWORD, null)
+        AuthenticationHelper.authenticate(
+            this,
+            thing.getBackground(),
             getString(titleRes),
             cp,
             object : AuthenticationHelper.AuthenticationCallback {

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="280dp"
+    android:layout_width="320dp"
     android:layout_height="wrap_content"
     xmlns:tools="http://schemas.android.com/tools"
     android:paddingTop="16dp"
@@ -258,24 +258,48 @@
 
     </RelativeLayout>
 
-    <TextView
-        android:id="@+id/tv_confirm_as_bt_things_list_config"
-        android:layout_width="wrap_content"
-        android:layout_height="@dimen/app_chrome_dialog_action_button_height"
-        android:layout_gravity="end"
-        android:paddingLeft="@dimen/app_chrome_dialog_action_button_padding_horizontal"
-        android:paddingTop="@dimen/app_chrome_dialog_action_button_padding_vertical"
-        android:paddingRight="@dimen/app_chrome_dialog_action_button_padding_horizontal"
-        android:paddingBottom="@dimen/app_chrome_dialog_action_button_padding_vertical"
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="@dimen/app_chrome_dialog_action_row_margin_horizontal"
         android:layout_marginTop="@dimen/app_chrome_dialog_divided_action_row_margin_top"
-        android:layout_marginEnd="@dimen/app_chrome_dialog_action_single_button_margin_end"
-        android:layout_marginRight="@dimen/app_chrome_dialog_action_single_button_margin_end"
+        android:layout_marginRight="@dimen/app_chrome_dialog_action_row_margin_horizontal"
         android:layout_marginBottom="@dimen/app_chrome_dialog_action_row_margin_bottom"
-        android:textStyle="bold"
-        android:text="@string/confirm"
-        android:textAllCaps="true"
-        android:background="@drawable/selectable_item_background"
-        android:onClick="onConfirmClicked"
-        android:textSize="@dimen/app_chrome_dialog_action_text_size"/>
+        android:gravity="end"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/tv_cancel_as_bt_things_list_config"
+            android:layout_width="wrap_content"
+            android:layout_height="@dimen/app_chrome_dialog_action_button_height"
+            android:paddingLeft="@dimen/app_chrome_dialog_action_button_padding_horizontal"
+            android:paddingTop="@dimen/app_chrome_dialog_action_button_padding_vertical"
+            android:paddingRight="@dimen/app_chrome_dialog_action_button_padding_horizontal"
+            android:paddingBottom="@dimen/app_chrome_dialog_action_button_padding_vertical"
+            android:background="@drawable/selectable_item_background"
+            android:text="@string/cancel"
+            android:textAllCaps="true"
+            android:textColor="@color/app_chrome_dialog_cancel"
+            android:textSize="@dimen/app_chrome_dialog_action_text_size"
+            android:visibility="gone"/>
+
+        <TextView
+            android:id="@+id/tv_confirm_as_bt_things_list_config"
+            android:layout_width="wrap_content"
+            android:layout_height="@dimen/app_chrome_dialog_action_button_height"
+            android:paddingLeft="@dimen/app_chrome_dialog_action_button_padding_horizontal"
+            android:paddingTop="@dimen/app_chrome_dialog_action_button_padding_vertical"
+            android:paddingRight="@dimen/app_chrome_dialog_action_button_padding_horizontal"
+            android:paddingBottom="@dimen/app_chrome_dialog_action_button_padding_vertical"
+            android:layout_marginEnd="@dimen/app_chrome_dialog_action_button_margin_end"
+            android:layout_marginRight="@dimen/app_chrome_dialog_action_button_margin_end"
+            android:textStyle="bold"
+            android:text="@string/confirm"
+            android:textAllCaps="true"
+            android:background="@drawable/selectable_item_background"
+            android:onClick="onConfirmClicked"
+            android:textSize="@dimen/app_chrome_dialog_action_text_size"/>
+
+    </LinearLayout>
 
 </LinearLayout>
