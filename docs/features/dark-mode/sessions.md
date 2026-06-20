@@ -1,5 +1,18 @@
 # Dark Mode Sessions
 
+## 2026-06-20 - Home Folder overflow tint and root cleanup
+
+- Tinted the Home toolbar overflow drawable to app-accent yellow in dark mode,
+  matching the existing dark-mode boundary for Home toolbar action icons.
+- Added options-menu invalidation when navigating back to a parent Folder or
+  clicking a Folder path segment, so returning to the Underway root removes the
+  current-Folder overflow menu instead of leaving stale toolbar chrome.
+
+Verification: `git diff --check` passed with only the repository's existing
+LF/CRLF warnings. `.\gradlew.bat :app:assembleDebug --console=plain
+--no-configuration-cache` completed with `BUILD SUCCESSFUL`. Published debug
+update `202606191645` and verified remote `latest.json` points at that code.
+
 Migrated from global `memory/sessions.md` on 2026-06-06. This file keeps feature-scoped history out of startup memory while preserving the original notes.
 
 ## 2026-05-26 — Dark mode implementation first pass

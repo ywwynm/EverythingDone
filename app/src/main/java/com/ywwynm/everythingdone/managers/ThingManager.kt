@@ -232,19 +232,24 @@ open class ThingManager private constructor(context: Context?) {
     }
 
     open fun getVisibleChildCountForActivityHeader(): Int {
-        val entries = mThingListEntries ?: return 0
-        var count = 0
+        val counts = getVisibleChildCountsForActivityHeader()
+        return counts[0] + counts[1]
+    }
+
+    open fun getVisibleChildCountsForActivityHeader(): IntArray {
+        val entries = mThingListEntries ?: return intArrayOf(0, 0)
+        val counts = intArrayOf(0, 0)
         for (entry in entries) {
             if (entry is ThingListEntry.ThingEntry) {
                 val thing = entry.thing
                 if (thing.type != Thing.HEADER && thing.type < Thing.NOTIFY_EMPTY_UNDERWAY) {
-                    count++
+                    counts[1]++
                 }
             } else if (entry is ThingListEntry.FolderEntry) {
-                count++
+                counts[0]++
             }
         }
-        return count
+        return counts
     }
 
     open fun getProjection(): ThingListProjection {
@@ -269,6 +274,10 @@ open class ThingManager private constructor(context: Context?) {
         return folders
     }
 
+    open fun getFolderThumbnailPreviewEntries(folder: ThingFolder): List<ThingListEntry> {
+        return mFolderDao!!.getThumbnailEntriesForPreview(folder, mLimit)
+    }
+
     open fun isCurrentFolderEffectivelyPrivate(): Boolean {
         return mFolderDao!!.isEffectivelyPrivate(mProjection.currentFolderId)
     }
@@ -288,9 +297,19 @@ open class ThingManager private constructor(context: Context?) {
         return false
     }
 
+    open fun markFolderPrivacyAuthenticated(folderId: Long?) {
+        if (folderId == null) return
+        val path = mFolderDao!!.getFolderPath(folderId)
+        for (folder in path) {
+            if (folder.isPrivate) {
+                mAuthenticatedPrivateFolderIds.add(folder.id)
+            }
+        }
+    }
+
     open fun openFolder(folderId: Long, authenticated: Boolean = false) {
         if (authenticated) {
-            mAuthenticatedPrivateFolderIds.add(folderId)
+            markFolderPrivacyAuthenticated(folderId)
         }
         mProjection = mProjection.openFolder(folderId)
         trimAuthenticatedPrivateFoldersToProjection()
@@ -301,11 +320,7 @@ open class ThingManager private constructor(context: Context?) {
         val path = mFolderDao!!.getFolderPath(folderId)
         if (path.isEmpty()) return
         if (authenticated) {
-            for (folder in path) {
-                if (folder.isPrivate) {
-                    mAuthenticatedPrivateFolderIds.add(folder.id)
-                }
-            }
+            markFolderPrivacyAuthenticated(folderId)
         }
         mProjection = mProjection.copy(folderPath = path.map { it.id })
         trimAuthenticatedPrivateFoldersToProjection()
@@ -1044,7 +1059,7 @@ open class ThingManager private constructor(context: Context?) {
     ): Boolean {
         val sourceFolderId = thing.folderId
         if (sourceFolderId == folderId) return false
-        val newLocation = mFolderDao!!.getFirstChildLocation(folderId, thing.location < 0)
+        val newLocation = mFolderDao!!.getFirstChildLocation(folderId, sticky = false)
         thing.folderId = folderId
         thing.location = newLocation
         mDao!!.updateFolderIdAndLocation(thing.id, folderId, newLocation)
@@ -1117,7 +1132,7 @@ open class ThingManager private constructor(context: Context?) {
         if (mFolderDao!!.isDescendantOf(parentFolderId, folder.id)) return false
         val sourceParentFolderId = folder.parentFolderId
         if (sourceParentFolderId == parentFolderId) return false
-        val newLocation = mFolderDao!!.getFirstChildLocation(parentFolderId, folder.isSticky())
+        val newLocation = mFolderDao!!.getFirstChildLocation(parentFolderId, sticky = false)
         folder.parentFolderId = parentFolderId
         folder.location = newLocation
         mFolderDao!!.updateParentAndLocation(folder.id, parentFolderId, newLocation)
@@ -1272,11 +1287,10 @@ open class ThingManager private constructor(context: Context?) {
 
     open fun toggleFolderSticky(folder: ThingFolder?): Boolean {
         if (folder == null) return false
-        val newLocation = if (folder.isSticky()) {
-            getMaxCurrentEntryLocation() + 1
-        } else {
-            getMinCurrentEntryLocation() - 1
-        }
+        val newLocation = mFolderDao!!.getFirstChildLocation(
+            folder.parentFolderId,
+            !folder.isSticky()
+        )
         folder.location = newLocation
         mFolderDao!!.updateLocations(arrayOf<Long?>(folder.id), arrayOf<Long?>(newLocation))
         loadThings()
@@ -1609,12 +1623,7 @@ open class ThingManager private constructor(context: Context?) {
     open fun stickyThingOnTop(thing: Thing?, position: Int) {
         if (thing == null) return
 
-        val minLocation: Long = mDao!!.getMinThingLocation()
-        val newLocation = if (minLocation >= 0) {
-            -1
-        } else {
-            minLocation - 1
-        }
+        val newLocation = mFolderDao!!.getFirstChildLocation(thing.folderId, sticky = true)
         val ids: Array<Long?> = arrayOfNulls(1)
         ids[0] = thing.id
         val locations: Array<Long?> = arrayOfNulls(1)
@@ -1623,19 +1632,13 @@ open class ThingManager private constructor(context: Context?) {
         thing.location = newLocation
 
         mDao!!.updateLocations(ids, locations)
-        if (position >= 0 && position < mThings!!.size) {
-            mThings!!.removeAt(position)
-            mThings!!.add(1, thing)
-        }
+        rebuildThingListEntries()
     }
 
     open fun cancelStickyThing(thing: Thing?, position: Int) {
         if (thing == null) return
 
-        val maxLocation: Long = mDao!!.getMaxThingLocation() // this will always be >0
-        updateHeader(2)
-        mDao!!.updateHeader(2)
-        val newLocation: Long = maxLocation + 1
+        val newLocation = mFolderDao!!.getFirstChildLocation(thing.folderId, sticky = false)
         val ids: Array<Long?> = arrayOfNulls(1)
         ids[0] = thing.id
         val locations: Array<Long?> = arrayOfNulls(1)
@@ -1644,10 +1647,7 @@ open class ThingManager private constructor(context: Context?) {
         thing.location = newLocation
 
         mDao!!.updateLocations(ids, locations)
-        if (position >= 0 && position < mThings!!.size) {
-            mThings!!.removeAt(position)
-            mThings!!.add(getPositionToInsertNewThing(), thing)
-        }
+        rebuildThingListEntries()
     }
 
     open fun getPositionToInsertNewThing(): Int {

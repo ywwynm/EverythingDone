@@ -495,10 +495,12 @@ class ThingListOverlayDragController(
                 lastPointerInRecyclerY >= top &&
                 lastPointerInRecyclerY < bottom
             ) {
+                val insertAfter = lastPointerInRecyclerY >= (top + bottom) / 2f
+                if (!canShowReorderCandidate(current, entry)) return null
                 return ReorderCandidate(
                     entry.stableId,
                     position,
-                    lastPointerInRecyclerY >= (top + bottom) / 2f
+                    insertAfter
                 )
             }
             val topDistance = abs(lastPointerInRecyclerY - top)
@@ -517,7 +519,14 @@ class ThingListOverlayDragController(
         val holder = nearestHolder ?: return null
         val position = holder.adapterPosition
         val entry = host.getEntry(position) ?: return null
+        if (!canShowReorderCandidate(current, entry)) return null
         return ReorderCandidate(entry.stableId, position, nearestInsertAfter)
+    }
+
+    private fun canShowReorderCandidate(current: Session, targetEntry: ThingListEntry): Boolean {
+        val sourcePosition = host.getListPositionForStableId(current.source.stableId)
+        val sourceEntry = host.getEntry(sourcePosition) ?: return false
+        return (sourceEntry.location < 0) == (targetEntry.location < 0)
     }
 
     private fun isPointerInsideVisibleSource(current: Session): Boolean {

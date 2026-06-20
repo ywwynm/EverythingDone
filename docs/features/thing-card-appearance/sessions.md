@@ -2,6 +2,37 @@
 
 Migrated from global `memory/sessions.md` on 2026-06-06. This file keeps feature-scoped history out of startup memory while preserving the original notes.
 
+## 2026-06-20 - Keep media overlay count colour fixed during colour preview
+
+- Fixed the Thing Card media overlay count for top, bottom, left, and right
+  media placements so its text and icon keep the fixed light overlay treatment
+  on top of the black count background.
+- Thing Card Appearance colour previews no longer recolour that overlay count
+  from the draft Thing background. Inline hidden-media counts still follow the
+  adaptive Thing foreground colour because they sit directly on the card
+  surface.
+
+Verification: `git diff --check` passed with only the repository's existing
+LF/CRLF warnings. `.\gradlew.bat :app:assembleDebug --console=plain
+--no-configuration-cache` completed with `BUILD SUCCESSFUL`. Published debug
+update `202606191645` and verified remote `latest.json` points at that code.
+
+## 2026-06-20 - Auto-flip appearance colour popup origin
+
+- Follow-up testing clarified that the card-appearance colour popup should not
+  always open above the title-row colour button.
+- Added a show-time ColorPicker mode for the appearance panel: when there is
+  more available space above the colour button, the popup is pinned by its
+  bottom-right corner and unfolds up-left; otherwise it is pinned by its
+  top-right corner and unfolds down-left.
+- The decision stays local to the appearance-panel ColorPicker instance, so
+  existing Detail and search ColorPicker anchoring behavior remains unchanged.
+
+Verification: `git diff --check` passed with only the repository's existing
+LF/CRLF warnings. `.\gradlew.bat :app:assembleDebug --console=plain
+--no-configuration-cache` completed with `BUILD SUCCESSFUL`. Published debug
+update `202606191616` and verified remote `latest.json` points at that code.
+
 ## 2026-06-17 - Repair live preview after Folder Cards
 
 - Follow-up testing after Thing Folders showed that the card appearance panel's
@@ -1658,3 +1689,33 @@ Verification:
 - Verification: `git diff --check` passed with CRLF warnings only, and
   `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`
   completed successfully.
+
+## 2026-06-19 - Card appearance color draft controls and Folder previews
+
+- Added a colour-change button to the Thing/Folder card appearance panel title
+  row. It reuses the existing ColorPicker content, gradient-orientation action,
+  and camera colour sampling flow while anchoring the popup from the bottom
+  right of the button.
+- Kept colour edits as panel drafts: card previews, panel accents, and picker
+  state update live, but Thing/Folder background persistence is deferred until
+  the panel confirm action.
+- Extended card appearance persistence so confirmed panel colour/background
+  drafts are saved together with the existing card width, media position, crop,
+  video-frame, and Folder display-mode fields.
+- Fixed Folder display-mode live preview so switching a Folder from Normal to
+  Large immediately renders thumbnail preview content in the edited card.
+- Updated large Folder Cards so the Folder icon and title can use the Folder
+  background, including gradient text/icon treatments where supported.
+
+## 2026-06-19 - Appearance panel colour popup polish
+
+- Added a circular app-chrome ripple to the appearance panel colour icon and
+  aligned the icon's visible right edge with the confirm button text edge.
+- Changed the panel colour picker to pin its popup bottom-right corner to the
+  colour icon's bottom-right corner while keeping the bottom-right surface
+  scale transition.
+- Fixed ColorPicker measurement so a previous gradient-colour show does not
+  leave stale popup height when the current background is pure and the gradient
+  orientation action is hidden.
+- Set the camera colour action text to the app-chrome secondary foreground so
+  the "pick from world" action remains readable in light mode.

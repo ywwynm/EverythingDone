@@ -1,5 +1,63 @@
 # Thing Folders Decisions
 
+## 2026-06-20 - In-Folder header spacer updates are not scroll state
+
+The in-Folder Activity header may change its visible title width and line
+count while collapsing into the Toolbar, but the RecyclerView's invisible
+header spacer must represent the expanded header's stable occupied space. It
+must not be updated from header layout changes that happen during scrolling.
+
+Spacer height requests should be emitted only from explicit expanded-header
+refresh points such as Folder navigation, header text changes, or reset after
+configuration/search transitions. Applying the spacer to the Thing list adapter
+must also wait until the RecyclerView is idle and not computing layout, because
+`notifyItemChanged(0)` during `StaggeredGridLayoutManager.fill(...)` can make
+RecyclerView try to attach an already-attached header holder and crash.
+
+The collapsed Folder title's vertical centering should be computed from the
+current visible title layout, including the capped two-line collapsed title
+height, rather than from the expanded header block height.
+
+The header collapse controller should clamp scroll distance to the current
+header spacer height instead of resetting to expanded state when scroll exceeds
+the legacy 102dp header height. Staggered-grid scroll callers should also use
+the minimum visible adapter position across all spans, not only span 0, when
+deciding whether the invisible header spacer is still the first visible item.
+Otherwise the title, subtitle alpha, and actionbar shadow can jump between
+expanded and collapsed states at the spacer boundary.
+
+## 2026-06-19 - Folder privacy, sticky placement, and move dialog rules
+
+Private Thing Folders must protect every operation that reveals or changes
+private containment. Opening the card-appearance panel for a Private Thing
+Folder, dragging a Thing or Folder into a Private Thing Folder, moving a Thing
+or Folder into or out of private containment, expanding a Private Thing Folder
+in a move target tree, and swiping a private Thing Card all require the same
+password or fingerprint verification path before the operation proceeds.
+
+Sticky Things and sticky Thing Folders share one mixed sticky section at the top
+of the home list. They are not separated by type, and toggling sticky state
+should update the visible list immediately rather than requiring an app restart.
+When a card is dragged in Moving mode, no insertion line should be shown before
+the sticky section's first entry because ordinary reordering cannot place an
+entry ahead of sticky content.
+
+Folder-scoped sticky placement is independent from root sticky placement. A
+Thing or Folder can be sticky inside its current Thing Folder, should be placed
+first within that Folder projection, and should use the containing Folder's
+pure colour or gradient for the top-right sticky indicator. If the item leaves
+that Folder for any reason, its Folder-scoped sticky state must be cleared.
+Thumbnail-mode Folder Cards must also render the indicator for sticky child
+Things or child Folders in their preview content.
+
+Move-to-Folder UI must use the app's custom `DialogFragment` style rather than
+a platform dialog. The dialog title is `移动到文件夹`, the content mirrors the
+Drawer Folder tree row model with Folder icon, title, expand/collapse affordance,
+and indentation, and the root destination is labelled `正在进行`. The current
+parent starts selected, confirm performs the move, and moving a Folder into
+itself or one of its descendants is forbidden. The title and confirm action use
+the moved Thing or Folder's own pure colour or gradient.
+
 ## 2026-06-19 - Folder long press parity and thumbnail overlay shadow
 
 Folder Cards should not swallow long press gestures while the list is already

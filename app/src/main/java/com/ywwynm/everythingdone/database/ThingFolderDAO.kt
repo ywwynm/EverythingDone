@@ -9,6 +9,7 @@ import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.model.ThingFolder
 import com.ywwynm.everythingdone.model.ThingFolderCardPresentation
 import com.ywwynm.everythingdone.model.ThingListEntry
+import com.ywwynm.everythingdone.utils.ThingsSorter
 
 open class ThingFolderDAO private constructor(context: Context?) {
 
@@ -428,11 +429,26 @@ open class ThingFolderDAO private constructor(context: Context?) {
         for (thing in getDirectThumbnailThings(folder.id, selection, keyword, color)) {
             entries.add(ThingListEntry.ThingEntry(thing))
         }
-        val sortedEntries = entries.sortedByDescending { it.location }
+        val sortedEntries = entries.sortedWith { entry1, entry2 ->
+            val result = ThingsSorter.compareByLocationAndSticky(
+                entry1.location,
+                entry2.location
+            )
+            if (result != 0) result else entry1.stableId.compareTo(entry2.stableId)
+        }
         return ThumbnailEntriesProjection(
             entries = sortedEntries.take(maxCount),
             totalCount = sortedEntries.size
         )
+    }
+
+    open fun getThumbnailEntriesForPreview(
+        folder: ThingFolder,
+        limit: Int,
+        keyword: String? = null,
+        color: Int = 0
+    ): List<ThingListEntry> {
+        return getThumbnailEntriesForProjection(folder, limit, keyword, color).entries
     }
 
     private fun getThumbnailFolderEntriesForProjection(

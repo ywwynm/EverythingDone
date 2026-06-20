@@ -635,7 +635,7 @@ class DrawerNavigationView @JvmOverloads constructor(
         }
     }
 
-    private class FolderIconDrawable(
+    class FolderIconDrawable(
         private val background: ThingBackground,
         private val privateFolder: Boolean
     ) : Drawable() {

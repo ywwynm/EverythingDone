@@ -67,6 +67,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
     private var mShouldThingsAnimWhenAppearing: Boolean = true
 
     private var mAnimHandler: Handler = Handler()
+    private var mActivityHeaderSpacerHeightPx: Int = 0
 
     interface OnNewItemBoundListener {
         fun onNewItemBound(listPosition: Int, holder: BaseThingViewHolder?)
@@ -80,11 +81,25 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         mModeManager = modeManager
     }
 
+    open fun setActivityHeaderSpacerHeightPx(heightPx: Int) {
+        val sanitizedHeight = heightPx.coerceAtLeast(0)
+        if (mActivityHeaderSpacerHeightPx == sanitizedHeight) return
+        mActivityHeaderSpacerHeightPx = sanitizedHeight
+        if (itemCount > 0) {
+            notifyItemChanged(0)
+        }
+    }
+
     override fun getCurrentMode(): Int = mModeManager!!.getCurrentMode()
 
     override fun getThings(): List<Thing?>? = mThingManager!!.getThings()
 
     private fun getEntries(): List<ThingListEntry>? = mThingManager!!.getThingListEntries()
+
+    override fun getStickyThingParentFolderBackground(thing: Thing): ThingBackground? {
+        val folderId = thing.folderId ?: return null
+        return mThingManager!!.getFolderById(folderId)?.getBackground()
+    }
 
     protected override fun getThingAt(position: Int): Thing? {
         val entry = getEntries()?.getOrNull(position)
@@ -230,7 +245,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         val mY = if (header) 0 else mX
 
         val height: Int = if (header) {
-            (if (App.isSearching) mDensity * 6 else mDensity * 102).toInt()
+            getActivityHeaderSpacerHeight()
         } else {
             StaggeredGridLayoutManager.LayoutParams.WRAP_CONTENT
         }
@@ -240,6 +255,12 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         lp.height = height
         lp.setMargins(mX, mY, mX, mY)
         lp.isFullSpan = header || isFullSpanThingCard(thing)
+    }
+
+    private fun getActivityHeaderSpacerHeight(): Int {
+        val defaultHeight = (if (App.isSearching) mDensity * 6 else mDensity * 102).toInt()
+        if (App.isSearching) return defaultHeight
+        return mActivityHeaderSpacerHeightPx.coerceAtLeast(defaultHeight)
     }
 
     private fun distinguishFolder(folder: ThingFolder, cv: CardView?) {
@@ -465,7 +486,8 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
             holder,
             folder.title,
             R.drawable.ic_thing_folder,
-            baseColor
+            baseColor,
+            if (thumbnailMode) folder.getBackground() else null
         )
 
         if (hiddenPrivate) {
@@ -482,17 +504,34 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
             holder.ivStickyOngoing!!.visibility = View.VISIBLE
             holder.ivStickyOngoing.setImageResource(R.drawable.ic_sticky)
             holder.ivStickyOngoing.contentDescription = mApp!!.getString(R.string.sticky_thing)
-            if (thumbnailMode) {
-                ImageViewCompat.setImageTintList(
-                    holder.ivStickyOngoing,
-                    ColorStateList.valueOf(textColorSecondary(baseColor))
-                )
-            } else {
-                tintCardIcon(holder.ivStickyOngoing, baseColor)
-            }
+            tintFolderStickyIcon(holder.ivStickyOngoing, folder, baseColor)
         } else {
             holder.ivStickyOngoing!!.visibility = View.GONE
         }
+    }
+
+    private fun tintFolderStickyIcon(
+        icon: ImageView?,
+        folder: ThingFolder,
+        fallbackBaseColor: Int
+    ) {
+        icon ?: return
+        if (folder.parentFolderId == null) {
+            ImageViewCompat.setImageTintList(
+                icon,
+                ColorStateList.valueOf(ContextCompat.getColor(mApp!!, R.color.app_accent))
+            )
+            return
+        }
+        val parentBackground = mThingManager!!.getFolderById(folder.parentFolderId!!)?.getBackground()
+        if (parentBackground != null) {
+            ImageViewCompat.setImageTintList(icon, null)
+            icon.setImageDrawable(
+                BackgroundUtil.tintDrawable(mApp!!.resources, icon.drawable, parentBackground)
+            )
+            return
+        }
+        tintCardIcon(icon, fallbackBaseColor)
     }
 
     private fun bindFolderPrivateLock(holder: BaseThingViewHolder, baseColor: Int) {
@@ -528,7 +567,8 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         holder: BaseThingViewHolder,
         title: String,
         iconRes: Int,
-        baseColor: Int
+        baseColor: Int,
+        titleBackground: ThingBackground? = null
     ) {
         val container = holder.llTextContent ?: return
         removeFolderHeaderViews(holder)
@@ -545,10 +585,17 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         icon.setImageResource(iconRes)
         icon.contentDescription = mApp!!.getString(R.string.thing_folder)
         icon.scaleType = ImageView.ScaleType.CENTER_INSIDE
-        ImageViewCompat.setImageTintList(
-            icon,
-            ColorStateList.valueOf(textColorPrimary(baseColor))
-        )
+        if (titleBackground != null) {
+            ImageViewCompat.setImageTintList(icon, null)
+            icon.setImageDrawable(
+                BackgroundUtil.tintDrawable(mApp!!.resources, icon.drawable, titleBackground)
+            )
+        } else {
+            ImageViewCompat.setImageTintList(
+                icon,
+                ColorStateList.valueOf(textColorPrimary(baseColor))
+            )
+        }
         row.addView(icon, LinearLayout.LayoutParams(iconSize, iconSize))
 
         val titleView = TextView(mApp)
@@ -558,7 +605,11 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         titleView.includeFontPadding = false
         titleView.textSize = 16f
         titleView.typeface = android.graphics.Typeface.DEFAULT_BOLD
-        titleView.setTextColor(textColorPrimary(baseColor))
+        if (titleBackground != null) {
+            BackgroundUtil.applyTextBackground(titleView, titleBackground)
+        } else {
+            titleView.setTextColor(textColorPrimary(baseColor))
+        }
         val titleLp = LinearLayout.LayoutParams(
             0,
             ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -663,6 +714,12 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         entry: ThingListEntry.FolderEntry
     ): List<ThingListEntry> {
         if (entry.thumbnailEntries.isNotEmpty()) return entry.thumbnailEntries
+        if (entry.folder.effectiveCardPresentation().mode ==
+                ThingFolderCardPresentation.MODE_THUMBNAILS
+        ) {
+            val previewEntries = mThingManager!!.getFolderThumbnailPreviewEntries(entry.folder)
+            if (previewEntries.isNotEmpty()) return previewEntries
+        }
         return entry.thumbnailThings.map { ThingListEntry.ThingEntry(it) }
     }
 
@@ -1533,6 +1590,11 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         override fun getCurrentMode(): Int = ModeManager.NORMAL
 
         override fun getThings(): List<Thing?>? = previewThings
+
+        override fun getStickyThingParentFolderBackground(thing: Thing): ThingBackground? {
+            val folderId = thing.folderId ?: return null
+            return mThingManager!!.getFolderById(folderId)?.getBackground()
+        }
 
         override fun getThingCardForegroundThumbnailHeight(thing: Thing, imageW: Int): Int {
             val aspectRatio = getThingCardThumbnailTargetAspectRatio(thing)

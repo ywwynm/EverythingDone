@@ -99,22 +99,18 @@ abstract class PopupPicker(activity: Activity, parent: View, popupAnimStyle: Int
     protected fun getPopupContentWidthForPositioning(): Int {
         measurePopupContentForPositioning()
         val recyclerWidth: Int = mRecyclerView.layoutParams?.width ?: 0
-        val popupWidth: Int = mPopupWindow.width
         return maxOf(
                 mContentView.measuredWidth,
-                if (recyclerWidth > 0) recyclerWidth else 0,
-                if (popupWidth > 0) popupWidth else 0
+                if (recyclerWidth > 0) recyclerWidth else 0
         )
     }
 
     protected fun getPopupContentHeightForPositioning(): Int {
         measurePopupContentForPositioning()
         val recyclerHeight: Int = mRecyclerView.layoutParams?.height ?: 0
-        val popupHeight: Int = mPopupWindow.height
         return maxOf(
                 mContentView.measuredHeight,
-                if (recyclerHeight > 0) recyclerHeight else 0,
-                if (popupHeight > 0) popupHeight else 0
+                if (recyclerHeight > 0) recyclerHeight else 0
         )
     }
 

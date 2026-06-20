@@ -23,37 +23,63 @@
     android:visibility="gone"
     tools:visibility="visible">
 
-    <TextView
-        android:id="@+id/tv_thing_card_appearance_title"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:ellipsize="end"
-        android:maxLines="1"
-        android:text="@string/thing_card_appearance_panel_title"
-        android:textColor="@color/app_chrome_on_surface_primary"
-        android:textSize="@dimen/app_chrome_dialog_title_text_size" />
-
-    <EditText
-        android:id="@+id/et_folder_card_appearance_name"
+    <LinearLayout
+        android:id="@+id/ll_thing_card_appearance_title_row"
         android:layout_width="match_parent"
         android:layout_height="40dp"
-        android:layout_marginEnd="@dimen/app_chrome_dialog_action_button_margin_end"
-        android:layout_marginRight="@dimen/app_chrome_dialog_action_button_margin_end"
-        android:layout_marginTop="-6dp"
-        android:background="@android:color/transparent"
-        android:ellipsize="end"
-        android:hint="@string/folder_card_appearance_name_hint"
-        android:imeOptions="actionDone"
-        android:inputType="textCapSentences"
-        android:maxLines="1"
-        android:paddingLeft="0dp"
-        android:paddingRight="0dp"
-        android:singleLine="true"
-        android:textColor="@color/app_chrome_on_surface_primary"
-        android:textColorHint="@color/app_chrome_on_surface_hint"
-        android:textSize="18sp"
-        android:visibility="gone"
-        tools:visibility="gone" />
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/tv_thing_card_appearance_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="@string/thing_card_appearance_panel_title"
+            android:textColor="@color/app_chrome_on_surface_primary"
+            android:textSize="@dimen/app_chrome_dialog_title_text_size" />
+
+        <EditText
+            android:id="@+id/et_folder_card_appearance_name"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="@dimen/app_chrome_dialog_action_button_margin_end"
+            android:layout_marginRight="@dimen/app_chrome_dialog_action_button_margin_end"
+            android:layout_weight="1"
+            android:background="@android:color/transparent"
+            android:ellipsize="end"
+            android:hint="@string/folder_card_appearance_name_hint"
+            android:imeOptions="actionDone"
+            android:inputType="textCapSentences"
+            android:maxLines="1"
+            android:paddingLeft="0dp"
+            android:paddingRight="0dp"
+            android:singleLine="true"
+            android:textColor="@color/app_chrome_on_surface_primary"
+            android:textColorHint="@color/app_chrome_on_surface_hint"
+            android:textSize="18sp"
+            android:visibility="gone"
+            tools:visibility="gone" />
+
+        <ImageView
+            android:id="@+id/bt_thing_card_appearance_change_color"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="-6dp"
+            android:layout_marginRight="-6dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:contentDescription="@string/act_select_color"
+            android:focusable="true"
+            android:padding="8dp"
+            android:scaleType="centerInside"
+            android:src="@drawable/act_change_color" />
+
+    </LinearLayout>
 
     <LinearLayout
         android:id="@+id/ll_thing_card_appearance_source"

@@ -51,17 +51,6 @@
                 android:textStyle="bold"
                 android:theme="@style/EverythingDoneTheme.Detail.EditText"/>
 
-            <TextView
-                android:id="@+id/tv_thing_folder_path"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:paddingLeft="20dp"
-                android:paddingRight="20dp"
-                android:textColor="@color/white_66p"
-                android:textSize="14sp"
-                android:visibility="gone"/>
-
             <EditText
                 android:id="@+id/et_content"
                 android:layout_width="match_parent"
@@ -180,6 +169,19 @@
                 android:paddingRight="20dp"
                 android:textColor="@color/white_66p"
                 android:textSize="14sp"/>
+
+            <TextView
+                android:id="@+id/tv_thing_folder_path"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:drawablePadding="8dp"
+                android:gravity="center_vertical"
+                android:paddingLeft="20dp"
+                android:paddingRight="20dp"
+                android:textColor="@color/white_66p"
+                android:textSize="14sp"
+                android:visibility="gone"/>
 
             <TextView
                 android:id="@+id/tv_finish_time"

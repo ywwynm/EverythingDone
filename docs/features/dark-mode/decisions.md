@@ -2,6 +2,14 @@
 
 Migrated from global `memory/decisions.md` on 2026-06-06. This file keeps feature-scoped history out of startup memory while preserving the original notes.
 
+## 2026-06-20 - Folder overflow icon follows Home dark toolbar tint
+
+When the Home toolbar shows the current-Folder overflow menu in dark mode, the
+overflow icon uses the same app-accent yellow as the drawer toggle and other
+Home toolbar action icons. Returning to the Underway root removes the
+current-Folder overflow actions, so the overflow icon should disappear rather
+than remaining as stale toolbar chrome.
+
 ## 2026-05-27 - Locale override contexts must not freeze non-locale configuration
 
 In-app language support should wrap contexts with a locale-only

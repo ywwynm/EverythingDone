@@ -9,8 +9,28 @@
   `NavigationView` when Folder-tree precision is needed, so indentation,
   trailing affordances, title width, selected state, and row recycling are under
   project control.
-- Folder navigation should happen through Folder Cards and clickable header
-  path segments within the active built-in destination projection.
+- Folder navigation should happen through Folder Cards and the Drawer. Inside a
+  Folder projection, the Activity header should show only the current Folder
+  name as a plain non-link title, using the same colour and text style as the
+  root Underway header. It should not render the full Folder path in blue or
+  underline it.
+- Inside a Folder projection, the Activity header subtitle should show direct
+  child counts split by type, in the form `X folders, Y things` /
+  `X个文件夹，Y件记事`, instead of a single combined item count.
+- Long Folder names in the Activity header should be constrained before the
+  right-side card edge in the expanded state, and before the Home toolbar search
+  action in the collapsed state. Header width changes during scroll should be
+  animated by the existing header-collapse progress. If the title wraps, the
+  list's invisible header spacer must grow with the header so Folder info and
+  the first visible card never overlap.
+- Header collapse state must stay continuous at the boundary where the
+  invisible header spacer scrolls offscreen. The title, subtitle alpha, and
+  actionbar shadow should not reset or flicker when the first visible card is
+  near the actionbar.
+- If a Folder name wraps to two lines in the actionbar, its collapsed title
+  scale should become slightly smaller than the normal one-line collapsed
+  title scale, and that additional shrink should be reached continuously during
+  the same scroll collapse animation.
 - In the Drawer, Underway acts as the root directory. The first Folder level is
   always visible; deeper Folder levels are revealed by expanding their parent
   Folder's trailing dropdown.
@@ -70,6 +90,21 @@
   old relative order. The moved entry should become the first item in the target
   root or target Folder's corresponding sticky or non-sticky section, preserving
   the entry's existing sticky state.
+- The move-to-Folder dialog for a Thing Folder should still render the source
+  Folder and its descendant subtree in the target tree. Those rows remain
+  expandable so users can understand why a target is unavailable, but the source
+  Folder and every descendant are disabled and cannot be selected.
+- Disabled target rows in the move-to-Folder dialog should apply the App Chrome
+  disabled foreground to the Folder icon and title text. The trailing expand
+  affordance may remain normally visible and interactive when the disabled row
+  has children.
+- When the move-to-Folder dialog content becomes scrollable, show the same
+  top/bottom divider treatment used by other scrollable App Chrome dialogs:
+  hide both dividers when content does not scroll, and hide only the divider at
+  the current scroll boundary while scrolling.
+- The move-to-Folder dialog should reserve stable space for its scroll dividers
+  and action-row gap so expanding a Folder tree into a scrollable state does not
+  shift or flash the dialog layout.
 - When a Thing Folder becomes empty after moving Things or child Folders out of
   it, delete that empty Folder automatically.
 - Long-pressing a Folder Card should enter the same drag/select affordance as
@@ -408,10 +443,15 @@
   Folder icon. The lock foreground should contrast with the Folder's own colour
   or gradient, and the lock should remain subtle, small, and centered inside
   the Folder glyph.
-- The Drawer should not show descendants of a private Folder, nor that private
-  Folder's expand/collapse affordance, unless the current projection is inside
-  that private Folder. When the user leaves that private Folder scope, the
-  Drawer should hide that private subtree again.
+- The Drawer should still show the expand/collapse affordance for a private
+  Folder that has child Folders, even when the private subtree is currently
+  hidden. Tapping that affordance requires password or fingerprint verification
+  before the subtree is expanded.
+- Private Folder expansion authentication in both the Drawer and move-to-Folder
+  dialog is transient to that surface. Dismissing the dialog or closing the
+  Drawer resets the expansion authorization and collapses private subtrees
+  outside the current private Folder path. If the current projection is already
+  inside that private Folder, expansion does not ask again.
 - Dragging a Thing Card or Folder Card onto a private Folder Card should be
   allowed and should use the same Folder-drop activation and merge animation as
   non-private target Folders. Opening or viewing the private Folder's contents

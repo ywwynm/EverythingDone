@@ -2,6 +2,7 @@
 
 package com.ywwynm.everythingdone.activities
 
+import android.Manifest
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.ArgbEvaluator
@@ -91,8 +92,11 @@ import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper
 import com.ywwynm.everythingdone.database.HabitDAO
 import com.ywwynm.everythingdone.database.ReminderDAO
 import com.ywwynm.everythingdone.fragments.AlertDialogFragment
+import com.ywwynm.everythingdone.fragments.CameraColorSamplingDialogFragment
+import com.ywwynm.everythingdone.fragments.GradientOrientationDialogFragment
 import com.ywwynm.everythingdone.fragments.LongTextDialogFragment
 import com.ywwynm.everythingdone.fragments.MediaCropAppearanceDialogFragment
+import com.ywwynm.everythingdone.fragments.MoveToThingFolderDialogFragment
 import com.ywwynm.everythingdone.fragments.ThreeActionsAlertDialogFragment
 import com.ywwynm.everythingdone.fragments.ThingFolderNameDialogFragment
 import com.ywwynm.everythingdone.helpers.AlarmHelper
@@ -190,9 +194,12 @@ class ThingsActivity :
     private var mDrawer: DrawerNavigationView? = null
     private var mDrawerHeader: DrawerHeader? = null
     private val mExpandedDrawerFolderIds = HashSet<Long>()
+    private val mAuthenticatedDrawerExpandedPrivateFolderIds = HashSet<Long>()
     private var mCurrentDrawerSelectionKey: DrawerNavigationView.ItemKey? = null
 
     private var mActivityHeader: ActivityHeader? = null
+    private var mPendingActivityHeaderSpacerHeightPx: Int? = null
+    private var mActivityHeaderSpacerApplyPosted: Boolean = false
 
     private var mFab: FloatingActionButton? = null
 
@@ -211,6 +218,7 @@ class ThingsActivity :
     private var mThingCardAppearancePanel: View? = null
     private var mTvThingCardAppearanceTitle: TextView? = null
     private var mEtFolderCardAppearanceName: EditText? = null
+    private var mBtThingCardAppearanceChangeColor: ImageView? = null
 
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
         updateThingListPointerState(ev, "activity")
@@ -259,14 +267,17 @@ class ThingsActivity :
     private var mThingCardAppearancePanelThing: Thing? = null
     private var mThingCardAppearanceOriginal: ThingCardAppearance? = null
     private var mThingCardAppearanceDraft: ThingCardAppearance? = null
+    private var mThingCardAppearanceOriginalBackground: ThingBackground? = null
     private var mFolderCardAppearancePanelFolder: ThingFolder? = null
     private var mFolderCardAppearanceOriginalTitle: String? = null
     private var mFolderCardAppearanceOriginalPresentation: ThingFolderCardPresentation? = null
+    private var mFolderCardAppearanceOriginalBackground: ThingBackground? = null
     private var mFolderCardAppearanceDraftPresentation: ThingFolderCardPresentation? = null
     private var mThingCardAppearanceSelectedListPosition: Int = -1
     private var mThingCardAppearanceMediaSources: List<ThingCardMediaHelper.MediaSource> =
             emptyList()
     private var mThingCardAppearanceSourcePicker: ThingCardAppearanceSourcePicker? = null
+    private var mThingCardAppearanceColorPicker: ColorPicker? = null
     private var mThingCardAppearanceVideoDurationCache: MutableMap<String, Int> = HashMap()
     private var mBindingThingCardAppearancePanel: Boolean = false
     private var mBindingFolderCardAppearancePanel: Boolean = false
@@ -719,6 +730,8 @@ class ThingsActivity :
                 )
             }
         }
+        menu.findItem(R.id.act_move_current_folder_to_folder)?.isVisible =
+                inFolder && currentFolder?.isDeleted() != true
         menu.findItem(R.id.act_dissolve_current_folder)?.isVisible = inFolder
         menu.findItem(R.id.act_delete_current_folder)?.let { item ->
             item.isVisible = inFolder
@@ -738,11 +751,21 @@ class ThingsActivity :
         if (!AppearanceUtil.isDarkMode(this)) return
 
         val tint = ContextCompat.getColor(this, R.color.app_accent)
+        tintHomeOverflowIconForAppearance(tint)
         for (i in 0 until menu.size()) {
             val item = menu.getItem(i)
             val icon = item.icon ?: continue
             item.icon = DisplayUtil.opaqueTintDrawable(this, icon, tint)
         }
+    }
+
+    private fun tintHomeOverflowIconForAppearance(tint: Int) {
+        val toolbar = mActionbar ?: return
+        val icon = toolbar.overflowIcon ?: AppCompatResources.getDrawable(
+            this,
+            androidx.appcompat.R.drawable.abc_ic_menu_overflow_material
+        ) ?: return
+        toolbar.overflowIcon = DisplayUtil.opaqueTintDrawable(this, icon, tint)
     }
 
     private fun updateDrawerFolderItems(
@@ -753,6 +776,7 @@ class ThingsActivity :
         val folders = mThingManager!!.getDrawerFolders()
         val folderIds = folders.mapTo(HashSet()) { it.id }
         mExpandedDrawerFolderIds.retainAll(folderIds)
+        mAuthenticatedDrawerExpandedPrivateFolderIds.retainAll(folderIds)
         val currentPathIds = mThingManager!!.getProjection().folderPath.toHashSet()
 
         val childrenByParent = HashMap<Long?, MutableList<ThingFolder>>()
@@ -878,10 +902,10 @@ class ThingsActivity :
         val children = childrenByParent[parentFolderId] ?: return
         for (folder in children) {
             val hasChildren = !childrenByParent[folder.id].isNullOrEmpty()
-            val visibleChildFolders =
+            val canShowChildFolders =
                 hasChildren && shouldShowPrivateDrawerChildren(folder, currentPathIds)
-            visibleItems.add(DrawerFolderItem(folder, level, visibleChildFolders))
-            if (visibleChildFolders && mExpandedDrawerFolderIds.contains(folder.id)) {
+            visibleItems.add(DrawerFolderItem(folder, level, hasChildren))
+            if (canShowChildFolders && mExpandedDrawerFolderIds.contains(folder.id)) {
                 appendDrawerFolderItems(
                     folder.id,
                     level + 1,
@@ -897,7 +921,9 @@ class ThingsActivity :
         folder: ThingFolder,
         currentPathIds: Set<Long>
     ): Boolean {
-        return !folder.isPrivate || currentPathIds.contains(folder.id)
+        return !folder.isPrivate ||
+            currentPathIds.contains(folder.id) ||
+            mAuthenticatedDrawerExpandedPrivateFolderIds.contains(folder.id)
     }
 
     private fun createDrawerDestinationItem(
@@ -936,18 +962,56 @@ class ThingsActivity :
     }
 
     private fun toggleDrawerFolderExpanded(folderId: Long) {
+        if (mExpandedDrawerFolderIds.contains(folderId)) {
+            mExpandedDrawerFolderIds.remove(folderId)
+            updateDrawerFolderItems(animate = true, animatedFolderToggleId = folderId)
+            return
+        }
+
         val folder = mThingManager!!.getFolderById(folderId)
-        if (folder?.isPrivate == true &&
-            !mThingManager!!.getProjection().folderPath.contains(folderId)
+        if (folder != null &&
+            shouldAuthenticateTransientPrivateFolderExpansion(folder) &&
+            !mAuthenticatedDrawerExpandedPrivateFolderIds.contains(folderId)
+        ) {
+            authenticateThingFolder(folder, R.string.expand_private_thing_folder) {
+                mAuthenticatedDrawerExpandedPrivateFolderIds.add(folderId)
+                mExpandedDrawerFolderIds.add(folderId)
+                updateDrawerFolderItems(animate = true, animatedFolderToggleId = folderId)
+            }
+        } else {
+            mExpandedDrawerFolderIds.add(folderId)
+            updateDrawerFolderItems(animate = true, animatedFolderToggleId = folderId)
+        }
+    }
+
+    private fun shouldAuthenticateTransientPrivateFolderExpansion(
+        folder: ThingFolder
+    ): Boolean {
+        return mThingManager!!.isFolderEffectivelyPrivate(folder.id) &&
+            !mThingManager!!.isFolderPrivacyAuthenticated(folder.id)
+    }
+
+    private fun resetDrawerPrivateExpansionAuthentication() {
+        if (mAuthenticatedDrawerExpandedPrivateFolderIds.isEmpty() &&
+            mExpandedDrawerFolderIds.isEmpty()
         ) {
             return
         }
-        if (mExpandedDrawerFolderIds.contains(folderId)) {
-            mExpandedDrawerFolderIds.remove(folderId)
-        } else {
-            mExpandedDrawerFolderIds.add(folderId)
+        val currentPathIds = mThingManager!!.getProjection().folderPath.toHashSet()
+        var changed = mAuthenticatedDrawerExpandedPrivateFolderIds.isNotEmpty()
+        mAuthenticatedDrawerExpandedPrivateFolderIds.clear()
+        val iterator = mExpandedDrawerFolderIds.iterator()
+        while (iterator.hasNext()) {
+            val folderId = iterator.next()
+            val folder = mThingManager!!.getFolderById(folderId) ?: continue
+            if (folder.isPrivate && !currentPathIds.contains(folderId)) {
+                iterator.remove()
+                changed = true
+            }
         }
-        updateDrawerFolderItems(animate = true, animatedFolderToggleId = folderId)
+        if (changed) {
+            updateDrawerFolderItems()
+        }
     }
 
     private fun getDrawerDestinationKeyForLimit(
@@ -1011,7 +1075,7 @@ class ThingsActivity :
 
     private fun openDrawerThingFolder(folder: ThingFolder) {
         if (shouldProtectFolderForAccess(folder.id)) {
-            authenticateThingFolder(folder) {
+            authenticateThingFolder(folder, R.string.open_private_thing_folder) {
                 openDrawerThingFolderAfterAccess(folder, true)
             }
         } else {
@@ -1082,6 +1146,10 @@ class ThingsActivity :
             mThingManager!!.getCurrentFolder()?.let {
                 toggleThingFolderPrivate(it)
                 invalidateOptionsMenu()
+            }
+        } else if (itemId == R.id.act_move_current_folder_to_folder) {
+            mThingManager!!.getCurrentFolder()?.let {
+                showMoveThingFolderDialog(it)
             }
         } else if (itemId == R.id.act_dissolve_current_folder) {
             mThingManager!!.getCurrentFolder()?.let {
@@ -1631,6 +1699,11 @@ class ThingsActivity :
         mThingCardAppearancePanel!!.setOnTouchListener { _, _ -> true }
         mTvThingCardAppearanceTitle = f(R.id.tv_thing_card_appearance_title)
         mEtFolderCardAppearanceName = f(R.id.et_folder_card_appearance_name)
+        mBtThingCardAppearanceChangeColor =
+                f(R.id.bt_thing_card_appearance_change_color)
+        mThingCardAppearanceColorPicker =
+                ColorPicker(this, window.decorView, Def.PickerType.COLOR_EDIT)
+        mThingCardAppearanceColorPicker!!.setAutoVerticalAnchorPositioning(true)
         mLlThingCardAppearanceSource = f(R.id.ll_thing_card_appearance_source)
         mTvThingCardAppearanceSource = f(R.id.tv_thing_card_appearance_source)
         mLlThingCardAppearanceVideoFrame = f(R.id.ll_thing_card_appearance_video_frame)
@@ -1684,6 +1757,9 @@ class ThingsActivity :
             f(R.id.tv_header_title),
             f(R.id.tv_header_subtitle)
         )
+        mActivityHeader!!.setHeaderSpacerHeightListener { height ->
+            requestActivityHeaderSpacerHeightUpdate(height)
+        }
 
         val fl: FrameLayout = f(R.id.fl_things)!!
         mNormalSnackbar = Snackbar(mApp!!, Snackbar.NORMAL, fl, mFab)
@@ -1962,6 +2038,7 @@ class ThingsActivity :
                         mRecyclerView!!.scrollToPosition(0)
                         mActivityHeader!!.updateText()
                         updateDrawerFolderItems()
+                        invalidateOptionsMenu()
                         return
                     }
                     if (!FrequentSettings.getBoolean(Def.Meta.KEY_TWICE_BACK)) {
@@ -2003,6 +2080,20 @@ class ThingsActivity :
         mTvThingCardAppearanceSource!!.setOnClickListener {
             showThingCardAppearanceSourceMenu()
         }
+        mBtThingCardAppearanceChangeColor!!.setOnClickListener {
+            showThingCardAppearanceColorPicker()
+        }
+        mThingCardAppearanceColorPicker!!.setPickedListener {
+            val background = mThingCardAppearanceColorPicker!!.getPickedBackground()
+                ?: return@setPickedListener
+            updateThingCardAppearanceBackgroundDraft(background)
+        }
+        mThingCardAppearanceColorPicker!!.setOnChangeOrientationListener(Runnable {
+            showThingCardAppearanceGradientOrientationDialog()
+        })
+        mThingCardAppearanceColorPicker!!.setOnPickFromCameraListener(Runnable {
+            openThingCardAppearanceCameraColorSampler()
+        })
         mEtFolderCardAppearanceName!!.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
 
@@ -2229,7 +2320,18 @@ class ThingsActivity :
 
     private fun openSelectedCardAppearancePanel() {
         when (val entry = mThingManager!!.getSingleSelectedEntry()) {
-            is ThingListEntry.FolderEntry -> openFolderCardAppearancePanel(entry.folder)
+            is ThingListEntry.FolderEntry -> {
+                if (entry.effectivePrivate) {
+                    authenticateThingFolder(
+                        entry.folder,
+                        R.string.customize_private_thing_folder_card
+                    ) {
+                        openFolderCardAppearancePanel(entry.folder)
+                    }
+                } else {
+                    openFolderCardAppearancePanel(entry.folder)
+                }
+            }
             is ThingListEntry.ThingEntry -> openThingCardAppearancePanel()
             else -> {}
         }
@@ -2239,6 +2341,7 @@ class ThingsActivity :
         mThingCardAppearancePanelThing = null
         mThingCardAppearanceOriginal = null
         mThingCardAppearanceDraft = null
+        mThingCardAppearanceOriginalBackground = null
         mThingCardAppearanceMediaSources = emptyList()
         mThingCardAppearanceSourcePicker?.dismiss()
         mThingCardAppearanceSourcePicker = null
@@ -2246,6 +2349,7 @@ class ThingsActivity :
         mFolderCardAppearancePanelFolder = folder
         mFolderCardAppearanceOriginalTitle = folder.title
         mFolderCardAppearanceOriginalPresentation = folder.cardPresentation
+        mFolderCardAppearanceOriginalBackground = folder.getBackground()
         mFolderCardAppearanceDraftPresentation = folder.effectiveCardPresentation()
         mThingCardAppearanceSelectedListPosition =
                 mThingManager!!.getListPositionForFolderId(folder.id)
@@ -2376,6 +2480,7 @@ class ThingsActivity :
         mThingCardAppearancePanelThing = thing
         mThingCardAppearanceOriginal = thing.thingCardAppearance
         mThingCardAppearanceDraft = thing.thingCardAppearance
+        mThingCardAppearanceOriginalBackground = thing.getBackground()
         mThingCardAppearanceSelectedListPosition =
             mThingManager!!.getListPositionForThingId(thing.id)
         if (mThingCardAppearanceSelectedListPosition < 0) {
@@ -3135,6 +3240,7 @@ class ThingsActivity :
         applyThingCardAppearanceAccentText(mBtThingCardAppearanceVideoFrameNext)
         applyThingCardAppearanceAccentText(mBtThingCardAppearancePreciseCrop)
         applyThingCardAppearanceAccentText(mBtConfirmThingCardAppearance)
+        bindThingCardAppearanceColorButton()
         setThingCardAppearancePlainTextColor(
                 mBtCancelThingCardAppearance,
                 ContextCompat.getColor(this, R.color.app_chrome_dialog_cancel)
@@ -3164,6 +3270,96 @@ class ThingsActivity :
         ).forEach { view ->
             BackgroundUtil.installAppChromeDialogActionButton(view, this)
         }
+        BackgroundUtil.installAppChromeCircleRipple(mBtThingCardAppearanceChangeColor, this)
+    }
+
+    private fun bindThingCardAppearanceColorButton() {
+        val button = mBtThingCardAppearanceChangeColor ?: return
+        val background = getThingCardAppearanceAccentBackground()
+            ?: ThingBackground.pure(ContextCompat.getColor(this, R.color.app_accent))
+        val raw = ContextCompat.getDrawable(this, R.drawable.act_change_color)
+        button.setImageDrawable(BackgroundUtil.tintDrawable(resources, raw, background))
+    }
+
+    private fun showThingCardAppearanceColorPicker() {
+        if (!isThingCardAppearancePanelShowing()) return
+        val anchor = mBtThingCardAppearanceChangeColor ?: return
+        val picker = mThingCardAppearanceColorPicker ?: return
+        picker.setAnchor(anchor)
+        picker.pickForBackground(getThingCardAppearanceAccentBackground())
+        picker.refreshOrientationBt()
+        picker.show()
+    }
+
+    private fun updateThingCardAppearanceBackgroundDraft(background: ThingBackground) {
+        val folder = mFolderCardAppearancePanelFolder
+        if (folder != null) {
+            folder.setBackground(background)
+            requestThingCardAppearancePreviewRefresh()
+            bindFolderCardAppearancePanel()
+            mThingCardAppearancePanel!!.post {
+                updateRecyclerViewBottomPaddingForThingCardAppearancePanel()
+            }
+            mThingCardAppearanceColorPicker?.pickForBackground(background)
+            return
+        }
+
+        val thing = mThingCardAppearancePanelThing ?: return
+        thing.setBackground(background)
+        requestThingCardAppearancePreviewRefresh()
+        bindThingCardAppearancePanel()
+        mThingCardAppearancePanel!!.post {
+            updateRecyclerViewBottomPaddingForThingCardAppearancePanel()
+        }
+        mThingCardAppearanceColorPicker?.pickForBackground(background)
+    }
+
+    private fun showThingCardAppearanceGradientOrientationDialog() {
+        val current = getThingCardAppearanceAccentBackground()
+        if (current == null || current.mode !== ThingBackground.Mode.GRADIENT) return
+        val dialog = GradientOrientationDialogFragment()
+        dialog.setAccent(current)
+        dialog.setOnPickListener(object : GradientOrientationDialogFragment.OnPickListener {
+            override fun onPicked(orientation: ThingBackground.Orientation?) {
+                if (orientation === current.orientation) return
+                updateThingCardAppearanceBackgroundDraft(
+                    ThingBackground.gradient(current.color, current.endColor, orientation)
+                )
+            }
+        })
+        dialog.show(fragmentManager, GradientOrientationDialogFragment.TAG)
+    }
+
+    private fun openThingCardAppearanceCameraColorSampler() {
+        doWithPermissionChecked(
+            object : SimplePermissionCallback(this) {
+                override fun onGranted() {
+                    showThingCardAppearanceCameraColorSampler()
+                }
+
+                override fun onDenied() {
+                    mNormalSnackbar!!.setMessage(R.string.error_permission_denied)
+                    mNormalSnackbar!!.show()
+                }
+            },
+            Def.Communication.REQUEST_PERMISSION_CAMERA_COLOR,
+            Manifest.permission.CAMERA
+        )
+    }
+
+    private fun showThingCardAppearanceCameraColorSampler() {
+        val dialog = CameraColorSamplingDialogFragment()
+        dialog.setInitialColor(getThingCardAppearanceAccentColor())
+        dialog.setOnColorListener(object : CameraColorSamplingDialogFragment.OnColorListener {
+            override fun onPreviewColor(color: Int) {}
+
+            override fun onUseColor(color: Int) {
+                updateThingCardAppearanceBackgroundDraft(ThingBackground.pure(color))
+            }
+
+            override fun onCancelColorSampling() {}
+        })
+        dialog.show(fragmentManager, CameraColorSamplingDialogFragment.TAG)
     }
 
     private fun applyThingCardAppearanceAccentText(textView: TextView?) {
@@ -4572,10 +4768,51 @@ class ThingsActivity :
     private fun requestActivityHeaderStateRefresh() {
         val recyclerView = mRecyclerView ?: return
         recyclerView.post {
-            val layoutManager = mStaggeredGridLayoutManager ?: return@post
-            val positions = IntArray(mSpan)
-            layoutManager.findFirstVisibleItemPositions(positions)
-            mActivityHeader?.updateAll(positions[0], false)
+            mActivityHeader?.updateAll(findFirstVisibleThingListPosition(), false)
+        }
+    }
+
+    private fun findFirstVisibleThingListPosition(): Int {
+        val layoutManager = mStaggeredGridLayoutManager ?: return 0
+        val positions = IntArray(mSpan.coerceAtLeast(1))
+        layoutManager.findFirstVisibleItemPositions(positions)
+        var firstVisible = Int.MAX_VALUE
+        for (position in positions) {
+            if (position >= 0 && position < firstVisible) {
+                firstVisible = position
+            }
+        }
+        return if (firstVisible == Int.MAX_VALUE) 0 else firstVisible
+    }
+
+    private fun requestActivityHeaderSpacerHeightUpdate(heightPx: Int) {
+        mPendingActivityHeaderSpacerHeightPx = heightPx
+        if (mActivityHeaderSpacerApplyPosted) return
+        mActivityHeaderSpacerApplyPosted = true
+        mRecyclerView?.post {
+            applyPendingActivityHeaderSpacerHeight()
+        }
+    }
+
+    private fun applyPendingActivityHeaderSpacerHeight() {
+        val recyclerView = mRecyclerView
+        if (recyclerView == null) {
+            mActivityHeaderSpacerApplyPosted = false
+            return
+        }
+        if (recyclerView.isComputingLayout ||
+            recyclerView.scrollState != RecyclerView.SCROLL_STATE_IDLE
+        ) {
+            recyclerView.postOnAnimation {
+                applyPendingActivityHeaderSpacerHeight()
+            }
+            return
+        }
+        val heightPx = mPendingActivityHeaderSpacerHeightPx
+        mPendingActivityHeaderSpacerHeightPx = null
+        mActivityHeaderSpacerApplyPosted = false
+        if (heightPx != null) {
+            mAdapter?.setActivityHeaderSpacerHeightPx(heightPx)
         }
     }
 
@@ -4659,8 +4896,12 @@ class ThingsActivity :
         }
         val thing = mThingCardAppearancePanelThing
         val original = mThingCardAppearanceOriginal
+        val originalBackground = mThingCardAppearanceOriginalBackground
         if (thing != null && original != null) {
             thing.thingCardAppearance = original
+            if (originalBackground != null) {
+                thing.setBackground(originalBackground)
+            }
             if (mThingCardAppearanceSelectedListPosition >= 0) {
                 finishNewItemShiningBorderAnimationIfNeeded()
                 mAdapter!!.notifyItemChanged(mThingCardAppearanceSelectedListPosition)
@@ -4678,9 +4919,13 @@ class ThingsActivity :
         val folder = mFolderCardAppearancePanelFolder
         val originalTitle = mFolderCardAppearanceOriginalTitle
         val originalPresentation = mFolderCardAppearanceOriginalPresentation
+        val originalBackground = mFolderCardAppearanceOriginalBackground
         if (folder != null && originalTitle != null && originalPresentation != null) {
             folder.title = originalTitle
             folder.cardPresentation = originalPresentation
+            if (originalBackground != null) {
+                folder.setBackground(originalBackground)
+            }
             if (mThingCardAppearanceSelectedListPosition >= 0) {
                 finishNewItemShiningBorderAnimationIfNeeded()
                 mAdapter!!.notifyItemChanged(mThingCardAppearanceSelectedListPosition)
@@ -4701,6 +4946,7 @@ class ThingsActivity :
     private fun hideThingCardAppearancePanel() {
         mThingCardAppearanceSourcePicker?.dismiss()
         mThingCardAppearanceSourcePicker = null
+        mThingCardAppearanceColorPicker?.dismiss()
         val wasShowing = isThingCardAppearancePanelShowing()
         if (isThingCardAppearancePanelShowing()) {
             KeyboardUtil.hideKeyboard(window, currentFocus ?: mEtFolderCardAppearanceName)
@@ -4722,11 +4968,13 @@ class ThingsActivity :
         mThingCardAppearancePanelThing = null
         mThingCardAppearanceOriginal = null
         mThingCardAppearanceDraft = null
+        mThingCardAppearanceOriginalBackground = null
         clearFolderCardAppearanceDraft()
         mThingCardAppearanceSelectedListPosition = -1
         mThingCardAppearanceMediaSources = emptyList()
         mThingCardAppearanceSourcePicker?.dismiss()
         mThingCardAppearanceSourcePicker = null
+        mThingCardAppearanceColorPicker?.dismiss()
         mThingCardAppearancePreviewRefreshPosted = false
     }
 
@@ -4734,6 +4982,7 @@ class ThingsActivity :
         mFolderCardAppearancePanelFolder = null
         mFolderCardAppearanceOriginalTitle = null
         mFolderCardAppearanceOriginalPresentation = null
+        mFolderCardAppearanceOriginalBackground = null
         mFolderCardAppearanceDraftPresentation = null
         mBindingFolderCardAppearancePanel = false
     }
@@ -5087,9 +5336,7 @@ class ThingsActivity :
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 if (mScrollCausedByFinger) {
                     dismissSnackbars()
-                    val positions = IntArray(mSpan)
-                    mStaggeredGridLayoutManager!!.findFirstVisibleItemPositions(positions)
-                    mActivityHeader!!.updateAll(positions[0], false)
+                    mActivityHeader!!.updateAll(findFirstVisibleThingListPosition(), false)
                 }
             }
 
@@ -5340,6 +5587,11 @@ class ThingsActivity :
             override fun onDrawerOpened(drawerView: View) {
                 super.onDrawerOpened(drawerView)
                 dismissSnackbars()
+            }
+
+            override fun onDrawerClosed(drawerView: View) {
+                super.onDrawerClosed(drawerView)
+                resetDrawerPrivateExpansionAuthentication()
             }
         }
         mDrawerLayout!!.addDrawerListener(toggle)
@@ -5595,9 +5847,7 @@ class ThingsActivity :
 
         mScrollCausedByFinger = false
         mRecyclerView!!.postDelayed({
-            val positions = IntArray(mSpan)
-            mStaggeredGridLayoutManager!!.findFirstVisibleItemPositions(positions)
-            mActivityHeader!!.updateAll(positions[0], true)
+            mActivityHeader!!.updateAll(findFirstVisibleThingListPosition(), true)
         }, timeDelay)
 
         if (mModeManager!!.getCurrentMode() == ModeManager.SELECTING) {
@@ -6082,7 +6332,7 @@ class ThingsActivity :
     private fun openThingFolder(entry: ThingListEntry.FolderEntry) {
         val folder = entry.folder
         if (shouldProtectEffectivePrivateContent(entry.effectivePrivate, folder.id)) {
-            authenticateThingFolder(folder) {
+            authenticateThingFolder(folder, R.string.open_private_thing_folder) {
                 openThingFolderAfterAuthentication(folder, true)
             }
         } else {
@@ -6104,11 +6354,12 @@ class ThingsActivity :
         mRecyclerView!!.scrollToPosition(0)
         mActivityHeader!!.updateText()
         updateDrawerFolderItems()
+        invalidateOptionsMenu()
     }
 
     private fun showThingFolderActionsOrAuthenticate(entry: ThingListEntry.FolderEntry) {
         if (shouldProtectEffectivePrivateContent(entry.effectivePrivate, entry.folder.id)) {
-            authenticateThingFolder(entry.folder) {
+            authenticateThingFolder(entry.folder, R.string.manage_private_thing_folder) {
                 showThingFolderActions(entry.folder, entry.effectivePrivate, true)
             }
         } else {
@@ -6116,7 +6367,11 @@ class ThingsActivity :
         }
     }
 
-    private fun authenticateThingFolder(folder: ThingFolder, onAuthenticated: () -> Unit) {
+    private fun authenticateThingFolder(
+        folder: ThingFolder,
+        titleRes: Int = R.string.open_private_thing_folder,
+        onAuthenticated: () -> Unit
+    ) {
         val sp: SharedPreferences = getSharedPreferences(
             Def.Meta.PREFERENCES_NAME,
             MODE_PRIVATE
@@ -6125,7 +6380,7 @@ class ThingsActivity :
         AuthenticationHelper.authenticate(
             this,
             folder.getBackground(),
-            getString(R.string.check_private_thing),
+            getString(titleRes),
             cp,
             object : AuthenticationHelper.AuthenticationCallback {
                 override fun onAuthenticated() {
@@ -6347,79 +6602,219 @@ class ThingsActivity :
     }
 
     private fun showMoveThingFolderDialog(folder: ThingFolder) {
-        val candidates = mThingManager!!.getFolderMoveCandidates(folder)
-        val targetIds = ArrayList<Long?>()
-        val targetTitles = ArrayList<String>()
-        val targetFolders = ArrayList<ThingFolder?>()
-        targetIds.add(null)
-        targetTitles.add(getString(R.string.thing_folder_root))
-        targetFolders.add(null)
-        for (candidate in candidates) {
-            targetIds.add(candidate.id)
-            targetFolders.add(candidate)
-            targetTitles.add(
-                if (shouldProtectFolderForAccess(candidate.id)) {
-                    getString(R.string.private_thing_folder)
-                } else {
-                    candidate.title
-                }
-            )
-        }
-        AlertDialog.Builder(this)
-            .setTitle(R.string.move_thing_folder_to)
-            .setItems(targetTitles.toTypedArray()) { _, which ->
-                val targetFolder = targetFolders[which]
-                val moveFolder = {
-                    if (mThingManager!!.moveFolderIntoFolder(folder, targetIds[which])) {
-                        refreshHomeAfterFolderUpdated()
-                    }
-                }
-                if (targetFolder != null && shouldProtectFolderForAccess(targetFolder.id)) {
-                    authenticateThingFolder(targetFolder) {
-                        moveFolder()
-                    }
-                } else {
-                    moveFolder()
+        val dialog = MoveToThingFolderDialogFragment()
+        dialog.setAccentBackground(folder.getBackground())
+        dialog.setFolders(
+            mThingManager!!.getDrawerFolders(),
+            folder.parentFolderId,
+            getForbiddenFolderMoveTargetIds(folder)
+        )
+        dialog.setListener(object : MoveToThingFolderDialogFragment.Listener {
+            override fun onMoveTargetConfirmed(targetFolderId: Long?) {
+                moveFolderToFolderWithPrivacyCheck(folder, targetFolderId)
+            }
+
+            override fun shouldAuthenticateBeforeExpand(folder: ThingFolder): Boolean {
+                return shouldAuthenticateTransientPrivateFolderExpansion(folder)
+            }
+
+            override fun onAuthenticateFolderExpand(
+                folder: ThingFolder,
+                onAuthenticated: () -> Unit
+            ) {
+                authenticateThingFolder(folder, R.string.expand_private_thing_folder) {
+                    onAuthenticated()
                 }
             }
-            .show()
+        })
+        dialog.show(fragmentManager, MoveToThingFolderDialogFragment.TAG)
     }
 
     private fun showMoveSelectedThingsDialog() {
-        val candidates = mThingManager!!.getThingMoveTargetFolders()
-        val targetIds = ArrayList<Long?>()
-        val targetTitles = ArrayList<String>()
-        val targetFolders = ArrayList<ThingFolder?>()
-        targetIds.add(null)
-        targetTitles.add(getString(R.string.thing_folder_root))
-        targetFolders.add(null)
-        for (candidate in candidates) {
-            targetIds.add(candidate.id)
-            targetFolders.add(candidate)
-            targetTitles.add(
-                if (shouldProtectFolderForAccess(candidate.id)) {
-                    getString(R.string.private_thing_folder)
-                } else {
-                    candidate.title
-                }
-            )
-        }
-        AlertDialog.Builder(this)
-            .setTitle(R.string.act_move_to_thing_folder)
-            .setItems(targetTitles.toTypedArray()) { _, which ->
-                val targetFolder = targetFolders[which]
-                val moveThings = {
-                    moveSelectedThingsToFolder(targetIds[which])
-                }
-                if (targetFolder != null && shouldProtectFolderForAccess(targetFolder.id)) {
-                    authenticateThingFolder(targetFolder) {
-                        moveThings()
-                    }
-                } else {
-                    moveThings()
+        val selectedThings = mThingManager!!.getSelectedThings()
+            ?.filterNotNull()
+            ?.filter { it.type in Thing.NOTE..Thing.GOAL && it.state == Thing.UNDERWAY }
+            ?: return
+        if (selectedThings.isEmpty()) return
+
+        val dialog = MoveToThingFolderDialogFragment()
+        dialog.setAccentBackground(selectedThings.first().getBackground())
+        dialog.setFolders(
+            mThingManager!!.getDrawerFolders(),
+            getCommonSelectedThingsFolderId(selectedThings)
+        )
+        dialog.setListener(object : MoveToThingFolderDialogFragment.Listener {
+            override fun onMoveTargetConfirmed(targetFolderId: Long?) {
+                moveSelectedThingsToFolderWithPrivacyCheck(selectedThings, targetFolderId)
+            }
+
+            override fun shouldAuthenticateBeforeExpand(folder: ThingFolder): Boolean {
+                return shouldAuthenticateTransientPrivateFolderExpansion(folder)
+            }
+
+            override fun onAuthenticateFolderExpand(
+                folder: ThingFolder,
+                onAuthenticated: () -> Unit
+            ) {
+                authenticateThingFolder(folder, R.string.expand_private_thing_folder) {
+                    onAuthenticated()
                 }
             }
-            .show()
+        })
+        dialog.show(fragmentManager, MoveToThingFolderDialogFragment.TAG)
+    }
+
+    private fun getForbiddenFolderMoveTargetIds(folder: ThingFolder): Set<Long> {
+        val forbidden = HashSet<Long>()
+        forbidden.add(folder.id)
+        for (candidate in mThingManager!!.getDrawerFolders()) {
+            if (mThingManager!!.isFolderDescendantOf(candidate.id, folder.id)) {
+                forbidden.add(candidate.id)
+            }
+        }
+        return forbidden
+    }
+
+    private fun getCommonSelectedThingsFolderId(things: List<Thing>): Long? {
+        if (things.isEmpty()) return mThingManager!!.getProjection().currentFolderId
+        val firstFolderId = things.first().folderId
+        for (thing in things) {
+            if (thing.folderId != firstFolderId) {
+                return mThingManager!!.getProjection().currentFolderId
+            }
+        }
+        return firstFolderId
+    }
+
+    private fun moveFolderToFolderWithPrivacyCheck(
+        folder: ThingFolder,
+        targetFolderId: Long?
+    ) {
+        if (folder.parentFolderId == targetFolderId) return
+        val moveFolder = {
+            if (mThingManager!!.moveFolderIntoFolder(folder, targetFolderId)) {
+                refreshHomeAfterFolderUpdated()
+            }
+        }
+        authenticatePrivateMoveIfNeeded(
+            needsFolderMovePrivacyAuthentication(folder, targetFolderId),
+            getFolderMovePrivacyBackground(folder, targetFolderId),
+            moveFolder
+        )
+    }
+
+    private fun moveSelectedThingsToFolderWithPrivacyCheck(
+        selectedThings: List<Thing>,
+        targetFolderId: Long?
+    ) {
+        authenticatePrivateMoveIfNeeded(
+            needsSelectedThingsMovePrivacyAuthentication(selectedThings, targetFolderId),
+            getSelectedThingsMovePrivacyBackground(selectedThings, targetFolderId)
+        ) {
+            moveSelectedThingsToFolder(targetFolderId)
+        }
+    }
+
+    private fun needsFolderMovePrivacyAuthentication(
+        folder: ThingFolder,
+        targetFolderId: Long?
+    ): Boolean {
+        val sourceNeedsAuthentication =
+            mThingManager!!.isFolderEffectivelyPrivate(folder.id) &&
+                !mThingManager!!.isFolderPrivacyAuthenticated(folder.id)
+        val targetNeedsAuthentication =
+            mThingManager!!.isFolderEffectivelyPrivate(targetFolderId) &&
+                !mThingManager!!.isFolderPrivacyAuthenticated(targetFolderId)
+        return sourceNeedsAuthentication || targetNeedsAuthentication
+    }
+
+    private fun needsSelectedThingsMovePrivacyAuthentication(
+        selectedThings: List<Thing>,
+        targetFolderId: Long?
+    ): Boolean {
+        val targetPrivate = mThingManager!!.isFolderEffectivelyPrivate(targetFolderId)
+        for (thing in selectedThings) {
+            if (thing.folderId == targetFolderId) continue
+            if (targetPrivate || thing.isPrivate() ||
+                    mThingManager!!.isFolderEffectivelyPrivate(thing.folderId)
+            ) {
+                return true
+            }
+        }
+        return false
+    }
+
+    private fun needsThingMovePrivacyAuthentication(
+        thing: Thing,
+        targetFolderId: Long?
+    ): Boolean {
+        if (thing.folderId == targetFolderId) return false
+        return thing.isPrivate() ||
+                mThingManager!!.isFolderEffectivelyPrivate(thing.folderId) ||
+                mThingManager!!.isFolderEffectivelyPrivate(targetFolderId)
+    }
+
+    private fun getFolderMovePrivacyBackground(
+        folder: ThingFolder,
+        targetFolderId: Long?
+    ): ThingBackground? {
+        val targetFolder = targetFolderId?.let { mThingManager!!.getFolderById(it) }
+        if (targetFolder != null && mThingManager!!.isFolderEffectivelyPrivate(targetFolder.id)) {
+            return targetFolder.getBackground()
+        }
+        return folder.getBackground()
+    }
+
+    private fun getSelectedThingsMovePrivacyBackground(
+        selectedThings: List<Thing>,
+        targetFolderId: Long?
+    ): ThingBackground? {
+        val targetFolder = targetFolderId?.let { mThingManager!!.getFolderById(it) }
+        if (targetFolder != null && mThingManager!!.isFolderEffectivelyPrivate(targetFolder.id)) {
+            return targetFolder.getBackground()
+        }
+        return selectedThings.firstOrNull { it.isPrivate() }?.getBackground()
+            ?: selectedThings.firstOrNull()?.getBackground()
+    }
+
+    private fun getThingMovePrivacyBackground(
+        thing: Thing,
+        targetFolderId: Long?
+    ): ThingBackground? {
+        val targetFolder = targetFolderId?.let { mThingManager!!.getFolderById(it) }
+        if (targetFolder != null && mThingManager!!.isFolderEffectivelyPrivate(targetFolder.id)) {
+            return targetFolder.getBackground()
+        }
+        return thing.getBackground()
+    }
+
+    private fun authenticatePrivateMoveIfNeeded(
+        needsAuthentication: Boolean,
+        background: ThingBackground?,
+        onAuthenticated: () -> Unit
+    ) {
+        if (!needsAuthentication) {
+            onAuthenticated()
+            return
+        }
+        val sp: SharedPreferences = getSharedPreferences(
+            Def.Meta.PREFERENCES_NAME,
+            MODE_PRIVATE
+        )
+        val cp: String? = sp.getString(Def.Meta.KEY_PRIVATE_PASSWORD, null)
+        AuthenticationHelper.authenticate(
+            this,
+            background ?: ThingBackground.pure(ContextCompat.getColor(this, R.color.app_accent)),
+            getString(R.string.move_private_thing_or_folder),
+            cp,
+            object : AuthenticationHelper.AuthenticationCallback {
+                override fun onAuthenticated() {
+                    onAuthenticated()
+                }
+
+                override fun onCancel() {}
+            }
+        )
     }
 
     private fun moveSelectedThingsToFolder(folderId: Long?) {
@@ -6619,44 +7014,80 @@ class ThingsActivity :
 
     private fun commitMoveThingIntoFolderDrop(
         sourceThingId: Long,
-        targetFolderId: Long
-    ): Boolean {
-        val sourceThing = mThingManager!!.getThingById(sourceThingId) ?: return false
-        val targetEntry = getVisibleFolderEntry(targetFolderId) ?: return false
+        targetFolderId: Long,
+        onCommitted: (Boolean) -> Unit
+    ) {
+        val sourceThing = mThingManager!!.getThingById(sourceThingId) ?: run {
+            onCommitted(false)
+            return
+        }
+        val targetEntry = getVisibleFolderEntry(targetFolderId) ?: run {
+            onCommitted(false)
+            return
+        }
         if (!canMoveThingIntoExistingFolderWith(sourceThing, targetEntry)) {
-            return false
+            onCommitted(false)
+            return
         }
         val sourceOldListPosition = mThingManager!!.getListPositionForThingId(sourceThingId)
-        if (sourceOldListPosition <= 0) return false
+        if (sourceOldListPosition <= 0) {
+            onCommitted(false)
+            return
+        }
 
-        dismissSnackbars()
-        finishNewItemShiningBorderAnimationIfNeeded()
-        mThingManager!!.moveThingIntoFolder(sourceThing, targetEntry.folder.id)
-        val targetNewListPosition = getVisibleFolderPosition(targetFolderId)
-        notifyFolderDropCommitted(sourceOldListPosition, targetNewListPosition)
-        updateHomeAfterFolderDropCommitted()
-        return true
+        val commitMove = {
+            dismissSnackbars()
+            finishNewItemShiningBorderAnimationIfNeeded()
+            mThingManager!!.moveThingIntoFolder(sourceThing, targetEntry.folder.id)
+            val targetNewListPosition = getVisibleFolderPosition(targetFolderId)
+            notifyFolderDropCommitted(sourceOldListPosition, targetNewListPosition)
+            updateHomeAfterFolderDropCommitted()
+            onCommitted(true)
+        }
+        authenticatePrivateMoveIfNeeded(
+            needsThingMovePrivacyAuthentication(sourceThing, targetEntry.folder.id),
+            getThingMovePrivacyBackground(sourceThing, targetEntry.folder.id),
+            commitMove
+        )
     }
 
     private fun commitMoveFolderIntoFolderDrop(
         sourceFolderId: Long,
-        targetFolderId: Long
-    ): Boolean {
-        val sourceFolder = mThingManager!!.getFolderById(sourceFolderId) ?: return false
-        val targetEntry = getVisibleFolderEntry(targetFolderId) ?: return false
+        targetFolderId: Long,
+        onCommitted: (Boolean) -> Unit
+    ) {
+        val sourceFolder = mThingManager!!.getFolderById(sourceFolderId) ?: run {
+            onCommitted(false)
+            return
+        }
+        val targetEntry = getVisibleFolderEntry(targetFolderId) ?: run {
+            onCommitted(false)
+            return
+        }
         if (!canMoveFolderIntoExistingFolderWith(sourceFolder, targetEntry)) {
-            return false
+            onCommitted(false)
+            return
         }
         val sourceOldListPosition = mThingManager!!.getListPositionForFolderId(sourceFolderId)
-        if (sourceOldListPosition <= 0) return false
+        if (sourceOldListPosition <= 0) {
+            onCommitted(false)
+            return
+        }
 
-        dismissSnackbars()
-        finishNewItemShiningBorderAnimationIfNeeded()
-        mThingManager!!.moveFolderIntoFolder(sourceFolder, targetEntry.folder.id)
-        val targetNewListPosition = getVisibleFolderPosition(targetFolderId)
-        notifyFolderDropCommitted(sourceOldListPosition, targetNewListPosition)
-        updateHomeAfterFolderDropCommitted()
-        return true
+        val commitMove = {
+            dismissSnackbars()
+            finishNewItemShiningBorderAnimationIfNeeded()
+            mThingManager!!.moveFolderIntoFolder(sourceFolder, targetEntry.folder.id)
+            val targetNewListPosition = getVisibleFolderPosition(targetFolderId)
+            notifyFolderDropCommitted(sourceOldListPosition, targetNewListPosition)
+            updateHomeAfterFolderDropCommitted()
+            onCommitted(true)
+        }
+        authenticatePrivateMoveIfNeeded(
+            needsFolderMovePrivacyAuthentication(sourceFolder, targetEntry.folder.id),
+            getFolderMovePrivacyBackground(sourceFolder, targetEntry.folder.id),
+            commitMove
+        )
     }
 
     private fun commitCreateThingFolderDrop(
@@ -6963,6 +7394,7 @@ class ThingsActivity :
         mRecyclerView!!.scrollToPosition(0)
         mActivityHeader!!.updateText()
         updateDrawerFolderItems()
+        invalidateOptionsMenu()
     }
 
     private data class PendingFolderDrop(
@@ -7125,24 +7557,53 @@ class ThingsActivity :
         }
         if (candidate.action == ThingListOverlayDragController.FolderDropAction.MOVE_TO_FOLDER) {
             val targetFolderId = candidate.targetFolderId
-            val committed = if (targetFolderId == null) {
-                false
-            } else if (candidate.sourceThingId != null) {
-                commitMoveThingIntoFolderDrop(candidate.sourceThingId, targetFolderId)
-            } else if (candidate.sourceFolderId != null) {
-                commitMoveFolderIntoFolderDrop(candidate.sourceFolderId, targetFolderId)
-            } else {
-                false
-            }
-            return if (committed) {
-                ThingListOverlayDragController.FolderDropCommitResult(true) {
-                    resetCommitState()
-                    rebindHomeListAfterFolderDropModeExit()
-                }
-            } else {
+            if (targetFolderId == null) {
                 resetCommitState()
                 rebindHomeListAfterFolderDropModeExit()
-                ThingListOverlayDragController.FolderDropCommitResult(false)
+                return ThingListOverlayDragController.FolderDropCommitResult(false)
+            }
+            var committed: Boolean? = null
+            var visualFinished = false
+            fun finishIfReady() {
+                val result = committed ?: return
+                if (!visualFinished) return
+                resetCommitState()
+                if (result) {
+                    rebindHomeListAfterFolderDropModeExit()
+                } else {
+                    mAdapter!!.notifyDataSetChanged()
+                    rebindHomeListAfterFolderDropModeExit()
+                }
+            }
+            val onCommitted: (Boolean) -> Unit = { result ->
+                committed = result
+                finishIfReady()
+            }
+            when {
+                candidate.sourceThingId != null -> {
+                    commitMoveThingIntoFolderDrop(
+                        candidate.sourceThingId,
+                        targetFolderId,
+                        onCommitted
+                    )
+                }
+                candidate.sourceFolderId != null -> {
+                    commitMoveFolderIntoFolderDrop(
+                        candidate.sourceFolderId,
+                        targetFolderId,
+                        onCommitted
+                    )
+                }
+                else -> committed = false
+            }
+            if (committed == false) {
+                resetCommitState()
+                rebindHomeListAfterFolderDropModeExit()
+                return ThingListOverlayDragController.FolderDropCommitResult(false)
+            }
+            return ThingListOverlayDragController.FolderDropCommitResult(true) {
+                visualFinished = true
+                finishIfReady()
             }
         }
 
@@ -8242,6 +8703,58 @@ class ThingsActivity :
                 return
             }
 
+            if (needsThingSwipePrivacyAuthentication(thingToSwipe)) {
+                mAdapter!!.notifyItemChanged(listPosition)
+                authenticateThingSwipe(thingToSwipe, direction) {
+                    performThingSwipe(thingToSwipe, thingIndex, listPosition, direction)
+                    swiped = true
+                }
+                return
+            }
+
+            performThingSwipe(thingToSwipe, thingIndex, listPosition, direction)
+            swiped = true
+        }
+
+        private fun needsThingSwipePrivacyAuthentication(thing: Thing): Boolean {
+            return thing.isPrivate() || mThingManager!!.isCurrentFolderEffectivelyPrivate()
+        }
+
+        private fun authenticateThingSwipe(
+            thing: Thing,
+            direction: Int,
+            onAuthenticated: () -> Unit
+        ) {
+            val cp: String? = getSharedPreferences(Def.Meta.PREFERENCES_NAME, MODE_PRIVATE)
+                .getString(Def.Meta.KEY_PRIVATE_PASSWORD, null)
+            val title = if (direction == ItemTouchHelper.START) {
+                getString(R.string.finish_private_thing_by_swipe)
+            } else {
+                getString(R.string.start_doing_full_title)
+            }
+            AuthenticationHelper.authenticate(
+                this@ThingsActivity,
+                thing.getBackground(),
+                title,
+                cp,
+                object : AuthenticationHelper.AuthenticationCallback {
+                    override fun onAuthenticated() {
+                        onAuthenticated()
+                    }
+
+                    override fun onCancel() {}
+                }
+            )
+        }
+
+        private fun performThingSwipe(
+            thingToSwipe: Thing,
+            thingIndex: Int,
+            listPosition: Int,
+            direction: Int
+        ) {
+            val id = thingToSwipe.id
+            @Thing.Type val thingType = thingToSwipe.type
             prepareBeforeSwipingThing(id, thingType)
 
             if (direction == ItemTouchHelper.START) {
@@ -8270,29 +8783,14 @@ class ThingsActivity :
                     ).show()
                 } else {
                     if (thingToSwipe.isPrivate()) {
-                        val cp: String? = getSharedPreferences(Def.Meta.PREFERENCES_NAME, MODE_PRIVATE)
-                            .getString(Def.Meta.KEY_PRIVATE_PASSWORD, null)
-                        AuthenticationHelper.authenticate(
-                            this@ThingsActivity,
-                            thingToSwipe.getBackground(),
-                            getString(R.string.start_doing_full_title), cp,
-                            object : AuthenticationHelper.AuthenticationCallback {
-                                override fun onAuthenticated() {
-                                    val helper = ThingDoingHelper(this@ThingsActivity, thingToSwipe)
-                                    helper.tryToOpenStartDoingActivityUser(thingToSwipe.getBackground())
-                                }
-
-                                override fun onCancel() {
-                                }
-                            })
+                        val helper = ThingDoingHelper(this@ThingsActivity, thingToSwipe)
+                        helper.tryToOpenStartDoingActivityUser(thingToSwipe.getBackground())
                     } else {
                         val helper = ThingDoingHelper(this@ThingsActivity, thingToSwipe)
                         helper.tryToOpenStartDoingActivityUser()
                     }
                 }
             }
-
-            swiped = true
         }
 
         private fun commitFolderDropAfterClear(
@@ -8301,20 +8799,32 @@ class ThingsActivity :
         ) {
             if (folderDrop.action == FOLDER_DROP_ACTION_MOVE_TO_FOLDER) {
                 val targetFolderId = folderDrop.targetFolderId
-                val committed = if (targetFolderId == null) {
-                    false
-                } else if (folderDrop.sourceThingId != null) {
-                    commitMoveThingIntoFolderDrop(folderDrop.sourceThingId, targetFolderId)
-                } else if (folderDrop.sourceFolderId != null) {
-                    commitMoveFolderIntoFolderDrop(folderDrop.sourceFolderId, targetFolderId)
-                } else {
-                    false
-                }
-                if (committed) {
-                    restoreFolderDropSourceViewLater(commitVisual)
-                    playFolderDropCommitVisual(commitVisual) {
+                val onCommitted: (Boolean) -> Unit = { committed ->
+                    if (committed) {
+                        restoreFolderDropSourceViewLater(commitVisual)
+                        playFolderDropCommitVisual(commitVisual) {
+                            rebindHomeListAfterFolderDropModeExit()
+                        }
+                    } else {
+                        restoreFolderDropVisualImmediately(commitVisual)
                         rebindHomeListAfterFolderDropModeExit()
                     }
+                }
+                if (targetFolderId == null) {
+                    restoreFolderDropVisualImmediately(commitVisual)
+                    rebindHomeListAfterFolderDropModeExit()
+                } else if (folderDrop.sourceThingId != null) {
+                    commitMoveThingIntoFolderDrop(
+                        folderDrop.sourceThingId,
+                        targetFolderId,
+                        onCommitted
+                    )
+                } else if (folderDrop.sourceFolderId != null) {
+                    commitMoveFolderIntoFolderDrop(
+                        folderDrop.sourceFolderId,
+                        targetFolderId,
+                        onCommitted
+                    )
                 } else {
                     restoreFolderDropVisualImmediately(commitVisual)
                     rebindHomeListAfterFolderDropModeExit()
@@ -8856,7 +9366,12 @@ class ThingsActivity :
             } else if (itemId == R.id.act_delete_selected_forever) {
                 handleUpdateStates(Thing.DELETED_FOREVER)
             } else if (itemId == R.id.act_move_to_thing_folder) {
-                showMoveSelectedThingsDialog()
+                val selectedFolder = getSingleSelectedFolder()
+                if (selectedFolder != null) {
+                    showMoveThingFolderDialog(selectedFolder)
+                } else {
+                    showMoveSelectedThingsDialog()
+                }
             } else if (itemId == R.id.act_sticky) {
                 toggleSelectedStickyEntry()
             } else if (itemId == R.id.act_customize_card_appearance) {

@@ -2,6 +2,16 @@
 
 Global startup session index only. Detailed feature history lives in `docs/features/<kebab-case-feature-slug>/sessions.md`.
 
+## 2026-06-20 - Folder move/privacy polish and media overlay colour fix
+
+- Completed a follow-up slice across Thing Folders, Dark Mode, and Thing Card
+  Appearance: Folder move dialogs now show disabled forbidden subtrees, private
+  Folder expansion auth is surface-local, Home Folder overflow chrome refreshes
+  correctly, and media overlay count colour stays fixed.
+- Details are recorded in `docs/features/thing-folders/sessions.md`,
+  `docs/features/dark-mode/sessions.md`, and
+  `docs/features/thing-card-appearance/sessions.md`.
+
 ## 2026-06-18 - Switched shared keyboard helper to WindowInsets
 
 - Replaced the shared keyboard show/hide implementation with direct

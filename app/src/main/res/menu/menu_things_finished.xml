@@ -23,6 +23,12 @@
         app:showAsAction="never" />
 
     <item
+        android:id="@+id/act_move_current_folder_to_folder"
+        android:title="@string/move_thing_folder_to"
+        android:visible="false"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/act_dissolve_current_folder"
         android:title="@string/dissolve_thing_folder"
         android:visible="false"

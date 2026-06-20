@@ -56,6 +56,10 @@ open class ThingsAdapterWrapper(adapter: ThingsAdapter?) {
         mAdapter!!.setThingCardSurfaceAvailableHeight(height)
     }
 
+    open fun setActivityHeaderSpacerHeightPx(heightPx: Int) {
+        mAdapter!!.setActivityHeaderSpacerHeightPx(heightPx)
+    }
+
     open fun applyThingCardMediaCropToBoundHolder(
         holder: BaseThingsAdapter.BaseThingViewHolder?,
         thing: Thing?

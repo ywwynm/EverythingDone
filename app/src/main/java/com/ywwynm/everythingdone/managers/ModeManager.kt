@@ -381,15 +381,17 @@ open class ModeManager(app: App?,
         val selectedThingCount = mThingManager!!.getSelectedThingCount()
         val hasSelectedFolder = selectedFolderCount > 0
         val singleFolderOnly = selectedFolderCount == 1 && selectedThingCount == 0
+        val selectedFolder = (mThingManager!!.getSingleSelectedEntry()
+                as? ThingListEntry.FolderEntry)?.folder
 
         setMenuItemVisible(R.id.act_finish_selected, !hasSelectedFolder)
         setMenuItemVisible(R.id.act_delete_selected, !hasSelectedFolder)
         setMenuItemVisible(R.id.act_delete_selected_forever, !hasSelectedFolder)
-        setMenuItemVisible(R.id.act_move_to_thing_folder, !hasSelectedFolder)
+        val moveToFolderVisible = !hasSelectedFolder ||
+                (singleFolderOnly && selectedFolder?.isDeleted() != true)
+        setMenuItemVisible(R.id.act_move_to_thing_folder, moveToFolderVisible)
         setMenuItemVisible(R.id.act_export, !hasSelectedFolder)
 
-        val selectedFolder = (mThingManager!!.getSingleSelectedEntry()
-                as? ThingListEntry.FolderEntry)?.folder
         val restoreVisible = if (hasSelectedFolder) {
             singleFolderOnly && selectedFolder?.isDeleted() == true
         } else {

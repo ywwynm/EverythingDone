@@ -553,7 +553,9 @@ open class ThingDAO private constructor(context: Context?) {
         if (thing == null) return
         val appearance = thing.thingCardAppearance.withAppearanceUpdateTime(System.currentTimeMillis())
         thing.thingCardAppearance = appearance
-        val values = ContentValues(1)
+        val values = ContentValues(3)
+        values.put(Def.Database.COLUMN_COLOR_THINGS, thing.getColor())
+        values.put(Def.Database.COLUMN_BACKGROUND_THINGS, thing.getBackground()!!.toJson())
         values.put(Def.Database.COLUMN_THING_CARD_APPEARANCE_THINGS, appearance.toJson())
         db!!.update(Def.Database.TABLE_THINGS, values, "id=" + thing.id, null)
     }

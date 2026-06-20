@@ -1,5 +1,169 @@
 # Thing Folders Sessions
 
+## 2026-06-20 - Fix Activity header boundary flicker
+
+- Follow-up testing showed that both root Underway and in-Folder projections
+  could flicker when the first visible card approached the actionbar. The title
+  and actionbar shadow could briefly disappear, and the in-Folder count subtitle
+  could reappear underneath list cards.
+- Root cause: `ActivityHeader.updateAll(...)` still treated the old 102dp
+  spacer as the maximum valid scroll distance and reset larger values to `0`.
+  At the exact spacer boundary, RecyclerView can still report the invisible
+  header item as visible while its top is already beyond that legacy threshold,
+  so the header jumped from collapsed back to expanded for a frame.
+- Fixed the state calculation by clamping scroll distance to the current header
+  spacer height instead of resetting to expanded state. The subtitle alpha and
+  actionbar shadow now stay continuous through the boundary.
+- Updated `ThingsActivity` staggered-grid callers to pass the minimum visible
+  adapter position across all spans to `ActivityHeader`, rather than only
+  `positions[0]`, so the first-visible decision is stable at span boundaries.
+- Added a compact collapsed scale for Folder names that require two actionbar
+  lines. The scale animates continuously with the same header-collapse progress
+  and the vertical centering calculation uses the two-line collapsed visual
+  height immediately.
+
+Verification: source search confirmed the legacy `scrollY >= 102dp -> 0`
+reset and `positions[0]` header update paths are gone. `git diff --check`
+passed with only the repository's existing LF/CRLF warnings.
+`.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`
+completed with `BUILD SUCCESSFUL`. Published debug update `202606200248` and
+verified remote `latest.json` points at that code. Remote APK:
+`http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606200248.apk`.
+Remote SHA-256:
+`8c967fa38d199131fec7b5129e0248c0101cc2c0039abc1c0cedb5ac7d4ebcaf`.
+
+## 2026-06-20 - Fix in-Folder header spacer crash during scroll
+
+- Diagnosed a production crash log from OnePlus PLZ110 / Android 16:
+  `RecyclerView` threw `IllegalArgumentException: Called attach on a child
+  which is not detached` while `StaggeredGridLayoutManager.fill(...)` was
+  handling a touch-driven scroll in `rv_things`.
+- Root cause: the previous long-Folder-title spacer fix let `ActivityHeader`
+  emit spacer height changes from header layout changes. During scrolling,
+  changing the title width/line cap could remeasure the header and trigger
+  `notifyItemChanged(0)` for the invisible RecyclerView spacer while the layout
+  manager was still attaching children.
+- Removed the scroll/layout-change path from spacer updates. The spacer is now
+  refreshed only from explicit expanded-header refresh points such as
+  `updateText()` and `reset(...)`.
+- Added an Activity-side guard that keeps only the latest spacer height request
+  and applies it to the adapter only after the RecyclerView is idle and not
+  computing layout.
+- Improved collapsed Folder-title centering by recalculating the collapsed
+  header translation from the current visible title layout, including the
+  two-line collapsed height cap.
+
+Verification: the crash log was mapped to the RecyclerView attach path and the
+source search confirmed `updateHeaderSpacerHeight()` is no longer reachable
+from the scroll update path. `git diff --check` passed with only the
+repository's existing LF/CRLF warnings. `.\gradlew.bat :app:assembleDebug
+--console=plain --no-configuration-cache` completed with `BUILD SUCCESSFUL`.
+No automated UI regression seam exists for the user's exact device/data state
+in this workspace; only a physical device was connected, so no emulator smoke
+test was run. Published debug update `202606200220` and verified remote
+`latest.json` points at that code. Remote APK:
+`http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606200220.apk`.
+Remote SHA-256:
+`47d0066c617659570aa5a86e1dcaa0951c20240098850a71d575b713d2dacc9f`.
+
+## 2026-06-20 - Folder header and disabled move-target visual state follow-up
+
+- Follow-up testing showed that forbidden source Folder subtrees in the
+  move-to-Folder dialog were logically disabled but still looked active. Dialog
+  binding now leaves disabled rows expandable while applying the App Chrome
+  disabled foreground to their Folder icon and title text.
+- Changed the in-Folder Activity header from a clickable full path to the
+  current Folder name only. It now keeps the same plain style as the root
+  Underway header and the subtitle reports direct child counts split as
+  folders and things.
+- Added dynamic in-Folder header width and line constraints for long Folder
+  names. Expanded headers stay inset before the card edge, collapsed headers
+  stay before toolbar actions, and the invisible RecyclerView header spacer is
+  refreshed from the measured header height so wrapped names do not overlap the
+  first visible card.
+
+Verification: `git diff --check` passed with only the repository's existing
+LF/CRLF warnings. `.\gradlew.bat :app:assembleDebug --console=plain
+--no-configuration-cache` completed with `BUILD SUCCESSFUL`. Published debug
+update `202606200208` and verified remote `latest.json` points at that code.
+Remote APK:
+`http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606200208.apk`.
+Remote SHA-256:
+`ab98531bd6fb30a47c054d67916d73fafccac2d4f604729ec9f9c3e9f689f503`.
+
+## 2026-06-20 - Show forbidden Folder move targets and reset private expansion auth
+
+- Reversed the previous move-dialog hiding rule after follow-up testing: when
+  moving a Folder, the source Folder and every descendant now remain visible in
+  the target tree. They can be expanded to inspect the hierarchy, but are
+  disabled and cannot be selected as move targets.
+- Stabilized the move-to-Folder dialog layout by reserving divider and action
+  row spacing instead of changing margins and `GONE` divider visibility when
+  expansion makes the tree scrollable.
+- Drawer private Folders with child Folders now keep their trailing expand
+  affordance visible while the subtree is hidden. Expanding requires
+  authentication unless the current projection is already inside an
+  authenticated private Folder path.
+- Drawer and move-dialog private expansion authentication is now transient to
+  the active surface. Closing the Drawer or dismissing the dialog resets local
+  expansion authorization; Drawer close also collapses private subtrees outside
+  the current private path.
+
+Verification: `git diff --check` passed with only the repository's existing
+LF/CRLF warnings. `.\gradlew.bat :app:assembleDebug --console=plain
+--no-configuration-cache` completed with `BUILD SUCCESSFUL`. Published debug
+update `202606191645` and verified remote `latest.json` points at that code.
+
+## 2026-06-20 - Hide forbidden Folder move targets and add scroll dividers
+
+- Follow-up testing showed that the move-to-Folder dialog still rendered the
+  source Folder as a disabled row in some Folder trees. The dialog now omits
+  forbidden Folder ids from the tree entirely, which removes the source Folder
+  and its forbidden subtree from possible targets rather than presenting them
+  as disabled rows.
+- Folder rows now compute expand affordance visibility from visible,
+  non-forbidden children, so the root row or another parent does not show an
+  expand button when all of its children were excluded by the move guard.
+- Added top and bottom dividers to the move-to-Folder dialog's RecyclerView
+  region. They appear only when the target tree is scrollable and follow the
+  existing App Chrome dialog boundary rule: the divider at the current scroll
+  edge is hidden while the opposite edge remains visible.
+
+Verification: `git diff --check` passed with only the repository's existing
+LF/CRLF warnings. `.\gradlew.bat :app:assembleDebug --console=plain
+--no-configuration-cache` completed with `BUILD SUCCESSFUL`. Published debug
+update `202606191616` and verified remote `latest.json` points at that code.
+Remote APK:
+`http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606191616.apk`.
+Remote SHA-256:
+`6bd93aa54271df75f57f2c9fc58f0b97381bd9acec24798b365565e7bfd9edf2`.
+
+## 2026-06-19 - Restore Folder move entry points
+
+- Follow-up testing showed that Folder moves were still not reachable from the
+  two expected entry points even though the move DialogFragment and manager
+  operation existed.
+- Fixed the selected-card contextual toolbar visibility rule so `Move to
+  Folder` remains visible for a single selected non-deleted Folder, while
+  still hiding it for mixed or multi-Folder selections.
+- Refreshed the Activity options menu immediately after opening a Folder from a
+  Folder Card. The current-Folder overflow menu therefore picks up the new
+  in-Folder state and shows the current Folder's move action without requiring
+  an app restart or navigation refresh.
+- Adjusted Folder move privacy checks so moving a private Folder that is
+  already open does not ask for authentication again for the source Folder.
+  Moving into another private target still authenticates unless that target
+  path has already been authenticated.
+
+Verification: `git diff --check` passed with only the repository's existing
+LF/CRLF warnings. `.\gradlew.bat :app:assembleDebug --console=plain
+--no-configuration-cache` completed with `BUILD SUCCESSFUL`. Published debug
+update `202606191559` and verified remote `latest.json` points at that code.
+Remote APK:
+`http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606191559.apk`.
+Remote SHA-256:
+`51009f16b4d4112e13b03d9ccd3d53c1ec03740d22879df3a31f55d843d8ecd8`.
+
 ## 2026-06-19 - Keep overlay drag enlarged while source holder stays normal
 
 - Corrected the overlay drag visual model after the user pointed out that
@@ -1914,3 +2078,38 @@ publishing was not run.
   after item movement, restoring cards from Moving-mode dimmed colours without
   competing with the move animation.
 - Verified the changes with `.\gradlew.bat :app:assembleDebug`.
+
+## 2026-06-19 - Private Folder auth, mixed sticky ordering, and move dialog
+
+- Required privacy authentication before editing a private Folder card
+  appearance, before moving Things/Folders into or out of private Folder
+  boundaries, before expanding private Folders in the move-target tree, and
+  before swipe actions on private Things in private contexts.
+- Added Folder sticky support in the home list and kept sticky Things/Folders
+  mixed in one parent-scoped sticky region. Toggling sticky now refreshes the
+  visible list immediately instead of waiting for an app restart.
+- Added parent-scoped sticky support inside Folders. Sticky Things/Folders move
+  to the top of that Folder, use the parent Folder colour for their marker, and
+  have sticky state cleared when moved out of the parent.
+- Added a custom move-to-Folder DialogFragment with drawer-style tree rows,
+  root selection, forbidden self/subtree targets, deferred commit until confirm,
+  and Folder-coloured title/confirm affordances.
+- Updated Folder drop and reorder behavior so private Folder drops authenticate
+  before commit, and reorder insertion feedback is hidden when dragging normal
+  cards ahead of sticky cards.
+- Updated Thing Detail to show the Folder path below timestamps with a
+  correctly coloured Folder icon and slash-joined path text.
+
+## 2026-06-19 - Folder privacy titles, thumbnail sticky preview, and move-dialog polish
+
+- Replaced generic private-auth titles for Folder operations with
+  operation-specific titles for opening, expanding, managing, moving, and
+  customizing private Folder content.
+- Fixed large Folder thumbnail previews so sticky child Things/Folders use the
+  same sticky-aware ordering as the home list. Negative sticky locations are no
+  longer sorted behind normal children and dropped by the preview limit.
+- Moved the Detail Folder-path icon down by 1dp so its visual centre aligns
+  with the path text baseline.
+- Updated the custom move-to-Folder dialog rows to occupy the available dialog
+  width, use drawer-style root icon tint, provide full-row ripple feedback,
+  and use circular ripple feedback on the expand/collapse affordance.

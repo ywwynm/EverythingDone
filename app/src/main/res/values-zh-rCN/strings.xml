@@ -870,6 +870,12 @@
     <string name="system_fgprt_not_set"><![CDATA[系统指纹模块未启用，请前往系统设置 -> 安全 -> 指纹启用指纹模块]]></string>
     <string name="fgprt_not_enrolled"><![CDATA[未找到可用的指纹，请前往系统设置 -> 安全 -> 指纹录制一个指纹]]></string>
     <string name="check_private_thing">查看私密记事</string>
+    <string name="open_private_thing_folder">打开私密文件夹</string>
+    <string name="expand_private_thing_folder">展开私密文件夹</string>
+    <string name="manage_private_thing_folder">管理私密文件夹</string>
+    <string name="customize_private_thing_folder_card">调整私密文件夹卡片外观</string>
+    <string name="move_private_thing_or_folder">移动私密内容</string>
+    <string name="finish_private_thing_by_swipe">完成私密记事</string>
     <string name="confirm_fingerprint">确认指纹以继续</string>
     <string name="touch_sensor">触摸指纹传感器</string>
     <string name="use_fingerprint_to_verify">使用您预设的指纹作为验证方式之一</string>

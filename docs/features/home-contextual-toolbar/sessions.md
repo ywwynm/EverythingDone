@@ -1,5 +1,19 @@
 # Home Contextual Toolbar Sessions
 
+## 2026-06-19 - Show move action for single selected Folder
+
+- Follow-up testing showed that the contextual `Move to Folder` item was still
+  hidden after long-pressing a Folder Card, even though `ThingsActivity` already
+  routed a single selected Folder to the custom move target dialog.
+- Updated `ModeManager.updateMenuItemsForFolderSelection()` so the action stays
+  visible for exactly one selected non-deleted Folder, and remains hidden for
+  mixed Thing/Folder selections, multiple selected Folders, or deleted Folders.
+
+Verification: `git diff --check` passed with only the repository's existing
+LF/CRLF warnings. `.\gradlew.bat :app:assembleDebug --console=plain
+--no-configuration-cache` completed with `BUILD SUCCESSFUL`. Published debug
+update `202606191559` and verified remote `latest.json` points at that code.
+
 ## 2026-06-15 - Card appearance action order and icon
 
 - User asked to promote the Thing Card Appearance contextual action so it no
@@ -197,3 +211,17 @@
 - Published corrected debug update `202606061623` with
   `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md"
   --console=plain --no-configuration-cache`.
+
+## 2026-06-19 - Move-to-Folder contextual actions
+
+- Added contextual move-to-Folder support for selected Things and a single
+  selected Folder, routing both through the custom move target DialogFragment
+  instead of system AlertDialogs.
+- Added a current-Folder overflow action for moving the open Folder to another
+  Folder, with the same self/subtree guards and private-boundary
+  authentication used by selected-card moves.
+
+## 2026-06-19 - Contextual move authentication copy
+
+- Updated the selected-card move flow so private-boundary authentication uses a
+  move-specific title instead of the generic private Thing viewing title.

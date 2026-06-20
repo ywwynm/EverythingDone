@@ -628,8 +628,44 @@ abstract class BaseThingsAdapter(context: Context?) :
             }
             @StringRes val cdRes = if (sticky) R.string.sticky_thing else R.string.ongoing_thing
             holder.ivStickyOngoing.contentDescription = mContext!!.getString(cdRes)
-            tintCardIcon(holder.ivStickyOngoing, getThingCardForegroundBaseColor(thing))
+            tintThingStickyOngoingIcon(
+                holder.ivStickyOngoing,
+                thing,
+                getThingCardForegroundBaseColor(thing)
+            )
         }
+    }
+
+    private fun tintThingStickyOngoingIcon(
+        icon: ImageView?,
+        thing: Thing,
+        foregroundBaseColor: Int
+    ) {
+        if (icon == null) return
+        if (thing.location < 0 && thing.folderId == null) {
+            androidx.core.widget.ImageViewCompat.setImageTintList(
+                icon,
+                android.content.res.ColorStateList.valueOf(
+                    ContextCompat.getColor(mContext!!, R.color.app_accent)
+                )
+            )
+            return
+        }
+        if (thing.location < 0) {
+            val background = getStickyThingParentFolderBackground(thing)
+            if (background != null) {
+                androidx.core.widget.ImageViewCompat.setImageTintList(icon, null)
+                icon.setImageDrawable(
+                    BackgroundUtil.tintDrawable(mContext!!.resources, icon.drawable, background)
+                )
+                return
+            }
+        }
+        tintCardIcon(icon, foregroundBaseColor)
+    }
+
+    protected open fun getStickyThingParentFolderBackground(thing: Thing): ThingBackground? {
+        return null
     }
 
     private fun updateCardForTitle(holder: BaseThingViewHolder, thing: Thing) {
@@ -1276,10 +1312,8 @@ abstract class BaseThingsAdapter(context: Context?) :
         holder.tvTitle!!.setTextColor(textColorPrimary(foregroundBaseColor))
         holder.tvContent!!.setTextColor(textColorSecondary(foregroundBaseColor))
         holder.tvImageCount!!.setTextColor(textColorSecondary(foregroundBaseColor))
-        val mediaCountColor = textColorTertiary(foregroundBaseColor)
-        holder.tvMediaCount!!.setTextColor(mediaCountColor)
-        applyThingCardMediaCountIcon(holder, foregroundBaseColor)
-        holder.tvInlineMediaCount!!.setTextColor(mediaCountColor)
+        applyThingCardOverlayMediaCountColors(holder)
+        holder.tvInlineMediaCount!!.setTextColor(textColorTertiary(foregroundBaseColor))
         applyThingCardMediaCountIcon(holder.ivInlineMediaCount, foregroundBaseColor)
         holder.tvAudioCount!!.setTextColor(textColorTertiary(foregroundBaseColor))
         holder.tvReminderTime!!.setTextColor(textColorTertiary(foregroundBaseColor))
@@ -1288,7 +1322,7 @@ abstract class BaseThingsAdapter(context: Context?) :
         holder.tvHabitLastFive!!.setTextColor(textColorDisabled(foregroundBaseColor))
         holder.tvHabitFinishedThisT!!.setTextColor(textColorTertiary(foregroundBaseColor))
 
-        tintCardIcon(holder.ivStickyOngoing, foregroundBaseColor)
+        tintThingStickyOngoingIcon(holder.ivStickyOngoing, thing, foregroundBaseColor)
         tintCardIcon(holder.ivReminder, foregroundBaseColor)
         tintCardIcon(holder.ivHabit, foregroundBaseColor)
         tintCardSeparator(holder.vReminderSeparator, foregroundBaseColor)
@@ -1313,6 +1347,16 @@ abstract class BaseThingsAdapter(context: Context?) :
         foregroundBaseColor: Int
     ) {
         applyThingCardMediaCountIcon(holder.ivMediaCount, foregroundBaseColor)
+    }
+
+    private fun applyThingCardOverlayMediaCountColors(holder: BaseThingViewHolder) {
+        holder.tvMediaCount?.setTextColor(
+            ContextCompat.getColor(mContext!!, R.color.white_66p)
+        )
+        holder.ivMediaCount ?: return
+        androidx.core.widget.ImageViewCompat.setImageTintList(holder.ivMediaCount, null)
+        holder.ivMediaCount.clearColorFilter()
+        holder.ivMediaCount.setImageResource(R.drawable.card_image_attachment_count)
     }
 
     private fun applyThingCardMediaCountIcon(
@@ -2189,9 +2233,7 @@ abstract class BaseThingsAdapter(context: Context?) :
         holder.llMediaCount.alpha = 1.0f
         holder.tvMediaCount!!.setPadding(0, 0, 0, 0)
         holder.tvMediaCount.text = str
-        val foregroundBaseColor = getThingCardForegroundBaseColor(thing)
-        val mediaCountColor = textColorTertiary(foregroundBaseColor)
-        holder.tvMediaCount.setTextColor(mediaCountColor)
+        applyThingCardOverlayMediaCountColors(holder)
         setThingCardMediaCountIconLayout(
             holder.ivMediaCount,
             THING_CARD_MEDIA_COUNT_ICON_NORMAL_WIDTH_DP,
@@ -2202,7 +2244,6 @@ abstract class BaseThingsAdapter(context: Context?) :
             holder.tvMediaCount,
             THING_CARD_MEDIA_COUNT_TEXT_NORMAL_MARGIN_START_DP
         )
-        applyThingCardMediaCountIcon(holder, foregroundBaseColor)
         setThingCardPaddingBottomHeight(holder, THING_CARD_MEDIA_COUNT_PADDING_BOTTOM_DP)
     }
 

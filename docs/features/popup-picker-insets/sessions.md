@@ -2,6 +2,23 @@
 
 Migrated from global `memory/sessions.md` on 2026-06-06. This file keeps feature-scoped history out of startup memory while preserving the original notes.
 
+## 2026-06-20 - Optional ColorPicker vertical origin flip
+
+- Added an optional ColorPicker show-time positioning mode for callers that
+  need the popup surface to choose between top-right and bottom-right anchoring
+  based on available vertical space around the anchor view.
+- The mode compares space above and below the anchor in window coordinates.
+  When upper space is larger, the popup is bottom-right anchored and unfolds
+  up-left. Otherwise it is top-right anchored and unfolds down-left.
+- The default ColorPicker behavior remains unchanged for existing Detail and
+  search callers; the new mode is currently enabled only by the Thing/Folder
+  card appearance panel colour button.
+
+Verification: `git diff --check` passed with only the repository's existing
+LF/CRLF warnings. `.\gradlew.bat :app:assembleDebug --console=plain
+--no-configuration-cache` completed with `BUILD SUCCESSFUL`. Published debug
+update `202606191616` and verified remote `latest.json` points at that code.
+
 ## 2026-06-07 - Search HUE_BUCKET spacing finalized before commit
 
 User confirmed the previous `HUE_BUCKET` target, asked to soften it, then made
@@ -501,3 +518,14 @@ Verification:
 - `.\gradlew.bat :app:assembleDebug --console=plain` passed.
 - `git diff --check` passed with CRLF conversion warnings only.
 - No device visual smoke test was run in this step.
+
+## 2026-06-19 - Bottom-right ColorPicker anchoring for appearance panels
+
+- The Thing/Folder Card Appearance panel needs ColorPicker to anchor by the
+  popup surface's bottom-right corner, not ColorPicker's existing toolbar
+  top-right rule.
+- Added a panel-only bottom-right positioning mode while preserving the
+  existing top-right positioning for Detail and search toolbar ColorPickers.
+- Fixed popup positioning measurement to ignore stale `PopupWindow.width` and
+  `PopupWindow.height` from previous shows, so dynamic tool-row visibility can
+  shrink the current popup.

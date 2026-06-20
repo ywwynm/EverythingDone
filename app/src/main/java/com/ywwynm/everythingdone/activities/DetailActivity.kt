@@ -134,6 +134,7 @@ import com.ywwynm.everythingdone.utils.LocaleUtil
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil
 import com.ywwynm.everythingdone.utils.UriPathConverter
 import com.ywwynm.everythingdone.views.Snackbar
+import com.ywwynm.everythingdone.views.DrawerNavigationView
 import com.ywwynm.everythingdone.views.ThingCardCropEditorController
 import com.ywwynm.everythingdone.views.ThingCardCropEditorView
 import com.ywwynm.everythingdone.views.ThingCardRatioTicksView
@@ -923,6 +924,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     private fun updateThingFolderPath() {
         val folderId = mThing?.folderId
         if (folderId == null) {
+            mTvThingFolderPath!!.setCompoundDrawablesRelative(null, null, null, null)
             mTvThingFolderPath!!.visibility = View.GONE
             return
         }
@@ -930,18 +932,28 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         val folders = ThingFolderDAO.getInstance(mApp)!!.getFolderPath(folderId)
         val manager = ThingManager.getInstance(mApp)
         if (folders.isEmpty()) {
+            mTvThingFolderPath!!.setCompoundDrawablesRelative(null, null, null, null)
             mTvThingFolderPath!!.visibility = View.GONE
             return
         }
 
-        val path = folders.joinToString(" / ") { folder ->
+        val path = folders.joinToString("/") { folder ->
             if (folder.isPrivate && manager?.isFolderPrivacyAuthenticated(folder.id) != true) {
                 getString(R.string.private_thing_folder)
             } else {
                 folder.title
             }
         }
-        mTvThingFolderPath!!.text = getString(R.string.thing_folder_location, path)
+        val lastFolder = folders.last()
+        val icon = DrawerNavigationView.FolderIconDrawable(
+            lastFolder.getBackground() ?: ThingBackground.pure(lastFolder.getColor()),
+            lastFolder.isPrivate
+        )
+        val iconSize = (18 * screenDensity).toInt().coerceAtLeast(1)
+        val iconShiftY = (screenDensity * 1).toInt().coerceAtLeast(1)
+        icon.setBounds(0, iconShiftY, iconSize, iconSize + iconShiftY)
+        mTvThingFolderPath!!.setCompoundDrawablesRelative(icon, null, null, null)
+        mTvThingFolderPath!!.text = path
         mTvThingFolderPath!!.visibility = View.VISIBLE
     }
 

@@ -55,6 +55,8 @@ open class ColorPicker(
     private val mCameraBt: android.widget.TextView?
     private var mOnChangeOrientationListener: Runnable? = null
     private var mOnPickFromCameraListener: Runnable? = null
+    private var mAnchorBottomRightPositioning: Boolean = false
+    private var mAutoVerticalAnchorPositioning: Boolean = false
 
     /**
      * Optional [Drawable] that gets re-tinted to track the picked colour.
@@ -72,6 +74,18 @@ open class ColorPicker(
     /** See [mTintTarget]. */
     fun setTintTarget(target: Drawable) {
         mTintTarget = target
+    }
+
+    fun setSurfaceScaleTransitionPivot(pivotXFraction: Float, pivotYFraction: Float) {
+        installContentSurfaceScaleTransition(pivotXFraction, pivotYFraction)
+    }
+
+    fun setAnchorBottomRightPositioning(enabled: Boolean) {
+        mAnchorBottomRightPositioning = enabled
+    }
+
+    fun setAutoVerticalAnchorPositioning(enabled: Boolean) {
+        mAutoVerticalAnchorPositioning = enabled
     }
 
     init {
@@ -157,6 +171,9 @@ open class ColorPicker(
             mToolDivider?.visibility = View.VISIBLE
             mCameraBt?.visibility = View.VISIBLE
             mCameraBt?.setText(R.string.act_pick_color_from_camera)
+            mCameraBt?.setTextColor(
+                    ContextCompat.getColor(activity, R.color.app_chrome_on_surface_secondary)
+            )
             mCameraBt?.setOnClickListener {
                 dismiss()
                 mOnPickFromCameraListener?.run()
@@ -213,18 +230,48 @@ open class ColorPicker(
         mPopupWindow.width = popupWidth
         mPopupWindow.height = popupHeight
 
-        // Pin the popup's top-right corner to the trigger view's top-right.
         val anchor: View? = mAnchor
         if (anchor != null && anchor.isAttachedToWindow) {
+            val useBottomRight = shouldUseBottomRightAnchor(anchor)
+            installContentSurfaceScaleTransition(
+                    pivotXFraction = 1f,
+                    pivotYFraction = if (useBottomRight) 1f else 0f
+            )
+            val yOffset = if (useBottomRight) {
+                -popupHeight
+            } else {
+                -anchor.height
+            }
             mPopupWindow.showAsDropDown(
-                    anchor, 0, -anchor.height, Gravity.END)
+                    anchor, 0, yOffset, Gravity.END)
             return
         }
 
         val xOffset = (mParent.width - popupWidth).coerceAtLeast(0)
-        val yOffset = DisplayUtil.getCurrentTopSystemInset(mParent)
+        val useBottomRight = mAnchorBottomRightPositioning || mAutoVerticalAnchorPositioning
+        installContentSurfaceScaleTransition(
+                pivotXFraction = 1f,
+                pivotYFraction = if (useBottomRight) 1f else 0f
+        )
+        val yOffset = if (useBottomRight) {
+            (mParent.height - popupHeight).coerceAtLeast(0)
+        } else {
+            DisplayUtil.getCurrentTopSystemInset(mParent)
+        }
         mPopupWindow.showAtLocation(mParent, Gravity.TOP or Gravity.START,
                 xOffset, yOffset)
+    }
+
+    private fun shouldUseBottomRightAnchor(anchor: View): Boolean {
+        if (!mAutoVerticalAnchorPositioning) return mAnchorBottomRightPositioning
+        val location = IntArray(2)
+        anchor.getLocationInWindow(location)
+        val topInset = DisplayUtil.getCurrentTopSystemInset(mParent)
+        val anchorTop = location[1]
+        val anchorBottom = anchorTop + anchor.height
+        val spaceAbove = (anchorTop - topInset).coerceAtLeast(0)
+        val spaceBelow = (mParent.height - anchorBottom).coerceAtLeast(0)
+        return spaceAbove > spaceBelow
     }
 
     fun setPickedListener(listener: View.OnClickListener) {
