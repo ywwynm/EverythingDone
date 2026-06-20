@@ -122,6 +122,7 @@ import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.model.ThingFolder
 import com.ywwynm.everythingdone.model.ThingFolderCardPresentation
 import com.ywwynm.everythingdone.model.ThingListEntry
+import com.ywwynm.everythingdone.model.ThingWidgetInfo
 import com.ywwynm.everythingdone.model.ThingsCounts
 import com.ywwynm.everythingdone.permission.PermissionUtil
 import com.ywwynm.everythingdone.permission.SimplePermissionCallback
@@ -198,6 +199,9 @@ class ThingsActivity :
     private val mExpandedDrawerFolderIds = HashSet<Long>()
     private val mAuthenticatedDrawerExpandedPrivateFolderIds = HashSet<Long>()
     private var mCurrentDrawerSelectionKey: DrawerNavigationView.ItemKey? = null
+    private var mInitialExternalFolderId: Long? = null
+    private var mInitialExternalFolderAuthenticated: Boolean = false
+    private var mInitialExternalTypeFilterMask: Int? = null
 
     private var mActivityHeader: ActivityHeader? = null
     private var mPendingActivityHeaderSpacerHeightPx: Int? = null
@@ -462,6 +466,15 @@ class ThingsActivity :
             if (limit != -1 && limit != App.getApp()!!.getLimit()) {
                 App.getApp()!!.setLimit(limit, true)
             }
+            mInitialExternalTypeFilterMask = getExternalTypeFilterMask(intent)
+            val folderId = intent.getLongExtra(Def.Communication.KEY_FOLDER_ID, Long.MIN_VALUE)
+            if (folderId != Long.MIN_VALUE) {
+                mInitialExternalFolderId = folderId
+                mInitialExternalFolderAuthenticated = intent.getBooleanExtra(
+                    Def.Communication.KEY_FOLDER_AUTHENTICATED,
+                    false
+                )
+            }
         }
     }
 
@@ -668,6 +681,12 @@ class ThingsActivity :
         super.onNewIntent(intent)
         // launched from things list widget
         val newLimit = intent.getIntExtra(Def.Communication.KEY_LIMIT, -1)
+        val folderId = intent.getLongExtra(Def.Communication.KEY_FOLDER_ID, Long.MIN_VALUE)
+        val typeFilterMask = getExternalTypeFilterMask(intent)
+        if (folderId != Long.MIN_VALUE || typeFilterMask != null) {
+            openExternalProjectionFromIntent(intent)
+            return
+        }
         if (newLimit != -1 && mApp!!.getLimit() != newLimit) {
             if (mModeManager!!.getCurrentMode() != ModeManager.NORMAL) {
                 mModeManager!!.backNormalMode(0)
@@ -1118,6 +1137,11 @@ class ThingsActivity :
         saveCurrentProjectionScrollState()
         if (mApp!!.getLimit() != Def.LimitForGettingThings.ALL_UNDERWAY) {
             mApp!!.setLimit(Def.LimitForGettingThings.ALL_UNDERWAY, false)
+        } else {
+            mThingManager!!.setUnderwayTypeFilterMask(
+                ThingWidgetInfo.TYPE_FILTER_ALL,
+                loadThingsNow = false
+            )
         }
         expandDrawerFolderAncestors(folder.id)
         if (folder.isPrivate) {
@@ -1389,7 +1413,10 @@ class ThingsActivity :
             toggleSearching(false)
         }
 
-        if (mApp!!.getLimit() != Def.LimitForGettingThings.ALL_UNDERWAY) {
+        if (isShortcutCreateFolderResult(data)) {
+            updateMainUiForShortcutFolderCreateDone(data)
+            return
+        } else if (mApp!!.getLimit() != Def.LimitForGettingThings.ALL_UNDERWAY) {
             mFab!!.spread()
             mApp!!.setLimit(Def.LimitForGettingThings.ALL_UNDERWAY, true)
             invalidateOptionsMenu()
@@ -1442,6 +1469,19 @@ class ThingsActivity :
                 afterUpdateMainUiForCreateDone()
             }, 300)
         }, 300)
+    }
+
+    private fun updateMainUiForShortcutFolderCreateDone(data: Intent) {
+        openExternalProjectionFromIntent(data, shouldThingsAnimWhenAppearing = true)
+        App.setJustNotifyAll(false)
+        afterUpdateMainUiForCreateDone()
+    }
+
+    private fun isShortcutCreateFolderResult(data: Intent): Boolean {
+        if (data.getStringExtra(Def.Communication.KEY_SENDER_NAME) != ShortcutActivity.TAG) {
+            return false
+        }
+        return data.getLongExtra(Def.Communication.KEY_FOLDER_ID, Long.MIN_VALUE) != Long.MIN_VALUE
     }
 
     private fun afterUpdateMainUiForCreateDone() {
@@ -1897,6 +1937,8 @@ class ThingsActivity :
                 }
             })
 
+        openInitialExternalProjectionIfNeeded()
+
         updateDrawerFolderItems()
         checkDrawerItem(findDrawerSelectionKeyForCurrentProjection())
 
@@ -1909,6 +1951,110 @@ class ThingsActivity :
         DisplayUtil.applyBottomInsetAsMargin(mFab)
         DisplayUtil.applyBottomInsetAsMargin(mThingCardAppearancePanel)
         DisplayUtil.applyBottomInsetAsScrollPadding(mRecyclerView)
+    }
+
+    private fun openInitialExternalProjectionIfNeeded() {
+        val typeFilterMask = mInitialExternalTypeFilterMask
+        mInitialExternalTypeFilterMask = null
+        if (typeFilterMask != null) {
+            applyExternalTypeFilterMask(typeFilterMask, loadThingsNow = false)
+        }
+        val folderId = mInitialExternalFolderId
+        if (folderId == null) {
+            if (typeFilterMask != null) {
+                mThingManager!!.loadThings()
+            }
+            return
+        }
+        mInitialExternalFolderId = null
+        openExternalFolderProjection(folderId, mInitialExternalFolderAuthenticated, refreshUi = false)
+    }
+
+    private fun getExternalTypeFilterMask(intent: Intent): Int? {
+        if (!intent.hasExtra(Def.Communication.KEY_TYPE_FILTER_MASK)) return null
+        return ThingWidgetInfo.normalizedTypeFilterMask(
+            intent.getIntExtra(
+                Def.Communication.KEY_TYPE_FILTER_MASK,
+                ThingWidgetInfo.TYPE_FILTER_ALL
+            )
+        )
+    }
+
+    private fun applyExternalTypeFilterMask(typeFilterMask: Int, loadThingsNow: Boolean) {
+        mThingManager!!.setUnderwayTypeFilterMask(typeFilterMask, loadThingsNow)
+    }
+
+    private fun openExternalProjectionFromIntent(
+        intent: Intent,
+        shouldThingsAnimWhenAppearing: Boolean = true
+    ) {
+        if (mModeManager!!.getCurrentMode() != ModeManager.NORMAL) {
+            mModeManager!!.backNormalMode(0)
+        }
+        if (App.isSearching) {
+            toggleSearching(false)
+        }
+        val limit = intent.getIntExtra(
+            Def.Communication.KEY_LIMIT,
+            Def.LimitForGettingThings.ALL_UNDERWAY
+        )
+        if (mApp!!.getLimit() != limit) {
+            mApp!!.setLimit(limit, false)
+        }
+        val typeFilterMask = getExternalTypeFilterMask(intent) ?: ThingWidgetInfo.TYPE_FILTER_ALL
+        applyExternalTypeFilterMask(typeFilterMask, loadThingsNow = false)
+        val folderId = intent.getLongExtra(Def.Communication.KEY_FOLDER_ID, Long.MIN_VALUE)
+        if (folderId == Long.MIN_VALUE) {
+            mThingManager!!.loadThings()
+            checkDrawerItem(findDrawerSelectionKeyForCurrentProjection())
+            refreshExternalProjectionUi(shouldThingsAnimWhenAppearing)
+            return
+        }
+        val authenticated = intent.getBooleanExtra(
+            Def.Communication.KEY_FOLDER_AUTHENTICATED,
+            false
+        )
+        openExternalFolderProjection(
+            folderId,
+            authenticated,
+            refreshUi = true,
+            shouldThingsAnimWhenAppearing = shouldThingsAnimWhenAppearing
+        )
+    }
+
+    private fun openExternalFolderProjection(
+        folderId: Long,
+        authenticated: Boolean,
+        refreshUi: Boolean,
+        shouldThingsAnimWhenAppearing: Boolean = true
+    ) {
+        val folder = mThingManager!!.getFolderById(folderId)
+        if (folder == null || folder.isDeleted()) {
+            mThingManager!!.loadThings()
+            if (refreshUi) refreshExternalProjectionUi(shouldThingsAnimWhenAppearing)
+            return
+        }
+        expandDrawerFolderAncestors(folder.id)
+        if (folder.isPrivate) {
+            mExpandedDrawerFolderIds.add(folder.id)
+        }
+        mThingManager!!.openFolderPath(folder.id, authenticated)
+        checkDrawerItem(DrawerNavigationView.ItemKey.Folder(folder.id))
+        if (refreshUi) refreshExternalProjectionUi(shouldThingsAnimWhenAppearing)
+    }
+
+    private fun refreshExternalProjectionUi(shouldThingsAnimWhenAppearing: Boolean = true) {
+        finishNewItemShiningBorderAnimationIfNeeded()
+        invalidateOptionsMenu()
+        mRecyclerView!!.scrollToPosition(0)
+        mActivityHeader!!.reset(true)
+        mAdapter!!.setShouldThingsAnimWhenAppearing(shouldThingsAnimWhenAppearing)
+        mAdapter!!.notifyDataSetChanged()
+        refreshActivitySurfaceAndHeader()
+        mDrawerHeader!!.updateTexts()
+        mFab!!.spread()
+        updateDrawerFolderItems()
+        KeyboardUtil.hideKeyboard(window)
     }
 
     private fun installStatusBarLayoutOffsetListener() {

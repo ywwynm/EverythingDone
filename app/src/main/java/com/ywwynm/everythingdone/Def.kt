@@ -31,7 +31,7 @@ object Def {
         const val FEEDBACK_ERROR_FILE_NAME: String = "feedback_error.dat"
 
         const val DATABASE_NAME: String = "EverythingDoneData.db"
-        const val DATABASE_VERSION: Int = 15
+        const val DATABASE_VERSION: Int = 16
 
         const val ONGOING_NOTIFICATION_ID: Int = Int.MAX_VALUE
 
@@ -182,6 +182,9 @@ object Def {
         const val COLUMN_SIZE_APP_WIDGET: String     = "size"
         const val COLUMN_ALPHA_APP_WIDGET: String    = "alpha"
         const val COLUMN_STYLE_APP_WIDGET: String    = "style"
+        const val COLUMN_TARGET_FOLDER_ID_APP_WIDGET: String = "target_folder_id" /* added in version 16 */
+        const val COLUMN_TYPE_FILTER_MASK_APP_WIDGET: String = "type_filter_mask" /* added in version 16 */
+        const val COLUMN_DISPLAY_MODE_APP_WIDGET: String = "display_mode" /* added in version 16 */
 
         const val TABLE_DOING_RECORDS: String             = "doing_records"
         const val COLUMN_ID_DOING: String                 = "id"
@@ -271,6 +274,8 @@ object Def {
 
         const val KEY_WIDGET_ID: String        = PREFIX + "key.widget_id"
         const val KEY_LIMIT: String            = PREFIX + "key.limit"
+        const val KEY_TYPE_FILTER_MASK: String = PREFIX + "key.type_filter_mask"
+        const val KEY_FOLDER_AUTHENTICATED: String = PREFIX + "key.folder_authenticated"
 
         // added for notification action for private thing
         const val KEY_TITLE: String            = PREFIX + "key.title"

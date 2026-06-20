@@ -337,6 +337,11 @@ abstract class BaseThingsAdapter(context: Context?) :
         refreshCardWidthFromRecyclerView()
     }
 
+    fun setHostRecyclerViewForDelegatedBinding(recyclerView: RecyclerView?) {
+        mRecyclerView = recyclerView
+        refreshCardWidthFromRecyclerView()
+    }
+
     override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
         if (mRecyclerView === recyclerView) {
             mRecyclerView = null

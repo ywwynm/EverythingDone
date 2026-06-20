@@ -11,9 +11,12 @@ import androidx.appcompat.app.AppCompatActivity
 
 import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.Def
+import com.ywwynm.everythingdone.database.ThingFolderDAO
 import com.ywwynm.everythingdone.helpers.AuthenticationHelper
 import com.ywwynm.everythingdone.helpers.RemoteActionHelper
 import com.ywwynm.everythingdone.model.Thing
+import com.ywwynm.everythingdone.model.ThingBackground
+import com.ywwynm.everythingdone.model.ThingFolder
 import com.ywwynm.everythingdone.services.DoingService
 import com.ywwynm.everythingdone.utils.LocaleUtil
 
@@ -33,9 +36,18 @@ open class AuthenticationActivity : AppCompatActivity() {
 
         val intent: Intent = getIntent()
 
+        val folderId = intent.getLongExtra(Def.Communication.KEY_FOLDER_ID, Long.MIN_VALUE)
+        if (folderId != Long.MIN_VALUE) {
+            openFolderAfterAuthenticationIfNeeded(folderId)
+            return
+        }
+
         val id = intent.getLongExtra(Def.Communication.KEY_ID, -1)
         if (App.getDoingThingId() > 0 && App.getDoingThingId() == id) {
-            startActivity(DoingActivity.getOpenIntent(this, true))
+            startActivity(
+                DoingActivity.getOpenIntent(this, true)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            )
             finish()
             return
         }
@@ -50,6 +62,67 @@ open class AuthenticationActivity : AppCompatActivity() {
         }
 
         tryToAuthenticate(pair.first, pair.second ?: -1)
+    }
+
+    private fun openFolderAfterAuthenticationIfNeeded(folderId: Long) {
+        val folderDao = ThingFolderDAO.getInstance(this)!!
+        val folder = folderDao.getFolderById(folderId)
+        if (folder == null || folderDao.isEffectivelyDeleted(folder.id)) {
+            finish()
+            return
+        }
+
+        if (folderDao.isEffectivelyPrivate(folder.id)) {
+            val cp: String? = getSharedPreferences(Def.Meta.PREFERENCES_NAME, MODE_PRIVATE)
+                .getString(Def.Meta.KEY_PRIVATE_PASSWORD, null)
+            AuthenticationHelper.authenticate(
+                this,
+                folder.getBackground() ?: ThingBackground.pure(folder.getColor()),
+                getString(com.ywwynm.everythingdone.R.string.open_private_thing_folder),
+                cp,
+                object : AuthenticationHelper.AuthenticationCallback {
+                    override fun onAuthenticated() {
+                        openFolder(folder, true)
+                    }
+
+                    override fun onCancel() {
+                        finish()
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                            overrideActivityTransition(OVERRIDE_TRANSITION_OPEN, 0, 0)
+                        } else {
+                            overridePendingTransition(0, 0)
+                        }
+                    }
+                }
+            )
+        } else {
+            openFolder(folder, false)
+        }
+    }
+
+    private fun openFolder(folder: ThingFolder, authenticated: Boolean) {
+        val source = getIntent()
+        val openIntent = Intent(this, ThingsActivity::class.java)
+        val limit = source.getIntExtra(
+            Def.Communication.KEY_LIMIT,
+            Def.LimitForGettingThings.ALL_UNDERWAY
+        )
+        openIntent.putExtra(Def.Communication.KEY_LIMIT, limit)
+        if (source.hasExtra(Def.Communication.KEY_TYPE_FILTER_MASK)) {
+            openIntent.putExtra(
+                Def.Communication.KEY_TYPE_FILTER_MASK,
+                source.getIntExtra(Def.Communication.KEY_TYPE_FILTER_MASK, 0)
+            )
+        }
+        openIntent.putExtra(Def.Communication.KEY_FOLDER_ID, folder.id)
+        openIntent.putExtra(Def.Communication.KEY_FOLDER_AUTHENTICATED, authenticated)
+        startActivity(openIntent)
+        finish()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            overrideActivityTransition(OVERRIDE_TRANSITION_OPEN, 0, 0)
+        } else {
+            overridePendingTransition(0, 0)
+        }
     }
 
     private fun tryToAuthenticate(thing: Thing, position: Int) {

@@ -22,30 +22,38 @@ import android.view.ViewGroup
 import android.view.ViewOutlineProvider
 import android.view.Window
 import android.view.WindowManager
-import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.RemoteViews
 import android.widget.SeekBar
+import android.widget.TextView
 
 import com.bumptech.glide.Glide
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.activities.EverythingDoneBaseActivity
+import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.adapters.BaseThingsAdapter
+import com.ywwynm.everythingdone.adapters.ThingsAdapter
 import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper
 import com.ywwynm.everythingdone.database.AppWidgetDAO
 import com.ywwynm.everythingdone.database.ThingDAO
+import com.ywwynm.everythingdone.database.ThingFolderDAO
+import com.ywwynm.everythingdone.helpers.AuthenticationHelper
 import com.ywwynm.everythingdone.managers.ModeManager
 import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.model.ThingBackground
+import com.ywwynm.everythingdone.model.ThingFolder
+import com.ywwynm.everythingdone.model.ThingFolderCardPresentation
+import com.ywwynm.everythingdone.model.ThingListEntry
 import com.ywwynm.everythingdone.model.ThingWidgetInfo
 import com.ywwynm.everythingdone.permission.PermissionUtil
 import com.ywwynm.everythingdone.permission.SimplePermissionCallback
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil
+import com.ywwynm.everythingdone.utils.ThingsSorter
 
 import kotlin.math.max
 import kotlin.math.min
@@ -74,8 +82,14 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
     private var mActionBar: Toolbar? = null
     private var mRecyclerView: RecyclerView? = null
 
-    private var mAdapter: ThingsAdapter? = null
+    private var mAdapter: MixedThingsAdapter? = null
+    private var mThingCardAdapter: ThingCardDelegateAdapter? = null
+    private var mFolderCardAdapter: FolderCardDelegateAdapter? = null
     private var mThings: MutableList<Thing?>? = null
+    private var mEntries: MutableList<ConfigEntry> = ArrayList()
+    private var mFolderDao: ThingFolderDAO? = null
+    private var mCurrentFolderId: Long? = null
+    private val mAuthenticatedPrivateFolderIds = HashSet<Long>()
     private var mStaggeredGridLayoutManager: StaggeredGridLayoutManager? = null
 
     private var mSpanCount: Int = 0
@@ -98,11 +112,16 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
             mSpanCount++
         }
         mStaggeredGridLayoutManager!!.setSpanCount(mSpanCount)
+        syncCardDelegateRecyclerView()
 
         if (mThings!!.size > 1) {
             mRecyclerView!!.scrollToPosition(0)
         }
         mAdapter!!.notifyDataSetChanged()
+        mRecyclerView!!.post {
+            syncCardDelegateRecyclerView()
+            mAdapter!!.notifyDataSetChanged()
+        }
     }
 
     override fun initMembers() {
@@ -122,10 +141,48 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
             mSpanCount++
         }
 
-        mThings = ThingDAO.getInstance(this)!!
-                .getThingsForDisplay(Def.LimitForGettingThings.ALL_UNDERWAY)!!.toMutableList()
-        mThings!!.removeAt(0) // no header
-        mAdapter = ThingsAdapter()
+        mFolderDao = ThingFolderDAO.getInstance(this)
+        loadCurrentFolderEntries()
+        mThingCardAdapter = ThingCardDelegateAdapter()
+        mFolderCardAdapter = FolderCardDelegateAdapter()
+        mAdapter = MixedThingsAdapter()
+    }
+
+    private fun loadCurrentFolderEntries() {
+        val thingDAO = ThingDAO.getInstance(this)!!
+        val folderDAO = mFolderDao ?: ThingFolderDAO.getInstance(this)!!
+        val loadedThings = thingDAO.getThingsForProjection(
+            Def.LimitForGettingThings.ALL_UNDERWAY,
+            mCurrentFolderId,
+            null,
+            0
+        )
+        mThings = loadedThings
+            .filter { thing ->
+                thing != null &&
+                    thing.type != Thing.HEADER &&
+                    thing.type < Thing.NOTIFY_EMPTY_UNDERWAY
+            }
+            .map { Thing(it!!) }
+            .toMutableList()
+
+        val entries = ArrayList<ConfigEntry>()
+        for ((thingIndex, thing) in mThings!!.withIndex()) {
+            entries.add(ConfigEntry.ThingEntry(thing!!, thingIndex))
+        }
+        for (folderEntry in folderDAO.getFolderEntriesForProjection(
+            Def.LimitForGettingThings.ALL_UNDERWAY,
+            mCurrentFolderId
+        )) {
+            entries.add(ConfigEntry.FolderEntry(folderEntry))
+        }
+        mEntries = entries.sortedWith { entry1, entry2 ->
+            val result = ThingsSorter.compareByLocationAndSticky(
+                entry1.location,
+                entry2.location
+            )
+            if (result != 0) result else entry1.stableId.compareTo(entry2.stableId)
+        }.toMutableList()
     }
 
     override fun findViews() {
@@ -185,7 +242,17 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
         mStaggeredGridLayoutManager = StaggeredGridLayoutManager(
                 mSpanCount, StaggeredGridLayoutManager.VERTICAL)
         mRecyclerView!!.setLayoutManager(mStaggeredGridLayoutManager)
+        syncCardDelegateRecyclerView()
         mRecyclerView!!.setAdapter(mAdapter)
+        mRecyclerView!!.post {
+            syncCardDelegateRecyclerView()
+            mAdapter!!.notifyDataSetChanged()
+        }
+    }
+
+    private fun syncCardDelegateRecyclerView() {
+        mThingCardAdapter?.setHostRecyclerViewForDelegatedBinding(mRecyclerView)
+        mFolderCardAdapter?.setHostRecyclerViewForDelegatedBinding(mRecyclerView)
     }
 
     override fun setActionbar() {
@@ -193,7 +260,8 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
         val actionBar: ActionBar? = supportActionBar
         actionBar?.setDisplayHomeAsUpEnabled(true)
 
-        mActionBar!!.setNavigationOnClickListener { _ -> finish() }
+        mActionBar!!.setNavigationOnClickListener { _ -> handleToolbarNavigation() }
+        updateActionbarTitle()
     }
 
     override fun setEvents() {
@@ -201,6 +269,8 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
             override fun handleOnBackPressed() {
                 if (mFlPreviewAndConfig!!.visibility == View.VISIBLE) {
                     endPreviewAppWidget()
+                } else if (openParentFolder()) {
+                    return
                 } else {
                     isEnabled = false
                     this@BaseThingWidgetConfiguration.onBackPressedDispatcher.onBackPressed()
@@ -221,6 +291,108 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
                 }
             }
         })
+    }
+
+    private fun updateActionbarTitle() {
+        val folderId = mCurrentFolderId
+        if (folderId == null) {
+            supportActionBar?.setTitle(R.string.title_activity_thing_widget_configure)
+            return
+        }
+        val folder = mFolderDao!!.getFolderById(folderId)
+        supportActionBar?.title = folder?.title?.ifEmpty {
+            getString(R.string.default_thing_folder_name)
+        } ?: getString(R.string.title_activity_thing_widget_configure)
+    }
+
+    private fun handleToolbarNavigation() {
+        if (!openParentFolder()) {
+            finish()
+        }
+    }
+
+    private fun openParentFolder(): Boolean {
+        val folderId = mCurrentFolderId ?: return false
+        val path = mFolderDao!!.getFolderPath(folderId)
+        mCurrentFolderId = if (path.size <= 1) {
+            null
+        } else {
+            path[path.size - 2].id
+        }
+        trimAuthenticatedPrivateFoldersToCurrentPath()
+        reloadCurrentFolderUi()
+        return true
+    }
+
+    private fun openFolder(folder: ThingFolder) {
+        mCurrentFolderId = folder.id
+        reloadCurrentFolderUi()
+    }
+
+    private fun previewSelectedThing(thing: Thing) {
+        updateStatusBarAndBottomUi(false)
+        previewAppWidget(thing)
+    }
+
+    private fun openFolderEntry(entry: ThingListEntry.FolderEntry) {
+        val folder = entry.folder
+        if (entry.effectivePrivate && !isFolderPrivacyAuthenticated(folder.id)) {
+            authenticateAndOpenFolder(folder)
+        } else {
+            openFolder(folder)
+        }
+    }
+
+    private fun trimAuthenticatedPrivateFoldersToCurrentPath() {
+        if (mAuthenticatedPrivateFolderIds.isEmpty()) return
+        val folderId = mCurrentFolderId
+        if (folderId == null) {
+            mAuthenticatedPrivateFolderIds.clear()
+            return
+        }
+        val pathIds = mFolderDao!!.getFolderPath(folderId).map { it.id }.toHashSet()
+        mAuthenticatedPrivateFolderIds.retainAll(pathIds)
+    }
+
+    private fun markFolderPrivacyAuthenticated(folderId: Long) {
+        val path = mFolderDao!!.getFolderPath(folderId)
+        for (folder in path) {
+            if (folder.isPrivate) {
+                mAuthenticatedPrivateFolderIds.add(folder.id)
+            }
+        }
+    }
+
+    private fun isFolderPrivacyAuthenticated(folderId: Long): Boolean {
+        val path = mFolderDao!!.getFolderPath(folderId)
+        for (folder in path) {
+            if (folder.isPrivate && mAuthenticatedPrivateFolderIds.contains(folder.id)) {
+                return true
+            }
+        }
+        return false
+    }
+
+    private fun isCurrentFolderPrivacyAuthenticated(): Boolean {
+        val folderId = mCurrentFolderId ?: return false
+        return isFolderPrivacyAuthenticated(folderId)
+    }
+
+    private fun isCurrentFolderEffectivelyPrivate(): Boolean {
+        val folderId = mCurrentFolderId ?: return false
+        return mFolderDao!!.isEffectivelyPrivate(folderId)
+    }
+
+    private fun reloadCurrentFolderUi() {
+        loadCurrentFolderEntries()
+        updateActionbarTitle()
+        syncCardDelegateRecyclerView()
+        mRecyclerView!!.scrollToPosition(0)
+        mAdapter!!.notifyDataSetChanged()
+    }
+
+    private fun dp(value: Int): Int {
+        return (resources.displayMetrics.density * value).toInt()
     }
 
     private fun previewAppWidget(thing: Thing) {
@@ -273,7 +445,7 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
         val sbAlpha: SeekBar = f(R.id.sb_app_widget_alpha)
         sbAlpha.setMax(100)
         sbAlpha.progress = 100
-        DisplayUtil.setSeekBarColor(sbAlpha, ContextCompat.getColor(this, R.color.app_accent))
+        DisplayUtil.setSeekBarBackground(sbAlpha, thing.getBackground())
         sbAlpha.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
@@ -287,11 +459,13 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
             override fun onStopTrackingTouch(seekBar: SeekBar) { }
         })
 
-        val btFinish: Button = f(R.id.bt_finish_set_alpha_app_widget)
-        DisplayUtil.setButtonColor(btFinish, Color.WHITE)
-        // Phase 8: gradient text for the "Done" label.
-        com.ywwynm.everythingdone.utils.BackgroundUtil.applyTextBackground(
-                btFinish, thing.getBackground())
+        val btFinish: TextView = f(R.id.bt_finish_set_alpha_app_widget)
+        BackgroundUtil.installThingPillRipple(
+            btFinish,
+            thing.getBackground()?.representativeColor() ?: thing.getColor()
+        )
+        btFinish.background = null
+        BackgroundUtil.applyTextBackground(btFinish, thing.getBackground())
         btFinish.setOnClickListener { _ -> endSelectThing(thing) }
     }
 
@@ -313,19 +487,23 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
         flp.leftMargin = 0
         flp.topMargin = 0
         previewContainer.requestLayout()
-        installPreviewContainerOutline(previewContainer)
+        installRoundedPreviewOutline(previewContainer)
     }
 
-    private fun installPreviewContainerOutline(previewContainer: FrameLayout) {
+    private fun installRoundedPreviewOutline(view: View) {
         val radius = resources.getDimension(R.dimen.thing_card_corner_radius)
-        previewContainer.outlineProvider = object : ViewOutlineProvider() {
+        view.outlineProvider = object : ViewOutlineProvider() {
             override fun getOutline(view: View, outline: Outline) {
                 outline.setRoundRect(0, 0, view.width, view.height, radius)
             }
         }
-        previewContainer.clipToOutline = true
-        previewContainer.invalidateOutline()
-        previewContainer.post { previewContainer.invalidateOutline() }
+        view.clipToOutline = true
+        if (view is ViewGroup) {
+            view.clipChildren = true
+            view.clipToPadding = true
+        }
+        view.invalidateOutline()
+        view.post { view.invalidateOutline() }
     }
 
     private fun renderPreviewAppWidget(previewContainer: FrameLayout, thing: Thing) {
@@ -333,6 +511,7 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
             val views = AppWidgetHelper.createRemoteViewsForSingleThingPreview(
                     this, Thing(thing), mAppWidgetId, getSenderClass(), mWidgetAlpha)
             val rendered = views.apply(this, previewContainer)
+            installRoundedPreviewOutline(rendered)
             previewContainer.removeAllViews()
             previewContainer.addView(rendered, FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
@@ -428,7 +607,36 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
         finish()
     }
 
-    inner class ThingsAdapter : BaseThingsAdapter(this@BaseThingWidgetConfiguration) {
+    private sealed class ConfigEntry {
+        abstract val stableId: Long
+        abstract val location: Long
+
+        data class ThingEntry(
+            val thing: Thing,
+            val thingIndex: Int
+        ) : ConfigEntry() {
+            override val stableId: Long
+                get() = thing.id
+            override val location: Long
+                get() = thing.location
+        }
+
+        data class FolderEntry(
+            val entry: ThingListEntry.FolderEntry
+        ) : ConfigEntry() {
+            override val stableId: Long
+                get() = entry.stableId
+            override val location: Long
+                get() = entry.location
+        }
+    }
+
+    private inner class ThingCardDelegateAdapter :
+        ThingsAdapter(this@BaseThingWidgetConfiguration.application as App, null) {
+
+        init {
+            setShouldThingsAnimWhenAppearing(false)
+        }
 
         override fun getCurrentMode(): Int {
             return ModeManager.NORMAL
@@ -438,36 +646,150 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
             return mThings
         }
 
+        override fun getEntries(): List<ThingListEntry>? {
+            return null
+        }
+
+        override fun getStickyThingParentFolderBackground(thing: Thing): ThingBackground? {
+            val folderId = thing.folderId ?: return null
+            return mFolderDao?.getFolderById(folderId)?.getBackground()
+        }
+
+        override fun isThingEffectivelyPrivate(thing: Thing): Boolean {
+            return (thing.isPrivate() || isCurrentFolderEffectivelyPrivate()) &&
+                !isCurrentFolderPrivacyAuthenticated()
+        }
+
         override fun isFullSpanThingCard(thing: Thing): Boolean {
             return thing.type != Thing.HEADER
                     && thing.type < Thing.NOTIFICATION_UNDERWAY
                     && thing.thingCardAppearance.spanMode == Thing.THING_CARD_SPAN_FULL
         }
+    }
 
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BaseThingViewHolder {
-            return Holder(mInflater!!.inflate(R.layout.card_thing, parent, false))
+    private inner class FolderCardDelegateAdapter :
+        ThingsAdapter(
+            this@BaseThingWidgetConfiguration.application as App,
+            object : ThingsAdapter.OnItemTouchedListener {
+                override fun onItemTouch(v: View?, event: MotionEvent?): Boolean {
+                    return false
+                }
+
+                override fun onItemClick(v: View?, listPosition: Int) { }
+
+                override fun onItemLongClick(v: View?, listPosition: Int): Boolean {
+                    return false
+                }
+
+                override fun onFolderThumbnailClick(v: View?, thing: Thing) {
+                    previewSelectedThing(thing)
+                }
+
+                override fun onFolderThumbnailFolderClick(
+                    v: View?,
+                    entry: ThingListEntry.FolderEntry
+                ) {
+                    openFolderEntry(entry)
+                }
+            }
+        ) {
+
+        fun bindFolderHolder(
+            holder: BaseThingsAdapter.BaseThingViewHolder,
+            entry: ThingListEntry.FolderEntry
+        ) {
+            bindFolderCard(holder, entry)
         }
 
-        override fun onBindViewHolder(holder: BaseThingViewHolder, position: Int) {
-            val m: Int = (mDensity * 6).toInt()
+        override fun shouldShowFolderPrivateContent(): Boolean {
+            return isCurrentFolderPrivacyAuthenticated()
+        }
+    }
 
-            val lp: StaggeredGridLayoutManager.LayoutParams =
-                    holder.itemView.layoutParams as StaggeredGridLayoutManager.LayoutParams
-            lp.setMargins(m, m, m, m)
-            lp.isFullSpan = isFullSpanThingCard(mThings!![position]!!)
+    private inner class MixedThingsAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
-            super.onBindViewHolder(holder, position)
+        override fun getItemViewType(position: Int): Int {
+            return when (mEntries[position]) {
+                is ConfigEntry.ThingEntry -> VIEW_TYPE_THING
+                is ConfigEntry.FolderEntry -> VIEW_TYPE_FOLDER
+            }
         }
 
-        inner class Holder(item: View) : BaseThingViewHolder(item) {
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+            return if (viewType == VIEW_TYPE_THING) {
+                mThingCardAdapter!!.onCreateViewHolder(parent, viewType)
+            } else {
+                mFolderCardAdapter!!.onCreateViewHolder(parent, viewType)
+            }
+        }
 
-            init {
-                cv!!.setOnClickListener { _ ->
-                    updateStatusBarAndBottomUi(false)
-                    previewAppWidget(mThings!![adapterPosition]!!)
+        override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+            syncCardDelegateRecyclerView()
+            when (val entry = mEntries[position]) {
+                is ConfigEntry.ThingEntry -> {
+                    val thingHolder = holder as BaseThingsAdapter.BaseThingViewHolder
+                    mThingCardAdapter!!.onBindViewHolder(thingHolder, entry.thingIndex)
+                    thingHolder.cv!!.setOnClickListener {
+                        previewSelectedThing(entry.thing)
+                    }
+                }
+                is ConfigEntry.FolderEntry -> {
+                    val folderHolder = holder as BaseThingsAdapter.BaseThingViewHolder
+                    mFolderCardAdapter!!.bindFolderHolder(folderHolder, entry.entry)
+                    folderHolder.cv!!.setOnClickListener {
+                        openFolderEntry(entry.entry)
+                    }
                 }
             }
         }
 
+        override fun getItemCount(): Int {
+            return mEntries.size
+        }
+
+        override fun onViewAttachedToWindow(holder: RecyclerView.ViewHolder) {
+            super.onViewAttachedToWindow(holder)
+            val lp = holder.itemView.layoutParams
+            if (lp is StaggeredGridLayoutManager.LayoutParams) {
+                val position = holder.bindingAdapterPosition
+                if (position != RecyclerView.NO_POSITION) {
+                    lp.isFullSpan = when (val entry = mEntries[position]) {
+                        is ConfigEntry.ThingEntry ->
+                            entry.thing.type != Thing.HEADER &&
+                                entry.thing.type < Thing.NOTIFICATION_UNDERWAY &&
+                                entry.thing.thingCardAppearance.spanMode ==
+                                Thing.THING_CARD_SPAN_FULL
+                        is ConfigEntry.FolderEntry ->
+                            entry.entry.folder.effectiveCardPresentation().spanMode ==
+                                ThingFolderCardPresentation.SPAN_FULL
+                    }
+                }
+            }
+        }
+
+    }
+
+    private fun authenticateAndOpenFolder(folder: ThingFolder) {
+        val password = getSharedPreferences(Def.Meta.PREFERENCES_NAME, MODE_PRIVATE)
+            .getString(Def.Meta.KEY_PRIVATE_PASSWORD, null)
+        AuthenticationHelper.authenticate(
+            this,
+            folder.getBackground() ?: ThingBackground.pure(folder.getColor()),
+            getString(R.string.open_private_thing_folder),
+            password,
+            object : AuthenticationHelper.AuthenticationCallback {
+                override fun onAuthenticated() {
+                    markFolderPrivacyAuthenticated(folder.id)
+                    openFolder(folder)
+                }
+
+                override fun onCancel() { }
+            }
+        )
+    }
+
+    private companion object {
+        const val VIEW_TYPE_THING = 0
+        const val VIEW_TYPE_FOLDER = 1
     }
 }

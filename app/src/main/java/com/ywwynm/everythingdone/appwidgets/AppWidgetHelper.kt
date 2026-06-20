@@ -8,7 +8,9 @@ import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Paint
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -35,6 +37,7 @@ import com.ywwynm.everythingdone.appwidgets.single.*
 import com.ywwynm.everythingdone.database.AppWidgetDAO
 import com.ywwynm.everythingdone.database.HabitDAO
 import com.ywwynm.everythingdone.database.ReminderDAO
+import com.ywwynm.everythingdone.database.ThingFolderDAO
 import com.ywwynm.everythingdone.helpers.AttachmentHelper
 import com.ywwynm.everythingdone.helpers.CheckListHelper
 import com.ywwynm.everythingdone.helpers.RemoteThingCardMediaRenderer
@@ -42,10 +45,12 @@ import com.ywwynm.everythingdone.helpers.ThingCardMediaHelper
 import com.ywwynm.everythingdone.model.Habit
 import com.ywwynm.everythingdone.model.Reminder
 import com.ywwynm.everythingdone.model.Thing
+import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.model.ThingCardAppearance
+import com.ywwynm.everythingdone.model.ThingFolder
+import com.ywwynm.everythingdone.model.ThingFolderCardPresentation
+import com.ywwynm.everythingdone.model.ThingListEntry
 import com.ywwynm.everythingdone.model.ThingWidgetInfo
-import com.ywwynm.everythingdone.receivers.HabitWidgetActionReceiver
-import com.ywwynm.everythingdone.receivers.ReminderNotificationActionReceiver
 import com.ywwynm.everythingdone.utils.DateTimeUtil
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
@@ -156,9 +161,21 @@ object AppWidgetHelper {
 
     private val LV_THINGS_LIST: Int            = R.id.lv_things_list
     private val LL_THINGS_LIST_HEADER: Int     = R.id.ll_things_list_header
+    private val IV_THINGS_LIST_HEADER_BG: Int  = R.id.iv_things_list_header_bg
     private val TV_THINGS_LIST_TITLE: Int      = R.id.tv_things_list_title
     private val IV_THINGS_LIST_SETTING: Int    = R.id.iv_things_list_setting
     private val IV_THINGS_LIST_CREATE: Int     = R.id.iv_things_list_create
+
+    private val ROOT_WIDGET_FOLDER: Int        = R.id.root_widget_folder
+    private val IV_WIDGET_FOLDER_BG: Int       = R.id.iv_widget_folder_bg
+    private val IV_WIDGET_FOLDER_ICON: Int     = R.id.iv_widget_folder_icon
+    private val TV_WIDGET_FOLDER_TITLE: Int    = R.id.tv_widget_folder_title
+    private val TV_WIDGET_FOLDER_COUNT: Int    = R.id.tv_widget_folder_count
+    private val IV_WIDGET_FOLDER_LOCK: Int     = R.id.iv_widget_folder_lock
+
+    private val LL_WIDGET_GRID_SLOT_1: Int     = R.id.ll_widget_grid_slot_1
+    private val LL_WIDGET_GRID_SLOT_2: Int     = R.id.ll_widget_grid_slot_2
+    private val LL_WIDGET_GRID_SLOT_3: Int     = R.id.ll_widget_grid_slot_3
 
     /**
      * Update single thing widgets whose UI components are bind with a [Thing] with `thingId`.
@@ -197,8 +214,7 @@ object AppWidgetHelper {
     fun updateThingsListAppWidgets(context: Context?, limit: Int) {
         Log.i(TAG, "updateThingsListAppWidget(context, limit) is called, limit[$limit]")
         val appWidgetDAO: AppWidgetDAO = AppWidgetDAO.getInstance(context)!!
-        val storedLimit: Int = -limit - 1
-        val thingWidgetInfos: List<ThingWidgetInfo?> = appWidgetDAO.getThingWidgetInfosByThingId(storedLimit.toLong())!!
+        val thingWidgetInfos: List<ThingWidgetInfo?> = appWidgetDAO.getThingsListWidgetInfos()
         for (thingWidgetInfo in thingWidgetInfos) {
             updateThingsListAppWidget(context, thingWidgetInfo!!.id)
         }
@@ -216,10 +232,10 @@ object AppWidgetHelper {
     @JvmStatic
     fun updateAllThingsListAppWidgets(context: Context?) {
         Log.i(TAG, "updateAllThingsListAppWidgets is called")
-        var limit: Int = Def.LimitForGettingThings.ALL_UNDERWAY
-        while (limit <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
-            updateThingsListAppWidgets(context, limit)
-            limit++
+        val appWidgetDAO: AppWidgetDAO = AppWidgetDAO.getInstance(context)!!
+        val thingWidgetInfos: List<ThingWidgetInfo?> = appWidgetDAO.getThingsListWidgetInfos()
+        for (thingWidgetInfo in thingWidgetInfos) {
+            updateThingsListAppWidget(context, thingWidgetInfo!!.id)
         }
     }
 
@@ -385,73 +401,301 @@ object AppWidgetHelper {
 
     @JvmStatic
     fun createRemoteViewsForThingsList(context: Context?, limit: Int, appWidgetId: Int): RemoteViews {
-        val remoteViews = RemoteViews(context!!.packageName, R.layout.app_widget_things_list)
-        var headerColor: Int = ContextCompat.getColor(context, R.color.app_accent)
-        remoteViews.setInt(LL_THINGS_LIST_HEADER, "setBackgroundColor", headerColor)
+        return createRemoteViewsForThingsList(context, appWidgetId)
+    }
 
-        val dao: AppWidgetDAO = AppWidgetDAO.getInstance(context)!!
+    @JvmStatic
+    fun createRemoteViewsForThingsList(context: Context?, appWidgetId: Int): RemoteViews {
+        val appContext = context!!
+        val remoteViews = RemoteViews(appContext.packageName, R.layout.app_widget_things_list)
+        val dao: AppWidgetDAO = AppWidgetDAO.getInstance(appContext)!!
         val info: ThingWidgetInfo? = dao.getThingWidgetInfoById(appWidgetId)
-        if (info != null) {
-            var alpha: Int = info.alpha
-            if (alpha < 0) {
-                alpha = if (alpha == ThingWidgetInfo.HEADER_ALPHA_0) {
-                    0
-                } else {
-                    (abs(alpha) / 100f * 255).toInt()
-                }
-                headerColor = DisplayUtil.getTransparentColor(headerColor, alpha)
-                remoteViews.setInt(LL_THINGS_LIST_HEADER, "setBackgroundColor", headerColor)
-            }
+        val folder = resolveThingsListTargetFolder(appContext, info)
+        val typeFilterMask = ThingWidgetInfo.normalizedTypeFilterMask(
+            info?.typeFilterMask ?: ThingWidgetInfo.TYPE_FILTER_ALL
+        )
+        val limit = ThingWidgetInfo.limitForTypeFilterMask(typeFilterMask)
+
+        setThingsListHeaderAppearance(appContext, remoteViews, info, folder, typeFilterMask)
+
+        var intent = Intent(
+            appContext,
+            if (folder != null) AuthenticationActivity::class.java else ThingsActivity::class.java
+        )
+        if (folder != null) {
+            intent.setAction(Def.Communication.AUTHENTICATE_ACTION_VIEW)
         }
-
-        remoteViews.setTextViewText(TV_THINGS_LIST_TITLE, getStringForLimit(context, limit))
-
-        var intent = Intent(context, ThingsActivity::class.java)
         intent.putExtra(Def.Communication.KEY_LIMIT, limit)
+        intent.putExtra(Def.Communication.KEY_TYPE_FILTER_MASK, typeFilterMask)
+        if (folder != null) {
+            intent.putExtra(Def.Communication.KEY_FOLDER_ID, folder.id)
+        }
         var pendingIntent: PendingIntent = getActivityPendingIntentForWidget(
-                context, appWidgetId, intent, WIDGET_ACTIVITY_PENDING_INTENT_FLAGS)
+            appContext,
+            appWidgetId,
+            intent,
+            WIDGET_ACTIVITY_PENDING_INTENT_FLAGS
+        )
         remoteViews.setOnClickPendingIntent(LL_THINGS_LIST_HEADER, pendingIntent)
 
-        // setting image view click event
-        intent = Intent(context, ThingsListWidgetConfiguration::class.java)
+        intent = Intent(appContext, ThingsListWidgetConfiguration::class.java)
         intent.putExtra(Def.Communication.KEY_WIDGET_ID, appWidgetId)
         pendingIntent = getActivityPendingIntentForWidget(
-                context, appWidgetId, intent, WIDGET_ACTIVITY_PENDING_INTENT_FLAGS)
+            appContext,
+            appWidgetId,
+            intent,
+            WIDGET_ACTIVITY_PENDING_INTENT_FLAGS
+        )
         remoteViews.setOnClickPendingIntent(IV_THINGS_LIST_SETTING, pendingIntent)
 
-        // create image view click event
-        intent = Intent(context, ShortcutActivity::class.java)
+        intent = Intent(appContext, ShortcutActivity::class.java)
         intent.setAction(Def.Communication.SHORTCUT_ACTION_CREATE)
         intent.putExtra(Def.Communication.KEY_LIMIT, limit)
+        if (folder != null) {
+            intent.putExtra(Def.Communication.KEY_FOLDER_ID, folder.id)
+        }
         pendingIntent = getActivityPendingIntentForWidget(
-                context, appWidgetId, intent, WIDGET_ACTIVITY_PENDING_INTENT_FLAGS)
+            appContext,
+            appWidgetId,
+            intent,
+            WIDGET_ACTIVITY_PENDING_INTENT_FLAGS
+        )
         remoteViews.setOnClickPendingIntent(IV_THINGS_LIST_CREATE, pendingIntent)
 
-        // adapter for things
-        intent = Intent(context, ThingsListWidgetService::class.java)
-        intent.putExtra(Def.Communication.KEY_LIMIT, limit)
+        intent = Intent(appContext, ThingsListWidgetService::class.java)
         intent.putExtra(Def.Communication.KEY_WIDGET_ID, appWidgetId)
-        // Very important! without this line, things list widgets of two different limits
-        // may have same ListView content
         intent.setData(Uri.parse(intent.toUri(Intent.URI_INTENT_SCHEME)))
         remoteViews.setRemoteAdapter(LV_THINGS_LIST, intent)
-        // don't set empty view since I want to show NOTIFY_EMPTY-type things
 
-        // thing item click event
-        intent = Intent(context, AuthenticationActivity::class.java)
+        intent = Intent(appContext, AuthenticationActivity::class.java)
         intent.setAction(Def.Communication.AUTHENTICATE_ACTION_VIEW)
-        intent.putExtra(Def.Communication.KEY_TITLE, context.getString(R.string.check_private_thing))
+        intent.putExtra(Def.Communication.KEY_TITLE, appContext.getString(R.string.check_private_thing))
         intent.putExtra(Def.Communication.KEY_SENDER_NAME, TAG)
-        intent.putExtra(Def.Communication.KEY_DETAIL_ACTIVITY_TYPE,
-                DetailActivity.UPDATE)
+        intent.putExtra(
+            Def.Communication.KEY_DETAIL_ACTIVITY_TYPE,
+            DetailActivity.UPDATE
+        )
         intent.setData(Uri.parse(intent.toUri(Intent.URI_INTENT_SCHEME)))
-        pendingIntent = getActivityPendingIntentForWidget(context, appWidgetId, intent,
-                COLLECTION_TEMPLATE_PENDING_INTENT_FLAGS)
+        pendingIntent = getActivityPendingIntentForWidget(
+            appContext,
+            appWidgetId,
+            intent,
+            COLLECTION_TEMPLATE_PENDING_INTENT_FLAGS
+        )
         remoteViews.setPendingIntentTemplate(LV_THINGS_LIST, pendingIntent)
 
         remoteViews.setScrollPosition(LV_THINGS_LIST, 0)
 
         return remoteViews
+    }
+
+    @JvmStatic
+    fun resolveThingsListTargetFolder(context: Context, info: ThingWidgetInfo?): ThingFolder? {
+        val folderId = info?.targetFolderId ?: return null
+        val dao = ThingFolderDAO.getInstance(context)!!
+        if (dao.isEffectivelyDeleted(folderId)) return null
+        return dao.getFolderById(folderId)
+    }
+
+    @JvmStatic
+    fun getThingsListWidgetGridColumnCount(context: Context?, appWidgetId: Int): Int {
+        val appContext = context!!
+        val clazz = getProviderClassForAppWidgetId(
+            appContext,
+            appWidgetId,
+            ThingsListWidget::class.java
+        )
+        val cellSpan = getThingsListWidgetCellSpan(clazz)
+        if (cellSpan.width == 4) {
+            return 2
+        }
+        val widthDp = pxToDp(getWidgetContentTargetWidth(appContext, appWidgetId, clazz))
+        return when {
+            widthDp < 220 -> 1
+            widthDp < 360 -> 2
+            else -> 3
+        }
+    }
+
+    @JvmStatic
+    fun isThingsListWidgetEntryFullSpan(item: ThingsListWidgetItem): Boolean {
+        return when (item) {
+            is ThingsListWidgetItem.ThingItem ->
+                item.thing.thingCardSpanMode == Thing.THING_CARD_SPAN_FULL
+            is ThingsListWidgetItem.FolderItem ->
+                item.entry.folder.effectiveCardPresentation().spanMode ==
+                    ThingFolderCardPresentation.SPAN_FULL
+            is ThingsListWidgetItem.GridRow -> true
+        }
+    }
+
+    @JvmStatic
+    fun createRemoteViewsForThingsListGridRow(
+        context: Context?,
+        row: ThingsListWidgetItem.GridRow,
+        appWidgetId: Int
+    ): RemoteViews {
+        val appContext = context!!
+        val rv = RemoteViews(appContext.packageName, R.layout.app_widget_item_grid_row)
+        val slotIds = intArrayOf(
+            LL_WIDGET_GRID_SLOT_1,
+            LL_WIDGET_GRID_SLOT_2,
+            LL_WIDGET_GRID_SLOT_3
+        )
+        for (i in slotIds.indices) {
+            val slotId = slotIds[i]
+            rv.removeAllViews(slotId)
+            rv.setViewVisibility(slotId, if (i < row.columns) View.VISIBLE else View.GONE)
+            val item = row.slots.getOrNull(i)
+            if (item != null) {
+                rv.addView(
+                    slotId,
+                    createRemoteViewsForThingsListEntry(
+                        appContext,
+                        item,
+                        appWidgetId,
+                        false
+                    )
+                )
+                createThingsListWidgetFillInIntent(appContext, item, appWidgetId)?.let { fillIn ->
+                    rv.setOnClickFillInIntent(slotId, fillIn)
+                }
+            }
+        }
+        return rv
+    }
+
+    @JvmStatic
+    fun createRemoteViewsForThingsListEntry(
+        context: Context?,
+        item: ThingsListWidgetItem,
+        appWidgetId: Int,
+        bindFillInIntent: Boolean = true
+    ): RemoteViews {
+        val appContext = context!!
+        return when (item) {
+            is ThingsListWidgetItem.ThingItem ->
+                createRemoteViewsForThingsListItem(appContext, item.thing, appWidgetId).also { rv ->
+                    if (bindFillInIntent) {
+                        rv.setOnClickFillInIntent(
+                            ROOT_WIDGET_THING,
+                            createThingListWidgetThingFillInIntent(item.thing)
+                        )
+                    }
+                }
+            is ThingsListWidgetItem.FolderItem ->
+                createRemoteViewsForThingsListFolderItem(appContext, item.entry, appWidgetId).also { rv ->
+                    if (bindFillInIntent) {
+                        rv.setOnClickFillInIntent(
+                            ROOT_WIDGET_FOLDER,
+                            createThingListWidgetFolderFillInIntent(appContext, item.entry, appWidgetId)
+                        )
+                    }
+                }
+            is ThingsListWidgetItem.GridRow ->
+                createRemoteViewsForThingsListGridRow(appContext, item, appWidgetId)
+        }
+    }
+
+    private fun createThingsListWidgetFillInIntent(
+        context: Context,
+        item: ThingsListWidgetItem,
+        appWidgetId: Int
+    ): Intent? {
+        return when (item) {
+            is ThingsListWidgetItem.ThingItem ->
+                createThingListWidgetThingFillInIntent(item.thing)
+            is ThingsListWidgetItem.FolderItem ->
+                createThingListWidgetFolderFillInIntent(context, item.entry, appWidgetId)
+            is ThingsListWidgetItem.GridRow -> null
+        }
+    }
+
+    private fun createThingListWidgetThingFillInIntent(thing: Thing): Intent {
+        val intent = Intent()
+        intent.putExtra(Def.Communication.KEY_ID, thing.id)
+        intent.putExtra(Def.Communication.KEY_POSITION, -1)
+        return intent
+    }
+
+    private fun createThingListWidgetFolderFillInIntent(
+        context: Context,
+        entry: ThingListEntry.FolderEntry,
+        appWidgetId: Int
+    ): Intent {
+        val dao = AppWidgetDAO.getInstance(context)!!
+        val info = dao.getThingWidgetInfoById(appWidgetId)
+        val mask = info?.typeFilterMask ?: ThingWidgetInfo.TYPE_FILTER_ALL
+        val intent = Intent()
+        intent.putExtra(Def.Communication.KEY_FOLDER_ID, entry.folder.id)
+        intent.putExtra(
+            Def.Communication.KEY_TYPE_FILTER_MASK,
+            ThingWidgetInfo.normalizedTypeFilterMask(mask)
+        )
+        intent.putExtra(
+            Def.Communication.KEY_LIMIT,
+            ThingWidgetInfo.limitForTypeFilterMask(mask)
+        )
+        return intent
+    }
+
+    private fun setThingsListHeaderAppearance(
+        context: Context,
+        remoteViews: RemoteViews,
+        info: ThingWidgetInfo?,
+        folder: ThingFolder?,
+        typeFilterMask: Int
+    ) {
+        val background = folder?.getBackground()
+            ?: ThingBackground.pure(ContextCompat.getColor(context, R.color.app_accent))
+        val headerAlpha: Int
+        var headerColor = background.representativeColor()
+        if (info != null && info.alpha < 0) {
+            headerAlpha = if (info.alpha == ThingWidgetInfo.HEADER_ALPHA_0) {
+                0
+            } else {
+                (abs(info.alpha) / 100f * 255).toInt()
+            }
+            headerColor = DisplayUtil.getTransparentColor(headerColor, headerAlpha)
+        } else {
+            headerAlpha = 255
+        }
+        remoteViews.setInt(LL_THINGS_LIST_HEADER, "setBackgroundColor", Color.TRANSPARENT)
+        val headerBitmap = BackgroundUtil.renderBackgroundBitmap(background, 64, 40, headerAlpha)
+        if (headerBitmap != null) {
+            remoteViews.setImageViewBitmap(IV_THINGS_LIST_HEADER_BG, headerBitmap)
+        } else {
+            remoteViews.setInt(LL_THINGS_LIST_HEADER, "setBackgroundColor", headerColor)
+        }
+        remoteViews.setTextViewText(
+            TV_THINGS_LIST_TITLE,
+            getThingsListHeaderTitle(context, folder, typeFilterMask)
+        )
+        val foreground = foregroundForWidgetBackground(context, background.representativeColor())
+        remoteViews.setTextColor(TV_THINGS_LIST_TITLE, foreground)
+        remoteViews.setInt(IV_THINGS_LIST_SETTING, "setColorFilter", foreground)
+        remoteViews.setInt(IV_THINGS_LIST_CREATE, "setColorFilter", foreground)
+    }
+
+    private fun getThingsListHeaderTitle(
+        context: Context,
+        folder: ThingFolder?,
+        typeFilterMask: Int
+    ): String {
+        val typeTitle = getTypeFilterTitle(context, typeFilterMask)
+        if (folder == null) {
+            return typeTitle ?: context.getString(R.string.underway)
+        }
+        val folderTitle = folder.title.ifEmpty { context.getString(R.string.default_thing_folder_name) }
+        return if (typeTitle == null) {
+            folderTitle
+        } else {
+            folderTitle + " \u00B7 " + typeTitle
+        }
+    }
+
+    private fun getTypeFilterTitle(context: Context, typeFilterMask: Int): String? {
+        return ThingWidgetInfo.getTypeFilterTitle(context, typeFilterMask)
     }
 
     private fun getStringForLimit(context: Context, limit: Int): String? {
@@ -490,6 +734,117 @@ object AppWidgetHelper {
     }
 
     @JvmStatic
+    fun createRemoteViewsForThingsListFolderItem(
+        context: Context?,
+        entry: ThingListEntry.FolderEntry,
+        appWidgetId: Int
+    ): RemoteViews {
+        val appContext = context!!
+        val remoteViews = RemoteViews(appContext.packageName, R.layout.app_widget_item_folder)
+        applyFolderWidgetRootClip(remoteViews)
+        val folder = entry.folder
+        val background = folder.getBackground() ?: ThingBackground.pure(folder.getColor())
+        val alpha = getContentAlphaForWidget(appContext, appWidgetId)
+        val bitmap = BackgroundUtil.renderBackgroundBitmap(background, 64, 64, alpha)
+        if (bitmap != null) {
+            remoteViews.setImageViewBitmap(IV_WIDGET_FOLDER_BG, bitmap)
+        }
+        val foreground = widgetTextColorPrimary(appContext, background.representativeColor())
+        remoteViews.setInt(IV_WIDGET_FOLDER_ICON, "setColorFilter", foreground)
+        remoteViews.setTextColor(TV_WIDGET_FOLDER_TITLE, foreground)
+        remoteViews.setTextColor(
+                TV_WIDGET_FOLDER_COUNT,
+                widgetTextColorTertiary(appContext, background.representativeColor()))
+        remoteViews.setInt(
+                IV_WIDGET_FOLDER_LOCK,
+                "setColorFilter",
+                widgetTextColorSecondary(appContext, background.representativeColor()))
+
+        val title = folder.title.ifEmpty { appContext.getString(R.string.default_thing_folder_name) }
+        remoteViews.setTextViewText(TV_WIDGET_FOLDER_TITLE, title)
+        if (entry.effectivePrivate) {
+            remoteViews.setViewVisibility(TV_WIDGET_FOLDER_COUNT, View.GONE)
+            remoteViews.setViewVisibility(IV_WIDGET_FOLDER_LOCK, View.VISIBLE)
+        } else {
+            remoteViews.setViewVisibility(TV_WIDGET_FOLDER_COUNT, View.VISIBLE)
+            remoteViews.setViewVisibility(IV_WIDGET_FOLDER_LOCK, View.GONE)
+            remoteViews.setTextViewText(TV_WIDGET_FOLDER_COUNT, getFolderSummaryCountText(appContext, entry))
+        }
+        return remoteViews
+    }
+
+    private fun applyFolderWidgetRootClip(remoteViews: RemoteViews) {
+        remoteViews.setInt(
+                ROOT_WIDGET_FOLDER,
+                "setBackgroundResource",
+                R.drawable.bg_app_widget_card_clip)
+        remoteViews.setBoolean(ROOT_WIDGET_FOLDER, "setClipToOutline", true)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            remoteViews.setViewOutlinePreferredRadiusDimen(
+                    ROOT_WIDGET_FOLDER,
+                    R.dimen.thing_card_corner_radius)
+        }
+    }
+
+    private fun getContentAlphaForWidget(context: Context, appWidgetId: Int): Int {
+        val info = AppWidgetDAO.getInstance(context)!!.getThingWidgetInfoById(appWidgetId)
+        val percent = if (info?.alpha == ThingWidgetInfo.HEADER_ALPHA_0) {
+            0
+        } else {
+            abs(info?.alpha ?: 100)
+        }
+        return (percent / 100f * 255).toInt()
+    }
+
+    private fun foregroundForWidgetBackground(context: Context, backgroundColor: Int): Int {
+        return if (BackgroundUtil.isLight(backgroundColor)) {
+            ContextCompat.getColor(context, R.color.black_54p)
+        } else {
+            ContextCompat.getColor(context, R.color.white_86p)
+        }
+    }
+
+    private fun widgetTextColorPrimary(context: Context, backgroundColor: Int): Int {
+        return if (BackgroundUtil.isLight(backgroundColor)) {
+            ContextCompat.getColor(context, R.color.black_86p)
+        } else {
+            ContextCompat.getColor(context, R.color.white_86p)
+        }
+    }
+
+    private fun widgetTextColorSecondary(context: Context, backgroundColor: Int): Int {
+        return if (BackgroundUtil.isLight(backgroundColor)) {
+            ContextCompat.getColor(context, R.color.black_76p)
+        } else {
+            ContextCompat.getColor(context, R.color.white_76p)
+        }
+    }
+
+    private fun widgetTextColorTertiary(context: Context, backgroundColor: Int): Int {
+        return if (BackgroundUtil.isLight(backgroundColor)) {
+            ContextCompat.getColor(context, R.color.black_66p)
+        } else {
+            ContextCompat.getColor(context, R.color.white_66p)
+        }
+    }
+
+    private fun getFolderSummaryCountText(
+        context: Context,
+        entry: ThingListEntry.FolderEntry
+    ): String {
+        val folderCount = entry.directFolderCount
+        val thingCount = entry.recursiveThingCount
+        return when {
+            folderCount > 0 && thingCount > 0 ->
+                context.getString(R.string.thing_folder_count_folders_things, folderCount, thingCount)
+            folderCount > 0 ->
+                context.getString(R.string.thing_folder_count_folders, folderCount)
+            else ->
+                context.getString(R.string.thing_folder_count, thingCount)
+        }
+    }
+
+    @JvmStatic
     fun createRemoteViewsForChecklistItem(
             context: Context?, item: String?, itemsSize: Int, isSingleThingWidget: Boolean): RemoteViews {
         return createRemoteViewsForChecklistItem(context, item, itemsSize, isSingleThingWidget, null)
@@ -514,6 +869,7 @@ object AppWidgetHelper {
         val textColor: Int
         if (state == '0') {
             rv.setImageViewResource(IV_STATE_CHECK_LIST, checklistIconResource(thing, false))
+            setChecklistIconColor(rv, IV_STATE_CHECK_LIST, thing)
             if (isSingleThingWidget) {
                 rv.setContentDescription(IV_STATE_CHECK_LIST,
                         context.getString(R.string.cd_checklist_unfinished_item_clickable))
@@ -528,6 +884,7 @@ object AppWidgetHelper {
             rv.setTextViewText(TV_CONTENT_CHECK_LIST, text)
         } else if (state == '1') {
             rv.setImageViewResource(IV_STATE_CHECK_LIST, checklistIconResource(thing, true))
+            setChecklistIconColor(rv, IV_STATE_CHECK_LIST, thing)
             if (isSingleThingWidget) {
                 rv.setContentDescription(IV_STATE_CHECK_LIST,
                         context.getString(R.string.cd_checklist_finished_item_clickable))
@@ -557,6 +914,14 @@ object AppWidgetHelper {
         return rv
     }
 
+    private fun setChecklistIconColor(remoteViews: RemoteViews, viewId: Int, thing: Thing?) {
+        if (thing == null) {
+            remoteViews.setInt(viewId, "setColorFilter", Color.WHITE)
+        } else {
+            setAdaptiveIconColor(remoteViews, viewId, thing)
+        }
+    }
+
     private fun checklistIconResource(thing: Thing?, finished: Boolean): Int {
         val dark: Boolean = thing != null && shouldUseDarkForeground(thing)
         return if (finished) {
@@ -578,7 +943,7 @@ object AppWidgetHelper {
         val light: Boolean = if (mediaBackgroundForeground) {
             false
         } else {
-            BackgroundUtil.isLight(thing.getColor())
+            BackgroundUtil.isLight(getThingBackgroundRepresentativeColor(thing))
         }
         val primary: Int   = if (light)
                 ContextCompat.getColor(context, R.color.black_86p)
@@ -624,7 +989,11 @@ object AppWidgetHelper {
         if (shouldUseMediaBackgroundForeground(thing)) {
             return false
         }
-        return BackgroundUtil.isLight(thing.getColor())
+        return BackgroundUtil.isLight(getThingBackgroundRepresentativeColor(thing))
+    }
+
+    private fun getThingBackgroundRepresentativeColor(thing: Thing): Int {
+        return thing.getBackground()?.representativeColor() ?: thing.getColor()
     }
 
     private fun shouldUseMediaBackgroundForeground(thing: Thing): Boolean {
@@ -651,10 +1020,9 @@ object AppWidgetHelper {
             abs(a)
         }
         a = (a / 100f * 255).toInt()
-        remoteViews.setInt(ROOT_WIDGET_THING, "setBackgroundColor",
-                Color.TRANSPARENT)
+        applyWidgetRootClip(remoteViews)
         val mediaBackground = renderWidgetMediaBackground(
-                context, thing!!, appWidgetId, clazz, style)
+                context, thing!!, appWidgetId, clazz, style, a)
         if (isThingsListWidgetClass(clazz)) {
             remoteViews.setInt(
                     ROOT_WIDGET_THING,
@@ -666,11 +1034,12 @@ object AppWidgetHelper {
         // Phase 8: adapt all text colours on the widget card to the thing's
         // luminance.
         applyAdaptiveTextColors(context, remoteViews, thing, mediaBackground != null)
+        applyAdaptiveSeparatorBackgrounds(remoteViews, thing)
 
         setStickyOrOngoing(context, remoteViews, thing, a, clazz, style)
 
         setImageAttachment(context, remoteViews, thing, appWidgetId, clazz,
-                mediaBackground != null, style)
+                mediaBackground != null, a, style)
 
         setTitleAndPrivate(context, remoteViews, thing, style)
 
@@ -679,7 +1048,7 @@ object AppWidgetHelper {
         setAudioAttachment(context, remoteViews, thing)
 
         setState(context, remoteViews, thing)
-        setAction(context, remoteViews, thing, clazz)
+        setAction(remoteViews)
 
         setReminder(context, remoteViews, thing)
         setHabit(context, remoteViews, thing, style)
@@ -696,11 +1065,25 @@ object AppWidgetHelper {
         setDoing(remoteViews, thing)
     }
 
+    private fun applyWidgetRootClip(remoteViews: RemoteViews) {
+        remoteViews.setInt(
+                ROOT_WIDGET_THING,
+                "setBackgroundResource",
+                R.drawable.bg_app_widget_card_clip)
+        remoteViews.setBoolean(ROOT_WIDGET_THING, "setClipToOutline", true)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            remoteViews.setViewOutlinePreferredRadiusDimen(
+                    ROOT_WIDGET_THING,
+                    R.dimen.thing_card_corner_radius)
+        }
+    }
+
     private fun setWidgetBackground(
             remoteViews: RemoteViews, thing: Thing, alpha: Int,
             mediaBackground: WidgetMediaBackground?) {
         if (mediaBackground != null) {
-            remoteViews.setImageViewBitmap(IV_WIDGET_BG, mediaBackground.bitmap)
+            remoteViews.setImageViewBitmap(IV_WIDGET_BG, bitmapWithAlpha(mediaBackground.bitmap, alpha))
+            remoteViews.setInt(IV_WIDGET_BG, "setImageAlpha", 255)
             return
         }
 
@@ -711,11 +1094,23 @@ object AppWidgetHelper {
         if (bgBm != null) {
             remoteViews.setImageViewBitmap(IV_WIDGET_BG, bgBm)
         }
+        remoteViews.setInt(IV_WIDGET_BG, "setImageAlpha", 255)
+    }
+
+    private fun bitmapWithAlpha(source: Bitmap, alpha: Int): Bitmap {
+        val normalized = alpha.coerceIn(0, 255)
+        if (normalized == 255) return source
+        val result = Bitmap.createBitmap(source.width, source.height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(result)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+        paint.alpha = normalized
+        canvas.drawBitmap(source, 0f, 0f, paint)
+        return result
     }
 
     private fun renderWidgetMediaBackground(
             context: Context, thing: Thing, appWidgetId: Int, clazz: Class<*>?,
-            @ThingWidgetInfo.Style style: Int): WidgetMediaBackground? {
+            @ThingWidgetInfo.Style style: Int, alpha: Int): WidgetMediaBackground? {
         if (!thing.thingCardAppearance.mediaBackgroundEnabled) return null
         val mediaSource = RemoteThingCardMediaRenderer.resolveRenderableMediaSource(context, thing)
                 ?: return null
@@ -996,6 +1391,23 @@ object AppWidgetHelper {
         remoteViews.setViewVisibility(V_STATE_SEPARATOR,    visibility)
         remoteViews.setViewVisibility(V_REMINDER_SEPARATOR, visibility)
         remoteViews.setViewVisibility(V_HABIT_SEPARATOR_1,  visibility)
+        remoteViews.setViewVisibility(V_HABIT_SEPARATOR_2,  visibility)
+    }
+
+    private fun applyAdaptiveSeparatorBackgrounds(remoteViews: RemoteViews, thing: Thing) {
+        val separatorRes = if (shouldUseDarkForeground(thing)) {
+            R.drawable.dashed_line_card_black
+        } else {
+            R.drawable.dashed_line_card
+        }
+        intArrayOf(
+                V_STATE_SEPARATOR,
+                V_REMINDER_SEPARATOR,
+                V_HABIT_SEPARATOR_1,
+                V_HABIT_SEPARATOR_2
+        ).forEach { viewId ->
+            remoteViews.setInt(viewId, "setBackgroundResource", separatorRes)
+        }
     }
 
     private fun setStickyOrOngoing(context: Context, remoteViews: RemoteViews, thing: Thing,
@@ -1029,7 +1441,7 @@ object AppWidgetHelper {
     private fun setImageAttachment(
             context: Context, remoteViews: RemoteViews, thing: Thing, appWidgetId: Int,
             clazz: Class<*>?, mediaBackgroundApplied: Boolean,
-            @ThingWidgetInfo.Style style: Int) {
+            alpha: Int, @ThingWidgetInfo.Style style: Int) {
         hideForegroundMediaSlots(remoteViews)
         remoteViews.setViewVisibility(TV_MEDIA_BACKGROUND_COUNT, View.GONE)
 
@@ -1061,7 +1473,8 @@ object AppWidgetHelper {
         val slot = getImageAttachmentSlot(placement)
         remoteViews.setViewVisibility(slot.containerId, View.VISIBLE)
         remoteViews.setViewVisibility(slot.imageId, View.VISIBLE)
-        remoteViews.setImageViewBitmap(slot.imageId, rendered.bitmap)
+        remoteViews.setImageViewBitmap(slot.imageId, bitmapWithAlpha(rendered.bitmap, alpha))
+        remoteViews.setInt(slot.imageId, "setImageAlpha", 255)
         setImageAttachmentCount(remoteViews, slot.countId, attachment, context)
 
         remoteViews.setViewVisibility(V_PADDING_BOTTOM,
@@ -1091,6 +1504,7 @@ object AppWidgetHelper {
             remoteViews.setViewVisibility(slot.containerId, View.GONE)
             remoteViews.setViewVisibility(slot.imageId, View.GONE)
             remoteViews.setViewVisibility(slot.countId, View.GONE)
+            remoteViews.setInt(slot.imageId, "setImageAlpha", 255)
         }
     }
 
@@ -1494,7 +1908,7 @@ object AppWidgetHelper {
             if (title != null) {
                 remoteViews.setViewVisibility(TV_TITLE, View.VISIBLE)
                 // Phase 8: simple-style title uses a muted tertiary tier.
-                val light: Boolean = BackgroundUtil.isLight(thing.getColor())
+                val light: Boolean = BackgroundUtil.isLight(getThingBackgroundRepresentativeColor(thing))
                 remoteViews.setTextColor(TV_TITLE, ContextCompat.getColor(
                         context, if (light) R.color.black_66p else R.color.white_66p))
                 remoteViews.setTextViewText(TV_TITLE, title)
@@ -1641,25 +2055,21 @@ object AppWidgetHelper {
             return
         }
 
-        val iconRes: Int = if (shouldUseDarkForeground(thing)) {
-            R.drawable.card_audio_attachment_black
-        } else {
-            R.drawable.card_audio_attachment
-        }
-
         if (thing.getTitleToDisplay()!!.isEmpty()
                 && thing.content!!.isEmpty()
                 && AttachmentHelper.isAllAudio(thing.attachment)) {
             remoteViews.setViewVisibility(LL_AUDIO_ATTACHMENT, View.GONE)
             remoteViews.setViewVisibility(LL_AUDIO_ATTACHMENT_LARGE, View.VISIBLE)
             remoteViews.setViewPadding(LL_AUDIO_ATTACHMENT_LARGE, dp12, dp12, dp12, 0)
-            remoteViews.setImageViewResource(IV_AUDIO_COUNT_LARGE, iconRes)
+            remoteViews.setImageViewResource(IV_AUDIO_COUNT_LARGE, R.drawable.card_audio_attachment)
+            setAdaptiveIconColor(remoteViews, IV_AUDIO_COUNT_LARGE, thing)
             remoteViews.setTextViewText(TV_AUDIO_COUNT_LARGE, str)
         } else {
             remoteViews.setViewVisibility(LL_AUDIO_ATTACHMENT_LARGE, View.GONE)
             remoteViews.setViewVisibility(LL_AUDIO_ATTACHMENT, View.VISIBLE)
             remoteViews.setViewPadding(LL_AUDIO_ATTACHMENT, dp12, (screenDensity * 9).toInt(), dp12, 0)
-            remoteViews.setImageViewResource(IV_AUDIO_COUNT, iconRes)
+            remoteViews.setImageViewResource(IV_AUDIO_COUNT, R.drawable.card_audio_attachment)
+            setAdaptiveIconColor(remoteViews, IV_AUDIO_COUNT, thing)
             remoteViews.setTextViewText(TV_AUDIO_COUNT, str)
         }
 
@@ -1693,55 +2103,8 @@ object AppWidgetHelper {
         remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE)
     }
 
-    private fun setAction(context: Context, remoteViews: RemoteViews, thing: Thing, clazz: Class<*>?) {
-        @Thing.Type val type: Int = thing.type
-        if (type == Thing.HABIT) {
-            val habit: Habit? = HabitDAO.getInstance(context)!!.getHabitById(thing.id)
-            if (habit != null && habit.isPaused()) {
-                remoteViews.setViewVisibility(LL_THING_ACTION, View.GONE)
-                return
-            }
-        }
-
-        if (thing.isPrivate() || thing.state != Thing.UNDERWAY
-                || (type != Thing.REMINDER && type != Thing.GOAL && type != Thing.HABIT)
-                || !isSingleThingWidgetClass(clazz)
-        ) {
-            remoteViews.setViewVisibility(LL_THING_ACTION, View.GONE)
-            return
-        }
-
-        remoteViews.setViewVisibility(LL_THING_ACTION, View.VISIBLE)
-        if (type == Thing.HABIT) {
-            setActionForHabit(context, remoteViews, thing)
-        } else {
-            setActionForReminder(context, remoteViews, thing)
-        }
-        remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE)
-    }
-
-    private fun setActionForReminder(context: Context, remoteViews: RemoteViews, thing: Thing) {
-        remoteViews.setTextViewText(TV_THING_ACTION, context.getString(R.string.act_finish))
-
-        val id: Long = thing.id
-        val intent = Intent(context, ReminderNotificationActionReceiver::class.java)
-        intent.setAction(Def.Communication.WIDGET_ACTION_FINISH)
-        intent.putExtra(Def.Communication.KEY_ID, id)
-        val pendingIntent: PendingIntent = PendingIntent.getBroadcast(context,
-                id.toInt(), intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        remoteViews.setOnClickPendingIntent(TV_THING_ACTION, pendingIntent)
-    }
-
-    private fun setActionForHabit(context: Context, remoteViews: RemoteViews, thing: Thing) {
-        remoteViews.setTextViewText(TV_THING_ACTION, context.getString(R.string.act_finish_this_time_habit))
-
-        val id: Long = thing.id
-        val intent = Intent(context, HabitWidgetActionReceiver::class.java)
-        intent.setAction(Def.Communication.WIDGET_ACTION_FINISH)
-        intent.putExtra(Def.Communication.KEY_ID, id)
-        val pendingIntent: PendingIntent = PendingIntent.getBroadcast(context,
-                id.toInt(), intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        remoteViews.setOnClickPendingIntent(TV_THING_ACTION, pendingIntent)
+    private fun setAction(remoteViews: RemoteViews) {
+        remoteViews.setViewVisibility(LL_THING_ACTION, View.GONE)
     }
 
     private fun setReminder(context: Context, remoteViews: RemoteViews, thing: Thing) {

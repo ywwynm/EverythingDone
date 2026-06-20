@@ -2237,6 +2237,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             mThing!!.type = Thing.NOTE
             mThing!!.createTime = currentTime
             intent.putExtra(Def.Communication.KEY_THING, mThing)
+            putShortcutCreateFolderProjection(intent)
 
             resultCode = Def.Communication.RESULT_CREATE_THING_DONE
             intent.putExtra(Def.Communication.KEY_RESULT_CODE, resultCode)
@@ -3455,6 +3456,13 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         intent.putExtra(Def.Communication.KEY_LIST_PROJECTION, mListProjectionKey)
     }
 
+    private fun putShortcutCreateFolderProjection(intent: Intent) {
+        if (mType != CREATE || mSenderName != ShortcutActivity.TAG) return
+        intent.putExtra(Def.Communication.KEY_SENDER_NAME, ShortcutActivity.TAG)
+        val folderId = mThing?.folderId ?: return
+        intent.putExtra(Def.Communication.KEY_FOLDER_ID, folderId)
+    }
+
     private fun returnToThingsActivity(stateAfter: Int) {
         if (mAudioAttachmentAdapter != null && mAudioAttachmentAdapter!!.getPlayingIndex() != -1) {
             mAudioAttachmentAdapter!!.stopPlaying()
@@ -3696,6 +3704,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         mThing!!.updateTime = currentTime
 
         intent.putExtra(Def.Communication.KEY_THING, mThing)
+        putShortcutCreateFolderProjection(intent)
         val resultCode = Def.Communication.RESULT_CREATE_THING_DONE
 
         if (shouldSendBroadCast() || createActivitiesCount > 1) {

@@ -46,9 +46,8 @@ open class ThingsListWidget : AppWidgetProvider() {
         // _(:3」∠)_, it seems this line should be written above next line....
         appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetId, R.id.lv_things_list)
 
-        val limit: Int = -1 * info.thingId.toInt() - 1
         appWidgetManager.updateAppWidget(appWidgetId,
-                AppWidgetHelper.createRemoteViewsForThingsList(context, limit, appWidgetId))
+                AppWidgetHelper.createRemoteViewsForThingsList(context, appWidgetId))
     }
 
     override fun onDeleted(context: Context, appWidgetIds: IntArray) {

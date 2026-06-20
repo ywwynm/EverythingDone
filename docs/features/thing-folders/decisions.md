@@ -1,5 +1,208 @@
 # Thing Folders Decisions
 
+## 2026-06-20 - Folder-scoped AppWidget create-return uses one refresh path
+
+When a create flow launched from a Folder-scoped Things-list AppWidget returns
+to the home list, `ThingsActivity` should treat it as an external Folder
+projection refresh, not as a same-list item insertion. Opening the target Folder
+already loads the projection and notifies the adapter, so the create-return path
+must not also run the ordinary new-Thing `notifyItemInserted` or one-shot
+created-card animation. The projection refresh may still use the ordinary
+Things appearing animation, because that animation belongs to the single
+projection rebind and does not add a second adapter insertion signal.
+
+## 2026-06-20 - Merge Folder AppWidget behavior into Things-list AppWidgets
+
+The folder widget concept should be implemented by extending the existing
+Things-list AppWidget family rather than by adding a separate dedicated Folder
+AppWidget provider. A Things-list AppWidget can target either a built-in root
+projection or a selected Thing Folder projection, and it should offer both List
+and Grid display modes where the AppWidget platform supports them.
+
+The existing settings button in the Things-list AppWidget header remains the
+configuration entry point. Reopening settings should allow users to change the
+target projection, including which Thing Folder is selected, and switch between
+List and Grid display modes for that same AppWidget instance.
+
+The Things-list AppWidget configuration model should keep three independent
+choices: target scope, type filters, and display mode. Target scope is root or
+a selected Thing Folder. Type filters are represented by a horizontal row of
+All, Note, Reminder, Habit, and Goal icons. All is exclusive, while the
+specific type icons support multi-select combinations such as Reminder plus
+Habit. Display mode is List or Grid. This preserves the same folder projection
+semantics as the home list and supports widgets such as "all Things in this
+Folder" and "Reminders and Habits in this Folder" without adding a separate
+Folder-specific widget type.
+
+The type filter must always resolve to a valid non-empty selection. If the user
+deselects every specific type icon, the configuration should return to All
+automatically rather than saving an intentionally empty AppWidget.
+
+Grid display mode should derive its column count from the AppWidget width
+rather than exposing a separate column-count setting. Narrow widgets can use one
+column, medium widgets two columns, and wide widgets three columns, with exact
+thresholds tuned during launcher/device testing.
+
+Grid display mode should preserve existing Thing Card Span Mode where possible:
+Things configured as full-span Thing Cards should occupy a full widget grid row.
+This likely requires rendering Grid mode as a row-oriented RemoteViews
+collection rather than as a plain AppWidget `GridView`, because individual
+`GridView` items do not reliably span multiple columns. Thing Folder entries
+remain summary Folder Cards rather than large Folder previews.
+
+Grid-mode rows should preserve card content rather than clipping. When a row
+contains multiple normal-span cards, each card keeps its own wrap-content
+height, the row height follows the tallest card, and shorter cards stay
+top-aligned rather than being stretched to match.
+
+Grid-mode item packing should preserve the current mixed-list order. Normal
+cards fill the current row in order. A full-span card first closes any
+partially filled normal row, then occupies a full row by itself before normal
+row packing resumes. Thing Folder summary cards participate in this packing
+according to their Folder Card span mode.
+
+Grid display mode should preserve rich Thing Card information as far as the
+RemoteViews platform permits. It should not intentionally collapse Things into
+minimal tiles when a supported RemoteViews approximation of the normal widget
+Thing Card can carry title, content, checklist, media, reminder, habit, state,
+sticky, doing, and privacy surfaces. Thing Folder entries are the exception:
+inside Things-list AppWidgets, Folders should render as summary Folder Cards
+instead of reproducing the in-app large thumbnail Folder Card with nested
+previews.
+
+Thing Folder entries inside a desktop Things-list AppWidget should open the
+app at the corresponding Thing Folder projection when tapped. The AppWidget
+itself should not maintain an internal Folder navigation stack, change its
+header to the tapped Folder, or implement an AppWidget-local back/up affordance.
+
+The Things-list AppWidget header should open the app at the widget's full
+configured projection, including the target scope and built-in type filter. The
+existing settings button in that header remains the way to reopen
+configuration and does not share the header's navigation behavior.
+
+Things-list AppWidget privacy should follow home-list semantics while keeping
+the desktop surface conservative. Private Thing Folder entries show the stored
+Folder name, Folder icon, and lock affordance, but no child previews. Private
+Things and Things under a private ancestor use the existing protected Thing
+widget presentation. Opening a private Folder projection from an AppWidget, or
+selecting one in the configuration flow, requires the existing private Folder
+authentication path.
+
+The first folder-aware Things-list AppWidget slice keeps state fixed to
+Underway. The configuration should not add Finished or Deleted projection
+choices yet; those states can be added later as a separate AppWidget expansion.
+
+Folder-aware Things-list AppWidget configuration should use explicit database
+fields instead of extending the legacy negative `thing_id` encoding. The
+`app_widget` record should keep enough independent data to represent root or
+Folder target scope, selected type-filter mask, and List/Grid display mode
+while preserving existing alpha and style settings. Existing Things-list widget
+records should migrate to root scope, their current single built-in limit as
+the equivalent type filter, and List display mode.
+
+When migrating existing Things-list AppWidgets, legacy `ALL_UNDERWAY` should
+map to the exclusive All type filter rather than to all current specific type
+icons. This preserves the open-ended "all underway Things" meaning.
+
+Things-list AppWidget item ordering should follow the same mixed Thing/Folder
+ordering as the corresponding home projection, including sticky Things and
+sticky Thing Folders. List and Grid display modes change layout only; they do
+not introduce a separate widget-specific sort order.
+
+The Things-list AppWidget configuration Folder picker should show all
+non-deleted Thing Folders rather than filtering the tree by the current type
+icon selection. Folder scope and type filters are independent choices, so an
+otherwise valid Folder should not disappear while the user changes type icons.
+
+The create button in a Things-list AppWidget should not force the new Thing
+type from the widget's type filter. Creation should use the existing Detail
+create flow, where the Thing's final type is determined by the reminder time,
+repeat settings, and other fields the user sets while creating it.
+
+When a Things-list AppWidget targets a Thing Folder, its create button should
+open creation in that Folder scope. The Folder scope affects where the new Thing
+is created, while the widget's type filter still does not force the Thing type.
+
+Things-list AppWidget header titles should show the configured scope and type
+filters directly. Root + All shows the Underway title. Root + multiple specific
+types joins the selected type names with `/`, for example `Reminder/Habit`.
+Folder + All shows the Folder name. Folder + specific type filters shows
+`Folder name · Reminder/Habit` using the selected type names.
+
+Things-list AppWidget headers use the app accent for root scopes and the
+selected Thing Folder's pure colour or gradient for Folder scopes. Header
+foreground should adapt to the rendered header background, and the existing
+header transparency setting still applies.
+
+In Grid mode, each card slot inside a row should own its click fill-in intent.
+The row is only a RemoteViews container and should not handle item clicks
+itself. Thing slots open Detail; Folder slots open the app at that Folder
+projection.
+
+Grid rows should keep stable column widths by filling incomplete rows with
+transparent, non-clickable empty slots.
+
+The Things-list AppWidget header keeps its settings and create buttons in both
+List and Grid display modes. The configuration does not need a live AppWidget
+preview in this slice. The List/Grid display-mode choice should not use radio
+controls; it should follow the Thing Card appearance panel's compact row
+pattern with a left label and two text options that have pill-shaped touch
+ripples and a visible selected state.
+
+The Things-list AppWidget transparency slider primarily controls each content
+card's own background transparency, including Thing cards and Folder summary
+cards. The existing top-bar transparency checkbox applies that same alpha to
+the widget header; without it, the header remains opaque.
+
+Existing Things-list AppWidget configuration state maps legacy Underway to All,
+legacy single type limits to the matching specific type icon, and new widgets
+to root scope, All, List mode, and the existing default alpha/style settings.
+Type icon ordering is fixed as All, Note, Reminder, Habit, and Goal. Header
+type-name joining uses this fixed order, not click order.
+
+A Folder-scoped Things-list AppWidget shows direct child Things and direct
+child Folder summary cards. It does not recursively flatten descendants.
+Things-list AppWidget item interactions are click-only; Folder and Thing rows
+do not provide widget-level long-press menus or card actions.
+
+The Things-list AppWidget configuration picker follows the Drawer model for its
+root row: the Underway root row is selectable, has no trailing expand/collapse
+icon, and the first Folder level is always visible beneath it. Folder row bodies
+select that Folder as the widget scope, while trailing expand/collapse icons
+show or hide child Folders. The picker shows the first Folder level by default,
+expands the configured Folder's ancestor path when editing an existing widget,
+and does not need search in this slice.
+
+Single-Thing AppWidget configuration remains a Thing selector. It should become
+Folder-aware only as navigation: Folder rows appear so users can browse into a
+Thing Folder, the configuration title and back/up behavior follow the current
+Folder, and only Thing rows can be selected as the single widget target.
+Each Folder projection in Single-Thing AppWidget configuration shows child
+Thing Folders and direct Things in the same mixed order as the home list. Folder
+rows are navigation entries, while only Thing rows can be selected as widget
+targets.
+Things-list AppWidget configuration is a separate configuration surface, not
+the single-Thing card picker, so Folder target selection for list widgets needs
+its own UI control.
+
+AppWidget media transparency must be rendered into the bitmap that is assigned
+to the RemoteViews `ImageView`. Launcher/runtime handling of
+`ImageView.setImageAlpha` is not reliable enough for widget preview or desktop
+widget media. This applies to media-background cards and foreground image/video
+thumbnail placements.
+
+RemoteViews Thing and Folder cards must keep their foreground affordances
+luminance-adaptive. Small icons, audio attachment icons, habit/reminder/state
+icons, privacy locks, and dashed separators should use black-side resources or
+tints on light cards and white-side resources or tints on dark/media-background
+cards. Folder summary cards in Things-list AppWidgets should use the same
+rounded card clipping as Thing cards.
+
+Things-list AppWidget configuration type filters should keep the circular icon
+touch targets from the app chrome. The panel also shows a live summary label,
+for example `Thing type: All` or `Thing type: Reminder/Habit`, above the five
+type icons.
+
 ## 2026-06-20 - Folder navigation restores parent scroll state
 
 Opening a child Folder projection should keep the existing top-start behavior
@@ -1103,3 +1306,41 @@ compile-safe.
 Folder-aware RemoteViews rendering, folder projection intents, private folder
 handling, and deleted-folder handling are deferred to a later widget-specific
 slice.
+
+## 2026-06-20 - Widget Folder follow-up polish
+
+Single-Thing AppWidget configuration should reuse the home-list `ThingsAdapter`
+Thing binding for selectable Thing rows rather than maintaining a separate
+`BaseThingsAdapter` approximation. The configuration layer may still provide
+its own data source, click behavior, and Folder-auth state, but media placement,
+media backgrounds, crop geometry, private Thing presentation, sticky markers,
+and ordinary Thing Card layout should come from the shared home card path.
+
+Things-list AppWidget Grid mode should bind click fill-in intents to each
+visible grid slot container. The row RemoteViews object exists only to pack
+multiple cards into one collection item; it should not decide which Thing or
+Folder opens after a tap.
+
+AppWidget alpha should affect media-backed Thing Cards across RemoteViews.
+Foreground thumbnails, side media panels, and media-background cards should use
+the corresponding RemoteViews `ImageView` alpha so preview updates and launcher
+updates follow the same path, while pure-colour and gradient cards can continue
+to render their background bitmap with alpha baked in.
+
+## 2026-06-20 - Single-Thing widget configuration parity
+
+Single-Thing AppWidget configuration card delegates must be bound to the
+configuration RecyclerView as their host when they are used through the mixed
+Thing/Folder adapter. Home-card media sizing depends on the host RecyclerView
+width, so delegate binding must not rely only on `onAttachedToRecyclerView`.
+
+Single-Thing AppWidget preview should remain a `RemoteViews` preview instead of
+switching to an in-app `card_thing` rendering path. Rounded preview clipping
+should be fixed at the widget root by combining a rounded background outline,
+`clipToOutline`, and the API 31+ RemoteViews outline-radius action where
+available.
+
+Large Folder previews inside the Single-Thing AppWidget configuration should
+keep home-card visuals while exposing configuration-specific taps: tapping a
+Thing thumbnail selects that Thing for preview, and tapping a Folder thumbnail
+opens that Folder.

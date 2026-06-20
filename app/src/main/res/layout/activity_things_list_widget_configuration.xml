@@ -14,17 +14,161 @@
         android:layout_height="wrap_content"
         android:paddingLeft="@dimen/app_chrome_dialog_title_margin_horizontal"
         android:paddingRight="@dimen/app_chrome_dialog_title_margin_horizontal"
-        android:layout_marginBottom="12dp"
         android:textAllCaps="true"
         android:textSize="@dimen/app_chrome_dialog_title_text_size"
         android:textStyle="bold"
         android:text="@string/title_activity_things_list_widget_configuration"/>
 
-    <com.ywwynm.everythingdone.views.StablerRecyclerView
-        android:id="@+id/rv_types_list_things_list_widget_config"
+    <View
+        android:id="@+id/view_separator_scope_things_list_widget_config_top"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="1dp"
+        android:layout_marginTop="12dp"
+        android:background="@color/app_chrome_divider"
+        android:visibility="invisible"/>
+
+    <com.ywwynm.everythingdone.views.StablerRecyclerView
+        android:id="@+id/rv_scope_things_list_widget_config"
+        android:layout_width="match_parent"
+        android:layout_height="176dp"
         android:overScrollMode="never"/>
+
+    <View
+        android:id="@+id/view_separator_scope_things_list_widget_config_bottom"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/app_chrome_divider"
+        android:visibility="invisible"/>
+
+    <TextView
+        android:id="@+id/tv_widget_type_filter_summary"
+        android:layout_width="match_parent"
+        android:layout_height="28dp"
+        android:layout_marginTop="10dp"
+        android:gravity="center_vertical"
+        android:paddingLeft="16dp"
+        android:paddingRight="16dp"
+        android:textColor="@color/app_chrome_on_surface_hint"
+        android:textSize="13sp"
+        tools:text="记事类型：全部"/>
+
+    <LinearLayout
+        android:id="@+id/ll_type_filter_things_list_widget_config"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:paddingLeft="12dp"
+        android:paddingRight="12dp">
+
+        <ImageView
+            android:id="@+id/iv_widget_type_all"
+            android:layout_width="@dimen/app_widget_config_type_icon_touch_target"
+            android:layout_height="@dimen/app_widget_config_type_icon_touch_target"
+            android:layout_marginLeft="@dimen/app_widget_config_type_icon_margin"
+            android:layout_marginStart="@dimen/app_widget_config_type_icon_margin"
+            android:layout_marginRight="@dimen/app_widget_config_type_icon_margin"
+            android:layout_marginEnd="@dimen/app_widget_config_type_icon_margin"
+            android:padding="8dp"
+            android:src="@drawable/drawer_all"
+            android:contentDescription="@string/all"/>
+
+        <ImageView
+            android:id="@+id/iv_widget_type_note"
+            android:layout_width="@dimen/app_widget_config_type_icon_touch_target"
+            android:layout_height="@dimen/app_widget_config_type_icon_touch_target"
+            android:layout_marginLeft="@dimen/app_widget_config_type_icon_margin"
+            android:layout_marginStart="@dimen/app_widget_config_type_icon_margin"
+            android:layout_marginRight="@dimen/app_widget_config_type_icon_margin"
+            android:layout_marginEnd="@dimen/app_widget_config_type_icon_margin"
+            android:padding="8dp"
+            android:src="@drawable/drawer_note"
+            android:contentDescription="@string/note"/>
+
+        <ImageView
+            android:id="@+id/iv_widget_type_reminder"
+            android:layout_width="@dimen/app_widget_config_type_icon_touch_target"
+            android:layout_height="@dimen/app_widget_config_type_icon_touch_target"
+            android:layout_marginLeft="@dimen/app_widget_config_type_icon_margin"
+            android:layout_marginStart="@dimen/app_widget_config_type_icon_margin"
+            android:layout_marginRight="@dimen/app_widget_config_type_icon_margin"
+            android:layout_marginEnd="@dimen/app_widget_config_type_icon_margin"
+            android:padding="8dp"
+            android:src="@drawable/drawer_reminder"
+            android:contentDescription="@string/reminder"/>
+
+        <ImageView
+            android:id="@+id/iv_widget_type_habit"
+            android:layout_width="@dimen/app_widget_config_type_icon_touch_target"
+            android:layout_height="@dimen/app_widget_config_type_icon_touch_target"
+            android:layout_marginLeft="@dimen/app_widget_config_type_icon_margin"
+            android:layout_marginStart="@dimen/app_widget_config_type_icon_margin"
+            android:layout_marginRight="@dimen/app_widget_config_type_icon_margin"
+            android:layout_marginEnd="@dimen/app_widget_config_type_icon_margin"
+            android:padding="8dp"
+            android:src="@drawable/drawer_habit"
+            android:contentDescription="@string/habit"/>
+
+        <ImageView
+            android:id="@+id/iv_widget_type_goal"
+            android:layout_width="@dimen/app_widget_config_type_icon_touch_target"
+            android:layout_height="@dimen/app_widget_config_type_icon_touch_target"
+            android:layout_marginLeft="@dimen/app_widget_config_type_icon_margin"
+            android:layout_marginStart="@dimen/app_widget_config_type_icon_margin"
+            android:layout_marginRight="@dimen/app_widget_config_type_icon_margin"
+            android:layout_marginEnd="@dimen/app_widget_config_type_icon_margin"
+            android:padding="8dp"
+            android:src="@drawable/drawer_goal"
+            android:contentDescription="@string/goal"/>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/ll_widget_display_mode_config"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingLeft="16dp"
+        android:paddingRight="16dp">
+
+        <TextView
+            android:layout_width="76dp"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:text="@string/widget_display_mode_label"
+            android:textColor="@color/app_chrome_on_surface_hint"
+            android:textSize="13sp"/>
+
+        <TextView
+            android:id="@+id/tv_widget_display_list"
+            android:layout_width="0dp"
+            android:layout_height="32dp"
+            android:layout_weight="1"
+            android:layout_marginLeft="2dp"
+            android:layout_marginRight="2dp"
+            android:layout_marginStart="2dp"
+            android:layout_marginEnd="2dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:text="@string/widget_display_mode_list"/>
+
+        <TextView
+            android:id="@+id/tv_widget_display_grid"
+            android:layout_width="0dp"
+            android:layout_height="32dp"
+            android:layout_weight="1"
+            android:layout_marginLeft="2dp"
+            android:layout_marginRight="2dp"
+            android:layout_marginStart="2dp"
+            android:layout_marginEnd="2dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:text="@string/widget_display_mode_grid"/>
+
+    </LinearLayout>
 
     <View
         android:layout_width="match_parent"
@@ -123,7 +267,7 @@
         android:paddingTop="@dimen/app_chrome_dialog_action_button_padding_vertical"
         android:paddingRight="@dimen/app_chrome_dialog_action_button_padding_horizontal"
         android:paddingBottom="@dimen/app_chrome_dialog_action_button_padding_vertical"
-        android:layout_marginTop="@dimen/app_chrome_dialog_action_row_margin_top"
+        android:layout_marginTop="@dimen/app_chrome_dialog_divided_action_row_margin_top"
         android:layout_marginEnd="@dimen/app_chrome_dialog_action_single_button_margin_end"
         android:layout_marginRight="@dimen/app_chrome_dialog_action_single_button_margin_end"
         android:layout_marginBottom="@dimen/app_chrome_dialog_action_row_margin_bottom"

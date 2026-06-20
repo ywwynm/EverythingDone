@@ -4,7 +4,8 @@ import com.ywwynm.everythingdone.Def
 
 data class ThingListProjection(
     val limit: Int = Def.LimitForGettingThings.ALL_UNDERWAY,
-    val folderPath: List<Long> = emptyList()
+    val folderPath: List<Long> = emptyList(),
+    val underwayTypeFilterMask: Int = ThingWidgetInfo.TYPE_FILTER_ALL
 ) {
 
     val currentFolderId: Long?
@@ -13,11 +14,23 @@ data class ThingListProjection(
     fun isRoot(): Boolean = folderPath.isEmpty()
 
     fun key(): String {
-        return "$limit:${folderPath.joinToString("/")}"
+        val filterKey = if (limit == Def.LimitForGettingThings.ALL_UNDERWAY) {
+            ThingWidgetInfo.normalizedTypeFilterMask(underwayTypeFilterMask)
+        } else {
+            ThingWidgetInfo.TYPE_FILTER_ALL
+        }
+        return "$limit:$filterKey:${folderPath.joinToString("/")}"
     }
 
     fun withLimit(limit: Int): ThingListProjection {
         return ThingListProjection(normalizeLimit(limit), emptyList())
+    }
+
+    fun withUnderwayTypeFilterMask(typeFilterMask: Int): ThingListProjection {
+        if (limit != Def.LimitForGettingThings.ALL_UNDERWAY) return this
+        return copy(
+            underwayTypeFilterMask = ThingWidgetInfo.normalizedTypeFilterMask(typeFilterMask)
+        )
     }
 
     fun openFolder(folderId: Long): ThingListProjection {

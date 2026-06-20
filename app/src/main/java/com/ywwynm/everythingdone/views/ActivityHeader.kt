@@ -17,6 +17,7 @@ import com.ywwynm.everythingdone.managers.ModeManager
 import com.ywwynm.everythingdone.managers.ThingManager
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.model.ThingFolder
+import com.ywwynm.everythingdone.model.ThingWidgetInfo
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import kotlin.math.min
@@ -226,10 +227,20 @@ open class ActivityHeader(
         mInFolderProjection = folderPath.isNotEmpty()
         headerCollapseProgress = 0f
         resetTitleTextStyle()
+        val typeTitle = if (manager?.hasCustomUnderwayTypeFilter() == true) {
+            ThingWidgetInfo.getTypeFilterTitle(mApp, manager.getActiveTypeFilterMask())
+        } else {
+            null
+        }
+        val folderTitle = currentFolder?.title?.ifEmpty {
+            mApp.getString(R.string.default_thing_folder_name)
+        }
         mTitle.text = if (currentFolder == null) {
             rootTitle
+        } else if (typeTitle != null) {
+            "${folderTitle ?: rootTitle} · $typeTitle"
         } else {
-            currentFolder.title.ifEmpty { mApp.getString(R.string.default_thing_folder_name) }
+            folderTitle ?: rootTitle
         }
         applyFolderTitleStyle(currentFolder)
         updateTitleLayoutForProgress(0f)
@@ -244,6 +255,13 @@ open class ActivityHeader(
     }
 
     private fun getRootTitle(): String {
+        val manager = ThingManager.getInstance(mApp)
+        if (manager?.hasCustomUnderwayTypeFilter() == true) {
+            return ThingWidgetInfo.getTypeFilterTitle(
+                mApp,
+                manager.getActiveTypeFilterMask()
+            ) ?: mApp.getString(R.string.underway)
+        }
         return when (mApp.getLimit()) {
             Def.LimitForGettingThings.NOTE_UNDERWAY ->
                 mApp.getString(R.string.note)

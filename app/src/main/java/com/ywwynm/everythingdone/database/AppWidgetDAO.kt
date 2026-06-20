@@ -59,14 +59,65 @@ open class AppWidgetDAO private constructor(context: Context?) {
         return thingWidgetInfos
     }
 
+    open fun getThingsListWidgetInfos(): List<ThingWidgetInfo?> {
+        val thingWidgetInfos: MutableList<ThingWidgetInfo?> = ArrayList()
+        val selection = Def.Database.COLUMN_THING_ID_APP_WIDGET + "<0"
+        val cursor: Cursor = db!!.query(
+            Def.Database.TABLE_APP_WIDGET,
+            null,
+            selection,
+            null,
+            null,
+            null,
+            null
+        )
+        while (cursor.moveToNext()) {
+            thingWidgetInfos.add(ThingWidgetInfo(cursor))
+        }
+        cursor.close()
+        return thingWidgetInfos
+    }
+
     open fun insert(appWidgetId: Int, thingId: Long, @ThingWidgetInfo.Size size: Int, alpha: Int,
                     @ThingWidgetInfo.Style style: Int): Boolean {
+        return insert(
+            appWidgetId,
+            thingId,
+            size,
+            alpha,
+            style,
+            null,
+            ThingWidgetInfo.TYPE_FILTER_ALL,
+            ThingWidgetInfo.DISPLAY_MODE_LIST
+        )
+    }
+
+    open fun insert(
+        appWidgetId: Int,
+        thingId: Long,
+        @ThingWidgetInfo.Size size: Int,
+        alpha: Int,
+        @ThingWidgetInfo.Style style: Int,
+        targetFolderId: Long?,
+        typeFilterMask: Int,
+        @ThingWidgetInfo.DisplayMode displayMode: Int
+    ): Boolean {
         val values = ContentValues()
         values.put(Def.Database.COLUMN_ID_APP_WIDGET,       appWidgetId)
         values.put(Def.Database.COLUMN_THING_ID_APP_WIDGET, thingId)
         values.put(Def.Database.COLUMN_SIZE_APP_WIDGET,     size)
         values.put(Def.Database.COLUMN_ALPHA_APP_WIDGET,    alpha)
         values.put(Def.Database.COLUMN_STYLE_APP_WIDGET,    style)
+        if (targetFolderId == null) {
+            values.putNull(Def.Database.COLUMN_TARGET_FOLDER_ID_APP_WIDGET)
+        } else {
+            values.put(Def.Database.COLUMN_TARGET_FOLDER_ID_APP_WIDGET, targetFolderId)
+        }
+        values.put(
+            Def.Database.COLUMN_TYPE_FILTER_MASK_APP_WIDGET,
+            ThingWidgetInfo.normalizedTypeFilterMask(typeFilterMask)
+        )
+        values.put(Def.Database.COLUMN_DISPLAY_MODE_APP_WIDGET, displayMode)
         return db!!.insert(Def.Database.TABLE_APP_WIDGET, null, values) != -1L
     }
 

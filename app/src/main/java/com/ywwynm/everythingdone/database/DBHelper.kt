@@ -117,7 +117,10 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
         if (oldVersion < 15) {
             migrateThingFolders(db)
         }
-        // released version should be 1, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15.
+        if (oldVersion < 16) {
+            migrateAppWidgetProjectionColumns(db)
+        }
+        // released version should be 1, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16.
     }
 
     private fun migrateThingCardSettingsColumns(db: SQLiteDatabase) {
@@ -181,6 +184,35 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
         db.execSQL(SQL_CREATE_TABLE_THING_FOLDERS)
         db.execSQL(SQL_CREATE_INDEX_THINGS_FOLDER_ID)
         db.execSQL(SQL_CREATE_INDEX_THING_FOLDERS_PARENT_FOLDER_ID)
+    }
+
+    private fun migrateAppWidgetProjectionColumns(db: SQLiteDatabase) {
+        if (!columnExists(
+                db,
+                Def.Database.TABLE_APP_WIDGET,
+                Def.Database.COLUMN_TARGET_FOLDER_ID_APP_WIDGET
+            )) {
+            db.execSQL(SQL_ADD_COLUMN_TARGET_FOLDER_ID_APP_WIDGET)
+        }
+        if (!columnExists(
+                db,
+                Def.Database.TABLE_APP_WIDGET,
+                Def.Database.COLUMN_TYPE_FILTER_MASK_APP_WIDGET
+            )) {
+            db.execSQL(SQL_ADD_COLUMN_TYPE_FILTER_MASK_APP_WIDGET)
+        }
+        if (!columnExists(
+                db,
+                Def.Database.TABLE_APP_WIDGET,
+                Def.Database.COLUMN_DISPLAY_MODE_APP_WIDGET
+            )) {
+            db.execSQL(SQL_ADD_COLUMN_DISPLAY_MODE_APP_WIDGET)
+        }
+        db.execSQL(SQL_MIGRATE_APP_WIDGET_LIST_NOTE_MASK)
+        db.execSQL(SQL_MIGRATE_APP_WIDGET_LIST_REMINDER_MASK)
+        db.execSQL(SQL_MIGRATE_APP_WIDGET_LIST_HABIT_MASK)
+        db.execSQL(SQL_MIGRATE_APP_WIDGET_LIST_GOAL_MASK)
+        db.execSQL(SQL_MIGRATE_APP_WIDGET_LIST_ALL_MASK)
     }
 
     private fun columnExists(db: SQLiteDatabase, tableName: String, columnName: String): Boolean {
@@ -345,6 +377,9 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
                     Def.Database.COLUMN_SIZE_APP_WIDGET     + " integer not null, " /* added in version 3 */ +
                     Def.Database.COLUMN_ALPHA_APP_WIDGET    + " integer not null default 100, " /* added in version 4 */ +
                     Def.Database.COLUMN_STYLE_APP_WIDGET    + " integer not null default 0, " /* added in version 5 */ +
+                    Def.Database.COLUMN_TARGET_FOLDER_ID_APP_WIDGET + " integer default null, " /* added in version 16 */ +
+                    Def.Database.COLUMN_TYPE_FILTER_MASK_APP_WIDGET + " integer not null default 0, " /* added in version 16 */ +
+                    Def.Database.COLUMN_DISPLAY_MODE_APP_WIDGET + " integer not null default 0, " /* added in version 16 */ +
                     "foreign key(" +
                         Def.Database.COLUMN_THING_ID_APP_WIDGET +
                     ") references " +
@@ -398,6 +433,46 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
         private const val SQL_ADD_COLUMN_STYLE_APP_WIDGET: String = "alter table " +
                 Def.Database.TABLE_APP_WIDGET +
                 " add column " + Def.Database.COLUMN_STYLE_APP_WIDGET + " integer not null default 0"
+
+        private const val SQL_ADD_COLUMN_TARGET_FOLDER_ID_APP_WIDGET: String =
+            "alter table " + Def.Database.TABLE_APP_WIDGET +
+                " add column " + Def.Database.COLUMN_TARGET_FOLDER_ID_APP_WIDGET +
+                " integer default null"
+
+        private const val SQL_ADD_COLUMN_TYPE_FILTER_MASK_APP_WIDGET: String =
+            "alter table " + Def.Database.TABLE_APP_WIDGET +
+                " add column " + Def.Database.COLUMN_TYPE_FILTER_MASK_APP_WIDGET +
+                " integer not null default 0"
+
+        private const val SQL_ADD_COLUMN_DISPLAY_MODE_APP_WIDGET: String =
+            "alter table " + Def.Database.TABLE_APP_WIDGET +
+                " add column " + Def.Database.COLUMN_DISPLAY_MODE_APP_WIDGET +
+                " integer not null default 0"
+
+        private const val SQL_MIGRATE_APP_WIDGET_LIST_ALL_MASK: String =
+            "update " + Def.Database.TABLE_APP_WIDGET +
+                " set " + Def.Database.COLUMN_TYPE_FILTER_MASK_APP_WIDGET + "=0 " +
+                "where " + Def.Database.COLUMN_THING_ID_APP_WIDGET + "=-1"
+
+        private const val SQL_MIGRATE_APP_WIDGET_LIST_NOTE_MASK: String =
+            "update " + Def.Database.TABLE_APP_WIDGET +
+                " set " + Def.Database.COLUMN_TYPE_FILTER_MASK_APP_WIDGET + "=1 " +
+                "where " + Def.Database.COLUMN_THING_ID_APP_WIDGET + "=-2"
+
+        private const val SQL_MIGRATE_APP_WIDGET_LIST_REMINDER_MASK: String =
+            "update " + Def.Database.TABLE_APP_WIDGET +
+                " set " + Def.Database.COLUMN_TYPE_FILTER_MASK_APP_WIDGET + "=2 " +
+                "where " + Def.Database.COLUMN_THING_ID_APP_WIDGET + "=-3"
+
+        private const val SQL_MIGRATE_APP_WIDGET_LIST_HABIT_MASK: String =
+            "update " + Def.Database.TABLE_APP_WIDGET +
+                " set " + Def.Database.COLUMN_TYPE_FILTER_MASK_APP_WIDGET + "=4 " +
+                "where " + Def.Database.COLUMN_THING_ID_APP_WIDGET + "=-4"
+
+        private const val SQL_MIGRATE_APP_WIDGET_LIST_GOAL_MASK: String =
+            "update " + Def.Database.TABLE_APP_WIDGET +
+                " set " + Def.Database.COLUMN_TYPE_FILTER_MASK_APP_WIDGET + "=8 " +
+                "where " + Def.Database.COLUMN_THING_ID_APP_WIDGET + "=-5"
 
         private const val SQL_ADD_COLUMN_START_TYPE_DOING_RECORD: String = "alter table " +
                 Def.Database.TABLE_DOING_RECORDS +

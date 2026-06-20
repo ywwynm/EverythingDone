@@ -1,6 +1,149 @@
 # Current Debug Update Notes
 
-Latest published debug update: `202606200558`, APK `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606200558.apk`, SHA-256 `f1775e6462875b3bc17a40a6eaa8de155696b09ffd2b9ffcdf99c0f6c1de4936`.
+Latest published debug update: `202606201337`, APK `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606201337.apk`, SHA-256 `77c8c6e3dd445cc21f744447c24e28b52a3f07541ba5fb00e794d6a8bdad2502`.
+
+## 2026-06-20 - 恢复 Folder-scoped widget 创建返回的 appearing animation
+
+这次 debug update 根据用户进一步反馈微调上一版重复卡片修复：
+
+- 上一版为了避免 Folder-scoped 记事列表 AppWidget 创建返回后出现两个新记事卡片，把这条 create-return projection rebind 的 whole-list appearing animation 一起关闭了。
+- 用户确认这种情况下可以播放 things appearing animation。重新分析后确认，重复卡片的根因不是 appearing animation，而是 projection 已经 `notifyDataSetChanged()` 后又继续执行普通新建路径里的 `notifyItemInserted(newListPosition)`。
+- 现在 `updateMainUiForShortcutFolderCreateDone()` 仍然会在普通新建插入逻辑前 `return`，不再触发 `armNewItemAnimation()`、`notifyItemInserted()` 或 `notifyItemChanged(1)`；但调用外部 Folder projection rebind 时重新传入 `shouldThingsAnimWhenAppearing = true`，让目标文件夹内容按普通 things appearing animation 出现。
+
+验证状态：
+
+- 静态检查确认该特殊路径仍会在普通创建通知前 `return`，且 handler 内不包含 `notifyItemInserted` 或 `armNewItemAnimation`。
+- `.\gradlew.bat :app:assembleDebug` 已通过，结果为 `BUILD SUCCESSFUL`。
+- `git diff --check` 已通过，仅有仓库既有的 LF/CRLF 提示。
+- 本次发布使用 `:app:publishDebugUpdate` 发布到阿里云 debug update channel，并在发布后回读远端 `latest.json` 确认版本、APK URL、SHA-256 和 release notes。
+
+## 2026-06-20 - 修正 Folder-scoped widget 创建返回后的重复卡片
+
+这次 debug update 修正上一版 Folder-scoped 记事列表 AppWidget 创建返回后的列表重复问题：
+
+- 用户反馈：从 Folder-scoped 记事列表 AppWidget 创建记事完成后，首页确实会回到对应文件夹，但列表里可能同时出现两个刚创建的记事卡片。
+- 诊断确认根因在 `ThingsActivity.updateMainUiForCreateDone()`：命中 widget 创建返回后，`openExternalProjectionFromIntent()` 会先打开目标 Folder、重新加载 projection 并 `notifyDataSetChanged()`；随后同一个创建结果继续落入普通“同一列表新建记事”的路径，执行 `armNewItemAnimation()` 和 `notifyItemInserted(newListPosition)`。此时数据源里已经有新记事，再发插入通知会让 RecyclerView 短时间进入“已有数据 + 又插入一次”的错配状态，表现为重复卡片。
+- 现在新增 `updateMainUiForShortcutFolderCreateDone()` 专门处理这条路径：Folder-scoped widget 创建返回只走一次外部 Folder projection rebind，命中后立即 `return`，不再继续执行普通新建卡片插入动画、`notifyItemInserted()` 或 `notifyItemChanged(1)`。
+- 这条 create-return rebind 同时关闭本次 whole-list appearing animation，避免它和创建动画、数据刷新互相叠加。普通 widget/header 打开 Folder projection 仍保留原来的 external projection 行为和普通 appearing treatment。
+
+验证状态：
+
+- 静态检查确认 `updateMainUiForShortcutFolderCreateDone()` 不包含 `notifyItemInserted`、`armNewItemAnimation` 或直接 `notifyDataSetChanged`，且 `updateMainUiForCreateDone()` 命中该分支后会在普通创建通知前 `return`。
+- `.\gradlew.bat :app:assembleDebug` 已通过，结果为 `BUILD SUCCESSFUL`。
+- `git diff --check` 已通过，仅有仓库既有的 LF/CRLF 提示。
+- 本次发布使用 `:app:publishDebugUpdate` 发布到阿里云 debug update channel，并在发布后回读远端 `latest.json` 确认版本、APK URL、SHA-256 和 release notes。
+
+## 2026-06-20 - 修正记事列表 widget 文件夹选择与创建返回
+
+这次 debug update 继续修正 Folder-aware AppWidget 的三个细节：
+
+- 记事列表 AppWidget 配置界面的 Folder picker 现在复用 Drawer 的 `DrawerNavigationView.FolderIconDrawable` 来绘制文件夹图标。私密文件夹会显示和 Drawer 一样的“文件夹内带锁”图标；因为私密祖先而需要认证的子文件夹仍然走认证逻辑，但图标语义保持和 Drawer 一致。
+- Folder picker 行样式做了微调：文件夹 icon 和文件夹名称之间额外增加 2dp 间距；右侧展开/收缩按钮从矩形 row ripple 改为 App Chrome 的圆形 ripple，并只在该文件夹确实有子文件夹时可点击。
+- 从 Folder-scoped 的记事列表 AppWidget 点击创建记事并完成后，返回首页时会保留这次 widget 的目标文件夹。`DetailActivity` 会在 `ShortcutActivity` 发起的新建结果里带回 `KEY_FOLDER_ID`，`ThingsActivity` 收到后复用现有的外部打开 Folder projection 逻辑，让首页显示对应文件夹而不是根目录。创建流程仍然不使用 widget 的类型过滤强制新记事类型。
+
+验证状态：
+
+- `.\gradlew.bat :app:assembleDebug` 已通过，结果为 `BUILD SUCCESSFUL`。
+- `git diff --check` 已通过，仅有仓库既有的 LF/CRLF 提示。
+- 本次发布使用 `:app:publishDebugUpdate` 发布到阿里云 debug update channel，并在发布后回读远端 `latest.json` 确认版本、APK URL、SHA-256 和 release notes。
+
+## 2026-06-20 - 修正 widget 分割线、单记事完成区与文件夹卡片前景色
+
+这次 debug update 修正用户继续反馈的三个 AppWidget 细节：
+
+- 记事列表 AppWidget 配置页的文件夹 scope picker 底部分割线改为固定显示。顶部 divider 仍只在列表已经向下滚动后显示；底部 divider 作为文件夹列表区域和下面类型/显示设置之间的稳定边界，不再因为滚动到底部而消失。
+- 单个记事 AppWidget 不再显示旧的底部完成按钮，按钮上方那条与记事内容分隔的虚线也随 `ll_thing_action` 一起隐藏。提醒、习惯、状态等记事内容自身的分割线不受影响。
+- 记事列表 AppWidget 里的 Folder summary card 前景色改为对齐首页 summary Folder Card：浅色文件夹卡片上 icon 和标题使用 `black_86p` 主前景，数量文本使用 `black_66p`，私密锁使用 `black_76p`；深色文件夹卡片对应使用白色侧的同级前景色。
+
+验证状态：
+
+- `.\gradlew.bat :app:assembleDebug` 已通过，结果为 `BUILD SUCCESSFUL`。
+- `git diff --check` 已通过，仅有仓库既有的 LF/CRLF 提示。
+- 已使用 `:app:publishDebugUpdate` 发布到阿里云 debug update channel，并在发布后回读远端 `latest.json` 确认版本、APK URL、SHA-256 和 release notes。
+
+## 2026-06-20 - 调整记事列表 widget 配置页滚动分割线与间距
+
+这次 debug update 继续修正用户反馈的记事列表 AppWidget 配置界面细节：
+
+- 文件夹 scope picker 上方补齐和选择应用语言 dialog 一致的滚动分割线行为：标题下方的 divider 默认保留空间但不可见，只有当列表已经向下滚动、还能向上滚回时才显示；底部 divider 也改为只在下方还有可滚内容时显示。
+- 五个“记事类型”图标继续使用圆形触摸 ripple，但触摸/选中圆从 48dp 收紧到 40dp，图标内容仍保持 24dp；相邻图标之间新增 2dp 间距，并把这两个数值收进 `dimens.xml`。
+- 确认按钮与上方内容区域之间的间距改用 `app_chrome_dialog_divided_action_row_margin_top`，和带分割内容的 app chrome dialog action row 保持一致，避免底部空隙过大。
+- 展开、收起、选择或认证文件夹后，会重新计算 scope picker 的上下 divider 状态，避免列表内容高度变化后 divider 显示滞后。
+
+验证状态：
+
+- `.\gradlew.bat :app:assembleDebug` 已通过，结果为 `BUILD SUCCESSFUL`。
+- `git diff --check` 已通过，仅有仓库既有的 LF/CRLF 提示。
+- 已使用 `:app:publishDebugUpdate` 发布到阿里云 debug update channel，并在发布后回读远端 `latest.json` 确认版本、APK URL、SHA-256 和 release notes。
+
+## 2026-06-20 - 修正 widget 媒体透明度、图标/分割线颜色与列表配置页
+
+这次 debug update 继续修正用户在上一版 widget 文件夹支持中发现的回归和细节问题：
+
+- 单个记事 AppWidget 预览里的图片/视频透明度不再依赖 RemoteViews 的 `ImageView.setImageAlpha`。实测该调用在预览和 launcher RemoteViews 中不能可靠地产生实时效果，因此 `AppWidgetHelper` 改为在写入 RemoteViews 前按 widget alpha 生成已经合成透明度的媒体 bitmap，覆盖媒体背景、上/下/左/右封面图和视频帧缩略图。
+- 单个记事 AppWidget 预览底部的确认按钮从系统 `Button` 改为普通 `TextView`，只安装 foreground pill ripple，并继续使用当前 Thing 的纯色或渐变背景来适配文字颜色。这样按钮常态下不再显示系统默认 background，只在触摸时显示 pill ripple。
+- 记事列表 AppWidget 的 Folder summary card 现在和 Thing card 一样给 root 安装透明圆角 background、`clipToOutline` 和 API 31+ 的 outline radius，解决文件夹卡片没有圆角的问题。
+- 全面排查了 RemoteViews Thing card 的小图标和分割线颜色适配：音频附件图标、清单勾选图标、提醒/习惯/状态/私密/记录图标都会按卡片前景明暗进行黑/白 tint；所有 widget 卡片里的 dashed separator 会根据卡片背景切换白色或黑色 drawable。颜色判断也改为使用 Thing background 的 representative color，而不是只读旧的 `thing.getColor()`。
+- 修正从记事列表 AppWidget 打开正在做的记事时的入口差异：`AuthenticationActivity` 识别到当前 Doing Thing 后，会用主 app task flags 打开 `DoingActivity`，避免列表 widget 经过 authentication task 后影响 Doing 卡片宽度。
+- 记事列表 AppWidget 配置界面更新：5 个类型 icon 保持圆形触摸 ripple，上方新增实时文本“记事类型：全部 / 提醒/习惯”等；列表/网格的显示模式改成类似自定义记事卡片外观 panel 的“左侧提示文本 + 右侧两个文本选项”，带 pill ripple 和选中态，不再使用 RadioButton。
+
+验证状态：
+
+- `.\gradlew.bat :app:assembleDebug` 已通过，结果为 `BUILD SUCCESSFUL`。
+- `git diff --check` 已通过，仅有仓库既有的 LF/CRLF 提示。
+- 发布流程使用 `:app:publishDebugUpdate` 发布到阿里云 debug update channel，并在发布任务后回读远端 `latest.json` 确认版本、APK URL、SHA-256 和 release notes。
+
+## 2026-06-20 - 修正单个记事 widget 配置页卡片与 RemoteViews 预览
+
+这次 debug update 修正上一版发布后用户继续指出的单个记事 AppWidget 配置页问题：
+
+- 单个记事 AppWidget 配置页的 Thing/Folder 卡片必须继续和首页记事列表保持一致。重新阅读 `BaseThingsAdapter`、`ThingsAdapter` 和 `BaseThingWidgetConfiguration` 后确认，配置页虽然已经改成复用 `ThingsAdapter`，但它是通过混合 Thing/Folder adapter 手动委托绑定的，delegate adapter 自己没有真正 attach 到 `RecyclerView`，因此首页卡片依赖宿主 `RecyclerView` 宽度的媒体高度、背景媒体延迟布局和裁剪重放逻辑仍可能拿到默认宽度。现在 `BaseThingsAdapter` 增加了显式的 delegated host RecyclerView 绑定入口，单个记事配置页在初始化、span count 变化、布局完成后和每次 bind 前都会同步宿主 RecyclerView，让普通 Thing 卡片、大文件夹预览里的私密 Thing、图片/视频封面高度与裁剪都走首页同一套尺寸路径。
+- 单个记事 AppWidget 配置页的大文件夹预览现在也接入配置页的点击语义：点击大文件夹里的 Thing 会直接选中该 Thing 并进入预览；点击大文件夹里的 Folder 会通过和顶层 Folder 行一致的逻辑打开该 Folder，私密 Folder 仍先走认证。
+- 单个记事 AppWidget 预览继续使用 `RemoteViews`，不切换为 `card_thing`。针对圆角问题，新增 `bg_app_widget_card_clip.xml` 作为透明圆角 root background，`app_widget_thing.xml` 与 `app_widget_item_thing.xml` 的 root 都设置 `clipToOutline=true`，`AppWidgetHelper` 每次构建 RemoteViews 时也会恢复 root 的圆角 background、调用 `setClipToOutline(true)`，并在 API 31+ 使用 `RemoteViews.setViewOutlinePreferredRadiusDimen(...)` 设置圆角 outline，避免旧的 `setBackgroundColor(Color.TRANSPARENT)` 把 root 的圆角 outline 覆盖掉。
+- 单个记事 AppWidget 预览的透明度滑杆仍然通过 RemoteViews 实时重建预览。图片/视频媒体不再依赖预先把 bitmap 画成半透明，而是把 opaque bitmap 写入 RemoteViews 后对对应的 `ImageView` 设置 `setImageAlpha`；这样前景封面、左右/上下媒体 panel 和背景媒体都能在预览和真实 widget 里使用同一个 alpha 路径。纯色/渐变背景仍保留原有的透明 background bitmap 路径，避免透明度叠加两次。
+- 确认按钮保持无 background：布局里去掉默认 Button background，运行时仍只安装 foreground pill ripple 与适配当前 Thing 背景的文字颜色，pill 只在触摸反馈时出现。
+
+验证状态：
+
+- `.\gradlew.bat :app:assembleDebug` 已通过，结果为 `BUILD SUCCESSFUL`。
+- `git diff --check` 已通过，仅有仓库既有的 LF/CRLF 提示。
+- 已使用 `:app:publishDebugUpdate` 发布到阿里云 debug update channel；发布后会回读远端 `latest.json` 确认版本、APK URL、SHA-256 和 release notes。
+
+## 2026-06-20 - 修正小组件文件夹支持的发布后反馈
+
+这次 debug update 修正上一版 Folder-aware AppWidget 发布后的四类反馈：
+
+- 单个记事 AppWidget 配置页里的 Thing Card 不应该只是“看起来像首页”，而是要复用首页记事列表的真实卡片绑定。现在配置页的 Thing 代理改为基于 `ThingsAdapter`，仅覆盖数据源、点击行为和 Folder 认证状态；私密 Folder 认证后显示的私密记事、包含图片/视频的记事、上下/左右/背景媒体、视频封面和保存的裁剪几何都走首页同一套绑定路径。
+- 单个记事 AppWidget 选择记事后的预览界面做了 UI 修正：预览容器和 RemoteViews root 都安装圆角 outline，减少“只有上半部分有圆角”的情况；透明度滑杆改为使用当前 Thing 的纯色或渐变背景；右侧确认按钮改成无 background 的文本按钮，触摸反馈为 pill ripple，文字颜色同样适配当前 Thing 背景。
+- 记事列表 AppWidget 的 Grid 行点击修正为每个可见 slot 绑定自己的 fill-in intent。行本身只负责 RemoteViews 打包，不再让第二/第三个 slot 误打开第一项；4-cell 宽度的记事列表 widget 在 Grid 模式下使用 2 列。
+- 记事/记事列表 AppWidget 的透明度现在会应用到媒体 bitmap：前景缩略图、左右媒体 panel 和媒体背景都会先按 widget alpha 合成后再写入 RemoteViews，避免包含图片/视频的记事仍然保持不透明。
+
+验证状态：
+
+- `.\gradlew.bat :app:assembleDebug --console=plain` 已通过，结果为 `BUILD SUCCESSFUL`。
+- 已添加静态检查，确认配置页 Thing 代理继承 `ThingsAdapter`、grid slot 独立绑定 fill-in intent、4-cell widget 返回 2 列、媒体背景和前景媒体都经过 alpha 合成。
+- `git diff --check` 已通过，仅有仓库既有的 LF/CRLF 提示。
+- 已使用 `:app:publishDebugUpdate` 发布到阿里云 debug update channel；发布后会回读远端 `latest.json`，确认版本、APK URL、SHA-256 和 releaseNotes 指向本次反馈修复。
+
+## 2026-06-20 - 小组件支持文件夹、列表/网格展示与多类型筛选
+
+这次 debug update 发布完整的 Folder-aware AppWidget 更新，来自用户关于“小组件也支持显示文件夹”的一轮设计确认和补充：
+
+- Things-list AppWidget 不再新增单独的“文件夹”小组件，而是合并成通用记事列表小组件：配置页可以选择根目录或某个 Folder scope、选择 List/Grid 展示模式，并通过横排 All/Note/Reminder/Habit/Goal icon 进行单选或多选类型筛选。
+- 配置页的 Folder picker 改成接近 Drawer / 移动到文件夹 dialog 的树形界面：正在进行行可选且默认展开，下面显示直接子 Folder；Folder 树支持展开、收起、滑动，选择私密 Folder 或展开其子树前会先走认证。
+- Things-list AppWidget 渲染混合的 direct child Thing + direct child Folder summary card，不递归展开子孙；Folder 卡片点击后通过认证并打开 app 进入对应 Folder；Thing 卡片保持原有 RemoteViews 支持范围内的高信息量 Thing Card。
+- Grid 模式按 widget 宽度自动派生列数，使用 row-oriented RemoteViews 打包来保留混合列表顺序并支持 full-span Thing / Folder card；List 模式仍保持全宽行，Thing 的 span 设置只影响 Grid。
+- Header 标题和颜色现在反映 scope 与类型筛选：根目录 + 多类型显示 `提醒/习惯` 这类 `/` 拼接标题，Folder + 多类型显示 `文件夹名 · 提醒/习惯`；根目录用 app accent，Folder scope 使用对应 Folder 纯色或渐变，前景色自适应。
+- 创建按钮在 Folder-scoped widget 中会把新 Thing 放进该 Folder，但不会由类型筛选强制创建类型；Reminder/Habit/Goal 仍由用户在创建流程里设置的提醒时间、重复等字段决定。
+- 单个记事 AppWidget 配置页支持 Folder 导航：在选择记事的界面里 Folder 卡片与首页保持一致，点击 Folder 进入其内部，标题切换为 Folder 名称，返回按钮和左上角返回 icon 在 Folder 内部用于返回上一级；最终仍只允许选择 Thing。
+- 底层迁移了 Things-list widget 配置存储，新增 target Folder、type filter mask、display mode，并把 legacy negative `thing_id` limit 映射到新字段，保留透明度、header 透明、simple view 等既有设置。
+- 本轮最后补齐了三个 review gap：打开 app 时保留多类型筛选 mask；配置页对私密 Folder 选择/展开做认证；单个记事 widget 配置页复用首页 Folder Card 绑定而不是本地摘要卡片。
+
+验证状态：
+
+- `git diff --check` 已通过，仅有仓库既有的 LF/CRLF 提示。
+- `.\gradlew.bat :app:assembleDebug` 已通过，结果为 `BUILD SUCCESSFUL`。
+- 已使用 `:app:publishDebugUpdate` 发布 debug update `202606201023` 到阿里云 debug update channel；发布后回读远端 `latest.json`，确认 APK 为 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606201023.apk`，SHA-256 为 `090e6e54206558b9f9270eb59b4bd57e05f49c8d5e2ad969d1a8f6a11a587a88`，releaseNotes 指向本次 Folder-aware AppWidget 更新。
 
 ## 2026-06-20 - 进一步收紧正在做间距、微调创建图标、关闭文件夹返回出现动画
 

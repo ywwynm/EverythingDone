@@ -2,16 +2,26 @@
 
 ## Folder-Aware List Widgets
 
-- Add Thing Folder Card rendering for Things-list widgets after the in-app
-  folder model is stable.
-- Define RemoteViews layouts for summary Folder Cards and any supported
-  thumbnail presentation.
-- Add folder projection intents so tapping a widget Folder Card opens the app at
-  the matching built-in destination plus Thing Folder Path.
-- Apply effective privacy and effective deletion semantics in widget data
-  loading.
-- Decide whether widget configuration should support root-only projections or a
-  user-selected Thing Folder Path.
+- Device-test RemoteViews List/Grid rendering on a launcher, especially
+  row-packed Grid mode, full-span Thing rows, nested fill-in intents, and
+  summary Folder card sizing.
+- Update non-default launcher/configuration translations that still describe
+  the Things-list widget as underway-only.
+- Decide whether an invalid or deleted configured Folder target should only
+  fall back to root at render time or also persistently clear the stale
+  `target_folder_id`.
+- Decide whether the Things-list AppWidget create button should authenticate
+  before creating inside an effectively private Folder target.
+- Decide whether empty Things-list AppWidget projections should keep the old
+  notify-empty placeholder behavior or intentionally render empty content.
+- AppWidget RemoteViews cannot reuse the in-app RecyclerView /
+  StaggeredGridLayoutManager implementation for large Folder Cards. A
+  widget-side large Folder presentation can only be an approximation built from
+  supported RemoteViews containers such as `GridLayout`/`LinearLayout` or from
+  a top-level `GridView` collection.
+- A Folder Card inside a Things-list widget should avoid nested scrolling
+  collection views. If it shows child previews, prefer a fixed, non-scrollable
+  preview grid with a capped number of direct child entries.
 
 ## Mixed List Gestures
 

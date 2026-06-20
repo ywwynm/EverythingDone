@@ -116,7 +116,7 @@
     <string name="title_activity_statistic">Statistic</string>
     <string name="title_activity_thing_widget_configure">Select single thing</string>
     <string name="title_activity_things_list_widget_configuration">Select underway things</string>
-    <string name="title_widget_things_list">Underway things</string>
+    <string name="title_widget_things_list">Things list</string>
     <string name="title_widget_thing_1x1">Thing 1x1</string>
     <string name="title_widget_thing_2x2">Thing 2x2</string>
     <string name="title_widget_thing_3x3">Thing 3x3</string>
@@ -141,16 +141,16 @@
     <string name="title_widget_thing_6x5">Thing 6x5</string>
     <string name="title_widget_thing_5x6">Thing 5x6</string>
     <string name="title_widget_thing_6x6">Thing 6x6</string>
-    <string name="title_widget_things_list_3x3">Underway things 3x3</string>
-    <string name="title_widget_things_list_4x4">Underway things 4x4</string>
-    <string name="title_widget_things_list_5x4">Underway things 5x4</string>
-    <string name="title_widget_things_list_4x5">Underway things 4x5</string>
-    <string name="title_widget_things_list_5x5">Underway things 5x5</string>
-    <string name="title_widget_things_list_6x4">Underway things 6x4</string>
-    <string name="title_widget_things_list_4x6">Underway things 4x6</string>
-    <string name="title_widget_things_list_6x5">Underway things 6x5</string>
-    <string name="title_widget_things_list_5x6">Underway things 5x6</string>
-    <string name="title_widget_things_list_6x6">Underway things 6x6</string>
+    <string name="title_widget_things_list_3x3">Things list 3x3</string>
+    <string name="title_widget_things_list_4x4">Things list 4x4</string>
+    <string name="title_widget_things_list_5x4">Things list 5x4</string>
+    <string name="title_widget_things_list_4x5">Things list 4x5</string>
+    <string name="title_widget_things_list_5x5">Things list 5x5</string>
+    <string name="title_widget_things_list_6x4">Things list 6x4</string>
+    <string name="title_widget_things_list_4x6">Things list 4x6</string>
+    <string name="title_widget_things_list_6x5">Things list 6x5</string>
+    <string name="title_widget_things_list_5x6">Things list 5x6</string>
+    <string name="title_widget_things_list_6x6">Things list 6x6</string>
     <string name="title_activity_doing">Currently doing</string>
 
 
@@ -1018,6 +1018,10 @@
     <string name="app_widget_config_alpha">Alpha:</string>
     <string name="things_list_config_alpha_header">Transparent top bar</string>
     <string name="things_list_config_simple_view">Use simpler thing view</string>
+    <string name="widget_type_filter_summary">Thing type: %1$s</string>
+    <string name="widget_display_mode_label">Display mode</string>
+    <string name="widget_display_mode_list">List</string>
+    <string name="widget_display_mode_grid">Grid</string>
 
 
     <!--Notifications-->

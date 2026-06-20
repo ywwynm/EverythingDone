@@ -31,6 +31,8 @@
     <dimen name="app_chrome_dialog_action_text_size">14sp</dimen>
     <dimen name="app_chrome_dialog_leading_action_margin_start">-12dp</dimen>
     <dimen name="app_chrome_dialog_action_row_overflow_margin">-12dp</dimen>
+    <dimen name="app_widget_config_type_icon_touch_target">40dp</dimen>
+    <dimen name="app_widget_config_type_icon_margin">2dp</dimen>
 
     <dimen name="fab_margin">0dp</dimen>
 

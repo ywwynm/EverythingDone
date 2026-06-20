@@ -11,6 +11,7 @@ import com.ywwynm.everythingdone.helpers.ThingCardMediaHelper
 import com.ywwynm.everythingdone.model.DetailAttachmentMediaAppearance
 import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.model.ThingCardAppearance
+import com.ywwynm.everythingdone.model.ThingWidgetInfo
 import com.ywwynm.everythingdone.model.ThingsCounts
 import com.ywwynm.everythingdone.utils.ThingsSorter
 
@@ -197,6 +198,27 @@ open class ThingDAO private constructor(context: Context?) {
         return filtered
     }
 
+    open fun getThingsForTypeFilterProjection(
+        typeFilterMask: Int,
+        folderId: Long?,
+        keyword: String?,
+        color: Int
+    ): List<Thing?> {
+        val things = getThingsForProjection(
+            Def.LimitForGettingThings.ALL_UNDERWAY,
+            folderId,
+            keyword,
+            color
+        )
+        val filtered = ArrayList<Thing?>()
+        for (thing in things) {
+            if (matchesTypeFilterProjection(thing, typeFilterMask)) {
+                filtered.add(thing)
+            }
+        }
+        return filtered
+    }
+
     open fun getThingsForEffectiveDeletedFolderProjection(
         folderId: Long?,
         keyword: String?,
@@ -266,6 +288,22 @@ open class ThingDAO private constructor(context: Context?) {
         if (thing.type == Thing.HEADER) return true
         if (thing.type >= Thing.NOTIFY_EMPTY_UNDERWAY) return folderId == null
         return thing.folderId == folderId
+    }
+
+    private fun matchesTypeFilterProjection(thing: Thing?, typeFilterMask: Int): Boolean {
+        if (thing == null) return false
+        if (thing.type == Thing.HEADER) return true
+        val mask = ThingWidgetInfo.normalizedTypeFilterMask(typeFilterMask)
+        if (mask == ThingWidgetInfo.TYPE_FILTER_ALL) {
+            return thing.type in Thing.NOTE..Thing.GOAL
+        }
+        return when (thing.type) {
+            Thing.NOTE -> mask and ThingWidgetInfo.TYPE_FILTER_NOTE != 0
+            Thing.REMINDER -> mask and ThingWidgetInfo.TYPE_FILTER_REMINDER != 0
+            Thing.HABIT -> mask and ThingWidgetInfo.TYPE_FILTER_HABIT != 0
+            Thing.GOAL -> mask and ThingWidgetInfo.TYPE_FILTER_GOAL != 0
+            else -> false
+        }
     }
 
     /**

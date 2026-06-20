@@ -5,6 +5,10 @@
 Use this document as the implementation ledger for Thing Folders. Check items
 off only after the behavior is implemented and verified against `plan.md`.
 
+## Related Analysis
+
+- `analysis-0620-deepseek.md` — 2026-06-20 代码审查分析，识别未完成项和潜在 bug。
+
 ## Phase 0 - Preflight
 
 - [x] Read global memory indexes and `.agents/rules/`.
@@ -64,11 +68,13 @@ off only after the behavior is implemented and verified against `plan.md`.
 - [x] Represent built-in destinations backed by existing
       `LimitForGettingThings` values.
 - [x] Represent folder path projections backed by one or more Thing Folder ids.
-- [ ] Migrate `ThingsActivity` current-list state from raw limit to list
-      projection.
-- [ ] Migrate `ActivityHeader` title/subtitle generation to list projection.
-- [ ] Keep drawer selection tied only to the built-in destination part of the
-      projection.
+- [x] Migrate `ThingsActivity` current-list state from raw limit to list
+      projection. (See caveat: `withLimit()` drops folder path — analysis
+      2026-06-20.)
+- [x] Migrate `ActivityHeader` title/subtitle generation to list projection.
+- [~] Keep drawer selection tied only to the built-in destination part of the
+      projection. (onBackPressed misses `updateCheckedDrawerItemForCurrentProjection`
+      — analysis 2026-06-20.)
 - [x] Add folder stack/path state.
 - [x] Load mixed entries for root and current folder path projections.
 - [x] Preserve existing built-in destination filtering.
@@ -85,7 +91,7 @@ off only after the behavior is implemented and verified against `plan.md`.
 - [x] Compute effective privacy from ancestor Private Thing Folders.
 - [x] Compute effective deletion for Deleted folder root projections.
 - [x] Compute effective deletion from arbitrary ancestor Deleted Thing Folders.
-- [ ] Add direct visible child count query for header subtitle if selected.
+- [x] Add direct visible child count query for header subtitle if selected.
 - [x] Add mixed ordering update for Things and Folders.
 - [x] Add sticky Folder Card update support.
 - [x] Add create-folder operation from two Things.
@@ -118,7 +124,8 @@ off only after the behavior is implemented and verified against `plan.md`.
 - [x] Support non-thumbnail folder-card taps opening the folder.
 - [x] Support normal and full-span Folder Cards.
 - [x] Play the existing list appearing animation for Folder Cards.
-- [ ] Keep selection/moving dimming consistent.
+- [x] Keep selection/moving dimming consistent. (Has debug logging that should be
+      cleaned up — analysis 2026-06-20.)
 - [x] Reset recycled holder state for Thing vs Folder cards.
 
 ## Phase 4 - Drag-To-Folder
@@ -144,7 +151,8 @@ off only after the behavior is implemented and verified against `plan.md`.
       visibly snap back to its original position.
 - [x] Use targeted removal/change notifications after successful Folder drops
       so the source gap closes and the target Folder Card updates.
-- [ ] Recompute mixed ordering around the affected range.
+- [ ] Recompute mixed ordering around the affected range. (Currently full rebuilds
+      — analysis 2026-06-20.)
 - [x] Preserve ordinary mixed Thing/Folder reorder behavior when no folder
       target is active.
 - [x] Allow Folder Cards to be manually reordered among Thing Cards.
@@ -152,7 +160,8 @@ off only after the behavior is implemented and verified against `plan.md`.
       actions.
 - [x] Allow Folder Cards to be manually reordered in the sticky area.
 - [x] Preserve no-op drag to selecting-mode behavior.
-- [ ] Add undo if selected for v1.
+- [ ] Add undo if selected for v1. (UndoSnackbar exists but not wired for folder
+      operations — analysis 2026-06-20.)
 
 ## Phase 5 - Folder Navigation And Header
 
@@ -186,11 +195,14 @@ off only after the behavior is implemented and verified against `plan.md`.
 - [x] Show containing Thing Folder Path.
 - [x] Hide or protect folder-location path segments that are private by stored
       or inherited effective privacy.
-- [ ] Hide or show top-level state according to the confirmed decision.
+- [ ] Hide or show top-level state according to the confirmed decision. (No
+      implementation found — analysis 2026-06-20.)
 - [x] Leave Detail snapshot/no-update handling unchanged because this slice only
       displays folder location and does not edit membership in Detail.
-- [ ] Refresh visible Detail when external folder membership changes.
-- [ ] Keep screenshot/share UI clean.
+- [ ] Refresh visible Detail when external folder membership changes. (No
+      auto-refresh — analysis 2026-06-20.)
+- [ ] Keep screenshot/share UI clean. (Header folder path exposed in screenshots;
+      share text excludes folder path — analysis 2026-06-20.)
 
 ## Phase 8 - State, Search, And Integration
 
@@ -226,7 +238,9 @@ off only after the behavior is implemented and verified against `plan.md`.
 - [x] Keep Things-list widgets on their current Thing-based behavior without
       rendering Folder Cards in v1.
 - [ ] Update single-Thing export/share if folder path is selected for v1.
-- [ ] Update backup restore smoke path.
+      (SendInfoHelper and ThingExporter omit folder path — analysis 2026-06-20.)
+- [~] Update backup restore smoke path. (DB zip covers folder data automatically;
+      no post-restore integrity validation exists — analysis 2026-06-20.)
 - [x] Update localization strings, starting with `values-zh-rCN/strings.xml`.
 
 ## Verification Matrix
@@ -291,3 +305,32 @@ off only after the behavior is implemented and verified against `plan.md`.
 - [ ] AppWidget compile paths remain safe.
 - [ ] Things-list widgets do not render Folder Cards in v1.
 - [x] `:app:assembleDebug` passes.
+
+## Discovered Issues (2026-06-20 analysis)
+
+Items not in the original plan but identified during code review. See
+`analysis-0620-deepseek.md` for details.
+
+- [ ] Fix `withLimit()` dropping folder path — currently returns root projection
+      every time, silently losing navigation context.
+- [ ] Fix `onBackPressed` → `openParentFolder()` not calling
+      `updateCheckedDrawerItemForCurrentProjection()` — drawer selection stale
+      after back to root.
+- [ ] Fix `getThingsForEffectiveDeletedFolderProjection()` only querying direct
+      `folderId` children, not recursive descendant folders, when showing a
+      deleted folder's contents.
+- [ ] Add post-restore folder-tree integrity validation (dangling parent/child
+      references, orphaned `folder_id` values).
+- [ ] Clean up moving-mode scale recovery debug logging
+      (`scheduleMovingCardScaleReveryIfReleased`, `tag_thing_card_moving_scale_recovery_token`)
+      — guard behind a feature flag or remove.
+- [ ] Consider caching or batch-querying `isEffectivelyPrivate()` /
+      `isEffectivelyDeleted()` ancestor walks to avoid N+1 query patterns during
+      list rebuild.
+- [ ] Restore authenticated private-folder scope when `cancelCreatedFolder()`
+      moves Things back into a private ancestor.
+- [ ] Replace per-operation full `notifyDataSetChanged()` with targeted
+      `notifyItemMoved` / `notifyItemRemoved` / `notifyItemChanged` where
+      possible to preserve RecyclerView animations.
+- [ ] Replace string-based `isResultListProjectionCurrent` comparison with a
+      structural `ThingListProjection` equality check.

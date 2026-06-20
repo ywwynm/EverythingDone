@@ -5,6 +5,8 @@
     android:id="@+id/root_widget_thing"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:background="@drawable/bg_app_widget_card_clip"
+    android:clipToOutline="true"
     android:foreground="@drawable/selectable_item_background_light">
 
     <!-- Phase 8: gradient-capable background (see app_widget_thing.xml). First

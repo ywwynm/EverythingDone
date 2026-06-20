@@ -947,6 +947,10 @@
     <string name="app_widget_config_alpha">透明度:</string>
     <string name="things_list_config_alpha_header">頂部欄同時透明</string>
     <string name="things_list_config_simple_view">採用簡單的記事視圖</string>
+    <string name="widget_type_filter_summary">記事類型：%1$s</string>
+    <string name="widget_display_mode_label">顯示模式</string>
+    <string name="widget_display_mode_list">列表</string>
+    <string name="widget_display_mode_grid">網格</string>
 
 
     <!--Notifications-->

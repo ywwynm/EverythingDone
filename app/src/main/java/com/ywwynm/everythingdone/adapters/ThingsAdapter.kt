@@ -90,11 +90,11 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         }
     }
 
-    override fun getCurrentMode(): Int = mModeManager!!.getCurrentMode()
+    override fun getCurrentMode(): Int = mModeManager?.getCurrentMode() ?: ModeManager.NORMAL
 
     override fun getThings(): List<Thing?>? = mThingManager!!.getThings()
 
-    private fun getEntries(): List<ThingListEntry>? = mThingManager!!.getThingListEntries()
+    protected open fun getEntries(): List<ThingListEntry>? = mThingManager!!.getThingListEntries()
 
     override fun getStickyThingParentFolderBackground(thing: Thing): ThingBackground? {
         val folderId = thing.folderId ?: return null
@@ -186,7 +186,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         val armed = isArmedFor(position)
 
         if (!armed) {
-            if (mModeManager!!.getCurrentMode() == ModeManager.NORMAL
+            if (getCurrentMode() == ModeManager.NORMAL
                 && holder.llContent!!.alpha != 1f
             ) {
                 holder.llContent.alpha = 1f
@@ -273,7 +273,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         cv.visibility = View.VISIBLE
     }
 
-    private fun bindFolderCard(
+    protected fun bindFolderCard(
         holder: BaseThingViewHolder,
         entry: ThingListEntry.FolderEntry
     ) {
@@ -572,7 +572,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         lock.layoutParams = lp
     }
 
-    private fun shouldShowFolderPrivateContent(): Boolean {
+    protected open fun shouldShowFolderPrivateContent(): Boolean {
         return shouldShowPrivateContent() || mThingManager!!.isCurrentFolderPrivacyAuthenticated()
     }
 

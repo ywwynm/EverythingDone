@@ -1,8 +1,10 @@
 package com.ywwynm.everythingdone.model
 
+import android.content.Context
 import android.database.Cursor
 import androidx.annotation.IntDef
 import com.ywwynm.everythingdone.Def
+import com.ywwynm.everythingdone.R
 
 /**
  * Created by ywwynm on 2016/8/2.
@@ -14,7 +16,10 @@ open class ThingWidgetInfo(
     var thingId: Long,
     var size: Int,
     var alpha: Int,
-    var style: Int
+    var style: Int,
+    var targetFolderId: Long?,
+    var typeFilterMask: Int,
+    var displayMode: Int
 ) {
 
     constructor(cursor: Cursor?) : this(
@@ -22,7 +27,14 @@ open class ThingWidgetInfo(
         cursor.getLong(cursor.getColumnIndex(Def.Database.COLUMN_THING_ID_APP_WIDGET)),
         cursor.getInt(cursor.getColumnIndex(Def.Database.COLUMN_SIZE_APP_WIDGET)),
         cursor.getInt(cursor.getColumnIndex(Def.Database.COLUMN_ALPHA_APP_WIDGET)),
-        cursor.getInt(cursor.getColumnIndex(Def.Database.COLUMN_STYLE_APP_WIDGET))
+        cursor.getInt(cursor.getColumnIndex(Def.Database.COLUMN_STYLE_APP_WIDGET)),
+        getNullableLong(cursor, Def.Database.COLUMN_TARGET_FOLDER_ID_APP_WIDGET),
+        getOptionalInt(
+            cursor,
+            Def.Database.COLUMN_TYPE_FILTER_MASK_APP_WIDGET,
+            legacyTypeFilterMask(cursor.getLong(cursor.getColumnIndex(Def.Database.COLUMN_THING_ID_APP_WIDGET)))
+        ),
+        getOptionalInt(cursor, Def.Database.COLUMN_DISPLAY_MODE_APP_WIDGET, DISPLAY_MODE_LIST)
     )
 
     @IntDef(
@@ -38,7 +50,24 @@ open class ThingWidgetInfo(
     @Retention(AnnotationRetention.SOURCE)
     annotation class Style
 
+    @IntDef(0, 1)
+    @Retention(AnnotationRetention.SOURCE)
+    annotation class DisplayMode
+
     companion object {
+        const val LIST_WIDGET_THING_ID: Long = -1L
+
+        const val TYPE_FILTER_ALL: Int = 0
+        const val TYPE_FILTER_NOTE: Int = 1
+        const val TYPE_FILTER_REMINDER: Int = 1 shl 1
+        const val TYPE_FILTER_HABIT: Int = 1 shl 2
+        const val TYPE_FILTER_GOAL: Int = 1 shl 3
+        const val TYPE_FILTER_SPECIFIC_MASK: Int = TYPE_FILTER_NOTE or
+            TYPE_FILTER_REMINDER or TYPE_FILTER_HABIT or TYPE_FILTER_GOAL
+
+        const val DISPLAY_MODE_LIST: Int = 0
+        const val DISPLAY_MODE_GRID: Int = 1
+
         const val SIZE_TINY: Int   = 0
         const val SIZE_SMALL: Int  = 1
         const val SIZE_MIDDLE: Int = 2
@@ -68,5 +97,85 @@ open class ThingWidgetInfo(
 
         const val STYLE_NORMAL: Int = 0
         const val STYLE_SIMPLE: Int = 1
+
+        fun normalizedTypeFilterMask(mask: Int): Int {
+            val specificMask = mask and TYPE_FILTER_SPECIFIC_MASK
+            return if (specificMask == 0) TYPE_FILTER_ALL else specificMask
+        }
+
+        fun isAllTypeFilter(mask: Int): Boolean {
+            return normalizedTypeFilterMask(mask) == TYPE_FILTER_ALL
+        }
+
+        fun typeFilterMaskForThingType(type: Int): Int {
+            return when (type) {
+                Thing.NOTE -> TYPE_FILTER_NOTE
+                Thing.REMINDER -> TYPE_FILTER_REMINDER
+                Thing.HABIT -> TYPE_FILTER_HABIT
+                Thing.GOAL -> TYPE_FILTER_GOAL
+                else -> TYPE_FILTER_ALL
+            }
+        }
+
+        fun typeFilterMaskForLimit(limit: Int): Int {
+            return when (limit) {
+                Def.LimitForGettingThings.NOTE_UNDERWAY -> TYPE_FILTER_NOTE
+                Def.LimitForGettingThings.REMINDER_UNDERWAY -> TYPE_FILTER_REMINDER
+                Def.LimitForGettingThings.HABIT_UNDERWAY -> TYPE_FILTER_HABIT
+                Def.LimitForGettingThings.GOAL_UNDERWAY -> TYPE_FILTER_GOAL
+                else -> TYPE_FILTER_ALL
+            }
+        }
+
+        fun limitForTypeFilterMask(mask: Int): Int {
+            return when (normalizedTypeFilterMask(mask)) {
+                TYPE_FILTER_NOTE -> Def.LimitForGettingThings.NOTE_UNDERWAY
+                TYPE_FILTER_REMINDER -> Def.LimitForGettingThings.REMINDER_UNDERWAY
+                TYPE_FILTER_HABIT -> Def.LimitForGettingThings.HABIT_UNDERWAY
+                TYPE_FILTER_GOAL -> Def.LimitForGettingThings.GOAL_UNDERWAY
+                else -> Def.LimitForGettingThings.ALL_UNDERWAY
+            }
+        }
+
+        fun isSpecificTypeFilterMask(mask: Int): Boolean {
+            return normalizedTypeFilterMask(mask) != TYPE_FILTER_ALL
+        }
+
+        fun getTypeFilterTitle(context: Context, mask: Int): String? {
+            val normalized = normalizedTypeFilterMask(mask)
+            if (normalized == TYPE_FILTER_ALL) return null
+            val titles = ArrayList<String>(4)
+            if (normalized and TYPE_FILTER_NOTE != 0) {
+                titles.add(context.getString(R.string.note))
+            }
+            if (normalized and TYPE_FILTER_REMINDER != 0) {
+                titles.add(context.getString(R.string.reminder))
+            }
+            if (normalized and TYPE_FILTER_HABIT != 0) {
+                titles.add(context.getString(R.string.habit))
+            }
+            if (normalized and TYPE_FILTER_GOAL != 0) {
+                titles.add(context.getString(R.string.goal))
+            }
+            return titles.joinToString("/")
+        }
+
+        private fun legacyTypeFilterMask(thingId: Long): Int {
+            if (thingId >= 0L) return TYPE_FILTER_ALL
+            val legacyLimit = (-thingId - 1).toInt()
+            return typeFilterMaskForLimit(legacyLimit)
+        }
+
+        private fun getOptionalInt(cursor: Cursor, columnName: String, defaultValue: Int): Int {
+            val index = cursor.getColumnIndex(columnName)
+            if (index < 0 || cursor.isNull(index)) return defaultValue
+            return cursor.getInt(index)
+        }
+
+        private fun getNullableLong(cursor: Cursor, columnName: String): Long? {
+            val index = cursor.getColumnIndex(columnName)
+            if (index < 0 || cursor.isNull(index)) return null
+            return cursor.getLong(index)
+        }
     }
 }

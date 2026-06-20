@@ -89,15 +89,20 @@
                 android:layout_marginLeft="8dp"
                 android:layout_marginRight="8dp"/>
 
-            <Button
+            <TextView
                 android:id="@+id/bt_finish_set_alpha_app_widget"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_height="48dp"
                 android:minWidth="0dp"
                 android:layout_marginEnd="8dp"
                 android:layout_marginRight="8dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:includeFontPadding="false"
                 android:paddingLeft="20dp"
                 android:paddingRight="20dp"
+                android:background="@null"
                 android:textColor="@color/white_86p"
                 android:text="@string/act_finish"/>
 

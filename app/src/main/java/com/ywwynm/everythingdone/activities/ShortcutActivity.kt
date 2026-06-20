@@ -47,6 +47,10 @@ open class ShortcutActivity : AppCompatActivity() {
             if (limit != -1) {
                 openIntent.putExtra(Def.Communication.KEY_LIMIT, limit)
             }
+            val folderId = intent.getLongExtra(Def.Communication.KEY_FOLDER_ID, Long.MIN_VALUE)
+            if (folderId != Long.MIN_VALUE) {
+                openIntent.putExtra(Def.Communication.KEY_FOLDER_ID, folderId)
+            }
         } else if (Def.Communication.SHORTCUT_ACTION_CHECK_UPCOMING == action) {
             var canCheck = false
             val things: MutableList<Thing?> = ArrayList(ThingDAO.getInstance(this)!!

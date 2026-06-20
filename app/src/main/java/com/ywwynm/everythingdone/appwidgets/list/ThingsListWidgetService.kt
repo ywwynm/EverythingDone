@@ -7,11 +7,14 @@ import android.widget.RemoteViewsService
 
 import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.Def
-import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper
+import com.ywwynm.everythingdone.database.AppWidgetDAO
 import com.ywwynm.everythingdone.database.ThingDAO
-import com.ywwynm.everythingdone.managers.ThingManager
+import com.ywwynm.everythingdone.database.ThingFolderDAO
 import com.ywwynm.everythingdone.model.Thing
+import com.ywwynm.everythingdone.model.ThingListEntry
+import com.ywwynm.everythingdone.model.ThingWidgetInfo
+import com.ywwynm.everythingdone.utils.ThingsSorter
 
 import java.util.ArrayList
 
@@ -33,31 +36,122 @@ open class ThingsListWidgetService : RemoteViewsService() {
 
         private var mAppWidgetId: Int = 0
 
-        private var mThings: MutableList<Thing?>? = null
+        private var mItems: MutableList<ThingsListWidgetItem>? = null
 
         override fun onCreate() {
             init()
         }
 
         private fun init() {
-            val limit: Int = mIntent!!.getIntExtra(Def.Communication.KEY_LIMIT, 0)
-            val things: List<Thing?>
-            if (limit == App.getApp()!!.getLimit() && !App.isSearching) {
-                val thingManager: ThingManager = ThingManager.getInstance(mContext)!!
-                things = thingManager.getThings()!!
+            mAppWidgetId = mIntent!!.getIntExtra(Def.Communication.KEY_WIDGET_ID, 0)
+            val appWidgetDAO = AppWidgetDAO.getInstance(mContext)!!
+            val info = appWidgetDAO.getThingWidgetInfoById(mAppWidgetId)
+            val entries = loadProjectionEntries(info)
+            mItems = if (info?.displayMode == ThingWidgetInfo.DISPLAY_MODE_GRID) {
+                packGridRows(entries).toMutableList()
             } else {
-                val thingDAO: ThingDAO = ThingDAO.getInstance(mContext)!!
-                things = thingDAO.getThingsForDisplay(limit)!!
+                entries.toMutableList()
             }
+        }
 
-            mThings = ArrayList()
+        private fun loadProjectionEntries(info: ThingWidgetInfo?): List<ThingsListWidgetItem> {
+            val context = mContext!!
+            val typeFilterMask = ThingWidgetInfo.normalizedTypeFilterMask(
+                info?.typeFilterMask ?: ThingWidgetInfo.TYPE_FILTER_ALL
+            )
+            val targetFolder = AppWidgetHelper.resolveThingsListTargetFolder(context, info)
+            val targetFolderId = targetFolder?.id
+            val thingDAO: ThingDAO = ThingDAO.getInstance(context)!!
+            val folderDAO: ThingFolderDAO = ThingFolderDAO.getInstance(context)!!
+            val things = thingDAO.getThingsForProjection(
+                Def.LimitForGettingThings.ALL_UNDERWAY,
+                targetFolderId,
+                null,
+                0
+            )
+            val entries = ArrayList<ThingsListWidgetItem>()
             for (thing in things) {
-                if (thing!!.type != Thing.HEADER) {
-                    mThings!!.add(Thing(thing))
+                if (thing == null || thing.type == Thing.HEADER) continue
+                if (thing.type >= Thing.NOTIFY_EMPTY_UNDERWAY) continue
+                if (!matchesTypeFilter(thing.type, typeFilterMask)) continue
+                entries.add(ThingsListWidgetItem.ThingItem(protectThingIfNeeded(thing, folderDAO)))
+            }
+            val folderEntries = folderDAO.getFolderEntriesForWidgetProjection(
+                targetFolderId,
+                typeFilterMask
+            )
+            for (folderEntry in folderEntries) {
+                entries.add(ThingsListWidgetItem.FolderItem(folderEntry))
+            }
+            return entries.sortedWith { item1, item2 ->
+                val result = ThingsSorter.compareByLocationAndSticky(
+                    item1.location,
+                    item2.location
+                )
+                if (result != 0) result else item1.stableId.compareTo(item2.stableId)
+            }
+        }
+
+        private fun protectThingIfNeeded(thing: Thing, folderDAO: ThingFolderDAO): Thing {
+            val copy = Thing(thing)
+            if (folderDAO.isEffectivelyPrivate(copy.folderId) && !copy.isPrivate()) {
+                copy.title = Thing.PRIVATE_THING_PREFIX + (copy.title ?: "")
+            }
+            return copy
+        }
+
+        private fun matchesTypeFilter(type: Int, typeFilterMask: Int): Boolean {
+            val mask = ThingWidgetInfo.normalizedTypeFilterMask(typeFilterMask)
+            if (mask == ThingWidgetInfo.TYPE_FILTER_ALL) return true
+            return when (type) {
+                Thing.NOTE -> mask and ThingWidgetInfo.TYPE_FILTER_NOTE != 0
+                Thing.REMINDER -> mask and ThingWidgetInfo.TYPE_FILTER_REMINDER != 0
+                Thing.HABIT -> mask and ThingWidgetInfo.TYPE_FILTER_HABIT != 0
+                Thing.GOAL -> mask and ThingWidgetInfo.TYPE_FILTER_GOAL != 0
+                else -> false
+            }
+        }
+
+        private fun packGridRows(entries: List<ThingsListWidgetItem>): List<ThingsListWidgetItem> {
+            val columns = AppWidgetHelper.getThingsListWidgetGridColumnCount(mContext, mAppWidgetId)
+            if (columns <= 1) {
+                return entries.mapIndexed { index, item ->
+                    ThingsListWidgetItem.GridRow(listOf(item), 1, Long.MIN_VALUE + index)
                 }
             }
-
-            mAppWidgetId = mIntent!!.getIntExtra(Def.Communication.KEY_WIDGET_ID, 0)
+            val rows = ArrayList<ThingsListWidgetItem>()
+            val currentSlots = ArrayList<ThingsListWidgetItem?>()
+            fun flushNormalRow() {
+                if (currentSlots.isEmpty()) return
+                while (currentSlots.size < columns) currentSlots.add(null)
+                rows.add(
+                    ThingsListWidgetItem.GridRow(
+                        ArrayList(currentSlots),
+                        columns,
+                        Long.MIN_VALUE + rows.size
+                    )
+                )
+                currentSlots.clear()
+            }
+            for (entry in entries) {
+                if (AppWidgetHelper.isThingsListWidgetEntryFullSpan(entry)) {
+                    flushNormalRow()
+                    rows.add(
+                        ThingsListWidgetItem.GridRow(
+                            listOf(entry),
+                            1,
+                            Long.MIN_VALUE + rows.size
+                        )
+                    )
+                    continue
+                }
+                currentSlots.add(entry)
+                if (currentSlots.size == columns) {
+                    flushNormalRow()
+                }
+            }
+            flushNormalRow()
+            return rows
         }
 
         override fun onDataSetChanged() {
@@ -67,21 +161,18 @@ open class ThingsListWidgetService : RemoteViewsService() {
         override fun onDestroy() { }
 
         override fun getCount(): Int {
-            return mThings!!.size
+            return mItems!!.size
         }
 
         override fun getViewAt(position: Int): RemoteViews? {
-            if (position < -1 || position >= count) {
+            if (position < 0 || position >= count) {
                 return null
             }
-            val thing: Thing = mThings!![position]!!
-            val rv: RemoteViews = AppWidgetHelper.createRemoteViewsForThingsListItem(
-                    mContext, thing, mAppWidgetId)
-            val intent = Intent()
-            intent.putExtra(Def.Communication.KEY_ID, thing.id)
-            intent.putExtra(Def.Communication.KEY_POSITION, position + 1)
-            rv.setOnClickFillInIntent(R.id.root_widget_thing, intent)
-            return rv
+            return AppWidgetHelper.createRemoteViewsForThingsListEntry(
+                mContext,
+                mItems!![position],
+                mAppWidgetId
+            )
         }
 
         override fun getLoadingView(): RemoteViews? {
@@ -89,18 +180,18 @@ open class ThingsListWidgetService : RemoteViewsService() {
         }
 
         override fun getViewTypeCount(): Int {
-            return 1
+            return 3
         }
 
         override fun getItemId(position: Int): Long {
-            if (position < 0 || position > mThings!!.size - 1) {
+            if (position < 0 || position > mItems!!.size - 1) {
                 return -1L
             }
-            return mThings!![position]!!.id
+            return mItems!![position].stableId
         }
 
         override fun hasStableIds(): Boolean {
-            return false
+            return true
         }
     }
 }

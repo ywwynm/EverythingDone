@@ -20,6 +20,7 @@ import com.ywwynm.everythingdone.model.ThingFolder
 import com.ywwynm.everythingdone.model.ThingFolderCardPresentation
 import com.ywwynm.everythingdone.model.ThingListEntry
 import com.ywwynm.everythingdone.model.ThingListProjection
+import com.ywwynm.everythingdone.model.ThingWidgetInfo
 import com.ywwynm.everythingdone.model.ThingsCounts
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil
 import com.ywwynm.everythingdone.utils.ThingsSorter
@@ -101,6 +102,29 @@ open class ThingManager private constructor(context: Context?) {
         }
     }
 
+    open fun setUnderwayTypeFilterMask(typeFilterMask: Int, loadThingsNow: Boolean) {
+        if (mLimit != Def.LimitForGettingThings.ALL_UNDERWAY) {
+            return
+        }
+        mProjection = mProjection.withUnderwayTypeFilterMask(typeFilterMask)
+        if (loadThingsNow) {
+            loadThings()
+        }
+    }
+
+    open fun getActiveTypeFilterMask(): Int {
+        return if (mLimit == Def.LimitForGettingThings.ALL_UNDERWAY) {
+            ThingWidgetInfo.normalizedTypeFilterMask(mProjection.underwayTypeFilterMask)
+        } else {
+            ThingWidgetInfo.typeFilterMaskForLimit(mLimit)
+        }
+    }
+
+    open fun hasCustomUnderwayTypeFilter(): Boolean {
+        return mLimit == Def.LimitForGettingThings.ALL_UNDERWAY &&
+            ThingWidgetInfo.isSpecificTypeFilterMask(mProjection.underwayTypeFilterMask)
+    }
+
     open fun getUndoGoals(): MutableList<Reminder?>? {
         return mUndoGoals
     }
@@ -112,7 +136,7 @@ open class ThingManager private constructor(context: Context?) {
         // do self-check to prevent wrong display for normal and empty states.
         val size: Int = mThings!!.size
         val hasFolderEntries = hasFolderEntries()
-        if (size == 1 && !hasFolderEntries) {
+        if (size == 1 && !hasFolderEntries && !hasCustomUnderwayTypeFilter()) {
             create(Thing.generateNotifyEmpty(mLimit, getHeaderId(), mContext), false, true)
             rebuildThingListEntries()
         } else if (size > 2 || size == 2 && hasFolderEntries) {
@@ -139,6 +163,14 @@ open class ThingManager private constructor(context: Context?) {
             && mFolderDao!!.isEffectivelyDeleted(currentFolderId)
         ) {
             return mDao!!.getThingsForEffectiveDeletedFolderProjection(
+                currentFolderId,
+                keyword,
+                color
+            )
+        }
+        if (hasCustomUnderwayTypeFilter()) {
+            return mDao!!.getThingsForTypeFilterProjection(
+                mProjection.underwayTypeFilterMask,
                 currentFolderId,
                 keyword,
                 color
@@ -276,6 +308,12 @@ open class ThingManager private constructor(context: Context?) {
     }
 
     open fun getFolderThumbnailPreviewEntries(folder: ThingFolder): List<ThingListEntry> {
+        if (hasCustomUnderwayTypeFilter()) {
+            return mFolderDao!!.getThumbnailEntriesForTypeFilterPreview(
+                folder,
+                mProjection.underwayTypeFilterMask
+            )
+        }
         return mFolderDao!!.getThumbnailEntriesForPreview(folder, mLimit)
     }
 
@@ -405,14 +443,25 @@ open class ThingManager private constructor(context: Context?) {
                 mixed.add(entry)
             }
         }
-        mixed.addAll(
-            mFolderDao!!.getFolderEntriesForProjection(
-                mLimit,
-                mProjection.currentFolderId,
-                keyword,
-                color
+        if (hasCustomUnderwayTypeFilter()) {
+            mixed.addAll(
+                mFolderDao!!.getFolderEntriesForTypeFilterProjection(
+                    mProjection.underwayTypeFilterMask,
+                    mProjection.currentFolderId,
+                    keyword,
+                    color
+                )
             )
-        )
+        } else {
+            mixed.addAll(
+                mFolderDao!!.getFolderEntriesForProjection(
+                    mLimit,
+                    mProjection.currentFolderId,
+                    keyword,
+                    color
+                )
+            )
+        }
         Collections.sort(mixed, object : Comparator<ThingListEntry> {
             override fun compare(entry1: ThingListEntry, entry2: ThingListEntry): Int {
                 val result = ThingsSorter.compareByLocationAndSticky(

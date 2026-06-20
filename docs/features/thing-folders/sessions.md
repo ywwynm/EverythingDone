@@ -1,5 +1,154 @@
 # Thing Folders Sessions
 
+## 2026-06-20 - Folder-scoped AppWidget create-return appearing animation
+
+- Updated the Folder-scoped Things-list AppWidget create-return path to keep
+  the ordinary Things appearing animation for the target Folder projection.
+- Preserved the duplicate-card fix: `updateMainUiForShortcutFolderCreateDone()`
+  still returns before the ordinary same-list create handling can arm the
+  created-card animation or call `notifyItemInserted()`.
+- Clarified the documented rule: the duplicate risk comes from a second adapter
+  insertion signal after projection reload, not from the projection rebind's
+  appearing animation.
+
+Verification: a targeted static check confirmed the special create-return path
+still returns before ordinary create notifications, does not call
+`notifyItemInserted()` or `armNewItemAnimation()`, and enables
+`shouldThingsAnimWhenAppearing`. `.\gradlew.bat :app:assembleDebug` completed
+with `BUILD SUCCESSFUL`. `git diff --check` passed with only the repository's
+existing LF/CRLF warnings. Published debug update `202606201337` and verified
+remote `latest.json` points at
+`http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606201337.apk`.
+Remote SHA-256:
+`77c8c6e3dd445cc21f744447c24e28b52a3f07541ba5fb00e794d6a8bdad2502`.
+
+## 2026-06-20 - Folder-scoped AppWidget create-return duplicate-card fix
+
+- Diagnosed a create-return regression after preserving Folder scope for
+  Things-list AppWidgets: the Folder projection opener loaded the target Folder
+  and called `notifyDataSetChanged()`, then the ordinary create-result handler
+  still armed the new-item animation and called `notifyItemInserted()` against
+  data that already contained the new Thing.
+- Split Folder-scoped widget create-return into a dedicated
+  `updateMainUiForShortcutFolderCreateDone()` path. It opens the external
+  Folder projection once, disables the whole-list appearing animation for that
+  rebind, clears pending `justNotifyAll` state, and returns before the ordinary
+  same-list insertion logic can run.
+- Kept normal AppWidget/header Folder opens on the existing external projection
+  behavior, including their ordinary list-appearing treatment; only the
+  create-return path suppresses the extra animation/insert notification.
+
+Verification: source inspection confirms the special create-return path cannot
+reach `armNewItemAnimation()` or `notifyItemInserted()`. A targeted static check
+against `ThingsActivity.kt` passed. `.\gradlew.bat :app:assembleDebug`
+completed with `BUILD SUCCESSFUL`. `git diff --check` passed with only the
+repository's existing LF/CRLF warnings. Published debug update `202606201322`
+and verified remote `latest.json` points at
+`http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606201322.apk`.
+Remote SHA-256:
+`30ea338634b61246a85d1c29bd8f2b5408a3edafd6e8b7de224fcb95c66267d1`.
+
+## 2026-06-20 - AppWidget Folder picker and create-return polish
+
+- Matched the Things-list AppWidget configuration Folder picker with Drawer
+  private Folder iconography by using `DrawerNavigationView.FolderIconDrawable`
+  for Folder rows, including the embedded lock for private Folders.
+- Tightened the Folder picker row chrome by adding a 2dp icon-to-title gap and
+  changing trailing expand/collapse affordances from rectangular row ripple to
+  the App Chrome circular ripple treatment.
+- Preserved Folder scope when completing a create flow launched from a
+  Folder-scoped Things-list AppWidget. `DetailActivity` now includes the
+  Shortcut-created Folder target in the create result, and `ThingsActivity`
+  reuses the existing external Folder projection opener so returning home shows
+  that Folder instead of root.
+
+Verification: `.\gradlew.bat :app:assembleDebug` completed with
+`BUILD SUCCESSFUL`. `git diff --check` passed with only the repository's
+existing LF/CRLF warnings. Published debug update `202606201312` and verified
+remote `latest.json` points at
+`http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606201312.apk`.
+Remote SHA-256:
+`e44d04bbf31c50717aac6fa961466fa6059fd4cc5c8950f8a38ddf838440f427`.
+
+## 2026-06-20 - AppWidget divider, action, and Folder foreground follow-up
+
+- Kept the Things-list AppWidget configuration scope picker's bottom divider
+  always visible as the stable boundary below the Folder list, while retaining
+  the top divider's scroll-up-only behavior.
+- Removed the legacy inline finish action from Single-Thing AppWidgets by
+  always hiding the `ll_thing_action` RemoteViews section; this also removes
+  that action section's separator without affecting reminder, habit, or state
+  separators.
+- Changed Things-list AppWidget Folder summary cards to use the same luminance
+  foreground tiers as home summary Folder Cards: primary foreground for the
+  icon and title, secondary for the private lock, and tertiary for count text.
+
+Verification: `.\gradlew.bat :app:assembleDebug` completed with
+`BUILD SUCCESSFUL`. `git diff --check` passed with only the repository's
+existing LF/CRLF warnings. Published debug update `202606201255` and verified
+remote `latest.json` points at
+`http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606201255.apk`.
+Remote SHA-256:
+`386009843ac3e6590c7c74761595f1bb800a021aa85b1d4dd9335a477b393c24`.
+
+## 2026-06-20 - Things-list widget configuration scroll divider polish
+
+- Adjusted the Things-list AppWidget configuration scope picker to match app
+  chrome chooser-dialog scroll dividers: the top divider appears only after the
+  picker can scroll upward, and the bottom divider appears only while more
+  scope rows remain below.
+- Tightened the five type-filter icon touch/selected targets from 48dp to 40dp,
+  preserved the 24dp icon content size, and added 2dp spacing between adjacent
+  icons through shared dimensions.
+- Changed the configuration confirm button's top gap to use
+  `app_chrome_dialog_divided_action_row_margin_top`, keeping the bottom action
+  spacing aligned with divided app chrome dialogs.
+- Recomputed scope-picker divider visibility after Folder selection,
+  expansion, collapse, and private-Folder authentication so the chrome stays in
+  sync after row-count changes.
+
+Verification: `.\gradlew.bat :app:assembleDebug` completed with
+`BUILD SUCCESSFUL`. `git diff --check` passed with only the repository's
+existing LF/CRLF warnings. Published debug update `202606201212` and verified
+remote `latest.json` points at
+`http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606201212.apk`.
+Remote SHA-256:
+`6732202f3bf21105b85ec7cf587ee7acfc97c7d6161b5b8e43f29aa94cb7c6b1`.
+
+## 2026-06-20 - AppWidget folder/card follow-up polish
+
+- Replaced RemoteViews media alpha calls for Thing media backgrounds and
+  foreground image/video slots with bitmap-level alpha composition, because
+  `ImageView.setImageAlpha` did not update widget preview or launcher media
+  reliably.
+- Changed the single-Thing widget preview confirm control from a styled
+  `Button` to a plain `TextView` with only a foreground pill ripple and
+  Thing-background-aware text colour.
+- Made Things-list widget Folder summary cards use the same rounded root
+  clipping path as Thing cards.
+- Audited RemoteViews card foreground affordances: audio icons and checklist
+  icons now receive adaptive black/white tints, and all widget card dashed
+  separators switch between white and black drawable resources based on the
+  rendered Thing background.
+- Updated AppWidget foreground luminance checks to use the Thing background's
+  representative colour instead of only the legacy colour int, keeping pure and
+  gradient backgrounds aligned with the rendered card.
+- Adjusted the Things-list widget configuration panel so type filters keep
+  circular ripple icon targets with a live type summary label, and List/Grid
+  display mode uses the Thing Card appearance panel's label-plus-text-options
+  pattern instead of radio controls.
+- Opened current Doing Things from `AuthenticationActivity` with the main app
+  task flags so list-widget clicks no longer inherit the authentication task
+  window context.
+
+Verification: `.\gradlew.bat :app:assembleDebug` completed with
+`BUILD SUCCESSFUL`. `git diff --check` passed with only the repository's
+existing LF/CRLF warnings. Published debug update `202606201152` and verified
+remote `latest.json` points at
+`http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606201152.apk`.
+Remote SHA-256:
+`9d062b8c9443a81138d72f9c251940c0bb5722d59891b672b9a334f870ee33f8`.
+
 ## 2026-06-20 - Direct parent scroll restore without Header flicker
 
 - Changed saved Folder projection restore so `ThingsActivity` applies the
@@ -2328,3 +2477,87 @@ publishing was not run.
 - Updated the custom move-to-Folder dialog rows to occupy the available dialog
   width, use drawer-style root icon tint, provide full-row ripple feedback,
   and use circular ripple feedback on the expand/collapse affordance.
+
+## 2026-06-20 - Folder-aware Things-list AppWidgets
+
+- Extended Things-list AppWidget records with explicit target Folder, type
+  filter mask, and List/Grid display mode fields, including v16 migration from
+  the legacy negative `thing_id` limit encoding.
+- Reworked Things-list AppWidget configuration to use a Drawer-like Folder
+  scope picker, horizontal All/Note/Reminder/Habit/Goal type icons, List/Grid
+  radio controls, and the existing content-card alpha/header-alpha/simple-view
+  controls.
+- Updated Things-list AppWidget rendering to build mixed direct child
+  Thing/Folder entries, render Folder summary cards, route Folder/header taps
+  through private Folder authentication, and use row-oriented RemoteViews Grid
+  packing so full-span Thing and Folder cards can occupy a whole row.
+- Updated single-Thing AppWidget configuration to support Folder navigation
+  while preserving Thing-only selection: Folder cards navigate into child
+  Folder projections, the title/back behavior follows the current Folder, and
+  only Thing cards can be previewed/selected.
+- Completed the remaining Folder-aware AppWidget gaps from review: Things-list
+  AppWidget header/Folder clicks now preserve multi-type masks when opening the
+  app, Things-list AppWidget configuration authenticates private Folder
+  selection and expansion, and single-Thing AppWidget configuration reuses the
+  home Folder Card binding instead of a local summary-card implementation.
+- Renamed Things-list widget launcher labels from Underway-specific names to
+  generic Things list names in the default and Simplified Chinese resources.
+- Verified with `E:\projects\EverythingDone\gradlew.bat :app:assembleDebug`;
+  `git diff --check` reported only existing line-ending normalization warnings.
+- Published debug update `202606201023` to the Aliyun debug update channel and
+  verified the remote `latest.json` points at
+  `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606201023.apk`
+  with SHA-256 `090e6e54206558b9f9270eb59b4bd57e05f49c8d5e2ad969d1a8f6a11a587a88`.
+
+## 2026-06-20 - AppWidget Folder follow-up fixes
+
+- Diagnosed post-publish feedback for Folder-aware AppWidgets: Single-Thing
+  configuration Thing Cards diverged from the home list, selected-card preview
+  controls did not fully adapt to the Thing background, Things-list Grid rows
+  opened the first slot regardless of tap location, 4x4 Grid widgets could use
+  too many columns, and widget alpha did not affect media-backed Thing Cards.
+- Changed Single-Thing AppWidget configuration's Thing delegate from a local
+  `BaseThingsAdapter` approximation to a `ThingsAdapter` delegate with a
+  configuration-scoped data source and Folder-auth private-content rules.
+- Updated the Single-Thing widget preview controls so the alpha slider follows
+  the selected Thing background, the confirm action uses text-only Thing-colour
+  styling with a pill ripple, and both the preview container and applied
+  RemoteViews root receive the same rounded outline clipping.
+- Updated Things-list AppWidget Grid rows so each visible slot owns its own
+  fill-in intent while child item RemoteViews do not bind duplicate collection
+  intents. Four-cell-wide Things-list widgets now use two Grid columns.
+- Applied AppWidget alpha to rendered foreground media thumbnails and
+  media-background bitmaps before setting them into RemoteViews.
+- Verified with `.\gradlew.bat :app:assembleDebug`; added static checks for
+  the key regression paths.
+- Published debug update `202606201050` to the Aliyun debug update channel and
+  verified the remote `latest.json` points at
+  `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606201050.apk`
+  with SHA-256 `b5e8cdf912f1d4a48b100645f2f5a90122caf43ef969ae910acfcc1075dce0a1`.
+
+## 2026-06-20 - Single-Thing AppWidget configuration parity fixes
+
+- Re-diagnosed Single-Thing AppWidget configuration after user feedback that
+  the previous follow-up still did not match the home list for private Things
+  inside large Folder previews and media-backed Thing Cards.
+- Found that the mixed configuration adapter used `ThingsAdapter` delegates
+  without attaching those delegates to the host RecyclerView, so home-card media
+  width, delayed media background sizing, and crop replay could still use
+  fallback dimensions instead of the configuration grid width.
+- Added an explicit delegated-host RecyclerView binding path to
+  `BaseThingsAdapter` and synchronized the Thing and Folder delegates from the
+  Single-Thing configuration list before binding and after layout/span changes.
+- Kept the Single-Thing preview on the `RemoteViews` path, fixed widget-root
+  rounded clipping with a transparent rounded background, `clipToOutline`, and
+  API 31+ RemoteViews outline-radius support, and switched media alpha to
+  RemoteViews `ImageView` alpha for real-time preview parity.
+- Wired large Folder preview thumbnail taps in Single-Thing configuration:
+  child Thing thumbnails now select that Thing for preview, while child Folder
+  thumbnails open that Folder through the same private-auth path as top-level
+  Folder rows.
+- Verified with `.\gradlew.bat :app:assembleDebug`; `git diff --check`
+  reported only existing line-ending normalization warnings.
+- Published debug update `202606201114` to the Aliyun debug update channel and
+  verified the remote `latest.json` points at
+  `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606201114.apk`
+  with SHA-256 `a0b0472930930c00572ba8b233848c19cde8f4bd2cffa6701e87e0525475c5f6`.
