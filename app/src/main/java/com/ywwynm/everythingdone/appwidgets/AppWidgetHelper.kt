@@ -74,7 +74,7 @@ object AppWidgetHelper {
 
     private val dp12: Int = (screenDensity * 12).toInt()
 
-    private const val WIDGET_LIST_SIDE_MEDIA_MIN_HEIGHT_DP: Int = 128
+    private const val WIDGET_LIST_SIDE_MEDIA_MIN_HEIGHT_DP: Int = 168
     private const val WIDGET_LIST_MEDIA_BACKGROUND_FALLBACK_HEIGHT_DP: Int = 160
     private const val WIDGET_LIST_MEDIA_BACKGROUND_MAX_HEIGHT_DP: Int = 360
     private const val WIDGET_LIST_MEDIA_BACKGROUND_MAX_BITMAP_DIMENSION_PX: Int = 960
@@ -1675,10 +1675,22 @@ object AppWidgetHelper {
         if (thing.isPrivate()) return WIDGET_LIST_SIDE_MEDIA_MIN_HEIGHT_DP
 
         val textWidthDp = max(80, pxToDp(contentWidth - targetWidth) - 24)
-        return max(
-                WIDGET_LIST_SIDE_MEDIA_MIN_HEIGHT_DP,
-                estimateThingsListWidgetContentRowHeightDp(
-                        context, thing, textWidthDp, style))
+        val contentHeight = estimateThingsListWidgetContentRowHeightDp(
+                context, thing, textWidthDp, style)
+
+        // Ensure the row is tall enough to preserve the image's target aspect
+        // ratio so that centreCrop doesn't cut off too much of the cover media.
+        val imageMinHeightDp = run {
+            val ratio = getWidgetSideMediaTargetAspectRatio(thing)
+            if (ratio != null && ratio > 0.0) {
+                val targetWidthDp = pxToDp(targetWidth)
+                max(1, (targetWidthDp / ratio).roundToInt())
+            } else {
+                0
+            }
+        }
+
+        return maxOf(WIDGET_LIST_SIDE_MEDIA_MIN_HEIGHT_DP, contentHeight, imageMinHeightDp)
     }
 
     private fun estimateThingsListWidgetContentRowHeightDp(
