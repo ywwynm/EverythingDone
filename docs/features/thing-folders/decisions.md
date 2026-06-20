@@ -1,5 +1,113 @@
 # Thing Folders Decisions
 
+## 2026-06-20 - Folder projections tint the surrounding chrome
+
+Folder projection chrome should carry the current Folder identity without
+making the list surface look like a large colour block. The muted Folder
+surface should therefore move even closer to `bg_activity_things`; only toolbar
+icons, the Activity Header Folder title, the create-Thing FAB, and contextual
+selection chrome use the stronger Folder pure colour or gradient.
+
+For normal in-Folder mode, the create-Thing FAB uses the Folder background and
+the Home actionbar icons use the Folder colour/gradient tint. For contextual
+selecting mode, the contextual toolbar plus its status-bar spacer use the
+Folder colour/gradient as the background; its title and icons use a dark or
+light foreground chosen from the Folder background's representative luminance.
+
+Root Activity Header subtitles should use the same direct-child Folder/Thing
+count text as Folder projections. Zero-count segments are omitted in both
+contexts.
+
+## 2026-06-20 - Folder projections share the muted Folder surface
+
+The muted Folder surface should lean more strongly toward the app's list
+background than the first implementation. `BackgroundUtil.mutedSurfaceBackground`
+now uses a smaller Folder-accent blend so thumbnail Folder interiors and Folder
+projection screens remain visually close to `bg_activity_things`.
+
+When ThingsActivity is showing a Folder projection, the main list surface and
+status-bar spacer should use the same muted Folder surface as large
+thumbnail-mode Folder Cards. Root projections should restore plain
+`bg_activity_things`. The Activity Header Folder title should use the Folder's
+own pure colour or gradient text fill, while the subtitle should omit zero
+direct-child count segments instead of showing `0 folders` or `0 things`.
+
+## 2026-06-20 - Thumbnail Folder interior fills are muted Folder surfaces
+
+The native-elevation strategy remains the current implementation for
+thumbnail-mode Folder Cards and their drag overlays. The interior fill no
+longer needs to be the exact `bg_activity_things` colour, though; it should be
+a muted version of the Folder background so the surface still reads as close to
+the surrounding list background while carrying a small amount of the Folder's
+own colour identity.
+
+`BackgroundUtil.mutedSurfaceBackground(...)` owns this derivation. It blends the
+current theme's list background toward the Folder background by a small amount,
+using a slightly stronger tint in dark mode so the hue remains visible against
+`#121212`. For gradient Folder backgrounds, both gradient stops are blended
+toward the same list surface and the original gradient orientation is preserved.
+
+The list card and `DragOverlayImageView` must use the same derived
+`ThingBackground`. This keeps transparent-looking interior areas visually
+consistent before and during overlay drag, while preserving the cheaper native
+`CardView` / View elevation path.
+
+## 2026-06-20 - Thumbnail Folder shadows prefer native elevation over true transparency
+
+The outside-only transparent shadow decision below is superseded for current
+implementation. Real-device testing showed that drawing a
+`MaterialShapeDrawable` compat shadow through a RecyclerView decoration and
+clipping it to an outside-only path is too expensive during list scroll and
+overlay drag. The result does preserve true transparent interior pixels, but it
+does not meet the interaction performance requirement.
+
+Thumbnail-mode Folder Cards should therefore return to the cheaper native
+elevation strategy: the `CardView` itself uses the same normal and dragging
+elevation as ordinary Thing Cards, and its otherwise empty interior is filled
+with `bg_activity_things` to cover the inner half of the native outline shadow.
+This makes the interior transparent-like against the current list background
+but not alpha-transparent.
+
+Thumbnail-mode Folder drag overlays should follow the same trade-off. They use
+native View elevation on expanded overlay bounds with an inset rounded
+`Outline`, draw `bg_activity_things` inside the content rect, and then draw the
+captured bitmap. This keeps the native shadow look and avoids per-frame compat
+shadow, `clipPath`, or software-layer work.
+
+`ThingListOverlayDragController` still belongs in the `managers` package rather
+than the `activities` package.
+
+## 2026-06-20 - Transparent thumbnail Folder shadows use an outside-only layer
+
+The previous thumbnail Folder Card shadow strategy that filled the transparent
+Folder surface with `bg_activity_things` is superseded. User testing showed
+that the blank interior area must be truly transparent in both the normal list
+card and the drag overlay; matching the list background is not equivalent.
+
+Android's View shadow model still makes native elevation a poor fit for this
+specific surface: the shadow is derived from the View `Outline`,
+`clipToOutline` clips content rather than the shadow, and `View.draw(Canvas)`
+does not capture real-time shadows or outline clipping into the overlay bitmap.
+A single transparent elevated `CardView`/`ImageView` can therefore leak the
+inner half of the shadow through transparent pixels.
+
+Thumbnail-mode Folder Cards should keep their real `CardView` background
+transparent and set native `cardElevation` / `maxCardElevation` to `0f`. The
+visible outer lift is drawn by `ThumbnailFolderCardShadowDecoration`, which
+uses `MaterialShapeDrawable` compat elevation under RecyclerView children and
+clips the drawable with an even-odd outside-only rounded path. The card content
+remains transparent because the inner rounded rect is never painted.
+
+Thumbnail-mode Folder drag overlays use the same outside-only shadow helper.
+`DragOverlayImageView` keeps expanded bounds for shadow overflow, clips the
+shadow to the area outside the content rounded rect, then clips and draws the
+transparent bitmap content inside that rounded rect. Ordinary Thing Cards and
+summary Folder Cards continue to use the native elevation path.
+
+`ThingListOverlayDragController` belongs in the `managers` package rather than
+the `activities` package. It still communicates with `ThingsActivity` through
+the existing Host contract.
+
 ## 2026-06-20 - In-Folder header spacer updates are not scroll state
 
 The in-Folder Activity header may change its visible title width and line

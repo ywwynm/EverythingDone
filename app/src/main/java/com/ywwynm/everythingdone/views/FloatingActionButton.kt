@@ -1,11 +1,18 @@
 package com.ywwynm.everythingdone.views
 
 import android.content.Context
+import android.content.res.ColorStateList
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.RectF
 import androidx.recyclerview.widget.RecyclerView
 import android.util.AttributeSet
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.AccelerateInterpolator
 import android.view.animation.OvershootInterpolator
+import com.ywwynm.everythingdone.model.ThingBackground
+import com.ywwynm.everythingdone.utils.BackgroundUtil
 
 /**
  * Created by ywwynm on 2015/8/16.
@@ -24,6 +31,9 @@ open class FloatingActionButton : com.google.android.material.floatingactionbutt
     private var mShrunk: Boolean = false
 
     private var mSnackbars: Array<Snackbar?>? = null
+    private var mThingBackground: ThingBackground? = null
+    private val mThingBackgroundPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val mThingBackgroundBounds = RectF()
 
     constructor(context: Context, attrs: AttributeSet?, defStyleAttr: Int) : super(context, attrs, defStyleAttr) {
         init()
@@ -41,6 +51,39 @@ open class FloatingActionButton : com.google.android.material.floatingactionbutt
         mAccelerateDecelerateInterpolator = AccelerateDecelerateInterpolator()
         mAccelerateInterpolator = AccelerateInterpolator()
         mOvershootInterpolator = OvershootInterpolator()
+    }
+
+    fun setThingBackground(background: ThingBackground?, fallbackColor: Int) {
+        if (background == null) {
+            mThingBackground = null
+            backgroundTintList = ColorStateList.valueOf(fallbackColor)
+            invalidate()
+            return
+        }
+
+        if (background.mode === ThingBackground.Mode.PURE) {
+            mThingBackground = null
+            backgroundTintList = ColorStateList.valueOf(background.color)
+        } else {
+            mThingBackground = background
+            backgroundTintList = ColorStateList.valueOf(Color.TRANSPARENT)
+        }
+        invalidate()
+    }
+
+    override fun onDraw(canvas: Canvas) {
+        val background = mThingBackground
+        if (background != null && width > 0 && height > 0) {
+            mThingBackgroundBounds.set(0f, 0f, width.toFloat(), height.toFloat())
+            mThingBackgroundPaint.shader = BackgroundUtil.createLinearGradient(
+                background,
+                width.toFloat(),
+                height.toFloat()
+            )
+            canvas.drawOval(mThingBackgroundBounds, mThingBackgroundPaint)
+            mThingBackgroundPaint.shader = null
+        }
+        super.onDraw(canvas)
     }
 
     private fun getMarginBottom(): Int {

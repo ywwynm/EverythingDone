@@ -44,6 +44,8 @@ import kotlin.math.ceil
  * Translated to Kotlin by ywwynm and Claude Opus 4.7 on 2026/5/20.
  */
 object BackgroundUtil {
+    private const val MUTED_SURFACE_ACCENT_LIGHT = 0.05f
+    private const val MUTED_SURFACE_ACCENT_DARK = 0.08f
 
     // ---------------------------------------------------------------------------
     // Hue buckets — used by search-by-similar-color. See
@@ -155,14 +157,50 @@ object BackgroundUtil {
         return blendWith(color, 0x000000, amount)
     }
 
+    /**
+     * Build a Folder-tinted surface that still reads as the surrounding list
+     * surface. Used where a transparent-looking Folder card needs an opaque
+     * fill to cover native elevation shadow.
+     */
+    @JvmStatic
+    fun mutedSurfaceBackground(
+        background: ThingBackground?,
+        surfaceColor: Int
+    ): ThingBackground {
+        val bg = background ?: return ThingBackground.pure(surfaceColor)
+        val accentAmount = if (isLight(surfaceColor)) {
+            MUTED_SURFACE_ACCENT_LIGHT
+        } else {
+            MUTED_SURFACE_ACCENT_DARK
+        }
+        val start = blendColors(surfaceColor, bg.color, accentAmount)
+        if (bg.mode === ThingBackground.Mode.PURE) {
+            return ThingBackground.pure(start)
+        }
+        val end = blendColors(surfaceColor, bg.endColor, accentAmount)
+        return ThingBackground.gradient(start, end, bg.orientation)
+    }
+
     private fun blendWith(color: Int, targetRgb: Int, amount: Float): Int {
+        return blendColors(
+            color,
+            Color.rgb(
+                (targetRgb shr 16) and 0xFF,
+                (targetRgb shr 8) and 0xFF,
+                targetRgb and 0xFF
+            ),
+            amount
+        )
+    }
+
+    private fun blendColors(from: Int, to: Int, amount: Float): Int {
         val a: Float = clamp01(amount)
-        val r: Int = Color.red(color)
-        val g: Int = Color.green(color)
-        val b: Int = Color.blue(color)
-        val tr: Int = (targetRgb shr 16) and 0xFF
-        val tg: Int = (targetRgb shr 8)  and 0xFF
-        val tb: Int = targetRgb          and 0xFF
+        val r: Int = Color.red(from)
+        val g: Int = Color.green(from)
+        val b: Int = Color.blue(from)
+        val tr: Int = Color.red(to)
+        val tg: Int = Color.green(to)
+        val tb: Int = Color.blue(to)
         val nr: Int = Math.round(r * (1 - a) + tr * a)
         val ng: Int = Math.round(g * (1 - a) + tg * a)
         val nb: Int = Math.round(b * (1 - a) + tb * a)
@@ -402,6 +440,11 @@ object BackgroundUtil {
     }
 
     /** Build a LinearGradient covering `width × height` matching the given background's stops. */
+    @JvmStatic
+    fun createLinearGradient(bg: ThingBackground, width: Float, height: Float): LinearGradient {
+        return linearGradientFor(bg, width, height)
+    }
+
     private fun linearGradientFor(bg: ThingBackground, width: Float, height: Float): LinearGradient {
         val x0: Float
         val y0: Float

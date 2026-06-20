@@ -15,8 +15,10 @@ import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.managers.ModeManager
 import com.ywwynm.everythingdone.managers.ThingManager
+import com.ywwynm.everythingdone.model.ThingBackground
+import com.ywwynm.everythingdone.model.ThingFolder
+import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
-import com.ywwynm.everythingdone.utils.LocaleUtil
 import kotlin.math.min
 
 /**
@@ -220,14 +222,16 @@ open class ActivityHeader(
         val rootTitle = getRootTitle()
         val manager = ThingManager.getInstance(mApp)
         val folderPath = manager?.getCurrentFolderPath() ?: emptyList()
+        val currentFolder = folderPath.lastOrNull()
         mInFolderProjection = folderPath.isNotEmpty()
         headerCollapseProgress = 0f
         resetTitleTextStyle()
-        mTitle.text = if (folderPath.isEmpty()) {
+        mTitle.text = if (currentFolder == null) {
             rootTitle
         } else {
-            folderPath.last().title.ifEmpty { mApp.getString(R.string.default_thing_folder_name) }
+            currentFolder.title.ifEmpty { mApp.getString(R.string.default_thing_folder_name) }
         }
+        applyFolderTitleStyle(currentFolder)
         updateTitleLayoutForProgress(0f)
         mTitle.requestLayout()
         mRelativeLayout.requestLayout()
@@ -262,29 +266,39 @@ open class ActivityHeader(
         mTitle.movementMethod = null
         mTitle.isClickable = false
         mTitle.paint.isUnderlineText = false
+        mTitle.paint.shader = null
         mTitle.setTextColor(ContextCompat.getColor(mApp, R.color.app_chrome_on_surface_medium))
         mTitle.ellipsize = TextUtils.TruncateAt.END
+        mTitle.invalidate()
+    }
+
+    private fun applyFolderTitleStyle(folder: ThingFolder?) {
+        folder ?: return
+        val background = folder.getBackground() ?: ThingBackground.pure(folder.getColor())
+        if (background.mode === ThingBackground.Mode.GRADIENT) {
+            BackgroundUtil.applyTextBackground(mTitle, background)
+        } else {
+            mTitle.setTextColor(background.color)
+        }
     }
 
     private fun updateSubtitle() {
         val manager = ThingManager.getInstance(mApp)!!
-        if (!manager.getProjection().isRoot()) {
-            val childCounts = manager.getVisibleChildCountsForActivityHeader()
-            mSubtitle.text = mApp.getString(
+        val childCounts = manager.getVisibleChildCountsForActivityHeader()
+        mSubtitle.text = getFolderChildCountText(childCounts[0], childCounts[1])
+    }
+
+    private fun getFolderChildCountText(folderCount: Int, thingCount: Int): String {
+        return when {
+            folderCount > 0 && thingCount > 0 -> mApp.getString(
                 R.string.thing_folder_count_folders_things,
-                childCounts[0],
-                childCounts[1]
+                folderCount,
+                thingCount
             )
-            return
+            folderCount > 0 -> mApp.getString(R.string.thing_folder_count_folders, folderCount)
+            thingCount > 0 -> mApp.getString(R.string.thing_folder_count, thingCount)
+            else -> mApp.getString(R.string.empty)
         }
-        val thingsCount: Int = manager.getThingsCounts()!!
-            .getThingsCountForActivityHeader(mApp.getLimit())
-        var subtitle: String = if (thingsCount == 0) mApp.getString(R.string.empty) else
-                "" + thingsCount + " " + mApp.getString(R.string.a_thing)
-        if (thingsCount > 1 && !LocaleUtil.isChinese(mApp)) {
-            subtitle += "s"
-        }
-        mSubtitle.text = subtitle
     }
 
     fun hideActionbarShadow() {

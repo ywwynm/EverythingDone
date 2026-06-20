@@ -11,12 +11,20 @@
   project control.
 - Folder navigation should happen through Folder Cards and the Drawer. Inside a
   Folder projection, the Activity header should show only the current Folder
-  name as a plain non-link title, using the same colour and text style as the
-  root Underway header. It should not render the full Folder path in blue or
+  name as a plain non-link title, using the current Folder's pure colour or
+  gradient text fill. It should not render the full Folder path in blue or
   underline it.
 - Inside a Folder projection, the Activity header subtitle should show direct
   child counts split by type, in the form `X folders, Y things` /
   `X个文件夹，Y件记事`, instead of a single combined item count.
+- If either direct child count is zero, omit that segment from the Activity
+  header subtitle; for example show only `X things` / `X件记事` when there are
+  no child Folders.
+- Inside a Folder projection, the ThingsActivity list surface should use the
+  same muted Folder-background surface as thumbnail-mode Folder Cards. Returning
+  to a root projection should restore the plain `bg_activity_things` surface.
+- The muted Folder surface should stay very close to `bg_activity_things`,
+  carrying only a subtle trace of the Folder's pure colour or gradient.
 - Long Folder names in the Activity header should be constrained before the
   right-side card edge in the expanded state, and before the Home toolbar search
   action in the collapsed state. Header width changes during scroll should be
@@ -27,6 +35,13 @@
   invisible header spacer scrolls offscreen. The title, subtitle alpha, and
   actionbar shadow should not reset or flicker when the first visible card is
   near the actionbar.
+- Inside a Folder projection, the create-Thing FAB and normal actionbar icons
+  should adopt the current Folder's pure colour or gradient. In contextual
+  selecting mode, the contextual toolbar and status-bar spacer should adopt the
+  Folder colour/gradient, while contextual icons and title text choose a dark
+  or light foreground from that Folder background's luminance.
+- Root Activity Header subtitles should also include direct child Folder counts
+  and omit zero segments, matching the in-Folder subtitle rule.
 - If a Folder name wraps to two lines in the actionbar, its collapsed title
   scale should become slightly smaller than the normal one-line collapsed
   title scale, and that additional shrink should be reached continuously during
@@ -293,19 +308,24 @@
 ## Thumbnail Folder Card Surface
 
 - Thumbnail-mode Folder Cards in the list should keep the same normal and
-  dragging `CardView` elevation as ordinary Thing Cards. Because their visual
-  interior should still read as transparent against the list, use the
-  home/list background as the CardView fill behind the outlined content so the
-  platform elevation shadow is covered inside the outline and visible only
-  outside it.
-- Thumbnail-mode Folder Card drag overlays should still look lifted with the
-  platform View elevation shadow. Use an inset rounded `Outline` for the real
-  card content rect, then draw the list background inside that content rect
-  before drawing the transparent bitmap so any internal elevation shadow is
-  covered.
-- Do not replace thumbnail-mode Folder drag overlay elevation with custom
-  stroke, gradient, or bitmap shadow approximations when the platform can draw
-  the real outer shadow.
+  dragging `CardView` elevation as ordinary Thing Cards. Because the true
+  transparent outside-only shadow implementation was too expensive during
+  scrolling and dragging, the Folder Card surface should fill its otherwise
+  empty interior with a muted version of the Folder background to cover the
+  inner half of native elevation shadow. This muted surface should stay very
+  close to the home/list background in both light and dark mode while carrying
+  a small amount of the Folder's pure colour or gradient.
+- Thumbnail-mode Folder Card drag overlays should still look lifted with native
+  View elevation. Use expanded overlay bounds and an inset rounded `Outline`
+  for the real card content rect, then draw the same muted Folder-background
+  surface inside that content rect before drawing the captured bitmap so any
+  internal native elevation shadow is covered.
+- Do not use a RecyclerView `ItemDecoration`, `MaterialShapeDrawable` compat
+  shadow, `clipPath`, or per-frame outside-only shadow mask for thumbnail-mode
+  Folder Cards; that path is not smooth enough on real devices.
+- Ordinary Thing Cards, summary-mode Folder Cards, and thumbnail-mode Folder
+  Cards should all use the native `CardView` / View elevation path for the
+  visible outer shadow.
 - Very tall thumbnail-mode Folder Card drag overlays must continue rendering
   their bitmap content. Avoid whole-overlay software layers, full-size
   `saveLayer(...)` cleanup, or single oversized texture uploads for the drag

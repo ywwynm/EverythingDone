@@ -109,6 +109,7 @@ import com.ywwynm.everythingdone.helpers.SendInfoHelper
 import com.ywwynm.everythingdone.helpers.ThingDoingHelper
 import com.ywwynm.everythingdone.helpers.ThingExporter
 import com.ywwynm.everythingdone.managers.ModeManager
+import com.ywwynm.everythingdone.managers.ThingListOverlayDragController
 import com.ywwynm.everythingdone.managers.ThingManager
 import com.ywwynm.everythingdone.model.DoingRecord
 import com.ywwynm.everythingdone.model.Habit
@@ -623,7 +624,7 @@ class ThingsActivity :
         }
 
         mFab!!.rippleColor = App.newThingColor
-        mActivityHeader!!.updateText()
+        refreshActivitySurfaceAndHeader()
         if (App.isSearching) {
             updateSearchNoResult(0)
         } else {
@@ -748,24 +749,48 @@ class ThingsActivity :
     }
 
     private fun tintHomeMenuIconsForAppearance(menu: Menu) {
-        if (!AppearanceUtil.isDarkMode(this)) return
-
-        val tint = ContextCompat.getColor(this, R.color.app_accent)
-        tintHomeOverflowIconForAppearance(tint)
+        val tintBackground = getHomeActionbarIconTintBackground()
+        tintHomeOverflowIconForAppearance(tintBackground)
         for (i in 0 until menu.size()) {
             val item = menu.getItem(i)
             val icon = item.icon ?: continue
-            item.icon = DisplayUtil.opaqueTintDrawable(this, icon, tint)
+            item.icon = tintToolbarDrawable(icon, tintBackground)
         }
     }
 
-    private fun tintHomeOverflowIconForAppearance(tint: Int) {
+    private fun getHomeActionbarIconTintBackground(): ThingBackground {
+        val folderBackground = getCurrentFolderBackgroundForChrome()
+        if (folderBackground != null) {
+            return folderBackground
+        }
+        val tint = ContextCompat.getColor(
+            this,
+            if (AppearanceUtil.isDarkMode(this)) {
+                R.color.app_accent
+            } else {
+                R.color.app_chrome_on_surface_secondary
+            }
+        )
+        return ThingBackground.pure(tint)
+    }
+
+    private fun tintHomeOverflowIconForAppearance(background: ThingBackground) {
         val toolbar = mActionbar ?: return
-        val icon = toolbar.overflowIcon ?: AppCompatResources.getDrawable(
+        val icon = AppCompatResources.getDrawable(
             this,
             androidx.appcompat.R.drawable.abc_ic_menu_overflow_material
         ) ?: return
-        toolbar.overflowIcon = DisplayUtil.opaqueTintDrawable(this, icon, tint)
+        toolbar.overflowIcon = tintToolbarDrawable(icon, background)
+    }
+
+    private fun tintToolbarDrawable(
+        icon: Drawable?,
+        background: ThingBackground
+    ): Drawable? {
+        if (background.mode === ThingBackground.Mode.GRADIENT) {
+            return BackgroundUtil.tintDrawable(resources, icon, background)
+        }
+        return DisplayUtil.opaqueTintDrawable(this, icon, background.color)
     }
 
     private fun updateDrawerFolderItems(
@@ -1106,7 +1131,7 @@ class ThingsActivity :
         mRecyclerView!!.scrollToPosition(0)
         mAdapter!!.setShouldThingsAnimWhenAppearing(true)
         mAdapter!!.notifyDataSetChanged()
-        mActivityHeader!!.updateText()
+        refreshActivitySurfaceAndHeader()
         mDrawerHeader!!.updateTexts()
         mFab!!.spread()
         updateDrawerFolderItems()
@@ -1370,7 +1395,7 @@ class ThingsActivity :
         if (mModeManager!!.getCurrentMode() == ModeManager.SELECTING) {
             updateSelectingUi(false)
         }
-        mActivityHeader!!.updateText()
+        refreshActivitySurfaceAndHeader()
         mDrawerHeader!!.updateTexts()
         mUpdateMainUiInOnResume = true
         if (mCanSeeUi) {
@@ -1630,7 +1655,7 @@ class ThingsActivity :
             mThingManager!!.loadThings()
         }
 
-        mActivityHeader!!.updateText()
+        refreshActivitySurfaceAndHeader()
         mDrawerHeader!!.updateCompletionRate()
         updateDrawerFolderItems()
 
@@ -1822,7 +1847,7 @@ class ThingsActivity :
         updateDrawerFolderItems()
         checkDrawerItem(findDrawerSelectionKeyForCurrentProjection())
 
-        mActivityHeader!!.updateText()
+        refreshActivitySurfaceAndHeader()
         if (mModeManager!!.getCurrentMode() == ModeManager.SELECTING) {
             mModeManager!!.showContextualToolbar(false)
             mFab!!.shrinkWithoutAnim()
@@ -1898,23 +1923,114 @@ class ThingsActivity :
     }
 
     private fun applyHomeStatusBarChrome() {
-        f<View>(R.id.view_status_bar)!!.setBackgroundResource(R.color.bg_activity_things)
+        val surfaceBackground = applyThingsActivitySurfaceBackground()
+        val representativeColor = surfaceBackground.representativeColor()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            window.statusBarColor = ContextCompat.getColor(this, R.color.bg_statusbar_lollipop)
+            window.statusBarColor = representativeColor
         }
-        if (AppearanceUtil.isDarkMode(this)) {
-            DisplayUtil.cancelDarkStatusBar(this)
-        } else {
+        if (BackgroundUtil.isLight(representativeColor)) {
             DisplayUtil.darkStatusBar(this)
+        } else {
+            DisplayUtil.cancelDarkStatusBar(this)
+        }
+        applyHomeNavigationIconTintForAppearance()
+    }
+
+    private fun applyThingsActivitySurfaceBackground(): ThingBackground {
+        val background = getThingsActivitySurfaceBackground()
+        BackgroundUtil.applyBackground(findViewById<View>(R.id.fl_things), background)
+        BackgroundUtil.applyBackground(findViewById<View>(R.id.view_status_bar), background)
+        mRecyclerView?.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+        return background
+    }
+
+    private fun getThingsActivitySurfaceBackground(): ThingBackground {
+        val listBackgroundColor = ContextCompat.getColor(this, R.color.bg_activity_things)
+        val folderBackground = getCurrentFolderBackgroundForChrome()
+        return if (folderBackground == null) {
+            ThingBackground.pure(listBackgroundColor)
+        } else {
+            BackgroundUtil.mutedSurfaceBackground(folderBackground, listBackgroundColor)
         }
     }
 
-    private fun applyContextualStatusBarChrome() {
-        f<View>(R.id.view_contextual_status_bar)!!.visibility = View.VISIBLE
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            window.statusBarColor = ContextCompat.getColor(this, R.color.app_accent)
+    private fun getCurrentFolderBackgroundForChrome(): ThingBackground? {
+        val folder = mThingManager?.getCurrentFolder() ?: return null
+        return folder.getBackground() ?: ThingBackground.pure(folder.getColor())
+    }
+
+    private fun refreshActivitySurfaceAndHeader() {
+        if (mModeManager?.getCurrentMode() == ModeManager.SELECTING) {
+            applyThingsActivitySurfaceBackground()
+        } else {
+            applyHomeStatusBarChrome()
         }
-        DisplayUtil.darkStatusBar(this)
+        applyCreateFabBackgroundForCurrentProjection()
+        mActivityHeader?.updateText()
+    }
+
+    private fun applyContextualStatusBarChrome() {
+        val statusBar: View = f(R.id.view_contextual_status_bar)!!
+        val toolbar: Toolbar = f(R.id.contextual_toolbar)!!
+        val folderBackground = getCurrentFolderBackgroundForChrome()
+        val background = folderBackground
+            ?: ThingBackground.pure(ContextCompat.getColor(this, R.color.app_accent))
+        val foreground = if (folderBackground == null) {
+            ContextCompat.getColor(this, R.color.black_54p)
+        } else {
+            BackgroundUtil.onColor(
+                background.representativeColor(),
+                BackgroundUtil.ON_ALPHA_PRIMARY
+            )
+        }
+
+        statusBar.visibility = View.VISIBLE
+        BackgroundUtil.applyBackground(statusBar, background)
+        BackgroundUtil.applyBackground(toolbar, background)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            window.statusBarColor = background.representativeColor()
+        }
+        if (BackgroundUtil.isLight(background.representativeColor())) {
+            DisplayUtil.darkStatusBar(this)
+        } else {
+            DisplayUtil.cancelDarkStatusBar(this)
+        }
+        applyContextualToolbarForeground(toolbar, foreground)
+    }
+
+    private fun applyContextualToolbarForeground(toolbar: Toolbar, foreground: Int) {
+        toolbar.setTitleTextColor(foreground)
+        AppCompatResources.getDrawable(this, R.drawable.act_close)?.let { close ->
+            toolbar.navigationIcon = DisplayUtil.opaqueTintDrawable(this, close, foreground)
+        }
+        toolbar.overflowIcon?.let { icon ->
+            toolbar.overflowIcon = DisplayUtil.opaqueTintDrawable(this, icon, foreground)
+        }
+        val menu = toolbar.menu
+        for (i in 0 until menu.size()) {
+            val item = menu.getItem(i)
+            val icon = item.icon ?: continue
+            item.icon = DisplayUtil.opaqueTintDrawable(this, icon, foreground)
+        }
+    }
+
+    private fun applyCreateFabBackgroundForCurrentProjection() {
+        val fab = mFab ?: return
+        val appAccent = ContextCompat.getColor(this, R.color.app_accent)
+        val folderBackground = getCurrentFolderBackgroundForChrome()
+        if (folderBackground == null) {
+            fab.setThingBackground(null, appAccent)
+            fab.imageTintList = null
+            fab.rippleColor = App.newThingColor
+            return
+        }
+
+        val representativeColor = folderBackground.representativeColor()
+        fab.setThingBackground(folderBackground, appAccent)
+        fab.imageTintList = ColorStateList.valueOf(
+            BackgroundUtil.onColor(representativeColor, BackgroundUtil.ON_ALPHA_PRIMARY)
+        )
+        fab.rippleColor = BackgroundUtil.onColor(representativeColor, 0.24f)
     }
 
     private fun initRecyclerViewUi() {
@@ -2036,7 +2152,7 @@ class ThingsActivity :
                         mAdapter!!.setShouldThingsAnimWhenAppearing(true)
                         mAdapter!!.notifyDataSetChanged()
                         mRecyclerView!!.scrollToPosition(0)
-                        mActivityHeader!!.updateText()
+                        refreshActivitySurfaceAndHeader()
                         updateDrawerFolderItems()
                         invalidateOptionsMenu()
                         return
@@ -3301,6 +3417,7 @@ class ThingsActivity :
                 updateRecyclerViewBottomPaddingForThingCardAppearancePanel()
             }
             mThingCardAppearanceColorPicker?.pickForBackground(background)
+            refreshActivitySurfaceAndHeader()
             return
         }
 
@@ -4757,6 +4874,7 @@ class ThingsActivity :
         hideThingCardAppearancePanel()
         clearThingCardAppearanceDraft()
         if (mThingManager!!.updateFolderAppearance(folder, title, confirmedDraft)) {
+            refreshActivitySurfaceAndHeader()
             updateDrawerFolderItems()
             AppWidgetHelper.updateAllThingsListAppWidgets(this)
         }
@@ -4909,6 +5027,7 @@ class ThingsActivity :
         }
         hideThingCardAppearancePanel()
         clearThingCardAppearanceDraft()
+        refreshActivitySurfaceAndHeader()
 
         if (shouldBackNormalMode && mModeManager!!.getCurrentMode() == ModeManager.SELECTING) {
             mModeManager!!.backNormalMode(0)
@@ -5656,18 +5775,11 @@ class ThingsActivity :
 
     private fun applyHomeNavigationIconTintForAppearance() {
         val icon = mActionbar!!.navigationIcon ?: return
-        val tint = ContextCompat.getColor(
-            this,
-            if (AppearanceUtil.isDarkMode(this)) {
-                R.color.app_accent
-            } else {
-                R.color.app_chrome_on_surface_secondary
-            }
-        )
+        val tintBackground = getHomeActionbarIconTintBackground()
         if (icon is DrawerArrowDrawable) {
-            icon.color = tint
+            icon.color = tintBackground.representativeColor()
         } else {
-            mActionbar!!.navigationIcon = DisplayUtil.opaqueTintDrawable(this, icon, tint)
+            mActionbar!!.navigationIcon = tintToolbarDrawable(icon, tintBackground)
         }
     }
 
@@ -5689,10 +5801,11 @@ class ThingsActivity :
             mAdapter!!.setShouldThingsAnimWhenAppearing(true)
             mThingManager!!.loadThings()
             mAdapter!!.notifyDataSetChanged()
+            refreshActivitySurfaceAndHeader()
             updateDrawerFolderItems()
         }, 360)
 
-        mActivityHeader!!.updateText()
+        refreshActivitySurfaceAndHeader()
         mDrawerHeader!!.updateTexts()
         if (newLimit <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
             mFab!!.spread()
@@ -5842,7 +5955,7 @@ class ThingsActivity :
     }
 
     private fun updateUIAfterStateUpdated(stateAfter: Int, timeDelay: Long, shouldForceBackNormalMode: Boolean) {
-        mActivityHeader!!.updateText()
+        refreshActivitySurfaceAndHeader()
         mDrawerHeader!!.updateCompletionRate()
 
         mScrollCausedByFinger = false
@@ -5995,7 +6108,7 @@ class ThingsActivity :
                 mFab!!.spread()
             }
             mApp!!.setLimit(mApp!!.getLimit(), true)
-            mActivityHeader!!.updateText()
+            refreshActivitySurfaceAndHeader()
             mDrawerHeader!!.updateCompletionRate()
             mAdapter!!.setShouldThingsAnimWhenAppearing(shouldThingsAnimWhenAppearing)
             hideSearchNoResult()
@@ -6352,7 +6465,7 @@ class ThingsActivity :
         mAdapter!!.setShouldThingsAnimWhenAppearing(true)
         mAdapter!!.notifyDataSetChanged()
         mRecyclerView!!.scrollToPosition(0)
-        mActivityHeader!!.updateText()
+        refreshActivitySurfaceAndHeader()
         updateDrawerFolderItems()
         invalidateOptionsMenu()
     }
@@ -7006,7 +7119,7 @@ class ThingsActivity :
     private fun refreshHomeAfterFolderUpdated() {
         mAdapter!!.setShouldThingsAnimWhenAppearing(false)
         mAdapter!!.notifyDataSetChanged()
-        mActivityHeader!!.updateText()
+        refreshActivitySurfaceAndHeader()
         mDrawerHeader!!.updateTexts()
         updateDrawerFolderItems()
         invalidateOptionsMenu()
@@ -7183,7 +7296,7 @@ class ThingsActivity :
     }
 
     private fun updateHomeAfterFolderDropCommitted() {
-        mActivityHeader!!.updateText()
+        refreshActivitySurfaceAndHeader()
         mDrawerHeader!!.updateTexts()
         updateDrawerFolderItems()
         AppWidgetHelper.updateAllThingsListAppWidgets(mApp)
@@ -7392,7 +7505,7 @@ class ThingsActivity :
         mAdapter!!.setShouldThingsAnimWhenAppearing(true)
         mAdapter!!.notifyDataSetChanged()
         mRecyclerView!!.scrollToPosition(0)
-        mActivityHeader!!.updateText()
+        refreshActivitySurfaceAndHeader()
         updateDrawerFolderItems()
         invalidateOptionsMenu()
     }
@@ -9252,7 +9365,7 @@ class ThingsActivity :
                 } else {
                     mAdapter!!.notifyDataSetChanged()
                 }
-                mActivityHeader!!.updateText()
+                refreshActivitySurfaceAndHeader()
                 mDrawerHeader!!.updateTexts()
                 updateDrawerFolderItems()
             }

@@ -1,5 +1,138 @@
 # Thing Folders Sessions
 
+## 2026-06-20 - Folder projection chrome tint and root child counts
+
+- Moved `BackgroundUtil.mutedSurfaceBackground(...)` closer to the list surface
+  by reducing the Folder-accent blend to 5% in light mode and 8% in dark mode.
+- Added Folder-aware normal ThingsActivity chrome: the in-Folder create FAB
+  adopts the current Folder pure colour or gradient, Home actionbar menu icons
+  adopt the Folder tint, and root projections reset those surfaces to app
+  chrome colours.
+- Added gradient support to the app custom `FloatingActionButton` by keeping
+  native Material FAB tint for pure colours and drawing a circular gradient in
+  `onDraw` for gradient Folder backgrounds.
+- Updated contextual selecting mode so the contextual toolbar and status-bar
+  spacer use the current Folder background while toolbar title and icons choose
+  a dark or light foreground from that background's luminance.
+- Changed Activity Header subtitles to use the same direct child Folder/Thing
+  count text for root and Folder projections, omitting zero-count segments.
+
+Verification: `.\gradlew.bat :app:assembleDebug --console=plain
+--no-configuration-cache` completed with `BUILD SUCCESSFUL`. `git diff --check`
+passed with only the repository's existing LF/CRLF warnings. Published debug
+update `202606200422` and verified remote `latest.json` points at
+`http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606200422.apk`.
+Remote SHA-256:
+`cc2ab8aad94f56f07fdaf7d58a49ab2efb8171c5474a499e154c57e12b6c2f24`.
+
+## 2026-06-20 - Apply muted Folder surface to Folder projections
+
+- Tuned `BackgroundUtil.mutedSurfaceBackground(...)` so the muted Folder surface
+  leans more toward `bg_activity_things` than the first pass while still
+  retaining a small pure-colour or gradient Folder accent.
+- Applied the same muted Folder surface to ThingsActivity when the current
+  projection is inside a Folder. Returning to a root projection restores the
+  plain `bg_activity_things` surface.
+- Updated `ActivityHeader` so Folder titles use the current Folder's pure
+  colour or gradient text fill, and Folder child-count subtitles omit zero
+  segments such as `0 folders` or `0 things`.
+
+Verification: `.\gradlew.bat :app:assembleDebug --console=plain
+--no-configuration-cache` completed with `BUILD SUCCESSFUL`. The remaining
+compiler warning is the existing deprecated override warning in
+`ThingsActivity.kt`. `git diff --check` passed with only the repository's
+existing LF/CRLF warnings. Published debug update `202606200402` and verified
+remote `latest.json` points at
+`http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606200402.apk`.
+Remote SHA-256:
+`d348ba6bc1aff772c2faeee0a56c650106b5ae8cc4be43b3550a95463ee7338b`.
+
+## 2026-06-20 - Tint thumbnail Folder interior surfaces by Folder background
+
+- Updated thumbnail-mode Folder Cards so their opaque interior fill is no
+  longer the exact `bg_activity_things` colour. The fill now uses
+  `BackgroundUtil.mutedSurfaceBackground(...)`, which keeps the surface close
+  to the current light/dark list background while blending in a small amount of
+  the Folder's pure colour or gradient.
+- Applied the same derived surface to `DragOverlayImageView` before drawing the
+  captured bitmap, so transparent-looking areas in large Folder drag overlays
+  match the list card and still cover the inner native elevation shadow.
+- Kept the native `CardView` / View elevation path and did not reintroduce the
+  outside-only shadow decoration or per-frame clipping path.
+
+Verification: `.\gradlew.bat :app:assembleDebug --console=plain
+--no-configuration-cache` completed with `BUILD SUCCESSFUL`. The remaining
+compiler warnings are the existing deprecated `adapterPosition` warnings in
+`ThingListOverlayDragController.kt`. `git diff --check` passed with only the
+repository's existing LF/CRLF warnings. Published debug update `202606200345`
+and verified remote `latest.json` points at
+`http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606200345.apk`.
+Remote SHA-256:
+`abdf38d71fc930223b37fc0b29e4a814dc5be23202951c354cd19bedf7848996`.
+
+## 2026-06-20 - Revert thumbnail Folder true-transparent shadow path
+
+- Follow-up testing showed that the true-transparent thumbnail Folder shadow
+  path was too slow on device. The expensive part was the outside-only
+  `MaterialShapeDrawable` compat shadow drawn through RecyclerView decoration
+  and clipped on every frame, especially during scroll and overlay drag.
+- Kept the `ThingListOverlayDragController.kt` move from `activities` to
+  `managers`, but removed `ThumbnailFolderCardShadowDecoration` and the shared
+  `OutsideOnlyRoundedShadow` helper.
+- Restored thumbnail-mode Folder Cards to the native `CardView` elevation path.
+  Their card surface again fills the otherwise empty interior with
+  `bg_activity_things`, sets normal/dragging `cardElevation` like ordinary
+  cards, and lets touch and Moving-mode elevation animations run normally.
+- Restored thumbnail Folder overlays to native View elevation with expanded
+  bounds and an inset rounded `Outline`. `DragOverlayImageView` again draws the
+  list background inside the content rect before drawing the captured bitmap,
+  which covers the inner native shadow without running the outside-only shadow
+  path.
+
+Verification: `.\gradlew.bat :app:assembleDebug --console=plain
+--no-configuration-cache` completed with `BUILD SUCCESSFUL`. `git diff
+--check` passed with only the repository's existing LF/CRLF warnings. Published
+debug update `202606200334` and verified remote `latest.json` points at
+`http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606200334.apk`.
+Remote SHA-256:
+`f4055cab9ef9fa86e8def43a93978d6e5809556f38f9888aee8de4e4beb11e28`.
+
+## 2026-06-20 - Restore true transparency for large Folder Card surfaces
+
+- Follow-up testing after the Folder elevation pass showed that thumbnail-mode
+  Folder Cards still did not have real transparent interior space. The list
+  card and drag overlay both used `bg_activity_things` as a fill to hide the
+  inner half of the platform elevation shadow, so the empty region only matched
+  the list background instead of preserving alpha.
+- Moved `ThingListOverlayDragController.kt` from the `activities` package to
+  the `managers` package and updated `ThingsActivity` to import it explicitly.
+- Replaced the opaque-fill thumbnail Folder surface strategy. Thumbnail-mode
+  Folder Cards now keep a transparent rounded `CardView` background and set
+  native `cardElevation` / `maxCardElevation` to `0f` for normal, touch, moving,
+  selecting, and mode-exit paths.
+- Added `ThumbnailFolderCardShadowDecoration` plus the shared
+  `OutsideOnlyRoundedShadow` helper. The decoration draws a
+  `MaterialShapeDrawable` compat elevation shadow under transparent thumbnail
+  Folder Cards and clips it with an even-odd outside-only rounded path, so the
+  visual shadow stays outside the Folder outline and does not paint the
+  transparent interior.
+- Updated `DragOverlayImageView` so thumbnail Folder overlays no longer use
+  native View elevation or draw the list background inside the content rect.
+  They render the same outside-only rounded shadow in the expanded overlay
+  bounds, then clip and draw the captured transparent bitmap content inside the
+  rounded card rect. Ordinary Thing and summary Folder overlays keep the native
+  elevation path.
+
+Verification: `.\gradlew.bat :app:assembleDebug --console=plain
+--no-configuration-cache` completed with `BUILD SUCCESSFUL`. The remaining
+compiler warnings are the existing deprecated `adapterPosition` warnings in
+`ThingListOverlayDragController.kt` plus the existing deprecated override
+warning in `ThingsActivity.kt`. Published debug update `202606200322` and
+verified remote `latest.json` points at
+`http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606200322.apk`.
+Remote SHA-256:
+`3fb04b67aa40780c09751d1d5d7e03d2e0f87a8ce07d6409fb781b492fb5d210`.
+
 ## 2026-06-20 - Fix Activity header boundary flicker
 
 - Follow-up testing showed that both root Underway and in-Folder projections

@@ -1,4 +1,4 @@
-package com.ywwynm.everythingdone.activities
+package com.ywwynm.everythingdone.managers
 
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
@@ -29,6 +29,7 @@ import com.ywwynm.everythingdone.adapters.BaseThingsAdapter
 import com.ywwynm.everythingdone.helpers.DebugFileLogger
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.model.ThingListEntry
+import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.views.ThingsStaggeredLayoutManager
 import kotlin.math.abs
 import kotlin.math.max
@@ -180,6 +181,14 @@ class ThingListOverlayDragController(
         } else {
             0
         }
+        val overlayContentBackground = if (coverTransparentInteriorShadow) {
+            BackgroundUtil.mutedSurfaceBackground(
+                source.background,
+                parent.context.getColor(R.color.bg_activity_things)
+            )
+        } else {
+            null
+        }
 
         val sourceLeftInRoot = sourceRect.left - getScaleOutset(sourceView.width, overlayScaleX)
         val sourceTopInRoot = sourceRect.top - getScaleOutset(sourceView.height, overlayScaleY)
@@ -202,7 +211,8 @@ class ThingListOverlayDragController(
             configure(
                 contentInsetPx = overlayContentInset,
                 cornerRadiusPx = parent.resources.getDimension(R.dimen.thing_card_corner_radius),
-                coverTransparentInteriorShadow = coverTransparentInteriorShadow
+                coverTransparentInteriorShadow = coverTransparentInteriorShadow,
+                contentBackground = overlayContentBackground
             )
             setImageBitmap(bitmap)
             scaleType = ImageView.ScaleType.FIT_XY
@@ -1462,17 +1472,20 @@ class ThingListOverlayDragController(
         private var overlayBitmap: Bitmap? = null
         private var cornerRadiusPx: Float = 0f
         private var coverTransparentInteriorShadow: Boolean = false
+        private var contentBackground: ThingBackground? = null
 
         fun configure(
             contentInsetPx: Int,
             cornerRadiusPx: Float,
-            coverTransparentInteriorShadow: Boolean
+            coverTransparentInteriorShadow: Boolean,
+            contentBackground: ThingBackground?
         ) {
             this.contentInsetPx = contentInsetPx.coerceAtLeast(0)
             this.cornerRadiusPx = cornerRadiusPx
             this.coverTransparentInteriorShadow =
                 coverTransparentInteriorShadow && this.contentInsetPx > 0
-            contentBackgroundPaint.color = context.getColor(R.color.bg_activity_things)
+            this.contentBackground =
+                if (this.coverTransparentInteriorShadow) contentBackground else null
             setPadding(
                 this.contentInsetPx,
                 this.contentInsetPx,
@@ -1572,17 +1585,54 @@ class ThingListOverlayDragController(
 
         private fun drawInteriorShadowCover(canvas: Canvas) {
             if (contentWidth <= 0 || contentHeight <= 0) return
+            val bg = contentBackground ?: return
             contentRect.set(
                 contentInsetPx.toFloat(),
                 contentInsetPx.toFloat(),
                 (width - contentInsetPx).toFloat(),
                 (height - contentInsetPx).toFloat()
             )
+            contentBackgroundPaint.shader = null
+            contentBackgroundPaint.color = bg.color
+            if (bg.mode == ThingBackground.Mode.GRADIENT) {
+                contentBackgroundPaint.shader = createContentBackgroundShader(bg, contentRect)
+            }
             canvas.drawRoundRect(
                 contentRect,
                 cornerRadiusPx,
                 cornerRadiusPx,
                 contentBackgroundPaint
+            )
+            contentBackgroundPaint.shader = null
+        }
+
+        private fun createContentBackgroundShader(
+            bg: ThingBackground,
+            rect: RectF
+        ): LinearGradient {
+            val left = rect.left
+            val right = rect.right
+            val top = rect.top
+            val bottom = rect.bottom
+            val centerY = rect.centerY()
+            val points = when (bg.orientation) {
+                ThingBackground.Orientation.L_R -> floatArrayOf(left, centerY, right, centerY)
+                ThingBackground.Orientation.T_B -> floatArrayOf(left, top, left, bottom)
+                ThingBackground.Orientation.LT_RB -> floatArrayOf(left, top, right, bottom)
+                ThingBackground.Orientation.RT_LB -> floatArrayOf(right, top, left, bottom)
+                ThingBackground.Orientation.LB_RT -> floatArrayOf(left, bottom, right, top)
+                ThingBackground.Orientation.RB_LT -> floatArrayOf(right, bottom, left, top)
+                ThingBackground.Orientation.R_L -> floatArrayOf(right, centerY, left, centerY)
+                ThingBackground.Orientation.B_T -> floatArrayOf(left, bottom, left, top)
+            }
+            return LinearGradient(
+                points[0],
+                points[1],
+                points[2],
+                points[3],
+                bg.color,
+                bg.endColor,
+                Shader.TileMode.CLAMP
             )
         }
     }

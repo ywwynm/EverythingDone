@@ -366,7 +366,11 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
             BackgroundUtil.applyCardBackground(holder.cv, background)
         }
 
-        val baseColor = background?.representativeColor() ?: folder.getColor()
+        val baseColor = if (thumbnailMode) {
+            getThumbnailFolderSurfaceBackground(background, folder.getColor()).representativeColor()
+        } else {
+            background?.representativeColor() ?: folder.getColor()
+        }
         holder.cv!!.foreground = ContextCompat.getDrawable(
             mApp!!,
             if (BackgroundUtil.isLight(baseColor))
@@ -432,14 +436,11 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         fallbackColor: Int
     ) {
         val radius = mApp!!.resources.getDimension(R.dimen.thing_card_corner_radius)
-        val listBackgroundColor = ContextCompat.getColor(mApp!!, R.color.bg_activity_things)
-        val cardBackground = GradientDrawable().apply {
-            setColor(listBackgroundColor)
-            cornerRadius = radius
-        }
+        val cardBackground = getThumbnailFolderSurfaceBackground(background, fallbackColor)
         holder.cv!!.setTag(R.id.tag_thing_folder_thumbnail_surface, true)
-        holder.cv.background = cardBackground
-        holder.cv.setCardBackgroundColor(listBackgroundColor)
+        BackgroundUtil.applyCardBackground(holder.cv, cardBackground)
+        (holder.cv.background as? GradientDrawable)?.cornerRadius = radius
+        holder.cv.setCardBackgroundColor(cardBackground.representativeColor())
         holder.cv.maxCardElevation = mApp!!.resources.getDimension(R.dimen.thing_card_dragging_elevation)
         holder.cv.cardElevation = mApp!!.resources.getDimension(R.dimen.thing_card_normal_elevation)
         applyRoundedCardOutline(holder.cv, radius)
@@ -450,6 +451,17 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         outline.cornerRadius = radius
         outline.setStroke((mDensity * 1.5f).toInt().coerceAtLeast(1), strokeColor)
         holder.llContent!!.background = outline
+    }
+
+    private fun getThumbnailFolderSurfaceBackground(
+        background: ThingBackground?,
+        fallbackColor: Int
+    ): ThingBackground {
+        val listBackgroundColor = ContextCompat.getColor(mApp!!, R.color.bg_activity_things)
+        return BackgroundUtil.mutedSurfaceBackground(
+            background ?: ThingBackground.pure(fallbackColor),
+            listBackgroundColor
+        )
     }
 
     private fun applyDefaultCardOutline(card: CardView?) {
@@ -473,21 +485,22 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         entry: ThingListEntry.FolderEntry
     ) {
         val folder = entry.folder
+        val background = folder.getBackground()
         val hiddenPrivate = entry.effectivePrivate && !shouldShowFolderPrivateContent()
         val presentation = folder.effectiveCardPresentation()
         val thumbnailMode =
             presentation.mode == ThingFolderCardPresentation.MODE_THUMBNAILS
         val baseColor = if (thumbnailMode) {
-            ContextCompat.getColor(mApp!!, R.color.bg_activity_things)
+            getThumbnailFolderSurfaceBackground(background, folder.getColor()).representativeColor()
         } else {
-            folder.getBackground()?.representativeColor() ?: folder.getColor()
+            background?.representativeColor() ?: folder.getColor()
         }
         bindFolderCardHeader(
             holder,
             folder.title,
             R.drawable.ic_thing_folder,
             baseColor,
-            if (thumbnailMode) folder.getBackground() else null
+            if (thumbnailMode) background else null
         )
 
         if (hiddenPrivate) {
@@ -496,7 +509,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
             bindFolderCardCount(holder, entry, baseColor)
 
             if (presentation.mode == ThingFolderCardPresentation.MODE_THUMBNAILS) {
-                bindFolderThumbnails(holder, entry)
+                bindFolderThumbnails(holder, entry, baseColor)
             }
         }
 
@@ -674,7 +687,8 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
 
     private fun bindFolderThumbnails(
         holder: BaseThingViewHolder,
-        entry: ThingListEntry.FolderEntry
+        entry: ThingListEntry.FolderEntry,
+        baseColor: Int
     ) {
         val entries = getFolderThumbnailEntries(entry)
         val container = holder.llTextContent ?: return
@@ -702,7 +716,6 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
             entries.size
         }
         if (count > 0 && totalCount > count) {
-            val baseColor = ContextCompat.getColor(mApp!!, R.color.bg_activity_things)
             container.addView(
                 createFolderThumbnailEllipsisView(holder, baseColor),
                 insertStart + 1
