@@ -504,6 +504,8 @@ object BackgroundUtil {
         mask.colorFilter = null
         mask.draw(c)
 
+        normalizeMaskAlpha(out)
+
         // 2. Overlay a rect filled with the gradient, masked by what's already
         //    there. SRC_IN keeps the destination's alpha (the icon shape) and
         //    replaces its colour with the source (the gradient).
@@ -515,6 +517,30 @@ object BackgroundUtil {
         c.drawRect(0f, 0f, w.toFloat(), h.toFloat(), p)
 
         return android.graphics.drawable.BitmapDrawable(res, out)
+    }
+
+    private fun normalizeMaskAlpha(bitmap: android.graphics.Bitmap) {
+        val width = bitmap.width
+        val height = bitmap.height
+        val pixels = IntArray(width * height)
+        bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
+
+        var maxAlpha = 0
+        for (pixel in pixels) {
+            maxAlpha = kotlin.math.max(maxAlpha, Color.alpha(pixel))
+        }
+        if (maxAlpha == 0 || maxAlpha == 255) return
+
+        for (i in pixels.indices) {
+            val alpha = Color.alpha(pixels[i])
+            pixels[i] = if (alpha == 0) {
+                Color.TRANSPARENT
+            } else {
+                val scaledAlpha = (alpha * 255 + maxAlpha / 2) / maxAlpha
+                Color.argb(scaledAlpha.coerceAtMost(255), 0, 0, 0)
+            }
+        }
+        bitmap.setPixels(pixels, 0, width, 0, 0, width, height)
     }
 
     /**

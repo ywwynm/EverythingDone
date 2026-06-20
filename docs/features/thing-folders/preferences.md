@@ -20,6 +20,10 @@
 - If either direct child count is zero, omit that segment from the Activity
   header subtitle; for example show only `X things` / `X件记事` when there are
   no child Folders.
+- The previous direct-Thing-count Activity Header rule is superseded. The
+  Folder count remains the count of visible direct child Folders, but the Thing
+  count is recursive: direct Things in the current projection plus matching
+  Things inside all descendant Folders.
 - Inside a Folder projection, the ThingsActivity list surface should use the
   same muted Folder-background surface as thumbnail-mode Folder Cards. Returning
   to a root projection should restore the plain `bg_activity_things` surface.
@@ -40,8 +44,17 @@
   selecting mode, the contextual toolbar and status-bar spacer should adopt the
   Folder colour/gradient, while contextual icons and title text choose a dark
   or light foreground from that Folder background's luminance.
+- The create-Thing FAB icon should be visually centered and strong enough by
+  adjusting the vector resource itself, not by adding one-off FAB padding that
+  would differ between root and Folder projection backgrounds.
+- Gradient actionbar icon tint should be rendered from the actual icon alpha
+  mask and normalize that mask's strongest alpha to opaque, so older
+  semi-transparent toolbar assets do not look paler than Folder title text.
 - Root Activity Header subtitles should also include direct child Folder counts
   and omit zero segments, matching the in-Folder subtitle rule.
+- Root Activity Header subtitles follow the same recursive Thing-count rule:
+  direct root Things plus matching Things inside every visible root Folder
+  subtree.
 - If a Folder name wraps to two lines in the actionbar, its collapsed title
   scale should become slightly smaller than the normal one-line collapsed
   title scale, and that additional shrink should be reached continuously during
@@ -51,6 +64,17 @@
   Folder's trailing dropdown.
 - Drawer Folder rows open the Folder in the Underway projection. The dropdown
   affordance toggles expansion without selecting or opening the Folder.
+- Opening a new child Folder from a Folder Card should still start that child
+  projection at the top. Returning to the parent Folder projection should
+  restore the parent's previous RecyclerView scroll state within the current
+  Activity session instead of jumping to the top.
+- Returning to a saved parent or ancestor Folder projection should restore the
+  saved `RecyclerView.LayoutManager` state directly, not with smooth scrolling.
+  The Activity Header should settle to the restored scroll position before the
+  next draw and without running its translation/scale animation.
+- Returning to a saved parent or ancestor Folder projection should not play the
+  ordinary Things appearing animation. That animation is for new/top-level list
+  appearances and can visually fight the restored RecyclerView scroll state.
 - Drawer hierarchy indentation should be visible and should begin at the Folder
   icon. Because Underway acts as the root directory, even first-level Folders
   should have a default 16dp indent beneath Underway.

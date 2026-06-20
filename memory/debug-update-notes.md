@@ -1,6 +1,78 @@
 # Current Debug Update Notes
 
-Latest published debug update: `202606200422`, APK `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606200422.apk`, SHA-256 `cc2ab8aad94f56f07fdaf7d58a49ab2efb8171c5474a499e154c57e12b6c2f24`.
+Latest published debug update: `202606200558`, APK `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606200558.apk`, SHA-256 `f1775e6462875b3bc17a40a6eaa8de155696b09ffd2b9ffcdf99c0f6c1de4936`.
+
+## 2026-06-20 - 进一步收紧正在做间距、微调创建图标、关闭文件夹返回出现动画
+
+这次 debug update 继续处理上一个版本的三个跟进反馈：
+
+- “正在做”火箭+喷剂图标和文字之间仍然偏远，因此把 `card_thing.xml`、`app_widget_item_thing.xml` 和 `app_widget_thing.xml` 里的 compound drawable padding 从 `8dp` 继续收紧到 `4dp`。
+- `vec_ic_create_thing` 上一版描边略粗，因此把 vector path 的 stroke width 从 `28` 调整到 `18`。这样比完全不描边时更有分量，但不会像上一版那样显得厚。
+- 根目录创建记事 FAB 的 icon tint 恢复为 `black_54p`，匹配最开始加号图标在黄色 FAB 上的颜色强度；文件夹内部 FAB 仍然根据文件夹颜色自适应前景色。
+- 文件夹返回上层时的问题不是 smooth scroll，而是 `ThingsAdapter` 的 ordinary things appearing animation。现在从子文件夹返回父层、或通过 Activity Header 路径返回祖先层时，会关闭这次 rebind 的 appearing animation，让列表直接出现在保存的滑动位置；打开新的子文件夹仍保留从顶部出现的动画。
+
+验证状态：
+
+- `git diff --check` 已通过，仅有仓库既有的 LF/CRLF 提示。
+- `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache` 已通过，结果为 `BUILD SUCCESSFUL`。
+- 已使用 `:app:publishDebugUpdate` 发布 debug update `202606200558`，远端 `latest.json` 已确认 APK 为 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606200558.apk`，SHA-256 为 `f1775e6462875b3bc17a40a6eaa8de155696b09ffd2b9ffcdf99c0f6c1de4936`。
+
+## 2026-06-20 - 加粗创建图标、收紧正在做间距、修正文件夹返回位置恢复
+
+这次 debug update 继续处理用户对图标细节和文件夹返回体验的反馈：
+
+- 创建记事 FAB 里的 `vec_ic_create_thing` 仍然显得偏细，因此在 vector 路径级别增加了白色描边，让图形更厚实，同时不改 FAB 本身的 padding 和布局。
+- “正在做”覆盖层里的火箭+喷剂图标和“正在做”文字距离偏远，因此把 `card_thing.xml`、`app_widget_item_thing.xml` 和 `app_widget_thing.xml` 中的 compound drawable padding 从 `12dp` 收紧到 `8dp`。
+- 从子文件夹返回上层时，不再把保存的 RecyclerView 位置恢复 `post` 到下一轮，也不使用 smooth scroll。现在会在父目录数据重新绑定后同步恢复 `LayoutManager` state，并在下一次绘制前用最终 first visible adapter position 无动画更新 Activity Header。
+- Activity Header 的无动画更新现在会先取消残留的 translation、title scale、subtitle alpha 和 shadow 动画，避免返回父目录时旧动画继续推动 Header，造成位置闪烁或跳动。
+
+验证状态：
+
+- `git diff --check` 已通过，仅有仓库既有的 LF/CRLF 提示。
+- `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache` 已通过，结果为 `BUILD SUCCESSFUL`。
+- 已使用 `:app:publishDebugUpdate` 发布 debug update `202606200550`，远端 `latest.json` 已确认 APK 为 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606200550.apk`，SHA-256 为 `2573db59a6ab83257e4f174fc1f473d5c63e003423faf81485e5bb0742bc7879`。
+
+## 2026-06-20 - 放大正在做图标并同步小组件
+这次 debug update 修正上一版 `vec_ic_doing_thing` 的后续反馈：
+
+- 用户反馈更新后的“正在做”图标图像偏小。重新量了旧 `ic_doing_thing.png` 的可见区域，旧 mdpi 资源是完整 `44dp × 48dp` 可见画布；上一版新 vector 虽然保留了同样的 intrinsic size，但火箭主体实际占用宽度明显更小。现在放大了 `vec_ic_doing_thing` 内部的火箭和喷射形状，同时仍保留 `44dp × 48dp` 的画布，避免影响 cover 文本排版。
+- 用户要求确认所有位置是否都更新为新 icon。源码搜索确认还有 `app_widget_item_thing.xml` 和 `app_widget_thing.xml` 两个小组件布局仍在引用旧 `@drawable/ic_doing_thing`；现在它们也已切换到 `@drawable/vec_ic_doing_thing`，和 `card_thing.xml` 使用同一个 vector。
+- 旧的密度 PNG 资源文件暂时保留，避免已存在的 launcher RemoteViews 或其他缓存状态在刷新前找不到旧资源；但布局源码中已经没有 `@drawable/ic_doing_thing` 引用。
+
+验证状态：
+
+- 源码搜索确认 `app/src/main` 下已经没有 `@drawable/ic_doing_thing` 引用，当前 `@drawable/vec_ic_doing_thing` 只出现在 `card_thing.xml`、`app_widget_item_thing.xml` 和 `app_widget_thing.xml` 的 doing cover 中。
+- `git diff --check` 已通过，仅有仓库既有的 LF/CRLF 提示。
+- `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache` 已通过，结果为 `BUILD SUCCESSFUL`。
+- 已使用 `:app:publishDebugUpdate` 发布 debug update `202606200536`，远端 `latest.json` 已确认 APK 为 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606200536.apk`，SHA-256 为 `a2db97bbf3a6a7147ad0f8c115064294b9beefa000bc32822be5c073d74722d5`。
+
+## 2026-06-20 - 优化创建/正在做图标、文件夹返回滚动位置和渐变 icon tint
+这次 debug update 继续处理用户对文件夹投影界面和记事卡片动效/图标的反馈：
+
+- 用户反馈 `vec_ic_create_thing` 放在创建记事 FAB 中时视觉上略微偏左上，而且线条显得偏细。现在在 vector 内部把图形略微放大，并向右下微调，让 FAB 中的视觉重心更接近居中，同时不改动 FAB 本身布局。
+- 用户反馈记事卡片右滑时出现的“正在做”图标也应跟随新的 `vec_ic_start_thing` 风格。现在新增 `vec_ic_doing_thing`，保留旧 `ic_doing_thing` 在卡片 cover 上的 `44dp × 48dp` 显示尺寸，上半部分复用新的火箭轮廓，下半部分用同风格的 vector 喷射形状；`card_thing.xml` 的右滑 cover 已切换到新 vector，widget 暂不顺手改动。
+- 用户反馈首页或文件夹滚动到某个位置后，打开子文件夹再返回会跳回上一层顶部。现在 `ThingsActivity` 会在进入子文件夹或切换路径前保存当前 `ThingListProjection.key()` 对应的 `RecyclerView.LayoutManager` 状态；从子文件夹返回父目录或点击路径返回上层时，会在列表重新绑定后恢复父目录此前的滚动位置。新打开的子文件夹仍然默认从顶部开始。
+- 用户反馈文件夹内部 actionbar icon 在渐变色文件夹中看起来比 Activity Header 文本淡。诊断后确认纯色 tint 已经通过 `DisplayUtil.opaqueTintDrawable(...)` 把旧半透明图标的 alpha 归一化，但渐变 tint 路径此前直接使用原始 alpha mask。现在 `BackgroundUtil.tintDrawable(...)` 的渐变分支会把 icon 实际像素区域的最大 alpha 归一到不透明，再用 Folder 渐变填充这个 mask，避免 tint 到整个触摸区域，也避免老图标资源显得发灰。
+
+验证状态：
+
+- `git diff --check` 已通过，仅有仓库既有的 LF/CRLF 提示。
+- `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache` 已通过，结果为 `BUILD SUCCESSFUL`。
+- 已使用 `:app:publishDebugUpdate` 发布 debug update `202606200526`，远端 `latest.json` 已确认 APK 为 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606200526.apk`，SHA-256 为 `d0087e48b0b409e85c24304ebc07315bc82a7ccdbf7af5b6d302321553d22df9`。
+
+## 2026-06-20 - 修正 Activity Header 递归记事数并更新创建/开始图标
+这次 debug update 修正文件夹相关数量显示和两个常用操作图标：
+
+- Activity Header 里的记事数量现在会统计当前层直接记事 + 所有直接子文件夹里的递归记事数量，不再只统计当前列表直接可见的记事卡片。
+- 文件夹数量仍然表示当前层直接可见的子文件夹数量；如果文件夹数或记事数为 0，仍会省略对应段落。
+- 从 Everything-Android 复制了 `vec_ic_create_thing`，并把 ThingsActivity 创建记事 FAB 的 icon 换成这个 vector；同时根据 FAB 背景亮度显式 tint，保证默认黄色 FAB 和文件夹颜色 FAB 上都清楚。
+- 从 Everything-Android 复制了 `vec_ic_start_thing`，并把 Detail 底栏、设置页、明显通知页和系统通知 action 里的开始做事 icon 全部换成新 vector，原有控件尺寸不变。
+
+验证状态：
+
+- `git diff --check` 已通过，仅有仓库既有的 LF/CRLF 提示。
+- `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache` 已通过，结果为 `BUILD SUCCESSFUL`。
+- 已使用 `:app:publishDebugUpdate` 发布 debug update `202606200438`，远端 `latest.json` 已确认 APK 为 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606200438.apk`，SHA-256 为 `a2a1c2c0bbc2c27d513a921efca20a0f4c259197f317cfc8e8764dabc90e7d12`。
 
 ## 2026-06-20 - 优化文件夹内部颜色氛围与数量提示
 这次 debug update 继续调整文件夹内部 ThingsActivity 的颜色和 header 细节：

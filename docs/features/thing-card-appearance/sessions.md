@@ -2,6 +2,48 @@
 
 Migrated from global `memory/sessions.md` on 2026-06-06. This file keeps feature-scoped history out of startup memory while preserving the original notes.
 
+## 2026-06-20 - Tighten doing cover label spacing
+
+- Reduced the compound drawable padding between `vec_ic_doing_thing` and the
+  `正在做` label from 12dp to 8dp in `card_thing.xml`, then tightened it again
+  to 4dp after follow-up feedback.
+- Applied the same 4dp gap to `app_widget_item_thing.xml` and
+  `app_widget_thing.xml` so Things AppWidget doing covers stay aligned with
+  the home-list Thing Card treatment.
+
+Verification: `git diff --check` passed with only the repository's existing
+LF/CRLF warnings. `.\gradlew.bat :app:assembleDebug --console=plain
+--no-configuration-cache` completed with `BUILD SUCCESSFUL`. Published debug
+update `202606200558` and verified remote `latest.json` points at
+`http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606200558.apk`.
+Remote SHA-256:
+`f1775e6462875b3bc17a40a6eaa8de155696b09ffd2b9ffcdf99c0f6c1de4936`.
+
+## 2026-06-20 - Update Thing Card doing cover icon
+
+- Added `vec_ic_doing_thing` as the Thing Card currently-doing cover glyph.
+  The vector keeps the old card-cover `ic_doing_thing` intrinsic size of 44dp
+  by 48dp, uses the newer `vec_ic_start_thing` rocket shape for the upper
+  glyph, and adds a matching simplified exhaust shape below it.
+- Updated `card_thing.xml` so the home-list Thing Card doing/right-swipe cover
+  uses `vec_ic_doing_thing`.
+- Follow-up feedback showed the first vector glyph looked slightly smaller
+  than the old PNG, whose visible pixels filled the entire 44dp by 48dp
+  intrinsic canvas. Enlarged the rocket/exhaust shapes inside
+  `vec_ic_doing_thing` while keeping the same intrinsic canvas.
+- Updated `app_widget_item_thing.xml` and `app_widget_thing.xml` so Things
+  AppWidget doing covers use the same vector resource as the home-list card.
+  Source search now shows no layout references to `@drawable/ic_doing_thing`.
+
+Verification: `git diff --check` passed with only the repository's existing
+LF/CRLF warnings. `.\gradlew.bat :app:assembleDebug --console=plain
+--no-configuration-cache` completed with `BUILD SUCCESSFUL`. Source search
+confirmed no `@drawable/ic_doing_thing` layout references remain. Published
+debug update `202606200536` and verified remote `latest.json` points at
+`http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606200536.apk`.
+Remote SHA-256:
+`a2db97bbf3a6a7147ad0f8c115064294b9beefa000bc32822be5c073d74722d5`.
+
 ## 2026-06-20 - Keep media overlay count colour fixed during colour preview
 
 - Fixed the Thing Card media overlay count for top, bottom, left, and right

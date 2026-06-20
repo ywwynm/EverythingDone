@@ -374,9 +374,9 @@
             android:text="@string/cd_doing"
             android:textColor="@android:color/white"
             android:textSize="@dimen/tv_thing_doing_text_size"
-            android:drawableStart="@drawable/ic_doing_thing"
-            android:drawableLeft="@drawable/ic_doing_thing"
-            android:drawablePadding="12dp"/>
+            android:drawableStart="@drawable/vec_ic_doing_thing"
+            android:drawableLeft="@drawable/vec_ic_doing_thing"
+            android:drawablePadding="4dp"/>
 
     </FrameLayout>
 

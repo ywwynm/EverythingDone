@@ -1,5 +1,55 @@
 # Thing Folders Decisions
 
+## 2026-06-20 - Folder navigation restores parent scroll state
+
+Opening a child Folder projection should keep the existing top-start behavior
+for the newly opened Folder, but returning to the parent projection should
+restore the parent's previous RecyclerView layout state. `ThingsActivity`
+therefore caches `LayoutManager.onSaveInstanceState()` by
+`ThingListProjection.key()` before leaving a projection and restores that state
+after the parent projection has reloaded and rebound.
+
+The scroll cache is Activity-local only. It should not become persisted Folder
+state because it represents transient navigation context, not the user's
+stored Folder data.
+
+The restore must be applied synchronously to the `LayoutManager` before the
+next frame is drawn, with the Activity Header updated from the restored first
+visible adapter position in a pre-draw callback. A posted restore is too late:
+it can allow one frame where the parent projection is rebound at the top or
+with an expanded Header before jumping to the saved position.
+
+The same restore path should also disable `ThingsAdapter`'s regular Things
+appearing animation for that rebind. The visible issue is not smooth scrolling:
+the appearing animation can replay when returning to an already-seen parent
+projection, making cards animate from an initial state instead of simply
+rendering at the restored scroll offset.
+
+Gradient actionbar icon tint should use the same visual strength as pure-colour
+toolbar icon tint. The gradient path renders the drawable into a bitmap mask,
+normalizes the mask's maximum alpha to opaque, then fills only that icon mask
+with the Folder gradient. This prevents old semi-transparent toolbar assets
+from looking washed out while still avoiding tint over the whole touch target.
+
+## 2026-06-20 - Activity Header Thing counts are recursive
+
+Activity Header subtitles should keep Folder count as the visible direct child
+Folder count, but Thing count should represent the full current subtree. For
+root projections this means direct root Things plus Things inside every visible
+root Folder subtree. For Folder projections this means direct Things in the
+current Folder plus Things in every descendant Folder that matches the current
+projection/filter.
+
+The header should reuse the mixed-list `ThingListEntry.FolderEntry` recursive
+count instead of issuing a separate database query. This keeps the Activity
+Header count aligned with Folder Card count filtering and avoids adding another
+counting path.
+
+The create-Thing FAB should use the `vec_ic_create_thing` vector copied from
+Everything-Android. Start-doing affordances should use the
+`vec_ic_start_thing` vector copied from Everything-Android while preserving the
+existing view/layout sizes at each call site.
+
 ## 2026-06-20 - Folder projections tint the surrounding chrome
 
 Folder projection chrome should carry the current Folder identity without

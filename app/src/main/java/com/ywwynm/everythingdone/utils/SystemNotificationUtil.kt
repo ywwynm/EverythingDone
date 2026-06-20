@@ -211,7 +211,7 @@ object SystemNotificationUtil {
                         Def.Communication.AUTHENTICATE_ACTION_START_DOING,
                         context.getString(R.string.act_start_doing))
                 startIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                builder.addAction(R.drawable.act_start_doing,
+                builder.addAction(R.drawable.vec_ic_start_thing,
                         context.getString(R.string.act_start_doing),
                         PendingIntent.getActivity(context,
                                 id.toInt(), startIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
@@ -233,7 +233,7 @@ object SystemNotificationUtil {
                         context, id, position, bg,
                         DoingService.START_TYPE_ALARM, -1)
                 startIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                builder.addAction(R.drawable.act_start_doing,
+                builder.addAction(R.drawable.vec_ic_start_thing,
                         context.getString(R.string.act_start_doing),
                         PendingIntent.getActivity(context,
                                 id.toInt(), startIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
@@ -293,7 +293,7 @@ object SystemNotificationUtil {
                     context.getString(R.string.act_start_doing))
             startIntent.putExtra(Def.Communication.KEY_TIME, hrTime)
             startIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            builder.addAction(R.drawable.act_start_doing,
+            builder.addAction(R.drawable.vec_ic_start_thing,
                     context.getString(R.string.act_start_doing),
                     PendingIntent.getActivity(context,
                             hrId.toInt(), startIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
@@ -303,7 +303,7 @@ object SystemNotificationUtil {
                     context, thingId, position, bg,
                     DoingService.START_TYPE_ALARM, hrTime)
             startIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            builder.addAction(R.drawable.act_start_doing,
+            builder.addAction(R.drawable.vec_ic_start_thing,
                     context.getString(R.string.act_start_doing),
                     PendingIntent.getActivity(context,
                             hrId.toInt(), startIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
@@ -515,7 +515,7 @@ object SystemNotificationUtil {
                         Def.Communication.AUTHENTICATE_ACTION_START_DOING,
                         context.getString(R.string.act_start_doing))
                 startIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                builder.addAction(R.drawable.act_start_doing,
+                builder.addAction(R.drawable.vec_ic_start_thing,
                         context.getString(R.string.act_start_doing),
                         PendingIntent.getActivity(context,
                                 id.toInt(), startIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
@@ -524,7 +524,7 @@ object SystemNotificationUtil {
                         context, id, -1, color,
                         DoingService.START_TYPE_ALARM, -1)
                 startIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                builder.addAction(R.drawable.act_start_doing,
+                builder.addAction(R.drawable.vec_ic_start_thing,
                         context.getString(R.string.act_start_doing),
                         PendingIntent.getActivity(context,
                                 id.toInt(), startIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
@@ -558,7 +558,7 @@ object SystemNotificationUtil {
                         context.getString(R.string.act_start_doing))
                 startIntent.putExtra(Def.Communication.KEY_TIME, -1L)
                 startIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                builder.addAction(R.drawable.act_start_doing,
+            builder.addAction(R.drawable.vec_ic_start_thing,
                         context.getString(R.string.act_start_doing),
                         PendingIntent.getActivity(context,
                                 id.toInt(), startIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
@@ -567,7 +567,7 @@ object SystemNotificationUtil {
                         context, id, -1, color,
                         DoingService.START_TYPE_ALARM, -1)
                 startIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                builder.addAction(R.drawable.act_start_doing,
+            builder.addAction(R.drawable.vec_ic_start_thing,
                         context.getString(R.string.act_start_doing),
                         PendingIntent.getActivity(context,
                                 id.toInt(), startIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))

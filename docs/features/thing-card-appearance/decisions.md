@@ -1,5 +1,22 @@
 # Thing Card Appearance Decisions
 
+## 2026-06-20 - Doing cover uses the new start-Thing rocket language
+
+The Thing Card and Things AppWidget currently-doing covers should not keep
+using the legacy `ic_doing_thing` PNG. They now use `vec_ic_doing_thing`, a
+vector that reuses the `vec_ic_start_thing` rocket shape for the upper glyph
+and adds a matching simplified exhaust shape below it.
+
+The vector keeps the old PNG's intrinsic size of 44dp by 48dp so the
+right-swipe / doing overlay text layout does not shrink or shift. The visible
+glyph is larger than the first vector replacement pass because the legacy PNG
+filled its full intrinsic canvas.
+
+The compound-drawable gap between the doing-cover vector and label should be
+4dp in the home-list card and Things AppWidget layouts. The initial 12dp gap
+made the rocket/exhaust icon feel detached from the `正在做` label, and the
+first 8dp follow-up still left slightly too much separation.
+
 ## 2026-06-19 - Appearance panel colour editing is draft-only until confirm
 
 The Thing Card Appearance panel and Thing Folder Card Appearance panel should

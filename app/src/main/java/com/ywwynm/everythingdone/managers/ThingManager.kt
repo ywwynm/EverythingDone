@@ -247,6 +247,7 @@ open class ThingManager private constructor(context: Context?) {
                 }
             } else if (entry is ThingListEntry.FolderEntry) {
                 counts[0]++
+                counts[1] += entry.recursiveThingCount
             }
         }
         return counts

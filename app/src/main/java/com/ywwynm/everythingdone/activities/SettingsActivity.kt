@@ -715,7 +715,7 @@ class SettingsActivity : EverythingDoneBaseActivity() {
         val tvTitle: TextView = f(R.id.tv_title_group_start_doing_settings)!!
         val icon = DisplayUtil.opaqueTintDrawable(
             this,
-            ContextCompat.getDrawable(this, R.drawable.act_start_doing),
+            ContextCompat.getDrawable(this, R.drawable.vec_ic_start_thing),
             mAccentColor
         )
         tvTitle.setCompoundDrawablesRelativeWithIntrinsicBounds(icon, null, null, null)

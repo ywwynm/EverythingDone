@@ -2,6 +2,17 @@
 
 Global startup session index only. Detailed feature history lives in `docs/features/<kebab-case-feature-slug>/sessions.md`.
 
+## 2026-06-20 - Icon spacing and Folder return restore follow-up
+
+- Completed a follow-up across Thing Folders, Thing Card Appearance, and
+  AppWidget presentation: create-Thing vector stroke strength was increased,
+  then tuned down; currently-doing icon-to-label spacing was tightened to 4dp;
+  and parent Folder return restore now disables the ordinary Things appearing
+  animation while applying the saved RecyclerView state before draw.
+- Details are recorded in `docs/features/thing-folders/sessions.md`,
+  `docs/features/thing-card-appearance/sessions.md`, and
+  `docs/features/appwidget-platform-compat/sessions.md`.
+
 ## 2026-06-20 - Folder move/privacy polish and media overlay colour fix
 
 - Completed a follow-up slice across Thing Folders, Dark Mode, and Thing Card
@@ -28,6 +39,7 @@ Global startup session index only. Detailed feature history lives in `docs/featu
 ## Feature session indexes
 
 - `android-16-migration`: `docs/features/android-16-migration/sessions.md`
+- `appwidget-platform-compat`: `docs/features/appwidget-platform-compat/sessions.md`
 - `dark-mode`: `docs/features/dark-mode/sessions.md`
 - `debug-update-channel`: `docs/features/debug-update-channel/sessions.md`
 - `detail-attachment-media-appearance`: `docs/features/detail-attachment-media-appearance/sessions.md`

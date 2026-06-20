@@ -1222,7 +1222,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 }
             }
 
-            val d1: Drawable = ContextCompat.getDrawable(this, R.drawable.act_start_doing)!!
+            val d1: Drawable = ContextCompat.getDrawable(this, R.drawable.vec_ic_start_thing)!!
             val d2: Drawable = d1.mutate()
             d2.setColorFilter(
                 ContextCompat.getColor(this, R.color.black_54p),

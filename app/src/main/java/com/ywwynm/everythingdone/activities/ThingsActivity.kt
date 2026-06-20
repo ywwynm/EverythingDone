@@ -36,6 +36,7 @@ import android.media.MediaMetadataRetriever
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.Parcelable
 import androidx.core.app.ActivityCompat
 import androidx.core.app.ActivityOptionsCompat
 import androidx.core.content.ContextCompat
@@ -201,6 +202,7 @@ class ThingsActivity :
     private var mActivityHeader: ActivityHeader? = null
     private var mPendingActivityHeaderSpacerHeightPx: Int? = null
     private var mActivityHeaderSpacerApplyPosted: Boolean = false
+    private val mProjectionScrollStates = HashMap<String, Parcelable>()
 
     private var mFab: FloatingActionButton? = null
 
@@ -1113,6 +1115,7 @@ class ThingsActivity :
         authenticated: Boolean
     ) {
         mDrawerLayout!!.closeDrawer(GravityCompat.START)
+        saveCurrentProjectionScrollState()
         if (mApp!!.getLimit() != Def.LimitForGettingThings.ALL_UNDERWAY) {
             mApp!!.setLimit(Def.LimitForGettingThings.ALL_UNDERWAY, false)
         }
@@ -1135,6 +1138,56 @@ class ThingsActivity :
         mDrawerHeader!!.updateTexts()
         mFab!!.spread()
         updateDrawerFolderItems()
+    }
+
+    private fun saveCurrentProjectionScrollState() {
+        val projectionKey = mThingManager?.getProjection()?.key() ?: return
+        val state = mRecyclerView?.layoutManager?.onSaveInstanceState() ?: return
+        mProjectionScrollStates[projectionKey] = state
+    }
+
+    private fun restoreProjectionScrollStateOrTop(projectionKey: String?) {
+        val recyclerView = mRecyclerView ?: return
+        if (projectionKey == null) {
+            recyclerView.scrollToPosition(0)
+            requestActivityHeaderStateRefreshBeforeDraw(null)
+            return
+        }
+
+        val state = mProjectionScrollStates[projectionKey]
+        if (state == null) {
+            recyclerView.scrollToPosition(0)
+            requestActivityHeaderStateRefreshBeforeDraw(projectionKey)
+            return
+        }
+
+        if (mThingManager?.getProjection()?.key() != projectionKey) {
+            return
+        }
+        recyclerView.layoutManager?.onRestoreInstanceState(state)
+        recyclerView.requestLayout()
+        requestActivityHeaderStateRefreshBeforeDraw(projectionKey)
+    }
+
+    private fun requestActivityHeaderStateRefreshBeforeDraw(projectionKey: String?) {
+        val recyclerView = mRecyclerView ?: return
+        val viewTreeObserver = recyclerView.viewTreeObserver
+        if (!viewTreeObserver.isAlive) {
+            requestActivityHeaderStateRefresh()
+            return
+        }
+
+        viewTreeObserver.addOnPreDrawListener(object : ViewTreeObserver.OnPreDrawListener {
+            override fun onPreDraw(): Boolean {
+                if (recyclerView.viewTreeObserver.isAlive) {
+                    recyclerView.viewTreeObserver.removeOnPreDrawListener(this)
+                }
+                if (projectionKey == null || mThingManager?.getProjection()?.key() == projectionKey) {
+                    mActivityHeader?.updateAll(findFirstVisibleThingListPosition(), false)
+                }
+                return true
+            }
+        })
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
@@ -2020,7 +2073,7 @@ class ThingsActivity :
         val folderBackground = getCurrentFolderBackgroundForChrome()
         if (folderBackground == null) {
             fab.setThingBackground(null, appAccent)
-            fab.imageTintList = null
+            fab.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.black_54p))
             fab.rippleColor = App.newThingColor
             return
         }
@@ -2148,11 +2201,16 @@ class ThingsActivity :
                         toggleSearching(true)
                         return
                     }
+                    val shouldRestoreParentScroll = !mThingManager!!.getProjection().isRoot()
+                    if (shouldRestoreParentScroll) {
+                        saveCurrentProjectionScrollState()
+                    }
                     if (mThingManager!!.openParentFolder()) {
-                        mAdapter!!.setShouldThingsAnimWhenAppearing(true)
+                        val parentProjectionKey = mThingManager!!.getProjection().key()
+                        mAdapter!!.setShouldThingsAnimWhenAppearing(false)
                         mAdapter!!.notifyDataSetChanged()
-                        mRecyclerView!!.scrollToPosition(0)
                         refreshActivitySurfaceAndHeader()
+                        restoreProjectionScrollStateOrTop(parentProjectionKey)
                         updateDrawerFolderItems()
                         invalidateOptionsMenu()
                         return
@@ -6457,6 +6515,7 @@ class ThingsActivity :
         folder: ThingFolder,
         authenticated: Boolean = false
     ) {
+        saveCurrentProjectionScrollState()
         mThingManager!!.openFolder(folder.id, authenticated)
         expandDrawerFolderAncestors(folder.id)
         if (folder.isPrivate) {
@@ -7501,11 +7560,13 @@ class ThingsActivity :
             return
         }
         dismissSnackbars()
+        saveCurrentProjectionScrollState()
         mThingManager!!.navigateToFolderPathIndex(folderPathIndex)
-        mAdapter!!.setShouldThingsAnimWhenAppearing(true)
+        val projectionKey = mThingManager!!.getProjection().key()
+        mAdapter!!.setShouldThingsAnimWhenAppearing(false)
         mAdapter!!.notifyDataSetChanged()
-        mRecyclerView!!.scrollToPosition(0)
         refreshActivitySurfaceAndHeader()
+        restoreProjectionScrollStateOrTop(projectionKey)
         updateDrawerFolderItems()
         invalidateOptionsMenu()
     }

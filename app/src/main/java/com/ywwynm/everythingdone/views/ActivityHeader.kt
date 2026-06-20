@@ -314,6 +314,13 @@ open class ActivityHeader(
         mActionbarShadow.animate()!!.alpha(alpha).withLayer()
     }
 
+    private fun cancelHeaderAnimations() {
+        mRelativeLayout.animate()!!.cancel()
+        mTitle.animate()!!.cancel()
+        mSubtitle.animate()!!.cancel()
+        mActionbarShadow.animate()!!.cancel()
+    }
+
     fun hideTitles() {
         mRelativeLayout.visibility = View.INVISIBLE
     }
@@ -329,6 +336,7 @@ open class ActivityHeader(
             mSubtitle.animate()!!.alpha(1.0f)
             mActionbarShadow.animate()!!.alpha(0f)
         } else {
+            cancelHeaderAnimations()
             mRelativeLayout.translationY = 0f
             mTitle.scaleX = 1.0f
             mTitle.scaleY = 1.0f
@@ -370,6 +378,7 @@ open class ActivityHeader(
             mTitle.animate()!!.scaleY(scale).setDuration(160)
             mSubtitle.animate()!!.alpha(1f - progress).withLayer().setDuration(160)
         } else {
+            cancelHeaderAnimations()
             mRelativeLayout.translationY = translationY
             mTitle.scaleX = scale
             mTitle.scaleY = scale

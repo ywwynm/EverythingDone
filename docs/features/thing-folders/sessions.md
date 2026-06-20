@@ -1,5 +1,87 @@
 # Thing Folders Sessions
 
+## 2026-06-20 - Direct parent scroll restore without Header flicker
+
+- Changed saved Folder projection restore so `ThingsActivity` applies the
+  saved `RecyclerView.LayoutManager` state directly instead of posting the
+  restore to the next loop.
+- Reordered parent/ancestor navigation refresh so Activity surface and Header
+  text are refreshed before the saved layout state is restored, then scheduled
+  a pre-draw Header state refresh from the restored first visible adapter
+  position.
+- Cancelled pending Activity Header translation, title-scale, subtitle-alpha,
+  and shadow animations before non-animated Header state writes, so returning
+  to a parent Folder can jump to the saved visual state without a leftover
+  animation moving the Header afterward.
+- Further thickened `vec_ic_create_thing` at the vector path level with a
+  white stroke so the create-Thing FAB glyph reads stronger without changing
+  FAB padding or layout.
+- Follow-up feedback showed the root cause of Folder return motion was the
+  Things appearing animation rather than smooth scrolling. Parent/ancestor
+  restore paths now disable `setShouldThingsAnimWhenAppearing` for that rebind,
+  while new child Folder opens still keep the top-start appearing treatment.
+- Reduced the create-Thing vector stroke from 28 to 18 viewport units and
+  restored the root create FAB icon tint to `black_54p`, matching the original
+  plus icon's foreground strength on the yellow FAB.
+
+Verification: `git diff --check` passed with only the repository's existing
+LF/CRLF warnings. `.\gradlew.bat :app:assembleDebug --console=plain
+--no-configuration-cache` completed with `BUILD SUCCESSFUL`. Published debug
+update `202606200558` and verified remote `latest.json` points at
+`http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606200558.apk`.
+Remote SHA-256:
+`f1775e6462875b3bc17a40a6eaa8de155696b09ffd2b9ffcdf99c0f6c1de4936`.
+
+## 2026-06-20 - Folder navigation scroll restore and stronger gradient chrome tint
+
+- Added Activity-local per-projection scroll-state caching in `ThingsActivity`.
+  Opening a child Folder still starts at the top, but returning to the parent
+  Folder projection restores the parent's previously saved
+  `RecyclerView.LayoutManager` state after the list rebinds.
+- Applied the same restore path to Activity Header path-segment navigation so
+  jumping back to an ancestor projection can reuse that ancestor's saved scroll
+  state.
+- Kept the restore guarded by `ThingListProjection.key()` so a delayed posted
+  restore cannot apply after the user has already navigated elsewhere.
+- Updated gradient toolbar icon tint so `BackgroundUtil.tintDrawable(...)`
+  normalizes the drawable alpha mask before filling it with the Folder
+  gradient. This keeps gradient-tinted icons as strong as pure-colour toolbar
+  icons and avoids tinting the whole touch target.
+- Adjusted `vec_ic_create_thing` at the vector-resource level so the create
+  FAB glyph is slightly larger and visually shifted back toward center without
+  changing the FAB layout.
+
+Verification: `git diff --check` passed with only the repository's existing
+LF/CRLF warnings. `.\gradlew.bat :app:assembleDebug --console=plain
+--no-configuration-cache` completed with `BUILD SUCCESSFUL`. Published debug
+update `202606200526` and verified remote `latest.json` points at
+`http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606200526.apk`.
+Remote SHA-256:
+`d0087e48b0b409e85c24304ebc07315bc82a7ccdbf7af5b6d302321553d22df9`.
+
+## 2026-06-20 - Recursive header Thing counts and updated action icons
+
+- Updated `ThingManager.getVisibleChildCountsForActivityHeader()` so the
+  Folder count remains direct visible child Folders, while the Thing count adds
+  each direct child Folder's `recursiveThingCount` to the direct visible Thing
+  count.
+- Copied `vec_ic_create_thing` and `vec_ic_start_thing` from
+  Everything-Android into this app's drawable resources.
+- Swapped the ThingsActivity create FAB to `vec_ic_create_thing` and explicitly
+  tint the icon from the FAB background luminance so the root yellow FAB keeps
+  readable contrast.
+- Replaced all code call sites that used `R.drawable.act_start_doing` with
+  `R.drawable.vec_ic_start_thing`, preserving existing ImageView, compound
+  drawable, and notification action sizes.
+
+Verification: `.\gradlew.bat :app:assembleDebug --console=plain
+--no-configuration-cache` completed with `BUILD SUCCESSFUL`. `git diff --check`
+passed with only the repository's existing LF/CRLF warnings. Published debug
+update `202606200438` and verified remote `latest.json` points at
+`http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606200438.apk`.
+Remote SHA-256:
+`a2a1c2c0bbc2c27d513a921efca20a0f4c259197f317cfc8e8764dabc90e7d12`.
+
 ## 2026-06-20 - Folder projection chrome tint and root child counts
 
 - Moved `BackgroundUtil.mutedSurfaceBackground(...)` closer to the list surface

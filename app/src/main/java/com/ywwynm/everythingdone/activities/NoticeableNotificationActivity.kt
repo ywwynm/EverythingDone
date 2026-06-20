@@ -194,7 +194,7 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
 
         if (mThing!!.type == Thing.REMINDER) {
             mActionsTexts!!.add(R.string.act_start_doing)
-            mActionsIcons!!.add(R.drawable.act_start_doing)
+            mActionsIcons!!.add(R.drawable.vec_ic_start_thing)
             mActions!!.add(View.OnClickListener {
                 sendBroadcastForReminderAndLeave(Def.Communication.NOTIFICATION_ACTION_START_DOING)
             })
@@ -224,7 +224,7 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
         })
 
         mActionsTexts!!.add(R.string.act_start_doing)
-        mActionsIcons!!.add(R.drawable.act_start_doing)
+        mActionsIcons!!.add(R.drawable.vec_ic_start_thing)
         mActions!!.add(View.OnClickListener {
             val intent = Intent(
                 this@NoticeableNotificationActivity,
