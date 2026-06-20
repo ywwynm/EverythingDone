@@ -70,13 +70,13 @@
             <FrameLayout
                 android:id="@+id/fl_thing_image_left"
                 android:layout_width="wrap_content"
-                android:layout_height="match_parent"
+                android:layout_height="wrap_content"
                 android:visibility="gone">
 
                 <ImageView
                     android:id="@+id/iv_thing_image_left"
                     android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
+                    android:layout_height="wrap_content"
                     android:scaleType="centerCrop"
                     android:contentDescription="@string/image_or_video_attachment"/>
 
@@ -419,13 +419,13 @@
             <FrameLayout
                 android:id="@+id/fl_thing_image_right"
                 android:layout_width="wrap_content"
-                android:layout_height="match_parent"
+                android:layout_height="wrap_content"
                 android:visibility="gone">
 
                 <ImageView
                     android:id="@+id/iv_thing_image_right"
                     android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
+                    android:layout_height="wrap_content"
                     android:scaleType="centerCrop"
                     android:contentDescription="@string/image_or_video_attachment"/>
 
