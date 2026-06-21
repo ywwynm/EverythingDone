@@ -107,7 +107,7 @@ class ThingFolderNameDialogFragment : BaseDialogFragment() {
 
     fun setAccentBackground(background: ThingBackground?) {
         mAccentBackground = background
-        mAccentColor = background?.representativeColor() ?: 0
+        mAccentColor = background?.color ?: 0
     }
 
     fun setInitialTitle(title: String?) {

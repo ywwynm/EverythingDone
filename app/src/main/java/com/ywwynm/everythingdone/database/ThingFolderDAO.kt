@@ -63,13 +63,14 @@ open class ThingFolderDAO private constructor(context: Context?) {
             null,
             null,
             null,
-            Def.Database.COLUMN_LOCATION_THING_FOLDERS + " desc"
+            null
         )
         cursor.use {
             while (it.moveToNext()) {
                 folders.add(ThingFolder(it))
             }
         }
+        folders.sortWith(folderLocationComparator())
         return folders
     }
 
@@ -82,13 +83,14 @@ open class ThingFolderDAO private constructor(context: Context?) {
             null,
             null,
             null,
-            Def.Database.COLUMN_LOCATION_THING_FOLDERS + " desc"
+            null
         )
         cursor.use {
             while (it.moveToNext()) {
                 folders.add(ThingFolder(it))
             }
         }
+        folders.sortWith(folderLocationComparator())
         return folders
     }
 
@@ -1078,6 +1080,16 @@ open class ThingFolderDAO private constructor(context: Context?) {
             Def.Database.COLUMN_PARENT_FOLDER_ID_THING_FOLDERS + " is null"
         } else {
             Def.Database.COLUMN_PARENT_FOLDER_ID_THING_FOLDERS + "=$parentFolderId"
+        }
+    }
+
+    private fun folderLocationComparator(): Comparator<ThingFolder> {
+        return Comparator { folder1, folder2 ->
+            val result = ThingsSorter.compareByLocationAndSticky(
+                folder1.location,
+                folder2.location
+            )
+            if (result != 0) result else folder1.id.compareTo(folder2.id)
         }
     }
 

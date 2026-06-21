@@ -19,6 +19,7 @@ import android.os.AsyncTask
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.graphics.drawable.Drawable
 import androidx.annotation.StringRes
 import androidx.appcompat.app.ActionBar
 import androidx.appcompat.widget.Toolbar
@@ -60,6 +61,7 @@ import com.ywwynm.everythingdone.helpers.ThingDoingHelper
 import com.ywwynm.everythingdone.model.DoingRecord
 import com.ywwynm.everythingdone.model.HabitReminder
 import com.ywwynm.everythingdone.model.Thing
+import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.permission.SimplePermissionCallback
 import com.ywwynm.everythingdone.receivers.LocaleChangeReceiver
 import com.ywwynm.everythingdone.services.DoingService
@@ -84,7 +86,6 @@ class SettingsActivity : EverythingDoneBaseActivity() {
 
     private var mPreferences: SharedPreferences? = null
 
-    private var mAccentColor: Int = 0
     private var mNightModeMask: Int = 0
 
     private var mTvDrawerHeader: TextView? = null
@@ -354,7 +355,6 @@ class SettingsActivity : EverythingDoneBaseActivity() {
         initStaticVariables()
 
         mPreferences = getSharedPreferences(Def.Meta.PREFERENCES_NAME, MODE_PRIVATE)
-        mAccentColor = ContextCompat.getColor(this, R.color.blue_deep)
         mNightModeMask = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
 
         initMembersRingtone()
@@ -489,10 +489,16 @@ class SettingsActivity : EverythingDoneBaseActivity() {
         DisplayUtil.expandStatusBarViewAboveKitkat(f(R.id.view_status_bar))
         DisplayUtil.darkStatusBar(this)
 
+        val accentBg = App.defaultAccentBackground
+        BackgroundUtil.applyBackground(f<View>(R.id.view_status_bar), accentBg)
+        BackgroundUtil.applyBackground(f<View>(R.id.actionbar), accentBg)
+        applyGradientCheckBoxes()
+
         val svSettings: ScrollView = f(R.id.sv_settings)!!
-        EdgeEffectUtil.forScrollView(svSettings, ContextCompat.getColor(this, R.color.blue_deep))
+        EdgeEffectUtil.forScrollView(svSettings, App.defaultAccentBackground.color)
         DisplayUtil.applyBottomInsetAsScrollPadding(svSettings)
         tintSettingsIconsForAppearance()
+        applySettingsGroupTitleAccents()
         installLocalButtonRipples()
 
         initUiUserInterface()
@@ -507,6 +513,46 @@ class SettingsActivity : EverythingDoneBaseActivity() {
         BackgroundUtil.installAppChromeCircleRipple(f(R.id.iv_auto_strict_mode_help_as_bt), this)
         BackgroundUtil.installAppChromeCircleRipple(f(R.id.iv_daily_todo_help_as_bt), this)
         BackgroundUtil.installAppChromeCircleRipple(f(R.id.iv_auto_notify_help_as_bt), this)
+    }
+
+    private fun applySettingsGroupTitleAccents() {
+        val bg = App.defaultAccentBackground
+        applySettingsGroupTitleAccent(R.id.tv_title_group_ui_settings, bg)
+        applySettingsGroupTitleAccent(
+            R.id.tv_title_group_notification_reliability_settings,
+            bg,
+            iconOffsetXDp = -2
+        )
+        applySettingsGroupTitleAccent(R.id.tv_title_group_ringtone_settings, bg)
+        applySettingsGroupTitleAccent(R.id.tv_title_group_data_settings, bg)
+        applySettingsGroupTitleAccent(R.id.tv_title_group_privacy_settings, bg)
+        applySettingsGroupTitleAccent(
+            R.id.tv_title_group_start_doing_settings,
+            bg,
+            ContextCompat.getDrawable(this, R.drawable.vec_ic_start_thing),
+            22
+        )
+        applySettingsGroupTitleAccent(R.id.tv_title_group_advanced_settings, bg)
+    }
+
+    private fun applySettingsGroupTitleAccent(
+        textViewId: Int,
+        bg: ThingBackground,
+        iconOverride: Drawable? = null,
+        iconSizeDp: Int = 20,
+        iconOffsetXDp: Int = 0
+    ) {
+        val tv: TextView = f(textViewId) ?: return
+        BackgroundUtil.applyTextBackground(tv, bg)
+        val source = iconOverride
+            ?: tv.compoundDrawablesRelative[0]
+            ?: tv.compoundDrawables[0]
+            ?: return
+        val icon = BackgroundUtil.tintDrawable(resources, source, bg) ?: return
+        val size = (iconSizeDp * resources.displayMetrics.density).toInt()
+        val offsetX = (iconOffsetXDp * resources.displayMetrics.density).toInt()
+        icon.setBounds(offsetX, 0, offsetX + size, size)
+        tv.setCompoundDrawablesRelative(icon, null, null, null)
     }
 
     private fun tintSettingsIconsForAppearance() {
@@ -549,6 +595,16 @@ class SettingsActivity : EverythingDoneBaseActivity() {
                 drawables[0], drawables[1], drawables[2], drawables[3]
             )
         }
+    }
+
+    private fun applyGradientCheckBoxes() {
+        val bg = App.defaultAccentBackground
+        listOf(
+            mCbFollowSystemDarkMode, mCbForceDarkMode, mCbNn,
+            mCbToggleCli, mCbSimpleFCli, mCbAutoLink, mCbTwiceBack,
+            mCbCreateAnimationStyle, mCbFgprt, mCbQuickCreate,
+            mCbCloseNotificationLater, mCbOngoingLockscreen
+        ).forEach { if (it != null) BackgroundUtil.applyCheckboxAccent(it, bg) }
     }
 
     private fun initUiUserInterface() {
@@ -663,8 +719,6 @@ class SettingsActivity : EverythingDoneBaseActivity() {
     }
 
     private fun initUiStartDoing() {
-        initStartDoingTitle()
-
         mASDPicked = mPreferences!!.getInt(Def.Meta.KEY_AUTO_START_DOING, 0)
         val options: Array<String> = resources.getStringArray(R.array.auto_start_doing_states)
         mTvASD!!.text = options[mASDPicked]
@@ -709,16 +763,6 @@ class SettingsActivity : EverythingDoneBaseActivity() {
                 mTvASDTimes!![i]!!.setTextColor(black_10p)
             }
         }
-    }
-
-    private fun initStartDoingTitle() {
-        val tvTitle: TextView = f(R.id.tv_title_group_start_doing_settings)!!
-        val icon = DisplayUtil.opaqueTintDrawable(
-            this,
-            ContextCompat.getDrawable(this, R.drawable.vec_ic_start_thing),
-            mAccentColor
-        )
-        tvTitle.setCompoundDrawablesRelativeWithIntrinsicBounds(icon, null, null, null)
     }
 
     private fun initUiAdvanced() {
@@ -915,7 +959,7 @@ class SettingsActivity : EverythingDoneBaseActivity() {
     private fun setDataEvents() {
         f<View>(R.id.rl_auto_save_edits_as_bt).setOnClickListener {
             val cdf = ChooserDialogFragment()
-            cdf.setAccentColor(mAccentColor)
+            cdf.setAccentBackground(App.defaultAccentBackground)
             cdf.setTitle(getString(R.string.auto_save_edits_title))
             val items: MutableList<String?> = mutableListOf(
                 getString(R.string.enable), getString(R.string.disable)
@@ -970,7 +1014,7 @@ class SettingsActivity : EverythingDoneBaseActivity() {
 
                     override fun onCancel() {}
                 })
-                pldf.setAccentColor(mAccentColor)
+                pldf.setAccentBackground(App.defaultAccentBackground)
                 pldf.setType(PatternLockDialogFragment.TYPE_VALIDATE)
                 pldf.show(fragmentManager, PatternLockDialogFragment.TAG)
             } else {
@@ -982,7 +1026,7 @@ class SettingsActivity : EverythingDoneBaseActivity() {
     private fun beginSetPassword() {
         val pldf = PatternLockDialogFragment()
         pldf.setType(PatternLockDialogFragment.TYPE_SET)
-        pldf.setAccentColor(mAccentColor)
+        pldf.setAccentBackground(App.defaultAccentBackground)
         pldf.setPasswordSetDoneListener {
             mPreferences!!.edit()
                 .putString(Def.Meta.KEY_PRIVATE_PASSWORD, pldf.getPassword()).apply()
@@ -994,7 +1038,7 @@ class SettingsActivity : EverythingDoneBaseActivity() {
     private fun beginChangePassword(passwordBefore: String) {
         val pldf = PatternLockDialogFragment()
         pldf.setType(PatternLockDialogFragment.TYPE_VALIDATE)
-        pldf.setAccentColor(mAccentColor)
+        pldf.setAccentBackground(App.defaultAccentBackground)
         pldf.setCorrectPassword(passwordBefore)
         pldf.setValidateTitle(getString(R.string.change_app_password))
         pldf.setAuthenticationCallback(object : AuthenticationHelper.AuthenticationCallback {
@@ -1033,7 +1077,7 @@ class SettingsActivity : EverythingDoneBaseActivity() {
 
     private fun showAutoStartDoingTimeDialog(index: Int) {
         val cdf = ChooserDialogFragment()
-        cdf.setAccentColor(mAccentColor)
+        cdf.setAccentBackground(App.defaultAccentBackground)
         cdf.setShouldShowMore(false)
         @StringRes val titleRes = if (index == 0)
             R.string.auto_start_doing_time_reminder_title
@@ -1077,7 +1121,7 @@ class SettingsActivity : EverythingDoneBaseActivity() {
 
     private fun createChooserDialogForStartDoing(): ChooserDialogFragment {
         val cdf = ChooserDialogFragment()
-        cdf.setAccentColor(mAccentColor)
+        cdf.setAccentBackground(App.defaultAccentBackground)
         cdf.setShouldShowMore(false)
         val options: Array<String> = resources.getStringArray(R.array.auto_start_doing_options)
         cdf.setItems(options.toMutableList() as MutableList<String?>)
@@ -1124,7 +1168,7 @@ class SettingsActivity : EverythingDoneBaseActivity() {
 
     private fun showDailyTodoFragment() {
         val cdf = ChooserDialogFragment()
-        cdf.setAccentColor(mAccentColor)
+        cdf.setAccentBackground(App.defaultAccentBackground)
         cdf.setShouldShowMore(false)
         cdf.setTitle(getString(R.string.daily_todo_set_time_title))
         cdf.setItems(sDTItems)
@@ -1199,7 +1243,7 @@ class SettingsActivity : EverythingDoneBaseActivity() {
 
     private fun showChooseLanguageDialog() {
         val cdf = ChooserDialogFragment()
-        cdf.setAccentColor(mAccentColor)
+        cdf.setAccentBackground(App.defaultAccentBackground)
         cdf.setTitle(getString(R.string.change_app_language))
         cdf.setShouldShowMore(false)
         val resources: Resources = resources
@@ -1267,7 +1311,7 @@ class SettingsActivity : EverythingDoneBaseActivity() {
     private fun authenticateToBackup() {
         val password: String? = mPreferences!!.getString(Def.Meta.KEY_PRIVATE_PASSWORD, null)
         AuthenticationHelper.authenticate(
-            this, mAccentColor, getString(R.string.backup_start), password,
+            this, App.defaultAccentBackground, getString(R.string.backup_start), password,
             object : AuthenticationHelper.AuthenticationCallback {
                 override fun onAuthenticated() {
                     startCreateBackupFile()
@@ -1313,7 +1357,7 @@ class SettingsActivity : EverythingDoneBaseActivity() {
     private fun authenticateToRestore() {
         val password: String? = mPreferences!!.getString(Def.Meta.KEY_PRIVATE_PASSWORD, null)
         AuthenticationHelper.authenticate(
-            this, mAccentColor, getString(R.string.restore_choose_backup_file), password,
+            this, App.defaultAccentBackground, getString(R.string.restore_choose_backup_file), password,
             object : AuthenticationHelper.AuthenticationCallback {
                 override fun onAuthenticated() {
                     startChooseBackupFile()
@@ -1350,7 +1394,7 @@ class SettingsActivity : EverythingDoneBaseActivity() {
     private fun initRingtoneFragment(index: Int) {
         mCdfsRingtone!![index] = ChooserDialogFragment()
         val cdf: ChooserDialogFragment = mCdfsRingtone!![index]!!
-        cdf.setAccentColor(mAccentColor)
+        cdf.setAccentBackground(App.defaultAccentBackground)
         cdf.setTitle(getString(R.string.chooser_ringtone))
         cdf.setItems(sRingtoneTitleList)
         cdf.setInitialIndex(sRingtoneUriList!!.indexOf(mChosenRingtoneUris!![index]))
@@ -1410,7 +1454,7 @@ class SettingsActivity : EverythingDoneBaseActivity() {
 
     private fun initAutoNotifyFragment() {
         mCdfAN = ChooserDialogFragment()
-        mCdfAN!!.setAccentColor(mAccentColor)
+        mCdfAN!!.setAccentBackground(App.defaultAccentBackground)
         mCdfAN!!.setShouldShowMore(false)
         mCdfAN!!.setTitle(getString(R.string.auto_notify_set_time))
         mCdfAN!!.setItems(sANItems)
@@ -1561,8 +1605,8 @@ class SettingsActivity : EverythingDoneBaseActivity() {
     ): AlertDialogFragment {
         val adf = AlertDialogFragment()
         adf.setShowCancel(showCancel)
-        adf.setTitleColor(mAccentColor)
-        adf.setConfirmColor(mAccentColor)
+        adf.setTitleBackground(App.defaultAccentBackground)
+        adf.setConfirmBackground(App.defaultAccentBackground)
         adf.setTitle(getString(titleRes))
         adf.setContent(getString(contentRes))
         adf.setConfirmText(getString(confirmRes))
@@ -1573,7 +1617,7 @@ class SettingsActivity : EverythingDoneBaseActivity() {
         @StringRes titleRes: Int, @StringRes contentRes: Int
     ): LoadingDialogFragment {
         val ldf = LoadingDialogFragment()
-        ldf.setAccentColor(mAccentColor)
+        ldf.setAccentBackground(App.defaultAccentBackground)
         ldf.setTitle(getString(titleRes))
         ldf.setContent(getString(contentRes))
         return ldf
@@ -1660,8 +1704,8 @@ class SettingsActivity : EverythingDoneBaseActivity() {
             }
             val adf = AlertDialogFragment()
             adf.setShowCancel(false)
-            adf.setTitleColor(mAccentColor)
-            adf.setConfirmColor(mAccentColor)
+            adf.setTitleBackground(App.defaultAccentBackground)
+            adf.setConfirmBackground(App.defaultAccentBackground)
             adf.setTitle(title)
             adf.setContent(content)
             adf.show(fragmentManager, AlertDialogFragment.TAG)

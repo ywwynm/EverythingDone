@@ -15,7 +15,7 @@
         android:layout_marginTop="36dp"
         android:layout_marginLeft="16dp"
         android:layout_marginRight="16dp"
-        android:textColor="@color/blue_deep"/>
+        android:textColor="@color/app_chrome_on_surface_secondary"/>
 
     <com.ywwynm.everythingdone.views.InterceptTouchCardView
         android:layout_width="match_parent"
@@ -24,7 +24,7 @@
         android:layout_marginLeft="@dimen/card_note_reminder_statistic_margin"
         android:layout_marginRight="@dimen/card_note_reminder_statistic_margin"
         app:cardBackgroundColor="@color/app_chrome_surface_elevated"
-        app:cardCornerRadius="2dp">
+        app:cardCornerRadius="10dp">
 
         <com.ywwynm.everythingdone.views.StablerRecyclerView
             android:id="@+id/rv_finished_created_statistic"
@@ -40,7 +40,7 @@
         android:layout_marginTop="20dp"
         android:layout_marginLeft="16dp"
         android:layout_marginRight="16dp"
-        android:textColor="@color/blue_deep"
+        android:textColor="@color/app_chrome_on_surface_secondary"
         android:text="@string/statistic_note_record"/>
 
     <com.ywwynm.everythingdone.views.InterceptTouchCardView
@@ -51,7 +51,7 @@
         android:layout_marginLeft="@dimen/card_note_reminder_statistic_margin"
         android:layout_marginRight="@dimen/card_note_reminder_statistic_margin"
         app:cardBackgroundColor="@color/app_chrome_surface_elevated"
-        app:cardCornerRadius="2dp">
+        app:cardCornerRadius="10dp">
 
         <com.ywwynm.everythingdone.views.StablerRecyclerView
             android:id="@+id/rv_note_record_statistic"
@@ -67,7 +67,7 @@
         android:layout_marginTop="20dp"
         android:layout_marginLeft="16dp"
         android:layout_marginRight="16dp"
-        android:textColor="@color/blue_deep"
+        android:textColor="@color/app_chrome_on_surface_secondary"
         android:text="@string/statistic_reminder_record"/>
 
     <com.ywwynm.everythingdone.views.InterceptTouchCardView
@@ -78,7 +78,7 @@
         android:layout_marginLeft="@dimen/card_note_reminder_statistic_margin"
         android:layout_marginRight="@dimen/card_note_reminder_statistic_margin"
         app:cardBackgroundColor="@color/app_chrome_surface_elevated"
-        app:cardCornerRadius="2dp">
+        app:cardCornerRadius="10dp">
 
         <com.ywwynm.everythingdone.views.StablerRecyclerView
             android:id="@+id/rv_reminder_record_statistic"
@@ -94,7 +94,7 @@
         android:layout_marginTop="20dp"
         android:layout_marginLeft="16dp"
         android:layout_marginRight="16dp"
-        android:textColor="@color/blue_deep"
+        android:textColor="@color/app_chrome_on_surface_secondary"
         android:text="@string/statistic_habit_record"/>
 
     <com.ywwynm.everythingdone.views.InterceptTouchCardView
@@ -105,7 +105,7 @@
         android:layout_marginLeft="@dimen/card_note_reminder_statistic_margin"
         android:layout_marginRight="@dimen/card_note_reminder_statistic_margin"
         app:cardBackgroundColor="@color/app_chrome_surface_elevated"
-        app:cardCornerRadius="2dp">
+        app:cardCornerRadius="10dp">
 
         <com.ywwynm.everythingdone.views.StablerRecyclerView
             android:id="@+id/rv_habit_record_statistic"
@@ -121,7 +121,7 @@
         android:layout_marginTop="20dp"
         android:layout_marginLeft="16dp"
         android:layout_marginRight="16dp"
-        android:textColor="@color/blue_deep"
+        android:textColor="@color/app_chrome_on_surface_secondary"
         android:text="@string/statistic_goal_record"/>
 
     <com.ywwynm.everythingdone.views.InterceptTouchCardView
@@ -132,7 +132,7 @@
         android:layout_marginLeft="@dimen/card_note_reminder_statistic_margin"
         android:layout_marginRight="@dimen/card_note_reminder_statistic_margin"
         app:cardBackgroundColor="@color/app_chrome_surface_elevated"
-        app:cardCornerRadius="2dp">
+        app:cardCornerRadius="10dp">
 
         <com.ywwynm.everythingdone.views.StablerRecyclerView
             android:id="@+id/rv_goal_record_statistic"

@@ -2,7 +2,6 @@ package com.ywwynm.everythingdone.fragments
 
 import android.os.Bundle
 import androidx.fragment.app.Fragment
-import androidx.core.content.ContextCompat
 import androidx.viewpager.widget.PagerAdapter
 import androidx.viewpager.widget.ViewPager
 import android.view.LayoutInflater
@@ -11,6 +10,7 @@ import android.view.ViewGroup
 import android.widget.ScrollView
 import android.widget.TextView
 
+import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.activities.HelpActivity
@@ -42,7 +42,7 @@ open class HelpDetailFragment : Fragment() {
 
         val pos: Int = args.getInt(Def.Communication.KEY_POSITION)
 
-        val color: Int = ContextCompat.getColor(requireActivity(), R.color.blue_deep)
+        val color: Int = App.defaultAccentBackground.color
 
         val pages: Array<View?> = arrayOfNulls(titles.size)
         for (i in pages.indices) {

@@ -48,7 +48,8 @@ object AuthenticationHelper {
             activity: Activity?, accentColor: Int, title: String?, correctPassword: String?,
             callback: AuthenticationCallback?) {
         val pldf = PatternLockDialogFragment()
-        pldf.setAccentColor(accentColor)
+        pldf.setAccentBackground(
+                com.ywwynm.everythingdone.model.ThingBackground.pure(accentColor))
         pldf.setType(PatternLockDialogFragment.TYPE_VALIDATE)
         pldf.setValidateTitle(title)
         pldf.setCorrectPassword(correctPassword)

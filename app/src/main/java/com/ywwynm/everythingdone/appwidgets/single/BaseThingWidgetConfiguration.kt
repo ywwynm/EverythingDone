@@ -200,6 +200,10 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
         DisplayUtil.expandStatusBarViewAboveKitkat(findViewById(R.id.view_status_bar))
         DisplayUtil.darkStatusBar(this)
 
+        val accentBg = App.defaultAccentBackground
+        BackgroundUtil.applyBackground(findViewById<View>(R.id.view_status_bar), accentBg)
+        BackgroundUtil.applyBackground(mActionBar, accentBg)
+
         mLlConfig!!.setBackgroundColor(Color.parseColor("#66000000"))
         DisplayUtil.applyBottomInsetAsScrollPadding(mRecyclerView)
 

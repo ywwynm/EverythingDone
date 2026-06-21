@@ -21,8 +21,10 @@ import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.RequestOptions
 import com.bumptech.glide.request.target.Target
+import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.helpers.AttachmentHelper
+import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.helpers.MediaCropBitmapRenderer
 import com.ywwynm.everythingdone.model.DetailAttachmentMediaAppearance
 import com.bumptech.glide.signature.ObjectKey
@@ -334,8 +336,11 @@ open class ImageAttachmentAdapter(
         val pbLoading: ProgressBar? = f(R.id.pb_image_attachment)
 
         init {
-            val pbColor = ContextCompat.getColor(mContext!!, R.color.app_accent)
-            pbLoading!!.indeterminateDrawable.setColorFilter(pbColor, PorterDuff.Mode.SRC_IN)
+            pbLoading!!.post {
+                BackgroundUtil.applyProgressBarGradient(
+                    pbLoading!!, App.defaultAccentBackground
+                )
+            }
 
             fl!!.setOnClickListener { v ->
                 if (mClickCallback != null) {

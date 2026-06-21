@@ -2599,3 +2599,10 @@ publishing was not run.
   `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606210824.apk`.
   Remote `latest.json` reports SHA-256
   `9629e4d95acc9c7ecee615137ed894a7c36251114ba240ed3500246a5d25367f`.
+
+## 2026-06-22 - 拖拽创建文件夹 outline 渐变坐标修复
+
+- 诊断拖拽一个记事到另一个记事以创建新文件夹时，pending Folder outline stroke 看起来总是纯色的问题。
+- 确认创建路径已经使用 `ThingBackground.fromRandom()` 随机纯色/渐变，但 outline drawable 的渐变 shader 没有按 drawable bounds 平移，导致非左上角卡片大概率采样到同一个端点色。
+- 将 `FolderDropOutlineDrawable` 的 `LinearGradient` 坐标改为实际 bounds 坐标，让随机渐变背景在创建文件夹的 stroke 上可见。
+- 验证：`./gradlew.bat :app:assembleDebug` 通过。

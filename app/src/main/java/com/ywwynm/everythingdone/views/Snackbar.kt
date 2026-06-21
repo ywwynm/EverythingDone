@@ -14,6 +14,7 @@ import android.widget.TextView
 import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
+import com.ywwynm.everythingdone.utils.BackgroundUtil
 
 /**
  * Created by ywwynm on 2015/7/4.
@@ -111,6 +112,11 @@ open class Snackbar(
 
         if (mType == NORMAL) {
             mTargetParent.postDelayed(mHideThread, 1200 + 160L)
+        }
+        if (mBtUndo != null) {
+            mBtUndo!!.post {
+                BackgroundUtil.applyTextBackground(mBtUndo, App.defaultAccentBackground)
+            }
         }
     }
 

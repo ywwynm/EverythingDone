@@ -15,10 +15,12 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 
+import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.adapters.BaseViewHolder
 import com.ywwynm.everythingdone.fragments.HelpDetailFragment
 import com.ywwynm.everythingdone.helpers.SendInfoHelper
+import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil
 
@@ -60,13 +62,17 @@ open class HelpActivity : EverythingDoneBaseActivity() {
         DisplayUtil.expandStatusBarViewAboveKitkat(f(R.id.view_status_bar))
         DisplayUtil.darkStatusBar(this)
 
+        val accentBg = App.defaultAccentBackground
+        BackgroundUtil.applyBackground(f<View>(R.id.view_status_bar), accentBg)
+        BackgroundUtil.applyBackground(f<View>(R.id.actionbar), accentBg)
+
         mRecyclerView = f(R.id.rv_help)
         mRecyclerView!!.adapter = HelpAdapter()
         mRecyclerView!!.layoutManager = LinearLayoutManager(this)
         DisplayUtil.applyBottomInsetAsScrollPadding(mRecyclerView)
 
         mRecyclerView!!.addOnScrollListener(object : RecyclerView.OnScrollListener() {
-            val color: Int = ContextCompat.getColor(this@HelpActivity, R.color.blue_deep)
+            val color: Int = App.defaultAccentBackground.color
             override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
                 super.onScrollStateChanged(recyclerView, newState)
                 EdgeEffectUtil.forRecyclerView(mRecyclerView, color)

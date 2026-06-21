@@ -3,8 +3,6 @@
 package com.ywwynm.everythingdone.adapters
 
 import android.content.Context
-import android.graphics.PorterDuff
-import android.graphics.drawable.Drawable
 import androidx.core.content.ContextCompat
 import android.view.LayoutInflater
 import android.view.View
@@ -37,7 +35,7 @@ open class RadioChooserAdapter(
     /** Phase 8: accept a full [ThingBackground] for gradient text on the picked row. */
     open fun setAccentBackground(bg: ThingBackground?) {
         mAccentBackground = bg
-        if (bg != null) mAccentColor = bg.representativeColor()
+        if (bg != null) mAccentColor = bg.color
         notifyDataSetChanged()
     }
 
@@ -60,19 +58,18 @@ open class RadioChooserAdapter(
         holder.tv!!.text = item
         val context = holder.tv.context
         val uncheckedColor = ContextCompat.getColor(context, R.color.app_chrome_control_unchecked)
-        val d: Drawable?
-        if (mPickedPosition == position) { // -15310698
-            val srcChecked: Drawable? = ContextCompat.getDrawable(
-                context, R.drawable.ic_radiobutton_checked
-            )
-            if (mAccentBackground != null) {
-                d = BackgroundUtil.tintDrawable(
-                    context.resources, srcChecked, mAccentBackground
-                )
-            } else {
-                d = srcChecked!!.mutate()
-                d.setColorFilter(mAccentColor, PorterDuff.Mode.SRC_ATOP)
-            }
+        val picked = mPickedPosition == position
+        val animateIcon = holder.boundPicked != null && holder.boundPicked != picked
+        val accentBackground = mAccentBackground ?: ThingBackground.pure(mAccentColor)
+        val d = BackgroundUtil.createGradientRadioDrawable(
+            context,
+            accentBackground,
+            uncheckedColor,
+            picked,
+            animateIcon
+        )
+        holder.boundPicked = picked
+        if (picked) {
             holder.tv.contentDescription = context.getString(R.string.cd_chosen_item) + item
             if (mAccentBackground != null) {
                 BackgroundUtil.applyTextBackground(holder.tv, mAccentBackground)
@@ -83,8 +80,6 @@ open class RadioChooserAdapter(
                 holder.tv.setTextColor(mAccentColor)
             }
         } else {
-            d = ContextCompat.getDrawable(context, R.drawable.ic_radiobutton_unchecked)
-            d!!.mutate().setColorFilter(uncheckedColor, PorterDuff.Mode.SRC_ATOP)
             holder.tv.contentDescription =
                 context.getString(R.string.cd_not_chosen_item) + item
             if (holder.tv.paint.shader != null) {
@@ -100,6 +95,7 @@ open class RadioChooserAdapter(
     private inner class ChoiceHolder(itemView: View?) : BaseViewHolder(itemView) {
 
         val tv: TextView? = f(R.id.tv_rv_chooser_fragment)
+        var boundPicked: Boolean? = null
 
         init {
             tv!!.setOnClickListener { v ->

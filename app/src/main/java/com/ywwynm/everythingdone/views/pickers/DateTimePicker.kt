@@ -111,7 +111,7 @@ open class DateTimePicker(
      */
     fun setAccentBackground(bg: com.ywwynm.everythingdone.model.ThingBackground?) {
         mAccentBackground = bg
-        if (bg != null) mAccentColor = bg.representativeColor()
+        if (bg != null) mAccentColor = bg.color
     }
 
     @SuppressLint("SetTextI18n")

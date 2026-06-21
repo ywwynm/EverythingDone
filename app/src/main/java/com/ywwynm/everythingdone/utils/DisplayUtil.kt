@@ -28,6 +28,7 @@ import android.graphics.Shader
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.ClipDrawable
 import android.graphics.drawable.Drawable
+import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.LayerDrawable
 import android.graphics.drawable.RippleDrawable
 import android.graphics.drawable.StateListDrawable
@@ -49,6 +50,7 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.SeekBar
 
+import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.model.ThingBackground
 
@@ -701,17 +703,30 @@ object DisplayUtil {
     @JvmStatic
     fun setSeekBarBackground(seekBar: SeekBar?, background: ThingBackground?) {
         if (seekBar == null) return
-        val safeBackground = background ?: ThingBackground.pure(
-                ContextCompat.getColor(seekBar.context, R.color.app_accent)
-        )
+        val safeBackground = background ?: App.defaultAccentBackground
         seekBar.progressTintList = null
         seekBar.progressBackgroundTintList = null
         seekBar.secondaryProgressTintList = null
         seekBar.progressDrawable = buildSeekBarProgressDrawable(seekBar, safeBackground)
-        seekBar.thumb!!.setColorFilter(
-                safeBackground.representativeColor(),
-                PorterDuff.Mode.SRC_IN
-        )
+        seekBar.thumb = buildSeekBarThumbDrawable(seekBar, safeBackground)
+    }
+
+    private fun buildSeekBarThumbDrawable(
+            seekBar: SeekBar,
+            background: ThingBackground
+    ): Drawable {
+        val density = seekBar.resources.displayMetrics.density
+        val size = max(16, (20f * density).toInt())
+        return GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setSize(size, size)
+            if (background.mode === ThingBackground.Mode.GRADIENT) {
+                orientation = toGradientDrawableOrientation(background.orientation)
+                colors = intArrayOf(background.color, background.endColor)
+            } else {
+                setColor(background.color)
+            }
+        }
     }
 
     private fun buildSeekBarProgressDrawable(
@@ -800,7 +815,7 @@ object DisplayUtil {
             if (background.mode === ThingBackground.Mode.GRADIENT && bounds.width() > 0) {
                 paint.shader = createGradientShader(bounds, background)
             } else {
-                paint.color = background.representativeColor()
+                paint.color = background.color
             }
         }
     }
@@ -833,6 +848,21 @@ object DisplayUtil {
         )
     }
 
+    private fun toGradientDrawableOrientation(
+            orientation: ThingBackground.Orientation
+    ): GradientDrawable.Orientation {
+        return when (orientation) {
+            ThingBackground.Orientation.L_R -> GradientDrawable.Orientation.LEFT_RIGHT
+            ThingBackground.Orientation.T_B -> GradientDrawable.Orientation.TOP_BOTTOM
+            ThingBackground.Orientation.LT_RB -> GradientDrawable.Orientation.TL_BR
+            ThingBackground.Orientation.RT_LB -> GradientDrawable.Orientation.TR_BL
+            ThingBackground.Orientation.LB_RT -> GradientDrawable.Orientation.BL_TR
+            ThingBackground.Orientation.RB_LT -> GradientDrawable.Orientation.BR_TL
+            ThingBackground.Orientation.R_L -> GradientDrawable.Orientation.RIGHT_LEFT
+            ThingBackground.Orientation.B_T -> GradientDrawable.Orientation.BOTTOM_TOP
+        }
+    }
+
     @JvmStatic
     fun setButtonColor(button: Button?, color: Int) {
         button!!.background.setColorFilter(color, PorterDuff.Mode.MULTIPLY)
@@ -840,8 +870,8 @@ object DisplayUtil {
 
     @JvmStatic
     fun setCheckBoxColor(checkBox: AppCompatCheckBox?, accentColor: Int) {
-        setCheckBoxColor(checkBox,
-                ContextCompat.getColor(checkBox!!.context, R.color.black_54), accentColor)
+        if (checkBox == null) return
+        BackgroundUtil.applyCheckboxAccent(checkBox, ThingBackground.pure(accentColor))
     }
 
     @JvmStatic

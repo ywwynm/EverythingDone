@@ -111,7 +111,7 @@ open class ThingDoingDialogFragment : BaseDialogFragment() {
             return
         }
 
-        val thingColor = bg.representativeColor()
+        val thingColor = bg.color
         mTvStartAsBt!!.setTextColor(
             BackgroundUtil.onColor(thingColor, BackgroundUtil.ON_ALPHA_PRIMARY)
         )

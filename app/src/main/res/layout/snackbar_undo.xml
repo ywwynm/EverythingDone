@@ -28,7 +28,6 @@
         android:layout_marginStart="8dp"
         android:layout_marginLeft="8dp"
         android:textSize="14sp"
-        android:textColor="@color/app_accent"
         android:background="@drawable/selectable_item_background_light"
         android:visibility="gone"/>
 

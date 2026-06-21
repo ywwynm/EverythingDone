@@ -635,9 +635,9 @@ object AppWidgetHelper {
         typeFilterMask: Int
     ) {
         val background = folder?.getBackground()
-            ?: ThingBackground.pure(ContextCompat.getColor(context, R.color.app_accent))
+            ?: App.defaultAccentBackground
         val headerAlpha: Int
-        var headerColor = background.representativeColor()
+        var headerColor = background.color
         if (info != null && info.alpha < 0) {
             headerAlpha = if (info.alpha == ThingWidgetInfo.HEADER_ALPHA_0) {
                 0
@@ -742,6 +742,23 @@ object AppWidgetHelper {
             remoteViews.setViewVisibility(TV_WIDGET_FOLDER_COUNT, View.VISIBLE)
             remoteViews.setViewVisibility(IV_WIDGET_FOLDER_LOCK, View.GONE)
             remoteViews.setTextViewText(TV_WIDGET_FOLDER_COUNT, getFolderSummaryCountText(appContext, entry))
+        }
+        if (folder.isSticky()) {
+            remoteViews.setViewVisibility(IV_STICKY_ONGOING, View.VISIBLE)
+            remoteViews.setInt(IV_STICKY_ONGOING, "setImageAlpha", alpha)
+            setGradientStickyMarker(
+                remoteViews,
+                IV_STICKY_ONGOING,
+                appContext,
+                R.drawable.ic_sticky,
+                getThingsListStickyMarkerBackground(appContext, appWidgetId)
+            )
+            remoteViews.setContentDescription(
+                IV_STICKY_ONGOING,
+                appContext.getString(R.string.sticky_thing)
+            )
+        } else {
+            remoteViews.setViewVisibility(IV_STICKY_ONGOING, View.GONE)
         }
         return remoteViews
     }
@@ -983,6 +1000,35 @@ object AppWidgetHelper {
         remoteViews.setInt(viewId, "setColorFilter", adaptiveIconColor(thing))
     }
 
+    private fun setGradientStickyMarker(
+        remoteViews: RemoteViews,
+        viewId: Int,
+        context: Context,
+        @DrawableRes ivRes: Int,
+        background: ThingBackground
+    ) {
+        val icon = ContextCompat.getDrawable(context, ivRes) ?: return
+        val tinted = BackgroundUtil.tintDrawable(context.resources, icon, background) ?: return
+        val width = max(1, tinted.intrinsicWidth)
+        val height = max(1, tinted.intrinsicHeight)
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        tinted.setBounds(0, 0, width, height)
+        tinted.draw(canvas)
+        remoteViews.setImageViewBitmap(viewId, bitmap)
+    }
+
+    private fun getThingsListStickyMarkerBackground(
+        context: Context,
+        appWidgetId: Int
+    ): ThingBackground {
+        val info = AppWidgetDAO.getInstance(context)!!.getThingWidgetInfoById(appWidgetId)
+        val folder = resolveThingsListTargetFolder(context, info)
+        return folder?.getBackground()
+            ?: folder?.let { ThingBackground.pure(it.getColor()) }
+            ?: App.defaultAccentBackground
+    }
+
     private fun setAppearance(
             context: Context, remoteViews: RemoteViews, thing: Thing?, appWidgetId: Int, clazz: Class<*>?,
             alpha: Int, @ThingWidgetInfo.Style style: Int) {
@@ -1009,7 +1055,18 @@ object AppWidgetHelper {
         applyAdaptiveTextColors(context, remoteViews, thing, mediaBackground != null)
         applyAdaptiveSeparatorBackgrounds(remoteViews, thing)
 
-        setStickyOrOngoing(context, remoteViews, thing, a, clazz, style)
+        setStickyOrOngoing(
+                context,
+                remoteViews,
+                thing,
+                a,
+                clazz,
+                style,
+                if (isThingsListWidgetClass(clazz)) {
+                    getThingsListStickyMarkerBackground(context, appWidgetId)
+                } else {
+                    App.defaultAccentBackground
+                })
 
         setImageAttachment(context, remoteViews, thing, appWidgetId, clazz,
                 mediaBackground != null, a, style)
@@ -1384,7 +1441,8 @@ object AppWidgetHelper {
     }
 
     private fun setStickyOrOngoing(context: Context, remoteViews: RemoteViews, thing: Thing,
-                                   alpha: Int, clazz: Class<*>?, @ThingWidgetInfo.Style style: Int) {
+                                   alpha: Int, clazz: Class<*>?, @ThingWidgetInfo.Style style: Int,
+                                   markerBackground: ThingBackground) {
         val sticky: Boolean = thing.location < 0
         val ongoing: Boolean = FrequentSettings.getLong(Def.Meta.KEY_ONGOING_THING_ID) == thing.id
         if (!sticky && !ongoing) {
@@ -1397,15 +1455,15 @@ object AppWidgetHelper {
                 remoteViews.setViewVisibility(IV_STICKY_ONGOING, View.GONE)
                 remoteViews.setViewVisibility(IV_STICKY_ONGOING_SMALL, View.VISIBLE)
                 remoteViews.setInt(IV_STICKY_ONGOING_SMALL, "setImageAlpha", alpha)
-                remoteViews.setImageViewResource(IV_STICKY_ONGOING_SMALL, ivRes)
-                setAdaptiveIconColor(remoteViews, IV_STICKY_ONGOING_SMALL, thing)
+                setGradientStickyMarker(
+                        remoteViews, IV_STICKY_ONGOING_SMALL, context, ivRes, markerBackground)
                 remoteViews.setContentDescription(IV_STICKY_ONGOING_SMALL, cd)
             } else {
                 remoteViews.setViewVisibility(IV_STICKY_ONGOING, View.VISIBLE)
                 remoteViews.setViewVisibility(IV_STICKY_ONGOING_SMALL, View.GONE)
                 remoteViews.setInt(IV_STICKY_ONGOING, "setImageAlpha", alpha)
-                remoteViews.setImageViewResource(IV_STICKY_ONGOING, ivRes)
-                setAdaptiveIconColor(remoteViews, IV_STICKY_ONGOING, thing)
+                setGradientStickyMarker(
+                        remoteViews, IV_STICKY_ONGOING, context, ivRes, markerBackground)
                 remoteViews.setContentDescription(IV_STICKY_ONGOING, cd)
             }
         }

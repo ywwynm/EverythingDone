@@ -200,7 +200,7 @@ open class ChooserDialogFragment : BaseDialogFragment() {
 
     open fun setAccentBackground(bg: ThingBackground?) {
         mAccentBackground = bg
-        if (bg != null) mAccentColor = bg.representativeColor()
+        if (bg != null) mAccentColor = bg.color
     }
 
     private fun applyAccent(tv: TextView) {

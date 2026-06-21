@@ -4,7 +4,6 @@ package com.ywwynm.everythingdone.adapters
 
 import android.animation.ObjectAnimator
 import android.content.res.ColorStateList
-import android.graphics.Color
 import android.graphics.Outline
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
@@ -440,16 +439,16 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         holder.cv!!.setTag(R.id.tag_thing_folder_thumbnail_surface, true)
         BackgroundUtil.applyCardBackground(holder.cv, cardBackground)
         (holder.cv.background as? GradientDrawable)?.cornerRadius = radius
-        holder.cv.setCardBackgroundColor(cardBackground.representativeColor())
         holder.cv.maxCardElevation = mApp!!.resources.getDimension(R.dimen.thing_card_dragging_elevation)
         holder.cv.cardElevation = mApp!!.resources.getDimension(R.dimen.thing_card_normal_elevation)
         applyRoundedCardOutline(holder.cv, radius)
 
-        val strokeColor = background?.representativeColor() ?: fallbackColor
-        val outline = GradientDrawable()
-        outline.setColor(Color.TRANSPARENT)
-        outline.cornerRadius = radius
-        outline.setStroke((mDensity * 1.5f).toInt().coerceAtLeast(1), strokeColor)
+        val strokeBackground = background ?: ThingBackground.pure(fallbackColor)
+        val outline = BackgroundUtil.GradientStrokeDrawable(
+            strokeBackground,
+            radius,
+            (mDensity * 1.5f).coerceAtLeast(1f)
+        )
         holder.llContent!!.background = outline
     }
 
@@ -530,9 +529,10 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
     ) {
         icon ?: return
         if (folder.parentFolderId == null) {
-            ImageViewCompat.setImageTintList(
-                icon,
-                ColorStateList.valueOf(ContextCompat.getColor(mApp!!, R.color.app_accent))
+            icon.setImageDrawable(
+                BackgroundUtil.tintDrawable(
+                    mApp!!.resources, icon.drawable, App.defaultAccentBackground
+                )
             )
             return
         }

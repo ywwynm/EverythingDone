@@ -72,7 +72,9 @@
     <color name="app_chrome_snackbar_background">#323232</color>
     <color name="app_chrome_snackbar_text">#FFFFFF</color>
 
-    <color name="app_accent">#FFEB3B</color>
+    <color name="app_accent">#F66048</color>
+    <color name="app_accent2">#FFAE36</color>
+    <color name="app_accent_representative">#FF8040</color>
     <color name="date_time_rec_existing_foreground">#C4000000</color>
     <color name="date_time_rec_new_foreground">#40000000</color>
 

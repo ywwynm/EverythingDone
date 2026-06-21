@@ -16,14 +16,14 @@
             android:id="@+id/view_contextual_status_bar"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:background="@color/app_accent"
+            android:background="@android:color/transparent"
             android:visibility="visible"/>
 
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/contextual_toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:background="@color/app_accent"
+            android:background="@android:color/transparent"
             android:theme="@style/EverythingDoneTheme.AppAccentToolbar"
             app:titleTextAppearance="@style/ContextualToolbarText"
             app:contentInsetStart="72dp"/>

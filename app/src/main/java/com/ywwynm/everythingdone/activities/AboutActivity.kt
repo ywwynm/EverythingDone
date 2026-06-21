@@ -8,8 +8,6 @@ import android.content.Context
 import android.graphics.Paint
 import android.graphics.Typeface
 import android.widget.ImageView
-import com.google.android.material.floatingactionbutton.FloatingActionButton
-import androidx.core.content.ContextCompat
 import androidx.appcompat.app.ActionBar
 import androidx.appcompat.widget.Toolbar
 import android.view.Menu
@@ -19,9 +17,11 @@ import android.widget.FrameLayout
 import android.widget.TextView
 import android.widget.Toast
 
+import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.BuildConfig
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
+import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.fragments.AlertDialogFragment
 import com.ywwynm.everythingdone.fragments.LicenseDialogFragment
 import com.ywwynm.everythingdone.fragments.ThreeActionsAlertDialogFragment
@@ -30,6 +30,7 @@ import com.ywwynm.everythingdone.helpers.SendInfoHelper
 import com.ywwynm.everythingdone.utils.AppearanceUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.FontCache
+import com.ywwynm.everythingdone.views.FloatingActionButton
 
 open class AboutActivity : EverythingDoneBaseActivity() {
 
@@ -95,10 +96,18 @@ open class AboutActivity : EverythingDoneBaseActivity() {
 
         DisplayUtil.applyBottomInsetAsMargin(mFab)
         DisplayUtil.applyBottomInsetAsPadding(mFlBottom)
+        mFab!!.setThingBackgroundWithAdaptiveIcon(
+            App.defaultAccentBackground,
+            App.defaultAccentBackground.color
+        )
 
         val tf: Typeface? = FontCache.get(Def.Meta.ROBOTO_MONO, this)
         mTvYwwynm!!.setTypeface(tf)
         mTvEverythingDone!!.setTypeface(tf)
+
+        val accentBg = App.defaultAccentBackground
+        BackgroundUtil.applyTextBackground(mTvYwwynm, accentBg)
+        BackgroundUtil.applyTextBackground(mTvEverythingDone, accentBg)
 
         mTvVersion!!.append(" " + BuildConfig.VERSION_NAME)
 
@@ -156,9 +165,8 @@ open class AboutActivity : EverythingDoneBaseActivity() {
 
     private fun initSupportDialog() {
         mSupportDf = ThreeActionsAlertDialogFragment()
-        val color = ContextCompat.getColor(this, R.color.app_pink)
-        mSupportDf!!.setTitleColor(color)
-        mSupportDf!!.setContinueColor(color)
+        mSupportDf!!.setTitleBackground(App.defaultAccentBackground)
+        mSupportDf!!.setContinueBackground(App.defaultAccentBackground)
         mSupportDf!!.setTitle(getString(R.string.act_support))
         mSupportDf!!.setContent(getString(R.string.support_content))
         mSupportDf!!.setFirstAction(getString(R.string.support_star))
@@ -181,9 +189,8 @@ open class AboutActivity : EverythingDoneBaseActivity() {
 
     private fun initDonateDialog() {
         mDonateDf = AlertDialogFragment()
-        val color = ContextCompat.getColor(this, R.color.app_pink)
-        mDonateDf!!.setTitleColor(color)
-        mDonateDf!!.setConfirmColor(color)
+        mDonateDf!!.setTitleBackground(App.defaultAccentBackground)
+        mDonateDf!!.setConfirmBackground(App.defaultAccentBackground)
         mDonateDf!!.setTitle(getString(R.string.support_donate))
         mDonateDf!!.setContent(getString(R.string.support_donate_content))
         mDonateDf!!.setConfirmText(getString(R.string.support_donate_copy_name))

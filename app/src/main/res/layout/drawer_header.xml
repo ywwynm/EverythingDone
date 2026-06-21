@@ -41,8 +41,7 @@
             android:layout_toEndOf="@id/tv_dh_location"
             android:layout_toRightOf="@id/tv_dh_location"
             android:fontFamily="sans-serif-light"
-            android:textSize="28sp"
-            android:textColor="@color/app_accent"/>
+            android:textSize="28sp"/>
 
     </RelativeLayout>
 

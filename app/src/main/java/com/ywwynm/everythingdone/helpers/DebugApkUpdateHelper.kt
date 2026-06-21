@@ -11,10 +11,10 @@ import android.os.Build
 import android.os.SystemClock
 import android.provider.Settings
 import android.widget.Toast
-import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 
 import com.google.gson.Gson
+import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.BuildConfig
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.activities.AboutActivity
@@ -109,7 +109,7 @@ open class DebugApkUpdateHelper(private val mActivity: AboutActivity) {
         val dialog = LoadingDialogFragment()
         dialog.setTitle(mActivity.getString(R.string.debug_update_checking_title))
         dialog.setContent(mActivity.getString(R.string.debug_update_checking_content))
-        dialog.setAccentColor(ContextCompat.getColor(mActivity, R.color.app_pink))
+        dialog.setAccentBackground(App.defaultAccentBackground)
         mCheckingDialog = dialog
         dialog.show(mActivity.fragmentManager, LoadingDialogFragment.TAG)
     }
@@ -133,6 +133,7 @@ open class DebugApkUpdateHelper(private val mActivity: AboutActivity) {
     private fun downloadAndInstall(info: DebugApkUpdateInfo) {
         mDownloadCanceled = false
         val dialog = DebugUpdateDownloadDialogFragment()
+        dialog.setAccentBackground(App.defaultAccentBackground)
         dialog.setOnCancelDownloadListener(object :
             DebugUpdateDownloadDialogFragment.OnCancelDownloadListener {
             override fun onCancelDownload() {
@@ -296,8 +297,8 @@ open class DebugApkUpdateHelper(private val mActivity: AboutActivity) {
         }
 
         val dialog = AlertDialogFragment()
-        dialog.setTitleColor(ContextCompat.getColor(mActivity, R.color.app_pink))
-        dialog.setConfirmColor(ContextCompat.getColor(mActivity, R.color.app_pink))
+        dialog.setTitleBackground(App.defaultAccentBackground)
+        dialog.setConfirmBackground(App.defaultAccentBackground)
         dialog.setTitle(mActivity.getString(R.string.debug_update_install_permission_title))
         dialog.setContent(mActivity.getString(R.string.debug_update_install_permission_content))
         dialog.setConfirmText(mActivity.getString(R.string.debug_update_open_settings))
@@ -435,9 +436,8 @@ open class DebugApkUpdateHelper(private val mActivity: AboutActivity) {
 
     private fun showAlert(titleRes: Int, content: String) {
         val dialog = AlertDialogFragment()
-        val accent = ContextCompat.getColor(mActivity, R.color.app_pink)
-        dialog.setTitleColor(accent)
-        dialog.setConfirmColor(accent)
+        dialog.setTitleBackground(App.defaultAccentBackground)
+        dialog.setConfirmBackground(App.defaultAccentBackground)
         dialog.setShowCancel(false)
         dialog.setTitle(mActivity.getString(titleRes))
         dialog.setContent(content)

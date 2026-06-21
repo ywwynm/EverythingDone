@@ -7,10 +7,12 @@ import android.content.Context
 import android.os.AsyncTask
 
 import com.ywwynm.everythingdone.Def
+import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.fragments.AlertDialogFragment
 import com.ywwynm.everythingdone.fragments.LoadingDialogFragment
 import com.ywwynm.everythingdone.model.Thing
+import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.utils.FileUtil
 import com.ywwynm.everythingdone.utils.LocaleUtil
 
@@ -33,21 +35,29 @@ object ThingExporter {
 
     @JvmStatic
     fun startExporting(activity: Activity?, accentColor: Int, vararg things: Thing?) {
-        ExportTask(activity, accentColor).execute(*things)
+        startExporting(activity, ThingBackground.pure(accentColor), *things)
     }
 
-    private class ExportTask(activity: Activity?, accentColor: Int) : AsyncTask<Thing?, Any?, Int?>() {
+    @JvmStatic
+    fun startExporting(activity: Activity?, accentBackground: ThingBackground?, vararg things: Thing?) {
+        ExportTask(activity, accentBackground ?: App.defaultAccentBackground).execute(*things)
+    }
+
+    private class ExportTask(
+        activity: Activity?,
+        accentBackground: ThingBackground
+    ) : AsyncTask<Thing?, Any?, Int?>() {
 
         private var mWrActivity: WeakReference<Activity?>? = WeakReference(activity)
         private var mWrLdf: WeakReference<LoadingDialogFragment?>? = null
-        private var mAccentColor: Int = accentColor
+        private var mAccentBackground: ThingBackground = accentBackground
         private var mParamsLength: Int = 0
 
         override fun onPreExecute() {
             val activity: Activity = mWrActivity!!.get() ?: return
 
             val ldf = LoadingDialogFragment()
-            ldf.setAccentColor(mAccentColor)
+            ldf.setAccentBackground(mAccentBackground)
             ldf.setTitle(activity.getString(R.string.export_loading_title))
             ldf.setContent(activity.getString(R.string.export_loading_content))
 
@@ -89,8 +99,8 @@ object ThingExporter {
 
             val adf = AlertDialogFragment()
             adf.setShowCancel(false)
-            adf.setTitleColor(mAccentColor)
-            adf.setConfirmColor(mAccentColor)
+            adf.setTitleBackground(mAccentBackground)
+            adf.setConfirmBackground(mAccentBackground)
 
             if (count >= 1) {
                 adf.setTitle(activity.getString(R.string.export_success_title))

@@ -524,8 +524,8 @@ open class CheckListAdapter(
         init {
             if (mType == EDITTEXT_EDITABLE) {
                 if (!DeviceUtil.isMiuiButNotV5()) {
-                    DisplayUtil.setSelectionHandlersColor(et, ContextCompat.getColor(
-                        mContext!!, R.color.app_accent))
+                    DisplayUtil.setSelectionHandlersColor(et,
+                        App.defaultAccentBackground.representativeColor())
                 }
                 setupIvListeners()
                 setupEtListeners()
@@ -871,7 +871,7 @@ open class CheckListAdapter(
             black_50p = ContextCompat.getColor(context, R.color.black_50p)
             density = DisplayUtil.getScreenDensity(context)
 
-            appAccent = ContextCompat.getColor(App.getApp()!!, R.color.app_accent)
+            appAccent = App.defaultAccentBackground.representativeColor()
             cursorWidth = (1.5 * density).toInt()
             normalLineCursorHeightVary = (-2 * density).toInt()
             lastLineCursorHeightVary = (-1 * density).toInt()

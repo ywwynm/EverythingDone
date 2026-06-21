@@ -62,7 +62,7 @@ open class RecurrencePickerAdapter(
     open fun setAccentBackground(bg: ThingBackground?) {
         mAccentBackground = bg
         if (bg != null) {
-            mAccentColor = bg.representativeColor()
+            mAccentColor = bg.color
             notifyDataSetChanged()
         }
     }

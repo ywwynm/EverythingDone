@@ -11,6 +11,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 
+import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.adapters.BaseViewHolder
 import com.ywwynm.everythingdone.adapters.SingleChoiceAdapter
@@ -37,7 +38,7 @@ class ThingCardAppearanceSourcePicker(
 
     private val accentColor: Int =
             accentBackground?.representativeColor()
-                    ?: ContextCompat.getColor(activity, R.color.app_accent)
+                    ?: App.defaultAccentBackground.representativeColor()
     private val adapter = SourceAdapter()
 
     init {

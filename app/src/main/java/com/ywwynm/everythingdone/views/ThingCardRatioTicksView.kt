@@ -2,12 +2,16 @@ package com.ywwynm.everythingdone.views
 
 import android.content.Context
 import android.graphics.Canvas
+import android.graphics.Matrix
 import android.graphics.Paint
 import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.View
 import androidx.core.content.ContextCompat
+import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.R
+import com.ywwynm.everythingdone.model.ThingBackground
+import com.ywwynm.everythingdone.utils.BackgroundUtil
 import kotlin.math.max
 import kotlin.math.min
 
@@ -33,19 +37,42 @@ class ThingCardRatioTicksView @JvmOverloads constructor(
     private var maxRatio = 2.0
     private var ratios = doubleArrayOf()
     private var labels = emptyArray<String>()
+    private var tickBackground: ThingBackground = App.defaultAccentBackground
+    private var labelTextColor = ContextCompat.getColor(
+        context,
+        R.color.app_chrome_on_surface_hint
+    )
+    private var activeRatio: Double? = null
 
     init {
         val sidePadding = (16f * density).toInt()
         setPadding(sidePadding, 0, sidePadding, 0)
-        setColors(
-            ContextCompat.getColor(context, R.color.app_accent),
+        setAccentBackground(
+            App.defaultAccentBackground,
             ContextCompat.getColor(context, R.color.app_chrome_on_surface_hint)
         )
     }
 
     fun setColors(tickColor: Int, textColor: Int) {
-        tickPaint.color = tickColor
-        textPaint.color = textColor
+        tickBackground = ThingBackground.pure(tickColor)
+        labelTextColor = textColor
+        invalidate()
+    }
+
+    fun setAccentBackground(background: ThingBackground, textColor: Int) {
+        tickBackground = background
+        labelTextColor = textColor
+        invalidate()
+    }
+
+    fun setActiveRatio(ratio: Double?) {
+        val safeRatio = if (ratio == null || ratio.isNaN() || ratio.isInfinite()) null else ratio
+        val oldRatio = activeRatio
+        if (oldRatio == null && safeRatio == null) return
+        if (oldRatio != null && safeRatio != null && kotlin.math.abs(oldRatio - safeRatio) < 0.0001) {
+            return
+        }
+        activeRatio = safeRatio
         invalidate()
     }
 
@@ -76,6 +103,16 @@ class ThingCardRatioTicksView @JvmOverloads constructor(
         val bottomLabelY = min(height - 3f * density, trackCenterY + 17f * density)
         val contentWidth = trackRight - trackLeft
 
+        if (tickBackground.mode === ThingBackground.Mode.GRADIENT) {
+            tickPaint.shader = BackgroundUtil.createLinearGradient(
+                tickBackground,
+                width.toFloat(),
+                height.toFloat()
+            )
+        } else {
+            tickPaint.shader = null
+            tickPaint.color = tickBackground.color
+        }
         for (i in ratios.indices) {
             val ratio = ratios[i]
             if (ratio < minRatio || ratio > maxRatio) continue
@@ -84,7 +121,56 @@ class ThingCardRatioTicksView @JvmOverloads constructor(
             val x = trackLeft + contentWidth * fraction
             canvas.drawLine(x, tickTop, x, tickBottom, tickPaint)
             val label = labels.getOrNull(i) ?: continue
-            canvas.drawText(label, x, if (i % 2 == 0) bottomLabelY else topLabelY, textPaint)
+            drawLabel(
+                canvas,
+                label,
+                x,
+                if (i % 2 == 0) bottomLabelY else topLabelY,
+                isActiveRatio(ratio)
+            )
         }
+        tickPaint.shader = null
+        textPaint.shader = null
+        textPaint.color = labelTextColor
+    }
+
+    private fun isActiveRatio(ratio: Double): Boolean {
+        val active = activeRatio ?: return false
+        return kotlin.math.abs(ratio - active) < 0.0001
+    }
+
+    private fun drawLabel(
+        canvas: Canvas,
+        label: String,
+        x: Float,
+        baseline: Float,
+        active: Boolean
+    ) {
+        if (!active) {
+            textPaint.shader = null
+            textPaint.color = labelTextColor
+            canvas.drawText(label, x, baseline, textPaint)
+            return
+        }
+
+        if (tickBackground.mode === ThingBackground.Mode.GRADIENT) {
+            val textWidth = textPaint.measureText(label).coerceAtLeast(1f)
+            val fontMetrics = textPaint.fontMetrics
+            val textHeight = (fontMetrics.descent - fontMetrics.ascent).coerceAtLeast(1f)
+            val shader = BackgroundUtil.createLinearGradient(
+                tickBackground,
+                textWidth,
+                textHeight
+            )
+            val matrix = Matrix()
+            matrix.setTranslate(x - textWidth / 2f, baseline + fontMetrics.ascent)
+            shader.setLocalMatrix(matrix)
+            textPaint.shader = shader
+            textPaint.color = tickBackground.color
+        } else {
+            textPaint.shader = null
+            textPaint.color = tickBackground.color
+        }
+        canvas.drawText(label, x, baseline, textPaint)
     }
 }

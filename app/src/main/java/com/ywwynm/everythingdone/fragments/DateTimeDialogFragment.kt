@@ -284,7 +284,7 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
         mActivity = activity as DetailActivity
         mAccentBackground = mActivity!!.getAccentBackground()
         mAccentColor = if (mAccentBackground != null)
-            mAccentBackground!!.representativeColor()
+            mAccentBackground!!.color
         else mActivity!!.getAccentColor()
         black_54p = ContextCompat.getColor(
             mActivity!!, R.color.app_chrome_on_surface_secondary

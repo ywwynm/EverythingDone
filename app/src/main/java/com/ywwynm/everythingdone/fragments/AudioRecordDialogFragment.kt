@@ -97,7 +97,7 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         }
 
         val accentBg: ThingBackground? = mActivity!!.getAccentBackground()
-        val accentColor: Int = accentBg?.representativeColor() ?: mActivity!!.getAccentColor()
+        val accentColor: Int = accentBg?.color ?: mActivity!!.getAccentColor()
         mVisualizer!!.setRenderColor(accentColor)
         if (accentBg != null) {
             BackgroundUtil.applyBackground(mBase, accentBg)
@@ -157,7 +157,7 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
             mActivity!!, R.color.app_chrome_on_surface_hint
         )
         val accentBg: ThingBackground? = mActivity!!.getAccentBackground()
-        val accentColor: Int = accentBg?.representativeColor() ?: mActivity!!.getAccentColor()
+        val accentColor: Int = accentBg?.color ?: mActivity!!.getAccentColor()
         mEtFileName!!.onFocusChangeListener = View.OnFocusChangeListener { _, hasFocus ->
             val useGradientLine = hasFocus
                     && accentBg != null

@@ -142,7 +142,7 @@ open class LongTextDialogFragment : BaseDialogFragment() {
     /** Phase 8: gradient-aware accent. */
     open fun setAccentBackground(bg: ThingBackground?) {
         mAccentBackground = bg
-        if (bg != null) mAccentColor = bg.representativeColor()
+        if (bg != null) mAccentColor = bg.color
     }
 
     open fun setTitle(title: String?) {

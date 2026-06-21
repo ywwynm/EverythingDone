@@ -81,7 +81,7 @@
         android:layout_gravity="center_vertical"
         android:layout_marginEnd="@dimen/fab_margin"
         android:layout_marginRight="@dimen/fab_margin"
-        android:background="@drawable/bg_fab_circle_accent"
+        android:background="@android:color/transparent"
         android:elevation="2dp"
         android:visibility="gone">
 

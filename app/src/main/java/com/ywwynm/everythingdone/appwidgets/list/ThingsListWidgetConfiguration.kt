@@ -3,7 +3,6 @@ package com.ywwynm.everythingdone.appwidgets.list
 import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.Intent
-import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
@@ -34,6 +33,7 @@ import com.ywwynm.everythingdone.model.ThingWidgetInfo
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.LocaleUtil
+import com.ywwynm.everythingdone.utils.ThingsSorter
 import com.ywwynm.everythingdone.views.DrawerNavigationView
 
 import kotlin.math.abs
@@ -63,7 +63,7 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
     private var mSelectedFolderId: Long? = null
     private var mTypeFilterMask: Int = ThingWidgetInfo.TYPE_FILTER_ALL
     private var mDisplayMode: Int = ThingWidgetInfo.DISPLAY_MODE_LIST
-    private var mAccentColor: Int = Color.TRANSPARENT
+    private val mAccentBackground: ThingBackground = App.defaultAccentBackground
 
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(LocaleUtil.attachBaseContext(newBase))
@@ -73,11 +73,10 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_things_list_widget_configuration)
 
-        mAccentColor = DisplayUtil.getRandomColor(applicationContext)
         val tvTitle: TextView? = findViewById(R.id.tv_title_things_list_widget_configuration)
-        tvTitle?.setTextColor(mAccentColor)
+        BackgroundUtil.applyTextBackground(tvTitle, mAccentBackground)
         val tvConfirm: TextView? = findViewById(R.id.tv_confirm_as_bt_things_list_config)
-        tvConfirm?.setTextColor(mAccentColor)
+        BackgroundUtil.applyTextBackground(tvConfirm, mAccentBackground)
         BackgroundUtil.installAppChromeDialogActionButton(tvConfirm, this)
 
         readAppWidgetIdOrFinish()
@@ -102,17 +101,17 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
 
         mSbAlpha = findViewById(R.id.sb_app_widget_alpha)!!
         mSbAlpha!!.max = 100
-        DisplayUtil.setSeekBarColor(mSbAlpha, mAccentColor)
+        DisplayUtil.setSeekBarBackground(mSbAlpha, mAccentBackground)
 
         mCbSimpleView = findViewById(R.id.cb_simple_view)!!
-        DisplayUtil.setCheckBoxColor(mCbSimpleView, mAccentColor)
+        BackgroundUtil.applyCheckboxAccent(mCbSimpleView!!, mAccentBackground)
         mCbSimpleView!!.isChecked = simpleView
         findViewById<View>(R.id.rl_simple_view_as_bt).setOnClickListener {
             mCbSimpleView!!.toggle()
         }
 
         mCbAlphaHeader = findViewById(R.id.cb_alpha_header)!!
-        DisplayUtil.setCheckBoxColor(mCbAlphaHeader, mAccentColor)
+        BackgroundUtil.applyCheckboxAccent(mCbAlphaHeader!!, mAccentBackground)
         mCbAlphaHeader!!.isChecked = alphaHeader
         findViewById<View>(R.id.rl_alpha_header_as_bt).setOnClickListener {
             mCbAlphaHeader!!.toggle()
@@ -273,7 +272,14 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
                 !selectedAll && mTypeFilterMask and mask != 0
             }
             setTypeButtonBackground(button, selected)
-            button.setColorFilter(if (selected) mAccentColor else normalColor)
+            if (selected) {
+                button.clearColorFilter()
+                button.setImageDrawable(
+                    BackgroundUtil.tintDrawable(resources, button.drawable, mAccentBackground)
+                )
+            } else {
+                button.setColorFilter(normalColor)
+            }
         }
     }
 
@@ -292,9 +298,8 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
         val paddingEnd = button.paddingEnd
         val paddingBottom = button.paddingBottom
         button.background = if (selected) {
-            GradientDrawable().apply {
+            BackgroundUtil.makeTranslucentGradient(mAccentBackground, 40).apply {
                 shape = GradientDrawable.OVAL
-                setColor(DisplayUtil.getTransparentColor(mAccentColor, 40))
             }
         } else {
             null
@@ -320,22 +325,20 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
         val paddingEnd = button.paddingEnd
         val paddingBottom = button.paddingBottom
         button.background = if (selected) {
-            GradientDrawable().apply {
+            BackgroundUtil.makeTranslucentGradient(mAccentBackground, 40).apply {
                 shape = GradientDrawable.RECTANGLE
                 cornerRadius = resources.displayMetrics.density * 16f
-                setColor(DisplayUtil.getTransparentColor(mAccentColor, 40))
             }
         } else {
             null
         }
         button.setPaddingRelative(paddingStart, paddingTop, paddingEnd, paddingBottom)
-        button.setTextColor(
-            if (selected) {
-                mAccentColor
-            } else {
-                ContextCompat.getColor(this, R.color.app_chrome_on_surface_secondary)
-            }
-        )
+        if (selected) {
+            BackgroundUtil.applyTextBackground(button, mAccentBackground)
+        } else {
+            button.paint.shader = null
+            button.setTextColor(ContextCompat.getColor(this, R.color.app_chrome_on_surface_secondary))
+        }
         button.typeface = if (selected) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
     }
 
@@ -400,7 +403,7 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
                 mutableChildren.getOrPut(folder.parentFolderId) { ArrayList() }.add(folder)
             }
             for ((parent, children) in mutableChildren) {
-                childrenByParent[parent] = children.sortedByDescending { it.location }
+                childrenByParent[parent] = children.sortedWith(folderLocationComparator())
             }
             val selectedId = mSelectedFolderId
             if (selectedId != null) {
@@ -464,16 +467,24 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
             }
             holder.root.setPadding(dp(16 + item.level * 16), 0, dp(4), 0)
             if (selected) {
-                holder.root.setBackgroundColor(DisplayUtil.getTransparentColor(mAccentColor, 40))
+                holder.root.background = BackgroundUtil.makeTranslucentGradient(
+                    mAccentBackground,
+                    40
+                )
             } else {
                 holder.root.setBackgroundResource(R.drawable.selectable_item_background)
             }
-            holder.title.setTextColor(
-                if (selected) mAccentColor else ContextCompat.getColor(
-                    this@ThingsListWidgetConfiguration,
-                    R.color.black_54p
+            if (selected) {
+                BackgroundUtil.applyTextBackground(holder.title, mAccentBackground)
+            } else {
+                holder.title.paint.shader = null
+                holder.title.setTextColor(
+                    ContextCompat.getColor(
+                        this@ThingsListWidgetConfiguration,
+                        R.color.black_54p
+                    )
                 )
-            )
+            }
             holder.title.typeface = if (selected) {
                 android.graphics.Typeface.DEFAULT_BOLD
             } else {
@@ -481,7 +492,26 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
             }
             if (folder == null) {
                 holder.icon.setImageResource(R.drawable.drawer_all)
-                holder.icon.setColorFilter(mAccentColor)
+                if (selected) {
+                    holder.icon.clearColorFilter()
+                    holder.icon.setImageDrawable(
+                        BackgroundUtil.tintDrawable(
+                            resources,
+                            ContextCompat.getDrawable(
+                                this@ThingsListWidgetConfiguration,
+                                R.drawable.drawer_all
+                            ),
+                            mAccentBackground
+                        )
+                    )
+                } else {
+                    holder.icon.setColorFilter(
+                        ContextCompat.getColor(
+                            this@ThingsListWidgetConfiguration,
+                            R.color.black_54p
+                        )
+                    )
+                }
                 holder.title.setText(R.string.underway)
                 holder.expand.visibility = View.INVISIBLE
                 holder.expand.isClickable = false
@@ -628,6 +658,20 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
 
         private fun canShowFolderChildren(folder: ThingFolder): Boolean {
             return !shouldAuthenticateFolder(folder.id)
+        }
+
+        private fun folderLocationComparator(): Comparator<ThingFolder> {
+            return Comparator { folder1, folder2 ->
+                val result = ThingsSorter.compareByLocationAndSticky(
+                    folder1.location,
+                    folder2.location
+                )
+                if (result != 0) {
+                    result
+                } else {
+                    folder1.title.lowercase().compareTo(folder2.title.lowercase())
+                }
+            }
         }
 
         private fun shouldAuthenticateFolder(folderId: Long): Boolean {

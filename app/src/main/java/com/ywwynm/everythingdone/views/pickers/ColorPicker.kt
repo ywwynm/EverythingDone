@@ -10,16 +10,18 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import android.view.Gravity
 import android.view.LayoutInflater
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 
+import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.adapters.BaseViewHolder
 import com.ywwynm.everythingdone.adapters.SingleChoiceAdapter
 import com.ywwynm.everythingdone.model.ThingBackground
-import com.ywwynm.everythingdone.utils.AppearanceUtil
+import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 
 import java.util.Random
@@ -70,10 +72,17 @@ open class ColorPicker(
      * being unwound.
      */
     private var mTintTarget: Drawable? = null
+    private var mTintTargetItem: MenuItem? = null
 
     /** See [mTintTarget]. */
     fun setTintTarget(target: Drawable) {
         mTintTarget = target
+        mTintTargetItem = null
+    }
+
+    fun setTintTarget(item: MenuItem) {
+        mTintTargetItem = item
+        mTintTarget = item.icon?.constantState?.newDrawable()?.mutate() ?: item.icon
     }
 
     fun setSurfaceScaleTransitionPivot(pivotXFraction: Float, pivotYFraction: Float) {
@@ -384,30 +393,77 @@ open class ColorPicker(
         // Phase 8: pick may have changed mode (PURE↔GRADIENT) — refresh the
         // bottom orientation button visibility accordingly.
         refreshOrientationBt()
-        if (mTintTarget != null) {
+        if (mTintTarget != null || mTintTargetItem != null) {
             updateAnchor()
         }
     }
 
     override fun updateAnchor() {
-        if (mTintTarget == null) return
+        if (mTintTarget == null && mTintTargetItem == null) return
         if (mType == Def.PickerType.COLOR_HAVE_ALL
                 || mType == Def.PickerType.HUE_BUCKET) {
-            var filterColor: Int = getPickedColor()
-            // In ThingsActivity search, "all colours" follows the toolbar
-            // foreground: neutral in light mode, app accent in dark mode.
-            if (mType == Def.PickerType.HUE_BUCKET
-                    && filterColor == ALL_COLOR_SENTINEL
-                    && AppearanceUtil.isDarkMode(mActivity)) {
-                filterColor = ContextCompat.getColor(mActivity, R.color.app_accent)
+            val filterColor: Int = getPickedColor()
+            val pickedPosition = mAdapter.getPickedPosition()
+            val tintBackground = getTintTargetBackground(filterColor, pickedPosition)
+            val source = mTintTarget ?: mTintTargetItem?.icon
+            val item = mTintTargetItem
+            if (item != null) {
+                item.icon = BackgroundUtil.tintDrawableOpaque(
+                        mActivity.resources,
+                        source,
+                        tintBackground
+                )
+            } else {
+                mTintTarget!!.mutate().setColorFilter(
+                        tintBackground.representativeColor() or -0x1000000,
+                        PorterDuff.Mode.SRC_IN
+                )
             }
-            mTintTarget!!.mutate().setColorFilter(filterColor, PorterDuff.Mode.SRC_IN)
         }
+    }
+
+    private fun getTintTargetBackground(
+        filterColor: Int,
+        pickedPosition: Int
+    ): ThingBackground {
+        if (mType == Def.PickerType.HUE_BUCKET) {
+            if (pickedPosition <= 0) {
+                return App.defaultAccentBackground
+            }
+        }
+        return ThingBackground.pure(filterColor or -0x1000000)
     }
 
     private inner class ColorPickerAdapter : SingleChoiceAdapter() {
 
         private val mInflater: LayoutInflater = LayoutInflater.from(this@ColorPicker.mActivity)
+        private var animateAllColorCheckbox = false
+
+        override fun pick(position: Int) {
+            val oldPosition = mPickedPosition
+            animateAllColorCheckbox = oldPosition == 0 || position == 0
+            mPickedPosition = position
+            if (oldPosition == position) {
+                notifyPickerItemChanged(position)
+            } else {
+                notifyPickerItemChanged(oldPosition)
+                notifyPickerItemChanged(position)
+            }
+        }
+
+        private fun notifyPickerItemChanged(position: Int) {
+            if (position >= 0 && position < itemCount) {
+                notifyItemChanged(position)
+            }
+        }
+
+        override fun getItemId(position: Int): Long {
+            return when (getItemViewType(position)) {
+                ALL_COLOR -> -10_000L
+                DIVIDER -> -20_000L - position
+                else -> position.toLong()
+            }
+        }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BaseViewHolder {
             return when (viewType) {
@@ -452,26 +508,25 @@ open class ColorPicker(
 
         private fun bindAllColor(viewHolder: BaseViewHolder) {
             val holder: AllColorViewHolder = viewHolder as AllColorViewHolder
-            val iconRes: Int
-            if (mPickedPosition == 0) {
-                iconRes = R.drawable.ic_checkbox_checked
+            val picked = mPickedPosition == 0
+            if (picked) {
                 holder.bt.setContentDescription(
                         mActivity.getString(R.string.cd_picked) + holder.bt.getText() + ",")
             } else {
-                iconRes = R.drawable.ic_checkbox_unchecked
                 holder.bt.setContentDescription(
                         mActivity.getString(R.string.cd_unpicked) + holder.bt.getText() + ",")
             }
-            val icon: Drawable? = ContextCompat.getDrawable(mActivity, iconRes)
-            val displayIcon: Drawable? = if (AppearanceUtil.isDarkMode(mActivity)) {
-                DisplayUtil.opaqueTintDrawable(
-                    mActivity,
-                    icon,
-                    ContextCompat.getColor(mActivity, R.color.app_chrome_on_surface_secondary)
-                )
-            } else {
-                icon
-            }
+            val animateIcon = animateAllColorCheckbox ||
+                    (holder.boundPicked != null && holder.boundPicked != picked)
+            val displayIcon: Drawable? = BackgroundUtil.createGradientCheckboxDrawable(
+                mActivity,
+                App.defaultAccentBackground,
+                ContextCompat.getColor(mActivity, R.color.app_chrome_control_unchecked),
+                picked,
+                animateIcon
+            )
+            holder.boundPicked = picked
+            animateAllColorCheckbox = false
             holder.bt.setCompoundDrawablesRelativeWithIntrinsicBounds(
                 displayIcon, null, null, null
             )
@@ -658,6 +713,7 @@ open class ColorPicker(
         inner class AllColorViewHolder(itemView: View) : BaseViewHolder(itemView) {
 
             val bt: Button = f(R.id.bt_all_color)
+            var boundPicked: Boolean? = null
 
             init {
                 bt.setOnClickListener {

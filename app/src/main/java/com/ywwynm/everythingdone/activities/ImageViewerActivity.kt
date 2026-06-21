@@ -29,8 +29,10 @@ import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
 import com.github.chrisbanes.photoview.OnPhotoTapListener
 import com.github.chrisbanes.photoview.PhotoView
+import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
+import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.adapters.ImageViewerPagerAdapter
 import com.ywwynm.everythingdone.fragments.AlertDialogFragment
 import com.ywwynm.everythingdone.fragments.AttachmentInfoDialogFragment
@@ -98,7 +100,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
                 or View.SYSTEM_UI_FLAG_LAYOUT_STABLE)
         decorView.systemUiVisibility = flags
 
-        val appAccent = ContextCompat.getColor(this, R.color.app_accent)
+        val appAccent = App.defaultAccentBackground.representativeColor()
         EdgeEffectUtil.forViewPager(mVpImage, appAccent)
 
         val size: IntArray = getImageSize()
@@ -117,7 +119,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
             val iv: PhotoView         = f(tab, R.id.iv_image_attachment)!!
             val videoSignal: ImageView = f(tab, R.id.iv_video_signal)!!
 
-            pb.indeterminateDrawable.setColorFilter(appAccent, PorterDuff.Mode.SRC_IN)
+            BackgroundUtil.applyProgressBarGradient(pb, App.defaultAccentBackground)
 
             iv.setScaleLevels(1.0f, 3.0f, 6.0f)
 

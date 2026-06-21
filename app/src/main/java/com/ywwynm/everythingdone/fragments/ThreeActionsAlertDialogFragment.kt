@@ -153,13 +153,13 @@ open class ThreeActionsAlertDialogFragment : BaseDialogFragment() {
     /** Phase 8: gradient-aware accent for the title. */
     open fun setTitleBackground(bg: ThingBackground?) {
         mTitleBg = bg
-        if (bg != null) mColors[0] = bg.representativeColor()
+        if (bg != null) mColors[0] = bg.color
     }
 
     /** Phase 8: gradient-aware accent for the two "continue" buttons. */
     open fun setContinueBackground(bg: ThingBackground?) {
         mContinueBg = bg
-        if (bg != null) mColors[2] = bg.representativeColor()
+        if (bg != null) mColors[2] = bg.color
     }
 
     private fun applyAccent(tv: TextView, bg: ThingBackground?, fallback: Int) {

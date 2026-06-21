@@ -137,6 +137,7 @@ import com.ywwynm.everythingdone.utils.FileUtil
 import com.ywwynm.everythingdone.utils.KeyboardUtil
 import com.ywwynm.everythingdone.utils.LocaleUtil
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil
+import com.ywwynm.everythingdone.utils.ThingsSorter
 import com.ywwynm.everythingdone.views.ActivityHeader
 import com.ywwynm.everythingdone.views.DrawerHeader
 import com.ywwynm.everythingdone.views.DrawerNavigationView
@@ -435,8 +436,6 @@ class ThingsActivity :
 
     private var mShouldCloseDrawer: Boolean = false
 
-    private var mDontPickSearchColor: Boolean = true
-
     override fun onCreate(savedInstanceState: Bundle?) {
         mRestoredFromSavedState = savedInstanceState != null
 
@@ -645,6 +644,7 @@ class ThingsActivity :
         }
 
         mFab!!.rippleColor = App.newThingColor
+        mFab!!.setForegroundRippleColor(App.newThingColor)
         refreshActivitySurfaceAndHeader()
         if (App.isSearching) {
             updateSearchNoResult(0)
@@ -722,7 +722,7 @@ class ThingsActivity :
         if (App.isSearching) {
             menuInflater.inflate(R.menu.menu_search, menu)
             tintHomeMenuIconsForAppearance(menu)
-            mColorPicker!!.setTintTarget(menu.findItem(R.id.act_select_color).icon!!)
+            mColorPicker!!.setTintTarget(menu.findItem(R.id.act_select_color))
             mColorPicker!!.updateAnchor()
             return true
         }
@@ -792,15 +792,13 @@ class ThingsActivity :
         if (folderBackground != null) {
             return folderBackground
         }
-        val tint = ContextCompat.getColor(
-            this,
-            if (AppearanceUtil.isDarkMode(this)) {
-                R.color.app_accent
-            } else {
-                R.color.app_chrome_on_surface_secondary
-            }
-        )
-        return ThingBackground.pure(tint)
+        return if (AppearanceUtil.isDarkMode(this)) {
+            App.defaultAccentBackground
+        } else {
+            ThingBackground.pure(
+                ContextCompat.getColor(this, R.color.app_chrome_on_surface_secondary)
+            )
+        }
     }
 
     private fun tintHomeOverflowIconForAppearance(background: ThingBackground) {
@@ -838,10 +836,7 @@ class ThingsActivity :
             childrenByParent.getOrPut(folder.parentFolderId) { ArrayList() }.add(folder)
         }
         for (children in childrenByParent.values) {
-            children.sortWith(
-                compareByDescending<ThingFolder> { it.location }
-                    .thenBy { it.title.lowercase() }
-            )
+            children.sortWith(folderLocationComparator())
         }
 
         val visibleItems = ArrayList<DrawerFolderItem>()
@@ -924,6 +919,16 @@ class ThingsActivity :
             animate,
             animatedFolderToggleId
         )
+    }
+
+    private fun folderLocationComparator(): Comparator<ThingFolder> {
+        return Comparator { folder1, folder2 ->
+            val result = ThingsSorter.compareByLocationAndSticky(
+                folder1.location,
+                folder2.location
+            )
+            if (result != 0) result else folder1.title.lowercase().compareTo(folder2.title.lowercase())
+        }
     }
 
     private fun appendDrawerFolderItems(
@@ -2158,7 +2163,7 @@ class ThingsActivity :
         val toolbar: Toolbar = f(R.id.contextual_toolbar)!!
         val folderBackground = getCurrentFolderBackgroundForChrome()
         val background = folderBackground
-            ?: ThingBackground.pure(ContextCompat.getColor(this, R.color.app_accent))
+            ?: App.defaultAccentBackground
         val foreground = if (folderBackground == null) {
             ContextCompat.getColor(this, R.color.black_86p)
         } else {
@@ -2224,21 +2229,32 @@ class ThingsActivity :
 
     private fun applyCreateFabBackgroundForCurrentProjection() {
         val fab = mFab ?: return
-        val appAccent = ContextCompat.getColor(this, R.color.app_accent)
+        val appAccent = App.defaultAccentBackground.representativeColor()
         val folderBackground = getCurrentFolderBackgroundForChrome()
         if (folderBackground == null) {
-            fab.setThingBackground(null, appAccent)
+            fab.setThingBackground(App.defaultAccentBackground, appAccent)
             fab.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.black_54p))
             fab.rippleColor = App.newThingColor
+            fab.setForegroundRippleColor(App.newThingColor)
             return
         }
 
         val representativeColor = folderBackground.representativeColor()
         fab.setThingBackground(folderBackground, appAccent)
         fab.imageTintList = ColorStateList.valueOf(
-            BackgroundUtil.onColor(representativeColor, BackgroundUtil.ON_ALPHA_PRIMARY)
+            getFabIconColor(representativeColor)
         )
-        fab.rippleColor = BackgroundUtil.onColor(representativeColor, 0.24f)
+        val ripple = BackgroundUtil.onColor(representativeColor, 0.24f)
+        fab.rippleColor = ripple
+        fab.setForegroundRippleColor(ripple)
+    }
+
+    private fun getFabIconColor(backgroundColor: Int): Int {
+        return if (BackgroundUtil.isLight(backgroundColor)) {
+            ContextCompat.getColor(this, R.color.black_54p)
+        } else {
+            ContextCompat.getColor(this, R.color.white_86p)
+        }
     }
 
     private fun initRecyclerViewUi() {
@@ -2584,9 +2600,9 @@ class ThingsActivity :
                             fromUser: Boolean
                     ) {
                         if (!fromUser || mBindingThingCardAppearancePanel) return
-                        updateThingCardActiveTargetAspectRatio(
-                                getSnappedThingCardRatioForSeekBar(seekBar, progress)
-                        )
+                        val snappedRatio = getSnappedThingCardRatioForSeekBar(seekBar, progress)
+                        mVThingCardAppearanceThumbnailRatioTicks?.setActiveRatio(snappedRatio)
+                        updateThingCardActiveTargetAspectRatio(snappedRatio)
                     }
 
                     override fun onStartTrackingTouch(seekBar: SeekBar?) {
@@ -2599,6 +2615,7 @@ class ThingsActivity :
                                     seekBar,
                                     seekBar.progress
                             )
+                            mVThingCardAppearanceThumbnailRatioTicks?.setActiveRatio(snappedRatio)
                             updateThingCardActiveTargetAspectRatio(snappedRatio)
                         }
                         mThingCardActiveRatioDragRange = null
@@ -3094,8 +3111,11 @@ class ThingsActivity :
         )
         mLlThingCardAppearanceThumbnailRatio!!.visibility = View.VISIBLE
         bindThingCardRatioTicks(mVThingCardAppearanceThumbnailRatioTicks)
-        mSeekThingCardAppearanceThumbnailRatio!!.progress =
-                getThingCardRatioProgress(aspectRatio)
+        val ratioProgress = getThingCardRatioProgress(aspectRatio)
+        mSeekThingCardAppearanceThumbnailRatio!!.progress = ratioProgress
+        mVThingCardAppearanceThumbnailRatioTicks?.setActiveRatio(
+                snapThingCardRatio(getThingCardRatioFromProgress(ratioProgress))
+        )
     }
 
     private fun bindThingCardAppearanceSideWidthControls(draft: ThingCardAppearance) {
@@ -3129,8 +3149,10 @@ class ThingsActivity :
     private fun bindThingCardRatioTicks(ticksView: ThingCardRatioTicksView?) {
         ticksView ?: return
         val range = getThingCardThumbnailRatioRange()
-        ticksView.setColors(
-                getThingCardAppearanceAccentColor(),
+        val accentBackground = getThingCardAppearanceAccentBackground()
+                ?: ThingBackground.pure(getThingCardAppearanceAccentColor())
+        ticksView.setAccentBackground(
+                accentBackground,
                 ContextCompat.getColor(this, R.color.app_chrome_on_surface_hint)
         )
         ticksView.setRatios(
@@ -3619,7 +3641,7 @@ class ThingsActivity :
     private fun bindThingCardAppearanceColorButton() {
         val button = mBtThingCardAppearanceChangeColor ?: return
         val background = getThingCardAppearanceAccentBackground()
-            ?: ThingBackground.pure(ContextCompat.getColor(this, R.color.app_accent))
+            ?: App.defaultAccentBackground
         val raw = ContextCompat.getDrawable(this, R.drawable.act_change_color)
         button.setImageDrawable(BackgroundUtil.tintDrawable(resources, raw, background))
     }
@@ -3730,7 +3752,7 @@ class ThingsActivity :
 
     private fun getThingCardAppearanceAccentColor(): Int {
         return getThingCardAppearanceAccentBackground()?.representativeColor()
-                ?: ContextCompat.getColor(this, R.color.app_accent)
+                ?: App.defaultAccentBackground.representativeColor()
     }
 
     private fun getThingCardAppearanceSourceText(
@@ -4452,6 +4474,7 @@ class ThingsActivity :
         )
 
         val ratioSeekBar = SeekBar(this)
+        var ratioTicksView: ThingCardRatioTicksView? = null
         val accentBackground = getThingCardAppearanceAccentBackground()
         val accentColor = getThingCardAppearanceAccentColor()
         DisplayUtil.setSeekBarBackground(
@@ -4467,9 +4490,9 @@ class ThingsActivity :
                     fromUser: Boolean
             ) {
                 if (!fromUser) return
-                cropView.setTargetAspectRatio(
-                        getSnappedThingCardRatioForSeekBar(seekBar, progress)
-                )
+                val snappedRatio = getSnappedThingCardRatioForSeekBar(seekBar, progress)
+                ratioTicksView?.setActiveRatio(snappedRatio)
+                cropView.setTargetAspectRatio(snappedRatio)
             }
 
             override fun onStartTrackingTouch(seekBar: SeekBar?) {
@@ -4482,6 +4505,7 @@ class ThingsActivity :
                             seekBar,
                             seekBar.progress
                     )
+                    ratioTicksView?.setActiveRatio(snappedRatio)
                     cropView.setTargetAspectRatio(snappedRatio)
                 }
                 mThingCardActiveRatioDragRange = null
@@ -4497,7 +4521,11 @@ class ThingsActivity :
                 )
         )
         val ticksView = ThingCardRatioTicksView(this)
+        ratioTicksView = ticksView
         bindThingCardRatioTicks(ticksView)
+        ticksView.setActiveRatio(
+                snapThingCardRatio(getThingCardRatioFromProgress(ratioSeekBar.progress))
+        )
         ticksView.isClickable = false
         ticksView.isFocusable = false
         ticksView.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
@@ -5864,11 +5892,7 @@ class ThingsActivity :
 
     private fun beginSearchThings() {
         if (mColorPicker!!.getPickedIndex() < 0) {
-            if (mDontPickSearchColor) {
-                mDontPickSearchColor = false
-            } else {
-                mColorPicker!!.pickForUI(0)
-            }
+            mColorPicker!!.pickForUI(0)
         }
         mRecyclerView!!.overScrollMode = View.OVER_SCROLL_ALWAYS
         searchThings()
@@ -6470,7 +6494,6 @@ class ThingsActivity :
             mActionbar!!.setNavigationContentDescription(R.string.cd_open_drawer)
             mDrawerLayout!!.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED)
             mViewInsideActionbar!!.visibility = View.VISIBLE
-            mColorPicker!!.pickForUI(-1)
 
             mEtSearch!!.isEnabled = false
             mEtSearch!!.animate().alpha(0f).setDuration(160)
@@ -6495,6 +6518,7 @@ class ThingsActivity :
             mActionbar!!.setNavigationContentDescription(R.string.cd_quit_searching)
             mDrawerLayout!!.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED)
             mViewInsideActionbar!!.visibility = View.GONE
+            mColorPicker!!.pickForUI(0)
             mEtSearch!!.isEnabled = true
             mEtSearch!!.setText("")
             KeyboardUtil.showKeyboard(mEtSearch)
@@ -6522,7 +6546,6 @@ class ThingsActivity :
         }
         applyHomeNavigationIconTintForAppearance()
         invalidateOptionsMenu()
-        mDontPickSearchColor = true
     }
 
     private fun handleSearchResults() {
@@ -7331,7 +7354,7 @@ class ThingsActivity :
         val cp: String? = sp.getString(Def.Meta.KEY_PRIVATE_PASSWORD, null)
         AuthenticationHelper.authenticate(
             this,
-            background ?: ThingBackground.pure(ContextCompat.getColor(this, R.color.app_accent)),
+            background ?: App.defaultAccentBackground,
             getString(R.string.move_private_thing_or_folder),
             cp,
             object : AuthenticationHelper.AuthenticationCallback {
@@ -9039,7 +9062,7 @@ class ThingsActivity :
             val density = resources.displayMetrics.density
             val normalStrokeWidth = (density * 1.5f).coerceAtLeast(1f)
             val highlightedStrokeWidth = (density * 3.2f).coerceAtLeast(normalStrokeWidth)
-            val strokeColor = folder.getBackground()?.representativeColor() ?: folder.getColor()
+            val strokeBackground = folder.getBackground() ?: ThingBackground.pure(folder.getColor())
             val targetStrokeWidth = if (highlighted) {
                 highlightedStrokeWidth
             } else {
@@ -9049,11 +9072,11 @@ class ThingsActivity :
                 ?: if (highlighted) normalStrokeWidth else highlightedStrokeWidth
             val token = nextThumbnailFolderDropOutlineToken(content)
             highlightedThumbnailFolderTargetAnimators.remove(content)?.cancel()
-            val outline = GradientDrawable().apply {
-                setColor(android.graphics.Color.TRANSPARENT)
-                cornerRadius = resources.getDimension(R.dimen.thing_card_corner_radius)
-                setStroke(startStrokeWidth.roundToInt().coerceAtLeast(1), strokeColor)
-            }
+            val outline = BackgroundUtil.GradientStrokeDrawable(
+                strokeBackground,
+                resources.getDimension(R.dimen.thing_card_corner_radius),
+                startStrokeWidth.coerceAtLeast(1f)
+            )
             content.background = outline
             val animator = ValueAnimator.ofFloat(
                 startStrokeWidth,
@@ -9063,7 +9086,7 @@ class ThingsActivity :
                 addUpdateListener {
                     val width = it.animatedValue as Float
                     highlightedThumbnailFolderCurrentStrokeWidths[content] = width
-                    outline.setStroke(width.roundToInt().coerceAtLeast(1), strokeColor)
+                    outline.strokeWidthPx = width.coerceAtLeast(1f)
                 }
                 addListener(object : AnimatorListenerAdapter() {
                     override fun onAnimationEnd(animation: Animator) {
@@ -9071,7 +9094,6 @@ class ThingsActivity :
                             content,
                             outline,
                             targetStrokeWidth,
-                            strokeColor,
                             token,
                             highlighted
                         )
@@ -9082,7 +9104,6 @@ class ThingsActivity :
                             content,
                             outline,
                             targetStrokeWidth,
-                            strokeColor,
                             token,
                             highlighted
                         )
@@ -9101,14 +9122,13 @@ class ThingsActivity :
 
         private fun syncThumbnailFolderDropOutline(
             content: View,
-            outline: GradientDrawable,
+            outline: BackgroundUtil.GradientStrokeDrawable,
             strokeWidth: Float,
-            strokeColor: Int,
             token: Int,
             highlighted: Boolean
         ) {
             if (highlightedThumbnailFolderTargetTokens[content] != token) return
-            outline.setStroke(strokeWidth.roundToInt().coerceAtLeast(1), strokeColor)
+            outline.strokeWidthPx = strokeWidth.coerceAtLeast(1f)
             highlightedThumbnailFolderCurrentStrokeWidths[content] = strokeWidth
             highlightedThumbnailFolderTargetAnimators.remove(content)
             if (!highlighted) {
@@ -9123,20 +9143,19 @@ class ThingsActivity :
         ) {
             val density = resources.displayMetrics.density
             val strokeWidth = (density * 1.5f).coerceAtLeast(1f)
-            val strokeColor = folder.getBackground()?.representativeColor() ?: folder.getColor()
+            val strokeBackground = folder.getBackground() ?: ThingBackground.pure(folder.getColor())
             val token = nextThumbnailFolderDropOutlineToken(content)
             highlightedThumbnailFolderTargetAnimators.remove(content)?.cancel()
-            val outline = GradientDrawable().apply {
-                setColor(android.graphics.Color.TRANSPARENT)
-                cornerRadius = resources.getDimension(R.dimen.thing_card_corner_radius)
-                setStroke(strokeWidth.roundToInt().coerceAtLeast(1), strokeColor)
-            }
+            val outline = BackgroundUtil.GradientStrokeDrawable(
+                strokeBackground,
+                resources.getDimension(R.dimen.thing_card_corner_radius),
+                strokeWidth
+            )
             content.background = outline
             syncThumbnailFolderDropOutline(
                 content,
                 outline,
                 strokeWidth,
-                strokeColor,
                 token,
                 false
             )
@@ -9917,9 +9936,8 @@ class ThingsActivity :
             } else if (itemId == R.id.act_delete_thing_folder) {
                 getSingleSelectedFolder()?.let { showDeleteThingFolderDialogForCurrentState(it) }
             } else if (itemId == R.id.act_export) {
-                val accentColor = DisplayUtil.getRandomColor(App.getApp())
                 ThingExporter.startExporting(
-                    this@ThingsActivity, accentColor,
+                    this@ThingsActivity, App.defaultAccentBackground,
                     *(mThingManager!!.getSelectedThings() ?: emptyArray())
                 )
                 mModeManager!!.backNormalMode(0)
@@ -10035,15 +10053,25 @@ class ThingsActivity :
         private fun createGradientShader(): LinearGradient {
             val width = bounds.width().coerceAtLeast(1).toFloat()
             val height = bounds.height().coerceAtLeast(1).toFloat()
+            val left = bounds.left.toFloat()
+            val top = bounds.top.toFloat()
             val coords = when (background.orientation) {
-                ThingBackground.Orientation.L_R -> floatArrayOf(0f, 0f, width, 0f)
-                ThingBackground.Orientation.T_B -> floatArrayOf(0f, 0f, 0f, height)
-                ThingBackground.Orientation.LT_RB -> floatArrayOf(0f, 0f, width, height)
-                ThingBackground.Orientation.RT_LB -> floatArrayOf(width, 0f, 0f, height)
-                ThingBackground.Orientation.LB_RT -> floatArrayOf(0f, height, width, 0f)
-                ThingBackground.Orientation.RB_LT -> floatArrayOf(width, height, 0f, 0f)
-                ThingBackground.Orientation.R_L -> floatArrayOf(width, 0f, 0f, 0f)
-                ThingBackground.Orientation.B_T -> floatArrayOf(0f, height, 0f, 0f)
+                ThingBackground.Orientation.L_R ->
+                    floatArrayOf(left, top, left + width, top)
+                ThingBackground.Orientation.T_B ->
+                    floatArrayOf(left, top, left, top + height)
+                ThingBackground.Orientation.LT_RB ->
+                    floatArrayOf(left, top, left + width, top + height)
+                ThingBackground.Orientation.RT_LB ->
+                    floatArrayOf(left + width, top, left, top + height)
+                ThingBackground.Orientation.LB_RT ->
+                    floatArrayOf(left, top + height, left + width, top)
+                ThingBackground.Orientation.RB_LT ->
+                    floatArrayOf(left + width, top + height, left, top)
+                ThingBackground.Orientation.R_L ->
+                    floatArrayOf(left + width, top, left, top)
+                ThingBackground.Orientation.B_T ->
+                    floatArrayOf(left, top + height, left, top)
             }
             return LinearGradient(
                 coords[0],

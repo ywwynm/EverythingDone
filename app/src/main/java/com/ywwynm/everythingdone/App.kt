@@ -10,6 +10,7 @@ import android.app.PendingIntent
 import android.app.job.JobInfo
 import android.app.job.JobScheduler
 import android.content.ComponentName
+import androidx.core.content.ContextCompat
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
@@ -338,6 +339,21 @@ open class App : Application() {
          */
         @JvmField
         var newThingColor: Int = 0
+
+        /**
+         * The default accent background for the app — a two-colour linear gradient
+         * from [R.color.app_accent] (bottom-left) to [R.color.app_accent2] (top-right).
+         * Used as a fallback wherever a Thing/ThingFolder does not supply its own
+         * background (FAB, contextual toolbar, widget header, etc.).
+         */
+        val defaultAccentBackground: ThingBackground by lazy {
+            val app = getApp()!!
+            ThingBackground.gradient(
+                ContextCompat.getColor(app, R.color.app_accent),
+                ContextCompat.getColor(app, R.color.app_accent2),
+                ThingBackground.Orientation.LB_RT
+            )
+        }
 
         private var doingThingId: Long = -1
 

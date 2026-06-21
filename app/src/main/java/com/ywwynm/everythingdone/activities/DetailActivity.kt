@@ -813,6 +813,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
 
         mFlQuickRemindAsBt = f(R.id.fl_quick_remind_as_bt)
         cbQuickRemind      = f(R.id.cb_quick_remind)
+        BackgroundUtil.applyCheckboxAccent(cbQuickRemind!!, App.defaultAccentBackground)
         tvQuickRemind      = f(R.id.tv_quick_remind)
 
         mNormalSnackbar = Snackbar(mApp!!, Snackbar.NORMAL, mFlRoot!!, null)
@@ -1227,6 +1228,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             iv.setImageDrawable(d2)
 
             fl.foreground = BackgroundUtil.circularRipple(BackgroundUtil.RIPPLE_DARK)
+            BackgroundUtil.applyOvalBackground(fl, App.defaultAccentBackground)
         }
     }
 
@@ -1296,7 +1298,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         if (mEditable) {
             LineSpacingHelper.helpCorrectSpacingForNewLine(mEtContent)
             if (!DeviceUtil.isFlyme()) {
-                val appAccent = ContextCompat.getColor(this, R.color.app_accent)
+                val appAccent = App.defaultAccentBackground.representativeColor()
                 val cursorWidth = (1.5 * screenDensity).toInt()
                 val lastLineCursorHeightVary = (-1 * screenDensity).toInt()
                 LineSpacingHelper.setTextCursorDrawable(
@@ -1537,7 +1539,11 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         } else if (itemId == R.id.act_copy_content) {
             copyContent()
         } else if (itemId == R.id.act_export) {
-            ThingExporter.startExporting(this@DetailActivity, getAccentColor(), mThing)
+            ThingExporter.startExporting(
+                this@DetailActivity,
+                getAccentBackground() ?: ThingBackground.pure(getAccentColor()),
+                mThing
+            )
         } else if (itemId == R.id.act_abandon_new_thing) {
             createFailed(Def.Communication.RESULT_ABANDON_NEW_THING)
         } else if (itemId == R.id.act_sticky) {
@@ -1973,7 +1979,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     private fun shareThingInScreenshot() {
         val ldf = LoadingDialogFragment()
         val color = getAccentColor()
-        ldf.setAccentColor(color)
+        ldf.setAccentBackground(getAccentBackground() ?: ThingBackground.pure(color))
         ldf.setTitle(getString(R.string.please_wait))
         ldf.setContent(getString(R.string.generating_screenshot))
         ldf.show(fragmentManager, LoadingDialogFragment.TAG)
@@ -3039,11 +3045,10 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             }
         }
         if (cbQuickRemind != null) {
-            val boxTint = if (BackgroundUtil.isLight(color))
-                BackgroundUtil.onColor(color, 0.86f) /* dark side */
-            else Color.WHITE
-            androidx.core.widget.CompoundButtonCompat.setButtonTintList(
-                cbQuickRemind!!, android.content.res.ColorStateList.valueOf(boxTint)
+            BackgroundUtil.applyCheckboxAccent(
+                cbQuickRemind!!,
+                App.defaultAccentBackground,
+                secondary
             )
         }
 
@@ -4700,6 +4705,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         )
 
         val ratioSeekBar = SeekBar(this)
+        var ratioTicksView: ThingCardRatioTicksView? = null
         DisplayUtil.setSeekBarBackground(
             ratioSeekBar,
             getAccentBackground() ?: ThingBackground.pure(getAccentColor())
@@ -4713,9 +4719,9 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 fromUser: Boolean
             ) {
                 if (!fromUser) return
-                cropView.setTargetAspectRatio(
-                    getSnappedDetailAttachmentRatioForSeekBar(seekBar, progress)
-                )
+                val snappedRatio = getSnappedDetailAttachmentRatioForSeekBar(seekBar, progress)
+                ratioTicksView?.setActiveRatio(snappedRatio)
+                cropView.setTargetAspectRatio(snappedRatio)
             }
 
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
@@ -4726,6 +4732,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                         seekBar,
                         seekBar.progress
                     )
+                    ratioTicksView?.setActiveRatio(snappedRatio)
                     cropView.setTargetAspectRatio(snappedRatio)
                     seekBar.progress = getDetailAttachmentRatioProgress(snappedRatio)
                 }
@@ -4741,7 +4748,11 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             )
         )
         val ticksView = ThingCardRatioTicksView(this)
+        ratioTicksView = ticksView
         bindDetailAttachmentRatioTicks(ticksView)
+        ticksView.setActiveRatio(
+            snapDetailAttachmentRatio(getDetailAttachmentRatioFromProgress(ratioSeekBar.progress))
+        )
         ticksView.isClickable = false
         ticksView.isFocusable = false
         ticksView.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
@@ -4764,7 +4775,11 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             setRatio = { ratio ->
                 val progress = getDetailAttachmentRatioProgress(ratio)
                 ratioSeekBar.progress = progress
-                cropView.setTargetAspectRatio(getDetailAttachmentRatioFromProgress(progress))
+                val activeRatio = snapDetailAttachmentRatio(
+                    getDetailAttachmentRatioFromProgress(progress)
+                )
+                ratioTicksView?.setActiveRatio(activeRatio)
+                cropView.setTargetAspectRatio(activeRatio)
             }
         )
     }
@@ -4819,8 +4834,9 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     }
 
     private fun bindDetailAttachmentRatioTicks(ticksView: ThingCardRatioTicksView) {
-        ticksView.setColors(
-            getAccentColor(),
+        val accentColor = getAccentColor()
+        ticksView.setAccentBackground(
+            getAccentBackground() ?: ThingBackground.pure(accentColor),
             ContextCompat.getColor(this, R.color.app_chrome_on_surface_hint)
         )
         ticksView.setRatios(

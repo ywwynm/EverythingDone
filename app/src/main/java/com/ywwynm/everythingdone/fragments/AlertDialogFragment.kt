@@ -130,12 +130,12 @@ open class AlertDialogFragment : BaseDialogFragment() {
 
     open fun setTitleBackground(bg: ThingBackground?) {
         mTitleBg = bg
-        if (bg != null) mColors[0] = bg.representativeColor()
+        if (bg != null) mColors[0] = bg.color
     }
 
     open fun setConfirmBackground(bg: ThingBackground?) {
         mConfirmBg = bg
-        if (bg != null) mColors[2] = bg.representativeColor()
+        if (bg != null) mColors[2] = bg.color
     }
 
     open fun setTitleColor(color: Int) {

@@ -170,11 +170,7 @@ open class FingerprintHelper private constructor(context: Context?) {
                     override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
                         if (errorCode != BiometricPrompt.ERROR_NEGATIVE_BUTTON
                                 && errorCode != BiometricPrompt.ERROR_USER_CANCELED) {
-                            // Biometric error fallback: use a fixed brand-colour pattern lock.
-                            showPatternLock(activity,
-                                    com.ywwynm.everythingdone.model.ThingBackground.pure(
-                                            ContextCompat.getColor(activity, R.color.blue_deep)),
-                                    title, "", callback)
+                            showPatternLock(activity, App.defaultAccentBackground, title, "", callback)
                         }
                     }
                 })

@@ -79,7 +79,7 @@ open class AttachmentInfoDialogFragment : BaseDialogFragment() {
     /** Phase 8: gradient-aware accent. PURE / GRADIENT both flow through. */
     open fun setAccentBackground(bg: ThingBackground?) {
         mAccentBackground = bg
-        if (bg != null) mAccentColor = bg.representativeColor()
+        if (bg != null) mAccentColor = bg.color
         val args = ensureArguments()
         args.putInt(ARG_ACCENT_COLOR, mAccentColor)
         if (bg != null) {
@@ -117,7 +117,7 @@ open class AttachmentInfoDialogFragment : BaseDialogFragment() {
         mAccentColor = args.getInt(ARG_ACCENT_COLOR, mAccentColor)
         mAccentBackground = ThingBackground.fromJson(args.getString(ARG_ACCENT_BACKGROUND))
         if (mAccentBackground != null) {
-            mAccentColor = mAccentBackground!!.representativeColor()
+            mAccentColor = mAccentBackground!!.color
         }
 
         val titles = args.getStringArrayList(ARG_ITEM_TITLES)

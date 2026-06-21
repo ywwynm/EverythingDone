@@ -61,7 +61,6 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="ywwynm's"
-                    android:textColor="@color/app_accent"
                     android:textSize="24sp"/>
 
                 <TextView
@@ -70,7 +69,6 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:text="EverythingDone"
-                    android:textColor="@color/app_accent"
                     android:textSize="30sp"/>
 
                 <TextView
@@ -127,7 +125,7 @@
 
     </LinearLayout>
 
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
+    <com.ywwynm.everythingdone.views.FloatingActionButton
         android:id="@+id/fab_support"
         android:layout_width="56dp"
         android:layout_height="56dp"
@@ -139,7 +137,6 @@
         app:rippleColor="@color/white_54p"
         app:elevation="6dp"
         app:borderWidth="0dp"
-        app:pressedTranslationZ="12dp"
-        app:backgroundTint="@color/app_pink"/>
+        app:pressedTranslationZ="12dp"/>
 
 </merge>

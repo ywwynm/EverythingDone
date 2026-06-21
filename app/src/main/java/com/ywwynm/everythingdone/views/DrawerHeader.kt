@@ -14,6 +14,7 @@ import com.ywwynm.everythingdone.managers.ThingManager
 import com.ywwynm.everythingdone.model.ThingsCounts
 import com.ywwynm.everythingdone.model.ThingWidgetInfo
 import com.ywwynm.everythingdone.permission.PermissionUtil
+import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.BitmapUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.LocaleUtil
@@ -95,6 +96,7 @@ open class DrawerHeader(
             mApp.getStatus(),
             manager?.getActiveTypeFilterMask() ?: ThingWidgetInfo.TYPE_FILTER_ALL
         )
+        BackgroundUtil.applyTextBackground(mTvCompletionRate, App.defaultAccentBackground)
     }
 
     companion object {

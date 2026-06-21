@@ -648,10 +648,9 @@ abstract class BaseThingsAdapter(context: Context?) :
     ) {
         if (icon == null) return
         if (thing.location < 0 && thing.folderId == null) {
-            androidx.core.widget.ImageViewCompat.setImageTintList(
-                icon,
-                android.content.res.ColorStateList.valueOf(
-                    ContextCompat.getColor(mContext!!, R.color.app_accent)
+            icon.setImageDrawable(
+                BackgroundUtil.tintDrawable(
+                    mContext!!.resources, icon.drawable, App.defaultAccentBackground
                 )
             )
             return
@@ -2950,8 +2949,11 @@ abstract class BaseThingsAdapter(context: Context?) :
         @JvmField val tvHabitFinishedThisT: TextView? = f(R.id.tv_thing_habit_finished_this_t)
 
         init {
-            val pbColor = ContextCompat.getColor(item!!.context, R.color.app_accent)
-            pbLoading!!.indeterminateDrawable.setColorFilter(pbColor, PorterDuff.Mode.SRC_IN)
+            pbLoading!!.post {
+                BackgroundUtil.applyProgressBarGradient(
+                    pbLoading!!, App.defaultAccentBackground
+                )
+            }
         }
     }
 

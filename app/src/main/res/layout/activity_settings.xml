@@ -13,14 +13,14 @@
         android:id="@+id/view_status_bar"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:background="@color/app_accent"/>
+        android:background="@android:color/transparent"/>
 
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/actionbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         android:layout_below="@id/view_status_bar"
-        android:background="@color/app_accent"
+        android:background="@android:color/transparent"
         android:theme="@style/EverythingDoneTheme.AppAccentToolbar"
         app:contentInsetStart="72dp"
         app:titleTextColor="@color/black_54p"/>
@@ -52,6 +52,7 @@
                     android:orientation="vertical">
 
                     <TextView
+                        android:id="@+id/tv_title_group_ui_settings"
                         android:layout_width="wrap_content"
                         android:layout_height="20dp"
                         android:layout_marginLeft="18dp"
@@ -62,7 +63,7 @@
                         android:drawableStart="@drawable/ic_user_interface_settings"
                         android:drawableLeft="@drawable/ic_user_interface_settings"
                         android:drawablePadding="16dp"
-                        android:textColor="@color/blue_deep"
+                        android:textColor="@color/app_chrome_on_surface_secondary"
                         android:textSize="14sp"
                         android:text="@string/settings_group_ui"/>
 
@@ -402,6 +403,7 @@
                     android:orientation="vertical">
 
                     <TextView
+                        android:id="@+id/tv_title_group_notification_reliability_settings"
                         android:layout_width="wrap_content"
                         android:layout_height="20dp"
                         android:layout_marginTop="12dp"
@@ -412,7 +414,7 @@
                         android:drawableStart="@drawable/drawer_reminder"
                         android:drawableLeft="@drawable/drawer_reminder"
                         android:drawablePadding="16dp"
-                        android:textColor="@color/blue_deep"
+                        android:textColor="@color/app_chrome_on_surface_secondary"
                         android:textSize="14sp"
                         android:text="@string/settings_group_notification_reliability"/>
 
@@ -564,6 +566,7 @@
                     android:orientation="vertical">
 
                     <TextView
+                        android:id="@+id/tv_title_group_ringtone_settings"
                         android:layout_width="wrap_content"
                         android:layout_height="20dp"
                         android:layout_marginTop="12dp"
@@ -574,7 +577,7 @@
                         android:drawableStart="@drawable/ic_ringtone_settings"
                         android:drawableLeft="@drawable/ic_ringtone_settings"
                         android:drawablePadding="16dp"
-                        android:textColor="@color/blue_deep"
+                        android:textColor="@color/app_chrome_on_surface_secondary"
                         android:textSize="14sp"
                         android:text="@string/settings_group_ringtone"/>
 
@@ -673,6 +676,7 @@
                     android:orientation="vertical">
 
                     <TextView
+                        android:id="@+id/tv_title_group_data_settings"
                         android:layout_width="wrap_content"
                         android:layout_height="20dp"
                         android:layout_marginTop="12dp"
@@ -683,7 +687,7 @@
                         android:drawableStart="@drawable/ic_data_settings"
                         android:drawableLeft="@drawable/ic_data_settings"
                         android:drawablePadding="16dp"
-                        android:textColor="@color/blue_deep"
+                        android:textColor="@color/app_chrome_on_surface_secondary"
                         android:textSize="14sp"
                         android:text="@string/settings_group_data"/>
 
@@ -794,6 +798,7 @@
                     android:orientation="vertical">
 
                     <TextView
+                        android:id="@+id/tv_title_group_privacy_settings"
                         android:layout_width="wrap_content"
                         android:layout_height="20dp"
                         android:layout_marginTop="12dp"
@@ -804,7 +809,7 @@
                         android:drawableStart="@drawable/ic_privacy_settings"
                         android:drawableLeft="@drawable/ic_privacy_settings"
                         android:drawablePadding="16dp"
-                        android:textColor="@color/blue_deep"
+                        android:textColor="@color/app_chrome_on_surface_secondary"
                         android:textSize="14sp"
                         android:text="@string/settings_group_privacy"/>
 
@@ -907,12 +912,12 @@
                         android:layout_width="wrap_content"
                         android:layout_height="20dp"
                         android:layout_marginTop="12dp"
-                        android:layout_marginLeft="14dp"
-                        android:layout_marginRight="14dp"
+                        android:layout_marginLeft="18dp"
+                        android:layout_marginRight="18dp"
                         android:layout_marginBottom="8dp"
                         android:gravity="center_vertical"
-                        android:drawablePadding="14dp"
-                        android:textColor="@color/blue_deep"
+                        android:drawablePadding="16dp"
+                        android:textColor="@color/app_chrome_on_surface_secondary"
                         android:textSize="14sp"
                         android:text="@string/settings_group_start_doing"/>
 
@@ -1065,6 +1070,7 @@
                     android:orientation="vertical">
 
                     <TextView
+                        android:id="@+id/tv_title_group_advanced_settings"
                         android:layout_width="wrap_content"
                         android:layout_height="20dp"
                         android:layout_marginTop="12dp"
@@ -1075,7 +1081,7 @@
                         android:drawableStart="@drawable/ic_advanced_settings"
                         android:drawableLeft="@drawable/ic_advanced_settings"
                         android:drawablePadding="16dp"
-                        android:textColor="@color/blue_deep"
+                        android:textColor="@color/app_chrome_on_surface_secondary"
                         android:textSize="14sp"
                         android:text="@string/settings_group_advanced"/>
 

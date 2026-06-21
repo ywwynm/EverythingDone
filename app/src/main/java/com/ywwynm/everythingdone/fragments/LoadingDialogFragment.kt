@@ -2,7 +2,6 @@
 
 package com.ywwynm.everythingdone.fragments
 
-import android.graphics.PorterDuff
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -11,6 +10,7 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 
+import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.utils.BackgroundUtil
@@ -57,9 +57,10 @@ open class LoadingDialogFragment : BaseDialogFragment() {
             tvContent.text = mContent
         }
 
-        // PorterDuff tint is single-channel — collapse to representative int
-        // even when GRADIENT is supplied.
-        pbLoading.indeterminateDrawable.setColorFilter(mAccentColor, PorterDuff.Mode.SRC_IN)
+        BackgroundUtil.applyProgressBarGradient(
+            pbLoading,
+            mAccentBackground ?: ThingBackground.pure(mAccentColor)
+        )
 
         isCancelable = false
         dialog!!.setCanceledOnTouchOutside(false)
@@ -71,13 +72,13 @@ open class LoadingDialogFragment : BaseDialogFragment() {
 
     open fun setAccentColor(accentColor: Int) {
         mAccentColor = accentColor
-        mAccentBackground = null
+        mAccentBackground = ThingBackground.pure(accentColor)
     }
 
     /** Phase 8: gradient-aware accent for the title. */
     open fun setAccentBackground(bg: ThingBackground?) {
         mAccentBackground = bg
-        if (bg != null) mAccentColor = bg.representativeColor()
+        if (bg != null) mAccentColor = bg.color
     }
 
     open fun setTitle(title: String?) {

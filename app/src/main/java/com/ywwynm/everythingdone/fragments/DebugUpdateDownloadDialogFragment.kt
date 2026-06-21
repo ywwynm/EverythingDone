@@ -2,16 +2,17 @@
 
 package com.ywwynm.everythingdone.fragments
 
-import android.graphics.PorterDuff
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ProgressBar
 import android.widget.TextView
-import androidx.core.content.ContextCompat
 
+import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.R
+import com.ywwynm.everythingdone.model.ThingBackground
+import com.ywwynm.everythingdone.utils.BackgroundUtil
 
 open class DebugUpdateDownloadDialogFragment : BaseDialogFragment() {
 
@@ -24,6 +25,7 @@ open class DebugUpdateDownloadDialogFragment : BaseDialogFragment() {
     private var mFormattedDownloaded: String = ""
     private var mFormattedTotal: String = ""
     private var mFormattedSpeed: String = ""
+    private var mAccentBackground: ThingBackground? = null
 
     override fun getLayoutResource(): Int = R.layout.fragment_debug_update_download
 
@@ -36,15 +38,15 @@ open class DebugUpdateDownloadDialogFragment : BaseDialogFragment() {
     ): View? {
         super.onCreateView(inflater, container, savedInstanceState)
 
-        val accentColor = ContextCompat.getColor(activity!!, R.color.app_pink)
         val title: TextView = f(R.id.tv_title_debug_update_download)!!
         val cancel: TextView = f(R.id.tv_cancel_as_bt_debug_update_download)!!
         mProgress = f(R.id.pb_debug_update_download)
         mTvProgress = f(R.id.tv_debug_update_download_progress)
         mTvSpeed = f(R.id.tv_debug_update_download_speed)
 
-        title.setTextColor(accentColor)
-        mProgress!!.progressDrawable.setColorFilter(accentColor, PorterDuff.Mode.SRC_IN)
+        val accentBackground = mAccentBackground ?: App.defaultAccentBackground
+        BackgroundUtil.applyTextBackground(title, accentBackground)
+        BackgroundUtil.applyProgressBarGradient(mProgress!!, accentBackground)
         cancel.setOnClickListener { mCancelListener?.onCancelDownload() }
 
         isCancelable = false
@@ -94,6 +96,10 @@ open class DebugUpdateDownloadDialogFragment : BaseDialogFragment() {
 
     open fun setOnCancelDownloadListener(listener: OnCancelDownloadListener?) {
         mCancelListener = listener
+    }
+
+    open fun setAccentBackground(background: ThingBackground?) {
+        mAccentBackground = background
     }
 
     interface OnCancelDownloadListener {

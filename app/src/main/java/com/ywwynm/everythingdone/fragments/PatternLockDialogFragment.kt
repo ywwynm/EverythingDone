@@ -222,7 +222,7 @@ open class PatternLockDialogFragment : BaseDialogFragment() {
     /** Phase 8: full ThingBackground accent. */
     open fun setAccentBackground(bg: ThingBackground?) {
         mAccentBackground = bg
-        if (bg != null) mAccentColor = bg.representativeColor()
+        if (bg != null) mAccentColor = bg.color
     }
 
     open fun setCorrectPassword(correctPassword: String?) {

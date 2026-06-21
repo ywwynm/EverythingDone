@@ -131,7 +131,7 @@
                 app:elevation="6dp"
                 app:borderWidth="0dp"
                 app:pressedTranslationZ="12dp"
-                app:backgroundTint="@color/app_accent"/>
+                />
 
         </FrameLayout>
 

@@ -25,4 +25,8 @@
     <color name="date_time_rec_new_foreground">#40FFFFFF</color>
     <color name="bg_unpicked">#2A2A2A</color>
 
+    <color name="app_accent">#F66048</color>
+    <color name="app_accent2">#FFAE36</color>
+    <color name="app_accent_representative">#FF8040</color>
+
 </resources>

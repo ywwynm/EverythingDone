@@ -12,14 +12,14 @@
         android:id="@+id/view_status_bar"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:background="@color/app_accent"/>
+        android:background="@android:color/transparent"/>
 
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/actionbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         android:layout_below="@id/view_status_bar"
-        android:background="@color/app_accent"
+        android:background="@android:color/transparent"
         android:theme="@style/EverythingDoneTheme.AppAccentToolbar"
         app:contentInsetStart="72dp"
         app:titleTextColor="@color/black_54p"/>

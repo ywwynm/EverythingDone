@@ -23,12 +23,14 @@ import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.model.ThingFolder
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil
+import com.ywwynm.everythingdone.utils.ThingsSorter
 import com.ywwynm.everythingdone.views.DrawerNavigationView
 
 open class MoveToThingFolderDialogFragment : BaseDialogFragment() {
@@ -131,10 +133,7 @@ open class MoveToThingFolderDialogFragment : BaseDialogFragment() {
             childrenByParent.getOrPut(folder.parentFolderId) { ArrayList() }.add(folder)
         }
         for (children in childrenByParent.values) {
-            children.sortWith(
-                compareByDescending<ThingFolder> { it.location }
-                    .thenBy { it.title.lowercase() }
-            )
+            children.sortWith(folderLocationComparator())
         }
 
         val rows = ArrayList<Row>()
@@ -192,7 +191,7 @@ open class MoveToThingFolderDialogFragment : BaseDialogFragment() {
         val recyclerView = mRecyclerView ?: return
         recyclerView.post {
             if (activity == null || mRecyclerView == null) return@post
-            EdgeEffectUtil.forRecyclerView(recyclerView, accentBackground().representativeColor())
+            EdgeEffectUtil.forRecyclerView(recyclerView, accentBackground().color)
             updateScrollSeparators()
         }
     }
@@ -234,14 +233,22 @@ open class MoveToThingFolderDialogFragment : BaseDialogFragment() {
         if (background != null) {
             BackgroundUtil.applyTextBackground(textView, background)
         } else {
-            textView.setTextColor(ContextCompat.getColor(activity!!, R.color.app_accent))
+            BackgroundUtil.applyTextBackground(textView, App.defaultAccentBackground)
         }
     }
 
     private fun accentBackground(): ThingBackground {
-        return mAccentBackground ?: ThingBackground.pure(
-            ContextCompat.getColor(activity!!, R.color.app_accent)
-        )
+        return mAccentBackground ?: App.defaultAccentBackground
+    }
+
+    private fun folderLocationComparator(): Comparator<ThingFolder> {
+        return Comparator { folder1, folder2 ->
+            val result = ThingsSorter.compareByLocationAndSticky(
+                folder1.location,
+                folder2.location
+            )
+            if (result != 0) result else folder1.title.lowercase().compareTo(folder2.title.lowercase())
+        }
     }
 
     private fun selectedBackground(): GradientDrawable {

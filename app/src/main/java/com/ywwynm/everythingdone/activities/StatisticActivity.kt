@@ -35,6 +35,7 @@ import com.ywwynm.everythingdone.model.Reminder
 import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.model.ThingsCounts
 import com.ywwynm.everythingdone.utils.BitmapUtil
+import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DateTimeUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil
@@ -111,6 +112,7 @@ open class StatisticActivity : EverythingDoneBaseActivity() {
 
         initHeaderUI()
         initStartFromUI()
+        applyStatisticSectionTitleAccents()
         initFinishedCreatedUI()
         initNoteUI()
         initReminderUI()
@@ -153,6 +155,10 @@ open class StatisticActivity : EverythingDoneBaseActivity() {
         val flp = mFab!!.layoutParams as FrameLayout.LayoutParams
         flp.topMargin = mt.toInt()
         mFab!!.requestLayout()
+        mFab!!.setThingBackgroundWithAdaptiveIcon(
+            App.defaultAccentBackground,
+            App.defaultAccentBackground.color
+        )
     }
 
     private fun initStartFromUI() {
@@ -186,6 +192,18 @@ open class StatisticActivity : EverythingDoneBaseActivity() {
 
         val tv: TextView = f(R.id.tv_start_from_statistic)!!
         tv.text = sb.toString()
+    }
+
+    private fun applyStatisticSectionTitleAccents() {
+        listOf(
+            R.id.tv_start_from_statistic,
+            R.id.tv_note_record_statistic,
+            R.id.tv_reminder_record_statistic,
+            R.id.tv_habit_record_statistic,
+            R.id.tv_goal_record_statistic
+        ).forEach { id ->
+            BackgroundUtil.applyTextBackground(f<TextView>(id), App.defaultAccentBackground)
+        }
     }
 
     private fun initFinishedCreatedUI() {
@@ -263,7 +281,7 @@ open class StatisticActivity : EverythingDoneBaseActivity() {
     private fun startScreenshot() {
         if (mLdf == null) {
             mLdf = LoadingDialogFragment()
-            mLdf!!.setAccentColor(ContextCompat.getColor(mApp!!, R.color.blue_grey_deep_grey))
+            mLdf!!.setAccentBackground(App.defaultAccentBackground)
             mLdf!!.setTitle(getString(R.string.please_wait))
             mLdf!!.setContent(getString(R.string.generating_screenshot))
         }

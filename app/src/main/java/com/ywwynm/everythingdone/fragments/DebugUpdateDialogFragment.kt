@@ -8,10 +8,11 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ScrollView
 import android.widget.TextView
-import androidx.core.content.ContextCompat
 
+import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.helpers.DebugApkUpdateInfo
+import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil
 
 import kotlin.math.min
@@ -53,9 +54,10 @@ open class DebugUpdateDialogFragment : BaseDialogFragment() {
         val topSeparator: View = f(R.id.view_separator_1)!!
         val bottomSeparator: View = f(R.id.view_separator_2)!!
 
-        val accentColor = ContextCompat.getColor(activity!!, R.color.app_pink)
-        title.setTextColor(accentColor)
-        download.setTextColor(accentColor)
+        val accentBackground = App.defaultAccentBackground
+        val accentColor = accentBackground.representativeColor()
+        BackgroundUtil.applyTextBackground(title, accentBackground)
+        BackgroundUtil.applyTextBackground(download, accentBackground)
 
         version.text = getString(R.string.debug_update_version_label, info.versionName ?: "")
         build.text = getString(R.string.debug_update_build_label, info.debugUpdateCode.toString())

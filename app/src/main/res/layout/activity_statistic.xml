@@ -45,7 +45,6 @@
                 android:layout_marginRight="@dimen/fab_margin"
                 android:contentDescription="@string/share_statistic"
                 app:rippleColor="@color/white_54p"
-                app:backgroundTint="@color/app_pink"
                 app:elevation="6dp"
                 app:pressedTranslationZ="12dp"
                 app:borderWidth="0dp"/>

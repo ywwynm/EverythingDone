@@ -6,20 +6,32 @@ import android.animation.ArgbEvaluator
 import android.animation.ValueAnimator
 import android.content.Context
 import android.content.res.ColorStateList
+import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.LinearGradient
 import android.graphics.Matrix
 import android.graphics.Outline
+import android.graphics.Paint
+import android.graphics.Path
+import android.graphics.PixelFormat
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
+import android.graphics.Rect
+import android.graphics.RectF
 import android.graphics.Shader
+import android.graphics.SweepGradient
+import android.os.SystemClock
 import android.view.ViewTreeObserver
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.RippleDrawable
+import android.graphics.drawable.StateListDrawable
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.ViewOutlineProvider
 import android.widget.TextView
+import android.widget.ProgressBar
 import androidx.annotation.Keep
 import androidx.core.content.ContextCompat
 
@@ -237,6 +249,20 @@ object BackgroundUtil {
         }
     }
 
+    @JvmStatic
+    fun applyOvalBackground(view: View?, background: ThingBackground?) {
+        if (view == null || background == null) return
+        val gd: GradientDrawable = obtainGradient(view)
+        gd.setShape(GradientDrawable.OVAL)
+        if (background.mode === ThingBackground.Mode.PURE) {
+            gd.setOrientation(GradientDrawable.Orientation.LEFT_RIGHT)
+            gd.colors = intArrayOf(background.color, background.color)
+        } else {
+            gd.setOrientation(toGdOrientation(background.orientation))
+            gd.colors = intArrayOf(background.color, background.endColor)
+        }
+    }
+
     /**
      * Paint `background` onto a [CardView].
      *
@@ -348,9 +374,8 @@ object BackgroundUtil {
      * and right edges (accounting for the TextView's gravity-driven offset).
      * The shader is applied after layout (via a one-shot
      * [ViewTreeObserver.OnPreDrawListener]) when the view's measured size
-     * and rendered text layout are settled. The TextView is also re-tinted with
-     * `representativeColor` synchronously so any pre-shader draw still
-     * has the right base colour.
+     * and rendered text layout are settled. Before that first shader pass, the
+     * TextView uses the gradient start colour as a temporary base colour.
      */
     @JvmStatic
     fun applyTextBackground(textView: TextView?, background: ThingBackground?) {
@@ -364,9 +389,10 @@ object BackgroundUtil {
             return
         }
 
-        // Pre-set representative as a synchronous fallback so any early draw
-        // (e.g. dialog enter animation) still uses the new colour.
-        textView.setTextColor(background.representativeColor())
+        // Pre-set the start colour so any early draw before the first shader
+        // pass still uses the accent family without falling back to a
+        // representative blend.
+        textView.setTextColor(background.color)
 
         val apply = Runnable {
             applyTextShaderNow(textView, background)
@@ -519,6 +545,40 @@ object BackgroundUtil {
         return android.graphics.drawable.BitmapDrawable(res, out)
     }
 
+    @JvmStatic
+    fun tintDrawableOpaque(
+            res: android.content.res.Resources?, source: Drawable?, bg: ThingBackground?): Drawable? {
+        if (source == null || bg == null) return source
+        var w: Int = source.intrinsicWidth
+        var h: Int = source.intrinsicHeight
+        if (w <= 0) w = 48
+        if (h <= 0) h = 48
+
+        val out = android.graphics.Bitmap.createBitmap(
+                w, h, android.graphics.Bitmap.Config.ARGB_8888)
+        val c = android.graphics.Canvas(out)
+        val mask = source.mutate()
+        mask.setBounds(0, 0, w, h)
+        mask.colorFilter = null
+        mask.alpha = 255
+        mask.draw(c)
+        forceOpaqueMaskAlpha(out)
+
+        val p = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
+        if (bg.mode === ThingBackground.Mode.GRADIENT) {
+            p.shader = linearGradientFor(bg, w.toFloat(), h.toFloat())
+        } else {
+            p.color = bg.color or -0x1000000
+        }
+        p.xfermode = android.graphics.PorterDuffXfermode(
+                android.graphics.PorterDuff.Mode.SRC_IN)
+        c.drawRect(0f, 0f, w.toFloat(), h.toFloat(), p)
+
+        return android.graphics.drawable.BitmapDrawable(res, out).also {
+            it.setBounds(0, 0, w, h)
+        }
+    }
+
     private fun normalizeMaskAlpha(bitmap: android.graphics.Bitmap) {
         val width = bitmap.width
         val height = bitmap.height
@@ -541,6 +601,90 @@ object BackgroundUtil {
             }
         }
         bitmap.setPixels(pixels, 0, width, 0, 0, width, height)
+    }
+
+    private fun forceOpaqueMaskAlpha(bitmap: android.graphics.Bitmap) {
+        val width = bitmap.width
+        val height = bitmap.height
+        val pixels = IntArray(width * height)
+        bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
+        for (i in pixels.indices) {
+            pixels[i] = if (Color.alpha(pixels[i]) == 0) {
+                Color.TRANSPARENT
+            } else {
+                Color.argb(255, 0, 0, 0)
+            }
+        }
+        bitmap.setPixels(pixels, 0, width, 0, 0, width, height)
+    }
+
+    class GradientStrokeDrawable(
+        private val background: ThingBackground,
+        var cornerRadius: Float,
+        strokeWidthPx: Float,
+        private val fillColor: Int = Color.TRANSPARENT
+    ) : Drawable() {
+
+        var strokeWidthPx: Float = strokeWidthPx
+            set(value) {
+                field = value
+                invalidateSelf()
+            }
+
+        private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.FILL
+            color = fillColor
+        }
+        private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+        }
+        private val rect = RectF()
+        private var externalAlpha = 255
+
+        override fun draw(canvas: Canvas) {
+            if (bounds.isEmpty) return
+            if (Color.alpha(fillColor) > 0) {
+                fillPaint.alpha = (externalAlpha * Color.alpha(fillColor) / 255f).toInt()
+                rect.set(bounds)
+                canvas.drawRoundRect(rect, cornerRadius, cornerRadius, fillPaint)
+            }
+
+            val stroke = strokeWidthPx
+            if (stroke <= 0f) return
+            strokePaint.strokeWidth = stroke
+            strokePaint.alpha = externalAlpha
+            if (background.mode === ThingBackground.Mode.GRADIENT) {
+                val shader = createLinearGradient(
+                        background,
+                        bounds.width().coerceAtLeast(1).toFloat(),
+                        bounds.height().coerceAtLeast(1).toFloat()
+                )
+                val matrix = Matrix()
+                matrix.setTranslate(bounds.left.toFloat(), bounds.top.toFloat())
+                shader.setLocalMatrix(matrix)
+                strokePaint.shader = shader
+            } else {
+                strokePaint.shader = null
+                strokePaint.color = background.color
+            }
+            rect.set(bounds)
+            rect.inset(stroke / 2f, stroke / 2f)
+            canvas.drawRoundRect(rect, cornerRadius, cornerRadius, strokePaint)
+            strokePaint.shader = null
+        }
+
+        override fun setAlpha(alpha: Int) {
+            externalAlpha = alpha.coerceIn(0, 255)
+            invalidateSelf()
+        }
+
+        override fun setColorFilter(colorFilter: android.graphics.ColorFilter?) {
+            fillPaint.colorFilter = colorFilter
+            strokePaint.colorFilter = colorFilter
+            invalidateSelf()
+        }
+
+        override fun getOpacity(): Int = PixelFormat.TRANSLUCENT
     }
 
     /**
@@ -924,6 +1068,489 @@ object BackgroundUtil {
         gd.setOrientation(toGdOrientation(bg.orientation))
         gd.colors = intArrayOf(s, e)
         return gd
+    }
+
+    // -------------------------------------------------------------------
+    // ProgressBar — gradient tint via Drawable wrapper
+    // -------------------------------------------------------------------
+
+    private const val CHECKED_CONTROL_ANIM_MS: Long = 160
+
+    /**
+     * Indeterminate progress drawable following the visible implementation used
+     * by the video crop editor: a self-drawn rotating arc with a SweepGradient.
+     */
+    class GradientTintDrawable(
+        context: Context,
+        private val background: ThingBackground
+    ) : Drawable() {
+
+        private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        private val indicatorBounds = RectF()
+        private val density = context.resources.displayMetrics.density
+        private val frameCallback = Runnable { invalidateSelf() }
+        private var externalAlpha = 255
+
+        override fun draw(canvas: Canvas) {
+            if (bounds.isEmpty) return
+            val size = minOf(bounds.width(), bounds.height()).toFloat()
+                .coerceAtMost(32f * density)
+            if (size <= 0f) return
+            val cx = bounds.exactCenterX()
+            val cy = bounds.exactCenterY()
+            val strokeWidth = (3f * density).coerceAtMost(size / 6f)
+            paint.style = Paint.Style.STROKE
+            paint.strokeCap = Paint.Cap.ROUND
+            paint.strokeWidth = strokeWidth
+            paint.alpha = externalAlpha
+            indicatorBounds.set(
+                cx - size / 2f + strokeWidth / 2f,
+                cy - size / 2f + strokeWidth / 2f,
+                cx + size / 2f - strokeWidth / 2f,
+                cy + size / 2f - strokeWidth / 2f
+            )
+            bindSweepPaint(paint, background, indicatorBounds)
+            val rotation = (SystemClock.uptimeMillis() % 1200L) * 360f / 1200f
+            canvas.drawArc(indicatorBounds, rotation - 90f, 280f, false, paint)
+            paint.shader = null
+
+            if (isVisible) {
+                unscheduleSelf(frameCallback)
+                scheduleSelf(frameCallback, SystemClock.uptimeMillis() + 16L)
+            }
+        }
+
+        override fun setVisible(visible: Boolean, restart: Boolean): Boolean {
+            val ownChanged = super.setVisible(visible, restart)
+            if (visible) {
+                scheduleSelf(frameCallback, SystemClock.uptimeMillis() + 16L)
+            } else {
+                unscheduleSelf(frameCallback)
+            }
+            return ownChanged
+        }
+
+        override fun setAlpha(alpha: Int) {
+            externalAlpha = alpha
+            invalidateSelf()
+        }
+
+        override fun setColorFilter(colorFilter: android.graphics.ColorFilter?) {
+            paint.colorFilter = colorFilter
+            invalidateSelf()
+        }
+
+        override fun getOpacity(): Int = PixelFormat.TRANSLUCENT
+        override fun getIntrinsicWidth(): Int = (36f * density).toInt()
+        override fun getIntrinsicHeight(): Int = (36f * density).toInt()
+    }
+
+    private class GradientHorizontalProgressDrawable(
+        context: Context,
+        private val background: ThingBackground
+    ) : Drawable() {
+
+        private val density = context.resources.displayMetrics.density
+        private val rect = RectF()
+        private val trackPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.FILL
+            color = ContextCompat.getColor(context, R.color.app_chrome_control_unchecked)
+        }
+        private val progressPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.FILL
+        }
+        private var externalAlpha = 255
+
+        override fun draw(canvas: Canvas) {
+            if (bounds.isEmpty) return
+            val h = bounds.height().toFloat().coerceAtMost(4f * density)
+            val top = bounds.exactCenterY() - h / 2f
+            val bottom = top + h
+            val radius = h / 2f
+            trackPaint.alpha = (externalAlpha * 0.24f).toInt()
+            rect.set(bounds.left.toFloat(), top, bounds.right.toFloat(), bottom)
+            canvas.drawRoundRect(rect, radius, radius, trackPaint)
+
+            val progressRight = bounds.left + bounds.width() * (level / 10000f)
+            if (progressRight <= bounds.left) return
+            rect.set(bounds.left.toFloat(), top, progressRight, bottom)
+            progressPaint.alpha = externalAlpha
+            if (background.mode === ThingBackground.Mode.GRADIENT) {
+                progressPaint.shader = linearGradientFor(background, bounds.width().toFloat(), h)
+            } else {
+                progressPaint.shader = null
+                progressPaint.color = background.color
+            }
+            canvas.drawRoundRect(rect, radius, radius, progressPaint)
+            progressPaint.shader = null
+        }
+
+        override fun onLevelChange(level: Int): Boolean {
+            invalidateSelf()
+            return true
+        }
+
+        override fun setAlpha(alpha: Int) {
+            externalAlpha = alpha
+            invalidateSelf()
+        }
+
+        override fun setColorFilter(colorFilter: android.graphics.ColorFilter?) {
+            progressPaint.colorFilter = colorFilter
+            trackPaint.colorFilter = colorFilter
+            invalidateSelf()
+        }
+
+        override fun getOpacity(): Int = PixelFormat.TRANSLUCENT
+    }
+
+    private fun bindSweepPaint(paint: Paint, bg: ThingBackground, bounds: RectF) {
+        if (bg.mode === ThingBackground.Mode.GRADIENT) {
+            paint.shader = SweepGradient(
+                bounds.centerX(),
+                bounds.centerY(),
+                intArrayOf(bg.color, bg.endColor, bg.color),
+                floatArrayOf(0f, 0.75f, 1f)
+            )
+        } else {
+            paint.shader = null
+            paint.color = bg.color
+        }
+    }
+
+    /** Replace progress drawables on [pb] with self-drawn gradient drawables. */
+    @JvmStatic
+    fun applyProgressBarGradient(pb: ProgressBar, bg: ThingBackground) {
+        pb.indeterminateTintList = null
+        pb.progressTintList = null
+        pb.progressBackgroundTintList = null
+        pb.secondaryProgressTintList = null
+        pb.indeterminateDrawable = GradientTintDrawable(pb.context, bg)
+        pb.progressDrawable = GradientHorizontalProgressDrawable(pb.context, bg)
+    }
+
+    // -------------------------------------------------------------------
+    // CheckBox — gradient checked-state drawable
+    // -------------------------------------------------------------------
+
+    /**
+     * Draw a custom [android.widget.CompoundButton] button whose checked fill uses
+     * the supplied [ThingBackground].
+     * It draws the box, fill and checkmark itself so gradients are not reduced
+     * to a single tint colour.
+     *
+     * Gradients stay visible instead of being collapsed into one tint colour.
+     */
+    @JvmStatic
+    @JvmOverloads
+    fun applyCheckboxAccent(
+        button: android.widget.CompoundButton,
+        bg: ThingBackground,
+        uncheckedColor: Int = ContextCompat.getColor(
+            button.context, R.color.app_chrome_control_unchecked
+        )
+    ) {
+        button.buttonTintList = null
+        if (button is androidx.appcompat.widget.AppCompatCheckBox) {
+            button.supportButtonTintList = null
+        }
+        button.buttonDrawable = GradientCheckboxDrawable(
+            button.context,
+            bg,
+            uncheckedColor,
+            initialChecked = button.isChecked,
+            animate = false,
+            stateDriven = true
+        )
+        button.refreshDrawableState()
+    }
+
+    @JvmStatic
+    @JvmOverloads
+    fun createGradientCheckboxDrawable(
+        context: Context,
+        bg: ThingBackground,
+        uncheckedColor: Int,
+        checked: Boolean,
+        animate: Boolean = false
+    ): Drawable {
+        return GradientCheckboxDrawable(
+            context,
+            bg,
+            uncheckedColor,
+            checked,
+            animate,
+            stateDriven = false
+        )
+    }
+
+    private class GradientCheckboxDrawable(
+        context: Context,
+        private val background: ThingBackground,
+        private val uncheckedColor: Int,
+        initialChecked: Boolean,
+        animate: Boolean,
+        private val stateDriven: Boolean
+    ) : Drawable() {
+
+        private val density = context.resources.displayMetrics.density
+        private val sizePx = (24f * density).toInt().coerceAtLeast(1)
+        private val strokePx = 2f * density
+        private val radiusPx = 2.5f * density
+        private val boxInsetPx = 3f * density
+        private val rect = RectF()
+        private val checkPath = Path()
+        private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.FILL
+        }
+        private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeWidth = strokePx
+            color = uncheckedColor
+        }
+        private val checkPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeCap = Paint.Cap.ROUND
+            strokeJoin = Paint.Join.ROUND
+            strokeWidth = 2.4f * density
+            color = Color.WHITE
+        }
+        private var checked = initialChecked
+        private var enabled = true
+        private var externalAlpha = 255
+        private var resolvedState = !stateDriven
+        private var checkedProgress = if (checked) 1f else 0f
+        private var checkedAnimator: ValueAnimator? = null
+
+        init {
+            if (animate) {
+                checkedProgress = if (checked) 0f else 1f
+                animateCheckedProgress(if (checked) 1f else 0f)
+            }
+        }
+
+        override fun draw(canvas: Canvas) {
+            val side = minOf(bounds.width(), bounds.height()).toFloat()
+            if (side <= 0f) return
+            val left = bounds.left + (bounds.width() - side) / 2f
+            val top = bounds.top + (bounds.height() - side) / 2f
+            val scale = side / sizePx.toFloat()
+            val inset = boxInsetPx * scale
+            val radius = radiusPx * scale
+            rect.set(left + inset, top + inset, left + side - inset, top + side - inset)
+
+            val stateAlpha = if (enabled) externalAlpha else (externalAlpha * 0.38f).toInt()
+            val progress = checkedProgress.coerceIn(0f, 1f)
+            if (progress > 0f) {
+                fillPaint.alpha = (stateAlpha * progress).toInt()
+                fillPaint.shader = if (background.mode === ThingBackground.Mode.GRADIENT) {
+                    linearGradientFor(background, side, side)
+                } else {
+                    null
+                }
+                if (background.mode === ThingBackground.Mode.PURE) {
+                    fillPaint.color = background.color
+                }
+                canvas.drawRoundRect(rect, radius, radius, fillPaint)
+                fillPaint.shader = null
+
+                checkPaint.alpha = (stateAlpha * progress).toInt()
+                checkPath.reset()
+                checkPath.moveTo(left + side * 0.32f, top + side * 0.52f)
+                checkPath.lineTo(left + side * 0.45f, top + side * 0.65f)
+                checkPath.lineTo(left + side * 0.70f, top + side * 0.38f)
+                canvas.drawPath(checkPath, checkPaint)
+            }
+            if (progress < 1f) {
+                strokePaint.color = uncheckedColor
+                strokePaint.alpha = (
+                    stateAlpha * Color.alpha(uncheckedColor) / 255f * (1f - progress)
+                ).toInt()
+                canvas.drawRoundRect(rect, radius, radius, strokePaint)
+            }
+        }
+
+        override fun isStateful(): Boolean = true
+
+        override fun onStateChange(state: IntArray): Boolean {
+            val newChecked = if (stateDriven) {
+                state.contains(android.R.attr.state_checked)
+            } else {
+                checked
+            }
+            val newEnabled = state.contains(android.R.attr.state_enabled)
+            if (newChecked == checked && newEnabled == enabled && resolvedState) return false
+            val checkedChanged = newChecked != checked
+            checked = newChecked
+            enabled = newEnabled
+            if (!resolvedState) {
+                checkedProgress = if (checked) 1f else 0f
+                resolvedState = true
+                invalidateSelf()
+                return true
+            }
+            if (checkedChanged) {
+                animateCheckedProgress(if (checked) 1f else 0f)
+                return true
+            }
+            invalidateSelf()
+            return true
+        }
+
+        private fun animateCheckedProgress(target: Float) {
+            checkedAnimator?.cancel()
+            checkedAnimator = ValueAnimator.ofFloat(checkedProgress, target).apply {
+                duration = CHECKED_CONTROL_ANIM_MS
+                addUpdateListener {
+                    checkedProgress = it.animatedValue as Float
+                    invalidateSelf()
+                }
+                start()
+            }
+        }
+
+        override fun setAlpha(alpha: Int) {
+            externalAlpha = alpha
+            invalidateSelf()
+        }
+
+        override fun setColorFilter(colorFilter: android.graphics.ColorFilter?) {
+            fillPaint.colorFilter = colorFilter
+            strokePaint.colorFilter = colorFilter
+            checkPaint.colorFilter = colorFilter
+        }
+
+        override fun getOpacity(): Int = PixelFormat.TRANSLUCENT
+        override fun getIntrinsicWidth(): Int = sizePx
+        override fun getIntrinsicHeight(): Int = sizePx
+
+        override fun jumpToCurrentState() {
+            checkedAnimator?.cancel()
+            checkedProgress = if (checked) 1f else 0f
+            invalidateSelf()
+        }
+    }
+
+    @JvmStatic
+    fun createGradientRadioDrawable(
+        context: Context,
+        bg: ThingBackground,
+        uncheckedColor: Int,
+        checked: Boolean,
+        animate: Boolean
+    ): Drawable {
+        return GradientRadioDrawable(context, bg, uncheckedColor, checked, animate)
+    }
+
+    private class GradientRadioDrawable(
+        context: Context,
+        private val background: ThingBackground,
+        private val uncheckedColor: Int,
+        checked: Boolean,
+        animate: Boolean
+    ) : Drawable() {
+
+        private val density = context.resources.displayMetrics.density
+        private val sizePx = (24f * density).toInt().coerceAtLeast(1)
+        private val strokePx = 2f * density
+        private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeWidth = strokePx
+        }
+        private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.FILL
+        }
+        private var externalAlpha = 255
+        private var checkedProgress = if (checked) 1f else 0f
+        private var animator: ValueAnimator? = null
+
+        init {
+            if (animate) {
+                checkedProgress = if (checked) 0f else 1f
+                animateCheckedProgress(if (checked) 1f else 0f)
+            }
+        }
+
+        override fun draw(canvas: Canvas) {
+            val side = minOf(bounds.width(), bounds.height()).toFloat()
+            if (side <= 0f) return
+            val left = bounds.left + (bounds.width() - side) / 2f
+            val top = bounds.top + (bounds.height() - side) / 2f
+            val scale = side / sizePx.toFloat()
+            val stroke = strokePx * scale
+            val centerX = left + side / 2f
+            val centerY = top + side / 2f
+            val radius = side * 0.34f
+            val progress = checkedProgress.coerceIn(0f, 1f)
+
+            strokePaint.strokeWidth = stroke
+            if (progress < 1f) {
+                strokePaint.shader = null
+                strokePaint.color = uncheckedColor
+                strokePaint.alpha = (
+                    externalAlpha * Color.alpha(uncheckedColor) / 255f * (1f - progress)
+                ).toInt()
+                canvas.drawCircle(centerX, centerY, radius, strokePaint)
+            }
+
+            if (progress > 0f) {
+                strokePaint.alpha = (externalAlpha * progress).toInt()
+                strokePaint.shader = if (background.mode === ThingBackground.Mode.GRADIENT) {
+                    linearGradientFor(background, side, side)
+                } else {
+                    null
+                }
+                if (background.mode === ThingBackground.Mode.PURE) {
+                    strokePaint.color = background.color
+                }
+                canvas.drawCircle(centerX, centerY, radius, strokePaint)
+                strokePaint.shader = null
+
+                fillPaint.alpha = (externalAlpha * progress).toInt()
+                fillPaint.shader = if (background.mode === ThingBackground.Mode.GRADIENT) {
+                    linearGradientFor(background, side, side)
+                } else {
+                    null
+                }
+                if (background.mode === ThingBackground.Mode.PURE) {
+                    fillPaint.color = background.color
+                }
+                canvas.drawCircle(centerX, centerY, radius * 0.58f * progress, fillPaint)
+                fillPaint.shader = null
+            }
+        }
+
+        private fun animateCheckedProgress(target: Float) {
+            animator?.cancel()
+            animator = ValueAnimator.ofFloat(checkedProgress, target).apply {
+                duration = CHECKED_CONTROL_ANIM_MS
+                addUpdateListener {
+                    checkedProgress = it.animatedValue as Float
+                    invalidateSelf()
+                }
+                start()
+            }
+        }
+
+        override fun setAlpha(alpha: Int) {
+            externalAlpha = alpha
+            invalidateSelf()
+        }
+
+        override fun setColorFilter(colorFilter: android.graphics.ColorFilter?) {
+            strokePaint.colorFilter = colorFilter
+            fillPaint.colorFilter = colorFilter
+            invalidateSelf()
+        }
+
+        override fun getOpacity(): Int = PixelFormat.TRANSLUCENT
+        override fun getIntrinsicWidth(): Int = sizePx
+        override fun getIntrinsicHeight(): Int = sizePx
+
+        override fun jumpToCurrentState() {
+            animator?.cancel()
+            invalidateSelf()
+        }
     }
 
     /** Map our [ThingBackground.Orientation] → platform [GradientDrawable.Orientation]. */

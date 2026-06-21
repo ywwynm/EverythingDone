@@ -13,7 +13,9 @@ import android.view.ViewGroup
 import android.widget.TextView
 
 import com.ywwynm.everythingdone.R
+import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.utils.AppearanceUtil
+import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.KeyboardUtil
 
@@ -34,6 +36,7 @@ open class TwoOptionsDialogFragment : BaseDialogFragment() {
     private var mActionResEnd: Int = 0
     private var mListenerStart: View.OnClickListener? = null
     private var mListenerEnd: View.OnClickListener? = null
+    private var mAccentBackground: ThingBackground? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -65,6 +68,26 @@ open class TwoOptionsDialogFragment : BaseDialogFragment() {
     }
 
     private fun tintActionIconForAppearance(view: TextView) {
+        val accent = mAccentBackground
+        if (accent != null) {
+            BackgroundUtil.applyTextBackground(view, accent)
+            val drawables = view.compoundDrawables
+            var changed = false
+            for (i in drawables.indices) {
+                val drawable = drawables[i]
+                if (drawable != null) {
+                    drawables[i] = BackgroundUtil.tintDrawable(resources, drawable, accent)
+                    changed = true
+                }
+            }
+            if (changed) {
+                view.setCompoundDrawablesWithIntrinsicBounds(
+                    drawables[0], drawables[1], drawables[2], drawables[3]
+                )
+            }
+            return
+        }
+
         if (!AppearanceUtil.isDarkMode(activity!!)) return
 
         val tint = ContextCompat.getColor(activity!!, R.color.app_chrome_control_unchecked)
@@ -102,6 +125,10 @@ open class TwoOptionsDialogFragment : BaseDialogFragment() {
         mIconResEnd   = iconRes
         mActionResEnd = actionRes
         mListenerEnd  = listener
+    }
+
+    open fun setAccentBackground(background: ThingBackground?) {
+        mAccentBackground = background
     }
 
     open fun setShouldShowKeyboardAfterDismiss(shouldShowKeyboardAfterDismiss: Boolean) {
