@@ -186,7 +186,7 @@ open class ModeManager(app: App?,
                 cv.animate().scaleY(1.0f).withEndAction(notifyDataSetRunnable).setDuration(96)
             }
         }
-        if (mApp!!.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY
+        if (mApp!!.getStatus() == Def.ThingStatus.UNDERWAY
                 && !isSearching) {
             mFab!!.spread()
         }
@@ -202,7 +202,7 @@ open class ModeManager(app: App?,
         }
         beforeMode = currentMode
         currentMode = NORMAL
-        if (mApp!!.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY && !isSearching) {
+        if (mApp!!.getStatus() == Def.ThingStatus.UNDERWAY && !isSearching) {
             mFab!!.spread()
         }
         mThingManager!!.setSelectedTo(false)
@@ -221,13 +221,13 @@ open class ModeManager(app: App?,
         tb.setNavigationIcon(R.drawable.act_close)
         tb.setNavigationOnClickListener(backNormalModeListener)
         tb.setOnMenuItemClickListener(mContextualListener)
-        val limit: Int = mApp!!.getLimit()
-        if (limit <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
-            tb.inflateMenu(R.menu.menu_contextual_underway)
-        } else if (limit == Def.LimitForGettingThings.ALL_FINISHED) {
-            tb.inflateMenu(R.menu.menu_contextual_finished)
-        } else {
-            tb.inflateMenu(R.menu.menu_contextual_deleted)
+        when (mApp!!.getStatus()) {
+            Def.ThingStatus.UNDERWAY ->
+                tb.inflateMenu(R.menu.menu_contextual_underway)
+            Def.ThingStatus.FINISHED ->
+                tb.inflateMenu(R.menu.menu_contextual_finished)
+            else ->
+                tb.inflateMenu(R.menu.menu_contextual_deleted)
         }
 
         val rl: RelativeLayout = mRlContextualToolbar!!
@@ -267,7 +267,7 @@ open class ModeManager(app: App?,
         updateMenuItemCustomizeCardAppearance()
         updateMenuItemPrivate()
         updateMenuItemsForFolderSelection()
-        if (mApp!!.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
+        if (mApp!!.getStatus() == Def.ThingStatus.UNDERWAY) {
             updateMenuItemStickyOnTop()
         }
         menuItemsChangedCallback?.invoke()
@@ -317,7 +317,7 @@ open class ModeManager(app: App?,
                 .findItem(R.id.act_customize_card_appearance) ?: return
         val entry = mThingManager!!.getSingleSelectedEntry()
         if (entry is ThingListEntry.FolderEntry) {
-            val limitOk = mApp!!.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY
+            val limitOk = mApp!!.getStatus() == Def.ThingStatus.UNDERWAY
             item.isVisible = limitOk
             if (limitOk) {
                 item.setTitle(R.string.act_customize_folder_card_appearance)
@@ -353,7 +353,7 @@ open class ModeManager(app: App?,
         val item: MenuItem = mContextualToolbar!!.getMenu()
                 .findItem(R.id.act_set_as_private_thing) ?: return
         val entry = mThingManager!!.getSingleSelectedEntry()
-        val limitIsUnderway = mApp!!.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY
+        val limitIsUnderway = mApp!!.getStatus() == Def.ThingStatus.UNDERWAY
         when (entry) {
             is ThingListEntry.ThingEntry -> {
                 val thing = entry.thing
@@ -394,7 +394,7 @@ open class ModeManager(app: App?,
         setMenuItemVisible(R.id.act_finish_selected, !hasSelectedFolder)
         setMenuItemVisible(R.id.act_delete_selected, !hasSelectedFolder)
         setMenuItemVisible(R.id.act_delete_selected_forever, !hasSelectedFolder)
-        val limitIsUnderway = mApp!!.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY
+        val limitIsUnderway = mApp!!.getStatus() == Def.ThingStatus.UNDERWAY
         val moveToFolderVisible = limitIsUnderway && (!hasSelectedFolder ||
                 (singleFolderOnly && selectedFolder?.isDeleted() != true))
         setMenuItemVisible(R.id.act_move_to_thing_folder, moveToFolderVisible)
@@ -416,7 +416,7 @@ open class ModeManager(app: App?,
         if (deleteFolderItem != null) {
             deleteFolderItem.isVisible = singleFolderOnly
             val permanentlyDelete = selectedFolder?.isDeleted() == true ||
-                    mApp!!.getLimit() == Def.LimitForGettingThings.ALL_DELETED
+                    mApp!!.getStatus() == Def.ThingStatus.DELETED
             deleteFolderItem.setTitle(
                     if (permanentlyDelete) {
                         R.string.delete_thing_folder_forever

@@ -3740,7 +3740,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         intent.putExtra(Def.Communication.KEY_TYPE_BEFORE, typeBefore)
         intent.putExtra(Def.Communication.KEY_THING, mThing)
 
-        val sameType = mApp!!.getLimit() == Def.LimitForGettingThings.ALL_UNDERWAY
+        val sameType = mApp!!.getStatus() == Def.ThingStatus.UNDERWAY
             || Thing.sameType(typeBefore, typeAfter)
         val resultCode: Int = if (sameType) {
             Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME

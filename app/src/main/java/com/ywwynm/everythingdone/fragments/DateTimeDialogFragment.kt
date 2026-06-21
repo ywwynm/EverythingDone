@@ -188,14 +188,15 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
         val args: Bundle = arguments!!
         mThing = args.getParcelable(Def.Communication.KEY_THING)
         val limit = args.getInt(Def.Communication.KEY_LIMIT)
+        val thingType = mThing?.type ?: Thing.NOTE
         if (mActivity!!.rhParams.habitDetail != null ||
-            limit == Def.LimitForGettingThings.HABIT_UNDERWAY
+            Thing.isTypeHabit(thingType)
         ) {
             mVpDateTime!!.post(InitiallyShowPageRunnable(2))
             initAll(2)
         } else {
             var to = 0
-            if (limit == Def.LimitForGettingThings.GOAL_UNDERWAY
+            if (Thing.isTypeGoal(thingType)
                 && mActivity!!.type == DetailActivity.CREATE
             ) {
                 to = 1

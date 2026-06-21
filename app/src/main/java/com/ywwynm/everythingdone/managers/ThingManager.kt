@@ -47,17 +47,8 @@ open class ThingManager private constructor(context: Context?) {
     private var mFolderDao: ThingFolderDAO? = ThingFolderDAO.getInstance(context)
 
     /**
-     * The limit for getting and controlling things from/in database.
-     * Also means current state of UI in Activities.
-     *
-     * Should be one of:
-     * [Def.LimitForGettingThings.ALL_UNDERWAY]
-     * [Def.LimitForGettingThings.NOTE_UNDERWAY]
-     * [Def.LimitForGettingThings.REMINDER_UNDERWAY]
-     * [Def.LimitForGettingThings.HABIT_UNDERWAY]
-     * [Def.LimitForGettingThings.GOAL_UNDERWAY]
-     * [Def.LimitForGettingThings.ALL_FINISHED]
-     * [Def.LimitForGettingThings.ALL_DELETED]
+     * Current projection with [status] and [typeFilterMask] that controls
+     * which things are fetched from the database and displayed in the UI.
      */
     private var mProjection: ThingListProjection =
         ThingListProjection.root(Def.ThingStatus.UNDERWAY)

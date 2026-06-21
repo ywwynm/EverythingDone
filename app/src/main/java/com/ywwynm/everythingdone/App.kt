@@ -109,7 +109,7 @@ open class App : Application() {
         mThingsToDeleteForever   = ArrayList()
         mAttachmentsToDeleteFile = ArrayList()
 
-        mStatus = Def.LimitForGettingThings.ALL_UNDERWAY
+        mStatus = Def.ThingStatus.UNDERWAY
 
         updateNewThingColor()
 
@@ -225,7 +225,7 @@ open class App : Application() {
         return when (mStatus) {
             Def.ThingStatus.FINISHED -> Def.LimitForGettingThings.ALL_FINISHED
             Def.ThingStatus.DELETED -> Def.LimitForGettingThings.ALL_DELETED
-            else -> Def.LimitForGettingThings.ALL_UNDERWAY
+            else -> Def.ThingStatus.UNDERWAY
         }
     }
 
@@ -546,7 +546,7 @@ open class App : Application() {
             // representative.
             var representative: Int = bg.representativeColor()
             while (ThingManager.isTotallyInitialized() && app!!.mThingManager != null
-                    && app!!.mStatus == Def.LimitForGettingThings.ALL_UNDERWAY) {
+                    && app!!.mStatus == Def.ThingStatus.UNDERWAY) {
                 val things: MutableList<Thing?> = app!!.mThingManager!!.getThings() ?: break
 
                 val size: Int = things.size

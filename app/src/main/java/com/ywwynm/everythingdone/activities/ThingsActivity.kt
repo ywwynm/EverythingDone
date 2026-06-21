@@ -463,7 +463,7 @@ class ThingsActivity :
         val intent: Intent? = getIntent()
         if (intent != null) {
             val limit = intent.getIntExtra(Def.Communication.KEY_LIMIT, -1)
-            if (limit != -1 && limit != App.getApp()!!.getLimit()) {
+            if (limit != -1 && limit != App.getApp()!!.getStatus()) {
                 App.getApp()!!.setLimit(limit, true)
             }
             mInitialExternalTypeFilterMask = getExternalTypeFilterMask(intent)
@@ -518,7 +518,7 @@ class ThingsActivity :
     }
 
     private fun checkIfReminderHabitsCorrect() {
-        if (App.getApp()!!.getLimit() >= Def.LimitForGettingThings.ALL_FINISHED) {
+        if (App.getApp()!!.getStatus() != Def.ThingStatus.UNDERWAY) {
             return
         }
         Thread(object : Runnable {
@@ -687,7 +687,7 @@ class ThingsActivity :
             openExternalProjectionFromIntent(intent)
             return
         }
-        if (newLimit != -1 && mApp!!.getLimit() != newLimit) {
+        if (newLimit != -1 && mApp!!.getStatus() != newLimit) {
             if (mModeManager!!.getCurrentMode() != ModeManager.NORMAL) {
                 mModeManager!!.backNormalMode(0)
             }
@@ -721,16 +721,16 @@ class ThingsActivity :
             return true
         }
 
-        val limit = mApp!!.getLimit()
-        if (limit <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
-            menuInflater.inflate(R.menu.menu_things_underway, menu)
-            if (limit == Def.LimitForGettingThings.NOTE_UNDERWAY) {
-                menu.findItem(R.id.act_sort_by_alarm).isVisible = false
+        when (mApp!!.getStatus()) {
+            Def.ThingStatus.UNDERWAY -> {
+                menuInflater.inflate(R.menu.menu_things_underway, menu)
             }
-        } else if (limit == Def.LimitForGettingThings.ALL_FINISHED) {
-            menuInflater.inflate(R.menu.menu_things_finished, menu)
-        } else {
-            menuInflater.inflate(R.menu.menu_things_deleted, menu)
+            Def.ThingStatus.FINISHED -> {
+                menuInflater.inflate(R.menu.menu_things_finished, menu)
+            }
+            else -> {
+                menuInflater.inflate(R.menu.menu_things_deleted, menu)
+            }
         }
         configureCurrentFolderMenu(menu)
         tintHomeMenuIconsForAppearance(menu)
@@ -740,7 +740,7 @@ class ThingsActivity :
     private fun configureCurrentFolderMenu(menu: Menu) {
         val currentFolder = mThingManager!!.getCurrentFolder()
         val inFolder = currentFolder != null
-        val limitIsUnderway = mApp!!.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY
+        val limitIsUnderway = mApp!!.getStatus() == Def.ThingStatus.UNDERWAY
         menu.findItem(R.id.act_toggle_current_folder_private)?.let { item ->
             item.isVisible = inFolder && limitIsUnderway
             if (currentFolder != null) {
@@ -1113,8 +1113,8 @@ class ThingsActivity :
     ) {
         mDrawerLayout!!.closeDrawer(GravityCompat.START)
         saveCurrentProjectionScrollState()
-        if (mApp!!.getLimit() != Def.LimitForGettingThings.ALL_UNDERWAY) {
-            mApp!!.setLimit(Def.LimitForGettingThings.ALL_UNDERWAY, false)
+        if (mApp!!.getStatus() != Def.ThingStatus.UNDERWAY) {
+            mApp!!.setStatus(Def.ThingStatus.UNDERWAY, false)
         } else {
             mThingManager!!.setTypeFilterMask(
                 ThingWidgetInfo.TYPE_FILTER_ALL,
@@ -1394,9 +1394,9 @@ class ThingsActivity :
         if (isShortcutCreateFolderResult(data)) {
             updateMainUiForShortcutFolderCreateDone(data)
             return
-        } else if (mApp!!.getLimit() != Def.LimitForGettingThings.ALL_UNDERWAY) {
+        } else if (mApp!!.getStatus() != Def.ThingStatus.UNDERWAY) {
             mFab!!.spread()
-            mApp!!.setLimit(Def.LimitForGettingThings.ALL_UNDERWAY, true)
+            mApp!!.setStatus(Def.ThingStatus.UNDERWAY, true)
             invalidateOptionsMenu()
             mRecyclerView!!.scrollToPosition(0)
             mAdapter!!.setShouldThingsAnimWhenAppearing(false)
@@ -1977,9 +1977,9 @@ class ThingsActivity :
         }
         val limit = intent.getIntExtra(
             Def.Communication.KEY_LIMIT,
-            Def.LimitForGettingThings.ALL_UNDERWAY
+            Def.ThingStatus.UNDERWAY
         )
-        if (mApp!!.getLimit() != limit) {
+        if (mApp!!.getStatus() != limit) {
             mApp!!.setLimit(limit, false)
         }
         val typeFilterMask = getExternalTypeFilterMask(intent) ?: ThingWidgetInfo.TYPE_FILTER_ALL
@@ -2304,7 +2304,7 @@ class ThingsActivity :
 
         mModeManager!!.updateTitleTextSize()
         if (mModeManager!!.getCurrentMode() != ModeManager.SELECTING && !App.isSearching
-            && mApp!!.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY
+            && mApp!!.getStatus() == Def.ThingStatus.UNDERWAY
         ) {
             mFab!!.showFromBottom()
         }
@@ -2367,7 +2367,7 @@ class ThingsActivity :
                         return
                     }
                     if (!FrequentSettings.getBoolean(Def.Meta.KEY_TWICE_BACK)) {
-                        mApp!!.setLimit(Def.LimitForGettingThings.ALL_UNDERWAY, true)
+                        mApp!!.setStatus(Def.ThingStatus.UNDERWAY, true)
                         finish()
                     } else {
                         if (lastClickBack == -1L || System.currentTimeMillis() - lastClickBack > 1600) {
@@ -2375,7 +2375,7 @@ class ThingsActivity :
                             Toast.makeText(this@ThingsActivity, R.string.press_again_to_exit, Toast.LENGTH_SHORT).show()
                         } else {
                             lastClickBack = -1
-                            mApp!!.setLimit(Def.LimitForGettingThings.ALL_UNDERWAY, true)
+                            mApp!!.setStatus(Def.ThingStatus.UNDERWAY, true)
                             finish()
                         }
                     }
@@ -6241,14 +6241,14 @@ class ThingsActivity :
         val sb = StringBuilder()
         var updateStr = ""
         var undoStr = ""
-        val limit = mApp!!.getLimit()
+        val status = mApp!!.getStatus()
         when (stateAfter) {
             Thing.UNDERWAY -> {
                 updateStr = getString(R.string.sb_underway)
-                if (limit <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
+                if (status == Def.ThingStatus.UNDERWAY) {
                     updateStr = getString(R.string.sb_finish)
                     undoStr = getString(R.string.act_sb_undo_finish)
-                } else if (limit == Def.LimitForGettingThings.ALL_FINISHED) {
+                } else if (status == Def.ThingStatus.FINISHED) {
                     undoStr = getString(R.string.act_sb_undo_underway)
                 } else {
                     undoStr = getString(R.string.act_sb_undo)
@@ -6256,7 +6256,7 @@ class ThingsActivity :
             }
             Thing.FINISHED -> {
                 updateStr = getString(R.string.sb_finish)
-                undoStr = if (limit <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
+                undoStr = if (status == Def.ThingStatus.UNDERWAY) {
                     getString(R.string.act_sb_undo_finish)
                 } else {
                     getString(R.string.act_sb_undo)
@@ -6334,10 +6334,10 @@ class ThingsActivity :
             mRecyclerView!!.postDelayed({
                 mActivityHeader!!.setShouldListenToScroll(true)
             }, 160)
-            if (mApp!!.getLimit() <= Def.LimitForGettingThings.NOTE_UNDERWAY) {
+            if (mApp!!.getStatus() == Def.ThingStatus.UNDERWAY) {
                 mFab!!.spread()
             }
-            mApp!!.setLimit(mApp!!.getLimit(), true)
+            mApp!!.setLimit(mApp!!.getStatus(), true)
             refreshActivitySurfaceAndHeader()
             mDrawerHeader!!.updateCompletionRate()
             mAdapter!!.setShouldThingsAnimWhenAppearing(shouldThingsAnimWhenAppearing)
@@ -6591,7 +6591,7 @@ class ThingsActivity :
             if (entry is ThingListEntry.FolderEntry) {
                 if (mModeManager!!.getCurrentMode() == ModeManager.NORMAL && !App.isSearching) {
                     mDrawerLayout!!.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED)
-                    if (mApp!!.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
+                    if (mApp!!.getStatus() == Def.ThingStatus.UNDERWAY) {
                         mModeManager!!.toMovingMode(listPosition)
                         startLongPressDragIfTouchStillActive(
                             listPosition,
@@ -6615,7 +6615,7 @@ class ThingsActivity :
                 && App.getDoingThingId() != thing.id
             ) {
                 mDrawerLayout!!.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED)
-                if (mApp!!.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
+                if (mApp!!.getStatus() == Def.ThingStatus.UNDERWAY) {
                     mModeManager!!.toMovingMode(listPosition)
                     startLongPressDragIfTouchStillActive(
                         listPosition,
@@ -6864,7 +6864,7 @@ class ThingsActivity :
             addThingFolderAction(actionIds, actionTitles, FOLDER_ACTION_MOVE_TO_FOLDER, R.string.move_thing_folder_to)
         }
         addThingFolderAction(actionIds, actionTitles, FOLDER_ACTION_DISSOLVE, R.string.dissolve_thing_folder)
-        if (mApp!!.getLimit() == Def.LimitForGettingThings.ALL_DELETED && folder.isDeleted()) {
+        if (mApp!!.getStatus() == Def.ThingStatus.DELETED && folder.isDeleted()) {
             addThingFolderAction(actionIds, actionTitles, FOLDER_ACTION_RESTORE, R.string.restore_thing_folder)
             addThingFolderAction(
                 actionIds,
@@ -7230,7 +7230,7 @@ class ThingsActivity :
     }
 
     private fun shouldPermanentlyDeleteFolder(folder: ThingFolder): Boolean {
-        return folder.isDeleted() || mApp!!.getLimit() == Def.LimitForGettingThings.ALL_DELETED
+        return folder.isDeleted() || mApp!!.getStatus() == Def.ThingStatus.DELETED
     }
 
     private fun showDeleteThingFolderDialogForCurrentState(folder: ThingFolder) {
@@ -9043,7 +9043,7 @@ class ThingsActivity :
         override fun isLongPressDragEnabled(): Boolean = false
 
         override fun isItemViewSwipeEnabled(): Boolean {
-            return mApp!!.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY
+            return mApp!!.getStatus() == Def.ThingStatus.UNDERWAY
                 && mModeManager!!.getCurrentMode() != ModeManager.SELECTING
                 && !mOverlayDragActive
                 && !mThingManager!!.isThingsEmpty()

@@ -172,7 +172,7 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
             entries.add(ConfigEntry.ThingEntry(thing!!, thingIndex))
         }
         for (folderEntry in folderDAO.getFolderEntriesForProjection(
-            Def.LimitForGettingThings.ALL_UNDERWAY,
+            Def.ThingStatus.UNDERWAY,
             mCurrentFolderId
         )) {
             entries.add(ConfigEntry.FolderEntry(folderEntry))

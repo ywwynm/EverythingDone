@@ -411,7 +411,7 @@ object AppWidgetHelper {
         val typeFilterMask = ThingWidgetInfo.normalizedTypeFilterMask(
             info?.typeFilterMask ?: ThingWidgetInfo.TYPE_FILTER_ALL
         )
-        val limit = Def.LimitForGettingThings.ALL_UNDERWAY // legacy
+        val limit = Def.ThingStatus.UNDERWAY
 
         setThingsListHeaderAppearance(appContext, remoteViews, info, folder, typeFilterMask)
 
@@ -631,7 +631,7 @@ object AppWidgetHelper {
         )
         intent.putExtra(
             Def.Communication.KEY_LIMIT,
-            Def.LimitForGettingThings.ALL_UNDERWAY // legacy
+            Def.ThingStatus.UNDERWAY
         )
         return intent
     }
@@ -693,21 +693,6 @@ object AppWidgetHelper {
 
     private fun getTypeFilterTitle(context: Context, typeFilterMask: Int): String? {
         return ThingWidgetInfo.getTypeFilterTitle(context, typeFilterMask)
-    }
-
-    private fun getStringForLimit(context: Context, limit: Int): String? {
-        if (limit < Def.LimitForGettingThings.ALL_UNDERWAY
-                || limit > Def.LimitForGettingThings.GOAL_UNDERWAY) {
-            return null
-        }
-        val resources: IntArray = intArrayOf(
-                R.string.underway,
-                R.string.note,
-                R.string.reminder,
-                R.string.habit,
-                R.string.goal
-        )
-        return context.getString(resources[limit])
     }
 
     @JvmStatic

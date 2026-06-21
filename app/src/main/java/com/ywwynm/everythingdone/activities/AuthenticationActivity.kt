@@ -105,7 +105,7 @@ open class AuthenticationActivity : AppCompatActivity() {
         val openIntent = Intent(this, ThingsActivity::class.java)
         val limit = source.getIntExtra(
             Def.Communication.KEY_LIMIT,
-            Def.LimitForGettingThings.ALL_UNDERWAY
+            Def.ThingStatus.UNDERWAY
         )
         openIntent.putExtra(Def.Communication.KEY_LIMIT, limit)
         if (source.hasExtra(Def.Communication.KEY_TYPE_FILTER_MASK)) {

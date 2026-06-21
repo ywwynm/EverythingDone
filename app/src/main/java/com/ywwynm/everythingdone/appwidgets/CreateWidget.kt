@@ -31,7 +31,7 @@ open class CreateWidget : AppWidgetProvider() {
             contentIntent.setAction(Def.Communication.SHORTCUT_ACTION_CREATE)
             contentIntent.putExtra(
                     Def.Communication.KEY_LIMIT,
-                    Def.LimitForGettingThings.ALL_UNDERWAY)
+                    Def.ThingStatus.UNDERWAY)
             val pendingIntent: PendingIntent = AppWidgetHelper.getActivityPendingIntentForWidget(
                     context, appWidgetId, contentIntent,
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)

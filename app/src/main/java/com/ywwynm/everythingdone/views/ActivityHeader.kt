@@ -259,18 +259,10 @@ open class ActivityHeader(
                 manager.getActiveTypeFilterMask()
             ) ?: mApp.getString(R.string.underway)
         }
-        return when (mApp.getLimit()) {
-            Def.LimitForGettingThings.NOTE_UNDERWAY ->
-                mApp.getString(R.string.note)
-            Def.LimitForGettingThings.REMINDER_UNDERWAY ->
-                mApp.getString(R.string.reminder)
-            Def.LimitForGettingThings.HABIT_UNDERWAY ->
-                mApp.getString(R.string.habit)
-            Def.LimitForGettingThings.GOAL_UNDERWAY ->
-                mApp.getString(R.string.goal)
-            Def.LimitForGettingThings.ALL_FINISHED ->
+        return when (mApp.getStatus()) {
+            Def.ThingStatus.FINISHED ->
                 mApp.getString(R.string.finished)
-            Def.LimitForGettingThings.ALL_DELETED ->
+            Def.ThingStatus.DELETED ->
                 mApp.getString(R.string.deleted)
             else ->
                 mApp.getString(R.string.underway)

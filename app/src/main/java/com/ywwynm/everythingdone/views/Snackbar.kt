@@ -78,7 +78,7 @@ open class Snackbar(
         }
 
         if (mBindingFab != null &&
-                mApp.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
+                mApp.getStatus() == Def.ThingStatus.UNDERWAY) {
             mBindingFab.showFromBottom()
             mBindingFab.raise(mHeight)
         }
@@ -125,7 +125,7 @@ open class Snackbar(
                 mHideThread!!.interrupt()
             }
             if (mBindingFab != null &&
-                    mApp.getLimit() <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
+                    mApp.getStatus() == Def.ThingStatus.UNDERWAY) {
                 mBindingFab.fall()
             }
         } catch (e: Exception) {

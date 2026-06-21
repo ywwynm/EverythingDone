@@ -12,30 +12,6 @@
     </group>
 
     <group
-        android:id="@+id/drawer_group_things_types">
-        <item
-            android:id="@+id/drawer_note"
-            android:title="@string/note"
-            android:orderInCategory="1000"
-            android:icon="@drawable/drawer_note"/>
-        <item
-            android:id="@+id/drawer_reminder"
-            android:title="@string/reminder"
-            android:orderInCategory="1001"
-            android:icon="@drawable/drawer_reminder"/>
-        <item
-            android:id="@+id/drawer_habit"
-            android:title="@string/habit"
-            android:orderInCategory="1002"
-            android:icon="@drawable/drawer_habit"/>
-        <item
-            android:id="@+id/drawer_goal"
-            android:title="@string/goal"
-            android:orderInCategory="1003"
-            android:icon="@drawable/drawer_goal"/>
-    </group>
-
-    <group
         android:id="@+id/drawer_group_things_other">
         <item
             android:id="@+id/drawer_finished"
