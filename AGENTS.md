@@ -1,4 +1,4 @@
-**使用专业、简洁的中文与我对话，涉及到中英文同时出现的场合（例如要提到某个代码文件、或者不太需要翻译的英文概念），仔细斟酌二者的连接和组织方式，不要出现比喻。不过，在你更新下述的文件时，使用英文。**
+**使用专业、简洁的中文与我对话，涉及到中英文同时出现的场合（例如要提到某个代码文件、或者不太需要翻译的英文概念），仔细斟酌二者的连接和组织方式，不要出现比喻。在你更新下述的文件时，同样使用中文（此前有的文件是英文，没关系，之后统一用中文即可）。**
 
 This is an Android application named "EverythingDone" or "完事儿". The project contains a directory "Everything-Android", which had been an upgraded version of EverythingDone written in kotlin. However, I decide to still use EverythingDone project for any update instead of Everything-Android. We can borrow some designs/codes/new-functionalities from Everything-Android, but that directory may be deleted after some time.
 
@@ -7,7 +7,9 @@ under `.agents/rules/` at first. When a task touches an existing feature, also
 read the relevant `docs/features/<kebab-case-feature-slug>/` directory before
 planning or editing.**
 
-**Git commit message should be in detail and in both English and Chinese.**
+**当你被要求将debug版本的APP发布到阿里云的时候，如果当前正在做某项功能，那么就在docs/features/<kebab-case-feature-slug>/debug-updates/目录下新建一个命名格式形如update-20260519012916.md的文件，将发布日志用中文写入，并在调用相应的gradle发布任务时将该文件传入。如果没有这个文件夹，就新建它。如果当前并没有在做某个具体的功能，也就是说找不到对应的docs/features/<kebab-case-feature-slug>/目录，那么就在memory/debug-updates/目录下新建相应的md文件。发布日志文件在一般情况下都不需要进行读取，只有在用户要求、或者检查相关功能实现或迭代情况时读取，读取时可以先读取标题以检查是否是对当前任务有用的信息。**
+
+**Git commit title/message should be in detail and in both English and Chinese.**
 
 ### Operational rules
 
