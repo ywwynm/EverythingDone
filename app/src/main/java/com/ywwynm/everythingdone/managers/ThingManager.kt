@@ -419,15 +419,15 @@ open class ThingManager private constructor(context: Context?) {
                 mixed.add(entry)
             }
         }
-        mixed.addAll(
-            mFolderDao!!.getFolderEntriesForTypeFilterProjection(
-                mStatus,
-                mTypeFilterMask,
-                mProjection.currentFolderId,
-                keyword,
-                color
-            )
+        val folderEntries = mFolderDao!!.getFolderEntriesForTypeFilterProjection(
+            mStatus,
+            mTypeFilterMask,
+            mProjection.currentFolderId,
+            keyword,
+            color
         )
+        mixed.addAll(folderEntries)
+        addTypeFilterNotifyEmptyEntries(mixed, folderEntries, keyword, color)
         Collections.sort(mixed, object : Comparator<ThingListEntry> {
             override fun compare(entry1: ThingListEntry, entry2: ThingListEntry): Int {
                 val result = ThingsSorter.compareByLocationAndSticky(
@@ -440,6 +440,108 @@ open class ThingManager private constructor(context: Context?) {
         })
         entries.addAll(mixed)
         mThingListEntries = entries
+    }
+
+    private fun addTypeFilterNotifyEmptyEntries(
+        mixed: MutableList<ThingListEntry>,
+        folderEntries: List<ThingListEntry.FolderEntry>,
+        keyword: String?,
+        color: Int
+    ) {
+        if (!hasCustomTypeFilter()) return
+        if (keyword != null || color != 0) return
+
+        if (mStatus != Def.ThingStatus.UNDERWAY) {
+            if (mixed.none { entryHasRealProjectionContent(it) }) {
+                addTransientNotifyEmptyEntry(mixed, mTypeFilterMask)
+            }
+            return
+        }
+
+        for (typeMask in selectedSpecificTypeMasks()) {
+            val hasThing = mixed.any { entry ->
+                entry is ThingListEntry.ThingEntry &&
+                    thingMatchesSpecificTypeMask(entry.thing.type, typeMask)
+            }
+            if (hasThing) continue
+
+            val hasFolder = folderEntries.any { entry ->
+                mFolderDao!!.countDescendantThingsForTypeFilterProjection(
+                    entry.folder,
+                    mStatus,
+                    typeMask
+                ) > 0
+            }
+            if (!hasFolder) {
+                addTransientNotifyEmptyEntry(mixed, typeMask)
+            }
+        }
+    }
+
+    private fun entryHasRealProjectionContent(entry: ThingListEntry): Boolean {
+        return when (entry) {
+            is ThingListEntry.FolderEntry -> entry.recursiveThingCount > 0
+            is ThingListEntry.ThingEntry -> {
+                val type = entry.thing.type
+                type != Thing.HEADER && type < Thing.NOTIFY_EMPTY_UNDERWAY
+            }
+        }
+    }
+
+    private fun selectedSpecificTypeMasks(): List<Int> {
+        val mask = ThingWidgetInfo.normalizedTypeFilterMask(mTypeFilterMask)
+        val masks = ArrayList<Int>(4)
+        if (mask and ThingWidgetInfo.TYPE_FILTER_NOTE != 0) {
+            masks.add(ThingWidgetInfo.TYPE_FILTER_NOTE)
+        }
+        if (mask and ThingWidgetInfo.TYPE_FILTER_REMINDER != 0) {
+            masks.add(ThingWidgetInfo.TYPE_FILTER_REMINDER)
+        }
+        if (mask and ThingWidgetInfo.TYPE_FILTER_HABIT != 0) {
+            masks.add(ThingWidgetInfo.TYPE_FILTER_HABIT)
+        }
+        if (mask and ThingWidgetInfo.TYPE_FILTER_GOAL != 0) {
+            masks.add(ThingWidgetInfo.TYPE_FILTER_GOAL)
+        }
+        return masks
+    }
+
+    private fun thingMatchesSpecificTypeMask(@Thing.Type type: Int, typeMask: Int): Boolean {
+        return when (typeMask) {
+            ThingWidgetInfo.TYPE_FILTER_NOTE ->
+                type == Thing.NOTE || type == Thing.WELCOME_NOTE ||
+                    type == Thing.NOTIFICATION_NOTE
+            ThingWidgetInfo.TYPE_FILTER_REMINDER ->
+                type == Thing.REMINDER || type == Thing.WELCOME_REMINDER ||
+                    type == Thing.NOTIFICATION_REMINDER
+            ThingWidgetInfo.TYPE_FILTER_HABIT ->
+                type == Thing.HABIT || type == Thing.WELCOME_HABIT ||
+                    type == Thing.NOTIFICATION_HABIT
+            ThingWidgetInfo.TYPE_FILTER_GOAL ->
+                type == Thing.GOAL || type == Thing.WELCOME_GOAL ||
+                    type == Thing.NOTIFICATION_GOAL
+            else -> false
+        }
+    }
+
+    private fun addTransientNotifyEmptyEntry(
+        mixed: MutableList<ThingListEntry>,
+        typeFilterMask: Int
+    ) {
+        val notifyEmpty = Thing.generateNotifyEmpty(
+            mStatus,
+            typeFilterMask,
+            getHeaderId(),
+            mContext
+        ) ?: return
+        notifyEmpty.id = transientNotifyEmptyId(notifyEmpty.type)
+        notifyEmpty.location = 0L
+        notifyEmpty.folderId = mProjection.currentFolderId
+        mixed.add(ThingListEntry.ThingEntry(notifyEmpty))
+    }
+
+    private fun transientNotifyEmptyId(@Thing.Type type: Int): Long {
+        return Long.MIN_VALUE + type
     }
 
     /**

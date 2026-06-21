@@ -627,7 +627,7 @@ open class ThingDAO private constructor(context: Context?) {
             Def.ThingStatus.DELETED -> Thing.DELETED
             else -> Thing.UNDERWAY
         }
-        val notifyEmptyType = Thing.getNotifyEmptyType(status, typeFilterMask)
+        val notifyEmptyType = getProjectionNotifyEmptyType(status, mask)
 
         val sb = StringBuilder()
         if (mask == ThingWidgetInfo.TYPE_FILTER_ALL) {
@@ -676,7 +676,11 @@ open class ThingDAO private constructor(context: Context?) {
             sb.append("(((").append(typeConditions.joinToString(" or "))
                 .append(") and state=").append(state)
         }
-        sb.append(") or type=").append(notifyEmptyType).append(")")
+        if (notifyEmptyType != null) {
+            sb.append(") or type=").append(notifyEmptyType).append(")")
+        } else {
+            sb.append("))")
+        }
 
         if (kw != null) {
             kw = kw.replace("'".toRegex(), "''")
@@ -805,6 +809,14 @@ open class ThingDAO private constructor(context: Context?) {
                 intArrayOf(Def.ThingStatus.DELETED)
             else -> intArrayOf(Def.ThingStatus.UNDERWAY)
         }
+    }
+
+    private fun getProjectionNotifyEmptyType(status: Int, typeFilterMask: Int): Int? {
+        val mask = ThingWidgetInfo.normalizedTypeFilterMask(typeFilterMask)
+        if (mask == ThingWidgetInfo.TYPE_FILTER_ALL) {
+            return Thing.getNotifyEmptyType(status, mask)
+        }
+        return null
     }
 
     private fun getTypeFilterMasksForStatusType(status: Int, @Thing.Type type: Int): IntArray {

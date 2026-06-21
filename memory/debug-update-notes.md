@@ -1,6 +1,32 @@
 # Current Debug Update Notes
 
-Latest published debug update: `202606210341`.
+Latest published debug update: `202606210420`.
+
+## 2026-06-21 - 修复从详情页返回后 Activity Header 标题布局状态不一致
+
+这次 debug update 修复打开一个记事详情页再返回首页后，Activity Header 标题行和继续滑动时状态不一致的问题。用户反馈的表现包括标题最大行数、宽度、位置等可能变化，导致显示异常。
+
+- **原因**：`ThingsActivity.onResume()` 会调用 `refreshActivitySurfaceAndHeader()`，该路径会刷新 Header 文本；而 `ActivityHeader.updateText()` 会重建标题的 `maxLines`、`maxWidth` 等布局约束。打开 Detail 返回时，RecyclerView 仍停留在原来的滚动位置，但 `onPause()` 已经把 `mScrollCausedByFinger` 置为 `false`，普通 `onScrolled` 不会立即再次同步 Header 折叠状态，导致 Header 暂时按展开态约束显示。
+- **修复**：`refreshActivitySurfaceAndHeader()` 在 `mActivityHeader?.updateText()` 后注册一次 pre-draw 同步，使用当前 RecyclerView 的首个可见位置调用 `ActivityHeader.updateAll(...)`。这样下一帧绘制前会重新应用当前滚动位置对应的 `maxLines`、`maxWidth`、scale 和 translation。
+- **影响范围**：修复放在统一 Header 刷新入口，不只覆盖 Detail 返回，也覆盖其它“刷新 Header 文本但列表滚动位置没有变化”的路径。
+
+验证状态：
+
+- `E:\projects\EverythingDone\gradlew.bat :app:assembleDebug` 已通过，结果为 `BUILD SUCCESSFUL`。
+
+## 2026-06-21 - 修复 Drawer 多类型筛选空状态，并让 widget 配置页文件夹区域动态高度
+
+这次 debug update 修复两个筛选和配置界面的细节：
+
+- **Drawer type filter 空状态语义**：用户反馈，在 Drawer 中同时选择记录/提醒/习惯/目标时，结果和记事列表小组件配置界面选择这些类型不一致，Drawer 会把 generic `NOTIFY_EMPTY_UNDERWAY` 带出来。进一步确认后，正确语义不是“多类型一律不显示空状态”，而是每个被选中的具体 type 都要独立判断：如果当前投影里没有该 type 的真实记事，也没有任何可见子文件夹递归包含该 type 的记事，就显示对应的 `NOTIFY_EMPTY_*` 占位卡片。
+- **实现方式**：`ThingDAO.getThingsCursorForDisplay()` 现在只在 all-types 投影中从数据库查询 `NOTIFY_EMPTY` 行；自定义 type filter 的空状态由 `ThingManager.rebuildThingListEntries()` 在内存中按 type 动态补位。UNDERWAY 下会分别补 `NOTIFY_EMPTY_NOTE` / `NOTIFY_EMPTY_REMINDER` / `NOTIFY_EMPTY_HABIT` / `NOTIFY_EMPTY_GOAL`；FINISHED/DELETED 下只有整个自定义筛选结果为空时才补对应 status 的通用空状态。临时占位不会写入数据库。
+- **ActivityHeader 统计**：`ActivityHeader` 继续通过 `getVisibleChildCountsForActivityHeader()` 统计真实 Thing 和匹配的 Folder descendants；`NOTIFY_EMPTY` 卡片仍被排除，因此占位卡片不会被算作某个 type 的真实记事。
+- **记事列表小组件配置页 Folder scope 高度**：上方文件夹列表不再使用固定 `176dp` 初始高度。`activity_things_list_widget_configuration.xml` 改为 `wrap_content`，运行时按可见行数动态设置高度：每行 `44dp`，最多 4 行，也就是最多 `176dp`；没有任何文件夹时只显示根行高度。展开或收缩文件夹后会重新计算高度，只有可见行数超过 4 行时才保持原来的滚动高度。
+
+验证状态：
+
+- `E:\projects\EverythingDone\gradlew.bat :app:assembleDebug` 已通过，结果为 `BUILD SUCCESSFUL`。
+- `git diff --check` 已通过，仅有仓库既有的 LF/CRLF 提示。
 
 ## 2026-06-21 - 彻底移除 limit 投影协议并修复剩余 status/type filter 语义
 

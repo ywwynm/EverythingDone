@@ -165,3 +165,19 @@ reuse or extract the widget config's bitmask toggle logic.
 | 正在进行 / 已完成 / 回收站 | Yes |
 | Folder tap | Yes |
 | Settings / Help / About | Yes |
+
+### 27. Type-filter empty states are projection-only placeholders
+
+When a custom type filter is active, `NOTIFY_EMPTY` rows are not treated as
+members of the selected type. The list projection checks each selected concrete
+type separately:
+
+- a direct visible Thing of that type counts as content;
+- a visible child Folder whose descendants contain that type also counts as
+  content;
+- only when both checks are empty does the projection add a transient
+  `NOTIFY_EMPTY_*` card for that type.
+
+These cards are built in memory for the current projection and are not inserted
+into the database. ActivityHeader counts continue to count only real Things and
+matching Folder descendants, so empty placeholders do not inflate type counts.

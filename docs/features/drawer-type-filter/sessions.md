@@ -1,5 +1,27 @@
 # Drawer Type Filter — Sessions
 
+## 2026-06-21 - Follow-up: per-type empty placeholders for Drawer filters
+
+Fixed a Drawer type-filter mismatch where selecting all four concrete types
+could surface the generic UNDERWAY empty card. `ThingDAO.getThingsCursorForDisplay`
+now only includes database `NOTIFY_EMPTY` rows for all-types projections, while
+`ThingManager.rebuildThingListEntries()` adds projection-only empty cards for
+custom type filters.
+
+For UNDERWAY custom filters, each selected concrete type is evaluated
+independently. A visible direct Thing of that type or a visible child Folder
+with descendants of that type suppresses the empty placeholder; otherwise a
+transient `NOTIFY_EMPTY_NOTE` / `REMINDER` / `HABIT` / `GOAL` card is added.
+The transient card is not written to the database and ActivityHeader counts
+continue to ignore `NOTIFY_EMPTY` cards.
+
+Verification: `E:\projects\EverythingDone\gradlew.bat :app:assembleDebug`
+completed with `BUILD SUCCESSFUL`; `git diff --check` reported only the
+repository's existing LF/CRLF warnings. Published debug update `202606210410`
+and verified remote `latest.json` points at
+`http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606210410.apk`
+with SHA-256 `bf09d62e6fdb084b0b4d17798f707b61b7f96cf3829694117242197e2c37009e`.
+
 ## 2026-06-21 — Implementation: back-end refactoring + Drawer UI + debug publish
 
 Completed the full implementation in one pass:

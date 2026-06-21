@@ -2147,6 +2147,8 @@ class ThingsActivity :
         }
         applyCreateFabBackgroundForCurrentProjection()
         mActivityHeader?.updateText()
+        // `updateText` rebuilds title constraints; re-apply the current scroll state before draw.
+        requestActivityHeaderStateRefreshBeforeDraw(mThingManager?.getProjection()?.key())
     }
 
     private fun applyContextualStatusBarChrome() {

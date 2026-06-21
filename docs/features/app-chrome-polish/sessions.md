@@ -1,5 +1,25 @@
 # App Chrome Polish Sessions
 
+## 2026-06-21 - Resync ActivityHeader layout after Detail return
+
+Fixed an ActivityHeader state drift after opening a Thing detail screen and
+returning to the list. `ThingsActivity.onResume()` refreshes the home surface
+and header text, and `ActivityHeader.updateText()` rebuilds title constraints.
+When the RecyclerView was still scrolled, those rebuilt constraints could stay
+at the expanded-header defaults until the user scrolled again.
+
+`refreshActivitySurfaceAndHeader()` now schedules a pre-draw
+`ActivityHeader.updateAll(...)` using the current RecyclerView first visible
+position after the text refresh. This reapplies the correct max lines, max
+width, scale, and translation before the next frame is drawn.
+
+Verification: `E:\projects\EverythingDone\gradlew.bat :app:assembleDebug`
+completed with `BUILD SUCCESSFUL`; `git diff --check` reported only the
+repository's existing LF/CRLF warnings. Published debug update `202606210420`
+and verified remote `latest.json` points at
+`http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606210420.apk`
+with SHA-256 `e519e4ef8c9ba0a9109d56f7d5baa4f4710391c29d37bb6adbd7dc2ddde7acdc`.
+
 ## 2026-06-18 - Unified compact dialog title and action styling
 - Added shared `app_chrome_dialog_*` dimension resources and an `app_chrome_dialog_cancel` color token for light/dark cancel actions.
 - Updated compact `DialogFragment` action buttons, the Thing/Folder Card Appearance panel actions, media crop dialog actions, and widget configuration dialog-like confirm actions to use common title/action sizing.

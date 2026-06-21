@@ -166,6 +166,7 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
         mScopeAdapter = ScopeAdapter()
         rv.adapter = mScopeAdapter
         rv.layoutManager = LinearLayoutManager(this)
+        updateScopePickerHeight()
         rv.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 updateScopeScrollSeparators()
@@ -174,11 +175,25 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
         // Scroll to the selected folder so it is visible when the config opens
         // from an existing widget (re-configuration flow).
         rv.post {
+            updateScopePickerHeight()
             val pos = mScopeAdapter!!.findSelectedPosition()
             if (pos >= 0) {
                 (rv.layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(pos, rv.height / 3)
             }
             updateScopeScrollSeparators()
+        }
+    }
+
+    private fun updateScopePickerHeight() {
+        val rv = mScopeRecyclerView ?: return
+        val adapter = mScopeAdapter ?: return
+        val rowCount = adapter.visibleItemCount()
+        val targetHeight = (rowCount.coerceAtLeast(1) * dp(SCOPE_ROW_HEIGHT_DP))
+            .coerceAtMost(dp(SCOPE_MAX_VISIBLE_ROWS * SCOPE_ROW_HEIGHT_DP))
+        val params = rv.layoutParams
+        if (params.height != targetHeight) {
+            params.height = targetHeight
+            rv.layoutParams = params
         }
     }
 
@@ -513,6 +528,10 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
             return visibleItems.size
         }
 
+        fun visibleItemCount(): Int {
+            return visibleItems.size
+        }
+
         private fun rebuildVisibleItems() {
             visibleItems.clear()
             visibleItems.add(ScopeItem(null, 0))
@@ -585,6 +604,7 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
 
             val childCount = countVisibleChildren(folder.id)
             rebuildVisibleItems()
+            updateScopePickerHeight()
 
             if (expanding) {
                 notifyItemRangeInserted(folderPos + 1, childCount)
@@ -672,5 +692,7 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
 
     companion object {
         const val TAG: String = "ThingsListWidgetConfiguration"
+        private const val SCOPE_ROW_HEIGHT_DP = 44
+        private const val SCOPE_MAX_VISIBLE_ROWS = 4
     }
 }

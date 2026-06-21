@@ -1,5 +1,17 @@
 # Thing Folders Sessions
 
+## 2026-06-21 - Dynamic Things-list AppWidget scope height
+
+Adjusted the Things-list AppWidget configuration Folder scope picker so its
+height follows the current visible row count. The picker now uses 44dp per
+visible row and caps at four rows (176dp), which preserves the previous maximum
+height only when the visible Folder tree needs scrolling. Expanding or
+collapsing Folder rows recomputes the height immediately.
+
+Verification: `E:\projects\EverythingDone\gradlew.bat :app:assembleDebug`
+completed with `BUILD SUCCESSFUL`. The change shipped in debug update
+`202606210410`.
+
 ## 2026-06-20 - Folder-scoped AppWidget create-return appearing animation
 
 - Updated the Folder-scoped Things-list AppWidget create-return path to keep

@@ -30,7 +30,7 @@
     <com.ywwynm.everythingdone.views.StablerRecyclerView
         android:id="@+id/rv_scope_things_list_widget_config"
         android:layout_width="match_parent"
-        android:layout_height="176dp"
+        android:layout_height="wrap_content"
         android:overScrollMode="never"/>
 
     <View
