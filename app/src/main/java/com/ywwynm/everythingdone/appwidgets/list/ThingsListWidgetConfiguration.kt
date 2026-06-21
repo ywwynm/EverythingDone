@@ -259,17 +259,16 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
             }
             setTypeButtonBackground(button, selected)
             button.setColorFilter(if (selected) mAccentColor else normalColor)
-            button.alpha = if (selected) 1.0f else 0.48f
         }
     }
 
     private fun updateTypeFilterSummary() {
         val typeTitle = if (ThingWidgetInfo.isAllTypeFilter(mTypeFilterMask)) {
-            getString(R.string.all)
+            getString(R.string.all_types)
         } else {
-            ThingWidgetInfo.getTypeFilterTitle(this, mTypeFilterMask) ?: getString(R.string.all)
+            ThingWidgetInfo.getTypeFilterTitle(this, mTypeFilterMask) ?: getString(R.string.all_types)
         }
-        mTvTypeFilterSummary?.text = getString(R.string.widget_type_filter_summary, typeTitle)
+        mTvTypeFilterSummary?.text = typeTitle
     }
 
     private fun setTypeButtonBackground(button: ImageView, selected: Boolean) {

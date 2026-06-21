@@ -2,6 +2,13 @@
 
 Latest published debug update: `202606210142`, APK `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606210142.apk`.
 
+## 2026-06-21 - Widget 配置页类型 icon 去透明度 + 摘要文本格式对齐 Drawer
+
+这次 debug update 对齐记事列表 widget 配置页与 Drawer 的类型筛选 UI：
+
+- 类型 icon 选中/未选中均移除 alpha 透明度变化，始终保持完全不透明。
+- 摘要文本格式从"记事类型：全部"/"记事类型：提醒/习惯"改为"全部类型"/"提醒/习惯"（与 Drawer 一致），去掉 `widget_type_filter_summary` 前缀。
+
 ## 2026-06-21 - 类型提示文本颜色对齐 widget 配置页和卡片外观 panel
 
 Drawer 类型筛选的摘要文本颜色从 `app_chrome_on_surface_secondary` 改为 `app_chrome_on_surface_hint`，与记事列表 widget 配置页的类型提示文本（`tv_widget_type_filter_summary`）和调整记事卡片外观 panel 里的标签文本使用同一颜色。
