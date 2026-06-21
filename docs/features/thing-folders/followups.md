@@ -13,7 +13,9 @@
 - Decide whether the Things-list AppWidget create button should authenticate
   before creating inside an effectively private Folder target.
 - Decide whether empty Things-list AppWidget projections should keep the old
-  notify-empty placeholder behavior or intentionally render empty content.
+  notify-empty placeholder behavior, intentionally render empty content, or get
+  a dedicated RemoteViews empty-state presentation after the in-app Home Empty
+  State change removes stored placeholder Things.
 - AppWidget RemoteViews cannot reuse the in-app RecyclerView /
   StaggeredGridLayoutManager implementation for large Folder Cards. A
   widget-side large Folder presentation can only be an approximation built from
@@ -25,6 +27,8 @@
 
 ## Mixed List Gestures
 
+- Design and implement an explicit entry point for creating an Empty Thing
+  Folder now that Empty Thing Folders are valid user-owned containers.
 - Tune the top-left-corner folder drop hit target and animated feedback after
   device testing if ordinary Thing reordering or intentional folder creation
   still feels too easy to trigger.

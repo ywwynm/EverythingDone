@@ -897,15 +897,15 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
 
     private fun initBackButton(@Thing.Type thingType: Int) {
         when (thingType) {
-            Thing.REMINDER, Thing.WELCOME_REMINDER -> {
+            Thing.REMINDER -> {
                 mIbBack!!.setImageResource(R.drawable.act_back_reminder)
                 mIbBack!!.contentDescription = getString(R.string.cd_back_reminder)
             }
-            Thing.HABIT, Thing.WELCOME_HABIT -> {
+            Thing.HABIT -> {
                 mIbBack!!.setImageResource(R.drawable.act_back_habit)
                 mIbBack!!.contentDescription = getString(R.string.cd_back_habit)
             }
-            Thing.GOAL, Thing.WELCOME_GOAL -> {
+            Thing.GOAL -> {
                 mIbBack!!.setImageResource(R.drawable.act_back_goal)
                 mIbBack!!.contentDescription = getString(R.string.cd_back_goal)
             }
@@ -3417,9 +3417,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         if (mThing == null) return
 
         @Thing.Type val type = mThing!!.type
-        val alarmBearing = type == Thing.REMINDER || type == Thing.WELCOME_REMINDER
-            || type == Thing.HABIT || type == Thing.WELCOME_HABIT
-            || type == Thing.GOAL || type == Thing.WELCOME_GOAL
+        val alarmBearing = type == Thing.REMINDER || type == Thing.HABIT || type == Thing.GOAL
         if (!alarmBearing) return
 
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS)

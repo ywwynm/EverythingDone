@@ -144,8 +144,9 @@
 - The move-to-Folder dialog should reserve stable space for its scroll dividers
   and action-row gap so expanding a Folder tree into a scrollable state does not
   shift or flash the dialog layout.
-- When a Thing Folder becomes empty after moving Things or child Folders out of
-  it, delete that empty Folder automatically.
+- Empty Thing Folders are valid user-owned containers. Do not automatically
+  delete a Thing Folder merely because moving Things or child Folders out of it
+  leaves it structurally empty.
 - Long-pressing a Folder Card should enter the same drag/select affordance as
   long-pressing a Thing Card. A Folder can be dragged into another Folder, and a
   release that returns to the original position should enter selecting mode

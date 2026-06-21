@@ -1,6 +1,58 @@
 # Current Debug Update Notes
 
-Latest published debug update: `202606210420`.
+Latest published debug update: `202606210824`.
+
+## 2026-06-21 - 筛选下隐藏没有匹配记事的文件夹
+
+这次 debug update 修正首页 Folder Card 在 `status + typeFilterMask` 筛选下的显示规则：
+文件夹本身仍然允许为空并保留在数据模型里，但当前筛选条件下，如果某个 Folder subtree
+里没有任何匹配的真实记事，这个 Folder Card 就不会出现在记事列表中。
+
+- **用户反馈**：在 state 和 type 筛选条件下，文件夹里如果没有相关记事，就不要出现在记事列表里。
+- **实现方式**：收紧 `ThingFolderDAO.getFolderEntriesForTypeFilterProjection()` 和缩略图子
+  Folder 判断路径，让主列表使用的 type-filter projection 必须满足
+  `countDescendantThingsForTypeFilterProjection(...) > 0` 才显示 Folder Card。
+- **保留语义**：Structurally Empty Thing Folder 仍然是有效用户内容，不恢复自动删除；这次只影响
+  首页列表 projection 的可见性。配置/浏览类入口使用的 `getFolderEntriesForProjection()` 保持不变。
+- **文档同步**：更新 `docs/features/thing-folders/` 和 `docs/features/home-empty-state/`
+  中关于 Empty Folder 与筛选投影的决策和 session 记录。
+
+验证状态：
+
+- `.\gradlew.bat :app:assembleDebug` 已通过，结果为 `BUILD SUCCESSFUL`。
+- `git diff --check` 已通过，仅有仓库既有的 LF/CRLF 提示。
+
+## 2026-06-21 - 将 WELCOME/NOTIFY_EMPTY 占位记事迁移为空状态 UI
+
+这次 debug update 根据前面的充分讨论，完成首页空状态的大改动：应用不再把
+`WELCOME_*` 和 `NOTIFY_EMPTY_*` 作为真实或临时记事呈现，而是在首页列表为空时
+显示居中的 `ImageView` + `TextView` 空状态 UI。
+
+- **首次启动和首次使用状态**：新数据库不再自动插入 `WELCOME_*` 记事；旧数据库会在初始化
+  Home Empty State 历史后删除 legacy placeholder 行。首次使用提示改为读取原有
+  `welcome_*` 字符串，并区分全局 first-use 与具体 `NOTE` / `REMINDER` / `HABIT` /
+  `GOAL` 类型 first-use。
+- **操作后变空状态**：完成、删除、恢复、永久删除、改变类型、移动记事、移动/删除/恢复/
+  永久删除/解散文件夹等当前 Activity 内的用户操作，如果让当前 projection 变空，会显示旧
+  `empty_*` 文案对应的瞬时操作结果提示；切换 status/type/filter/folder、搜索、颜色筛选、
+  重启或重新打开后不再保留这个瞬时状态。
+- **普通空状态**：操作结束后或用户已经创建过对应内容后，空列表使用新的 `home_empty_*`
+  字符串，不再复用 `NOTIFY_EMPTY_*` 语义。
+- **空文件夹状态**：Structurally Empty Thing Folder 不再被自动删除，允许作为用户内容保留；
+  父列表可以显示空 Folder Card，打开空文件夹时显示文件夹专属空状态。显式创建空文件夹的入口
+  仍按讨论结果 deferred。
+- **数据和兼容清理**：新增 `HomeEmptyStateHistory`，从现有真实记事、现有 Thing Folder
+  以及旧 `ThingsCounts.ALL` 初始化 first-use 历史；`ThingDAO`、`ThingManager`、
+  `ThingsCounts`、Detail 返回路径、单记事 widget 配置和列表 widget 均移除对 legacy
+  placeholder 的正常业务依赖。
+- **复核修正**：发布前按 16 个确认点重新核对，补删了已经不用的
+  `DBHelper.generateInsertInitialSQL()` 旧初始化 helper，并修正了 `ThingBackground.fromRandom()`
+  里指向该旧函数的注释。
+
+验证状态：
+
+- `.\gradlew.bat :app:assembleDebug` 已通过，结果为 `BUILD SUCCESSFUL`。
+- `git diff --check` 已通过，仅有仓库既有的 LF/CRLF 提示。
 
 ## 2026-06-21 - 修复从详情页返回后 Activity Header 标题布局状态不一致
 

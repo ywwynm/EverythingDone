@@ -235,6 +235,16 @@
     <string name="empty_finished">什么事儿都没完成吗？</string>
     <string name="empty_deleted">你有一定要清空回收站的强迫症吗？我也有的说…</string>
 
+    <!--ordinary empty states-->
+    <string name="home_empty_underway">这里还没有进行中的记事</string>
+    <string name="home_empty_note">这里还没有笔记</string>
+    <string name="home_empty_reminder">这里还没有提醒</string>
+    <string name="home_empty_habit">这里还没有习惯</string>
+    <string name="home_empty_goal">这里还没有目标</string>
+    <string name="home_empty_finished">这里还没有已完成的记事</string>
+    <string name="home_empty_deleted">这里还没有已删除的记事</string>
+    <string name="home_empty_folder">这个文件夹还是空的</string>
+
     <!--Reminder-->
     <string name="reminder_expired">已过期</string>
     <string name="reminder_needless">已无需提醒</string>

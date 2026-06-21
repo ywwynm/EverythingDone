@@ -122,8 +122,7 @@ class ThingBackground private constructor(
          * A random [ThingBackground] matching the production new-thing
          * distribution: 50/50 PURE vs GRADIENT, fully random RGB (per the
          * color migration plan's "no HSL clamp" rule). Convenience for callers
-         * that need a one-shot random bg without going through App.rollBackground
-         * — notably `DBHelper.generateInsertInitialSQL` on fresh install.
+         * that need a one-shot random bg without going through App.rollBackground.
          */
         @JvmStatic
         fun fromRandom(): ThingBackground {

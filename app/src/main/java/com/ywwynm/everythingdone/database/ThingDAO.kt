@@ -40,6 +40,7 @@ open class ThingDAO private constructor(context: Context?) {
     init {
         val helper = DBHelper(context)
         db = helper.writableDatabase
+        helper.ensureHomeEmptyStateData(db!!)
         recreateHeader()
     }
 
@@ -154,7 +155,7 @@ open class ThingDAO private constructor(context: Context?) {
             val t = Thing(cursor)
             if (filterBucket != com.ywwynm.everythingdone.utils.BackgroundUtil.HUE_BUCKET_NONE
                     && t.type != Thing.HEADER
-                    && t.type <  Thing.NOTIFY_EMPTY_UNDERWAY) {
+                    && !Thing.isLegacyPlaceholderType(t.type)) {
                 if (!com.ywwynm.everythingdone.utils.BackgroundUtil.matchesHueBucket(
                         t.getBackground(), filterBucket)) {
                     continue
@@ -258,7 +259,6 @@ open class ThingDAO private constructor(context: Context?) {
     private fun belongsToProjectionFolder(thing: Thing?, folderId: Long?): Boolean {
         if (thing == null) return false
         if (thing.type == Thing.HEADER) return true
-        if (thing.type >= Thing.NOTIFY_EMPTY_UNDERWAY) return folderId == null
         return thing.folderId == folderId
     }
 
@@ -270,9 +270,6 @@ open class ThingDAO private constructor(context: Context?) {
 
         val type: Int = thing!!.type
         val state: Int = thing.state
-        if (handleNotifyEmpty) {
-            deleteNotifyEmpty(type, state, handleCurrentStatus)
-        }
 
         val values = ContentValues(15)
         values.put(Def.Database.COLUMN_ID_THINGS,          thing.id)
@@ -315,9 +312,6 @@ open class ThingDAO private constructor(context: Context?) {
 
         val typeAfter: Int = updatedThing.type
         val state: Int = updatedThing.state
-        if (handleNotifyEmpty) {
-            deleteNotifyEmpty(typeAfter, state, handleCurrentStatus)
-        }
 
         prepareAppearanceForContentUpdate(updatedThing)
 
@@ -347,9 +341,6 @@ open class ThingDAO private constructor(context: Context?) {
             ThingsCounts.getInstance(mContext)!!.handleUpdate(typeBefore, state, typeAfter, state, 1)
         }
 
-        if (handleNotifyEmpty) {
-            createNotifyEmpty(typeBefore, state, handleCurrentStatus)
-        }
     }
 
     open fun updateState(thing: Thing?, location: Long,
@@ -363,10 +354,6 @@ open class ThingDAO private constructor(context: Context?) {
         val values = ContentValues()
 
         if (stateBefore == Thing.DELETED_FOREVER) {
-            if (handleNotifyEmpty) {
-                deleteNotifyEmpty(type, stateAfter, handleCurrentStatus)
-            }
-
             values.put(Def.Database.COLUMN_ID_THINGS, id)
             values.put(Def.Database.COLUMN_TYPE_THINGS, type)
             values.put(Def.Database.COLUMN_STATE_THINGS, stateAfter)
@@ -392,10 +379,6 @@ open class ThingDAO private constructor(context: Context?) {
             db!!.insert(Def.Database.TABLE_THINGS, null, values)
         } else {
             if (stateAfter != Thing.DELETED_FOREVER) {
-                if (handleNotifyEmpty) {
-                    deleteNotifyEmpty(type, stateAfter, handleCurrentStatus)
-                }
-
                 // we should keep newest finished thing at the first place in Finished page.
                 if (!toUndo) {
                     val maxLocation: Long = getMaxThingLocation()
@@ -418,10 +401,6 @@ open class ThingDAO private constructor(context: Context?) {
                 if (temp != null && temp.type == Thing.HEADER) return
 
                 db!!.delete(Def.Database.TABLE_THINGS, "id=$id", null)
-            }
-
-            if (handleNotifyEmpty) {
-                createNotifyEmpty(type, stateBefore, handleCurrentStatus)
             }
         }
 
@@ -450,53 +429,6 @@ open class ThingDAO private constructor(context: Context?) {
                             false, false, true, false)
                 }
             }
-
-            val thingsCounts: ThingsCounts = ThingsCounts.getInstance(mContext)!!
-            val currentStatus: Int = mStatus
-            val currentMask: Int = mTypeFilterMask
-            var neCreated = 0
-            // Iterate over all (status, mask) pairs that have NOTIFY_EMPTY entries
-            val neCombinations = listOf(
-                Def.ThingStatus.UNDERWAY to ThingWidgetInfo.TYPE_FILTER_ALL,
-                Def.ThingStatus.UNDERWAY to ThingWidgetInfo.TYPE_FILTER_NOTE,
-                Def.ThingStatus.UNDERWAY to ThingWidgetInfo.TYPE_FILTER_REMINDER,
-                Def.ThingStatus.UNDERWAY to ThingWidgetInfo.TYPE_FILTER_HABIT,
-                Def.ThingStatus.UNDERWAY to ThingWidgetInfo.TYPE_FILTER_GOAL,
-                Def.ThingStatus.FINISHED to ThingWidgetInfo.TYPE_FILTER_ALL,
-                Def.ThingStatus.DELETED to ThingWidgetInfo.TYPE_FILTER_ALL
-            )
-            for ((status, mask) in neCombinations) {
-                if (currentStatus == status && currentMask == mask) continue
-
-                var cursor: Cursor = getThingsCursorForDisplay(status, mask, null, 0)
-                var count = 0
-                while (cursor.moveToNext()) {
-                    count++
-                    if (count == 3) break
-                }
-
-                if (count == 1) {
-                    val ne: Thing? = Thing.generateNotifyEmpty(status, mask, getHeaderId(), mContext)
-                    if (ne != null) {
-                        create(ne, false, false)
-                        thingsCounts.handleCreation(ne.type)
-                        neCreated++
-                    }
-                } else if (count == 3) {
-                    val NEtype = Thing.getNotifyEmptyType(status, mask)
-                    cursor.close()
-                    cursor = db!!.query(Def.Database.TABLE_THINGS, null,
-                        "type=$NEtype", null, null, null, null)
-                    if (cursor.count != 0) {
-                        db!!.delete(Def.Database.TABLE_THINGS, "type=$NEtype", null)
-                        thingsCounts.handleUpdate(NEtype, Thing.UNDERWAY,
-                                NEtype, Thing.DELETED_FOREVER, 1)
-                    }
-                }
-                cursor.close()
-            }
-
-            updateHeader(6 - neCreated)
 
             db!!.setTransactionSuccessful()
         } catch (e: Exception) {
@@ -627,61 +559,50 @@ open class ThingDAO private constructor(context: Context?) {
             Def.ThingStatus.DELETED -> Thing.DELETED
             else -> Thing.UNDERWAY
         }
-        val notifyEmptyType = getProjectionNotifyEmptyType(status, mask)
-
-        val sb = StringBuilder()
+        val contentCondition: String
         if (mask == ThingWidgetInfo.TYPE_FILTER_ALL) {
-            // All types: NOTE through WELCOME_UNDERWAY (or NOTIFICATION_GOAL for finished/deleted)
-            if (state == Thing.UNDERWAY) {
-                sb.append("((((type>=").append(Thing.NOTE)
-                    .append(" and type<=").append(Thing.WELCOME_UNDERWAY)
-                    .append(") or type=").append(Thing.NOTIFICATION_UNDERWAY)
-                    .append(") and state=").append(Thing.UNDERWAY)
+            contentCondition = if (state == Thing.UNDERWAY) {
+                "((type>=${Thing.NOTE} and type<=${Thing.GOAL}) " +
+                    "or type=${Thing.NOTIFICATION_UNDERWAY})"
             } else {
-                sb.append("((type>=").append(Thing.NOTE)
-                    .append(" and type<=").append(Thing.NOTIFICATION_GOAL)
-                    .append(" and state=").append(state)
+                "(type>=${Thing.NOTE} and type<=${Thing.GOAL})"
             }
         } else {
             // Specific type filter
             val typeConditions = mutableListOf<String>()
             if (mask and ThingWidgetInfo.TYPE_FILTER_NOTE != 0) {
                 if (state == Thing.UNDERWAY) {
-                    typeConditions.add("(type=${Thing.NOTE} or type=${Thing.WELCOME_NOTE} or type=${Thing.NOTIFICATION_NOTE})")
+                    typeConditions.add("(type=${Thing.NOTE} or type=${Thing.NOTIFICATION_NOTE})")
                 } else {
                     typeConditions.add("type=${Thing.NOTE}")
                 }
             }
             if (mask and ThingWidgetInfo.TYPE_FILTER_REMINDER != 0) {
                 if (state == Thing.UNDERWAY) {
-                    typeConditions.add("(type=${Thing.REMINDER} or type=${Thing.WELCOME_REMINDER} or type=${Thing.NOTIFICATION_REMINDER})")
+                    typeConditions.add("(type=${Thing.REMINDER} or type=${Thing.NOTIFICATION_REMINDER})")
                 } else {
                     typeConditions.add("type=${Thing.REMINDER}")
                 }
             }
             if (mask and ThingWidgetInfo.TYPE_FILTER_HABIT != 0) {
                 if (state == Thing.UNDERWAY) {
-                    typeConditions.add("(type=${Thing.HABIT} or type=${Thing.WELCOME_HABIT} or type=${Thing.NOTIFICATION_HABIT})")
+                    typeConditions.add("(type=${Thing.HABIT} or type=${Thing.NOTIFICATION_HABIT})")
                 } else {
                     typeConditions.add("type=${Thing.HABIT}")
                 }
             }
             if (mask and ThingWidgetInfo.TYPE_FILTER_GOAL != 0) {
                 if (state == Thing.UNDERWAY) {
-                    typeConditions.add("(type=${Thing.GOAL} or type=${Thing.WELCOME_GOAL} or type=${Thing.NOTIFICATION_GOAL})")
+                    typeConditions.add("(type=${Thing.GOAL} or type=${Thing.NOTIFICATION_GOAL})")
                 } else {
                     typeConditions.add("type=${Thing.GOAL}")
                 }
             }
-            sb.append("(((").append(typeConditions.joinToString(" or "))
-                .append(") and state=").append(state)
-        }
-        if (notifyEmptyType != null) {
-            sb.append(") or type=").append(notifyEmptyType).append(")")
-        } else {
-            sb.append("))")
+            contentCondition = typeConditions.joinToString(" or ")
         }
 
+        val sb = StringBuilder()
+        sb.append("((").append(contentCondition).append(") and state=").append(state).append(")")
         if (kw != null) {
             kw = kw.replace("'".toRegex(), "''")
             sb.append(" and (title like '%").append(kw)
@@ -703,8 +624,7 @@ open class ThingDAO private constructor(context: Context?) {
     /**
      * Every time user creates a new thing, id and location of header should plus 1.
      * By doing this, EverythingDone can use old id/location of header as that of
-     * the new thing created by user(like a new [Thing.NOTE])
-     * or app itself(like a new [Thing.NOTIFY_EMPTY_NOTE]).
+     * the new thing created by user(like a new [Thing.NOTE]).
      */
     open fun updateHeader(addSize: Int) {
         val SQL: String = "update " + Def.Database.TABLE_THINGS +
@@ -715,134 +635,6 @@ open class ThingDAO private constructor(context: Context?) {
         } catch (e: SQLiteConstraintException) {
             e.printStackTrace()
             updateHeader(addSize)
-        }
-    }
-
-    private fun deleteNotifyEmpty(
-        @Thing.Type type: Int, @Thing.State state: Int, handleCurrentStatus: Boolean
-    ) {
-        val statuses: IntArray = getStatusesForTypeState(type, state)
-        val currentStatus: Int = mStatus
-        val thingsCounts: ThingsCounts = ThingsCounts.getInstance(mContext)!!
-        if (handleCurrentStatus) {
-            for (status in statuses) {
-                val masks = getTypeFilterMasksForStatusType(status, type)
-                for (mask in masks) {
-                    val NEtype = Thing.getNotifyEmptyType(status, mask)
-                    val cursor = db!!.query(Def.Database.TABLE_THINGS, null,
-                        "type=$type", null, null, null, null)
-                    if (cursor.count != 0) {
-                        db!!.delete(Def.Database.TABLE_THINGS, "type=$NEtype", null)
-                        thingsCounts.handleUpdate(NEtype, Thing.UNDERWAY, NEtype, Thing.DELETED_FOREVER, 1)
-                    }
-                    cursor.close()
-                }
-            }
-        } else {
-            for (status in statuses) {
-                if (currentStatus == status && type != Thing.NOTIFY_EMPTY_UNDERWAY) continue
-                val masks = getTypeFilterMasksForStatusType(status, type)
-                for (mask in masks) {
-                    if (currentStatus == status && mTypeFilterMask == mask) continue
-                    val NEtype = Thing.getNotifyEmptyType(status, mask)
-                    val cursor = db!!.query(Def.Database.TABLE_THINGS, null,
-                        "type=$NEtype", null, null, null, null)
-                    if (cursor.count != 0) {
-                        db!!.delete(Def.Database.TABLE_THINGS, "type=$NEtype", null)
-                        thingsCounts.handleUpdate(NEtype, Thing.UNDERWAY, NEtype, Thing.DELETED_FOREVER, 1)
-                    }
-                    cursor.close()
-                }
-            }
-        }
-    }
-
-    private fun createNotifyEmpty(
-        @Thing.Type type: Int, @Thing.State state: Int, handleCurrentStatus: Boolean
-    ) {
-        val statuses: IntArray = getStatusesForTypeState(type, state)
-        val currentStatus: Int = mStatus
-        val thingsCounts: ThingsCounts = ThingsCounts.getInstance(mContext)!!
-        var cursor: Cursor
-        var ne: Thing?
-
-        if (handleCurrentStatus) {
-            for (status in statuses) {
-                val masks = getTypeFilterMasksForStatusType(status, type)
-                for (mask in masks) {
-                    cursor = getThingsCursorForDisplay(status, mask, null, 0)
-                    if (cursor.count == 1) {
-                        ne = Thing.generateNotifyEmpty(status, mask, getHeaderId(), mContext)
-                        if (ne != null) {
-                            create(ne, false, false)
-                            thingsCounts.handleCreation(ne.type)
-                        }
-                    }
-                    cursor.close()
-                }
-            }
-        } else {
-            for (status in statuses) {
-                if (currentStatus == status && type != Thing.NOTIFY_EMPTY_UNDERWAY) continue
-                val masks = getTypeFilterMasksForStatusType(status, type)
-                for (mask in masks) {
-                    if (currentStatus == status && mTypeFilterMask == mask) continue
-                    cursor = getThingsCursorForDisplay(status, mask, null, 0)
-                    if (cursor.count == 1) {
-                        ne = Thing.generateNotifyEmpty(status, mask, getHeaderId(), mContext)
-                        if (ne != null) {
-                            create(ne, false, false)
-                            thingsCounts.handleCreation(ne.type)
-                        }
-                    }
-                    cursor.close()
-                }
-            }
-        }
-    }
-
-    private fun getStatusesForTypeState(@Thing.Type type: Int, @Thing.State state: Int): IntArray {
-        return when {
-            state == Thing.FINISHED || type == Thing.NOTIFY_EMPTY_FINISHED ->
-                intArrayOf(Def.ThingStatus.FINISHED)
-            state == Thing.DELETED || type == Thing.NOTIFY_EMPTY_DELETED ->
-                intArrayOf(Def.ThingStatus.DELETED)
-            else -> intArrayOf(Def.ThingStatus.UNDERWAY)
-        }
-    }
-
-    private fun getProjectionNotifyEmptyType(status: Int, typeFilterMask: Int): Int? {
-        val mask = ThingWidgetInfo.normalizedTypeFilterMask(typeFilterMask)
-        if (mask == ThingWidgetInfo.TYPE_FILTER_ALL) {
-            return Thing.getNotifyEmptyType(status, mask)
-        }
-        return null
-    }
-
-    private fun getTypeFilterMasksForStatusType(status: Int, @Thing.Type type: Int): IntArray {
-        if (status == Def.ThingStatus.FINISHED || status == Def.ThingStatus.DELETED) {
-            return intArrayOf(ThingWidgetInfo.TYPE_FILTER_ALL)
-        }
-        return when (type) {
-            Thing.WELCOME_UNDERWAY, Thing.NOTIFICATION_UNDERWAY,
-            Thing.NOTIFY_EMPTY_UNDERWAY ->
-                intArrayOf(ThingWidgetInfo.TYPE_FILTER_ALL)
-            Thing.WELCOME_NOTE, Thing.NOTIFICATION_NOTE,
-            Thing.NOTIFY_EMPTY_NOTE ->
-                intArrayOf(ThingWidgetInfo.TYPE_FILTER_NOTE)
-            Thing.WELCOME_REMINDER, Thing.NOTIFICATION_REMINDER,
-            Thing.NOTIFY_EMPTY_REMINDER ->
-                intArrayOf(ThingWidgetInfo.TYPE_FILTER_REMINDER)
-            Thing.WELCOME_HABIT, Thing.NOTIFICATION_HABIT,
-            Thing.NOTIFY_EMPTY_HABIT ->
-                intArrayOf(ThingWidgetInfo.TYPE_FILTER_HABIT)
-            Thing.WELCOME_GOAL, Thing.NOTIFICATION_GOAL,
-            Thing.NOTIFY_EMPTY_GOAL ->
-                intArrayOf(ThingWidgetInfo.TYPE_FILTER_GOAL)
-            else -> intArrayOf(
-                ThingWidgetInfo.TYPE_FILTER_ALL,
-                ThingWidgetInfo.typeFilterMaskForThingType(type)
-            )
         }
     }
 

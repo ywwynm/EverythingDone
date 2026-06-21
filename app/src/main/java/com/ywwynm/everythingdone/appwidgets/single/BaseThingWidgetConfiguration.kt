@@ -162,7 +162,7 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
             .filter { thing ->
                 thing != null &&
                     thing.type != Thing.HEADER &&
-                    thing.type < Thing.NOTIFY_EMPTY_UNDERWAY
+                    Thing.isRealThingType(thing.type)
             }
             .map { Thing(it!!) }
             .toMutableList()

@@ -14,6 +14,7 @@ import com.ywwynm.everythingdone.database.ThingFolderDAO
 import com.ywwynm.everythingdone.helpers.AutoNotifyHelper
 import com.ywwynm.everythingdone.helpers.CheckListHelper
 import com.ywwynm.everythingdone.model.Reminder
+import com.ywwynm.everythingdone.model.HomeEmptyStateHistory
 import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.model.ThingFolder
@@ -117,29 +118,6 @@ open class ThingManager private constructor(context: Context?) {
     open fun loadThings() {
         mThings = getThingsForCurrentProjection(null, 0).toMutableList()
         rebuildThingListEntries()
-
-        // do self-check to prevent wrong display for normal and empty states.
-        val size: Int = mThings!!.size
-        val hasFolderEntries = hasFolderEntries()
-        if (size == 1 && !hasFolderEntries && !hasCustomTypeFilter()) {
-            create(Thing.generateNotifyEmpty(mStatus, mTypeFilterMask, getHeaderId(), mContext), false, true)
-            rebuildThingListEntries()
-        } else if (size > 2 || size == 2 && hasFolderEntries) {
-            var pos: Int = -1
-            var notifyEmpty: Thing? = null
-            for (i in 1 until size) {
-                val thing: Thing = mThings!![i]!!
-                if (thing.type >= Thing.NOTIFY_EMPTY_UNDERWAY) {
-                    pos = i
-                    notifyEmpty = thing
-                    break
-                }
-            }
-            if (pos != -1) {
-                updateState(notifyEmpty, pos, -1, Thing.UNDERWAY, Thing.DELETED_FOREVER, false, false)
-                rebuildThingListEntries()
-            }
-        }
     }
 
     private fun getThingsForCurrentProjection(keyword: String?, color: Int): List<Thing?> {
@@ -252,7 +230,7 @@ open class ThingManager private constructor(context: Context?) {
         for (entry in entries) {
             if (entry is ThingListEntry.ThingEntry) {
                 val thing = entry.thing
-                if (thing.type != Thing.HEADER && thing.type < Thing.NOTIFY_EMPTY_UNDERWAY) {
+                if (thing.type != Thing.HEADER && Thing.isVisibleListThingType(thing.type)) {
                     counts[1]++
                 }
             } else if (entry is ThingListEntry.FolderEntry) {
@@ -427,7 +405,6 @@ open class ThingManager private constructor(context: Context?) {
             color
         )
         mixed.addAll(folderEntries)
-        addTypeFilterNotifyEmptyEntries(mixed, folderEntries, keyword, color)
         Collections.sort(mixed, object : Comparator<ThingListEntry> {
             override fun compare(entry1: ThingListEntry, entry2: ThingListEntry): Int {
                 val result = ThingsSorter.compareByLocationAndSticky(
@@ -442,126 +419,30 @@ open class ThingManager private constructor(context: Context?) {
         mThingListEntries = entries
     }
 
-    private fun addTypeFilterNotifyEmptyEntries(
-        mixed: MutableList<ThingListEntry>,
-        folderEntries: List<ThingListEntry.FolderEntry>,
-        keyword: String?,
-        color: Int
-    ) {
-        if (!hasCustomTypeFilter()) return
-        if (keyword != null || color != 0) return
-
-        if (mStatus != Def.ThingStatus.UNDERWAY) {
-            if (mixed.none { entryHasRealProjectionContent(it) }) {
-                addTransientNotifyEmptyEntry(mixed, mTypeFilterMask)
-            }
-            return
-        }
-
-        for (typeMask in selectedSpecificTypeMasks()) {
-            val hasThing = mixed.any { entry ->
-                entry is ThingListEntry.ThingEntry &&
-                    thingMatchesSpecificTypeMask(entry.thing.type, typeMask)
-            }
-            if (hasThing) continue
-
-            val hasFolder = folderEntries.any { entry ->
-                mFolderDao!!.countDescendantThingsForTypeFilterProjection(
-                    entry.folder,
-                    mStatus,
-                    typeMask
-                ) > 0
-            }
-            if (!hasFolder) {
-                addTransientNotifyEmptyEntry(mixed, typeMask)
-            }
-        }
-    }
-
-    private fun entryHasRealProjectionContent(entry: ThingListEntry): Boolean {
+    private fun entryHasVisibleProjectionContent(entry: ThingListEntry): Boolean {
         return when (entry) {
-            is ThingListEntry.FolderEntry -> entry.recursiveThingCount > 0
+            is ThingListEntry.FolderEntry -> true
             is ThingListEntry.ThingEntry -> {
                 val type = entry.thing.type
-                type != Thing.HEADER && type < Thing.NOTIFY_EMPTY_UNDERWAY
+                type != Thing.HEADER && Thing.isVisibleListThingType(type)
             }
         }
-    }
-
-    private fun selectedSpecificTypeMasks(): List<Int> {
-        val mask = ThingWidgetInfo.normalizedTypeFilterMask(mTypeFilterMask)
-        val masks = ArrayList<Int>(4)
-        if (mask and ThingWidgetInfo.TYPE_FILTER_NOTE != 0) {
-            masks.add(ThingWidgetInfo.TYPE_FILTER_NOTE)
-        }
-        if (mask and ThingWidgetInfo.TYPE_FILTER_REMINDER != 0) {
-            masks.add(ThingWidgetInfo.TYPE_FILTER_REMINDER)
-        }
-        if (mask and ThingWidgetInfo.TYPE_FILTER_HABIT != 0) {
-            masks.add(ThingWidgetInfo.TYPE_FILTER_HABIT)
-        }
-        if (mask and ThingWidgetInfo.TYPE_FILTER_GOAL != 0) {
-            masks.add(ThingWidgetInfo.TYPE_FILTER_GOAL)
-        }
-        return masks
-    }
-
-    private fun thingMatchesSpecificTypeMask(@Thing.Type type: Int, typeMask: Int): Boolean {
-        return when (typeMask) {
-            ThingWidgetInfo.TYPE_FILTER_NOTE ->
-                type == Thing.NOTE || type == Thing.WELCOME_NOTE ||
-                    type == Thing.NOTIFICATION_NOTE
-            ThingWidgetInfo.TYPE_FILTER_REMINDER ->
-                type == Thing.REMINDER || type == Thing.WELCOME_REMINDER ||
-                    type == Thing.NOTIFICATION_REMINDER
-            ThingWidgetInfo.TYPE_FILTER_HABIT ->
-                type == Thing.HABIT || type == Thing.WELCOME_HABIT ||
-                    type == Thing.NOTIFICATION_HABIT
-            ThingWidgetInfo.TYPE_FILTER_GOAL ->
-                type == Thing.GOAL || type == Thing.WELCOME_GOAL ||
-                    type == Thing.NOTIFICATION_GOAL
-            else -> false
-        }
-    }
-
-    private fun addTransientNotifyEmptyEntry(
-        mixed: MutableList<ThingListEntry>,
-        typeFilterMask: Int
-    ) {
-        val notifyEmpty = Thing.generateNotifyEmpty(
-            mStatus,
-            typeFilterMask,
-            getHeaderId(),
-            mContext
-        ) ?: return
-        notifyEmpty.id = transientNotifyEmptyId(notifyEmpty.type)
-        notifyEmpty.location = 0L
-        notifyEmpty.folderId = mProjection.currentFolderId
-        mixed.add(ThingListEntry.ThingEntry(notifyEmpty))
-    }
-
-    private fun transientNotifyEmptyId(@Thing.Type type: Int): Long {
-        return Long.MIN_VALUE + type
     }
 
     /**
      * Create a new thing.
      *
      * @param thingToCreate the thing to create.
-     * @param handleNotifyEmpty whether we should handle deletion/creation of NOTIFY_EMPTYs.
-     * @return `true` if we found a need-to-delete NOTIFY_EMPTY under current
-     *          projection and we deleted it indeed, which means
-     *          [com.ywwynm.everythingdone.activities.ThingsActivity] need to call
-     *          [com.ywwynm.everythingdone.adapters.ThingsAdapter.notifyItemChanged].
-     *          `false` otherwise and should call ThingsAdapter#notifyItemInserted(1).
+     * @param handleNotifyEmpty kept for older call sites; legacy empty placeholders are no longer created.
+     * @return always `false`; callers should refresh the list and empty-state UI normally.
      */
     open fun create(thingToCreate: Thing?, handleNotifyEmpty: Boolean, addToThingsNow: Boolean): Boolean {
         // create in database at first
         thingToCreate!!.id = mHeaderId
-        if (thingToCreate.type in Thing.NOTE..Thing.GOAL && thingToCreate.folderId == null) {
+        if (Thing.isRealThingType(thingToCreate.type) && thingToCreate.folderId == null) {
             thingToCreate.folderId = mProjection.currentFolderId
         }
-        mDao!!.create(thingToCreate, true, false)
+        mDao!!.create(thingToCreate, false, false)
 //        mExecutor.execute(new Runnable() {
 //            @Override
 //            public void run() {
@@ -570,26 +451,20 @@ open class ThingManager private constructor(context: Context?) {
 //        });
 
         updateHeader(1)
-
-        // see if we can delete a NOTIFY_EMPTY
-        var deletedNEnow = false
         val type: Int = thingToCreate.type
-        if (handleNotifyEmpty && !App.isSearching) {
-            deletedNEnow = deleteNEnow(type, Thing.UNDERWAY)
-        }
 
         if (addToThingsNow) {
             mThings!!.add(getPositionToInsertNewThing(), thingToCreate)
             rebuildThingListEntries()
         }
 
-        if (type >= Thing.NOTE && type <= Thing.GOAL) {
+        if (Thing.isRealThingType(type)) {
+            HomeEmptyStateHistory.markThingCreated(mContext, type)
             AutoNotifyHelper.createAutoNotify(thingToCreate, mContext)
+            mThingsCounts!!.handleCreation(type)
         }
 
-        mThingsCounts!!.handleCreation(type)
-
-        return deletedNEnow
+        return false
     }
 
     /**
@@ -600,52 +475,32 @@ open class ThingManager private constructor(context: Context?) {
      * @param typeBefore old type of `updatedThing`
      * @param updatedThing thing whose content is updated.
      * @param position position `updatedThing`'s position in [mThings].
-     * @param handleNotifyEmpty whether we should handle deletion/creation of NOTIFY_EMPTYs.
+     * @param handleNotifyEmpty kept for older call sites; legacy empty placeholders are no longer created.
      * @return 0 if update really happens and [com.ywwynm.everythingdone.activities.ThingsActivity]
      *         should call [com.ywwynm.everythingdone.adapters.ThingsAdapter.notifyItemChanged].
-     *
-     *         1 if we updated a thing to a new type and created a NOTIFY_EMPTY for current
-     *         projection so that ThingsActivity should call ThingsAdapter#notifyItemChanged(1).
-     *
-     *         2 if we updated a thing to a new type but didn't create a NOTIFY_EMPTY for current
-     *         projection.
-     *         In this situation, ThingsActivity should call ThingsAdapter#notifyItemRemoved(`position`).
+     *         2 if the updated Thing leaves the current projection.
      */
     open fun update(@Thing.Type typeBefore: Int, updatedThing: Thing?, position: Int,
                     handleNotifyEmpty: Boolean): Int {
-        if (handleNotifyEmpty &&
-                willCreateNEforOtherProjection(
-                        updatedThing!!.id, typeBefore, updatedThing.state, false)) {
-            updateHeader(1)
-        }
-
         mExecutor!!.execute {
-            mDao!!.update(typeBefore, updatedThing, true, false)
+            mDao!!.update(typeBefore, updatedThing, false, false)
         }
 
         val state: Int     = updatedThing!!.state
         val typeAfter: Int = updatedThing.type
         mThingsCounts!!.handleUpdate(typeBefore, state, typeAfter, state, 1)
-
-        if (handleNotifyEmpty && !App.isSearching) {
-            deleteNEnow(typeAfter, state)
+        if (Thing.isRealThingType(typeAfter)) {
+            HomeEmptyStateHistory.markThingCreated(mContext, typeAfter)
         }
 
         if (mStatus == Def.ThingStatus.UNDERWAY ||
                 Thing.sameType(typeBefore, typeAfter)) {
-            // will not generate NOTIFY_EMPTY
             rebuildThingListEntries()
             return 0
         } else {
             mThings!!.removeAt(position)
-
-            var createdNEnow = false
-            if (handleNotifyEmpty) {
-                createdNEnow = createNEnow(typeBefore, state, !App.isSearching)
-            }
-
             rebuildThingListEntries()
-            return if (createdNEnow) 1 else 2
+            return 2
         }
     }
 
@@ -662,23 +517,13 @@ open class ThingManager private constructor(context: Context?) {
         @Thing.Type val thingType: Int = thing.type
         if (thingType == Thing.HEADER) return false
 
-        if (handleNotifyEmpty &&
-                willCreateNEforOtherProjection(thingId, thingType, stateBefore, true)) {
-            updateHeader(1)
-        }
-
         val thingToUpdate = if (!toUndo) {
             Thing.getSameCheckStateThing(thing, stateBefore, stateAfter)
         } else thing
 
         mExecutor!!.execute {
             mDao!!.updateState(thingToUpdate, location, stateBefore, stateAfter,
-                    handleNotifyEmpty, false, toUndo, true)
-        }
-
-        var deletedNEnow = false
-        if (handleNotifyEmpty && !App.isSearching) {
-            deletedNEnow = deleteNEnow(thingType, stateAfter)
+                    false, false, toUndo, true)
         }
 
         if (toUndo) {
@@ -725,12 +570,8 @@ open class ThingManager private constructor(context: Context?) {
 
         mThingsCounts!!.handleUpdate(thingType, stateBefore, thingType, stateAfter, 1)
 
-        var createdNEnow = false
-        if (handleNotifyEmpty) {
-            createdNEnow = createNEnow(thingType, stateBefore, !App.isSearching)
-        }
         rebuildThingListEntries()
-        return deletedNEnow || createdNEnow
+        return false
     }
 
     /**
@@ -763,20 +604,10 @@ open class ThingManager private constructor(context: Context?) {
             mDao!!.updateStates(clonedThings, null, stateBefore, stateAfter, false)
         }
 
-        // things[0].type points to the current projection's empty placeholder type.
         var type: Int = things[0]!!.type
-        if (!App.isSearching) {
-            deleteNEnow(type, stateAfter)
-        }
 
-        /*
-            We don't know how many NEs will be created then so we directly assume that the
-            number is 6(except for current projection, which will be handled at last). As a result,
-            we should update header id to be size+6.
-            This is stupid but it's the only way to do the stuff. QAQ.
-         */
         val size: Int = things.size
-        updateHeader(size + 6)
+        updateHeader(size)
 
         val rDao: ReminderDAO = ReminderDAO.getInstance(mContext)!!
         val positions: MutableList<Int?> = ArrayList(size)
@@ -834,8 +665,6 @@ open class ThingManager private constructor(context: Context?) {
             }
         }
 
-        createNEnow(type, stateBefore, !App.isSearching)
-
         rebuildThingListEntries()
         return positions
     }
@@ -861,12 +690,7 @@ open class ThingManager private constructor(context: Context?) {
                     true)
         }
 
-        updateHeader(6)
-
         var type: Int = things[0]!!.type
-        if (!App.isSearching) {
-            deleteNEnow(type, stateAfter)
-        }
 
         val size: Int = things.size
         val updateCounts = SparseIntArray()
@@ -908,7 +732,6 @@ open class ThingManager private constructor(context: Context?) {
             mIsHandlingUndo = false
         }
 
-        createNEnow(type, stateBefore, !App.isSearching)
         rebuildThingListEntries()
     }
 
@@ -1095,6 +918,7 @@ open class ThingManager private constructor(context: Context?) {
         folder.setBackground(folderBackground)
 
         mFolderDao!!.create(folder)
+        HomeEmptyStateHistory.markFolderCreated(mContext)
         mDao!!.updateHeader(1)
         updateHeader(1)
 
@@ -1182,9 +1006,7 @@ open class ThingManager private constructor(context: Context?) {
         thing.folderId = folderId
         thing.location = newLocation
         mDao!!.updateFolderIdAndLocation(thing.id, folderId, newLocation)
-        if (cleanUpEmptySource) {
-            cleanupEmptyFoldersFrom(sourceFolderId)
-        }
+        trimProjectionToExistingFolders()
         return true
     }
 
@@ -1255,23 +1077,9 @@ open class ThingManager private constructor(context: Context?) {
         folder.parentFolderId = parentFolderId
         folder.location = newLocation
         mFolderDao!!.updateParentAndLocation(folder.id, parentFolderId, newLocation)
-        cleanupEmptyFoldersFrom(sourceParentFolderId)
+        trimProjectionToExistingFolders()
         loadThings()
         return true
-    }
-
-    private fun cleanupEmptyFoldersFrom(folderId: Long?) {
-        var currentFolderId = folderId
-        val visited = HashSet<Long>()
-        while (currentFolderId != null && visited.add(currentFolderId)) {
-            val folder = mFolderDao!!.getFolderById(currentFolderId) ?: break
-            if (!mFolderDao!!.isStructurallyEmpty(currentFolderId)) break
-            val parentFolderId = folder.parentFolderId
-            mAuthenticatedPrivateFolderIds.remove(currentFolderId)
-            mFolderDao!!.deleteRecord(currentFolderId)
-            currentFolderId = parentFolderId
-        }
-        trimProjectionToExistingFolders()
     }
 
     private fun trimProjectionToExistingFolders() {
@@ -1475,101 +1283,29 @@ open class ThingManager private constructor(context: Context?) {
         }
     }
 
-    // added in thought of reusing code for shortcut action "checking upcoming thing" on 2016/10/22
-
-    /**
-     * This method will be only called when a thing with `type` and `state`
-     * has been "deleted", which can occur when creating and updating.
-     */
-    private fun createNEnow(
-        @Thing.Type type: Int, @Thing.State state: Int, addToThingsNow: Boolean
-    ): Boolean {
-        val status = Thing.getStatusForState(state)
-        val masks = getStatusTypeFilterMasksForThing(type, state)
-        for (mask in masks) {
-            if (mStatus == status && mTypeFilterMask == mask) {
-                if (mThings!!.size == 1) {
-                    val ne = Thing.generateNotifyEmpty(status, mask, mHeaderId, mContext)
-                    create(ne, false, addToThingsNow)
-                    return true
-                }
-            }
-        }
-        return false
-    }
-
-    private fun willCreateNEforOtherProjection(
-        id: Long, @Thing.Type type: Int, @Thing.State state: Int, updateState: Boolean
-    ): Boolean {
-        val status = Thing.getStatusForState(state)
-        val masks = getStatusTypeFilterMasksForThing(type, state)
-        for (mask in masks) {
-            if (mStatus != status || mTypeFilterMask != mask) {
-                if (updateState || mask != ThingWidgetInfo.TYPE_FILTER_ALL) {
-                    val cursor = mDao!!.getThingsCursorForDisplay(status, mask, null, 0)
-                    var id1: Long = -1
-                    var count = 0
-                    while (cursor.moveToNext()) {
-                        count++
-                        id1 = cursor.getLong(0)
-                        if (count > 2) break
-                    }
-                    cursor.close()
-                    if (count == 2 && id == id1) {
-                        return true
-                    }
-                }
-            }
-        }
-        return false
-    }
-
-    /**
-     * Returns the type filter masks that a thing of [type] and [state] should appear in.
-     * Each thing belongs to TYPE_FILTER_ALL (generic) AND its specific type filter.
-     */
-    private fun getStatusTypeFilterMasksForThing(
-        @Thing.Type type: Int, @Thing.State state: Int
-    ): IntArray {
-        if (Thing.getStatusForState(state) == Def.ThingStatus.FINISHED ||
-            state == Thing.FINISHED || type == Thing.NOTIFY_EMPTY_FINISHED) {
-            return intArrayOf(ThingWidgetInfo.TYPE_FILTER_ALL)
-        }
-        if (Thing.getStatusForState(state) == Def.ThingStatus.DELETED ||
-            state == Thing.DELETED || type == Thing.NOTIFY_EMPTY_DELETED) {
-            return intArrayOf(ThingWidgetInfo.TYPE_FILTER_ALL)
-        }
-        return intArrayOf(
-            ThingWidgetInfo.TYPE_FILTER_ALL,
-            ThingWidgetInfo.typeFilterMaskForThingType(type)
-        )
-    }
-
-    /**
-     * This method will be only called when a thing with `type` and `state`
-     * has been "created", which can occur when creating and updating.
-     */
-    private fun deleteNEnow(@Thing.Type type: Int, @Thing.State state: Int): Boolean {
-        val status = Thing.getStatusForState(state)
-        val masks = getStatusTypeFilterMasksForThing(type, state)
-        for (mask in masks) {
-            if (mStatus == status && mTypeFilterMask == mask) {
-                val thing: Thing = mThings?.getOrNull(1) ?: return false
-                val NEtype: Int = thing.type
-                if (NEtype >= Thing.NOTIFY_EMPTY_UNDERWAY) {
-                    updateState(thing, 1, -1, Thing.UNDERWAY, Thing.DELETED_FOREVER, false, false)
-                    return true
-                }
-            }
-        }
-        return false
-    }
-
     /**
      * @return if [mThings] is "empty" for user-created things now.
      */
     open fun isThingsEmpty(): Boolean {
-        return mThings!!.size < 2 || mThings!![1]!!.type >= Thing.NOTIFY_EMPTY_UNDERWAY
+        val things = mThings ?: return true
+        for (thing in things) {
+            if (thing != null && thing.type != Thing.HEADER && Thing.isVisibleListThingType(thing.type)) {
+                return false
+            }
+        }
+        return true
+    }
+
+    open fun isProjectionEmptyForHomeState(): Boolean {
+        return !hasVisibleProjectionContent()
+    }
+
+    open fun hasVisibleProjectionContent(): Boolean {
+        val entries = mThingListEntries ?: return false
+        for (entry in entries) {
+            if (entryHasVisibleProjectionContent(entry)) return true
+        }
+        return false
     }
 
     open fun getSelectedThings(): Array<Thing?>? {
@@ -1719,7 +1455,7 @@ open class ThingManager private constructor(context: Context?) {
     private fun isSelectableThing(thing: Thing?): Boolean {
         if (thing == null) return false
         if (thing.type == Thing.HEADER) return false
-        return thing.type < Thing.NOTIFY_EMPTY_UNDERWAY
+        return Thing.isVisibleListThingType(thing.type)
     }
 
     open fun getThingById(id: Long): Thing? {

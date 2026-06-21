@@ -30,7 +30,7 @@ open class ThingsCounts private constructor(context: Context?) {
     private fun checkSelf(context: Context?) {
         val dao = ThingDAO.getInstance(context)
         var type = Thing.NOTE
-        while (type <= Thing.NOTIFY_EMPTY_DELETED) {
+        while (type <= Thing.NOTIFICATION_GOAL) {
             var totalCount = 0
             var state = Thing.UNDERWAY
             while (state <= Thing.DELETED) {
@@ -49,6 +49,7 @@ open class ThingsCounts private constructor(context: Context?) {
             }
             type++
         }
+        clearLegacyPlaceholderCounts()
     }
 
     open fun getCount(type: Int, state: Int): Int {
@@ -66,7 +67,7 @@ open class ThingsCounts private constructor(context: Context?) {
         if (mask == ThingWidgetInfo.TYPE_FILTER_ALL) {
             if (state == Thing.UNDERWAY) {
                 var i = Thing.NOTE
-                while (i <= Thing.WELCOME_UNDERWAY) {
+                while (i <= Thing.GOAL) {
                     count += getCount(i, state)
                     i++
                 }
@@ -87,21 +88,11 @@ open class ThingsCounts private constructor(context: Context?) {
             for (type in types) {
                 count += getCount(type, state)
                 if (state == Thing.UNDERWAY) {
-                    count += getCount(welcomeTypeForThingType(type), Thing.UNDERWAY)
                     count += getCount(notificationTypeForThingType(type), Thing.UNDERWAY)
                 }
             }
         }
         return count
-    }
-
-    private fun welcomeTypeForThingType(type: Int): Int {
-        return when (type) {
-            Thing.REMINDER -> Thing.WELCOME_REMINDER
-            Thing.HABIT -> Thing.WELCOME_HABIT
-            Thing.GOAL -> Thing.WELCOME_GOAL
-            else -> Thing.WELCOME_NOTE
-        }
     }
 
     private fun notificationTypeForThingType(type: Int): Int {
@@ -166,7 +157,7 @@ open class ThingsCounts private constructor(context: Context?) {
     private fun init() {
         val editor = mCounts!!.edit()
         var i = Thing.NOTE
-        while (i <= Thing.NOTIFY_EMPTY_DELETED) {
+        while (i <= Thing.NOTIFICATION_GOAL) {
             var j = Thing.UNDERWAY
             while (j <= ALL) {
                 editor.putInt(i.toString() + "_" + j, 0)
@@ -175,18 +166,29 @@ open class ThingsCounts private constructor(context: Context?) {
             i++
         }
 
-        var k = Thing.WELCOME_UNDERWAY
-        while (k <= Thing.WELCOME_GOAL) {
-            editor.putInt(k.toString() + "_" + Thing.UNDERWAY, 1)
-            editor.putInt(k.toString() + "_" + ALL, 1)
-            k++
+        editor.commit()
+    }
+
+    private fun clearLegacyPlaceholderCounts() {
+        val editor = mCounts!!.edit()
+        var type = Thing.WELCOME_UNDERWAY
+        while (type <= Thing.WELCOME_GOAL) {
+            var state = Thing.UNDERWAY
+            while (state <= ALL) {
+                editor.putInt(type.toString() + "_" + state, 0)
+                state++
+            }
+            type++
         }
-
-        editor.putInt(Thing.NOTIFY_EMPTY_FINISHED.toString() + "_" + Thing.UNDERWAY, 1)
-        editor.putInt(Thing.NOTIFY_EMPTY_FINISHED.toString() + "_" + ALL, 1)
-        editor.putInt(Thing.NOTIFY_EMPTY_DELETED.toString() + "_" + Thing.UNDERWAY, 1)
-        editor.putInt(Thing.NOTIFY_EMPTY_DELETED.toString() + "_" + ALL, 1)
-
+        type = Thing.NOTIFY_EMPTY_UNDERWAY
+        while (type <= Thing.NOTIFY_EMPTY_DELETED) {
+            var state = Thing.UNDERWAY
+            while (state <= ALL) {
+                editor.putInt(type.toString() + "_" + state, 0)
+                state++
+            }
+            type++
+        }
         editor.commit()
     }
 

@@ -2573,3 +2573,29 @@ publishing was not run.
   verified the remote `latest.json` points at
   `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606201114.apk`
   with SHA-256 `a0b0472930930c00572ba8b233848c19cde8f4bd2cffa6701e87e0525475c5f6`.
+## 2026-06-21 - Empty Thing Folders remain valid containers
+
+- Updated the home-list implementation so structurally empty Thing Folders are
+  no longer auto-deleted after moving Things or Folders out of them.
+- Main home projections initially kept empty Folder cards visible when no
+  search or color filter was active. Superseded below: filtered home-list
+  projections now hide Folder cards whose subtree has no matching Things.
+- Opened Empty Thing Folders now use Folder-specific home empty-state guidance.
+- Verified as part of the Home Empty State build with
+  `.\gradlew.bat :app:assembleDebug`.
+
+## 2026-06-21 - Hide Folder Cards without matching filtered Things
+
+- Updated the home-list `getFolderEntriesForTypeFilterProjection` path so a
+  Folder Card is shown only when its subtree contains at least one Thing
+  matching the current status and type filter.
+- Kept structurally Empty Thing Folders valid in the data model; this change
+  affects list projection visibility only and does not restore automatic empty
+  Folder deletion.
+- Left the broader `getFolderEntriesForProjection` path unchanged for
+  configuration/browsing surfaces that may need to list empty folders.
+- Verified with `.\gradlew.bat :app:assembleDebug`.
+- Published debug update `202606210824` to
+  `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606210824.apk`.
+  Remote `latest.json` reports SHA-256
+  `9629e4d95acc9c7ecee615137ed894a7c36251114ba240ed3500246a5d25367f`.

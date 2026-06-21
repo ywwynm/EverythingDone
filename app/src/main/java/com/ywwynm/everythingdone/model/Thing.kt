@@ -11,7 +11,6 @@ import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.FrequentSettings
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.helpers.CheckListHelper
-import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil
 import androidx.core.content.edit
 
@@ -424,62 +423,6 @@ open class Thing(
         }
 
         @JvmStatic
-        fun getNotifyEmptyType(status: Int, typeFilterMask: Int): Int {
-            if (status == Def.ThingStatus.FINISHED) return NOTIFY_EMPTY_FINISHED
-            if (status == Def.ThingStatus.DELETED) return NOTIFY_EMPTY_DELETED
-            return when (ThingWidgetInfo.normalizedTypeFilterMask(typeFilterMask)) {
-                ThingWidgetInfo.TYPE_FILTER_NOTE -> NOTIFY_EMPTY_NOTE
-                ThingWidgetInfo.TYPE_FILTER_REMINDER -> NOTIFY_EMPTY_REMINDER
-                ThingWidgetInfo.TYPE_FILTER_HABIT -> NOTIFY_EMPTY_HABIT
-                ThingWidgetInfo.TYPE_FILTER_GOAL -> NOTIFY_EMPTY_GOAL
-                else -> NOTIFY_EMPTY_UNDERWAY
-            }
-        }
-
-        @JvmStatic
-        fun generateNotifyEmpty(
-            status: Int,
-            typeFilterMask: Int,
-            headerId: Long,
-            context: Context?
-        ): Thing? {
-            val thing = Thing(headerId, getNotifyEmptyType(status, typeFilterMask),
-                    DisplayUtil.getRandomColor(context), headerId)
-            when (status) {
-                Def.ThingStatus.UNDERWAY -> {
-                    when (ThingWidgetInfo.normalizedTypeFilterMask(typeFilterMask)) {
-                        ThingWidgetInfo.TYPE_FILTER_ALL -> {
-                            thing.title = context!!.getString(R.string.congratulations)
-                            thing.content = context.getString(R.string.empty_underway)
-                        }
-                        ThingWidgetInfo.TYPE_FILTER_NOTE -> {
-                            thing.content = context!!.getString(R.string.empty_note)
-                        }
-                        ThingWidgetInfo.TYPE_FILTER_REMINDER -> {
-                            thing.content = context!!.getString(R.string.empty_reminder)
-                        }
-                        ThingWidgetInfo.TYPE_FILTER_HABIT -> {
-                            thing.title = context!!.getString(R.string.congratulations)
-                            thing.content = context.getString(R.string.empty_habit)
-                        }
-                        ThingWidgetInfo.TYPE_FILTER_GOAL -> {
-                            thing.content = context!!.getString(R.string.empty_goal)
-                        }
-                        else -> return null
-                    }
-                }
-                Def.ThingStatus.FINISHED -> {
-                    thing.content = context!!.getString(R.string.empty_finished)
-                }
-                Def.ThingStatus.DELETED -> {
-                    thing.content = context!!.getString(R.string.empty_deleted)
-                }
-                else -> return null
-            }
-            return thing
-        }
-
-        @JvmStatic
         fun getSameCheckStateThing(thing: Thing?, stateBefore: Int, stateAfter: Int): Thing? {
             var result = thing
             if (stateBefore == UNDERWAY && stateAfter == FINISHED) {
@@ -519,6 +462,46 @@ open class Thing(
         }
 
         @JvmStatic
+        fun isRealThingType(@Type type: Int): Boolean {
+            return type in NOTE..GOAL
+        }
+
+        @JvmStatic
+        fun isLegacyWelcomeType(@Type type: Int): Boolean {
+            return type in WELCOME_UNDERWAY..WELCOME_GOAL
+        }
+
+        @JvmStatic
+        fun isLegacyNotifyEmptyType(@Type type: Int): Boolean {
+            return type in NOTIFY_EMPTY_UNDERWAY..NOTIFY_EMPTY_DELETED
+        }
+
+        @JvmStatic
+        fun isLegacyPlaceholderType(@Type type: Int): Boolean {
+            return isLegacyWelcomeType(type) || isLegacyNotifyEmptyType(type)
+        }
+
+        @JvmStatic
+        fun isNotificationType(@Type type: Int): Boolean {
+            return type in NOTIFICATION_UNDERWAY..NOTIFICATION_GOAL
+        }
+
+        @JvmStatic
+        fun isVisibleListThingType(@Type type: Int): Boolean {
+            return isRealThingType(type) || isNotificationType(type)
+        }
+
+        @JvmStatic
+        fun concreteTypeForType(@Type type: Int): Int {
+            return when (type) {
+                REMINDER, NOTIFICATION_REMINDER -> REMINDER
+                HABIT, NOTIFICATION_HABIT -> HABIT
+                GOAL, NOTIFICATION_GOAL -> GOAL
+                else -> NOTE
+            }
+        }
+
+        @JvmStatic
         fun isImportantType(type: Int): Boolean {
             return type == HABIT || type == GOAL
         }
@@ -530,36 +513,22 @@ open class Thing(
 
         @JvmStatic
         fun isTypeReminder(type: Int): Boolean {
-            return type == REMINDER || type == WELCOME_REMINDER ||
-                    type == NOTIFICATION_REMINDER || type == NOTIFY_EMPTY_REMINDER
+            return type == REMINDER || type == NOTIFICATION_REMINDER
         }
 
         @JvmStatic
         fun isTypeHabit(type: Int): Boolean {
-            return type == HABIT || type == WELCOME_HABIT ||
-                    type == NOTIFICATION_HABIT || type == NOTIFY_EMPTY_HABIT
+            return type == HABIT || type == NOTIFICATION_HABIT
         }
 
         @JvmStatic
         fun isTypeGoal(type: Int): Boolean {
-            return type == GOAL || type == WELCOME_GOAL ||
-                    type == NOTIFICATION_GOAL || type == NOTIFY_EMPTY_GOAL
+            return type == GOAL || type == NOTIFICATION_GOAL
         }
 
         @JvmStatic
         fun sameType(type1: Int, type2: Int): Boolean {
-            if (type1 == type2) return true
-            if (type1 == WELCOME_UNDERWAY) return true
-            if (type1 == WELCOME_REMINDER && type2 == REMINDER) {
-                return true
-            }
-            if (type1 == WELCOME_HABIT && type2 == HABIT) {
-                return true
-            }
-            if (type1 == WELCOME_GOAL && type2 == GOAL) {
-                return true
-            }
-            return false
+            return concreteTypeForType(type1) == concreteTypeForType(type2)
         }
 
         @JvmStatic

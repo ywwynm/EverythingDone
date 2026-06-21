@@ -228,6 +228,16 @@
     <string name="empty_finished">Oops! Nothing finished?</string>
     <string name="empty_deleted">Do you enjoy cleaning recycle bin? Me too!</string>
 
+    <!--ordinary empty states-->
+    <string name="home_empty_underway">No underway things yet</string>
+    <string name="home_empty_note">No notes here yet</string>
+    <string name="home_empty_reminder">No reminders here yet</string>
+    <string name="home_empty_habit">No habits here yet</string>
+    <string name="home_empty_goal">No goals here yet</string>
+    <string name="home_empty_finished">No finished things yet</string>
+    <string name="home_empty_deleted">No deleted things yet</string>
+    <string name="home_empty_folder">This folder is empty</string>
+
     <!--Reminder-->
     <string name="reminder_expired">expired</string>
     <string name="reminder_needless">not needed</string>

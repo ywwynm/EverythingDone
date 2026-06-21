@@ -73,7 +73,7 @@ open class ThingsListWidgetService : RemoteViewsService() {
             val entries = ArrayList<ThingsListWidgetItem>()
             for (thing in things) {
                 if (thing == null || thing.type == Thing.HEADER) continue
-                if (thing.type >= Thing.NOTIFY_EMPTY_UNDERWAY) continue
+                if (Thing.isLegacyPlaceholderType(thing.type)) continue
                 if (!matchesTypeFilter(thing.type, typeFilterMask)) continue
                 entries.add(ThingsListWidgetItem.ThingItem(protectThingIfNeeded(thing, folderDAO)))
             }

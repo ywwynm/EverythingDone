@@ -115,6 +115,7 @@ import com.ywwynm.everythingdone.managers.ThingManager
 import com.ywwynm.everythingdone.model.DoingRecord
 import com.ywwynm.everythingdone.model.Habit
 import com.ywwynm.everythingdone.model.HabitRecord
+import com.ywwynm.everythingdone.model.HomeEmptyStateHistory
 import com.ywwynm.everythingdone.model.Reminder
 import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.model.ThingCardAppearance
@@ -184,6 +185,10 @@ class ThingsActivity :
     private var mShiningBorderDefaultMaxParticles: Int = 160
     private var mViewToReveal: View? = null
     private var mTvNoResult: TextView? = null
+    private var mHomeEmptyState: View? = null
+    private var mIvHomeEmptyState: ImageView? = null
+    private var mTvHomeEmptyState: TextView? = null
+    private var mOperationEmptyProjectionKey: String? = null
 
     private var mActionbar: Toolbar? = null
     private var mViewInsideActionbar: View? = null
@@ -355,6 +360,7 @@ class ThingsActivity :
             mSpan, StaggeredGridLayoutManager.VERTICAL
         )
         mRecyclerView!!.layoutManager = mStaggeredGridLayoutManager
+        updateHomeEmptyState()
     }
 
     private var mRemoteIntent: Intent? = null
@@ -1132,10 +1138,12 @@ class ThingsActivity :
 
     private fun refreshHomeAfterDrawerFolderNavigation() {
         finishNewItemShiningBorderAnimationIfNeeded()
+        clearOperationEmptyState()
         invalidateOptionsMenu()
         mRecyclerView!!.scrollToPosition(0)
         mAdapter!!.setShouldThingsAnimWhenAppearing(true)
         mAdapter!!.notifyDataSetChanged()
+        updateHomeEmptyState()
         refreshActivitySurfaceAndHeader()
         mDrawerHeader!!.updateTexts()
         mFab!!.spread()
@@ -1412,9 +1420,7 @@ class ThingsActivity :
         val thingToCreate: Thing = data.getParcelableExtra(Def.Communication.KEY_THING)!!
 
         mDrawerLayout!!.postDelayed({
-            val change = if (createdDone) {
-                data.getBooleanExtra(Def.Communication.KEY_CALL_CHANGE, false)
-            } else {
+            if (!createdDone) {
                 mThingManager!!.create(thingToCreate, true, true)
             }
             mRecyclerView!!.postDelayed({
@@ -1436,9 +1442,7 @@ class ThingsActivity :
                 if (justNotifyAll) {
                     justNotifyAll()
                 } else {
-                    if (change) {
-                        mAdapter!!.notifyItemChanged(1)
-                    } else if (newListPosition >= 0) {
+                    if (newListPosition >= 0) {
                         mAdapter!!.notifyItemInserted(newListPosition)
                     } else {
                         mAdapter!!.notifyDataSetChanged()
@@ -1467,6 +1471,8 @@ class ThingsActivity :
             updateSelectingUi(false)
         }
         refreshActivitySurfaceAndHeader()
+        clearOperationEmptyState()
+        updateHomeEmptyState()
         mDrawerHeader!!.updateTexts()
         mUpdateMainUiInOnResume = true
         if (mCanSeeUi) {
@@ -1532,6 +1538,7 @@ class ThingsActivity :
                 }
             }
             mDrawerHeader!!.updateCompletionRate()
+            updateHomeEmptyState()
             mUpdateMainUiInOnResume = true
             if (mCanSeeUi) {
                 App.setSomethingUpdatedSpecially(false)
@@ -1567,12 +1574,7 @@ class ThingsActivity :
                     notifyListItemRemovedOrRefresh(oldListPosition)
                     handleSearchResults()
                 } else {
-                    val change = data.getBooleanExtra(Def.Communication.KEY_CALL_CHANGE, false)
-                    if (change) {
-                        mAdapter!!.notifyItemChanged(1)
-                    } else {
-                        notifyListItemRemovedOrRefresh(oldListPosition)
-                    }
+                    notifyListItemRemovedOrRefresh(oldListPosition)
                 }
                 if (mModeManager!!.getCurrentMode() == ModeManager.SELECTING) {
                     updateSelectingUi(false)
@@ -1580,6 +1582,7 @@ class ThingsActivity :
             }
 
             mDrawerHeader!!.updateCompletionRate()
+            markOperationEmptyStateIfCurrentProjectionEmpty()
             mUpdateMainUiInOnResume = true
             if (mCanSeeUi) {
                 App.setSomethingUpdatedSpecially(false)
@@ -1595,13 +1598,11 @@ class ThingsActivity :
         )
         val thingIndex = data.getIntExtra(Def.Communication.KEY_POSITION, 1)
         val oldListPosition = getResultOldListPosition(data, thingIndex)
-        val changed = data.getBooleanExtra(Def.Communication.KEY_CALL_CHANGE, false)
         val justNotifyAll = App.justNotifyAll()
         Log.i(TAG, "updateMainUiForUpdateDifferentState called, "
             + "stateAfter[" + stateAfter + "], "
             + "thingIndex[" + thingIndex + "], "
             + "listPosition[" + oldListPosition + "], "
-            + "call change[" + changed + "], "
             + "justNotifyAll[" + justNotifyAll + "]")
 
         if (mStateToUndoFrom != stateAfter) {
@@ -1632,19 +1633,11 @@ class ThingsActivity :
                 mUndoPositions!!.add(thingIndex)
                 mUndoLocations!!.add(thing.location)
                 mStateToUndoFrom = stateAfter
-                if (changed) {
-                    mAdapter!!.notifyItemChanged(1)
-                    updateUIAfterStateUpdated(
-                        stateAfter,
-                        mRecyclerView!!.itemAnimator!!.changeDuration, false
-                    )
-                } else {
-                    notifyListItemRemovedOrRefresh(oldListPosition)
-                    updateUIAfterStateUpdated(
-                        stateAfter,
-                        mRecyclerView!!.itemAnimator!!.removeDuration, false
-                    )
-                }
+                notifyListItemRemovedOrRefresh(oldListPosition)
+                updateUIAfterStateUpdated(
+                    stateAfter,
+                    mRecyclerView!!.itemAnimator!!.removeDuration, false
+                )
             }
 
             mUpdateMainUiInOnResume = true
@@ -1736,6 +1729,7 @@ class ThingsActivity :
 
         mAdapter!!.setShouldThingsAnimWhenAppearing(shouldThingsAnimWhenAppearing)
         mAdapter!!.notifyDataSetChanged()
+        updateHomeEmptyState()
 
         if (mCanSeeUi) {
             App.setSomethingUpdatedSpecially(false)
@@ -1768,6 +1762,10 @@ class ThingsActivity :
         mViewToReveal = f(R.id.view_to_reveal)
         mTvNoResult   = f(R.id.tv_no_result)
         updateSearchNoResult(0)
+        mHomeEmptyState = f(R.id.home_empty_state)
+        mIvHomeEmptyState = f(R.id.iv_home_empty_state)
+        mTvHomeEmptyState = f(R.id.tv_home_empty_state)
+        updateHomeEmptyState()
 
         mActionbar = f(R.id.actionbar)
         mViewInsideActionbar = f(R.id.view_inside_actionbar)
@@ -1962,6 +1960,7 @@ class ThingsActivity :
     }
 
     private fun applyExternalTypeFilterMask(typeFilterMask: Int, loadThingsNow: Boolean) {
+        clearOperationEmptyState()
         mThingManager!!.setTypeFilterMask(typeFilterMask, loadThingsNow)
     }
 
@@ -1972,6 +1971,7 @@ class ThingsActivity :
         if (mModeManager!!.getCurrentMode() != ModeManager.NORMAL) {
             mModeManager!!.backNormalMode(0)
         }
+        clearOperationEmptyState()
         if (App.isSearching) {
             toggleSearching(false)
         }
@@ -2026,11 +2026,13 @@ class ThingsActivity :
 
     private fun refreshExternalProjectionUi(shouldThingsAnimWhenAppearing: Boolean = true) {
         finishNewItemShiningBorderAnimationIfNeeded()
+        clearOperationEmptyState()
         invalidateOptionsMenu()
         mRecyclerView!!.scrollToPosition(0)
         mActivityHeader!!.reset(true)
         mAdapter!!.setShouldThingsAnimWhenAppearing(shouldThingsAnimWhenAppearing)
         mAdapter!!.notifyDataSetChanged()
+        updateHomeEmptyState()
         refreshActivitySurfaceAndHeader()
         mDrawerHeader!!.updateTexts()
         mFab!!.spread()
@@ -2302,6 +2304,7 @@ class ThingsActivity :
             mRecyclerView!!.scrollToPosition(0)
         }
         mAdapter!!.notifyDataSetChanged()
+        updateHomeEmptyState()
         updateThingCardAppearancePanelWidth()
 
         mModeManager!!.updateTitleTextSize()
@@ -2359,9 +2362,11 @@ class ThingsActivity :
                         saveCurrentProjectionScrollState()
                     }
                     if (mThingManager!!.openParentFolder()) {
+                        clearOperationEmptyState()
                         val parentProjectionKey = mThingManager!!.getProjection().key()
                         mAdapter!!.setShouldThingsAnimWhenAppearing(false)
                         mAdapter!!.notifyDataSetChanged()
+                        updateHomeEmptyState()
                         refreshActivitySurfaceAndHeader()
                         restoreProjectionScrollStateOrTop(parentProjectionKey)
                         updateDrawerFolderItems()
@@ -5909,10 +5914,144 @@ class ThingsActivity :
         mTvNoResult!!.visibility = View.INVISIBLE
         mRevealLayout!!.visibility = View.INVISIBLE
         mRevealLayout!!.setPadding(0, 0, 0, 0)
+        updateHomeEmptyState()
+    }
+
+    private fun updateHomeEmptyState() {
+        val text = getHomeEmptyStateText()
+        if (text == null) {
+            mHomeEmptyState?.visibility = View.GONE
+            return
+        }
+        mTvHomeEmptyState?.text = text
+        mTvHomeEmptyState?.setTextColor(
+            ContextCompat.getColor(this, R.color.app_chrome_on_surface_hint)
+        )
+        setHomeEmptyStateImage()
+        mHomeEmptyState?.visibility = View.VISIBLE
+    }
+
+    private fun getHomeEmptyStateText(): String? {
+        val manager = mThingManager ?: return null
+        if (isHomeEmptyStateSuppressedBySearch()) return null
+        if (manager.hasVisibleProjectionContent()) {
+            mOperationEmptyProjectionKey = null
+            return null
+        }
+
+        val projection = manager.getProjection()
+        if (!projection.isRoot()) {
+            return getString(R.string.home_empty_folder)
+        }
+
+        if (projection.key() == mOperationEmptyProjectionKey) {
+            return getOperationEmptyStateText()
+        }
+
+        getWelcomeEmptyStateText()?.let { return it }
+        return getOrdinaryEmptyStateText()
+    }
+
+    private fun getWelcomeEmptyStateText(): String? {
+        val projection = mThingManager!!.getProjection()
+        if (projection.status != Def.ThingStatus.UNDERWAY || !projection.isRoot()) return null
+
+        val mask = ThingWidgetInfo.normalizedTypeFilterMask(projection.typeFilterMask)
+        if (mask == ThingWidgetInfo.TYPE_FILTER_ALL) {
+            if (HomeEmptyStateHistory.hasCreatedAnyUserContent(this)) return null
+            val title = getString(R.string.welcome_underway_title).trim()
+            val content = getString(R.string.welcome_underway_content)
+            return if (title.isEmpty()) content else "$title\n$content"
+        }
+
+        val type = singleConcreteThingTypeForMask(mask) ?: return null
+        if (HomeEmptyStateHistory.hasCreatedThingType(this, type)) return null
+        return when (type) {
+            Thing.REMINDER -> getString(R.string.welcome_reminder_content)
+            Thing.HABIT -> getString(R.string.welcome_habit_content)
+            Thing.GOAL -> getString(R.string.welcome_goal_content)
+            else -> getString(R.string.welcome_note_content)
+        }
+    }
+
+    private fun getOperationEmptyStateText(): String {
+        val projection = mThingManager!!.getProjection()
+        return when (projection.status) {
+            Def.ThingStatus.FINISHED -> getString(R.string.empty_finished)
+            Def.ThingStatus.DELETED -> getString(R.string.empty_deleted)
+            else -> when (singleConcreteThingTypeForMask(projection.typeFilterMask)) {
+                Thing.NOTE -> getString(R.string.empty_note)
+                Thing.REMINDER -> getString(R.string.empty_reminder)
+                Thing.HABIT -> getString(R.string.empty_habit)
+                Thing.GOAL -> getString(R.string.empty_goal)
+                else -> getString(R.string.empty_underway)
+            }
+        }
+    }
+
+    private fun getOrdinaryEmptyStateText(): String {
+        val projection = mThingManager!!.getProjection()
+        return when (projection.status) {
+            Def.ThingStatus.FINISHED -> getString(R.string.home_empty_finished)
+            Def.ThingStatus.DELETED -> getString(R.string.home_empty_deleted)
+            else -> when (singleConcreteThingTypeForMask(projection.typeFilterMask)) {
+                Thing.NOTE -> getString(R.string.home_empty_note)
+                Thing.REMINDER -> getString(R.string.home_empty_reminder)
+                Thing.HABIT -> getString(R.string.home_empty_habit)
+                Thing.GOAL -> getString(R.string.home_empty_goal)
+                else -> getString(R.string.home_empty_underway)
+            }
+        }
+    }
+
+    private fun singleConcreteThingTypeForMask(typeFilterMask: Int): Int? {
+        return when (ThingWidgetInfo.normalizedTypeFilterMask(typeFilterMask)) {
+            ThingWidgetInfo.TYPE_FILTER_NOTE -> Thing.NOTE
+            ThingWidgetInfo.TYPE_FILTER_REMINDER -> Thing.REMINDER
+            ThingWidgetInfo.TYPE_FILTER_HABIT -> Thing.HABIT
+            ThingWidgetInfo.TYPE_FILTER_GOAL -> Thing.GOAL
+            else -> null
+        }
+    }
+
+    private fun isHomeEmptyStateSuppressedBySearch(): Boolean {
+        if (App.isSearching) return true
+        val color = mColorPicker?.getPickedColor() ?: 0
+        return color != 0 && color != -1979711488
+    }
+
+    private fun setHomeEmptyStateImage() {
+        val raw: Drawable? = AppCompatResources.getDrawable(this, R.drawable.img_no_result)
+        val image: Drawable? = if (AppearanceUtil.isDarkMode(this)) {
+            DisplayUtil.opaqueTintDrawable(
+                this,
+                raw,
+                ContextCompat.getColor(this, R.color.app_chrome_on_surface_hint)
+            )
+        } else {
+            raw
+        }
+        mIvHomeEmptyState?.setImageDrawable(image)
+    }
+
+    private fun clearOperationEmptyState() {
+        mOperationEmptyProjectionKey = null
+    }
+
+    private fun markOperationEmptyStateIfCurrentProjectionEmpty() {
+        if (!isHomeEmptyStateSuppressedBySearch() &&
+            mThingManager?.isProjectionEmptyForHomeState() == true
+        ) {
+            mOperationEmptyProjectionKey = mThingManager!!.getProjection().key()
+        } else if (mThingManager?.hasVisibleProjectionContent() == true) {
+            clearOperationEmptyState()
+        }
+        updateHomeEmptyState()
     }
 
     private fun searchThings() {
         finishNewItemShiningBorderAnimationIfNeeded()
+        mHomeEmptyState?.visibility = View.GONE
         mThingManager!!.searchThings(mEtSearch!!.text.toString(), mColorPicker!!.getPickedColor())
         mAdapter!!.setShouldThingsAnimWhenAppearing(false)
         mAdapter!!.notifyDataSetChanged()
@@ -5944,10 +6083,12 @@ class ThingsActivity :
             toggleDrawerFolderExpanded(folderId)
         }
         mDrawer!!.setOnTypeFilterChangeListener { mask ->
+            clearOperationEmptyState()
             mThingManager!!.setTypeFilterMask(mask, false)
             mRecyclerView!!.visibility = View.INVISIBLE
             mThingManager!!.loadThings()
             mAdapter!!.notifyDataSetChanged()
+            updateHomeEmptyState()
             mRecyclerView!!.scrollToPosition(0)
             mRecyclerView!!.visibility = View.VISIBLE
             updateDrawerFolderItems()
@@ -6017,6 +6158,7 @@ class ThingsActivity :
 
     private fun changeToStatus(newStatus: Int, updateDrawerItem: Boolean) {
         finishNewItemShiningBorderAnimationIfNeeded()
+        clearOperationEmptyState()
         if (updateDrawerItem) {
             checkDrawerItem(getDrawerDestinationKeyForStatus(newStatus))
         }
@@ -6033,11 +6175,13 @@ class ThingsActivity :
             mAdapter!!.setShouldThingsAnimWhenAppearing(true)
             mThingManager!!.loadThings()
             mAdapter!!.notifyDataSetChanged()
+            updateHomeEmptyState()
             refreshActivitySurfaceAndHeader()
             updateDrawerFolderItems()
         }, 360)
 
         refreshActivitySurfaceAndHeader()
+        updateHomeEmptyState()
         mDrawerHeader!!.updateTexts()
         if (newStatus == Def.ThingStatus.UNDERWAY) {
             mFab!!.spread()
@@ -6189,6 +6333,7 @@ class ThingsActivity :
     private fun updateUIAfterStateUpdated(stateAfter: Int, timeDelay: Long, shouldForceBackNormalMode: Boolean) {
         refreshActivitySurfaceAndHeader()
         mDrawerHeader!!.updateCompletionRate()
+        markOperationEmptyStateIfCurrentProjectionEmpty()
 
         mScrollCausedByFinger = false
         mRecyclerView!!.postDelayed({
@@ -6321,6 +6466,7 @@ class ThingsActivity :
         dismissSnackbars()
         val toNormal = App.isSearching
         if (toNormal) {
+            clearOperationEmptyState()
             mActionbar!!.setNavigationContentDescription(R.string.cd_open_drawer)
             mDrawerLayout!!.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED)
             mViewInsideActionbar!!.visibility = View.VISIBLE
@@ -6363,11 +6509,17 @@ class ThingsActivity :
             mFab!!.shrink()
 
             mThingManager!!.getThings()!!.clear()
+            mHomeEmptyState?.visibility = View.GONE
 
             DisplayUtil.playDrawerToggleAnim(mActionbar!!.navigationIcon as DrawerArrowDrawable)
         }
         mAdapter!!.notifyDataSetChanged()
         App.isSearching = !toNormal
+        if (App.isSearching) {
+            mHomeEmptyState?.visibility = View.GONE
+        } else {
+            updateHomeEmptyState()
+        }
         applyHomeNavigationIconTintForAppearance()
         invalidateOptionsMenu()
         mDontPickSearchColor = true
@@ -6376,8 +6528,10 @@ class ThingsActivity :
     private fun handleSearchResults() {
         if (!App.isSearching) {
             hideSearchNoResult()
+            updateHomeEmptyState()
             return
         }
+        mHomeEmptyState?.visibility = View.GONE
         if (mThingManager!!.getThings()!!.size == 1) {
             mTvNoResult!!.visibility = View.VISIBLE
             mRevealLayout!!.visibility = View.VISIBLE
@@ -6690,6 +6844,7 @@ class ThingsActivity :
         authenticated: Boolean = false
     ) {
         saveCurrentProjectionScrollState()
+        clearOperationEmptyState()
         mThingManager!!.openFolder(folder.id, authenticated)
         expandDrawerFolderAncestors(folder.id)
         if (folder.isPrivate) {
@@ -6697,6 +6852,7 @@ class ThingsActivity :
         }
         mAdapter!!.setShouldThingsAnimWhenAppearing(true)
         mAdapter!!.notifyDataSetChanged()
+        updateHomeEmptyState()
         mRecyclerView!!.scrollToPosition(0)
         refreshActivitySurfaceAndHeader()
         updateDrawerFolderItems()
@@ -7371,12 +7527,14 @@ class ThingsActivity :
     private fun refreshHomeAfterFolderCreationCanceled() {
         mAdapter!!.setShouldThingsAnimWhenAppearing(false)
         mAdapter!!.notifyDataSetChanged()
+        updateHomeEmptyState()
         updateHomeAfterFolderDropCommitted()
     }
 
     private fun refreshHomeAfterFolderUpdated() {
         mAdapter!!.setShouldThingsAnimWhenAppearing(false)
         mAdapter!!.notifyDataSetChanged()
+        markOperationEmptyStateIfCurrentProjectionEmpty()
         refreshActivitySurfaceAndHeader()
         mDrawerHeader!!.updateTexts()
         updateDrawerFolderItems()
@@ -7554,6 +7712,7 @@ class ThingsActivity :
     }
 
     private fun updateHomeAfterFolderDropCommitted() {
+        markOperationEmptyStateIfCurrentProjectionEmpty()
         refreshActivitySurfaceAndHeader()
         mDrawerHeader!!.updateTexts()
         updateDrawerFolderItems()
@@ -7760,10 +7919,12 @@ class ThingsActivity :
         }
         dismissSnackbars()
         saveCurrentProjectionScrollState()
+        clearOperationEmptyState()
         mThingManager!!.navigateToFolderPathIndex(folderPathIndex)
         val projectionKey = mThingManager!!.getProjection().key()
         mAdapter!!.setShouldThingsAnimWhenAppearing(false)
         mAdapter!!.notifyDataSetChanged()
+        updateHomeEmptyState()
         refreshActivitySurfaceAndHeader()
         restoreProjectionScrollStateOrTop(projectionKey)
         updateDrawerFolderItems()

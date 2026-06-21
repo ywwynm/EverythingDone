@@ -77,6 +77,37 @@
                 android:scrollbarStyle="outsideOverlay"
                 android:theme="@style/Theme.AppCompat.DayNight"/>
 
+            <LinearLayout
+                android:id="@+id/home_empty_state"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_marginTop="?attr/actionBarSize"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:paddingLeft="32dp"
+                android:paddingRight="32dp"
+                android:visibility="gone">
+
+                <ImageView
+                    android:id="@+id/iv_home_empty_state"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/img_no_result"/>
+
+                <TextView
+                    android:id="@+id/tv_home_empty_state"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:gravity="center"
+                    android:maxWidth="320dp"
+                    android:textColor="@color/app_chrome_on_surface_hint"
+                    android:textSize="24sp"
+                    tools:text="@string/home_empty_underway"/>
+
+            </LinearLayout>
+
             <View
                 android:id="@+id/actionbar_shadow"
                 android:layout_width="match_parent"

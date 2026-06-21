@@ -20,6 +20,10 @@ _Avoid_: secret category, hidden tag
 A Thing Folder moved to the Deleted destination while preserving its child structure for restore or permanent deletion.
 _Avoid_: deleted note folder, removed category
 
+**Empty Thing Folder**:
+A Thing Folder with no child Things and no child Thing Folders.
+_Avoid_: invalid folder, deleted folder
+
 **Thing Folder Path**:
 The ordered chain of Thing Folders from the top-level list to the current nested Thing Folder.
 _Avoid_: breadcrumb as the domain term
@@ -43,6 +47,14 @@ _Avoid_: note card as the blanket term
 **Thing Folder Card**:
 A compact card representation of a Thing Folder on a list surface.
 _Avoid_: folder row, note folder card
+
+**Legacy Placeholder Thing**:
+A system-created Thing used historically to show welcome or empty-list guidance instead of user-owned content.
+_Avoid_: welcome note, empty-list note, ordinary Thing
+
+**Empty-List Guidance**:
+An app-owned guidance message shown when a Thing and Thing Folder list projection has no visible user-owned content.
+_Avoid_: placeholder Thing, empty note
 
 **Full-Span Thing Card**:
 A Thing Card that is intentionally presented with a wider card span as a persistent presentation preference of that Thing.
@@ -157,8 +169,11 @@ _Avoid_: full-row clickable surface, full-card clickable surface, full-row actio
 - A **Thing Folder** may have one parent **Thing Folder**.
 - A **Thing Folder** may be a **Private Thing Folder**.
 - A **Thing Folder** may be a **Deleted Thing Folder**.
+- A **Thing Folder** may be an **Empty Thing Folder**.
 - A **Private Thing Folder** protects descendant **Things** and child **Thing Folders** while they remain inside it.
 - A **Deleted Thing Folder** preserves descendant **Things** and child **Thing Folders** while it remains restorable.
+- A **Legacy Placeholder Thing** is not user-owned content.
+- **Empty-List Guidance** replaces **Legacy Placeholder Things** for welcome and empty-list messaging.
 - A **Thing Folder Path** identifies the current nested **Thing Folder** location.
 - A **Thing Background** can be described by **Thing Background Information**.
 - A **Thing Background** overrides **Appearance Mode** for Thing-owned surfaces.
@@ -212,6 +227,7 @@ _Avoid_: full-row clickable surface, full-card clickable surface, full-row actio
 - "Note card" can mean only a Note-type Thing or any card representation; resolved as **Thing Card** when discussing shared card presentation.
 - "Home card" can mean a card shown only in the home list or a shared card presentation preference; resolved as **Thing Card** for reusable card presentation choices.
 - "Note folder" sounds like it only contains Note-type Things; resolved as **Thing Folder** because EverythingDone's user-created items are Things across notes, reminders, habits, and goals.
+- "WELCOME/NOTIFY_EMPTY note" can sound like user-owned content; resolved as **Legacy Placeholder Thing** when discussing the old stored rows and **Empty-List Guidance** when discussing the replacement message.
 - "Image thumbnail" can exclude video thumbnails; resolved as **Thing Card Media** when discussing image or video thumbnails used by Thing Cards.
 - "Card background image" can mean replacing the Thing's identity background or only changing a card presentation; resolved as **Thing Card Media Background**, which does not replace **Thing Background**.
 - "Side image width", "cover image ratio", and "card height" can describe different controls for the shape of **Thing Card Media Target**; resolved as **Thing Card Media Target Aspect Ratio**.

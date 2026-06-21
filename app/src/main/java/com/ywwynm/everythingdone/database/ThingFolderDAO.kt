@@ -106,7 +106,7 @@ open class ThingFolderDAO private constructor(context: Context?) {
             }
             val effectivePrivate = isEffectivelyPrivate(folder)
             val count = countDescendantThingsForProjection(folder, status, keyword, color)
-            if (count <= 0) continue
+            if (count <= 0 && hasActiveEntryFilter(keyword, color)) continue
             val thumbnailEntries =
                 if (folder.effectiveCardPresentation().mode ==
                     ThingFolderCardPresentation.MODE_THUMBNAILS
@@ -753,6 +753,7 @@ open class ThingFolderDAO private constructor(context: Context?) {
         if (effectiveDeleted && status != Def.ThingStatus.DELETED) {
             return false
         }
+        if (!hasActiveEntryFilter(keyword, color)) return true
         return countDescendantThingsForProjection(folder, status, keyword, color) > 0
     }
 
@@ -993,6 +994,10 @@ open class ThingFolderDAO private constructor(context: Context?) {
 
     private fun hasColorFilter(color: Int): Boolean {
         return color != 0 && color != -1979711488
+    }
+
+    private fun hasActiveEntryFilter(keyword: String?, color: Int): Boolean {
+        return keyword != null || hasColorFilter(color)
     }
 
     private fun matchesColorFilter(thing: Thing, color: Int): Boolean {

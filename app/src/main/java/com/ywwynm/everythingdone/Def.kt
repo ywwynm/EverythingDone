@@ -31,7 +31,7 @@ object Def {
         const val FEEDBACK_ERROR_FILE_NAME: String = "feedback_error.dat"
 
         const val DATABASE_NAME: String = "EverythingDoneData.db"
-        const val DATABASE_VERSION: Int = 16
+        const val DATABASE_VERSION: Int = 17
 
         const val ONGOING_NOTIFICATION_ID: Int = Int.MAX_VALUE
 
@@ -62,6 +62,19 @@ object Def {
         const val KEY_RINGTONE_AUTO_NOTIFY: String     = "ringtone_auto_notify"
 
         const val KEY_AUTO_SAVE_EDITS: String          = "auto_save_edits"
+
+        const val KEY_HOME_EMPTY_STATE_HISTORY_INITIALIZED: String =
+                "home_empty_state_history_initialized"
+        const val KEY_HOME_EMPTY_STATE_HAS_CREATED_USER_CONTENT: String =
+                "home_empty_state_has_created_user_content"
+        const val KEY_HOME_EMPTY_STATE_HAS_CREATED_NOTE: String =
+                "home_empty_state_has_created_note"
+        const val KEY_HOME_EMPTY_STATE_HAS_CREATED_REMINDER: String =
+                "home_empty_state_has_created_reminder"
+        const val KEY_HOME_EMPTY_STATE_HAS_CREATED_HABIT: String =
+                "home_empty_state_has_created_habit"
+        const val KEY_HOME_EMPTY_STATE_HAS_CREATED_GOAL: String =
+                "home_empty_state_has_created_goal"
 
         const val KEY_PRIVATE_PASSWORD: String         = "private_password"
         const val KEY_USE_FINGERPRINT: String          = "use_fingerprint"
@@ -181,7 +194,7 @@ object Def {
         const val COLUMN_TARGET_FOLDER_ID_APP_WIDGET: String = "target_folder_id" /* added in version 16 */
         const val COLUMN_TYPE_FILTER_MASK_APP_WIDGET: String = "type_filter_mask" /* added in version 16 */
         const val COLUMN_DISPLAY_MODE_APP_WIDGET: String = "display_mode" /* added in version 16 */
-        const val COLUMN_STATUS_APP_WIDGET: String = "status" /* added in version 17 */
+        const val COLUMN_STATUS_APP_WIDGET: String = "status" /* declared for deferred widget status */
 
         const val TABLE_DOING_RECORDS: String             = "doing_records"
         const val COLUMN_ID_DOING: String                 = "id"

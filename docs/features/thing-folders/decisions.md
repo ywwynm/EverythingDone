@@ -954,7 +954,7 @@ side-panel media use `ThingCardThumbnailCrop.sourceAspectRatio`; media
 background previews use the source presentation's media-background target
 aspect ratio. This applies to images and video frames.
 
-## 2026-06-17 - Moves insert first and empty folders are removed
+## 2026-06-17 - Moves insert first and empty folders were removed
 
 When a Thing or Thing Folder moves into a different Thing Folder, moves back to
 its previous parent, or moves back to root, the moved entry becomes the first
@@ -962,8 +962,15 @@ item in that target root or target Folder's corresponding sticky or non-sticky
 section, preserving the entry's existing sticky state. The move should not
 preserve the entry's old relative order from its source container.
 
-After a move leaves a Thing Folder with no direct child Things and no direct
-child Thing Folders, the now-empty Folder is deleted automatically.
+Superseded on 2026-06-21: Empty Thing Folders are now valid user-owned
+containers, so moves should no longer automatically delete a Thing Folder merely
+because the source Folder became structurally empty.
+
+## 2026-06-21 - Empty Thing Folders are valid containers
+
+Users may create and keep Empty Thing Folders. Moving Things or child Thing
+Folders out of a Thing Folder should preserve the now-empty Folder rather than
+deleting it automatically.
 
 ## 2026-06-17 - Private Folder Cards keep visible titles
 
@@ -1344,3 +1351,14 @@ Large Folder previews inside the Single-Thing AppWidget configuration should
 keep home-card visuals while exposing configuration-specific taps: tapping a
 Thing thumbnail selects that Thing for preview, and tapping a Folder thumbnail
 opens that Folder.
+
+## 2026-06-21 - Filtered Folder Cards require matching Things
+
+Structurally Empty Thing Folders remain valid user-owned containers and should
+not be auto-deleted, but state/type-filtered list projections should not show a
+Folder Card unless that Folder subtree contains at least one Thing matching the
+current status and type filter.
+
+This keeps Empty Thing Folders preservable in the data model while preventing a
+filtered Things list from showing Folder Cards that have no relevant Things for
+the current projection.

@@ -6,10 +6,11 @@ import android.database.sqlite.SQLiteOpenHelper
 import android.util.Log
 
 import com.ywwynm.everythingdone.Def
-import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.model.DetailAttachmentMediaAppearance
+import com.ywwynm.everythingdone.model.HomeEmptyStateHistory
 import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.model.ThingCardAppearance
+import com.ywwynm.everythingdone.model.ThingsCounts
 
 /**
  * Created by ywwynm on 2015/5/21.
@@ -26,21 +27,6 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
         db.execSQL(SQL_CREATE_INDEX_THINGS_FOLDER_ID)
         db.execSQL(SQL_CREATE_INDEX_THING_FOLDERS_PARENT_FOLDER_ID)
 
-        db.execSQL(generateInsertInitialSQL(0, Thing.WELCOME_UNDERWAY,
-                R.string.welcome_underway_title, R.string.welcome_underway_content))
-        db.execSQL(generateInsertInitialSQL(1, Thing.WELCOME_NOTE,
-                0, R.string.welcome_note_content))
-        db.execSQL(generateInsertInitialSQL(2, Thing.WELCOME_REMINDER,
-                0, R.string.welcome_reminder_content))
-        db.execSQL(generateInsertInitialSQL(3, Thing.WELCOME_HABIT,
-                0, R.string.welcome_habit_content))
-        db.execSQL(generateInsertInitialSQL(4, Thing.WELCOME_GOAL,
-                0, R.string.welcome_goal_content))
-        db.execSQL(generateInsertInitialSQL(5, Thing.NOTIFY_EMPTY_FINISHED,
-                0, R.string.empty_finished))
-        db.execSQL(generateInsertInitialSQL(6, Thing.NOTIFY_EMPTY_DELETED,
-                0, R.string.empty_deleted))
-
 //        for (int i = 7; i < 607; i++) {
 //            db.execSQL(generateTestSQL(i, i % 2 == 0 ? "" : "ywwynm", i - 6 + ""));
 //        }
@@ -53,6 +39,8 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
         db.execSQL(SQL_CREATE_TABLE_HABIT_RECORDS)
         db.execSQL(SQL_CREATE_TABLE_APP_WIDGET)
         db.execSQL(SQL_CREATE_TABLE_DOING_RECORDS)
+
+        HomeEmptyStateHistory.initialize(mContext, false, emptySet())
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
@@ -120,7 +108,80 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
         if (oldVersion < 16) {
             migrateAppWidgetProjectionColumns(db)
         }
-        // released version should be 1, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16.
+        if (oldVersion < 17) {
+            migrateHomeEmptyState(db)
+        }
+        // released version should be 1, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17.
+    }
+
+    fun ensureHomeEmptyStateData(db: SQLiteDatabase) {
+        initializeHomeEmptyStateHistoryIfNeeded(db)
+        deleteLegacyPlaceholderThings(db)
+    }
+
+    private fun migrateHomeEmptyState(db: SQLiteDatabase) {
+        initializeHomeEmptyStateHistoryIfNeeded(db)
+        deleteLegacyPlaceholderThings(db)
+    }
+
+    private fun initializeHomeEmptyStateHistoryIfNeeded(db: SQLiteDatabase) {
+        if (HomeEmptyStateHistory.isInitialized(mContext)) return
+
+        val createdTypes = HashSet<Int>()
+        var hasUserContent = false
+        db.query(
+            Def.Database.TABLE_THINGS,
+            arrayOf(Def.Database.COLUMN_TYPE_THINGS),
+            Def.Database.COLUMN_TYPE_THINGS + ">=" + Thing.NOTE +
+                " and " + Def.Database.COLUMN_TYPE_THINGS + "<=" + Thing.GOAL,
+            null,
+            null,
+            null,
+            null
+        ).use { cursor ->
+            while (cursor.moveToNext()) {
+                val type = cursor.getInt(0)
+                createdTypes.add(type)
+                hasUserContent = true
+            }
+        }
+
+        if (tableExists(db, Def.Database.TABLE_THING_FOLDERS)) {
+            db.rawQuery(
+                "select count(*) from " + Def.Database.TABLE_THING_FOLDERS,
+                null
+            ).use { cursor ->
+                if (cursor.moveToFirst() && cursor.getInt(0) > 0) {
+                    hasUserContent = true
+                }
+            }
+        }
+
+        val counts = mContext!!.getSharedPreferences(
+            Def.Meta.THINGS_COUNTS_NAME,
+            Context.MODE_PRIVATE
+        )
+        var type = Thing.NOTE
+        while (type <= Thing.GOAL) {
+            if (counts.getInt(type.toString() + "_" + ThingsCounts.ALL, 0) > 0) {
+                createdTypes.add(type)
+                hasUserContent = true
+            }
+            type++
+        }
+
+        HomeEmptyStateHistory.initialize(mContext, hasUserContent, createdTypes)
+    }
+
+    private fun deleteLegacyPlaceholderThings(db: SQLiteDatabase) {
+        db.delete(
+            Def.Database.TABLE_THINGS,
+            "(" + Def.Database.COLUMN_TYPE_THINGS + ">=" + Thing.WELCOME_UNDERWAY +
+                " and " + Def.Database.COLUMN_TYPE_THINGS + "<=" + Thing.WELCOME_GOAL +
+                ") or (" + Def.Database.COLUMN_TYPE_THINGS + ">=" + Thing.NOTIFY_EMPTY_UNDERWAY +
+                " and " + Def.Database.COLUMN_TYPE_THINGS + "<=" + Thing.NOTIFY_EMPTY_DELETED + ")",
+            null
+        )
     }
 
     private fun migrateThingCardSettingsColumns(db: SQLiteDatabase) {
@@ -227,37 +288,20 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
         return false
     }
 
+    private fun tableExists(db: SQLiteDatabase, tableName: String): Boolean {
+        db.rawQuery(
+            "select name from sqlite_master where type='table' and name=?",
+            arrayOf(tableName)
+        ).use { cursor ->
+            return cursor.moveToFirst()
+        }
+    }
+
     override fun onDowngrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         if (newVersion < oldVersion) {
             onUpgrade(db, newVersion, oldVersion)
             db.version = oldVersion
         }
-    }
-
-    private fun generateInsertInitialSQL(id: Int, type: Int, titleRes: Int, contentRes: Int): String {
-        // Phase 3+: roll a full ThingBackground (50/50 PURE vs GRADIENT) and
-        // write both the legacy int colour column and the new background JSON
-        // column. Previously this inserted only 11 values for the widened table,
-        // which broke fresh installs after new Thing columns were added.
-        val bg: com.ywwynm.everythingdone.model.ThingBackground =
-                com.ywwynm.everythingdone.model.ThingBackground.fromRandom()
-        return "insert into " + Def.Database.TABLE_THINGS + " values(" + "'" +
-                id + "', '" +
-                type + "', '" +
-                Thing.UNDERWAY + "', '" +
-                bg.representativeColor() + "', '" +
-                (if (titleRes != 0) mContext!!.getString(titleRes) else "") + "', '" +
-                mContext!!.getString(contentRes) + "', " +
-                "''" + ", '" +
-                id + "', '" +
-                System.currentTimeMillis() + "', '" +
-                System.currentTimeMillis() + "', " +
-                "'0', '" +
-                bg.toJson() + "', '" +
-                Thing.THING_CARD_SPAN_NORMAL + "', '" +
-                Thing.THING_CARD_IMAGE_PLACEMENT_DEFAULT + "', '" +
-                ThingCardAppearance.default().toJson() + "', '" +
-                DetailAttachmentMediaAppearance.default().toJson() + "', NULL)"
     }
 
 //    private String generateTestSQL(int id, String title, String content) {
@@ -414,11 +458,11 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
         // colour, background field NULL is fine").
         private val SQL_INSERT_HEADER: String = "insert into " +
                 Def.Database.TABLE_THINGS + " values(" +
-                "'7', '" +
+                "'0', '" +
                 Thing.HEADER +
                 "', '" +
                 Thing.UNDERWAY +
-                "', '-14784871', 'Let this be my last words', 'I trust thy love', 'to QQ', '7', '" +
+                "', '-14784871', 'Let this be my last words', 'I trust thy love', 'to QQ', '0', '" +
                 System.currentTimeMillis() + "', '" +
                 System.currentTimeMillis() + "', '0', NULL, '" +
                 Thing.THING_CARD_SPAN_NORMAL + "', '" +
