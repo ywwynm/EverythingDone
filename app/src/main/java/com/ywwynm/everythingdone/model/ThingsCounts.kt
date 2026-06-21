@@ -64,13 +64,19 @@ open class ThingsCounts private constructor(context: Context?) {
         }
         var count = 0
         if (mask == ThingWidgetInfo.TYPE_FILTER_ALL) {
-            var i = Thing.NOTE
-            while (i <= Thing.WELCOME_UNDERWAY) {
-                count += getCount(i, state)
-                i++
-            }
             if (state == Thing.UNDERWAY) {
+                var i = Thing.NOTE
+                while (i <= Thing.WELCOME_UNDERWAY) {
+                    count += getCount(i, state)
+                    i++
+                }
                 count += getCount(Thing.NOTIFICATION_UNDERWAY, Thing.UNDERWAY)
+            } else {
+                var i = Thing.NOTE
+                while (i <= Thing.NOTIFICATION_GOAL) {
+                    count += getCount(i, state)
+                    i++
+                }
             }
         } else {
             val types = mutableListOf<Int>()

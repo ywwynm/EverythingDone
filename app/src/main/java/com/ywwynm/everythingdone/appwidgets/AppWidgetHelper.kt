@@ -207,12 +207,9 @@ object AppWidgetHelper {
         context!!.sendBroadcast(intent)
     }
 
-    /**
-     * Update things list widget whose UI components are bind with a list of things under `limit`.
-     */
     @JvmStatic
-    fun updateThingsListAppWidgets(context: Context?, limit: Int) {
-        Log.i(TAG, "updateThingsListAppWidget(context, limit) is called, limit[$limit]")
+    fun updateThingsListAppWidgetsForStatus(context: Context?, status: Int) {
+        Log.i(TAG, "updateThingsListAppWidget(context, status) is called, status[$status]")
         val appWidgetDAO: AppWidgetDAO = AppWidgetDAO.getInstance(context)!!
         val thingWidgetInfos: List<ThingWidgetInfo?> = appWidgetDAO.getThingsListWidgetInfos()
         for (thingWidgetInfo in thingWidgetInfos) {
@@ -397,11 +394,6 @@ object AppWidgetHelper {
     }
 
     @JvmStatic
-    fun createRemoteViewsForThingsList(context: Context?, limit: Int, appWidgetId: Int): RemoteViews {
-        return createRemoteViewsForThingsList(context, appWidgetId)
-    }
-
-    @JvmStatic
     fun createRemoteViewsForThingsList(context: Context?, appWidgetId: Int): RemoteViews {
         val appContext = context!!
         val remoteViews = RemoteViews(appContext.packageName, R.layout.app_widget_things_list)
@@ -411,7 +403,7 @@ object AppWidgetHelper {
         val typeFilterMask = ThingWidgetInfo.normalizedTypeFilterMask(
             info?.typeFilterMask ?: ThingWidgetInfo.TYPE_FILTER_ALL
         )
-        val limit = Def.ThingStatus.UNDERWAY
+        val status = Def.ThingStatus.UNDERWAY
 
         setThingsListHeaderAppearance(appContext, remoteViews, info, folder, typeFilterMask)
 
@@ -422,7 +414,7 @@ object AppWidgetHelper {
         if (folder != null) {
             intent.setAction(Def.Communication.AUTHENTICATE_ACTION_VIEW)
         }
-        intent.putExtra(Def.Communication.KEY_LIMIT, limit)
+        intent.putExtra(Def.Communication.KEY_STATUS, status)
         intent.putExtra(Def.Communication.KEY_TYPE_FILTER_MASK, typeFilterMask)
         if (folder != null) {
             intent.putExtra(Def.Communication.KEY_FOLDER_ID, folder.id)
@@ -447,7 +439,6 @@ object AppWidgetHelper {
 
         intent = Intent(appContext, ShortcutActivity::class.java)
         intent.setAction(Def.Communication.SHORTCUT_ACTION_CREATE)
-        intent.putExtra(Def.Communication.KEY_LIMIT, limit)
         if (folder != null) {
             intent.putExtra(Def.Communication.KEY_FOLDER_ID, folder.id)
         }
@@ -630,7 +621,7 @@ object AppWidgetHelper {
             ThingWidgetInfo.normalizedTypeFilterMask(mask)
         )
         intent.putExtra(
-            Def.Communication.KEY_LIMIT,
+            Def.Communication.KEY_STATUS,
             Def.ThingStatus.UNDERWAY
         )
         return intent

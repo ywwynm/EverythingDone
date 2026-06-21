@@ -31,6 +31,7 @@ import com.ywwynm.everythingdone.helpers.FingerprintHelper
 import com.ywwynm.everythingdone.managers.ThingManager
 import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.model.ThingBackground
+import com.ywwynm.everythingdone.model.ThingListProjection
 import com.ywwynm.everythingdone.services.AlarmHealthWorker
 import com.ywwynm.everythingdone.services.PullAliveJobService
 import com.ywwynm.everythingdone.utils.FileUtil
@@ -60,11 +61,7 @@ open class App : Application() {
     private var mAttachmentsToDeleteFile: MutableList<String?>? = null
 
     /**
-     * limit stands for collection of different types of [Thing] that should display
-     * on same UI interface. For example, [Thing.NOTE] and [Thing.WELCOME_NOTE]
-     * should display on "note".
-     * Value should be one of those declared in
-     * [Def.LimitForGettingThings]
+     * Current status projection shown by the main Things UI.
      */
     private var mStatus: Int = Def.ThingStatus.UNDERWAY
 
@@ -221,28 +218,12 @@ open class App : Application() {
         return mThingsToDeleteForever
     }
 
-    open fun getLimit(): Int {
-        return when (mStatus) {
-            Def.ThingStatus.FINISHED -> Def.LimitForGettingThings.ALL_FINISHED
-            Def.ThingStatus.DELETED -> Def.LimitForGettingThings.ALL_DELETED
-            else -> Def.ThingStatus.UNDERWAY
-        }
-    }
-
     open fun getStatus(): Int = mStatus
 
-    open fun setLimit(limit: Int, loadThingsNow: Boolean) {
-        mStatus = when (limit) {
-            Def.LimitForGettingThings.ALL_FINISHED -> Def.ThingStatus.FINISHED
-            Def.LimitForGettingThings.ALL_DELETED -> Def.ThingStatus.DELETED
-            else -> Def.ThingStatus.UNDERWAY
-        }
-        mThingManager!!.setStatus(mStatus, loadThingsNow)
-    }
-
     open fun setStatus(status: Int, loadThingsNow: Boolean) {
-        mStatus = status
-        mThingManager!!.setStatus(status, loadThingsNow)
+        val normalizedStatus = ThingListProjection.normalizeStatus(status)
+        mStatus = normalizedStatus
+        mThingManager!!.setStatus(normalizedStatus, loadThingsNow)
     }
 
     open fun setDetailActivityRun(detailActivityRun: Boolean) {

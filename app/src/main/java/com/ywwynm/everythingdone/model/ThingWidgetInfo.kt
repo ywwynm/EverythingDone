@@ -119,14 +119,6 @@ open class ThingWidgetInfo(
             }
         }
 
-        fun statusForLegacyLimit(limit: Int): Int {
-            return when (limit) {
-                Def.LimitForGettingThings.ALL_FINISHED -> Def.ThingStatus.FINISHED
-                Def.LimitForGettingThings.ALL_DELETED -> Def.ThingStatus.DELETED
-                else -> Def.ThingStatus.UNDERWAY
-            }
-        }
-
         fun isSpecificTypeFilterMask(mask: Int): Boolean {
             return normalizedTypeFilterMask(mask) != TYPE_FILTER_ALL
         }
@@ -151,13 +143,11 @@ open class ThingWidgetInfo(
         }
 
         private fun legacyTypeFilterMask(thingId: Long): Int {
-            if (thingId >= 0L) return TYPE_FILTER_ALL
-            val legacyLimit = (-thingId - 1).toInt()
-            return when (legacyLimit) {
-                Def.LimitForGettingThings.NOTE_UNDERWAY -> TYPE_FILTER_NOTE
-                Def.LimitForGettingThings.REMINDER_UNDERWAY -> TYPE_FILTER_REMINDER
-                Def.LimitForGettingThings.HABIT_UNDERWAY -> TYPE_FILTER_HABIT
-                Def.LimitForGettingThings.GOAL_UNDERWAY -> TYPE_FILTER_GOAL
+            return when (thingId) {
+                -2L -> TYPE_FILTER_NOTE
+                -3L -> TYPE_FILTER_REMINDER
+                -4L -> TYPE_FILTER_HABIT
+                -5L -> TYPE_FILTER_GOAL
                 else -> TYPE_FILTER_ALL
             }
         }

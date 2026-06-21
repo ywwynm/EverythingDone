@@ -102,22 +102,6 @@ object Def {
 
     }
 
-    @Deprecated(
-        "Use ThingStatus + typeFilterMask instead",
-        ReplaceWith("ThingStatus.UNDERWAY", "com.ywwynm.everythingdone.Def.ThingStatus")
-    )
-    object LimitForGettingThings {
-
-        const val ALL_UNDERWAY: Int      = 0
-        const val NOTE_UNDERWAY: Int     = 1
-        const val REMINDER_UNDERWAY: Int = 2
-        const val HABIT_UNDERWAY: Int    = 3
-        const val GOAL_UNDERWAY: Int     = 4
-        const val ALL_FINISHED: Int      = 5
-        const val ALL_DELETED: Int       = 6
-
-    }
-
     object Database {
 
         const val TABLE_THINGS: String              = "things"
@@ -286,7 +270,7 @@ object Def {
         const val KEY_HELP_CONTENTS: String = PREFIX + "key.help_contents"
 
         const val KEY_WIDGET_ID: String        = PREFIX + "key.widget_id"
-        const val KEY_LIMIT: String            = PREFIX + "key.limit"
+        const val KEY_STATUS: String           = PREFIX + "key.status"
         const val KEY_TYPE_FILTER_MASK: String = PREFIX + "key.type_filter_mask"
         const val KEY_FOLDER_AUTHENTICATED: String = PREFIX + "key.folder_authenticated"
 

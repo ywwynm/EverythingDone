@@ -239,7 +239,7 @@ object RemoteActionHelper {
 
     /**
      * Update UI for ThingsActivity and app widgets if a remote action happened.
-     * This method will also finish the action if it acts with a thing that under current limit,
+     * This method will also finish the action if it acts with a thing under current projection,
      * which means it can be found in [ThingManager.mThings]. In this situation, we should
      * call methods in [ThingManager], get their returned values and put them into broadcast
      * [Intent]s, as a result of which, ThingsActivity can handle UI update correctly as well
@@ -248,7 +248,7 @@ object RemoteActionHelper {
      * @param context the context where the action happened.
      * @param thing the thing that the action act with.
      * @param thingIndex index of `thing` inside [ThingManager.mThings]. This can
-     *                 be -1 if `thing` couldn't be found under current limit.
+     *                 be -1 if `thing` couldn't be found under current projection.
      * @param typeBefore used when we are updating `thing`'s type.
      * @param resultCode although this method can handle all possible resultCodes declared in
      *                   [com.ywwynm.everythingdone.Def.Communication], remote actions will

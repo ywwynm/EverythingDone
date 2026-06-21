@@ -337,7 +337,16 @@ open class ThingFolderDAO private constructor(context: Context?) {
         keyword: String? = null,
         color: Int = 0
     ): Int {
-        if (isEffectivelyDeleted(folder)) return 0
+        val effectiveDeleted = isEffectivelyDeleted(folder)
+        if (status == Def.ThingStatus.DELETED && effectiveDeleted) {
+            return countDescendantThings(
+                folder.id,
+                thingSelectionForTypeFilter(typeFilterMask),
+                keyword,
+                color
+            )
+        }
+        if (effectiveDeleted) return 0
         return countDescendantThings(
             folder.id,
             thingSelectionForStatusAndTypeFilter(status, typeFilterMask),
@@ -576,10 +585,15 @@ open class ThingFolderDAO private constructor(context: Context?) {
         color: Int
     ): ThumbnailEntriesProjection {
         val maxCount = folder.effectiveCardPresentation().effectiveThumbnailPreviewLimit()
-        if (isEffectivelyDeleted(folder)) {
+        val effectiveDeleted = isEffectivelyDeleted(folder)
+        if (effectiveDeleted && status != Def.ThingStatus.DELETED) {
             return ThumbnailEntriesProjection(emptyList(), 0)
         }
-        val selection = thingSelectionForStatusAndTypeFilter(status, typeFilterMask)
+        val selection = if (status == Def.ThingStatus.DELETED && effectiveDeleted) {
+            thingSelectionForTypeFilter(typeFilterMask)
+        } else {
+            thingSelectionForStatusAndTypeFilter(status, typeFilterMask)
+        }
         val entries = ArrayList<ThingListEntry>()
         entries.addAll(
             getThumbnailFolderEntriesForTypeFilterProjection(
@@ -760,7 +774,8 @@ open class ThingFolderDAO private constructor(context: Context?) {
         keyword: String?,
         color: Int
     ): Boolean {
-        if (isEffectivelyDeleted(folder)) return false
+        val effectiveDeleted = isEffectivelyDeleted(folder)
+        if (effectiveDeleted && status != Def.ThingStatus.DELETED) return false
         return countDescendantThingsForTypeFilterProjection(
             folder,
             status,
@@ -992,6 +1007,20 @@ open class ThingFolderDAO private constructor(context: Context?) {
     private fun userThingSelection(): String {
         return Def.Database.COLUMN_TYPE_THINGS + ">=" + Thing.NOTE +
             " and " + Def.Database.COLUMN_TYPE_THINGS + "<=" + Thing.GOAL
+    }
+
+    private fun thingSelectionForTypeFilter(typeFilterMask: Int): String {
+        val typeColumn = Def.Database.COLUMN_TYPE_THINGS
+        val mask = ThingWidgetInfo.normalizedTypeFilterMask(typeFilterMask)
+        if (mask == ThingWidgetInfo.TYPE_FILTER_ALL) {
+            return userThingSelection()
+        }
+        val types = ArrayList<Int>(4)
+        if (mask and ThingWidgetInfo.TYPE_FILTER_NOTE != 0) types.add(Thing.NOTE)
+        if (mask and ThingWidgetInfo.TYPE_FILTER_REMINDER != 0) types.add(Thing.REMINDER)
+        if (mask and ThingWidgetInfo.TYPE_FILTER_HABIT != 0) types.add(Thing.HABIT)
+        if (mask and ThingWidgetInfo.TYPE_FILTER_GOAL != 0) types.add(Thing.GOAL)
+        return "$typeColumn in (${types.joinToString(",")})"
     }
 
     private fun thingSelectionForStatusAndTypeFilter(status: Int, typeFilterMask: Int): String {

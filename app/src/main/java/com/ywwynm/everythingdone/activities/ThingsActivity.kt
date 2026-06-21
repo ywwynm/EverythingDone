@@ -462,9 +462,9 @@ class ThingsActivity :
 
         val intent: Intent? = getIntent()
         if (intent != null) {
-            val limit = intent.getIntExtra(Def.Communication.KEY_LIMIT, -1)
-            if (limit != -1 && limit != App.getApp()!!.getStatus()) {
-                App.getApp()!!.setLimit(limit, true)
+            val status = intent.getIntExtra(Def.Communication.KEY_STATUS, -1)
+            if (status != -1 && status != App.getApp()!!.getStatus()) {
+                App.getApp()!!.setStatus(status, true)
             }
             mInitialExternalTypeFilterMask = getExternalTypeFilterMask(intent)
             val folderId = intent.getLongExtra(Def.Communication.KEY_FOLDER_ID, Long.MIN_VALUE)
@@ -680,21 +680,21 @@ class ThingsActivity :
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         // launched from things list widget
-        val newLimit = intent.getIntExtra(Def.Communication.KEY_LIMIT, -1)
+        val newStatus = intent.getIntExtra(Def.Communication.KEY_STATUS, -1)
         val folderId = intent.getLongExtra(Def.Communication.KEY_FOLDER_ID, Long.MIN_VALUE)
         val typeFilterMask = getExternalTypeFilterMask(intent)
         if (folderId != Long.MIN_VALUE || typeFilterMask != null) {
             openExternalProjectionFromIntent(intent)
             return
         }
-        if (newLimit != -1 && mApp!!.getStatus() != newLimit) {
+        if (newStatus != -1 && mApp!!.getStatus() != newStatus) {
             if (mModeManager!!.getCurrentMode() != ModeManager.NORMAL) {
                 mModeManager!!.backNormalMode(0)
             }
             if (App.isSearching) {
                 toggleSearching(false)
             }
-            changeToStatus(newLimit, true)
+            changeToStatus(newStatus, true)
             KeyboardUtil.hideKeyboard(window)
         }
     }
@@ -1501,7 +1501,7 @@ class ThingsActivity :
                     mRemoteIntent = null
                     return@postDelayed
                 }
-                Log.i(TAG, "type and state match current limit, "
+                Log.i(TAG, "type and state match current status, "
                     + "thingIndex[" + thingIndex + "], "
                     + "list position[" + listPosition + "], "
                     + "isSearching[" + App.isSearching + "]")
@@ -1975,12 +1975,12 @@ class ThingsActivity :
         if (App.isSearching) {
             toggleSearching(false)
         }
-        val limit = intent.getIntExtra(
-            Def.Communication.KEY_LIMIT,
+        val status = intent.getIntExtra(
+            Def.Communication.KEY_STATUS,
             Def.ThingStatus.UNDERWAY
         )
-        if (mApp!!.getStatus() != limit) {
-            mApp!!.setLimit(limit, false)
+        if (mApp!!.getStatus() != status) {
+            mApp!!.setStatus(status, false)
         }
         val typeFilterMask = getExternalTypeFilterMask(intent) ?: ThingWidgetInfo.TYPE_FILTER_ALL
         applyExternalTypeFilterMask(typeFilterMask, loadThingsNow = false)
@@ -6337,7 +6337,7 @@ class ThingsActivity :
             if (mApp!!.getStatus() == Def.ThingStatus.UNDERWAY) {
                 mFab!!.spread()
             }
-            mApp!!.setLimit(mApp!!.getStatus(), true)
+            mApp!!.setStatus(mApp!!.getStatus(), true)
             refreshActivitySurfaceAndHeader()
             mDrawerHeader!!.updateCompletionRate()
             mAdapter!!.setShouldThingsAnimWhenAppearing(shouldThingsAnimWhenAppearing)

@@ -85,9 +85,10 @@ open class ThingManager private constructor(context: Context?) {
     }
 
     open fun setStatus(status: Int, loadThingsNow: Boolean) {
-        mProjection = mProjection.withStatus(status)
+        val normalizedStatus = ThingListProjection.normalizeStatus(status)
+        mProjection = mProjection.withStatus(normalizedStatus)
         mAuthenticatedPrivateFolderIds.clear()
-        mDao!!.setProjection(status, mTypeFilterMask)
+        mDao!!.setProjection(normalizedStatus, mTypeFilterMask)
         if (loadThingsNow) {
             loadThings()
         }
@@ -447,7 +448,7 @@ open class ThingManager private constructor(context: Context?) {
      * @param thingToCreate the thing to create.
      * @param handleNotifyEmpty whether we should handle deletion/creation of NOTIFY_EMPTYs.
      * @return `true` if we found a need-to-delete NOTIFY_EMPTY under current
-     *          limit([mLimit]) and we deleted it indeed, which means
+     *          projection and we deleted it indeed, which means
      *          [com.ywwynm.everythingdone.activities.ThingsActivity] need to call
      *          [com.ywwynm.everythingdone.adapters.ThingsAdapter.notifyItemChanged].
      *          `false` otherwise and should call ThingsAdapter#notifyItemInserted(1).
@@ -501,10 +502,11 @@ open class ThingManager private constructor(context: Context?) {
      * @return 0 if update really happens and [com.ywwynm.everythingdone.activities.ThingsActivity]
      *         should call [com.ywwynm.everythingdone.adapters.ThingsAdapter.notifyItemChanged].
      *
-     *         1 if we updated a thing to a new type and created a NOTIFY_EMPTY for current limit
-     *         ([mLimit]) so that ThingsActivity should call ThingsAdapter#notifyItemChanged(1).
+     *         1 if we updated a thing to a new type and created a NOTIFY_EMPTY for current
+     *         projection so that ThingsActivity should call ThingsAdapter#notifyItemChanged(1).
      *
-     *         2 if we updated a thing to a new type but didn't create a NOTIFY_EMPTY for current limit.
+     *         2 if we updated a thing to a new type but didn't create a NOTIFY_EMPTY for current
+     *         projection.
      *         In this situation, ThingsActivity should call ThingsAdapter#notifyItemRemoved(`position`).
      */
     open fun update(@Thing.Type typeBefore: Int, updatedThing: Thing?, position: Int,
@@ -659,7 +661,7 @@ open class ThingManager private constructor(context: Context?) {
             mDao!!.updateStates(clonedThings, null, stateBefore, stateAfter, false)
         }
 
-        // things.get(0).getType() will lead us to current limit.
+        // things[0].type points to the current projection's empty placeholder type.
         var type: Int = things[0]!!.type
         if (!App.isSearching) {
             deleteNEnow(type, stateAfter)
@@ -667,7 +669,7 @@ open class ThingManager private constructor(context: Context?) {
 
         /*
             We don't know how many NEs will be created then so we directly assume that the
-            number is 6(except for current limit, which will be handled at last). As a result,
+            number is 6(except for current projection, which will be handled at last). As a result,
             we should update header id to be size+6.
             This is stupid but it's the only way to do the stuff. QAQ.
          */

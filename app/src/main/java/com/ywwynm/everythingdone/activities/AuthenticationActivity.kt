@@ -103,11 +103,11 @@ open class AuthenticationActivity : AppCompatActivity() {
     private fun openFolder(folder: ThingFolder, authenticated: Boolean) {
         val source = getIntent()
         val openIntent = Intent(this, ThingsActivity::class.java)
-        val limit = source.getIntExtra(
-            Def.Communication.KEY_LIMIT,
+        val status = source.getIntExtra(
+            Def.Communication.KEY_STATUS,
             Def.ThingStatus.UNDERWAY
         )
-        openIntent.putExtra(Def.Communication.KEY_LIMIT, limit)
+        openIntent.putExtra(Def.Communication.KEY_STATUS, status)
         if (source.hasExtra(Def.Communication.KEY_TYPE_FILTER_MASK)) {
             openIntent.putExtra(
                 Def.Communication.KEY_TYPE_FILTER_MASK,

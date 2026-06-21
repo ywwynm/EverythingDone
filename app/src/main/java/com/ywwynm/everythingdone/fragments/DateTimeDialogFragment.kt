@@ -187,7 +187,6 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
 
         val args: Bundle = arguments!!
         mThing = args.getParcelable(Def.Communication.KEY_THING)
-        val limit = args.getInt(Def.Communication.KEY_LIMIT)
         val thingType = mThing?.type ?: Thing.NOTE
         if (mActivity!!.rhParams.habitDetail != null ||
             Thing.isTypeHabit(thingType)
@@ -1397,11 +1396,10 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
         private const val NO_PROBLEM = "no problem"
 
         @JvmStatic
-        fun newInstance(thing: Thing?, limit: Int): DateTimeDialogFragment {
+        fun newInstance(thing: Thing?): DateTimeDialogFragment {
             val fragment = DateTimeDialogFragment()
             val args = Bundle()
             args.putParcelable(Def.Communication.KEY_THING, thing)
-            args.putInt(Def.Communication.KEY_LIMIT, limit)
             fragment.arguments = args
             return fragment
         }

@@ -44,10 +44,6 @@ open class ShortcutActivity : AppCompatActivity() {
                     App.newThingBackground
                 else ThingBackground.pure(App.newThingColor)
             )
-            val limit = intent.getIntExtra(Def.Communication.KEY_LIMIT, -1)
-            if (limit != -1) {
-                openIntent.putExtra(Def.Communication.KEY_LIMIT, limit)
-            }
             val folderId = intent.getLongExtra(Def.Communication.KEY_FOLDER_ID, Long.MIN_VALUE)
             if (folderId != Long.MIN_VALUE) {
                 openIntent.putExtra(Def.Communication.KEY_FOLDER_ID, folderId)

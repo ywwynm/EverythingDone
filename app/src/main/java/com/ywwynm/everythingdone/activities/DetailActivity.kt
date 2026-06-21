@@ -206,7 +206,6 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     private var mSpanAudio: Int = 0
 
     private var mDateTimeDialogFragment: DateTimeDialogFragment? = null
-    private var mLimit: Int = -1
     private var mNightModeMask: Int = 0
     private var mRenderedThingSnapshot: ThingSnapshot? = null
     private var mReloadFromStorageOnResume: Boolean = false
@@ -445,10 +444,6 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         setSpans()
 
         if (mEditable) {
-            mLimit = intent.getIntExtra(Def.Communication.KEY_LIMIT, -1)
-            if (mLimit == -1) {
-                mLimit = mApp!!.getLimit()
-            }
             createDateTimeDialogFragment()
         }
         mExecutor = Executors.newSingleThreadExecutor()
@@ -830,7 +825,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     }
 
     private fun createDateTimeDialogFragment() {
-        mDateTimeDialogFragment = DateTimeDialogFragment.newInstance(mThing, mLimit)
+        mDateTimeDialogFragment = DateTimeDialogFragment.newInstance(mThing)
     }
 
     private fun createEditablePickers() {

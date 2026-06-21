@@ -1,6 +1,22 @@
 # Current Debug Update Notes
 
-Latest published debug update: `202606210314`.
+Latest published debug update: `202606210341`.
+
+## 2026-06-21 - 彻底移除 limit 投影协议并修复剩余 status/type filter 语义
+
+这次 debug update 继续收尾 Drawer 类型筛选重构中 `limit -> status + typeFilterMask` 的迁移。根据用户确认，本次不处理“类型筛选跨 status 保留”“ActivityHeader 标题是否显示类型筛选”“widget status 是否完整接入”这三项，只解决剩余的语义问题并彻底移除全局 `limit` 概念。
+
+- **彻底移除 active limit 协议**：删除 `Def.LimitForGettingThings`、`Def.Communication.KEY_LIMIT`、`App.getLimit()`、`App.setLimit()` 和 Detail/DateTime 之间已经无用的 legacy projection 参数链。跨 Activity / widget / authenticated Folder 打开路径现在统一使用 `KEY_STATUS`。
+- **修复旧值混用风险**：`ThingsActivity`、`AuthenticationActivity`、`AppWidgetHelper` 等入口不再把旧 `limit` 数值当作 `status` 传递；`App.setStatus()` 和 `ThingManager.setStatus()` 会先通过 `ThingListProjection.normalizeStatus()` 归一化状态。
+- **修复回收站文件夹语义**：`ThingFolderDAO` 的 type-filter projection 在 `DELETED` status 下重新允许 effectively deleted Folder，并在这种 Folder 内按 type mask 查询用户事项，不再错误要求子事项本身必须是 `state=DELETED`。
+- **修复 Header 计数不一致**：`ThingsCounts.getThingsCountForStatus()` 的 FINISHED/DELETED all-types 范围与 `ThingDAO.getThingsCursorForDisplay()` 对齐，避免 Header count 比实际列表少。
+- **文档同步**：更新 `docs/features/drawer-type-filter/execution.md`、`sessions.md`，新增 `followups.md` 记录已完成项和用户明确暂缓项。
+
+验证状态：
+
+- `.\gradlew.bat :app:assembleDebug` 已通过，结果为 `BUILD SUCCESSFUL`。
+- `rg` 确认 app 代码中已无 `LimitForGettingThings`、`KEY_LIMIT`、`getLimit()`、`setLimit()`、`mLimit` 或 `changeToLimit`。
+- `git diff --check` 已通过，仅有仓库既有的 LF/CRLF 提示。
 
 ## 2026-06-21 - 全局清理 LimitForGettingThings 引用，彻底移除 limit 概念
 
