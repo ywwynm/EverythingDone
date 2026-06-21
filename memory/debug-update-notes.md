@@ -1,6 +1,10 @@
 # Current Debug Update Notes
 
-Latest published debug update: `202606210142`, APK `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606210142.apk`.
+Latest published debug update: `202606210314`.
+
+## 2026-06-21 - 全局清理 LimitForGettingThings 引用，彻底移除 limit 概念
+
+业务逻辑文件中 `Def.LimitForGettingThings` 和 `App.getLimit()` 的全部剩余引用已迁移到 `Def.ThingStatus` 和 `App.getStatus()`/`setStatus()`，涉及 15 个文件。`menu_drawer.xml` 中四个类型 item 已移除。全局引用从 50+ 处缩减至 12 处，全部仅在 bridge/compat 层。
 
 ## 2026-06-21 - Widget 配置页类型 icon 去透明度 + 摘要文本格式对齐 Drawer
 
