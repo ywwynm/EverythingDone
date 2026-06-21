@@ -55,85 +55,76 @@ open class ThingsCounts private constructor(context: Context?) {
         return mCounts!!.getInt(type.toString() + "_" + state, 0)
     }
 
-    open fun getThingsCountForActivityHeader(limit: Int): Int {
+    open fun getThingsCountForStatus(status: Int, typeFilterMask: Int): Int {
+        val mask = ThingWidgetInfo.normalizedTypeFilterMask(typeFilterMask)
+        val state = when (status) {
+            Def.ThingStatus.FINISHED -> Thing.FINISHED
+            Def.ThingStatus.DELETED -> Thing.DELETED
+            else -> Thing.UNDERWAY
+        }
         var count = 0
-        when (limit) {
-            Def.LimitForGettingThings.ALL_UNDERWAY -> {
-                var i = Thing.NOTE
-                while (i <= Thing.WELCOME_UNDERWAY) {
-                    count += getCount(i, Thing.UNDERWAY)
-                    i++
-                }
+        if (mask == ThingWidgetInfo.TYPE_FILTER_ALL) {
+            var i = Thing.NOTE
+            while (i <= Thing.WELCOME_UNDERWAY) {
+                count += getCount(i, state)
+                i++
+            }
+            if (state == Thing.UNDERWAY) {
                 count += getCount(Thing.NOTIFICATION_UNDERWAY, Thing.UNDERWAY)
             }
-            Def.LimitForGettingThings.NOTE_UNDERWAY -> {
-                count = getCount(Thing.NOTE, Thing.UNDERWAY) +
-                        getCount(Thing.WELCOME_NOTE, Thing.UNDERWAY) +
-                        getCount(Thing.NOTIFICATION_NOTE, Thing.UNDERWAY)
-            }
-            Def.LimitForGettingThings.REMINDER_UNDERWAY -> {
-                count = getCount(Thing.REMINDER, Thing.UNDERWAY) +
-                        getCount(Thing.WELCOME_REMINDER, Thing.UNDERWAY) +
-                        getCount(Thing.NOTIFICATION_REMINDER, Thing.UNDERWAY)
-            }
-            Def.LimitForGettingThings.HABIT_UNDERWAY -> {
-                count = getCount(Thing.HABIT, Thing.UNDERWAY) +
-                        getCount(Thing.WELCOME_HABIT, Thing.UNDERWAY) +
-                        getCount(Thing.NOTIFICATION_HABIT, Thing.UNDERWAY)
-            }
-            Def.LimitForGettingThings.GOAL_UNDERWAY -> {
-                count = getCount(Thing.GOAL, Thing.UNDERWAY) +
-                        getCount(Thing.WELCOME_GOAL, Thing.UNDERWAY) +
-                        getCount(Thing.NOTIFICATION_GOAL, Thing.UNDERWAY)
-            }
-            Def.LimitForGettingThings.ALL_FINISHED -> {
-                var i = Thing.NOTE
-                while (i <= Thing.NOTIFICATION_GOAL) {
-                    count += getCount(i, Thing.FINISHED)
-                    i++
-                }
-            }
-            Def.LimitForGettingThings.ALL_DELETED -> {
-                var i = Thing.NOTE
-                while (i <= Thing.NOTIFICATION_GOAL) {
-                    count += getCount(i, Thing.DELETED)
-                    i++
+        } else {
+            val types = mutableListOf<Int>()
+            if (mask and ThingWidgetInfo.TYPE_FILTER_NOTE != 0) types.add(Thing.NOTE)
+            if (mask and ThingWidgetInfo.TYPE_FILTER_REMINDER != 0) types.add(Thing.REMINDER)
+            if (mask and ThingWidgetInfo.TYPE_FILTER_HABIT != 0) types.add(Thing.HABIT)
+            if (mask and ThingWidgetInfo.TYPE_FILTER_GOAL != 0) types.add(Thing.GOAL)
+            for (type in types) {
+                count += getCount(type, state)
+                if (state == Thing.UNDERWAY) {
+                    count += getCount(welcomeTypeForThingType(type), Thing.UNDERWAY)
+                    count += getCount(notificationTypeForThingType(type), Thing.UNDERWAY)
                 }
             }
         }
         return count
     }
 
-    open fun getCompletionRate(limit: Int): String? {
+    private fun welcomeTypeForThingType(type: Int): Int {
+        return when (type) {
+            Thing.REMINDER -> Thing.WELCOME_REMINDER
+            Thing.HABIT -> Thing.WELCOME_HABIT
+            Thing.GOAL -> Thing.WELCOME_GOAL
+            else -> Thing.WELCOME_NOTE
+        }
+    }
+
+    private fun notificationTypeForThingType(type: Int): Int {
+        return when (type) {
+            Thing.REMINDER -> Thing.NOTIFICATION_REMINDER
+            Thing.HABIT -> Thing.NOTIFICATION_HABIT
+            Thing.GOAL -> Thing.NOTIFICATION_GOAL
+            else -> Thing.NOTIFICATION_NOTE
+        }
+    }
+
+    open fun getCompletionRate(status: Int, typeFilterMask: Int): String? {
+        val mask = ThingWidgetInfo.normalizedTypeFilterMask(typeFilterMask)
         val counts = IntArray(2)
-        when (limit) {
-            Def.LimitForGettingThings.ALL_UNDERWAY,
-            Def.LimitForGettingThings.ALL_FINISHED,
-            Def.LimitForGettingThings.ALL_DELETED -> {
-                var i = Thing.NOTE
-                while (i <= Thing.GOAL) {
-                    counts[0] += getCount(i, Thing.FINISHED)
-                    counts[1] += getCount(i, ALL)
-                    i++
-                }
+        val types = when {
+            mask == ThingWidgetInfo.TYPE_FILTER_ALL ->
+                intArrayOf(Thing.NOTE, Thing.REMINDER, Thing.HABIT, Thing.GOAL)
+            else -> {
+                val list = mutableListOf<Int>()
+                if (mask and ThingWidgetInfo.TYPE_FILTER_NOTE != 0) list.add(Thing.NOTE)
+                if (mask and ThingWidgetInfo.TYPE_FILTER_REMINDER != 0) list.add(Thing.REMINDER)
+                if (mask and ThingWidgetInfo.TYPE_FILTER_HABIT != 0) list.add(Thing.HABIT)
+                if (mask and ThingWidgetInfo.TYPE_FILTER_GOAL != 0) list.add(Thing.GOAL)
+                list.toIntArray()
             }
-            Def.LimitForGettingThings.NOTE_UNDERWAY -> {
-                counts[0] = getCount(Thing.NOTE, Thing.FINISHED)
-                counts[1] = getCount(Thing.NOTE, ALL)
-            }
-            Def.LimitForGettingThings.REMINDER_UNDERWAY -> {
-                counts[0] = getCount(Thing.REMINDER, Thing.FINISHED)
-                counts[1] = getCount(Thing.REMINDER, ALL)
-            }
-            Def.LimitForGettingThings.HABIT_UNDERWAY -> {
-                counts[0] = getCount(Thing.HABIT, Thing.FINISHED)
-                counts[1] = getCount(Thing.HABIT, ALL)
-            }
-            Def.LimitForGettingThings.GOAL_UNDERWAY -> {
-                counts[0] = getCount(Thing.GOAL, Thing.FINISHED)
-                counts[1] = getCount(Thing.GOAL, ALL)
-            }
-            else -> {}
+        }
+        for (type in types) {
+            counts[0] += getCount(type, Thing.FINISHED)
+            counts[1] += getCount(type, ALL)
         }
         return LocaleUtil.getPercentStr(counts[0], counts[1])
     }

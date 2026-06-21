@@ -183,6 +183,7 @@
     <string name="will_remind">상기시켜드립니다</string>
     <string name="daily_todo_title_rest_part">할 일</string>
     <string name="completion_rate_all">전체\' 완료율</string>
+    <string name="completion_rate_things">완료율</string>
     <string name="completion_rate_reminder">Reminder\'s 완료율</string>
     <string name="completion_rate_note">참고\'의 완료율</string>
     <string name="completion_rate_habit">Habit\'s 완료율</string>

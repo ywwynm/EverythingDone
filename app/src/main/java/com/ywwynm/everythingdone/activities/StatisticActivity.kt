@@ -21,6 +21,7 @@ import android.widget.TextView
 import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
+import com.ywwynm.everythingdone.model.ThingWidgetInfo
 import com.ywwynm.everythingdone.adapters.StatisticAdapter
 import com.ywwynm.everythingdone.database.HabitDAO
 import com.ywwynm.everythingdone.database.ReminderDAO
@@ -351,7 +352,7 @@ open class StatisticActivity : EverythingDoneBaseActivity() {
         // 最长连续完成次数
         // 最长坚持周期数
         val strs = arrayOfNulls<String>(5)
-        strs[0] = mThingsCounts!!.getCompletionRate(Def.LimitForGettingThings.HABIT_UNDERWAY)
+        strs[0] = mThingsCounts!!.getCompletionRate(Def.ThingStatus.UNDERWAY, ThingWidgetInfo.TYPE_FILTER_HABIT)
 
         var fCount = 0 // finished times
         var tCount = 0 // total record times
@@ -397,11 +398,11 @@ open class StatisticActivity : EverythingDoneBaseActivity() {
         val strs = arrayOfNulls<String>(4)
         if (isReminder) {
             strs[0] = mThingsCounts!!.getCompletionRate(
-                Def.LimitForGettingThings.REMINDER_UNDERWAY
+                Def.ThingStatus.UNDERWAY, ThingWidgetInfo.TYPE_FILTER_REMINDER
             )
         } else {
             strs[0] = mThingsCounts!!.getCompletionRate(
-                Def.LimitForGettingThings.GOAL_UNDERWAY
+                Def.ThingStatus.UNDERWAY, ThingWidgetInfo.TYPE_FILTER_GOAL
             )
         }
 

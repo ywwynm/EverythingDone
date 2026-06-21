@@ -1,8 +1,85 @@
 # Current Debug Update Notes
 
-Latest published debug update: `202606201337`, APK `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606201337.apk`, SHA-256 `77c8c6e3dd445cc21f744447c24e28b52a3f07541ba5fb00e794d6a8bdad2502`.
+Latest published debug update: `202606210142`, APK `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606210142.apk`.
 
-## 2026-06-20 - 恢复 Folder-scoped widget 创建返回的 appearing animation
+## 2026-06-21 - 类型提示文本颜色对齐 widget 配置页和卡片外观 panel
+
+Drawer 类型筛选的摘要文本颜色从 `app_chrome_on_surface_secondary` 改为 `app_chrome_on_surface_hint`，与记事列表 widget 配置页的类型提示文本（`tv_widget_type_filter_summary`）和调整记事卡片外观 panel 里的标签文本使用同一颜色。
+
+## 2026-06-21 - Drawer Header 统计文案统一 + 国际化补全
+
+这次 debug update 简化 Drawer Header 的完成率标签并补全所有 locale 的国际化：
+
+- Drawer Header 的完成率标签从按类型区分（所有记事/记录/提醒/习惯/目标完成率）统一为"记事完成率"（`completion_rate_things`），不再根据当前类型筛选变化。
+- 新增 `completion_rate_things` 字符串到全部 13 个 locale：EN "Things completion rate"、ZH-CN "记事完成率"、ZH-TW/HK "記事完成率"、JA "完了率"、KO "완료율"、RU "Уровень завершения"、PT "Taxa de conclusão"、IT "Tasso di completamento"、HI "पूर्णता दर"、FR "Taux d'achèvement"、ES "Tasa de finalización"、DE "Abschlussrate"。
+- 补全 `all_types` 字符串的 ZH-TW/HK 翻译："全部類型"。
+- `DrawerHeader.updateTexts()` 简化为直接设置 `completion_rate_things`，移除所有 type/status 分支判断。
+
+## 2026-06-21 - Drawer 选中背景颜色独立为 drawer_selected_bg
+
+Drawer 的选中背景统一改为新颜色 `drawer_selected_bg`，不再复用 `app_chrome_divider`：
+
+- 新增 `drawer_selected_bg` 颜色资源：浅色 `#1A000000`，深色 `#24FFFFFF`（与 `app_chrome_ripple` 一致）。
+- 普通 drawer 导航 item（正在进行/已完成/回收站/设置/帮助/关于）选中时，`DrawerItemHolder.createItemBackground` 使用 `drawer_selected_bg` 作为选中态背景。
+- 类型筛选 icon 选中时，圆形背景同样使用 `drawer_selected_bg`。
+
+## 2026-06-21 - Activity Header 标题自适应对所有模式生效
+
+这次 debug update 让 Activity Header 的标题 maxLines、maxWidth 和 RecyclerView header spacer 自适应逻辑在非文件夹视图下也同样生效：
+
+- **标题最大行数**: 展开态最多 4 行，折叠态最多 2 行；移除 `mInFolderProjection` 限制，使类型筛选产生的长标题（如"记录/提醒/习惯/目标"）在非文件夹视图下也能正常换行。
+- **标题最大宽度**: 折叠进度驱动 maxWidth 线性缩放，折叠态标题不会遮挡 actionbar 右侧 icon；移除文件夹专用判断。
+- **RecyclerView header spacer**: `updateTitleLayoutForProgress(0f)` + `requestExpandedHeaderSpacerRefresh()` 已在非文件夹路径调用，不再被 `mInFolderProjection` 跳过。
+- **折叠标题视觉高度**: `getCollapsedTitleVisualHeight` 和 `getCollapsedTitleLineCount` 统一使用行数感知计算，不再为非文件夹模式走高度硬编码分支。
+- **紧凑折叠标题判断**: `shouldUseCompactCollapsedFolderTitle` 移除文件夹前置条件，长标题在任意视图下折叠后均使用 `COMPACT_TWO_LINE_FOLDER_TITLE_SCALE`。
+
+验证状态：
+
+- `.\\gradlew.bat :app:compileDebugKotlin` 已通过，结果为 `BUILD SUCCESSFUL`。
+- 本次发布使用 `:app:publishDebugUpdate` 发布到阿里云 debug update channel。
+
+这次 debug update 修复类型筛选后 Activity Header 和数据统计不正确的问题：
+
+- **Activity Header 统计**: `rebuildThingListEntries()` 中 `getFolderEntriesForProjection` 改为调用 `getFolderEntriesForTypeFilterProjection`，同时传入 `mStatus` 和 `mTypeFilterMask`，让列表中的文件夹卡片统计（recursiveThingCount）和直接记事数量都反映当前类型筛选结果。
+- **大文件夹缩略图**: `getFolderThumbnailPreviewEntries` 改为统一调用 `getThumbnailEntriesForTypeFilterPreview(folder, mStatus, mTypeFilterMask)`，确保大文件夹内部缩略图只显示符合当前类型筛选的记事。
+- **ThingFolderDAO 全链路**: 所有 `ForTypeFilter*` 方法新增 `status` 参数（`getFolderEntriesForTypeFilterProjection`、`getThumbnailEntriesForTypeFilterPreview`、`countDescendantThingsForTypeFilterProjection`、`getThumbnailEntriesForTypeFilterProjection`、`getThumbnailFolderEntriesForTypeFilterProjection`、`countDirectChildFoldersForTypeFilterProjection`、`shouldIncludeFolderForTypeFilterProjection`），内部将 `thingSelectionForStatusAndTypeFilter(Def.ThingStatus.UNDERWAY, ...)` 替换为 `thingSelectionForStatusAndTypeFilter(status, ...)`，让类型筛选对所有 status 值生效。
+- `getFolderEntriesForTypeFilterProjection` 中 deleted 文件夹的过滤条件从 `continue`（无条件跳过）恢复为 `status != Def.ThingStatus.DELETED` 条件判断。
+
+验证状态：
+
+- `.\\gradlew.bat :app:compileDebugKotlin` 已通过，结果为 `BUILD SUCCESSFUL`。
+- 本次发布使用 `:app:publishDebugUpdate` 发布到阿里云 debug update channel。
+
+这次 debug update 修复上一版 Drawer 类型筛选的崩溃和视觉问题：
+
+- **修复闪退**：特定类型组合下 SQL 括号数错误导致 `SQLiteException: near ")"`。根因是 `getThingsCursorForDisplay` 特定类型分支多了一层 `((`，现已去掉多余的左括号。
+- **类型指示性文本颜色**：从 `black_54p` 改为 `app_chrome_on_surface_secondary`（#8A000000 浅色 / #A8FFFFFF 深色）。
+- **文本与 icon 间距**：summary 文本增加 `2dp` 底部 margin。
+- **Icon 行居中**：用 `Gravity.CENTER_HORIZONTAL` 容器包裹 icon row。
+- **Icon tint 颜色**：未选中改为 `app_chrome_drawer_item_foreground`（和已完成/回收站 icon 一致）；选中改为 `app_accent` + 圆形背景使用 `app_chrome_divider`（和正在进行/已完成/回收站选中态背景一致）。
+
+验证状态：
+
+- `.\\gradlew.bat :app:assembleDebug` 已通过，结果为 `BUILD SUCCESSFUL`。
+- 本次发布使用 `:app:publishDebugUpdate` 发布到阿里云 debug update channel。
+
+## 2026-06-21 - Drawer 类型筛选重构：导航项改为多选 icon 行，limit 拆为 status + typeFilterMask
+
+这次 debug update 重构了 Drawer 的类型筛选系统和底层数据结构：
+
+- **Drawer UI**: 将 记录/提醒/习惯/目标 四个独立导航目标替换为类似 widget 配置页的 5 个多选 icon（全部/记录/提醒/习惯/目标）。"全部"与具体类型互斥，除全部外可多选。icon 行上方有摘要文本（"全部类型"/"记录"/"记录/提醒" 等），上下有分割线与文件夹区域、已完成/回收站分隔。类型 icon 点击不关闭 Drawer，可连续多选。
+- **已完成/回收站**: 保持不变，仍为互斥导航目标，与正在进行、文件夹树共同组成筛选条件。
+- **类型筛选持久化**: 不持久化，每次启动重置为"全部类型"。
+- **ActivityHeader 标题**: 显示正在进行/已完成/回收站/文件夹名称，不包含类型筛选文本。
+- **DrawerHeader 位置文本**: 文件夹内显示文件夹名，否则显示状态名；不包含类型筛选。
+- **后端重构**: 废弃并拆分 `Def.LimitForGettingThings`（0-6）为 `Def.ThingStatus`（UNDERWAY/FINISHED/DELETED）+ `typeFilterMask` bitmask。`ThingListProjection`、`ThingManager`、`ThingDAO`、`ThingFolderDAO` 全部改为接收 status + typeFilterMask 双参数；`Thing.getLimits()` 移除，`ThingWidgetInfo` 新增 status 字段。
+- **App 兼容层**: `App.getLimit()`/`setLimit()` 保留为 deprecated 兼容包装，内部使用 `mStatus`；DrawerHeader、ActivityHeader、ModeManager 等消费者逐步迁移。
+- `menu_drawer.xml` 中 `drawer_note`/`drawer_reminder`/`drawer_habit`/`drawer_goal` 四个 ID 已移除。
+
+验证状态：
+
+- `.\gradlew.bat :app:assembleDebug` 已通过，结果为 `BUILD SUCCESSFUL`。
+- 本次发布使用 `:app:publishDebugUpdate` 发布到阿里云 debug update channel。
 
 这次 debug update 根据用户进一步反馈微调上一版重复卡片修复：
 

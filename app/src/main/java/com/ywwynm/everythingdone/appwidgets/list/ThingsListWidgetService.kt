@@ -64,7 +64,8 @@ open class ThingsListWidgetService : RemoteViewsService() {
             val thingDAO: ThingDAO = ThingDAO.getInstance(context)!!
             val folderDAO: ThingFolderDAO = ThingFolderDAO.getInstance(context)!!
             val things = thingDAO.getThingsForProjection(
-                Def.LimitForGettingThings.ALL_UNDERWAY,
+                Def.ThingStatus.UNDERWAY,
+                ThingWidgetInfo.TYPE_FILTER_ALL,
                 targetFolderId,
                 null,
                 0

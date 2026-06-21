@@ -59,9 +59,10 @@ open class ThingManager private constructor(context: Context?) {
      * [Def.LimitForGettingThings.ALL_FINISHED]
      * [Def.LimitForGettingThings.ALL_DELETED]
      */
-    private var mLimit: Int = 0
     private var mProjection: ThingListProjection =
-        ThingListProjection.root(Def.LimitForGettingThings.ALL_UNDERWAY)
+        ThingListProjection.root(Def.ThingStatus.UNDERWAY)
+    private val mStatus: Int get() = mProjection.status
+    private val mTypeFilterMask: Int get() = mProjection.typeFilterMask
 
     private var mThings: MutableList<Thing?>? = null
     private var mThingListEntries: MutableList<ThingListEntry>? = null
@@ -87,42 +88,34 @@ open class ThingManager private constructor(context: Context?) {
     private var mUndoGoals: MutableList<Reminder?>? = ArrayList()
 
     init {
-        setLimit(Def.LimitForGettingThings.ALL_UNDERWAY, true)
+        setStatus(Def.ThingStatus.UNDERWAY, true)
 
         mHeaderId = mThings!![0]!!.id
     }
 
-    open fun setLimit(limit: Int, loadThingsNow: Boolean) {
-        mLimit = limit
-        mProjection = mProjection.withLimit(limit)
+    open fun setStatus(status: Int, loadThingsNow: Boolean) {
+        mProjection = mProjection.withStatus(status)
         mAuthenticatedPrivateFolderIds.clear()
-        mDao!!.setLimit(limit)
+        mDao!!.setProjection(status, mTypeFilterMask)
         if (loadThingsNow) {
             loadThings()
         }
     }
 
-    open fun setUnderwayTypeFilterMask(typeFilterMask: Int, loadThingsNow: Boolean) {
-        if (mLimit != Def.LimitForGettingThings.ALL_UNDERWAY) {
-            return
-        }
-        mProjection = mProjection.withUnderwayTypeFilterMask(typeFilterMask)
+    open fun setTypeFilterMask(typeFilterMask: Int, loadThingsNow: Boolean) {
+        mProjection = mProjection.withTypeFilterMask(typeFilterMask)
+        mDao!!.setProjection(mStatus, mTypeFilterMask)
         if (loadThingsNow) {
             loadThings()
         }
     }
 
     open fun getActiveTypeFilterMask(): Int {
-        return if (mLimit == Def.LimitForGettingThings.ALL_UNDERWAY) {
-            ThingWidgetInfo.normalizedTypeFilterMask(mProjection.underwayTypeFilterMask)
-        } else {
-            ThingWidgetInfo.typeFilterMaskForLimit(mLimit)
-        }
+        return ThingWidgetInfo.normalizedTypeFilterMask(mTypeFilterMask)
     }
 
-    open fun hasCustomUnderwayTypeFilter(): Boolean {
-        return mLimit == Def.LimitForGettingThings.ALL_UNDERWAY &&
-            ThingWidgetInfo.isSpecificTypeFilterMask(mProjection.underwayTypeFilterMask)
+    open fun hasCustomTypeFilter(): Boolean {
+        return ThingWidgetInfo.isSpecificTypeFilterMask(mTypeFilterMask)
     }
 
     open fun getUndoGoals(): MutableList<Reminder?>? {
@@ -136,8 +129,8 @@ open class ThingManager private constructor(context: Context?) {
         // do self-check to prevent wrong display for normal and empty states.
         val size: Int = mThings!!.size
         val hasFolderEntries = hasFolderEntries()
-        if (size == 1 && !hasFolderEntries && !hasCustomUnderwayTypeFilter()) {
-            create(Thing.generateNotifyEmpty(mLimit, getHeaderId(), mContext), false, true)
+        if (size == 1 && !hasFolderEntries && !hasCustomTypeFilter()) {
+            create(Thing.generateNotifyEmpty(mStatus, mTypeFilterMask, getHeaderId(), mContext), false, true)
             rebuildThingListEntries()
         } else if (size > 2 || size == 2 && hasFolderEntries) {
             var pos: Int = -1
@@ -159,7 +152,7 @@ open class ThingManager private constructor(context: Context?) {
 
     private fun getThingsForCurrentProjection(keyword: String?, color: Int): List<Thing?> {
         val currentFolderId = mProjection.currentFolderId
-        if (mLimit == Def.LimitForGettingThings.ALL_DELETED
+        if (mStatus == Def.ThingStatus.DELETED
             && mFolderDao!!.isEffectivelyDeleted(currentFolderId)
         ) {
             return mDao!!.getThingsForEffectiveDeletedFolderProjection(
@@ -168,16 +161,9 @@ open class ThingManager private constructor(context: Context?) {
                 color
             )
         }
-        if (hasCustomUnderwayTypeFilter()) {
-            return mDao!!.getThingsForTypeFilterProjection(
-                mProjection.underwayTypeFilterMask,
-                currentFolderId,
-                keyword,
-                color
-            )
-        }
         return mDao!!.getThingsForProjection(
-            mLimit,
+            mStatus,
+            mTypeFilterMask,
             currentFolderId,
             keyword,
             color
@@ -308,13 +294,11 @@ open class ThingManager private constructor(context: Context?) {
     }
 
     open fun getFolderThumbnailPreviewEntries(folder: ThingFolder): List<ThingListEntry> {
-        if (hasCustomUnderwayTypeFilter()) {
-            return mFolderDao!!.getThumbnailEntriesForTypeFilterPreview(
-                folder,
-                mProjection.underwayTypeFilterMask
-            )
-        }
-        return mFolderDao!!.getThumbnailEntriesForPreview(folder, mLimit)
+        return mFolderDao!!.getThumbnailEntriesForTypeFilterPreview(
+            folder,
+            mStatus,
+            mTypeFilterMask
+        )
     }
 
     open fun isCurrentFolderEffectivelyPrivate(): Boolean {
@@ -443,25 +427,15 @@ open class ThingManager private constructor(context: Context?) {
                 mixed.add(entry)
             }
         }
-        if (hasCustomUnderwayTypeFilter()) {
-            mixed.addAll(
-                mFolderDao!!.getFolderEntriesForTypeFilterProjection(
-                    mProjection.underwayTypeFilterMask,
-                    mProjection.currentFolderId,
-                    keyword,
-                    color
-                )
+        mixed.addAll(
+            mFolderDao!!.getFolderEntriesForTypeFilterProjection(
+                mStatus,
+                mTypeFilterMask,
+                mProjection.currentFolderId,
+                keyword,
+                color
             )
-        } else {
-            mixed.addAll(
-                mFolderDao!!.getFolderEntriesForProjection(
-                    mLimit,
-                    mProjection.currentFolderId,
-                    keyword,
-                    color
-                )
-            )
-        }
+        )
         Collections.sort(mixed, object : Comparator<ThingListEntry> {
             override fun compare(entry1: ThingListEntry, entry2: ThingListEntry): Int {
                 val result = ThingsSorter.compareByLocationAndSticky(
@@ -545,7 +519,7 @@ open class ThingManager private constructor(context: Context?) {
     open fun update(@Thing.Type typeBefore: Int, updatedThing: Thing?, position: Int,
                     handleNotifyEmpty: Boolean): Int {
         if (handleNotifyEmpty &&
-                willCreateNEforOtherLimit(
+                willCreateNEforOtherProjection(
                         updatedThing!!.id, typeBefore, updatedThing.state, false)) {
             updateHeader(1)
         }
@@ -562,7 +536,7 @@ open class ThingManager private constructor(context: Context?) {
             deleteNEnow(typeAfter, state)
         }
 
-        if (mLimit == Def.LimitForGettingThings.ALL_UNDERWAY ||
+        if (mStatus == Def.ThingStatus.UNDERWAY ||
                 Thing.sameType(typeBefore, typeAfter)) {
             // will not generate NOTIFY_EMPTY
             rebuildThingListEntries()
@@ -594,7 +568,7 @@ open class ThingManager private constructor(context: Context?) {
         if (thingType == Thing.HEADER) return false
 
         if (handleNotifyEmpty &&
-                willCreateNEforOtherLimit(thingId, thingType, stateBefore, true)) {
+                willCreateNEforOtherProjection(thingId, thingType, stateBefore, true)) {
             updateHeader(1)
         }
 
@@ -1224,7 +1198,7 @@ open class ThingManager private constructor(context: Context?) {
         for (folderId in mProjection.folderPath) {
             if (mFolderDao!!.getFolderById(folderId) == null) break
             val effectivelyDeleted = mFolderDao!!.isEffectivelyDeleted(folderId)
-            if (mLimit == Def.LimitForGettingThings.ALL_DELETED) {
+            if (mStatus == Def.ThingStatus.DELETED) {
                 if (!effectivelyDeleted) break
             } else if (effectivelyDeleted) {
                 break
@@ -1412,13 +1386,16 @@ open class ThingManager private constructor(context: Context?) {
      * This method will be only called when a thing with `type` and `state`
      * has been "deleted", which can occur when creating and updating.
      */
-    private fun createNEnow(@Thing.Type type: Int, @Thing.State state: Int, addToThingsNow: Boolean): Boolean {
-        val limits: IntArray = Thing.getLimits(type, state)
-        for (limit in limits) {
-            if (mLimit == limit) {
+    private fun createNEnow(
+        @Thing.Type type: Int, @Thing.State state: Int, addToThingsNow: Boolean
+    ): Boolean {
+        val status = Thing.getStatusForState(state)
+        val masks = getStatusTypeFilterMasksForThing(type, state)
+        for (mask in masks) {
+            if (mStatus == status && mTypeFilterMask == mask) {
                 if (mThings!!.size == 1) {
-                    val notifyEmpty: Thing? = Thing.generateNotifyEmpty(limit, mHeaderId, mContext)
-                    create(notifyEmpty, false, addToThingsNow)
+                    val ne = Thing.generateNotifyEmpty(status, mask, mHeaderId, mContext)
+                    create(ne, false, addToThingsNow)
                     return true
                 }
             }
@@ -1426,21 +1403,21 @@ open class ThingManager private constructor(context: Context?) {
         return false
     }
 
-    private fun willCreateNEforOtherLimit(id: Long, @Thing.Type type: Int, @Thing.State state: Int,
-                                          updateState: Boolean): Boolean {
-        val limits: IntArray = Thing.getLimits(type, state)
-        for (limit in limits) {
-            if (mLimit != limit) {
-                if (updateState || limit != Def.LimitForGettingThings.ALL_UNDERWAY) {
-                    val cursor: Cursor = mDao!!.getThingsCursorForDisplay(limit, null, 0)
+    private fun willCreateNEforOtherProjection(
+        id: Long, @Thing.Type type: Int, @Thing.State state: Int, updateState: Boolean
+    ): Boolean {
+        val status = Thing.getStatusForState(state)
+        val masks = getStatusTypeFilterMasksForThing(type, state)
+        for (mask in masks) {
+            if (mStatus != status || mTypeFilterMask != mask) {
+                if (updateState || mask != ThingWidgetInfo.TYPE_FILTER_ALL) {
+                    val cursor = mDao!!.getThingsCursorForDisplay(status, mask, null, 0)
                     var id1: Long = -1
                     var count = 0
                     while (cursor.moveToNext()) {
                         count++
                         id1 = cursor.getLong(0)
-                        if (count > 2) {
-                            break
-                        }
+                        if (count > 2) break
                     }
                     cursor.close()
                     if (count == 2 && id == id1) {
@@ -1453,13 +1430,35 @@ open class ThingManager private constructor(context: Context?) {
     }
 
     /**
+     * Returns the type filter masks that a thing of [type] and [state] should appear in.
+     * Each thing belongs to TYPE_FILTER_ALL (generic) AND its specific type filter.
+     */
+    private fun getStatusTypeFilterMasksForThing(
+        @Thing.Type type: Int, @Thing.State state: Int
+    ): IntArray {
+        if (Thing.getStatusForState(state) == Def.ThingStatus.FINISHED ||
+            state == Thing.FINISHED || type == Thing.NOTIFY_EMPTY_FINISHED) {
+            return intArrayOf(ThingWidgetInfo.TYPE_FILTER_ALL)
+        }
+        if (Thing.getStatusForState(state) == Def.ThingStatus.DELETED ||
+            state == Thing.DELETED || type == Thing.NOTIFY_EMPTY_DELETED) {
+            return intArrayOf(ThingWidgetInfo.TYPE_FILTER_ALL)
+        }
+        return intArrayOf(
+            ThingWidgetInfo.TYPE_FILTER_ALL,
+            ThingWidgetInfo.typeFilterMaskForThingType(type)
+        )
+    }
+
+    /**
      * This method will be only called when a thing with `type` and `state`
      * has been "created", which can occur when creating and updating.
      */
     private fun deleteNEnow(@Thing.Type type: Int, @Thing.State state: Int): Boolean {
-        val limits: IntArray = Thing.getLimits(type, state)
-        for (limit in limits) {
-            if (mLimit == limit) {
+        val status = Thing.getStatusForState(state)
+        val masks = getStatusTypeFilterMasksForThing(type, state)
+        for (mask in masks) {
+            if (mStatus == status && mTypeFilterMask == mask) {
                 val thing: Thing = mThings?.getOrNull(1) ?: return false
                 val NEtype: Int = thing.type
                 if (NEtype >= Thing.NOTIFY_EMPTY_UNDERWAY) {

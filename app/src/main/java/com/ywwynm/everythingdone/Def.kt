@@ -94,6 +94,18 @@ object Def {
 
     }
 
+    object ThingStatus {
+
+        const val UNDERWAY: Int = 0
+        const val FINISHED: Int = 1
+        const val DELETED: Int  = 2
+
+    }
+
+    @Deprecated(
+        "Use ThingStatus + typeFilterMask instead",
+        ReplaceWith("ThingStatus.UNDERWAY", "com.ywwynm.everythingdone.Def.ThingStatus")
+    )
     object LimitForGettingThings {
 
         const val ALL_UNDERWAY: Int      = 0
@@ -185,6 +197,7 @@ object Def {
         const val COLUMN_TARGET_FOLDER_ID_APP_WIDGET: String = "target_folder_id" /* added in version 16 */
         const val COLUMN_TYPE_FILTER_MASK_APP_WIDGET: String = "type_filter_mask" /* added in version 16 */
         const val COLUMN_DISPLAY_MODE_APP_WIDGET: String = "display_mode" /* added in version 16 */
+        const val COLUMN_STATUS_APP_WIDGET: String = "status" /* added in version 17 */
 
         const val TABLE_DOING_RECORDS: String             = "doing_records"
         const val COLUMN_ID_DOING: String                 = "id"

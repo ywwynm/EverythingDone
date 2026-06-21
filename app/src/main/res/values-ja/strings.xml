@@ -183,6 +183,7 @@
     <string name="will_remind">思い出させられます</string>
     <string name="daily_todo_title_rest_part">やるべきこと</string>
     <string name="completion_rate_all">すべての\' の完了率</string>
+    <string name="completion_rate_things">完了率</string>
     <string name="completion_rate_reminder">リマインダー\'の完了率</string>
     <string name="completion_rate_note">「記録」の完了率</string>
     <string name="completion_rate_habit">Habit\'s の完了率</string>

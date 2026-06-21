@@ -67,6 +67,7 @@
     <color name="app_chrome_on_surface_disabled">#42000000</color>
     <color name="app_chrome_divider">#24000000</color>
     <color name="app_chrome_ripple">#1A000000</color>
+    <color name="drawer_selected_bg">#1A000000</color>
     <color name="app_chrome_code_surface">#EEEEEE</color>
     <color name="app_chrome_snackbar_background">#323232</color>
     <color name="app_chrome_snackbar_text">#FFFFFF</color>

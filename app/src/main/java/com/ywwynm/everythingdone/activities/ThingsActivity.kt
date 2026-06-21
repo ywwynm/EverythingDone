@@ -345,7 +345,7 @@ class ThingsActivity :
 
     private val initRecyclerViewRunnable: Runnable = Runnable {
         if (mAdapter!!.getItemCount() <=
-            ThingsCounts.getInstance(mApp)!!.getThingsCountForActivityHeader(mApp!!.getLimit())
+            ThingsCounts.getInstance(mApp)!!.getThingsCountForStatus(mApp!!.getStatus(), ThingWidgetInfo.TYPE_FILTER_ALL)
         ) {
             mThingManager!!.loadThings()
         }
@@ -694,7 +694,7 @@ class ThingsActivity :
             if (App.isSearching) {
                 toggleSearching(false)
             }
-            changeToLimit(newLimit, true)
+            changeToStatus(newLimit, true)
             KeyboardUtil.hideKeyboard(window)
         }
     }
@@ -858,34 +858,14 @@ class ThingsActivity :
             )
         }
         drawerItems.add(
-            createDrawerDestinationItem(
-                R.id.drawer_note,
-                R.string.note,
-                R.drawable.drawer_note,
+            DrawerNavigationView.DrawerItem(
+                key = DrawerNavigationView.ItemKey.TypeFilter,
+                title = "",
                 dividerBefore = true,
-                groupStart = true
-            )
-        )
-        drawerItems.add(
-            createDrawerDestinationItem(
-                R.id.drawer_reminder,
-                R.string.reminder,
-                R.drawable.drawer_reminder
-            )
-        )
-        drawerItems.add(
-            createDrawerDestinationItem(
-                R.id.drawer_habit,
-                R.string.habit,
-                R.drawable.drawer_habit
-            )
-        )
-        drawerItems.add(
-            createDrawerDestinationItem(
-                R.id.drawer_goal,
-                R.string.goal,
-                R.drawable.drawer_goal,
-                groupEnd = true
+                groupStart = true,
+                groupEnd = true,
+                typeFilterMask = mThingManager?.getActiveTypeFilterMask()
+                    ?: ThingWidgetInfo.TYPE_FILTER_ALL
             )
         )
         drawerItems.add(
@@ -1062,31 +1042,27 @@ class ThingsActivity :
         }
     }
 
-    private fun getDrawerDestinationKeyForLimit(
-        limit: Int
+    private fun getDrawerDestinationKeyForStatus(
+        status: Int
     ): DrawerNavigationView.ItemKey.Destination {
-        val itemId = when (limit) {
-            Def.LimitForGettingThings.ALL_UNDERWAY -> R.id.drawer_underway
-            Def.LimitForGettingThings.NOTE_UNDERWAY -> R.id.drawer_note
-            Def.LimitForGettingThings.REMINDER_UNDERWAY -> R.id.drawer_reminder
-            Def.LimitForGettingThings.HABIT_UNDERWAY -> R.id.drawer_habit
-            Def.LimitForGettingThings.GOAL_UNDERWAY -> R.id.drawer_goal
-            Def.LimitForGettingThings.ALL_FINISHED -> R.id.drawer_finished
-            Def.LimitForGettingThings.ALL_DELETED -> R.id.drawer_deleted
+        val itemId = when (status) {
+            Def.ThingStatus.UNDERWAY -> R.id.drawer_underway
+            Def.ThingStatus.FINISHED -> R.id.drawer_finished
+            Def.ThingStatus.DELETED -> R.id.drawer_deleted
             else -> R.id.drawer_underway
         }
         return DrawerNavigationView.ItemKey.Destination(itemId)
     }
 
     private fun findDrawerSelectionKeyForCurrentProjection(): DrawerNavigationView.ItemKey {
-        if (mApp!!.getLimit() == Def.LimitForGettingThings.ALL_UNDERWAY) {
+        if (mApp!!.getStatus() == Def.ThingStatus.UNDERWAY) {
             val currentFolderId = mThingManager!!.getProjection().currentFolderId
             if (currentFolderId != null) {
                 val visibleFolderKey = findVisibleDrawerFolderKey(currentFolderId)
                 if (visibleFolderKey != null) return visibleFolderKey
             }
         }
-        return getDrawerDestinationKeyForLimit(mApp!!.getLimit())
+        return getDrawerDestinationKeyForStatus(mApp!!.getStatus())
     }
 
     private fun findVisibleDrawerFolderKey(
@@ -1140,7 +1116,7 @@ class ThingsActivity :
         if (mApp!!.getLimit() != Def.LimitForGettingThings.ALL_UNDERWAY) {
             mApp!!.setLimit(Def.LimitForGettingThings.ALL_UNDERWAY, false)
         } else {
-            mThingManager!!.setUnderwayTypeFilterMask(
+            mThingManager!!.setTypeFilterMask(
                 ThingWidgetInfo.TYPE_FILTER_ALL,
                 loadThingsNow = false
             )
@@ -1517,7 +1493,7 @@ class ThingsActivity :
             }
             if (justNotifyAll) {
                 justNotifyAll()
-            } else if (Thing.isTypeStateMatchLimit(typeBefore, thingState, mApp!!.getLimit())) {
+            } else if (Thing.isStateMatchStatus(thingState, mApp!!.getStatus())) {
                 val thingIndex = getResultThingIndex(data)
                 val listPosition = getVisibleListPositionForResultThing(data, thingIndex)
                 if (thingIndex < 0) {
@@ -1574,8 +1550,8 @@ class ThingsActivity :
         mDrawerLayout!!.postDelayed({
             finishNewItemShiningBorderAnimationIfNeeded()
             val type = thing.type
-            val curLimit = mApp!!.getLimit()
-            val limitMatched = Thing.isTypeStateMatchLimit(type, Thing.UNDERWAY, curLimit)
+            val curStatus = mApp!!.getStatus()
+            val limitMatched = Thing.isStateMatchStatus(Thing.UNDERWAY, curStatus)
             val thingIndex = getResultThingIndex(data)
             val oldListPosition = getResultOldListPosition(data, thingIndex)
             if (thingIndex < 0) {
@@ -1586,7 +1562,7 @@ class ThingsActivity :
 
             if (justNotifyAll || limitMatched) {
                 justNotifyAll()
-            } else if (Thing.isTypeStateMatchLimit(typeBefore, Thing.UNDERWAY, curLimit)) {
+            } else if (Thing.isStateMatchStatus(Thing.UNDERWAY, curStatus)) {
                 if (App.isSearching) {
                     notifyListItemRemovedOrRefresh(oldListPosition)
                     handleSearchResults()
@@ -1638,19 +1614,19 @@ class ThingsActivity :
             finishNewItemShiningBorderAnimationIfNeeded()
             Log.i(TAG, "updateMainUiForUpdateDifferentState: delayed Runnable started.")
             val type = thing.type
-            val curLimit = mApp!!.getLimit()
-            val limitMatched = Thing.isTypeStateMatchLimit(type, stateAfter, curLimit)
+            val curStatus = mApp!!.getStatus()
+            val limitMatched = Thing.isStateMatchStatus(stateAfter, curStatus)
             if (thingIndex < 0) {
                 justNotifyAll(false)
                 mRemoteIntent = null
                 return@postDelayed
             }
             Log.i(TAG, "type[" + type + "], "
-                + "curLimit[" + curLimit + "], "
+                + "curStatus[" + curStatus + "], "
                 + "limitMatched[" + limitMatched + "]")
             if (justNotifyAll || limitMatched) {
                 justNotifyAll()
-            } else if (Thing.isTypeStateMatchLimit(type, thing.state, curLimit)) {
+            } else if (Thing.isStateMatchStatus(thing.state, curStatus)) {
                 mUndoThings!!.add(thing)
                 mThingsIdsToUpdateWidget!!.add(thing.id)
                 mUndoPositions!!.add(thingIndex)
@@ -1986,7 +1962,7 @@ class ThingsActivity :
     }
 
     private fun applyExternalTypeFilterMask(typeFilterMask: Int, loadThingsNow: Boolean) {
-        mThingManager!!.setUnderwayTypeFilterMask(typeFilterMask, loadThingsNow)
+        mThingManager!!.setTypeFilterMask(typeFilterMask, loadThingsNow)
     }
 
     private fun openExternalProjectionFromIntent(
@@ -5965,6 +5941,17 @@ class ThingsActivity :
         mDrawer!!.setOnFolderExpandClickListener { folderId ->
             toggleDrawerFolderExpanded(folderId)
         }
+        mDrawer!!.setOnTypeFilterChangeListener { mask ->
+            mThingManager!!.setTypeFilterMask(mask, false)
+            mRecyclerView!!.visibility = View.INVISIBLE
+            mThingManager!!.loadThings()
+            mAdapter!!.notifyDataSetChanged()
+            mRecyclerView!!.scrollToPosition(0)
+            mRecyclerView!!.visibility = View.VISIBLE
+            updateDrawerFolderItems()
+            refreshActivitySurfaceAndHeader()
+            mDrawerHeader!!.updateTexts()
+        }
         mDrawer!!.setOnDrawerItemClickListener { drawerItem ->
             when (val key = drawerItem.key) {
                 is DrawerNavigationView.ItemKey.Folder -> {
@@ -5976,6 +5963,9 @@ class ThingsActivity :
                 is DrawerNavigationView.ItemKey.Destination -> {
                     handleDrawerDestinationClick(key)
                 }
+                is DrawerNavigationView.ItemKey.TypeFilter -> {
+                    // handled by TypeFilterHolder internally
+                }
             }
         }
     }
@@ -5985,14 +5975,10 @@ class ThingsActivity :
     ) {
         if (mCurrentDrawerSelectionKey == key) return
 
-        val newLimit: Int = when (key.itemId) {
-            R.id.drawer_underway -> Def.LimitForGettingThings.ALL_UNDERWAY
-            R.id.drawer_note -> Def.LimitForGettingThings.NOTE_UNDERWAY
-            R.id.drawer_reminder -> Def.LimitForGettingThings.REMINDER_UNDERWAY
-            R.id.drawer_habit -> Def.LimitForGettingThings.HABIT_UNDERWAY
-            R.id.drawer_goal -> Def.LimitForGettingThings.GOAL_UNDERWAY
-            R.id.drawer_finished -> Def.LimitForGettingThings.ALL_FINISHED
-            R.id.drawer_deleted -> Def.LimitForGettingThings.ALL_DELETED
+        val newStatus: Int = when (key.itemId) {
+            R.id.drawer_underway -> Def.ThingStatus.UNDERWAY
+            R.id.drawer_finished -> Def.ThingStatus.FINISHED
+            R.id.drawer_deleted -> Def.ThingStatus.DELETED
             R.id.drawer_settings -> {
                 val intent = Intent(this@ThingsActivity, SettingsActivity::class.java)
                 startActivityForResult(intent, Def.Communication.REQUEST_ACTIVITY_SETTINGS)
@@ -6014,7 +6000,7 @@ class ThingsActivity :
 
         mDrawerLayout!!.closeDrawer(GravityCompat.START)
         checkDrawerItem(key)
-        changeToLimit(newLimit, false)
+        changeToStatus(newStatus, false)
     }
 
     private fun applyHomeNavigationIconTintForAppearance() {
@@ -6027,14 +6013,14 @@ class ThingsActivity :
         }
     }
 
-    private fun changeToLimit(newLimit: Int, updateDrawerItem: Boolean) {
+    private fun changeToStatus(newStatus: Int, updateDrawerItem: Boolean) {
         finishNewItemShiningBorderAnimationIfNeeded()
         if (updateDrawerItem) {
-            checkDrawerItem(getDrawerDestinationKeyForLimit(newLimit))
+            checkDrawerItem(getDrawerDestinationKeyForStatus(newStatus))
         }
 
         mRecyclerView!!.visibility = View.INVISIBLE
-        mApp!!.setLimit(newLimit, false)
+        mApp!!.setStatus(newStatus, false)
         invalidateOptionsMenu()
         mRecyclerView!!.scrollToPosition(0)
         mActivityHeader!!.reset(true)
@@ -6051,7 +6037,7 @@ class ThingsActivity :
 
         refreshActivitySurfaceAndHeader()
         mDrawerHeader!!.updateTexts()
-        if (newLimit <= Def.LimitForGettingThings.GOAL_UNDERWAY) {
+        if (newStatus == Def.ThingStatus.UNDERWAY) {
             mFab!!.spread()
         } else {
             mFab!!.shrink()

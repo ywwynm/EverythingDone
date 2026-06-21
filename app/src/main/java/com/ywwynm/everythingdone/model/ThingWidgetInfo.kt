@@ -19,7 +19,8 @@ open class ThingWidgetInfo(
     var style: Int,
     var targetFolderId: Long?,
     var typeFilterMask: Int,
-    var displayMode: Int
+    var displayMode: Int,
+    var status: Int = Def.ThingStatus.UNDERWAY
 ) {
 
     constructor(cursor: Cursor?) : this(
@@ -34,7 +35,8 @@ open class ThingWidgetInfo(
             Def.Database.COLUMN_TYPE_FILTER_MASK_APP_WIDGET,
             legacyTypeFilterMask(cursor.getLong(cursor.getColumnIndex(Def.Database.COLUMN_THING_ID_APP_WIDGET)))
         ),
-        getOptionalInt(cursor, Def.Database.COLUMN_DISPLAY_MODE_APP_WIDGET, DISPLAY_MODE_LIST)
+        getOptionalInt(cursor, Def.Database.COLUMN_DISPLAY_MODE_APP_WIDGET, DISPLAY_MODE_LIST),
+        getOptionalInt(cursor, Def.Database.COLUMN_STATUS_APP_WIDGET, Def.ThingStatus.UNDERWAY)
     )
 
     @IntDef(
@@ -117,23 +119,11 @@ open class ThingWidgetInfo(
             }
         }
 
-        fun typeFilterMaskForLimit(limit: Int): Int {
+        fun statusForLegacyLimit(limit: Int): Int {
             return when (limit) {
-                Def.LimitForGettingThings.NOTE_UNDERWAY -> TYPE_FILTER_NOTE
-                Def.LimitForGettingThings.REMINDER_UNDERWAY -> TYPE_FILTER_REMINDER
-                Def.LimitForGettingThings.HABIT_UNDERWAY -> TYPE_FILTER_HABIT
-                Def.LimitForGettingThings.GOAL_UNDERWAY -> TYPE_FILTER_GOAL
-                else -> TYPE_FILTER_ALL
-            }
-        }
-
-        fun limitForTypeFilterMask(mask: Int): Int {
-            return when (normalizedTypeFilterMask(mask)) {
-                TYPE_FILTER_NOTE -> Def.LimitForGettingThings.NOTE_UNDERWAY
-                TYPE_FILTER_REMINDER -> Def.LimitForGettingThings.REMINDER_UNDERWAY
-                TYPE_FILTER_HABIT -> Def.LimitForGettingThings.HABIT_UNDERWAY
-                TYPE_FILTER_GOAL -> Def.LimitForGettingThings.GOAL_UNDERWAY
-                else -> Def.LimitForGettingThings.ALL_UNDERWAY
+                Def.LimitForGettingThings.ALL_FINISHED -> Def.ThingStatus.FINISHED
+                Def.LimitForGettingThings.ALL_DELETED -> Def.ThingStatus.DELETED
+                else -> Def.ThingStatus.UNDERWAY
             }
         }
 
@@ -163,7 +153,13 @@ open class ThingWidgetInfo(
         private fun legacyTypeFilterMask(thingId: Long): Int {
             if (thingId >= 0L) return TYPE_FILTER_ALL
             val legacyLimit = (-thingId - 1).toInt()
-            return typeFilterMaskForLimit(legacyLimit)
+            return when (legacyLimit) {
+                Def.LimitForGettingThings.NOTE_UNDERWAY -> TYPE_FILTER_NOTE
+                Def.LimitForGettingThings.REMINDER_UNDERWAY -> TYPE_FILTER_REMINDER
+                Def.LimitForGettingThings.HABIT_UNDERWAY -> TYPE_FILTER_HABIT
+                Def.LimitForGettingThings.GOAL_UNDERWAY -> TYPE_FILTER_GOAL
+                else -> TYPE_FILTER_ALL
+            }
         }
 
         private fun getOptionalInt(cursor: Cursor, columnName: String, defaultValue: Int): Int {

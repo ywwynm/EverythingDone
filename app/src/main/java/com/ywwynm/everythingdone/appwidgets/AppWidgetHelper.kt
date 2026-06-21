@@ -223,10 +223,7 @@ object AppWidgetHelper {
     @JvmStatic
     fun updateThingsListAppWidgetsForType(context: Context?, @Thing.Type type: Int) {
         Log.i(TAG, "updateThingsListAppWidgetForType is called, type[$type]")
-        val limits: IntArray = Thing.getLimits(type, Thing.UNDERWAY)
-        for (limit in limits) {
-            updateThingsListAppWidgets(context, limit)
-        }
+        updateAllThingsListAppWidgets(context)
     }
 
     @JvmStatic
@@ -414,7 +411,7 @@ object AppWidgetHelper {
         val typeFilterMask = ThingWidgetInfo.normalizedTypeFilterMask(
             info?.typeFilterMask ?: ThingWidgetInfo.TYPE_FILTER_ALL
         )
-        val limit = ThingWidgetInfo.limitForTypeFilterMask(typeFilterMask)
+        val limit = Def.LimitForGettingThings.ALL_UNDERWAY // legacy
 
         setThingsListHeaderAppearance(appContext, remoteViews, info, folder, typeFilterMask)
 
@@ -634,7 +631,7 @@ object AppWidgetHelper {
         )
         intent.putExtra(
             Def.Communication.KEY_LIMIT,
-            ThingWidgetInfo.limitForTypeFilterMask(mask)
+            Def.LimitForGettingThings.ALL_UNDERWAY // legacy
         )
         return intent
     }

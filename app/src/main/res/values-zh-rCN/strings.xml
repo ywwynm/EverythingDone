@@ -332,6 +332,7 @@
 
     <!--——————————————————————Drawer headers——————————————————————-->
     <string name="completion_rate_all">所有记事完成率</string>
+    <string name="completion_rate_things">记事完成率</string>
     <string name="completion_rate_reminder">「提醒」完成率</string>
     <string name="completion_rate_note">「记录」完成率</string>
     <string name="completion_rate_habit">「习惯」完成率</string>
@@ -1008,6 +1009,7 @@
 
     <!--AppWidgets-->
     <string name="all">全部</string>
+    <string name="all_types">全部类型</string>
     <string name="app_widget_config_alpha">透明度:</string>
     <string name="things_list_config_alpha_header">顶部栏同时透明</string>
     <string name="things_list_config_simple_view">采用简单的记事视图</string>

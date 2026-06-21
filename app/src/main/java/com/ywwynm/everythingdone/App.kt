@@ -66,7 +66,7 @@ open class App : Application() {
      * Value should be one of those declared in
      * [Def.LimitForGettingThings]
      */
-    private var mLimit: Int = 0
+    private var mStatus: Int = Def.ThingStatus.UNDERWAY
 
     private var mExecutor: ExecutorService? = null
 
@@ -109,7 +109,7 @@ open class App : Application() {
         mThingsToDeleteForever   = ArrayList()
         mAttachmentsToDeleteFile = ArrayList()
 
-        mLimit = Def.LimitForGettingThings.ALL_UNDERWAY
+        mStatus = Def.LimitForGettingThings.ALL_UNDERWAY
 
         updateNewThingColor()
 
@@ -222,12 +222,27 @@ open class App : Application() {
     }
 
     open fun getLimit(): Int {
-        return mLimit
+        return when (mStatus) {
+            Def.ThingStatus.FINISHED -> Def.LimitForGettingThings.ALL_FINISHED
+            Def.ThingStatus.DELETED -> Def.LimitForGettingThings.ALL_DELETED
+            else -> Def.LimitForGettingThings.ALL_UNDERWAY
+        }
     }
 
+    open fun getStatus(): Int = mStatus
+
     open fun setLimit(limit: Int, loadThingsNow: Boolean) {
-        this.mLimit = limit
-        mThingManager!!.setLimit(limit, loadThingsNow)
+        mStatus = when (limit) {
+            Def.LimitForGettingThings.ALL_FINISHED -> Def.ThingStatus.FINISHED
+            Def.LimitForGettingThings.ALL_DELETED -> Def.ThingStatus.DELETED
+            else -> Def.ThingStatus.UNDERWAY
+        }
+        mThingManager!!.setStatus(mStatus, loadThingsNow)
+    }
+
+    open fun setStatus(status: Int, loadThingsNow: Boolean) {
+        mStatus = status
+        mThingManager!!.setStatus(status, loadThingsNow)
     }
 
     open fun setDetailActivityRun(detailActivityRun: Boolean) {
@@ -531,7 +546,7 @@ open class App : Application() {
             // representative.
             var representative: Int = bg.representativeColor()
             while (ThingManager.isTotallyInitialized() && app!!.mThingManager != null
-                    && app!!.mLimit == Def.LimitForGettingThings.ALL_UNDERWAY) {
+                    && app!!.mStatus == Def.LimitForGettingThings.ALL_UNDERWAY) {
                 val things: MutableList<Thing?> = app!!.mThingManager!!.getThings() ?: break
 
                 val size: Int = things.size

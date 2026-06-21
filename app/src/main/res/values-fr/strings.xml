@@ -183,6 +183,7 @@
     <string name="will_remind">Sera rappelé</string>
     <string name="daily_todo_title_rest_part">Choses à faire sur</string>
     <string name="completion_rate_all">Taux d\'achèvement de tous les\'</string>
+    <string name="completion_rate_things">Taux d\'achèvement</string>
     <string name="completion_rate_reminder">RappelTaux de réalisation de\'s</string>
     <string name="completion_rate_note">Taux d\'achèvement des notes</string>
     <string name="completion_rate_habit">Taux d\'achèvement de Habit\'s</string>

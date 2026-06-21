@@ -183,6 +183,7 @@
     <string name="will_remind">Verrà ricordato</string>
     <string name="daily_todo_title_rest_part">Cose da fare</string>
     <string name="completion_rate_all">Tasso di completamento di tutti gli\'s</string>
+    <string name="completion_rate_things">Tasso di completamento</string>
     <string name="completion_rate_reminder">Tasso di completamento del promemoria\'s</string>
     <string name="completion_rate_note">Nota il tasso di completamento di\'s</string>
     <string name="completion_rate_habit">Tasso di completamento di Habit\'s</string>

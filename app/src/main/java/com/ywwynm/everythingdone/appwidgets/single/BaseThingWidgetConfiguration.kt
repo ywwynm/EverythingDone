@@ -152,7 +152,8 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
         val thingDAO = ThingDAO.getInstance(this)!!
         val folderDAO = mFolderDao ?: ThingFolderDAO.getInstance(this)!!
         val loadedThings = thingDAO.getThingsForProjection(
-            Def.LimitForGettingThings.ALL_UNDERWAY,
+            Def.ThingStatus.UNDERWAY,
+            ThingWidgetInfo.TYPE_FILTER_ALL,
             mCurrentFolderId,
             null,
             0

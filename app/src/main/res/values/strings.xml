@@ -346,6 +346,7 @@
 
     <!--——————————————————————Drawer headers——————————————————————-->
     <string name="completion_rate_all">All\'s completion rate</string>
+    <string name="completion_rate_things">Things completion rate</string>
     <string name="completion_rate_reminder">Reminder\'s completion rate</string>
     <string name="completion_rate_note">Note\'s completion rate</string>
     <string name="completion_rate_habit">Habit\'s completion rate</string>
@@ -1016,6 +1017,7 @@
 
     <!--AppWidgets-->
     <string name="all">All</string>
+    <string name="all_types">All types</string>
     <string name="app_widget_config_alpha">Alpha:</string>
     <string name="things_list_config_alpha_header">Transparent top bar</string>
     <string name="things_list_config_simple_view">Use simpler thing view</string>

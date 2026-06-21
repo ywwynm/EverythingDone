@@ -133,6 +133,7 @@ open class ThingFolderDAO private constructor(context: Context?) {
     }
 
     open fun getFolderEntriesForTypeFilterProjection(
+        status: Int,
         typeFilterMask: Int,
         parentFolderId: Long?,
         keyword: String? = null,
@@ -141,10 +142,11 @@ open class ThingFolderDAO private constructor(context: Context?) {
         val entries = ArrayList<ThingListEntry.FolderEntry>()
         for (folder in getChildFolders(parentFolderId)) {
             val effectiveDeleted = isEffectivelyDeleted(folder)
-            if (effectiveDeleted) continue
+            if (effectiveDeleted && status != Def.ThingStatus.DELETED) continue
             val effectivePrivate = isEffectivelyPrivate(folder)
             val count = countDescendantThingsForTypeFilterProjection(
                 folder,
+                status,
                 typeFilterMask,
                 keyword,
                 color
@@ -156,6 +158,7 @@ open class ThingFolderDAO private constructor(context: Context?) {
                 ) {
                     getThumbnailEntriesForTypeFilterProjection(
                         folder,
+                        status,
                         typeFilterMask,
                         keyword,
                         color
@@ -169,6 +172,7 @@ open class ThingFolderDAO private constructor(context: Context?) {
                     recursiveThingCount = count,
                     directFolderCount = countDirectChildFoldersForTypeFilterProjection(
                         folder,
+                        status,
                         typeFilterMask,
                         keyword,
                         color
@@ -193,7 +197,7 @@ open class ThingFolderDAO private constructor(context: Context?) {
             if (effectiveDeleted) continue
             val count = countDescendantThings(
                 folder.id,
-                thingSelectionForTypeFilterMask(typeFilterMask)
+                thingSelectionForStatusAndTypeFilter(Def.ThingStatus.UNDERWAY, typeFilterMask)
             )
             if (count <= 0) continue
             entries.add(
@@ -305,7 +309,7 @@ open class ThingFolderDAO private constructor(context: Context?) {
     }
 
     open fun countDescendantThings(folderId: Long, limit: Int): Int {
-        return countDescendantThings(folderId, thingSelectionForLimit(limit))
+        return countDescendantThings(folderId, statusAndMaskForLegacyLimit(limit).let { (s, m) -> thingSelectionForStatusAndTypeFilter(s, m) })
     }
 
     open fun countAllDescendantThings(folderId: Long): Int {
@@ -323,11 +327,12 @@ open class ThingFolderDAO private constructor(context: Context?) {
             return countDescendantThings(folder.id, userThingSelection(), keyword, color)
         }
         if (effectiveDeleted) return 0
-        return countDescendantThings(folder.id, thingSelectionForLimit(limit), keyword, color)
+        return countDescendantThings(folder.id, statusAndMaskForLegacyLimit(limit).let { (s, m) -> thingSelectionForStatusAndTypeFilter(s, m) }, keyword, color)
     }
 
     open fun countDescendantThingsForTypeFilterProjection(
         folder: ThingFolder,
+        status: Int,
         typeFilterMask: Int,
         keyword: String? = null,
         color: Int = 0
@@ -335,7 +340,7 @@ open class ThingFolderDAO private constructor(context: Context?) {
         if (isEffectivelyDeleted(folder)) return 0
         return countDescendantThings(
             folder.id,
-            thingSelectionForTypeFilterMask(typeFilterMask),
+            thingSelectionForStatusAndTypeFilter(status, typeFilterMask),
             keyword,
             color
         )
@@ -518,7 +523,7 @@ open class ThingFolderDAO private constructor(context: Context?) {
         ) {
             userThingSelection()
         } else {
-            thingSelectionForLimit(limit)
+            statusAndMaskForLegacyLimit(limit).let { (s, m) -> thingSelectionForStatusAndTypeFilter(s, m) }
         }
         val entries = ArrayList<ThingListEntry>()
         entries.addAll(getThumbnailFolderEntriesForProjection(folder, limit, keyword, color))
@@ -549,12 +554,14 @@ open class ThingFolderDAO private constructor(context: Context?) {
 
     open fun getThumbnailEntriesForTypeFilterPreview(
         folder: ThingFolder,
+        status: Int,
         typeFilterMask: Int,
         keyword: String? = null,
         color: Int = 0
     ): List<ThingListEntry> {
         return getThumbnailEntriesForTypeFilterProjection(
             folder,
+            status,
             typeFilterMask,
             keyword,
             color
@@ -563,6 +570,7 @@ open class ThingFolderDAO private constructor(context: Context?) {
 
     private fun getThumbnailEntriesForTypeFilterProjection(
         folder: ThingFolder,
+        status: Int,
         typeFilterMask: Int,
         keyword: String?,
         color: Int
@@ -571,11 +579,12 @@ open class ThingFolderDAO private constructor(context: Context?) {
         if (isEffectivelyDeleted(folder)) {
             return ThumbnailEntriesProjection(emptyList(), 0)
         }
-        val selection = thingSelectionForTypeFilterMask(typeFilterMask)
+        val selection = thingSelectionForStatusAndTypeFilter(status, typeFilterMask)
         val entries = ArrayList<ThingListEntry>()
         entries.addAll(
             getThumbnailFolderEntriesForTypeFilterProjection(
                 folder,
+                status,
                 typeFilterMask,
                 keyword,
                 color
@@ -627,6 +636,7 @@ open class ThingFolderDAO private constructor(context: Context?) {
 
     private fun getThumbnailFolderEntriesForTypeFilterProjection(
         folder: ThingFolder,
+        status: Int,
         typeFilterMask: Int,
         keyword: String?,
         color: Int
@@ -635,6 +645,7 @@ open class ThingFolderDAO private constructor(context: Context?) {
         for (childFolder in getChildFolders(folder.id)) {
             if (!shouldIncludeFolderForTypeFilterProjection(
                     childFolder,
+                    status,
                     typeFilterMask,
                     keyword,
                     color
@@ -647,12 +658,14 @@ open class ThingFolderDAO private constructor(context: Context?) {
                     folder = childFolder,
                     recursiveThingCount = countDescendantThingsForTypeFilterProjection(
                         childFolder,
+                        status,
                         typeFilterMask,
                         keyword,
                         color
                     ),
                     directFolderCount = countDirectChildFoldersForTypeFilterProjection(
                         childFolder,
+                        status,
                         typeFilterMask,
                         keyword,
                         color
@@ -695,6 +708,7 @@ open class ThingFolderDAO private constructor(context: Context?) {
 
     private fun countDirectChildFoldersForTypeFilterProjection(
         folder: ThingFolder,
+        status: Int,
         typeFilterMask: Int,
         keyword: String?,
         color: Int
@@ -703,6 +717,7 @@ open class ThingFolderDAO private constructor(context: Context?) {
         for (childFolder in getChildFolders(folder.id)) {
             if (shouldIncludeFolderForTypeFilterProjection(
                     childFolder,
+                    status,
                     typeFilterMask,
                     keyword,
                     color
@@ -734,12 +749,13 @@ open class ThingFolderDAO private constructor(context: Context?) {
         if (isEffectivelyDeleted(folder)) return false
         return countDescendantThings(
             folder.id,
-            thingSelectionForTypeFilterMask(typeFilterMask)
+            thingSelectionForStatusAndTypeFilter(Def.ThingStatus.UNDERWAY, typeFilterMask)
         ) > 0
     }
 
     private fun shouldIncludeFolderForTypeFilterProjection(
         folder: ThingFolder,
+        status: Int,
         typeFilterMask: Int,
         keyword: String?,
         color: Int
@@ -747,6 +763,7 @@ open class ThingFolderDAO private constructor(context: Context?) {
         if (isEffectivelyDeleted(folder)) return false
         return countDescendantThingsForTypeFilterProjection(
             folder,
+            status,
             typeFilterMask,
             keyword,
             color
@@ -977,43 +994,41 @@ open class ThingFolderDAO private constructor(context: Context?) {
             " and " + Def.Database.COLUMN_TYPE_THINGS + "<=" + Thing.GOAL
     }
 
-    private fun thingSelectionForLimit(limit: Int): String {
-        val typeColumn = Def.Database.COLUMN_TYPE_THINGS
-        val stateColumn = Def.Database.COLUMN_STATE_THINGS
-        val underway = stateColumn + "=" + Thing.UNDERWAY
-        return when (limit) {
-            Def.LimitForGettingThings.NOTE_UNDERWAY ->
-                "$typeColumn=${Thing.NOTE} and $underway"
-            Def.LimitForGettingThings.REMINDER_UNDERWAY ->
-                "$typeColumn=${Thing.REMINDER} and $underway"
-            Def.LimitForGettingThings.HABIT_UNDERWAY ->
-                "$typeColumn=${Thing.HABIT} and $underway"
-            Def.LimitForGettingThings.GOAL_UNDERWAY ->
-                "$typeColumn=${Thing.GOAL} and $underway"
-            Def.LimitForGettingThings.ALL_FINISHED ->
-                userThingSelection() + " and " + stateColumn + "=" + Thing.FINISHED
-            Def.LimitForGettingThings.ALL_DELETED ->
-                userThingSelection() + " and " + stateColumn + "=" + Thing.DELETED
-            else ->
-                userThingSelection() + " and $underway"
+    private fun statusAndMaskForLegacyLimit(limit: Int): Pair<Int, Int> {
+        val status = when (limit) {
+            Def.LimitForGettingThings.ALL_FINISHED -> Def.ThingStatus.FINISHED
+            Def.LimitForGettingThings.ALL_DELETED -> Def.ThingStatus.DELETED
+            else -> Def.ThingStatus.UNDERWAY
         }
+        val mask = when (limit) {
+            Def.LimitForGettingThings.NOTE_UNDERWAY -> ThingWidgetInfo.TYPE_FILTER_NOTE
+            Def.LimitForGettingThings.REMINDER_UNDERWAY -> ThingWidgetInfo.TYPE_FILTER_REMINDER
+            Def.LimitForGettingThings.HABIT_UNDERWAY -> ThingWidgetInfo.TYPE_FILTER_HABIT
+            Def.LimitForGettingThings.GOAL_UNDERWAY -> ThingWidgetInfo.TYPE_FILTER_GOAL
+            else -> ThingWidgetInfo.TYPE_FILTER_ALL
+        }
+        return Pair(status, mask)
     }
 
-    private fun thingSelectionForTypeFilterMask(typeFilterMask: Int): String {
+    private fun thingSelectionForStatusAndTypeFilter(status: Int, typeFilterMask: Int): String {
         val typeColumn = Def.Database.COLUMN_TYPE_THINGS
         val stateColumn = Def.Database.COLUMN_STATE_THINGS
-        val underway = stateColumn + "=" + Thing.UNDERWAY
+        val state = when (status) {
+            Def.ThingStatus.FINISHED -> Thing.FINISHED
+            Def.ThingStatus.DELETED -> Thing.DELETED
+            else -> Thing.UNDERWAY
+        }
+        val stateCondition = "$stateColumn=$state"
         val mask = ThingWidgetInfo.normalizedTypeFilterMask(typeFilterMask)
         if (mask == ThingWidgetInfo.TYPE_FILTER_ALL) {
-            return userThingSelection() + " and $underway"
+            return userThingSelection() + " and $stateCondition"
         }
-
         val types = ArrayList<Int>(4)
         if (mask and ThingWidgetInfo.TYPE_FILTER_NOTE != 0) types.add(Thing.NOTE)
         if (mask and ThingWidgetInfo.TYPE_FILTER_REMINDER != 0) types.add(Thing.REMINDER)
         if (mask and ThingWidgetInfo.TYPE_FILTER_HABIT != 0) types.add(Thing.HABIT)
         if (mask and ThingWidgetInfo.TYPE_FILTER_GOAL != 0) types.add(Thing.GOAL)
-        return "$typeColumn in (${types.joinToString(",")}) and $underway"
+        return "$typeColumn in (${types.joinToString(",")}) and $stateCondition"
     }
 
     private fun putFolder(values: ContentValues, folder: ThingFolder, includeId: Boolean) {

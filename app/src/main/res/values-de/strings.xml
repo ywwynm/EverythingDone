@@ -183,6 +183,7 @@
     <string name="will_remind">Werde daran erinnert</string>
     <string name="daily_todo_title_rest_part">Dinge zu tun</string>
     <string name="completion_rate_all">Abschlussrate aller\'s</string>
+    <string name="completion_rate_things">Abschlussrate</string>
     <string name="completion_rate_reminder">Erinnerung\'s Abschlussrate</string>
     <string name="completion_rate_note">Hinweis\'s Abschlussrate</string>
     <string name="completion_rate_habit">Gewohnheit\'s Abschlussrate</string>

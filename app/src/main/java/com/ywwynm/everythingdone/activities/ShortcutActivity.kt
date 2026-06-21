@@ -14,6 +14,7 @@ import com.ywwynm.everythingdone.database.ThingDAO
 import com.ywwynm.everythingdone.model.Reminder
 import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.model.ThingBackground
+import com.ywwynm.everythingdone.model.ThingWidgetInfo
 import com.ywwynm.everythingdone.utils.LocaleUtil
 import com.ywwynm.everythingdone.utils.ThingsSorter
 
@@ -54,7 +55,7 @@ open class ShortcutActivity : AppCompatActivity() {
         } else if (Def.Communication.SHORTCUT_ACTION_CHECK_UPCOMING == action) {
             var canCheck = false
             val things: MutableList<Thing?> = ArrayList(ThingDAO.getInstance(this)!!
-                .getThingsForDisplay(Def.LimitForGettingThings.ALL_UNDERWAY)!!)
+                .getThingsForDisplay(Def.ThingStatus.UNDERWAY, ThingWidgetInfo.TYPE_FILTER_ALL)!!)
             Collections.sort(things, ThingsSorter.getThingComparatorByAlarmTime(true))
             val thing: Thing = things[1]!! // 0 is header
             @Thing.Type val thingType = thing.type
@@ -76,7 +77,7 @@ open class ShortcutActivity : AppCompatActivity() {
             }
         } else if (Def.Communication.SHORTCUT_ACTION_CHECK_STICKY == action) {
             val things: MutableList<Thing?> = ArrayList(ThingDAO.getInstance(this)!!
-                .getThingsForDisplay(Def.LimitForGettingThings.ALL_UNDERWAY)!!)
+                .getThingsForDisplay(Def.ThingStatus.UNDERWAY, ThingWidgetInfo.TYPE_FILTER_ALL)!!)
             val thing: Thing = things[1]!!
             if (thing.location < 0) {
                 openIntent = AuthenticationActivity.getOpenIntent(

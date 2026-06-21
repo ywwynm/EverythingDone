@@ -409,108 +409,69 @@ open class Thing(
         }
 
         @JvmStatic
-        fun getLimits(type: Int, state: Int): IntArray {
-            val limits: IntArray
-            if (state == FINISHED || type == NOTIFY_EMPTY_FINISHED) {
-                limits = intArrayOf(Def.LimitForGettingThings.ALL_FINISHED)
-            } else if (state == DELETED || type == NOTIFY_EMPTY_DELETED) {
-                limits = intArrayOf(Def.LimitForGettingThings.ALL_DELETED)
-            } else {
-                when (type) {
-                    WELCOME_UNDERWAY, NOTIFICATION_UNDERWAY,
-                    NOTIFY_EMPTY_UNDERWAY -> {
-                        return intArrayOf(Def.LimitForGettingThings.ALL_UNDERWAY)
-                    }
-
-                    WELCOME_NOTE, NOTIFICATION_NOTE,
-                    NOTIFY_EMPTY_NOTE -> {
-                        return intArrayOf(Def.LimitForGettingThings.NOTE_UNDERWAY)
-                    }
-
-                    WELCOME_REMINDER, NOTIFICATION_REMINDER,
-                    NOTIFY_EMPTY_REMINDER -> {
-                        return intArrayOf(Def.LimitForGettingThings.REMINDER_UNDERWAY)
-                    }
-
-                    WELCOME_HABIT, NOTIFICATION_HABIT,
-                    NOTIFY_EMPTY_HABIT -> {
-                        return intArrayOf(Def.LimitForGettingThings.HABIT_UNDERWAY)
-                    }
-
-                    WELCOME_GOAL, NOTIFICATION_GOAL,
-                    NOTIFY_EMPTY_GOAL -> {
-                        return intArrayOf(Def.LimitForGettingThings.GOAL_UNDERWAY)
-                    }
-
-                    else -> {
-                        limits = IntArray(2)
-                        limits[0] = Def.LimitForGettingThings.ALL_UNDERWAY
-                        limits[1] = when (type) {
-                            REMINDER -> Def.LimitForGettingThings.REMINDER_UNDERWAY
-                            HABIT -> Def.LimitForGettingThings.HABIT_UNDERWAY
-                            GOAL -> Def.LimitForGettingThings.GOAL_UNDERWAY
-                            else -> Def.LimitForGettingThings.NOTE_UNDERWAY
-                        }
-                    }
-                }
+        fun getStatusForState(@State state: Int): Int {
+            return when (state) {
+                FINISHED -> Def.ThingStatus.FINISHED
+                DELETED -> Def.ThingStatus.DELETED
+                else -> Def.ThingStatus.UNDERWAY
             }
-            return limits
         }
 
         @JvmStatic
-        fun isTypeStateMatchLimit(type: Int, state: Int, limit: Int): Boolean {
-            if (state == DELETED_FOREVER) {
-                return false
-            }
-            val limits = getLimits(type, state)
-            for (lim in limits) {
-                if (limit == lim) {
-                    return true
-                }
-            }
-            return false
+        fun isStateMatchStatus(@State state: Int, status: Int): Boolean {
+            if (state == DELETED_FOREVER) return false
+            return getStatusForState(state) == status
         }
 
         @JvmStatic
-        fun getNotifyEmptyType(limit: Int): Int {
-            return when (limit) {
-                Def.LimitForGettingThings.ALL_UNDERWAY -> NOTIFY_EMPTY_UNDERWAY
-                Def.LimitForGettingThings.NOTE_UNDERWAY -> NOTIFY_EMPTY_NOTE
-                Def.LimitForGettingThings.REMINDER_UNDERWAY -> NOTIFY_EMPTY_REMINDER
-                Def.LimitForGettingThings.HABIT_UNDERWAY -> NOTIFY_EMPTY_HABIT
-                Def.LimitForGettingThings.GOAL_UNDERWAY -> NOTIFY_EMPTY_GOAL
-                Def.LimitForGettingThings.ALL_FINISHED -> NOTIFY_EMPTY_FINISHED
-                Def.LimitForGettingThings.ALL_DELETED -> NOTIFY_EMPTY_DELETED
+        fun getNotifyEmptyType(status: Int, typeFilterMask: Int): Int {
+            if (status == Def.ThingStatus.FINISHED) return NOTIFY_EMPTY_FINISHED
+            if (status == Def.ThingStatus.DELETED) return NOTIFY_EMPTY_DELETED
+            return when (ThingWidgetInfo.normalizedTypeFilterMask(typeFilterMask)) {
+                ThingWidgetInfo.TYPE_FILTER_NOTE -> NOTIFY_EMPTY_NOTE
+                ThingWidgetInfo.TYPE_FILTER_REMINDER -> NOTIFY_EMPTY_REMINDER
+                ThingWidgetInfo.TYPE_FILTER_HABIT -> NOTIFY_EMPTY_HABIT
+                ThingWidgetInfo.TYPE_FILTER_GOAL -> NOTIFY_EMPTY_GOAL
                 else -> NOTIFY_EMPTY_UNDERWAY
             }
         }
 
         @JvmStatic
-        fun generateNotifyEmpty(limit: Int, headerId: Long, context: Context?): Thing? {
-            val thing = Thing(headerId, getNotifyEmptyType(limit),
+        fun generateNotifyEmpty(
+            status: Int,
+            typeFilterMask: Int,
+            headerId: Long,
+            context: Context?
+        ): Thing? {
+            val thing = Thing(headerId, getNotifyEmptyType(status, typeFilterMask),
                     DisplayUtil.getRandomColor(context), headerId)
-            when (limit) {
-                Def.LimitForGettingThings.ALL_UNDERWAY -> {
-                    thing.title = context!!.getString(R.string.congratulations)
-                    thing.content = context.getString(R.string.empty_underway)
+            when (status) {
+                Def.ThingStatus.UNDERWAY -> {
+                    when (ThingWidgetInfo.normalizedTypeFilterMask(typeFilterMask)) {
+                        ThingWidgetInfo.TYPE_FILTER_ALL -> {
+                            thing.title = context!!.getString(R.string.congratulations)
+                            thing.content = context.getString(R.string.empty_underway)
+                        }
+                        ThingWidgetInfo.TYPE_FILTER_NOTE -> {
+                            thing.content = context!!.getString(R.string.empty_note)
+                        }
+                        ThingWidgetInfo.TYPE_FILTER_REMINDER -> {
+                            thing.content = context!!.getString(R.string.empty_reminder)
+                        }
+                        ThingWidgetInfo.TYPE_FILTER_HABIT -> {
+                            thing.title = context!!.getString(R.string.congratulations)
+                            thing.content = context.getString(R.string.empty_habit)
+                        }
+                        ThingWidgetInfo.TYPE_FILTER_GOAL -> {
+                            thing.content = context!!.getString(R.string.empty_goal)
+                        }
+                        else -> return null
+                    }
                 }
-                Def.LimitForGettingThings.NOTE_UNDERWAY -> {
-                    thing.content = context!!.getString(R.string.empty_note)
-                }
-                Def.LimitForGettingThings.REMINDER_UNDERWAY -> {
-                    thing.content = context!!.getString(R.string.empty_reminder)
-                }
-                Def.LimitForGettingThings.HABIT_UNDERWAY -> {
-                    thing.title = context!!.getString(R.string.congratulations)
-                    thing.content = context.getString(R.string.empty_habit)
-                }
-                Def.LimitForGettingThings.GOAL_UNDERWAY -> {
-                    thing.content = context!!.getString(R.string.empty_goal)
-                }
-                Def.LimitForGettingThings.ALL_FINISHED -> {
+                Def.ThingStatus.FINISHED -> {
                     thing.content = context!!.getString(R.string.empty_finished)
                 }
-                Def.LimitForGettingThings.ALL_DELETED -> {
+                Def.ThingStatus.DELETED -> {
                     thing.content = context!!.getString(R.string.empty_deleted)
                 }
                 else -> return null

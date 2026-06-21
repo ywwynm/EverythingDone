@@ -183,6 +183,7 @@
     <string name="will_remind">будет напоминать</string>
     <string name="daily_todo_title_rest_part">Чем заняться на</string>
     <string name="completion_rate_all">Уровень завершения всех\'s</string>
+    <string name="completion_rate_things">Уровень завершения</string>
     <string name="completion_rate_reminder">Напоминание\', процент завершения</string>
     <string name="completion_rate_note">Примечание\'s процент завершения</string>
     <string name="completion_rate_habit">Коэффициент выполнения привычки\'s</string>

@@ -150,7 +150,7 @@ open class ActivityHeader(
     }
 
     private fun getCollapsedTitleVisualHeight(): Float {
-        if (!mInFolderProjection || mTitle.lineHeight <= 0) {
+        if (mTitle.lineHeight <= 0) {
             return mTitle.height.toFloat()
         }
         val lineCount = getCollapsedTitleLineCount()
@@ -162,9 +162,6 @@ open class ActivityHeader(
     }
 
     private fun getCollapsedTitleLineCount(): Int {
-        if (!mInFolderProjection) {
-            return if (mTitle.lineCount > 0) mTitle.lineCount else 1
-        }
         if (shouldUseCompactCollapsedFolderTitle()) {
             return COLLAPSED_FOLDER_TITLE_MAX_LINES
         }
@@ -227,7 +224,7 @@ open class ActivityHeader(
         mInFolderProjection = folderPath.isNotEmpty()
         headerCollapseProgress = 0f
         resetTitleTextStyle()
-        val typeTitle = if (manager?.hasCustomUnderwayTypeFilter() == true) {
+        val typeTitle = if (manager?.hasCustomTypeFilter() == true) {
             ThingWidgetInfo.getTypeFilterTitle(mApp, manager.getActiveTypeFilterMask())
         } else {
             null
@@ -256,7 +253,7 @@ open class ActivityHeader(
 
     private fun getRootTitle(): String {
         val manager = ThingManager.getInstance(mApp)
-        if (manager?.hasCustomUnderwayTypeFilter() == true) {
+        if (manager?.hasCustomTypeFilter() == true) {
             return ThingWidgetInfo.getTypeFilterTitle(
                 mApp,
                 manager.getActiveTypeFilterMask()
@@ -412,21 +409,16 @@ open class ActivityHeader(
     }
 
     private fun shouldUseCompactCollapsedFolderTitle(): Boolean {
-        if (!mInFolderProjection) return false
         val titleText = mTitle.text?.toString() ?: return false
         if (titleText.isEmpty()) return false
         return mTitle.paint.measureText(titleText) > getCollapsedTitleMaxWidth()
     }
 
     private fun updateTitleLayoutForProgress(progress: Float) {
-        val maxLines = if (mInFolderProjection) {
-            if (progress >= FOLDER_TITLE_COLLAPSED_LINE_PROGRESS) {
-                COLLAPSED_FOLDER_TITLE_MAX_LINES
-            } else {
-                EXPANDED_FOLDER_TITLE_MAX_LINES
-            }
+        val maxLines = if (progress >= FOLDER_TITLE_COLLAPSED_LINE_PROGRESS) {
+            COLLAPSED_FOLDER_TITLE_MAX_LINES
         } else {
-            1
+            EXPANDED_FOLDER_TITLE_MAX_LINES
         }
         if (mTitle.maxLines != maxLines) {
             mTitle.maxLines = maxLines
@@ -434,13 +426,9 @@ open class ActivityHeader(
 
         val expandedWidth = getExpandedTitleMaxWidth()
         val collapsedWidth = getCollapsedTitleMaxWidth()
-        val maxWidth = if (mInFolderProjection) {
-            (expandedWidth + (collapsedWidth - expandedWidth) * progress)
-                .toInt()
-                .coerceAtLeast((mScreenDensity * MIN_TITLE_WIDTH_DP).toInt())
-        } else {
-            expandedWidth
-        }
+        val maxWidth = (expandedWidth + (collapsedWidth - expandedWidth) * progress)
+            .toInt()
+            .coerceAtLeast((mScreenDensity * MIN_TITLE_WIDTH_DP).toInt())
         if (mTitle.maxWidth != maxWidth) {
             mTitle.maxWidth = maxWidth
         }

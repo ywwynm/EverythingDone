@@ -10,7 +10,9 @@ import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.activities.SettingsActivity
+import com.ywwynm.everythingdone.managers.ThingManager
 import com.ywwynm.everythingdone.model.ThingsCounts
+import com.ywwynm.everythingdone.model.ThingWidgetInfo
 import com.ywwynm.everythingdone.permission.PermissionUtil
 import com.ywwynm.everythingdone.utils.BitmapUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
@@ -83,27 +85,16 @@ open class DrawerHeader(
     }
 
     fun updateTexts() {
-        when (mApp.getLimit()) {
-            Def.LimitForGettingThings.ALL_UNDERWAY,
-            Def.LimitForGettingThings.ALL_FINISHED,
-            Def.LimitForGettingThings.ALL_DELETED ->
-                mTvLocation.setText(R.string.completion_rate_all)
-            Def.LimitForGettingThings.NOTE_UNDERWAY ->
-                mTvLocation.setText(R.string.completion_rate_note)
-            Def.LimitForGettingThings.REMINDER_UNDERWAY ->
-                mTvLocation.setText(R.string.completion_rate_reminder)
-            Def.LimitForGettingThings.HABIT_UNDERWAY ->
-                mTvLocation.setText(R.string.completion_rate_habit)
-            Def.LimitForGettingThings.GOAL_UNDERWAY ->
-                mTvLocation.setText(R.string.completion_rate_goal)
-            else -> { }
-        }
-
+        mTvLocation.setText(R.string.completion_rate_things)
         updateCompletionRate()
     }
 
     fun updateCompletionRate() {
-        mTvCompletionRate.text = ThingsCounts.getInstance(mApp)!!.getCompletionRate(mApp.getLimit())
+        val manager = ThingManager.getInstance(mApp)
+        mTvCompletionRate.text = ThingsCounts.getInstance(mApp)!!.getCompletionRate(
+            mApp.getStatus(),
+            manager?.getActiveTypeFilterMask() ?: ThingWidgetInfo.TYPE_FILTER_ALL
+        )
     }
 
     companion object {

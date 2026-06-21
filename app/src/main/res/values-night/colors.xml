@@ -17,6 +17,7 @@
     <color name="app_chrome_on_surface_disabled">#61FFFFFF</color>
     <color name="app_chrome_divider">#24FFFFFF</color>
     <color name="app_chrome_ripple">#24FFFFFF</color>
+    <color name="drawer_selected_bg">#24FFFFFF</color>
     <color name="app_chrome_code_surface">#2A2A2A</color>
     <color name="app_chrome_snackbar_background">#323232</color>
     <color name="app_chrome_snackbar_text">#FFFFFF</color>

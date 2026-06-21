@@ -65,5 +65,6 @@ memory files.
 - `system-bar-insets/`
 - `thing-folders/`
 - `thing-card-appearance/`
+- `drawer-type-filter/`
 - `thing-card-image-placement/`
 - `thing-card-media-target-geometry/`

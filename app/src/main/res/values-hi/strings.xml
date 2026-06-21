@@ -183,6 +183,7 @@
     <string name="will_remind">याद दिलाया जाएगा</string>
     <string name="daily_todo_title_rest_part">करने योग्य बातें</string>
     <string name="completion_rate_all">All\'s पूर्णता दर</string>
+    <string name="completion_rate_things">पूर्णता दर</string>
     <string name="completion_rate_reminder">अनुस्मारक\'s पूर्णता दर</string>
     <string name="completion_rate_note">«नोट» की पूर्णता दर</string>
     <string name="completion_rate_habit">Habit\'s पूर्णता दर</string>
