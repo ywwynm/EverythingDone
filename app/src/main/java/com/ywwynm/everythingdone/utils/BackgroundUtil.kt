@@ -40,6 +40,7 @@ import androidx.cardview.widget.CardView
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.model.ThingBackground
 import kotlin.math.ceil
+import java.util.WeakHashMap
 
 /**
  * Algorithmic helpers for deriving colors and brightness-aware foreground choices
@@ -58,6 +59,15 @@ import kotlin.math.ceil
 object BackgroundUtil {
     private const val MUTED_SURFACE_ACCENT_LIGHT = 0.05f
     private const val MUTED_SURFACE_ACCENT_DARK = 0.08f
+    private val textShaderTokens = WeakHashMap<TextView, Int>()
+
+    enum class CompoundDrawableGradientMode {
+        NONE,
+        SEPARATE,
+        COMBINED
+    }
+
+    private interface PreTintedGradientDrawable
 
     // ---------------------------------------------------------------------------
     // Hue buckets — used by search-by-similar-color. See
@@ -378,64 +388,75 @@ object BackgroundUtil {
      * TextView uses the gradient start colour as a temporary base colour.
      */
     @JvmStatic
-    fun applyTextBackground(textView: TextView?, background: ThingBackground?) {
+    @JvmOverloads
+    fun applyTextBackground(
+        textView: TextView?,
+        background: ThingBackground?,
+        compoundDrawableMode: CompoundDrawableGradientMode =
+            CompoundDrawableGradientMode.SEPARATE
+    ) {
         if (textView == null || background == null) return
 
         if (background.mode === ThingBackground.Mode.PURE) {
+            invalidatePendingTextShader(textView)
             val paint: android.text.TextPaint = textView.paint
             if (paint.shader != null) paint.setShader(null)
             textView.setTextColor(background.color)
+            applyCompoundDrawableBackground(textView, background, compoundDrawableMode, null)
             textView.invalidate()
             return
         }
 
-        // Pre-set the start colour so any early draw before the first shader
-        // pass still uses the accent family without falling back to a
-        // representative blend.
+        // 首帧布局完成前先使用起始色，避免短暂回落到代表色。
         textView.setTextColor(background.color)
 
-        val apply = Runnable {
-            applyTextShaderNow(textView, background)
-        }
-        if (textView.width > 0 && textView.height > 0
-                && textView.getText() != null && textView.getText().length > 0) {
-            apply.run()
-            return
-        }
-        // One-shot pre-draw listener — guaranteed to fire after layout and right
-        // before the next frame, more reliable than post() across dialog
-        // lifecycles.
+        val token = nextTextShaderToken(textView)
+        // 等待最终 text/layout/compound drawable 状态稳定后再计算 shader。
         textView.getViewTreeObserver().addOnPreDrawListener(
                 object : ViewTreeObserver.OnPreDrawListener {
                     override fun onPreDraw(): Boolean {
                         textView.getViewTreeObserver().removeOnPreDrawListener(this)
-                        applyTextShaderNow(textView, background)
+                        if (textShaderTokens[textView] == token) {
+                            applyTextShaderNow(
+                                textView,
+                                background,
+                                compoundDrawableMode
+                            )
+                        }
                         return true
                     }
                 })
     }
 
+    private fun nextTextShaderToken(textView: TextView): Int {
+        val next = (textShaderTokens[textView] ?: 0) + 1
+        textShaderTokens[textView] = next
+        return next
+    }
+
+    private fun invalidatePendingTextShader(textView: TextView) {
+        textShaderTokens[textView] = (textShaderTokens[textView] ?: 0) + 1
+    }
+
     /** Build a text-width-fitted LinearGradient and install it on the TextView's paint. */
-    private fun applyTextShaderNow(textView: TextView, bg: ThingBackground) {
+    private fun applyTextShaderNow(
+        textView: TextView,
+        bg: ThingBackground,
+        compoundDrawableMode: CompoundDrawableGradientMode
+    ) {
         val text: CharSequence? = textView.getText()
         if (text.isNullOrEmpty()) return
         val viewW: Int = textView.width
         val viewH: Int = textView.height
         if (viewW <= 0 || viewH <= 0) return
 
-        // Use TextView.getLayout() to get the exact rendered bounds of the first
-        // line — Layout.getLineLeft / getLineRight / getLineTop / getLineBottom
-        // are gravity-, padding-, alignment- and transformation-aware (handles
-        // textAllCaps too), so the gradient lines up identically across
-        // Button/TextView/TabView regardless of how each one positions its
-        // text. Layout-coord origin is at (totalPaddingLeft, totalPaddingTop)
-        // in view space, so we add those padding offsets to translate the
-        // shader into view coordinates.
+        // TextView 绘制文字前已平移到 compoundPaddingLeft；
+        // 这里必须使用 Layout 内部坐标，不能叠加外层 view padding。
         val layout: android.text.Layout? = textView.layout
-        var textX: Float
-        var textY: Float
         var textW: Float
         var textH: Float
+        var textLeft: Float
+        var textTop: Float
         if (layout != null && layout.lineCount > 0) {
             val lineLeft: Float   = layout.getLineLeft(0)
             val lineRight: Float  = layout.getLineRight(0)
@@ -443,29 +464,205 @@ object BackgroundUtil {
             val lineBottom: Int   = layout.getLineBottom(0)
             textW = lineRight - lineLeft
             textH = (lineBottom - lineTop).toFloat()
-            textX = textView.totalPaddingLeft + lineLeft
-            textY = textView.totalPaddingTop + lineTop.toFloat()
+            textLeft = lineLeft
+            textTop = lineTop.toFloat()
         } else {
-            // Layout not yet built — fall back to a paint-based estimate.
+            // 理论上 pre-draw 时已有 Layout；这里保留兜底估算。
             textW = textView.paint.measureText(text, 0, text.length)
             textH = textView.paint.fontSpacing
-            textX = textView.getPaddingLeft().toFloat()
-            textY = (viewH - textH) / 2f
+            textLeft = 0f
+            textTop = 0f
         }
         if (textW <= 0) textW = viewW.toFloat()
         if (textH <= 0) textH = viewH.toFloat()
 
-        // Build the gradient over (textW × textH) and translate to (textX, textY)
-        // so it lines up with the rendered glyphs regardless of view size.
-        val lg: LinearGradient = linearGradientFor(bg, textW, textH)
+        val textSpan = GradientSpan(textLeft, textTop, textLeft + textW, textTop + textH)
+        val shaderSpan = if (compoundDrawableMode == CompoundDrawableGradientMode.COMBINED) {
+            compoundTextSpan(textView, textSpan)
+        } else {
+            textSpan
+        }
+        applyCompoundDrawableBackground(textView, bg, compoundDrawableMode, shaderSpan)
+
+        val lg: LinearGradient = linearGradientFor(bg, shaderSpan.width, shaderSpan.height)
         val m = Matrix()
-        m.setTranslate(textX, textY)
+        m.setTranslate(shaderSpan.left, shaderSpan.top)
         lg.setLocalMatrix(m)
         textView.paint.setShader(lg)
         textView.invalidate()
     }
 
-    /** Build a LinearGradient covering `width × height` matching the given background's stops. */
+    private data class GradientSpan(
+        val left: Float,
+        val top: Float,
+        val right: Float,
+        val bottom: Float
+    ) {
+        val width: Float get() = (right - left).coerceAtLeast(1f)
+        val height: Float get() = (bottom - top).coerceAtLeast(1f)
+    }
+
+    private data class DrawableSlot(
+        val index: Int,
+        val drawable: Drawable,
+        val left: Float,
+        val top: Float,
+        val width: Float,
+        val height: Float
+    ) {
+        val right: Float get() = left + width
+        val bottom: Float get() = top + height
+    }
+
+    private fun compoundTextSpan(textView: TextView, textSpan: GradientSpan): GradientSpan {
+        var left = textSpan.left
+        var top = textSpan.top
+        var right = textSpan.right
+        var bottom = textSpan.bottom
+        for (slot in compoundDrawableSlots(textView, textSpan)) {
+            left = kotlin.math.min(left, slot.left)
+            top = kotlin.math.min(top, slot.top)
+            right = kotlin.math.max(right, slot.right)
+            bottom = kotlin.math.max(bottom, slot.bottom)
+        }
+        return GradientSpan(left, top, right, bottom)
+    }
+
+    private fun compoundDrawableSlots(
+        textView: TextView,
+        textSpan: GradientSpan
+    ): List<DrawableSlot> {
+        val drawables = textView.compoundDrawablesRelative
+        val padding = textView.compoundDrawablePadding.toFloat()
+        val textCenterX = (textSpan.left + textSpan.right) / 2f
+        val textCenterY = (textSpan.top + textSpan.bottom) / 2f
+        val slots = ArrayList<DrawableSlot>(4)
+
+        fun add(index: Int, left: Float, top: Float) {
+            val drawable = drawables[index] ?: return
+            val w = drawableRenderWidth(drawable).toFloat()
+            val h = drawableRenderHeight(drawable).toFloat()
+            if (w <= 0f || h <= 0f) return
+            slots.add(DrawableSlot(index, drawable, left, top, w, h))
+        }
+
+        drawables[0]?.let {
+            val w = drawableRenderWidth(it).toFloat()
+            val h = drawableRenderHeight(it).toFloat()
+            add(0, textSpan.left - padding - w, textCenterY - h / 2f)
+        }
+        drawables[2]?.let {
+            val h = drawableRenderHeight(it).toFloat()
+            add(2, textSpan.right + padding, textCenterY - h / 2f)
+        }
+        drawables[1]?.let {
+            val w = drawableRenderWidth(it).toFloat()
+            val h = drawableRenderHeight(it).toFloat()
+            add(1, textCenterX - w / 2f, textSpan.top - padding - h)
+        }
+        drawables[3]?.let {
+            val w = drawableRenderWidth(it).toFloat()
+            add(3, textCenterX - w / 2f, textSpan.bottom + padding)
+        }
+
+        return slots
+    }
+
+    private fun applyCompoundDrawableBackground(
+        textView: TextView,
+        bg: ThingBackground,
+        mode: CompoundDrawableGradientMode,
+        shaderSpan: GradientSpan?
+    ) {
+        if (mode == CompoundDrawableGradientMode.NONE) return
+        val textSpan = shaderSpan ?: GradientSpan(0f, 0f, 1f, 1f)
+        val drawables = textView.compoundDrawablesRelative
+        val slots = compoundDrawableSlots(textView, textSpan)
+        if (slots.isEmpty()) return
+
+        val tinted = arrayOfNulls<Drawable>(4)
+        for (i in drawables.indices) {
+            tinted[i] = drawables[i]
+        }
+        for (slot in slots) {
+            val source = slot.drawable
+            val target = if (source is PreTintedGradientDrawable) {
+                source
+            } else if (mode == CompoundDrawableGradientMode.COMBINED && shaderSpan != null) {
+                tintDrawableInGradientSpan(
+                    textView.resources,
+                    source,
+                    bg,
+                    shaderSpan,
+                    slot
+                )
+            } else {
+                tintDrawable(textView.resources, source, bg)
+            }
+            ensureDrawableBounds(target, slot.width.toInt(), slot.height.toInt())
+            tinted[slot.index] = target
+        }
+        textView.setCompoundDrawablesRelative(tinted[0], tinted[1], tinted[2], tinted[3])
+    }
+
+    private fun tintDrawableInGradientSpan(
+        res: android.content.res.Resources?,
+        source: Drawable,
+        bg: ThingBackground,
+        span: GradientSpan,
+        slot: DrawableSlot
+    ): Drawable {
+        if (bg.mode === ThingBackground.Mode.PURE) {
+            val d = source.mutate()
+            d.setColorFilter(bg.color, PorterDuff.Mode.SRC_ATOP)
+            return d
+        }
+
+        val w = slot.width.toInt().coerceAtLeast(1)
+        val h = slot.height.toInt().coerceAtLeast(1)
+        val out = android.graphics.Bitmap.createBitmap(
+            w, h, android.graphics.Bitmap.Config.ARGB_8888
+        )
+        val c = android.graphics.Canvas(out)
+        val mask = source.mutate()
+        mask.colorFilter = null
+        mask.setBounds(0, 0, w, h)
+        mask.draw(c)
+        normalizeMaskAlpha(out)
+
+        val p = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
+        p.shader = linearGradientFor(bg, span.width, span.height).also {
+            val m = Matrix()
+            m.setTranslate(-(slot.left - span.left), -(slot.top - span.top))
+            it.setLocalMatrix(m)
+        }
+        p.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
+        c.drawRect(0f, 0f, w.toFloat(), h.toFloat(), p)
+
+        return android.graphics.drawable.BitmapDrawable(res, out)
+    }
+
+    private fun drawableRenderWidth(drawable: Drawable): Int {
+        val bounds = drawable.bounds
+        if (!bounds.isEmpty && bounds.width() > 0) return bounds.width()
+        return drawable.intrinsicWidth.takeIf { it > 0 } ?: 0
+    }
+
+    private fun drawableRenderHeight(drawable: Drawable): Int {
+        val bounds = drawable.bounds
+        if (!bounds.isEmpty && bounds.height() > 0) return bounds.height()
+        return drawable.intrinsicHeight.takeIf { it > 0 } ?: 0
+    }
+
+    private fun ensureDrawableBounds(drawable: Drawable?, width: Int, height: Int) {
+        if (drawable == null) return
+        val w = width.takeIf { it > 0 } ?: drawable.intrinsicWidth
+        val h = height.takeIf { it > 0 } ?: drawable.intrinsicHeight
+        if (w > 0 && h > 0 && drawable.bounds.isEmpty) {
+            drawable.setBounds(0, 0, w, h)
+        }
+    }
+
     @JvmStatic
     fun createLinearGradient(bg: ThingBackground, width: Float, height: Float): LinearGradient {
         return linearGradientFor(bg, width, height)
@@ -1291,7 +1488,7 @@ object BackgroundUtil {
         initialChecked: Boolean,
         animate: Boolean,
         private val stateDriven: Boolean
-    ) : Drawable() {
+    ) : Drawable(), PreTintedGradientDrawable {
 
         private val density = context.resources.displayMetrics.density
         private val sizePx = (24f * density).toInt().coerceAtLeast(1)
@@ -1446,9 +1643,9 @@ object BackgroundUtil {
         context: Context,
         private val background: ThingBackground,
         private val uncheckedColor: Int,
-        checked: Boolean,
+        private val checked: Boolean,
         animate: Boolean
-    ) : Drawable() {
+    ) : Drawable(), PreTintedGradientDrawable {
 
         private val density = context.resources.displayMetrics.density
         private val sizePx = (24f * density).toInt().coerceAtLeast(1)
@@ -1463,11 +1660,12 @@ object BackgroundUtil {
         private var externalAlpha = 255
         private var checkedProgress = if (checked) 1f else 0f
         private var animator: ValueAnimator? = null
+        private val targetProgress = if (checked) 1f else 0f
 
         init {
             if (animate) {
                 checkedProgress = if (checked) 0f else 1f
-                animateCheckedProgress(if (checked) 1f else 0f)
+                animateCheckedProgress(targetProgress)
             }
         }
 
@@ -1549,6 +1747,8 @@ object BackgroundUtil {
 
         override fun jumpToCurrentState() {
             animator?.cancel()
+            animator = null
+            checkedProgress = targetProgress
             invalidateSelf()
         }
     }

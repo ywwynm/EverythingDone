@@ -114,3 +114,25 @@
 - `beginSearchThings()` 只在异常未选中状态下兜底选中“全部颜色”，移除 `mDontPickSearchColor` 旧逻辑。
 - 验证：`./gradlew.bat :app:assembleDebug` 通过，仅有既有 deprecated override 警告。
 - 发布：已创建 `docs/features/theme-accent-migration/debug-updates/update-20260622001415.md` 并通过 `:app:publishDebugUpdate` 发布到阿里云，debug update code 为 `202606211614`。
+
+# 2026-06-22 第十二轮修复
+- 修复 `RadioChooserAdapter` 迁移到渐变 radio 后的单选回归：旧实现会在更新 `mPickedPosition` 前先刷新旧 item，导致旧 item 重新绑定时仍按选中态绘制，随后新 item 又被刷新为选中态，界面上可能出现多个视觉选中。
+- `pick()` 改为先记录旧位置、更新唯一选中位置，再分别刷新旧 item 和新 item；重复点击当前项时强制重绑当前 item，用于纠正 holder 复用或动画中断造成的文字/radio 临时不同步。
+- 点击监听不再额外手动刷新当前 `mPickedPosition`，只校验有效 adapter position 后交给 `pick()` 统一处理，避免文字高亮和 radio 高亮走不同刷新路径。
+- 验证：最小状态机复现旧逻辑会留下 `old=0,1` 的多选视觉状态，新逻辑只保留 `new=1`；`./gradlew.bat :app:assembleDebug --console=plain` 通过。
+- 发布：已创建 `docs/features/theme-accent-migration/debug-updates/update-20260622100254.md` 并通过 `:app:publishDebugUpdate` 发布到阿里云，debug update code 为 `202606220203`。
+
+# 2026-06-22 第十三轮修复
+- 用户反馈上一轮仍未修复；重新排查确认刷新顺序不是唯一问题，真正与“加入渐变 radio tint 后才出现”的现象强相关的是 `GradientRadioDrawable` 的动画生命周期。
+- `GradientRadioDrawable.jumpToCurrentState()` 原本只取消 animator，不会把 `checkedProgress` 推到真实 checked/unchecked 终态；当 TextView compound drawable 或 RecyclerView 在重绑/状态跳转时打断动画，radio 会永久停在反状态，从而出现文字高亮、radio 未高亮，或反向不同步。
+- `GradientRadioDrawable` 新增 checked 终态记录和 `targetProgress`，`jumpToCurrentState()` 取消动画后立即恢复到真实终态；同时 `RadioChooserAdapter` 的动画触发改为选中变化 payload，不再根据 ViewHolder 上一次绑定状态决定，避免滚动复用或普通重绑触发反向动画。
+- 验证：`./gradlew.bat :app:assembleDebug --console=plain` 通过，仅有既有 deprecated override 警告。
+- 发布：已创建 `docs/features/theme-accent-migration/debug-updates/update-20260622101219.md` 并通过 `:app:publishDebugUpdate` 发布到阿里云，debug update code 为 `202606220213`。
+
+# 2026-06-22 第十四轮修复
+- 重新确认用户观察到的“短文本只显示部分渐变、长文本更接近完整渐变”现象：问题不是短文本在自身宽度内吃满渐变，而是 `applyTextBackground()` 旧实现混用了 TextView 外层 view 坐标和 TextView 绘制文字时的 Layout 内部坐标。
+- `applyTextBackground()` 改为等待 pre-draw 后基于最终 text/layout/compound drawable 状态计算 shader，避免 RecyclerView bind 后立即使用旧 Layout；文字 shader 只使用 `Layout.getLineLeft/Right/Top/Bottom` 的内部坐标，不再叠加 `totalPaddingLeft/Top`。
+- 新增 `CompoundDrawableGradientMode.NONE / SEPARATE / COMBINED`。默认 `SEPARATE`，即普通 compound drawable 与文字分别按自己的范围应用渐变；`COMBINED` 支持把图标与文字当作整体共享一段渐变。
+- `GradientCheckboxDrawable` 与 `GradientRadioDrawable` 标记为已自行处理渐变，避免全局 compound drawable 逻辑把动画 drawable 再转成静态 bitmap。`RadioChooserAdapter` 先设置 radio drawable，再按文字自身范围应用渐变文本。
+- 验证：`git diff --check`、调试日志残留检查、`./gradlew.bat :app:assembleDebug --console=plain` 均通过。
+- 发布：已创建 `docs/features/theme-accent-migration/debug-updates/update-20260622104646.md` 并通过 `:app:publishDebugUpdate` 发布到阿里云，debug update code 为 `202606220247`。

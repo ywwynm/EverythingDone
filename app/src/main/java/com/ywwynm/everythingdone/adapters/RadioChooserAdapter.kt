@@ -44,8 +44,21 @@ open class RadioChooserAdapter(
     }
 
     override fun pick(position: Int) {
-        notifyItemChanged(mPickedPosition)
+        if (position < 0 || position >= itemCount) return
+        val oldPosition = mPickedPosition
+        if (oldPosition == position) {
+            notifyItemChanged(position)
+            return
+        }
         mPickedPosition = position
+        if (oldPosition >= 0 && oldPosition < itemCount) {
+            notifyItemChanged(oldPosition, PAYLOAD_PICKED_CHANGED)
+        }
+        if (oldPosition >= 0) {
+            notifyItemChanged(position, PAYLOAD_PICKED_CHANGED)
+        } else {
+            notifyItemChanged(position)
+        }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BaseViewHolder {
@@ -53,13 +66,32 @@ open class RadioChooserAdapter(
     }
 
     override fun onBindViewHolder(viewHolder: BaseViewHolder, position: Int) {
+        bindViewHolder(viewHolder, position, animateIcon = false)
+    }
+
+    override fun onBindViewHolder(
+        viewHolder: BaseViewHolder,
+        position: Int,
+        payloads: MutableList<Any>
+    ) {
+        bindViewHolder(
+            viewHolder,
+            position,
+            animateIcon = payloads.contains(PAYLOAD_PICKED_CHANGED)
+        )
+    }
+
+    private fun bindViewHolder(
+        viewHolder: BaseViewHolder,
+        position: Int,
+        animateIcon: Boolean
+    ) {
         val holder = viewHolder as ChoiceHolder
         val item = mItems!![position]
         holder.tv!!.text = item
         val context = holder.tv.context
         val uncheckedColor = ContextCompat.getColor(context, R.color.app_chrome_control_unchecked)
         val picked = mPickedPosition == position
-        val animateIcon = holder.boundPicked != null && holder.boundPicked != picked
         val accentBackground = mAccentBackground ?: ThingBackground.pure(mAccentColor)
         val d = BackgroundUtil.createGradientRadioDrawable(
             context,
@@ -68,11 +100,15 @@ open class RadioChooserAdapter(
             picked,
             animateIcon
         )
-        holder.boundPicked = picked
+        holder.tv.setCompoundDrawablesWithIntrinsicBounds(d, null, null, null)
         if (picked) {
             holder.tv.contentDescription = context.getString(R.string.cd_chosen_item) + item
             if (mAccentBackground != null) {
-                BackgroundUtil.applyTextBackground(holder.tv, mAccentBackground)
+                BackgroundUtil.applyTextBackground(
+                    holder.tv,
+                    mAccentBackground,
+                    BackgroundUtil.CompoundDrawableGradientMode.NONE
+                )
             } else {
                 if (holder.tv.paint.shader != null) {
                     holder.tv.paint.setShader(null)
@@ -87,7 +123,6 @@ open class RadioChooserAdapter(
             }
             holder.tv.setTextColor(uncheckedColor)
         }
-        holder.tv.setCompoundDrawablesWithIntrinsicBounds(d, null, null, null)
     }
 
     override fun getItemCount(): Int = mItems!!.size
@@ -95,12 +130,12 @@ open class RadioChooserAdapter(
     private inner class ChoiceHolder(itemView: View?) : BaseViewHolder(itemView) {
 
         val tv: TextView? = f(R.id.tv_rv_chooser_fragment)
-        var boundPicked: Boolean? = null
 
         init {
             tv!!.setOnClickListener { v ->
-                pick(adapterPosition)
-                notifyItemChanged(mPickedPosition)
+                val position = adapterPosition
+                if (position < 0 || position >= itemCount) return@setOnClickListener
+                pick(position)
                 if (mOnItemClickListener != null) {
                     mOnItemClickListener!!.onClick(v)
                 }
@@ -110,5 +145,6 @@ open class RadioChooserAdapter(
 
     companion object {
         const val TAG: String = "ChooserFragmentAdapter"
+        private const val PAYLOAD_PICKED_CHANGED = "picked_changed"
     }
 }
