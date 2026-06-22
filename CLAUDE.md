@@ -9,7 +9,7 @@ planning or editing.**
 
 **当你被要求将debug版本的APP发布到阿里云的时候，如果当前正在做某项功能，那么就在docs/features/<kebab-case-feature-slug>/debug-updates/目录下新建一个命名格式形如update-20260519012916.md的文件，将发布日志用中文写入，并在调用相应的gradle发布任务时将该文件传入。如果没有这个文件夹，就新建它。如果当前并没有在做某个具体的功能，也就是说找不到对应的docs/features/<kebab-case-feature-slug>/目录，那么就在memory/debug-updates/目录下新建相应的md文件。发布日志文件在一般情况下都不需要进行读取，只有在用户要求、或者检查相关功能实现或迭代情况时读取，读取时可以先读取标题以检查是否是对当前任务有用的信息。**
 
-**Git commit title/message should be in detail and in both English and Chinese.**
+**Git提交标题和信息需要同时使用中英文，英文在前。不要使用"English:"、"中文："这样的区分，直接用中文和英文即可。**
 
 ### Operational rules
 
