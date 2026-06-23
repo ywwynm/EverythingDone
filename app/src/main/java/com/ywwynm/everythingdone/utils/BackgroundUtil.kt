@@ -1273,6 +1273,16 @@ object BackgroundUtil {
 
     private const val CHECKED_CONTROL_ANIM_MS: Long = 160
 
+    // Default intrinsic footprint for the gradient checkbox/colour-pick drawables:
+    // equals the 24dp visible drawing square, i.e. no extra margin (unchanged
+    // behaviour for ColorPicker / Detail / widget config checkboxes).
+    private const val CHECKBOX_DEFAULT_FOOTPRINT_DP: Float = 24f
+    // Footprint for label-row checkboxes (label on the left, checkbox
+    // alignParentRight) so the box keeps spacing from its label and centre-aligns
+    // with neighbouring right-aligned help icons. Tuned against Settings rows; see
+    // docs/features/theme-accent-migration/decisions.md.
+    const val CHECKBOX_LABEL_ROW_FOOTPRINT_DP: Float = 32f
+
     /**
      * Indeterminate progress drawable following the visible implementation used
      * by the video crop editor: a self-drawn rotating arc with a SweepGradient.
@@ -1445,7 +1455,8 @@ object BackgroundUtil {
         bg: ThingBackground,
         uncheckedColor: Int = ContextCompat.getColor(
             button.context, R.color.app_chrome_control_unchecked
-        )
+        ),
+        footprintDp: Float = CHECKBOX_DEFAULT_FOOTPRINT_DP
     ) {
         button.buttonTintList = null
         if (button is androidx.appcompat.widget.AppCompatCheckBox) {
@@ -1457,7 +1468,8 @@ object BackgroundUtil {
             uncheckedColor,
             initialChecked = button.isChecked,
             animate = false,
-            stateDriven = true
+            stateDriven = true,
+            footprintDp = footprintDp
         )
         button.refreshDrawableState()
     }
@@ -1487,16 +1499,23 @@ object BackgroundUtil {
         private val uncheckedColor: Int,
         initialChecked: Boolean,
         animate: Boolean,
-        private val stateDriven: Boolean
+        private val stateDriven: Boolean,
+        footprintDp: Float = CHECKBOX_DEFAULT_FOOTPRINT_DP
     ) : Drawable(), PreTintedGradientDrawable {
 
         private val density = context.resources.displayMetrics.density
         private val sizePx = (24f * density).toInt().coerceAtLeast(1)
+        // Intrinsic footprint reserved by the drawable. The visible box stays
+        // sizePx; a larger footprint only adds transparent margin around it, used
+        // as a button drawable so a wrap_content CheckBox keeps proper spacing from
+        // its label and aligns with neighbouring right-aligned icons.
+        private val footprintPx = (footprintDp * density).toInt().coerceAtLeast(sizePx)
         private val strokePx = 2f * density
         private val radiusPx = 2.5f * density
         private val boxInsetPx = 3f * density
         private val rect = RectF()
         private val checkPath = Path()
+        private val gradientMatrix = Matrix()
         private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.FILL
         }
@@ -1527,8 +1546,12 @@ object BackgroundUtil {
         }
 
         override fun draw(canvas: Canvas) {
-            val side = minOf(bounds.width(), bounds.height()).toFloat()
-            if (side <= 0f) return
+            val boundsSide = minOf(bounds.width(), bounds.height()).toFloat()
+            if (boundsSide <= 0f) return
+            // Draw the box at its fixed visual size (sizePx) centered in the
+            // possibly-larger footprint: a wider intrinsic only adds margin around
+            // the box, it does not scale the box.
+            val side = minOf(boundsSide, sizePx.toFloat())
             val left = bounds.left + (bounds.width() - side) / 2f
             val top = bounds.top + (bounds.height() - side) / 2f
             val scale = side / sizePx.toFloat()
@@ -1540,15 +1563,28 @@ object BackgroundUtil {
             val progress = checkedProgress.coerceIn(0f, 1f)
             if (progress > 0f) {
                 fillPaint.alpha = (stateAlpha * progress).toInt()
-                fillPaint.shader = if (background.mode === ThingBackground.Mode.GRADIENT) {
-                    linearGradientFor(background, side, side)
+                if (background.mode === ThingBackground.Mode.GRADIENT) {
+                    val shader = linearGradientFor(background, side, side)
+                    // The gradient is built in box-local (0,0)-(side,side) space;
+                    // shift it onto the box, which may be inset inside a larger
+                    // footprint.
+                    gradientMatrix.setTranslate(left, top)
+                    shader.setLocalMatrix(gradientMatrix)
+                    fillPaint.shader = shader
                 } else {
-                    null
-                }
-                if (background.mode === ThingBackground.Mode.PURE) {
+                    fillPaint.shader = null
                     fillPaint.color = background.color
                 }
-                canvas.drawRoundRect(rect, radius, radius, fillPaint)
+                // The unchecked outline is a centred STROKE, so its visible box
+                // extends strokePx/2 beyond `rect`. Fill out to that same outer
+                // edge so the checked box is not a ring smaller than the unchecked
+                // one (and so the checked fill alone, no mismatched stroke, shows).
+                val fillExpand = strokePx / 2f
+                canvas.drawRoundRect(
+                    rect.left - fillExpand, rect.top - fillExpand,
+                    rect.right + fillExpand, rect.bottom + fillExpand,
+                    radius + fillExpand, radius + fillExpand, fillPaint
+                )
                 fillPaint.shader = null
 
                 checkPaint.alpha = (stateAlpha * progress).toInt()
@@ -1618,8 +1654,8 @@ object BackgroundUtil {
         }
 
         override fun getOpacity(): Int = PixelFormat.TRANSLUCENT
-        override fun getIntrinsicWidth(): Int = sizePx
-        override fun getIntrinsicHeight(): Int = sizePx
+        override fun getIntrinsicWidth(): Int = footprintPx
+        override fun getIntrinsicHeight(): Int = footprintPx
 
         override fun jumpToCurrentState() {
             checkedAnimator?.cancel()

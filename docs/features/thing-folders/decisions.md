@@ -1,5 +1,20 @@
 # Thing Folders Decisions
 
+## 2026-06-23 - 全宽缩略图文件夹卡片的列数与缩略图数量随屏幕自适应
+
+全宽（`SPAN_FULL`）缩略图模式文件夹卡片瀑布流（`createFolderThumbnailMasonryView`）的列数不再固定为 3（原 `FOLDER_THUMBNAIL_FULL_SPAN_COLUMN_COUNT`），改为“首页记事列表列数 + 1”。列数在构建时动态读取当前 `StaggeredGridLayoutManager.spanCount`，因此横竖屏切换后随 `onConfigurationChanged` 的 `notifyDataSetChanged` 全量重绑自动适应，无需额外监听。普通宽度（`SPAN_NORMAL`）缩略图卡片维持单列竖排、不受影响。
+
+| 场景 | 首页列数 | 瀑布流列数 | 显示缩略图数 |
+|---|---|---|---|
+| 手机竖屏 | 2 | 3 | 6 |
+| 手机横屏 | 3 | 4 | 6 |
+| 平板竖屏 | 3 | 4 | 8 |
+| 平板横屏 | 4 | 5 | 10 |
+
+缩略图数量规则：手机固定 6 个（手机横屏向下空间有限，铺满 2 行会过高，故维持约 1.5 行的 6 个）；平板为 `2 ×列数`（保持约 2 行的饱满度）。手机/平板用 `DisplayUtil.isTablet` 区分，与列表 span 的判断口径一致。
+
+实现上把“取数上限”和“显示数量”解耦：DAO 取数上限（`effectiveThumbnailPreviewLimit` 全宽分支）放宽到能覆盖最大显示数（≥10）的固定值，避免把屏幕信息下沉到数据层；adapter 渲染时按上述屏幕规则 `take(显示数量)`。“+N”省略号仍按真实总数 `thumbnailEntryCount` 判断。
+
 ## 2026-06-22 - “完成文件夹中所有记事”递归完成 + 习惯/目标三选项 dialog
 
 新增“完成文件夹中所有记事”操作：递归完成文件夹子树（含所有子文件夹）中**所有类型**的正在进行记事，不受当前类型筛选影响。入口：

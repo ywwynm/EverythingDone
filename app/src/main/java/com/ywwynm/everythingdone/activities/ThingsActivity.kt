@@ -51,6 +51,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.graphics.drawable.DrawerArrowDrawable
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
+import androidx.recyclerview.widget.LinearSmoothScroller
 import androidx.appcompat.widget.Toolbar
 import androidx.recyclerview.widget.ItemTouchHelper
 import android.text.Editable
@@ -344,6 +345,19 @@ class ThingsActivity :
     private var mIsNewItemShiningBorderAnimating: Boolean = false
     private var mNewItemShiningBorderCard: View? = null
     private var mNewItemShiningBorderToken: Int = 0
+
+    /**
+     * Gate for the post-create new-item entry animation: after inserting a new
+     * Thing we first scroll it fully into view (just below the toolbar), then
+     * reveal. The reveal is held until the card is bound/laid out AND the
+     * programmatic scroll has settled, so it is never played half-hidden and the
+     * shining-border path never stops a still-running scroll.
+     */
+    private var mNewItemRevealGating: Boolean = false
+    private var mNewItemRevealScrolling: Boolean = false
+    private var mNewItemRevealPosition: Int = -1
+    private var mNewItemRevealBg: ThingBackground? = null
+    private var mNewItemRevealHolder: BaseThingsAdapter.BaseThingViewHolder? = null
 
     private var mCanSeeUi: Boolean = false
     private var mUpdateMainUiInOnResume: Boolean = true
@@ -1484,6 +1498,13 @@ class ThingsActivity :
                 val newId = thingToCreate.id
                 val newListPosition = mThingManager!!.getListPositionForThingId(newId)
                 val bg: ThingBackground? = thingToCreate.getBackground()
+                // The ordinary same-list insert scrolls the new card fully into
+                // view (below the toolbar) before revealing. justNotifyAll rebuilds
+                // the whole list, so it keeps the immediate in-place reveal.
+                val gateOnScroll = newListPosition >= 0 && !justNotifyAll
+                if (gateOnScroll) {
+                    beginGatedNewItemReveal(newListPosition, bg)
+                }
                 if (newListPosition >= 0) {
                     mAdapter!!.armNewItemAnimation(newListPosition, newId,
                         object : ThingsAdapter.OnNewItemBoundListener {
@@ -1491,7 +1512,7 @@ class ThingsActivity :
                                 listPosition: Int,
                                 holder: BaseThingsAdapter.BaseThingViewHolder?
                             ) {
-                                playNewItemAnimation(holder!!, bg!!)
+                                onNewItemHolderBound(holder, bg)
                             }
                         })
                 }
@@ -1500,6 +1521,7 @@ class ThingsActivity :
                 } else {
                     if (newListPosition >= 0) {
                         mAdapter!!.notifyItemInserted(newListPosition)
+                        scrollNewItemFullyIntoViewThenReveal(newListPosition)
                     } else {
                         mAdapter!!.notifyDataSetChanged()
                     }
@@ -5569,6 +5591,129 @@ class ThingsActivity :
         }
     }
 
+    private fun beginGatedNewItemReveal(position: Int, bg: ThingBackground?) {
+        mNewItemRevealGating = true
+        // Treat the pre-scroll window as "still scrolling" so a card that binds
+        // before the scroll decision is made does not reveal early.
+        mNewItemRevealScrolling = true
+        mNewItemRevealPosition = position
+        mNewItemRevealBg = bg
+        mNewItemRevealHolder = null
+    }
+
+    private fun clearGatedNewItemReveal() {
+        mNewItemRevealGating = false
+        mNewItemRevealScrolling = false
+        mNewItemRevealPosition = -1
+        mNewItemRevealBg = null
+        mNewItemRevealHolder = null
+    }
+
+    /**
+     * Abort a pending gated new-item reveal (rotation, undo, a new create, etc.).
+     * The armed card may already be hidden waiting for the reveal, so restore it to
+     * visible before clearing so it can never be left stuck invisible.
+     */
+    private fun abortGatedNewItemRevealIfNeeded() {
+        if (!mNewItemRevealGating) return
+        mNewItemRevealHolder?.cv?.let { card ->
+            card.animate()?.cancel()
+            card.alpha = 1f
+            card.visibility = View.VISIBLE
+        }
+        mAdapter?.clearArmedNewItemAnimation()
+        clearGatedNewItemReveal()
+    }
+
+    /**
+     * Bridges the adapter's armed new-item callback. When the reveal is gated on a
+     * scroll-into-view we just capture the (now hidden) holder and try to reveal;
+     * otherwise we keep the original immediate reveal.
+     */
+    private fun onNewItemHolderBound(
+        holder: BaseThingsAdapter.BaseThingViewHolder?,
+        bg: ThingBackground?
+    ) {
+        if (mNewItemRevealGating) {
+            mNewItemRevealHolder = holder
+            maybeRevealGatedNewItem()
+        } else {
+            playNewItemAnimation(holder!!, bg!!)
+        }
+    }
+
+    /**
+     * After the new card is inserted, scroll it fully into view (snap its top just
+     * below the toolbar) and reveal once the scroll settles. If it is already fully
+     * visible, or the list cannot scroll any further (short list near the bottom),
+     * reveal in place without scrolling.
+     */
+    private fun scrollNewItemFullyIntoViewThenReveal(position: Int) {
+        val rv = mRecyclerView ?: return
+        // Decide after layout so visibility/holder lookups are accurate.
+        rv.viewTreeObserver.addOnPreDrawListener(object : ViewTreeObserver.OnPreDrawListener {
+            override fun onPreDraw(): Boolean {
+                rv.viewTreeObserver.removeOnPreDrawListener(this)
+                if (!mNewItemRevealGating || mNewItemRevealPosition != position) {
+                    return true
+                }
+                val lm = mStaggeredGridLayoutManager
+                if (lm == null ||
+                    isThingListPositionFullyVisible(position) ||
+                    !rv.canScrollVertically(1)
+                ) {
+                    revealGatedNewItemInPlace()
+                    return true
+                }
+                val scroller = object : LinearSmoothScroller(this@ThingsActivity) {
+                    override fun getVerticalSnapPreference(): Int =
+                        LinearSmoothScroller.SNAP_TO_START
+                }
+                scroller.targetPosition = position
+                lm.startSmoothScroll(scroller)
+                // Safety net: if the scroll never reports an idle transition (e.g.
+                // nothing actually scrolled), unblock and reveal; if the card never
+                // bound at all, give up gracefully so nothing stays hidden.
+                rv.postDelayed({
+                    if (!mNewItemRevealGating) return@postDelayed
+                    mNewItemRevealScrolling = false
+                    maybeRevealGatedNewItem()
+                    if (mNewItemRevealGating) {
+                        abortGatedNewItemRevealIfNeeded()
+                    }
+                }, NEW_ITEM_REVEAL_SCROLL_TIMEOUT_MS)
+                return true
+            }
+        })
+    }
+
+    private fun revealGatedNewItemInPlace() {
+        // The armed onNewItemBound callback is the single source of the holder, so
+        // we only unblock here and let maybeReveal play once that holder arrives.
+        mNewItemRevealScrolling = false
+        maybeRevealGatedNewItem()
+    }
+
+    private fun maybeRevealGatedNewItem() {
+        if (!mNewItemRevealGating || mNewItemRevealScrolling) return
+        val rv = mRecyclerView ?: return
+        if (rv.scrollState != RecyclerView.SCROLL_STATE_IDLE) return
+        val holder = mNewItemRevealHolder ?: return
+        val bg = mNewItemRevealBg
+        clearGatedNewItemReveal()
+        playNewItemAnimation(
+            holder,
+            bg ?: (App.newThingBackground ?: ThingBackground.pure(App.newThingColor))
+        )
+    }
+
+    private fun isThingListPositionFullyVisible(position: Int): Boolean {
+        val rv = mRecyclerView ?: return false
+        val holder = rv.findViewHolderForAdapterPosition(position) ?: return false
+        val view = holder.itemView
+        return view.top >= rv.paddingTop && view.bottom <= rv.height - rv.paddingBottom
+    }
+
     /**
      * Plays a per-item entry animation on the freshly-bound card of a newly created thing.
      */
@@ -5687,6 +5832,9 @@ class ThingsActivity :
     }
 
     private fun finishNewItemShiningBorderAnimationIfNeeded() {
+        // Also abort any pending scroll-into-view reveal (covers the non-shining
+        // reveal style, which has no shining-border state of its own).
+        abortGatedNewItemRevealIfNeeded()
         if (!mIsNewItemShiningBorderActive) {
             return
         }
@@ -5775,6 +5923,10 @@ class ThingsActivity :
                 if (mScrollCausedByFinger) {
                     dismissSnackbars()
                     mActivityHeader!!.updateAll(findFirstVisibleThingListPosition(), false)
+                } else if (mNewItemRevealScrolling) {
+                    // Keep the Activity Header collapsing in step with the
+                    // programmatic scroll-into-view for a freshly created Thing.
+                    mActivityHeader!!.updateAll(findFirstVisibleThingListPosition(), false)
                 }
             }
 
@@ -5783,6 +5935,10 @@ class ThingsActivity :
                 EdgeEffectUtil.forRecyclerView(recyclerView, edgeColor)
                 if (newState == RecyclerView.SCROLL_STATE_IDLE) {
                     Glide.with(mApp!!).resumeRequests()
+                    if (mNewItemRevealScrolling) {
+                        mNewItemRevealScrolling = false
+                        maybeRevealGatedNewItem()
+                    }
                 } else { // dragging or settling
                     Glide.with(mApp!!).pauseRequests()
                 }
@@ -10438,6 +10594,9 @@ class ThingsActivity :
 
     companion object {
         const val TAG: String = "ThingsActivity"
+        // Fallback delay for revealing a freshly created Thing if the
+        // scroll-into-view never reports an idle state (e.g. nothing to scroll).
+        private const val NEW_ITEM_REVEAL_SCROLL_TIMEOUT_MS: Long = 1200L
         private const val THING_CARD_RATIO_SLIDER_MAX = 1000
         private const val THING_CARD_RATIO_SNAP_PROGRESS_DISTANCE = 28
         private const val THING_CARD_SIDE_PANEL_PROJECTION_MAX_ITERATIONS = 6

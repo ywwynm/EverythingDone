@@ -604,7 +604,14 @@ class SettingsActivity : EverythingDoneBaseActivity() {
             mCbToggleCli, mCbSimpleFCli, mCbAutoLink, mCbTwiceBack,
             mCbCreateAnimationStyle, mCbFgprt, mCbQuickCreate,
             mCbCloseNotificationLater, mCbOngoingLockscreen
-        ).forEach { if (it != null) BackgroundUtil.applyCheckboxAccent(it, bg) }
+        ).forEach {
+            if (it != null) {
+                BackgroundUtil.applyCheckboxAccent(
+                    it, bg,
+                    footprintDp = BackgroundUtil.CHECKBOX_LABEL_ROW_FOOTPRINT_DP
+                )
+            }
+        }
     }
 
     private fun initUiUserInterface() {

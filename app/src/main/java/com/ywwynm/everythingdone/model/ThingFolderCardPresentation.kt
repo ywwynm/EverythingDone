@@ -67,7 +67,10 @@ data class ThingFolderCardPresentation(
         const val MAX_THUMBNAIL_LIMIT: Int = 12
 
         const val NORMAL_THUMBNAIL_PREVIEW_LIMIT: Int = 3
-        const val FULL_SPAN_THUMBNAIL_PREVIEW_LIMIT: Int = 6
+        // Fetch cap for full-span thumbnail Folder Cards. Kept decoupled from the
+        // on-screen display count (computed per device/orientation in ThingsAdapter):
+        // this only needs to cover the largest display count (tablet landscape = 10).
+        const val FULL_SPAN_THUMBNAIL_PREVIEW_LIMIT: Int = 10
 
         const val DEFAULT_JSON: String =
             "{\"version\":1,\"mode\":0,\"thumbnailLimit\":4,\"spanMode\":0}"

@@ -1,5 +1,11 @@
 # Thing Folders Sessions
 
+## 2026-06-23 - 全宽缩略图文件夹卡片列数随屏幕自适应
+
+- 全宽（`SPAN_FULL`）缩略图文件夹卡片瀑布流列数由固定 3 改为“首页列表 span + 1”：`ThingsAdapter.createFolderThumbnailMasonryView` 构建时动态读 `getBoundListSpanCount()`（新增于 `BaseThingsAdapter`），随 `onConfigurationChanged` 全量重绑自旋转适应。
+- 显示数量改为屏幕感知（`folderThumbnailFullSpanDisplayCount`）：手机固定 6，平板 `2×列数`；取数上限 `FULL_SPAN_THUMBNAIL_PREVIEW_LIMIT` 由 6 调到 10，与显示数量解耦，省略号仍按真实总数。
+- 详见 `decisions.md`（2026-06-23）。已编译通过，随 debug update `202606230911` 发布，待设备验证。
+
 ## 2026-06-23 - use-cases 一致性审计后的修复
 
 对照 use-cases.md 逐用例审计实现，更新过时文档并修复 B 类问题，`:app:assembleDebug` BUILD SUCCESSFUL：

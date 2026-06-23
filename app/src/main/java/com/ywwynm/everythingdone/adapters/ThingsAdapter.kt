@@ -696,17 +696,21 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         val entries = getFolderThumbnailEntries(entry)
         val container = holder.llTextContent ?: return
         allowFolderThumbnailShadowOverflow(container)
-        val count = entries.size.coerceAtMost(
-            entry.folder.effectiveCardPresentation().effectiveThumbnailPreviewLimit()
-        )
+        val presentation = entry.folder.effectiveCardPresentation()
+        val fullSpan = presentation.spanMode == ThingFolderCardPresentation.SPAN_FULL
+        // Full-span masonry shows screen-aware count (phone fixed, tablet 2×columns);
+        // normal-span list keeps the model's fixed preview limit.
+        val displayLimit = if (fullSpan) {
+            folderThumbnailFullSpanDisplayCount()
+        } else {
+            presentation.effectiveThumbnailPreviewLimit()
+        }
+        val count = entries.size.coerceAtMost(displayLimit)
         val insertStart = (findFolderCountIndex(container) + 1)
             .coerceIn(0, container.childCount)
         if (count > 0) {
             val previewEntries = entries.take(count)
-            val thumbnails = if (
-                entry.folder.effectiveCardPresentation().spanMode ==
-                    ThingFolderCardPresentation.SPAN_FULL
-            ) {
+            val thumbnails = if (fullSpan) {
                 createFolderThumbnailMasonryView(previewEntries)
             } else {
                 createFolderThumbnailListView(previewEntries)
@@ -790,9 +794,10 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
             0
         )
 
+        val columnCount = folderThumbnailFullSpanColumnCount()
         var columnsContainer: LinearLayout? = null
         var columns: Array<LinearLayout>? = null
-        var estimatedHeights = IntArray(FOLDER_THUMBNAIL_FULL_SPAN_COLUMN_COUNT)
+        var estimatedHeights = IntArray(columnCount)
         var hasRenderedPreview = false
 
         for (entry in entries) {
@@ -821,7 +826,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
                 hasRenderedPreview = true
                 columnsContainer = null
                 columns = null
-                estimatedHeights = IntArray(FOLDER_THUMBNAIL_FULL_SPAN_COLUMN_COUNT)
+                estimatedHeights = IntArray(columnCount)
             } else {
                 if (columnsContainer == null || columns == null) {
                     columnsContainer = createFolderThumbnailColumnsContainer(
@@ -833,13 +838,13 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
                         }
                     )
                     hasRenderedPreview = true
-                    columns = Array(FOLDER_THUMBNAIL_FULL_SPAN_COLUMN_COUNT) {
+                    columns = Array(columnCount) {
                         LinearLayout(mApp).apply {
                             orientation = LinearLayout.VERTICAL
                             allowFolderThumbnailShadowOverflow(this)
                         }
                     }
-                    estimatedHeights = IntArray(FOLDER_THUMBNAIL_FULL_SPAN_COLUMN_COUNT)
+                    estimatedHeights = IntArray(columnCount)
                     for (i in columns!!.indices) {
                         val lp = LinearLayout.LayoutParams(
                             0,
@@ -854,7 +859,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
                 }
 
                 val columnIndex = getShortestColumnIndex(estimatedHeights)
-                val previewWidth = getFolderThumbnailColumnPreviewWidth()
+                val previewWidth = getFolderThumbnailColumnPreviewWidth(columnCount)
                 val thumbnail = createFolderEntryPreviewView(
                     columns!![columnIndex],
                     entry,
@@ -1247,11 +1252,34 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
             .coerceAtLeast(1)
     }
 
-    private fun getFolderThumbnailColumnPreviewWidth(): Int {
+    private fun getFolderThumbnailColumnPreviewWidth(columnCount: Int): Int {
+        val cols = columnCount.coerceAtLeast(1)
         val fullWidth = getFolderThumbnailFullPreviewWidth()
         val gap = (mDensity * FOLDER_THUMBNAIL_COLUMN_GAP_DP).toInt()
-        return ((fullWidth - gap * (FOLDER_THUMBNAIL_FULL_SPAN_COLUMN_COUNT - 1))
-            / FOLDER_THUMBNAIL_FULL_SPAN_COLUMN_COUNT).coerceAtLeast(1)
+        return ((fullWidth - gap * (cols - 1)) / cols).coerceAtLeast(1)
+    }
+
+    /**
+     * Masonry column count for full-span thumbnail Folder Cards: the current home
+     * list column count + 1. Read live so it follows the list span across
+     * orientation changes (which rebind the whole list). Falls back to the legacy
+     * fixed count when no list span is available yet.
+     */
+    private fun folderThumbnailFullSpanColumnCount(): Int {
+        val span = getBoundListSpanCount()
+        return if (span > 0) span + 1 else FOLDER_THUMBNAIL_FULL_SPAN_COLUMN_COUNT
+    }
+
+    /**
+     * How many thumbnails a full-span Folder Card shows: phones keep a fixed count
+     * (limited vertical space in landscape), tablets show ~2 rows (2×columns).
+     */
+    private fun folderThumbnailFullSpanDisplayCount(): Int {
+        return if (DisplayUtil.isTablet(mApp)) {
+            2 * folderThumbnailFullSpanColumnCount()
+        } else {
+            FOLDER_THUMBNAIL_PHONE_FULL_SPAN_DISPLAY_COUNT
+        }
     }
 
     private fun isFolderPreviewFullSpanThing(thing: Thing): Boolean {
@@ -1706,6 +1734,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         private const val FOLDER_THUMBNAIL_VIEW_TAG = "folder_thumbnail_view"
 
         private const val FOLDER_THUMBNAIL_FULL_SPAN_COLUMN_COUNT = 3
+        private const val FOLDER_THUMBNAIL_PHONE_FULL_SPAN_DISPLAY_COUNT = 6
         private const val FOLDER_THUMBNAIL_SIDE_MARGIN_DP = 16
         private const val FOLDER_THUMBNAIL_COLUMN_GAP_DP = 6
         private const val FOLDER_THUMBNAIL_HEADER_GAP_DP = 12

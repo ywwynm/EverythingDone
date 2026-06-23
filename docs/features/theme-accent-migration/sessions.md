@@ -1,5 +1,11 @@
 # 主题强调色迁移 — 会话记录
 
+## 2026-06-23 修复渐变 checkbox 的间距与对齐
+
+- `GradientCheckboxDrawable` 新增 footprint（外廓 intrinsic）参数：可见方框仍 18dp，居中放进更大外廓产生留白与对齐偏移；`draw()` 把方框尺寸 clamp 到 `sizePx`（不随外廓放大），`getIntrinsicWidth/Height` 返回 footprint。
+- `applyCheckboxAccent` 增 `footprintDp` 参数（默认 `CHECKBOX_DEFAULT_FOOTPRINT_DP=24f`，行为不变）；设置页 `applyGradientCheckBoxes` 传 `CHECKBOX_LABEL_ROW_FOOTPRINT_DP=32f`。ColorPicker（`setCompoundDrawablesRelativeWithIntrinsicBounds`）、Detail、widget 配置走默认值，不受影响。
+- 详见 `decisions.md`（2026-06-23）。已编译通过，随 debug update `202606230911` 发布。32dp 为初值，需在设备上对着“?”帮助图标核对中心线对齐后定稿。
+
 ## 2026-06-21 第一轮实现
 
 将所有 `app_accent (#FFEB3B)` 引用替换为 Everything-Android 的 accent+accent2 渐变方案 (`#F66048 → #FFAE36, LB_RT`)。

@@ -205,6 +205,14 @@ abstract class BaseThingsAdapter(context: Context?) :
 
     protected fun getBoundFullSpanThingCardWidth(): Int = mFullSpanCardWidth
 
+    /**
+     * The current home list column count (StaggeredGridLayoutManager span), or 0
+     * when no staggered layout manager is attached yet. Read live so callers stay
+     * correct across orientation changes, which update the span and rebind.
+     */
+    protected fun getBoundListSpanCount(): Int =
+        (mRecyclerView?.layoutManager as? StaggeredGridLayoutManager)?.spanCount ?: 0
+
     protected open fun getThingCardTitleTextSize(
         thing: Thing,
         fullSpan: Boolean
