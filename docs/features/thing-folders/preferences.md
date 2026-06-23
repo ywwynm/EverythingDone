@@ -478,6 +478,9 @@
   using the same masonry-style layout as the home Thing list, show at most six
   child Thing previews, and show a bottom ellipsis when more matching
   descendants exist.
+- 大屏或横屏时，全宽大 Folder Card 内部的缩略图列数不应永久固定为
+  3 列；后续实现应根据当前可用宽度响应式增加列数，同时保持普通宽度
+  Folder Card 的一列缩略图布局。
 - The bottom ellipsis in thumbnail-mode Folder Cards is a small Folder-open
   target, visually closer to the compact checklist "more items" ellipsis than
   to a large button. It should not take excessive vertical space.

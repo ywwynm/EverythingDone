@@ -56,6 +56,8 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
     private var mTvTypeFilterSummary: TextView? = null
     private var mTvDisplayList: TextView? = null
     private var mTvDisplayGrid: TextView? = null
+    private var mTvStatusUnderway: TextView? = null
+    private var mTvStatusFinished: TextView? = null
     private var mTypeButtons: List<Pair<Int, ImageView>> = emptyList()
 
     private var mAppWidgetId: Int = 0
@@ -63,6 +65,7 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
     private var mSelectedFolderId: Long? = null
     private var mTypeFilterMask: Int = ThingWidgetInfo.TYPE_FILTER_ALL
     private var mDisplayMode: Int = ThingWidgetInfo.DISPLAY_MODE_LIST
+    private var mStatus: Int = Def.ThingStatus.UNDERWAY
     private val mAccentBackground: ThingBackground = App.defaultAccentBackground
 
     override fun attachBaseContext(newBase: Context) {
@@ -93,10 +96,16 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
             mSelectedFolderId = info.targetFolderId
             mTypeFilterMask = ThingWidgetInfo.normalizedTypeFilterMask(info.typeFilterMask)
             mDisplayMode = info.displayMode
+            mStatus = if (info.status == Def.ThingStatus.FINISHED) {
+                Def.ThingStatus.FINISHED
+            } else {
+                Def.ThingStatus.UNDERWAY
+            }
         }
 
         setupScopePicker()
         setupTypeFilters()
+        setupStatus()
         setupDisplayMode()
 
         mSbAlpha = findViewById(R.id.sb_app_widget_alpha)!!
@@ -227,6 +236,29 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
             button.setOnClickListener { toggleTypeFilter(mask) }
         }
         updateTypeFilterButtons()
+    }
+
+    private fun setupStatus() {
+        mTvStatusUnderway = findViewById(R.id.tv_widget_status_underway)
+        mTvStatusFinished = findViewById(R.id.tv_widget_status_finished)
+        listOf(mTvStatusUnderway, mTvStatusFinished).forEach { button ->
+            BackgroundUtil.installAppChromePillRipple(button, this)
+            button?.includeFontPadding = false
+        }
+        mTvStatusUnderway?.setOnClickListener {
+            mStatus = Def.ThingStatus.UNDERWAY
+            updateStatusButtons()
+        }
+        mTvStatusFinished?.setOnClickListener {
+            mStatus = Def.ThingStatus.FINISHED
+            updateStatusButtons()
+        }
+        updateStatusButtons()
+    }
+
+    private fun updateStatusButtons() {
+        applyDisplayModeButtonState(mTvStatusUnderway, mStatus == Def.ThingStatus.UNDERWAY)
+        applyDisplayModeButtonState(mTvStatusFinished, mStatus == Def.ThingStatus.FINISHED)
     }
 
     private fun setupDisplayMode() {
@@ -369,7 +401,8 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
             style,
             mSelectedFolderId,
             mTypeFilterMask,
-            mDisplayMode
+            mDisplayMode,
+            mStatus
         )
 
         if (!mIsSetting) {

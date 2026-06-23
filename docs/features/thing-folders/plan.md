@@ -1,5 +1,10 @@
 # Thing Folders Plan
 
+> 注意（2026-06-23）：本文是实现前的早期规划稿，部分内容已被取代。权威的当前行为见
+> `use-cases.md`，关键决策见 `decisions.md`。最重要的偏差：**文件夹不再有删除状态**
+> （纯骨架模型）——“删除文件夹/还原文件夹（容器）”已不存在，改为内容操作“删除/恢复
+> 文件夹中所有记事”，回收站是 `DELETED` 状态投影。数据库版本也已远超本文所写（现为 v20）。
+
 ## Goal
 
 Add a durable folder system for Things. Users can create a Thing Folder by
@@ -81,7 +86,7 @@ Add a `ThingFolder` model with:
 
 Recommended schema changes:
 
-- Bump `DATABASE_VERSION` from 14 to 15.
+- Bump `DATABASE_VERSION` from 14 to 15.（已过时：当前为 v20，含纯骨架模型迁移 v20。）
 - Add `things.folder_id INTEGER DEFAULT NULL`.
 - Add `thing_folders` table:
   - `id INTEGER PRIMARY KEY`
@@ -132,13 +137,12 @@ Things.
 - Private Thing Folder privacy inherits to descendants for display/access while
   they remain inside it, without rewriting each descendant's own stored private
   state.
-- Deleting a Thing Folder moves the folder subtree to Deleted while preserving
-  folder structure, Thing memberships, and each descendant's stored state.
-- Restoring a Deleted Thing Folder restores the folder structure and returns
-  descendants to visibility according to their own stored states.
-- Permanently deleting a Deleted Thing Folder permanently deletes the whole
-  subtree and contained Things, including descendants that are only effectively
-  deleted by the deleted ancestor folder.
+- ~~Deleting a Thing Folder moves the folder subtree to Deleted~~ / ~~Restoring a
+  Deleted Thing Folder~~ — **已被纯骨架模型取代（2026-06-23）**：文件夹没有删除状态。
+  “删除文件夹”改为内容操作“删除文件夹中所有记事”（递归把子树未删除记事移入回收站、
+  跟随类型筛选，容器不动）；回收站恢复用“恢复文件夹中所有记事”。详见 `use-cases.md`。
+- Permanently deleting：仍保留为结构操作“永久删除文件夹”（销毁整个子树及内容，不可恢复）；
+  另有内容操作“永久删除文件夹中所有记事”（只删该范围回收站记事）。
 - Multi-parent aliases, shortcuts, and tag-like shared membership are out of
   scope.
 

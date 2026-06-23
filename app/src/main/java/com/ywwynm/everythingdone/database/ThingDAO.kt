@@ -395,6 +395,11 @@ open class ThingDAO private constructor(context: Context?) {
 
                 values.put(Def.Database.COLUMN_CONTENT_THINGS, thing.content)
                 values.put(Def.Database.COLUMN_STATE_THINGS, stateAfter)
+                if (stateAfter == Thing.DELETED && stateBefore != Thing.DELETED) {
+                    // Remember the pre-trash state so restore can return the Thing
+                    // to underway or finished as it was, instead of always underway.
+                    values.put(Def.Database.COLUMN_STATE_BEFORE_DELETE_THINGS, stateBefore)
+                }
                 db!!.update(Def.Database.TABLE_THINGS, values, "id=$id", null)
             } else {
                 val temp: Thing? = getThingById(id)
@@ -449,6 +454,45 @@ open class ThingDAO private constructor(context: Context?) {
         putFolderId(values, folderId)
         values.put(Def.Database.COLUMN_LOCATION_THINGS, location)
         db!!.update(Def.Database.TABLE_THINGS, values, "id=$thingId", null)
+    }
+
+    /**
+     * The stored pre-trash state of a Thing (the state it had before being moved
+     * to the Deleted state). Returns [Thing.UNDERWAY] when nothing was recorded
+     * (legacy deleted Things, or a Thing that was never deleted).
+     */
+    open fun getStateBeforeDelete(thingId: Long): Int {
+        val cursor = db!!.query(
+            Def.Database.TABLE_THINGS,
+            arrayOf(Def.Database.COLUMN_STATE_BEFORE_DELETE_THINGS),
+            "id=$thingId",
+            null,
+            null,
+            null,
+            null
+        )
+        cursor.use {
+            if (!it.moveToFirst() || it.isNull(0)) return Thing.UNDERWAY
+            val state = it.getInt(0)
+            return if (state == Thing.UNDERWAY || state == Thing.FINISHED) state else Thing.UNDERWAY
+        }
+    }
+
+    /** All real user Things (NOTE..GOAL) whose own state equals [state]. */
+    open fun getAllUserThingsByState(@Thing.State state: Int): List<Thing> {
+        val selection = Def.Database.COLUMN_STATE_THINGS + "=" + state +
+            " and " + Def.Database.COLUMN_TYPE_THINGS + ">=" + Thing.NOTE +
+            " and " + Def.Database.COLUMN_TYPE_THINGS + "<=" + Thing.GOAL
+        val result = ArrayList<Thing>()
+        val cursor = db!!.query(
+            Def.Database.TABLE_THINGS, null, selection, null, null, null, null
+        )
+        cursor.use {
+            while (it.moveToNext()) {
+                result.add(Thing(it))
+            }
+        }
+        return result
     }
 
     open fun getThingFolderId(thingId: Long): Long? {

@@ -124,6 +124,53 @@
     </LinearLayout>
 
     <LinearLayout
+        android:id="@+id/ll_widget_status_config"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingLeft="16dp"
+        android:paddingRight="16dp">
+
+        <TextView
+            android:layout_width="76dp"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:text="@string/widget_status_label"
+            android:textColor="@color/app_chrome_on_surface_hint"
+            android:textSize="13sp"/>
+
+        <TextView
+            android:id="@+id/tv_widget_status_underway"
+            android:layout_width="0dp"
+            android:layout_height="32dp"
+            android:layout_weight="1"
+            android:layout_marginLeft="2dp"
+            android:layout_marginRight="2dp"
+            android:layout_marginStart="2dp"
+            android:layout_marginEnd="2dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:text="@string/underway"/>
+
+        <TextView
+            android:id="@+id/tv_widget_status_finished"
+            android:layout_width="0dp"
+            android:layout_height="32dp"
+            android:layout_weight="1"
+            android:layout_marginLeft="2dp"
+            android:layout_marginRight="2dp"
+            android:layout_marginStart="2dp"
+            android:layout_marginEnd="2dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:text="@string/finished"/>
+
+    </LinearLayout>
+
+    <LinearLayout
         android:id="@+id/ll_widget_display_mode_config"
         android:layout_width="match_parent"
         android:layout_height="48dp"

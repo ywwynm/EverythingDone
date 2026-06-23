@@ -111,7 +111,16 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
         if (oldVersion < 17) {
             migrateHomeEmptyState(db)
         }
-        // released version should be 1, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17.
+        if (oldVersion < 18) {
+            migrateStateBeforeDeleteColumn(db)
+        }
+        if (oldVersion < 19) {
+            migrateAppWidgetStatusColumn(db)
+        }
+        if (oldVersion < 20) {
+            migrateFoldersToSkeletonModel(db)
+        }
+        // released version should be 1, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20.
     }
 
     fun ensureHomeEmptyStateData(db: SQLiteDatabase) {
@@ -247,6 +256,85 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
         db.execSQL(SQL_CREATE_INDEX_THING_FOLDERS_PARENT_FOLDER_ID)
     }
 
+    private fun migrateStateBeforeDeleteColumn(db: SQLiteDatabase) {
+        if (!columnExists(
+                db, Def.Database.TABLE_THINGS,
+                Def.Database.COLUMN_STATE_BEFORE_DELETE_THINGS
+            )) {
+            db.execSQL(SQL_ADD_COLUMN_STATE_BEFORE_DELETE_THINGS)
+        }
+    }
+
+    private fun migrateAppWidgetStatusColumn(db: SQLiteDatabase) {
+        if (!columnExists(
+                db, Def.Database.TABLE_APP_WIDGET,
+                Def.Database.COLUMN_STATUS_APP_WIDGET
+            )) {
+            db.execSQL(SQL_ADD_COLUMN_STATUS_APP_WIDGET)
+        }
+    }
+
+    /**
+     * Pure-skeleton model migration (v20): folders no longer carry a deletion state.
+     * Convert every previously soft-deleted folder into the content-level model —
+     * trash the Things that were only effectively deleted by a deleted ancestor
+     * folder (recording their pre-trash state), then clear every folder's DELETED
+     * state back to underway so folders become a pure structural skeleton.
+     */
+    private fun migrateFoldersToSkeletonModel(db: SQLiteDatabase) {
+        val parentOf = HashMap<Long, Long?>()
+        val stateOf = HashMap<Long, Int>()
+        val cursor = db.query(
+            Def.Database.TABLE_THING_FOLDERS,
+            arrayOf(
+                Def.Database.COLUMN_ID_THING_FOLDERS,
+                Def.Database.COLUMN_PARENT_FOLDER_ID_THING_FOLDERS,
+                Def.Database.COLUMN_STATE_THING_FOLDERS
+            ),
+            null, null, null, null, null
+        )
+        cursor.use {
+            while (it.moveToNext()) {
+                val id = it.getLong(0)
+                parentOf[id] = if (it.isNull(1)) null else it.getLong(1)
+                stateOf[id] = it.getInt(2)
+            }
+        }
+        if (stateOf.values.none { it == Thing.DELETED }) return
+
+        // Folders whose subtree Things were hidden by a deleted ancestor (or self).
+        val effectivelyDeleted = HashSet<Long>()
+        for (id in stateOf.keys) {
+            var cur: Long? = id
+            val visited = HashSet<Long>()
+            while (cur != null && visited.add(cur)) {
+                if (stateOf[cur] == Thing.DELETED) {
+                    effectivelyDeleted.add(id)
+                    break
+                }
+                cur = parentOf[cur]
+            }
+        }
+
+        if (effectivelyDeleted.isNotEmpty()) {
+            val idList = effectivelyDeleted.joinToString(",")
+            db.execSQL(
+                "update " + Def.Database.TABLE_THINGS +
+                    " set " + Def.Database.COLUMN_STATE_BEFORE_DELETE_THINGS + "=" +
+                    Def.Database.COLUMN_STATE_THINGS + ", " +
+                    Def.Database.COLUMN_STATE_THINGS + "=" + Thing.DELETED +
+                    " where " + Def.Database.COLUMN_STATE_THINGS + " in (" +
+                    Thing.UNDERWAY + "," + Thing.FINISHED + ")" +
+                    " and " + Def.Database.COLUMN_FOLDER_ID_THINGS + " in (" + idList + ")"
+            )
+        }
+        db.execSQL(
+            "update " + Def.Database.TABLE_THING_FOLDERS +
+                " set " + Def.Database.COLUMN_STATE_THING_FOLDERS + "=" + Thing.UNDERWAY +
+                " where " + Def.Database.COLUMN_STATE_THING_FOLDERS + "=" + Thing.DELETED
+        )
+    }
+
     private fun migrateAppWidgetProjectionColumns(db: SQLiteDatabase) {
         if (!columnExists(
                 db,
@@ -345,7 +433,9 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
                     Def.Database.COLUMN_DETAIL_ATTACHMENT_MEDIA_APPEARANCE_THINGS +
                         " text, " /* added in version 14 */ +
                     Def.Database.COLUMN_FOLDER_ID_THINGS +
-                        " integer default null" /* added in version 15 */ +
+                        " integer default null, " /* added in version 15 */ +
+                    Def.Database.COLUMN_STATE_BEFORE_DELETE_THINGS +
+                        " integer default null" /* added in version 18 */ +
                 ")"
 
         private const val SQL_CREATE_TABLE_THING_FOLDERS: String =
@@ -424,6 +514,7 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
                     Def.Database.COLUMN_TARGET_FOLDER_ID_APP_WIDGET + " integer default null, " /* added in version 16 */ +
                     Def.Database.COLUMN_TYPE_FILTER_MASK_APP_WIDGET + " integer not null default 0, " /* added in version 16 */ +
                     Def.Database.COLUMN_DISPLAY_MODE_APP_WIDGET + " integer not null default 0, " /* added in version 16 */ +
+                    Def.Database.COLUMN_STATUS_APP_WIDGET + " integer not null default 0, " /* added in version 19 */ +
                     "foreign key(" +
                         Def.Database.COLUMN_THING_ID_APP_WIDGET +
                     ") references " +
@@ -556,6 +647,14 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
         private const val SQL_ADD_COLUMN_FOLDER_ID_THINGS: String =
             "alter table " + Def.Database.TABLE_THINGS +
                 " add column " + Def.Database.COLUMN_FOLDER_ID_THINGS + " integer default null"
+
+        private const val SQL_ADD_COLUMN_STATE_BEFORE_DELETE_THINGS: String =
+            "alter table " + Def.Database.TABLE_THINGS +
+                " add column " + Def.Database.COLUMN_STATE_BEFORE_DELETE_THINGS + " integer default null"
+
+        private const val SQL_ADD_COLUMN_STATUS_APP_WIDGET: String =
+            "alter table " + Def.Database.TABLE_APP_WIDGET +
+                " add column " + Def.Database.COLUMN_STATUS_APP_WIDGET + " integer not null default 0"
 
         private const val SQL_COPY_THING_CARD_SPAN_MODE_FROM_LEGACY: String = "update " +
                 Def.Database.TABLE_THINGS +

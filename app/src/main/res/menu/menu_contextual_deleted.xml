@@ -36,6 +36,18 @@
         app:showAsAction="never" />
 
     <item
+        android:id="@+id/act_restore_thing_folder_content"
+        android:title="@string/restore_all_things_in_folder"
+        android:visible="false"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/act_delete_thing_folder_content"
+        android:title="@string/delete_all_things_in_folder_forever"
+        android:visible="false"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/act_dissolve_thing_folder"
         android:title="@string/dissolve_thing_folder"
         android:visible="false"
@@ -43,7 +55,7 @@
 
     <item
         android:id="@+id/act_delete_thing_folder"
-        android:title="@string/delete_thing_folder"
+        android:title="@string/delete_thing_folder_forever"
         android:visible="false"
         app:showAsAction="never" />
 

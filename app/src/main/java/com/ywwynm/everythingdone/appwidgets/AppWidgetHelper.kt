@@ -481,8 +481,17 @@ object AppWidgetHelper {
     fun resolveThingsListTargetFolder(context: Context, info: ThingWidgetInfo?): ThingFolder? {
         val folderId = info?.targetFolderId ?: return null
         val dao = ThingFolderDAO.getInstance(context)!!
-        if (dao.isEffectivelyDeleted(folderId)) return null
-        return dao.getFolderById(folderId)
+        val folder = dao.getFolderById(folderId)
+        if (folder == null || dao.isEffectivelyDeleted(folderId)) {
+            // The configured folder is gone or in the recycle bin: persistently
+            // rewrite the widget config back to the root scope (keeping status,
+            // type filter, display mode, alpha and style) so it no longer points
+            // at an unavailable folder (use-cases W3 / T4).
+            AppWidgetDAO.getInstance(context)?.clearTargetFolder(info.id)
+            info.targetFolderId = null
+            return null
+        }
+        return folder
     }
 
     @JvmStatic
@@ -657,7 +666,7 @@ object AppWidgetHelper {
         }
         remoteViews.setTextViewText(
             TV_THINGS_LIST_TITLE,
-            getThingsListHeaderTitle(context, folder, typeFilterMask)
+            getThingsListHeaderTitle(context, folder, typeFilterMask, info?.status ?: Def.ThingStatus.UNDERWAY)
         )
         val foreground = foregroundForWidgetBackground(context, background.representativeColor())
         remoteViews.setTextColor(TV_THINGS_LIST_TITLE, foreground)
@@ -668,18 +677,26 @@ object AppWidgetHelper {
     private fun getThingsListHeaderTitle(
         context: Context,
         folder: ThingFolder?,
-        typeFilterMask: Int
+        typeFilterMask: Int,
+        status: Int
     ): String {
         val typeTitle = getTypeFilterTitle(context, typeFilterMask)
-        if (folder == null) {
-            return typeTitle ?: context.getString(R.string.underway)
+        val finished = status == Def.ThingStatus.FINISHED
+        val segments = ArrayList<String>()
+        if (folder != null) {
+            segments.add(folder.title.ifEmpty { context.getString(R.string.default_thing_folder_name) })
         }
-        val folderTitle = folder.title.ifEmpty { context.getString(R.string.default_thing_folder_name) }
-        return if (typeTitle == null) {
-            folderTitle
-        } else {
-            folderTitle + " \u00B7 " + typeTitle
+        if (finished) {
+            segments.add(context.getString(R.string.finished))
         }
+        if (typeTitle != null) {
+            segments.add(typeTitle)
+        }
+        // Root + Underway + All types falls back to the plain Underway title.
+        if (segments.isEmpty()) {
+            return context.getString(R.string.underway)
+        }
+        return segments.joinToString(" \u00B7 ")
     }
 
     private fun getTypeFilterTitle(context: Context, typeFilterMask: Int): String? {

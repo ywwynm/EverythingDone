@@ -205,12 +205,41 @@
     <string name="set_thing_folder_private">设为私密文件夹</string>
     <string name="cancel_thing_folder_private">取消私密文件夹</string>
     <string name="dissolve_thing_folder">解散文件夹</string>
-    <string name="dissolve_thing_folder_confirm">将此文件夹中的内容移动到上一层，并删除此文件夹？</string>
-    <string name="delete_thing_folder">删除文件夹</string>
-    <string name="delete_thing_folder_confirm">将此文件夹及其中的所有内容移动到回收站？</string>
-    <string name="restore_thing_folder">还原文件夹</string>
+    <string name="dissolve_thing_folder_confirm">彻底删除该文件夹本身（不进回收站、不可恢复），并把其全部内容（共%1$s）按各自原状态移到上一级目录。</string>
+    <string name="folder_count_segment">%1$d个子文件夹</string>
+    <string name="thing_count_segment">%1$d件记事</string>
+    <string name="folder_impact_separator">、</string>
+    <string name="folder_impact_empty">无内容</string>
+    <string name="finish_all_things_in_folder">完成文件夹中所有记事</string>
+    <string name="finish_all_things_in_folder_confirm">将完成该文件夹中所有正在进行的记事，共%1$d件%2$s。</string>
+    <string name="finish_all_things_root_confirm">将完成所有正在进行的记事，共%1$d件%2$s。</string>
+    <string name="scope_includes_subfolders">（含所有子文件夹中的记事）</string>
+    <string name="no_underway_things_to_finish">没有正在进行的记事可完成</string>
+    <string name="restore_all_things">全部恢复</string>
+    <string name="restore_all_things_in_folder">恢复文件夹中所有记事</string>
+    <string name="restore_all_finished_in_folder_confirm">将把该文件夹中所有已完成的记事恢复为正在进行，共%1$d件%2$s。</string>
+    <string name="restore_all_finished_root_confirm">将把所有已完成的记事恢复为正在进行，共%1$d件%2$s。</string>
+    <string name="delete_all_finished_root_confirm">将把所有已完成的记事移入回收站，共%1$d件%2$s，可在回收站恢复。</string>
+    <string name="delete_all_finished_in_folder_confirm">将把该文件夹中所有已完成的记事移入回收站，共%1$d件%2$s，可在回收站恢复。</string>
+    <string name="delete_forever_all_root_confirm">将永久删除回收站中的所有记事，共%1$d件%2$s，无法恢复。</string>
+    <string name="delete_forever_all_in_folder_confirm">将永久删除该文件夹中回收站里的所有记事，共%1$d件%2$s，无法恢复。</string>
+    <string name="no_finished_things_to_delete">没有已完成的记事可删除</string>
+    <string name="no_trashed_things_to_delete_forever">回收站中没有记事可永久删除</string>
+    <string name="restore_all_trashed_in_folder_confirm">将把该文件夹中所有在回收站的记事恢复到删除前状态，共%1$d件%2$s。</string>
+    <string name="restore_all_trashed_root_confirm">将把所有在回收站的记事恢复到删除前状态，共%1$d件%2$s。</string>
+    <string name="no_finished_things_to_restore">没有已完成的记事可恢复</string>
+    <string name="no_trashed_things_to_restore">没有回收站中的记事可恢复</string>
+    <string name="delete_thing_folder">删除文件夹中所有记事</string>
+    <string name="delete_thing_folder_confirm">将把该文件夹中所有进行中和已完成的记事移入回收站，共%1$d件%2$s，可在回收站恢复。</string>
+    <string name="no_things_to_delete_in_folder">该文件夹中没有可删除的记事</string>
+    <string name="delete_all_things_in_folder_forever">永久删除文件夹中所有记事</string>
     <string name="delete_thing_folder_forever">永久删除文件夹</string>
-    <string name="delete_thing_folder_forever_confirm">永久删除此文件夹及其中的所有记事？</string>
+    <string name="delete_thing_folder_forever_confirm">永久删除整个文件夹及其全部内容，共%1$s，无法恢复。</string>
+    <string name="folder_op_scope_only_type">本次仅作用于当前类型筛选（%1$s）的记事，其它类型不受影响。</string>
+    <string name="folder_op_reminder_subtree">该操作作用于整个文件夹子树，包含当前%1$s下看不到的内容。</string>
+    <string name="folder_op_scope_status">状态筛选（%1$s）</string>
+    <string name="folder_op_scope_type">类型筛选（%1$s）</string>
+    <string name="folder_op_scope_both">状态和类型筛选（%1$s、%2$s）</string>
     <string name="move_thing_folder_card">调整卡片顺序</string>
     <string name="move_thing_folder_to">移动到文件夹</string>
     <string name="thing_folder_root">根目录</string>
@@ -372,6 +401,7 @@
     <string name="act_finish_all">全部完成</string>
     <string name="act_delete_all">全部删除</string>
     <string name="act_clear_now">清空回收站</string>
+    <string name="act_delete_all_forever">全部永久删除</string>
     <string name="act_sort_by_alarm">根据提醒时间排序</string>
 
     <!--ThingsActivity searching-->
@@ -1025,6 +1055,7 @@
     <string name="things_list_config_simple_view">采用简单的记事视图</string>
     <string name="widget_type_filter_summary">记事类型：%1$s</string>
     <string name="widget_display_mode_label">显示模式</string>
+    <string name="widget_status_label">记事状态</string>
     <string name="widget_display_mode_list">列表</string>
     <string name="widget_display_mode_grid">网格</string>
 

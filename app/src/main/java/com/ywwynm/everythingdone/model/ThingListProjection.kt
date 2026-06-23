@@ -19,7 +19,12 @@ data class ThingListProjection(
     }
 
     fun withStatus(status: Int): ThingListProjection {
-        return ThingListProjection(normalizeStatus(status), emptyList())
+        // Status is orthogonal to Thing Scope and type filter: switching status
+        // keeps the current folder path and type filter. The manager is
+        // responsible for falling back to root when the current folder cannot be
+        // entered under the new status (e.g. a trashed folder under a non-DELETED
+        // status), because that decision needs folder state from the database.
+        return copy(status = normalizeStatus(status))
     }
 
     fun withTypeFilterMask(mask: Int): ThingListProjection {

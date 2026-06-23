@@ -1,5 +1,114 @@
 # Thing Folders Decisions
 
+## 2026-06-22 - “完成文件夹中所有记事”递归完成 + 习惯/目标三选项 dialog
+
+新增“完成文件夹中所有记事”操作：递归完成文件夹子树（含所有子文件夹）中**所有类型**的正在进行记事，不受当前类型筛选影响。入口：
+
+- 文件夹卡片长按 contextual menu（正在进行投影）新增该项。
+- 打开文件夹后工具栏的“全部完成”（`act_finish_all`）在文件夹内重命名为“完成文件夹中所有记事”，并改为递归处理整个子树（之前只处理当前层级可见项）。
+- 首页根目录工具栏的“全部完成”同理，从根递归完成整棵树中所有正在进行记事（排除已在回收站/已删文件夹下的）。
+
+交互：点击先弹确认 Dialog（显示影响的记事数量，标题/确认按钮用文件夹色或 accent+accent2 渐变）。若命中集合包含习惯/目标，确认后弹现有三选项 dialog（`ThreeActionsAlertDialogFragment`）——“去掉习惯/目标”只完成非习惯/目标项，“继续”完成全部，取消则不动。该三选项 dialog 改用 `setTitleBackground`/`setContinueBackground` 适配文件夹色/accent 渐变（之前用随机纯色），选择模式下的 `alertForHabitGoal` 也一并适配。
+
+与 Phase C“完成当前筛选下的内容”的关系：后者按当前类型筛选完成，仅在存在自定义类型筛选时显示在 Folder Card 菜单中，避免与“完成文件夹中所有记事”重复。
+
+## 2026-06-22 - 解散文件夹的语义与确认计数和删除区分
+
+解散文件夹与删除文件夹是不同的操作，互不相关：
+
+- 删除文件夹 = 把文件夹及其内容移入回收站，可恢复。确认文案的影响计数只统计“未在回收站”的内容（自身状态为正在进行/已完成的记事 + 未删除的子文件夹），因为已经在回收站里的子项并不是被这次删除“新移入回收站”的。
+- 解散文件夹 = 把文件夹容器本身彻底删除（正在进行、已完成、回收站里都不再有它，不是移入回收站），并把里面的所有内容按各自原状态移到上一级目录，包括原本就在回收站里的内容。因此确认文案的影响计数统计整个子树的全部内容（含已在回收站的），因为它们都会被移动；`getDirectUserThings`/`getChildFolders` 不按状态过滤，已确认会连带搬移已删子项。
+
+计数实现：删除/解散都在确认 Dialog 显示子文件夹数和记事数，但删除用 `countNonDeletedDescendant*`，解散与永久删除用 `countAllDescendantThings`/`countDescendantFolders`。永久删除统计全部，因为它确实销毁整个子树（含已删内容）。
+
+## 2026-06-22 - 恢复文件夹连带恢复独立删除的后代，依赖删除前状态持久化
+
+恢复一个 Trashed Thing Folder 时，按整个物理子树处理：自身因祖先被删而“有效删除”的后代回到各自 stored state；自身 state 已是 DELETED 的后代（在删该文件夹之前被单独扔进回收站的）也跟随一起恢复，恢复到它各自的“删除前状态”（Pre-Trash State），而不是统一恢复为正在进行。后代不是取祖先文件夹的状态——已完成的后代恢复后仍是已完成。
+
+这要求持久化每个 Thing 的“删除前状态”。该能力并非为本决议新增：2026-06-22“从回收站恢复单个 Trashed Thing 回到 Pre-Trash 状态”已经独立要求它。当前代码恢复一律置 UNDERWAY，且 `finishTime` 在“已完成→正在进行”时不清零、不能可靠推断删除前状态，因此需要显式记录（新增一列，可随 thing-folders 的 DB v15 一起加）。单个 Trashed Thing 恢复与整夹恢复共用这套机制，语义一致。
+
+本决议明确：恢复文件夹后该文件夹子树里不再残留被单独删除的内容，因此恢复后该文件夹不会再作为 Projection Folder 留在回收站。
+
+## 2026-06-22 - 创建新 Thing 从不预设类型，创建后类型筛选重置为全部类型
+
+在任意 Scope + 正在进行下创建新 Thing 时，创建流程始终中性，不因当前类型筛选预设新 Thing 的类型；类型完全由用户在详情页设定（提醒时间、重复等）。这作废 use-cases L9 中“把当前单一类型筛选作为默认编辑意图”的建议。
+
+创建完成回到列表后，类型筛选持久重置为“全部类型”（保留当前 Scope 和正在进行状态），确保新建记事无论是什么类型都立即可见。
+
+## 2026-06-22 - 回收站中自身已删的文件夹用 icon 内嵌删除图标区分
+
+回收站列表里区分两种 Folder Card：自身已进入回收站的 Trashed Thing Folder 在其 folder icon 内部嵌入一个小的删除图标（复用 Drawer 私密文件夹 icon 内嵌锁的 `FolderIconDrawable` 做法）；只是承载已删后代的 Projection Folder 使用普通 folder icon、无徽标。Trashed Thing Folder 提供恢复/永久删除整个子树的操作，Projection Folder 只能打开。
+
+## 2026-06-22 - 非正在进行状态下禁用一切拖拽到文件夹
+
+在“已完成 / 回收站”状态下，长按拖拽只做重排或进入选择模式，既不触发拖拽创建文件夹，也不触发拖拽移动到已有文件夹。需要整理历史内容时用显式“移动到文件夹”操作（仅“已完成”提供；“回收站”不提供移动，需先恢复）。拖拽到文件夹的全部手势只在“正在进行”状态可用。
+
+## 2026-06-22 - 移动到文件夹 Dialog 根标签改为“全部记事”
+
+移动到文件夹 Dialog 的根目标节点标签从“正在进行”改为“全部记事”，与 Drawer 的 Thing Scope 根和 use-cases.md M5 一致。移动是结构操作，与记事状态无关，根节点表示“移出所有文件夹、放到根范围”，不应再使用状态名。本条作废 2026-06-19“Move-to-Folder 根标为正在进行”的表述。代码层面 `MoveToThingFolderDialogFragment` 当前使用 `R.string.underway`，需改为新的“全部记事”字符串。
+
+## 2026-06-22 - “全部记事”是文件夹范围根选项
+
+文件夹相关导航中的根选项中文显示为“全部记事”，它表示不限定 Thing Folder 的 Thing Scope。它不等同于“正在进行”，也不等同于忽略状态和类型的总览。
+
+当前列表应由 Thing Scope、记事状态和记事类型共同决定。选择“全部记事”后，列表仍然只显示当前状态和当前类型筛选命中的内容；选择某个 Thing Folder 后，列表显示该文件夹范围内命中当前状态和类型筛选的内容。
+
+这条决议取代此前“Underway acts as the root directory”的表述；“正在进行”是状态筛选，不再承担文件夹树根目录的身份。
+
+## 2026-06-22 - 状态筛选保留文件夹范围
+
+切换记事状态时应保留当前 Thing Scope。用户在某个 Thing Folder 内切换“正在进行 / 已完成 / 回收站”时，是查看同一文件夹范围内不同状态的内容，而不是离开该文件夹。
+
+如果当前 Thing Folder 在目标状态下不可进入，则直接退回“全部记事”范围。典型场景是用户正在查看回收站中的已删除文件夹，随后切换到“正在进行”或“已完成”：目标投影不应继续停留在这个已删除文件夹内，而应显示“全部记事”范围下的目标状态内容。
+
+## 2026-06-22 - 回收站不改变文件夹范围列表
+
+Drawer 的文件夹范围区域始终显示“全部记事”和所有未进入回收站的 Thing Folders，并且完全不受状态筛选或类型筛选影响。这样用户先选文件夹再切状态，或先切状态再选文件夹，都会得到同一个 Thing Scope + 状态 + 类型组合。
+
+已进入回收站的 Thing Folders 不出现在 Drawer 的文件夹范围区域中。它们只作为回收站区域的列表内容出现，用户从回收站列表中进入、恢复或永久删除这些 Trashed Thing Folders。
+
+“已归档”是新的状态筛选项，“回收站”是独立区域；现有删除数据不应被解释为已归档内容。
+
+Thing Folders 本身也支持归档，但必须区分两种情况：文件夹自身被归档，以及文件夹只是因为其子树包含已归档 Things 或已归档子文件夹而出现在已归档投影中。后者不改变文件夹自身状态，只让它作为已归档投影中的路径容器出现。
+
+只有在 Drawer 选中“正在进行”状态时，才允许在文件夹范围内创建新 Thing；新 Thing 的自身状态为“正在进行”，不会因为文件夹在已归档投影中作为路径容器出现而自动归档。
+
+已归档投影中的路径容器不能提供“取消归档文件夹”这类只适用于文件夹自身状态的操作。Folder Card 视觉上需要区分“自身已归档”和“只是包含已归档命中内容”。创建入口只在“正在进行”状态中可用；“已完成 / 已归档 / 回收站”中应隐藏或禁用创建入口。
+
+文件夹自身归档后，其子树进入归档语义。归档文件夹在 Drawer 文件夹区域中的可见性、以及是否允许在该范围内创建新的正在进行 Thing，仍需进一步确认。
+
+## 2026-06-22 - 作废：文件夹不需要独立归档语义
+
+前述“归档文件夹”分支作废。归档与完成在当前产品语义中重复，不应新增独立归档状态。文件夹相关操作应围绕“正在进行 / 已完成 / 回收站”重新定义，其中“完成文件夹”表示把文件夹子树从正在进行列表中收起并保留其结构。
+
+回收站仍然保持独立语义，用于恢复或永久删除 Trashed Things 和 Trashed Thing Folders。回收站不是“完成”的别名，也不应改变稳定文件夹范围列表。
+
+## 2026-06-22 - 文件夹没有完成状态，只有内容完成
+
+已确认的工作模型：Thing Folder 本身没有完成状态；“完成文件夹”表示递归完成其内容，而不是把容器本身标为完成。Drawer 文件夹范围区域、移动到文件夹 Dialog、以及记事列表 Widget 配置中的文件夹范围选择器都显示所有未进入回收站的 Thing Folders，不受正在进行/已完成状态筛选和类型筛选影响。
+
+Thing Folder 本身进入回收站后，从正常范围选择器中消失，只在回收站内容列表中出现。混合状态子树中的完成、删除、解散、移动、合并/拖拽创建等操作以“文件夹是稳定组织骨架，状态筛选只决定内容投影”为基础，具体规则见后续 2026-06-22 决策。
+
+## 2026-06-22 - 文件夹操作的隐藏影响需要确认
+
+已确认的推荐模型是“文件夹是稳定组织骨架，状态筛选只决定内容投影”。正在进行、已完成、回收站都应复用同一棵文件夹树作为组织上下文；Thing Folder 本身不因为出现在已完成或回收站投影中就拥有已完成或已删除状态。
+
+范围选择器和内容列表必须区分：Drawer 文件夹区域、移动到文件夹 Dialog、记事列表 Widget 配置显示完整的可用文件夹范围；普通内容列表只显示当前状态和类型筛选命中的 Things，以及包含命中后代的 Projection Folders。完全没有命中内容的文件夹不应作为普通内容列表里的空 Folder Card 出现。
+
+回收站也遵守投影路径规则。删除 A 时，回收站根列表显示 A，D 作为 A 内部的后代出现，不与 A 并列显示；如果只删除 A 内的 B，则回收站根列表显示 A 作为路径容器，进入 A 后显示 B。A 作为路径容器出现不代表 A 本身被删除。
+
+回收站中的 Folder Card 需要区分 Trashed Thing Folder 和 Projection Folder。前者表示文件夹本身已进入回收站，可恢复或永久删除整个子树；后者只是未删除文件夹在回收站投影中的路径容器，不应直接暴露“恢复整个文件夹”或“永久删除整个文件夹”这类会误伤正常文件夹的操作。
+
+从回收站恢复单个 Trashed Thing 时，应恢复到它的 Pre-Trash Thing State，而不是一律恢复为正在进行。例如正在进行的 B 被删除后恢复为正在进行；已完成的 C 被删除后恢复为已完成。这样“恢复”保持撤销删除的语义，不额外改变完成状态。
+
+如果文件夹操作会影响当前状态筛选、类型筛选或当前层级中不可见的内容，必须先显示确认 Dialog。Dialog 至少应说明操作对象、操作影响的是整个物理文件夹子树还是当前筛选命中的 Things，以及当前筛选命中数量、其它状态或类型的内容数量、子文件夹数量等影响范围摘要。
+
+删除文件夹、解散文件夹、移动文件夹、拖拽移动已有 Folder Card、回收站中恢复文件夹、永久删除文件夹，都按整个物理文件夹子树处理，因此需要确认。完成文件夹或从已完成投影恢复文件夹内容时，只处理当前筛选命中的 Things；如果入口是 Folder Card 或文件夹头部操作，确认文案必须明确“当前筛选下的内容”，不能暗示整个文件夹容器拥有完成状态。
+
+当前 Thing Scope 失效时，不能只在本次渲染临时退回“全部记事”。普通导航状态和记事列表 Widget 配置都应持久改写为“全部记事 + 原状态筛选 + 原类型筛选”，这样 Drawer 选中态、标题、点击行为和配置页回显保持一致。
+
+恢复 Trashed Thing Folder 时，优先恢复到原父文件夹。如果原父文件夹已不存在或仍在回收站，则恢复到原路径上最近的正常祖先；如果没有正常祖先，则恢复到“全部记事”根范围。若恢复位置不是原父文件夹，确认 Dialog 应说明实际恢复位置。
+
 ## 2026-06-20 - Folder-scoped AppWidget create-return uses one refresh path
 
 When a create flow launched from a Folder-scoped Things-list AppWidget returns
@@ -1362,3 +1471,139 @@ current status and type filter.
 This keeps Empty Thing Folders preservable in the data model while preventing a
 filtered Things list from showing Folder Cards that have no relevant Things for
 the current projection.
+
+## 2026-06-23 - 文件夹操作确认弹窗：统一四段式 + 动态筛选提醒
+
+文件夹的所有确认弹窗（完成/恢复文件夹中所有记事、删除、解散、永久删除、还原文件夹）
+统一为「正文 + 条件提醒」结构：正文给出动作、范围（含所有子文件夹）、影响计数与去向/可
+逆性；提醒单独成行，仅在该操作实际触及当前筛选之外的内容时才出现，并点名当前筛选的具体值。
+
+- 计数口径分两档：内容态操作（完成/恢复记事）只报「N件记事」；结构态操作（删除/解散/永
+  久删除/还原）报「X个子文件夹、Y件记事」，为 0 的段省略。数字与文字之间不留空格。
+- 提醒判定基于「受影响记事集合」的真实类型/状态分布，而非固定文案：
+  - 内容态：只可能在类型维度超出筛选，提醒为「该操作覆盖全部类型，不只当前类型筛选（X）
+    下显示的记事」，仅当存在筛选外类型的记事时显示。
+  - 结构态：类型 + 状态两维度独立判定，`considerStatus = 当前状态 != 回收站`（在回收站
+    视图里整棵子树已可见，状态维度不算「隐藏」），提醒按命中维度拼成「状态和类型筛选
+    （已完成、记录/目标）」/「状态筛选（…）」/「类型筛选（…）」，两维度都未超出则不显示。
+- 还原 Trashed Folder 此前无确认弹窗，本次补齐 `showRestoreThingFolderDialog`，与其它
+  结构态操作一致。
+- 实现：`ThingsActivity.appendFilterScopeReminder` 统一拼接；类型名复用
+  `ThingWidgetInfo.getTypeFilterTitle`，状态名用 underway/finished/drawer_deleted；
+  受影响记事集合由新增的 `ThingFolderDAO.getAllDescendantThings` /
+  `ThingManager.getAllDescendantThings` 提供。
+
+## 2026-06-23 - 批量操作文案：工具栏「全部X」vs 长按文件夹「文件夹中所有记事」
+
+工具栏（actionbar）的批量动作与长按文件夹的 contextual menu 动作，文案语义分开：
+
+- 工具栏（根目录与文件夹内统一）：「全部完成」/「全部恢复」/「全部删除」/「全部永久删除」。
+  其中已完成态的恢复从「恢复全部记事」改为「全部恢复」；回收站态从「清空回收站」改为
+  「全部永久删除」（根目录与进入文件夹后都一致）。`configureCurrentFolderMenu` 不再在文件夹
+  内把工具栏标题覆盖成文件夹措辞。
+- 长按文件夹 contextual menu：「完成文件夹中所有记事」/「恢复文件夹中所有记事」，沿用文件夹
+  措辞。
+- `confirmFinishAllThingsInScope` / `confirmUnfinishAllThingsInScope` 增加 `titleRes` 参数，
+  弹窗标题随入口（工具栏 vs contextual）变化；正文随作用域变化（根目录用不含「该文件夹」的
+  `*_root_confirm`，文件夹内用 `*_in_folder_confirm`）。
+
+（已解决）工具栏四个批量动作统一为同构：「全部完成」「全部恢复」「全部删除」「全部永久删除」
+都有确认弹窗、递归整棵子树、全类型、带类型筛选提醒。`act_delete_all`（已完成→回收站）走新增的
+`confirmTrashAllFinishedInScope` → `ThingManager.trashThings`；`act_delete_all_forever`
+（回收站→永久）走 `confirmDeleteForeverAllInScope` → `ThingManager.deleteThingsForever`；
+二者复用已验证的 `changeFolderSubtreeContentState` 通道（记录 `state_before_delete`、对
+`DELETED_FOREVER` 物理删行、内部 `loadThings()`），不再用绑定可见列表的 `handleUpdateStates`。
+`getTrashedThingsInScope` 扩展为支持根目录（`folder==null` 时取
+`getAllUserThingsByState(DELETED)`）。
+
+## 2026-06-23 - 内容类批量操作跟随当前类型筛选（取代"全类型+警告提醒"）
+
+用户决定：在有类型筛选时，内容类批量操作只作用于该类型；"全部类型"时才全类型。
+取代了同日早先"内容操作恒为全类型、用提醒警告更大范围"的设计。
+
+适用操作（5 个）：全部完成 / 完成文件夹中所有记事、全部恢复 / 恢复文件夹中所有记事、
+回收站恢复、全部删除、全部永久删除。实现：`getUnderwayThingsInScope` /
+`getFinishedThingsInScope` / `getTrashedThingsInScope` 改为用 `getActiveTypeFilterMask()`
+（文件夹子树查询传入掩码，根目录用 `matchesActiveTypeFilter` 过滤），不再硬编码
+`TYPE_FILTER_ALL`。
+
+提醒文案随之翻转：内容操作在有具体类型筛选时，提醒由"覆盖全部类型…"改为安抚式
+`folder_op_scope_only_type`「本次仅作用于当前类型筛选（X）的记事，其它类型不受影响」；
+"全部类型"时无提醒。
+
+容器类操作（解散 / 删除 / 永久删除 / 还原文件夹）维持全类型、全状态——容器本身没有类型，
+"只删某类型"会退化成内容操作。其提醒仍是警告式（`folder_op_reminder_subtree`：含当前
+状态/类型筛选下看不到的内容）。至此 warn（容器、更大范围）与 reassure（内容、更小范围）
+两类提醒语义清晰分离。
+
+## 2026-06-23 - 纯骨架模型:取消文件夹删除状态,删除/还原文件夹改为内容操作
+
+用户决策(全面转向):文件夹是稳定骨架、不再拥有自己的删除状态。软删除("删除文件夹"=
+`updateFolderState(DELETED)`)只是翻了个状态标记、并未改变结构,违背"文件夹=骨架、状态正交"
+原则。真正改变结构的是移动、解散、永久删除。
+
+变更:
+- "删除文件夹" → "删除文件夹中所有记事"(`confirmTrashFolderContent` → `trashThingsPreservingState`):
+  递归把子树里所有进行中+已完成的记事移入回收站(按各自状态记录 `state_before_delete`),
+  容器原地不动。**跟随当前类型筛选**(用户指定),内容操作=安抚式提醒。
+- "还原文件夹" 入口移除;回收站里文件夹的恢复统一走已存在的"恢复文件夹中所有记事"
+  (`confirmRestoreTrashedThingsInScope`,Projection Folder 路径)。`restoreSelectedFolderIfNeeded`/
+  `showRestoreThingFolderDialog` 删除;`act_restore_selected` 只处理记事。
+- 文案:`delete_thing_folder` 改为"删除文件夹中所有记事";去掉 `restore_thing_folder_confirm`。
+- 回收站靠"含已删记事的 Projection Folder"投影显示(`getFolderEntriesForTypeFilterProjection`
+  已支持),与软删除视觉等价:删完记事后文件夹从首页消失(无匹配记事)、在回收站出现可恢复。
+- 迁移 DBHelper v20 `migrateFoldersToSkeletonModel`:把现有"被删祖先隐藏"的子树记事置为
+  DELETED(记录删除前态),再把所有 DELETED 文件夹状态清回 UNDERWAY。DATABASE_VERSION 19→20。
+- 低风险策略:`isEffectivelyDeleted`/Trashed Folder 查询层保留但休眠(迁移后无文件夹处于
+  DELETED 态)。`deleteFolder`/`restoreFolder` 管理方法变为死代码(仅死的 showThingFolderActions
+  仍引用 restoreFolder),待清理。
+
+保留为结构操作:移动、解散、**永久删除文件夹**(`deleteFolderForever`,回收站里仍可对文件夹
+触发,销毁整个容器+全部内容)。**待确认**:永久删除文件夹在新模型下是跨投影的(一个文件夹
+可能同时有回收站记事和别处的非删除记事),从回收站对它"永久删除整个文件夹"会一并销毁别处内容,
+目前靠警告式提醒告知;是否要改为只永久删除该文件夹回收站里的记事,待定。
+
+遗留:死代码 `showThingFolderActions` 整块(含 `addThingFolderAction`/
+`showFinishFolderContentDialog`/`showRestoreFolderContentDialog`/`FOLDER_ACTION_*` 常量/
+`restore_thing_folder` 等串)已完全无人调用,建议后续整块删除。
+
+## 2026-06-23 - 菜单职责厘清:工具栏=内容、overflow=结构、空范围隐藏
+
+去重并按实际情况设置菜单项:
+- **职责分离**:在文件夹内,内容批量操作只由工具栏承担(全部完成/全部恢复/全部删除/
+  全部永久删除,作用于当前范围的当前状态);overflow 只放结构操作(设私密/移动/解散/
+  永久删除文件夹)。移除了 overflow 里会与工具栏"全部删除"重复的"删除文件夹中所有记事"。
+  对某个文件夹的"删除其全部记事(跨状态)"改为从上一层长按该文件夹卡片触发(contextual)。
+- **空范围隐藏**:工具栏的全部完成/恢复/删除/永久删除/排序,在当前投影没有可见内容时
+  (如空文件夹、空的某状态视图)隐藏。判据 `ThingManager.hasVisibleProjectionContent()`。
+- **结构永久删除文件夹**只在回收站视图的 overflow 出现;回收站工具栏的"全部永久删除"=
+  永久删除当前范围回收站记事(内容),二者区分明确,与回收站长按菜单的二分一致。
+
+遗留(待确认):回收站视图的工具栏没有"全部恢复"(只能逐个选中或从上层长按文件夹恢复),
+是否补一个 toolbar 级"全部恢复"。
+
+## 2026-06-23 - 回收站工具栏补"全部恢复" + 返回键回默认(返回退出不保留筛选)
+
+- 回收站视图工具栏新增"全部恢复"(act_restore_all):递归恢复当前范围回收站记事到删除前状态
+  (跟随类型筛选),与已完成视图对称(恢复+永久删除)。`confirmRestoreTrashedThingsInScope`
+  加 `titleRes` 参数 + 根目录正文 `restore_all_trashed_root_confirm`;`act_restore_all`
+  处理按状态分流(已完成→unfinish,回收站→restore-trashed)。
+- 返回键:在根目录且筛选非默认(状态≠正在进行 或 有具体类型筛选)时,按返回先
+  `resetRootProjectionToDefault()` 回到正在进行+全部类型+根目录,而不是退出;已是默认才退出
+  (双击退出逻辑不变)。
+- "按返回键退出后再打开不保留类型筛选"由上一条直接实现:非默认时返回只重置不退出,所以真正
+  退出时必然已是正在进行+全部类型+根目录,下次(温启动)打开即为默认。**按 Home 退到后台保留
+  筛选**(用户明确要求),走的是后台路径、不触发重置。因此不需要任何后台检测/会话级重置机制
+  (此前一版加的 `ActivityLifecycleCallbacks` 已撤销,因为它会在 Home 时也清掉筛选)。
+
+## 2026-06-23 - "（含所有子文件夹）"按实际子树显隐 + 正在进行文件夹内补"删除文件夹中所有记事"
+
+1. 内容操作确认弹窗里的"（含所有子文件夹）"原为各文件夹正文写死、根目录从不带,导致无子文件夹
+   却显示、根目录有子文件夹却不显示。改为按受影响记事是否真的落在子文件夹动态判定:把子句
+   `scope_includes_subfolders`(（含所有子文件夹中的记事）)挂在计数后面"共%1$d件%2$s",
+   `subfolderClause(folder, things)` = `things.any { it.folderId != folder?.id }` 时返回子句、
+   否则空。一句子句同时适用根目录与文件夹。涉及 11 条内容正文(改为 %1$d 计数 + %2$s 子句)。
+2. 正在进行视图下,文件夹内 overflow 此前没有删除项(已完成视图被工具栏"全部删除"覆盖才隐藏,
+   但正在进行视图工具栏无删除项)。现 `act_delete_current_folder` 在正在进行也可见、标题
+   "删除文件夹中所有记事"(走 `confirmTrashFolderContent`),并在 menu_things_underway.xml 调到
+   overflow 首项;回收站仍为"永久删除文件夹"(结构);已完成不显示(避免与工具栏"全部删除"重复)。

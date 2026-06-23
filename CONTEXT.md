@@ -8,6 +8,14 @@ EverythingDone is a personal task and note application where each thing carries 
 A user-created note, task, reminder, habit, goal, or related item whose own background colour is part of its identity.
 _Avoid_: note as the blanket term for all things
 
+**Trashed Thing**:
+已进入回收站、可恢复或永久删除的 Thing。
+_Avoid_: completed Thing
+
+**Pre-Trash Thing State**:
+Thing 进入回收站前的正在进行或已完成状态；从回收站恢复单个 Thing 时应回到这个状态。
+_Avoid_: always restore to underway
+
 **Thing Folder**:
 A user-created container that groups Things and may itself live inside another Thing Folder.
 _Avoid_: note folder, category, tag
@@ -16,9 +24,17 @@ _Avoid_: note folder, category, tag
 A Thing Folder whose folder identity, contained previews, and descendant content presentation are protected while the descendants remain inside it.
 _Avoid_: secret category, hidden tag
 
-**Deleted Thing Folder**:
-A Thing Folder moved to the Deleted destination while preserving its child structure for restore or permanent deletion.
-_Avoid_: deleted note folder, removed category
+**Trashed Thing Folder**:
+已进入回收站、保留子结构并可恢复或永久删除的 Thing Folder。
+_Avoid_: archived Thing Folder, removed category
+
+**Projection Folder**:
+在状态或类型筛选列表中因为子树存在命中内容而显示的 Thing Folder；它可以只是路径容器，不代表该文件夹本身拥有同一状态。
+_Avoid_: completed folder, deleted folder as blanket terms
+
+**Trash Root Entry**:
+回收站根列表中直接显示的 Thing 或 Thing Folder 投影条目；它可以是真正进入回收站的对象，也可以是因为子树包含回收站内容而显示的路径容器。
+_Avoid_: every trashed descendant as a root item
 
 **Empty Thing Folder**:
 A Thing Folder with no child Things and no child Thing Folders.
@@ -27,6 +43,18 @@ _Avoid_: invalid folder, deleted folder
 **Thing Folder Path**:
 The ordered chain of Thing Folders from the top-level list to the current nested Thing Folder.
 _Avoid_: breadcrumb as the domain term
+
+**Thing Scope**:
+用户查看 Things 时选定的容器范围，可以是全部记事范围，也可以是某个 Thing Folder 范围。
+_Avoid_: underway root, status destination
+
+**All Things Scope**:
+不限定 Thing Folder 的 Thing Scope，中文界面显示为“全部记事”。
+_Avoid_: all statuses, all types, underway
+
+**Trash**:
+展示 Trashed Things 和 Trashed Thing Folders 的独立区域，不是 Thing Scope，也不是日常状态筛选项。
+_Avoid_: finished status, deleted status filter
 
 **Thing Background**:
 The colour or gradient owned by a Thing and used as the highest-priority visual background when displaying that Thing.
@@ -163,18 +191,25 @@ _Avoid_: full-row clickable surface, full-card clickable surface, full-row actio
 ## Relationships
 
 - A **Thing** has one **Thing Background**.
+- A **Thing** may be a **Trashed Thing**.
+- A **Trashed Thing** has a **Pre-Trash Thing State** while it remains restorable.
 - A **Thing** may belong to one **Thing Folder**.
 - A **Thing Folder** may contain zero or more **Things**.
 - A **Thing Folder** may contain zero or more child **Thing Folders**.
 - A **Thing Folder** may have one parent **Thing Folder**.
 - A **Thing Folder** may be a **Private Thing Folder**.
-- A **Thing Folder** may be a **Deleted Thing Folder**.
+- A **Thing Folder** may be a **Trashed Thing Folder**.
 - A **Thing Folder** may be an **Empty Thing Folder**.
 - A **Private Thing Folder** protects descendant **Things** and child **Thing Folders** while they remain inside it.
-- A **Deleted Thing Folder** preserves descendant **Things** and child **Thing Folders** while it remains restorable.
+- A **Trashed Thing Folder** preserves descendant **Things** and child **Thing Folders** while it remains restorable.
+- A **Projection Folder** may represent a **Thing Folder** without changing that folder's own status.
+- A **Trash Root Entry** may contain descendant **Trashed Things** or **Trashed Thing Folders** without making those descendants separate root entries.
 - A **Legacy Placeholder Thing** is not user-owned content.
 - **Empty-List Guidance** replaces **Legacy Placeholder Things** for welcome and empty-list messaging.
 - A **Thing Folder Path** identifies the current nested **Thing Folder** location.
+- A **Thing Scope** is selected independently from Thing status and Thing type filters.
+- The **All Things Scope** includes Things from every non-deleted **Thing Folder** scope for the active status and type filters.
+- **Trash** is selected independently from **Thing Scope** and does not change the stable Thing Folder scope list.
 - A **Thing Background** can be described by **Thing Background Information**.
 - A **Thing Background** overrides **Appearance Mode** for Thing-owned surfaces.
 - A **Thing Foreground** adapts to the visible Thing-owned background, not to **Appearance Mode**.
@@ -234,3 +269,6 @@ _Avoid_: full-row clickable surface, full-card clickable surface, full-row actio
 - "First attachment" can mean the first stored attachment or the card's chosen media source; resolved as **Thing Card Media Source** when discussing which attachment a Thing Card uses.
 - "Card media settings" can be too narrow when the same entry also controls span and image placement; resolved as **Thing Card Appearance** for the whole card-presentation editor.
 - "update time" can mean content changes or card appearance changes; resolved as **Thing Card Appearance Update Time** when only Thing Card Appearance changed.
+- “全部记事”可能被误解为忽略状态和类型的总览；已解析为 **All Things Scope**，只表示不限定 Thing Folder，仍然受当前状态和类型筛选控制。
+- “归档”容易和“完成”形成重复概念；已解析为不引入独立归档状态，由完成语义承担从日常进行列表中收起的作用。
+- “已删除”曾同时表示代码状态和用户可见区域；用户语义中解析为 **Trash** / **Trashed Thing**，并且不能与完成语义混用。

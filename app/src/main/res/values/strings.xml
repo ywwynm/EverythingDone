@@ -198,12 +198,41 @@
     <string name="set_thing_folder_private">Set as private folder</string>
     <string name="cancel_thing_folder_private">Cancel private folder</string>
     <string name="dissolve_thing_folder">Dissolve folder</string>
-    <string name="dissolve_thing_folder_confirm">Move the contents of this folder to the parent folder and remove the folder?</string>
-    <string name="delete_thing_folder">Delete folder</string>
-    <string name="delete_thing_folder_confirm">Move this folder and everything inside it to Deleted?</string>
-    <string name="restore_thing_folder">Restore folder</string>
+    <string name="dissolve_thing_folder_confirm">Permanently remove this folder itself (it won\'t go to the recycle bin and cannot be restored), and move all its contents (%1$s) up to the parent level, keeping each item\'s own state.</string>
+    <string name="folder_count_segment">%1$d subfolder(s)</string>
+    <string name="thing_count_segment">%1$d thing(s)</string>
+    <string name="folder_impact_separator">, </string>
+    <string name="folder_impact_empty">no items</string>
+    <string name="finish_all_things_in_folder">Finish all things in folder</string>
+    <string name="finish_all_things_in_folder_confirm">Finish all underway things in this folder — %1$d in total%2$s.</string>
+    <string name="finish_all_things_root_confirm">Finish all underway things — %1$d in total%2$s.</string>
+    <string name="scope_includes_subfolders"> (including things in all subfolders)</string>
+    <string name="no_underway_things_to_finish">No underway things to finish</string>
+    <string name="restore_all_things">Restore all</string>
+    <string name="restore_all_things_in_folder">Restore all things in folder</string>
+    <string name="restore_all_finished_in_folder_confirm">Restore all finished things in this folder back to underway — %1$d in total%2$s.</string>
+    <string name="restore_all_finished_root_confirm">Restore all finished things back to underway — %1$d in total%2$s.</string>
+    <string name="delete_all_finished_root_confirm">Move all finished things to the recycle bin — %1$d in total%2$s. You can restore them from the recycle bin.</string>
+    <string name="delete_all_finished_in_folder_confirm">Move all finished things in this folder to the recycle bin — %1$d in total%2$s. You can restore them from the recycle bin.</string>
+    <string name="delete_forever_all_root_confirm">Permanently delete all things in the recycle bin — %1$d in total%2$s. This cannot be undone.</string>
+    <string name="delete_forever_all_in_folder_confirm">Permanently delete all things in the recycle bin within this folder — %1$d in total%2$s. This cannot be undone.</string>
+    <string name="no_finished_things_to_delete">No finished things to delete</string>
+    <string name="no_trashed_things_to_delete_forever">No things in the recycle bin to delete forever</string>
+    <string name="restore_all_trashed_in_folder_confirm">Restore all things of this folder that are in the recycle bin to their pre-trash state — %1$d in total%2$s.</string>
+    <string name="restore_all_trashed_root_confirm">Restore all things in the recycle bin to their pre-trash state — %1$d in total%2$s.</string>
+    <string name="no_finished_things_to_restore">No finished things to restore</string>
+    <string name="no_trashed_things_to_restore">No things in the recycle bin to restore</string>
+    <string name="delete_thing_folder">Delete all things in folder</string>
+    <string name="delete_thing_folder_confirm">Move all underway and finished things in this folder to the recycle bin — %1$d in total%2$s. You can restore them from the recycle bin.</string>
+    <string name="no_things_to_delete_in_folder">No things in this folder to delete</string>
+    <string name="delete_all_things_in_folder_forever">Delete all things in folder forever</string>
     <string name="delete_thing_folder_forever">Delete folder forever</string>
-    <string name="delete_thing_folder_forever_confirm">Delete this folder and all contained things forever?</string>
+    <string name="delete_thing_folder_forever_confirm">Permanently delete the whole folder and all its contents (%1$s). This cannot be undone.</string>
+    <string name="folder_op_scope_only_type">This only affects things of the current type filter (%1$s); other types are untouched.</string>
+    <string name="folder_op_reminder_subtree">This affects the whole folder subtree, including content hidden by the current %1$s.</string>
+    <string name="folder_op_scope_status">status filter (%1$s)</string>
+    <string name="folder_op_scope_type">type filter (%1$s)</string>
+    <string name="folder_op_scope_both">status and type filters (%1$s, %2$s)</string>
     <string name="move_thing_folder_card">Adjust card order</string>
     <string name="move_thing_folder_to">Move to folder</string>
     <string name="thing_folder_root">Root</string>
@@ -386,6 +415,7 @@
     <string name="act_finish_all">Finish all</string>
     <string name="act_delete_all">Delete all</string>
     <string name="act_clear_now">Clear</string>
+    <string name="act_delete_all_forever">Delete all forever</string>
     <string name="act_sort_by_alarm">Sort by alarm time</string>
 
     <!--ThingsActivity searching-->
@@ -1033,6 +1063,7 @@
     <string name="things_list_config_simple_view">Use simpler thing view</string>
     <string name="widget_type_filter_summary">Thing type: %1$s</string>
     <string name="widget_display_mode_label">Display mode</string>
+    <string name="widget_status_label">Status</string>
     <string name="widget_display_mode_list">List</string>
     <string name="widget_display_mode_grid">Grid</string>
 

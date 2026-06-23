@@ -1,5 +1,36 @@
 # Drawer Type Filter — Sessions
 
+## 2026-06-22 - Phase E：记事列表 Widget 支持状态维度
+
+`:app:assembleDebug` BUILD SUCCESSFUL。含 DB 迁移 v18→v19。
+
+- DB：`DATABASE_VERSION` 18→19；`app_widget` 表新增 `status` 列（建表 SQL + `migrateAppWidgetStatusColumn` + `SQL_ADD_COLUMN_STATUS_APP_WIDGET`，默认 0=UNDERWAY）。`ThingWidgetInfo.status` 早已能容错读取该列。
+- `AppWidgetDAO.insert`：新增 `status` 参数（默认 UNDERWAY），写入时夹取为 UNDERWAY/FINISHED。
+- `ThingsListWidgetService`：用 `info.status`（夹取 UNDERWAY/FINISHED，不含回收站）查询 things 和 folder entries，替换原先硬编码的 UNDERWAY。
+- `ThingFolderDAO.getFolderEntriesForWidgetProjection`：新增 `status` 参数（默认 UNDERWAY）。
+- 配置 UI：在 `activity_things_list_widget_configuration.xml` 显示模式行之上新增“记事状态”行（正在进行/已完成），沿用显示模式的标签+文本选项+pill ripple 样式；`ThingsListWidgetConfiguration` 增 `mStatus`、`setupStatus`/`updateStatusButtons`，从 `info.status` 回显并传入 insert。新增字符串 `widget_status_label`（en/zh-rCN）。
+
+范围限定：Widget 只支持正在进行/已完成，不含回收站（与 use-cases W3 一致）。完整复用 Drawer 的 `ThingFilterPanel`/分段控件留待后续（配置界面目前用自有 XML 类型 UI + 这个状态行）。
+
+## 2026-06-22 - Phase B：胶囊筛选组件 + Drawer 重构
+
+`:app:assembleDebug` BUILD SUCCESSFUL。
+
+新增可复用组件 `views/ThingFilterPanel.kt`：左列状态胶囊（正在进行/已完成，单选），右列类型胶囊（全部类型独占一行，记录/提醒、习惯/目标各一行；全部类型排他、四类多选、清空自动回全部类型）。胶囊含 icon+文本；选中实心填充（根 Scope 用 accent→accent2 渐变，文件夹 Scope 用文件夹纯色/渐变），未选中透明+轮廓，前景按填充亮度自适应黑/白，未选中前景按抽屉表面亮度偏黑/偏白；含 ripple。暴露 `setScopeBackground`/`setSelection`/`onStatusChange`/`onTypeFilterChange`，供 Widget 配置后续复用。
+
+`DrawerNavigationView.kt`：`ItemKey.TypeFilter` → `ItemKey.FilterPanel`；移除旧 `TypeFilterHolder`/`createTypeFilterView`（圆形 icon + summary 文本），改为托管 `ThingFilterPanel` 的 `FilterPanelHolder`；`DrawerItem` 增加 `status`、`scopeBackground`；新增 `setOnStatusFilterChangeListener`。
+
+`ThingsActivity.kt`：Drawer 结构改为 全部记事 Scope 根（`drawer_all_things`）+ 文件夹树 / 胶囊筛选面板 / 回收站行（`drawer_deleted`）/ Settings·Help·About。选中态：状态==DELETED 高亮回收站行，否则高亮当前 Scope 行（全部记事/文件夹）；状态与类型由面板内部独立呈现。状态胶囊点击关闭抽屉并 `changeToStatus`（保留 Scope/类型）；类型胶囊不关抽屉；全部记事行回根（`navigateToFolderPathIndex(-1)`，保留状态/类型）；选文件夹保留状态/类型（移除旧的强制 UNDERWAY + 重置类型逻辑）。
+
+`menu_drawer.xml`：移除 `drawer_underway`、`drawer_finished` 行，新增 `drawer_all_things`，保留 `drawer_deleted`。Scope 根 UI 复用既有字符串 `all_things`（中文“所有记事”）。
+
+状态图标暂用 `drawer_all`（正在进行）/`drawer_finished`（已完成），与类型“全部类型”同用 `drawer_all`，后续可换更贴切的状态图标。
+
+## 2026-06-22 - 文件夹范围和回收站投影语义同步
+
+- 同步最新文件夹语义：Drawer 文件夹范围区域仍显示所有未进入回收站的文件夹；回收站内容列表按投影路径显示包含回收站内容的文件夹，不显示完全没有命中内容的空文件夹。
+- 明确文件夹本身进入回收站和文件夹内内容进入回收站是两种情况：前者会让文件夹从正常范围选择器消失，后者只让该文件夹在回收站投影中作为路径容器出现。
+
 ## 2026-06-21 - Follow-up: per-type empty placeholders for Drawer filters
 
 Fixed a Drawer type-filter mismatch where selecting all four concrete types

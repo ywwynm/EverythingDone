@@ -1,5 +1,117 @@
 # Thing Folders Sessions
 
+## 2026-06-23 - use-cases 一致性审计后的修复
+
+对照 use-cases.md 逐用例审计实现，更新过时文档并修复 B 类问题，`:app:assembleDebug` BUILD SUCCESSFUL：
+
+- use-cases 更新（实现按后续需求演进）：核心规则 #1 回收站改为状态分段胶囊的一段（非独立 Drawer 区域）；核心规则 #2 + 操作菜单：完成/恢复改为“文件夹中所有记事”全类型递归（filter-scoped 版本不可达），操作入口在选择模式上下文菜单 + 工具栏。
+- B1（T5，原 D4）：删除子文件夹后其内容在回收站不可见的 bug。`ThingFolderDAO.countDescendantThingsForTypeFilterProjection` 对 Projection Folder（DELETED 状态、自身未删）改用新的 `trashedDescendantThingSelection`——统计“自身 state=DELETED 或位于已删子文件夹内”的后代。`shouldIncludeFolderForTypeFilterProjection`/directFolderCount 复用此方法，文件夹纳入与计数标签一并修正。
+- B2（W3/T4）：`AppWidgetHelper.resolveThingsListTargetFolder` 在目标文件夹失效（不存在或有效删除）时，调用新增的 `AppWidgetDAO.clearTargetFolder` 持久清空 target folder（回退到根，保留状态/类型/显示模式/透明度/样式），并同步 in-memory info。
+- 确认 Dialog 0 计数省略：删除/解散/永久删除确认文案改为单一 `%1$s` 影响短语，由 `ThingsActivity.folderImpactPhrase(folders, things)` 按非零拼接（“X 个子文件夹、Y 件记事”，任一为 0 则省略该段，全 0 显示“无内容”）。新增 `folder_count_segment`/`thing_count_segment`/`folder_impact_separator`/`folder_impact_empty` 字符串（en/zh-rCN）。
+- 创建后大文件夹缩略图不刷新 bug：`updateMainUiForCreateDone` 在类型筛选被重置（自定义→全部类型）时，改为整列 `loadThings()` + `notifyDataSetChanged()`，而非定向 `notifyItemInserted`——否则 `mThings` 未按新 mask 重载、且文件夹卡片未重新绑定，导致缩略图仍按旧筛选显示。
+
+## 2026-06-22 - 已完成工具栏新增“恢复全部记事”
+
+`:app:assembleDebug` BUILD SUCCESSFUL。已完成状态工具栏新增 `act_restore_all` 图标（复用 `act_restore_all` drawable），对应正在进行的“全部完成”：根目录显示“恢复全部记事”、文件夹内显示“恢复文件夹中所有记事”（`configureCurrentFolderMenu` 动态设标题）。点击 → `confirmUnfinishAllThingsInScope(currentFolder)`，递归把当前范围所有已完成记事恢复为正在进行。新增字符串 `restore_all_things`（en/zh-rCN）。
+
+## 2026-06-22 - 修正完成入口位置 + 已完成/回收站递归恢复
+
+`:app:assembleDebug` BUILD SUCCESSFUL。
+
+- 修正：上一轮把“完成文件夹中所有记事”加到了 `showThingFolderActions`，但该方法**无调用者、是死代码**（2026-06-17“长按进选择模式”决议后遗留）。实际文件夹操作在选择模式上下文菜单（`OnContextualMenuClickedListener` + 三个 menu_contextual_*.xml + `ModeManager.updateMenuItemsForFolderSelection`）。改为在 underway 上下文菜单新增 `act_finish_thing_folder` → `confirmFinishAllThingsInScope(folder)`，并在 ModeManager 控制其可见（单选非删除文件夹 + 正在进行）。死代码 showThingFolderActions 暂留（无害），记 followups 待清理。
+- 新增递归恢复（对应递归完成）：
+  - 已完成上下文菜单 `act_restore_thing_folder_content` → `confirmUnfinishAllThingsInScope`：递归把文件夹子树所有已完成记事恢复为正在进行。
+  - 回收站上下文菜单同 id，对 Projection Folder（自身未删、含回收站内容）→ `confirmRestoreTrashedThingsInScope`：递归把子树内已删记事恢复到删除前状态。Trashed Folder 仍用 `act_restore_selected` 恢复整个子树（Phase D）。
+- Manager 新增 `getFinishedThingsInScope`/`unfinishThings`、`getTrashedThingsInScope`/`restoreTrashedThings`；这两个恢复操作不涉及习惯/目标三选项 dialog（仅完成才需要）。
+- 新增字符串 `restore_all_things_in_folder` 及两条 confirm、两条 no_*（en/zh-rCN）。
+
+## 2026-06-22 - 完成文件夹中所有记事（递归 + 习惯/目标三选项 dialog）
+
+`:app:assembleDebug` BUILD SUCCESSFUL。
+
+- `ThingDAO.getAllUserThingsByState`：取某状态的全部用户记事（root 全部完成用）。
+- `ThingManager.getUnderwayThingsInScope(folder)`：folder 非空取子树全部类型正在进行；folder=null 取整棵树正在进行并排除 `isEffectivelyDeleted` 的。`finishThings(things)` 公开包装 `changeFolderSubtreeContentState(UNDERWAY→FINISHED)`。
+- `ThingsActivity`：`confirmFinishAllThingsInScope(folder?)` 先确认（数量 + 文件夹/accent 渐变色），含习惯/目标则弹 `showFinishScopeHabitGoalDialog`（三选项，去掉/继续/取消），`applyFinishScope` 执行并刷新。
+- 入口：Folder Card 菜单新增 `FOLDER_ACTION_FINISH_ALL`；工具栏 `act_finish_all` 改为 `confirmFinishAllThingsInScope(currentFolder)`（递归）；`configureCurrentFolderMenu` 在文件夹内把标题改为“完成文件夹中所有记事”。Phase C 的“完成当前筛选下的内容”改为仅在有自定义类型筛选时出现。
+- 三选项 dialog 配色：新路径与既有 `alertForHabitGoal` 都改用 `setTitleBackground`/`setContinueBackground`（文件夹色或 `App.defaultAccentBackground`），不再随机纯色。
+- 新增字符串 `finish_all_things_in_folder(_confirm)`、`no_underway_things_to_finish`（en/zh-rCN）。
+
+## 2026-06-22 - 剩余项打磨：确认文案影响摘要 + Widget 标题状态
+
+`:app:assembleDebug` BUILD SUCCESSFUL。
+
+- 删除/解散/永久删除文件夹的确认 Dialog 文案补全影响范围摘要：明确“整个物理文件夹（含当前筛选下看不到的内容）”，并显示 %1$d 个子文件夹、%2$d 件记事。`ThingManager` 新增 `countAllDescendantThings`/`countDescendantFolders`；三处 dialog 用 `getString(id, folders, things)`；en/zh-rCN 三条 confirm 串改为带 %1$d/%2$d（其它语种回退英文，不传参时安全）。
+- Widget header 标题反映状态：`AppWidgetHelper.getThingsListHeaderTitle` 增 status 参数，按 文件夹名 · 已完成 · 类型名 组合，根+正在进行+全部回退“正在进行”。
+- 核查 analysis-0620 “moving-mode scale recovery debug logging”：`ThingListOverlayDragController.log()` 已被 `OVERLAY_DRAG_DEBUG=false` 开关守住，无需再清理；`tag_thing_card_moving_scale_recovery_token` 是功能性 token，保留。
+- 其它语种本地化补全（量大价值低、回退英文）与 D4 递归查询（缺复现）继续保留在 followups。
+
+## 2026-06-22 - Phase F：非正在进行禁用拖拽到文件夹
+
+`:app:assembleDebug` BUILD SUCCESSFUL。在 `ThingListOverlayDragController.findFolderDropTargetUnderOverlayTopLeft` 顶部加状态守卫：`App.getApp().getStatus() != UNDERWAY` 时返回 null，使已完成/回收站状态下的拖拽只能重排、不触发建夹或移入文件夹（hover 与 commit 共用此入口，一处生效）。结构性移动改走显式“移动到文件夹”。符合 Q2 决议。
+
+剩余 Phase F 小项（移动/解散确认文案细化、analysis-0620 的 debug logging 清理等、其它语言本地化补全）见各 followups，属低优先打磨。
+
+## 2026-06-22 - Phase D：删除前状态持久化 + 级联恢复 + 回收站文件夹区分
+
+`:app:assembleDebug` BUILD SUCCESSFUL。含 DB 迁移。
+
+- D1 迁移：`Def.Meta.DATABASE_VERSION` 17→18；新增 `things.state_before_delete` 列（建表 SQL、`migrateStateBeforeDeleteColumn`、`SQL_ADD_COLUMN_STATE_BEFORE_DELETE_THINGS`）。`ThingDAO.updateState` 在转入 DELETED（且原状态非 DELETED）时写入 `state_before_delete = stateBefore`；新增 `ThingDAO.getStateBeforeDelete(id)`（无记录回退 UNDERWAY）。不改 Thing 模型，避免触碰其众多构造器/Parcelable。
+- D2 单条/批量恢复回删除前状态：`ThingsActivity.handleUpdateStates(stateBefore, stateAfter)` 在恢复（DELETED→UNDERWAY）时，若所选删除项的删除前状态一致为 FINISHED 则整体恢复为 FINISHED，否则 UNDERWAY。单条恢复必然一致，正好满足 T0b。保留既有计数/撤销机制（仍是单一状态转换）。`ThingManager.getStateBeforeDelete` 透传 DAO。
+- D3 文件夹级联恢复（决议 b）：重写 `ThingManager.restoreFolder` 恢复整个物理子树——置回文件夹自身状态、把所有嵌套已删子文件夹置回 UNDERWAY、把子树内自身 state=DELETED 的 Thing 经 `restoreThingsToPreTrashState` 按各自删除前状态分组恢复（复用 `changeFolderSubtreeContentState`，不污染 mUndo*）。
+- D5 回收站文件夹区分：新增矢量 `ic_thing_folder_deleted`（folder 图形 evenOdd 挖空 × 删除标记）；`ThingsAdapter.bindFolderCardContent` 对 `folder.isDeleted()` 的 Trashed Thing Folder 用该图标，Projection Folder 仍用 `ic_thing_folder`。
+- D4 暂缓：`getThingsForEffectiveDeletedFolderProjection` 的"递归后代"改动缺乏明确复现场景，新模型下打开文件夹显示直接子项+子文件夹卡片，直接子查询符合预期；贸然改动有破坏直接子投影风险，标记到 followups 待复现后再评估。
+
+## 2026-06-22 - Phase C：文件夹内容态操作（完成/恢复当前筛选内容）
+
+`:app:assembleDebug` BUILD SUCCESSFUL。
+
+引擎层：`ThingFolderDAO.getDescendantThingsForProjection(folderId, status, typeFilterMask)` 取子树内（含自身及后代文件夹）状态+类型命中的 Things。`ThingManager` 新增 `finishFolderContent`、`restoreFolderContentToUnderway`、`countFolderContentForProjection`，以及私有 `changeFolderSubtreeContentState`——复用既有 finish/restore 语义（`Thing.getSameCheckStateThing` 处理清单勾选、ongoing 通知取消、按类型计数 `mThingsCounts.handleUpdate`、习惯/目标重置、已完成时取消通知），跨子树后用 `loadThings()` 整体刷新而非对 `mThings` 做增删。
+
+UI：在 `showThingFolderActions` 动作菜单中按当前状态加入入口——正在进行投影显示“完成当前筛选下的内容”，已完成投影显示“恢复当前筛选下的内容为正在进行”（回收站不显示）。两者经 `AlertDialogFragment` 确认，文案含影响范围数量（`countFolderContentForProjection`）。新增字符串 `finish_thing_folder_content(_confirm)`、`restore_thing_folder_content(_confirm)`（en + zh-rCN，带 %1$d 数量占位）。
+
+注意：内容态操作只作用于当前类型筛选命中的 Things，文件夹容器本身无完成状态（符合 use-cases F1/F2/F3）。
+
+## 2026-06-22 - Phase A 投影语义骨架（模型层正交 + 标题/创建/回根）
+
+实现"三个稳定维度"的模型层骨架，`:app:assembleDebug` BUILD SUCCESSFUL：
+
+- `ThingListProjection.withStatus`：保留 folderPath + typeFilterMask（不再清空），使状态与 Scope/类型正交。
+- `ThingManager.setStatus`：切状态后调 `trimProjectionToVisibleFolders()` 做越界回退，并用 `trimAuthenticatedPrivateFoldersToProjection()` 取代无条件 `mAuthenticatedPrivateFolderIds.clear()`，保留仍在路径上的私密认证。
+- `trimProjectionToVisibleFolders`：改为新模型规则——非删除文件夹在任何状态都是合法 Scope（回收站下显示其已删内容），已删文件夹只在 DELETED 合法，否则路径回退。
+- `ActivityHeader`：标题只显示状态名（根）或文件夹名，删除 type-filter 文本分支（决议 #16）。
+- `ThingsActivity.updateMainUiForCreateDone`：创建返回时若有自定义类型筛选，重置为全部类型（保留 Scope/状态），保证新建记事可见。
+- `ThingsActivity` 外部投影：`openExternalProjectionFromIntent` 的 root 意图分支、`openExternalFolderProjection` 的无效文件夹分支改用 `navigateToFolderPathIndex(-1)` 显式回根，修复 withStatus 保留路径后可能残留旧 folderPath 的问题，并实现范围失效持久回退到全部记事。
+
+注意：当前 Drawer 仍把"正在进行=状态+文件夹根"耦合，完整 UX 需 Phase B（Drawer 重构 + 胶囊筛选组件）。drawer-type-filter 的两项 deferred follow-up（保留 mask、标题语义）随本阶段完成。
+
+## 2026-06-22 - 实现前 use-cases 复审：解决 6 处问题
+
+实现前带批判视角复审 `use-cases.md` 并与既有决议、代码交叉验证，确认全量推进（新“三个稳定维度”模型）的目标边界后，逐条排查出并解决 6 处问题：
+
+1. 移动到文件夹 Dialog 根标签：代码与 2026-06-19 旧决议为“正在进行”，与新模型冲突，改为“全部记事”（作废旧决议表述；`MoveToThingFolderDialogFragment` 当前用 `R.string.underway`，需换新串）。
+2. 非正在进行状态下的拖拽：在已完成/回收站禁用一切拖拽到文件夹（建夹与移动均禁），只保留重排/选择；整理历史用显式移动。
+3. 创建默认类型：创建从不预设类型，且创建后类型筛选重置为“全部类型”，保证新建记事可见；作废 L9 旧建议。
+4. 回收站文件夹区分：Trashed Thing Folder 在 folder icon 内嵌删除小图标（复用 `FolderIconDrawable` 嵌锁做法），Projection Folder 普通 icon 无徽标。
+5. 恢复文件夹与独立删除的后代：选 (b) 整夹恢复——自身已 DELETED 的后代也随父恢复到各自“删除前状态”。审计确认这依赖“删除前状态”持久化，而该能力本就被 T0b（单个 Trashed Thing 恢复回 Pre-Trash 状态）独立要求；当前代码恢复一律置 UNDERWAY 且 `finishTime` 不可靠推断，属已有缺陷。需新增删除前状态列（可随 DB v15 一起）。
+6. 拖拽移夹：保留，规则统一为“移动整个物理子树、与筛选无关”，仅正在进行可用；显式移动 Dialog 作补充。
+
+排查父→子一致性：删除/永久删除/移动/恢复文件夹按整个物理子树；解散为直接子项上移一级；完成文件夹内容/恢复当前筛选内容仅作用于当前筛选命中。两类操作由确认 Dialog 章节明确区分，全局自洽。新增的唯一能力是“删除前状态”持久化。
+
+决议写入 `decisions.md`，use-cases L9/T3/G3 已同步修正。下一步进入实现 Phase A（投影语义骨架）。
+
+## 2026-06-22 - 稳定文件夹骨架和投影路径补充
+
+- 将文件夹语义收敛为“文件夹是稳定组织骨架，状态筛选只决定内容投影”：完成、恢复或删除单个 Thing 时保留原文件夹归属，不把内容移动到根目录。
+- 补充 `use-cases.md`：新增投影空的 Y、类型筛选空的 A、类型筛选下恢复已完成内容、删除单个 B、删除子文件夹 D、恢复时原父级失效、移动 A 后 Drawer 物理树、Widget 直接子项投影等用例。
+- 修正拖拽创建文件夹用例：B 和 E、C 和 F 在 A 的投影中不是同层可见项，不能直接拖拽合并；拖拽创建文件夹只适用于当前列表同层可见的 Thing Cards。
+- 确认单个 Trashed Thing 从回收站恢复时回到删除前状态：正在进行的 Thing 恢复为正在进行，已完成的 Thing 恢复为已完成。
+
+## 2026-06-22 - 文件夹和状态语义用例矩阵
+
+- 在 `use-cases.md` 中记录混合状态 Thing Folder 子树的工作模型：文件夹保持为稳定范围容器，普通状态筛选只包含正在进行/已完成，回收站是独立生命周期区域，普通范围选择器显示所有未进入回收站的文件夹。
+- 补充 Drawer 范围可见性、列表投影、完成文件夹、删除/恢复文件夹、解散文件夹、移动文件夹或单个 Thing、拖拽创建文件夹、记事列表 Widget 配置等具体用例。
+- 明确实现区分：状态操作作用于当前投影命中的 Things；结构和生命周期操作作用于整个物理文件夹子树，并保留子项状态。
+
 ## 2026-06-21 - Dynamic Things-list AppWidget scope height
 
 Adjusted the Things-list AppWidget configuration Folder scope picker so its
@@ -2606,3 +2718,85 @@ publishing was not run.
 - 确认创建路径已经使用 `ThingBackground.fromRandom()` 随机纯色/渐变，但 outline drawable 的渐变 shader 没有按 drawable bounds 平移，导致非左上角卡片大概率采样到同一个端点色。
 - 将 `FolderDropOutlineDrawable` 的 `LinearGradient` 坐标改为实际 bounds 坐标，让随机渐变背景在创建文件夹的 stroke 上可见。
 - 验证：`./gradlew.bat :app:assembleDebug` 通过。
+
+## 2026-06-23 - 文件夹确认弹窗统一 + 动态筛选提醒
+
+- 将完成/恢复/删除/解散/永久删除/还原文件夹的确认弹窗统一为四段式（动作+范围、计数、
+  去向/可逆性、范围提醒），并去掉数字与文字间的空格。
+- 新增 `appendFilterScopeReminder`：按受影响记事集合的真实类型/状态分布，动态决定是否
+  追加「超出当前筛选」的提醒，并点名当前筛选的具体类型/状态；其它类型、状态无记事时不显示。
+- 给原本没有确认的「还原 Trashed Folder」补上 `showRestoreThingFolderDialog`。
+- 新增 `ThingFolderDAO.getAllDescendantThings` / `ThingManager.getAllDescendantThings`
+  支撑结构态操作的提醒判定。
+- 验证：`./gradlew.bat :app:assembleDebug` 通过。
+
+## 2026-06-23 - 内容批量操作跟随类型筛选 + 工具栏文案分层 + 删除类对齐
+
+- 工具栏批量动作与长按文件夹 contextual menu 文案分层：工具栏统一「全部完成/恢复/删除/
+  永久删除」（根目录与文件夹内一致），contextual 用「完成/恢复文件夹中所有记事」；
+  已完成根目录由"恢复全部记事"改"全部恢复"，回收站由"清空回收站"改"全部永久删除"。
+- 「全部删除」「全部永久删除」对齐为递归+确认+提醒（`trashThings`/`deleteThingsForever`
+  复用 `changeFolderSubtreeContentState`）。
+- 内容类 5 个批量操作改为跟随当前类型筛选；提醒翻转为安抚式
+  `folder_op_scope_only_type`。容器操作维持全类型、警告式提醒。
+- 验证：`./gradlew.bat :app:assembleDebug` 通过。
+
+## 2026-06-23 - 纯骨架模型重构(删除/还原文件夹 → 内容操作)
+
+- 取消文件夹删除状态:用户对文件夹的"删除"改为"删除文件夹中所有记事"(递归 trash 子树
+  进行中+已完成记事、跟随类型筛选);"还原文件夹"并入"恢复文件夹中所有记事"。
+- 新增 `ThingManager.getNonDeletedThingsInScope` / `trashThingsPreservingState`;
+  `ThingsActivity.confirmTrashFolderContent`;移除 `restoreSelectedFolderIfNeeded`/
+  `showRestoreThingFolderDialog`/`showDeleteThingFolderDialog`(软删)。
+- DBHelper v20 迁移 `migrateFoldersToSkeletonModel`;DATABASE_VERSION→20。
+- `delete_thing_folder` 文案改"删除文件夹中所有记事";`restore_thing_folder_confirm` 移除。
+- 验证:`assembleDebug` 通过。**需设备验证**:迁移、删空文件夹后首页消失/回收站可见可恢复、
+  回收站永久删除。
+
+## 2026-06-23 - 回收站删除操作二分 + 死代码清理 + 发布
+
+- 回收站里区分「永久删除文件夹中所有记事」(内容、跟随筛选、不跨投影,`confirmDeleteForeverAllInScope`
+  加 `titleRes`) 与「永久删除文件夹」(结构、`considerStatus=true` 警告跨投影)。新增菜单项
+  `act_delete_thing_folder_content` + 串 `delete_all_things_in_folder_forever`。
+- 删除死代码整块 `showThingFolderActions`/`addThingFolderAction`/`showFinishFolderContentDialog`/
+  `showRestoreFolderContentDialog`/`FOLDER_ACTION_*` 及孤立串(还原文件夹、完成/恢复当前筛选下的内容)。
+- 发布 debug `202606230359` → http://120.25.194.207/everythingdone-updates/debug/latest.json
+  发布日志 docs/features/thing-folders/debug-updates/update-20260623115846.md。
+
+## 2026-06-23 - 菜单去重与空状态梳理
+
+- `configureCurrentFolderMenu` 重写:工具栏内容批量动作按 `hasVisibleProjectionContent()`
+  门控(空范围隐藏);overflow 的 `act_delete_current_folder` 收敛为仅回收站的结构
+  "永久删除文件夹",移除与工具栏重复的"删除文件夹中所有记事"。
+- 文件夹内 overflow 只剩结构操作;跨状态"删除文件夹中所有记事"经上层长按 contextual 触发。
+- 验证:`assembleDebug` 通过。需设备确认:空文件夹不再出现全部完成/删除等;finished 文件夹内
+  不再同时出现"全部删除"和"删除文件夹中所有记事"。
+
+## 2026-06-23 - 回收站全部恢复 + 返回回默认 + 类型筛选会话级
+
+- 回收站工具栏加"全部恢复";`confirmRestoreTrashedThingsInScope` 支持 titleRes/根目录正文。
+- 返回键在根目录非默认筛选时先 `resetRootProjectionToDefault()`(正在进行+全部类型+根目录),
+  已是默认才退出。"返回退出后不保留类型筛选"由此直接得到(退出时必为默认);按 Home 仍保留筛选。
+- 验证:`assembleDebug` 通过。需设备确认:回收站全部恢复;根目录切换状态/类型后按返回先回默认
+  再按返回才退出;返回退出再打开为默认筛选;Home 退出再打开仍保留筛选。
+- 撤销上一版误加的后台检测重置(它会在 Home 时也清筛选);现"返回退出不保留、Home 保留"仅靠
+  返回键回默认实现。发布 debug `202606230609`,日志 update-20260623140902.md(含菜单去重/空状态)。
+
+## 2026-06-23 - 子文件夹字样动态化 + 正在进行文件夹内删除项
+
+- "（含所有子文件夹）"改为按 `subfolderClause(folder, things)` 动态显隐,挂在计数后(共N件%2$s);
+  11 条内容正文改为 %1$d + %2$s。
+- 正在进行文件夹内 overflow 首项加回"删除文件夹中所有记事"(act_delete_current_folder,
+  underway 可见);已完成仍只靠工具栏"全部删除",回收站为"永久删除文件夹"。
+- 验证:`assembleDebug` 通过。需设备确认:无子文件夹的文件夹弹窗不再有"含所有子文件夹";
+  根目录有子文件夹时弹窗带该字样;正在进行进文件夹 overflow 首项有"删除文件夹中所有记事"。
+
+## 2026-06-23 - 文档审计：use-cases 等与实现对齐
+
+- A：use-cases.md 重写到纯骨架 + 跟随筛选模型——核心规则2/5、D3、S3、F2/F3（删 F4）、
+  T1–T5（删 T3b/T3c，区分永久删除文件夹 vs 永久删除文件夹中所有记事）、R2、操作菜单章节、
+  确认 Dialog 章节、实现要点章节全部更新。
+- B：README 状态改为 implemented 并补 use-cases 入口；followups 死代码清理标记完成、回收站
+  递归查询条目按新模型重述。
+- C：plan.md 顶部加“已被取代”横幅 + DB 版本/删除模型行内标注；drawer-type-filter/decisions.md
+  顶部加横幅，并修正“文件夹进入回收站从范围选择器消失”那段（纯骨架下不成立）。

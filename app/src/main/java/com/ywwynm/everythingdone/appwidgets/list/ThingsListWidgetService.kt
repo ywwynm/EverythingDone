@@ -59,12 +59,18 @@ open class ThingsListWidgetService : RemoteViewsService() {
             val typeFilterMask = ThingWidgetInfo.normalizedTypeFilterMask(
                 info?.typeFilterMask ?: ThingWidgetInfo.TYPE_FILTER_ALL
             )
+            // Things-list widgets support 正在进行 / 已完成 only (never 回收站).
+            val status = if (info?.status == Def.ThingStatus.FINISHED) {
+                Def.ThingStatus.FINISHED
+            } else {
+                Def.ThingStatus.UNDERWAY
+            }
             val targetFolder = AppWidgetHelper.resolveThingsListTargetFolder(context, info)
             val targetFolderId = targetFolder?.id
             val thingDAO: ThingDAO = ThingDAO.getInstance(context)!!
             val folderDAO: ThingFolderDAO = ThingFolderDAO.getInstance(context)!!
             val things = thingDAO.getThingsForProjection(
-                Def.ThingStatus.UNDERWAY,
+                status,
                 ThingWidgetInfo.TYPE_FILTER_ALL,
                 targetFolderId,
                 null,
@@ -79,7 +85,8 @@ open class ThingsListWidgetService : RemoteViewsService() {
             }
             val folderEntries = folderDAO.getFolderEntriesForWidgetProjection(
                 targetFolderId,
-                typeFilterMask
+                typeFilterMask,
+                status
             )
             for (folderEntry in folderEntries) {
                 entries.add(ThingsListWidgetItem.FolderItem(folderEntry))

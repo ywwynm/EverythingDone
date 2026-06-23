@@ -100,7 +100,8 @@ open class AppWidgetDAO private constructor(context: Context?) {
         @ThingWidgetInfo.Style style: Int,
         targetFolderId: Long?,
         typeFilterMask: Int,
-        @ThingWidgetInfo.DisplayMode displayMode: Int
+        @ThingWidgetInfo.DisplayMode displayMode: Int,
+        status: Int = Def.ThingStatus.UNDERWAY
     ): Boolean {
         val values = ContentValues()
         values.put(Def.Database.COLUMN_ID_APP_WIDGET,       appWidgetId)
@@ -118,7 +119,23 @@ open class AppWidgetDAO private constructor(context: Context?) {
             ThingWidgetInfo.normalizedTypeFilterMask(typeFilterMask)
         )
         values.put(Def.Database.COLUMN_DISPLAY_MODE_APP_WIDGET, displayMode)
+        values.put(
+            Def.Database.COLUMN_STATUS_APP_WIDGET,
+            if (status == Def.ThingStatus.FINISHED) Def.ThingStatus.FINISHED else Def.ThingStatus.UNDERWAY
+        )
         return db!!.insert(Def.Database.TABLE_APP_WIDGET, null, values) != -1L
+    }
+
+    /** Persistently clears a Things-list widget's target folder, falling back to root. */
+    open fun clearTargetFolder(appWidgetId: Int): Boolean {
+        val values = ContentValues(1)
+        values.putNull(Def.Database.COLUMN_TARGET_FOLDER_ID_APP_WIDGET)
+        return db!!.update(
+            Def.Database.TABLE_APP_WIDGET,
+            values,
+            Def.Database.COLUMN_ID_APP_WIDGET + "=" + appWidgetId,
+            null
+        ) > 0
     }
 
     open fun delete(appWidgetId: Int): Int {

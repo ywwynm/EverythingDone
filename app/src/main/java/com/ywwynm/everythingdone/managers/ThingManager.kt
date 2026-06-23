@@ -87,8 +87,13 @@ open class ThingManager private constructor(context: Context?) {
 
     open fun setStatus(status: Int, loadThingsNow: Boolean) {
         val normalizedStatus = ThingListProjection.normalizeStatus(status)
+        // Switching status preserves the current Thing Scope (folder path) and the
+        // current type filter. If the current folder cannot be entered under the
+        // new status (a trashed folder under a non-DELETED status, or a folder that
+        // no longer exists), fall back toward the "全部记事" root.
         mProjection = mProjection.withStatus(normalizedStatus)
-        mAuthenticatedPrivateFolderIds.clear()
+        trimProjectionToVisibleFolders()
+        trimAuthenticatedPrivateFoldersToProjection()
         mDao!!.setProjection(normalizedStatus, mTypeFilterMask)
         if (loadThingsNow) {
             loadThings()
@@ -1101,11 +1106,11 @@ open class ThingManager private constructor(context: Context?) {
         for (folderId in mProjection.folderPath) {
             if (mFolderDao!!.getFolderById(folderId) == null) break
             val effectivelyDeleted = mFolderDao!!.isEffectivelyDeleted(folderId)
-            if (mStatus == Def.ThingStatus.DELETED) {
-                if (!effectivelyDeleted) break
-            } else if (effectivelyDeleted) {
-                break
-            }
+            // New model: a non-deleted folder is a valid Scope under any status
+            // (under DELETED it shows its trashed content as a Projection Folder).
+            // A trashed (effectively deleted) folder is a valid Scope only under
+            // the DELETED status; under UNDERWAY/FINISHED the path falls back here.
+            if (effectivelyDeleted && mStatus != Def.ThingStatus.DELETED) break
             visiblePath.add(folderId)
         }
         if (visiblePath.size != mProjection.folderPath.size) {
@@ -1183,7 +1188,43 @@ open class ThingManager private constructor(context: Context?) {
     }
 
     open fun restoreFolder(folder: ThingFolder?): Boolean {
-        return updateFolderState(folder, Thing.UNDERWAY)
+        if (folder == null) return false
+        // Restore the whole physical subtree (decision 2026-06-22, option b):
+        // the folder container, every nested trashed folder, and every descendant
+        // Thing that was independently trashed all come back. Things return to
+        // their own pre-trash state; descendants that were only effectively
+        // deleted by this folder revert automatically through their own state.
+        folder.state = Thing.UNDERWAY
+        mFolderDao!!.updateState(folder.id, Thing.UNDERWAY)
+        for (descendantId in mFolderDao!!.getDescendantFolderIds(folder.id)) {
+            if (descendantId == folder.id) continue
+            val descendant = mFolderDao!!.getFolderById(descendantId) ?: continue
+            if (descendant.isDeleted()) {
+                mFolderDao!!.updateState(descendantId, Thing.UNDERWAY)
+            }
+        }
+        val independentlyTrashed = mFolderDao!!.getDescendantThingsForProjection(
+            folder.id, Def.ThingStatus.DELETED, ThingWidgetInfo.TYPE_FILTER_ALL
+        )
+        restoreThingsToPreTrashState(independentlyTrashed)
+        trimProjectionToVisibleFolders()
+        loadThings()
+        return true
+    }
+
+    private fun restoreThingsToPreTrashState(things: List<Thing>) {
+        if (things.isEmpty()) return
+        val toUnderway = ArrayList<Thing>()
+        val toFinished = ArrayList<Thing>()
+        for (thing in things) {
+            if (mDao!!.getStateBeforeDelete(thing.id) == Thing.FINISHED) {
+                toFinished.add(thing)
+            } else {
+                toUnderway.add(thing)
+            }
+        }
+        changeFolderSubtreeContentState(toUnderway, Thing.DELETED, Thing.UNDERWAY)
+        changeFolderSubtreeContentState(toFinished, Thing.DELETED, Thing.FINISHED)
     }
 
     private fun updateFolderState(folder: ThingFolder?, @Thing.State state: Int): Boolean {
@@ -1210,6 +1251,287 @@ open class ThingManager private constructor(context: Context?) {
         trimProjectionToExistingFolders()
         loadThings()
         return true
+    }
+
+    /**
+     * Number of Things in [folder]'s subtree that match the given status and the
+     * current type filter. Used for confirmation dialog impact summaries.
+     */
+    open fun countFolderContentForProjection(folder: ThingFolder?, status: Int): Int {
+        folder ?: return 0
+        return mFolderDao!!.getDescendantThingsForProjection(folder.id, status, mTypeFilterMask).size
+    }
+
+    /** The stored pre-trash state of a Thing (see [ThingDAO.getStateBeforeDelete]). */
+    open fun getStateBeforeDelete(thingId: Long): Int {
+        return mDao!!.getStateBeforeDelete(thingId)
+    }
+
+    /**
+     * Total user Things in [folder]'s whole physical subtree, of every state
+     * including those already in the recycle bin. Use for permanent delete, which
+     * destroys everything.
+     */
+    open fun countAllDescendantThings(folder: ThingFolder?): Int {
+        folder ?: return 0
+        return mFolderDao!!.countAllDescendantThings(folder.id)
+    }
+
+    /**
+     * Every user Thing in [folder]'s subtree, of any state. Used by confirmation
+     * dialogs to detect whether a folder operation reaches content beyond the
+     * current status/type filter.
+     */
+    open fun getAllDescendantThings(folder: ThingFolder?): List<Thing> {
+        folder ?: return emptyList()
+        return mFolderDao!!.getAllDescendantThings(folder.id)
+    }
+
+    /** Number of descendant folders below [folder] (excluding the folder itself), any state. */
+    open fun countDescendantFolders(folder: ThingFolder?): Int {
+        folder ?: return 0
+        return (mFolderDao!!.getDescendantFolderIds(folder.id).size - 1).coerceAtLeast(0)
+    }
+
+    /**
+     * Descendant Things in [folder]'s subtree that are NOT already in the recycle
+     * bin (own state underway or finished). Use for delete-to-bin / dissolve
+     * confirmations, where already-trashed content is not newly affected.
+     */
+    open fun countNonDeletedDescendantThings(folder: ThingFolder?): Int {
+        folder ?: return 0
+        return mFolderDao!!.countDescendantThings(folder.id, Def.ThingStatus.UNDERWAY) +
+            mFolderDao!!.countDescendantThings(folder.id, Def.ThingStatus.FINISHED)
+    }
+
+    /** Descendant folders below [folder] that are not themselves in the recycle bin. */
+    open fun countNonDeletedDescendantFolders(folder: ThingFolder?): Int {
+        folder ?: return 0
+        var count = 0
+        for (descendantId in mFolderDao!!.getDescendantFolderIds(folder.id)) {
+            if (descendantId == folder.id) continue
+            val descendant = mFolderDao!!.getFolderById(descendantId) ?: continue
+            if (!descendant.isDeleted()) count++
+        }
+        return count
+    }
+
+    /**
+     * Recursively finish the underway Things in [folder]'s subtree that match the
+     * current type filter. The folder container itself has no finished state.
+     * Returns the number of affected Things.
+     */
+    open fun finishFolderContent(folder: ThingFolder?): Int {
+        folder ?: return 0
+        val things = mFolderDao!!.getDescendantThingsForProjection(
+            folder.id, Def.ThingStatus.UNDERWAY, mTypeFilterMask
+        )
+        return changeFolderSubtreeContentState(things, Thing.UNDERWAY, Thing.FINISHED)
+    }
+
+    /**
+     * Recursively restore the finished Things in [folder]'s subtree that match the
+     * current type filter back to underway. Returns the number of affected Things.
+     */
+    open fun restoreFolderContentToUnderway(folder: ThingFolder?): Int {
+        folder ?: return 0
+        val things = mFolderDao!!.getDescendantThingsForProjection(
+            folder.id, Def.ThingStatus.FINISHED, mTypeFilterMask
+        )
+        return changeFolderSubtreeContentState(things, Thing.FINISHED, Thing.UNDERWAY)
+    }
+
+    /** Whether [type] passes the currently active type filter (true when "全部类型"). */
+    private fun matchesActiveTypeFilter(type: Int): Boolean {
+        val mask = getActiveTypeFilterMask()
+        if (mask == ThingWidgetInfo.TYPE_FILTER_ALL) return true
+        return ThingWidgetInfo.typeFilterMaskForThingType(type) and mask != 0
+    }
+
+    /**
+     * Every underway Thing in the given scope that matches the active type filter,
+     * used by the recursive "完成文件夹中所有记事" / home "全部完成" action. The
+     * operation follows the current type filter: a specific filter narrows it to
+     * that type only; "全部类型" affects every type. [folder] = null means the whole
+     * tree from root, excluding things under a recycle-bin (deleted) folder.
+     */
+    open fun getUnderwayThingsInScope(folder: ThingFolder?): List<Thing> {
+        if (folder != null) {
+            return mFolderDao!!.getDescendantThingsForProjection(
+                folder.id, Def.ThingStatus.UNDERWAY, getActiveTypeFilterMask()
+            )
+        }
+        return mDao!!.getAllUserThingsByState(Thing.UNDERWAY).filterNotNull().filter {
+            !mFolderDao!!.isEffectivelyDeleted(it.folderId) && matchesActiveTypeFilter(it.type)
+        }
+    }
+
+    /** Finish the given Things (underway -> finished), recursive-safe, then reload. */
+    open fun finishThings(things: List<Thing>): Int {
+        return changeFolderSubtreeContentState(things, Thing.UNDERWAY, Thing.FINISHED)
+    }
+
+    /**
+     * Every finished Thing in the given scope that matches the active type filter,
+     * for the recursive "恢复文件夹中所有记事为正在进行" / "全部删除" actions. Follows
+     * the current type filter. [folder] = null means root.
+     */
+    open fun getFinishedThingsInScope(folder: ThingFolder?): List<Thing> {
+        if (folder != null) {
+            return mFolderDao!!.getDescendantThingsForProjection(
+                folder.id, Def.ThingStatus.FINISHED, getActiveTypeFilterMask()
+            )
+        }
+        return mDao!!.getAllUserThingsByState(Thing.FINISHED).filterNotNull().filter {
+            !mFolderDao!!.isEffectivelyDeleted(it.folderId) && matchesActiveTypeFilter(it.type)
+        }
+    }
+
+    /** Restore the given finished Things back to underway, then reload. */
+    open fun unfinishThings(things: List<Thing>): Int {
+        return changeFolderSubtreeContentState(things, Thing.FINISHED, Thing.UNDERWAY)
+    }
+
+    /**
+     * Move the given finished Things to the recycle bin (finished -> deleted),
+     * recording each one's pre-trash state, then reload. Used by the recursive
+     * "全部删除" toolbar action in the Finished view.
+     */
+    open fun trashThings(things: List<Thing>): Int {
+        return changeFolderSubtreeContentState(things, Thing.FINISHED, Thing.DELETED)
+    }
+
+    /**
+     * Every non-deleted Thing (own state underway or finished) in [folder]'s subtree
+     * that matches the active type filter, for the "删除文件夹中所有记事" action. In the
+     * pure-skeleton model, "deleting a folder" trashes its content rather than the
+     * container. Follows the current type filter. [folder] = null returns empty.
+     */
+    open fun getNonDeletedThingsInScope(folder: ThingFolder?): List<Thing> {
+        folder ?: return emptyList()
+        val mask = getActiveTypeFilterMask()
+        return mFolderDao!!.getDescendantThingsForProjection(
+            folder.id, Def.ThingStatus.UNDERWAY, mask
+        ) + mFolderDao!!.getDescendantThingsForProjection(
+            folder.id, Def.ThingStatus.FINISHED, mask
+        )
+    }
+
+    /**
+     * Move the given non-deleted Things to the recycle bin, recording each one's
+     * pre-trash state. Splits by current state so underway and finished Things keep
+     * the correct state to return to on restore. Then reload.
+     */
+    open fun trashThingsPreservingState(things: List<Thing>): Int {
+        if (things.isEmpty()) return 0
+        val underway = things.filter { it.state == Thing.UNDERWAY }
+        val finished = things.filter { it.state == Thing.FINISHED }
+        changeFolderSubtreeContentState(underway, Thing.UNDERWAY, Thing.DELETED)
+        changeFolderSubtreeContentState(finished, Thing.FINISHED, Thing.DELETED)
+        return things.size
+    }
+
+    /**
+     * Permanently delete the given trashed Things (deleted -> deleted forever),
+     * then reload. Used by the recursive "全部永久删除" toolbar action in the
+     * recycle bin.
+     */
+    open fun deleteThingsForever(things: List<Thing>): Int {
+        return changeFolderSubtreeContentState(things, Thing.DELETED, Thing.DELETED_FOREVER)
+    }
+
+    /**
+     * Trashed Things (own state DELETED) in the given folder's subtree that match
+     * the active type filter, for the recycle-bin recursive "恢复文件夹中所有记事" /
+     * "全部永久删除" actions. Follows the current type filter. [folder] = null means
+     * the whole tree from root.
+     */
+    open fun getTrashedThingsInScope(folder: ThingFolder?): List<Thing> {
+        if (folder != null) {
+            return mFolderDao!!.getDescendantThingsForProjection(
+                folder.id, Def.ThingStatus.DELETED, getActiveTypeFilterMask()
+            )
+        }
+        return mDao!!.getAllUserThingsByState(Thing.DELETED).filterNotNull().filter {
+            matchesActiveTypeFilter(it.type)
+        }
+    }
+
+    /** Restore the given trashed Things to their pre-trash state, then reload. */
+    open fun restoreTrashedThings(things: List<Thing>): Int {
+        if (things.isEmpty()) return 0
+        restoreThingsToPreTrashState(things)
+        loadThings()
+        return things.size
+    }
+
+    private fun changeFolderSubtreeContentState(
+        things: List<Thing>,
+        @Thing.State stateBefore: Int,
+        @Thing.State stateAfter: Int
+    ): Int {
+        if (things.isEmpty()) return 0
+
+        val ongoingKey = Def.Meta.KEY_ONGOING_THING_ID
+        val curOngoingId = FrequentSettings.getLong(ongoingKey)
+        var shouldCancelOngoing = false
+        val clonedThings: MutableList<Thing?> = ArrayList()
+        for (thing in things) {
+            if (thing.id == curOngoingId) shouldCancelOngoing = true
+            clonedThings.add(Thing.getSameCheckStateThing(thing, stateBefore, stateAfter))
+        }
+        if (shouldCancelOngoing) {
+            SystemNotificationUtil.cancelThingOngoingNotification(mContext, curOngoingId)
+            mContext!!.getSharedPreferences(Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE)
+                .edit().putLong(ongoingKey, -1L).apply()
+            FrequentSettings.put(ongoingKey, -1L)
+        }
+
+        mDao!!.updateStates(clonedThings, null, stateBefore, stateAfter, false)
+
+        val rDao = ReminderDAO.getInstance(mContext)!!
+        val updateCounts = SparseIntArray()
+        val habitIds = ArrayList<Long>()
+        val goals = ArrayList<Reminder?>()
+        for (thing in things) {
+            val type = thing.type
+            if (type == Thing.HABIT) {
+                habitIds.add(thing.id)
+            } else if (type == Thing.GOAL && stateAfter == Thing.UNDERWAY) {
+                goals.add(rDao.getReminderById(thing.id))
+            }
+            if (stateAfter != Thing.UNDERWAY) {
+                SystemNotificationUtil.cancelNotification(thing.id, type, mContext)
+            }
+            updateCounts.put(type, updateCounts.get(type) + 1)
+        }
+        val countsSize = updateCounts.size()
+        for (i in 0 until countsSize) {
+            val t = updateCounts.keyAt(i)
+            val c = updateCounts.valueAt(i)
+            mThingsCounts!!.handleUpdate(t, stateBefore, t, stateAfter, c)
+        }
+
+        val habitDAO = HabitDAO.getInstance(mContext)!!
+        val curTime = System.currentTimeMillis()
+        for (goal in goals) {
+            rDao.resetGoal(goal)
+        }
+        if (stateAfter == Thing.UNDERWAY) {
+            for (habitId in habitIds) {
+                habitDAO.updateHabitToLatest(habitId, true, true)
+                habitDAO.addHabitIntervalInfo(habitId, "$curTime;")
+            }
+        } else {
+            for (habitId in habitIds) {
+                if (habitDAO.isPaused(habitId)) {
+                    habitDAO.addHabitIntervalInfo(habitId, "$curTime;")
+                }
+            }
+        }
+
+        loadThings()
+        return things.size
     }
 
     open fun toggleFolderSticky(folder: ThingFolder?): Boolean {

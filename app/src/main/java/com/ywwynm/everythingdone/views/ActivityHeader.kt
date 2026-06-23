@@ -224,18 +224,14 @@ open class ActivityHeader(
         mInFolderProjection = folderPath.isNotEmpty()
         headerCollapseProgress = 0f
         resetTitleTextStyle()
-        val typeTitle = if (manager?.hasCustomTypeFilter() == true) {
-            ThingWidgetInfo.getTypeFilterTitle(mApp, manager.getActiveTypeFilterMask())
-        } else {
-            null
-        }
+        // The header title shows only the current status name (at root scope) or
+        // the current folder name (inside a folder). It never appends the type
+        // filter text — type filtering is expressed by the Drawer capsule row.
         val folderTitle = currentFolder?.title?.ifEmpty {
             mApp.getString(R.string.default_thing_folder_name)
         }
         mTitle.text = if (currentFolder == null) {
             rootTitle
-        } else if (typeTitle != null) {
-            "${folderTitle ?: rootTitle} · $typeTitle"
         } else {
             folderTitle ?: rootTitle
         }
@@ -252,13 +248,6 @@ open class ActivityHeader(
     }
 
     private fun getRootTitle(): String {
-        val manager = ThingManager.getInstance(mApp)
-        if (manager?.hasCustomTypeFilter() == true) {
-            return ThingWidgetInfo.getTypeFilterTitle(
-                mApp,
-                manager.getActiveTypeFilterMask()
-            ) ?: mApp.getString(R.string.underway)
-        }
         return when (mApp.getStatus()) {
             Def.ThingStatus.FINISHED ->
                 mApp.getString(R.string.finished)

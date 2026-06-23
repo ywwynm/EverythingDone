@@ -24,6 +24,8 @@ import android.widget.FrameLayout
 import android.widget.ImageView
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
+import com.ywwynm.everythingdone.App
+import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.adapters.BaseThingsAdapter
 import com.ywwynm.everythingdone.helpers.DebugFileLogger
@@ -429,6 +431,10 @@ class ThingListOverlayDragController(
     private fun findFolderDropTargetUnderOverlayTopLeft(
         current: Session
     ): RecyclerView.ViewHolder? {
+        // Drag-to-folder (both creating a folder and moving into an existing one)
+        // is only available in the 正在进行 status. In 已完成 / 回收站 a drag is
+        // reorder-only; structural moves go through the explicit move dialog.
+        if (App.getApp()?.getStatus() != Def.ThingStatus.UNDERWAY) return null
         val recyclerView = host.recyclerView
         val recyclerLocation = IntArray(2)
         val rootLocation = IntArray(2)

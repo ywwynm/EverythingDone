@@ -31,7 +31,7 @@ object Def {
         const val FEEDBACK_ERROR_FILE_NAME: String = "feedback_error.dat"
 
         const val DATABASE_NAME: String = "EverythingDoneData.db"
-        const val DATABASE_VERSION: Int = 17
+        const val DATABASE_VERSION: Int = 20
 
         const val ONGOING_NOTIFICATION_ID: Int = Int.MAX_VALUE
 
@@ -135,6 +135,7 @@ object Def {
         const val COLUMN_THING_CARD_APPEARANCE_THINGS: String = "thing_card_appearance" /* added in version 13 */
         const val COLUMN_DETAIL_ATTACHMENT_MEDIA_APPEARANCE_THINGS: String = "detail_attachment_media_appearance" /* added in version 14 */
         const val COLUMN_FOLDER_ID_THINGS: String = "folder_id" /* added in version 15 */
+        const val COLUMN_STATE_BEFORE_DELETE_THINGS: String = "state_before_delete" /* added in version 18 */
         const val COLUMN_LEGACY_HOME_CARD_SPAN_MODE_THINGS: String = "home_card_span_mode" /* added in version 10, renamed in version 12 */
         const val COLUMN_LEGACY_HOME_CARD_IMAGE_PLACEMENT_THINGS: String = "home_card_image_placement" /* added in version 11, renamed in version 12 */
 
@@ -194,7 +195,7 @@ object Def {
         const val COLUMN_TARGET_FOLDER_ID_APP_WIDGET: String = "target_folder_id" /* added in version 16 */
         const val COLUMN_TYPE_FILTER_MASK_APP_WIDGET: String = "type_filter_mask" /* added in version 16 */
         const val COLUMN_DISPLAY_MODE_APP_WIDGET: String = "display_mode" /* added in version 16 */
-        const val COLUMN_STATUS_APP_WIDGET: String = "status" /* declared for deferred widget status */
+        const val COLUMN_STATUS_APP_WIDGET: String = "status" /* added in version 19 */
 
         const val TABLE_DOING_RECORDS: String             = "doing_records"
         const val COLUMN_ID_DOING: String                 = "id"

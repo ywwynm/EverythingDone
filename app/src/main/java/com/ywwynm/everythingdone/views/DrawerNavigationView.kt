@@ -41,6 +41,7 @@ import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.model.ThingWidgetInfo
@@ -56,7 +57,7 @@ class DrawerNavigationView @JvmOverloads constructor(
     sealed class ItemKey {
         data class Destination(@param:IdRes val itemId: Int) : ItemKey()
         data class Folder(val folderId: Long) : ItemKey()
-        object TypeFilter : ItemKey()
+        object FilterPanel : ItemKey()
     }
 
     data class DrawerItem(
@@ -71,7 +72,9 @@ class DrawerNavigationView @JvmOverloads constructor(
         val dividerBefore: Boolean = false,
         val groupStart: Boolean = false,
         val groupEnd: Boolean = false,
-        val typeFilterMask: Int = 0
+        val typeFilterMask: Int = 0,
+        val status: Int = Def.ThingStatus.UNDERWAY,
+        val scopeBackground: ThingBackground? = null
     )
 
     private val headerView: View
@@ -82,6 +85,7 @@ class DrawerNavigationView @JvmOverloads constructor(
     private var itemClickListener: ((DrawerItem) -> Unit)? = null
     private var folderExpandClickListener: ((Long) -> Unit)? = null
     private var typeFilterChangeListener: ((Int) -> Unit)? = null
+    private var statusFilterChangeListener: ((Int) -> Unit)? = null
 
     init {
         orientation = VERTICAL
@@ -141,6 +145,10 @@ class DrawerNavigationView @JvmOverloads constructor(
 
     fun setOnTypeFilterChangeListener(listener: (Int) -> Unit) {
         typeFilterChangeListener = listener
+    }
+
+    fun setOnStatusFilterChangeListener(listener: (Int) -> Unit) {
+        statusFilterChangeListener = listener
     }
 
     fun submitItems(
@@ -243,7 +251,7 @@ class DrawerNavigationView @JvmOverloads constructor(
 
         override fun getItemViewType(position: Int): Int {
             return when (items[position].key) {
-                is ItemKey.TypeFilter -> 1
+                is ItemKey.FilterPanel -> 1
                 else -> 0
             }
         }
@@ -252,13 +260,13 @@ class DrawerNavigationView @JvmOverloads constructor(
             return when (val key = items[position].key) {
                 is ItemKey.Destination -> key.itemId.toLong()
                 is ItemKey.Folder -> Long.MIN_VALUE xor key.folderId
-                is ItemKey.TypeFilter -> Long.MIN_VALUE
+                is ItemKey.FilterPanel -> Long.MIN_VALUE
             }
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
             return when (viewType) {
-                1 -> TypeFilterHolder(parent.context)
+                1 -> FilterPanelHolder(parent.context)
                 else -> DrawerItemHolder(parent.context)
             }
         }
@@ -275,7 +283,7 @@ class DrawerNavigationView @JvmOverloads constructor(
                     position == items.lastIndex,
                     bottomSystemInset
                 )
-                is TypeFilterHolder -> holder.bind(item, position == items.lastIndex, bottomSystemInset)
+                is FilterPanelHolder -> holder.bind(item, position == items.lastIndex, bottomSystemInset)
             }
         }
 
@@ -463,29 +471,19 @@ class DrawerNavigationView @JvmOverloads constructor(
         }
     }
 
-    private inner class TypeFilterHolder(context: Context) :
-        RecyclerView.ViewHolder(createTypeFilterView(context)) {
+    private inner class FilterPanelHolder(context: Context) :
+        RecyclerView.ViewHolder(createFilterPanelView(context)) {
 
         private val root: LinearLayout = itemView as LinearLayout
         private val divider: View = root.getChildAt(0)
         private val groupTopSpace: View = root.getChildAt(1)
-        private val content: LinearLayout = root.getChildAt(2) as LinearLayout
+        private val panel: ThingFilterPanel = root.getChildAt(2) as ThingFilterPanel
         private val groupBottomSpace: View = root.getChildAt(3)
-        private val summaryText: TextView = content.getChildAt(0) as TextView
-        private val iconRowContainer: LinearLayout = content.getChildAt(1) as LinearLayout
-        private val iconRow: LinearLayout = iconRowContainer.getChildAt(0) as LinearLayout
 
-        private val typeButtons: List<Pair<Int, ImageView>> by lazy {
-            listOf(
-                ThingWidgetInfo.TYPE_FILTER_ALL to iconRow.getChildAt(0) as ImageView,
-                ThingWidgetInfo.TYPE_FILTER_NOTE to iconRow.getChildAt(1) as ImageView,
-                ThingWidgetInfo.TYPE_FILTER_REMINDER to iconRow.getChildAt(2) as ImageView,
-                ThingWidgetInfo.TYPE_FILTER_HABIT to iconRow.getChildAt(3) as ImageView,
-                ThingWidgetInfo.TYPE_FILTER_GOAL to iconRow.getChildAt(4) as ImageView
-            )
+        init {
+            panel.onStatusChange = { status -> statusFilterChangeListener?.invoke(status) }
+            panel.onTypeFilterChange = { mask -> typeFilterChangeListener?.invoke(mask) }
         }
-
-        private var currentMask: Int = ThingWidgetInfo.TYPE_FILTER_ALL
 
         fun bind(
             item: DrawerItem,
@@ -504,73 +502,12 @@ class DrawerNavigationView @JvmOverloads constructor(
                 groupBottomSpace.layoutParams = params
             }
 
-            currentMask = item.typeFilterMask
-            updateTypeFilterButtons()
-        }
-
-        private fun updateTypeFilterButtons() {
-            val selectedBgColor = ContextCompat.getColor(context, R.color.drawer_selected_bg)
-            val selectedAll = ThingWidgetInfo.isAllTypeFilter(currentMask)
-
-            summaryText.text = when {
-                selectedAll -> context.getString(R.string.all_types)
-                else -> ThingWidgetInfo.getTypeFilterTitle(context, currentMask)
-                    ?: context.getString(R.string.all_types)
-            }
-
-            for ((mask, button) in typeButtons) {
-                val selected = if (mask == ThingWidgetInfo.TYPE_FILTER_ALL) {
-                    selectedAll
-                } else {
-                    !selectedAll && currentMask and mask != 0
-                }
-                setTypeButtonBackground(button, selected, selectedBgColor)
-            }
-        }
-
-        private fun setTypeButtonBackground(button: ImageView, selected: Boolean, selectedColor: Int) {
-            if (selected) {
-                val bg = android.graphics.drawable.GradientDrawable().apply {
-                    shape = android.graphics.drawable.GradientDrawable.OVAL
-                    setColor(selectedColor)
-                }
-                button.background = bg
-            } else {
-                button.background = null
-            }
-        }
-
-        private fun toggleTypeFilter(mask: Int) {
-            if (mask == ThingWidgetInfo.TYPE_FILTER_ALL) {
-                currentMask = ThingWidgetInfo.TYPE_FILTER_ALL
-            } else {
-                currentMask = if (currentMask == ThingWidgetInfo.TYPE_FILTER_ALL) {
-                    mask
-                } else {
-                    currentMask xor mask
-                }
-                currentMask = ThingWidgetInfo.normalizedTypeFilterMask(currentMask)
-            }
-            updateTypeFilterButtons()
-            typeFilterChangeListener?.invoke(currentMask)
-        }
-
-        init {
-            val tintColor = ContextCompat.getColor(context, R.color.app_chrome_drawer_item_foreground)
-            for ((mask, button) in typeButtons) {
-                BackgroundUtil.installAppChromeCircleRipple(button, context)
-                val drawable = button.drawable
-                if (drawable != null) {
-                    button.setImageDrawable(
-                        DisplayUtil.opaqueTintDrawable(context, drawable, tintColor)
-                    )
-                }
-                button.setOnClickListener { toggleTypeFilter(mask) }
-            }
+            panel.setScopeBackground(item.scopeBackground)
+            panel.setSelection(item.status, item.typeFilterMask)
         }
     }
 
-    private fun createTypeFilterView(context: Context): View {
+    private fun createFilterPanelView(context: Context): View {
         val root = LinearLayout(context).apply {
             orientation = VERTICAL
             layoutParams = RecyclerView.LayoutParams(
@@ -579,7 +516,6 @@ class DrawerNavigationView @JvmOverloads constructor(
             )
         }
 
-        // Divider
         root.addView(
             View(context).apply {
                 setBackgroundColor(ContextCompat.getColor(context, R.color.app_chrome_divider))
@@ -590,7 +526,6 @@ class DrawerNavigationView @JvmOverloads constructor(
             )
         )
 
-        // Group top spacing
         root.addView(
             Space(context),
             LinearLayout.LayoutParams(
@@ -599,85 +534,14 @@ class DrawerNavigationView @JvmOverloads constructor(
             )
         )
 
-        // Content: summary text + icon row
-        val content = LinearLayout(context).apply {
-            orientation = VERTICAL
-            setPaddingRelative(dp(DRAWER_ITEM_START_PADDING_DP), dp(8f), dp(DRAWER_ITEM_START_PADDING_DP), dp(8f))
-        }
-
-        // Summary text
-        content.addView(
-            TextView(context).apply {
-                textSize = 12f
-                setTextColor(ContextCompat.getColor(context, R.color.app_chrome_on_surface_hint))
-                gravity = Gravity.START or Gravity.CENTER_VERTICAL
-                setSingleLine(true)
-                ellipsize = TextUtils.TruncateAt.END
-            },
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            ).apply {
-                bottomMargin = dp(8f)
-            }
-        )
-
-        // Icon row - centered
-        val iconRow = LinearLayout(context).apply {
-            orientation = HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-        }
-        val iconRowContainer = LinearLayout(context).apply {
-            orientation = HORIZONTAL
-            gravity = Gravity.CENTER_HORIZONTAL
-        }
-        val iconTouchTarget = dp(40f)
-        val iconMargin = dp(2f)
-        val iconPadding = dp(8f)
-        val iconSize = dp(24f)
-        val iconResIds = intArrayOf(
-            R.drawable.drawer_all,
-            R.drawable.drawer_note,
-            R.drawable.drawer_reminder,
-            R.drawable.drawer_habit,
-            R.drawable.drawer_goal
-        )
-        for (resId in iconResIds) {
-            val imageView = ImageView(context).apply {
-                setImageResource(resId)
-                scaleType = ImageView.ScaleType.CENTER
-                setPadding(iconPadding, iconPadding, iconPadding, iconPadding)
-                isClickable = true
-                isFocusable = true
-            }
-            val params = LinearLayout.LayoutParams(iconTouchTarget, iconTouchTarget)
-            params.setMargins(iconMargin, 0, iconMargin, 0)
-            iconRow.addView(imageView, params)
-        }
-        iconRowContainer.addView(
-            iconRow,
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            )
-        )
-        content.addView(
-            iconRowContainer,
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            )
-        )
-
         root.addView(
-            content,
+            ThingFilterPanel(context),
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
             )
         )
 
-        // Group bottom spacing
         root.addView(
             Space(context),
             LinearLayout.LayoutParams(

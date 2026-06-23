@@ -407,9 +407,32 @@ open class ModeManager(app: App?,
         }
         setMenuItemVisible(R.id.act_restore_selected, restoreVisible)
 
+        // Recursive "complete all things in folder" for a single underway folder.
+        setMenuItemVisible(
+            R.id.act_finish_thing_folder,
+            singleFolderOnly && limitIsUnderway && selectedFolder?.isDeleted() != true
+        )
+        // Recursive restore of a folder's content: un-finish in Finished, or
+        // restore trashed descendants for a Projection Folder (folder not itself
+        // trashed) in the recycle bin. A Trashed Folder uses act_restore_selected.
+        val statusFinished = mApp!!.getStatus() == Def.ThingStatus.FINISHED
+        val statusDeleted = mApp!!.getStatus() == Def.ThingStatus.DELETED
+        setMenuItemVisible(
+            R.id.act_restore_thing_folder_content,
+            singleFolderOnly && (statusFinished ||
+                (statusDeleted && selectedFolder?.isDeleted() != true))
+        )
+
         val dissolveItem = mContextualToolbar!!.menu
                 .findItem(R.id.act_dissolve_thing_folder)
         dissolveItem?.isVisible = singleFolderOnly && limitIsUnderway
+
+        // Recycle bin only: permanently delete just the folder's trashed Things
+        // (content op, does not touch the folder's Things in other status views).
+        setMenuItemVisible(
+            R.id.act_delete_thing_folder_content,
+            singleFolderOnly && statusDeleted
+        )
 
         val deleteFolderItem = mContextualToolbar!!.menu
                 .findItem(R.id.act_delete_thing_folder)

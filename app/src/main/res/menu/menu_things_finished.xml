@@ -11,6 +11,12 @@
         app:showAsAction="always"/>
 
     <item
+        android:id="@+id/act_restore_all"
+        android:title="@string/restore_all_things"
+        android:icon="@drawable/act_restore_all"
+        app:showAsAction="always"/>
+
+    <item
         android:id="@+id/act_delete_all"
         android:title="@string/act_delete_all"
         android:icon="@drawable/act_delete_all"

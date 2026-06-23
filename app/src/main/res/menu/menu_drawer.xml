@@ -3,21 +3,16 @@
     xmlns:android="http://schemas.android.com/apk/res/android">
 
     <group
-        android:id="@+id/drawer_group_things_underway">
+        android:id="@+id/drawer_group_scope">
         <item
-            android:id="@+id/drawer_underway"
-            android:title="@string/underway"
+            android:id="@+id/drawer_all_things"
+            android:title="@string/all_things"
             android:orderInCategory="0"
             android:icon="@drawable/drawer_all"/>
     </group>
 
     <group
         android:id="@+id/drawer_group_things_other">
-        <item
-            android:id="@+id/drawer_finished"
-            android:title="@string/finished"
-            android:orderInCategory="2000"
-            android:icon="@drawable/drawer_finished"/>
         <item
             android:id="@+id/drawer_deleted"
             android:title="@string/drawer_deleted"

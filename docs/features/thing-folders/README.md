@@ -1,6 +1,6 @@
 # Thing Folders
 
-Status: implementation in progress.
+Status: implemented (纯骨架模型，2026-06-23）。后续仅 `followups.md` 中的延后项。
 
 ## Goal
 
@@ -12,7 +12,8 @@ Thing Card appearance behavior.
 
 ## Documents
 
-- `plan.md` - product, data model, UI, compatibility, and implementation plan.
+- `use-cases.md` - 权威行为矩阵（当前实现：纯骨架模型 + 跟随类型筛选）。
+- `plan.md` - 早期规划稿（部分已被 use-cases.md / decisions.md 取代，见文内标注）。
 - `execution.md` - phased implementation checklist and verification matrix.
 - `decisions.md` - decisions confirmed during the grilling session.
 - `followups.md` - deferred work that is intentionally outside the first

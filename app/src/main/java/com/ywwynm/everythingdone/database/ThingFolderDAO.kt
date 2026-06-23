@@ -191,7 +191,8 @@ open class ThingFolderDAO private constructor(context: Context?) {
 
     open fun getFolderEntriesForWidgetProjection(
         parentFolderId: Long?,
-        typeFilterMask: Int
+        typeFilterMask: Int,
+        status: Int = Def.ThingStatus.UNDERWAY
     ): List<ThingListEntry.FolderEntry> {
         val entries = ArrayList<ThingListEntry.FolderEntry>()
         for (folder in getChildFolders(parentFolderId)) {
@@ -199,7 +200,7 @@ open class ThingFolderDAO private constructor(context: Context?) {
             if (effectiveDeleted) continue
             val count = countDescendantThings(
                 folder.id,
-                thingSelectionForStatusAndTypeFilter(Def.ThingStatus.UNDERWAY, typeFilterMask)
+                thingSelectionForStatusAndTypeFilter(status, typeFilterMask)
             )
             if (count <= 0) continue
             entries.add(
@@ -310,6 +311,57 @@ open class ThingFolderDAO private constructor(context: Context?) {
         return result
     }
 
+    /**
+     * Returns every Thing in the subtree rooted at [folderId] (the folder itself
+     * and all descendant folders) whose own state and type match the given
+     * status + type filter. Used by folder content state operations such as
+     * "完成当前筛选下的内容" / "恢复当前筛选下的内容为正在进行".
+     */
+    open fun getDescendantThingsForProjection(
+        folderId: Long,
+        status: Int,
+        typeFilterMask: Int
+    ): List<Thing> {
+        val folderIds = getDescendantFolderIds(folderId)
+        if (folderIds.isEmpty()) return emptyList()
+        val idList = folderIds.joinToString(",")
+        val selection = Def.Database.COLUMN_FOLDER_ID_THINGS + " in ($idList) and (" +
+            thingSelectionForStatusAndTypeFilter(status, typeFilterMask) + ")"
+        val result = ArrayList<Thing>()
+        val cursor = db!!.query(
+            Def.Database.TABLE_THINGS, null, selection, null, null, null, null
+        )
+        cursor.use {
+            while (it.moveToNext()) {
+                result.add(Thing(it))
+            }
+        }
+        return result
+    }
+
+    /**
+     * Every user Thing in the subtree rooted at [folderId], of any state
+     * (underway, finished or in the recycle bin). Used to decide whether a folder
+     * operation reaches content outside the current status/type filter.
+     */
+    open fun getAllDescendantThings(folderId: Long): List<Thing> {
+        val folderIds = getDescendantFolderIds(folderId)
+        if (folderIds.isEmpty()) return emptyList()
+        val idList = folderIds.joinToString(",")
+        val selection = Def.Database.COLUMN_FOLDER_ID_THINGS + " in ($idList) and (" +
+            userThingSelection() + ")"
+        val result = ArrayList<Thing>()
+        val cursor = db!!.query(
+            Def.Database.TABLE_THINGS, null, selection, null, null, null, null
+        )
+        cursor.use {
+            while (it.moveToNext()) {
+                result.add(Thing(it))
+            }
+        }
+        return result
+    }
+
     open fun countDescendantThings(folderId: Long, status: Int): Int {
         return countDescendantThings(folderId, thingSelectionForStatusAndTypeFilter(status, ThingWidgetInfo.TYPE_FILTER_ALL))
     }
@@ -340,13 +392,28 @@ open class ThingFolderDAO private constructor(context: Context?) {
         color: Int = 0
     ): Int {
         val effectiveDeleted = isEffectivelyDeleted(folder)
-        if (status == Def.ThingStatus.DELETED && effectiveDeleted) {
-            return countDescendantThings(
-                folder.id,
-                thingSelectionForTypeFilter(typeFilterMask),
-                keyword,
-                color
-            )
+        if (status == Def.ThingStatus.DELETED) {
+            return if (effectiveDeleted) {
+                // Trashed folder: every descendant Thing matching the type is in
+                // the recycle bin, whatever its own state.
+                countDescendantThings(
+                    folder.id,
+                    thingSelectionForTypeFilter(typeFilterMask),
+                    keyword,
+                    color
+                )
+            } else {
+                // Projection Folder (not itself trashed): count descendants that
+                // are effectively deleted — own state DELETED, OR inside a deleted
+                // subfolder. The latter is why deleting a subfolder must still make
+                // its ancestors appear in the recycle bin.
+                countDescendantThings(
+                    folder.id,
+                    trashedDescendantThingSelection(folder.id, typeFilterMask),
+                    keyword,
+                    color
+                )
+            }
         }
         if (effectiveDeleted) return 0
         return countDescendantThings(
@@ -355,6 +422,23 @@ open class ThingFolderDAO private constructor(context: Context?) {
             keyword,
             color
         )
+    }
+
+    /**
+     * SQL selection for Things in [folderId]'s subtree that are effectively in the
+     * recycle bin: own state DELETED, or located inside a descendant folder that is
+     * itself (effectively) deleted.
+     */
+    private fun trashedDescendantThingSelection(folderId: Long, typeFilterMask: Int): String {
+        val typeSelection = thingSelectionForTypeFilter(typeFilterMask)
+        val deletedFolderIds = getDescendantFolderIds(folderId).filter { isEffectivelyDeleted(it) }
+        return if (deletedFolderIds.isEmpty()) {
+            "($typeSelection) and " + Def.Database.COLUMN_STATE_THINGS + "=" + Thing.DELETED
+        } else {
+            "($typeSelection) and (" + Def.Database.COLUMN_STATE_THINGS + "=" + Thing.DELETED +
+                " or " + Def.Database.COLUMN_FOLDER_ID_THINGS +
+                " in (" + deletedFolderIds.joinToString(",") + "))"
+        }
     }
 
     open fun isEffectivelyDeleted(folderId: Long?): Boolean {

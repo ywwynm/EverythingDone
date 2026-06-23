@@ -497,7 +497,10 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         bindFolderCardHeader(
             holder,
             folder.title,
-            R.drawable.ic_thing_folder,
+            // A folder that is itself trashed (a Trashed Thing Folder) uses an
+            // icon with a delete mark, distinguishing it from a Projection Folder
+            // that only contains trashed descendants in the recycle bin.
+            if (folder.isDeleted()) R.drawable.ic_thing_folder_deleted else R.drawable.ic_thing_folder,
             baseColor,
             if (thumbnailMode) background else null
         )
